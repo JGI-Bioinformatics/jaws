@@ -1,0 +1,192 @@
+###########################################
+JTM Configuration options when creating WDL
+###########################################
+
+There are two types of resources you can get
+
+.. note:: **types of worker pools**
+
+      **static workers:**  persistent pool of workers with set memory limits  
+
+      **dynamic workers:** workers given to you by a sbatch call. You can configure things like the memory, ram, and number of workers.
+
+   A **worker** is what runs your tasks. You can have multiple workers per node.  You define how many workers you want by specifying the number of nodes (node) and number-of-workers-per-node (nwpn).  For example,  #workers = node * nwpn.
+   The maximum number for nwpn is 64 on cori since this is the number of threads.  Other machines will have a different number of threads.
+
+
+***************
+Dynamic workers
+***************
+There is a wait time because these jobs are submitted to slurm.  However, you can request resources the same way you would for a sbatch job. These have a time limit of 72 hours.  These are the options available to you at this time. The defaults are shown.  Quotes identify strings and are important.
+
+.. code-block:: bash
+
+   runtime {
+       cluster: "cori"       # only cori for now
+       time: "12:00:00"      # up to 72hrs
+       mem: "115G"           # you get a exclusive machine no matter what this setting is. You have two choices: ["115G"|"500G"]
+       poolname: "rqc"       # your choice.
+       shared: 1             # A setting of 1 will allow other tasks (even from other workflows) to use identical pools if the pool name is the same.
+							 # a setting of 0 will prevent any task to re-use a pool even when the same poolname is used.
+       node: 1               # number of nodes in the pool. You only need to set this higher when you are scattering a job.
+       nwpn: 1               # number of workers per node(up to 32).  This depends on the job's memory & thread requirements.
+       cpu: 32               # this is not used by JTM if run on cori. You can ignore this parameter until we add other "cluster" options.
+       constraint: "haswell" # [haswell|knl|skylake]. Don't use constraint at all if you want to use the default haswell nodes. 
+						     # Warning: using "knl" will limit your pool to the debug queue which is 30min. limit (until further notice).
+                             # If you want to use high-mem node, set it as "skylake".
+   }
+
+You can get up to 32 cpus (64 threads), 115G or 500G RAM, 72 hours.
+
+
+If you wanted to use all defaults, you could get  away with just poolname (as long as you don't use a static pool key-name like "medium". see "Static Workers" below).  However, this is ill-advised; see "note" under "Setting the poolname".
+
+.. code-block:: bash
+
+   runtime {
+        poolname: "rqc"
+   }
+
+
+How to estimate the number of workers you will need
+---------------------------------------------------------------
+**workers = node x nwpn**
+
+You will only need multiple workers if you are running jobs in parallel (e.g. using the scattering function in your WDL).
+Lets say you are scattering 100 jobs, and you decide 10 workers will give you the desired speedup (roughly 10x), how would you configure the "runtime{}" section to get 10 workers?
+The answer depends on how much memory each job will take (e.g. jobs may have variable memory usage so take the highest value seen in your testing). This assumes you did some profiling of your code even if it was using "memtime" to get max memory estimates for a job.
+
+The decision process should go something like this:
+
+  1. decide if you want a regular machine (128G - quicker to schedule) or a xlarge machine (512G - longer to schedule). Remember that there is an overhead of roughly 13G that you need to subtract from the total memory, so you'd use mem: "115G" or mem: "500G".
+  2. if your job maximum memory useage was 50G, and you are using a regular 115G machine then you can run 2 jobs per node. You would request node: 5 & nwpn: 2. 
+  3. if your job max memory usage is 2G and it only uses 1 thread, then set node: 1 & nwpn: 56. Remember that nwpn: 64 is the maximum.
+
+
+for example:
+**scattering high memory jobs**
+
+.. code-block:: bash
+
+   runtime {
+	 poolname: "rqc"
+	 cluster: "cori"
+	 time: "2:00:00"
+	 mem: "115G"
+	 node: 5
+  	 nwpn: 2
+   }
+
+
+Setting the poolname
+--------------------
+The advantage of setting "poolname" to some user defined name is that you can re-use the pool for another task that will not have to re-submit to slurm.  Since the second task is re-using the pool, the time limit must be adequate to run both tasks. As for mem, node and nwpn, remember to set these to the highest number you will encounter in either task. In theory, you could reserve a large machine for a long time and do all tasks on that machine, only having to sbatch once; however, this would circumvent the optimization potential of the workflow engine, which is to pair small tasks with small compute resources. 
+
+.. note::
+   If you re-use a worker pool (e.g. same poolname), make sure to include all the necessary runtime parameters like cpu, time, etc.  Lets say you define a Dynamic pool as in the above example and then use the same poolname: "rqc" in another task without specifying time, mem, etc.  If the pool were to timeout or crash for some reason, the second task would be trying to use a pool that doesn't exist anymore and hang.  So by copying all the runtime parameters for each task using "rqc", even if it were to timeout, a new pool would be created and the job will run.
+
+**************
+Static workers
+**************
+There are no wait times to run these jobs. If you only need 1 cpu, but different RAM requirements, you can use the static worker pool. These have no time limit either. To use this resource, you just need to set your runtime stanza as follows:
+
+.. code-block:: bash
+
+   runtime {
+       poolname: "small"
+   }
+
+Refer to this table to gage how much RAM you need.
+
++-----------+--------------+
+| poolname  |  RAM (Gb)    |
++===========+==============+
+| small     |    5         |
++-----------+--------------+
+| medium    |   40         |
++-----------+--------------+
+| large     |  128         |
++-----------+--------------+
+| xlarge    |  512         |
++-----------+--------------+
+
+If no runtime settings are declared, the defaults will be used.  If you say poolname: "small" and include a non-default setting for one of the other parameters, you will no longer be using a static pool, but will be given a dynamic pool.
+
+   The default settings, whether you are using Dynamic or Static workers are:
+
+.. code-block:: bash
+
+    runtime {
+       cluster: "cori"
+       cpu: 1
+       time: None
+       mem: "5G"
+       poolname: "small"
+       node: 1
+       nwpn: 1
+    }
+
+.. warning:: 
+   Don't use a static worker pool for scattering jobs since they will just run in serial and not be parallelized.  You need multiple workers for parallelization.
+
+*********************************
+Example Cases and Best-practices
+*********************************
+If you have a job that only needs 1 cpu, 10G and will take less than 20 minutes, use a Dynamic pool.  If you want to scatter a task, don't use Static pools since they will be run in serial.
+
+.. code-block:: bash
+
+   runtime {
+        poolname: "medium"
+   }
+
+
+You are now creating a Frankenstein because you have added a 50G worker from slurm to a medium 40G worker. Its confusing...don't do it.
+One worker will time-out at the cori default limit and one will persist. Furthermore, each worker will be on a separate node with different memory.
+
+.. code-block:: bash
+
+   runtime {
+        poolname: "medium"
+		mem: "50G"
+   }
+
+If you want to scatter a task use Dynamic workers. If you have a hundred scatter jobs, having 10 workers will give you a 10x speedup. You can configure how many workers(jobs) you want on a node; this depends on the memory requirements per job. Assuming here that each job takes max of 20G ...
+
+.. code-block:: bash
+
+   runtime {
+       cluster: "cori"
+       time: "1:00:00"
+       mem: "115G"
+       poolname: "rqc"
+       node: 2
+       nwpn: 5
+   }
+
+If you re-use a Dynamic pool, copy all the params, not just the name.  In this example, the first task takes 20 minutes and the second task takes 40 minutes so the total needs to be at least 1hr.
+
+.. code-block:: bash
+
+   task trim {
+      runtime {
+        cluster: "cori"
+        time: "1:00:00"
+        mem: "115G"
+        poolname: "rqc"
+        node: 1
+        nwpn: 10
+      }
+   }
+   task assembly {
+      runtime {
+        cluster: "cori"
+        time: "1:00:00"
+        mem: "115G"
+        poolname: "rqc"
+        node: 1
+        nwpn: 10
+      }
+
+   }
+

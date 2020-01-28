@@ -1,0 +1,2 @@
+export JAWS_CENTRAL_CONFIG=
+export JAWS_SITES_CONFIG=
