@@ -1,7 +1,6 @@
 VERSION := $(shell git describe --always --tags --abbrev=6 --dirty="-dev")
 Q := $(if $V,,@)
 
-## Package Section BEGIN
 .PHONY: pkg-requirements
 pkg-requirements:
 	$(if $(shell which wheel),,$(error "Packaging needs Python wheel installed. Please run 'pip install wheel'"))
