@@ -19,10 +19,16 @@ JAWS uses Gitlab CI for Continuous Integration testing. This means that every ti
 
 JAWS uses Flake8 to test for PEP 8 conformance. PEP 8 is a series of style guides for Python that provide suggestions for everything from variable naming to indentation. Your PR needs to comply with PEP 8 in order to be accepted.
 
-Testing for PEP 8 compliance is easy. You’ll want to install the flake8 command:
+Testing for PEP 8 compliance is easy:
 
 ```
-[MAKEFILE]
+make test
+
+# or partial tests with
+
+make test-client
+make test-site
+make test-central
 ```
 
 Most of the error messages are straightforward, but if you don’t understand what they mean, please ask questions about them when you submit your PR.
