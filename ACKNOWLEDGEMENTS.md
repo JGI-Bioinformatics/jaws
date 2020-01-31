@@ -1,0 +1,1 @@
+- (Spack)[https://github.com/spack/spack] - for leting us rip off their excellent contribution guidelines
