@@ -1,9 +1,6 @@
 VERSION := $(shell git describe --always --tags --abbrev=6 --dirty="-dev")
 Q := $(if $V,,@)
 
-# .PHONY: all
-# all: ogrt
-
 ## Package Section BEGIN
 .PHONY: pkg-requirements
 pkg-requirements:
@@ -26,7 +23,6 @@ pkg: pkg-site pkg-central pkg-client
 ## Package Section END
 
 ## Test Section BEGIN
-
 .PHONY: test-requirements
 test-requirements:
 	$(if $(shell which flake8),,$(error "Testing needs flake8 installed. Please run 'pip install flake8'"))
@@ -45,5 +41,4 @@ test-client: test-requirements
 
 .PHONY: test
 test: test-site test-central test-client
-
 ## Test Section END
