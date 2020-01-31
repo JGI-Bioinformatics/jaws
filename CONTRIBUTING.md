@@ -1,29 +1,36 @@
 # Contribution Guide
 
 This guide is intended for developers or administrators who want to contribute a new package, feature, or bugfix to JAWS. It assumes that you have at least some familiarity with Git VCS and Gitlab. The guide will show a few examples of contributing workflows and discuss the granularity of pull-requests (PRs). It will also discuss the tests your PR (Pull Request) must pass in order to be accepted into JAWS.
+
 The changes one proposes in a PR should correspond to one completed feature/bugfix/extension/etc. One can create PRs with changes relevant to different ideas, however reviewing such PRs becomes tedious and error prone. If possible, try to follow the one-PR-one-package/feature rule.
+
+
 JAWS uses a rough approximation of the [Git Flow branching model](http://nvie.com/posts/a-successful-git-branching-model/). The develop branch contains the latest contributions, and master is always tagged and points to the latest stable release. Therefore, when you send your request, make develop the destination branch on the JAWS repository.
-Continuous Integration
+
+
+## Continuous Integration
+
 JAWS uses Gitlab CI for Continuous Integration testing. This means that every time you submit a pull request, a series of tests will be run. Your PR will not be accepted until it passes all of these tests. While you can certainly wait for the results of these tests after submitting a PR, we recommend that you run them locally to speed up the review process.
  
 
-## Tests
+### Tests
 
-We currently perform 3 types of tests:
-
-### Unit Tests
-
-Unit tests ensure that core features are working as expected. If you make changes to JAWS, you should run the unit tests to make sure you didn’t break anything.
-
-
-### Flake8 Tests
+#### Flake8 Tests
 
 JAWS uses Flake8 to test for PEP 8 conformance. PEP 8 is a series of style guides for Python that provide suggestions for everything from variable naming to indentation. Your PR needs to comply with PEP 8 in order to be accepted.
+
 Testing for PEP 8 compliance is easy. You’ll want to install the flake8 command:
 
-$ [HOW TO RUN FLAKE8, PROBABLY MAKEFILE]
+```
+[MAKEFILE]
+```
 
 Most of the error messages are straightforward, but if you don’t understand what they mean, please ask questions about them when you submit your PR.
+
+
+#### Unit Tests
+
+Unit tests ensure that core features are working as expected. If you make changes to JAWS, you should run the unit tests to make sure you didn’t break anything.
 
 
 ## Git Workflows
