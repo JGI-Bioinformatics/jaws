@@ -25,7 +25,6 @@ Testing for PEP 8 compliance is easy:
 make test
 
 # or partial tests with
-
 make test-client
 make test-site
 make test-central
