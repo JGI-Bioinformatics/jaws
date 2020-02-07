@@ -1,1 +1,2 @@
-- (Spack)[https://github.com/spack/spack] - for leting us rip off their excellent contribution guidelines
+- (Spack)[https://github.com/spack/spack] - for letting us rip off their excellent contribution guidelines
+- (ESS-DIVE)[https://github.com/ess-dive] - for their merge request template guide
