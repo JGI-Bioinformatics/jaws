@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+. test/integration/libcommon
+
+ensure_installed "python3" "gcc"
+ensure_aws_creds
+ensure_init
+
+python3 -m venv venv
+. venv/bin/activate
+
+# install aws tools
+pip install awscli
+
+
+# install elasticluster
+#TODO: specify version and not use master
+git clone git://github.com/gc3-uzh-ch/elasticluster.git elasticluster
+pip install -e elasticluster
+
+# clear gitlab-ci cache
+rm -rf elasticluster-data
+
+mkdir -p elasticluster-data/storage
+cat << EOM > elasticluster-data/config
+[cloud/aws]
+provider=ec2_boto
+ec2_url=https://ec2.$AWS_DEFAULT_REGION.amazonaws.com
+ec2_access_key=$AWS_ACCESS_KEY_ID
+ec2_secret_key=$AWS_SECRET_ACCESS_KEY
+ec2_region=$AWS_DEFAULT_REGION
+
+[setup/slurm]
+frontend_groups=slurm_master
+compute_groups=slurm_worker
+# install NIS/YP to manage cluster users
+global_var_multiuser_cluster=yes
+global_var_upgrade_packages=no
+
+[login/centos]
+image_user=centos
+image_user_sudo=root
+image_sudo=True
+user_key_name=elasticluster
+user_key_private=$(pwd)/keys/id_elasticluster
+user_key_public=$(pwd)/keys/id_elasticluster.pub
+
+[cluster/slurm]
+setup=slurm
+cloud=aws
+security_group=jaws-testing
+# CentOS 7 for AWS region eu-east-2
+image_id=ami-0f2b4fc905b0bd1f1
+login=centos
+flavor=m5.large
+
+frontend_nodes=1
+compute_nodes=4
+
+[cluster/slurm/frontend]
+flavor=m5.large
+EOM
+
+aws s3 cp --recursive s3://jaws-testing/elasticluster-keys/ keys/
+chmod 600 keys/id_elasticluster
+
+# inject some roids into ansible
+wget https://networkgenomics.com/try/mitogen-0.2.9.tar.gz
+tar xf mitogen-0.2.9.tar.gz
+export ANSIBLE_STRATEGY_PLUGINS=$(pwd)/mitogen-0.2.9/ansible_mitogen/plugins/strategy
+export ANSIBLE_STRATEGY=mitogen_linear
+
+elasticluster -c $(pwd)/elasticluster-data/config -s $(pwd)/elasticluster-data/storage start slurm
+
+aws s3 cp --recursive elasticluster-data/ s3://jaws-testing/$PIPELINE_TAG/
+
+## docker
+elasticluster -c $(pwd)/elasticluster-data/config -s $(pwd)/elasticluster-data/storage ssh slurm "sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo"
+elasticluster -c $(pwd)/elasticluster-data/config -s $(pwd)/elasticluster-data/storage ssh slurm "sudo yum install -y docker-ce docker-compose"
+elasticluster -c $(pwd)/elasticluster-data/config -s $(pwd)/elasticluster-data/storage ssh slurm "sudo systemctl start docker"
+elasticluster -c $(pwd)/elasticluster-data/config -s $(pwd)/elasticluster-data/storage ssh slurm "sudo chmod 777 /var/run/docker.sock"

@@ -1,0 +1,93 @@
+stages:
+  - unit-test
+  - package
+  - deploy-cluster
+  - deploy-jaws-site
+  - integration-test
+  - .post
+
+# this needs to be included in the jobs definitions, for the jobs to
+# run in any case and not only when pushing a merge request.
+.only-default: &only-default
+  only:
+    - master
+    - branches
+    - merge_requests
+    - tags
+
+test-site:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install flake8
+    - make test-site
+  allow_failure: true
+test-central:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install flake8
+    - make test-central
+  allow_failure: true
+test-client:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install flake8
+    - make test-client
+  allow_failure: true
+package:
+  <<: *only-default
+  stage: package
+  script:
+    - python3 -m venv pkg-venv
+    - source pkg-venv/bin/activate
+    - pip install wheel
+    - make pkg
+  artifacts:
+    name: "packages-$CI_PROJECT_NAME-$CI_PIPELINE_ID"
+    expire_in: 1 hour
+    paths:
+      - site/dist
+      - client/dist
+      - central/dist
+
+## integration tests - only run on merge request
+deploy-cluster:
+  stage: deploy-cluster
+  script: ./test/integration/deploy-cluster
+  cache:
+    paths:
+      - venv/
+  only:
+  - merge_requests
+
+deploy-jaws-site:
+  stage: deploy-jaws-site
+  script:
+    - ./test/integration/on-site
+  dependencies:
+    - package
+  cache:
+    paths:
+      - venv/
+  only:
+  - merge_requests
+
+destroy-cluster:
+  stage: .post
+  script: ./test/integration/destroy-cluster
+  when: always
+  dependencies:
+    - deploy-cluster
+  cache:
+    paths:
+      - venv/
+  only:
+  - merge_requests
