@@ -1,6 +1,7 @@
 VERSION := $(shell git describe --always --tags --abbrev=6 --dirty="-dev")
 Q := $(if $V,,@)
 
+## Package Section BEGIN
 .PHONY: pkg-requirements
 pkg-requirements:
 	$(if $(shell which wheel),,$(error "Packaging needs Python wheel installed. Please run 'pip install wheel'"))
@@ -37,7 +38,7 @@ test-central: test-requirements
 .PHONY: test-client
 test-client: test-requirements
 	$Q flake8 client
-
+	
 .PHONY: test
 test: test-site test-central test-client
 ## Test Section END
