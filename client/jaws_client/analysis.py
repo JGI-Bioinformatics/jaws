@@ -21,10 +21,10 @@ import tarfile
 import click
 import uuid
 import globus_sdk
+from nested_dict import nested_dict
 from jaws_client import user, catalog, workflow
 
-DEBUG = False
-if "JAWS_DEBUG" in os.environ: DEBUG = True
+DEBUG = True if "JAWS_DEBUG" in os.environ else False
 
 # JAWS CONFIG
 JAWS_URL = os.environ["JAWS_URL"]
@@ -318,8 +318,8 @@ def submit(wdl_file, infile, outdir, site): #, block):
 
     # DEFINE OUTPUT DIR AND VERIFY IT'S ACCESSIBLE VIA GLOBUS
     if not outdir:
-        if current_user.config["PATHS"]["default_outdir"]:
-            outdir = current_user.config["PATHS"]["default_outdir"]
+        if current_user.config["USER"]["default_outdir"]:
+            outdir = current_user.config["USER"]["default_outdir"]
         else:
             sys.exit("--outdir required as no default specified in your config file\nYou may set your \"default_outdir\" by editing %s" % (current_user.config_file,))
     if not GLOBUS_BASEDIR: sys.exit("ERROR: \$GLOBUS_BASEDIR env var not defined")
@@ -338,17 +338,39 @@ def submit(wdl_file, infile, outdir, site): #, block):
     run.prepare_wdls(staging_dir, submission_uuid)
     run.prepare_inputs(GLOBUS_BASEDIR, JAWS_STAGING_SUBDIR, JAWS_SITE, submission_uuid)
 
+    # WRITE MANIFEST FILE -- DEPRECATED
+    #run.write_manifest(staging_dir, submission_uuid)
+    #files = {}
+    #files["manifest"] = ( "manifest", open(run.manifest_file, 'r'), "text/plain" )
+
     # GET COMPUTE SITE INFO (E.G. GLOBUS ENDPOINT PARAMS)
-    if not site: site = pick_site(run)
-    dest = site_info(site)
-    dest_dir = os.path.join(dest["basepath"], dest["staging_subdir"])
+    if DEBUG: print("Get Site info")
+    data = {
+        "site" : site,
+        "max_ram_gb" : run.max_ram_gb,
+        "transfer_gb" : run.transfer_gb
+    }
+    #if site is not None: data["site"] = site
+    url = "%s/run/get_site" % (JAWS_URL,)
+    try:
+        r = requests.post(url, data=data, headers=current_user.header())
+    except:
+        sys.exit("Unable to communicate with JAWS server")
+    if r.status_code != requests.codes.ok: sys.exit(r.text)
+    result = r.json()
+    site = result["site"]
+    print("Sending to: %s" % (site,))
+    dest_endpoint = result["endpoint"]
+    dest_dir = result["staging"]
 
     # GLOBUS TRANSFER
+    if DEBUG: print("Uploading inputs")
+    current_user = user.User()
     transfer_client = current_user.transfer_client()
     tdata = globus_sdk.TransferData(
         transfer_client,
         GLOBUS_ENDPOINT,
-        dest["endpoint"],
+        dest_endpoint,
         label=submission_uuid,
         sync_level="checksum",
         verify_checksum=True,
@@ -360,22 +382,25 @@ def submit(wdl_file, infile, outdir, site): #, block):
     for source_file, dest_file in run.manifest:
         abs_dest_file = os.path.join(dest_dir, dest_file)
         # NOTE: recursive=False means folders will not be transferred;
-        # TODO: change this is WDL supports folders in the future.
+        # TODO: change this once WDL supports folders
         tdata.add_item(source_file, abs_dest_file, recursive=False)
     transfer_result = transfer_client.submit_transfer(tdata)
     transfer_task_id = transfer_result["task_id"]
-    print("Staging files; Globus task_id = %s" % (transfer_task_id,))
+    if DEBUG: print("Globus transfer task_id = %s" % (transfer_task_id,))
 
     # SUBMIT RUN
     # NOTE THAT THE FILE TRANSFER IS NOT COMPLETE YET
     data = {
+        "site" : site,
         "submission_uuid" : submission_uuid,
+        "transfer_task_id" : transfer_task_id,
         "globus_endpoint" : GLOBUS_ENDPOINT,
-        "outdir" : outdir,
-        "globus_transfer_task_id" : transfer_task_id
+        "outdir" : outdir
     }
+    url = "%s/run" % (JAWS_URL,)
+    if DEBUG: print("Submitting to %s:\n%s" % (url,data))
     try:
-        r = requests.post(jaws_runs, data=data, headers=current_user.header())
+        r = requests.post(url, data=data, headers=current_user.header())
     except:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != requests.codes.ok:
@@ -386,42 +411,6 @@ def submit(wdl_file, infile, outdir, site): #, block):
 
     # OPTIONALLY WAIT UNTIL RUN IS COMPLETE
     #if block is True: block(submission_id)
-
-
-def pick_site(run):
-    """
-    Ask Central to pick a computing Site based upon run attributes (e.g. RAM required, size of input data) and sites' availability.
-    """
-    print("Resources: RAM = %s MB; XFER = %s GB" % (run.max_ram_mb, run.transfer_gb))
-    data = {
-        "max_ram_mb" : run.max_ram_mb,
-        "transfer_gb" : run.transfer_gb
-    }
-    url = "%s/run/pick_site" % (JAWS_URL,)
-    current_user = user.User()
-    try:
-        r = requests.post(url, data=data, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
-    result = r.json()
-    if r.status_code != 200: sys.exit(r.text)
-    site = result["site"]
-    return site
-
-
-def get_site_info(site):
-    """
-    Get computing Site Globus endpoint parameters.
-    """
-    url = "%s/run/site_info" % (JAWS_URL,)
-    current_user = user.User()
-    try:
-        r = requests.post(url, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
-    result = r.json()
-    if r.status_code != 200: sys.exit(r.text)
-    return result
 
 
 @run.command()

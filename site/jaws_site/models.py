@@ -4,15 +4,35 @@
 SQLAlchemy models for persistent data structures.
 """
 
+import sys
+import os
 import datetime
-import pytz
-import enum
-
-from config import db
-
-from sqlalchemy import Column, DateTime, String, Integer, Boolean, Text, Enum, create_engine, ForeignKey
+#import pytz
+#import enum
+import configparser
+from urllib.parse import quote_plus
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column, DateTime, String, Integer, Boolean, Text, Enum, create_engine, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+
+
+
+# CONFIG FILE
+if "JAWS_SITE_CONFIG" not in os.environ: sys.exit("Env var \$JAWS_SITE_CONFIG not defined")
+config_file = os.environ["JAWS_SITE_CONFIG"]
+config = configparser.ConfigParser()
+config.read(config_file)
+
+# SQLALCHEMY
+uri = "mysql+mysqlconnector://%s:%s@%s/%s" % ( config["DB"]["user"], quote_plus(config["DB"]["password"]), config["DB"]["host"], config["DB"]["db"] )
+db = create_engine(uri)
+Session = sessionmaker(bind = db)
+session = Session()
+
+
+## ORM MODELS
 
 Base = declarative_base()
 
@@ -25,10 +45,7 @@ def same_as(column_name):
     return default_function
 
 
-## ORM MODELS
-
-
-class User(db.Model):
+class User(Base):
     """
     A registered user.
     """
@@ -48,7 +65,7 @@ class User(db.Model):
     groups_expires_at_seconds = Column(Integer)
 
 
-class Workflow(db.Model):
+class Workflow(Base):
     """
     A workflow in the Catalog is comprised of WDL and MD files.  A workflow cannot be changed or deleted after it has been released, only deprecated.
     """
@@ -56,7 +73,7 @@ class Workflow(db.Model):
     id = Column(Integer, primary_key=True)
     name = Column(String(32), nullable=False)
     version = Column(String(16), nullable=False, default="latest")
-    user_id = Column(String(36), db.ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     created = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = Column(DateTime, nullable=False, default=same_as("date_created"), onupdate=datetime.datetime.utcnow)
     is_released = Column(Boolean, default=False, nullable=False)
@@ -65,13 +82,13 @@ class Workflow(db.Model):
     doc = Column(Text, nullable=False)
 
     # MULTI-COLUMN CONSTRAINT
-    __table_args__ = (db.UniqueConstraint('name', 'version', name='_workflow_name_version_uniq_cons'),)
+    __table_args__ = (UniqueConstraint('name', 'version', name='_workflow_name_version_uniq_cons'),)
 
     # ONE:MANY RELATIONSHIP
     #user = db.relationship("User", back_populates="workflows")
 
 
-class Site(db.Model):
+class Site(Base):
     """
     Computing sites.
     """
@@ -85,14 +102,14 @@ class Site(db.Model):
     has_dev_shm = Column(Boolean, nullable=False, default=False)
 
 
-class Run(db.Model):
+class Run(Base):
     """
     Analysis runs are the execution of workflows on specific inputs.
     """
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)
-    user_id = Column(String(36), db.ForeignKey("users.id"), nullable=False)
-    site_id = Column(String(8), db.ForeignKey("sites.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    site_id = Column(String(8), ForeignKey("sites.id"), nullable=False)
     submission_uuid = Column(String(36), nullable=False)
     status = Column(String(16), nullable=False)
     cromwell_id = Column(String(36), nullable=True)
@@ -107,10 +124,3 @@ class Run(db.Model):
 #    user = db.relationship("User", back_populates="runs")
 #    site = db.relationship("Site", back_populates="runs")
 #    workflow = db.relationship("Workflow", back_populates="runs")
-
-
-if __name__ == "__main__":
-    """
-    Build database
-    """
-    db.create_all()

@@ -260,3 +260,4 @@ def _prepare_labels_file(outfile, username, infile=None):
     with open(outfile, 'w') as f:
         json.dump(labels, f)
 
+
