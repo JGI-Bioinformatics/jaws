@@ -25,7 +25,8 @@ class Workflow:
     subworkflows = None
     inputs_file = None
     inputs_dict = None
-    max_ram_mb = 0
+    manifest_file = None
+    max_ram_gb = 0
 
     def __init__(self, wdl_file, inputs_file):
         if not os.path.exists(wdl_file): sys.exit("wdl_file not found: %s" % (wdl_file,))
@@ -98,7 +99,7 @@ class Workflow:
 
     def _filter_wdl(self, infile, outfile):
         """
-        Removes any "backend" tags in the WDL file.  Also updates the self.max_ram_mb value.  Returns True on success; False otherwise.
+        Removes any "backend" tags in the WDL file.  Also updates the self.max_ram_gb value.  Returns True on success; False otherwise.
         We disallow "backend" tags in the WDL since they override the server defaults and may overload the local server.  Note that this tag must be entirely contained within a single line as the WDL is not fully parsed with python and the java womtool doesn't have this feature.  This tag is currently only required when running on AWS.
         We determine the maximum amount of requested memory (in gigabytes) across all WDLs (i.e. including subworkflows) to ensure the cluster has nodes capable of running the workflow (otherwise the job shall never be run by the scheduler).
         """
@@ -117,20 +118,22 @@ class Workflow:
         new_wdl = ""
         for line in lines:
             # DETERMINE MAX REQUESTED RAM
-            m = re.match(r"^\s+memory\s*[:=]\s*\"?(\d+\.?\d*)([kKmMgG])\"?", line)
+            m = re.match(r"^\s+memory\s*[:=]\s*\"?(\d+\.?\d*)([kKmMgGtT])\"?", line)
             if m:
                 mem = m.group(1)
                 prefix = m.group(2)
                 prefix = prefix.lower()
                 if prefix == "k":
-                    mem = int(mem / 1024)
-                elif prefix == "m":
-                    mem = int(mem)
-                elif prefix == "g":
-                    mem = int(mem / 1024)
-                else:
                     mem = int(mem / 1048576)
-                if mem > self.max_ram_mb: self.max_ram_mb = mem
+                elif prefix == "m":
+                    mem = int(mem / 1024)
+                elif prefix == "g":
+                    mem = int(mem+0.99) # round up
+                elif prefix == "t":
+                    mem = int(mem * 1024)
+                else:
+                    mem = int(mem / 1073741824)
+                if mem > self.max_ram_gb: self.max_ram_gb = mem
             # FILTER "backend" TAGS
             m = re.match(r"^\s*backend", line)
             if not m:
@@ -431,3 +434,17 @@ class Workflow:
             self.manifest.append([self.zip_file, zip_basename])
         json_basename = os.path.basename(self.json_file)
         self.manifest.append([self.json_file, json_basename])
+
+
+    def write_manifest(self, staging_dir, submission_id):
+        """
+        Write manifest.tsv file
+        """
+        outfile = self.manifest_file = os.path.join(staging_dir, "%s.tsv" % (submission_id,))
+        if DEBUG: print("Writing manifest file: %s" % (outfile,))
+        try:
+            with open(outfile, 'w') as f:
+                for src, dest in self.manifest:
+                   f.write("%s\t%s\n" % (src, dest)) 
+        except:
+            sys.stderr.write("Error writing WDL file: %s" % (outfile,))

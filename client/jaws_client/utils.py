@@ -12,6 +12,7 @@ import json
 import pprint
 import requests
 
+from jaws_client import wfcopy as wfc
 from jaws_client import user
 from jaws_client import wdl_functions as w
 
@@ -25,6 +26,7 @@ def util():
     Workflow developer utilities
     """
     pass
+
 
 @util.command()
 def status():
@@ -42,6 +44,8 @@ def status():
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
+
+# CONTRIBUTED/MAINTAINED BY JEFF FROULA
 @util.command()
 @click.argument("wdl")
 @click.argument("input_json")
@@ -88,6 +92,7 @@ def validate(wdl, input_json):
         print("Error: runtime keyword check failed")
     print("#################\n")
 
+
 @util.command()
 @click.argument("wdl")
 def inputs(wdl):
@@ -103,90 +108,18 @@ def inputs(wdl):
         sys.stderr.write(stderr)
     sys.exit(process.returncode)
 
-# TODO
-#@util.command()
-#@click.argument('wdl')
-#@click.argument('inputs')
-#def run(inputs, wdl):
-#    """
-#    Run a workflow with local cromwell
-#    """
-#    sys.exit("Not yet implemented")
 
-# 20190315 - initial version
-# 20190805 - when calling a sub-workflow, use the root's task name instead of the sub workflow's task name.
+# CONTRIBUTED/MAINTAINED BY STEPHAN TRONG
 @util.command()
 @click.argument("cromwelldir")
 @click.argument("outdir")
-def wfcopy(cromwelldir, outdir, verbose=False):
+@click.option('--flattenShardDir', default=False)
+def wfcopy(cromwelldir, outdir, flattensharddir):
     """
     Copy cromwell output to specified dir.
     """
-    logdir = os.path.join(outdir, "log")
+    wfc.wfcopy(cromwelldir, outdir, flattenShardDir=flattensharddir)
 
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-    if not os.path.exists(logdir):
-        os.makedirs(logdir)
-
-    cromwellFilesToSkip = ['stdout.background', 'stderr.background', 'script.background', 'script.submit']
-    taskname = None
-    rcfile = os.path.join(logdir, "workflow.rc")
-    
-    if os.path.exists(rcfile):
-        os.remove(rcfile)
-    with open(rcfile, 'w') as fh:
-        fh.write("#ExitCode\tTask\n")
-
-    for rootdir, subdirs, files in os.walk(cromwelldir):
-        if os.path.basename(rootdir).startswith('call-') and rootdir == os.path.join(cromwelldir, os.path.basename(rootdir)):
-            taskname = re.sub(r'^call-', '', os.path.basename(rootdir))
-            
-        if rootdir.endswith('execution'):
-            parentdir = str(pathlib.Path(rootdir).parent)
-            shardname = None
-
-            if re.search(r'shard-', parentdir):
-                shardname = os.path.basename(parentdir)
-
-            taskdir = os.path.join(outdir, taskname)
-            if not os.path.exists(taskdir):
-                os.makedirs(taskdir)
-
-            for dname in subdirs:
-                rsync(os.path.join(rootdir, dname), taskdir, verbose=verbose)
-
-            for fname in files:
-                fullname = os.path.join(rootdir, fname)
-                outname = "%s-%s"%(taskname, shardname) if shardname else taskname
-
-                if fname == 'stdout':
-                    rsync(fullname, os.path.join(logdir, "%s.stdout"%outname), verbose=verbose)
-                elif fname == 'stderr':
-                    rsync(fullname, os.path.join(logdir, "%s.stderr"%outname), verbose=verbose)
-                elif fname == 'script':
-                    rsync(fullname, os.path.join(logdir, "%s.script"%outname), verbose=verbose)
-                elif fname == 'rc':
-                    with open(fullname, 'r') as fh:
-                        exitcode = fh.readlines()[0].strip()
-                    with open(rcfile, 'a') as fh:
-                        fh.write("%s\t%s\n"%(exitcode, outname))
-                elif fname not in cromwellFilesToSkip:
-                    rsync(fullname, taskdir, verbose=verbose)
-                    
-def runCommand(cmd):
-    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    return stdout.strip(), stderr.strip(), process.returncode
-
-def rsync(src, dest, verbose=False):
-    cmd = "rsync -a %s %s"%(src, dest)
-    if verbose:
-        print(cmd)
-    stdout, stderr, exitcode = runCommand(cmd)
-    if exitcode:
-        sys.stderr.write(stderr)
-        sys.exit(exitcode)
 
 if __name__ == "__main__":
     util()

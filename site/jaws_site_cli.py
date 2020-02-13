@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Extended Python API and CLI for Cromwell.  Primarily adds user support and convenience functions, such as zipping subworkflows.  Note that this package does not provide any authentication.  This is used only for testing.
+Utility for testing Cromwell server.  Not for users.
 """
 
 from datetime import datetime, timedelta
@@ -13,11 +13,13 @@ import click
 import uuid
 import zipfile
 
-from jaws_site import config
+DEBUG = True if "JAWS_DEBUG" in os.environ else False
+CROMWELL = os.environ["CROMWELL_URL"]
+WORKFLOWS = "%s/api/workflows/v1" % (CROMWELL,)
+TMPDIR = os.environ["JAWS_TMPDIR"]
 
 verbose=True
 
-config = config.Config(env="JAWS_SITE_CONFIG")
 
 @click.group()
 def jaws():
@@ -26,8 +28,12 @@ def jaws():
     """
     pass
 
+
 def _get(url):
-    r = requests.get(url)
+    try:
+        r = requests.get(url)
+    except:
+        sys.exit("Unable to GET from Cromwell at %s" % (url,))
     response = {}
     if r.status_code == 200:
         response["result"] = r.json()
@@ -40,14 +46,16 @@ def _get(url):
         print(json.dumps(response, indent=4, sort_keys=True))
     return response
 
+
 @jaws.command()
 @click.argument('run_id')
 def status(run_id):
     """
     Retrieve the current status of a run.
     """
-    url = config["CROMWELL"]['url'] + '/' + run_id + "/status"
+    url = "%s/%s/status" % (WORKFLOWS, run_id)
     return _get(url)
+
 
 @jaws.command()
 @click.argument('run_id')
@@ -55,8 +63,9 @@ def logs(run_id):
     """
     Retrieve the logs for a run.
     """
-    url = config["CROMWELL"]['url'] + '/' + run_id + "/logs"
+    url = "%s/%s/logs" % (WORKFLOWS, run_id)
     return _get(url)
+
 
 @jaws.command()
 @click.argument('run_id')
@@ -64,8 +73,9 @@ def outputs(run_id):
     """
     Retrieve the outputs for a run.
     """
-    url = config["CROMWELL"]['url'] + '/' + run_id + "/outputs"
+    url = "%s/%s/outputs" % (WORKFLOWS, run_id)
     return _get(url)
+
 
 @jaws.command()
 @click.argument('run_id')
@@ -73,8 +83,9 @@ def metadata(run_id):
     """
     Retrieve the metadata of a run.
     """
-    url = config["CROMWELL"]['url'] + '/' + run_id + "/metadata"
+    url = "%s/%s/metadata" % (WORKFLOWS, run_id)
     return _get(url)
+
 
 @jaws.command()
 @click.argument('run_id')
@@ -82,8 +93,9 @@ def cancel(run_id):
     """
     Cancel a run.
     """
-    url = config["CROMWELL"]['url'] + '/' + run_id + "/abort"
+    url = "%s/%s/abort" % (WORKFLOWS, run_id)
     return _get(url)
+
 
 @jaws.command()
 @click.argument('run_id')
@@ -91,8 +103,9 @@ def get_labels(run_id):
     """
     Retrieve labels for a run.
     """
-    url = config["CROMWELL"]['url'] + '/' + run_id + '/labels'
+    url = "%s/%s/labels" % (WORKFLOWS, run_id)
     return _get(url)
+
 
 @jaws.command()
 @click.argument('run_id')
@@ -100,7 +113,7 @@ def task_status(run_id):
     """
     Retrieve status of each task, with any error messages.
     """
-    url = config["CROMWELL"]['url'] + '/' + run_id + "/metadata"
+    url = "%s/%s/metadata" % (WORKFLOWS, run_id)
     r = requests.get(url)
     response = {}
     meta = None
@@ -140,6 +153,7 @@ def task_status(run_id):
         print(json.dumps(response, indent=4, sort_keys=True))
     return response
 
+
 # simplifies the result JSON from that returned by cromwell
 @jaws.command()
 @click.argument('run_id')
@@ -147,7 +161,7 @@ def get_labels(run_id):
     """
     Get labels for a run.
     """
-    url = config["CROMWELL"]['url'] + '/' + run_id + '/labels'
+    url = "%s/%s/labels" % (WORKFLOWS, run_id)
     r = requests.get(url)
     response = {}
     if r.status_code == 200:
@@ -166,6 +180,7 @@ def get_labels(run_id):
         print(json.dumps(response, indent=4, sort_keys=True))
     return response
 
+
 @jaws.command()
 @click.option('--username', default=os.environ["USER"], help="Username; default=\$USER")
 def queue(username):
@@ -178,7 +193,7 @@ def queue(username):
         "status" : status,
         "label" : labels
     }
-    url = config["CROMWELL"]["url"] + "/query"
+    url = "%s/query" % (WORKFLOWS,)
     r = requests.get(url, data)
     response = {}
     if r.status_code == 200:
@@ -191,6 +206,7 @@ def queue(username):
     if verbose:
         print(json.dumps(response, indent=4, sort_keys=True))
     return response
+
 
 @jaws.command()
 @click.option('--username', default=os.environ["USER"], help="Username; default=\$USER")
@@ -206,7 +222,7 @@ def history(username, days):
         "label" : labels,
         "start" : start_date
     }
-    url = config["CROMWELL"]['url'] + "/query"
+    url = "%s/query" % (WORKFLOWS,)
     r = requests.get(url, data)
     response = {}
     if r.status_code == 200:
@@ -220,6 +236,7 @@ def history(username, days):
         print(json.dumps(response, indent=4, sort_keys=True))
     return response
 
+
 @jaws.command()
 @click.argument('json_file')
 @click.argument('wdl_file')
@@ -230,7 +247,7 @@ def submit(wdl_file, json_file, username, labels, zip_file):
     """
     Submit a run.
     """
-    tmp_basename = os.path.join(config["SITE"]["tmpdir"], str(uuid.uuid4()))
+    tmp_basename = os.path.join(TMPDIR, str(uuid.uuid4()))
     if verbose:
         print("Using tmp base: %s" % (tmp_basename,)) # ECCE
         print("username : %s" % (username,)) # ECCE
@@ -250,9 +267,8 @@ def submit(wdl_file, json_file, username, labels, zip_file):
     if zip_file is not None:
         files['workflowDependencies'] = ( 'workflowDependencies', open(zip_file, 'rb'), 'application/zip' )
 
-    url = config["CROMWELL"]["url"]
-    if verbose: print("Submitting run to %s" % (url,))
-    r = requests.post(url, files=files)
+    if verbose: print("Submitting run to %s" % (WORKFLOWS,))
+    r = requests.post(WORKFLOWS, files=files)
 
     response = {}
     if r.status_code == 201:
@@ -280,17 +296,6 @@ def submit(wdl_file, json_file, username, labels, zip_file):
         print(json.dumps(response, indent=4, sort_keys=True))
     return response
 
-def _prepare_wdl_files(main_wdl_file, *wdl_files):
-    """
-    Validate WDL using womtool, identify File arguments in inputs JSON, remove any forbidden tags (e.g. "backend"), and create zip of subs.
-    """ 
-    sys.exit("NYI") # TODO
-
-def _prepare_inputs_json(outfile, template, infile):
-    """
-    If inputs JSON file contains relative paths, make them absolute relative to the JSON file.  An inputs template JSON is required to identify which items are paths.
-    """
-    sys.exit("NYI") # TODO
 
 def _prepare_labels_file(outfile, username, infile=None):
     """
@@ -307,6 +312,9 @@ def _prepare_labels_file(outfile, username, infile=None):
     labels["username"] = username
     with open(outfile, 'w') as f:
         json.dump(labels, f)
+
+
+jaws()
 
 if __name__ == "__main__":
     """

@@ -20,7 +20,7 @@ securityDefinitions:
       uid: Registered user with unique ID
 
 security:
-  - oauth2: ['uid']
+  - oauth2: ['jaws_users']
 
 paths:
 
@@ -32,8 +32,81 @@ paths:
           description: OK
         500:
           description: System is down
-      security: []
-      # no auth required
+#      security: []
+
+#  /user:
+#    get:
+#      operationId: user.get_info
+#      tags:
+#        - user
+#      summary: Retrieve user basic info given token
+#      description: Validate user token and return basic info
+#      responses:
+#        200:
+#          description: OK
+#        401:
+#          description: Authorization information is missing or invalid.
+#
+#  /user:
+#    post:
+#      operationId: user.save_tokens
+#      tags:
+#        - user
+#      summary: Save user's Globus tokens
+#      description: Give JAWS user's Globus token
+#      consumes:
+#        - multipart/form-data
+#      parameters:
+#        - name: auth_access_token
+#          description: Globus auth access_token
+#          type: string
+#          in: formData
+#          required: True
+#        - name: auth_refresh_token
+#          description: Globus auth refresh_token
+#          type: string
+#          in: formData
+#          required: True
+#        - name: auth_expires_at_seconds
+#          description: Globus auth expires_at_seconds
+#          type: integer
+#          in: formData
+#          required: True
+#        - name: transfer_access_token
+#          description: Globus transfer access_token
+#          type: string
+#          in: formData
+#          required: True
+#        - name: transfer_refresh_token
+#          description: Globus transfer refresh_token
+#          type: string
+#          in: formData
+#          required: True
+#        - name: transfer_expires_at_seconds
+#          description: Globus transfer expires_at_seconds
+#          type: integer
+#          in: formData
+#          required: True
+#        - name: groups_access_token
+#          description: Globus groups access_token
+#          type: string
+#          in: formData
+#          required: True
+#        - name: groups_refresh_token
+#          description: Globus groups refresh_token
+#          type: string
+#          in: formData
+#          required: True
+#        - name: groups_expires_at_seconds
+#          description: Globus groups expires_at_seconds
+#          type: integer
+#          in: formData
+#          required: True
+#      responses:
+#        200:
+#          description: OK
+#        401:
+#          description: Authorization information is missing or invalid.
 
   /wdl:
     get:
@@ -288,21 +361,36 @@ paths:
       operationId: analysis.submit_run
       tags:
         - run
-      summary: Begin run submission process
+      summary: Begin run run process
       description: Returns site information to send infiles.
       consumes:
         - multipart/form-data
       parameters:
-        - name: input
-          description: input folder of prepared infiles
-          type: string
-          in: formData
-          required: False
         - name: site
           description: computing site to use
           type: string
           in: formData
-          required: False
+          required: True
+        - name: submission_uuid
+          description: random ID used to name inputs
+          type: string
+          in: formData
+          required: True
+        - name: transfer_task_id
+          description: Globus task id
+          type: string
+          in: formData
+          required: True
+        - name: globus_endpoint
+          description: Globus endpoint to receive results
+          type: string
+          in: formData
+          required: True
+        - name: outdir
+          description: Folder to receive results
+          type: string
+          in: formData
+          required: True
       responses:
         201:
           description: Successful
@@ -311,7 +399,7 @@ paths:
         404:
           description: The requested site does not exist
 
-  /run/{submission_id}:
+  /run/{run_id}:
     get:
       operationId: analysis.run_status
       tags:
@@ -319,9 +407,9 @@ paths:
       summary: Retrieve the status of a specified run
       description: Summarize the state of a particular run
       parameters:
-        - name: submission_id
+        - name: run_id
           in: path
-          description: submission_id of the run to retrieve
+          description: run_id of the run to retrieve
           type: integer
           required: True
       responses:
@@ -339,7 +427,7 @@ paths:
       summary: Cancel a run and purge it's output
       description: Purging prevents reuse by cache
       parameters:
-        - name: submission_id
+        - name: run_id
           in: path
           type: integer
           required: True
@@ -351,7 +439,7 @@ paths:
         404:
           description: The specified record does not exist
 
-  /run/{submission_id}/metadata:
+  /run/{run_id}/metadata:
     get:
       operationId: analysis.run_metadata
       tags:
@@ -359,9 +447,9 @@ paths:
       summary: Retrieve the metadata of a specified run
       description: Return assorted information about a run
       parameters:
-        - name: submission_id
+        - name: run_id
           in: path
-          description: submission_id of the run to retrieve
+          description: run_id of the run to retrieve
           type: integer
           required: True
       responses:
@@ -372,47 +460,30 @@ paths:
         404:
           description: The specified record does not exist
 
-  /run/pick_site:
-    post:
-      operationId: analysis.pick_site
-      tags:
-        - run
-      summary: Pick computing site
-      description: Pick computing site based upon resources required and sites' availability
-      consumes:
-        - multipart/form-data
-      parameters:
-        - name: max_ram_gb
-          description: Maximum amount of RAM required in GB
-          type: integer
-          in: formData
-          required: True
-        - name: transfer_gb
-          description: Size of input data in GB
-          type: integer
-          in: formData
-          required: True
-      responses:
-        200:
-          description: Successful
-        400:
-          description: Missing required parameters
-        401:
-          description: Authorization information is missing or invalid.
 
-  /run/site_info:
-    get:
-      operationId: analysis.site_info
+  /run/get_site:
+    post:
+      operationId: analysis.get_site
       tags:
         - run
       summary: Retrieve JAWS-Site info
-      description: Return Globus parameters for a Site
+      description: Match run to a Site and return necessary info
       parameters:
         - name: site
-          in: path
-          description: Name of the Site
+          in: formData
+          description: Preferred JAWS-Site name
           type: string
-          required: True
+          required: False
+        - name: max_ram_gb
+          in: formData
+          description: Max RAM required by workflow, in gigabytes
+          type: integer
+          required: False
+        - name: transfer_gb
+          in: formData
+          description: Amount of input data to be transferred
+          type: integer
+          required: False
       responses:
         200:
           description: OK

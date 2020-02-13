@@ -1,16 +1,16 @@
 from setuptools import setup
 import os
 
-setup(name='jaws_site',
+setup(name='jaws_central',
       version=os.popen('git describe --dirty=-dev --always --tags --abbrev=6').read().strip().replace("-", "+", 1),
-      description='JGI Analysis Workflow Service Site RPC Server',
-      url='https://gitlab.com/jgi-dsi/aa/jaws/site',
+      description='JGI Analysis Workflow Service Central REST Server',
+      url='https://gitlab.com/jgi-dsi/aa/jaws/central',
       author='The JAWS Team',
-      packages=['jaws_site'],
+      packages=['jaws_central'],
       install_requires=[ line.strip() for line in open("requirements.txt") ],
       entry_points={
         'console_scripts': [
-            'app.py = jaws_site.srv:app.py',
+            'app.py = jaws_central.srv:app.py',
         ]
       },
       zip_safe=False)
