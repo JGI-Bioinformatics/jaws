@@ -44,10 +44,9 @@ Unit tests ensure that core features are working as expected. If you make change
 The easiest way to contribute a pull request is to make all of your changes on new branches. Make sure your develop is up-to-date and create a new branch off of it:
 
 ```
-git checkout develop
-git pull upstream develop
-git branch <descriptive_branch_name>
-git checkout <descriptive_branch_name>
+git checkout dev
+git pull origin dev
+git checkout -b <descriptive_branch_name>
 ```
 
 Here we assume that the local develop branch tracks the upstream develop branch of JAWS. This is not a requirement and you could also do the same with remote branches. But for some it is more convenient to have a local branch that tracks upstream.
@@ -69,9 +68,8 @@ Gitlab provides a tutorial on how to file a pull request. When you send the requ
 If you need this change immediately and don’t have time to wait for your PR to be merged, you can always work on this branch. But if you have multiple PRs, another option is to maintain a Frankenstein branch that combines all of your other branches:
 
 ```
-git co develop
-git branch <your_modified_develop_branch>
-git checkout <your_modified_develop_branch>
+git checkout develop
+git checkout -b <your_modified_develop_branch>
 git merge <descriptive_branch_name>
 ```
 
@@ -81,15 +79,15 @@ Other developers are constantly making contributions to JAWS, possibly on the sa
 First, make sure your develop branch is up-to-date:
 
 ```
-git checkout develop
-git pull upstream develop
+git checkout dev
+git pull origin dev
 ```
 
 Now, we need to switch to the branch you submitted for your PR and rebase it on top of develop:
 
 ```
 git checkout <descriptive_branch_name>
-git rebase develop
+git rebase dev
 ```
  
 Git will likely ask you to resolve conflicts. Edit the file that it says can’t be merged automatically and resolve the conflict. Then, run:
