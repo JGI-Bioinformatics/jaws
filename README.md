@@ -1,18 +1,19 @@
 # JGI Analysis Workflow Service (JAWS)
 
 ## Documentation
-Full [documentation](https://jaws-docs.readthedocs.io/en/latest/Intro/how_jaws.html) for running
-and installing JAWS is located here.
+Full [documentation](https://jaws-docs.readthedocs.io) for running and installing JAWS is located here.
 
 ## Contributing
 
 ## Installing JAWS site
 JAWS Site (RPC server)
-NOTE: you need a JAWS Site installation for every computing resource.  It is an RPC (remote procedure call) Server which relays commands from the CLI to Cromwell via AMQP, as mediated by JAWS Central.
+NOTE: you need a JAWS Site installation for every computing resource.  
+It is an RPC (remote procedure call) Server which relays commands from the CLI to Cromwell via AMQP, as mediated by JAWS Central.
 
 Alternate installation methods exist but Anaconda is the easiest.
-Background:
-https://jaws-docs.readthedocs.io/en/latest/Intro/how_jaws.html
+(JAWS Background)[https://jaws-docs.readthedocs.io/en/latest/Intro/how_jaws.html]  
+
+## JAWS Requirements
 Requirements:
 It is assumed these services are already installed
 Globus
@@ -20,28 +21,41 @@ MySQL (or other RDb server)
 RabbitMQ (or other AMQP server)
 To install on your server:
       You need to be "jaws_jtm" user
-$ collabsu jaws_jtm
+```
+collabsu jaws_jtm
+export SITE=dev
+```
 
-$ export SITE=dev
 Used only for steps below, repeat with “prod” for production branch
-$ export SITE_BASE=/global/cfs/projectdirs/jaws_jtm/$SITE/site
-Install Anaconda
-https://www.anaconda.com/downloads
-$ conda create -p $SITE_BASE python=3
-$ cd $SITE_BASE
-$ mkdir -p opt/cromwell etc/conda/activate.d
+```
+export SITE_BASE=/global/cfs/projectdirs/jaws_jtm/$SITE/site
+```
+
+Install (Anaconda)[https://www.anaconda.com/downloads] or miniconda3
+
+```
+conda create -p $SITE_BASE python=3
+cd $SITE_BASE
+mkdir -p opt/cromwell etc/conda/activate.d
 echo export JAWS_SITE_CONFIG=$SITE_BASE/etc/jaws_client.ini  > etc/conda/activate.d/env_vars.sh
+```
+
 Get JAWS Site
-$ cd $SITE_BASE/opt
-$ git clone https://gitlab.com/jgi-dsi/aa/jaws/site.git
-$ cp ./site/jaws_site/config.ini ../etc/jaws_site.ini
-$ vi ../etc/jaws_site.ini
+```
+cd $SITE_BASE/opt
+git clone https://gitlab.com/jgi-dsi/aa/jaws/site.git
+cp ./site/jaws_site/config.ini ../etc/jaws_site.ini
+vi ../etc/jaws_site.ini
+```
+
 fill in correct values provided by admin
+```
 chmod 400 ../etc/jaws_site.ini
 cd site
 pip install -r requirements.txt
-Start Servers
+```
 
+Start Servers
 
 ## Installing Services for JAWS 
 How to Start up the Required Services for JAWS
