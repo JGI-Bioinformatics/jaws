@@ -1,9 +1,4 @@
- Analysis Workflow Service (JAWS)
-
-## Documentation
-Full [documentation](https://jaws-docs.readthedocs.io) for running and installing JAWS is located here.
-
-## Contributing
+# JGI Analysis Workflow Service (JAWS)
 
 ## Installing JAWS site
 JAWS Site (RPC server)

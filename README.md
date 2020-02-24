@@ -7,15 +7,15 @@ Full [documentation](https://jaws-docs.readthedocs.io) for running and installin
 
 
 ### Installing JAWS site
-See docs/install_Cli_and_Site.md
-See docs/startingServices.md
+See docs/install_Cli_and_Site.md  
+See docs/startingServices.md  
 
 ## Contributing
-Jeff Froula <jlfroula@lbl.gov>
-Ed Kirton <eskirton@lbl.gov>
-Stephan Trong <strong@lbl.gov>
-Hugh Salamon <hsalamon>
-Mario Melara <mamelara@lbl.gov>
-Georg Rath <gbrath@lbl.gov>
-Seung-jin Sul <ssul@lbl.gov>
+* Jeff Froula <jlfroula@lbl.gov>  
+* Ed Kirton <eskirton@lbl.gov>  
+* Stephan Trong <strong@lbl.gov>  
+* Hugh Salamon <hsalamon>  
+* Mario Melara <mamelara@lbl.gov>  
+* Georg Rath <gbrath@lbl.gov>  
+* Seung-jin Sul <ssul@lbl.gov>  
 
