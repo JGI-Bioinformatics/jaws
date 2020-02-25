@@ -41,7 +41,7 @@ Once you are satisfied, add changes to this gitlab repo
 https://docs.readthedocs.io/en/latest/intro/getting-started-with-sphinx.html
 
 ### view published docs
-https://jaws-sphinx.readthedocs.io/en/latest/
+https://jaws-docs.readthedocs.io/en/latest/
 
 ### Add new repo to official JAWS repository
 `jgi-workflows/docs`
