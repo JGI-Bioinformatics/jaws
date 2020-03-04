@@ -18,6 +18,10 @@ pkg-central: pkg-requirements
 pkg-client: pkg-requirements
 	$Q cd client && python setup.py bdist_wheel
 
+.PHONY: pkg-auth
+pkg-auth: pkg-requirements
+	$Q cd auth && python setup.py bdist_wheel
+
 .PHONY: pkg
 pkg: pkg-site pkg-central pkg-client
 ## Package Section END
@@ -38,7 +42,11 @@ test-central: test-requirements
 .PHONY: test-client
 test-client: test-requirements
 	$Q flake8 client
+
+.PHONY: test-auth
+test-auth: test-requirements
+	$Q flake8 auth
 	
 .PHONY: test
-test: test-site test-central test-client
+test: test-site test-central test-client test-auth
 ## Test Section END
