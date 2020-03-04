@@ -4,22 +4,28 @@
 RPC functions.  Most of these simply wrap the localhost Cromwell REST functions.
 """
 
-import sys
-import os
-import json
 import requests
 from http.client import responses
-from jaws_site import models
+import logging
+from jaws_site import config
 
-DEBUG = True if "JAWS_DEBUG" in os.environ else False
-CROMWELL_URL = os.environ["CROMWELL_URL"]
-WORKFLOWS_URL = "%s/api/workflows/v1" % (CROMWELL_URL,)
-ENGINE_URL = "%s/engine/v1" % (CROMWELL_URL,)
 
 class Dispatcher:
     """
     Analysis class for JAWS Site features function dispatch.  Each method must return JSON-RPC2 compliant response.
     """
+
+    cromwell_engine_status_url = None
+    workflows_url = None
+
+    def __init__(self):
+        """
+        Init obj
+        """
+        self.logger = logging.getLogger(__package__)
+        conf = config.JawsConfig()
+        self.cromwell_engine_status_url = conf.get_cromwell('engine_status_url')
+        self.workflows_url = conf.get_cromwell("workflows_url")
 
     def dispatch(self, method, params):
         """
@@ -27,120 +33,154 @@ class Dispatcher:
             response = { "result" : <string|integer|dict|list> }
         or
             response = { "error" : { "code" : <integer>, "message" : <string> }}
-        where "message" is optional 
+        where "message" is optional
         """
         # TODO THIS SHOULD BE A DISPATCH TABLE
-        if method == "server_status": return server_status(params)
-        elif method == "task_status": return task_status(params)
-        elif method == "run_metadata": return run_metadata(params)
-        elif method == "get_labels": return get_labels(params)
-        elif method == "cancel_run": return cancel_run(params)
+        if method == "server_status":
+            return self.server_status(params)
+        elif method == "task_status":
+            return self.task_status(params)
+        elif method == "run_metadata":
+            return self.run_metadata(params)
+        elif method == "get_labels":
+            return self.get_labels(params)
+        elif method == "cancel_run":
+            return self.cancel_run(params)
         else:
-            if DEBUG: print("Unknown method: %s" % (method,))
-            return failure(400, "Unknown method")
+            self.logger.warning(f"Invalid RPC method: {method}")
+            return self.failure(400, "Unknown method")
 
+    def success(self, result):
+        """
+        Return a JSON-RPC2 successful result message.
+        """
+        return {"jsonrpc": "2.0", "result": result}
 
-def success(result): return { "jsonrpc" : "2.0", "result" : result }
+    def failure(self, code, message=None):
+        """
+        Return a JSON-RPC2 error message.
+        """
+        if message is None:
+            message = (
+                responses["status_code"]
+                if "status_code" in responses
+                else "Unknown error"
+            )
+        return {"jsonrpc": "2.0", "error": {"code": code, "message": message}}
 
-def failure(code, message=None):
-    if message is None:
-        message = responses["status_code"] if "status_code" in responses else "Unknown error"
-    return { "jsonrpc" : "2.0", "error" : { "code" : code, "message" : message }}
-
-
-## METHODS
-
-
-def server_status(params):
-    """
-    Return the current health status of any monitored subsystems
-    """
-    url = "%s/status" % (ENGINE_URL,)
-    if DEBUG: print("Checking Cromwell status at %s" % (url,))
-    try:
-        r = requests.get(url)
-    except:
-        return failure(503, "Cromwell server timeout")
-    if DEBUG: print("\tCromwell returned %s" % (r.status_code,))
-    if r.status_code != requests.codes.ok: return failure(r.status_code)
-    result = { "Cromwell" : "UP" }
-    return success(result)
-
-
-def run_metadata(params):
-    """
-    Retrieve the metadata of a run.    Neither authentication nor ownership is required.
-    """
-    if "cromwell_id" not in params: return failure(400)
-    url = "%s/%s/metadata" % (WORKFLOWS_URL, params["cromwell_id"])
-    try:
-        r = requests.get(url)
-    except:
-        return failure(500, "Cromwell server timeout")
-    if r.status_code != requests.codes.ok: return failure(r.status_code)
-    return success(r.json())
-
-
-def task_status(params):
-    """
-    Returns a list of task:status tuples, ordered by start time.
-    """
-    if "cromwell_id" not in params: return failure(400)
-    url = "%s/%s/metadata" % (WORKFLOWS_URL, params["cromwell_id"])
-    try:
-        r = requests.get(url)
-    except:
-        return failure(500, "Cromwell server timeout")
-    if r.status_code != requests.codes.ok: return failure(r.status_code)
-    metadata = r.json()
-
-    tasks = {}
-    for task_name in metadata['calls']:
-        start = ''
+    def server_status(self, params):
+        """
+        Return the current health status of any monitored subsystems
+        """
         try:
-            start = metadata['calls'][task_name][0]['start']
-        except:
-            start = '?'
-        end = ''
+            r = requests.get(self.cromwell_engine_status_url)
+        except Exception:
+            self.logger.warning("Cromwell server timeout")
+            return self.failure(503, "Cromwell server timeout")
+        if r.status_code != requests.codes.ok:
+            return self.failure(r.status_code)
+        result = {"Cromwell": "UP"}
+        return self.success(result)
+
+    def run_metadata(self, params):
+        """
+        Retrieve the metadata of a run.    Neither authentication nor ownership is required.
+        """
+        if "cromwell_id" not in params:
+            self.logger.error(f"run_metadata rpc did not include cromwell_id")
+            return self.failure(400)
+        url = "%s/%s/metadata" % (self.workflows_url, params["cromwell_id"])
         try:
-            end = metadata['calls'][task_name][0]['start']
-        except:
-            end = '?'
-        tasks[start] = ( task_name, metadata['calls'][task_name][0]['executionStatus'], start, end )
+            r = requests.get(url)
+        except Exception:
+            self.logger.warning("Cromwell server timeout")
+            return self.failure(500, "Cromwell server timeout")
+        if r.status_code != requests.codes.ok:
+            return self.failure(r.status_code)
+        return self.success(r.json())
 
-    result = []
-    for start in reversed(sorted(tasks.keys())): result.append(tasks[start])
-    return success(result)
+    def task_status(self, params):
+        """
+        Returns a list of task:status tuples, ordered by start time.
+        """
+        if "cromwell_id" not in params:
+            self.logger.error(f"task_status rpc did not include cromwell_id")
+            return self.failure(400)
+        url = "%s/%s/metadata" % (self.workflows_url, params["cromwell_id"])
+        try:
+            r = requests.get(url)
+        except Exception:
+            self.logger.warning("Cromwell server timeout")
+            return self.failure(500, "Cromwell server timeout")
+        if r.status_code != requests.codes.ok:
+            return self.failure(r.status_code)
+        metadata = r.json()
 
+        tasks = {}
+        for task_name in metadata["calls"]:
+            start = ""
+            try:
+                start = metadata["calls"][task_name][0]["start"]
+            except Exception:
+                start = "?"
+            end = ""
+            try:
+                end = metadata["calls"][task_name][0]["start"]
+            except Exception:
+                end = "?"
+            tasks[start] = (
+                task_name,
+                metadata["calls"][task_name][0]["executionStatus"],
+                start,
+                end,
+            )
 
-def cancel_run(params):
-    """
-    Cancel a run.
-    """
-    if "cromwell_id" not in params.keys(): return failure(400)
-    url = "%s/%s/abort" & ( WORKFLOWS_URL, params["cromwell_id"] )
-    try:
-        r = requests.post(url)
-    except:
-        return failure(500, "Cromwell server timeout")
-    if r.status_code != requests.codes.ok: return failure(r.status_code)
-    result = r.json()
-    result["status"] = "Cancelling"
-    return success(result)
+        result = []
+        for start in reversed(sorted(tasks.keys())):
+            result.append(tasks[start])
+        return self.success(result)
 
+    def task_ids(self, params):
+        """
+        Returns a list of all JTM task ids associated with a run.  May not be complete if run in progress.
+        If a task was rerun automatically by Cromwell, only the last attempt is included (i.e. no redundant tasks).
+        """
+        if "cromwell_id" not in params:
+            self.logger.error(f"task_ids rpc did not include cromwell_id")
+            return self.failure(400)
+        url = "%s/%s/metadata" % (self.workflows_url, params["cromwell_id"])
+        try:
+            r = requests.get(url)
+        except Exception:
+            self.logger.warning("Cromwell server timeout")
+            return self.failure(500, "Cromwell server timeout")
+        if r.status_code != requests.codes.ok:
+            return self.failure(r.status_code)
+        metadata = r.json()
+        tasks = []
+        for task_name in metadata["calls"]:
+            try:
+                jobId = metadata["calls"][task_name][-1]["jobId"]
+                tasks.append(jobId)
+            except Exception:
+                pass
+        return self.success(tasks)
 
-def get_labels(params):
-    """
-    Retrieve labels for a run.
-    """
-    if "cromwell_id" not in params: return failure(400)
-    url = "%s/%s/labels" % (WORKFLOWS_URL, params["cromwell_id"])
-    try:
-        r = requests.get(url)
-    except:
-        return failure(500, "Cromwell server timeout")
-    if r.status_code != requests.codes.ok: return failure(r.status_code)
-    result = r.json()
-    labels = result['labels']
-    del labels['cromwell-workflow-id']
-    return success(labels)
+    def cancel_run(self, params):
+        """
+        Cancel a run.
+        """
+        if "cromwell_id" not in params.keys():
+            self.logger.error(f"cancel_run rpc did not include cromwell_id")
+            return self.failure(400)
+        url = "%s/%s/abort" & (self.workflows_url, params["cromwell_id"])
+        try:
+            r = requests.post(url)
+        except Exception:
+            self.logger.warning("Cromwell server timeout")
+            return self.failure(500, "Cromwell server timeout")
+        if r.status_code != requests.codes.ok:
+            return self.failure(r.status_code)
+        result = r.json()
+        result["status"] = "Cancelling"
+        return self.success(result)

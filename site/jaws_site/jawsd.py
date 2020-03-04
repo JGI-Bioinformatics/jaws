@@ -1,187 +1,284 @@
-#!/usr/bin/env python3
-
 """
 JAWS Daemon process periodically checks on runs and performs actions to usher them to the next state.
 """
 
-import sys
 import schedule
 import time
 import os
 import requests
-import json
 import globus_sdk
-#from globus_sdk import AuthClient, AccessTokenAuthorizer
+from globus_sdk import TransferClient, AccessTokenAuthorizer, GlobusAPIError
+import logging
 
-from jaws_site import wfcopy, models
-
-
-DEBUG = True if "JAWS_DEBUG" in os.environ else False
-
-# SITE
-STAGING_DIR = os.environ["JAWS_STAGING_DIR"]
-RESULTS_DIR = os.environ["JAWS_RESULTS_DIR"]
-
-# CROMWELL
-CROMWELL_URL = os.environ["CROMWELL_URL"]
-WORKFLOWS_URL = "%s/api/workflows/v1" % (CROMWELL_URL,)
-
-# GLOBUS
-GLOBUS_CLIENT_ID = os.environ["GLOBUS_CLIENT_ID"]
-AUTH_SERVICE_NAME = 'auth.globus.org'
-TRANSFER_SERVICE_NAME = 'transfer.api.globus.org'
-GROUPS_SERVICE_NAME = "04896e9e-b98e-437e-becd-8084b9e234a0" # NOTE NOT groups.api.globus.org !?!
-globus_client = globus_sdk.NativeAppAuthClient(GLOBUS_CLIENT_ID)
+from jaws_site import config, models, wfcopy
 
 
-def globus_transfer_client(user):
+class JAWSd:
     """
-    Get Globus transfer client object for user.
+    JAWS Daemon class
     """
-    access_token = user.transfer_access_token
-    authorizer = globus_sdk.AccessTokenAuthorizer(access_token)
-    transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
-    return transfer_client
 
+    interval_seconds = 15
+    watched_states = (
+        "uploading",
+        "succeeded",
+        "ready",
+        "downloading",
+        "submitted",
+        "queued",
+        "running",
+        "aborting",
+    )
+    site_id = None
+    session = None
+    staging_dir = None
+    workflows_url = None
+    results_dir = None
+    globus_endpoint = None
+    results_subdir = None
 
-def check_uploads():
-    """
-    Check Globus transfer status for uploading runs.
-    """
-    q = db.session.query(Run).filter_by(status="uploading")
-    for run in q:
-        check_transfer_status(run)
+    def __init__(self):
+        """
+        Init obj
+        """
+        self.logger = logging.getLogger(__package__)
+        self.logger.debug("Initializing daemon")
+        conf = config.JawsConfig()
+        self.site_id = conf.get_site("id")
+        self.session = conf.session
+        self.staging_dir = os.path.join(conf.get_globus("root_dir"), conf.get_site("staging_subdirectory"))
+        self.workflows_url = conf.get_cromwell("workflows_url")
+        self.results_dir = os.path.join(
+            conf.get_globus("root_dir"), conf.get_site("results_subdirectory")
+        )
+        self.globus_endpoint = conf.get_globus("endpoint_id")
+        self.results_subdir = conf.get_site("results_subdirectory")
 
+    def start_daemon(self):
+        """
+        Run scheduled task(s) periodically.
+        """
+        schedule.every(self.interval_seconds).seconds.do(self.check_runs)
+        while True:
+            schedule.run_pending()
+            time.sleep(5)
 
-def check_transfer_status(run):
-    """
-    Check on the status of one uploading run.
-    """
-    if DEBUG: print("Uploading: %s" % (run.id,))
-    user = db.session.query(User).get(run.user_id)
-    transfer_client = globus_transfer_client(user)
-    task = transfer_client.get_task(transfer_task_id)
-    globus_status = task["status"]
-    if globus_status == "ACTIVE":
-        pass
-    elif globus_status == "FAILED":
-        run.status = "upload failed"
-        db.session.commit()
-    elif globus_status == "INACTIVE":
-        run.status = "upload inactive"
-        db.session.commit()
-    elif globus_status == "SUCCEEDED":
-        submit_run(run)
+    def check_runs(self):
+        """
+        Check for runs in particular states.
+        """
+        self.logger.info("Query db for updated runs")
+        try:
+            q = (
+                self.session.query(models.Run)
+                .filter_by(site_id=self.site_id)
+                .filter(models.Run.status.in_(self.watched_states))
+                .all()
+            )
+        except Exception:
+            self.logger.warning("Failed to query db for runs in watched states", exc_info=True)
+            return  # sqlalchemy should reconnect and the connection shall be available next time
+        for run in q:
+            if run.status == "uploading":
+                self.check_transfer_status(run)
+            elif run.status == "succeeded":
+                self.prepare_run_output(run)
+            elif run.status == "ready":
+                self.transfer_results(run)
+            elif run.status == "downloading":
+                self.check_if_download_complete(run)
+            else:
+                self.check_run_status(run)
+        self.session.close_all()
 
+    def check_transfer_status(self, run):
+        """
+        Check on the status of one uploading run.
+        """
+        user = self.session.query(models.User).get(run.user_id)
+        try:
+            transfer_client = TransferClient(
+                authorizer=AccessTokenAuthorizer(user.transfer_access_token)
+            )
+            task = transfer_client.get_task(run.upload_task_id)
+            globus_status = task["status"]
+        except Exception:
+            self.logger.warning("Failed to check Globus upload status", exc_info=True)
+            return
+        if globus_status == "FAILED":
+            run.status = "upload failed"
+            self.session.commit()
+        elif globus_status == "INACTIVE":
+            run.status = "upload inactive"
+            self.session.commit()
+        elif globus_status == "SUCCEEDED":
+            self.submit_run(run)
 
-def submit_run(run):
-    """
-    Submit a run to Cromwell.
-    """
-    # DEFINE FILES
-    wdl_file = os.path.join(STAGING_DIR, run.submission_uuid+".wdl")
-    json_file = os.path.join(STAGING_DIR, run.submission_uuid+".json")
-    zip_file = os.path.join(STAGING_DIR, run.submission_uuid+".zip") # may not exist
+    def submit_run(self, run):
+        """
+        Submit a run to Cromwell.
+        """
+        wdl_file = os.path.join(
+            self.staging_dir, run.user_id, run.submission_uuid + ".wdl"
+        )
+        json_file = os.path.join(
+            self.staging_dir, run.user_id, run.submission_uuid + ".json"
+        )
+        zip_file = os.path.join(
+            self.staging_dir, run.user_id, run.submission_uuid + ".zip"
+        )  # might not exist
+        files = {}
+        try:
+            files["workflowInputs"] = (
+                "workflowInputs",
+                open(json_file, "r"),
+                "application/json",
+            )
+            files["workflowSource"] = (
+                "workflowSource",
+                open(wdl_file, "r"),
+                "application/json",
+            )
+            if os.path.exists(zip_file):
+                files["workflowDependencies"] = (
+                    "workflowDependencies",
+                    open(zip_file, "rb"),
+                    "application/zip",
+                )
+        except Exception:
+            self.logger.warning(f"Invalid input for run {run.id}", exc_info=True)
+            run.status = "invalid input"
+            self.session.commit()
+        try:
+            r = requests.post(self.workflows_url, files=files)
+        except Exception:
+            self.logger.info("Cromwell server timeout")
+            # don't update state; keep trying
+            return
+        if r.status_code == 201:
+            run.cromwell_id = r.json()["id"]
+            run.status = "submitted"
+        else:
+            self.logger.warn(f"Run submission {run.id} failed")
+            run.status = "submission failed"
+        self.session.commit()
 
-    # POST TO CROMWELL SERVER
-    files = {}
-    files['workflowInputs'] = ( 'workflowInputs', open(json_file, 'r'), 'application/json' )
-    files['workflowSource'] = ( 'workflowSource', open(wdl_file, 'r'), 'application/json' )
-    if os.path.exists(zip_file):
-        files['workflowDependencies'] = ( 'workflowDependencies', open(zip_file, 'rb'), 'application/zip' )
-    try:
-        r = requests.post(WORKFLOWS_URL, files=files)
-    except:
-        run.status = "cromwell timeout"
-        db.session.commit()
-        return
-    if r.status_code == 201:
-        run.cromwell_id = result.json()[0]["id"]
-        run.status = "submitted"
-    else:
-        run.status = "submission failed"
-    db.session.commit()
+    def check_run_status(self, run):
+        """
+        Check on the status of one Run.
+        """
+        try:
+            r = requests.get("%s/%s/status" % (self.workflows_url, run.cromwell_id))
+        except Exception:
+            self.logger.warning("Cromwell server timeout")
+            return
+        if r.status_code != requests.codes.ok:
+            return
 
+        cromwell_status = r.json()["status"]
+        if cromwell_status == "Running":
+            if run.status == "submitted":
+                run.status = "running"
+                self.session.commit()
+        elif cromwell_status == "Failed":
+            run.status = "failed"
+            self.session.commit()
+        elif cromwell_status == "Succeeded":
+            run.status = "succeeded"
+            self.session.commit()
+            self.prepare_run_output(run)
+        elif cromwell_status == "Aborted" and run.status == "aborting":
+            run.status = "aborted"
+            self.session.commit()
 
-def check_cromwell():
-    """
-    Check current runs that have been submitted to Cromwell.
-    """
-    q = db.session.query(Run).filter(Run.status.in_(["submitted", "queued", "running"]))
-    for run in q:
-        check_run_status(run)
+    def prepare_run_output(self, run):
+        """
+        Prepare folder of Run output.
+        """
+        url = "%s/%s/metadata" % (self.workflows_url, run.cromwell_id)
+        try:
+            r = requests.get(url)
+        except Exception:
+            self.logger.warning("Cromwell server timeout")
+            return
+        if r.status_code != requests.codes.ok:
+            return
+        orig_dir = r.json()["workflowRoot"]
+        nice_dir = os.path.join(self.results_dir, str(run.id))
+        wfcopy.wfcopy(orig_dir, nice_dir, flattenShardDir=False, verbose=False)
+        run.status = "ready"
+        self.session.commit()
+        self.transfer_results(run)
 
+    def transfer_results(self, run):
+        """
+        Send run output via Globus
+        """
+        user = self.session.query(models.User).get(run.user_id)
+        nice_dir = os.path.join(self.results_subdir, str(run.id))
+        tatoken = user.transfer_access_token
+        try:
+            atauth = AccessTokenAuthorizer(tatoken)
+            transfer_client = TransferClient(authorizer=atauth)
+        except Exception:
+            self.logger.warning(
+                f"Failed to get Globus transfer client for run {run.id}", exc_info=True
+            )
+            return
+        label = "run_id=%s" % (run.id,)
+        try:
+            tdata = globus_sdk.TransferData(
+                transfer_client,
+                self.globus_endpoint,
+                run.dest_endpoint,
+                label=label,
+                sync_level="checksum",
+                verify_checksum=True,
+                preserve_timestamp=True,
+                notify_on_succeeded=True,
+                notify_on_failed=True,
+                notify_on_inactive=True,
+                skip_activation_check=True,
+            )
+            tdata.add_item(nice_dir, run.dest_path, recursive=True)
+        except Exception:
+            self.logger.warning(
+                f"Failed to prepare download manifest for run {run.id}", exc_info=True
+            )
+        try:
+            transfer_result = transfer_client.submit_transfer(tdata)
+        except GlobusAPIError:
+            self.logger.warning(
+                f"Failed to download results with Globus for run {run.id}",
+                exc_info=True,
+            )
+            return
+        run.download_task_id = transfer_result["task_id"]
+        self.session.commit()
 
-def check_run_status(run):
-    """
-    Check on the status of one Run.
-    """
-    if DEBUG: print("Queued/Running (Cromwell): %s" % (run.id,))
-    try:
-        r = requests.get("%s/%s/status" % (CROMWELL_URL, run.cromwell_id))
-    except:
-        # Cromwell server timeout
-        return
-    if r.status_code != requests.codes.ok: return
-
-    cromwell_status = r.json()["status"]
-    if cromwell_status == "Failed":
-        run.status = "failed"
-        db.session.commit()
-    elif cromwell_status == "Completed":
-        finish_run(run)
-
-
-def finish_run(run):
-    """
-    Reformat and send run output.
-    """
-    # GET OUTPUT PATH
-    url = "%s/%s/metadata" % (WORKFLOWS_URL, run.cromwell_id)
-    try:
-        r = requests.get(url)
-    except:
-        # Cromwell server timeout
-        return
-    if r.status_code != requests.codes.ok: return
-    orig_dir = r.json()["workflowRoot"]
-
-    # UPDATE STATE, RUN WFCOPY
-    run.status = "post-processing"
-    db.session.commit()
-    nice_dir = os.path.join(RESULTS_DIR, run.id)
-    wfcopy.wfcopy(orig_dir, nice_dir, flattenShardDir=False, verbose=False)
-
-    # UPDATE STATE, SUBMIT XFER TO GLOBUS
-    run.status = "downloading output"
-    db.session.commit()
-    user = db.session.query(User).get(run.user_id)
-    transfer_client = globus_transfer_client(user)
-    tdata = globus_sdk.TransferData(
-        transfer_client,
-        GLOBUS_ENDPOINT,
-        run.dest_endpoint,
-        label=run.id,
-        sync_level="checksum",
-        verify_checksum=True,
-        preserve_timestamp=True,
-        notify_on_succeeded=True, # TODO make an option?
-        notify_on_failed=True,
-        notify_on_inactive=True,
-        skip_activation_check=False )
-    tdata.add_item(nice_dir, run.dest_path, recursive=True)
-    transfer_result = transfer_client.submit_transfer(tdata)
-    run.download_task_id = transfer_result["task_id"]
-    db.session.commit()
-
-
-if __name__ == "__main__":
-    """
-    The daemon is usually started by server.py, but can be executed directly for debugging purposes.
-    """
-    # NOTE: the real schedule is specified in server.py; this is for debugging only:
-    schedule.every(5).seconds.do(check_uploads)
-    schedule.every(5).seconds.do(check_cromwell)
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    def check_if_download_complete(self, run):
+        """
+        If download is complete, change state.
+        """
+        user = self.session.query(models.User).get(run.user_id)
+        task_id = run.download_task_id
+        user = self.session.query(models.User).get(run.user_id)
+        tatoken = user.transfer_access_token
+        atauth = AccessTokenAuthorizer(tatoken)
+        try:
+            transfer_client = TransferClient(authorizer=atauth)
+        except Exception:
+            self.logger.warning(
+                f"Failed to get Globus Transfer Client for run {run.id}"
+            )
+        try:
+            result = transfer_client.get_task(task_id)
+            status = result["status"]
+        except Exception:
+            self.logger.warning(f"Failed to get download status for task {task_id}")
+        if status == "SUCCEEDED":
+            run.status = "finished"
+            self.session.commit()
+        elif status == "FAILED":
+            run.status == "download failed"
+            self.session.commit()
