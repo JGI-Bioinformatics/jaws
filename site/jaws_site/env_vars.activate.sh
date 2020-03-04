@@ -1,6 +1,0 @@
-export CROMWELL_URL="localhost:50010"
-export GLOBUS_CLIENT_ID=
-export JAWS_STAGING_DIR=
-export JAWS_RESULTS_DIR=
-export JAWS_TMPDIR=
-export JAWS_SITE_CONFIG=

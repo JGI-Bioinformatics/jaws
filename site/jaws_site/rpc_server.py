@@ -5,31 +5,22 @@ import logging
 import threading
 import time
 import json
-import os
 import urllib.parse
 import amqpstorm
-from amqpstorm import Connection
 from amqpstorm import Message
+from jaws_site import config, dispatch
 
-from jaws_site import dispatch
-
-logging.basicConfig(level=logging.INFO)
-
-LOGGER = logging.getLogger()
-
-DEBUG = True if "JAWS_DEBUG" in os.environ else False
 
 class RpcServer(object):
-
-    def __init__(self, config):
-        self.config = config
-        self.hostname = config["AMQP"]["host"]
-        self.vhost = config["AMQP"]["vhost"]
-        self.username = config["AMQP"]["user"]
-        self.password = config["AMQP"]["password"]
-        self.rpc_queue = config["AMQP"]["queue"]
-        self.number_of_consumers = int(config["RPC"]["num_threads"])
-        self.max_retries = int(config["RPC"]["max_retries"])
+    def __init__(self):
+        """
+        Init obj
+        """
+        self.logger = logging.getLogger(__package__)
+        self.conf = config.JawsConfig()
+        self.rpc_queue = self.conf.get_amqp("queue")
+        self.number_of_consumers = int(self.conf.get_rpc("num_threads"))
+        self.max_retries = int(self.conf.get_rpc("max_retries"))
         self._connection = None
         self._consumers = []
         self._stopped = threading.Event()
@@ -49,7 +40,7 @@ class RpcServer(object):
             except amqpstorm.AMQPError as why:
                 # If an error occurs, re-connect and let update_consumers
                 # re-open the channels.
-                LOGGER.warning(why)
+                self.logger.warning(why)
                 self._stop_consumers()
                 self._create_connection()
             time.sleep(1)
@@ -88,17 +79,31 @@ class RpcServer(object):
             if self._stopped.is_set():
                 break
             try:
-                #self._connection = Connection(self.hostname, self.username, self.password)
-                if self.vhost:
-                    uri = "amqp://" + self.username + ":" + urllib.parse.quote_plus(self.password) + "@" + self.hostname + ":5672/" + self.vhost + "?heartbeat=60"
+                vhost = self.conf.get_amqp("vhost")
+                if vhost:
+                    uri = (
+                        "amqp://"
+                        + self.conf.get_amqp("user")
+                        + ":"
+                        + urllib.parse.quote_plus(self.conf.get_amqp("password"))
+                        + "@"
+                        + self.conf.get_amqp("host")
+                        + ":5672/"
+                        + vhost
+                        + "?heartbeat=60"
+                    )
                     self._connection = amqpstorm.UriConnection(uri)
                 else:
-                    self._connection = amqpstorm.Connection(self.hostname, self.username, self.password)
+                    self._connection = amqpstorm.Connection(
+                        self.conf.get_amqp("host"),
+                        self.conf.get_amqp("user"),
+                        self.conf.get_amqp("password")
+                    )
                 break
             except amqpstorm.AMQPError as why:
-                LOGGER.warning(why)
+                self.logger.warning(why)
                 if self.max_retries and attempts > self.max_retries:
-                    raise Exception('max number of retries reached')
+                    raise Exception("max number of retries reached")
                 time.sleep(min(attempts * 2, 30))
             except KeyboardInterrupt:
                 break
@@ -111,10 +116,11 @@ class RpcServer(object):
         :return:
         """
         # Do we need to start more consumers.
-        consumer_to_start = \
-            min(max(self.number_of_consumers - len(self._consumers), 0), 2)
+        consumer_to_start = min(
+            max(self.number_of_consumers - len(self._consumers), 0), 2
+        )
         for _ in range(consumer_to_start):
-            consumer = Consumer(self.rpc_queue, self.config)
+            consumer = Consumer(self.rpc_queue)
             self._start_consumer(consumer)
             self._consumers.append(consumer)
 
@@ -148,14 +154,13 @@ class RpcServer(object):
 
 
 class Consumer(object):
-    def __init__(self, rpc_queue, config):
+    def __init__(self, rpc_queue):
         self.rpc_queue = rpc_queue
         self.channel = None
         self.active = False
         self.dispatcher = dispatch.Dispatcher()
 
     def start(self, connection):
-        if DEBUG: print("Starting consumer")
         self.channel = None
         try:
             self.active = True
@@ -190,7 +195,7 @@ class Consumer(object):
         method = request["method"]
         params = request["params"]
 
-        if DEBUG: print("Dispatching request for method %s, corr_id %s" % (method, corr_id))
+        self.logger.info(f'Dispatching request for method {method}, corr_id {corr_id}')
 
         # GET RESPONSE FROM DISPATCHER
         response_dict = self.dispatcher.dispatch(method, params)
@@ -198,17 +203,23 @@ class Consumer(object):
         # VALIDATE RESPONSE
         response_dict["jsonrpc"] = "2.0"
         if "error" in response_dict:
-            if type(response_dict["error"]) is not dict: sys.exit("Invalid response_dict: %s" % (response_dict,))
-            if "code" not in response_dict["error"]: sys.exit("Invalid response_dict; missing error code")
-            if "message" not in response_dict["error"]: sys.exit("Invalid response_dict; missing error message")
-            if "result" in response_dict: sys.exit("Invalid response_dict; result not allowed if error")
-        elif "result" not in response_dict: sys.exit("Invalid response_dict: %s" % (response_dict,))
+            if type(response_dict["error"]) is not dict:
+                self.logger.error(f'Invalid response_dict: {response_dict}')
+            if "code" not in response_dict["error"]:
+                self.logger.error("Invalid response_dict; missing error code")
+            if "message" not in response_dict["error"]:
+                self.logger.error("Invalid response_dict; missing error message")
+            if "result" in response_dict:
+                self.logger.error("Invalid response_dict; result not allowed if error")
+        elif "result" not in response_dict:
+            self.logger.error(f'Invalid response_dict: {response_dict}')
 
         # INIT RESPONSE MESSAGE OBJECT
-        properties = { 'correlation_id': message.correlation_id }
-        response = Message.create(message.channel, json.dumps(response_dict), properties)
+        properties = {"correlation_id": message.correlation_id}
+        response = Message.create(
+            message.channel, json.dumps(response_dict), properties
+        )
 
         # DELIVER RESPONSE
-        if DEBUG: print("Publishing response for %s" % (corr_id,))
         response.publish(message.reply_to)
         message.ack()
