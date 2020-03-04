@@ -1,0 +1,6 @@
+{
+  "bbmap_shard_wf.chunk_size": "100000000",
+  "bbmap_shard_wf.reads": "/global/scratch/jfroula/JAWS/jaws-example-wdl/data/veryshort.fastq.bz2",
+  "bbmap_shard_wf.alignment.threads": "4",
+  "bbmap_shard_wf.reference": "/global/scratch/jfroula/JAWS/jaws-example-wdl/data/DOE_UTEX.polished.t635masked.fasta"
+}

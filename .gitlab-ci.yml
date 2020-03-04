@@ -42,6 +42,15 @@ test-client:
     - pip install flake8
     - make test-client
   allow_failure: true
+test-auth:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install flake8
+    - make test-auth
+  allow_failure: true
 package:
   <<: *only-default
   stage: package

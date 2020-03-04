@@ -5,7 +5,6 @@ Full [documentation](https://jaws-docs.readthedocs.io) for running and installin
 
 ### Resources for JAWS Developers
 
-
 ### Installing JAWS site
 See docs/install_Cli_and_Site.md  
 See docs/startingServices.md  
