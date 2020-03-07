@@ -9,18 +9,15 @@ import json
 import subprocess
 import re
 import zipfile
-
-DEBUG = False
-if "JAWS_DEBUG" in os.environ:
-    DEBUG = True
-
-if "WOMTOOL" not in os.environ:
-    sys.exit("$WOMTOOL env var not defined")
-WOMTOOL = os.environ["WOMTOOL"]
+import logging
+from jaws_client import config
 
 
 class Workflow:
+    """The Workflow class is used to validate a WDL and manipulate the inputs JSON"""
 
+    logger = None
+    womtool = None
     wdl_file = None
     json_file = None
     zip_file = None
@@ -31,6 +28,17 @@ class Workflow:
     max_ram_gb = 0
 
     def __init__(self, wdl_file, inputs_file):
+        """Constructor
+
+        :param wdl_file: Path to the main workflow specification (WDL) file
+        :type wdl_file: str
+        :param inputs_file: Path to the inputs (JSON) file
+        :type inputs_file:
+        :return:
+        """
+        conf = config.JawsConfig()
+        self.womtool = conf.get("JAWS", "womtool_jar")
+        self.logger = logging.getLogger(__package__)
         if not os.path.exists(wdl_file):
             sys.exit("wdl_file not found: %s" % (wdl_file,))
         if not os.path.exists(inputs_file):
@@ -39,8 +47,10 @@ class Workflow:
         self.inputs_file = inputs_file
 
     def validate(self):
-        """
-        Perform all tests.  Returns True upon success; False otherwise.
+        """Perform all tests
+
+        :return: Returns True upon success; False otherwise.
+        :rtype: bool
         """
         if not self.validate_workflow():
             return False
@@ -53,14 +63,15 @@ class Workflow:
     # including subworkflows
 
     def validate_workflow(self):
-        """
-        Validate main WDL file and identify any subworkflows.  Returns True on success, False otherwise.
+        """Validate main WDL file and identify any subworkflows.
+
+        :return: Returns True on success, False otherwise.
+        :rtype: bool
         """
         # VALIDATE MAIN WDL
-        if DEBUG:
-            print("Validating workflow")
+        self.logger.debug("Validating workflow")
         proc = subprocess.run(
-            ["java", "-jar", WOMTOOL, "validate", "-l", self.wdl_file],
+            ["java", "-jar", self.womtool, "validate", "-l", self.wdl_file],
             capture_output=True,
             text=True,
         )
@@ -87,15 +98,16 @@ class Workflow:
         return True
 
     def _identify_file_parameters(self):
+        """Determine which parameters are of "File" type in the inputs JSON.
+
+        :return: populates and returns self.file_items
+        :rtype: set
         """
-        Validate the WDL using Cromwell's womtool and define the set
-        of parameters of "File" type as self.file_items.  Used by load_inputs_json()
-        """
-        if DEBUG:
-            print('Identifying "File" parameters')
+        self.logger.debug('Identifying "File" parameters')
         items = {}
         proc = subprocess.Popen(
-            ["java", "-jar", WOMTOOL, "inputs", self.wdl_file], stdout=subprocess.PIPE
+            ["java", "-jar", self.womtool, "inputs", self.wdl_file],
+            stdout=subprocess.PIPE,
         )
         stdout = proc.communicate()[0].decode("utf8")
         wom_output = json.loads(stdout)
@@ -117,23 +129,20 @@ class Workflow:
         return self.file_items
 
     def _filter_wdl(self, infile, outfile):
-        """
-        Removes any "backend" tags in the WDL file.  Also updates the self.max_ram_gb value.
-        Returns True on success; False otherwise.
-        We disallow "backend" tags in the WDL since they override the server defaults and
-        may overload the local server.  Note that this tag must be entirely contained within
-        a single line as the WDL is not fully parsed with python and the java womtool doesn't have this feature.
-        This tag is currently only required when running on AWS.
-        We determine the maximum amount of requested memory (in gigabytes) across all WDLs
-        (i.e. including subworkflows) to ensure the cluster has nodes capable of running
-        the workflow (otherwise the job shall never be run by the scheduler).
+        """Remove any disallowed "backend" tags from the WDL file, and set the self.max_ram_gb value.
+
+        :param infile: Path to source WDL file
+        :type infile: str
+        :param outfile: Path to result WDL file
+        :type outfile: str
+        :return: Returns True if successful, False otherwise.
+        :rtype: bool
         """
         assert infile
         assert outfile
 
         # READ WDL
-        if DEBUG:
-            print("Reading WDL: %s" % (infile,))
+        self.logger.debug("Reading WDL: %s" % (infile,))
         lines = None
         try:
             with open(infile, "r") as f:
@@ -167,8 +176,7 @@ class Workflow:
                 new_wdl = new_wdl + line
 
         # WRITE (FILTERED) WDL
-        if DEBUG:
-            print("Writing WDL: %s" % (outfile,))
+        self.logger.debug("Writing WDL: %s" % (outfile,))
         try:
             with open(outfile, "w") as f:
                 f.write(new_wdl)
@@ -177,8 +185,12 @@ class Workflow:
         return True
 
     def prepare_wdls(self, staging_dir, submission_id):
-        """
-        Copy and filter WDLs (including subworkflows) to new directory. This changes the wdl paths in the object.
+        """Filter WDLs (including subworkflows) and write to specified directory.
+
+        :param staging_dir: Basepath for writing the filtered WDL file(s)
+        :type staging_dir: str
+        :param submission_id: Subdirectory name in which to write the filtered WDL files(s)
+        :type submission_id: str
         """
         # MAIN WDL
         assert self.wdl_file
@@ -207,9 +219,7 @@ class Workflow:
         return True
 
     def zip_subworkflows(self):
-        """
-        Create a zip file of the subworkflows, as required by Cromwell.
-        """
+        """Create a zip file of the subworkflows, as required by Cromwell."""
         if not self.subworkflows:
             return True
         assert self.zip_file
@@ -233,21 +243,19 @@ class Workflow:
     # INPUTS (JSON) METHODS
 
     def validate_inputs(self):
-        """
-        Load inputs json file, converts all paths to absolute, and verifies they exist.
+        """Converts all paths in inputs JSON to absolute paths and verify they exist.
+
         This method populates:
             self.inputs_dict  (parameter key => value)
             self.source_files (set of absolute paths)
         Returns True if successful; False otherwise.  Does not write any outfile.
         """
-        if DEBUG:
-            print("Validating inputs JSON file")
+        self.logger.debug("Validating inputs JSON file")
         try:
             with open(self.inputs_file, "r") as f:
                 self.inputs_dict = json.load(f)
         except Exception:
-            if DEBUG:
-                sys.stderr.write("Unable to load inputs json\n")
+            self.logger.debug(f"Unable to load inputs json, {self.inputs_file}")
             return False
 
         # CONVERT RELATIVE PATHS TO ABSOLUTE PATHS
@@ -257,8 +265,7 @@ class Workflow:
             self.source_files = source_files
             return True
         items = self.file_items
-        if DEBUG:
-            print("Making all paths absolute")
+        self.logger.debug("Making all paths absolute")
         inputs_dict = self.inputs_dict
         json_dirname = os.path.dirname(self.inputs_file)
         for key in inputs_dict.keys():
@@ -324,11 +331,9 @@ class Workflow:
         Returns True if OK, False otherwise.
         """
         is_okay = True
-        if DEBUG:
-            print("Validating input files")
+        self.logger.debug("Validating input files")
         if len(self.source_files) == 0:
-            if DEBUG:
-                print("[WARNING] Workflow doesn't have any input files")
+            self.logger.debug("[WARNING] Workflow doesn't have any input files")
         for a_file in self.source_files:  # abs paths
             if not os.path.exists(a_file):
                 sys.stderr.write("[ERROR] File not found: %s\n" % (a_file,))
@@ -338,7 +343,6 @@ class Workflow:
                 is_okay = False
             elif os.path.isdir(a_file):
                 sys.stderr.write("[WARNING] Is a dir, not a file: %s\n" % (a_file,))
-            # elif DEBUG: print("\t%s" % (a_file,))
         return is_okay
 
     def write_inputs_json(self):
@@ -347,11 +351,9 @@ class Workflow:
         Returns True on success; False otherwise.
         """
         assert self.json_file
-        if DEBUG:
-            print("Writing inputs JSON: %s" % (self.json_file,))
+        self.logger.debug("Writing inputs JSON: %s" % (self.json_file,))
         if self.inputs_dict is None:
-            if DEBUG:
-                sys.stderr.write("\t[ERROR] Inputs not defined\n")
+            self.logger.debug(f"Inputs not defined for {self.json_file}")
             return False
         try:
             with open(self.json_file, "w") as f:
@@ -366,8 +368,7 @@ class Workflow:
         Update self.input_dict using mapping information provided in infiles dictionary (source => dest).
         """
         items = self.file_items
-        if DEBUG:
-            print("Updating paths in inputs JSON")
+        self.logger.debug("Updating paths in inputs JSON")
         inputs_dict = self.inputs_dict
         for key in inputs_dict.keys():
             value = inputs_dict[key]
@@ -418,8 +419,7 @@ class Workflow:
             os.makedirs(staging_dir, 0o0777)
 
         # COPY OR SYMLINK FILES
-        if DEBUG:
-            print("Staging infiles")
+        self.logger.debug("Staging infiles")
         infiles = {}  # source => dest
         new_source_files = set()
         transfer_mb = 0
@@ -430,14 +430,11 @@ class Workflow:
             #            # MIRRORED REFERENCE DATA FOLDERS NO LONGER NEEDED -- CACHING ALL FILES NOW
             #            if local_ref_dir and remote_ref_dir and source.startswith(local_ref_dir):
             #                new_source = source.replace(local_ref_dir, remote_ref_dir, 1)
-            #                if DEBUG: print("\t%s" % (source,))
             # /DEPRECATED
             dest = "%s/%s" % (
                 data_dir,
                 source,
             )  # os.path.join won't work because "source" is an abs path
-            if DEBUG:
-                print("\t%s" % (source,))
             dirname = os.path.dirname(dest)
             if not os.path.isdir(dirname):
                 os.makedirs(dirname, 0o0777)
@@ -479,14 +476,17 @@ class Workflow:
         self.manifest.append([self.json_file, json_basename])
 
     def write_manifest(self, staging_dir, submission_id):
-        """
-        Write manifest.tsv file
+        """Write manifest.tsv file
+
+        :param staging_dir: Basedir for output
+        :type staging_dir: str
+        :param submission_id: Subdir to which to write manifest.tsv file
+        :type submission_id: str
         """
         outfile = self.manifest_file = os.path.join(
             staging_dir, "%s.tsv" % (submission_id,)
         )
-        if DEBUG:
-            print("Writing manifest file: %s" % (outfile,))
+        self.logger.debug("Writing manifest file: %s" % (outfile,))
         try:
             with open(outfile, "w") as f:
                 for src, dest in self.manifest:
