@@ -10,37 +10,42 @@ from amqpstorm import Message
 import json
 from time import sleep
 import urllib.parse
-#from flask import current_app
 
-import config
 
 class RPC_Client(object):
-    """Asynchronous Rpc client."""
+    """Asynchronous remote procedure call (RPC) client class."""
 
-    def __init__(self, host, user, password, queue, vhost=None):
+    def __init__(self, params):
+        """Constructor
+
+        :param params: A dictionary containing host, user, password, vhost, queue
+        :type params: dict
+        """
         self.queue = {}
-        self.host = host
-        self.vhost = vhost
-        self.username = user
-        self.password = password
         self.channel = None
         self.connection = None
         self.callback_queue = None
-        self.rpc_queue = queue
-        self.open()
+        self.open(params)
 
-    def open(self):
-        """Open Connection."""
-        if self.vhost:
-            uri = "amqp://" + self.username + ":" + urllib.parse.quote_plus(self.password) + "@" + self.host + ":5672/" + self.vhost + "?heartbeat=60"
+    def open(self, params):
+        """Open connection to RabbitMQ
+
+        :param params: A dictionary containing host, user, password, vhost, queue
+        :type params: dict
+        """
+        if "vhost" in params and params["vhost"]:
+            qpassword = urllib.parse.quote_plus(params["password"])
+            uri = f'amqp://{params["user"]}:{qpassword}@{params["host"]}:5672/{params["vhost"]}?heartbeat=60'
             self.connection = amqpstorm.UriConnection(uri)
         else:
-            self.connection = amqpstorm.Connection(self.host, self.username, self.password)
+            self.connection = amqpstorm.Connection(params["host"], params["user"], params["password"])
         self.channel = self.connection.channel()
-        self.channel.queue.declare(self.rpc_queue)
+        self.channel.queue.declare(params["queue"])
         result = self.channel.queue.declare(exclusive=True)
-        self.callback_queue = result['queue']
-        self.channel.basic.consume(self._on_response, no_ack=True, queue=self.callback_queue)
+        self.callback_queue = result["queue"]
+        self.channel.basic.consume(
+            self._on_response, no_ack=True, queue=self.callback_queue
+        )
         self._create_process_thread()
 
     def _create_process_thread(self):
@@ -62,15 +67,17 @@ class RPC_Client(object):
         self.queue[message.correlation_id] = message.body
 
     def send_request(self, method, params={}):
-        """
-        Format and send a JSON-RPC request and return the request's correlation_id, but do not wait for a response.
+        """Format and send a JSON-RPC2 request but do not wait for a response.
+
+        :param method: The RPC method to call; this is not validated by the rpc client.
+        :type method: str
+        :param params: Any associated parameters to accompany the request (varies by method).
+        :type params: dict
+        :return: the ID of the RPC request (correlation ID)
+        :rtype: int
         """
         # Construct JSON-RPC2 payload string
-        query = {
-            "jsonrpc" : "2.0",
-            "method" : method,
-            "params" : params
-        }
+        query = {"jsonrpc": "2.0", "method": method, "params": params}
         payload = json.dumps(query)
 
         # Create the Message object.
@@ -87,48 +94,53 @@ class RPC_Client(object):
         # Return the Unique ID used to identify the request.
         return message.correlation_id
 
-
     def get_response(self, corr_id):
+        """Return the JSON-RPC2 response if ready, None otherwise.
+
+        :param corr_id: Correlation (RPC request) ID
+        :type corr_id: int
+        :returns: JSON-RPC2 compliant response from RPC server
+        :rtype: dict or list
         """
-        Return the JSON-RPC2 response if exists, None otherwise.
-        """
-        assert(corr_id)
+        assert corr_id
         response_string = self.queue[corr_id]
-        if response_string is None: return None
+        if response_string is None:
+            return None
         response = {}
         try:
             response = json.loads(response_string)
-        except:
+        except Exception:
             response = {}
             response["error"] = {
-                "code" : 500,
-                "message" : "Invalid response: %s" % (response_string,)
+                "code": 500,
+                "message": "Invalid response: %s" % (response_string,),
             }
         return response
 
+    def request(self, method, params={}, max_wait=10):
+        """Format and send a JSON-RPC request, wait for response, and return result (which may indicate an error).
 
-    def request(self, method, params={}, max_wait = 10):
-        """
-        Format and send a JSON-RPC request, wait for response, and return result (which may indicate an error).
+        :param method: The RPC method to call; this is not validated by the rpc client.
+        :type method: str
+        :param params: Any associated parameters to accompany the request (varies by method).
+        :type params: dict
+        :returns: JSON-RPC2 compliant response from RPC server; it may indicate error.
+        :rtype: dict or list
         """
         # Send the request and store the requests' ID
         corr_id = self.send_request(method, params)
 
         # Wait for up to a maximum amount of time for a response.
-        wait_interval = 0.25 # seconds
+        wait_interval = 0.25  # seconds
         waited = 0
         response = {}
         while self.queue[corr_id] is None:
-            waited = waited + wait_interval    
+            waited = waited + wait_interval
             if waited > max_wait:
                 # timeout error
-                response["error"] = {
-                    "code" : 500,
-                    "message": "Server timeout"
-                }
+                response["error"] = {"code": 500, "message": "Server timeout"}
                 return response
             sleep(wait_interval)
 
         # Return the response to the user (may be error).
         return self.get_response(corr_id)
-
