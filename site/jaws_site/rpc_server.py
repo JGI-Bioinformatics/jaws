@@ -13,9 +13,7 @@ from jaws_site import config, dispatch
 
 class RpcServer(object):
     def __init__(self):
-        """
-        Init obj
-        """
+        """Init an RPC-server object"""
         self.logger = logging.getLogger(__package__)
         self.conf = config.JawsConfig()
         self.rpc_queue = self.conf.get_amqp("queue")
@@ -155,12 +153,19 @@ class RpcServer(object):
 
 class Consumer(object):
     def __init__(self, rpc_queue):
+        """Initialize Consumer object
+
+        :param rpc_queue: The name of the queue from which to retrieve messages.
+        :type rpc_queue: str
+        :return:
+        """
         self.rpc_queue = rpc_queue
         self.channel = None
         self.active = False
         self.dispatcher = dispatch.Dispatcher()
 
     def start(self, connection):
+        """Start the consumer"""
         self.channel = None
         try:
             self.active = True
@@ -180,12 +185,14 @@ class Consumer(object):
             self.active = False
 
     def stop(self):
+        """Stop the consumer"""
         if self.channel:
             self.channel.close()
 
     def __call__(self, message):
         """Process the RPC Payload.
-        :param Message message:
+        :param message: A JSON-RPC2 encoded request
+        :type message: str
         :return:
         """
         corr_id = message.correlation_id

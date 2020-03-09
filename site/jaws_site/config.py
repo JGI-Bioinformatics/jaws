@@ -27,6 +27,11 @@ class JawsConfig(metaclass=Singleton):
     session = None
 
     def __init__(self, config_file=None):
+        """Constructor
+
+        :param config_file: Path to configuration file in INI format
+        :type config_file: str
+        """
         logger = logging.getLogger(__package__)
         logger.debug('loading configuration...')
         if not config_file:
@@ -55,8 +60,7 @@ class JawsConfig(metaclass=Singleton):
         return self.config.get("SITE", value)
 
     def init_db(self):
-        """
-        SQLAlchemy connection to RDB
+        """SQLAlchemy connection to RDB
         """
         url = "%s://%s:%s@%s/%s" % (
             self.get_db("dialect"),

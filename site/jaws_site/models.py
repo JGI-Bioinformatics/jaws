@@ -21,8 +21,12 @@ Base = declarative_base()
 
 
 def same_as(column_name):
-    """
-    Function sets the default value of a column to the value in another column.
+    """Function sets the default value of a column to the value in another column.
+
+    :param column_name: Name of a column in a table.
+    :type column_name: str
+    :return: A function which returns the current value in another column.
+    :rtype: function
     """
 
     def default_function(context):
@@ -129,5 +133,6 @@ class Run(Base):
 
 
 def create_all():
+    """Create all database tables that do not exist."""
     conf = config.JawsConfig()
     Base.metadata.create_all(conf.db)
