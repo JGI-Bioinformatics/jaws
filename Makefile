@@ -50,3 +50,17 @@ test-auth: test-requirements
 .PHONY: test
 test: test-site test-central test-client test-auth
 ## Test Section END
+
+## Doc Section BEGIN
+.PHONY: doc-requirements
+doc-requirements:
+	$(if $(shell python -c 'import sphinx; print("ok")' 2>/dev/null),,$(error "Testing needs sphinx installed. Please run 'pip install sphinx'"))
+	$(if $(shell python -c 'from sphinxcontrib import confluencebuilder; print("ok")' 2>/dev/null),,$(error "Building sphinx docs needs sphinxcontrib-confluencebuilder installed. Please run 'pip install sphinxcontrib-confluencebuilder'"))
+	$(if $(shell python -c 'import recommonmark; print("ok")' 2>/dev/null),,$(error "Building sphinx docs needs recommonmark installed. Please run 'pip install recommonmark'"))
+	$(if $(shell python -c 'import sphinx_rtd_theme; print("ok")' 2>/dev/null),,$(error "Building sphinx docs needs sphinx_rtd_theme installed. Please run 'pip install sphinx_rtd_theme'"))
+
+.PHONY: docs
+docs: doc-requirements
+	$Q cd docs/sphinx && make html
+	$Q echo "open docs/build/html/index.html"
+## Doc Section END
