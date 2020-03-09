@@ -1,14 +1,6 @@
-"""
-Configuration singleton, loads values from provided INI infile.
-"""
-
 import logging
 import os
 import configparser
-from urllib.parse import quote_plus
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from jaws_site import models
 
 
 class Singleton(type):
@@ -22,6 +14,7 @@ class Singleton(type):
 
 
 class JawsConfig(metaclass=Singleton):
+    """Configuration singleton class"""
     config = None
     db = None
     session = None
@@ -41,44 +34,17 @@ class JawsConfig(metaclass=Singleton):
         self.config = configparser.ConfigParser()
         self.config.read(config_file)
 
-    def get_db(self, value):
-        return self.config.get("DB", value)
+    def get(self, section, key, default=None):
+        """Get a configuration value.
 
-    def get_amqp(self, value):
-        return self.config.get("AMQP", value)
+    :param section: top-level section of the config
+    :type section: str
+    :param key: second-level parameter key
+    :type key: str
+    :return: the value is always a string; typecast as necessary
+    :rtype: str
+    """
+        return self.config.get(section, key, default)
 
-    def get_rpc(self, value):
-        return self.config.get("RPC", value)
 
-    def get_globus(self, value):
-        return self.config.get("GLOBUS", value)
-
-    def get_cromwell(self, value):
-        return self.config.get("CROMWELL", value)
-
-    def get_site(self, value):
-        return self.config.get("SITE", value)
-
-    def init_db(self):
-        """SQLAlchemy connection to RDB
-        """
-        url = "%s://%s:%s@%s/%s" % (
-            self.get_db("dialect"),
-            self.get_db("user"),
-            quote_plus(self.get_db("password")),
-            self.get_db("host"),
-            self.get_db("db"))
-        self.db = create_engine(url, pool_size=2, pool_recycle=3600, pool_pre_ping=True)
-        Session = sessionmaker(bind=self.db)
-        self.session = Session()
-        models.create_all()
-
-    def db(self):
-        if self.db is None:
-            raise Exception("db not initialized; run init_db() first")
-        return self.db
-
-    def session(self):
-        if self.db is None:
-            raise Exception("db not initialized; run init_db() first")
-        return self.session
+conf = None
