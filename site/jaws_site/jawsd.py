@@ -10,7 +10,9 @@ import globus_sdk
 from globus_sdk import TransferClient, AccessTokenAuthorizer, GlobusAPIError
 import logging
 
-from jaws_site import config, models, wfcopy
+from jaws_site import models, wfcopy
+from .config import conf
+from .database import db
 
 
 class JAWSd:
@@ -43,9 +45,8 @@ class JAWSd:
         """
         self.logger = logging.getLogger(__package__)
         self.logger.debug("Initializing daemon")
-        conf = config.JawsConfig()
         self.site_id = conf.get_site("id")
-        self.session = conf.session
+        self.session = db.session
         self.staging_dir = os.path.join(conf.get_globus("root_dir"), conf.get_site("staging_subdirectory"))
         self.workflows_url = conf.get_cromwell("workflows_url")
         self.results_dir = os.path.join(

@@ -9,7 +9,7 @@ Each computing site also has a Cromwell server instance, typically installed on 
 
 import os
 import click
-from jaws_site import config, rpc_server, jawsd, log
+from jaws_site import config, database, rpc_server, jawsd, log
 
 
 @click.group()
@@ -27,7 +27,8 @@ def serve(config_file, log_file):
     logger = log.setup_logger(__package__, log_file)
     logger.debug("Starting jaws-site server")
     conf = config.JawsConfig(config_file)
-    conf.init_db()
+    db = database.JawsDatabase(conf)
+    db.create_all()
     if os.fork():
         app = rpc_server.RpcServer()
         app.start_server()

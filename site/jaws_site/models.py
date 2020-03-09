@@ -15,7 +15,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 # from sqlalchemy.orm import relationship
-from jaws_site import config
 
 Base = declarative_base()
 
@@ -114,9 +113,3 @@ class Run(Base):
     # ONE:MANY RELATIONSHIPS
 #    user = relationship("User", back_populates="runs")
 #    workflow = relationship("Workflow", back_populates="runs")
-
-
-def create_all():
-    """Create all database tables that do not exist."""
-    conf = config.JawsConfig()
-    Base.metadata.create_all(conf.db)
