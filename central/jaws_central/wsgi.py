@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import server
+from jaws_central import server
 
 if __name__ == "__main__":
     server.connex.app.run()

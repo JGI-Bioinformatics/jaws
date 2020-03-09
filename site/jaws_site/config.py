@@ -68,7 +68,7 @@ class JawsConfig(metaclass=Singleton):
             quote_plus(self.get_db("password")),
             self.get_db("host"),
             self.get_db("db"))
-        self.db = create_engine(url)
+        self.db = create_engine(url, pool_size=2, pool_recycle=3600, pool_pre_ping=True)
         Session = sessionmaker(bind=self.db)
         self.session = Session()
         models.create_all()

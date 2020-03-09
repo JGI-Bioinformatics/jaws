@@ -1,246 +1,273 @@
-#!/usr/bin/env python
-
 """
-Run management.  This module provides REST endpoints and relays/aggregates communications with the JAWS Sites via AMQP-RPC.  RPC communications use JSON-RPC2.
+Analysis (AKA Run) REST endpoints.
 """
 
+import logging
 from datetime import datetime, timedelta
-import sys
-import os
-from flask import make_response, abort, Flask, request, redirect, url_for
-from flask import current_app
-#from werkzeug.utils import secure_filename
-import time
-#import glob
-#import subprocess
-#from subprocess import Popen, PIPE
-#import markdown
-import json
-import requests
-from requests import Session
-#import tempfile
-#import shutil
-import mysql.connector
-from mysql.connector import Error
-#import socket
-#import re
-import threading
-import amqpstorm
-from amqpstorm import Message
-import uuid
-from datetime import datetime
-import configparser
-import csv
-
-import rpc_client
-import models
-from config import db
-#import user as jaws_user
-
-from models import Site, Run, User, Workflow
-
-DEBUG = True if "JAWS_DEBUG" in os.environ else False
+from flask import abort, request
+from globus_sdk import TransferClient, AccessTokenAuthorizer, GlobusAPIError
+from .database import db
+from .config import conf
+from .rpc_manager import rpc
+from .models import Run, User
 
 
-# JAWS-SITE CONFIG
-if "JAWS_SITES_CONFIG" not in os.environ: sys.exit('Env var $JAWS_SITES_CONFIG not defined')
-site_config = configparser.ConfigParser()
-site_config.read_file(open(os.environ["JAWS_SITES_CONFIG"]))
+logger = logging.getLogger(__package__)
 
 
-# INIT SITE RPC OBJECTS
-rpc_clients = {} # site name : rpc client object
-for site_name in site_config.sections():
-    print("Initializing RPC client for %s" % (site_name,))
-    rpc_clients[site_name] = rpc_client.RPC_Client(
-        site_config[site_name]["amqp_host"],
-        site_config[site_name]["amqp_user"],
-        site_config[site_name]["amqp_password"],
-        site_config[site_name]["amqp_queue"],
-        vhost=site_config[site_name]["amqp_vhost"] )
+def _rpc_call(self, user, run_id, method, params={}):
+    """This is not a Flask endpoint, but a helper used by several endpoints.
+    It checks a user's permission to access a run, perform the specified RPC function,
+    and returns result if OK, aborts if error.
 
+    :param user: current user's id
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :param method: the method to execute remotely
+    :type method: string
+    :param params: parameters for the remote method, depends on method
+    :type params: dict
+    :return: response in JSON-RPC2 format
+    :rtype: dict or list
+    """
+    run = db.session.query(Run).get(run_id)
+    if not run:
+        abort(404, "Run not found")
+    if run.user_id != user:
+        abort(401, "Access denied")
+    site_rpc_call = rpc.get_client(run.site_id)
+    params["cromwell_id"] = run.cromwell_id
+    result = site_rpc_call.request(method, params)
+    if "error" in result:
+        abort(result["error"]["code"], result["error"]["message"])
+    return result, 200
 
-
-## DB FUNCTIONS -- faster/less overhead than RPC, particularly when multiple sites are involved in the query (e.g. user_queue)
 
 def user_queue(user):
+    """Return the current user's unfinished runs.
+
+    :param user: current user's ID
+    :type user: str
+    :return: details about any current runs
+    :rtype: list
     """
-    Return the current user's unfinished runs.
-    """
-    result = db.session.query(Run).filter_by(user_id=user).filter(Run.status.in_(["uploading","queued","running","post-processing","downloading"])).all()
-    return result
+    result = (
+        db.session.query(Run)
+        .filter_by(user_id=user)
+        .filter(
+            Run.status.in_(
+                ["uploading", "queued", "running", "post-processing", "downloading"]
+            )
+        )
+        .all()
+    )
+    return result, 200
 
 
 def user_recent(user):
-    """
-    Return the current user's recent runs, regardless of status.
+    """Return the current user's recent runs, regardless of status.
+
+    :param user: current user's ID
+    :type user: str
+    :param delta_days: number of days in which to search, from formData
+    :type delta_days: int
+    :return: details about any recent runs
+    :rtype: list
     """
     delta_days = request.form.get("delta_days", 30)
     start_date = datetime.today() - timedelta(int(delta_days))
-    result = db.session.query(Run).filter_by(user_id=user).filter(Run.submitted >= start_date).all()
-    return result
+    result = (
+        db.session.query(Run)
+        .filter_by(user_id=user)
+        .filter(Run.submitted >= start_date)
+        .all()
+    )
+    return result, 200
 
 
-def get_site(user):
+def list_sites(user):
+    """List all JAWS-Sites.
+
+    :param user: current user's ID
+    :type user: str
+    :return: summary of all configured JAWS-Sites
+    :rtype: dict
     """
-    If a preferred_site is specified, compare run's parameters to the Site's resources; if the run exceeds the Site's capabilities, return an alternate Site insead.  If no preferred site is suggested, then pick one based upon both capabilities and availability.
+    sites = rpc.get_sites()
+    result = {}
+    for site_id in sites:
+        result[site_id] = conf.get_site_info(site_id)
+    return result, 200
+
+
+def get_site(user, site_id):
+    """Get parameters of a Site, required to submit a run.
+
+    :param user: current user's ID
+    :type user: str
+    :param site_id: a JAWS-Site's ID
+    :type site_id: str
+    :return: globus endpoint id and staging path
+    :rtype: dict
     """
-    # TODO PICK SITE
-    # TODO COMPARE REQUIRED RESOURCES TO SITE AVAILABLE RESOURCES
-    # TODO CHECK IF SITE IS ONLINE; OTHERWISE abort(503, "The requested resource is currently unavailable")
-
-    site_id = request.form.get("site", None)
-    if site_id: site_id = site_id.upper()
-    else: site_id = "LBNL"
-
-    max_ram_gb = request.form.get("max_ram_gb", None)
-    transfer_gb = request.form.get("transfer_gb", None)
-
-    if DEBUG: print("Return site info for: %s" % (site_id,))
-    site = db.session.query(Site).get(site_id)
-    if not site: abort(404, "Site not found")
-
-    # RETURN GLOBUS INFO
-    result = { "endpoint" : site.endpoint, "site" : site.id, "staging" : site.staging }
-    #result["dir"] = os.path.join(site.basepath, site.staging)
+    if not rpc.is_valid_site(site_id):
+        abort(404, "Invalid Site ID")
+    result = conf.get_site_info(site_id)
     return result, 200
 
 
 def submit_run(user):
     """
     Record the run submission in the database.  The status of the new run will be "uploading".
-    """
-    if DEBUG: print("Init run submission from %s" % (user,))
 
-    # GET PARAMS
+    :param user: current user's ID
+    :type user: str
+    :param site_id: JAWS-Site ID, from formData
+    :type site_id: str
+    :param submission_uuid: The ID of the submission, generated by the client, from formData
+    :type submission_uuid: str
+    :param globus_transfer_task_id: The ID of the Globus transfer task, from formData
+    :type globus_transfer_task_id: str
+    :param globus_endpoint: The ID of the Globus endpoint to which to deliver results, from formData
+    :type globus_endpoint: str
+    :param outdir: The path to which to deliver results, from formData
+    :type outdir: str
+    :return: run ID
+    :rtype: dict
+    """
+    logger.info(f"New submission from {user})")
     site_id = request.form.get("site", None).upper()
     submission_uuid = request.form.get("submission_uuid", None)
     globus_transfer_task_id = request.form.get("transfer_task_id", None)
     globus_endpoint = request.form.get("globus_endpoint", None)
     outdir = request.form.get("outdir", None)
-
-    # VALIDATE
-    site = db.session.query(Site).get(site_id)
-    if not site: abort(404, "Site not found")
-    # TODO VERIFY GLOBUS TRANSFER HAS NOT FAILED
-
-    # SAVE IN DB
-    if DEBUG: print("Inserting into database")
-    current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    if not rpc.is_valid_site(site_id):
+        abort(404, "Invalid Site ID")
+    globus_status = _check_transfer_status(user, globus_transfer_task_id)
+    if globus_status is None:
+        abort(400, "Globus transfer task not found")
+    elif globus_status == "FAILED":
+        abort(400, "Globus transfer failed")
     run = Run(
         user_id=user,
         site_id=site_id,
         status="uploading",
         submission_uuid=submission_uuid,
         upload_task_id=globus_transfer_task_id,
-        dest_endpoint = globus_endpoint,
-        dest_path = outdir )
+        dest_endpoint=globus_endpoint,
+        dest_path=outdir,
+    )
     db.session.add(run)
     db.session.commit()
-
-    # RETURN PRIMARY KEY
-    result = { "run_id" : run.id }
+    result = {"run_id": run.id}
     return result, 201
+
+
+def _check_transfer_status(user_id, transfer_task_id):
+    """
+    Retrieve status of Globus transfer task.
+    Returns None if task not found.
+
+    :param user: current user's ID
+    :type user: str
+    :param transfer_task_id: The Globus transfer task ID
+    :type transfer_task_id: str
+    :return: The status of the transfer, as reported by Globus transfer service
+    :rtype: str
+    """
+    user = db.session.query(User).get(user_id)
+    try:
+        transfer_client = TransferClient(
+            authorizer=AccessTokenAuthorizer(user.transfer_access_token)
+        )
+        task = transfer_client.get_task(transfer_task_id)
+        return task["status"]
+    except GlobusAPIError:
+        logger.warning(f'Error checking Globus transfer task, {transfer_task_id}', exc_info=True)
+        return None
 
 
 def run_status(user, run_id):
     """
     Retrieve the current status of a run.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: The status of the run, if found; abort otherwise
+    :rtype: dict
     """
     q = db.session.query(Run).get(run_id)
-    if not q: abort(404, "Run not found")
-    result = { "status" : q.status }
-    return result, 200
-
-
-
-## RPC FUNCTIONS
-
-def _rpc(user, run_id, method, params = {}):
-    """
-    Performs the specified RPC function and returns result if OK, aborts if error.
-    """
-    run = db.session.query(Run).get(run_id)
-    if not run: abort(404, "Run not found")
-    if run.user_id != user: abort(401, "Access denied")
-    rpc = rpc_clients[run.site_id] 
-    #if run.cromwell_id is None: abort(400, "Run not yet scheduled")
-    params["cromwell_id"] = run.cromwell_id
-    result = rpc.request(method, params)
-    if "error" in result: abort(result["error"]["code"], result["error"]["message"])
+    if not q:
+        abort(404, "Run not found")
+    result = {"status": q.status}
     return result, 200
 
 
 def task_status(user, run_id):
     """
     Retrieve run status with task-level detail.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: The status of each task in a run, if found; abort otherwise
+    :rtype: dict
     """
-    return _rpc(user, run_id, "task_status")
+    q = db.session.query(Run).get(run_id)
+    if not q:
+        abort(404, "Run not found")
+    if q.status.startswith("upload"):
+        # uploading, upload failed, upload stalled
+        result = {"status": q.status}
+        return result, 200
+    else:
+        return _rpc_call(user, run_id, "task_status")
 
 
 def run_metadata(user, run_id):
     """
     Retrieve the metadata of a run.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: Cromwell metadata for the run, if found; abort otherwise
+    :rtype: dict
     """
-    return _rpc(user, run_id, "run_metadata")
+    q = db.session.query(Run).get(run_id)
+    if not q:
+        abort(404, "Run not found")
+    if q.status.startswith("upload"):
+        # uploading, upload failed, upload stalled
+        result = {"status": q.status}
+        return result, 200
+    else:
+        return _rpc_call(user, run_id, "run_metadata")
 
 
 def cancel_run(user, run_id):
     """
-    Cancel a run.
+    Cancel a run.  It doesn't cancel Globus transfers, just Cromwell runs.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: OK message upon success; abort otherwise
+    :rtype: dict
     """
-    return _rpc(user, run_id, "cancel_run")
-
-
-#def invalidate_task(user, run_id, task_name):
-#    """
-#    Mark a task's output as invalid to prevent it from being cached.
-#    """
-#    return _rpc(user, run_id, "invalidate_task", { "task" : task_name })
-
-
-def get_labels(run_id):
-    """
-    Retrieve labels for a run.
-    """
-    return _rpc(user, run_id, "get_labels")
-
-
-#def search_runs(user):
-#    """
-#    Search for runs matching some criteria
-#    """
-#    params = {}
-#    query_user = request.form.get("query_user", None)
-#    if query_user:
-#        query_user = query_user.lower()
-#        if query_user != "all":
-#            params["uid"] = query_user
-#    else:
-#        params["uid"] = user
-#    status = request.form.get("status", None)
-#    if status:
-#        params["status"] = status
-#    delta_days = request.form.get("delta_days", 90)
-#    if delta_days:
-#        d = datetime.today() - timedelta(int(delta_days))
-#        start_date = d.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-#        params["start"] = start_date
-#    start_date = request.form.get("start_date", None)
-#    if start_date:
-#        params["start"] = start_date
-#    end_date = request.form.get("end_date", None)
-#    if end_date:
-#        params["end"] = end_date
-#    result = {}
-#    site = request.form.get("site", None)
-#    if site:
-#        if site in site_rpc:
-#            rpc_client = site_rpc(site)
-#            result[site] = _rpc_call(rpc_client, "search_runs", params)
-#        else:
-#            abort(404, "Not a valid site")
-#    else:
-#        for site, rpc_client in site_rpc.items():
-#            result[site] = _rpc_call(rpc_client, "search_runs", params)
-#    return result
+    q = db.session.query(Run).get(run_id)
+    if not q:
+        abort(404, "Run not found")
+    if q.status.startswith("upload"):
+        # uploading, upload failed, upload stalled
+        q.status = "canceled"
+        db.session.commit()
+        result = {"cancel": "OK"}
+        return result, 200
+    return _rpc_call(user, run_id, "cancel_run")

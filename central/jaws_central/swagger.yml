@@ -26,91 +26,17 @@ paths:
 
   /status:
     get:
-      operationId: utils.status
+      operationId: jaws_central.utils.status
       responses:
         200:
           description: OK
         500:
           description: System is down
-#      security: []
-
-#  /user:
-#    get:
-#      operationId: user.get_info
-#      tags:
-#        - user
-#      summary: Retrieve user basic info given token
-#      description: Validate user token and return basic info
-#      responses:
-#        200:
-#          description: OK
-#        401:
-#          description: Authorization information is missing or invalid.
-#
-#  /user:
-#    post:
-#      operationId: user.save_tokens
-#      tags:
-#        - user
-#      summary: Save user's Globus tokens
-#      description: Give JAWS user's Globus token
-#      consumes:
-#        - multipart/form-data
-#      parameters:
-#        - name: auth_access_token
-#          description: Globus auth access_token
-#          type: string
-#          in: formData
-#          required: True
-#        - name: auth_refresh_token
-#          description: Globus auth refresh_token
-#          type: string
-#          in: formData
-#          required: True
-#        - name: auth_expires_at_seconds
-#          description: Globus auth expires_at_seconds
-#          type: integer
-#          in: formData
-#          required: True
-#        - name: transfer_access_token
-#          description: Globus transfer access_token
-#          type: string
-#          in: formData
-#          required: True
-#        - name: transfer_refresh_token
-#          description: Globus transfer refresh_token
-#          type: string
-#          in: formData
-#          required: True
-#        - name: transfer_expires_at_seconds
-#          description: Globus transfer expires_at_seconds
-#          type: integer
-#          in: formData
-#          required: True
-#        - name: groups_access_token
-#          description: Globus groups access_token
-#          type: string
-#          in: formData
-#          required: True
-#        - name: groups_refresh_token
-#          description: Globus groups refresh_token
-#          type: string
-#          in: formData
-#          required: True
-#        - name: groups_expires_at_seconds
-#          description: Globus groups expires_at_seconds
-#          type: integer
-#          in: formData
-#          required: True
-#      responses:
-#        200:
-#          description: OK
-#        401:
-#          description: Authorization information is missing or invalid.
+      security: []
 
   /wdl:
     get:
-      operationId: catalog.list_wdls
+      operationId: jaws_central.catalog.list_wdls
       tags:
         - workflow
       summary: List shared workflows
@@ -135,7 +61,7 @@ paths:
 
   /wdl/{name}:
     get:
-      operationId: catalog.get_versions
+      operationId: jaws_central.catalog.get_versions
       tags:
         - workflow
       summary: Workflow versions
@@ -168,7 +94,7 @@ paths:
 
   /wdl/{name}/{version}:
     get:
-      operationId: catalog.get_wdl
+      operationId: jaws_central.catalog.get_wdl
       tags:
         - workflow
       summary: Return a workflow's WDL file
@@ -197,7 +123,9 @@ paths:
           description: The specified record does not exist
 
     post:
-      operationId: catalog.add_wdl
+      operationId: jaws_central.catalog.add_wdl
+      consumes:
+        - multipart/form-data
       tags:
         - workflow
       summary: Add a workflow WDL
@@ -230,7 +158,7 @@ paths:
           description: Authorization information is missing or invalid.
 
     put:
-      operationId: catalog.update_wdl
+      operationId: jaws_central.catalog.update_wdl
       tags:
         - workflow
       summary: Replace a workflow's WDL
@@ -260,7 +188,7 @@ paths:
           description: The specified workflow does not exist.
 
     delete:
-      operationId: catalog.del_wdl
+      operationId: jaws_central.catalog.del_wdl
       tags:
         - workflow
       summary: Delete a workflow
@@ -286,7 +214,7 @@ paths:
 
   /wdl/{name}/{version}/doc:
     get:
-      operationId: catalog.get_doc
+      operationId: jaws_central.catalog.get_doc
       tags:
         - workflow
       summary: Return information about a workflow
@@ -315,7 +243,7 @@ paths:
           description: The specified record does not exist
 
     put:
-      operationId: catalog.update_doc
+      operationId: jaws_central.catalog.update_doc
       tags:
         - workflow
       summary: Update a workflow's documentation
@@ -346,7 +274,7 @@ paths:
 
   /run:
     get:
-      operationId: analysis.user_queue
+      operationId: jaws_central.analysis.user_queue
       tags:
         - run
       summary: Search for current user's unfinished runs
@@ -358,13 +286,13 @@ paths:
           description: Authorization information is missing or invalid.
 
     post:
-      operationId: analysis.submit_run
+      operationId: jaws_central.analysis.submit_run
+      consumes:
+        - multipart/form-data
       tags:
         - run
       summary: Begin run run process
       description: Returns site information to send infiles.
-      consumes:
-        - multipart/form-data
       parameters:
         - name: site
           description: computing site to use
@@ -401,7 +329,7 @@ paths:
 
   /run/{run_id}:
     get:
-      operationId: analysis.run_status
+      operationId: jaws_central.analysis.run_status
       tags:
         - run
       summary: Retrieve the status of a specified run
@@ -421,7 +349,7 @@ paths:
           description: The specified record does not exist
 
     delete:
-      operationId: analysis.cancel_run
+      operationId: jaws_central.analysis.cancel_run
       tags:
         - run
       summary: Cancel a run and purge it's output
@@ -441,7 +369,7 @@ paths:
 
   /run/{run_id}/metadata:
     get:
-      operationId: analysis.run_metadata
+      operationId: jaws_central.analysis.run_metadata
       tags:
         - run
       summary: Retrieve the metadata of a specified run
@@ -460,30 +388,32 @@ paths:
         404:
           description: The specified record does not exist
 
-
-  /run/get_site:
-    post:
-      operationId: analysis.get_site
+  /site:
+    get:
+      operationId: jaws_central.analysis.list_sites
       tags:
-        - run
+        - site
+      summary: Retrieve summary of all JAWS-Sites
+      description: List all Sites
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+
+  /site/{site}:
+    get:
+      operationId: jaws_central.analysis.get_site
+      tags:
+        - site
       summary: Retrieve JAWS-Site info
-      description: Match run to a Site and return necessary info
+      description: Return Site parameters
       parameters:
         - name: site
-          in: formData
-          description: Preferred JAWS-Site name
+          in: path
+          description: JAWS-Site ID
           type: string
-          required: False
-        - name: max_ram_gb
-          in: formData
-          description: Max RAM required by workflow, in gigabytes
-          type: integer
-          required: False
-        - name: transfer_gb
-          in: formData
-          description: Amount of input data to be transferred
-          type: integer
-          required: False
+          required: True
       responses:
         200:
           description: OK

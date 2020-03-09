@@ -90,21 +90,6 @@ class Workflow(Base):
     # user = relationship("User", back_populates="workflows")
 
 
-class Site(Base):
-    """
-    Computing sites.
-    """
-
-    __tablename__ = "sites"
-    id = Column(String(8), primary_key=True)
-    endpoint = Column(String(36), nullable=False)
-    basepath = Column(String(256), nullable=False)
-    staging = Column(String(256), nullable=False)
-    max_ram_gb = Column(Integer, nullable=False)
-    max_transfer_gb = Column(Integer, nullable=True)
-    has_dev_shm = Column(Boolean, nullable=False, default=False)
-
-
 class Run(Base):
     """
     Analysis runs are the execution of workflows on specific inputs.
@@ -113,7 +98,7 @@ class Run(Base):
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    site_id = Column(String(8), ForeignKey("sites.id"), nullable=False)
+    site_id = Column(String(8), nullable=False)
     submission_uuid = Column(String(36), nullable=False)
     status = Column(String(16), nullable=False)
     cromwell_id = Column(String(36), nullable=True)
@@ -128,7 +113,6 @@ class Run(Base):
 
     # ONE:MANY RELATIONSHIPS
 #    user = relationship("User", back_populates="runs")
-#    site = relationship("Site", back_populates="runs")
 #    workflow = relationship("Workflow", back_populates="runs")
 
 
