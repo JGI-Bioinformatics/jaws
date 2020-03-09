@@ -12,26 +12,30 @@ import json
 import requests
 import click
 import uuid
+import re
+import subprocess
+import pathlib
 
+if "TMPDIR" not in os.environ:
+    sys.exit("TMPDIR env var not defined")
 TMPDIR = os.environ["TMPDIR"]
-CROMWELL_PORT = os.environ["CROMWELL_PORT"]
-WORKFLOWS_URL = f"http://localhost:{CROMWELL_PORT}/api/workflows/v1"
+if "CROMWELL_URL" not in os.environ:
+    sys.exit("CROMWELL_URL env var not defined")
+CROMWELL_URL = os.environ["CROMWELL_URL"]
+if not CROMWELL_URL.startswith("http"):
+    CROMWELL_URL = f"http://{CROMWELL_URL}"
+WORKFLOWS_URL = f"{CROMWELL_URL}/api/workflows/v1"
 
 
 @click.group()
 def cromwell():
-    """Cromwell REST server CLI"""
+    """
+    Cromwell REST server CLI
+    """
     pass
 
 
 def _get(url):
-    """REST "GET" function helper
-
-    :param url: URL to GET
-    :type url: str
-    :return: response from server, decoded from JSON string
-    :rtype: dict
-    """
     try:
         r = requests.get(url)
     except Exception:
@@ -48,12 +52,8 @@ def _get(url):
 @cromwell.command()
 @click.argument("run_id")
 def status(run_id):
-    """Retrieve the current status of a run.
-
-    :param run_id: Cromwell run ID
-    :type run_id: str
-    :return: Response JSON includes status key.
-    :rtype: dict
+    """
+    Retrieve the current status of a run.
     """
     url = "%s/%s/status" % (WORKFLOWS_URL, run_id)
     return _get(url)
@@ -62,12 +62,8 @@ def status(run_id):
 @cromwell.command()
 @click.argument("run_id")
 def logs(run_id):
-    """Retrieve the logs for a run.
-
-    :param run_id: Cromwell run ID
-    :type run_id: str
-    :return: Cromwell run log
-    :rtype: str
+    """
+    Retrieve the logs for a run.
     """
     url = "%s/%s/logs" % (WORKFLOWS_URL, run_id)
     return _get(url)
@@ -76,12 +72,8 @@ def logs(run_id):
 @cromwell.command()
 @click.argument("run_id")
 def outputs(run_id):
-    """Retrieve the outputs for a run.
-
-    :param run_id: Cromwell run ID
-    :type run_id: str
-    :return: Dictionary indicating paths to output files created by the run
-    :rtype: dict
+    """
+    Retrieve the outputs for a run.
     """
     url = "%s/%s/outputs" % (WORKFLOWS_URL, run_id)
     return _get(url)
@@ -90,12 +82,8 @@ def outputs(run_id):
 @cromwell.command()
 @click.argument("run_id")
 def metadata(run_id):
-    """Retrieve the metadata of a run.
-
-    :param run_id: Cromwell run ID
-    :type run_id: str
-    :return: Cromwell metadata for a run, if found.
-    :rtype: dict
+    """
+    Retrieve the metadata of a run.
     """
     url = "%s/%s/metadata" % (WORKFLOWS_URL, run_id)
     return _get(url)
@@ -104,12 +92,8 @@ def metadata(run_id):
 @cromwell.command()
 @click.argument("run_id")
 def cancel(run_id):
-    """Cancel a run.
-
-    :param run_id: Cromwell run ID
-    :type run_id: str
-    :return: Cromwell's response, indicating success or failure.
-    :rtype: dict
+    """
+    Cancel a run.
     """
     url = "%s/%s/abort" % (WORKFLOWS_URL, run_id)
     return _get(url)
@@ -118,12 +102,8 @@ def cancel(run_id):
 @cromwell.command()
 @click.argument("run_id")
 def task_status(run_id):
-    """Retrieve status of each task, with any error messages.
-
-    :param run_id: Cromwell run ID
-    :type run_id: str
-    :return: Dictionary of task and status, with any error messages.
-    :rtype: dict
+    """
+    Retrieve status of each task, with any error messages.
     """
     url = "%s/%s/metadata" % (WORKFLOWS_URL, run_id)
     r = requests.get(url)
@@ -170,12 +150,8 @@ def task_status(run_id):
 @cromwell.command()
 @click.argument("run_id")
 def get_labels(run_id):
-    """Get labels for a run.
-
-    :param run_id: Cromwell run ID
-    :type run_id: str
-    :return: Dictionary of labels associated with a Cromwell run.
-    :rtype: dict
+    """
+    Get labels for a run.
     """
     url = "%s/%s/labels" % (WORKFLOWS_URL, run_id)
     r = requests.get(url)
@@ -196,12 +172,8 @@ def get_labels(run_id):
 @cromwell.command()
 @click.option("--username", default=os.environ["USER"], help="Username; default=USER")
 def queue(username):
-    """Get a user's unfinished runs.
-
-    :param username: Value of label username to search.
-    :type run_id: str
-    :return: List of unfinished runs owned by specified user.
-    :rtype: dict
+    """
+    Get a user's unfinished runs.
     """
     status = ["Submitted", "Running", "Aborting"]
     labels = ["username:" + username]
@@ -221,14 +193,8 @@ def queue(username):
 @click.option("--username", default=os.environ["USER"], help="Username; default=USER")
 @click.option("--days", default=10, help="Delta days, default=10")
 def history(username, days):
-    """Get a user's run history.
-
-    :param username: Value of label username to search.
-    :type run_id: str
-    :param days: The time window in which to search, from now.
-    :type days: int
-    :return: a list of runs within a time window, belonging to specified user
-    :rtype: dict
+    """
+    Get a user's run history.
     """
     d = datetime.today() - timedelta(int(days))
     start_date = d.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -252,20 +218,8 @@ def history(username, days):
 @click.option("--username", default=os.environ["USER"], help="Username; default=USER")
 @click.option("--labels", default=None, help="JSON file of labels")
 def submit(wdl_file, json_file, username, labels, zip_file):
-    """Submit a run.
-
-    :param wdl_file: Path to WDL file for the run
-    :type wdl_file: str
-    :param json_file: Path to inputs-JSON file for the run
-    :type json_file: str
-    :param username: Value of label username to associate with run.
-    :type run_id: str
-    :param labels: Path to JSON file containing dict of label kv-pairs to associate with run.
-    :type labels: str
-    :param zip_file: A zip file of all subworkflows required by the WDL.
-    :type zip_file: str
-    :return: Response from Cromwell
-    :rtype: dict
+    """
+    Submit a run.
     """
     tmp_basename = os.path.join(TMPDIR, str(uuid.uuid4()))
     print("Using tmp base: %s" % (tmp_basename,))
@@ -319,12 +273,8 @@ def submit(wdl_file, json_file, username, labels, zip_file):
 
 
 def _prepare_labels_file(outfile, username, infile=None):
-    """Given a username and optionally other labels (in a dict), create a JSON file.
-
-    :param outfile: Path to JSON-formatted output file of labels to associate with the run.
-    :type outfile: str
-    :param username: Name of user to associate with the run, using username label.
-    :type username: str
+    """
+    Given a username and optionally other labels (in a dict), create a JSON file.
     """
     assert outfile
     assert username
@@ -337,6 +287,126 @@ def _prepare_labels_file(outfile, username, infile=None):
     labels["username"] = username
     with open(outfile, "w") as f:
         json.dump(labels, f)
+
+
+@cromwell.command()
+@click.argument("src", nargs=1)
+@click.argument("dest", nargs=1)
+@click.option("--flatten", default=False)
+def wfcopy(src, dest, flatten):
+    """Reformat and copy cromwell run output"""
+    src = os.path.abspath(src)
+    dest = os.path.abspath(dest)
+    shardname = None
+    subwfname = None
+    taskname = None
+    cromwellFilesToSkip = [
+        "stdout.background",
+        "stderr.background",
+        "script.background",
+        "script.submit",
+    ]
+
+    logdir = os.path.join(dest, "log")
+    if not os.path.exists(dest):
+        os.makedirs(dest)
+    if not os.path.exists(logdir):
+        os.makedirs(logdir)
+
+    rcfile = os.path.join(logdir, "workflow.rc")
+    if os.path.exists(rcfile):
+        os.remove(rcfile)
+    with open(rcfile, "w") as fh:
+        fh.write("#ExitCode\tTask\n")
+
+    for rootDir, subdirs, files in os.walk(src):
+        shardname = None
+        parentDir = str(pathlib.Path(rootDir).parent)
+
+        # look for call-* in directory name. If found, assign taskname.
+        if os.path.basename(rootDir).startswith("call-") and rootDir == os.path.join(
+            src, os.path.basename(rootDir)
+        ):
+            taskname = re.sub(r"^call-", "", os.path.basename(rootDir))
+
+        # look for shard directory. If found, assign shardname.
+        if os.path.basename(parentDir).startswith("shard-"):
+            shardname = os.path.basename(parentDir)
+            subwfname = getSubflowDirname(parentDir)
+            if subwfname:
+                shardname = "%s-%s" % (subwfname, shardname)
+
+        # look for execution directory. If found, copy files to destination.
+        if rootDir.endswith("execution"):
+            if not flatten and shardname:
+                taskDir = os.path.join(dest, "%s/%s" % (taskname, shardname))
+            else:
+                taskDir = os.path.join(dest, taskname)
+
+            if not os.path.exists(taskDir):
+                os.makedirs(taskDir)
+
+            for dname in subdirs:
+                rsync(os.path.join(rootDir, dname), taskDir)
+
+            for fname in files:
+                fullname = os.path.join(rootDir, fname)
+                outname = "%s-%s" % (taskname, shardname) if shardname else taskname
+
+                if fname == "stdout":
+                    rsync(fullname, os.path.join(logdir, "%s.stdout" % outname))
+                if fname == "stderr":
+                    rsync(fullname, os.path.join(logdir, "%s.stderr" % outname))
+                if fname == "script":
+                    rsync(fullname, os.path.join(logdir, "%s.script" % outname))
+                if fname not in cromwellFilesToSkip:
+                    rsync(fullname, taskDir)
+                if fname == "rc":
+                    with open(fullname, "r") as fh:
+                        exitcode = fh.readlines()[0].strip()
+                    with open(rcfile, "a") as fh:
+                        fh.write("%s\t%s\n" % (exitcode, outname))
+
+
+def rsync(src, dest):
+    """ Copy source to destination using rsync
+
+    :param src: Source path
+    :type src: str
+    :param dest" Destination path
+    :type dest: str
+    """
+    cmd = "rsync -a %s %s" % (src, dest)
+    process = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = process.communicate()
+    if process.returncode:
+        sys.stderr.write(stderr.strip())
+        sys.exit(process.returncode)
+
+
+def getSubflowDirname(dirname):
+    """
+    Detect if input directory is a subworkflow (contains more than one 'call-' in the name).
+    Ex: dirname=*/call-runMainBlast/blast.runblastplus/4a1eeaa3-79e7-42f0-9154-e5fb0636e0d8/
+        call-runblastplus/shard-0  returns: runblastplus
+    Ex: dirname=*/call-runMainBlast/blast.runblastplus/4a1eeaa3-79e7-42f0-9154-e5fb0636e0d8/
+        call-runblastplus/execution  returns: runblastplus
+    Ex: dirname=*/call-runMainBlast/execution  returns: None
+    Ex: dirname=.../call-runMainBlast/shard-0  returns: None
+
+    :param dirname: Path to subworkflow directory
+    :type dirname: str
+    :return: Subworkflow name if contains shards, None otherwise
+    :rtype: str, None
+    """
+    subwfname = None
+    if dirname.count("call-") > 1:
+        rx = re.search(r"([^\/]+)\/shard-", dirname)
+        subwfname = rx.group(1) if rx else os.path.basename(dirname)
+        subwfname = subwfname.replace("call-", "", 1)
+    return subwfname
 
 
 if __name__ == "__main__":
