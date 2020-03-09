@@ -1,2 +1,0 @@
-unset JAWS_DB_CONFIG
-unset JAWS_AUTH_CONFIG
