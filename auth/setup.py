@@ -12,6 +12,6 @@ setup(
     author="The JAWS Team",
     packages=["jaws_auth"],
     install_requires=[line.strip() for line in open("requirements.txt")],
-    entry_points={"console_scripts": ["app.py = jaws_auth.srv:app.py", ]},
+    entry_points={"console_scripts": ["jaws-auth = jaws_auth.server:auth", ]},
     zip_safe=False
 )

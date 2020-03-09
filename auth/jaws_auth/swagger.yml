@@ -10,7 +10,7 @@ paths:
   /tokeninfo:
     get:
       summary: OAuth2 token info
-      operationId: server.get_tokeninfo
+      operationId: jaws_auth.auth.get_tokeninfo
       consumes:
         - multipart/form-data
       responses:

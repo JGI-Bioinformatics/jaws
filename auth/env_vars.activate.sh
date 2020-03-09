@@ -1,2 +1,0 @@
-export JAWS_DB_CONFIG=
-export JAWS_AUTH_CONFIG=
