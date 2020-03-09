@@ -52,7 +52,7 @@ def get_tokeninfo() -> dict:
         return {"uid": user.id, "scope": scopes}
 
     # CHECK IF VALID GLOBUS AUTH TOKEN
-    globus_client = globus_sdk.NativeAppAuthClient(conf.get_globus("client_id"))
+    globus_client = globus_sdk.NativeAppAuthClient(conf.get("GLOBUS", "client_id"))
     if not globus_client.oauth2_validate_token(auth_access_token)["active"]:
         abort(401, "Authentication failure")
 
@@ -60,12 +60,12 @@ def get_tokeninfo() -> dict:
     # THIS REQUIRES THE GLOBUS "GROUPS" TOKEN, NOT THE "AUTH" TOKEN
     scopes = []
     headers = {"Authorization": "Bearer %s" % (groups_access_token,)}
-    r = requests.get(conf.get_globus("groups_url"), headers=headers)
+    r = requests.get(conf.get("GLOBUS", "groups_url"), headers=headers)
     if r.status_code != requests.codes.ok:
         abort(r.status_code)
     result = r.json()
-    users_group_id = conf.get_globus("users_group")
-    admins_group_id = conf.get_globus("admins_group")
+    users_group_id = conf.get("GLOBUS", "users_group")
+    admins_group_id = conf.get("GLOBUS", "admins_group")
     for group in result:
         if group["id"] == users_group_id or group["id"] == admins_group_id:
             scopes.append(group["name"])
