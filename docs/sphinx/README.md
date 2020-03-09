@@ -37,11 +37,37 @@ open build/html/index.html
 Once you are satisfied, add changes to this gitlab repo
 
 
-### Register gitlab with readthedocs
+## Register gitlab with readthedocs
 https://docs.readthedocs.io/en/latest/intro/getting-started-with-sphinx.html
 
-### view published docs
+## view published docs
 https://jaws-docs.readthedocs.io/en/latest/
 
-### Add new repo to official JAWS repository
-`jgi-workflows/docs`
+# Publish pages to confluence
+
+### followed tutorial
+https://sphinxcontrib-confluencebuilder.readthedocs.io/en/latest/tutorial.html
+
+
+### install confluence builder
+```
+on cori
+# working dir
+/global/cscratch1/sd/jfroula/
+
+# create env
+/global/dna/shared/data/jfroula/miniconda3/bin/virtualenv testenv
+. ./testenv/bin/activate
+cd testenv/
+
+# install dependencies
+pip install sphinxcontrib-confluencebuilder
+pip install recommonmark
+
+# clone repo
+
+# add confluence stuff to conf.py
+
+# this command should add pages to confluence (space JAWS)
+make confluence
+```
