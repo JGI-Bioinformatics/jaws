@@ -3,36 +3,29 @@ JAWS Workflows Repository
 """
 
 import sys
-import os
 import json
 import requests
-
-# import html2text
 from bs4 import BeautifulSoup
 import click
-from jaws_client import user
-
-# JAWS CONFIG
-JAWS_URL = os.environ["JAWS_URL"]
-jaws_catalog = "%s/wdl" % (JAWS_URL,)
+from . import config, user
 
 
-@click.group()
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def wdl():
-    """
-    Workflows Catalog
-    """
+    """JAWS Workflows Catalog"""
     pass
 
 
 @wdl.command()
 def list():
-    """
-    List shared workflows
+    """List available workflows in the Catalog.
+
+    :return:
     """
     current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/wdl'
     try:
-        r = requests.get(jaws_catalog, headers=current_user.header())
+        r = requests.get(url, headers=current_user.header())
     except Exception:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
@@ -44,12 +37,15 @@ def list():
 @wdl.command()
 @click.argument("name")
 def versions(name):
-    """
-    List available versions of a workflow
+    """List available versions of specified workflow.
+
+    :param name: The name of the workflow
+    :type name: str
+    :return:
     """
     current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/wdl/{name}'
     try:
-        url = "%s/%s" % (jaws_catalog, name)
         r = requests.get(url, headers=current_user.header())
     except Exception:
         sys.exit("Unable to communicate with JAWS server")
@@ -63,11 +59,16 @@ def versions(name):
 @click.argument("name")
 @click.argument("version")
 def about(name, version):
+    """Return README document for a workflow.
+
+    :param name: The name of the workflow
+    :type name: str
+    :param version: The version of the workflow
+    :type version: str
+    :return:
     """
-    Return README document for a workflow.
-    """
-    url = "%s/%s/%s/doc" % (jaws_catalog, name, version)
     current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}/doc'
     try:
         r = requests.get(url, headers=current_user.header())
     except Exception:
@@ -86,11 +87,16 @@ def about(name, version):
 @click.argument("name")
 @click.argument("version")
 def get(name, version):
+    """Get workflow specification (WDL) for a workflow.
+
+    :param name: The name of the workflow
+    :type name: str
+    :param version: The version of the workflow
+    :type version: str
+    :return:
     """
-    Get WDL specification for a workflow.
-    """
-    url = "%s/%s/%s" % (jaws_catalog, name, version)
     current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     try:
         r = requests.get(url, headers=current_user.header())
     except Exception:
@@ -107,12 +113,21 @@ def get(name, version):
 @click.argument("wdl_file")
 @click.argument("md_file")
 def add(name, version, wdl_file, md_file):
+    """Add a new workflow to the catalog.
+
+    :param name: The name of the workflow
+    :type name: str
+    :param version: The version of the workflow
+    :type version: str
+    :param wdl_file: Path to the workflow specification (WDL) file
+    :type wdl_file: str
+    :param md_file: Path to the README file in markdown format
+    :type md_file: str
+    :return:
     """
-    Add a workflow to the catalog
-    """
-    url = "%s/%s/%s" % (jaws_catalog, name, version)
-    files = {"wdl_file": open(wdl_file, "r"), "md_file": open(md_file, "r")}
     current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
+    files = {"wdl_file": open(wdl_file, "r"), "md_file": open(md_file, "r")}
     try:
         r = requests.post(url, files=files, headers=current_user.header())
     except Exception:
@@ -127,12 +142,17 @@ def add(name, version, wdl_file, md_file):
 @click.argument("name")
 @click.argument("version")
 def release(name, version):
+    """ Mark a version as released, which makes it's WDL immutable.
+
+    :param name: The name of the workflow
+    :type name: str
+    :param version: The version of the workflow
+    :type version: str
+    :return:
     """
-    Mark a version as immutable production release.
-    """
-    data = {"release": True}
-    url = "%s/%s/%s" % (jaws_catalog, name, version)
     current_user = user.User()
+    data = {"release": True}
+    url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     try:
         r = requests.put(url, data=data, headers=current_user.header())
     except Exception:
@@ -148,12 +168,19 @@ def release(name, version):
 @click.argument("version")
 @click.argument("wdl_file")
 def update_wdl(name, version, wdl_file):
+    """Update a workflow's WDL in the catalog.
+
+    :param name: The name of the workflow
+    :type name: str
+    :param version: The version of the workflow
+    :type version: str
+    :param wdl_file: Path to the workflow specification (WDL) file
+    :type wdl_file: str
+    :return:
     """
-    Update a workflow WDL in the catalog
-    """
-    url = "%s/%s/%s" % (jaws_catalog, name, version)
-    files = {"wdl_file": open(wdl_file, "r")}
     current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
+    files = {"wdl_file": open(wdl_file, "r")}
     try:
         r = requests.put(url, files=files, headers=current_user.header())
     except Exception:
@@ -169,12 +196,19 @@ def update_wdl(name, version, wdl_file):
 @click.argument("version")
 @click.argument("md_file")
 def update_doc(name, version, md_file):
+    """Update a workflow's README in the catalog.
+
+    :param name: The name of the workflow
+    :type name: str
+    :param version: The version of the workflow
+    :type version: str
+    :param md_file: Path to the README file in markdown format
+    :type md_file: str
+    :return:
     """
-    Update a workflow README in the catalog
-    """
-    url = "%s/%s/%s/doc" % (jaws_catalog, name, version)
-    files = {"md_file": open(md_file, "r")}
     current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}/doc'
+    files = {"md_file": open(md_file, "r")}
     try:
         r = requests.put(url, files=files, headers=current_user.header())
     except Exception:
@@ -189,11 +223,16 @@ def update_doc(name, version, md_file):
 @click.argument("name")
 @click.argument("version")
 def delete(name, version):
+    """Remove a workflow from the catalog.
+
+    :param name: The name of the workflow
+    :type name: str
+    :param version: The version of the workflow
+    :type version: str
+    :return:
     """
-    Remove a workflow from the catalog.
-    """
-    url = "%s/%s/%s" % (jaws_catalog, name, version)
     current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     try:
         r = requests.delete(url, headers=current_user.header())
     except Exception:
@@ -202,42 +241,3 @@ def delete(name, version):
         sys.exit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
-
-
-# @wdl.command()
-# @click.argument('name')
-# @click.argument('version')
-# def owners(name, version):
-#    """
-#    Show a workflow's owners
-#    """
-#    url = "%s/%s/%s/owners" % (jaws_catalog, name, version)
-#    current_user = user.User()
-#    try:
-#        r = requests.get(url, headers=current_user.header())
-#    except Exception:
-#        sys.exit("Unable to communicate with JAWS server")
-#    if r.status_code != 200:
-#        sys.exit(r.text)
-#    result = r.json()
-#    print(json.dumps(result, indent=4, sort_keys=True))
-
-# @wdl.command()
-# @click.argument('name')
-# @click.argument('version')
-# @click.argument('username')
-# def add_owner(name, version, username):
-#    """
-#    Add another user to a workflow's owners' list.
-#    """
-#    data = { "new_user" : username }
-#    url = "%s/%s/%s/owners" % (jaws_catalog, name, version)
-#    current_user = user.User()
-#    try:
-#        r = requests.put(url, data=data, headers=current_user.header())
-#    except Exception:
-#        sys.exit("Unable to communicate with JAWS server")
-#    if r.status_code != 200:
-#        sys.exit(r.text)
-#    result = r.json()
-#    print(json.dumps(result, indent=4, sort_keys=True))
