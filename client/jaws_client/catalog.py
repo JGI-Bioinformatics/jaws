@@ -26,7 +26,7 @@ def list():
     url = f'{config.conf.get("JAWS", "url")}/wdl'
     try:
         r = requests.get(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -47,7 +47,7 @@ def versions(name):
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}'
     try:
         r = requests.get(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -71,7 +71,7 @@ def about(name, version):
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}/doc'
     try:
         r = requests.get(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -99,7 +99,7 @@ def get(name, version):
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     try:
         r = requests.get(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -155,7 +155,7 @@ def release(name, version):
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     try:
         r = requests.put(url, data=data, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -211,7 +211,7 @@ def update_doc(name, version, md_file):
     files = {"md_file": open(md_file, "r")}
     try:
         r = requests.put(url, files=files, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -235,7 +235,7 @@ def delete(name, version):
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     try:
         r = requests.delete(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)

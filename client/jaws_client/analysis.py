@@ -8,7 +8,7 @@ import json
 import requests
 import click
 import logging
-# import uuid
+import uuid
 import globus_sdk
 from . import config, user, workflow
 
@@ -27,10 +27,10 @@ def queue():
     :rtype: str
     """
     current_user = user.User()
-    url = f'{config.conf.get("JAWS", "url")}/run'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/run'
     try:
         r = requests.get(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -51,7 +51,7 @@ def history(days):
     current_user = user.User()
     try:
         r = requests.post(url, data=data, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -71,7 +71,7 @@ def _run_status(run_id):
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -105,7 +105,7 @@ def tasks(run_id):
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -152,7 +152,7 @@ def metadata(run_id):
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -173,7 +173,7 @@ def log(run_id):
     url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/log'
     try:
         r = requests.get(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -192,7 +192,7 @@ def cancel(run_id):
     current_user = user.User()
     try:
         r = requests.delete(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code == 200:
         print("run " + run_id + " was canceled")
@@ -220,7 +220,7 @@ def delete(run_id, task):
     current_user = user.User()
     try:
         r = requests.delete(url, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     result = r.json()
     if r.status_code != 200:
@@ -278,8 +278,8 @@ def submit(wdl_file, infile, outdir, site):
             outdir = current_user.config["USER"]["default_outdir"]
         else:
             sys.exit(
-                "--outdir required as no default specified in your config file"
-                + '\nYou may set your "default_outdir" by editing %s'
+                '--outdir required as no default specified in your config file' +
+                '\nYou may set your "default_outdir" by editing %s'
                 % (current_user.config_file,)
             )
     if not GLOBUS_BASEDIR:
@@ -291,8 +291,7 @@ def submit(wdl_file, infile, outdir, site):
         )
 
     # CREATE UNIQUE STAGING ID
-    # submission_uuid = str(uuid.uuid4())
-    submission_uuid = "LKASJDFKLASDJFKLAS"  # TODO
+    submission_uuid = str(uuid.uuid4())
 
     # VALIDATE RUN
     run = workflow.Workflow(wdl_file, infile)
@@ -306,18 +305,12 @@ def submit(wdl_file, infile, outdir, site):
     run.prepare_wdls(staging_dir, submission_uuid)
     run.prepare_inputs(GLOBUS_BASEDIR, JAWS_STAGING_SUBDIR, JAWS_SITE, submission_uuid)
 
-    # WRITE MANIFEST FILE
-    # run.write_manifest(staging_dir, submission_uuid)
-    # files = {}
-    # files["manifest"] = ( "manifest", open(run.manifest_file, 'r'), "text/plain" )
-
     # GET COMPUTE SITE INFO (E.G. GLOBUS ENDPOINT PARAMS)
     data = {"site": site, "max_ram_gb": run.max_ram_gb, "transfer_gb": run.transfer_gb}
-    # if site is not None: data["site"] = site
     url = f'{config.conf.get("JAWS", "url")}/run/get_site'
     try:
         r = requests.post(url, data=data, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != requests.codes.ok:
         sys.exit(r.text)
@@ -366,7 +359,7 @@ def submit(wdl_file, infile, outdir, site):
     logger.info("Submitting to %s:\n%s" % (url, data))
     try:
         r = requests.post(url, data=data, headers=current_user.header())
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != requests.codes.ok:
         sys.exit(r.text)

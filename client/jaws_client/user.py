@@ -29,9 +29,9 @@ class User:
         # LOAD TOKENS
         if "HOME" not in os.environ:
             sys.exit('Env var "HOME" not defined')
-        self.token_file = os.path.join(
-            os.environ["HOME"], f'.jaws.{config.conf.get("JAWS", "name")}.ini'
-        )
+        filename = config.conf.get("JAWS", "name")
+        db_ini = '.jaws.{filename}.ini'.format(filename=filename)
+        self.token_file = os.path.join(os.environ["HOME"], db_ini)
         logger.info("Loading %s" % (self.token_file,))
         self.globus_tokens = configparser.ConfigParser()
         self.globus_tokens.read(self.token_file)
@@ -50,10 +50,6 @@ class User:
                     "You must email an admin with your Globus username and request access to JAWS."
                 )
             self.login()
-
-    #        elif not self.valid_token():
-    #            print("Your authentication has expired.")
-    #            self.login()
 
     def login(self):
         """
@@ -80,7 +76,7 @@ class User:
         logger.info("Authenticating againt Globus")
         try:
             token_response = globus_client.oauth2_exchange_code_for_tokens(auth_code)
-        except Exception:
+        except globus_sdk.GlobusError:
             sys.exit("Authentication failed")
 
         # WRITE TOKENS TO USER CONFIG FILE
@@ -117,15 +113,10 @@ class User:
         url = f'{config.conf.get("JAWS", "url")}/user'
         try:
             r = requests.get(url, headers=self.header())
-        except Exception:
+        except requests.ConnectionError:
             sys.exit("Unable to communicate with JAWS server")
         if r.status_code != 200:
             sys.exit(r.text)
-
-    #        result = r.json()
-    #        if "new_access_token" in result:
-    #            self.globus_tokens["AUTH"]["access_token"] = new_access_token
-    #            self.globus_tokens.write_new_token_file()
 
     def header(self):
         """
@@ -155,12 +146,6 @@ class User:
         if self._auth_client is not None:
             return self._auth_client
         access_token = self.globus_tokens["AUTH"]["access_token"]
-        # NOTE: not using automatic refresh; see: refresh_tokens()
-        # GLOBUS_CLIENT_ID = config.conf.get("GLOBUS", "client_id")
-        # globus_client = globus_sdk.NativeAppAuthClient(GLOBUS_CLIENT_ID)
-        # authorizer = globus_sdk.RefreshTokenAuthorizer(refresh_token,
-        #              globus_client, access_token=access_token, expires_at=expires_at_seconds)
-        # authorizer = globus_sdk.RefreshTokenAuthorizer(refresh_token, globus_client)
         authorizer = globus_sdk.AccessTokenAuthorizer(access_token)
         self._auth_client = globus_sdk.AuthClient(authorizer=authorizer)
         return self._auth_client

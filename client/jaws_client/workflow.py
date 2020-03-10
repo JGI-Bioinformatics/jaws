@@ -143,13 +143,8 @@ class Workflow:
 
         # READ WDL
         self.logger.debug("Reading WDL: %s" % (infile,))
-        lines = None
-        try:
-            with open(infile, "r") as f:
-                lines = f.readlines()
-        except Exception:
-            sys.stderr.write("Error reading WDL file: %s" % (infile,))
-            return False
+        with open(infile, "r") as f:
+            lines = f.readlines()
         new_wdl = ""
         for line in lines:
             # DETERMINE MAX REQUESTED RAM
@@ -177,12 +172,8 @@ class Workflow:
 
         # WRITE (FILTERED) WDL
         self.logger.debug("Writing WDL: %s" % (outfile,))
-        try:
-            with open(outfile, "w") as f:
-                f.write(new_wdl)
-        except Exception:
-            sys.stderr.write("Error writing WDL file: %s" % (outfile,))
-        return True
+        with open(outfile, "w") as f:
+            f.write(new_wdl)
 
     def prepare_wdls(self, staging_dir, submission_id):
         """Filter WDLs (including subworkflows) and write to specified directory.
@@ -426,11 +417,6 @@ class Workflow:
         manifest = []  # files to xfer
         for source in self.source_files:
             new_source = source
-            # DEPRECATED
-            #            # MIRRORED REFERENCE DATA FOLDERS NO LONGER NEEDED -- CACHING ALL FILES NOW
-            #            if local_ref_dir and remote_ref_dir and source.startswith(local_ref_dir):
-            #                new_source = source.replace(local_ref_dir, remote_ref_dir, 1)
-            # /DEPRECATED
             dest = "%s/%s" % (
                 data_dir,
                 source,

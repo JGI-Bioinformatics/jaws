@@ -47,7 +47,7 @@ def status():
     url = f'{config.conf.get("JAWS", "url")}/status'
     try:
         r = requests.get(url)
-    except Exception:
+    except requests.ConnectionError:
         sys.exit("JAWS Central is DOWN")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -65,7 +65,6 @@ def jaws():
         logger.critical("Unable to find jaws config file")
     config.conf = config.JawsConfig(config_file)
 
-    # cli = click.CommandCollection(sources=[analysis.run, catalog.wdl)
     cli.add_command(analysis.run)
     cli.add_command(catalog.wdl)
     cli()
