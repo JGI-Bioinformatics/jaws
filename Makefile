@@ -30,6 +30,7 @@ pkg: pkg-site pkg-central pkg-client
 .PHONY: test-requirements
 test-requirements:
 	$(if $(shell which flake8),,$(error "Testing needs flake8 installed. Please run 'pip install flake8'"))
+	$(if $(shell which pytest),,$(error "Testing needs pytest installed. Please run 'pip install pytest'"))
 
 .PHONY: test-site
 test-site: test-requirements
@@ -42,6 +43,7 @@ test-central: test-requirements
 .PHONY: test-client
 test-client: test-requirements
 	$Q flake8 client
+	$Q cd client && pytest
 
 .PHONY: test-auth
 test-auth: test-requirements
