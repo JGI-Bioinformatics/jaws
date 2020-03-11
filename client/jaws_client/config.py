@@ -21,7 +21,7 @@ class JawsConfig(metaclass=Singleton):
     config = None
     logger = None
 
-    def __init__(self, config_file=None):
+    def __init__(self, config_file=None) -> None:
         """Initialize the configuration object singleton
 
         :param config_file: Path to configuration file
@@ -36,7 +36,7 @@ class JawsConfig(metaclass=Singleton):
         self.config = configparser.ConfigParser()
         self.config.read(config_file)
 
-    def get(self, section, key):
+    def get(self, section: str, key: str) -> str:
         """Get a configuration value (which is always a string).
 
         :param section: The section of the INI file
@@ -47,3 +47,6 @@ class JawsConfig(metaclass=Singleton):
         :rtype: str
         """
         return self.config.get(section, key)
+
+
+conf = None

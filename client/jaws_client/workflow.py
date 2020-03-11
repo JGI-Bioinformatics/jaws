@@ -10,6 +10,7 @@ import subprocess
 import re
 import zipfile
 import logging
+from typing import Dict
 from jaws_client import config
 
 
@@ -27,7 +28,7 @@ class Workflow:
     manifest_file = None
     max_ram_gb = 0
 
-    def __init__(self, wdl_file, inputs_file):
+    def __init__(self, wdl_file: str, inputs_file: str) -> None:
         """Constructor
 
         :param wdl_file: Path to the main workflow specification (WDL) file
@@ -46,7 +47,7 @@ class Workflow:
         self.wdl_file = wdl_file
         self.inputs_file = inputs_file
 
-    def validate(self):
+    def validate(self) -> bool:
         """Perform all tests
 
         :return: Returns True upon success; False otherwise.
@@ -62,7 +63,7 @@ class Workflow:
     # WORKFLOW (WDL) METHODS
     # including subworkflows
 
-    def validate_workflow(self):
+    def validate_workflow(self) -> bool:
         """Validate main WDL file and identify any subworkflows.
 
         :return: Returns True on success, False otherwise.
@@ -97,7 +98,7 @@ class Workflow:
             return False
         return True
 
-    def _identify_file_parameters(self):
+    def _identify_file_parameters(self) -> Dict[str, str]:
         """Determine which parameters are of "File" type in the inputs JSON.
 
         :return: populates and returns self.file_items
@@ -128,7 +129,7 @@ class Workflow:
             print("[WARNING] No input files specified")
         return self.file_items
 
-    def _filter_wdl(self, infile, outfile):
+    def _filter_wdl(self, infile: str, outfile: str) -> None:
         """Remove any disallowed "backend" tags from the WDL file, and set the self.max_ram_gb value.
 
         :param infile: Path to source WDL file
@@ -175,7 +176,7 @@ class Workflow:
         with open(outfile, "w") as f:
             f.write(new_wdl)
 
-    def prepare_wdls(self, staging_dir, submission_id):
+    def prepare_wdls(self, staging_dir: str, submission_id: str) -> bool:
         """Filter WDLs (including subworkflows) and write to specified directory.
 
         :param staging_dir: Basepath for writing the filtered WDL file(s)
@@ -209,7 +210,7 @@ class Workflow:
             shutil.rmtree(dest)
         return True
 
-    def zip_subworkflows(self):
+    def zip_subworkflows(self) -> bool:
         """Create a zip file of the subworkflows, as required by Cromwell."""
         if not self.subworkflows:
             return True
@@ -233,7 +234,7 @@ class Workflow:
     ########################
     # INPUTS (JSON) METHODS
 
-    def validate_inputs(self):
+    def validate_inputs(self) -> bool:
         """Converts all paths in inputs JSON to absolute paths and verify they exist.
 
         This method populates:
@@ -315,7 +316,7 @@ class Workflow:
         self.source_files = source_files
         return self._validate_infiles()
 
-    def _validate_infiles(self):
+    def _validate_infiles(self) -> bool:
         """
         Verify that all infiles exist, are readable, and are files rather than folders.
         All files are checked, even if there are errors (doesn't quit on first error).
@@ -336,7 +337,7 @@ class Workflow:
                 sys.stderr.write("[WARNING] Is a dir, not a file: %s\n" % (a_file,))
         return is_okay
 
-    def write_inputs_json(self):
+    def write_inputs_json(self) -> bool:
         """
         Write inputs JSON to specified outfile (e.g. after manipulating paths).
         Returns True on success; False otherwise.
@@ -354,7 +355,7 @@ class Workflow:
             return False
         return True
 
-    def _update_input_paths(self, infiles):
+    def _update_input_paths(self, infiles: Dict[str, str]) -> None:
         """
         Update self.input_dict using mapping information provided in infiles dictionary (source => dest).
         """
@@ -396,7 +397,7 @@ class Workflow:
                         new_value[o] = dest
                     inputs_dict[key] = new_value
 
-    def prepare_inputs(self, globus_basedir, staging_subdir, site_name, submission_id):
+    def prepare_inputs(self, globus_basedir: str, staging_subdir: str, site_name: str, submission_id: str) -> None:
         """
         Copy or symlink (depending on path) all infiles to the staging directory so they may be transferred via Globus.
         Also calculates total gigabytes to be transferred and generates the file manifest for sending via Globus.
@@ -461,7 +462,7 @@ class Workflow:
         json_basename = os.path.basename(self.json_file)
         self.manifest.append([self.json_file, json_basename])
 
-    def write_manifest(self, staging_dir, submission_id):
+    def write_manifest(self, staging_dir: str, submission_id: str) -> None:
         """Write manifest.tsv file
 
         :param staging_dir: Basedir for output
