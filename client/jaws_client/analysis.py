@@ -10,6 +10,7 @@ import click
 import logging
 import uuid
 import globus_sdk
+from typing import Dict
 from . import config, user, workflow
 
 
@@ -20,7 +21,7 @@ def run():
 
 
 @run.command()
-def queue():
+def queue() -> None:
     """List user's unfinished runs.
 
     :return: List of user's current runs in JSON format
@@ -40,7 +41,7 @@ def queue():
 
 @run.command()
 @click.option("--days", default=1)
-def history(days):
+def history(days: int) -> None:
     """Print a list of the user's past runs.
 
     :param days: Time window to search, in days.
@@ -59,7 +60,7 @@ def history(days):
     print(json.dumps(result, indent=4, sort_keys=True))
 
 
-def _run_status(run_id):
+def _run_status(run_id: int) -> Dict[str, str]:
     """Return the status of a run in JSON format.
 
     :param run_id: JAWS run ID
@@ -81,7 +82,7 @@ def _run_status(run_id):
 
 @run.command()
 @click.argument("run_id")
-def status(run_id):
+def status(run_id: int) -> None:
     """Print the current status of a run.
 
     :param run_id: JAWS run ID
@@ -94,7 +95,7 @@ def status(run_id):
 
 @run.command()
 @click.argument("run_id")
-def tasks(run_id):
+def tasks(run_id: int) -> None:
     """Show status of each task of a run.
 
     :param run_id: JAWS run ID
@@ -140,7 +141,7 @@ def tasks(run_id):
 
 @run.command()
 @click.argument("run_id")
-def metadata(run_id):
+def metadata(run_id: int) -> None:
     """
     Print the detailed metadata for a run.
 
@@ -162,7 +163,7 @@ def metadata(run_id):
 
 @run.command()
 @click.argument("run_id")
-def log(run_id):
+def log(run_id: int) -> None:
     """View the Cromwell log of a run.
 
     :param run_id: JAWS run ID
@@ -182,7 +183,7 @@ def log(run_id):
 
 @run.command()
 @click.argument("run_id")
-def cancel(run_id):
+def cancel(run_id: int) -> None:
     """Cancel a run; prints whether aborting was successful or not.
 
     :param run_id: JAWS run ID to cancel.
@@ -203,7 +204,7 @@ def cancel(run_id):
 @run.command()
 @click.argument("run_id")
 @click.option("--task", default=None)
-def delete(run_id, task):
+def delete(run_id: int, task: str) -> None:
     """Delete the output of a run or task to avoid caching.
 
     :param run_id: JAWS run ID
@@ -228,29 +229,12 @@ def delete(run_id, task):
     print(json.dumps(result, indent=4, sort_keys=True))
 
 
-def _labels_string_to_dict(labels_string):
-    """
-    Converts string to dictionary.
-    """
-    labels_dict = {}
-    labels = labels_string.split(",")
-    for label in labels:
-        if label.count(":") != 1:
-            sys.exit(
-                "Invalid label: " + label + '; labels must be in "key:value" format'
-            )
-        (key, value) = label.split(":")
-        labels_dict[key] = value
-    return labels_dict
-
-
-# TODO add option for labels
 @run.command()
 @click.argument("wdl_file", nargs=1)
 @click.argument("infile", nargs=1)
 @click.argument("outdir", nargs=1)
 @click.argument("site", nargs=1)
-def submit(wdl_file, infile, outdir, site):
+def submit(wdl_file: str, infile: str, outdir: str, site: str) -> None:
     """Submit a run for execution at a JAWS-Site.
 
     :param wdl_file: Path to workflow specification (WDL) file
@@ -347,7 +331,6 @@ def submit(wdl_file, infile, outdir, site):
     logger.info("Globus transfer task_id = %s" % (transfer_task_id,))
 
     # SUBMIT RUN
-    # NOTE THAT THE FILE TRANSFER IS NOT COMPLETE YET
     data = {
         "site": site,
         "submission_uuid": submission_uuid,
@@ -365,4 +348,4 @@ def submit(wdl_file, infile, outdir, site):
         sys.exit(r.text)
     result = r.json()
     run_id = result["run_id"]
-    print("Successfully queued run %s" % (run_id,))
+    print(f"Successfully queued run {run_id}")

@@ -2,7 +2,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 
-def setup_logger(name, log_file=None):
+def setup_logger(name: str, log_file=None) -> logging:
     """Configure logger.
 
     :param name: Name of the logger (e.g. __package__)

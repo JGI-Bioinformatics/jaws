@@ -11,13 +11,13 @@ from . import config, user
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
-def wdl():
+def wdl() -> None:
     """JAWS Workflows Catalog"""
     pass
 
 
 @wdl.command()
-def list():
+def list() -> None:
     """List available workflows in the Catalog.
 
     :return:
@@ -36,7 +36,7 @@ def list():
 
 @wdl.command()
 @click.argument("name")
-def versions(name):
+def versions(name: str) -> None:
     """List available versions of specified workflow.
 
     :param name: The name of the workflow
@@ -58,7 +58,7 @@ def versions(name):
 @wdl.command()
 @click.argument("name")
 @click.argument("version")
-def about(name, version):
+def about(name: str, version: str) -> None:
     """Return README document for a workflow.
 
     :param name: The name of the workflow
@@ -86,7 +86,7 @@ def about(name, version):
 @wdl.command()
 @click.argument("name")
 @click.argument("version")
-def get(name, version):
+def get(name: str, version: str) -> None:
     """Get workflow specification (WDL) for a workflow.
 
     :param name: The name of the workflow
@@ -112,7 +112,7 @@ def get(name, version):
 @click.argument("version")
 @click.argument("wdl_file")
 @click.argument("md_file")
-def add(name, version, wdl_file, md_file):
+def add(name: str, version: str, wdl_file: str, md_file: str) -> None:
     """Add a new workflow to the catalog.
 
     :param name: The name of the workflow
@@ -141,7 +141,7 @@ def add(name, version, wdl_file, md_file):
 @wdl.command()
 @click.argument("name")
 @click.argument("version")
-def release(name, version):
+def release(name: str, version: str) -> None:
     """ Mark a version as released, which makes it's WDL immutable.
 
     :param name: The name of the workflow
@@ -167,7 +167,7 @@ def release(name, version):
 @click.argument("name")
 @click.argument("version")
 @click.argument("wdl_file")
-def update_wdl(name, version, wdl_file):
+def update_wdl(name: str, version: str, wdl_file: str) -> None:
     """Update a workflow's WDL in the catalog.
 
     :param name: The name of the workflow
@@ -195,7 +195,7 @@ def update_wdl(name, version, wdl_file):
 @click.argument("name")
 @click.argument("version")
 @click.argument("md_file")
-def update_doc(name, version, md_file):
+def update_doc(name: str, version: str, md_file: str) -> None:
     """Update a workflow's README in the catalog.
 
     :param name: The name of the workflow
@@ -222,7 +222,7 @@ def update_doc(name, version, md_file):
 @wdl.command()
 @click.argument("name")
 @click.argument("version")
-def delete(name, version):
+def delete(name: str, version: str) -> None:
     """Remove a workflow from the catalog.
 
     :param name: The name of the workflow

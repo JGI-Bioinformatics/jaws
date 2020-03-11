@@ -19,7 +19,7 @@ class User:
     _auth_client = None
     _transfer_client = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Load params from globus_tokens file
         """
@@ -51,7 +51,7 @@ class User:
                 )
             self.login()
 
-    def login(self):
+    def login(self) -> None:
         """
         Authenticate using Globus OAuth2 and init object params.  Exit on failure.
         """
@@ -106,7 +106,7 @@ class User:
 
         self.globus_tokens.write_new_token_file()
 
-    def valid_token(self):
+    def valid_token(self) -> None:
         """
         Validate JAWS token.  JAWS may return a new auth token, if the old one needed to be refreshed.
         """
@@ -118,7 +118,7 @@ class User:
         if r.status_code != 200:
             sys.exit(r.text)
 
-    def header(self):
+    def header(self) -> str:
         """
         Return a dict to be used as HTTP OAuth2 header containing the current user's authentication token.
         """
@@ -139,7 +139,7 @@ class User:
         header = {"Authorization": "Bearer %s" % (super_token,)}
         return header
 
-    def auth_client(self):
+    def auth_client(self) -> globus_sdk.AuthClient:
         """
         Get Globus auth client object.
         """
@@ -150,7 +150,7 @@ class User:
         self._auth_client = globus_sdk.AuthClient(authorizer=authorizer)
         return self._auth_client
 
-    def transfer_client(self):
+    def transfer_client(self) -> globus_sdk.TransferClient:
         """
         Get Globus transfer client object.
         """
