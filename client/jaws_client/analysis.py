@@ -48,7 +48,7 @@ def history(days: int) -> None:
     :type days: int, optional
     """
     data = {"delta_days": days}
-    url = f'{config.conf.get("JAWS", "url")}/search'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/search'
     current_user = user.User()
     try:
         r = requests.post(url, data=data, headers=current_user.header())
@@ -68,7 +68,7 @@ def _run_status(run_id: int) -> Dict[str, str]:
     :return: Status of the run, in JSON string.
     :rtype: str
     """
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
@@ -102,7 +102,7 @@ def tasks(run_id: int) -> None:
     :type run_id: int
     :return:
     """
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
@@ -149,7 +149,7 @@ def metadata(run_id: int) -> None:
     :type run_id: int
     :return:
     """
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/metadata'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/metadata'
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
@@ -171,7 +171,7 @@ def log(run_id: int) -> None:
     :return:
     """
     current_user = user.User()
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/log'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/log'
     try:
         r = requests.get(url, headers=current_user.header())
     except requests.ConnectionError:
@@ -189,7 +189,7 @@ def cancel(run_id: int) -> None:
     :param run_id: JAWS run ID to cancel.
     :type run_id: int
     """
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
     current_user = user.User()
     try:
         r = requests.delete(url, headers=current_user.header())
@@ -215,9 +215,9 @@ def delete(run_id: int, task: str) -> None:
     """
     url = None
     if task is not None:
-        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
+        url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
     else:
-        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/{task}'
+        url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/{task}'
     current_user = user.User()
     try:
         r = requests.delete(url, headers=current_user.header())
