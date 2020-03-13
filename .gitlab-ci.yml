@@ -21,6 +21,7 @@ test-site:
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
+    - pip install -r site/requirements.txt
     - pip install flake8
     - pip install pytest
     - make test-site
@@ -31,6 +32,7 @@ test-central:
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
+    - pip install -r central/requirements.txt
     - pip install flake8
     - pip install pytest
     - make test-central
@@ -41,6 +43,7 @@ test-client:
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
+    - pip install -r client/requirements.txt
     - pip install flake8
     - pip install pytest
     - make test-client
@@ -51,6 +54,7 @@ test-auth:
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
+    - pip install -r auth/requirements.txt
     - pip install flake8
     - pip install pytest
     - make test-auth
