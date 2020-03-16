@@ -11,16 +11,14 @@
 #                       1 if it's done successfully or failed
 #
 import sys
-
-from jaws_jtm.lib.common import eprint
 from jaws_jtm.lib.jtminterface import JtmInterface
+from jaws_jtm.lib.run import eprint
 
 
 def isalive():
     assert len(sys.argv) == 2, "USAGE: jtm-isalive <task_id>"
-    ret = int(
-        JtmInterface("status", info_tag=sys.argv[1]).call(task_id=int(sys.argv[1]))
-    )
+    ret = int(JtmInterface('status',
+                           info_tag=sys.argv[1]).call(task_id=int(sys.argv[1])))
     if ret == -88:
         eprint("jtm-isalive: command timeout.")
         sys.exit(-1)

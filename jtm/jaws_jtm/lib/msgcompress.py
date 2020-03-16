@@ -4,8 +4,6 @@
 """
 compress and pickle msg
 """
-
-import sys
 import pickle as cPickle
 import zlib
 

@@ -12,14 +12,16 @@ import sys
 import time
 import subprocess
 import re
+import pprint
 
-from jaws_jtm_config import JTM_WORKER_NUM_THREADS
-from jaws_jtm.common import eprint, pprint, CalledProcessError, logger
-from jaws_jtm.lib.run import back_ticks
+from jaws_jtm.lib.run import back_ticks, eprint
+from jaws_jtm.config import JTM_WORKER_NUM_THREADS
+from jaws_jtm.common import logger
 
-g_scale_inv = ((1024.0 * 1024.0, "MB"), (1024.0, "KB"))
+SCALE_INV = ((1024.*1024., "MB"), (1024., "KB"))
 
 
+# -------------------------------------------------------------------------------
 def get_cpu_load(pid):
     """
     return cpu usage of process
@@ -32,9 +34,9 @@ def get_cpu_load(pid):
     try:
         ps_stdout_str = back_ticks(ps_cmd, shell=True)
         if sys.platform.lower() == "darwin":
-            ps_stdout_str = ps_stdout_str.decode().strip().split("\n")[1]
+            ps_stdout_str = ps_stdout_str.decode().strip().split('\n')[1]
         cpu_load = ps_stdout_str.strip()
-    except CalledProcessError as e:
+    except subprocess.CalledProcessError as e:
         eprint("get_cpu_load(): %s" % e)
         raise
     except Exception as ex:
@@ -51,7 +53,7 @@ def get_runtime(pid):
     :param pid: process id for procstat
     :return:
     """
-    proc_stat_file = "/proc/%d/stat" % pid
+    proc_stat_file = '/proc/%d/stat' % pid
     grep_cmd = 'grep btime /proc/stat | cut -d " " -f 2'
     cat_cmd = 'cat /proc/%d/stat | cut -d " " -f 22' % pid
     proc_run_time = 0
@@ -77,7 +79,7 @@ def get_runtime(pid):
         proc_start_time = boot_time + sec_since_boot
         now = time.time()
         proc_run_time = int(now - proc_start_time)  # unit in seconds will be enough
-    except CalledProcessError as msg:
+    except subprocess.CalledProcessError as msg:
         logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
 
     return proc_run_time
@@ -91,6 +93,8 @@ def get_runtime(pid):
 #    :param pid:
 #    """
 #    return _VmB('VmSize:', pid)
+
+
 # -------------------------------------------------------------------------------
 def _VmB(VmKey, pid):
     """
@@ -99,8 +103,9 @@ def _VmB(VmKey, pid):
     :param pid:
     :return:
     """
-    proc_status_loc = "/proc/%d/status" % pid
-    unit_scale = {"kB": 1.0 / 1024.0, "mB": 1.0, "KB": 1.0 / 1024.0, "MB": 1.0}
+    proc_status_loc = '/proc/%d/status' % pid
+    unit_scale = {'kB': 1.0/1024.0, 'mB': 1.0,
+                  'KB': 1.0/1024.0, 'MB': 1.0}
 
     # get pseudo file /proc/<pid>/status
     try:
@@ -152,8 +157,8 @@ def toScale(x):
     >>> toScale(1024*1024)
     '1.000MB'
     """
-    for sc in g_scale_inv:
-        y = x / sc[0]
+    for sc in SCALE_INV:
+        y = x/sc[0]
         if y >= 1:
             return "%.3f%s" % (y, sc[1])
     return "%.3f%s" % (y, "B")
@@ -168,7 +173,7 @@ def get_virtual_memory_usage(pid, since=0.0, as_str=True):
     :param as_str:
     :return:
     """
-    b = _VmB("VmSize:", pid) - since
+    b = _VmB('VmSize:', pid) - since
     if as_str:
         return "VirtMem: " + toScale(b)
     else:
@@ -187,7 +192,7 @@ def get_resident_memory_usage(pid, since=0.0, as_str=True):
     >>> get_resident_memory_usage(0)
     'ResMem: 0.000B'
     """
-    b = _VmB("VmRSS:", pid) - since
+    b = _VmB('VmRSS:', pid) - since
     if as_str:
         return "ResMem: " + toScale(b)
     else:
@@ -203,7 +208,7 @@ def get_stacksize(pid, since=0.0, as_str=True):
     :param as_str:
     :return:
     """
-    b = _VmB("VmStk:", pid) - since
+    b = _VmB('VmStk:', pid) - since
     if as_str:
         return "StackMem: " + toScale(b)
     else:
@@ -230,15 +235,10 @@ def get_pid_tree(pid):
     if sys.platform.lower() == "darwin":  # if mac os
         # Todo
         import psutil
-
         try:
-            child_pid_list.extend(
-                [p.pid for p in psutil.Process(pid).children(recursive=True)]
-            )
+            child_pid_list.extend([p.pid for p in psutil.Process(pid).children(recursive=True)])
         except psutil.NoSuchProcess:
-            logger.exception(
-                "Failed to call psutil.Process(). Process id is not exist."
-            )
+            logger.exception("Failed to call psutil.Process(). Process id is not exist.")
         except Exception as psutil_error:
             logger.exception(psutil_error)
             raise
@@ -247,16 +247,10 @@ def get_pid_tree(pid):
         child_pid_list.append(pid)
         try:
             # ps_stdout_str = back_ticks(cmd, shell=True)
-            ps_stdout_str = subprocess.Popen(
-                [cmd], shell=True, stdout=subprocess.PIPE
-            ).communicate()[0]
-            child_pid_list.extend(
-                [int(pidStr) for pidStr in ps_stdout_str.split("\n")[:-1]]
-            )
-        except CalledProcessError as msg:
-            logger.exception(
-                "Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode)
-            )
+            ps_stdout_str = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE).communicate()[0]
+            child_pid_list.extend([int(pidStr) for pidStr in ps_stdout_str.split("\n")[:-1]])
+        except subprocess.CalledProcessError as msg:
+            logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
             child_pid_list = []
         except Exception as ps_error:
             logger.exception(ps_error)
@@ -283,16 +277,10 @@ def get_total_mem_usage_per_node():
         cmd = "free"
         try:
             freeOut = back_ticks(cmd, shell=True)
-        except CalledProcessError as msg:
-            logger.exception(
-                "Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode)
-            )
+        except subprocess.CalledProcessError as msg:
+            logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
             return -1
-        mem_perc = (
-            float(freeOut.split("\n")[1].split()[2])
-            / float(freeOut.split("\n")[1].split()[1])
-            * 100.0
-        )
+        mem_perc = float(freeOut.split('\n')[1].split()[2]) / float(freeOut.split('\n')[1].split()[1]) * 100.0
 
     return mem_perc
 
@@ -311,13 +299,11 @@ def get_num_workers_on_node():
 
     try:
         ps_stdout_str = back_ticks(cmd, shell=True)
-    except CalledProcessError as msg:
+    except subprocess.CalledProcessError as msg:
         logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
         return -1
 
-    return (
-        int(ps_stdout_str) / JTM_WORKER_NUM_THREADS
-    )  # we have three processes per a worker
+    return int(ps_stdout_str) / JTM_WORKER_NUM_THREADS  # we have three processes per a worker
 
 
 # -------------------------------------------------------------------------------
@@ -327,15 +313,11 @@ def darwin_free():
     :return:
     """
     # Get process info
-    ps = (
-        subprocess.Popen(["ps", "-caxm", "-orss,comm"], stdout=subprocess.PIPE)
-        .communicate()[0]
-        .decode()
-    )
-    vm = subprocess.Popen(["vm_stat"], stdout=subprocess.PIPE).communicate()[0].decode()
+    ps = subprocess.Popen(['ps', '-caxm', '-orss,comm'], stdout=subprocess.PIPE).communicate()[0].decode()
+    vm = subprocess.Popen(['vm_stat'], stdout=subprocess.PIPE).communicate()[0].decode()
 
     # Iterate processes
-    ps_stdout_split_list = ps.split("\n")
+    ps_stdout_split_list = ps.split('\n')
     sep = re.compile(r'[\s]+')
     rss_total = 0  # kB
     for row in range(1, len(ps_stdout_split_list)):
@@ -343,24 +325,23 @@ def darwin_free():
         row_element = sep.split(row_text)
         try:
             rss = float(row_element[0]) * 1024
-        except:
+        except Exception:
             rss = 0  # ignore...
         rss_total += rss
 
     # Process vm_stat
-    vm_lines_list = vm.split("\n")
+    vm_lines_list = vm.split('\n')
     sep = re.compile(r':[\s]+')
     vm_stats_dict = {}
     for row in range(1, len(vm_lines_list) - 2):
         row_text = vm_lines_list[row].strip()
         row_element = sep.split(row_text)
-        vm_stats_dict[(row_element[0])] = int(row_element[1].strip("\.")) * 4096
+        print(row_element)
+        vm_stats_dict[(row_element[0])] = int(row_element[1].strip('.')) * 4096
 
     pprint.pprint(vm_stats_dict)
-    print(
-        ("Wired Memory:\t\t%d MB" % (vm_stats_dict["Pages wired down"] / 1024 / 1024))
-    )
-    print(("Active Memory:\t\t%d MB" % (vm_stats_dict["Pages active"] / 1024 / 1024)))
-    print(("Inactive Memory:\t%d MB" % (vm_stats_dict["Pages inactive"] / 1024 / 1024)))
-    print(("Free Memory:\t\t%d MB" % (vm_stats_dict["Pages free"] / 1024 / 1024)))
-    print(("Real Mem Total (ps):\t%.3f MB" % (rss_total / 1024 / 1024)))
+    print(('Wired Memory:\t\t%d MB' % (vm_stats_dict["Pages wired down"] / 1024 / 1024)))
+    print(('Active Memory:\t\t%d MB' % (vm_stats_dict["Pages active"] / 1024 / 1024)))
+    print(('Inactive Memory:\t%d MB' % (vm_stats_dict["Pages inactive"] / 1024 / 1024)))
+    print(('Free Memory:\t\t%d MB' % (vm_stats_dict["Pages free"] / 1024 / 1024)))
+    print(('Real Mem Total (ps):\t%.3f MB' % (rss_total / 1024 / 1024)))

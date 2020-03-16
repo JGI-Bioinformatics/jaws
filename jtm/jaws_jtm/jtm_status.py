@@ -10,22 +10,20 @@
 # jtm-status exits with 0 if it's in ['ready', 'queued', 'running'] status
 #                       1 if it's done successfully or failed
 #
-
 import sys
 
 from jaws_jtm.lib.jtminterface import JtmInterface
-from jaws_jtm.lib.common import eprint
 from jaws_jtm.config import TASK_STATUS
+from jaws_jtm.lib.run import eprint
 
 
 def status():
     assert len(sys.argv) == 2, "USAGE: jtm-status <task_id>"
-    ret = int(
-        JtmInterface("status", info_tag=sys.argv[1]).call(task_id=int(sys.argv[1]))
-    )
+    ret = int(JtmInterface('status',
+                           info_tag=sys.argv[1]).call(task_id=int(sys.argv[1])))
     if ret == -88:
         eprint("jtm-status: command timeout.")
         sys.exit(-1)
-    reversed_TASK_STATUS = dict(map(reversed, TASK_STATUS.items()))
-    print(reversed_TASK_STATUS[ret])
+    reversed_task_status = dict(map(reversed, TASK_STATUS.items()))
+    print(reversed_task_status[ret])
     sys.exit(0) if ret in [0, 1, 2] else sys.exit(1)

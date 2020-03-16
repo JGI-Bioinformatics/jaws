@@ -18,45 +18,174 @@ Example scenario
 6. jtm listens to "jgi_jtm_inner_result_queue" queue; when a result is ready, takes and updates
    tables
 
+
+Revisions
+
+    05.06.2015 Debugging worker socket disconnection issue;
+    05.19.2015 Added channel.close();
+    05.20.2015 Added RMQ reconnection for when the connection is lost due to long task processing;
+
+    05.20.2015 2.5.0 released!
+
+    12.03.2015 2.7.0: Tested with heartbeat_interval=0 (RmqConnectionHB(0)) for worker and
+                      heartbeat_interval=60 for client in BlockingConnection()
+
+    03.03.2017 3.0.0: Updated to set hearbeat_internal=0 so that connection timeout is disabled
+    03.03.2017 3.0.3: Added custom log file location option for worker
+    07.10.2017 3.0.4: Updated to print task id when completed
+
+    09.12.2018 3.1.0: Branched out "jtm"; Updated for pika=0.12.0; Changed "type" to "exchange_type"
+                      in exchange_declare();
+                      Added "jgi_jtm_task_manager" exchange for task and result messages
+    09.13.2018 3.1.1: Added unique worker id
+
+    09.13.2018 3.2.0: Added worker heartbeat exchange
+
+    ---------------------------------------------------------------------------------------------
+
+    09.19.2018 0.0.9: Started jtm-worker
+
+    09.21.2018 1.0.0: Working version
+    09.27.2018 1.1.0: Updated message structure;
+
+    10.03.2018 1.2.0: Added task_type
+    10.04.2018 1.2.1: Set jgi_jtm_client_hb_exchange durable=True and auto_delete=False so that it
+                      can be maintained even with no worker
+    10.05.2018 1.2.2: Updated resource msg as dict
+    10.05.2018 1.2.3: Updated sned hb to client interval to 5sec; Added comm pipe to send taskid
+                      with hb;
+
+    10.12.2018 1.4.0: Added recv_reproduce_or_die_thread; jtm_kill done
+    10.17.2018 1.4.2: Fixed panic() to terminate child processes
+    10.18.2018 1.4.3: Added darwin support for resource reporting
+    10.19.2018 1.4.4: Worker can use different queue name (=pool) when user task json has "pool" key
+    10.22.2018 1.4.5: Updated workers table; workerId2 for workers table; life_left;
+    10.23.2018 1.4.6: Bug fix about workerId2
+    10.26.2018 1.4.8: Fixed user termination error code update (-4); Set USER_PROC_PROC_ID = -9 if user
+                      process is killed
+
+    10.26.2018 1.5.0: Demo version with static workers tested
+    10.28.2018 1.5.1: Added ipaddress to worker hb
+
+    11.06.2018 1.6.0: Tested static workers and sbatch
+               1.6.1: Remove user account name from queue name for EC2
+    11.08.2018 1.6.2: Added custom queue name postfix for testing in Config
+    11.13.2018 1.6.3: Updated jtm_submit for large node sbatch; Updated send_hb to use CNAME as
+                      postfix; Added jtm_check_manager cli;
+
+    11.13.2018 1.7.0: Updated sbatch for static worker cloning; removed 'interval' from hb;
+    11.14.2018 1.7.1: Added dynamic worker spawning
+
+    11.15.2018 1.8.0: Dynamic workers; Changed hb header format;
+    11.19.2018 1.8.1: Changed basic_consume callback args; Changed process_task_request to use the
+                      custom pool name as task queue if -p is used; Updated routine to get the
+                      current live workers and add a feature to get the num workers per pool name;
+
+    01.16.2019 3.0.1: Fixed options for -wt and -cl;
+
+    02.19.2019 3.2.0: Added Lawrencium slurm support;
+    02.25.2019 3.2.3: Set default worker queue name = "small"
+    03.11.2019 3.2.8: Fixed invalid child process id in get_pid_tree();
+    03.14.2019 3.2.9: Added "--exclusive" for cori sbatch (genepool_special needs it)
+    03.21.2019 3.2.10: Added Cori KNL support (KNL constraint doesn't need --qos and --account);
+
+    04.03.2019 3.4.2: Fixed child process killing;
+
+    04.04.2019 4.0.0: Added thread to recv task kill request; Added sleep 10 in sbatch script;
+
+    04.16.2019 4.2.1: Added ack and nack in on_poison(); Added ack and nack in on_kill();
+    04.18.2019 4.2.3: Bug fix worker cloning -> basic_reject + requeue=True;
+
+    05.01.2019 5.0.5: Removed scontrol;
+
+    05.09.2019 5.1.1: Fixed life left calculation; Removed raise;
+
+    06.11.2019 5.4.0: Run run_something() with threading.Thread; Added ch._connection.sleep() to fix
+                      lost connection issue;
+    06.13.2019 5.4.2: Multiprocessing -> threading;
+    06.18.2019 5.4.3: Send endData as today in hb to the manager even if the worker is dynamic;
+
+    10.08.2019 5.5.0: Revised recv_hb_from_client_thread;
+    10.21.2019 5.5.1: Tested jgi cloud; Updated config; Updated sbatch params;
+    10.26.2019 5.6.1: Updated unique worker id + for_loop_index for jaws_lbl_gov;
+
+    02.26.2020 5.6.6: Set slurm job name with pool name;
+
+
+
 """
-import argparse
-import datetime
-import json
-import multiprocessing
 import os
-import socket
-import subprocess
 import sys
+import multiprocessing
+import shortuuid
+import datetime
+import argparse
+import json
 import threading
+import subprocess
+import socket
 import time
+import pika
 
-from multiprocessing import Pipe
-from datetime import timedelta
-
-from jaws_jtm.config import VERSION, CLIENT_HB_Q_POSTFIX, CNAME, COMPUTE_RESOURCES, CORI_CHARGE_ACCNT, \
-    CORI_CONSTRAINT, CORI_KNL_CHARGE_ACCNT, CORI_KNL_QOS, CORI_QOS, CTR, DONE_FLAGS, ENV_ACTIVATION, \
-    FILE_CHECKING_MAX_TRIAL, FILE_CHECK_INTERVAL, FILE_CHECK_INT_INC, HB_MSG, JGI_CLOUD_ACCNT, \
-    JGI_CLOUD_PARTITION, JGI_CLOUD_QOS, JOBTIME, JOB_LOG, JTM_CLIENT_HB_EXCH, JTM_HOST_NAME, JTM_INNER_MAIN_EXCH, \
-    JTM_INNER_REQUEST_Q, JTM_LOG, JTM_TASK_KILL_EXCH, JTM_TASK_KILL_Q, JTM_WORKER_FILE_LOGGING, JTM_WORKER_HB_EXCH, \
-    JTM_WORKER_POISON_EXCH, JTM_WORKER_POISON_Q, JTM_WORKER_STREAM_LOGGING, LAWRENCIUM_CHARGE_ACCNT, \
-    LAWRENCIUM_PARTITION, LAWRENCIUM_QOS, PIKA_VER, PRODUCTION, RMQ_HOST, RMQ_PORT, TASK_TYPE, USER_NAME, \
-    WORKER_HB_Q_POSTFIX, WORKER_HB_SEND_INTERVAL, \
-    WORKER_TIMEOUT, WORKER_TYPE
-from jaws_jtm.lib.common import logger, make_dir, pika, run_sh_command, setup_custom_logger, shortuuid, zdumps, zloads
+from jaws_jtm.common import setup_custom_logger, logger
+from jaws_jtm.config import PIKA_VER, \
+    COMPUTE_RESOURCES, \
+    VERSION, \
+    JTM_WORKER_STREAM_LOGGING, \
+    JTM_WORKER_FILE_LOGGING, \
+    RMQ_PORT, \
+    USER_NAME, \
+    PRODUCTION, \
+    JOBTIME, \
+    CORI_CONSTRAINT, \
+    CORI_KNL_CHARGE_ACCNT, \
+    CORI_KNL_QOS, \
+    CORI_CHARGE_ACCNT, \
+    CORI_QOS, \
+    WORKER_HB_SEND_INTERVAL, \
+    WORKER_TIMEOUT, \
+    JTM_INNER_REQUEST_Q, \
+    CTR, \
+    RMQ_HOST, \
+    LAWRENCIUM_PARTITION, \
+    JGI_CLOUD_PARTITION, \
+    LAWRENCIUM_QOS, \
+    JGI_CLOUD_QOS, \
+    LAWRENCIUM_CHARGE_ACCNT, \
+    JGI_CLOUD_ACCNT, \
+    ENV_ACTIVATION, \
+    JTM_INNER_MAIN_EXCH, \
+    WORKER_HB_Q_POSTFIX, \
+    JTM_LOG, \
+    JTM_WORKER_POISON_Q, \
+    JTM_WORKER_POISON_EXCH, \
+    JTM_TASK_KILL_Q, \
+    JTM_TASK_KILL_EXCH, \
+    JOB_LOG, \
+    TASK_TYPE, \
+    CNAME, \
+    CLIENT_HB_Q_POSTFIX, \
+    JTM_CLIENT_HB_EXCH, \
+    HB_MSG, \
+    WORKER_TYPE, \
+    JTM_HOST_NAME, \
+    JTM_WORKER_HB_EXCH, \
+    DONE_FLAGS, \
+    FILE_CHECK_INT_INC, \
+    FILE_CHECKING_MAX_TRIAL, \
+    FILE_CHECK_INTERVAL
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
-from jaws_jtm.lib.resourceusage import (
-    get_cpu_load,
-    get_runtime,
-    get_pid_tree,
-    get_virtual_memory_usage,
-    get_resident_memory_usage,
-    get_total_mem_usage_per_node,
-    get_num_workers_on_node,
-)
+from jaws_jtm.lib.resourceusage import get_cpu_load, \
+    get_runtime, get_pid_tree, get_virtual_memory_usage, \
+    get_resident_memory_usage, get_total_mem_usage_per_node, \
+    get_num_workers_on_node
+from jaws_jtm.lib.run import make_dir, run_sh_command
+from jaws_jtm.lib.msgcompress import zdumps, zloads
+
 
 # This ipc pipe is to send task_id (by on_request())to send_hb_to_client_thread()
 # when a task is requested
-g_pipe_task_id_send, g_pipe_task_id_recv = Pipe()
+PIPE_TASK_ID_SEND, PIPE_TASK_ID_RECV = multiprocessing.Pipe()
 
 print("JTM Worker, version: {}".format(VERSION))  # VERSION <- Config.py
 
@@ -104,13 +233,11 @@ def run_something(msg_unzipped, return_msg):
     logger.info("Running task ID %d...", task_id)
     # logger.info("Running task/task ID, %s/%d...", cromwell_job_id, task_id)
     try:
-        p = subprocess.Popen(
-            user_task_cmd,
-            shell=True,
-            env=os.environ,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
+        p = subprocess.Popen(user_task_cmd,
+                             shell=True,
+                             env=os.environ,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT)
     except Exception as detail:
         logger.exception("Exception: Failed to run user command, %s", user_task_cmd)
         logger.exception("Detail: %s", str(detail))
@@ -151,42 +278,31 @@ def run_something(msg_unzipped, return_msg):
                 for i in range(len(ofs)):
                     out_file_list.append(ofs[i])
 
-                ret, file_size = check_output(
-                    out_file_list,
-                    FILE_CHECK_INTERVAL,
-                    FILE_CHECKING_MAX_TRIAL,
-                    FILE_CHECK_INT_INC,
-                )
+                ret, file_size = check_output(out_file_list,
+                                              FILE_CHECK_INTERVAL,
+                                              FILE_CHECKING_MAX_TRIAL,
+                                              FILE_CHECK_INT_INC)
 
                 if not ret:
-                    ret_msg_str = (
-                        "Failed to check output file(s): %s, file size = %s."
-                        % (ofs, file_size)
-                    )
+                    ret_msg_str = "Failed to check output file(s): %s, file size = %s." % (ofs, file_size)
                     logger.critical(ret_msg_str)
-                    return_msg["done_flag"] = DONE_FLAGS[
-                        "failed to check output file(s)"
-                    ]
+                    return_msg["done_flag"] = DONE_FLAGS["failed to check output file(s)"]
                     return_msg["ret_msg"] = ret_msg_str
                 else:
-                    return_msg["done_flag"] = DONE_FLAGS[
-                        "success with correct output file(s)"
-                    ]
+                    return_msg["done_flag"] = DONE_FLAGS["success with correct output file(s)"]
                     return_msg["ret_msg"] = "Output file checking is OK."
             else:
                 return_msg["done_flag"] = DONE_FLAGS["success"]
                 return_msg["ret_msg"] = "No file(s) to check."
         else:
-            logger.critical(
-                "Failed to execute a task, %s. Non-zero exit code. stdout = %s."
-                % (user_task_cmd, stdout_str)
-            )
+            logger.critical("Failed to execute a task, %s. Non-zero exit code. stdout = %s."
+                            % (user_task_cmd, stdout_str))
             return_msg["done_flag"] = DONE_FLAGS["failed to run user command"]
             return_msg["ret_msg"] = stdout_str
 
-    # json_date = json.dumps(return_msg)
-    # logger.debug("Result reply: %s" % str(json_date))
-    # msgZippedToSend = zdumps(json_date)
+    # json_data = json.dumps(return_msg)
+    # logger.debug("Result reply: %s" % str(json_data))
+    # msgZippedToSend = zdumps(json_data)
     # return msgZippedToSend
 
 
@@ -228,7 +344,7 @@ def on_request(ch, method, props, body):
     # logger.debug("#tasks queued = %d", hb_queue_len)
 
     # Send taskid to send_hb_to_client_thread() so that the task_id can be shown in the hb messages
-    g_pipe_task_id_send.send(task_id)
+    PIPE_TASK_ID_SEND.send(task_id)
 
     # If client sends "terminate worker"
     if task_id == -9:
@@ -256,36 +372,44 @@ def on_request(ch, method, props, body):
     logger.info("Received a task, %r" % (msg_unzipped,))
     logger.debug("Return queue = %s", props.reply_to)
 
+    ######################################
+    # OLD
+    # response = run_something(msg_unzipped)
+
+    # NEW
+    # Note: to fix connection lost
+    # ex) 2019-06-10 12:13:37,917 | jtm-worker | on_request | CRITICAL : Something wrong in on_request():
+    # Stream connection lost: error(104, 'Connection reset by peer')
+    #
+    # https://stackoverflow.com/questions/14572020/handling-long-running-tasks-in-pika-rabbitmq
+    #
     result_dict = {}
     thread = threading.Thread(target=run_something, args=(msg_unzipped, result_dict))
     thread.start()
     while thread.is_alive():  # Loop while the thread is processing
         ch._connection.sleep(1.0)
-    json_date = json.dumps(result_dict)
-    logger.debug("Result reply: %s" % str(json_date))
-    response = zdumps(json_date)
+    json_data = json.dumps(result_dict)
+    logger.debug("Result reply: %s" % str(json_data))
+    logger.debug(json_data)
+    response = zdumps(json_data)
     ######################################
 
     try:
-        logger.debug(
-            "Sent the result back to the client via '%s' queue.", props.reply_to
-        )
+        logger.debug("Sent the result back to the client via '%s' queue.", props.reply_to)
 
         # Note: to keep result messages even the client is not alive.
-        ch.queue_declare(
-            queue=props.reply_to, durable=True, exclusive=False, auto_delete=True
-        )
+        ch.queue_declare(queue=props.reply_to,
+                         durable=True,
+                         exclusive=False,
+                         auto_delete=True)
 
         assert props.reply_to.endswith(CNAME)
-        ch.basic_publish(
-            exchange=JTM_INNER_MAIN_EXCH,
-            routing_key=props.reply_to,  # use the queue which the client created
-            properties=pika.BasicProperties(
-                delivery_mode=2,  # make message persistent
-                correlation_id=props.correlation_id,
-            ),
-            body=response,
-        )
+        ch.basic_publish(exchange=JTM_INNER_MAIN_EXCH,
+                         routing_key=props.reply_to,  # use the queue which the client created
+                         properties=pika.BasicProperties(
+                             delivery_mode=2,  # make message persistent
+                             correlation_id=props.correlation_id),
+                         body=response)
 
         # Note: After sending ack, the message will be deleted from RabbitMQ
         #  If this worker crashes while running a user command, this task will
@@ -296,19 +420,15 @@ def on_request(ch, method, props, body):
         logger.critical("Something wrong in on_request(): %s", e)
 
     # Send taskid=0 to send_hb_to_client_thread() b/c the requested task is completed
-    g_pipe_task_id_send.send(0)
+    PIPE_TASK_ID_SEND.send(0)
 
     # Reset child pid
     USER_PROC_PROC_ID.value = 0
 
 
 # -------------------------------------------------------------------------------
-def check_output(
-    out_files,
-    out_file_check_wait_time=3,
-    max_trial=3,
-    out_file_check_wait_time_increase=1.5,
-):
+def check_output(out_files, out_file_check_wait_time=3,
+                 max_trial=3, out_file_check_wait_time_increase=1.5):
     """
     Check 1) existence, 2) size>0 for each file in out_files
     :param out_files: list of absolute paths to the output files to check
@@ -366,23 +486,9 @@ def check_output(
 
 
 # -------------------------------------------------------------------------------
-def send_hb_to_client_thread(
-    root_proc_id,
-    interval,
-    queue_child_proc_id,
-    worker_id,
-    pipe_task_id,
-    slurm_job_id,
-    worker_type,
-    mem_per_node,
-    mem_per_core,
-    num_cores,
-    job_time,
-    clone_time_rate,
-    task_queue_name,
-    pool_name,
-    nwpn,
-):
+def send_hb_to_client_thread(root_proc_id, interval, queue_child_proc_id, worker_id, pipe_task_id,
+                             slurm_job_id, worker_type, mem_per_node, mem_per_core, num_cores,
+                             job_time, clone_time_rate, task_queue_name, pool_name, nwpn):
     """
     Send heartbeats to the client
     :param root_proc_id: root_proc_id of this worker
@@ -415,13 +521,11 @@ def send_hb_to_client_thread(
     worker_hb_queue = WORKER_HB_Q_POSTFIX
     host_name = socket.gethostname()
 
-    ch.exchange_declare(
-        exchange=exch_name,
-        exchange_type="direct",
-        passive=False,
-        durable=False,
-        auto_delete=False,
-    )
+    ch.exchange_declare(exchange=exch_name,
+                        exchange_type="direct",
+                        passive=False,
+                        durable=False,
+                        auto_delete=False)
 
     task_id = 0
     proc_id_list_merged = []
@@ -440,9 +544,7 @@ def send_hb_to_client_thread(
             #
             # NOTE: must cope with the fast mem consumption at the begining of the process
             #
-            logger.debug(
-                "rootpid = {} childpid = {}".format(root_proc_id, queue_child_proc_id)
-            )
+            logger.debug("rootpid = {} childpid = {}".format(root_proc_id, queue_child_proc_id))
             root_proc_id = int(root_proc_id)
             if queue_child_proc_id.value == 0:
                 child_pid = root_proc_id
@@ -451,17 +553,13 @@ def send_hb_to_client_thread(
 
             # Collect pids from process tree
             root_pid_list = get_pid_tree(root_proc_id)
-            logger.debug(
-                "get_pid_tree(root_proc_id={}) = {}".format(root_proc_id, root_pid_list)
-            )
+            logger.debug("get_pid_tree(root_proc_id={}) = {}".format(root_proc_id, root_pid_list))
 
             if root_proc_id != child_pid:
                 if child_pid == -9:  # if it's terminated by "kill"
                     child_pid = root_proc_id
                 pidListChild = get_pid_tree(child_pid)
-                logger.debug(
-                    "get_pid_tree(child_pid={}) = {}".format(child_pid, pidListChild)
-                )
+                logger.debug("get_pid_tree(child_pid={}) = {}".format(child_pid, pidListChild))
                 if len(pidListChild) > 0:
                     proc_id_list_merged = root_pid_list + pidListChild[1:]
                 else:
@@ -475,24 +573,14 @@ def send_hb_to_client_thread(
             rmem_usage_list = []
 
             try:
-                vmem_usage_list.extend(
-                    [
-                        get_virtual_memory_usage(pid, 0.0, False)
-                        for pid in proc_id_list_merged
-                    ]
-                )
+                vmem_usage_list.extend([get_virtual_memory_usage(pid, 0.0, False) for pid in proc_id_list_merged])
             except ValueError:
                 logger.exception("ValueError: Failed to collect VM memory usage.")
             except UnboundLocalError:
                 logger.exception("UnboundLocalError: No entry in process id list.")
 
             try:
-                rmem_usage_list.extend(
-                    [
-                        get_resident_memory_usage(pid, 0.0, False)
-                        for pid in proc_id_list_merged
-                    ]
-                )
+                rmem_usage_list.extend([get_resident_memory_usage(pid, 0.0, False) for pid in proc_id_list_merged])
             except ValueError:
                 logger.exception("ValueError: Failed to collect RES memory usage.")
             except UnboundLocalError:
@@ -538,29 +626,41 @@ def send_hb_to_client_thread(
             worker_age_in_minute = 0
 
             try:
+                # Note: this only works with SLURM. For other HPCs/Clouds, methods to get the
+                #  remaining life are needed! ==> resovled!
                 if slurm_job_id:
-                    job_runtime_in_sec = (
-                        int(job_time.split(":")[0]) * 3600
-                        + int(job_time.split(":")[1]) * 60
-                        + int(job_time.split(":")[2])
-                    )
-                    end_date_time = WORKER_START_TIME + timedelta(
-                        seconds=job_runtime_in_sec
-                    )
+                    # OLD
+                    # fixme; slurm overload
+                    # so, se, ec = run_sh_command("scontrol show jobid %d"
+                    #                             % (slurm_job_id), live=True, log=logger, stdoutPrint=False)
+                    # pat = re.compile(r"""([^\s=]+)=\s*((?:[^\s=]+(?:\s|$))*)""")
+                    # # Convert a list of x=y to dict
+                    # entries = dict((k, v.split()) for k, v in pat.findall(so))
+                    # delta = datetime.datetime.now() - datetime.datetime.strptime(entries["EndTime"][0],
+                    # "%Y-%m-%dT%H:%M:%S")
+                    # worker_age_in_minute = -divmod(delta.total_seconds(), 60)[0]
+                    # end_date_time = entries["EndTime"][0]
+
+                    # NEW
+                    # jobtime2 = datetime.datetime.strptime(job_time, '%H:%M:%S')
+                    # end_date_time = WORKER_START_TIME + timedelta(seconds=jobtime2.second+jobtime2.minute*60+
+                    # jobtime2.hour*3600)
+                    # 24:00:00 --> seconds
+                    job_runtime_in_sec = int(job_time.split(':')[0]) * 3600 + \
+                                         int(job_time.split(':')[1]) * 60 + \
+                                         int(job_time.split(':')[2])
+                    end_date_time = WORKER_START_TIME + datetime.timedelta(seconds=job_runtime_in_sec)
                     delta = end_date_time - datetime.datetime.now()
                     worker_age_in_minute = divmod(delta.total_seconds(), 60)[0]
             except Exception as e:
-                logger.critical(
-                    "Something wrong in computing remaining wall clock time: %s", e
-                )
-                # raise
-                # sys.exit(1)
+                logger.critical("Something wrong in computing remaining wall clock time: %s", e)
                 os._exit(1)
 
             # Get the total number of tasks in the task queue for this pool
-            hb_queue_len = ch.queue_declare(
-                queue=task_queue_name, durable=True, exclusive=False, auto_delete=True
-            ).method.message_count
+            hb_queue_len = ch.queue_declare(queue=task_queue_name,
+                                            durable=True,
+                                            exclusive=False,
+                                            auto_delete=True).method.message_count
             # logger.debug("#tasks queued=%d in %s" % (hb_queue_len, task_queue_name))
 
             # To decrease the hb message size, changed to int key value
@@ -570,48 +670,43 @@ def send_hb_to_client_thread(
                 # eprint("Exception: Failed to get ip address: %s" % e)
                 ip_address = None
 
-            msg_dict_to_send = {
-                HB_MSG["child_pid"]: child_pid,
-                HB_MSG["clone_time_rate"]: clone_time_rate,
-                HB_MSG["cpu_load"]: max_cpu_load,
-                # HB_MSG["end_date"]: end_date_time.strftime("%Y-%m-%dT%H:%M:%S") if end_date_time else today,
-                HB_MSG["end_date"]: today,  # Note: for dynamic worker endDate update
-                HB_MSG["host_name"]: host_name,
-                HB_MSG["ip_address"]: ip_address,
-                HB_MSG["job_time"]: job_time if WORKER_TYPE[worker_type] > 0 else None,
-                HB_MSG["jtm_host_name"]: JTM_HOST_NAME,
-                HB_MSG["life_left"]: worker_age_in_minute,
-                HB_MSG["mem_per_core"]: mem_per_core
-                if WORKER_TYPE[worker_type] > 0
-                else "",
-                HB_MSG["mem_per_node"]: mem_per_node
-                if WORKER_TYPE[worker_type] > 0
-                else "",
-                HB_MSG["num_cores"]: num_cores
-                if WORKER_TYPE[worker_type] > 0
-                else multiprocessing.cpu_count(),
-                HB_MSG["num_tasks"]: hb_queue_len,
-                HB_MSG["num_workers_on_node"]: num_workers_on_node,
-                HB_MSG["perc_mem_used"]: perc_used_mem,
-                HB_MSG["pool_name"]: pool_name,
-                HB_MSG["ret_msg"]: "hb",
-                HB_MSG["rmem_usage"]: rmem_usage,
-                HB_MSG["root_pid"]: root_proc_id,
-                HB_MSG["run_time"]: proc_run_time,
-                HB_MSG["slurm_jobid"]: slurm_job_id,
-                HB_MSG["task_id"]: task_id,
-                HB_MSG["vmem_usage"]: vmem_usage,
-                HB_MSG["worker_id"]: worker_id,
-                HB_MSG["worker_type"]: WORKER_TYPE[worker_type],
-                HB_MSG["nwpn"]: nwpn,
-            }
+            ncore_param = multiprocessing.cpu_count()
+            if WORKER_TYPE[worker_type] > 0:
+                ncore_param = num_cores
+
+            msg_dict_to_send = {HB_MSG["child_pid"]: child_pid,
+                                HB_MSG["clone_time_rate"]: clone_time_rate,
+                                HB_MSG["cpu_load"]: max_cpu_load,
+                                HB_MSG["end_date"]: today,  # Note: for dynamic worker endDate update
+                                HB_MSG["host_name"]: host_name,
+                                HB_MSG["ip_address"]: ip_address,
+                                HB_MSG["job_time"]: job_time if WORKER_TYPE[worker_type] > 0 else None,
+                                HB_MSG["jtm_host_name"]: JTM_HOST_NAME,
+                                HB_MSG["life_left"]: worker_age_in_minute,
+                                HB_MSG["mem_per_core"]: mem_per_core if WORKER_TYPE[worker_type] > 0 else "",
+                                HB_MSG["mem_per_node"]: mem_per_node if WORKER_TYPE[worker_type] > 0 else "",
+                                HB_MSG["num_cores"]: ncore_param,
+                                HB_MSG["num_tasks"]: hb_queue_len,
+                                HB_MSG["num_workers_on_node"]: num_workers_on_node,
+                                HB_MSG["perc_mem_used"]: perc_used_mem,
+                                HB_MSG["pool_name"]: pool_name,
+                                HB_MSG["ret_msg"]: "hb",
+                                HB_MSG["rmem_usage"]: rmem_usage,
+                                HB_MSG["root_pid"]: root_proc_id,
+                                HB_MSG["run_time"]: proc_run_time,
+                                HB_MSG["slurm_jobid"]: slurm_job_id,
+                                HB_MSG["task_id"]: task_id,
+                                HB_MSG["vmem_usage"]: vmem_usage,
+                                HB_MSG["worker_id"]: worker_id,
+                                HB_MSG["worker_type"]: WORKER_TYPE[worker_type],
+                                HB_MSG["nwpn"]: nwpn}
 
             msg_zipped_to_send = zdumps(json.dumps(msg_dict_to_send))
 
             assert worker_hb_queue.endswith(CNAME)
-            ch.basic_publish(
-                exchange=exch_name, routing_key=worker_hb_queue, body=msg_zipped_to_send
-            )
+            ch.basic_publish(exchange=exch_name,
+                             routing_key=worker_hb_queue,
+                             body=msg_zipped_to_send)
 
             logger.debug("Send HB to the client: {}".format(msg_dict_to_send))
 
@@ -641,26 +736,25 @@ def recv_hb_from_client_thread2(task_queue, worker_id):
     host_name = socket.gethostname()
 
     # Declare exchange
-    ch.exchange_declare(
-        exchange=exch_name,
-        # exchange_type="fanout",
-        exchange_type="topic",
-        durable=False,
-        auto_delete=False,
-    )
+    ch.exchange_declare(exchange=exch_name,
+                        # exchange_type="fanout",
+                        exchange_type="topic",
+                        durable=False,
+                        auto_delete=False)
 
     # Declare queue
     client_hb_queue_name = "_jtm_worker_%s%s" % (worker_id, CLIENT_HB_Q_POSTFIX)
-    ch.queue_declare(
-        queue=client_hb_queue_name, durable=False, exclusive=True, auto_delete=True
-    )
+    ch.queue_declare(queue=client_hb_queue_name,
+                     durable=False,
+                     exclusive=True,
+                     auto_delete=True)
 
     # Bind exchange to hb queue for receiving the client hb
-    ch.queue_bind(
-        exchange=exch_name, queue=client_hb_queue_name, routing_key="*." + CNAME
-    )
+    ch.queue_bind(exchange=exch_name,
+                  queue=client_hb_queue_name,
+                  routing_key="*." + CNAME)
 
-    logger.info("[*] Waiting for the manager.")
+    logger.info('[*] Waiting for the manager.')
 
     def stop():
         logger.info("Terminate myself: {} on {}".format(worker_id, host_name))
@@ -679,21 +773,15 @@ def recv_hb_from_client_thread2(task_queue, worker_id):
 
     def callback(ch, method, properties, body):
         msg_unzipped = json.loads(zloads(body))
-        if (
-            msg_unzipped["task_type"] == TASK_TYPE["term"]
-            and msg_unzipped["task_queue"] == task_queue
-        ):
+        if msg_unzipped["task_type"] == TASK_TYPE["term"] and msg_unzipped["task_queue"] == task_queue:
             stop()
         elif msg_unzipped["task_type"] == TASK_TYPE["hb"]:
             # Poison from the manager. Terminate itself.
-            logger.debug(
-                "Received heartbeats from the client, %r:%r"
-                % (method.routing_key, msg_unzipped)
-            )
+            logger.debug("Received heartbeats from the client, %r:%r" % (method.routing_key, msg_unzipped))
 
-    ch.basic_consume(
-        queue=client_hb_queue_name, on_message_callback=callback, auto_ack=True
-    )
+    ch.basic_consume(queue=client_hb_queue_name,
+                     on_message_callback=callback,
+                     auto_ack=True)
 
     ch.start_consuming()
 
@@ -715,17 +803,18 @@ def recv_task_kill_request_thread(task_queue, worker_id, cluster_name):
     queue_name = JTM_TASK_KILL_Q
     routing_key = str(worker_id)
 
-    ch.exchange_declare(
-        exchange=exch_name, exchange_type="fanout", durable=True, auto_delete=False
-    )
-    ch.queue_declare(
-        queue=queue_name,
-        # durable=False,
-        durable=True,
-        exclusive=False,
-        auto_delete=True,
-    )
-    ch.queue_bind(exchange=exch_name, queue=queue_name, routing_key=routing_key)
+    ch.exchange_declare(exchange=exch_name,
+                        exchange_type="fanout",
+                        durable=True,
+                        auto_delete=False)
+    ch.queue_declare(queue=queue_name,
+                     # durable=False,
+                     durable=True,
+                     exclusive=False,
+                     auto_delete=True)
+    ch.queue_bind(exchange=exch_name,
+                  queue=queue_name,
+                  routing_key=routing_key)
 
     def on_kill(ch, method, props, body):
         msg_unzipped = json.loads(zloads(body))
@@ -744,19 +833,13 @@ def recv_task_kill_request_thread(task_queue, worker_id, cluster_name):
                 for i in get_pid_tree(msg_unzipped["child_pid"]):
                     # kill_cmd = "kill -9 %d" % msg_unzipped["child_pid"]
                     kill_cmd = "kill -9 %d" % i
-                    logger.info(
-                        "Executing {} for taskID, {}".format(
-                            kill_cmd, msg_unzipped["task_id"]
-                        )
-                    )
+                    logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
                     so, se, ec = run_sh_command(kill_cmd, live=True, log=logger)
                     if ec == 0:
                         logger.info("Successfully terminate a user task process.")
                     else:
-                        logger.warning(
-                            "User process not found. Ignore the termination command, %s"
-                            % (kill_cmd)
-                        )
+                        logger.warning("User process not found. Ignore the termination command, %s"
+                                       % (kill_cmd))
                         # Todo: Failed to terminate a user process for some reason. How to deal
                         #  with this case?
                         # ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
@@ -764,19 +847,12 @@ def recv_task_kill_request_thread(task_queue, worker_id, cluster_name):
                 # Kill the main child process
                 # Note: can consider to use "pkill -9 -P ppid" to kill the family
                 kill_cmd = "kill -9 %d" % msg_unzipped["child_pid"]
-                logger.info(
-                    "Executing {} for taskID, {}".format(
-                        kill_cmd, msg_unzipped["task_id"]
-                    )
-                )
+                logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
                 so, se, ec = run_sh_command(kill_cmd, live=True, log=logger)
                 if ec == 0:
                     logger.info("Successfully terminate a user task process.")
                 else:
-                    logger.warning(
-                        "User process not found. Failed to execute the command, %s"
-                        % (kill_cmd)
-                    )
+                    logger.warning("User process not found. Failed to execute the command, %s" % (kill_cmd))
 
             else:
                 logger.warning("No valid child process id to terminate.")
@@ -803,18 +879,8 @@ def recv_task_kill_request_thread(task_queue, worker_id, cluster_name):
 
 
 # -------------------------------------------------------------------------------
-def recv_reproduce_or_die_thread(
-    task_queue,
-    worker_id,
-    cluster_name,
-    mem_per_node,
-    mem_per_core,
-    num_nodes,
-    num_cores,
-    wallclocktime,
-    clone_time_rate,
-    nwpn,
-):
+def recv_reproduce_or_die_thread(task_queue, worker_id, cluster_name, mem_per_node, mem_per_core,
+                                 num_nodes, num_cores, wallclocktime, clone_time_rate, nwpn):
     """
     Wait for process termination request from JTM
     :param task_queue: task queue (pool) name
@@ -836,17 +902,18 @@ def recv_reproduce_or_die_thread(
     exch_name = JTM_WORKER_POISON_EXCH
     queue_name = JTM_WORKER_POISON_Q
 
-    ch.exchange_declare(
-        exchange=exch_name, exchange_type="direct", durable=True, auto_delete=False
-    )
-    ch.queue_declare(
-        queue=queue_name,
-        # durable=False,
-        durable=True,
-        exclusive=False,
-        auto_delete=True,
-    )
-    ch.queue_bind(exchange=exch_name, queue=queue_name, routing_key=worker_id)
+    ch.exchange_declare(exchange=exch_name,
+                        exchange_type="direct",
+                        durable=True,
+                        auto_delete=False)
+    ch.queue_declare(queue=queue_name,
+                     # durable=False,
+                     durable=True,
+                     exclusive=False,
+                     auto_delete=True)
+    ch.queue_bind(exchange=exch_name,
+                  queue=queue_name,
+                  routing_key=worker_id)
 
     def on_poison(ch, method, props, body):
         msg_unzipped = json.loads(zloads(body))
@@ -861,11 +928,10 @@ def recv_reproduce_or_die_thread(
                 logger.info("Static worker cloning request received.")
 
                 jtm_worker_cmd = "{} && jtm-worker -wt static -cl {} -t {} -ct {}".format(
-                    ENV_ACTIVATION, cluster_name, wallclocktime, clone_time_rate
-                )
+                                ENV_ACTIVATION, cluster_name, wallclocktime, clone_time_rate)
 
                 if task_queue is not None:
-                    jtm_worker_cmd += " -tp {}".format(task_queue)
+                    jtm_worker_cmd += " -p {}".format(task_queue)
 
                 if nwpn != "" and int(nwpn) > 1:
                     jtm_worker_cmd += " -nw {}".format(nwpn)
@@ -873,9 +939,7 @@ def recv_reproduce_or_die_thread(
                     jtm_worker_cmd += " -nw 1"
 
                 if num_nodes != "" and int(num_nodes) > 0:
-                    jtm_worker_cmd += " -N {} -m {} -c {}".format(
-                        num_nodes, mem_per_node, num_cores
-                    )
+                    jtm_worker_cmd += " -N {} -m {} -c {}".format(num_nodes, mem_per_node, num_cores)
                 else:
                     jtm_worker_cmd += " -c {}".format(num_cores)
                     if mem_per_node not in ("", None):  # if node mem defined, set --mem
@@ -886,9 +950,7 @@ def recv_reproduce_or_die_thread(
                 logger.info("Executing {}".format(jtm_worker_cmd))
                 so, se, ec = run_sh_command(jtm_worker_cmd, live=True, log=logger)
                 logger.debug("{} {} {}".format(so, se, ec))
-                _, _, _ = run_sh_command(
-                    jtm_worker_cmd + " --dry-run", live=True, log=logger
-                )
+                _, _, _ = run_sh_command(jtm_worker_cmd + " --dry-run", live=True, log=logger)
 
             # Note: 01072019 no more auto cloning of dynamic worker
             # elif msg_unzipped["num_clones"] > 1:
@@ -896,7 +958,7 @@ def recv_reproduce_or_die_thread(
             #     jtm_worker_cmd = "{} && jtm-worker -wt dynamic -cl {} -t {} -ct {}".format(
             #                     ENV_ACTIVATION, cluster_name, wallclocktime, clone_time_rate)
             #     if task_queue is not None:
-            #         jtm_worker_cmd += " -tp {}".format(task_queue)
+            #         jtm_worker_cmd += " -p {}".format(task_queue)
             #     if num_nodes != "" and int(num_nodes) > 0:
             #         jtm_worker_cmd += " -N {} -m {} -c {} -nw {}".format(num_nodes, mem_per_node, num_cores, nwpn)
             #     else:
@@ -923,9 +985,7 @@ def recv_reproduce_or_die_thread(
     if int(PIKA_VER[0]) < 1:  # v0.13.1
         ch.basic_consume(on_poison, queue=queue_name, no_ack=False)
     else:  # v1.0.1 or higher
-        ch.basic_consume(
-            queue=queue_name, on_message_callback=on_poison, auto_ack=False
-        )
+        ch.basic_consume(queue=queue_name, on_message_callback=on_poison, auto_ack=False)
 
     try:
         ch.start_consuming()
@@ -940,149 +1000,108 @@ def worker():
     # parser.add_argument("-cj", "--cromwell-jid",
     #                     help="Set Cromwell job name",
     #                     dest="cromwell_job_id")
-    parser.add_argument(
-        "-hb",
-        "--heartbeat",
-        help="heartbeat interval in second (default=10).",
-        dest="hearbeat_interval",
-        type=int,
-    )  # default 5 sec
-    parser.add_argument(
-        "-l",
-        "--loglevel",
-        help="Set loglevel (default=info).",
-        dest="log_level",
-        default="info",
-    )
-    parser.add_argument(
-        "-jd",
-        "--job_dir",
-        help="jtm job file path.",
-        dest="job_script_dir_name",
-        default=JOB_LOG,
-    )
-    parser.add_argument(
-        "-ld",
-        "--logdir",
-        help="jtm log file path.",
-        dest="log_dir_name",
-        default=JTM_LOG,
-    )
-    parser.add_argument(
-        "-tp",
-        "--task-pool",
-        help="Set user-defined pool name. This should be same with task's 'pool' name.",
-        dest="task_queue_name",
-        default="small",
-    )
-    parser.add_argument(
-        "-to",
-        "--timeout",
-        help=("Set the timer for worker to terminate. If there is no request from the client for the specified seconds,"
-              "the worker terminates itself (default: 60 seconds)"),
-        dest="worker_timeout_in_sec",
-        type=int,
-    )
-    parser.add_argument(
-        "-zf",
-        "--zerofile",
-        action="store_true",
-        help="Allow zero size output file(s) (default=False).",
-        dest="zero_size_file",
-        default=False,
-    )
-    parser.add_argument(
-        "-dr",
-        "--dry-run",
-        action="store_true",
-        help="Dry run. To print batch job script on screen",
-        dest="dry_run",
-        default=False,
-    )
-    parser.add_argument(
-        "-j", "--jobid", help="Slurm job id", dest="slurm_job_id", type=int, default=0
-    )
+    parser.add_argument("-hb", "--heartbeat",
+                        help="heartbeat interval in second (default=10).",
+                        dest="hearbeat_interval",
+                        type=int)  # default 5 sec
+    parser.add_argument("-l", "--loglevel",
+                        help="Set loglevel (default=info).",
+                        dest="log_level",
+                        default="info")
+    parser.add_argument("-jd", "--job_dir",
+                        help="jtm job file path.",
+                        dest="job_script_dir_name",
+                        default=JOB_LOG)
+    parser.add_argument("-ld", "--logdir",
+                        help="jtm log file path.",
+                        dest="log_dir_name",
+                        default=JTM_LOG)
+    parser.add_argument("-p", "--pool-name",
+                        help="Set user-defined pool name. This should be same with task's 'pool' name.",
+                        dest="task_queue_name",
+                        default="small")
+    parser.add_argument("-to", "--timeout",
+                        help="Set the timer for worker to terminate. If there is no request from the client \
+                        for the specified seconds, the worker terminates itself (default: 60 seconds)",
+                        dest="worker_timeout_in_sec",
+                        type=int)
+    parser.add_argument("-zf", "--zerofile",
+                        action="store_true",
+                        help="Allow zero size output file(s) (default=False).",
+                        dest="zero_size_file",
+                        default=False)
+    parser.add_argument("-dr", "--dry-run",
+                        action="store_true",
+                        help="Dry run. To print batch job script on screen",
+                        dest="dry_run",
+                        default=False)
+    parser.add_argument("-j", "--jobid",
+                        help="Slurm job id",
+                        dest="slurm_job_id",
+                        type=int,
+                        default=0)
 
     # worker type params
     # -------------------
-    parser.add_argument(
-        "-wt",
-        "--worker-type",
-        help="jtm worker type = [static | dynamic]",
-        dest="worker_type",
-        default="manual",
-        choices=["static", "dynamic"],
-    )
-    parser.add_argument(
-        "-cl",
-        "--cluster",
-        help="cluster name = [%s]" % (str(COMPUTE_RESOURCES)),
-        dest="cluster_name",
-        default="local",
-        choices=COMPUTE_RESOURCES,
-    )
-    parser.add_argument(
-        "-ct",
-        "--clone-time",
-        help="cloning timing",
-        dest="worker_clone_time_rate",
-        type=float,
-    )
-    parser.add_argument(
-        "-nw",
-        "--num-workers",
-        help="number of worker per node. Default=1",
-        dest="num_workers_per_node",
-        type=int,
-    )
-    parser.add_argument(
-        "-wi", "--worker-id", help="worker id for dynamic workers", dest="worker_id"
-    )
+    parser.add_argument("-wt", "--worker-type",
+                        help="jtm worker type = [static | dynamic]",
+                        dest="worker_type",
+                        default="manual",
+                        choices=["static", "dynamic"])
+    parser.add_argument("-cl", "--cluster",
+                        help="cluster name = [%s]" % (str(COMPUTE_RESOURCES)),
+                        dest="cluster_name",
+                        default="local",
+                        choices=COMPUTE_RESOURCES)
+    parser.add_argument("-ct", "--clone-time",
+                        help="cloning timing",
+                        dest="worker_clone_time_rate",
+                        type=float)
+    parser.add_argument("-nw", "--num-workers",
+                        help="number of worker per node. Default=1",
+                        dest="num_workers_per_node",
+                        type=int)
+    parser.add_argument("-wi", "--worker-id",
+                        help="worker id for dynamic workers",
+                        dest="worker_id")
 
     # slurm related params
     # -------------------
-    parser.add_argument(
-        "-A", "--account", help="Charging account.", dest="charging_account"
-    )
-    parser.add_argument(
-        "-N", "--nodes", help="number of nodes", dest="num_nodes_to_request", type=int
-    )
-    parser.add_argument(
-        "-c",
-        "--cpus-per-task",
-        help="number of cpus",
-        dest="num_cores_to_request",
-        type=int,
-    )
-    parser.add_argument(
-        "-C",
-        "--constraint",
-        help="Cori constraint, haswell or knl (default: haswell)",
-        dest="constraint",
-        choices=["haswell", "knl", "skylake"],
-        default="haswell",
-    )
-    parser.add_argument(
-        "-m",
-        "--mem",
-        help="specify the real memory required per node",
-        dest="mem_per_node_to_request",
-    )
-    parser.add_argument(
-        "-mc",
-        "--mem-per-cpu",
-        help="minimum memory required per allocated CPU",
-        dest="mem_per_cpu_to_request",
-    )
-    parser.add_argument("-q", "--qos", help="quality of service", dest="qos")
-    parser.add_argument(
-        "-t", "--time", help="limit on the total run time", dest="job_time_to_request"
-    )
-    parser.add_argument("-J", "--job-name", help="Slurm job name", dest="job_name")
+    parser.add_argument("-A", "--account",
+                        help="Charging account.",
+                        dest="charging_account")
+    parser.add_argument("-N", "--nodes",
+                        help="number of nodes",
+                        dest="num_nodes_to_request",
+                        type=int)
+    parser.add_argument("-c", "--cpus-per-task",
+                        help="number of cpus",
+                        dest="num_cores_to_request",
+                        type=int)
+    parser.add_argument("-C", "--constraint",
+                        help="Cori constraint, haswell or knl (default: haswell)",
+                        dest="constraint",
+                        choices=["haswell", "knl", "skylake"],
+                        default="haswell")
+    parser.add_argument("-m", "--mem",
+                        help="specify the real memory required per node",
+                        dest="mem_per_node_to_request")
+    parser.add_argument("-mc", "--mem-per-cpu",
+                        help="minimum memory required per allocated CPU",
+                        dest="mem_per_cpu_to_request")
+    parser.add_argument("-q", "--qos",
+                        help="quality of service",
+                        dest="qos")
+    parser.add_argument("-t", "--time",
+                        help="limit on the total run time",
+                        dest="job_time_to_request")
+    parser.add_argument("-J", "--job-name",
+                        help="Slurm job name",
+                        dest="job_name")
 
-    parser.add_argument(
-        "-v", "--version", action="version", version=VERSION
-    )  # VERSION <- Config.py
+    parser.add_argument("-v", "--version",
+                        action="version",
+                        version=VERSION)  # VERSION <- Config.py
     args = parser.parse_args()
 
     # Note: this is for allowing zero sized output file when check if the output file is
@@ -1105,13 +1124,9 @@ def worker():
     # make_dir_p(job_script_dir_name)
     make_dir(job_script_dir_name)
 
-    setup_custom_logger(
-        args.log_level,
-        log_dir_name,
-        JTM_WORKER_STREAM_LOGGING,
-        JTM_WORKER_FILE_LOGGING,
-        worker_id=UNIQ_WORKER_ID,
-    )
+    setup_custom_logger(args.log_level, log_dir_name,
+                        JTM_WORKER_STREAM_LOGGING, JTM_WORKER_FILE_LOGGING,
+                        worker_id=UNIQ_WORKER_ID)
 
     logger.info("Set jtm log file location to %s", args.log_dir_name)
     logger.info("Set jtm job file location to %s", args.job_script_dir_name)
@@ -1136,42 +1151,31 @@ def worker():
     # 11.13.2018 decided to remove all default values from argparse
     num_workers_per_node = args.num_workers_per_node if args.num_workers_per_node else 1
     num_cpus_to_reques = args.num_cores_to_request if args.num_cores_to_request else 1
-    mem_per_cpu_to_request = (
-        args.mem_per_cpu_to_request if args.mem_per_cpu_to_request else "1GB"
-    )
-    mem_per_node_to_request = (
-        args.mem_per_node_to_request if args.mem_per_node_to_request else ""
-    )
+    mem_per_cpu_to_request = args.mem_per_cpu_to_request if args.mem_per_cpu_to_request else "1GB"
+    mem_per_node_to_request = args.mem_per_node_to_request if args.mem_per_node_to_request else ""
     ###########################################################################
 
-    job_time_to_request = (
-        args.job_time_to_request if args.job_time_to_request else JOBTIME
-    )
+    job_time_to_request = args.job_time_to_request if args.job_time_to_request else JOBTIME
 
     constraint = args.constraint if args.constraint else CORI_CONSTRAINT
     if constraint == "knl":
-        charging_account = (
-            args.charging_account if args.charging_account else CORI_KNL_CHARGE_ACCNT
-        )
+        charging_account = args.charging_account if args.charging_account else CORI_KNL_CHARGE_ACCNT
         qos = args.qos if args.qos else CORI_KNL_QOS
     else:
-        charging_account = (
-            args.charging_account if args.charging_account else CORI_CHARGE_ACCNT
-        )
+        charging_account = args.charging_account if args.charging_account else CORI_CHARGE_ACCNT
         qos = args.qos if args.qos else CORI_QOS
 
     worker_type = args.worker_type
-    # job_name = "jtm_" + args.job_name if args.job_name else "jtm_%s_worker" % (worker_type)
     job_name = "jtm_worker_" + args.task_queue_name
 
     # Set task queue name
     inner_task_request_queue = None
-    hearbeat_interval = (
-        args.hearbeat_interval if args.hearbeat_interval else WORKER_HB_SEND_INTERVAL
-    )
-    worker_timeout_in_sec = (
-        args.worker_timeout_in_sec if args.worker_timeout_in_sec else WORKER_TIMEOUT
-    )  # worker timeout. Not used
+    hearbeat_interval = WORKER_HB_SEND_INTERVAL
+    if args.hearbeat_interval:
+        hearbeat_interval = args.hearbeat_interval
+    worker_timeout_in_sec = WORKER_TIMEOUT
+    if args.worker_timeout_in_sec:
+        worker_timeout_in_sec = args.worker_timeout_in_sec
 
     # If you want to create a custom worker pool, use this.
     # JTM detects "pool" field from task json, and creates custom pool if it's set.
@@ -1179,7 +1183,7 @@ def worker():
     # user_account_name = getpass.getuser().lower()
 
     # Todo: feature to add a manual worker to a specific cluster??
-    #  ex) $ jtm-worker -cl cori -tp small (on cori)
+    #  ex) $ jtm-worker -cl cori -p small (on cori)
     # if args.worker_type == "manual" and args.cluster_name != "local":
     #     # inner_task_request_queue = "_jtm_inner_request_queue." + args.cluster_name + "." + args.task_queue_name
     #     JTM_INNER_REQUEST_Q = "_jtm_inner_request_queue." + args.cluster_name + "." + USER_NAME
@@ -1189,32 +1193,18 @@ def worker():
     else:  # not reachable. default inner_task_request_queue = small
         inner_task_request_queue = JTM_INNER_REQUEST_Q
 
-    worker_clone_time_rate = (
-        args.worker_clone_time_rate if args.worker_clone_time_rate else CTR
-    )
+    worker_clone_time_rate = args.worker_clone_time_rate if args.worker_clone_time_rate else CTR
     if worker_type in ("static", "dynamic"):
-        assert (
-            args.cluster_name != "" and args.cluster_name != "local"
-        ), "Static or dynamic worker needs a cluster setting (-cl)."
-        # if not (args.num_nodes_to_request or args.num_cores_to_request):
-        #     logger.critical("Needs either the number of nodes (-N) or the number of cores (-c).")
-        #     sys.exit(1)
-        # if args.cluster_name == "lawrencium" and args.num_cores_to_request:
-        #     logger.critical("Lawrencium SLURM only supports node-based allocation. Please use '-N' instead.")
-        #     sys.exit(1)
+        assert args.cluster_name != "" and \
+               args.cluster_name != "local", "Static or dynamic worker needs a cluster setting (-cl)."
 
     slurm_job_id = args.slurm_job_id
     cluster_name = args.cluster_name  # default=local
     dry_run = args.dry_run
 
-    if (
-        cluster_name == "cori"
-        and mem_per_cpu_to_request != ""
-        and float(mem_per_cpu_to_request.replace("GB", "").replace("G", "")) > 1.0
-    ):
-        logger.critical(
-            "--mem-per-cpu in Cori shouldn't be larger than 1GB. User '--mem' instead."
-        )
+    if cluster_name == "cori" and mem_per_cpu_to_request != "" and \
+            float(mem_per_cpu_to_request.replace("GB", "").replace("G", "")) > 1.0:
+        logger.critical("--mem-per-cpu in Cori shouldn't be larger than 1GB. User '--mem' instead.")
         sys.exit(1)
 
     logger.info("RabbitMQ broker: %s", RMQ_HOST)
@@ -1292,9 +1282,8 @@ def worker():
     #       If you set -A m342, no qos needed but you need to set "-C haswell"
     #
     if slurm_job_id == 0 and worker_type in ["static", "dynamic"]:
-        batch_job_script_file = os.path.join(
-            job_script_dir_name, "jtm_%s_worker_%s.job" % (worker_type, UNIQ_WORKER_ID)
-        )
+        batch_job_script_file = os.path.join(job_script_dir_name, "jtm_%s_worker_%s.job" %
+                                             (worker_type, UNIQ_WORKER_ID))
         batch_job_script_str = ""
         batch_job_misc_params = ""
 
@@ -1308,57 +1297,37 @@ def worker():
                     if args.num_nodes_to_request:
                         batch_job_script_str += """
 #SBATCH -N %(num_nodes_to_request)d
-#SBATCH --mem=%(mem)s""" % dict(
-                            num_nodes_to_request=num_nodes_to_request,
-                            mem=mem_per_node_to_request,
-                        )
-                        batch_job_misc_params += (
-                            " -N %(num_nodes_to_request)d -m %(mem)s"
-                            % dict(
-                                num_nodes_to_request=num_nodes_to_request,
-                                mem=mem_per_node_to_request,
-                            )
-                        )
+#SBATCH --mem=%(mem)s""" % dict(num_nodes_to_request=num_nodes_to_request, mem=mem_per_node_to_request)
+                        batch_job_misc_params += " -N %(num_nodes_to_request)d -m %(mem)s" % \
+                                                 dict(num_nodes_to_request=num_nodes_to_request,
+                                                      mem=mem_per_node_to_request)
 
                         if args.num_cores_to_request:
                             batch_job_script_str += """
-#SBATCH -c %(num_cores)d""" % dict(
-                                num_cores=num_cpus_to_reques
-                            )
-                            batch_job_misc_params += " -c %(num_cores)d" % dict(
-                                num_cores=num_cpus_to_reques
-                            )
+#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_reques)
+                            batch_job_misc_params += " -c %(num_cores)d" % \
+                                                     dict(num_cores=num_cpus_to_reques)
 
                     else:
                         batch_job_script_str += """
-#SBATCH -c %(num_cores)d""" % dict(
-                            num_cores=num_cpus_to_reques
-                        )
-                        batch_job_misc_params += " -c %(num_cores)d" % dict(
-                            num_cores=num_cpus_to_reques
-                        )
+#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_reques)
+                        batch_job_misc_params += " -c %(num_cores)d" % \
+                                                 dict(num_cores=num_cpus_to_reques)
 
                         if args.mem_per_node_to_request:
                             batch_job_script_str += """
-#SBATCH --mem=%(mem)s""" % dict(
-                                mem=mem_per_node_to_request
-                            )
-                            batch_job_misc_params += " -m %(mem)s " % dict(
-                                mem=mem_per_node_to_request
-                            )
+#SBATCH --mem=%(mem)s""" % dict(mem=mem_per_node_to_request)
+                            batch_job_misc_params += " -m %(mem)s " % \
+                                                     dict(mem=mem_per_node_to_request)
                         else:
                             batch_job_script_str += """
-#SBATCH --mem-per-cpu=%(mempercore)s""" % dict(
-                                mempercore=mem_per_cpu_to_request
-                            )
-                            batch_job_misc_params += " -mc %(mempercore)s" % dict(
-                                mempercore=mem_per_cpu_to_request
-                            )
+#SBATCH --mem-per-cpu=%(mempercore)s""" % dict(mempercore=mem_per_cpu_to_request)
+                            batch_job_misc_params += " -mc %(mempercore)s" % \
+                                                     dict(mempercore=mem_per_cpu_to_request)
 
                         if args.worker_id:
-                            batch_job_misc_params += " -wi %(worker_id)s${i}" % dict(
-                                worker_id=UNIQ_WORKER_ID
-                            )
+                            batch_job_misc_params += " -wi %(worker_id)s${i}" % \
+                                                     dict(worker_id=UNIQ_WORKER_ID)
 
                     ###########################
                     if cluster_name == "cori":
@@ -1371,18 +1340,12 @@ def worker():
                         if args.constraint == "haswell":
                             if args.qos:
                                 batch_job_script_str += """
-#SBATCH -q %(qosname)s""" % dict(
-                                    qosname=qos
-                                )
-                                batch_job_misc_params += " -q %(qosname)s" % dict(
-                                    qosname=qos
-                                )
+#SBATCH -q %(qosname)s""" % dict(qosname=qos)
+                                batch_job_misc_params += " -q %(qosname)s" % dict(qosname=qos)
 
                             else:
                                 batch_job_script_str += """
-#SBATCH -q %(qosname)s""" % dict(
-                                    qosname=qos
-                                )
+#SBATCH -q %(qosname)s""" % dict(qosname=qos)
 
                             batch_job_script_str += """
 #SBATCH -C haswell"""
@@ -1391,9 +1354,7 @@ def worker():
                                 batch_job_misc_params += " -A %(sa)s" % dict(sa="m342")
 
                             batch_job_script_str += """
-#SBATCH -A %(charging_account)s""" % dict(
-                                charging_account=charging_account
-                            )
+#SBATCH -A %(charging_account)s""" % dict(charging_account=charging_account)
 
                         elif args.constraint == "knl":
                             # Note: Basic KNL setting = "-q regular -A m342 -C knl"
@@ -1412,39 +1373,45 @@ def worker():
                             batch_job_script_str += """
 #SBATCH -C knl
 #SBATCH -A %(charging_account)s
-#SBATCH -q %(qosname)s""" % dict(
-                                charging_account=charging_account, qosname=qos
-                            )
-                            batch_job_misc_params += (
-                                " -A %(charging_account)s -q %(qosname)s"
-                                % dict(charging_account=charging_account, qosname=qos)
-                            )
+#SBATCH -q %(qosname)s""" % \
+                                                    dict(charging_account=charging_account, qosname=qos)
+
+                            batch_job_misc_params += " -A %(charging_account)s -q %(qosname)s" % \
+                                                     dict(charging_account=charging_account, qosname=qos)
 
                         elif args.constraint == "skylake":
                             # Example usage with skylakte for Brian F.
                             # 120G
                             # ======================
-                            # -t 48:00:00 -c 16 --job-name=mga-627530 --mem=115G --qos=genepool_special --exclusive
-                            #   -A gtrqc
+                            # -t 48:00:00 -c 16 --job-name=mga-627530 --mem=115G --qos=genepool_special
+                            # --exclusive -A gtrqc
                             #
                             # 250G
                             # ======================
-                            # -t 96:00:00 -c 72 --job-name=mga-627834 --mem=240G -C skylake --qos=jgi_exvivo -A gtrqc
+                            # -t 96:00:00 -c 72 --job-name=mga-627834 --mem=240G -C skylake --qos=jgi_exvivo
+                            # -A gtrqc
                             #
                             # 500G
                             # ======================
-                            # -t 96:00:00 -c 72 --job-name=mga-627834 --mem=240G -C skylake --qos=jgi_exvivo -A gtrqc
+                            # -t 96:00:00 -c 72 --job-name=mga-627834 --mem=240G -C skylake --qos=jgi_exvivo
+                            # -A gtrqc
 
                             batch_job_script_str += """
 #SBATCH -C skylake
 #SBATCH -A %(charging_account)s
-#SBATCH -q %(qosname)s""" % dict(
-                                charging_account=charging_account, qosname=qos
-                            )
-                            batch_job_misc_params += (
-                                " -A %(charging_account)s -q %(qosname)s"
-                                % dict(charging_account=charging_account, qosname=qos)
-                            )
+#SBATCH -q %(qosname)s""" % \
+                                                    dict(charging_account=charging_account, qosname=qos)
+
+                            batch_job_misc_params += " -A %(charging_account)s -q %(qosname)s" % \
+                                                     dict(charging_account=charging_account, qosname=qos)
+
+                        excl_param = ""
+                        if args.constraint != "skylake":
+                            excl_param = "#SBATCH --exclusive"
+
+                        tq_param = ""
+                        if args.task_queue_name:
+                            tq_param = "-p " + args.task_queue_name
 
                         batch_job_script_str += """
 #SBATCH -t %(wall_time)s
@@ -1469,32 +1436,53 @@ do
     sleep 1
 done
 wait
-""" % dict(
-                            wall_time=job_time_to_request,
-                            job_dir=job_script_dir_name,
-                            worker_id=UNIQ_WORKER_ID,
-                            worker_type=worker_type,
-                            clone_time_rate=worker_clone_time_rate,
-                            task_queue="-tp " + args.task_queue_name
-                            if args.task_queue_name
-                            else "",
-                            num_workers_per_node=num_workers_per_node,
-                            env_activation_cmd=ENV_ACTIVATION,
-                            other_params=batch_job_misc_params,
-                            constraint=args.constraint,
-                            job_name=job_name,
-                            exclusive="#SBATCH --exclusive"
-                            if args.constraint != "skylake"
-                            else "",
-                        )
+""" % \
+                                                dict(wall_time=job_time_to_request,
+                                                     job_dir=job_script_dir_name,
+                                                     worker_id=UNIQ_WORKER_ID,
+                                                     worker_type=worker_type,
+                                                     clone_time_rate=worker_clone_time_rate,
+                                                     task_queue=tq_param,
+                                                     num_workers_per_node=num_workers_per_node,
+                                                     env_activation_cmd=ENV_ACTIVATION,
+                                                     other_params=batch_job_misc_params,
+                                                     constraint=args.constraint,
+                                                     job_name=job_name,
+                                                     exclusive=excl_param)
 
                 elif cluster_name in ("lawrencium", "jgi_cloud", "jaws_lbl_gov"):
 
                     if args.worker_id:
                         # batch_job_misc_params += " -wi %s" % (args.worker_id)
-                        batch_job_misc_params += " -wi %(worker_id)s${i}" % dict(
-                            worker_id=UNIQ_WORKER_ID
-                        )
+                        batch_job_misc_params += " -wi %(worker_id)s${i}" % dict(worker_id=UNIQ_WORKER_ID)
+
+                    tp_param = ""
+                    if args.task_queue_name:
+                        tp_param = "-p " + args.task_queue_name
+                    part_param = ""
+                    if cluster_name == "lawrencium":
+                        part_param = LAWRENCIUM_PARTITION
+                    else:
+                        part_param = JGI_CLOUD_PARTITION
+                    qos_param = ""
+                    if cluster_name == "lawrencium":
+                        qos_param = LAWRENCIUM_QOS
+                    else:
+                        qos_param = JGI_CLOUD_QOS
+                    charge_param = ""
+                    if cluster_name == "lawrencium":
+                        charge_param = LAWRENCIUM_CHARGE_ACCNT
+                    else:
+                        charge_param = JGI_CLOUD_ACCNT
+                    nnode_param = 1
+                    if args.num_nodes_to_request:
+                        nnode_param = num_nodes_to_request
+
+                    mnode_param = "#SBATCH --mem=%(mem)s" % dict(mem=mem_per_node_to_request)
+
+                    setenv_param = ""
+                    if cluster_name == "jaws_lbl_gov":
+                        setenv_param = "export JTM_HOST_NAME=jaws_lbl_gov"
 
                     batch_job_script_str += """
 #SBATCH --time=%(wall_time)s
@@ -1522,40 +1510,24 @@ do
     sleep 1
 done
 wait
-""" % dict(
-                        wall_time=job_time_to_request,
-                        job_name=job_name,
-                        partitio_name=LAWRENCIUM_PARTITION
-                        if cluster_name == "lawrencium"
-                        else JGI_CLOUD_PARTITION,
-                        qosname=LAWRENCIUM_QOS
-                        if cluster_name == "lawrencium"
-                        else JGI_CLOUD_QOS,
-                        charging_account=LAWRENCIUM_CHARGE_ACCNT
-                        if cluster_name == "lawrencium"
-                        else JGI_CLOUD_ACCNT,
-                        num_nodes_to_request=num_nodes_to_request
-                        if args.num_nodes_to_request
-                        else 1,
-                        mem_per_node_setting="#SBATCH --mem=%(mem)s"
-                        % dict(
-                            mem=mem_per_node_to_request
-                        ),  # now we have high mem nodes (512G) and normal nodes (2356G)
-                        worker_id=UNIQ_WORKER_ID,
-                        job_dir=job_script_dir_name,
-                        set_env_for_jtm_host_name="export JTM_HOST_NAME=jaws_lbl_gov"
-                        if cluster_name == "jaws_lbl_gov"
-                        else "",  # this is only needed on LBL IT b/c lawrencium and jgi_cloud is on the same platform
-                        env_activation_cmd=ENV_ACTIVATION,
-                        num_workers_per_node=num_workers_per_node,
-                        lbl_cluster_name=cluster_name,
-                        worker_type=worker_type,
-                        clone_time_rate=worker_clone_time_rate,
-                        task_queue="-tp " + args.task_queue_name
-                        if args.task_queue_name
-                        else "",
-                        other_params=batch_job_misc_params,
-                    )
+""" % \
+                                            dict(wall_time=job_time_to_request,
+                                                 job_name=job_name,
+                                                 partitio_name=part_param,
+                                                 qosname=qos_param,
+                                                 charging_account=charge_param,
+                                                 num_nodes_to_request=nnode_param,
+                                                 mem_per_node_setting=mnode_param,
+                                                 worker_id=UNIQ_WORKER_ID,
+                                                 job_dir=job_script_dir_name,
+                                                 set_env_for_jtm_host_name=setenv_param,
+                                                 env_activation_cmd=ENV_ACTIVATION,
+                                                 num_workers_per_node=num_workers_per_node,
+                                                 lbl_cluster_name=cluster_name,
+                                                 worker_type=worker_type,
+                                                 clone_time_rate=worker_clone_time_rate,
+                                                 task_queue=tp_param,
+                                                 other_params=batch_job_misc_params)
 
                 jf.writelines(batch_job_script_str)
 
@@ -1565,9 +1537,7 @@ wait
                 print(batch_job_script_str)
                 sys.exit(0)
 
-            so, se, ec = run_sh_command(
-                "sbatch --parsable %s" % (batch_job_script_file), live=True, log=logger
-            )
+            so, se, ec = run_sh_command("sbatch --parsable %s" % (batch_job_script_file), live=True, log=logger)
             assert ec == 0, "Failed to run jtm-worker to sbatch dynamic worker."
             return ec
             # if ec == 0:
@@ -1603,13 +1573,11 @@ wait
     conn = rmq_conn.open()
     ch = conn.channel()
     # ch.confirm_delivery()
-    ch.exchange_declare(
-        exchange=JTM_INNER_MAIN_EXCH,
-        exchange_type="direct",
-        passive=False,
-        durable=True,
-        auto_delete=False,
-    )
+    ch.exchange_declare(exchange=JTM_INNER_MAIN_EXCH,
+                        exchange_type="direct",
+                        passive=False,
+                        durable=True,
+                        auto_delete=False)
 
     # Declare task receiving queue (client --> worker)
     #
@@ -1619,103 +1587,79 @@ wait
     # If you have a queue that is auto-deleted, then when there are no
     # subscriptions left on that queue it will be deleted.
     #
-    ch.queue_declare(
-        queue=inner_task_request_queue, durable=True, exclusive=False, auto_delete=True
-    )
-    ch.queue_bind(
-        exchange=JTM_INNER_MAIN_EXCH,
-        queue=inner_task_request_queue,
-        routing_key=inner_task_request_queue,
-    )
+    ch.queue_declare(queue=inner_task_request_queue,
+                     durable=True,
+                     exclusive=False,
+                     auto_delete=True)
+    ch.queue_bind(exchange=JTM_INNER_MAIN_EXCH,
+                  queue=inner_task_request_queue,
+                  routing_key=inner_task_request_queue)
 
     logger.info("Waiting for a request...")
 
     # Start task termination thread
     global TASK_KILL_PROC_HANDLE
-    TASK_KILL_PROC_HANDLE = multiprocessing.Process(
-        target=recv_task_kill_request_thread,
-        args=(args.task_queue_name, UNIQ_WORKER_ID, cluster_name),
-    )
+    TASK_KILL_PROC_HANDLE = multiprocessing.Process(target=recv_task_kill_request_thread,
+                                                    args=(args.task_queue_name,
+                                                          UNIQ_WORKER_ID,
+                                                          cluster_name))
     TASK_KILL_PROC_HANDLE.daemon = True
     TASK_KILL_PROC_HANDLE.start()
 
     # Start hb receive thread
     global RECV_HB_FROM_CLIENT_PROC_HANDLE
-    RECV_HB_FROM_CLIENT_PROC_HANDLE = multiprocessing.Process(
-        target=send_hb_to_client_thread,
-        args=(
-            PARENT_PROCESS_ID,
-            hearbeat_interval,
-            USER_PROC_PROC_ID,  # this pid is non-zero only after user task process is forked.
-            UNIQ_WORKER_ID,
-            g_pipe_task_id_recv,
-            slurm_job_id,
-            worker_type,
-            mem_per_node_to_request,
-            mem_per_cpu_to_request,
-            num_cpus_to_reques,
-            job_time_to_request,
-            worker_clone_time_rate,
-            inner_task_request_queue,
-            args.task_queue_name
-            if args.task_queue_name
-            else "",  # need the original task queue name
-            num_workers_per_node,
-        ),
-    )
+    tp_name = ""
+    if args.task_queue_name:
+        tp_name = args.task_queue_name
+    RECV_HB_FROM_CLIENT_PROC_HANDLE = multiprocessing.Process(target=send_hb_to_client_thread,
+                                                              args=(PARENT_PROCESS_ID,
+                                                                    hearbeat_interval,
+                                                                    USER_PROC_PROC_ID,
+                                                                    UNIQ_WORKER_ID,
+                                                                    PIPE_TASK_ID_RECV,
+                                                                    slurm_job_id,
+                                                                    worker_type,
+                                                                    mem_per_node_to_request,
+                                                                    mem_per_cpu_to_request,
+                                                                    num_cpus_to_reques,
+                                                                    job_time_to_request,
+                                                                    worker_clone_time_rate,
+                                                                    inner_task_request_queue,
+                                                                    tp_name,
+                                                                    num_workers_per_node))
 
     RECV_HB_FROM_CLIENT_PROC_HANDLE.daemon = True
     RECV_HB_FROM_CLIENT_PROC_HANDLE.start()
-    logger.info(
-        "Start sending my heartbeat to the client in every %d sec to %s"
-        % (hearbeat_interval, WORKER_HB_Q_POSTFIX)
-    )
+    logger.info("Start sending my heartbeat to the client in every %d sec to %s" %
+                (hearbeat_interval, WORKER_HB_Q_POSTFIX))
 
     # Start poison receive thread
     global RECV_POISON_PROC_HANDLE
-    RECV_POISON_PROC_HANDLE = multiprocessing.Process(
-        target=recv_reproduce_or_die_thread,
-        args=(
-            args.task_queue_name,  # need the original task queue name
-            UNIQ_WORKER_ID,
-            cluster_name,
-            mem_per_node_to_request,
-            mem_per_cpu_to_request,
-            num_nodes_to_request,
-            num_cpus_to_reques,
-            job_time_to_request,
-            worker_clone_time_rate,
-            num_workers_per_node,
-        ),
-    )
+    RECV_POISON_PROC_HANDLE = multiprocessing.Process(target=recv_reproduce_or_die_thread,
+                                                      args=(args.task_queue_name,
+                                                            UNIQ_WORKER_ID,
+                                                            cluster_name,
+                                                            mem_per_node_to_request,
+                                                            mem_per_cpu_to_request,
+                                                            num_nodes_to_request,
+                                                            num_cpus_to_reques,
+                                                            job_time_to_request,
+                                                            worker_clone_time_rate,
+                                                            num_workers_per_node))
     RECV_POISON_PROC_HANDLE.daemon = True
     RECV_POISON_PROC_HANDLE.start()
 
     # Start hb send thread
     global SEND_HB_TO_CLIENT_PROC_HANDLE
-    # Old
-    # SEND_HB_TO_CLIENT_PROC_HANDLE = multiprocessing.Process(target=recv_hb_from_client_thread,
-    #                                                args=(inner_task_request_queue,
-    #                                                      worker_timeout_in_sec,
-    #                                                      PARENT_PROCESS_ID,
-    #                                                      UNIQ_WORKER_ID))
-    # New
-    SEND_HB_TO_CLIENT_PROC_HANDLE = multiprocessing.Process(
-        target=recv_hb_from_client_thread2,
-        args=(
-            inner_task_request_queue,
-            # PARENT_PROCESS_ID,
-            UNIQ_WORKER_ID,
-        ),
-    )
+    SEND_HB_TO_CLIENT_PROC_HANDLE = multiprocessing.Process(target=recv_hb_from_client_thread2,
+                                                            args=(inner_task_request_queue,
+                                                                  UNIQ_WORKER_ID))
     SEND_HB_TO_CLIENT_PROC_HANDLE.daemon = True
     SEND_HB_TO_CLIENT_PROC_HANDLE.start()
 
     if worker_timeout_in_sec != 0:
-        logger.info(
-            "The worker timeout is set to %s sec. Will not be terminated even without jtm's heartbeat.",
-            worker_timeout_in_sec,
-        )
+        logger.info("The worker timeout is set to %s sec. Will not be terminated even without jtm's heartbeat.",
+                    worker_timeout_in_sec)
 
     # Waiting for request
     ch.basic_qos(prefetch_count=1)
@@ -1724,11 +1668,7 @@ wait
     if int(PIKA_VER[0]) < 1:  # v0.13.1
         ch.basic_consume(on_request, queue=inner_task_request_queue, no_ack=False)
     else:  # v1.0.1 or higher
-        ch.basic_consume(
-            queue=inner_task_request_queue,
-            on_message_callback=on_request,
-            auto_ack=False,
-        )
+        ch.basic_consume(queue=inner_task_request_queue, on_message_callback=on_request, auto_ack=False)
 
     # NEW
     # Ref) https://github.com/pika/pika/blob/1.0.1/examples/basic_consumer_threaded.py
@@ -1765,3 +1705,9 @@ wait
         conn.close()
 
     return 0
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+    sys.exit(worker(sys.argv))

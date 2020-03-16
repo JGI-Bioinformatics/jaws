@@ -16,10 +16,10 @@ from subprocess import Popen, call, PIPE
 import os
 import glob
 import shlex
-import time
-from time import Timer
 import re
-from jasws_jtm.common import eprint
+import time
+from threading import Timer
+import sys
 
 
 # -------------------------------------------------------------------------------
@@ -32,9 +32,9 @@ def run(*popenargs, **kwargs):
     """
     kw = {}
     kw.update(kwargs)
-    dryRun = kw.pop("dryRun", False)
+    dry_run = kw.pop("dry_run", False)
 
-    if dryRun:
+    if dry_run:
         print(popenargs)
     else:
         # convert something like run("ls -l") into run("ls -l", shell=True)
@@ -49,10 +49,10 @@ def run(*popenargs, **kwargs):
         else:
             stdnull = None
 
-        returncode = call(*popenargs, **kw)
+        return_code = call(*popenargs, **kw)
         if stdnull:
             stdnull.close()
-        if returncode != 0:
+        if return_code != 0:
             eprint("Failed to call run()")
             return 1
 
@@ -63,7 +63,7 @@ def run(*popenargs, **kwargs):
 def back_ticks(*popenargs, **kwargs):
     """
     Similar to shell backticks, e.g. a = `ls -1` <=> a = backticks(['ls','-1']).
-    If 'dryRun=True' is given as keyword argument, then 'dryRet' keyword must
+    If 'dry_run=True' is given as keyword argument, then 'dryRet' keyword must
     provide a value to return from this function.
     :param popenargs: command and options to run
     :param kwargs: additional parameters
@@ -71,10 +71,10 @@ def back_ticks(*popenargs, **kwargs):
     """
     kw = {}
     kw.update(kwargs)
-    dryRun = kw.pop("dryRun", False)
+    dry_run = kw.pop("dry_run", False)
     dryRet = kw.pop("dryRet", None)
 
-    if dryRun:
+    if dry_run:
         print(popenargs)
         return dryRet
     else:
@@ -89,19 +89,19 @@ def back_ticks(*popenargs, **kwargs):
 
 
 # -------------------------------------------------------------------------------
-def make_dir(path, dryRun=False):
+def make_dir(path, dry_run=False):
     """
     Create one dir with pathname path or do nothing if it already exists. Same as Linux 'mkdir -p'.
     :param path: path to create
-    :param dryRun: dryrun directive
+    :param dry_run: dryrun directive
     :return:
     """
-    if not dryRun:
+    if not dry_run:
         if not os.path.exists(path):
             try:
                 original_umask = os.umask(0)
                 os.makedirs(path, mode=0o775)
-            except:
+            except Exception:
                 pass
             finally:
                 os.umask(original_umask)
@@ -112,15 +112,15 @@ def make_dir(path, dryRun=False):
 
 
 # -------------------------------------------------------------------------------
-def make_dirs(paths, dryRun=False):
+def make_dirs(paths, dry_run=False):
     """
     Create muiltiple dirs with the same semantics as make_dir
     :param paths: path to delete
-    :param dryRun: dryrun directive
+    :param dry_run: dryrun directive
     :return:
     """
     for path in paths:
-        make_dir(path=path, dryRun=dryRun)
+        make_dir(path=path, dry_run=dry_run)
 
 
 # -------------------------------------------------------------------------------
@@ -137,27 +137,23 @@ def make_file_path(fileName):
 
 
 # -------------------------------------------------------------------------------
-def rm_dir(path, dryRun=False):
+def rm_dir(path, dry_run=False):
     """
     Remove dir
     :param path: path to delete
-    :param dryRun: dryrun directive
+    :param dry_run: dryrun directive
     :return:
     """
     # To do: perhaps use shutil.rmtree instead?
-    return run(["rm", "-rf", path], dryRun=dryRun)
-
-
-# make alias
-rmrf = rm_dir
+    return run(["rm", "-rf", path], dry_run=dry_run)
 
 
 # -------------------------------------------------------------------------------
-def rmf(path, dryRun=False):
+def rmf(path, dry_run=False):
     """
     Remove file.
     :param path: path to delete
-    :param dryRun: dryrun directive
+    :param dry_run: dryrun directive
     :return:
     """
     for f in glob.iglob(path):
@@ -169,11 +165,11 @@ def rmf(path, dryRun=False):
 
 
 # -------------------------------------------------------------------------------
-def rmf_many(paths, dryRun=False):
+def rmf_many(paths, dry_run=False):
     """
     Remove multiple files.
     :param paths: path to delete
-    :param dryRun: dryrun directive
+    :param dry_run: dryrun directive
     :return:
     """
     for f in paths:
@@ -184,112 +180,114 @@ def rmf_many(paths, dryRun=False):
 
 
 # -------------------------------------------------------------------------------
-def remake_dir(path, dryRun=False):
+def remake_dir(path, dry_run=False):
     """
     Create an empty dir with a given path.
     If path already exists,  it will be removed first.
     :param path: path to delete and create
-    :param dryRun:
+    :param dry_run:
     :return:
     """
-    rmrf(path, dryRun=dryRun)
-    make_dir(path, dryRun=dryRun)
+    rm_dir(path, dry_run=dry_run)
+    make_dir(path, dry_run=dry_run)
 
 
 # -------------------------------------------------------------------------------
-def chmod(path, mode, opts="", dryRun=False):
+def chmod(path, mode, opts="", dry_run=False):
     """
     Change mode.
     :param path: path to chmod
     :param mode: the form `[ugoa]*([-+=]([rwxXst]*|[ugo]))+'.
     :param opts: additional chmod options
-    :param dryRun: dryrun directive
+    :param dry_run: dryrun directive
     :return:
     """
     if isinstance(path, str):
         path = [path]
     else:
         path = list(path)
-    run(["chmod"] + opts.split() + [mode] + path, dryRun=dryRun)
+    run(["chmod"] + opts.split() + [mode] + path, dry_run=dry_run)
 
 
 # -------------------------------------------------------------------------------
 def run_sh_command(
-    cmd, live=False, log=None, runTime=False, stdoutPrint=True, timeoutSec=0
+    cmd, live=False, log=None, run_time=False, stdoutPrint=True, timeout_sec=0
 ):
     """
-    Run a command, catch stdout and stderr and exitCode
+    Run a command, catch stdout and stderr and exit_code
     :param cmd:
     :param live: live (boolean, default false - don't run the command but pretend we did)
     :param log:
-    :param runTime: flag to print elapsed time as log
+    :param run_time: flag to print elapsed time as log
     :param stdoutPrint: flag to show stdout or not
-    :param timeoutSec: timeout to terminate the specified command
+    :param timeout_sec: timeout to terminate the specified command
     :return:
 
     >>> run_sh_command("ls -al", live=False)
     ("Not live: cmd = 'ls -al'", None, 0)
     """
-    stdOut = None
-    stdErr = None
-    exitCode = None
+    std_out = None
+    std_err = None
+    exit_code = None
     start = 0
     end = 0
-    elapsedSec = 0
+    elapsed_sec = 0
+    # job_id = -1
 
     if cmd:
         if not live:
-            stdOut = "Not live: cmd = '%s'" % (cmd)
-            exitCode = 0
+            std_out = "Not live: cmd = '%s'" % (cmd)
+            exit_code = 0
         else:
             if log and stdoutPrint:
                 log.info("cmd: %s" % (cmd))
 
             # ---------
             # OLD
-            if runTime:
+            if run_time:
                 start = time.time()
 
             p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
 
             # ref) http://stackoverflow.com/questions/1191374/using-module-subprocess-with-timeout
-            if timeoutSec > 0:
-                kill_proc = lambda proc: proc.kill()
-                timer = Timer(timeoutSec, kill_proc, [p])
+            if timeout_sec > 0:
+                timer = Timer(timeout_sec, p.kill)
 
             # p.wait()
 
             try:
-                stdOut, stdErr = p.communicate()
-                print(stdOut)  # for printing slurm job id
-                exitCode = p.returncode
+                if timeout_sec > 0:
+                    timer.start()
+                std_out, std_err = p.communicate()
+                print(std_out)  # for printing slurm job id
+                exit_code = p.returncode
             finally:
-                if timeoutSec > 0:
+                if timeout_sec > 0:
                     timer.cancel()
-                    exitCode = 143
+                    exit_code = 143
 
-            if runTime:
+            if run_time:
                 end = time.time()
-                elapsedSec = end - start
+                elapsed_sec = end - start
                 if log:
                     log.info("*************************************")
                     if cmd.split(" ")[0].split("/")[-1]:
                         log.info(cmd.split(" ")[0].split("/")[-1])
-                    log.info("Command took " + str(elapsedSec) + " sec.")
+                    log.info("Command took " + str(elapsed_sec) + " sec.")
 
                     log.info("*************************************")
 
             if log and stdoutPrint:
                 log.info(
-                    "Return values: exitCode="
-                    + str(exitCode)
-                    + ", stdOut="
-                    + str(stdOut)
-                    + ", stdErr="
-                    + str(stdErr)
+                    "Return values: exit_code="
+                    + str(exit_code)
+                    + ", std_out="
+                    + str(std_out)
+                    + ", std_err="
+                    + str(std_err)
                 )
 
-            if exitCode != 0:
+            if exit_code != 0:
                 if log:
                     log.warn("- The exit code has non-zero value.")
 
@@ -298,7 +296,7 @@ def run_sh_command(
             log.error("- No command to run.")
             return None, None, -1
 
-    return stdOut, stdErr, exitCode
+    return std_out, std_err, exit_code
 
 
 # -------------------------------------------------------------------------------
@@ -310,32 +308,36 @@ def file_exist(path):
 
 
 # -------------------------------------------------------------------------------
-def pad_string_path(myString, padLength=8, depth=None):
+def pad_string_path(my_string, pad_length=8, depth=None):
     """
     Pads a string with 0's and splits into groups of 2
-    e.g. padStringPath(44) returns "00/00/00/44"
+    e.g. pad_stringPath(44) returns "00/00/00/44"
 
-    @param myString: string to pad
+    @param my_string: string to pad
     @return: padded string
     """
-    myString = str(myString)
-    padLength = int(padLength)
+    my_string = str(my_string)
+    pad_length = int(pad_length)
 
-    if padLength > 8 or padLength <= 0:
-        padLength = 8
+    if pad_length > 8 or pad_length <= 0:
+        pad_length = 8
 
     # left-pad with 0's
-    myString = myString.zfill(padLength)
+    my_string = my_string.zfill(pad_length)
 
     # use re.findall function to split into pairs of strings
-    stringList = re.findall("..", myString)
+    string_list = re.findall("..", my_string)
 
     # create ss/ss/ss/ss
     if not depth:
-        padString = "/".join(stringList)
+        pad_string = "/".join(string_list)
     else:
-        padString = "/".join(stringList[:depth])
+        pad_string = "/".join(string_list[:depth])
 
-    padString = padString + "/"
+    pad_string = pad_string + "/"
 
-    return padString
+    return pad_string
+
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
