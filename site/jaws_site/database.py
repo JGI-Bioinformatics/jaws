@@ -31,15 +31,13 @@ class JawsDb(metaclass=Singleton):
         logger = logging.getLogger(__package__)
         logger.info("Initializing db connection")
         url = "%s://%s:%s@%s/%s" % (
-            conf.get("db", "dialect"),
-            conf.get("db", "user"),
-            quote_plus(conf.get("db", "password")),
-            conf.get("db", "host"),
-            conf.get("db", "db"))
+            conf.get("DB", "dialect"),
+            conf.get("DB", "user"),
+            quote_plus(conf.get("DB", "password").encode('utf-8')),
+            conf.get("DB", "host"),
+            conf.get("DB", "db"))
         self.engine = create_engine(url, pool_size=3, pool_recycle=3600, pool_pre_ping=True)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
-        models.create_all(self.engine)
+        models.Base.metadata.create_all(self.engine)
 
     def engine(self):
         if self.engine is None:
@@ -47,13 +45,12 @@ class JawsDb(metaclass=Singleton):
         return self.engine
 
     def session(self):
+        """Return a new session obj."""
         if self.engine is None:
             raise Exception("Db not initialized; run init_db first")
-        return self.session
-
-    def create_all(self):
-        """Create all database tables that do not exist."""
-        models.Base.metadata.create_all(self.engine)
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        return session
 
 
 db = None

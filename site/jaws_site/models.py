@@ -52,9 +52,6 @@ class User(Base):
     transfer_access_token = Column(String(256))
     transfer_refresh_token = Column(String(256))
     transfer_expires_at_seconds = Column(Integer)
-    groups_access_token = Column(String(256))
-    groups_refresh_token = Column(String(256))
-    groups_expires_at_seconds = Column(Integer)
 
 
 class Workflow(Base):

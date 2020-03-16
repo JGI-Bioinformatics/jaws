@@ -18,7 +18,7 @@ def site():
 
 
 @site.command()
-@click.option("--config", "config_file", default="config.ini", help="Config INI file")
+@click.option("--config", "config_file", default="jaws-site.ini", help="Config INI file")
 @click.option("--log", "log_file", default="jaws-site.log", help="Log file")
 def serve(config_file, log_file):
     """
@@ -27,11 +27,10 @@ def serve(config_file, log_file):
     logger = log.setup_logger(__package__, log_file)
     logger.debug("Starting jaws-site server")
     conf = config.JawsConfig(config_file)
-    db = database.JawsDatabase(conf)
-    db.create_all()
+    db = database.JawsDb(conf)
     if os.fork():
-        app = rpc_server.RpcServer()
+        app = rpc_server.RpcServer(conf)
         app.start_server()
     else:
-        jd = jawsd.JAWSd()
+        jd = jawsd.JAWSd(conf, db)
         jd.start_daemon()
