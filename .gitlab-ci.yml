@@ -48,6 +48,16 @@ test-client:
     - pip install pytest
     - make test-client
   allow_failure: true
+test-jtm:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install flake8
+    - pip install pytest
+    - make test-jtm
+  allow_failure: true
 test-auth:
   <<: *only-default
   stage: unit-test
@@ -74,6 +84,7 @@ package:
       - site/dist
       - client/dist
       - central/dist
+      - jtm/dist
 
 ## integration tests - only run on merge request
 deploy-cluster:

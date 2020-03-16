@@ -18,12 +18,16 @@ pkg-central: pkg-requirements
 pkg-client: pkg-requirements
 	$Q cd client && python setup.py bdist_wheel
 
+.PHONY: pkg-jtm
+pkg-jtm: pkg-requirements
+	$Q cd jtm && python setup.py bdist_wheel
+
 .PHONY: pkg-auth
 pkg-auth: pkg-requirements
 	$Q cd auth && python setup.py bdist_wheel
 
 .PHONY: pkg
-pkg: pkg-site pkg-central pkg-client
+pkg: pkg-site pkg-central pkg-client pkg-jtm
 ## Package Section END
 
 ## Test Section BEGIN
@@ -45,12 +49,16 @@ test-client: test-requirements
 	$Q flake8 client
 	$Q cd client && pytest
 
+.PHONY: test-jtm
+test-jtm: test-requirements
+	$Q flake8 jtm
+
 .PHONY: test-auth
 test-auth: test-requirements
 	$Q flake8 auth
-	
+
 .PHONY: test
-test: test-site test-central test-client test-auth
+test: test-site test-central test-client test-auth test-jtm
 ## Test Section END
 
 ## Doc Section BEGIN

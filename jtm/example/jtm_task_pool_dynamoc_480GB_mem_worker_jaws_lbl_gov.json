@@ -1,0 +1,12 @@
+{
+    "command": "ps -aef | grep jtm > $SCRATCH/jtm_ps_grep.out",
+    "output_dir": "$SCRATCH",
+    "output_files": "$SCRATCH/jtm_ps_grep.out",
+    "pool": {"name": "xxlarge_test",
+             "node": 1,
+             "cluster": "jaws_lbl_gov",
+             "time": "00:10:00",
+             "cpu": 64,
+             "mem": "480GB",
+             "nwpn": 1}
+}

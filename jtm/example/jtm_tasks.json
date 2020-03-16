@@ -1,0 +1,4 @@
+{
+    "task": "shifter --image=bryce911/bbtools /bbmap/bbstats.sh -h > bbstat.out",
+	"out": "bbstat.out"
+}
