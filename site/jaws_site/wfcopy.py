@@ -61,13 +61,13 @@ def getSubflowDirname(dirname):
     return subwfname
 
 
-def wfcopy(cromwellDir, outDir, flattenShardDir=False):
+def wfcopy(in_dir, out_dir, flattenShardDir=False):
     """ Flatten cromwell folders and copy to new destination.
 
-    :param cromwellDir: The base directory of the Cromwell run output.
-    :type cromwellDir: str
-    :param outDir: The destination directory of the reformatted output.
-    :type outDir: str
+    :param in_dir: The base directory of the Cromwell run output.
+    :type in_dir: str
+    :param out_dir: The destination directory of the reformatted output.
+    :type out_dir: str
     :param flattenShardDir: If True, shard output will be output to one dir, otherwise keep multiple subdirs.
     :type flattenShardDir: bool
     """
@@ -81,69 +81,66 @@ def wfcopy(cromwellDir, outDir, flattenShardDir=False):
         "script.submit",
     ]
 
-    logdir = os.path.join(outDir, "log")
-    if not os.path.exists(outDir):
-        os.makedirs(outDir)
-    if not os.path.exists(logdir):
-        os.makedirs(logdir)
+    log_dir = os.path.join(out_dir, "log")
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
 
-    rcfile = os.path.join(logdir, "workflow.rc")
+    rcfile = os.path.join(log_dir, "workflow.rc")
     if os.path.exists(rcfile):
         os.remove(rcfile)
     with open(rcfile, "w") as fh:
         fh.write("#ExitCode\tTask\n")
 
-    for rootDir, subdirs, files in os.walk(cromwellDir):
+    for root_dir, subdirs, files in os.walk(in_dir):
         shardname = None
-        parentDir = str(pathlib.Path(rootDir).parent)
+        parent_dir = str(pathlib.Path(root_dir).parent)
 
         # look for call-* in directory name. If found, assign taskname.
-        if os.path.basename(rootDir).startswith("call-") and rootDir == os.path.join(
-            cromwellDir, os.path.basename(rootDir)
+        if os.path.basename(root_dir).startswith("call-") and root_dir == os.path.join(
+            in_dir, os.path.basename(root_dir)
         ):
-            taskname = re.sub(r"^call-", "", os.path.basename(rootDir))
+            taskname = re.sub(r"^call-", "", os.path.basename(root_dir))
 
         # look for shard directory. If found, assign shardname.
-        if os.path.basename(parentDir).startswith("shard-"):
-            shardname = os.path.basename(parentDir)
-            subwfname = getSubflowDirname(parentDir)
+        if os.path.basename(parent_dir).startswith("shard-"):
+            shardname = os.path.basename(parent_dir)
+            subwfname = getSubflowDirname(parent_dir)
             if subwfname:
                 shardname = "%s-%s" % (subwfname, shardname)
 
         # look for execution directory. If found, copy files to destination.
-        if rootDir.endswith("execution"):
+        if root_dir.endswith("execution"):
             if not flattenShardDir and shardname:
-                taskDir = os.path.join(outDir, "%s/%s" % (taskname, shardname))
+                task_dir = os.path.join(out_dir, "%s/%s" % (taskname, shardname))
             else:
-                taskDir = os.path.join(outDir, taskname)
+                task_dir = os.path.join(out_dir, taskname)
 
-            if not os.path.exists(taskDir):
-                os.makedirs(taskDir)
+            if not os.path.exists(task_dir):
+                os.makedirs(task_dir)
 
             for dname in subdirs:
-                rsync(os.path.join(rootDir, dname), taskDir)
+                rsync(os.path.join(root_dir, dname), task_dir)
 
             for fname in files:
-                fullname = os.path.join(rootDir, fname)
+                fullname = os.path.join(root_dir, fname)
                 outname = "%s-%s" % (taskname, shardname) if shardname else taskname
 
                 if fname == "stdout":
                     rsync(
-                        fullname,
-                        os.path.join(logdir, "%s.stdout" % outname),
+                        fullname, os.path.join(log_dir, "%s.stdout" % outname),
                     )
                 if fname == "stderr":
                     rsync(
-                        fullname,
-                        os.path.join(logdir, "%s.stderr" % outname),
+                        fullname, os.path.join(log_dir, "%s.stderr" % outname),
                     )
                 if fname == "script":
                     rsync(
-                        fullname,
-                        os.path.join(logdir, "%s.script" % outname),
+                        fullname, os.path.join(log_dir, "%s.script" % outname),
                     )
                 if fname not in cromwellFilesToSkip:
-                    rsync(fullname, taskDir)
+                    rsync(fullname, task_dir)
                 if fname == "rc":
                     with open(fullname, "r") as fh:
                         exitcode = fh.readlines()[0].strip()
