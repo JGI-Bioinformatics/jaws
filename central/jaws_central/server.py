@@ -11,14 +11,14 @@ from jaws_central import config, log, rpc_manager, database
 
 
 @click.group()
-def central():
+def central() -> None:
     pass
 
 
 @central.command()
 @click.option("--config", "config_file", default="jaws_central.yml", help="Central configuration YAML file")
 @click.option("--log", "log_file", default="jaws-central.log", help="Log file")
-def serve(config_file, log_file):
+def serve(config_file: str, log_file: str) -> None:
     """
     Start JAWS-Central REST server.
     """

@@ -8,15 +8,16 @@ from flask import abort, request
 import markdown
 import logging
 from sqlalchemy.exc import SQLAlchemyError
+from typing import Tuple
 from jaws_central import config
-from .models import Workflow
+from jaws_central.models import Workflow
 
 logger = logging.getLogger(__package__)
 conf = config.JawsConfig()
 session = conf.session
 
 
-def list_wdls(user, release_filter=None):
+def list_wdls(user: str, release_filter=None) -> Tuple[dict, int]:
     """Retrieve workflows from database.
 
     :param user: Current user's ID
@@ -41,7 +42,7 @@ def list_wdls(user, release_filter=None):
     return result, 200
 
 
-def get_versions(user, name):
+def get_versions(user: str, name: str) -> Tuple[dict, int]:
     """Returns a list of all (non-deprecated) versions of a particular workflow.
 
     :param user: Current user's ID
@@ -64,7 +65,7 @@ def get_versions(user, name):
         abort(500, "Query failed")
 
 
-def get_doc(user, name, version):
+def get_doc(user: str, name: str, version: str) -> Tuple[str, int]:
     """Returns a workflow's README (stored in md format) as HTML.
 
     :param user: Current user's ID
@@ -90,7 +91,7 @@ def get_doc(user, name, version):
         abort(404, "Workflow not found")
 
 
-def get_wdl(user, name, version):
+def get_wdl(user: str, name: str, version: str) -> Tuple[str, int]:
     """Returns a workflow's WDL
 
     :param user: Current user's ID
@@ -116,7 +117,7 @@ def get_wdl(user, name, version):
         abort(404, "Workflow not found")
 
 
-def release_wdl(user, name, version):
+def release_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     """Tag a workflow as "released", which makes it's WDL immutable.
 
     :param user: Current user's ID
@@ -151,7 +152,7 @@ def release_wdl(user, name, version):
     return {"result": "OK"}, 200
 
 
-def del_wdl(user, name, version):
+def del_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     """Delete a workflow.  If it was "released", then tags as "deprecated", rather than being purged from db.
 
     :param user: Current user's ID
@@ -192,7 +193,7 @@ def del_wdl(user, name, version):
     return {"result": "OK"}, 200
 
 
-def update_wdl(user, name, version):
+def update_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     """Update the WDL file for a workflow.  This cannot be updated after release.
 
     :param user: Current user's ID
@@ -238,7 +239,7 @@ def update_wdl(user, name, version):
     return {"result": "OK"}, 200
 
 
-def update_doc(user, name, version):
+def update_doc(user: str, name: str, version: str) -> Tuple[dict, int]:
     """Update the doc file for a workflow.  This can be updated even after release.
 
     :param user: Current user's ID
@@ -284,7 +285,7 @@ def update_doc(user, name, version):
     return {"result": "OK"}, 200
 
 
-def add_wdl(user, name, version):
+def add_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     """Add a new workflow to the catalog
 
     :param user: Current user's ID

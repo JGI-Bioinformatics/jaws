@@ -1,7 +1,7 @@
 import logging
 
 
-def setup_logger(name, log_file="jaws_central.log"):
+def setup_logger(name: str, log_file="jaws_central.log") -> logging:
     """Configure the logging singleton object for the package.
 
     :param log_file: Path to the log file

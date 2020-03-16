@@ -10,7 +10,7 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 
-def same_as(column_name):
+def same_as(column_name: str):
     """Function sets the default value of a column to the value in another column.
 
     :param column_name: name of the column
@@ -106,7 +106,7 @@ class Run(Base):
 #    workflow = relationship("Workflow", back_populates="runs")
 
 
-def create_all(engine):
+def create_all(engine) -> None:
     """Create all tables which do not exist.
     """
     Base.metadata.create_all(engine)
