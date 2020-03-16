@@ -2,6 +2,7 @@
 RPC functions.  Most of these simply wrap the localhost Cromwell REST functions.
 """
 
+import os
 import requests
 from http.client import responses
 import logging
@@ -41,10 +42,14 @@ class Dispatcher:
             return self.task_status(params.get("cromwell_id", default=None))
         elif method == "run_metadata":
             return self.run_metadata(params.get("cromwell_id", default=None))
+        elif method == "run_logs":
+            return self.run_logs(params.get("cromwell_id", default=None))
         elif method == "get_labels":
             return self.get_labels(params.get("cromwell_id", default=None))
         elif method == "cancel_run":
             return self.cancel_run(params.get("cromwell_id", default=None))
+        elif method == "failure_logs":
+            return self.failure_logs(params.get("cromwell_id", default=None))
         else:
             self.logger.warning(f"Invalid RPC method: {method}")
             return self.failure(400, "Unknown method")
@@ -85,7 +90,7 @@ class Dispatcher:
         """
         try:
             r = requests.get(self.cromwell_engine_status_url)
-        except Exception:
+        except requests.exceptions.RequestException:
             self.logger.warning("Cromwell server timeout")
             return self.failure(503, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
@@ -107,7 +112,7 @@ class Dispatcher:
         url = f'{self.workflows_url}/{cromwell_id}/metadata'
         try:
             r = requests.get(url)
-        except Exception:
+        except requests.exceptions.RequestException:
             self.logger.warning("Cromwell server timeout")
             return self.failure(500, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
@@ -128,7 +133,7 @@ class Dispatcher:
         url = f'{self.workflows_url}/{cromwell_id}/metadata'
         try:
             r = requests.get(url)
-        except Exception:
+        except requests.exceptions.RequestException:
             self.logger.warning("Cromwell server timeout")
             return self.failure(500, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
@@ -173,7 +178,7 @@ class Dispatcher:
         url = f'{self.workflows_url}/{cromwell_id}/metadata'
         try:
             r = requests.get(url)
-        except Exception:
+        except requests.exceptions.RequestException:
             self.logger.warning("Cromwell server timeout")
             return self.failure(500, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
@@ -202,7 +207,7 @@ class Dispatcher:
         url = f'{self.workflows_url}/{cromwell_id}/abort'
         try:
             r = requests.post(url)
-        except Exception:
+        except requests.exceptions.RequestException:
             self.logger.warning("Cromwell server timeout")
             return self.failure(500, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
@@ -210,3 +215,70 @@ class Dispatcher:
         result = r.json()
         result["status"] = "Cancelling"
         return self.success(result)
+
+    def run_logs(self, params):
+        """
+        Retrieve the Cromwell logs for a run.
+        """
+        if "cromwell_id" not in params:
+            self.logger.error(f"run_logs rpc did not include cromwell_id")
+            return self.failure(400)
+        url = f'{self.workflows_url}/{params["cromwell_id"]}/logs'
+        try:
+            r = requests.get(url)
+        except requests.exceptions.RequestException:
+            self.logger.warning("Cromwell server timeout")
+            return self.failure(500, "Cromwell server timeout")
+        if r.status_code != requests.codes.ok:
+            return self.failure(r.status_code)
+        return self.success(r.json())
+
+    def failure_logs(self, params):
+        """
+        Concatenate stdout, stderr files of any failed tasks.
+        """
+        if "cromwell_id" not in params:
+            self.logger.error(f"failure_logs rpc did not include cromwell_id")
+            return self.failure(400)
+
+        # GET RUN FOLDER
+        url = f'{self.workflows_url}/{params["cromwell_id"]}/metadata'
+        try:
+            r = requests.get(url)
+        except requests.exceptions.RequestException:
+            self.logger.warning("Cromwell server timeout")
+            return self.failure(500, "Cromwell server timeout")
+        if r.status_code != requests.codes.ok:
+            return self.failure(r.status_code)
+        run_dir = r.json()["workflowRoot"]
+
+        # FIND FAILED TASKS AND CONCATENATE TARGET FILES
+        max_lines = 1000
+        target_files = ["stdout", "stderr", "stdout.submit", "stderr.submit"]
+        output = ""
+        for root_dir, subdirs, files in os.walk(run_dir):
+            if not root_dir.endswith("execution"):
+                continue
+            rc_file = os.path.join(root_dir, "rc")
+            exitcode = None
+            if not os.path.isfile(rc_file):
+                continue
+            with open(rc_file, "r") as rc_in:
+                exitcode = rc_in.readlines()[0].strip()
+            if exitcode == "0":
+                continue
+            output = output + f"[{rc_file}]\n{exitcode}\n" + "-" * 20 + "\n"
+            for fname in files:
+                if fname not in target_files:
+                    continue
+                fullname = os.path.join(root_dir, fname)
+                output = output + f"[{fullname}]\n"
+                num_lines = 0
+                with open(fullname, "r") as f_in:
+                    for line in f_in:
+                        output = output + line
+                        num_lines = num_lines + 1
+                        if num_lines >= max_lines:
+                            break
+                output = output + "-" * 20 + "\n"
+        return self.success(output)
