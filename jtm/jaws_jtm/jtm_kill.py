@@ -9,15 +9,15 @@
 #                     1 else
 #
 import sys
-
-from jaws_jtm.lib.common import eprint
 from jaws_jtm.lib.jtminterface import JtmInterface
+from jaws_jtm.lib.run import eprint
 
 
 def kill():
     assert len(sys.argv) == 2, "USAGE: jtm-kill <task_id>"
     taskID = int(sys.argv[1])
-    ret = int(JtmInterface("kill", info_tag=taskID).call(task_id=taskID))
+    ret = int(JtmInterface('kill',
+                           info_tag=taskID).call(task_id=taskID))
     if ret == -88:
         eprint("jtm-kill: command timeout.")
         sys.exit(-1)

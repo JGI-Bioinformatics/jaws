@@ -5,7 +5,11 @@
 import sys
 import atexit
 import time
-from jaws_jtm.config import MYSQL_USER, MYSQL_PORT, MYSQL_PW, MYSQL_HOST, MYSQL_DB
+from jaws_jtm.config import MYSQL_HOST, \
+    MYSQL_DB, \
+    MYSQL_USER, \
+    MYSQL_PW, \
+    MYSQL_PORT
 
 # Classes that describe definitions of SQL fields and table
 # These are used primarily to construct DDL statements.
@@ -13,7 +17,6 @@ from jaws_jtm.config import MYSQL_USER, MYSQL_PORT, MYSQL_PW, MYSQL_HOST, MYSQL_
 
 class SqlField:
     """This class defines SQL table field"""
-
     def __init__(self, name=None, type=None, null=True):
         self.name = name
         self.type = type
@@ -26,14 +29,11 @@ class SqlField:
             return "NOT NULL"
 
     def tableDef(self):
-        return " ".join(
-            [(attr if attr else "") for attr in (self.name, self.type, self.nullSql())]
-        )
+        return " ".join([(attr if attr else "") for attr in (self.name, self.type, self.nullSql())])
 
 
 class SqlTable:
     """This class defines SQL table"""
-
     @classmethod
     def fromDb(klass, db, name):
         """Generate SqlTable instance by querying an actual table in the database.
@@ -45,12 +45,11 @@ class SqlTable:
         I_NAME = 0
         I_TYPE = 1
         I_SIZE = 3
+        # I_PREC = 4
+        # I_SCALE = 5
 
         descr = db.getTableDescr(name)
-        fields = [
-            SqlField(name=f[I_NAME], type="%s(%s)" % (f[I_TYPE], f[I_SIZE]))
-            for f in descr
-        ]
+        fields = [SqlField(name=f[I_NAME], type="%s(%s)" % (f[I_TYPE], f[I_SIZE])) for f in descr]
         return klass(name=name, fields=fields)
 
     def __init__(self, name, fields):
@@ -64,10 +63,7 @@ class SqlTable:
         (
         %s
         )
-        """ % (
-            self.name,
-            ",\n".join([field.tableDef() for field in self.fields]),
-        )
+        """ % (self.name, ",\n".join([field.tableDef() for field in self.fields]))
 
     def insertSql(self):
         """Return SQL DML string that can be passed to Python DB-API cursor.executemany() method"""
@@ -80,11 +76,7 @@ class SqlTable:
         (
         %s
         )
-        """ % (
-            self.name,
-            ",\n".join([field.name for field in self.fields]),
-            ",\n".join(["?" for field in self.fields]),
-        )
+        """ % (self.name, ",\n".join([field.name for field in self.fields]), ",\n".join(["?" for field in self.fields]))
 
 
 class DbSql(object):
@@ -99,12 +91,11 @@ class DbSql(object):
 
     # Default SQL field definition - a fall-back field type to create
     # when nothing more specific is provided by the user
-    defField = SqlField(name="fld", type="char(40)")
+    def_field = SqlField(name="fld", type="char(40)")
 
     def __init__(self):
         # import MySQLdb as dbmod
         import mysql.connector as dbmod
-
         self.dbmod = dbmod
         atexit.register(dbClose, dbObj=self)
         self.debug = 0
@@ -131,8 +122,8 @@ class DbSql(object):
             curs = self.cursor()
             for dbobj in dropList:
                 words = [x.strip().lower() for x in dbobj.strip().split()]
-                if words[0] == "index":
-                    assert words[2] == "on"
+                if words[0] == 'index':
+                    assert words[2] == 'on'
                     self.dropIndex(words[1], words[3], rawName=True)
                 else:
                     try:
@@ -222,9 +213,7 @@ class DbSql(object):
         Execute sql that must return a single row with a single column and return result as scalar value.
         """
         ret = self.selectAll(sql=sql, **kw)
-        assert (
-            len(ret) == 1 and len(ret[0]) == 1
-        ), "Non-scalar value obtained in 'selectScalar()'"
+        assert len(ret) == 1 and len(ret[0]) == 1, "Non-scalar value obtained in 'selectScalar()'"
         ret = ret[0][0]
         return ret
 
@@ -235,9 +224,7 @@ class DbSql(object):
         ret = self.selectAll(sql=sql, **kw)
         assert len(ret) == 0 or len(ret[0]) == 2, "Result set must be two columns"
         dret = dict(ret)
-        assert len(ret) == len(
-            dret
-        ), "Result set must be Nx1 relation. Multi-valued keys were found."
+        assert len(ret) == len(dret), "Result set must be Nx1 relation. Multi-valued keys were found."
         return dret
 
     def selectAs1Col(self, sql, **kw):
@@ -288,7 +275,7 @@ class DbSql(object):
         return self.con.cursor()
 
     def commit(self):
-        if hasattr(self, "con"):
+        if hasattr(self, 'con'):
             self.con.commit()
 
     def reconnect(self):
@@ -321,16 +308,11 @@ class DbSql(object):
         :return:
         """
 
-        self.ddl(
-            """
+        self.ddl("""
         CREATE TABLE %s AS
-        """
-            % (name,)
-            + select
-            + """
+        """ % (name,) + select + """
         """,
-            dropList=["table %s" % (name,)],
-        )
+                 dropList=["table %s" % (name,)])
         if self.debug:
             curs = self.execute("select count(*) from %s" % (name,))
             if curs is not None:
@@ -345,10 +327,9 @@ class DbSqlLite(DbSql):
     """
     Derivative of DbSql specific for SQLite DB engine
     """
+    def_field = SqlField(name="fld", type="text")
 
-    defField = SqlField(name="fld", type="text")
-
-    def __init__(self, dbpath, strType=str, dryRun=False, strategy="default", **kw):
+    def __init__(self, db_path, str_type=str, dry_run=False, strategy="default", **kw):
         """
         Constructor.
 
@@ -360,19 +341,18 @@ class DbSqlLite(DbSql):
         """
         # use the standard Python module (python >=2.5):
         import sqlite3 as dbmod
-
         kw = kw.copy()
         self.dbmod = dbmod
         DbSql.__init__(self)
-        self.strType = strType
-        self.dbpath = dbpath
-        self.dryRun = dryRun
+        self.str_type = str_type
+        self.db_path = db_path
+        self.dry_run = dry_run
         if strategy not in ("default", "exclusive_unsafe"):
             raise ValueError("Unknown value of 'strategy': %s" % (strategy,))
         if strategy == "exclusive_unsafe":
             kw.setdefault("isolation_level", "EXCLUSIVE")
-        self.con = self.dbmod.connect(self.dbpath, **kw)
-        self.con.text_factory = self.strType
+        self.con = self.dbmod.connect(self.db_path, **kw)
+        self.con.text_factory = self.str_type
         self.execute("PRAGMA cache_size = 1000000")  # 1GB
         if strategy == "exclusive_unsafe":
             self.execute("PRAGMA journal_mode = OFF")
@@ -381,9 +361,9 @@ class DbSqlLite(DbSql):
 
     def close(self):
         self.commit()
-        if hasattr(self, "con"):
+        if hasattr(self, 'con'):
             self.con.close()
-            delattr(self, "con")
+            delattr(self, 'con')
 
     def dialectMatch(self, dialect):
         return dialect is None or dialect == "sqlite"
@@ -405,8 +385,8 @@ class DbSqlLite(DbSql):
         :note primary cannot be created in sqlite outside of create table statement, so we fake it with a unique index,
         which is still not equal to 'primary' constraint because we cannot add 'not null' constraint.
         """
-        dropNames = []
-        sqlTpl = "CREATE %%s INDEX %%s ON %s (%%s)" % (table,)
+        drop_names = []
+        sql_tpl = "CREATE %%s INDEX %%s ON %s (%%s)" % (table,)
         if primary is not None:
             if names is None:
                 names = []
@@ -414,32 +394,30 @@ class DbSqlLite(DbSql):
                 names = list(names)
             names.append(primary)
             attrib[primary] = {"unique": True}
-        addindex = []
+        add_index = []
         if names is not None:
             for name in names:
-                dropNames.append(name)
+                drop_names.append(name)
                 unique = ""
                 try:
                     if attrib[name]["unique"]:
                         unique = "UNIQUE"
                 except KeyError:
                     pass
-                addindex.append(sqlTpl % (unique, "ix_%s_%s" % (table, name), name))
+                add_index.append(sql_tpl % (unique, "ix_%s_%s" % (table, name), name))
         if compounds is not None:
             for name in list(compounds.keys()):
-                dropNames.append(name)
+                drop_names.append(name)
                 unique = ""
                 try:
                     if attrib[name]["unique"]:
                         unique = "UNIQUE"
                 except KeyError:
                     pass
-                addindex.append(
-                    sqlTpl % (unique, "ix_%s_%s" % (table, name), compounds[name])
-                )
-        for name in dropNames:
+                add_index.append(sql_tpl % (unique, "ix_%s_%s" % (table, name), compounds[name]))
+        for name in drop_names:
             self.dropIndex(name, table)
-        for sql in addindex:
+        for sql in add_index:
             self.ddl(sql)
 
 
@@ -448,9 +426,8 @@ class DbSqlMy(DbSql):
     Derivative of DbSql specific for MySQL DB engine
     """
 
-    def __init__(self, dryRun=False, **kw):
+    def __init__(self, dry_run=False, **kw):
         import mysql.connector as dbmod
-
         self.dbmod = dbmod
         DbSql.__init__(self)
         self.open(**kw)
@@ -462,16 +439,15 @@ class DbSqlMy(DbSql):
 
     def open(self, **kw):
         self.close()
-        if "conn" in kw and kw["conn"] is not None:
-            self.con = kw["conn"]
+        if "conn" in kw and kw['conn'] is not None:
+            self.con = kw['conn']
         else:
             config = {
                 "user": MYSQL_USER,
                 "password": MYSQL_PW,
                 "host": MYSQL_HOST,
                 "port": "%d" % MYSQL_PORT,
-                "database": MYSQL_DB,
-            }
+                "database": MYSQL_DB}
             try:
                 self.con = self.dbmod.connect(**config)
             except Exception as e:
@@ -479,7 +455,7 @@ class DbSqlMy(DbSql):
 
     def close(self):
         self.commit()
-        if hasattr(self, "con"):
+        if hasattr(self, 'con'):
             self.con.close()
             del self.con
 
@@ -495,46 +471,41 @@ class DbSqlMy(DbSql):
 
         :param attrib: optional index attributes. Currently supported is 'unique', e.g. attrib={'id':{'unique':True}}
         """
-        dropNames = []
+        drop_names = []
         sql = "ALTER TABLE %s " % (table,)
         comma = ""
         if primary is not None:
             sql = sql + "%s\nADD PRIMARY KEY (%s)" % (comma, primary)
             comma = ","
         if names is not None:
-            addindex = []
+            add_index = []
             for name in names:
-                dropNames.append(name)
+                drop_names.append(name)
                 unique = ""
                 try:
                     if attrib[name]["unique"]:
                         unique = "UNIQUE"
                 except KeyError:
                     pass
-                addindex.append(
-                    "ADD %s INDEX ix_%s_%s (%s)" % (unique, table, name, name)
-                )
-            if len(addindex) > 0:
-                sql = sql + "%s\n" % (comma,) + ",\n".join(addindex)
+                add_index.append("ADD %s INDEX ix_%s_%s (%s)" % (unique, table, name, name))
+            if len(add_index) > 0:
+                sql = sql + "%s\n" % (comma,) + ",\n".join(add_index)
                 comma = ","
         if compounds is not None:
-            addindex = []
+            add_index = []
             for name in list(compounds.keys()):
-                dropNames.append(name)
+                drop_names.append(name)
                 unique = ""
                 try:
                     if attrib[name]["unique"]:
                         unique = "UNIQUE"
                 except KeyError:
                     pass
-                addindex.append(
-                    "ADD %s INDEX ix_%s_%s (%s)"
-                    % (unique, table, name, compounds[name])
-                )
-            if len(addindex) > 0:
-                sql = sql + "%s\n" % (comma,) + ",\n".join(addindex)
+                add_index.append("ADD %s INDEX ix_%s_%s (%s)" % (unique, table, name, compounds[name]))
+            if len(add_index) > 0:
+                sql = sql + "%s\n" % (comma,) + ",\n".join(add_index)
                 comma = ","
-        for name in dropNames:
+        for name in drop_names:
             self.dropIndex(name, table)
         self.ddl(sql)
 
@@ -551,7 +522,7 @@ class SqlWatch:
     def __call__(self):
         if self.debug > 0:
             finish = time.time()
-            print(("SQL finished in %.3f sec" % (finish - self.start)))
+            print(("SQL finished in %.3f sec" % (finish-self.start)))
             self.start = finish
 
 

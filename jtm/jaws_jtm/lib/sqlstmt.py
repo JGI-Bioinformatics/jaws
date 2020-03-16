@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # Seung-Jin Sul (ssul@lbl.gov)
 
+
 JTM_SQL = {
     "create_database": """
         CREATE DATABASE IF NOT EXISTS %s;""",
@@ -64,28 +65,28 @@ JTM_SQL = {
         FROM workers
         WHERE workerId='%(worker_id)s');""",
     "insert_workers_workerid_slurmjobid": """
-        INSERT INTO workers (workerId, 
-                             slurmJobId, 
-                             workerType, 
+        INSERT INTO workers (workerId,
+                             slurmJobId,
+                             workerType,
                              nWorkersPerNode)
-        VALUES ('%(worker_id)s', 
-                %(slurm_jid)d, 
-                %(worker_type)d, 
+        VALUES ('%(worker_id)s',
+                %(slurm_jid)d,
+                %(worker_type)d,
                 %(nwpn)d);""",
     "insert_workers_workerid_workertype_poolname": """
-        INSERT INTO workers (workerId, 
-                             workerType, 
-                             poolName, 
-                             jtmHostName, 
-                             lifeLeft, 
-                             slurmJobId, 
+        INSERT INTO workers (workerId,
+                             workerType,
+                             poolName,
+                             jtmHostName,
+                             lifeLeft,
+                             slurmJobId,
                              nWorkersPerNode)
-        VALUES ('%(worker_id)s', 
-            %(worker_type)d, 
-            '%(pool_name)s', 
-            '%(jtm_host_name)s', 
-            %(lifeleft)d, 
-            %(slurm_jid)d, 
+        VALUES ('%(worker_id)s',
+            %(worker_type)d,
+            '%(pool_name)s',
+            '%(jtm_host_name)s',
+            %(lifeleft)d,
+            %(slurm_jid)d,
             %(nwpn)d);""",
     "update_workers_enddate_lifeleft_by_workerid": """
         UPDATE workers
@@ -99,14 +100,14 @@ JTM_SQL = {
             hostName = '%(host_name)s',
             jtmHostName = '%(jtm_host_name)s',
             ipAddress = '%(ipaddr)s',
-            poolName = '%(pool_name)s', 
+            poolName = '%(pool_name)s',
             slurmJobId = %(slurm_jid)d
         WHERE workerId = '%(worker_id)s';""",
     "update_runs_status_by_taskid": """
         UPDATE runs
-        SET status = %(status_id)d, 
-            workerId2 = (select workerId2 from workers where workerId='%(worker_id)s'), 
-            childPid = %(child_pid)d, 
+        SET status = %(status_id)d,
+            workerId2 = (select workerId2 from workers where workerId='%(worker_id)s'),
+            childPid = %(child_pid)d,
             resource = '%(resource_log)s'
         WHERE taskId = %(task_id)d and status < 2;""",
     "select_clonecnt_workers_by_workerid": """
@@ -138,8 +139,8 @@ JTM_SQL = {
         SET lifeLeft = -1
         WHERE lifeLeft >= 0""",
     "select_workerid2_workers_by_wid": """
-        select workerId2 
-        from workers 
+        select workerId2
+        from workers
         where workerId = '%(worker_id)s'""",
     "update_runs_status_workerid2_by_taskid_2": """
         UPDATE runs
@@ -202,49 +203,49 @@ JTM_SQL = {
         SELECT count(*)
         FROM workers
         WHERE poolName = '%(pool_name)s' and (
-                (lifeLeft != -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < %(hbinterval)d) 
-                or 
+                (lifeLeft != -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < %(hbinterval)d)
+                or
                 (slurmJobId > 1 and startDate = endDate));""",
     "select_count_workers_by_jtm_host_name": """
     SELECT count(*)
     FROM workers
     WHERE jtmHostName = '%(jtm_host_name)s' and (
             (lifeLeft != -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < %(hbinterval)d)
-            or 
+            or
             (slurmJobId > 1 and startDate = endDate));""",
     "select_count_workers_by_jtm_host_name_poolname_enddate": """
     SELECT count(*)
     FROM workers
     WHERE jtmHostName = '%(jtm_host_name)s' and poolName = '%(pool_name)s' and (
             (lifeLeft != -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < %(hbinterval)d)
-            or 
+            or
             (slurmJobId > 1 and startDate = endDate));""",
     "select_sum_nwpn_workers_by_poolname_enddate": """
     SELECT SUM(nWorkersPerNode)
     FROM workers
     WHERE poolName = '%(pool_name)s' and (
-            lifeLeft >= 0 
+            lifeLeft >= 0
             or
-            (lifeLeft != -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < %(hbinterval)d) 
-            or 
+            (lifeLeft != -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < %(hbinterval)d)
+            or
             (slurmJobId > 1 and startDate = endDate));""",
     "select_sum_nwpn_workers_by_jtm_host_name_enddate": """
     SELECT SUM(nWorkersPerNode)
     FROM workers
     WHERE jtmHostName = '%(jtm_host_name)s' and (
-            lifeLeft >= 0 
+            lifeLeft >= 0
             or
             (lifeLeft != -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < %(hbinterval)d)
-            or 
+            or
             (slurmJobId > 1 and startDate = endDate));""",
     "select_sum_nwpn_workers_by_jtm_host_name_poolname_enddate": """
         SELECT SUM(nWorkersPerNode)
         FROM workers
         WHERE jtmHostName = '%(jtm_host_name)s' and poolName = '%(pool_name)s' and (
-                lifeLeft >= 0 
+                lifeLeft >= 0
                 or
-                (lifeLeft != -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < %(hbinterval)d) 
-                or 
+                (lifeLeft != -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < %(hbinterval)d)
+                or
                 (slurmJobId > 1 and startDate = endDate));""",
     "select_count_distinct_jid_workers_by_poolname": """
         SELECT COUNT(DISTINCT(slurmJobId))
@@ -254,12 +255,12 @@ JTM_SQL = {
             or
             ((slurmJobId > 1 and startDate = endDate)
             or
-            (slurmJobId > 1 and lifeLeft = -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < 18)
-              and TIMESTAMPDIFF(SECOND, endDate, NOW()) >= 0)
+            (slurmJobId > 1 and lifeLeft = -1 and
+            TIMESTAMPDIFF(SECOND, endDate, NOW()) < 18) and TIMESTAMPDIFF(SECOND, endDate, NOW()) >= 0)
         );""",
     # process_remove_pool()
     "update_lifeleft_enddate_workers_by_poolname": """
-        update workers 
+        update workers
         set lifeLeft = -1, endDate = '%(now)s'
         where lifeLeft != -1 and poolName = '%(pool_name)s' and workerId2 > 0;""",
     "select_jid_workers_by_poolname": """
@@ -267,12 +268,12 @@ JTM_SQL = {
         FROM workers
         where workerType = 2 and slurmJobId > 1 and (lifeLeft > 0 or lifeLeft = -2) and poolName = '%(pool_name)s';""",
     "select_slurmjid_workers_by_lifeleft": """
-        select DISTINCT(slurmJobId) 
-        from workers 
+        select DISTINCT(slurmJobId)
+        from workers
         where lifeLeft = -2 and slurmJobId > 0;""",
     # zombie_worker_cleanup_thead()
     "update_workers_lifeleft_by_slurmjid": """
-        update workers 
+        update workers
         set lifeLeft = -1, endDate = '%(now)s'
         where slurmJobId = %(slurm_jid)d""",
 }
