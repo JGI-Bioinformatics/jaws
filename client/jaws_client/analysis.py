@@ -31,7 +31,7 @@ def queue() -> None:
     url = f'{config.JawsConfig().get("JAWS", "url")}/run'
     try:
         r = requests.get(url, headers=current_user.header())
-    except requests.ConnectionError:
+    except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -52,7 +52,7 @@ def history(days: int) -> None:
     current_user = user.User()
     try:
         r = requests.post(url, data=data, headers=current_user.header())
-    except requests.ConnectionError:
+    except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -72,7 +72,7 @@ def _run_status(run_id: int) -> Dict[str, str]:
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
-    except requests.ConnectionError:
+    except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -106,7 +106,7 @@ def tasks(run_id: int) -> None:
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
-    except requests.ConnectionError:
+    except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -153,7 +153,7 @@ def metadata(run_id: int) -> None:
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
-    except requests.ConnectionError:
+    except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -174,7 +174,7 @@ def log(run_id: int) -> None:
     url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/log'
     try:
         r = requests.get(url, headers=current_user.header())
-    except requests.ConnectionError:
+    except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
         sys.exit(r.text)
@@ -183,7 +183,27 @@ def log(run_id: int) -> None:
 
 @run.command()
 @click.argument("run_id")
-def cancel(run_id: int) -> None:
+def errors(run_id):
+    """View the logs for failed tasks.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :return:
+    """
+    current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/errors'
+    try:
+        r = requests.get(url, headers=current_user.header())
+    except requests.exceptions.RequestException:
+        sys.exit("Unable to communicate with JAWS server")
+    if r.status_code != 200:
+        sys.exit(r.text)
+    print(r.text)
+
+
+@run.command()
+@click.argument("run_id")
+def cancel(run_id):
     """Cancel a run; prints whether aborting was successful or not.
 
     :param run_id: JAWS run ID to cancel.
@@ -193,7 +213,7 @@ def cancel(run_id: int) -> None:
     current_user = user.User()
     try:
         r = requests.delete(url, headers=current_user.header())
-    except requests.ConnectionError:
+    except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code == 200:
         print("run " + run_id + " was canceled")
@@ -221,7 +241,7 @@ def delete(run_id: int, task: str) -> None:
     current_user = user.User()
     try:
         r = requests.delete(url, headers=current_user.header())
-    except requests.ConnectionError:
+    except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     result = r.json()
     if r.status_code != 200:
@@ -294,7 +314,7 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str) -> None:
     url = f'{config.conf.get("JAWS", "url")}/run/get_site'
     try:
         r = requests.post(url, data=data, headers=current_user.header())
-    except requests.ConnectionError:
+    except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != requests.codes.ok:
         sys.exit(r.text)
@@ -342,7 +362,7 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str) -> None:
     logger.info("Submitting to %s:\n%s" % (url, data))
     try:
         r = requests.post(url, data=data, headers=current_user.header())
-    except requests.ConnectionError:
+    except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != requests.codes.ok:
         sys.exit(r.text)
