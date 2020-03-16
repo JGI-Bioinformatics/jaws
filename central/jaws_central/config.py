@@ -1,6 +1,7 @@
 import logging
 import os
 import yaml
+from typing import Dict
 
 
 class Singleton(type):
@@ -47,12 +48,12 @@ class JawsConfig(metaclass=Singleton):
             s = self.config["sites"][site_id]
             s["staging_dir"] = os.path.join(s["globus_basepath"], s["staging_subdir"])
 
-    def get(self, section, key, default=None):
+    def get(self, section: str, key: str, default=None) -> str:
         if section not in self.config:
             raise ConfigurationError(f'Section {section} not defined in config obj')
         return self.config[section].get(key, default)
 
-    def get_site(self, site_id, key, default=None):
+    def get_site(self, site_id: str, key: str, default=None) -> str:
         """Retrieve Site config parameter; syntactic sugar.
 
         :param site_id: Unique ID of a JAWS-Site
@@ -62,14 +63,14 @@ class JawsConfig(metaclass=Singleton):
         :param default: Default value if parameter not defined
         :type default: scalar, optional
         :return: The configuration value
-        :rtype: scalar
+        :rtype: str
         """
         site_id = site_id.upper()
         if site_id not in self.config["sites"]:
             return None
         return self.config["sites"]["site_id"].get(key, default)
 
-    def get_site_info(self, site_id):
+    def get_site_info(self, site_id: str) -> Dict[str, str]:
         """Returns public info about requested Site.
 
         :param site_id: The ID of the JAWS-Site

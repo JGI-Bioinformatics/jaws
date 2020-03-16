@@ -1,5 +1,6 @@
 import logging
-from jaws_central import rpc_client
+from typing import Dict, List
+from jaws_central import rpc_client, config
 
 
 class Singleton(type):
@@ -21,7 +22,7 @@ class JawsRpc(metaclass=Singleton):
     """Singleton which contains dictionary of site_id => rpc_client objects"""
     clients = {}
 
-    def __init__(self, conf):
+    def __init__(self, conf: config.JawsConfig):
         """Initialize an RPC client object for each configured Site.
 
         :param config: JawsConfig object
@@ -37,7 +38,7 @@ class JawsRpc(metaclass=Singleton):
             params = conf.config["sites"][site_id]
             self.clients[site_id] = rpc_client.RPC_Client(params)
 
-    def get_sites(self):
+    def get_sites(self) -> List[str]:
         """Return list of JAWS-Site IDs.
 
         :return: list of JAWS-Site IDs (str)
@@ -45,7 +46,7 @@ class JawsRpc(metaclass=Singleton):
         """
         return self.config["sites"].keys()
 
-    def get_client(self, site_id):
+    def get_client(self, site_id: str) -> Dict[str, str]:
         """Get RPC client object of a Site.
 
         :param site_id: ID of the JAWS-Site
@@ -58,7 +59,7 @@ class JawsRpc(metaclass=Singleton):
             raise JawsRpcError(f'Unknown Site, {site_id}')
         return self.clients[site_id]
 
-    def is_valid_site(self, site_id):
+    def is_valid_site(self, site_id: str) -> bool:
         """Determine if the user-specified site ID is valid.
 
         :param site_id: Unique idenfitier of the JAWS-Site

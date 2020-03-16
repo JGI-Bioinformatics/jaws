@@ -1,7 +1,7 @@
-from .config import conf
+from jaws_central.config import conf
 
 
-def status():
+def status() -> dict:
     """Check all systems to see if they're available.
 
     :return: A dict of server:status
