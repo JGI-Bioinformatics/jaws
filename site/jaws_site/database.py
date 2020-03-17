@@ -5,6 +5,9 @@ from sqlalchemy.orm import sessionmaker
 from jaws_site import models
 
 
+db = None
+
+
 class Singleton(type):
 
     _instances = {}
@@ -15,10 +18,13 @@ class Singleton(type):
         return cls._instances[cls]
 
 
+class DatabaseError(Exception):
+    pass
+
+
 class JawsDb(metaclass=Singleton):
     """Database singleton class"""
     engine = None
-    session = None
 
     def __init__(self, conf):
         """Constructor
@@ -29,28 +35,30 @@ class JawsDb(metaclass=Singleton):
         :rtype: obj
         """
         logger = logging.getLogger(__package__)
-        logger.info("Initializing db connection")
+        logger.debug("Initializing db connection")
         url = "%s://%s:%s@%s/%s" % (
             conf.get("DB", "dialect"),
             conf.get("DB", "user"),
             quote_plus(conf.get("DB", "password").encode('utf-8')),
             conf.get("DB", "host"),
             conf.get("DB", "db"))
-        self.engine = create_engine(url, pool_size=3, pool_recycle=3600, pool_pre_ping=True)
+        try:
+            self.engine = create_engine(url, pool_size=3, pool_recycle=3600, pool_pre_ping=True)
+        except Exception as e:
+            raise DatabaseError(f"Unable to connect to db: {e}")
         models.Base.metadata.create_all(self.engine)
+        global db
+        db = self
 
     def engine(self):
         if self.engine is None:
-            raise Exception("Db not initialized; run init_db first")
+            raise DatabaseError("Db not initialized; run init_db first")
         return self.engine
 
     def session(self):
         """Return a new session obj."""
         if self.engine is None:
-            raise Exception("Db not initialized; run init_db first")
+            raise DatabaseError("Db not initialized; run init_db first")
         Session = sessionmaker(bind=self.engine)
         session = Session()
         return session
-
-
-db = None

@@ -2,11 +2,16 @@
 RPC functions.  Most of these simply wrap the localhost Cromwell REST functions.
 """
 
-import os
 import requests
 from http.client import responses
 import logging
+from typing import Dict
+import os
+import click
 from jaws_site import config
+
+
+logger = logging.getLogger(__package__)
 
 
 class Dispatcher:
@@ -18,14 +23,12 @@ class Dispatcher:
     cromwell_engine_status_url = None
     workflows_url = None
 
-    def __init__(self):
+    def __init__(self, conf):
         """Constructor"""
-        self.logger = logging.getLogger(__package__)
-        conf = config.JawsConfig()
-        self.cromwell_engine_status_url = conf.get_cromwell('engine_status_url')
-        self.workflows_url = conf.get_cromwell("workflows_url")
+        self.cromwell_engine_status_url = conf.get("CROMWELL", "engine_status_url")
+        self.workflows_url = conf.get("CROMWELL", "workflows_url")
 
-    def dispatch(self, method, params):
+    def dispatch(self, method: str, params: Dict[str, str]):
         """Given a method keyword, call the apporpriate function with the provided parameters.
 
         :param method: The method requested.  Abort if unrecognized.
@@ -35,24 +38,18 @@ class Dispatcher:
         :return: Response in JSON-RPC2 format.
         :rtype: dict
         """
-        # TODO THIS SHOULD BE A DISPATCH TABLE
-        if method == "server_status":
-            return self.server_status()
-        elif method == "task_status":
-            return self.task_status(params.get("cromwell_id", default=None))
-        elif method == "run_metadata":
-            return self.run_metadata(params.get("cromwell_id", default=None))
-        elif method == "run_logs":
-            return self.run_logs(params.get("cromwell_id", default=None))
-        elif method == "get_labels":
-            return self.get_labels(params.get("cromwell_id", default=None))
-        elif method == "cancel_run":
-            return self.cancel_run(params.get("cromwell_id", default=None))
-        elif method == "failure_logs":
-            return self.failure_logs(params.get("cromwell_id", default=None))
-        else:
-            self.logger.warning(f"Invalid RPC method: {method}")
-            return self.failure(400, "Unknown method")
+        operations = {
+            "server_status": self.server_status,
+            "task_status": self.task_status,
+            "run_metadata": self.run_metadata,
+            "cancel_run": self.cancel_run,
+            "run_logs": self.run_logs,
+            "failure_logs": self.failure_logs,
+        }
+        proc = operations.get(method)
+        if proc:
+            return proc(params)
+        return self.failure(400, "Unknown method")
 
     def success(self, result):
         """Return a JSON-RPC2 successful result message.
@@ -82,7 +79,7 @@ class Dispatcher:
             )
         return {"jsonrpc": "2.0", "error": {"code": code, "message": message}}
 
-    def server_status(self):
+    def server_status(self, params):
         """Return the current status of the Cromwell server.
 
         :return: Either a success- or failure-formatted JSON-RPC2 response, if Cromwell up or not.
@@ -91,14 +88,14 @@ class Dispatcher:
         try:
             r = requests.get(self.cromwell_engine_status_url)
         except requests.exceptions.RequestException:
-            self.logger.warning("Cromwell server timeout")
+            logger.warning("Cromwell server timeout")
             return self.failure(503, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
             return self.failure(r.status_code)
         result = {"Cromwell": "UP"}
         return self.success(result)
 
-    def run_metadata(self, cromwell_id):
+    def run_metadata(self, params):
         """Retrieve the metadata of a run.
 
         :param cromwell_id: Cromwell run ID
@@ -106,20 +103,20 @@ class Dispatcher:
         :return: The Cromwell metadata for the specified run.
         :rtype: dict
         """
-        if not cromwell_id:
-            self.logger.error(f"run_metadata rpc did not include cromwell_id")
+        if "cromwell_id" not in params:
+            logger.error(f"run_metadata rpc did not include cromwell_id")
             return self.failure(400)
-        url = f'{self.workflows_url}/{cromwell_id}/metadata'
+        url = f"{self.workflows_url}/{params['cromwell_id']}/metadata"
         try:
             r = requests.get(url)
         except requests.exceptions.RequestException:
-            self.logger.warning("Cromwell server timeout")
+            logger.warning("Cromwell server timeout")
             return self.failure(500, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
             return self.failure(r.status_code)
         return self.success(r.json())
 
-    def task_status(self, cromwell_id):
+    def task_status(self, params):
         """Returns the status for each task processed thus far in a run.
 
         :param cromwell_id: The Cromwell run ID
@@ -127,14 +124,14 @@ class Dispatcher:
         :return: A list of task:status tuples, ordered by start time.
         :rtype: list
         """
-        if not cromwell_id:
-            self.logger.error(f"task_status rpc did not include cromwell_id")
+        if "cromwell_id" not in params:
+            logger.error(f"task_status rpc did not include cromwell_id")
             return self.failure(400)
-        url = f'{self.workflows_url}/{cromwell_id}/metadata'
+        url = f"{self.workflows_url}/{params['cromwell_id']}/metadata"
         try:
             r = requests.get(url)
         except requests.exceptions.RequestException:
-            self.logger.warning("Cromwell server timeout")
+            logger.warning("Cromwell server timeout")
             return self.failure(500, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
             return self.failure(r.status_code)
@@ -143,14 +140,14 @@ class Dispatcher:
         tasks = {}
         for task_name in metadata["calls"]:
             start = ""
-            try:
+            if "start" in metadata["calls"][task_name][0]:
                 start = metadata["calls"][task_name][0]["start"]
-            except Exception:
+            else:
                 start = "?"
             end = ""
-            try:
-                end = metadata["calls"][task_name][0]["start"]
-            except Exception:
+            if "end" in metadata["calls"][task_name][0]["start"]:
+                end = metadata["calls"][task_name][0]["end"]
+            else:
                 end = "?"
             tasks[start] = (
                 task_name,
@@ -164,7 +161,7 @@ class Dispatcher:
             result.append(tasks[start])
         return self.success(result)
 
-    def task_ids(self, cromwell_id):
+    def task_ids(self, params):
         """Returns a list of all JTM task ids associated with a run thus far.
 
         :param cromwell_id: The Cromwell run ID
@@ -172,28 +169,26 @@ class Dispatcher:
         :return: A list of JTM task IDs.  If a task was rerun, only the last is included.
         :rtype: list
         """
-        if not cromwell_id:
-            self.logger.error(f"task_ids rpc did not include cromwell_id")
+        if "cromwell_id" not in params:
+            logger.error(f"task_ids rpc did not include cromwell_id")
             return self.failure(400)
-        url = f'{self.workflows_url}/{cromwell_id}/metadata'
+        url = f"{self.workflows_url}/{params['cromwell_id']}/metadata"
         try:
             r = requests.get(url)
         except requests.exceptions.RequestException:
-            self.logger.warning("Cromwell server timeout")
+            logger.warning("Cromwell server timeout")
             return self.failure(500, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
             return self.failure(r.status_code)
         metadata = r.json()
         tasks = []
         for task_name in metadata["calls"]:
-            try:
+            if "jobId" in metadata["calls"][task_name][-1]:
                 jobId = metadata["calls"][task_name][-1]["jobId"]
                 tasks.append(jobId)
-            except Exception:
-                pass
         return self.success(tasks)
 
-    def cancel_run(self, cromwell_id):
+    def cancel_run(self, params):
         """Cancel a run.
 
         :param cromwell_id: The Cromwell run ID
@@ -201,14 +196,14 @@ class Dispatcher:
         :return: Either a JSON-RPC2-compliant success or failure message, if the run could be cancelled or not.
         :rtype: dict
         """
-        if not cromwell_id:
-            self.logger.error(f"cancel_run rpc did not include cromwell_id")
+        if "cromwell_id" not in params:
+            logger.error(f"cancel_run rpc did not include cromwell_id")
             return self.failure(400)
-        url = f'{self.workflows_url}/{cromwell_id}/abort'
+        url = f"{self.workflows_url}/{params['cromwell_id']}/abort"
         try:
             r = requests.post(url)
         except requests.exceptions.RequestException:
-            self.logger.warning("Cromwell server timeout")
+            logger.warning("Cromwell server timeout")
             return self.failure(500, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
             return self.failure(r.status_code)
@@ -221,13 +216,13 @@ class Dispatcher:
         Retrieve the Cromwell logs for a run.
         """
         if "cromwell_id" not in params:
-            self.logger.error(f"run_logs rpc did not include cromwell_id")
+            logger.error(f"run_logs rpc did not include cromwell_id")
             return self.failure(400)
         url = f'{self.workflows_url}/{params["cromwell_id"]}/logs'
         try:
             r = requests.get(url)
         except requests.exceptions.RequestException:
-            self.logger.warning("Cromwell server timeout")
+            logger.warning("Cromwell server timeout")
             return self.failure(500, "Cromwell server timeout")
         if r.status_code != requests.codes.ok:
             return self.failure(r.status_code)
@@ -282,3 +277,78 @@ class Dispatcher:
                             break
                 output = output + "-" * 20 + "\n"
         return self.success(output)
+
+
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+def cli():
+    """JAWS-Site RPC functions"""
+    pass
+
+
+@cli.command()
+def server_status():
+    """Check Cromwell server status."""
+    params = {}
+    dispatch = Dispatcher(config.conf)
+    result = dispatch.dispatch("server_status", params)
+    print(result)
+
+
+@cli.command()
+@click.argument("cromwell_id")
+def run_metadata(cromwell_id: str):
+    """Get Cromwell metadata for a run."""
+    params = {"cromwell_id": cromwell_id}
+    dispatch = Dispatcher(config.conf)
+    result = dispatch.dispatch("run_metadata", params)
+    print(result)
+
+
+@cli.command()
+@click.argument("cromwell_id")
+def task_status(cromwell_id: str):
+    """Get status of a run."""
+    params = {"cromwell_id": cromwell_id}
+    dispatch = Dispatcher(config.conf)
+    result = dispatch.dispatch("task_status", params)
+    print(result)
+
+
+@cli.command()
+@click.argument("cromwell_id")
+def task_ids(cromwell_id: str):
+    """Retrieve the task IDs for a run."""
+    params = {"cromwell_id": cromwell_id}
+    dispatch = Dispatcher(config.conf)
+    result = dispatch.dispatch("task_ids", params)
+    print(result)
+
+
+@cli.command()
+@click.argument("cromwell_id")
+def cancel_run(cromwell_id: str):
+    """Cancel a run."""
+    params = {"cromwell_id": cromwell_id}
+    dispatch = Dispatcher(config.conf)
+    result = dispatch.dispatch("cancel_run", params)
+    print(result)
+
+
+@cli.command()
+@click.argument("cromwell_id")
+def run_logs(cromwell_id: str):
+    """Get the logs for a run."""
+    params = {"cromwell_id": cromwell_id}
+    dispatch = Dispatcher(config.conf)
+    result = dispatch.dispatch("run_logs", params)
+    print(result)
+
+
+@cli.command()
+@click.argument("cromwell_id")
+def failure_logs(cromwell_id: str):
+    """Get the logs for failed tasks."""
+    params = {"cromwell_id": cromwell_id}
+    dispatcher = Dispatcher(config.conf)
+    result = dispatcher.dispatch("failure_logs", params)
+    print(result)
