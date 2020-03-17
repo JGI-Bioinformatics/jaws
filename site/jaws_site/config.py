@@ -3,6 +3,9 @@ import os
 import configparser
 
 
+conf = None
+
+
 class Singleton(type):
 
     _instances = {}
@@ -13,12 +16,16 @@ class Singleton(type):
         return cls._instances[cls]
 
 
+class ConfigurationError(Exception):
+    pass
+
+
 class JawsConfig(metaclass=Singleton):
     """Configuration singleton class"""
-    config = None
+    config: configparser
 
-    def __init__(self, config_file=None):
-        """Constructor
+    def __init__(self, config_file: str = None):
+        """Constructor sets global singleton.
 
         :param config_file: Path to configuration file in INI format
         :type config_file: str
@@ -31,24 +38,26 @@ class JawsConfig(metaclass=Singleton):
             raise FileNotFoundError(f"{config_file} does not exist")
         self.config = configparser.ConfigParser()
         self.config.read(config_file)
+        for section in ['AMQP', 'RPC', 'GLOBUS', 'DB', 'CROMWELL']:
+            if section not in self.config:
+                raise ConfigurationError(f"Config missing required section: {section}")
+        global conf
+        conf = self
 
-    def get(self, section, key, default=None):
+    def get(self, section: str, key: str) -> str:
         """Get a configuration value.
 
-    :param section: name of config section
-    :type section: str
-    :param key: parameter key
-    :type key: str
-    :return: the value is always a string; typecast as necessary
-    :rtype: str
-    """
-        if section not in self.config:
-            self.logger.warn(f"Config file missing section {section}")
-            return default
-        if key not in self.config[section]:
-            self.logger.warn(f"Config file missing param {section}/{key}")
-            return default
-        return self.config.get(section, key)
-
-
-conf = None
+        :param section: name of config section
+        :type section: str
+        :param key: parameter key
+        :type key: str
+        :return: the value is always a string; typecast as necessary
+        :rtype: str
+        """
+        if section in self.config:
+            if key in self.config[section]:
+                return self.config[section][key]
+            else:
+                raise ConfigurationError(f"Section {section} does not have {key} parameter")
+        else:
+            raise ConfigurationError(f"Config file does not have {section} section")

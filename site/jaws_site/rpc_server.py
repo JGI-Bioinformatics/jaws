@@ -8,7 +8,7 @@ import time
 import json
 import urllib.parse
 import amqpstorm
-from jaws_site.dispatch import dispatch
+from jaws_site import dispatch
 from jaws_site.config import JawsConfig
 
 logger = logging.getLogger(__package__)
@@ -20,10 +20,12 @@ class Consumer(object):
     channel: amqpstorm.Channel
     active: bool
 
-    def __init__(self, rpc_queue: str):
+    def __init__(self, conf: JawsConfig, rpc_queue: str):
+        logger.debug(f"Initializing RPC consumer for {rpc_queue}")
         self.rpc_queue = rpc_queue
         self.channel = None
         self.active = False
+        self.dispatcher = dispatch.Dispatcher(conf)
 
     def start(self, connection: amqpstorm.Connection):
         self.channel = None
@@ -61,7 +63,7 @@ class Consumer(object):
         params = request["params"]
 
         # GET RESPONSE FROM DISPATCHER
-        response_dict = dispatch(method, params)
+        response_dict = self.dispatcher.dispatch(method, params)
 
         # VALIDATE RESPONSE
         response_dict["jsonrpc"] = "2.0"
@@ -107,7 +109,7 @@ class RpcServer(object):
         self.rpc_queue = conf.get("AMQP", "queue")
         self.max_retries = int(conf.get("RPC", "max_retries"))
         number_of_consumers = int(conf.get("RPC", "num_threads"))
-        self.consumers = [Consumer(self.rpc_queue) for _ in range(number_of_consumers)]
+        self.consumers = [Consumer(conf, self.rpc_queue) for _ in range(number_of_consumers)]
         self.stopped = threading.Event()
         self.connection = self.create_connection()
 

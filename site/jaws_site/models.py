@@ -35,36 +35,27 @@ def same_as(column_name):
 
 
 class User(Base):
-    """
-    A registered user.
-    """
-
+    """Registered user"""
     __tablename__ = "users"
-    id = Column(String(36), primary_key=True)
-    name = Column(String(64))
-    email = Column(String(64), unique=True)
-    is_admin = Column(
-        Boolean, default=False, nullable=False
-    )
-    auth_access_token = Column(String(256))
-    auth_refresh_token = Column(String(256))
-    auth_expires_at_seconds = Column(Integer)
-    transfer_access_token = Column(String(256))
-    transfer_refresh_token = Column(String(256))
-    transfer_expires_at_seconds = Column(Integer)
+    uid = Column(String(16), primary_key=True, unique=True)
+    name = Column(String(64), nullable=True)
+    email = Column(String(64), nullable=True)
+    is_admin = Column(Boolean, nullable=False, default=False)
+    jaws_access_token = Column(String(1024), nullable=False)
+    globus_id = Column(String(36), nullable=True)
+    auth_refresh_token = Column(String(256), nullable=True)
+    transfer_refresh_token = Column(String(256), nullable=True)
 
 
 class Workflow(Base):
-    """
-    A workflow in the Catalog is comprised of WDL and MD files.
+    """A workflow in the Catalog is comprised of WDL and MD files.
     Once marked as "released", a workflow cannot be changed or deleted, only deprecated.
     """
-
     __tablename__ = "workflows"
     id = Column(Integer, primary_key=True)
     name = Column(String(32), nullable=False)
     version = Column(String(16), nullable=False, default="latest")
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(16), ForeignKey("users.uid"), nullable=False)
     created = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = Column(
         DateTime,
@@ -76,8 +67,6 @@ class Workflow(Base):
     is_deprecated = Column(Boolean, default=False, nullable=False)
     wdl = Column(Text, nullable=False)
     doc = Column(Text, nullable=False)
-
-    # MULTI-COLUMN CONSTRAINT
     __table_args__ = (
         UniqueConstraint("name", "version", name="_workflow_name_version_uniq_cons"),
     )
@@ -87,13 +76,10 @@ class Workflow(Base):
 
 
 class Run(Base):
-    """
-    Analysis runs are the execution of workflows on specific inputs.
-    """
-
+    """Analysis runs are the execution of workflows on specific inputs."""
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(16), ForeignKey("users.uid"), nullable=False)
     site_id = Column(String(8), nullable=False)
     submission_uuid = Column(String(36), nullable=False)
     status = Column(String(16), nullable=False)
@@ -110,3 +96,8 @@ class Run(Base):
     # ONE:MANY RELATIONSHIPS
 #    user = relationship("User", back_populates="runs")
 #    workflow = relationship("Workflow", back_populates="runs")
+
+
+def create_all(engine):
+    """Create all tables if not exist"""
+    Base.metadata.create_all(engine)
