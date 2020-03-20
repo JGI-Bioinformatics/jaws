@@ -248,9 +248,9 @@ class Dispatcher:
         run_dir = r.json()["workflowRoot"]
 
         # FIND FAILED TASKS AND CONCATENATE TARGET FILES
-        max_lines = 1000
         target_files = ["stdout", "stderr", "stdout.submit", "stderr.submit"]
         output = ""
+        max_lines = 1000
         for root_dir, subdirs, files in os.walk(run_dir):
             if not root_dir.endswith("execution"):
                 continue
@@ -267,16 +267,38 @@ class Dispatcher:
                 if fname not in target_files:
                     continue
                 fullname = os.path.join(root_dir, fname)
-                output = output + f"[{fullname}]\n"
-                num_lines = 0
-                with open(fullname, "r") as f_in:
-                    for line in f_in:
-                        output = output + line
-                        num_lines = num_lines + 1
-                        if num_lines >= max_lines:
-                            break
-                output = output + "-" * 20 + "\n"
+                lines, is_truncated = tail(fullname, max_lines)
+                if is_truncated:
+                    output += f"[{fullname}]  (limited to last {max_lines} lines)\n"
+                else:
+                    output += f"[{fullname}]\n"
+                for line in lines:
+                    output = output + line
+                output += "-" * 20 + "\n"
         return self.success(output)
+
+
+def tail(filename, max_lines=1000):
+    """Return the last n lines of a file.
+
+    :param filename: path to file
+    :type filename: str
+    :param n: Number of lines to return
+    :type n: int
+    :return: last n lines of the file and flag if truncated
+    :rtype: list[str], bool
+    """
+    lines = []
+    num_lines = 0
+    is_truncated = False
+    with open(filename, "r") as fh:
+        for line in fh:
+            lines.append(line)
+            num_lines += 1
+            if num_lines > max_lines:
+                del lines[0]
+                is_truncated = True
+    return lines, is_truncated
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
