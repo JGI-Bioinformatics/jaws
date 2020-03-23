@@ -13,8 +13,10 @@
 import sys
 
 from jaws_jtm.lib.jtminterface import JtmInterface
-from jaws_jtm.config import TASK_STATUS
 from jaws_jtm.lib.run import eprint
+from jaws_jtm.config import JtmConfig
+config = JtmConfig()
+TASK_STATUS = config.constants.TASK_STATUS
 
 
 def status():

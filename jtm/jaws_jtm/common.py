@@ -51,17 +51,15 @@ def setup_custom_logger(level, log_dest_dir, b_stream_loggin=True, b_file_loggin
             datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
             datetime_str = worker_id + '_' + datetime_str
 
-        if log_dest_dir:
-            log_dir_name = log_dest_dir
-        else:
-            log_dir_name = '%s/logs' % (os.getcwd())
+        assert log_dest_dir
+        worker_log_dir_name = os.path.join(log_dest_dir, "worker")
 
-        make_dir(log_dir_name)
-        os.chmod(log_dir_name, 0o775)
+        make_dir(worker_log_dir_name)
+        os.chmod(worker_log_dir_name, 0o775)
 
-        logFileName = '%s/jtm_%s.log' % (log_dir_name, datetime_str)
+        logFileName = '%s/jtm_%s.log' % (worker_log_dir_name, datetime_str)
         if worker_id:
-            logFileName = '%s/jtm_worker_%s.log' % (log_dir_name, datetime_str)
+            logFileName = '%s/jtm_worker_%s.log' % (worker_log_dir_name, datetime_str)
 
         file_logger = logging.FileHandler(logFileName)
         file_logger.setFormatter(formatter)

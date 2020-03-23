@@ -10,16 +10,18 @@ import uuid
 import datetime
 import pika
 
-from jaws_jtm.config import JTM_LOG, \
-    JGI_JTM_MAIN_EXCH, \
-    PIKA_VER, \
-    DEFAULT_POOL, \
-    USER_NAME, \
-    JTM_TASK_REQUEST_Q, \
-    JTMINTERFACE_MAX_TRIAL
+from jaws_jtm.config import JtmConfig
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_jtm.lib.run import make_dir, eprint
+
+config = JtmConfig()
+DEFAULT_POOL = config.constants.DEFAULT_POOL
+JTM_LOG = config.configparser.get("JTM", "log_dir")
+JGI_JTM_MAIN_EXCH = config.configparser.get("JTM", "jgi_jtm_main_exch")
+USER_NAME = config.configparser.get("SITE", "user_name")
+JTM_TASK_REQUEST_Q = config.configparser.get("JTM", "jtm_task_request_q")
+JTMINTERFACE_MAX_TRIAL = config.configparser.getint("JTM", "jtminterface_max_trial")
 
 
 class JtmInterface(object):
@@ -66,14 +68,9 @@ class JtmInterface(object):
                                 routing_key=self.callback_queue)
         self.channel.basic_qos(prefetch_count=1)
 
-        if int(PIKA_VER[0]) < 1:  # v0.13.1
-            self.channel.basic_consume(self.on_response,
-                                       queue=self.callback_queue,
-                                       no_ack=False)
-        else:  # v1.0.1 or higher
-            self.channel.basic_consume(queue=self.callback_queue,
-                                       on_message_callback=self.on_response,
-                                       auto_ack=False)
+        self.channel.basic_consume(queue=self.callback_queue,
+                                   on_message_callback=self.on_response,
+                                   auto_ack=False)
 
     def on_response(self, ch, method, props, body):
         if self.corr_id == props.correlation_id:

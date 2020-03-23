@@ -6,14 +6,17 @@
 #
 import pika
 import sys
-from jaws_jtm.config import RMQ_USER, \
-    RMQ_PASS, \
-    RMQ_HOST, \
-    RMQ_VHOST, \
-    JGI_JTM_MAIN_EXCH, \
-    RMQ_PORT
+from jaws_jtm.config import JtmConfig
 from jaws_jtm.common import logger
 from jaws_jtm.lib.msgcompress import zdumps
+
+config = JtmConfig()
+RMQ_USER = config.configparser.get("RMQ", "user")
+RMQ_HOST = config.configparser.get("RMQ", "host")
+RMQ_PORT = config.configparser.getint("RMQ", "port")
+RMQ_PASS = config.configparser.get("RMQ", "password")
+RMQ_VHOST = config.configparser.get("RMQ", "vhost")
+JGI_JTM_MAIN_EXCH = config.configparser.get("JTM", "jgi_jtm_main_exch")
 
 
 class RmqConnection(object):
