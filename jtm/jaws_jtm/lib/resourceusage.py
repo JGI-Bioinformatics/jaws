@@ -15,10 +15,10 @@ import re
 import pprint
 
 from jaws_jtm.lib.run import back_ticks, eprint
-from jaws_jtm.config import JTM_WORKER_NUM_THREADS
 from jaws_jtm.common import logger
 
 SCALE_INV = ((1024.*1024., "MB"), (1024., "KB"))
+JTM_WORKER_NUM_THREADS = 5
 
 
 # -------------------------------------------------------------------------------
@@ -248,7 +248,7 @@ def get_pid_tree(pid):
         try:
             # ps_stdout_str = back_ticks(cmd, shell=True)
             ps_stdout_str = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE).communicate()[0]
-            child_pid_list.extend([int(pidStr) for pidStr in ps_stdout_str.split("\n")[:-1]])
+            child_pid_list.extend([int(pidStr) for pidStr in ps_stdout_str.decode().split("\n")[:-1]])
         except subprocess.CalledProcessError as msg:
             logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
             child_pid_list = []
@@ -295,7 +295,7 @@ def get_num_workers_on_node():
     0
     """
     cmd = "ps ax | grep -v grep | grep jtm-worker | wc -l"
-    # ps_stdout_str = 0
+    ps_stdout_str = 0
 
     try:
         ps_stdout_str = back_ticks(cmd, shell=True)

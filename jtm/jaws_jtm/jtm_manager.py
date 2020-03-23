@@ -242,64 +242,46 @@ import pika
 import shortuuid
 import os
 
-from jaws_jtm.config import JTM_WORKER_HB_EXCH, \
-    JTM_TASK_REQUEST_Q, \
-    PIKA_VER, \
-    WORKER_HB_Q_POSTFIX, \
-    MYSQL_DB, \
-    PRODUCTION, \
-    USER_NAME, \
-    MYSQL_USER, \
-    MYSQL_PORT, \
-    MYSQL_HOST, \
-    RMQ_PORT, \
-    RMQ_HOST, \
-    JGI_JTM_MAIN_EXCH, \
-    JTM_TASK_RESULT_Q, \
-    JTM_FILE_LOGGING, \
-    JTM_STREAM_LOGGING, \
-    VERSION, \
-    JTM_LOG, \
-    WORKER_KILL_INTERVAL, \
-    TASK_KILL_INTERVAL, \
-    TASK_STATUS, \
-    CNAME, \
-    TASK_TYPE, \
-    JTM_INNER_MAIN_EXCH, \
-    JTM_INNER_REQUEST_Q, \
-    WORKER_HB_RECV_INTERVAL, \
-    JTM_WORKER_POISON_EXCH, \
-    JTM_WORKER_POISON_Q, \
-    JTM_TASK_KILL_Q, \
-    JTM_TASK_KILL_EXCH, \
-    TASK_STAT_UPDATE_INTERVAL, \
-    JTM_INNER_RESULT_Q, \
-    WORKER_TYPE, \
-    ENV_ACTIVATION, \
-    NNODES, \
-    NWORKERS, \
-    CORI_CHARGE_ACCNT, \
-    CORI_QOS, \
-    CORI_CONSTRAINT, \
-    MEMPERNODE, \
-    NCPUS, \
-    CLUSTER, \
-    DONE_FLAGS, \
-    RUNS_INFO_UPDATE_WAIT, \
-    WORKER_INFO_UPDATE_WAIT, \
-    RESULT_RECEIVE_INTERVAL, \
-    NUM_RESULT_RECV_THREADS, \
-    CLIENT_HB_SEND_INTERVAL, \
-    JTM_CLIENT_HB_EXCH, \
-    WORKER_HB_CHECK_MAX_COUNT, \
-    HB_MSG, \
-    CLIENT_HB_RECV_INTERVAL
+# from jaws_jtm.config import config, TASK_STATUS, VERSION, TASK_TYPE, WORKER_TYPE, DONE_FLAGS, HB_MSG
 from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.lib.sqlstmt import JTM_SQL
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB, send_msg_callback
 from jaws_jtm.lib.dbutils import DbSqlMy
 from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command
 from jaws_jtm.lib.msgcompress import zdumps, zloads
+
+from jaws_jtm.config import JtmConfig
+config = JtmConfig()
+TASK_STATUS = config.constants.TASK_STATUS
+VERSION = config.constants.VERSION
+TASK_TYPE = config.constants.TASK_TYPE
+WORKER_TYPE = config.constants.WORKER_TYPE
+DONE_FLAGS = config.constants.DONE_FLAGS
+HB_MSG = config.constants.HB_MSG
+
+MYSQL_HOST = config.configparser.get("MYSQL", "host")
+MYSQL_USER = config.configparser.get("MYSQL", "user")
+MYSQL_PORT = config.configparser.getint("MYSQL", "port")
+MYSQL_DB = config.configparser.get("MYSQL", "db")
+JTM_INNER_MAIN_EXCH = config.configparser.get("JTM", "jtm_inner_main_exch")
+CNAME = config.configparser.get("SITE", "instance_name")
+JTM_TASK_RESULT_Q = config.configparser.get("JTM", "jtm_task_result_q")
+JTM_TASK_REQUEST_Q = config.configparser.get("JTM", "jtm_task_request_q")
+JGI_JTM_MAIN_EXCH = config.configparser.get("JTM", "jgi_jtm_main_exch")
+JTM_INNER_REQUEST_Q = config.configparser.get("JTM", "jtm_inner_request_q")
+JTM_INNER_RESULT_Q = config.configparser.get("JTM", "jtm_inner_result_q")
+WORKER_HB_RECV_INTERVAL = config.configparser.getfloat("JTM", "worker_hb_recv_interval")
+JTM_WORKER_POISON_EXCH = config.configparser.get("JTM", "jtm_worker_poison_exch")
+JTM_WORKER_POISON_Q = config.configparser.get("JTM", "jtm_worker_poison_q")
+JTM_TASK_KILL_EXCH = config.configparser.get("JTM", "jtm_task_kill_exch")
+JTM_TASK_KILL_Q = config.configparser.get("JTM", "jtm_task_kill_q")
+TASK_STAT_UPDATE_INTERVAL = config.configparser.getfloat("JTM", "task_stat_update_interval")
+JTM_CLIENT_HB_EXCH = config.configparser.get("JTM", "jtm_client_hb_exch")
+JTM_WORKER_HB_EXCH = config.configparser.get("JTM", "jtm_worker_hb_exch")
+WORKER_KILL_INTERVAL = config.configparser.getfloat("JTM", "worker_kill_interval")
+TASK_KILL_INTERVAL = config.configparser.getfloat("JTM", "task_kill_interval")
+CLIENT_HB_SEND_INTERVAL = config.configparser.getfloat("JTM", "client_hb_send_interval")
+NUM_RESULT_RECV_THREADS = config.configparser.getint("JTM", "num_result_recv_threads")
 
 print("JGI Task Manager, version: %s" % (VERSION))  # VERSION <- Config.py
 
@@ -352,7 +334,7 @@ def recv_hb_from_workers_thread(hb_queue_name, hb_send_proc_handle, log_dest_dir
     b_is_msg_cleared = False  # all stacked messages are processed or not
     b_is_worker_found = False  # is any alive worker
     max_worker_check_count = 0  # max number of checking workers
-    interval = CLIENT_HB_RECV_INTERVAL
+    interval = config.configparser.getfloat("JTM", "client_hb_recv_interval")
 
     # Todo: need to open/close in place to evade from locking. Any other solutions?
     # Note: tried connection pool but not working as expected
@@ -362,10 +344,7 @@ def recv_hb_from_workers_thread(hb_queue_name, hb_send_proc_handle, log_dest_dir
     while 1:
         worker_ids_dict = {}
         try:
-            if int(PIKA_VER[0]) < 1:  # v0.13.1
-                method_frame, header_frame, body = ch.basic_get(queue=hb_queue_name, no_ack=True)
-            else:  # v1.0.1 or higher
-                method_frame, header_frame, body = ch.basic_get(queue=hb_queue_name, auto_ack=True)
+            method_frame, header_frame, body = ch.basic_get(queue=hb_queue_name, auto_ack=True)
 
             # Get all the hb messages from workers
             # if method_frame:
@@ -381,10 +360,7 @@ def recv_hb_from_workers_thread(hb_queue_name, hb_send_proc_handle, log_dest_dir
         if body and not b_is_msg_cleared:
             # To clear up any heartbeat messages left in the heartbeat queue.
             for i in range(int(method_frame.message_count)):
-                if int(PIKA_VER[0]) < 1:  # v0.13.1
-                    _, _, _ = ch.basic_get(queue=hb_queue_name, no_ack=True)
-                else:  # v1.0.1 or higher
-                    _, _, _ = ch.basic_get(queue=hb_queue_name, auto_ack=True)
+                _, _, _ = ch.basic_get(queue=hb_queue_name, auto_ack=True)
 
             b_is_msg_cleared = True
 
@@ -406,10 +382,7 @@ def recv_hb_from_workers_thread(hb_queue_name, hb_send_proc_handle, log_dest_dir
 
             # Worker's hb should be more than one so consume all the hb's
             for i in range(int(method_frame.message_count)):
-                if int(PIKA_VER[0]) < 1:  # v0.13.1
-                    method_frame, header_frame, body = ch.basic_get(queue=hb_queue_name, no_ack=True)
-                else:  # v1.0.1 or higher
-                    method_frame, header_frame, body = ch.basic_get(queue=hb_queue_name, auto_ack=True)
+                method_frame, header_frame, body = ch.basic_get(queue=hb_queue_name, auto_ack=True)
 
                 msg_unzipped = json.loads(zloads(body))
                 msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
@@ -713,7 +686,6 @@ def recv_hb_from_workers_thread(hb_queue_name, hb_send_proc_handle, log_dest_dir
 
             db.close()
             NUM_TOTAL_WORKERS.value = int(alive_total_num_workers) if alive_total_num_workers else 0
-            # logger.debug("Total number of workers in table (alive + requested): %d", NUM_TOTAL_WORKERS.value)
             logger.debug("# workers: in hb=%d, in table=%d, alive+requested=NUM_TOTAL_WORKERS=%d"
                          % (len(alive_worker_id_list), len(live_worker_id_list), NUM_TOTAL_WORKERS.value))
 
@@ -731,7 +703,7 @@ def recv_hb_from_workers_thread(hb_queue_name, hb_send_proc_handle, log_dest_dir
             # Increase interval. default=1.2
             # Todo: still need this? ==> 11.13.2018 removed
             # intervalIncRate = intervalIncRate * CLIENT_HB_RECEIVE_INT_INC_RATE
-
+            WORKER_HB_CHECK_MAX_COUNT = config.configparser.getint("JTM", "worker_hb_check_max_count")
             if WORKER_HB_CHECK_MAX_COUNT != 0 and \
                     max_worker_check_count > WORKER_HB_CHECK_MAX_COUNT:  # hit the max checking limit
                 # Close connection and kill parent and itself
@@ -766,7 +738,6 @@ def recv_hb_from_workers_thread(hb_queue_name, hb_send_proc_handle, log_dest_dir
         except Exception as e:
             logger.critical(e)
             logger.critical("RMQ connection lost.")
-            # sys.exit(1)
             os._exit(1)
 
     # unreachable
@@ -788,7 +759,6 @@ def send_hb_to_workers_thread():
     exch_name = JTM_CLIENT_HB_EXCH
 
     ch.exchange_declare(exchange=exch_name,
-                        # exchange_type="fanout",
                         exchange_type="topic",
                         durable=False,
                         auto_delete=False)
@@ -800,10 +770,8 @@ def send_hb_to_workers_thread():
     try:
         while 1:
             ch.basic_publish(exchange=exch_name,
-                             # routing_key='',
                              routing_key="*." + CNAME,  # all workers with CNAME can hear it
                              body=msg_zipped)
-            # time.sleep(CLIENT_HB_SEND_INTERVAL)
             conn.process_data_events(time_limit=CLIENT_HB_SEND_INTERVAL)
     except Exception as e:
         logger.critical("Something wrong in send_hb_to_workers_thread(): %s", e)
@@ -867,10 +835,7 @@ def recv_result_from_workers_thread():
     # ch.basic_consume(recv_result_on_result_callback, inner_result_queue_name, auto_ack=False)
 
     # OLD
-    if int(PIKA_VER[0]) < 1:  # v0.13.1
-        ch.basic_consume(recv_result_on_result, queue=inner_result_queue_name, no_ack=False)
-    else:  # v1.0.1 or higher
-        ch.basic_consume(queue=inner_result_queue_name, on_message_callback=recv_result_on_result)
+    ch.basic_consume(queue=inner_result_queue_name, on_message_callback=recv_result_on_result)
 
     # NEW
     # threads = []
@@ -985,7 +950,7 @@ def recv_result_on_result(ch, method, props, body):
             # issue: status is not changed to 4 after the update
             # Todo: need to improve
             #############################################
-            # time.sleep(RESULT_RECEIVE_INTERVAL)
+            RESULT_RECEIVE_INTERVAL = config.configparser.getfloat("JTM", "result_receive_interval")
             ch._connection.sleep(RESULT_RECEIVE_INTERVAL)
             #############################################
 
@@ -1013,9 +978,8 @@ def recv_result_on_result(ch, method, props, body):
                     a_worker_id_to_check = int(rows[0][0])
                 except Exception:
                     a_worker_id_to_check = 0
-                    # logger.debug("select_workerid2_workers_by_wid sleep for %d" % WORKER_INFO_UPDATE_WAIT)
 
-                # time.sleep(WORKER_INFO_UPDATE_WAIT)
+                WORKER_INFO_UPDATE_WAIT = config.configparser.getfloat("JTM", "worker_info_update_wait")
                 ch._connection.sleep(WORKER_INFO_UPDATE_WAIT)
 
             # new
@@ -1043,6 +1007,7 @@ def recv_result_on_result(ch, method, props, body):
                     logger.debug("Retry to update runs table for status and workerid2.")
                     # raise
                     success = False
+                    RUNS_INFO_UPDATE_WAIT = config.configparser.getfloat("JTM", "runs_info_update_wait")
                     logger.debug("update_runs_status_workerid2_by_taskid_2 sleep for %d" % RUNS_INFO_UPDATE_WAIT)
                     # time.sleep(RUNS_INFO_UPDATE_WAIT)
                     ch._connection.sleep(RUNS_INFO_UPDATE_WAIT)
@@ -1152,17 +1117,16 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
 
         # Set default values defined in Config.py
         pool_name = pool_spec_json_str["name"]
-        pool_cluster = CLUSTER
-        # pool_time = pool_spec_json_str["time"]
-        pool_ncpus = NCPUS
-        pool_mem = MEMPERNODE
-        pool_constraint = CORI_CONSTRAINT
-        pool_qos = CORI_QOS
-        pool_charge_account = CORI_CHARGE_ACCNT
+        pool_cluster = config.configparser.get("JTM", "cluster")
+        pool_ncpus = config.configparser.getint("JTM", "ncpus")
+        pool_mem = config.configparser.get("JTM", "mempernode")
+        pool_constraint = config.configparser.get("SLURM", "constraint")
+        pool_charge_account = config.configparser.get("SLURM", "charge_accnt")
+        pool_qos = config.configparser.get("SLURM", "qos")
 
         # Note: pool size = num_nodes_to_request * num_workers_per_node
-        num_workers_per_node = NWORKERS
-        num_nodes_to_request = NNODES
+        num_workers_per_node = config.configparser.getint("JTM", "num_workers_per_node")
+        num_nodes_to_request = config.configparser.getint("JTM", "nnodes")
 
         # Worker type is restricted to "dynamic" for now.
         # Todo: add the feature to remove the custom pool by user task to support "static"
@@ -1261,9 +1225,8 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             # NOTE: User can request only "dynamic" workers from WDL. The "static" workers are managed
             #  by the admin.
             uniq_worker_id = str(shortuuid.uuid())
-            sbatch_cmd_str = """{} && jtm-worker -wt dynamic {} -cl {} -c {} -t {} -m {} -wi {} -C {} -nw {} --qos {} --account {}\
-            """.format(ENV_ACTIVATION,
-                       "-tp %s" % pool_name if pool_name else "",  # if "", 'small' will be set from jtm-worker
+            sbatch_cmd_str = """jtm-worker -wt dynamic {} -cl {} -c {} -t {} -m {} -wi {} -C {} -nw {} --qos {} --account {}\
+            """.format("-tp %s" % pool_name if pool_name else "",  # if "", 'small' will be set from jtm-worker
                        pool_cluster,
                        pool_ncpus,
                        pool_time,
@@ -2032,7 +1995,7 @@ def task_kill_thread():
 
 
 # -------------------------------------------------------------------------------
-def zombie_worker_cleanup_thead():
+def zombie_worker_cleanup_thread():
     """
     Try to find cancelled slurm job
     If any, update workers table
@@ -2066,6 +2029,10 @@ def zombie_worker_cleanup_thead():
 def manager():
     desc = u"jgi-task-manager"
     parser = argparse.ArgumentParser(description=desc)
+    # parser.add_argument("-cf", "--config",
+    #                     help="Config file",
+    #                     dest="jtm_config_file",
+    #                     default="~/jtm.ini")
     parser.add_argument("-l", "--loglevel",
                         help="Set loglevel (default=info).",
                         dest="log_level",
@@ -2075,7 +2042,7 @@ def manager():
                         help="jtm log file path (default=/tmp/logs).",
                         dest="log_dir_name",
                         required=False,
-                        default=JTM_LOG)
+                        )
     parser.add_argument("-r", "--resource",
                         action="store_true",
                         help="Print resource usage report. Display format: "
@@ -2096,14 +2063,25 @@ def manager():
                         version=VERSION)  # VERSION <- Config.py
     args = parser.parse_args()
 
-    # Logger setting
-    log_dir_name = args.log_dir_name
-    # make_dir_p(log_dir_name)
+    # Log dir setting
+    log_dir_name = os.path.join(config.configparser.get("JTM", "log_dir"), "log")
+    if args.log_dir_name:
+        log_dir_name = args.log_dir_name
     make_dir(log_dir_name)
 
-    setup_custom_logger(args.log_level, args.log_dir_name, JTM_STREAM_LOGGING, JTM_FILE_LOGGING)
+    setup_custom_logger(args.log_level, log_dir_name, 1, 1)
+    logger.info("Set jtm log file location to %s", log_dir_name)
 
-    logger.info("Set jtm log file location to %s", args.log_dir_name)
+    RMQ_HOST = config.configparser.get("RMQ", "host")
+    RMQ_PORT = config.configparser.get("RMQ", "port")
+    USER_NAME = config.configparser.get("SITE", "user_name")
+    PRODUCTION = False
+    if config.configparser.get("JTM", "run_mode") == "prod":
+        PRODUCTION = True
+    JGI_JTM_MAIN_EXCH = config.configparser.get("JTM", "jgi_jtm_main_exch")
+    JTM_TASK_RESULT_Q = config.configparser.get("JTM", "jtm_task_result_q")
+    JTM_TASK_REQUEST_Q = config.configparser.get("JTM", "jtm_task_request_q")
+    WORKER_HB_Q_POSTFIX = config.configparser.get("JTM", "worker_hb_q_postfix")
 
     # Remote broker (rmq.nersc.gov) connection open
     rmq_conn = RmqConnectionHB()
@@ -2149,7 +2127,7 @@ def manager():
     logger.info("RabbitMQ port: %s", RMQ_PORT)
     logger.info("Default task queue name: %s", JTM_TASK_REQUEST_Q)
     logger.info("Default result queue name: %s", JTM_TASK_RESULT_Q)
-    logger.info("Pika version: %s", PIKA_VER)
+    logger.info("Pika version: %s", pika.__version__)
     logger.info("Database server: %s", MYSQL_HOST)
     logger.info("Database port: %s", MYSQL_PORT)
     logger.info("Database user name: %s", MYSQL_USER)
@@ -2195,7 +2173,7 @@ def manager():
     task_kill_proc.start()
 
     # Start worker cleanup thread
-    worker_cleanup_proc = multiprocessing.Process(target=zombie_worker_cleanup_thead)
+    worker_cleanup_proc = multiprocessing.Process(target=zombie_worker_cleanup_thread)
     worker_cleanup_proc.daemon = True
     worker_cleanup_proc.start()
 
@@ -2218,10 +2196,7 @@ def manager():
     # all_channels (bool) – Should the QoS apply to all channels
     #
     ch.basic_qos(prefetch_count=1)
-    if int(PIKA_VER[0]) < 1:  # v0.13.1
-        ch.basic_consume(on_task_request, queue=JTM_TASK_REQUEST_Q, no_ack=False)
-    else:  # v1.0.1 or higher
-        ch.basic_consume(queue=JTM_TASK_REQUEST_Q, on_message_callback=on_task_request, auto_ack=False)
+    ch.basic_consume(queue=JTM_TASK_REQUEST_Q, on_message_callback=on_task_request, auto_ack=False)
 
     # NOTE: the below methods might cause error in consuming messages which are already queued
     # ch.basic_consume(lambda ch, method, properties, body: on_task_request(ch, method, properties, body, g_dbConnPool),

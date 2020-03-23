@@ -17,15 +17,19 @@ import argparse
 import sys
 
 from jaws_jtm.lib.jtminterface import JtmInterface
-from jaws_jtm.config import COMPUTE_RESOURCES, \
-    QOS_LIST, \
-    CORI_QOS, \
-    NWORKERS, \
-    NNODES, \
-    MEMPERNODE, \
-    CORI_CONSTRAINT, \
-    CORI_CHARGE_ACCNT
 from jaws_jtm.lib.run import eprint
+from jaws_jtm.config import JtmConfig
+
+config = JtmConfig()
+COMPUTE_RESOURCES = config.constants.COMPUTE_RESOURCES
+QOS_LIST = config.constants.QOS_LIST
+
+QOS = config.configparser.get("SLURM", "qos")
+NWORKERS = config.configparser.getint("JTM", "num_workers_per_node")
+NNODES = config.configparser.getint("SLURM", "nnodes")
+MEMPERNODE = config.configparser.get("SLURM", "mempernode")
+CONSTRAINT = config.configparser.get("SLURM", "constraint")
+CHARGE_ACCNT = config.configparser.get("SLURM", "charge_accnt")
 
 
 def submit():
@@ -51,7 +55,7 @@ def submit():
     # This will be used for create a separate pool of jtm-worker(s)
     parser.add_argument("-A", "--account",
                         dest="account",
-                        default=CORI_CHARGE_ACCNT)
+                        default=CHARGE_ACCNT)
     parser.add_argument("-c", "--cpu",
                         help="Number of cores",
                         type=int,
@@ -60,7 +64,7 @@ def submit():
                         help="Set the architecture to Haswell or KNL on Cori",
                         dest="constraint",
                         choices=["haswell", "knl", "skylake"],
-                        default=CORI_CONSTRAINT)
+                        default=CONSTRAINT)
     parser.add_argument("-jid", "--job-id",
                         help="Unique Cromwell job id with step name",
                         dest="cromwell_job_name",
@@ -86,7 +90,7 @@ def submit():
     parser.add_argument("-q", "--qos",
                         dest="qos",
                         choices=QOS_LIST,
-                        default=CORI_QOS)
+                        default=QOS)
     parser.add_argument("-s", "--shared",
                         help="Shared workers.",
                         dest="shared_worker",

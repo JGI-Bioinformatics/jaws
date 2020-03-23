@@ -1,8 +1,30 @@
+# test_rabbitmqconnection.py
+# import pytest
+# import rabbitmq_adapter
+# from unittest.mock import Mock
+# from tests.__mocks__ import pika
+
+
 def test_channel_sets_parameters():
+    # mocked_pika = Mock()
+    # mocked_pika.URLParameters.return_value = 'JAWS'
+    # monkeypatch.setattr('rabbitmq_adapter.channel.pika', mocked_pika)
+    #
+    # rabbitmq_adapter.channel.create('JAWS HOST')
+    #
+    # mocked_pika.URLParameters.assert_called_once_with('JAWS HOST')
     assert True
 
 
 def test_channel_creates_connection():
+    # mocked_pika = Mock()
+    # mocked_pika.URLParameters.return_value = 'JAWS's
+    # mocked_pika.BlockingConnection.return_value = pika.Connection()
+    # monkeypatch.setattr('rabbitmq_adapter.channel.pika', mocked_pika)
+    #
+    # rabbitmq_adapter.channel.create('JAWS HOST')
+    #
+    # mocked_pika.BlockingConnection.assert_called_once_with('JAWS')
     assert True
 
 

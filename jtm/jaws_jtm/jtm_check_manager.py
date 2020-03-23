@@ -9,7 +9,9 @@ import socket
 import argparse
 
 from jaws_jtm.lib.jtminterface import JtmInterface
-from jaws_jtm.config import COMPUTE_RESOURCES
+from jaws_jtm.config import JtmConfig
+config = JtmConfig()
+COMPUTE_RESOURCES = config.constants.COMPUTE_RESOURCES
 
 
 def check_manager():

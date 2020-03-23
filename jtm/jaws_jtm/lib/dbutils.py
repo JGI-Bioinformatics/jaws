@@ -5,11 +5,14 @@
 import sys
 import atexit
 import time
-from jaws_jtm.config import MYSQL_HOST, \
-    MYSQL_DB, \
-    MYSQL_USER, \
-    MYSQL_PW, \
-    MYSQL_PORT
+
+from jaws_jtm.config import JtmConfig
+config = JtmConfig()
+MYSQL_HOST = config.configparser.get("MYSQL", "host")
+MYSQL_USER = config.configparser.get("MYSQL", "user")
+MYSQL_PW = config.configparser.get("MYSQL", "password")
+MYSQL_PORT = config.configparser.getint("MYSQL", "port")
+MYSQL_DB = config.configparser.get("MYSQL", "db")
 
 # Classes that describe definitions of SQL fields and table
 # These are used primarily to construct DDL statements.

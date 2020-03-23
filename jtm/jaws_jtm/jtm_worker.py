@@ -34,7 +34,7 @@ Revisions
     03.03.2017 3.0.3: Added custom log file location option for worker
     07.10.2017 3.0.4: Updated to print task id when completed
 
-    09.12.2018 3.1.0: Branched out "jtm"; Updated for pika=0.12.0; Changed "type" to "exchange_type"
+    09.12.2018 3.1.0: Branched out "JTM"; Updated for pika=0.12.0; Changed "type" to "exchange_type"
                       in exchange_declare();
                       Added "jgi_jtm_task_manager" exchange for task and result messages
     09.13.2018 3.1.1: Added unique worker id
@@ -128,52 +128,7 @@ import time
 import pika
 
 from jaws_jtm.common import setup_custom_logger, logger
-from jaws_jtm.config import PIKA_VER, \
-    COMPUTE_RESOURCES, \
-    VERSION, \
-    JTM_WORKER_STREAM_LOGGING, \
-    JTM_WORKER_FILE_LOGGING, \
-    RMQ_PORT, \
-    USER_NAME, \
-    PRODUCTION, \
-    JOBTIME, \
-    CORI_CONSTRAINT, \
-    CORI_KNL_CHARGE_ACCNT, \
-    CORI_KNL_QOS, \
-    CORI_CHARGE_ACCNT, \
-    CORI_QOS, \
-    WORKER_HB_SEND_INTERVAL, \
-    WORKER_TIMEOUT, \
-    JTM_INNER_REQUEST_Q, \
-    CTR, \
-    RMQ_HOST, \
-    LAWRENCIUM_PARTITION, \
-    JGI_CLOUD_PARTITION, \
-    LAWRENCIUM_QOS, \
-    JGI_CLOUD_QOS, \
-    LAWRENCIUM_CHARGE_ACCNT, \
-    JGI_CLOUD_ACCNT, \
-    ENV_ACTIVATION, \
-    JTM_INNER_MAIN_EXCH, \
-    WORKER_HB_Q_POSTFIX, \
-    JTM_LOG, \
-    JTM_WORKER_POISON_Q, \
-    JTM_WORKER_POISON_EXCH, \
-    JTM_TASK_KILL_Q, \
-    JTM_TASK_KILL_EXCH, \
-    JOB_LOG, \
-    TASK_TYPE, \
-    CNAME, \
-    CLIENT_HB_Q_POSTFIX, \
-    JTM_CLIENT_HB_EXCH, \
-    HB_MSG, \
-    WORKER_TYPE, \
-    JTM_HOST_NAME, \
-    JTM_WORKER_HB_EXCH, \
-    DONE_FLAGS, \
-    FILE_CHECK_INT_INC, \
-    FILE_CHECKING_MAX_TRIAL, \
-    FILE_CHECK_INTERVAL
+from jaws_jtm.config import JtmConfig
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.resourceusage import get_cpu_load, \
     get_runtime, get_pid_tree, get_virtual_memory_usage, \
@@ -182,12 +137,9 @@ from jaws_jtm.lib.resourceusage import get_cpu_load, \
 from jaws_jtm.lib.run import make_dir, run_sh_command
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 
-
 # This ipc pipe is to send task_id (by on_request())to send_hb_to_client_thread()
 # when a task is requested
 PIPE_TASK_ID_SEND, PIPE_TASK_ID_RECV = multiprocessing.Pipe()
-
-print("JTM Worker, version: {}".format(VERSION))  # VERSION <- Config.py
 
 # -------------------------------------------------------------------------------
 # Globals
@@ -202,6 +154,28 @@ UNIQ_WORKER_ID = str(shortuuid.uuid())
 IS_CLIENT_ALIVE = False
 WORKER_START_TIME = datetime.datetime.now()
 PARENT_PROCESS_ID = os.getpid()  # parent process id
+
+config = JtmConfig()
+WORKER_TYPE = config.constants.WORKER_TYPE
+HB_MSG = config.constants.HB_MSG
+VERSION = config.constants.VERSION
+COMPUTE_RESOURCES = config.constants.COMPUTE_RESOURCES
+TASK_TYPE = config.constants.TASK_TYPE
+DONE_FLAGS = config.constants.DONE_FLAGS
+
+CNAME = config.configparser.get("SITE", "instance_name")
+JTM_HOST_NAME = config.configparser.get("SITE", "jtm_host_name")
+JTM_INNER_REQUEST_Q = config.configparser.get("JTM", "jtm_inner_request_q")
+CTR = config.configparser.getfloat("JTM", "clone_time_rate")
+JTM_INNER_MAIN_EXCH = config.configparser.get("JTM", "jtm_inner_main_exch")
+JTM_CLIENT_HB_EXCH = config.configparser.get("JTM", "jtm_client_hb_exch")
+JTM_WORKER_HB_EXCH = config.configparser.get("JTM", "jtm_worker_hb_exch")
+CLIENT_HB_Q_POSTFIX = config.configparser.get("JTM", "client_hb_q_postfix")
+WORKER_HB_Q_POSTFIX = config.configparser.get("JTM", "worker_hb_q_postfix")
+JTM_TASK_KILL_EXCH = config.configparser.get("JTM", "jtm_task_kill_exch")
+JTM_TASK_KILL_Q = config.configparser.get("JTM", "jtm_task_kill_q")
+JTM_WORKER_POISON_EXCH = config.configparser.get("JTM", "jtm_worker_poison_exch")
+JTM_WORKER_POISON_Q = config.configparser.get("JTM", "jtm_worker_poison_q")
 
 
 # -------------------------------------------------------------------------------
@@ -278,6 +252,9 @@ def run_something(msg_unzipped, return_msg):
                 for i in range(len(ofs)):
                     out_file_list.append(ofs[i])
 
+                FILE_CHECK_INTERVAL = config.configparser.getfloat("JTM", "file_check_interval")
+                FILE_CHECKING_MAX_TRIAL = config.configparser.getint("JTM", "file_checking_max_trial")
+                FILE_CHECK_INT_INC = config.configparser.getfloat("JTM", "file_check_int_inc")
                 ret, file_size = check_output(out_file_list,
                                               FILE_CHECK_INTERVAL,
                                               FILE_CHECKING_MAX_TRIAL,
@@ -488,7 +465,8 @@ def check_output(out_files, out_file_check_wait_time=3,
 # -------------------------------------------------------------------------------
 def send_hb_to_client_thread(root_proc_id, interval, queue_child_proc_id, worker_id, pipe_task_id,
                              slurm_job_id, worker_type, mem_per_node, mem_per_core, num_cores,
-                             job_time, clone_time_rate, task_queue_name, pool_name, nwpn):
+                             job_time, clone_time_rate, task_queue_name, pool_name, nwpn,
+                             exch_name, worker_hb_queue):
     """
     Send heartbeats to the client
     :param root_proc_id: root_proc_id of this worker
@@ -516,9 +494,6 @@ def send_hb_to_client_thread(root_proc_id, interval, queue_child_proc_id, worker
     rmq_conn = RmqConnectionHB()
     conn = rmq_conn.open()
     ch = conn.channel()
-
-    exch_name = JTM_WORKER_HB_EXCH
-    worker_hb_queue = WORKER_HB_Q_POSTFIX
     host_name = socket.gethostname()
 
     ch.exchange_declare(exchange=exch_name,
@@ -726,13 +701,10 @@ def send_hb_to_client_thread(root_proc_id, interval, queue_child_proc_id, worker
 
 
 # -----------------------------------------------------------------------
-def recv_hb_from_client_thread2(task_queue, worker_id):
+def recv_hb_from_client_thread2(task_queue, worker_id, exch_name, cl_hb_q_postfix):
     rmq_conn = RmqConnectionHB()
     conn = rmq_conn.open()
     ch = conn.channel()
-
-    exch_name = JTM_CLIENT_HB_EXCH
-    # hb_interval = WORKER_HB_RECV_INTERVAL
     host_name = socket.gethostname()
 
     # Declare exchange
@@ -743,7 +715,7 @@ def recv_hb_from_client_thread2(task_queue, worker_id):
                         auto_delete=False)
 
     # Declare queue
-    client_hb_queue_name = "_jtm_worker_%s%s" % (worker_id, CLIENT_HB_Q_POSTFIX)
+    client_hb_queue_name = "_jtm_worker_%s%s" % (worker_id, cl_hb_q_postfix)
     ch.queue_declare(queue=client_hb_queue_name,
                      durable=False,
                      exclusive=True,
@@ -787,7 +759,7 @@ def recv_hb_from_client_thread2(task_queue, worker_id):
 
 
 # -------------------------------------------------------------------------------
-def recv_task_kill_request_thread(task_queue, worker_id, cluster_name):
+def recv_task_kill_request_thread(task_queue, worker_id, cluster_name, exch_name, queue_name):
     """
     Wait for task termination request from JTM
     :param task_queue: task queue (pool) name
@@ -799,8 +771,6 @@ def recv_task_kill_request_thread(task_queue, worker_id, cluster_name):
     conn = rmq_conn.open()
     ch = conn.channel()
 
-    exch_name = JTM_TASK_KILL_EXCH
-    queue_name = JTM_TASK_KILL_Q
     routing_key = str(worker_id)
 
     ch.exchange_declare(exchange=exch_name,
@@ -866,11 +836,7 @@ def recv_task_kill_request_thread(task_queue, worker_id, cluster_name):
 
     # Waiting for a task kill
     ch.basic_qos(prefetch_count=1)
-
-    if int(PIKA_VER[0]) < 1:  # v0.13.1
-        ch.basic_consume(on_kill, queue=queue_name, no_ack=False)
-    else:  # v1.0.1 or higher
-        ch.basic_consume(queue=queue_name, on_message_callback=on_kill, auto_ack=False)
+    ch.basic_consume(queue=queue_name, on_message_callback=on_kill, auto_ack=False)
 
     try:
         ch.start_consuming()
@@ -880,7 +846,8 @@ def recv_task_kill_request_thread(task_queue, worker_id, cluster_name):
 
 # -------------------------------------------------------------------------------
 def recv_reproduce_or_die_thread(task_queue, worker_id, cluster_name, mem_per_node, mem_per_core,
-                                 num_nodes, num_cores, wallclocktime, clone_time_rate, nwpn):
+                                 num_nodes, num_cores, wallclocktime, clone_time_rate, nwpn,
+                                 exch_name, queue_name):
     """
     Wait for process termination request from JTM
     :param task_queue: task queue (pool) name
@@ -898,9 +865,6 @@ def recv_reproduce_or_die_thread(task_queue, worker_id, cluster_name, mem_per_no
     rmq_conn = RmqConnectionHB()
     conn = rmq_conn.open()
     ch = conn.channel()
-
-    exch_name = JTM_WORKER_POISON_EXCH
-    queue_name = JTM_WORKER_POISON_Q
 
     ch.exchange_declare(exchange=exch_name,
                         exchange_type="direct",
@@ -927,8 +891,8 @@ def recv_reproduce_or_die_thread(task_queue, worker_id, cluster_name, mem_per_no
             elif msg_unzipped["num_clones"] == 1:
                 logger.info("Static worker cloning request received.")
 
-                jtm_worker_cmd = "{} && jtm-worker -wt static -cl {} -t {} -ct {}".format(
-                                ENV_ACTIVATION, cluster_name, wallclocktime, clone_time_rate)
+                jtm_worker_cmd = "jtm-worker -wt static -cl {} -t {} -ct {}".format(
+                                  cluster_name, wallclocktime, clone_time_rate)
 
                 if task_queue is not None:
                     jtm_worker_cmd += " -p {}".format(task_queue)
@@ -982,10 +946,7 @@ def recv_reproduce_or_die_thread(task_queue, worker_id, cluster_name, mem_per_no
 
     # waiting for poison or cloning command
     ch.basic_qos(prefetch_count=1)
-    if int(PIKA_VER[0]) < 1:  # v0.13.1
-        ch.basic_consume(on_poison, queue=queue_name, no_ack=False)
-    else:  # v1.0.1 or higher
-        ch.basic_consume(queue=queue_name, on_message_callback=on_poison, auto_ack=False)
+    ch.basic_consume(queue=queue_name, on_message_callback=on_poison, auto_ack=False)
 
     try:
         ch.start_consuming()
@@ -997,13 +958,18 @@ def recv_reproduce_or_die_thread(task_queue, worker_id, cluster_name, mem_per_no
 def worker():
     desc = u"JTM worker"
     parser = argparse.ArgumentParser(description=desc)
+
+    # parser.add_argument("-cf", "--config",
+    #                     help="Config file",
+    #                     dest="jtm_config_file",
+    #                     default="~/jtm.ini")
     # parser.add_argument("-cj", "--cromwell-jid",
     #                     help="Set Cromwell job name",
     #                     dest="cromwell_job_id")
     parser.add_argument("-hb", "--heartbeat",
                         help="heartbeat interval in second (default=10).",
                         dest="hearbeat_interval",
-                        type=int)  # default 5 sec
+                        type=int)
     parser.add_argument("-l", "--loglevel",
                         help="Set loglevel (default=info).",
                         dest="log_level",
@@ -1011,11 +977,11 @@ def worker():
     parser.add_argument("-jd", "--job_dir",
                         help="jtm job file path.",
                         dest="job_script_dir_name",
-                        default=JOB_LOG)
+                        )
     parser.add_argument("-ld", "--logdir",
                         help="jtm log file path.",
                         dest="log_dir_name",
-                        default=JTM_LOG)
+                        )
     parser.add_argument("-p", "--pool-name",
                         help="Set user-defined pool name. This should be same with task's 'pool' name.",
                         dest="task_queue_name",
@@ -1098,11 +1064,24 @@ def worker():
     parser.add_argument("-J", "--job-name",
                         help="Slurm job name",
                         dest="job_name")
-
     parser.add_argument("-v", "--version",
                         action="version",
-                        version=VERSION)  # VERSION <- Config.py
+                        version=VERSION)
     args = parser.parse_args()
+
+    # Job dir setting
+    job_script_dir_name = os.path.join(config.configparser.get("JTM", "log_dir"), "job")
+    if args.job_script_dir_name:
+        job_script_dir_name = args.job_script_dir_name
+    make_dir(job_script_dir_name)
+
+    # Log dir setting
+    log_dir_name = os.path.join(config.configparser.get("JTM", "log_dir"), "log")
+    if args.log_dir_name:
+        log_dir_name = args.log_dir_name
+    make_dir(log_dir_name)
+
+    print("JTM Worker, version: {}".format(VERSION))
 
     # Note: this is for allowing zero sized output file when check if the output file is
     #  successfully created. Currently output file checking is opted out in JTM.
@@ -1115,24 +1094,36 @@ def worker():
         UNIQ_WORKER_ID = args.worker_id
 
     # Logger setting
-    log_dir_name = args.log_dir_name
-    # make_dir_p(log_dir_name)
-    make_dir(log_dir_name)
-
-    # Job dir setting
-    job_script_dir_name = args.job_script_dir_name
-    # make_dir_p(job_script_dir_name)
-    make_dir(job_script_dir_name)
-
     setup_custom_logger(args.log_level, log_dir_name,
-                        JTM_WORKER_STREAM_LOGGING, JTM_WORKER_FILE_LOGGING,
+                        1, 1,
                         worker_id=UNIQ_WORKER_ID)
 
-    logger.info("Set jtm log file location to %s", args.log_dir_name)
-    logger.info("Set jtm job file location to %s", args.job_script_dir_name)
+    RMQ_HOST = config.configparser.get("RMQ", "host")
+    RMQ_PORT = config.configparser.get("RMQ", "port")
+    USER_NAME = config.configparser.get("SITE", "user_name")
+    PRODUCTION = False
+    if config.configparser.get("JTM", "run_mode") == "prod":
+        PRODUCTION = True
+    JOBTIME = config.configparser.get("SLURM", "jobtime")
+    CONSTRAINT = config.configparser.get("SLURM", "constraint")
+    CHARGE_ACCNT = config.configparser.get("SLURM", "charge_accnt")
+    QOS = config.configparser.get("SLURM", "qos")
+    PARTITION = config.configparser.get("SLURM", "partition")
+    MEMPERCPU = config.configparser.get("SLURM", "mempercpu")
+    NWORKERS = config.configparser.getint("JTM", "num_workers_per_node")
+    NCPUS = config.configparser.getint("SLURM", "ncpus")
+
+    # # Todo: site specific setting --> remove
+    # CORI_KNL_CHARGE_ACCNT = config.configparser.get("SLURM", "knl_charge_accnt")
+    # CORI_KNL_QOS = config.configparser.get("SLURM", "knl_qos")
+    hearbeat_interval = config.configparser.getfloat("JTM", "worker_hb_send_interval")
+    worker_timeout_in_sec = config.configparser.getfloat("JTM", "worker_timeout")
+
+    logger.info("Set jtm log file location to %s", log_dir_name)
+    logger.info("Set jtm job file location to %s", job_script_dir_name)
     logger.info("RabbitMQ broker: %s", RMQ_HOST)
     logger.info("RabbitMQ port: %s", RMQ_PORT)
-    logger.info("Pika version: %s", PIKA_VER)
+    logger.info("Pika version: %s", pika.__version__)
     logger.info("JTM user name: %s", USER_NAME)
     logger.info("Unique worker ID: %s", UNIQ_WORKER_ID)
     logger.info("**************")
@@ -1149,31 +1140,30 @@ def worker():
 
     ###########################################################################
     # 11.13.2018 decided to remove all default values from argparse
-    num_workers_per_node = args.num_workers_per_node if args.num_workers_per_node else 1
-    num_cpus_to_reques = args.num_cores_to_request if args.num_cores_to_request else 1
-    mem_per_cpu_to_request = args.mem_per_cpu_to_request if args.mem_per_cpu_to_request else "1GB"
+    num_workers_per_node = args.num_workers_per_node if args.num_workers_per_node else NWORKERS
+    num_cpus_to_request = args.num_cores_to_request if args.num_cores_to_request else NCPUS
+    mem_per_cpu_to_request = args.mem_per_cpu_to_request if args.mem_per_cpu_to_request else MEMPERCPU
     mem_per_node_to_request = args.mem_per_node_to_request if args.mem_per_node_to_request else ""
     ###########################################################################
 
     job_time_to_request = args.job_time_to_request if args.job_time_to_request else JOBTIME
 
-    constraint = args.constraint if args.constraint else CORI_CONSTRAINT
-    if constraint == "knl":
-        charging_account = args.charging_account if args.charging_account else CORI_KNL_CHARGE_ACCNT
-        qos = args.qos if args.qos else CORI_KNL_QOS
-    else:
-        charging_account = args.charging_account if args.charging_account else CORI_CHARGE_ACCNT
-        qos = args.qos if args.qos else CORI_QOS
+    constraint = args.constraint if args.constraint else CONSTRAINT
+    # Note: if it's KNL on Cori, user WDL should specify Account and Qos
+    # if constraint == "knl":
+    #     charging_account = args.charging_account if args.charging_account else CORI_KNL_CHARGE_ACCNT
+    #     qos = args.qos if args.qos else CORI_KNL_QOS
+    # else:
+    charging_account = args.charging_account if args.charging_account else CHARGE_ACCNT
+    qos = args.qos if args.qos else QOS
 
     worker_type = args.worker_type
     job_name = "jtm_worker_" + args.task_queue_name
 
     # Set task queue name
     inner_task_request_queue = None
-    hearbeat_interval = WORKER_HB_SEND_INTERVAL
     if args.hearbeat_interval:
         hearbeat_interval = args.hearbeat_interval
-    worker_timeout_in_sec = WORKER_TIMEOUT
     if args.worker_timeout_in_sec:
         worker_timeout_in_sec = args.worker_timeout_in_sec
 
@@ -1203,7 +1193,7 @@ def worker():
     dry_run = args.dry_run
 
     if cluster_name == "cori" and mem_per_cpu_to_request != "" and \
-            float(mem_per_cpu_to_request.replace("GB", "").replace("G", "")) > 1.0:
+            float(mem_per_cpu_to_request.replace("GB", "").replace("G", "").replace("gb", "")) > 1.0:
         logger.critical("--mem-per-cpu in Cori shouldn't be larger than 1GB. User '--mem' instead.")
         sys.exit(1)
 
@@ -1304,15 +1294,15 @@ def worker():
 
                         if args.num_cores_to_request:
                             batch_job_script_str += """
-#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_reques)
+#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_request)
                             batch_job_misc_params += " -c %(num_cores)d" % \
-                                                     dict(num_cores=num_cpus_to_reques)
+                                                     dict(num_cores=num_cpus_to_request)
 
                     else:
                         batch_job_script_str += """
-#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_reques)
+#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_request)
                         batch_job_misc_params += " -c %(num_cores)d" % \
-                                                 dict(num_cores=num_cpus_to_reques)
+                                                 dict(num_cores=num_cpus_to_request)
 
                         if args.mem_per_node_to_request:
                             batch_job_script_str += """
@@ -1337,7 +1327,7 @@ def worker():
                         # no qos _and_ -A m342 _and_ -C haswell
 
                         # Note: currently constraint in ["haswell" | "knl"]
-                        if args.constraint == "haswell":
+                        if constraint == "haswell":
                             if args.qos:
                                 batch_job_script_str += """
 #SBATCH -q %(qosname)s""" % dict(qosname=qos)
@@ -1356,7 +1346,7 @@ def worker():
                             batch_job_script_str += """
 #SBATCH -A %(charging_account)s""" % dict(charging_account=charging_account)
 
-                        elif args.constraint == "knl":
+                        elif constraint == "knl":
                             # Note: Basic KNL setting = "-q regular -A m342 -C knl"
                             #
                             # Note: KNL MCDRAM setting -> cache or flat
@@ -1379,7 +1369,7 @@ def worker():
                             batch_job_misc_params += " -A %(charging_account)s -q %(qosname)s" % \
                                                      dict(charging_account=charging_account, qosname=qos)
 
-                        elif args.constraint == "skylake":
+                        elif constraint == "skylake":
                             # Example usage with skylakte for Brian F.
                             # 120G
                             # ======================
@@ -1406,7 +1396,7 @@ def worker():
                                                      dict(charging_account=charging_account, qosname=qos)
 
                         excl_param = ""
-                        if args.constraint != "skylake":
+                        if constraint != "skylake":
                             excl_param = "#SBATCH --exclusive"
 
                         tq_param = ""
@@ -1421,7 +1411,7 @@ def worker():
 %(exclusive)s
 
 module unload python
-%(env_activation_cmd)s
+#%(env_activation_cmd)s
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
@@ -1444,9 +1434,9 @@ wait
                                                      clone_time_rate=worker_clone_time_rate,
                                                      task_queue=tq_param,
                                                      num_workers_per_node=num_workers_per_node,
-                                                     env_activation_cmd=ENV_ACTIVATION,
+                                                     # env_activation_cmd=ENV_ACTIVATION,
                                                      other_params=batch_job_misc_params,
-                                                     constraint=args.constraint,
+                                                     constraint=constraint,
                                                      job_name=job_name,
                                                      exclusive=excl_param)
 
@@ -1461,19 +1451,19 @@ wait
                         tp_param = "-p " + args.task_queue_name
                     part_param = ""
                     if cluster_name == "lawrencium":
-                        part_param = LAWRENCIUM_PARTITION
+                        part_param = PARTITION
                     else:
-                        part_param = JGI_CLOUD_PARTITION
+                        part_param = PARTITION
                     qos_param = ""
                     if cluster_name == "lawrencium":
-                        qos_param = LAWRENCIUM_QOS
+                        qos_param = QOS
                     else:
-                        qos_param = JGI_CLOUD_QOS
+                        qos_param = QOS
                     charge_param = ""
                     if cluster_name == "lawrencium":
-                        charge_param = LAWRENCIUM_CHARGE_ACCNT
+                        charge_param = CHARGE_ACCNT
                     else:
-                        charge_param = JGI_CLOUD_ACCNT
+                        charge_param = CHARGE_ACCNT
                     nnode_param = 1
                     if args.num_nodes_to_request:
                         nnode_param = num_nodes_to_request
@@ -1487,7 +1477,7 @@ wait
                     batch_job_script_str += """
 #SBATCH --time=%(wall_time)s
 #SBATCH --job-name=%(job_name)s
-#SBATCH --partition=%(partitio_name)s
+#SBATCH --partition=%(partition_name)s
 #SBATCH --qos=%(qosname)s
 #SBATCH --account=%(charging_account)s
 #SBATCH --nodes=%(num_nodes_to_request)d
@@ -1495,7 +1485,7 @@ wait
 #SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
 #SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
 %(set_env_for_jtm_host_name)s
-%(env_activation_cmd)s
+#%(env_activation_cmd)s
 
 for i in {1..%(num_workers_per_node)d}
 do
@@ -1513,7 +1503,7 @@ wait
 """ % \
                                             dict(wall_time=job_time_to_request,
                                                  job_name=job_name,
-                                                 partitio_name=part_param,
+                                                 partition_name=part_param,
                                                  qosname=qos_param,
                                                  charging_account=charge_param,
                                                  num_nodes_to_request=nnode_param,
@@ -1521,7 +1511,7 @@ wait
                                                  worker_id=UNIQ_WORKER_ID,
                                                  job_dir=job_script_dir_name,
                                                  set_env_for_jtm_host_name=setenv_param,
-                                                 env_activation_cmd=ENV_ACTIVATION,
+                                                 # env_activation_cmd=ENV_ACTIVATION,
                                                  num_workers_per_node=num_workers_per_node,
                                                  lbl_cluster_name=cluster_name,
                                                  worker_type=worker_type,
@@ -1602,7 +1592,9 @@ wait
     TASK_KILL_PROC_HANDLE = multiprocessing.Process(target=recv_task_kill_request_thread,
                                                     args=(args.task_queue_name,
                                                           UNIQ_WORKER_ID,
-                                                          cluster_name))
+                                                          cluster_name,
+                                                          JTM_TASK_KILL_EXCH,
+                                                          JTM_TASK_KILL_Q))
     TASK_KILL_PROC_HANDLE.daemon = True
     TASK_KILL_PROC_HANDLE.start()
 
@@ -1621,12 +1613,14 @@ wait
                                                                     worker_type,
                                                                     mem_per_node_to_request,
                                                                     mem_per_cpu_to_request,
-                                                                    num_cpus_to_reques,
+                                                                    num_cpus_to_request,
                                                                     job_time_to_request,
                                                                     worker_clone_time_rate,
                                                                     inner_task_request_queue,
                                                                     tp_name,
-                                                                    num_workers_per_node))
+                                                                    num_workers_per_node,
+                                                                    JTM_WORKER_HB_EXCH,
+                                                                    WORKER_HB_Q_POSTFIX))
 
     RECV_HB_FROM_CLIENT_PROC_HANDLE.daemon = True
     RECV_HB_FROM_CLIENT_PROC_HANDLE.start()
@@ -1642,10 +1636,12 @@ wait
                                                             mem_per_node_to_request,
                                                             mem_per_cpu_to_request,
                                                             num_nodes_to_request,
-                                                            num_cpus_to_reques,
+                                                            num_cpus_to_request,
                                                             job_time_to_request,
                                                             worker_clone_time_rate,
-                                                            num_workers_per_node))
+                                                            num_workers_per_node,
+                                                            JTM_WORKER_POISON_EXCH,
+                                                            JTM_WORKER_POISON_Q))
     RECV_POISON_PROC_HANDLE.daemon = True
     RECV_POISON_PROC_HANDLE.start()
 
@@ -1653,7 +1649,9 @@ wait
     global SEND_HB_TO_CLIENT_PROC_HANDLE
     SEND_HB_TO_CLIENT_PROC_HANDLE = multiprocessing.Process(target=recv_hb_from_client_thread2,
                                                             args=(inner_task_request_queue,
-                                                                  UNIQ_WORKER_ID))
+                                                                  UNIQ_WORKER_ID,
+                                                                  JTM_CLIENT_HB_EXCH,
+                                                                  CLIENT_HB_Q_POSTFIX))
     SEND_HB_TO_CLIENT_PROC_HANDLE.daemon = True
     SEND_HB_TO_CLIENT_PROC_HANDLE.start()
 
@@ -1663,12 +1661,9 @@ wait
 
     # Waiting for request
     ch.basic_qos(prefetch_count=1)
-
-    # OLD
-    if int(PIKA_VER[0]) < 1:  # v0.13.1
-        ch.basic_consume(on_request, queue=inner_task_request_queue, no_ack=False)
-    else:  # v1.0.1 or higher
-        ch.basic_consume(queue=inner_task_request_queue, on_message_callback=on_request, auto_ack=False)
+    ch.basic_consume(queue=inner_task_request_queue,
+                     on_message_callback=on_request,
+                     auto_ack=False)
 
     # NEW
     # Ref) https://github.com/pika/pika/blob/1.0.1/examples/basic_consumer_threaded.py
