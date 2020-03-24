@@ -51,7 +51,6 @@ computational workflows. Its purpose is to improve the re-usability and robustne
 
    Runtime Options <Specifications/configuringJTM_in_wdls>
    Configuring Backends <Specifications/configure_cromwell>
-   Helpful Hints when Developing WDLs <Intro/helpfull_hints>
 
 .. toctree::
    :name: specsdoc
@@ -60,7 +59,7 @@ computational workflows. Its purpose is to improve the re-usability and robustne
 
    Running Examples <Tutorials/example_wdls>
    Subworkflows <Tutorials/subworkflows>
-   Best Practices (WDLs) <Intro/best_practices_tmp>
+   Best Practices (WDLs) <Intro/best_practices>
    Current Workflows </Specifications/current_workflows>
 
 .. toctree::

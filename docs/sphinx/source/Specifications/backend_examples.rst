@@ -9,19 +9,13 @@ Singularity Backend Example
 ---------------------------
 
 From file on lawrencium
-/global/home/groups-sw/lr_jgicloud/dev/jtm/opt/cromwell/cromwell_nersc_dev.conf
+cromwell_nersc_dev.conf
 
 .. code-block:: bash
 
     JTM
     {
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
-      # this is required for shifter to find image from its registry.
-      docker {
-        hash-lookup {
-          enabled = false
-        }
-      }
 
       config {
         runtime-attributes = """
@@ -29,13 +23,8 @@ From file on lawrencium
         String time = "00:00:00"
         Int cpu = 1
         String mem = "0G"
-            String cluster = "cori"
-            String poolname = "small"
-            #Int poolsize = 1
-        String constraint = "haswell"
         Int node = 1
         Int nwpn = 1
-        Int shared = 1
         """
 
         submit = "jtm-submit -cr '/bin/bash ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared}"
@@ -60,12 +49,21 @@ From file on lawrencium
         # can be used to specify where the execution folder is mounted in the container.
         # it is used for the construction of the docker_cwd string in the submit-docker
         # value above AND in the generation of the "script" file.
-        dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
+        dockerRoot = /<working_dir_for_cromwell>/cromwell-executions
     }
- }
 
 
+If your wdl task is being run in a docker image, then the "submit-docker" command is run, otherwise the "submit" command is run.  Note that "submit-docker" runs "singularity_exec.sh"
 
+**singularity_exec.sh**
+
+.. code-block:: bash
+
+	export SINGULARITY_CACHEDIR=/<somepath>/sif_files
+	export SINGULARITY_PULLFOLDER=/<somepath>/sif_files
+	export SINGULARITY_TMPDIR=/<somepath>/sif_files
+	export SINGULARITY_LOCALCACHEDIR=/<somepath>/sif_files
+	singularity exec --bind $1:$2 --bind /<somepath_to_db>:/refdata docker://$3 $4 $5
 
 
 .. _shifter_backend:
@@ -74,19 +72,20 @@ Shifter Backend Example
 ---------------------------
 
 From file on cori
-/global/project/projectdirs/jaws_jtm/dev/etc/cromwell.conf
+cromwell.conf
 
 .. code-block:: bash
+
+	# this is required for shifter to find image from its registry.
+	docker {
+		hash-lookup {
+			enabled = false
+		}
+	}
 
     JTM
     {
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
-      # this is required for shifter to find image from its registry.
-      docker {
-        hash-lookup {
-          enabled = false
-        }
-      }
 
       config {
         runtime-attributes = """
@@ -105,7 +104,7 @@ From file on cori
         Int shared = 1
         """
 
-        submit = "source /global/project/projectdirs/jaws_jtm/jtm/venv/bin/activate && jtm-submit -cr '/bin/bash ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared} --qos ${qos} --account ${account}"
+        submit = "jtm-submit -cr '/bin/bash ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared} --qos ${qos} --account ${account}"
         kill = "jtm-kill ${job_id}"
         check-alive = "jtm-isalive ${job_id}"
         job-id-regex = "JTM task ID (\\d+)"
@@ -126,6 +125,15 @@ From file on cori
         # can be used to specify where the execution folder is mounted in the container.
         # it is used for the construction of the docker_cwd string in the submit-docker
         # value above AND in the generation of the "script" file.
-        dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
+        dockerRoot = <working_dir_for_cromwell>/cromwell-executions
       }
     }
+
+If your wdl task is being run in a docker image, then the "submit-docker" command is run, otherwise the "submit" command is run.  Note that "submit-docker" runs "shifter_exec.sh"
+
+**shifter_exec.sh**
+
+.. code-block:: bash
+
+	#!/bin/bash
+	shifter --image=$1 -V <full_path_to_db>:/refdata $2 $3
