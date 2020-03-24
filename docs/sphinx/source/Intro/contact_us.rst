@@ -27,6 +27,6 @@ should be brought up in the JAWS slack channel or via a JIRA ticket(see below).
 
 .. topic:: To add a ticket to JIRA
 
-      1. open JIRA (issues.jgi-psf.org)
+      1. open JIRA (issues.jgi.doe.org)
       2. under "Projects" -> "show all projects" search for "jaws".
 

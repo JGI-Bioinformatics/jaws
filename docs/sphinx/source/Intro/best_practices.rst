@@ -6,8 +6,6 @@ Best Practices for Creating WDLs
 #. Container should have all code, but not necessarily reference data which may be mounted
 #. Update version tag whenever the container is changed
 #. Reference/use containers by specifying a version, rather than LATEST
-
-    a. For increased robustness, reference containers by HASH rather than version TAG
 #. Conda environments are useful for creating containers; be sure to install by specifying versions explicitly rather than using LATEST
 #. Archive containers rather than rely upon a public docker hub, in case need to use an old container to reproduce an analysis
 #. Avoid hardcoded paths; include code to fetch reference files/dbs (e.g. ftp)
@@ -55,7 +53,7 @@ FAIR data practices
 	a. write once, run anywhere
 #. Reproducible:
     a. Version workflows and use versioned containers
-    b. Release workflows/code rather than describing method in paper
+    b. Release workflows/code in additoin to describing method in paper
     c. Workflow output should contain log indicating:
         #. Workflow and version
         #. Input links to metadata (not just paths); including reference db (metadata must include release version)

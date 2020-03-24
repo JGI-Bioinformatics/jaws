@@ -19,7 +19,6 @@ Although there is a wait time because worker pools are allocated by submitting t
 .. code-block:: bash
 
    runtime {
-       cluster: "cori"       # only cori for now
        time: "12:00:00"      # up to 72hrs
        mem: "115G"           # you get a exclusive machine no matter what this setting is. You have two choices: ["115G"|"500G"]
        poolname: "rqc"       # your choice.
