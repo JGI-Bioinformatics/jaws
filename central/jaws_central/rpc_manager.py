@@ -1,6 +1,9 @@
 import logging
-from typing import Dict, List
+from typing import List
 from jaws_central import rpc_client, config
+
+
+rpc = None
 
 
 class Singleton(type):
@@ -20,6 +23,7 @@ class JawsRpcError(Exception):
 
 class JawsRpc(metaclass=Singleton):
     """Singleton which contains dictionary of site_id => rpc_client objects"""
+
     clients = {}
 
     def __init__(self, conf: config.JawsConfig):
@@ -31,12 +35,11 @@ class JawsRpc(metaclass=Singleton):
         :rtype: obj
         """
         logger = logging.getLogger(__package__)
-        sites = conf.config["sites"].keys()
-        for site_id in sites:
-            site_id = site_id.upper()
+        for site_id in conf.sites.keys():
             logger.info(f"Initializing RPC client for {site_id}")
-            params = conf.config["sites"][site_id]
-            self.clients[site_id] = rpc_client.RPC_Client(params)
+            self.clients[site_id] = rpc_client.RPC_Client(conf.sites[site_id])
+        global rpc
+        rpc = self
 
     def get_sites(self) -> List[str]:
         """Return list of JAWS-Site IDs.
@@ -44,9 +47,9 @@ class JawsRpc(metaclass=Singleton):
         :return: list of JAWS-Site IDs (str)
         :rtype: list
         """
-        return self.config["sites"].keys()
+        return self.clients.keys()
 
-    def get_client(self, site_id: str) -> Dict[str, str]:
+    def get_client(self, site_id: str) -> rpc_client:
         """Get RPC client object of a Site.
 
         :param site_id: ID of the JAWS-Site
@@ -56,7 +59,7 @@ class JawsRpc(metaclass=Singleton):
         """
         site_id = site_id.upper()
         if site_id not in self.clients:
-            raise JawsRpcError(f'Unknown Site, {site_id}')
+            raise JawsRpcError(f"Unknown Site, {site_id}")
         return self.clients[site_id]
 
     def is_valid_site(self, site_id: str) -> bool:
@@ -68,6 +71,3 @@ class JawsRpc(metaclass=Singleton):
         :rtype: bool
         """
         return True if site_id.upper() in self.clients else False
-
-
-rpc = None

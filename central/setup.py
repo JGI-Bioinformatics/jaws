@@ -12,6 +12,6 @@ setup(
     author="The JAWS Team",
     packages=["jaws_central"],
     install_requires=[line.strip() for line in open("requirements.txt")],
-    entry_points={"console_scripts": ["jaws-central = jaws_central.server:serve", ]},
+    entry_points={"console_scripts": ["jaws-central = jaws_central.cli:jaws", ]},
     zip_safe=False,
 )

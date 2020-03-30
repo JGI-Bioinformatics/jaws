@@ -11,7 +11,7 @@ See docs/startingServices.md
 
 ## Contributing
 * Jeff Froula <jlfroula@lbl.gov>  
-* Ed Kirton <eskirton@lbl.gov>  
+* Edward Kirton <eskirton@lbl.gov>  
 * Stephan Trong <strong@lbl.gov>  
 * Hugh Salamon <hsalamon>  
 * Mario Melara <mamelara@lbl.gov>  

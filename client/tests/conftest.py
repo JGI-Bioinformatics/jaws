@@ -35,7 +35,7 @@ def get_queue(url, headers=None):
     return MockResult({}, 200)
 
 
-def post_history(url, data=None, headers=None):
+def get_history(url, headers=None):
     return MockResult({}, 200)
 
 

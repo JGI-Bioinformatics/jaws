@@ -1,13 +1,10 @@
-"""
-SQLAlchemy models for persistent data structures.
-"""
+"""Database object and persistent object models."""
 
 import datetime
-from sqlalchemy import Column, DateTime, String, Integer, Boolean, Text, ForeignKey, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
+from flask_sqlalchemy import SQLAlchemy
 
 
-Base = declarative_base()
+db = SQLAlchemy()
 
 
 def same_as(column_name: str):
@@ -25,88 +22,83 @@ def same_as(column_name: str):
     return default_function
 
 
-class User(Base):
-    """
-    A registered user.
-    """
+class User(db.Model):
+    """Registered user"""
 
     __tablename__ = "users"
-    id = Column(String(36), primary_key=True)
-    name = Column(String(64))
-    email = Column(String(64), unique=True)
-    is_admin = Column(
-        Boolean, default=False, nullable=False
-    )  # is True only if belong to jaws_admins Globus Group
-    auth_access_token = Column(String(256))
-    auth_refresh_token = Column(String(256))
-    auth_expires_at_seconds = Column(Integer)
-    transfer_access_token = Column(String(256))
-    transfer_refresh_token = Column(String(256))
-    transfer_expires_at_seconds = Column(Integer)
-    groups_access_token = Column(String(256))
-    groups_refresh_token = Column(String(256))
-    groups_expires_at_seconds = Column(Integer)
+    id = db.Column(db.String(16), primary_key=True)
+    email = db.Column(db.String(64), nullable=False)
+    name = db.Column(db.String(64), nullable=True)
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    jaws_token = db.Column(db.String(256), nullable=False)
+    globus_id = db.Column(db.String(36), nullable=True)
+    auth_refresh_token = db.Column(db.String(256), nullable=True)
+    transfer_refresh_token = db.Column(db.String(256), nullable=True)
+
+    def __init__(self, *args, **kwargs):
+        super(User, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return "<User %r>" % self.id
 
 
-class Workflow(Base):
-    """
-    A workflow in the Catalog is comprised of WDL and MD files.
+class Workflow(db.Model):
+    """A workflow in the Catalog is comprised of WDL and MD files.
     Once tagged as "released", it can't be edited or deleted, only deprecated.
     """
 
     __tablename__ = "workflows"
-    id = Column(Integer, primary_key=True)
-    name = Column(String(32), nullable=False)
-    version = Column(String(16), nullable=False, default="latest")
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    created = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
-    updated = Column(
-        DateTime,
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(32), nullable=False)
+    version = db.Column(db.String(16), nullable=False, default="latest")
+    user_id = db.Column(db.String(16), db.ForeignKey("users.id"), nullable=False)
+    created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    updated = db.Column(
+        db.DateTime,
         nullable=False,
         default=same_as("date_created"),
         onupdate=datetime.datetime.utcnow,
     )
-    is_released = Column(Boolean, default=False, nullable=False)
-    is_deprecated = Column(Boolean, default=False, nullable=False)
-    wdl = Column(Text, nullable=False)
-    doc = Column(Text, nullable=False)
-
-    # MULTI-COLUMN CONSTRAINT
+    is_released = db.Column(db.Boolean, default=False, nullable=False)
+    is_deprecated = db.Column(db.Boolean, default=False, nullable=False)
+    wdl = db.Column(db.Text, nullable=False)
+    doc = db.Column(db.Text, nullable=False)
     __table_args__ = (
-        UniqueConstraint("name", "version", name="_workflow_name_version_uniq_cons"),
+        db.UniqueConstraint("name", "version", name="_workflow_name_version_uniq_cons"),
     )
 
-    # ONE:MANY RELATIONSHIP
-    # user = relationship("User", back_populates="workflows")
+    def __init__(self, *args, **kwargs):
+        super(Workflow, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return "<Workflow %r>" % (self.name, self.version)
 
 
-class Run(Base):
-    """
-    Analysis runs are the execution of workflows on specific inputs.
-    """
+class Run(db.Model):
+    """Analysis runs are the execution of workflows on specific inputs."""
 
     __tablename__ = "runs"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    site_id = Column(String(8), nullable=False)
-    submission_uuid = Column(String(36), nullable=False)
-    status = Column(String(16), nullable=False)
-    cromwell_id = Column(String(36), nullable=True)
-    submitted = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
-    updated = Column(
-        DateTime, default=same_as("date_submitted"), onupdate=datetime.datetime.utcnow
+    id = db.Column(db.Integer, primary_key=True)
+    submission_id = db.Column(db.String(36), nullable=False)
+    cromwell_id = db.Column(db.String(36), nullable=True)
+    status = db.Column(db.String(16), nullable=False)
+    user_id = db.Column(db.String(16), db.ForeignKey("users.id"), nullable=False)
+    site_id = db.Column(db.String(8), nullable=False)
+    submitted = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    updated = db.Column(
+        db.DateTime,
+        default=same_as("date_submitted"),
+        onupdate=datetime.datetime.utcnow,
     )
-    upload_task_id = Column(String(36), nullable=False)
-    download_task_id = Column(String(36), nullable=True)
-    dest_endpoint = Column(String(36), nullable=False)
-    dest_path = Column(String(256), nullable=False)
+    input_site_id = db.Column(db.String(8), nullable=False)
+    input_endpoint = db.Column(db.String(36), nullable=False)
+    upload_task_id = db.Column(db.String(36), nullable=True)
+    output_endpoint = db.Column(db.String(36), nullable=False)
+    output_dir = db.Column(db.String(256), nullable=False)
+    download_task_id = db.Column(db.String(36), nullable=True)
 
-    # ONE:MANY RELATIONSHIPS
-#    user = relationship("User", back_populates="runs")
-#    workflow = relationship("Workflow", back_populates="runs")
+    def __init__(self, *args, **kwargs):
+        super(Run, self).__init__(*args, **kwargs)
 
-
-def create_all(engine) -> None:
-    """Create all tables which do not exist.
-    """
-    Base.metadata.create_all(engine)
+    def __repr__(self):
+        return "<Run %r>" % (self.id, self.cromwell_id)

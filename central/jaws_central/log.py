@@ -9,7 +9,9 @@ def setup_logger(name: str, log_file="jaws_central.log") -> logging:
     :return: logging object which is a singleton
     :rtype: obj
     """
-    formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
+    formatter = logging.Formatter(
+        fmt="%(asctime)s - %(levelname)s - %(module)s - %(message)s"
+    )
 
     handler_stderr = logging.StreamHandler()
     handler_stderr.setFormatter(formatter)

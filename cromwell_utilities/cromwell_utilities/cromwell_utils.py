@@ -16,6 +16,8 @@ import re
 import subprocess
 import pathlib
 
+if "USER" not in os.environ:
+    sys.exit("USER env var not defined")
 if "TMPDIR" not in os.environ:
     sys.exit("TMPDIR env var not defined")
 TMPDIR = os.environ["TMPDIR"]
@@ -29,94 +31,84 @@ WORKFLOWS_URL = f"{CROMWELL_URL}/api/workflows/v1"
 
 @click.group()
 def cromwell():
-    """
-    Cromwell REST server CLI
-    """
+    """Cromwell REST server CLI"""
     pass
 
 
 def _get(url):
+    """GET from URL, print result, exit on error."""
     try:
         r = requests.get(url)
-    except Exception:
-        sys.exit("Unable to GET from Cromwell at %s" % (url,))
-    response = {}
+    except requests.exceptions.RequestException as e:
+        raise e(f"Unable to GET from {url}: {e}")
     if r.status_code == 200:
-        response["result"] = r.json()
+        print(json.dumps(r.json(), indent=4, sort_keys=True))
+        return r.json()
     else:
-        response["error"] = {"code": r.status_code, "message": "Run not found"}
-    print(json.dumps(response, indent=4, sort_keys=True))
-    return response
+        sys.exit(r.text)
+
+
+def _post(url, data={}, files={}, tmpfiles=[]):
+    """POST to URL, print result, exit on error."""
+    try:
+        r = requests.post(url, files=files)
+    except requests.exceptions.RequestException as e:
+        raise e(f"Unable to POST to {url}: {e}")
+    for tmpfile in tmpfiles:
+        os.remove(tmpfile)
+    if r.status_code == 201:
+        print(json.dumps(r.json(), indent=4, sort_keys=True))
+        return r.json()
+    else:
+        sys.exit(r.text)
 
 
 @cromwell.command()
 @click.argument("run_id")
 def status(run_id):
-    """
-    Retrieve the current status of a run.
-    """
-    url = "%s/%s/status" % (WORKFLOWS_URL, run_id)
-    return _get(url)
+    """Retrieve the current status of a run."""
+    _get(f"{WORKFLOWS_URL}/{run_id}/status")
 
 
 @cromwell.command()
 @click.argument("run_id")
 def logs(run_id):
-    """
-    Retrieve the logs for a run.
-    """
-    url = "%s/%s/logs" % (WORKFLOWS_URL, run_id)
-    return _get(url)
+    """Retrieve the logs for a run."""
+    _get(f"{WORKFLOWS_URL}/{run_id}/logs")
 
 
 @cromwell.command()
 @click.argument("run_id")
 def outputs(run_id):
-    """
-    Retrieve the outputs for a run.
-    """
-    url = "%s/%s/outputs" % (WORKFLOWS_URL, run_id)
-    return _get(url)
+    """Retrieve the outputs for a run."""
+    _get(f"{WORKFLOWS_URL}/{run_id}/outputs")
 
 
 @cromwell.command()
 @click.argument("run_id")
 def metadata(run_id):
-    """
-    Retrieve the metadata of a run.
-    """
-    url = "%s/%s/metadata" % (WORKFLOWS_URL, run_id)
-    return _get(url)
+    """Retrieve a run's metadata."""
+    _get(f"{WORKFLOWS_URL}/{run_id}/metadata")
 
 
 @cromwell.command()
 @click.argument("run_id")
-def cancel(run_id):
-    """
-    Cancel a run.
-    """
-    url = "%s/%s/abort" % (WORKFLOWS_URL, run_id)
-    return _get(url)
+def abort(run_id):
+    """Abort a run."""
+    _post(f"{WORKFLOWS_URL}/{run_id}/abort")
 
 
 @cromwell.command()
 @click.argument("run_id")
 def task_status(run_id):
-    """
-    Retrieve status of each task, with any error messages.
-    """
+    """Retrieve status of each task."""
     url = "%s/%s/metadata" % (WORKFLOWS_URL, run_id)
     r = requests.get(url)
-    response = {}
     meta = None
     if r.status_code == 200:
         meta = r.json()
     else:
-        response["error"] = {"code": r.status_code, "message": "Run not found"}
-        print(json.dumps(response, indent=4, sort_keys=True))
-        return response
-
-    # load calls' status
+        sys.exit(r.text)
     tasks = {}
     for task_name in meta["calls"]:
         start = ""
@@ -135,80 +127,41 @@ def task_status(run_id):
             start,
             end,
         )
-
-    # create sorted table
     result = []
     for start in reversed(sorted(tasks.keys())):
         result.append(tasks[start])
-
-    response["result"] = result
-    print(json.dumps(response, indent=4, sort_keys=True))
-    return response
+    print(json.dumps(result, indent=4, sort_keys=True))
 
 
-# simplifies the result JSON from that returned by cromwell
 @cromwell.command()
 @click.argument("run_id")
 def get_labels(run_id):
-    """
-    Get labels for a run.
-    """
-    url = "%s/%s/labels" % (WORKFLOWS_URL, run_id)
-    r = requests.get(url)
-    response = {}
-    if r.status_code == 200:
-        result = r.json()
-        labels = result["labels"]
-        del labels["cromwell-workflow-id"]
-        if "username" in labels:
-            del labels["username"]
-        response["result"] = labels
-    else:
-        response["error"] = {"code": 404, "message": "Run not found"}
-    print(json.dumps(response, indent=4, sort_keys=True))
-    return response
+    """Get labels for a run."""
+    _get(f"{WORKFLOWS_URL}/{run_id}/labels")
 
 
 @cromwell.command()
 @click.option("--username", default=os.environ["USER"], help="Username; default=USER")
 def queue(username):
-    """
-    Get a user's unfinished runs.
-    """
-    status = ["Submitted", "Running", "Aborting"]
-    labels = ["username:" + username]
-    data = {"status": status, "label": labels}
-    url = "%s/query" % (WORKFLOWS_URL,)
-    r = requests.get(url, data)
-    response = {}
-    if r.status_code == 200:
-        response["result"] = r.json()
-    else:
-        response["error"] = {"code": 404, "message": "Run not found"}
-    print(json.dumps(response, indent=4, sort_keys=True))
-    return response
+    """Get a user's unfinished runs."""
+    data = {
+        "status": ["Submitted", "Running", "Aborting"],
+        "label": ["username:" + username],
+    }
+    _post(f"{WORKFLOWS_URL}/query", data=data)
 
 
 @cromwell.command()
 @click.option("--username", default=os.environ["USER"], help="Username; default=USER")
 @click.option("--days", default=10, help="Delta days, default=10")
 def history(username, days):
-    """
-    Get a user's run history.
-    """
+    """Get a user's run history."""
     d = datetime.today() - timedelta(int(days))
-    start_date = d.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-    labels = ["username:" + username]
-    data = {"label": labels, "start": start_date}
-    url = "%s/query" % (WORKFLOWS_URL,)
-    r = requests.get(url, data)
-    response = {}
-    if r.status_code == 200:
-        response["result"] = r.json()
-    else:
-        response["error"] = {"code": 404, "message": "Run not found"}
-    print(json.dumps(response, indent=4, sort_keys=True))
-    return response
+    data = {
+        "label": ["username:" + username],
+        "start": d.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+    }
+    _post(f"{WORKFLOWS_URL}/query", data=data)
 
 
 @cromwell.command()
@@ -218,9 +171,7 @@ def history(username, days):
 @click.option("--username", default=os.environ["USER"], help="Username; default=USER")
 @click.option("--labels", default=None, help="JSON file of labels")
 def submit(wdl_file, json_file, username, labels, zip_file):
-    """
-    Submit a run.
-    """
+    """Submit a run."""
     tmp_basename = os.path.join(TMPDIR, str(uuid.uuid4()))
     print("Using tmp base: %s" % (tmp_basename,))
     print("username : %s" % (username,))
@@ -250,32 +201,11 @@ def submit(wdl_file, json_file, username, labels, zip_file):
         )
 
     print("Submitting run to %s" % (WORKFLOWS_URL,))
-    r = requests.post(WORKFLOWS_URL, files=files)
-
-    response = {}
-    if r.status_code == 201:
-        response["result"] = r.json()
-    elif r.status_code == 500:
-        response["error"] = {"code": r.status_code, "message": "Internal error"}
-    elif r.status_code == 400:
-        response["error"] = {
-            "code": r.status_code,
-            "message": "Invalid submission request",
-        }
-    else:
-        response["error"] = {"code": r.status_code, "message": "Unknown error"}
-
-    # CLEANUP
-    os.remove(tmp_labels_file)
-
-    print(json.dumps(response, indent=4, sort_keys=True))
-    return response
+    _post(WORKFLOWS_URL, files=files, tmpfiles=[tmp_labels_file])
 
 
 def _prepare_labels_file(outfile, username, infile=None):
-    """
-    Given a username and optionally other labels (in a dict), create a JSON file.
-    """
+    """Given a username and optional dict, create a JSON file."""
     assert outfile
     assert username
     labels = {}

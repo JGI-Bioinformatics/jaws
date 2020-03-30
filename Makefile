@@ -22,10 +22,6 @@ pkg-client: pkg-requirements
 pkg-jtm: pkg-requirements
 	$Q cd jtm && python setup.py bdist_wheel
 
-.PHONY: pkg-auth
-pkg-auth: pkg-requirements
-	$Q cd auth && python setup.py bdist_wheel
-
 .PHONY: pkg
 pkg: pkg-site pkg-central pkg-client pkg-jtm
 ## Package Section END
@@ -53,12 +49,8 @@ test-client: test-requirements
 test-jtm: test-requirements
 	$Q flake8 jtm
 
-.PHONY: test-auth
-test-auth: test-requirements
-	$Q flake8 auth
-
 .PHONY: test
-test: test-site test-central test-client test-auth test-jtm
+test: test-site test-central test-client test-jtm
 ## Test Section END
 
 ## Doc Section BEGIN
