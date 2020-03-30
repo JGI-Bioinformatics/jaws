@@ -1,4 +1,4 @@
-from jaws_central.config import conf
+from jaws_central import rpc_manager
 
 
 def status() -> dict:
@@ -8,8 +8,9 @@ def status() -> dict:
     :rtype: dict
     """
     result = {"JAWS-Central": "UP"}
-    for site_id, rpc in conf.rpc_clients.items():
-        response = rpc.request("server_status")
+    for site_id in rpc_manager.rpc.get_sites():
+        client = rpc_manager.rpc.get_client(site_id)
+        response = client.request("server_status")
         if "error" not in response:
             result[site_id + "-Site"] = "UP"
             result[site_id + "-Cromwell"] = "UP"

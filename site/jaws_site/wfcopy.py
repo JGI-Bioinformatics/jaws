@@ -14,10 +14,6 @@ import logging
 logger = logging.getLogger(__package__)
 
 
-def runCommand(cmd):
-    """ Run command in shell. """
-
-
 def rsync(src, dest):
     """ Copy source to destination using rsync.
 
@@ -28,7 +24,6 @@ def rsync(src, dest):
     :return:
     """
     cmd = "rsync -a %s %s" % (src, dest)
-    _, stderr, exitcode = runCommand(cmd)
     process = subprocess.Popen(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )

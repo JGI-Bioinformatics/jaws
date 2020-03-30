@@ -1,7 +1,7 @@
 import click.testing
 import pytest
 import requests
-from .conftest import get_queue, post_history
+from .conftest import get_queue, get_history
 
 from jaws_client.analysis import run
 
@@ -15,7 +15,7 @@ def test_cli_queue(mock_user, monkeypatch, configuration):
 
 
 def test_cli_history(mock_user, monkeypatch, configuration):
-    monkeypatch.setattr(requests, "post", post_history)
+    monkeypatch.setattr(requests, "get", get_history)
     runner = click.testing.CliRunner()
     result = runner.invoke(run, ["history"])
     assert result.exit_code == 0

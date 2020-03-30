@@ -51,12 +51,13 @@ class JawsDb(metaclass=Singleton):
         db = self
 
     def engine(self):
+        """Return the SQLAlchemy engine object"""
         if self.engine is None:
             raise DatabaseError("Db not initialized; run init_db first")
         return self.engine
 
     def session(self):
-        """Return a new session obj."""
+        """Return a new SQLAlchemy session object"""
         if self.engine is None:
             raise DatabaseError("Db not initialized; run init_db first")
         Session = sessionmaker(bind=self.engine)

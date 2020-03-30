@@ -25,6 +25,7 @@ class RPC_Client(object):
         self.channel = None
         self.connection = None
         self.callback_queue = None
+        self.rpc_queue = params["amqp_queue"]
         self.open(params)
 
     def open(self, params):
@@ -33,14 +34,20 @@ class RPC_Client(object):
         :param params: A dictionary containing host, user, password, vhost, queue
         :type params: dict
         """
-        if "vhost" in params and params["vhost"]:
-            qpassword = urllib.parse.quote_plus(params["password"])
-            uri = f'amqp://{params["user"]}:{qpassword}@{params["host"]}:5672/{params["vhost"]}?heartbeat=60'
+        if params.get("amqp_vhost", None):
+            uri = "amqp://%s:%s@%s:5672/%s?heartbeat=60" % (
+                params["amqp_user"],
+                urllib.parse.quote_plus(params["amqp_password"]),
+                params["amqp_host"],
+                params["amqp_vhost"],
+            )
             self.connection = amqpstorm.UriConnection(uri)
         else:
-            self.connection = amqpstorm.Connection(params["host"], params["user"], params["password"])
+            self.connection = amqpstorm.Connection(
+                params["amqp_host"], params["amqp_user"], params["amqp_password"]
+            )
         self.channel = self.connection.channel()
-        self.channel.queue.declare(params["queue"])
+        self.channel.queue.declare(params["amqp_queue"])
         result = self.channel.queue.declare(exclusive=True)
         self.callback_queue = result["queue"]
         self.channel.basic.consume(

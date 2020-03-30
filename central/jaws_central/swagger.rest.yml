@@ -14,13 +14,13 @@ securityDefinitions:
   oauth2:
     type: oauth2
     flow: implicit
-    authorizationUrl: http://localhost:8080/login
-    x-tokenInfoUrl: http://localhost:8080/tokeninfo
+    authorizationUrl: http://localhost:3000/login
+    x-tokenInfoUrl: http://localhost:3000/tokeninfo
     scopes:
       uid: Registered user with unique ID
 
 security:
-  - oauth2: ['jaws_users']
+  - oauth2: ['user']
 
 paths:
 
@@ -34,9 +34,35 @@ paths:
           description: System is down
       security: []
 
+  /auth:
+    post:
+      operationId: jaws_central.auth.save_globus_tokens
+      consumes:
+        - multipart/form-data
+      tags:
+        - user
+      summary: Save a user's Glbous tokens
+      description: Give a user's Globus Auth and Transfer tokens to JAWS
+      parameters:
+        - name: auth_refresh_token
+          in: formData
+          type: string
+          required: True
+          description: Globus Auth Refresh Token
+        - name: transfer_refresh_token
+          in: formData
+          type: string
+          required: True
+          description: Globus Transfer Refresh Token
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+
   /wdl:
     get:
-      operationId: jaws_central.catalog.list_wdls
+      operationId: jaws_central.catalog_rest.list_wdls
       tags:
         - workflow
       summary: List shared workflows
@@ -61,7 +87,7 @@ paths:
 
   /wdl/{name}:
     get:
-      operationId: jaws_central.catalog.get_versions
+      operationId: jaws_central.catalog_rest.get_versions
       tags:
         - workflow
       summary: Workflow versions
@@ -94,7 +120,7 @@ paths:
 
   /wdl/{name}/{version}:
     get:
-      operationId: jaws_central.catalog.get_wdl
+      operationId: jaws_central.catalog_rest.get_wdl
       tags:
         - workflow
       summary: Return a workflow's WDL file
@@ -123,7 +149,7 @@ paths:
           description: The specified record does not exist
 
     post:
-      operationId: jaws_central.catalog.add_wdl
+      operationId: jaws_central.catalog_rest.add_wdl
       consumes:
         - multipart/form-data
       tags:
@@ -158,7 +184,7 @@ paths:
           description: Authorization information is missing or invalid.
 
     put:
-      operationId: jaws_central.catalog.update_wdl
+      operationId: jaws_central.catalog_rest.update_wdl
       tags:
         - workflow
       summary: Replace a workflow's WDL
@@ -188,7 +214,7 @@ paths:
           description: The specified workflow does not exist.
 
     delete:
-      operationId: jaws_central.catalog.del_wdl
+      operationId: jaws_central.catalog_rest.del_wdl
       tags:
         - workflow
       summary: Delete a workflow
@@ -214,7 +240,7 @@ paths:
 
   /wdl/{name}/{version}/doc:
     get:
-      operationId: jaws_central.catalog.get_doc
+      operationId: jaws_central.catalog_rest.get_doc
       tags:
         - workflow
       summary: Return information about a workflow
@@ -243,7 +269,7 @@ paths:
           description: The specified record does not exist
 
     put:
-      operationId: jaws_central.catalog.update_doc
+      operationId: jaws_central.catalog_rest.update_doc
       tags:
         - workflow
       summary: Update a workflow's documentation
@@ -272,11 +298,11 @@ paths:
         404:
           description: The specified record does not exist
 
-  /run:
+  /search:
     get:
       operationId: jaws_central.analysis.user_queue
       tags:
-        - run
+        - search
       summary: Search for current user's unfinished runs
       description: Return runs in Submitted, Queued, Running, or Transferring states.
       responses:
@@ -285,6 +311,26 @@ paths:
         401:
           description: Authorization information is missing or invalid.
 
+  /search/{delta_days}:
+    get:
+      operationId: jaws_central.analysis.user_history
+      tags:
+        - search
+      summary: Get a user's recent runs
+      description: Returns a user's runs within the last specified number of days
+      parameters:
+        - name: delta_days
+          description: time window to search
+          type: integer
+          in: path
+          required: True
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+
+  /run:
     post:
       operationId: jaws_central.analysis.submit_run
       consumes:
@@ -294,28 +340,33 @@ paths:
       summary: Begin run run process
       description: Returns site information to send infiles.
       parameters:
-        - name: site
+        - name: site_id
           description: computing site to use
           type: string
           in: formData
           required: True
-        - name: submission_uuid
-          description: random ID used to name inputs
+        - name: submission_id
+          description: UUID used to name inputs
           type: string
           in: formData
           required: True
-        - name: transfer_task_id
-          description: Globus task id
+        - name: input_site_id
+          description: ID of the Site where the input data is stored
           type: string
           in: formData
           required: True
-        - name: globus_endpoint
-          description: Globus endpoint to receive results
+        - name: input_endpoint
+          description: Globus endpoint ID where the input data is stored
           type: string
           in: formData
           required: True
-        - name: outdir
-          description: Folder to receive results
+        - name: output_endpoint
+          description: Globus endpoint ID where to send results
+          type: string
+          in: formData
+          required: True
+        - name: output_dir
+          description: Folder to write results
           type: string
           in: formData
           required: True
@@ -388,21 +439,19 @@ paths:
         404:
           description: The specified record does not exist
 
-  /run/{run_id}/errors:
+  /run/{run_id}/logs:
     get:
-      operationId: jaws_central.analysis.get_failures
+      operationId: jaws_central.analysis.run_logs
       tags:
         - run
-      summary: Retrieve the logs for failed tasks
-      description: Return stdout/stderr/submit logs for failed tasks
+      summary: Retrieve the logs of a specified run
+      description: Return Cromwell logs for a run
       parameters:
         - name: run_id
           in: path
           description: run_id of the run to retrieve
           type: integer
           required: True
-      produces:
-        - text/plain; charset=utf-8
       responses:
         200:
           description: OK
@@ -413,7 +462,7 @@ paths:
 
   /run/{run_id}/errors:
     get:
-      operationId: jaws_central.analysis.get_failures
+      operationId: jaws_central.analysis.failure_logs
       tags:
         - run
       summary: Retrieve the logs for failed tasks
@@ -447,7 +496,7 @@ paths:
         401:
           description: Authorization information is missing or invalid.
 
-  /site/{site}:
+  /site/{site_id}:
     get:
       operationId: jaws_central.analysis.get_site
       tags:
@@ -455,7 +504,7 @@ paths:
       summary: Retrieve JAWS-Site info
       description: Return Site parameters
       parameters:
-        - name: site
+        - name: site_id
           in: path
           description: JAWS-Site ID
           type: string

@@ -7,7 +7,6 @@ import time
 import os
 import requests
 import globus_sdk
-from globus_sdk import TransferClient, RefreshTokenAuthorizer, GlobusAPIError
 import logging
 import click
 
@@ -107,13 +106,16 @@ class JAWSd:
         Check on the status of one uploading run.
         """
         user = self.session.query(models.User).get(run.user_id)
+        transfer_rt = user.transfer_refresh_token
+        client_id = config.conf.get("GLOBUS", "client_id")
         try:
-            authorizer = RefreshTokenAuthorizer(user.transfer_refresh_token)
-            transfer_client = TransferClient(authorizer)
+            client = globus_sdk.NativeAppAuthClient(client_id)
+            authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
+            transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
             task = transfer_client.get_task(run.upload_task_id)
             globus_status = task["status"]
-        except Exception:
-            self.logger.warning("Failed to check Globus upload status", exc_info=True)
+        except globus_sdk.GlobusAPIError:
+            self.logger.error("Failed to check Globus upload status", exc_info=True)
             return
         if globus_status == "FAILED":
             run.status = "upload failed"
@@ -129,13 +131,13 @@ class JAWSd:
         Submit a run to Cromwell.
         """
         wdl_file = os.path.join(
-            self.staging_dir, run.user_id, run.submission_id + ".wdl"
+            self.staging_dir, run.submission_id + ".wdl"
         )
         json_file = os.path.join(
-            self.staging_dir, run.user_id, run.submission_id + ".json"
+            self.staging_dir, run.submission_id + ".json"
         )
         zip_file = os.path.join(
-            self.staging_dir, run.user_id, run.submission_id + ".zip"
+            self.staging_dir, run.submission_id + ".zip"
         )  # might not exist
         files = {}
         try:
@@ -157,7 +159,7 @@ class JAWSd:
                 )
         except Exception:
             self.logger.warning(f"Invalid input for run {run.id}", exc_info=True)
-            run.status = "invalid input"
+            run.status = "invalid_input"
             self.session.commit()
         try:
             r = requests.post(self.workflows_url, files=files)
@@ -226,22 +228,23 @@ class JAWSd:
         """
         user = self.session.query(models.User).get(run.user_id)
         nice_dir = os.path.join(self.results_subdir, str(run.id))
-        token = user.transfer_refresh_token
+        transfer_rt = user.transfer_refresh_token
+        client_id = config.conf.get("GLOBUS", "client_id")
         try:
-            authorizer = RefreshTokenAuthorizer(token)
-            transfer_client = TransferClient(authorizer=authorizer)
-        except Exception:
+            client = globus_sdk.NativeAppAuthClient(client_id)
+            authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
+            transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
+        except globus_sdk.GlobusAPIError:
             self.logger.warning(
                 f"Failed to get Globus transfer client for run {run.id}", exc_info=True
             )
             return
-        label = "run_id=%s" % (run.id,)
         try:
             tdata = globus_sdk.TransferData(
                 transfer_client,
                 self.globus_endpoint,
-                run.dest_endpoint,
-                label=label,
+                run.output_endpoint,
+                label=f"run_id={run.id}",
                 sync_level="checksum",
                 verify_checksum=True,
                 preserve_timestamp=True,
@@ -250,14 +253,14 @@ class JAWSd:
                 notify_on_inactive=True,
                 skip_activation_check=True,
             )
-            tdata.add_item(nice_dir, run.dest_path, recursive=True)
+            tdata.add_item(nice_dir, run.output_dir, recursive=True)
         except Exception:
             self.logger.warning(
                 f"Failed to prepare download manifest for run {run.id}", exc_info=True
             )
         try:
             transfer_result = transfer_client.submit_transfer(tdata)
-        except GlobusAPIError:
+        except globus_sdk.GlobusAPIError:
             self.logger.warning(
                 f"Failed to download results with Globus for run {run.id}",
                 exc_info=True,
@@ -273,13 +276,15 @@ class JAWSd:
         user = self.session.query(models.User).get(run.user_id)
         task_id = run.download_task_id
         user = self.session.query(models.User).get(run.user_id)
-        token = user.transfer_refresh_token
-        authorizer = RefreshTokenAuthorizer(token)
+        transfer_rt = user.transfer_refresh_token
+        client_id = config.conf.get("GLOBUS", "client_id")
         try:
-            transfer_client = TransferClient(authorizer=authorizer)
-        except Exception:
-            self.logger.warning(
-                f"Failed to get Globus Transfer Client for run {run.id}"
+            client = globus_sdk.NativeAppAuthClient(client_id)
+            authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
+            transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
+        except globus_sdk.GlobusAPIError:
+            self.logger.error(
+                f"Failed to get Globus Transfer Client for run {run.id}", exc_info=True,
             )
         try:
             result = transfer_client.get_task(task_id)
@@ -328,7 +333,7 @@ def submit_run(user_id: str, submission_id: str, dest_endpoint: str, dest_dir: s
         submission_id=submission_id,
         upload_task_id="NA",
         globus_endpoint=dest_endpoint,
-        outdir=dest_dir
+        outdir=dest_dir,
     )
     jawsd.session.add(run)
     jawsd.session.commit()

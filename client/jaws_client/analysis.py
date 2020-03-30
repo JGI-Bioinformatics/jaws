@@ -8,10 +8,13 @@ import json
 import requests
 import click
 import logging
-import uuid
-import globus_sdk
 from typing import Dict
-from . import config, user, workflow
+from jaws_client import config, user, workflow
+
+
+class AnalysisError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -28,7 +31,7 @@ def queue() -> None:
     :rtype: str
     """
     current_user = user.User()
-    url = f'{config.JawsConfig().get("JAWS", "url")}/run'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/search'
     try:
         r = requests.get(url, headers=current_user.header())
     except requests.exceptions.RequestException:
@@ -47,11 +50,10 @@ def history(days: int) -> None:
     :param days: Time window to search, in days.
     :type days: int, optional
     """
-    data = {"delta_days": days}
-    url = f'{config.JawsConfig().get("JAWS", "url")}/search'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/search/{days}'
     current_user = user.User()
     try:
-        r = requests.post(url, data=data, headers=current_user.header())
+        r = requests.get(url, headers=current_user.header())
     except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != 200:
@@ -111,6 +113,8 @@ def tasks(run_id: int) -> None:
     if r.status_code != 200:
         sys.exit(r.text)
     metadata = r.json()
+    if "run_id" not in metadata:
+        sys.exit(f"Invalid response from JAWS: {metadata}")
     status = metadata["status"]
     print("status: " + status)
 
@@ -121,13 +125,19 @@ def tasks(run_id: int) -> None:
             print("\t" + failure["message"])
 
     # call summary
+    if "calls" not in metadata:
+        return
     print("calls:")
     calls = metadata["calls"]
     result = []
     for task_name in calls.keys():
         task = calls[task_name]
         for attempt in task:
+            if "executionStatus" not in attempt:
+                continue
             status = attempt["executionStatus"]
+            if "shardIndex" not in attempt:
+                continue
             shard = attempt["shardIndex"]
             result.append((task_name, shard, status))
             if shard > -1:
@@ -163,15 +173,15 @@ def metadata(run_id: int) -> None:
 
 @run.command()
 @click.argument("run_id")
-def log(run_id: int) -> None:
-    """View the Cromwell log of a run.
+def logs(run_id: int) -> None:
+    """View the Cromwell logs of a run.
 
     :param run_id: JAWS run ID
     :type run_id: int
     :return:
     """
     current_user = user.User()
-    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/log'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/logs'
     try:
         r = requests.get(url, headers=current_user.header())
     except requests.exceptions.RequestException:
@@ -250,11 +260,29 @@ def delete(run_id: int, task: str) -> None:
 
 
 @run.command()
+def list_sites() -> None:
+    """List available Sites"""
+    current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/site'
+    try:
+        r = requests.get(url, headers=current_user.header())
+    except requests.exceptions.RequestException:
+        sys.exit("Unable to communicate with JAWS server")
+    if r.status_code != requests.codes.ok:
+        sys.exit(r.text)
+    result = r.json()
+    print("Available Sites:")
+    for a_site_id in result:
+        print(f"  - {a_site_id}")
+
+
+@run.command()
 @click.argument("wdl_file", nargs=1)
 @click.argument("infile", nargs=1)
 @click.argument("outdir", nargs=1)
 @click.argument("site", nargs=1)
-def submit(wdl_file: str, infile: str, outdir: str, site: str) -> None:
+@click.option("--out_ep", default=None, help="Globus endpoint to send output")
+def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> None:
     """Submit a run for execution at a JAWS-Site.
 
     :param wdl_file: Path to workflow specification (WDL) file
@@ -266,106 +294,70 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str) -> None:
     :param site: JAWS Site ID at which to run
     :type site: str
     """
+    compute_site_id = site.upper()
     current_user = user.User()
     logger = logging.getLogger(__package__)
 
-    # CONFIG
-    conf = config.JawsConfig()
-    JAWS_SITE = conf.get("JAWS", "site_id")
-    GLOBUS_ENDPOINT = conf.get("GLOBUS", "endpoint")
-    GLOBUS_BASEDIR = conf.get("GLOBUS", "basedir")
-    JAWS_STAGING_SUBDIR = conf.get("JAWS", "staging_subdir")
-
-    # DEFINE OUTPUT DIR AND VERIFY IT'S ACCESSIBLE VIA GLOBUS
-    if not outdir:
-        if current_user.config["USER"]["default_outdir"]:
-            outdir = current_user.config["USER"]["default_outdir"]
-        else:
-            sys.exit(
-                '--outdir required as no default specified in your config file' +
-                '\nYou may set your "default_outdir" by editing %s'
-                % (current_user.config_file,)
-            )
-    if not GLOBUS_BASEDIR:
-        sys.exit("ERROR: $GLOBUS_BASEDIR env var not defined")
-    if not outdir.startswith(GLOBUS_BASEDIR):
-        sys.exit(
-            "Invalid outdir, %s; Globus can only write under %s"
-            % (outdir, GLOBUS_BASEDIR)
-        )
-
-    # CREATE UNIQUE STAGING ID
-    submission_uuid = str(uuid.uuid4())
-
-    # VALIDATE RUN
-    run = workflow.Workflow(wdl_file, infile)
-    if not run.validate():
-        sys.exit("Failed validation; aborting")
-
-    # PREPARE RUN
-    staging_dir = os.path.join(GLOBUS_BASEDIR, JAWS_STAGING_SUBDIR)
+    globus_basedir = config.conf.get("GLOBUS", "basedir")
+    staging_subdir = config.conf.get("JAWS", "staging_subdir")
+    staging_dir = os.path.join(globus_basedir, staging_subdir)
     if not os.path.isdir(staging_dir):
         os.makedirs(staging_dir)
-    run.prepare_wdls(staging_dir, submission_uuid)
-    run.prepare_inputs(GLOBUS_BASEDIR, JAWS_STAGING_SUBDIR, JAWS_SITE, submission_uuid)
 
-    # GET COMPUTE SITE INFO (E.G. GLOBUS ENDPOINT PARAMS)
-    data = {"site": site, "max_ram_gb": run.max_ram_gb, "transfer_gb": run.transfer_gb}
-    url = f'{config.conf.get("JAWS", "url")}/run/get_site'
+    local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
+    if out_ep is None:
+        out_ep = local_endpoint_id
+    if out_ep == local_endpoint_id and not outdir.startswith(globus_basedir):
+        sys.exit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
+
+    # GET COMPUTE SITE INFO
+    url = f'{config.conf.get("JAWS", "url")}/site/{compute_site_id}'
     try:
-        r = requests.post(url, data=data, headers=current_user.header())
+        r = requests.get(url, headers=current_user.header())
     except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != requests.codes.ok:
+    if r.status_code == 404:
+        print(f"{compute_site_id} is not a valid Site ID.")
+        list_sites()
+        sys.exit("Please try again with a valid Site ID")
+    elif r.status_code != requests.codes.ok:
         sys.exit(r.text)
     result = r.json()
-    site = result["site"]
-    print("Sending to: %s" % (site,))
-    dest_endpoint = result["endpoint"]
-    dest_dir = result["staging"]
+    compute_basedir = result["globus_basepath"]
+    compute_staging_subdir = result["staging_subdir"]
+    compute_max_ram_gb = int(result["max_ram_gb"])
 
-    # GLOBUS TRANSFER
-    current_user = user.User()
-    transfer_client = current_user.transfer_client()
-    tdata = globus_sdk.TransferData(
-        transfer_client,
-        GLOBUS_ENDPOINT,
-        dest_endpoint,
-        label=submission_uuid,
-        sync_level="checksum",
-        verify_checksum=True,
-        preserve_timestamp=True,
-        notify_on_succeeded=False,
-        notify_on_failed=True,
-        notify_on_inactive=True,
-        skip_activation_check=False,
-    )
-    for source_file, dest_file in run.manifest:
-        abs_dest_file = os.path.join(dest_dir, dest_file)
-        if os.path.isdir(source_file):
-            tdata.add_item(source_file, abs_dest_file, recursive=True)
-        else:
-            tdata.add_item(source_file, abs_dest_file, recursive=False)
-    transfer_result = transfer_client.submit_transfer(tdata)
-    transfer_task_id = transfer_result["task_id"]
-    logger.info("Globus transfer task_id = %s" % (transfer_task_id,))
+    # PREPARE RUN
+    run = workflow.Workflow(wdl_file, infile)
+    run.validate()
+    max_ram_gb = run.max_ram_gb()
+    if max_ram_gb > compute_max_ram_gb:
+        raise AnalysisError(
+            f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
+        )
+    submission_id = run.prepare_submission(compute_basedir, compute_staging_subdir)
 
     # SUBMIT RUN
     data = {
-        "site": site,
-        "submission_uuid": submission_uuid,
-        "transfer_task_id": transfer_task_id,
-        "globus_endpoint": GLOBUS_ENDPOINT,
-        "outdir": outdir,
+        "site_id": site,
+        "submission_id": submission_id,
+        "input_site_id": config.conf.get("JAWS", "site_id"),
+        "input_endpoint": config.conf.get("GLOBUS", "endpoint_id"),
+        "output_endpoint": out_ep,
+        "output_dir": outdir,
     }
+    files = {"manifest": open(run.manifest_file, "r")}
     url = f'{config.conf.get("JAWS", "url")}/run'
-    logger.info("Submitting to %s:\n%s" % (url, data))
+    logger.debug("Submitting run to %s:\n%s" % (url, data))
+    current_user = user.User()
     try:
-        r = requests.post(url, data=data, headers=current_user.header())
+        r = requests.post(url, data=data, files=files, headers=current_user.header())
     except requests.exceptions.RequestException:
         sys.exit("Unable to communicate with JAWS server")
     if r.status_code != requests.codes.ok:
         sys.exit(r.text)
     result = r.json()
+    if "run_id" not in result:
+        sys.exit(f"Invalid response from JAWS: {result}")
     run_id = result["run_id"]
     print(f"Successfully queued run {run_id}")
