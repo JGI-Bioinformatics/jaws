@@ -20,7 +20,6 @@ def setup_logger(name, log_file=None):
     handler_file.setFormatter(formatter)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
     logger.addHandler(handler_stderr)
     logger.addHandler(handler_file)
 

@@ -2,27 +2,15 @@ import logging
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from jaws_site import models
+import jaws_site.utils
 
 
 db = None
 
 
-class Singleton(type):
-
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-class DatabaseError(Exception):
-    pass
-
-
-class JawsDb(metaclass=Singleton):
+class JawsDb(metaclass=jaws_site.utils.Singleton):
     """Database singleton class"""
     engine = None
 
@@ -43,7 +31,9 @@ class JawsDb(metaclass=Singleton):
             conf.get("DB", "host"),
             conf.get("DB", "db"))
         try:
-            self.engine = create_engine(url, pool_size=3, pool_recycle=3600, pool_pre_ping=True)
+            self.engine = create_engine(url, pool_size=3,
+                                        pool_recycle=3600,
+                                        pool_pre_ping=True)
         except Exception as e:
             raise DatabaseError(f"Unable to connect to db: {e}")
         models.Base.metadata.create_all(self.engine)
@@ -63,3 +53,7 @@ class JawsDb(metaclass=Singleton):
         Session = sessionmaker(bind=self.engine)
         session = Session()
         return session
+
+
+class DatabaseError(Exception):
+    pass
