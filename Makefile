@@ -35,6 +35,7 @@ test-requirements:
 .PHONY: test-site
 test-site: test-requirements
 	$Q flake8 site
+	$Q cd site && pytest
 
 .PHONY: test-central
 test-central: test-requirements

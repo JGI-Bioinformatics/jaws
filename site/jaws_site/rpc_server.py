@@ -2,32 +2,35 @@
 A Scalable and threaded Consumer that will automatically re-connect on failure.
 """
 import logging
-from typing import List
 import threading
 import time
 import json
 import urllib.parse
 import amqpstorm
-from jaws_site import dispatch
-from jaws_site.config import JawsConfig
+
+from jaws_site.dispatch import dispatch, failure
+from jaws_site.config import jaws_config
 
 logger = logging.getLogger(__package__)
 
 
 class Consumer(object):
 
-    rpc_queue: str
-    channel: amqpstorm.Channel
-    active: bool
+    def __init__(self, rpc_queue):
+        """Initialize Consumer object
 
-    def __init__(self, conf: JawsConfig, rpc_queue: str):
-        logger.debug(f"Initializing RPC consumer for {rpc_queue}")
+        :param rpc_queue: The name of the queue from which to retrieve messages.
+        :type rpc_queue: str
+        :return:
+        """
         self.rpc_queue = rpc_queue
         self.channel = None
         self.active = False
-        self.dispatcher = dispatch.Dispatcher(conf)
+        self.logger = logging.getLogger(__package__)
+        self.conf = jaws_config
 
-    def start(self, connection: amqpstorm.Connection):
+    def start(self, connection):
+        """Start the consumer"""
         self.channel = None
         try:
             self.active = True
@@ -47,12 +50,14 @@ class Consumer(object):
             self.active = False
 
     def stop(self):
+        """Stop the consumer"""
         if self.channel:
             self.channel.close()
 
-    def __call__(self, message: amqpstorm.Message):
+    def __call__(self, message):
         """Process the RPC Payload.
-        :param Message message:
+        :param message: A JSON-RPC2 encoded request
+        :type message: str
         :return:
         """
         corr_id = message.correlation_id
@@ -62,26 +67,34 @@ class Consumer(object):
         method = request["method"]
         params = request["params"]
 
+        self.logger.info(f'Dispatching request for method {method}, corr_id {corr_id}')
+
         # GET RESPONSE FROM DISPATCHER
-        response_dict = self.dispatcher.dispatch(method, params)
+        if "cromwell_id" not in params:
+            response_dict = failure(400)
+            self.logger.error(f'cromwell_id not included in {method}')
+        else:
+            response_dict = dispatch(method, params)
 
         # VALIDATE RESPONSE
         response_dict["jsonrpc"] = "2.0"
         if "error" in response_dict:
-            if not isinstance(response_dict["error"], dict):
-                raise InvalidJsonRpcResponse(f'{response_dict["error"]} is not of type dict')
-            if "code" not in response_dict["error"]:
-                raise InvalidJsonRpcResponse('missing error code')
-            if "message" not in response_dict["error"]:
-                raise InvalidJsonRpcResponse("missing error message")
-            if "result" in response_dict:
-                raise InvalidJsonRpcResponse("result not allowed in error")
+            if type(response_dict["error"]) is not dict:
+                self.logger.error(f'Invalid response_dict: {response_dict}')
+            elif "code" not in response_dict["error"]:
+                self.logger.error("Invalid response_dict; missing error code")
+            elif "message" not in response_dict["error"]:
+                self.logger.error("Invalid response_dict; missing error message")
+            elif "result" in response_dict:
+                self.logger.error("Invalid response_dict; result not allowed if error")
         elif "result" not in response_dict:
-            raise InvalidJsonRpcResponse('missing result in response')
+            self.logger.error(f'Invalid response_dict: {response_dict}')
 
         # INIT RESPONSE MESSAGE OBJECT
-        properties = {'correlation_id': corr_id}
-        response = amqpstorm.Message.create(message.channel, json.dumps(response_dict), properties)
+        properties = {"correlation_id": message.correlation_id}
+        response = amqpstorm.Message.create(
+            message.channel, json.dumps(response_dict), properties
+        )
 
         # DELIVER RESPONSE
         response.publish(message.reply_to)
@@ -90,28 +103,18 @@ class Consumer(object):
 
 class RpcServer(object):
 
-    hostname: str
-    vhost: str
-    user: str
-    password: str
-    rpc_queue: str
-    number_of_consumers: int
-    max_retries: int
-    connection: amqpstorm.Connection
-    consumers: List[Consumer]
-    stopped: threading.Event
-
-    def __init__(self, conf: JawsConfig) -> None:
-        self.hostname = conf.get("AMQP", "host")
-        self.vhost = conf.get("AMQP", "vhost")
-        self.user = conf.get("AMQP", "user")
-        self.password = conf.get("AMQP", "password")
-        self.rpc_queue = conf.get("AMQP", "queue")
-        self.max_retries = int(conf.get("RPC", "max_retries"))
-        number_of_consumers = int(conf.get("RPC", "num_threads"))
-        self.consumers = [Consumer(conf, self.rpc_queue) for _ in range(number_of_consumers)]
+    def __init__(self) -> None:
+        self.hostname = jaws_config.get("AMQP", "host")
+        self.vhost = jaws_config.get("AMQP", "vhost")
+        self.user = jaws_config.get("AMQP", "user")
+        self.password = jaws_config.get("AMQP", "password")
+        self.rpc_queue = jaws_config.get("AMQP", "queue")
+        self.max_retries = int(jaws_config.get("RPC", "max_retries"))
+        number_of_consumers = int(jaws_config.get("RPC", "num_threads"))
+        self.consumers = [Consumer(self.rpc_queue) for _ in range(number_of_consumers)]
         self.stopped = threading.Event()
         self.connection = self.create_connection()
+        self.conf = jaws_config
 
     def start_server(self) -> None:
         """Start the RPC Server.
@@ -131,7 +134,7 @@ class RpcServer(object):
                 self.create_connection()
             time.sleep(1)
 
-    def increase_consumers_by(self, num: int) -> None:
+    def increase_consumers_by(self, num) -> None:
         """Add one more consumer.
         :return: index where we activate consumers
         """
@@ -171,10 +174,13 @@ class RpcServer(object):
                 break
             try:
                 if self.vhost:
-                    uri = f'amqp://{self.user}:{urllib.parse.quote_plus(self.password)}@{self.hostname}:5672/{self.vhost}?heartbeat=60' # noqa
+                    uri = f'amqp://{self.user}:' \
+                          f'{urllib.parse.quote_plus(self.password)}@' \
+                          f'{self.hostname}:5672/{self.vhost}?heartbeat=6'
                     return amqpstorm.UriConnection(uri)
                 else:
-                    return amqpstorm.Connection(self.hostname, self.user, self.password)
+                    return amqpstorm.Connection(self.hostname, self.user,
+                                                self.password)
             except amqpstorm.AMQPConnectionError as e:
                 logger.warning(str(e))
                 time.sleep(1)
