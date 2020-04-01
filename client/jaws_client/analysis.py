@@ -2,7 +2,6 @@
 JAWS Analysis/Run management functions; these interact via REST with the JAWS Central server.
 """
 
-import sys
 import os
 import json
 import requests
@@ -37,7 +36,7 @@ def _get(url):
     except requests.exceptions.RequestException as err:
         raise SystemExit("Unable to communicate with JAWS server", err)
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     return r
 
 
@@ -115,7 +114,7 @@ def tasks(run_id: int) -> None:
     result = r.json()
     metadata = r.json()
     if "run_id" not in metadata:
-        sys.exit(f"Invalid response from JAWS: {metadata}")
+        raise SystemExit(f"Invalid response from JAWS: {metadata}")
     status = metadata["status"]
     print("status: " + status)
 
@@ -271,20 +270,20 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
     if out_ep is None:
         out_ep = local_endpoint_id
     if out_ep == local_endpoint_id and not outdir.startswith(globus_basedir):
-        sys.exit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
+        raise SystemExit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
 
     # GET COMPUTE SITE INFO
     url = f'{config.conf.get("JAWS", "url")}/site/{compute_site_id}'
     try:
         r = requests.get(url, headers=current_user.header())
     except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code == 404:
         print(f"{compute_site_id} is not a valid Site ID.")
         list_sites()
-        sys.exit("Please try again with a valid Site ID")
+        raise SystemExit("Please try again with a valid Site ID")
     elif r.status_code != requests.codes.ok:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     compute_basedir = result["globus_basepath"]
     compute_staging_subdir = result["staging_subdir"]
@@ -316,11 +315,11 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
     try:
         r = requests.post(url, data=data, files=files, headers=current_user.header())
     except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != requests.codes.ok:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     if "run_id" not in result:
-        sys.exit(f"Invalid response from JAWS: {result}")
+        raise SystemExit(f"Invalid response from JAWS: {result}")
     run_id = result["run_id"]
     print(f"Successfully queued run {run_id}")
