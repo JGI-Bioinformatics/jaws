@@ -28,8 +28,14 @@ def _get(url):
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
+    except requests.exceptions.Timeout as err:
+        raise SystemExit("Unable to communicate with JAWS server (timeout)", err)
+    except requests.exceptions.TooManyRedirects as err:
+        raise SystemExit("Unable to communicate with JAWS server (too many redirects; bad url?)", err)
+    except requests.exceptions.HTTPError as err:
+        raise SystemExit("Unable to communicate with JAWS server (http error)", err)
+    except requests.exceptions.RequestException as err:
+        raise SystemExit("Unable to communicate with JAWS server", err)
     if r.status_code != 200:
         sys.exit(r.text)
     return r
