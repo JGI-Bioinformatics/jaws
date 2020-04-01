@@ -15,7 +15,7 @@ from jaws_central.models import db, Run, User
 logger = logging.getLogger(__package__)
 
 
-def _rpc_call(self, user, run_id, method, params={}):
+def _rpc_call(user, run_id, method, params={}):
     """This is not a Flask endpoint, but a helper used by several endpoints.
     It checks a user's permission to access a run, perform the specified RPC function,
     and returns result if OK, aborts if error.
