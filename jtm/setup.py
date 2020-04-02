@@ -15,16 +15,6 @@ setup(
     entry_points={
         "console_scripts": [
             "jtm=jaws_jtm.jtm:jtm",
-            "jtm-check-manager=jaws_jtm.jtm_check_manager:check_manager",
-            "jtm-check-worker=jaws_jtm.jtm_check_worker:check_worker",
-            "jtm-isalive=jaws_jtm.jtm_isalive:isalive",
-            "jtm-kill=jaws_jtm.jtm_kill:kill",
-            "jtm-manager=jaws_jtm.jtm_manager:manager",
-            "jtm-resource-log=jaws_jtm.jtm_resource_log:resource_log",
-            "jtm-remove-pool=jaws_jtm.jtm_remove_pool:remove_pool",
-            "jtm-status=jaws_jtm.jtm_status:status",
-            "jtm-submit=jaws_jtm.jtm_submit:submit",
-            "jtm-worker=jaws_jtm.jtm_worker:worker",
         ]
     },
     zip_safe=False,

@@ -99,8 +99,10 @@ class JtmConstants():
                 "jgi_exvivo",
                 "condo_jgicloud"
                 ]
-
+    CONSTRAINT_LIST = ["haswell", "knl", "skylake"]
     DEFAULT_POOL = ["small", "medium", "large", "xlarge"]
+    NUM_MANAGER_PROCS = 7
+    NUM_WORKER_PROCS = 6
 
 
 class JtmConfig(object):
