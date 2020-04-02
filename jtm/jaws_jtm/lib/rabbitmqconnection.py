@@ -19,43 +19,6 @@ RMQ_VHOST = config.configparser.get("RMQ", "vhost")
 JGI_JTM_MAIN_EXCH = config.configparser.get("JTM", "jgi_jtm_main_exch")
 
 
-class RmqConnection(object):
-    """
-    Class for RabbitMQ connection management
-    """
-    __connection = None
-
-    def __init__(self):  # return a pika connection
-        if not self.__connection:
-            creds = pika.PlainCredentials(RMQ_USER, RMQ_PASS)
-            params = pika.ConnectionParameters(credentials=creds,
-                                               host=RMQ_HOST,
-                                               virtual_host=RMQ_VHOST,
-                                               port=RMQ_PORT
-                                               )
-            self.__connection = pika.BlockingConnection(params)
-
-            # Tip?
-            # credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-            # connection = pika.BlockingConnection(pika.ConnectionParameters(
-            #    credentials=credentials,
-            #        host=RABBITMQ_HOST,
-            #         socket_timeout=300))
-            # channel = connection.channel()
-            #
-        else:
-            print("Already connected.")
-
-    def open(self):
-        return self.__connection
-
-    def close(self):
-        self.__connection.close()
-
-    def is_open(self):
-        return self.__connection.is_open()
-
-
 class RmqConnectionHB(object):
     """
     Class for RMQ connection with hb option

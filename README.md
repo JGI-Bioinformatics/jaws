@@ -10,11 +10,12 @@ See docs/install_Cli_and_Site.md
 See docs/startingServices.md  
 
 ## Contributing
+* Nicole Free <nlfree@lbl.gov>
 * Jeff Froula <jlfroula@lbl.gov>  
-* Edward Kirton <eskirton@lbl.gov>  
-* Stephan Trong <strong@lbl.gov>  
-* Hugh Salamon <hsalamon>  
+* Ed Kirton <eskirton@lbl.gov>  
 * Mario Melara <mamelara@lbl.gov>  
 * Georg Rath <gbrath@lbl.gov>  
-* Seung-jin Sul <ssul@lbl.gov>  
+* Hugh Salamon <hsalamon@lbl.gov> 
+* Seung-Jin Sul <ssul@lbl.gov>   
+* Stephan Trong <strong@lbl.gov>  
 
