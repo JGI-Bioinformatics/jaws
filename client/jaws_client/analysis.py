@@ -2,7 +2,6 @@
 JAWS Analysis/Run management functions; these interact via REST with the JAWS Central server.
 """
 
-import sys
 import os
 import json
 import requests
@@ -15,6 +14,30 @@ from jaws_client import config, user, workflow
 class AnalysisError(Exception):
     def __init__(self, message):
         super().__init__(message)
+
+
+def _get(url):
+    """REST GET.  Adds current user token to header.  Dies on error.
+
+    :param url: URL
+    :type url: str
+    :return: requests object
+    :rtype: requests
+    """
+    current_user = user.User()
+    try:
+        r = requests.get(url, headers=current_user.header())
+    except requests.exceptions.Timeout as err:
+        raise SystemExit("Unable to communicate with JAWS server (timeout)", err)
+    except requests.exceptions.TooManyRedirects as err:
+        raise SystemExit("Unable to communicate with JAWS server (too many redirects; bad url?)", err)
+    except requests.exceptions.HTTPError as err:
+        raise SystemExit("Unable to communicate with JAWS server (http error)", err)
+    except requests.exceptions.RequestException as err:
+        raise SystemExit("Unable to communicate with JAWS server", err)
+    if r.status_code != 200:
+        raise SystemExit(r.text)
+    return r
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -30,14 +53,8 @@ def queue() -> None:
     :return: List of user's current runs in JSON format
     :rtype: str
     """
-    current_user = user.User()
     url = f'{config.JawsConfig().get("JAWS", "url")}/search'
-    try:
-        r = requests.get(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        sys.exit(r.text)
+    r = _get(url)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -51,13 +68,7 @@ def history(days: int) -> None:
     :type days: int, optional
     """
     url = f'{config.JawsConfig().get("JAWS", "url")}/search/{days}'
-    current_user = user.User()
-    try:
-        r = requests.get(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        sys.exit(r.text)
+    r = _get(url)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -71,13 +82,7 @@ def _run_status(run_id: int) -> Dict[str, str]:
     :rtype: str
     """
     url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
-    current_user = user.User()
-    try:
-        r = requests.get(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        sys.exit(r.text)
+    r = _get(url)
     result = r.json()
     return result
 
@@ -104,49 +109,10 @@ def tasks(run_id: int) -> None:
     :type run_id: int
     :return:
     """
-    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
-    current_user = user.User()
-    try:
-        r = requests.get(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        sys.exit(r.text)
-    metadata = r.json()
-    if "run_id" not in metadata:
-        sys.exit(f"Invalid response from JAWS: {metadata}")
-    status = metadata["status"]
-    print("status: " + status)
-
-    # failures
-    if "failures" in metadata:
-        print("failures:")
-        for failure in metadata["failures"]:
-            print("\t" + failure["message"])
-
-    # call summary
-    if "calls" not in metadata:
-        return
-    print("calls:")
-    calls = metadata["calls"]
-    result = []
-    for task_name in calls.keys():
-        task = calls[task_name]
-        for attempt in task:
-            if "executionStatus" not in attempt:
-                continue
-            status = attempt["executionStatus"]
-            if "shardIndex" not in attempt:
-                continue
-            shard = attempt["shardIndex"]
-            result.append((task_name, shard, status))
-            if shard > -1:
-                print(task_name + "[" + str(shard) + "]\t" + status)
-            else:
-                print("\t".join((task_name, status)))
-            if status == "Failed":
-                for failure in attempt["failures"]:
-                    print("\t" + failure["message"])
+    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/tasks'
+    r = _get(url)
+    result = r.json()
+    print(json.dumps(result, indent=4, sort_keys=True))
 
 
 @run.command()
@@ -160,13 +126,7 @@ def metadata(run_id: int) -> None:
     :return:
     """
     url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/metadata'
-    current_user = user.User()
-    try:
-        r = requests.get(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        sys.exit(r.text)
+    r = _get(url)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -180,14 +140,8 @@ def logs(run_id: int) -> None:
     :type run_id: int
     :return:
     """
-    current_user = user.User()
     url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/logs'
-    try:
-        r = requests.get(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        sys.exit(r.text)
+    r = _get(url)
     print(r.text)
 
 
@@ -200,14 +154,8 @@ def errors(run_id):
     :type run_id: int
     :return:
     """
-    current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/errors'
-    try:
-        r = requests.get(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        sys.exit(r.text)
+    r = _get(url)
     print(r.text)
 
 
@@ -220,15 +168,7 @@ def cancel(run_id):
     :type run_id: int
     """
     url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
-    current_user = user.User()
-    try:
-        r = requests.delete(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code == 200:
-        print("run " + run_id + " was canceled")
-    else:
-        sys.exit(r.text)
+    _get(url)
 
 
 @run.command()
@@ -248,28 +188,16 @@ def delete(run_id: int, task: str) -> None:
         url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
     else:
         url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/{task}'
-    current_user = user.User()
-    try:
-        r = requests.delete(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
+    r = _get(url)
     result = r.json()
-    if r.status_code != 200:
-        sys.exit(r.text)
     print(json.dumps(result, indent=4, sort_keys=True))
 
 
 @run.command()
 def list_sites() -> None:
     """List available Sites"""
-    current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/site'
-    try:
-        r = requests.get(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != requests.codes.ok:
-        sys.exit(r.text)
+    r = _get(url)
     result = r.json()
     print("Available Sites:")
     for a_site_id in result:
@@ -308,20 +236,20 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
     if out_ep is None:
         out_ep = local_endpoint_id
     if out_ep == local_endpoint_id and not outdir.startswith(globus_basedir):
-        sys.exit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
+        raise SystemExit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
 
     # GET COMPUTE SITE INFO
     url = f'{config.conf.get("JAWS", "url")}/site/{compute_site_id}'
     try:
         r = requests.get(url, headers=current_user.header())
     except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code == 404:
         print(f"{compute_site_id} is not a valid Site ID.")
         list_sites()
-        sys.exit("Please try again with a valid Site ID")
+        raise SystemExit("Please try again with a valid Site ID")
     elif r.status_code != requests.codes.ok:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     compute_basedir = result["globus_basepath"]
     compute_staging_subdir = result["staging_subdir"]
@@ -353,11 +281,11 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
     try:
         r = requests.post(url, data=data, files=files, headers=current_user.header())
     except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != requests.codes.ok:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     if "run_id" not in result:
-        sys.exit(f"Invalid response from JAWS: {result}")
+        raise SystemExit(f"Invalid response from JAWS: {result}")
     run_id = result["run_id"]
     print(f"Successfully queued run {run_id}")

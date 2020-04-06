@@ -2,7 +2,6 @@
 JAWS Workflows Repository
 """
 
-import sys
 import json
 import requests
 from bs4 import BeautifulSoup
@@ -27,9 +26,9 @@ def list() -> None:
     try:
         r = requests.get(url, headers=current_user.header())
     except requests.ConnectionError:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -48,9 +47,9 @@ def versions(name: str) -> None:
     try:
         r = requests.get(url, headers=current_user.header())
     except requests.ConnectionError:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -72,9 +71,9 @@ def about(name: str, version: str) -> None:
     try:
         r = requests.get(url, headers=current_user.header())
     except requests.ConnectionError:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.text
     result = result.rstrip('"\n')
     result = result.lstrip('"')
@@ -100,9 +99,9 @@ def get(name: str, version: str) -> None:
     try:
         r = requests.get(url, headers=current_user.header())
     except requests.ConnectionError:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.text
     print(result)
 
@@ -131,9 +130,9 @@ def add(name: str, version: str, wdl_file: str, md_file: str) -> None:
     try:
         r = requests.post(url, files=files, headers=current_user.header())
     except Exception:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -156,9 +155,9 @@ def release(name: str, version: str) -> None:
     try:
         r = requests.put(url, data=data, headers=current_user.header())
     except requests.ConnectionError:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -184,9 +183,9 @@ def update_wdl(name: str, version: str, wdl_file: str) -> None:
     try:
         r = requests.put(url, files=files, headers=current_user.header())
     except Exception:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -212,9 +211,9 @@ def update_doc(name: str, version: str, md_file: str) -> None:
     try:
         r = requests.put(url, files=files, headers=current_user.header())
     except requests.ConnectionError:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -236,8 +235,8 @@ def delete(name: str, version: str) -> None:
     try:
         r = requests.delete(url, headers=current_user.header())
     except requests.ConnectionError:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))

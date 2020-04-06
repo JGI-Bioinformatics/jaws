@@ -8,8 +8,9 @@ def status() -> dict:
     :rtype: dict
     """
     result = {"JAWS-Central": "UP"}
-    for site_id in rpc_manager.rpc.get_sites():
-        client = rpc_manager.rpc.get_client(site_id)
+    rpcm = rpc_manager.manager
+    for site_id in rpcm.get_sites():
+        client = rpcm.get_client(site_id)
         response = client.request("server_status")
         if "error" not in response:
             result[site_id + "-Site"] = "UP"

@@ -7,15 +7,14 @@ from datetime import datetime, timedelta
 from flask import abort, request
 import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_central import config
-from jaws_central.rpc_manager import rpc
+from jaws_central import config, rpc_manager
 from jaws_central.models import db, Run, User
 
 
 logger = logging.getLogger(__package__)
 
 
-def _rpc_call(self, user, run_id, method, params={}):
+def _rpc_call(user, run_id, method, params={}):
     """This is not a Flask endpoint, but a helper used by several endpoints.
     It checks a user's permission to access a run, perform the specified RPC function,
     and returns result if OK, aborts if error.
@@ -40,7 +39,7 @@ def _rpc_call(self, user, run_id, method, params={}):
         abort(404, "Run not found")
     if run.user_id != user:
         abort(401, "Access denied")
-    site_rpc_call = rpc.get_client(run.site_id)
+    site_rpc_call = rpc_manager.manager.get_client(run.site_id)
     params["cromwell_id"] = run.cromwell_id
     result = site_rpc_call.request(method, params)
     if "error" in result:
@@ -109,7 +108,13 @@ def user_history(user, delta_days=10):
     result = []
     for run in q:
         result.append(
-            [run.id, run.submitted, run.status, run.submission_id, run.upload_task_id]
+            {
+                "id": run.id,
+                "submitted": run.submitted,
+                "status": run.status,
+                "submission_id": run.submission_id,
+                "upload_task_id": run.upload_task_id,
+            }
         )
     return result, 200
 

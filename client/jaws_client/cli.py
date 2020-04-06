@@ -2,7 +2,6 @@
 JAWS CLI
 """
 
-import sys
 import click
 import os
 import requests
@@ -42,7 +41,7 @@ def find_config_file(env_var: str, config_file: str) -> str:
     cf = os.path.join(os.environ["HOME"], config_file)
     if os.path.isfile(cf):
         return cf
-    raise IOError("Unable to find config file")
+    raise SystemExit(f"Unable to find config file; please set {env_var}")
 
 
 @cli.command()
@@ -52,9 +51,9 @@ def status() -> None:
     try:
         r = requests.get(url)
     except requests.exceptions.RequestException:
-        sys.exit("JAWS Central is DOWN")
+        raise SystemExit("JAWS Central is DOWN")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -79,7 +78,7 @@ def login() -> None:
     try:
         token_response = globus_client.oauth2_exchange_code_for_tokens(auth_code)
     except globus_sdk.GlobusError:
-        sys.exit("Authentication failed")
+        raise SystemExit("Authentication failed")
 
     # POST TOKENS TO JAWS CENTRAL
     data = {}
@@ -94,9 +93,9 @@ def login() -> None:
     try:
         r = requests.post(url, data=data, headers=current_user.header())
     except requests.exceptions.RequestException:
-        sys.exit("Unable to communicate with JAWS server")
+        raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        sys.exit(r.text)
+        raise SystemExit(r.text)
 
 
 def jaws():
@@ -105,8 +104,7 @@ def jaws():
     logger = log.setup_logger(__package__, log_file)
 
     config_file = find_config_file("JAWS_CLIENT_CONFIG", "jaws-client.ini")
-    if not config_file:
-        logger.critical("Unable to find jaws config file")
+    logger.debug(f"jaws-client using {config_file}")
     config.conf = config.JawsConfig(config_file)
 
     cli.add_command(analysis.run)
