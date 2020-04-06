@@ -259,6 +259,10 @@ def run_sh_command(
                 if timeout_sec > 0:
                     timer.start()
                 std_out, std_err = p.communicate()
+                if type(std_out) is bytes:
+                    std_out = std_out.decode()
+                if type(std_err) is bytes:
+                    std_err = std_err.decode()
                 if show_stdout:
                     print(std_out)  # for printing slurm job id
                 exit_code = p.returncode

@@ -178,6 +178,7 @@ JTM_TASK_KILL_Q = config.configparser.get("JTM", "jtm_task_kill_q")
 JTM_WORKER_POISON_EXCH = config.configparser.get("JTM", "jtm_worker_poison_exch")
 JTM_WORKER_POISON_Q = config.configparser.get("JTM", "jtm_worker_poison_q")
 NUM_PROCS_CHECK_INTERVAL = config.configparser.getfloat("JTM", "num_procs_check_interval")
+ENV_ACTIVATION = config.configparser.get("JTM", "env_activation")
 
 
 # -------------------------------------------------------------------------------
@@ -908,7 +909,7 @@ def recv_reproduce_or_die_proc(task_queue, worker_id, cluster_name, mem_per_node
             elif msg_unzipped["num_clones"] == 1:
                 logger.info("Static worker cloning request received.")
 
-                jtm_worker_cmd = "jtm-worker -wt static -cl {} -t {} -ct {}".format(
+                jtm_worker_cmd = "jtm worker -wt static -cl {} -t {} -ct {}".format(
                                   cluster_name, wallclocktime, clone_time_rate)
 
                 if task_queue is not None:
@@ -957,10 +958,11 @@ def check_num_procs():
     if not, terminate the all the proc ids
 
     """
-    ps_cmd = "ps -aef | grep %s | grep %s | grep -v grep | awk '{print $2}'" \
-             % ("jtm-worker", getpass.getuser())
+    ps_cmd = "ps -aef | grep '%s' | grep %s | grep -v grep | awk '{print $2}'" \
+             % ("jtm worker", getpass.getuser())
     if sys.platform.lower() == "darwin":
-        ps_cmd = "ps -aef | grep %s | grep -v grep | awk '{print $2}'" % ("jtm-worker")
+        ps_cmd = "ps -aef | grep '%s' | grep -v grep | awk '{print $2}'" \
+                 % ("jtm worker")
     while 1:
         pid_list = back_ticks(ps_cmd, shell=True)
         if type(pid_list) is bytes:
@@ -977,7 +979,7 @@ def check_num_procs():
 
 # -------------------------------------------------------------------------------
 def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
-           pool_name_param, worker_timeout_in_sec_param: int, dry_run_param: bool,
+           pool_name_param, worker_timeout_in_sec_param: int, dry_run: bool,
            slurm_job_id_param: int, worker_type_param, cluster_name_param,
            worker_clone_time_rate_param: float, num_workers_per_node_param: int,
            worker_id_param: str, charging_account_param, num_nodes_to_request_param: int,
@@ -1045,6 +1047,7 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
     logger.info("Unique worker ID: %s", UNIQ_WORKER_ID)
     logger.info("\n*****************\nRun mode is %s\n*****************"
                 % ("PROD" if PRODUCTION else "DEV"))
+    logger.debug("env activation: %s", ENV_ACTIVATION)
 
     # Slurm config
     num_nodes_to_request = 0
@@ -1089,10 +1092,10 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
     #     # inner_task_request_queue = "_jtm_inner_request_queue." + cluster_name_param + "." + pool_name_param
     #     JTM_INNER_REQUEST_Q = "_jtm_inner_request_queue." + cluster_name_param + "." + USER_NAME
 
-    if pool_name_param:
-        inner_task_request_queue = JTM_INNER_REQUEST_Q + "." + pool_name_param
-    else:  # not reachable. default inner_task_request_queue = small
-        inner_task_request_queue = JTM_INNER_REQUEST_Q
+    assert pool_name_param is not None, "User pool name is not set"
+    inner_task_request_queue = JTM_INNER_REQUEST_Q + "." + pool_name_param
+    # else:  # not reachable. default inner_task_request_queue = small
+    #     inner_task_request_queue = JTM_INNER_REQUEST_Q
 
     worker_clone_time_rate = worker_clone_time_rate_param if worker_clone_time_rate_param else CTR
     if worker_type in ("static", "dynamic"):
@@ -1101,7 +1104,6 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
 
     slurm_job_id = slurm_job_id_param
     cluster_name = cluster_name_param
-    dry_run = dry_run_param
 
     if cluster_name == "cori" and mem_per_cpu_to_request != "" and \
             float(mem_per_cpu_to_request.replace("GB", "").replace("G", "").replace("gb", "")) > 1.0:
@@ -1118,7 +1120,7 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
         batch_job_script_str = ""
         batch_job_misc_params = ""
 
-        if cluster_name in ("cori", "lawrencium", "jgi_cloud", "jaws_lbl_gov"):
+        if cluster_name in ("cori", "lawrencium", "jgi_cloud", "jaws_lbl_gov", "lbl", "jgi_cluster"):
 
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
@@ -1252,16 +1254,24 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
 %(exclusive)s
 
 module unload python
-#%(env_activation_cmd)s
+%(env_activation_cmd)s
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
-    jtm-worker --jobid $SLURM_JOB_ID \
+    #jtm-worker --jobid $SLURM_JOB_ID \
 -cl cori \
 -wt %(worker_type)s \
 -t %(wall_time)s \
 -ct %(clone_time_rate)f %(task_queue)s \
 -nw %(num_workers_per_node)d \
+-C %(constraint)s \
+%(other_params)s &
+    jtm worker --slurm_job_id $SLURM_JOB_ID \
+-cl cori \
+-wt %(worker_type)s \
+-t %(wall_time)s \
+--clone_time_rate %(clone_time_rate)f %(task_queue)s \
+--num_worker_per_node %(num_workers_per_node)d \
 -C %(constraint)s \
 %(other_params)s &
     sleep 1
@@ -1275,13 +1285,13 @@ wait
                                                      clone_time_rate=worker_clone_time_rate,
                                                      task_queue=tq_param,
                                                      num_workers_per_node=num_workers_per_node,
-                                                     # env_activation_cmd=ENV_ACTIVATION,
+                                                     env_activation_cmd=ENV_ACTIVATION,
                                                      other_params=batch_job_misc_params,
                                                      constraint=constraint,
                                                      job_name=job_name,
                                                      exclusive=excl_param)
 
-                elif cluster_name in ("lawrencium", "jgi_cloud", "jaws_lbl_gov"):
+                elif cluster_name in ("lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster", "lbl"):
 
                     if worker_id_param:
                         # batch_job_misc_params += " -wi %s" % (worker_id_param)
@@ -1326,17 +1336,24 @@ wait
 #SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
 #SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
 %(set_env_for_jtm_host_name)s
-#%(env_activation_cmd)s
+%(env_activation_cmd)s
 
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
-    jtm-worker --jobid $SLURM_JOB_ID \
+    #jtm-worker --jobid $SLURM_JOB_ID \
 -cl %(lbl_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
 -ct %(clone_time_rate)f %(task_queue)s \
 -nw %(num_workers_per_node)d \
+%(other_params)s &
+    jtm worker --slurm_job_id $SLURM_JOB_ID \
+-cl %(lbl_cluster_name)s \
+-wt %(worker_type)s \
+-t %(wall_time)s \
+--clone_time_rate %(clone_time_rate)f %(task_queue)s \
+--num_worker_per_node %(num_workers_per_node)d \
 %(other_params)s &
     sleep 1
 done
@@ -1352,7 +1369,7 @@ wait
                                                  worker_id=UNIQ_WORKER_ID,
                                                  job_dir=job_script_dir_name,
                                                  set_env_for_jtm_host_name=setenv_param,
-                                                 # env_activation_cmd=ENV_ACTIVATION,
+                                                 env_activation_cmd=ENV_ACTIVATION,
                                                  num_workers_per_node=num_workers_per_node,
                                                  lbl_cluster_name=cluster_name,
                                                  worker_type=worker_type,
@@ -1369,7 +1386,7 @@ wait
                 sys.exit(0)
 
             so, se, ec = run_sh_command("sbatch --parsable %s" % (batch_job_script_file), live=True, log=logger)
-            assert ec == 0, "Failed to run jtm-worker to sbatch dynamic worker."
+            assert ec == 0, "Failed to run 'jtm worker' to sbatch dynamic worker."
             return ec
             # if ec == 0:
             #     sys.exit(0)

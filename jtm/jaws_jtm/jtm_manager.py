@@ -286,8 +286,8 @@ TASK_KILL_INTERVAL = config.configparser.getfloat("JTM", "task_kill_interval")
 CLIENT_HB_SEND_INTERVAL = config.configparser.getfloat("JTM", "client_hb_send_interval")
 NUM_RESULT_RECV_THREADS = config.configparser.getint("JTM", "num_result_recv_threads")
 NUM_PROCS_CHECK_INTERVAL = config.configparser.getfloat("JTM", "num_procs_check_interval")
+ENV_ACTIVATION = config.configparser.get("JTM", "env_activation")
 
-# print("JGI Task Manager, version: %s" % (VERSION))  # VERSION <- Config.py
 
 # --------------------------------------------------------------------------------------------------
 # Globals
@@ -1157,7 +1157,9 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         pool_spec_json_str = json.loads(json.dumps(msg["pool"]))
 
         # Set default values defined in Config.py
+        assert "name" in pool_spec_json_str
         pool_name = pool_spec_json_str["name"]
+        assert pool_name is not None
         pool_cluster = config.configparser.get("JTM", "cluster")
         pool_ncpus = config.configparser.getint("JTM", "ncpus")
         pool_mem = config.configparser.get("JTM", "mempernode")
@@ -1266,8 +1268,13 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             # NOTE: User can request only "dynamic" workers from WDL. The "static" workers are managed
             #  by the admin.
             uniq_worker_id = str(shortuuid.uuid())
-            sbatch_cmd_str = """jtm-worker -wt dynamic {} -cl {} -c {} -t {} -m {} -wi {} -C {} -nw {} --qos {} --account {}\
-            """.format("-tp %s" % pool_name if pool_name else "",  # if "", 'small' will be set from jtm-worker
+
+            # sbatch_cmd_str = """{}jtm-worker -wt dynamic {} -cl {} -c {} -t {} \
+            # -m {} -wi {} -C {} -nw {} --qos {} --account {}\
+            sbatch_cmd_str = """{}jtm worker -wt dynamic -p {} -cl {} -c {} -t {} \
+            -m {} -wi {} -C {} -nw {} --qos {} -A {}\
+            """.format("%s && " if ENV_ACTIVATION is not None else "",
+                       pool_name,
                        pool_cluster,
                        pool_ncpus,
                        pool_time,
@@ -1280,6 +1287,9 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
 
             logger.info("Executing {}".format(sbatch_cmd_str))
             so, se, ec = run_sh_command(sbatch_cmd_str, live=True, log=logger)
+            so = so.decode() if type(so) is bytes else so
+            se = se.decode() if type(se) is bytes else se
+            ec = ec.decode() if type(ec) is bytes else ec
 
             # Print job script for logging
             run_sh_command(sbatch_cmd_str + " --dry-run", live=True, log=logger)
@@ -1849,6 +1859,9 @@ def process_remove_pool(ch, method, props, msg_unzipped):
         # print jid[0]
         scancel_cmd = "scancel %s" % (jid[0])
         so, se, ec = run_sh_command(scancel_cmd, live=True, log=logger)
+        so = so.decode() if type(so) is bytes else so
+        se = se.decode() if type(se) is bytes else se
+        ec = ec.decode() if type(ec) is bytes else ec
         if ec == 0:
             logger.info("Successfully cancel the job, %s" % (jid[0]))
         else:
@@ -2059,6 +2072,10 @@ def zombie_worker_cleanup_proc():
             # Note: slurm dependent code!
             cmd = "sacct -j %d" % j
             so, se, ec = run_sh_command(cmd, live=True, log=logger)
+            so = so.decode() if type(so) is bytes else so
+            se = se.decode() if type(se) is bytes else se
+            ec = ec.decode() if type(ec) is bytes else ec
+
             if ec == 0 and so.find("CANCELLED") != -1:
                 db = DbSqlMy(db=MYSQL_DB)
                 db.execute(JTM_SQL["update_workers_lifeleft_by_slurmjid"]
@@ -2078,11 +2095,11 @@ def check_num_procs():
     if not, terminate the all the proc ids
 
     """
-    ps_cmd = "ps -aef | grep %s | grep %s | grep %s | grep -v grep | awk '{print $2}'" \
-             % ("jtm", "manager", getpass.getuser())
+    ps_cmd = "ps -aef | grep '%s' | grep %s | grep -v grep | awk '{print $2}'" \
+             % ("jtm manager", getpass.getuser())
     if sys.platform.lower() == "darwin":
-        ps_cmd = "ps -aef | grep %s | grep %s | grep -v grep | awk '{print $2}'" \
-                 % ("jtm", "manager")
+        ps_cmd = "ps -aef | grep '%s' | grep -v grep | awk '{print $2}'" \
+                 % ("jtm manager")
     while 1:
         pid_list = back_ticks(ps_cmd, shell=True)
         if type(pid_list) is bytes:
