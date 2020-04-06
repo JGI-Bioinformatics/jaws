@@ -110,9 +110,9 @@ Run WDL in JAWS
 .. code-block:: bash
 
     # clone the example code
-    git clone https://gitlab.com/jfroula/jaws-example-wdl.git
+    git clone https://code.jgi.doe.gov/advanced-analysis/jaws.git
     
-    cd jaws-example-wdl/create_wdl_tutorial
+    cd jaws/examples/create_wdl_tutorial
     
     # run jaws run submit <workflow> <inputs> <outdir>
     jaws run submit align.wdl inputs.json out
