@@ -206,7 +206,7 @@ class RpcServer(object):
         :param num number_of_consumers:
         :return:
         """
-        for _ in len(num):
+        for _ in num:
             consumer = self.consumers.pop()
             consumer.stop()
 

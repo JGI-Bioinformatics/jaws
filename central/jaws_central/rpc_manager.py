@@ -3,7 +3,7 @@ from typing import List
 from jaws_central import rpc_client, config
 
 
-rpc = None
+manager = None
 
 
 class Singleton(type):
@@ -38,8 +38,8 @@ class JawsRpc(metaclass=Singleton):
         for site_id in conf.sites.keys():
             logger.info(f"Initializing RPC client for {site_id}")
             self.clients[site_id] = rpc_client.RPC_Client(conf.sites[site_id])
-        global rpc
-        rpc = self
+        global manager
+        manager = self
 
     def get_sites(self) -> List[str]:
         """Return list of JAWS-Site IDs.

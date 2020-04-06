@@ -142,31 +142,40 @@ class JAWSd:
         json_file = file_path + ".json"
         zip_file = file_path + ".zip"  # might not exist
         files = {}
-        try:
+        if os.path.exists(json_file):
             files["workflowInputs"] = (
                 "workflowInputs",
                 open(json_file, "r"),
                 "application/json",
             )
+        else:
+            self.logger.warning(f"Missing inputs JSON for run {run.id}")
+            run.status = "invalid_input"
+            self.session.commit()
+        if os.path.exists(wdl_file):
             files["workflowSource"] = (
                 "workflowSource",
                 open(wdl_file, "r"),
                 "application/json",
             )
-            if os.path.exists(zip_file):
-                files["workflowDependencies"] = (
-                    "workflowDependencies",
-                    open(zip_file, "rb"),
-                    "application/zip",
-                )
-        except Exception:
-            self.logger.warning(f"Invalid input for run {run.id}", exc_info=True)
+        else:
+            self.logger.warning(f"Missing WDL for run {run.id}", exc_info=True)
             run.status = "invalid_input"
             self.session.commit()
+        if os.path.exists(zip_file):
+            files["workflowDependencies"] = (
+                "workflowDependencies",
+                open(zip_file, "rb"),
+                "application/zip",
+            )
         try:
             r = requests.post(self.workflows_url, files=files)
         except requests.ConnectionError:
             self.logger.info("Cromwell server timeout")
+            # don't update state; keep trying
+            return
+        except Exception as err:
+            self.logger.error(f"Unknown error while submitting {run.id} to Cromwell: {err}")
             # don't update state; keep trying
             return
         if r.status_code == 201:
