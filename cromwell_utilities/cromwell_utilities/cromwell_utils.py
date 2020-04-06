@@ -35,10 +35,10 @@ def cromwell():
     pass
 
 
-def _get(url):
+def _get(url, data={}):
     """GET from URL, print result, exit on error."""
     try:
-        r = requests.get(url)
+        r = requests.get(url, data)
     except requests.exceptions.RequestException as e:
         raise e(f"Unable to GET from {url}: {e}")
     if r.status_code == 200:
@@ -51,7 +51,7 @@ def _get(url):
 def _post(url, data={}, files={}, tmpfiles=[]):
     """POST to URL, print result, exit on error."""
     try:
-        r = requests.post(url, files=files)
+        r = requests.post(url, data=data, files=files)
     except requests.exceptions.RequestException as e:
         raise e(f"Unable to POST to {url}: {e}")
     for tmpfile in tmpfiles:
@@ -148,7 +148,7 @@ def queue(username):
         "status": ["Submitted", "Running", "Aborting"],
         "label": ["username:" + username],
     }
-    _post(f"{WORKFLOWS_URL}/query", data=data)
+    _get(f"{WORKFLOWS_URL}/query", data=data)
 
 
 @cromwell.command()
@@ -161,7 +161,7 @@ def history(username, days):
         "label": ["username:" + username],
         "start": d.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
     }
-    _post(f"{WORKFLOWS_URL}/query", data=data)
+    _get(f"{WORKFLOWS_URL}/query", data=data)
 
 
 @cromwell.command()
