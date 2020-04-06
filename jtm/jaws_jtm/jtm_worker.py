@@ -55,7 +55,7 @@ Revisions
     10.05.2018 1.2.3: Updated sned hb to client interval to 5sec; Added comm pipe to send taskid
                       with hb;
 
-    10.12.2018 1.4.0: Added recv_reproduce_or_die_thread; jtm_kill done
+    10.12.2018 1.4.0: Added recv_reproduce_or_die_proc; jtm_kill done
     10.17.2018 1.4.2: Fixed panic() to terminate child processes
     10.18.2018 1.4.3: Added darwin support for resource reporting
     10.19.2018 1.4.4: Worker can use different queue name (=pool) when user task json has "pool" key
@@ -119,13 +119,13 @@ import sys
 import multiprocessing
 import shortuuid
 import datetime
-import argparse
 import json
 import threading
 import subprocess
 import socket
 import time
 import pika
+import getpass
 
 from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.config import JtmConfig
@@ -134,10 +134,10 @@ from jaws_jtm.lib.resourceusage import get_cpu_load, \
     get_runtime, get_pid_tree, get_virtual_memory_usage, \
     get_resident_memory_usage, get_total_mem_usage_per_node, \
     get_num_workers_on_node
-from jaws_jtm.lib.run import make_dir, run_sh_command
+from jaws_jtm.lib.run import make_dir, run_sh_command, back_ticks
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 
-# This ipc pipe is to send task_id (by on_request())to send_hb_to_client_thread()
+# This ipc pipe is to send task_id (by on_request())to send_hb_to_client_proc()
 # when a task is requested
 PIPE_TASK_ID_SEND, PIPE_TASK_ID_RECV = multiprocessing.Pipe()
 
@@ -162,6 +162,7 @@ VERSION = config.constants.VERSION
 COMPUTE_RESOURCES = config.constants.COMPUTE_RESOURCES
 TASK_TYPE = config.constants.TASK_TYPE
 DONE_FLAGS = config.constants.DONE_FLAGS
+NUM_WORKER_PROCS = config.constants.NUM_WORKER_PROCS
 
 CNAME = config.configparser.get("SITE", "instance_name")
 JTM_HOST_NAME = config.configparser.get("SITE", "jtm_host_name")
@@ -176,6 +177,8 @@ JTM_TASK_KILL_EXCH = config.configparser.get("JTM", "jtm_task_kill_exch")
 JTM_TASK_KILL_Q = config.configparser.get("JTM", "jtm_task_kill_q")
 JTM_WORKER_POISON_EXCH = config.configparser.get("JTM", "jtm_worker_poison_exch")
 JTM_WORKER_POISON_Q = config.configparser.get("JTM", "jtm_worker_poison_q")
+NUM_PROCS_CHECK_INTERVAL = config.configparser.getfloat("JTM", "num_procs_check_interval")
+ENV_ACTIVATION = config.configparser.get("JTM", "env_activation")
 
 
 # -------------------------------------------------------------------------------
@@ -206,25 +209,33 @@ def run_something(msg_unzipped, return_msg):
     # Run the task
     logger.info("Running task ID %d...", task_id)
     # logger.info("Running task/task ID, %s/%d...", cromwell_job_id, task_id)
+
+    p = None
+
     try:
-        p = subprocess.Popen(user_task_cmd,
-                             shell=True,
+        p = subprocess.Popen(user_task_cmd.split(),
+                             # shell=True,
                              env=os.environ,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
     except Exception as detail:
         logger.exception("Exception: Failed to run user command, %s", user_task_cmd)
         logger.exception("Detail: %s", str(detail))
-        raise
 
     # Set USER_PROC_PROC_ID = forked child process id (this value will be sent
     # to send_hb_to_client function)
     USER_PROC_PROC_ID.value = p.pid
     logger.debug("USER_PROC_PROC_ID.value %d" % USER_PROC_PROC_ID.value)
     logger.debug("User command: %s", user_task_cmd)
-    stdout_str = p.communicate()[0]
-    p.wait()
-    p.poll()
+
+    proc_return_code = -1
+    if p is not None:
+        stdout_str = p.communicate()[0]
+        p.wait()
+        p.poll()
+        proc_return_code = p.returncode
+    else:
+        logger.error("subprocess call failed")
 
     # Prepare result to send back
     return_msg["out_files"] = out_files
@@ -235,12 +246,12 @@ def run_something(msg_unzipped, return_msg):
         return_msg["done_flag"] = DONE_FLAGS["failed with user termination"]
         return_msg["ret_msg"] = "Task cancelled."
     else:
-        if p.returncode == 2:
+        if proc_return_code == 2:
             logger.info("input file not found.")
             return_msg["done_flag"] = "1"
             return_msg["ret_msg"] = "Input file not found."
 
-        elif p.returncode == 0:
+        elif proc_return_code == 0:
             logger.info("Task# %s completed!" % (str(task_id)))
 
             # Output file checking
@@ -278,7 +289,7 @@ def run_something(msg_unzipped, return_msg):
             return_msg["ret_msg"] = stdout_str
 
     # json_data = json.dumps(return_msg)
-    # logger.debug("Result reply: %s" % str(json_data))
+    logger.debug("Reply msg with result: %s" % str(return_msg))
     # msgZippedToSend = zdumps(json_data)
     # return msgZippedToSend
 
@@ -320,7 +331,7 @@ def on_request(ch, method, props, body):
     #                                 auto_delete=True).method.message_count
     # logger.debug("#tasks queued = %d", hb_queue_len)
 
-    # Send taskid to send_hb_to_client_thread() so that the task_id can be shown in the hb messages
+    # Send taskid to send_hb_to_client_proc() so that the task_id can be shown in the hb messages
     PIPE_TASK_ID_SEND.send(task_id)
 
     # If client sends "terminate worker"
@@ -366,7 +377,7 @@ def on_request(ch, method, props, body):
     while thread.is_alive():  # Loop while the thread is processing
         ch._connection.sleep(1.0)
     json_data = json.dumps(result_dict)
-    logger.debug("Result reply: %s" % str(json_data))
+    logger.debug("Reply msg with result: %s" % str(json_data))
     logger.debug(json_data)
     response = zdumps(json_data)
     ######################################
@@ -396,7 +407,7 @@ def on_request(ch, method, props, body):
     except Exception as e:
         logger.critical("Something wrong in on_request(): %s", e)
 
-    # Send taskid=0 to send_hb_to_client_thread() b/c the requested task is completed
+    # Send taskid=0 to send_hb_to_client_proc() b/c the requested task is completed
     PIPE_TASK_ID_SEND.send(0)
 
     # Reset child pid
@@ -440,10 +451,6 @@ def check_output(out_files, out_file_check_wait_time=3,
                 if file_size == 0:
                     logger.warning("File, %s is zero size.", a_file)
 
-                # If "-z" option is used, allow zero sized output file
-                if ALLOW_EMPTY_OUTPUT_FILE and file_size == 0:
-                    file_size = 1
-
                 if b_is_file_exist and file_size > 0:
                     b_is_file_found = True
                     logger.info("Output file '%s' is OK.", a_file)
@@ -463,10 +470,10 @@ def check_output(out_files, out_file_check_wait_time=3,
 
 
 # -------------------------------------------------------------------------------
-def send_hb_to_client_thread(root_proc_id, interval, queue_child_proc_id, worker_id, pipe_task_id,
-                             slurm_job_id, worker_type, mem_per_node, mem_per_core, num_cores,
-                             job_time, clone_time_rate, task_queue_name, pool_name, nwpn,
-                             exch_name, worker_hb_queue):
+def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_id, pipe_task_id,
+                           slurm_job_id, worker_type, mem_per_node, mem_per_core, num_cores,
+                           job_time, clone_time_rate, task_queue_name, pool_name, nwpn,
+                           exch_name, worker_hb_queue):
     """
     Send heartbeats to the client
     :param root_proc_id: root_proc_id of this worker
@@ -563,9 +570,12 @@ def send_hb_to_client_thread(root_proc_id, interval, queue_child_proc_id, worker
 
             # Collect cpu_usages for all pids in the tree and get max()
             try:
-                cpu_load_list = [get_cpu_load(pid) for pid in proc_id_list_merged]
+                cpu_load_list = [float(get_cpu_load(pid)) for pid in proc_id_list_merged]
             except Exception:
                 logger.exception("get_cpu_load() exception")
+                ch.stop_consuming()
+                ch.close()
+                conn.close()
                 os._exit(1)
 
             max_cpu_load = max(cpu_load_list) if len(cpu_load_list) > 0 else 0.0
@@ -629,6 +639,9 @@ def send_hb_to_client_thread(root_proc_id, interval, queue_child_proc_id, worker
                     worker_age_in_minute = divmod(delta.total_seconds(), 60)[0]
             except Exception as e:
                 logger.critical("Something wrong in computing remaining wall clock time: %s", e)
+                ch.stop_consuming()
+                ch.close()
+                conn.close()
                 os._exit(1)
 
             # Get the total number of tasks in the task queue for this pool
@@ -688,6 +701,9 @@ def send_hb_to_client_thread(root_proc_id, interval, queue_child_proc_id, worker
         except Exception as e:
             logger.critical("Something wrong with send_hb_to_client(): %s", e)
             # Note: Need to terminate the whole program, not this thread only.
+            ch.stop_consuming()
+            ch.close()
+            conn.close()
             os._exit(1)
 
         # Todo: Need to start with shorted interval like (0.5-1 sec) for about 30 sec
@@ -701,7 +717,7 @@ def send_hb_to_client_thread(root_proc_id, interval, queue_child_proc_id, worker
 
 
 # -----------------------------------------------------------------------
-def recv_hb_from_client_thread2(task_queue, worker_id, exch_name, cl_hb_q_postfix):
+def recv_hb_from_client_proc2(task_queue, worker_id, exch_name, cl_hb_q_postfix):
     rmq_conn = RmqConnectionHB()
     conn = rmq_conn.open()
     ch = conn.channel()
@@ -741,6 +757,8 @@ def recv_hb_from_client_thread2(task_queue, worker_id, exch_name, cl_hb_q_postfi
         ch.stop_consuming()
         # os.kill(int(ppid), signal.SIGTERM)  # term jtm-worker process
         # sys.exit(10)
+        ch.close()
+        conn.close()
         os._exit(1)
 
     def callback(ch, method, properties, body):
@@ -759,7 +777,7 @@ def recv_hb_from_client_thread2(task_queue, worker_id, exch_name, cl_hb_q_postfi
 
 
 # -------------------------------------------------------------------------------
-def recv_task_kill_request_thread(task_queue, worker_id, cluster_name, exch_name, queue_name):
+def recv_task_kill_request_proc(task_queue, worker_id, cluster_name, exch_name, queue_name):
     """
     Wait for task termination request from JTM
     :param task_queue: task queue (pool) name
@@ -845,9 +863,9 @@ def recv_task_kill_request_thread(task_queue, worker_id, cluster_name, exch_name
 
 
 # -------------------------------------------------------------------------------
-def recv_reproduce_or_die_thread(task_queue, worker_id, cluster_name, mem_per_node, mem_per_core,
-                                 num_nodes, num_cores, wallclocktime, clone_time_rate, nwpn,
-                                 exch_name, queue_name):
+def recv_reproduce_or_die_proc(task_queue, worker_id, cluster_name, mem_per_node, mem_per_core,
+                               num_nodes, num_cores, wallclocktime, clone_time_rate, nwpn,
+                               exch_name, queue_name):
     """
     Wait for process termination request from JTM
     :param task_queue: task queue (pool) name
@@ -891,7 +909,7 @@ def recv_reproduce_or_die_thread(task_queue, worker_id, cluster_name, mem_per_no
             elif msg_unzipped["num_clones"] == 1:
                 logger.info("Static worker cloning request received.")
 
-                jtm_worker_cmd = "jtm-worker -wt static -cl {} -t {} -ct {}".format(
+                jtm_worker_cmd = "jtm worker -wt static -cl {} -t {} -ct {}".format(
                                   cluster_name, wallclocktime, clone_time_rate)
 
                 if task_queue is not None:
@@ -916,27 +934,6 @@ def recv_reproduce_or_die_thread(task_queue, worker_id, cluster_name, mem_per_no
                 logger.debug("{} {} {}".format(so, se, ec))
                 _, _, _ = run_sh_command(jtm_worker_cmd + " --dry-run", live=True, log=logger)
 
-            # Note: 01072019 no more auto cloning of dynamic worker
-            # elif msg_unzipped["num_clones"] > 1:
-            #     logger.info("Dynamic worker cloning request received.")
-            #     jtm_worker_cmd = "{} && jtm-worker -wt dynamic -cl {} -t {} -ct {}".format(
-            #                     ENV_ACTIVATION, cluster_name, wallclocktime, clone_time_rate)
-            #     if task_queue is not None:
-            #         jtm_worker_cmd += " -p {}".format(task_queue)
-            #     if num_nodes != "" and int(num_nodes) > 0:
-            #         jtm_worker_cmd += " -N {} -m {} -c {} -nw {}".format(num_nodes, mem_per_node, num_cores, nwpn)
-            #     else:
-            #         jtm_worker_cmd += " -c {}".format(num_cores)
-            #         if mem_per_node not in ("", None):  # if node mem defined, set --mem
-            #             jtm_worker_cmd += " -m {}".format(mem_per_node)
-            #         else:
-            #             jtm_worker_cmd += " -mc {}".format(mem_per_core)
-            #
-            #     for _ in range(0, msg_unzipped["num_clones"]):
-            #         logger.info("Executing {}".format(jtm_worker_cmd))
-            #         _, _, _ = run_sh_command(jtm_worker_cmd, live=True, log=logger)
-            #         # _, _, _ = run_sh_command(jtm_worker_cmd + " --dry-run", live=True, log=logger)
-
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         else:
@@ -955,148 +952,70 @@ def recv_reproduce_or_die_thread(task_queue, worker_id, cluster_name, mem_per_no
 
 
 # -------------------------------------------------------------------------------
-def worker():
-    desc = u"JTM worker"
-    parser = argparse.ArgumentParser(description=desc)
+def check_num_procs():
+    """
+    Checking if the total number of processes from the worker is NUM_WORKER_PROCS
+    if not, terminate the all the proc ids
 
-    # parser.add_argument("-cf", "--config",
-    #                     help="Config file",
-    #                     dest="jtm_config_file",
-    #                     default="~/jtm.ini")
-    # parser.add_argument("-cj", "--cromwell-jid",
-    #                     help="Set Cromwell job name",
-    #                     dest="cromwell_job_id")
-    parser.add_argument("-hb", "--heartbeat",
-                        help="heartbeat interval in second (default=10).",
-                        dest="hearbeat_interval",
-                        type=int)
-    parser.add_argument("-l", "--loglevel",
-                        help="Set loglevel (default=info).",
-                        dest="log_level",
-                        default="info")
-    parser.add_argument("-jd", "--job_dir",
-                        help="jtm job file path.",
-                        dest="job_script_dir_name",
-                        )
-    parser.add_argument("-ld", "--logdir",
-                        help="jtm log file path.",
-                        dest="log_dir_name",
-                        )
-    parser.add_argument("-p", "--pool-name",
-                        help="Set user-defined pool name. This should be same with task's 'pool' name.",
-                        dest="task_queue_name",
-                        default="small")
-    parser.add_argument("-to", "--timeout",
-                        help="Set the timer for worker to terminate. If there is no request from the client \
-                        for the specified seconds, the worker terminates itself (default: 60 seconds)",
-                        dest="worker_timeout_in_sec",
-                        type=int)
-    parser.add_argument("-zf", "--zerofile",
-                        action="store_true",
-                        help="Allow zero size output file(s) (default=False).",
-                        dest="zero_size_file",
-                        default=False)
-    parser.add_argument("-dr", "--dry-run",
-                        action="store_true",
-                        help="Dry run. To print batch job script on screen",
-                        dest="dry_run",
-                        default=False)
-    parser.add_argument("-j", "--jobid",
-                        help="Slurm job id",
-                        dest="slurm_job_id",
-                        type=int,
-                        default=0)
+    """
+    ps_cmd = "ps -aef | grep '%s' | grep %s | grep -v grep | awk '{print $2}'" \
+             % ("jtm worker", getpass.getuser())
+    if sys.platform.lower() == "darwin":
+        ps_cmd = "ps -aef | grep '%s' | grep -v grep | awk '{print $2}'" \
+                 % ("jtm worker")
+    while 1:
+        pid_list = back_ticks(ps_cmd, shell=True)
+        if type(pid_list) is bytes:
+            pid_list = pid_list.decode()
+        pid_list = [int(i) for i in pid_list.split('\n') if i]
+        logger.debug("ps_cmd: {}".format(ps_cmd))
+        logger.debug("pid list = {}".format(pid_list))
+        logger.debug("len(pid) = {}".format(len(pid_list)))
+        # if len(pid_list) != NUM_WORKER_PROCS:
+        #     logger.critical("JTM worker child process error.")
+        #     [os.kill(i, signal.SIGTERM) for i in pid_list]
+        time.sleep(NUM_PROCS_CHECK_INTERVAL)
 
-    # worker type params
-    # -------------------
-    parser.add_argument("-wt", "--worker-type",
-                        help="jtm worker type = [static | dynamic]",
-                        dest="worker_type",
-                        default="manual",
-                        choices=["static", "dynamic"])
-    parser.add_argument("-cl", "--cluster",
-                        help="cluster name = [%s]" % (str(COMPUTE_RESOURCES)),
-                        dest="cluster_name",
-                        default="local",
-                        choices=COMPUTE_RESOURCES)
-    parser.add_argument("-ct", "--clone-time",
-                        help="cloning timing",
-                        dest="worker_clone_time_rate",
-                        type=float)
-    parser.add_argument("-nw", "--num-workers",
-                        help="number of worker per node. Default=1",
-                        dest="num_workers_per_node",
-                        type=int)
-    parser.add_argument("-wi", "--worker-id",
-                        help="worker id for dynamic workers",
-                        dest="worker_id")
 
-    # slurm related params
-    # -------------------
-    parser.add_argument("-A", "--account",
-                        help="Charging account.",
-                        dest="charging_account")
-    parser.add_argument("-N", "--nodes",
-                        help="number of nodes",
-                        dest="num_nodes_to_request",
-                        type=int)
-    parser.add_argument("-c", "--cpus-per-task",
-                        help="number of cpus",
-                        dest="num_cores_to_request",
-                        type=int)
-    parser.add_argument("-C", "--constraint",
-                        help="Cori constraint, haswell or knl (default: haswell)",
-                        dest="constraint",
-                        choices=["haswell", "knl", "skylake"],
-                        default="haswell")
-    parser.add_argument("-m", "--mem",
-                        help="specify the real memory required per node",
-                        dest="mem_per_node_to_request")
-    parser.add_argument("-mc", "--mem-per-cpu",
-                        help="minimum memory required per allocated CPU",
-                        dest="mem_per_cpu_to_request")
-    parser.add_argument("-q", "--qos",
-                        help="quality of service",
-                        dest="qos")
-    parser.add_argument("-t", "--time",
-                        help="limit on the total run time",
-                        dest="job_time_to_request")
-    parser.add_argument("-J", "--job-name",
-                        help="Slurm job name",
-                        dest="job_name")
-    parser.add_argument("-v", "--version",
-                        action="version",
-                        version=VERSION)
-    args = parser.parse_args()
+# -------------------------------------------------------------------------------
+def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
+           pool_name_param, worker_timeout_in_sec_param: int, dry_run: bool,
+           slurm_job_id_param: int, worker_type_param, cluster_name_param,
+           worker_clone_time_rate_param: float, num_workers_per_node_param: int,
+           worker_id_param: str, charging_account_param, num_nodes_to_request_param: int,
+           num_cores_to_request_param: int, constraint_param, mem_per_node_to_request_param: str,
+           mem_per_cpu_to_request_param: str, qos_param, job_time_to_request_param: str,
+           debug: bool) -> int:
 
     # Job dir setting
     job_script_dir_name = os.path.join(config.configparser.get("JTM", "log_dir"), "job")
-    if args.job_script_dir_name:
-        job_script_dir_name = args.job_script_dir_name
+    if custom_job_log_dir_name:
+        job_script_dir_name = custom_job_log_dir_name
     make_dir(job_script_dir_name)
 
     # Log dir setting
     log_dir_name = os.path.join(config.configparser.get("JTM", "log_dir"), "log")
-    if args.log_dir_name:
-        log_dir_name = args.log_dir_name
+    if custom_log_dir:
+        log_dir_name = custom_log_dir
     make_dir(log_dir_name)
 
     print("JTM Worker, version: {}".format(VERSION))
 
-    # Note: this is for allowing zero sized output file when check if the output file is
-    #  successfully created. Currently output file checking is opted out in JTM.
-    global ALLOW_EMPTY_OUTPUT_FILE
-    ALLOW_EMPTY_OUTPUT_FILE = args.zero_size_file
-
     # Set uniq worker id if worker id is provided in the params
-    if args.worker_id:
+    if worker_id_param:
         global UNIQ_WORKER_ID
-        UNIQ_WORKER_ID = args.worker_id
+        UNIQ_WORKER_ID = worker_id_param
 
     # Logger setting
-    setup_custom_logger(args.log_level, log_dir_name,
+    log_level = "info"
+    if debug:
+        log_level = "debug"
+
+    setup_custom_logger(log_level, log_dir_name,
                         1, 1,
                         worker_id=UNIQ_WORKER_ID)
+
+    logger.info("\n*****************\nDebug mode is %s\n*****************" % ("ON" if debug else "OFF"))
 
     RMQ_HOST = config.configparser.get("RMQ", "host")
     RMQ_PORT = config.configparser.get("RMQ", "port")
@@ -1126,46 +1045,41 @@ def worker():
     logger.info("Pika version: %s", pika.__version__)
     logger.info("JTM user name: %s", USER_NAME)
     logger.info("Unique worker ID: %s", UNIQ_WORKER_ID)
-    logger.info("**************")
-    logger.info("Run mode: %s", "prod" if PRODUCTION else "dev")
-    logger.info("**************")
+    logger.info("\n*****************\nRun mode is %s\n*****************"
+                % ("PROD" if PRODUCTION else "DEV"))
+    logger.debug("env activation: %s", ENV_ACTIVATION)
 
     # Slurm config
     num_nodes_to_request = 0
-    if args.num_nodes_to_request:
-        num_nodes_to_request = args.num_nodes_to_request
+    if num_nodes_to_request_param:
+        num_nodes_to_request = num_nodes_to_request_param
         # Todo
         #  Cori and JGI Cloud are exclusive allocation. So this is not needed.
-        # assert args.mem_per_node_to_request is not None, "-N needs --mem-per-cpu (-mc) setting."
+        # assert mem_per_node_to_request_param is not None, "-N needs --mem-per-cpu (-mc) setting."
 
     ###########################################################################
     # 11.13.2018 decided to remove all default values from argparse
-    num_workers_per_node = args.num_workers_per_node if args.num_workers_per_node else NWORKERS
-    num_cpus_to_request = args.num_cores_to_request if args.num_cores_to_request else NCPUS
-    mem_per_cpu_to_request = args.mem_per_cpu_to_request if args.mem_per_cpu_to_request else MEMPERCPU
-    mem_per_node_to_request = args.mem_per_node_to_request if args.mem_per_node_to_request else ""
+    num_workers_per_node = num_workers_per_node_param if num_workers_per_node_param else NWORKERS
+    num_cpus_to_request = num_cores_to_request_param if num_cores_to_request_param else NCPUS
+    mem_per_cpu_to_request = mem_per_cpu_to_request_param if mem_per_cpu_to_request_param else MEMPERCPU
+    mem_per_node_to_request = mem_per_node_to_request_param if mem_per_node_to_request_param else ""
     ###########################################################################
 
-    job_time_to_request = args.job_time_to_request if args.job_time_to_request else JOBTIME
+    job_time_to_request = job_time_to_request_param if job_time_to_request_param else JOBTIME
 
-    constraint = args.constraint if args.constraint else CONSTRAINT
-    # Note: if it's KNL on Cori, user WDL should specify Account and Qos
-    # if constraint == "knl":
-    #     charging_account = args.charging_account if args.charging_account else CORI_KNL_CHARGE_ACCNT
-    #     qos = args.qos if args.qos else CORI_KNL_QOS
-    # else:
-    charging_account = args.charging_account if args.charging_account else CHARGE_ACCNT
-    qos = args.qos if args.qos else QOS
+    constraint = constraint_param if constraint_param else CONSTRAINT
+    charging_account = charging_account_param if charging_account_param else CHARGE_ACCNT
+    qos = qos_param if qos_param else QOS
 
-    worker_type = args.worker_type
-    job_name = "jtm_worker_" + args.task_queue_name
+    worker_type = worker_type_param
+    job_name = "jtm_worker_" + pool_name_param
 
     # Set task queue name
     inner_task_request_queue = None
-    if args.hearbeat_interval:
-        hearbeat_interval = args.hearbeat_interval
-    if args.worker_timeout_in_sec:
-        worker_timeout_in_sec = args.worker_timeout_in_sec
+    if heartbeat_interval_param:
+        hearbeat_interval = heartbeat_interval_param
+    if worker_timeout_in_sec_param:
+        worker_timeout_in_sec = worker_timeout_in_sec_param
 
     # If you want to create a custom worker pool, use this.
     # JTM detects "pool" field from task json, and creates custom pool if it's set.
@@ -1174,23 +1088,22 @@ def worker():
 
     # Todo: feature to add a manual worker to a specific cluster??
     #  ex) $ jtm-worker -cl cori -p small (on cori)
-    # if args.worker_type == "manual" and args.cluster_name != "local":
-    #     # inner_task_request_queue = "_jtm_inner_request_queue." + args.cluster_name + "." + args.task_queue_name
-    #     JTM_INNER_REQUEST_Q = "_jtm_inner_request_queue." + args.cluster_name + "." + USER_NAME
+    # if worker_type_param == "manual" and cluster_name_param != "local":
+    #     # inner_task_request_queue = "_jtm_inner_request_queue." + cluster_name_param + "." + pool_name_param
+    #     JTM_INNER_REQUEST_Q = "_jtm_inner_request_queue." + cluster_name_param + "." + USER_NAME
 
-    if args.task_queue_name:
-        inner_task_request_queue = JTM_INNER_REQUEST_Q + "." + args.task_queue_name
-    else:  # not reachable. default inner_task_request_queue = small
-        inner_task_request_queue = JTM_INNER_REQUEST_Q
+    assert pool_name_param is not None, "User pool name is not set"
+    inner_task_request_queue = JTM_INNER_REQUEST_Q + "." + pool_name_param
+    # else:  # not reachable. default inner_task_request_queue = small
+    #     inner_task_request_queue = JTM_INNER_REQUEST_Q
 
-    worker_clone_time_rate = args.worker_clone_time_rate if args.worker_clone_time_rate else CTR
+    worker_clone_time_rate = worker_clone_time_rate_param if worker_clone_time_rate_param else CTR
     if worker_type in ("static", "dynamic"):
-        assert args.cluster_name != "" and \
-               args.cluster_name != "local", "Static or dynamic worker needs a cluster setting (-cl)."
+        assert cluster_name_param != "" and \
+               cluster_name_param != "local", "Static or dynamic worker needs a cluster setting (-cl)."
 
-    slurm_job_id = args.slurm_job_id
-    cluster_name = args.cluster_name  # default=local
-    dry_run = args.dry_run
+    slurm_job_id = slurm_job_id_param
+    cluster_name = cluster_name_param
 
     if cluster_name == "cori" and mem_per_cpu_to_request != "" and \
             float(mem_per_cpu_to_request.replace("GB", "").replace("G", "").replace("gb", "")) > 1.0:
@@ -1199,92 +1112,22 @@ def worker():
 
     logger.info("RabbitMQ broker: %s", RMQ_HOST)
     logger.info("Task queue name: %s", inner_task_request_queue)
-    logger.info("Worker type: %s", args.worker_type)
+    logger.info("Worker type: %s", worker_type_param)
 
-    # sbatch static worker
-    # -N: If -N is not specified, the default behavior is to allocate enough nodes to satisfy
-    #     the requirements of the -n and -c options. Recommended to set --mem
-    # -c: Set the num cores needed. Recommended to set --mem-per-cpu
-
-    # SBATCH
-    # -N, --nodes=<minnodes[-maxnodes]>
-    #               Request  that  a minimum of minnodes nodes be allocated to this job.  A maximum node count may also
-    #               be specified with maxnodes.  If only one number is specified, this is used as both the minimum  and
-    #               maximum  node count.  The partition's node limits supersede those of the job.  If a job's node lim-
-    #               its are outside of the range permitted for its associated partition, the job  will  be  left  in  a
-    #               PENDING  state.   This  permits  possible  execution  at  a later time, when the partition limit is
-    #               changed.  If a job node limit exceeds the number of nodes configured in the partition, the job will
-    #               be  rejected.  Note that the environment variable SLURM_JOB_NODES will be set to the count of nodes
-    #               actually allocated to the job. See the ENVIRONMENT VARIABLES  section for more information.  If  -N
-    #               is  not  specified, the default behavior is to allocate enough nodes to satisfy the requirements of
-    #               the -n and -c options.  The job will be allocated as many nodes as possible within the range speci-
-    #               fied  and  without  delaying the initiation of the job.  The node count specification may include a
-    #               numeric value followed by a suffix of "k" (multiplies numeric value by 1,024)  or  "m"  (multiplies
-    #               numeric value by 1,048,576).
-    # -c, --cpus-per-task=<ncpus>
-    #               Advise  the  Slurm  controller  that  ensuing job steps will require ncpus number of processors per
-    #               task.  Without this option, the controller will just try to allocate one processor per task.
-    #
-    #               For instance, consider an application that has 4 tasks, each requiring 3 processors.  If our  clus-
-    #               ter is comprised of quad-processors nodes and we simply ask for 12 processors, the controller might
-    #               give us only 3 nodes.  However, by using the --cpus-per-task=3 options, the controller  knows  that
-    #               each  task requires 3 processors on the same node, and the controller will grant an allocation of 4
-    #               nodes, one for each of the 4 tasks.
-    # -n, --ntasks=<number>
-    #               sbatch  does  not  launch tasks, it requests an allocation of resources and submits a batch script.
-    #               This option advises the Slurm controller that job steps run within the  allocation  will  launch  a
-    #               maximum of number tasks and to provide for sufficient resources.  THE DEFAULT IS ONE TASK PER NODE,
-    #               BUT NOTE THAT THE --cpus-per-task OPTION WILL CHANGE THIS DEFAULT.
-    # --mem=<size[units]>
-    #               Specify the real memory required per node.  Default units are megabytes unless the SchedulerParame-
-    #               ters  configuration  parameter includes the "default_gbytes" option for gigabytes.  Different units
-    #               can be specified using the suffix [K|M|G|T].  Default value is DefMemPerNode and the maximum  value
-    #               is  MaxMemPerNode.  If  configured, both parameters can be seen using the scontrol show config com-
-    #               mand.  THIS PARAMETER WOULD GENERALLY BE USED  IF  WHOLE  NODES  ARE  ALLOCATED  TO  JOBS  (Select-
-    #               Type=select/linear).  Also see --mem-per-cpu.  --mem and --mem-per-cpu are mutually exclusive.
-    #
-    #               NOTE: A memory size specification of zero is treated as a special case and grants the job access to
-    #               all of the memory on each node.  If the job is allocated multiple nodes in a heterogeneous cluster,
-    #               the  memory  limit on each node will be that of the node in the allocation with the smallest memory
-    #               size (same limit will apply to every node in the job's allocation).
-    #
-    #               NOTE: Enforcement of memory limits currently relies upon the task/cgroup plugin or enabling of
-    #               accounting, which samples memory use on a periodic basis (data need not be stored, just collected).
-    #               In both cases memory use is based upon the job's Resident Set Size (RSS). A  task  may  exceed  the
-    #               memory limit until the next periodic accounting sample.
-    # --mem-per-cpu=<size[units]>
-    #               Minimum memory required per allocated CPU.  Default units are megabytes unless the SchedulerParame-
-    #               ters configuration parameter includes the "default_gbytes" option for gigabytes.  Default value  is
-    #               DefMemPerCPU  and  the  maximum  value  is  MaxMemPerCPU (see exception below). If configured, both
-    #               parameters can  be  seen  using  the  scontrol  show  config  command.  Note  that  if  the  job's
-    #               --mem-per-cpu value exceeds the configured MaxMemPerCPU, then the user's limit will be treated as a
-    #               memory limit per task; --mem-per-cpu will be reduced  to  a  value  no  larger  than  MaxMemPerCPU;
-    #               --cpus-per-task  will  be  set and the value of --cpus-per-task multiplied by the new --mem-per-cpu
-    #               value will equal the original --mem-per-cpu value specified by the user.  This parameter would gen-
-    #               erally  be  used  if  individual processors are allocated to jobs (SelectType=select/cons_res).  If
-    #               resources are allocated by the core, socket or whole nodes; the number of CPUs allocated to  a  job
-    #               may  be  higher  than the task count and the value of --mem-per-cpu should be adjusted accordingly.
-    #               Also see --mem.  --mem AND --mem-per-cpu ARE MUTUALLY EXCLUSIVE.
-    #
-    # NOTE: Cori shared queue doesn't need "account" and "qos"
-    #       If you set --qos=genepool or --qos=genepool_shared, you don't need to set "-C haswell"
-    #                                                           you should set "-A fungalp"
-    #       If you set -A m342, no qos needed but you need to set "-C haswell"
-    #
     if slurm_job_id == 0 and worker_type in ["static", "dynamic"]:
         batch_job_script_file = os.path.join(job_script_dir_name, "jtm_%s_worker_%s.job" %
                                              (worker_type, UNIQ_WORKER_ID))
         batch_job_script_str = ""
         batch_job_misc_params = ""
 
-        if cluster_name in ("cori", "lawrencium", "jgi_cloud", "jaws_lbl_gov"):
+        if cluster_name in ("cori", "lawrencium", "jgi_cloud", "jaws_lbl_gov", "lbl", "jgi_cluster"):
 
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
 
                 if cluster_name in ("cori"):
 
-                    if args.num_nodes_to_request:
+                    if num_nodes_to_request_param:
                         batch_job_script_str += """
 #SBATCH -N %(num_nodes_to_request)d
 #SBATCH --mem=%(mem)s""" % dict(num_nodes_to_request=num_nodes_to_request, mem=mem_per_node_to_request)
@@ -1292,7 +1135,7 @@ def worker():
                                                  dict(num_nodes_to_request=num_nodes_to_request,
                                                       mem=mem_per_node_to_request)
 
-                        if args.num_cores_to_request:
+                        if num_cores_to_request_param:
                             batch_job_script_str += """
 #SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_request)
                             batch_job_misc_params += " -c %(num_cores)d" % \
@@ -1304,7 +1147,7 @@ def worker():
                         batch_job_misc_params += " -c %(num_cores)d" % \
                                                  dict(num_cores=num_cpus_to_request)
 
-                        if args.mem_per_node_to_request:
+                        if mem_per_node_to_request_param:
                             batch_job_script_str += """
 #SBATCH --mem=%(mem)s""" % dict(mem=mem_per_node_to_request)
                             batch_job_misc_params += " -m %(mem)s " % \
@@ -1315,7 +1158,7 @@ def worker():
                             batch_job_misc_params += " -mc %(mempercore)s" % \
                                                      dict(mempercore=mem_per_cpu_to_request)
 
-                        if args.worker_id:
+                        if worker_id_param:
                             batch_job_misc_params += " -wi %(worker_id)s${i}" % \
                                                      dict(worker_id=UNIQ_WORKER_ID)
 
@@ -1328,7 +1171,7 @@ def worker():
 
                         # Note: currently constraint in ["haswell" | "knl"]
                         if constraint == "haswell":
-                            if args.qos:
+                            if qos_param:
                                 batch_job_script_str += """
 #SBATCH -q %(qosname)s""" % dict(qosname=qos)
                                 batch_job_misc_params += " -q %(qosname)s" % dict(qosname=qos)
@@ -1400,8 +1243,8 @@ def worker():
                             excl_param = "#SBATCH --exclusive"
 
                         tq_param = ""
-                        if args.task_queue_name:
-                            tq_param = "-p " + args.task_queue_name
+                        if pool_name_param:
+                            tq_param = "-p " + pool_name_param
 
                         batch_job_script_str += """
 #SBATCH -t %(wall_time)s
@@ -1411,16 +1254,24 @@ def worker():
 %(exclusive)s
 
 module unload python
-#%(env_activation_cmd)s
+%(env_activation_cmd)s
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
-    jtm-worker --jobid $SLURM_JOB_ID \
+    #jtm-worker --jobid $SLURM_JOB_ID \
 -cl cori \
 -wt %(worker_type)s \
 -t %(wall_time)s \
 -ct %(clone_time_rate)f %(task_queue)s \
 -nw %(num_workers_per_node)d \
+-C %(constraint)s \
+%(other_params)s &
+    jtm worker --slurm_job_id $SLURM_JOB_ID \
+-cl cori \
+-wt %(worker_type)s \
+-t %(wall_time)s \
+--clone_time_rate %(clone_time_rate)f %(task_queue)s \
+--num_worker_per_node %(num_workers_per_node)d \
 -C %(constraint)s \
 %(other_params)s &
     sleep 1
@@ -1434,21 +1285,21 @@ wait
                                                      clone_time_rate=worker_clone_time_rate,
                                                      task_queue=tq_param,
                                                      num_workers_per_node=num_workers_per_node,
-                                                     # env_activation_cmd=ENV_ACTIVATION,
+                                                     env_activation_cmd=ENV_ACTIVATION,
                                                      other_params=batch_job_misc_params,
                                                      constraint=constraint,
                                                      job_name=job_name,
                                                      exclusive=excl_param)
 
-                elif cluster_name in ("lawrencium", "jgi_cloud", "jaws_lbl_gov"):
+                elif cluster_name in ("lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster", "lbl"):
 
-                    if args.worker_id:
-                        # batch_job_misc_params += " -wi %s" % (args.worker_id)
+                    if worker_id_param:
+                        # batch_job_misc_params += " -wi %s" % (worker_id_param)
                         batch_job_misc_params += " -wi %(worker_id)s${i}" % dict(worker_id=UNIQ_WORKER_ID)
 
                     tp_param = ""
-                    if args.task_queue_name:
-                        tp_param = "-p " + args.task_queue_name
+                    if pool_name_param:
+                        tp_param = "-p " + pool_name_param
                     part_param = ""
                     if cluster_name == "lawrencium":
                         part_param = PARTITION
@@ -1465,7 +1316,7 @@ wait
                     else:
                         charge_param = CHARGE_ACCNT
                     nnode_param = 1
-                    if args.num_nodes_to_request:
+                    if num_nodes_to_request_param:
                         nnode_param = num_nodes_to_request
 
                     mnode_param = "#SBATCH --mem=%(mem)s" % dict(mem=mem_per_node_to_request)
@@ -1485,17 +1336,24 @@ wait
 #SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
 #SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
 %(set_env_for_jtm_host_name)s
-#%(env_activation_cmd)s
+%(env_activation_cmd)s
 
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
-    jtm-worker --jobid $SLURM_JOB_ID \
+    #jtm-worker --jobid $SLURM_JOB_ID \
 -cl %(lbl_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
 -ct %(clone_time_rate)f %(task_queue)s \
 -nw %(num_workers_per_node)d \
+%(other_params)s &
+    jtm worker --slurm_job_id $SLURM_JOB_ID \
+-cl %(lbl_cluster_name)s \
+-wt %(worker_type)s \
+-t %(wall_time)s \
+--clone_time_rate %(clone_time_rate)f %(task_queue)s \
+--num_worker_per_node %(num_workers_per_node)d \
 %(other_params)s &
     sleep 1
 done
@@ -1511,7 +1369,7 @@ wait
                                                  worker_id=UNIQ_WORKER_ID,
                                                  job_dir=job_script_dir_name,
                                                  set_env_for_jtm_host_name=setenv_param,
-                                                 # env_activation_cmd=ENV_ACTIVATION,
+                                                 env_activation_cmd=ENV_ACTIVATION,
                                                  num_workers_per_node=num_workers_per_node,
                                                  lbl_cluster_name=cluster_name,
                                                  worker_type=worker_type,
@@ -1528,7 +1386,7 @@ wait
                 sys.exit(0)
 
             so, se, ec = run_sh_command("sbatch --parsable %s" % (batch_job_script_file), live=True, log=logger)
-            assert ec == 0, "Failed to run jtm-worker to sbatch dynamic worker."
+            assert ec == 0, "Failed to run 'jtm worker' to sbatch dynamic worker."
             return ec
             # if ec == 0:
             #     sys.exit(0)
@@ -1586,24 +1444,26 @@ wait
                   routing_key=inner_task_request_queue)
 
     logger.info("Waiting for a request...")
+    logger.debug("Main pid = {}".format(PARENT_PROCESS_ID))
 
     # Start task termination thread
     global TASK_KILL_PROC_HANDLE
-    TASK_KILL_PROC_HANDLE = multiprocessing.Process(target=recv_task_kill_request_thread,
-                                                    args=(args.task_queue_name,
+    TASK_KILL_PROC_HANDLE = multiprocessing.Process(target=recv_task_kill_request_proc,
+                                                    args=(pool_name_param,
                                                           UNIQ_WORKER_ID,
                                                           cluster_name,
                                                           JTM_TASK_KILL_EXCH,
                                                           JTM_TASK_KILL_Q))
     TASK_KILL_PROC_HANDLE.daemon = True
     TASK_KILL_PROC_HANDLE.start()
+    logger.debug("TASK_KILL_PROC_HANDLE pid = {}".format(TASK_KILL_PROC_HANDLE.pid))
 
     # Start hb receive thread
     global RECV_HB_FROM_CLIENT_PROC_HANDLE
     tp_name = ""
-    if args.task_queue_name:
-        tp_name = args.task_queue_name
-    RECV_HB_FROM_CLIENT_PROC_HANDLE = multiprocessing.Process(target=send_hb_to_client_thread,
+    if pool_name_param:
+        tp_name = pool_name_param
+    RECV_HB_FROM_CLIENT_PROC_HANDLE = multiprocessing.Process(target=send_hb_to_client_proc,
                                                               args=(PARENT_PROCESS_ID,
                                                                     hearbeat_interval,
                                                                     USER_PROC_PROC_ID,
@@ -1624,13 +1484,15 @@ wait
 
     RECV_HB_FROM_CLIENT_PROC_HANDLE.daemon = True
     RECV_HB_FROM_CLIENT_PROC_HANDLE.start()
+    logger.debug("RECV_HB_FROM_CLIENT_PROC_HANDLE pid = {}".format(RECV_HB_FROM_CLIENT_PROC_HANDLE.pid))
+
     logger.info("Start sending my heartbeat to the client in every %d sec to %s" %
                 (hearbeat_interval, WORKER_HB_Q_POSTFIX))
 
     # Start poison receive thread
     global RECV_POISON_PROC_HANDLE
-    RECV_POISON_PROC_HANDLE = multiprocessing.Process(target=recv_reproduce_or_die_thread,
-                                                      args=(args.task_queue_name,
+    RECV_POISON_PROC_HANDLE = multiprocessing.Process(target=recv_reproduce_or_die_proc,
+                                                      args=(pool_name_param,
                                                             UNIQ_WORKER_ID,
                                                             cluster_name,
                                                             mem_per_node_to_request,
@@ -1644,16 +1506,24 @@ wait
                                                             JTM_WORKER_POISON_Q))
     RECV_POISON_PROC_HANDLE.daemon = True
     RECV_POISON_PROC_HANDLE.start()
+    logger.debug("RECV_POISON_PROC_HANDLE pid = {}".format(RECV_POISON_PROC_HANDLE.pid))
 
     # Start hb send thread
     global SEND_HB_TO_CLIENT_PROC_HANDLE
-    SEND_HB_TO_CLIENT_PROC_HANDLE = multiprocessing.Process(target=recv_hb_from_client_thread2,
+    SEND_HB_TO_CLIENT_PROC_HANDLE = multiprocessing.Process(target=recv_hb_from_client_proc2,
                                                             args=(inner_task_request_queue,
                                                                   UNIQ_WORKER_ID,
                                                                   JTM_CLIENT_HB_EXCH,
                                                                   CLIENT_HB_Q_POSTFIX))
     SEND_HB_TO_CLIENT_PROC_HANDLE.daemon = True
     SEND_HB_TO_CLIENT_PROC_HANDLE.start()
+    logger.debug("SEND_HB_TO_CLIENT_PROC_HANDLE pid = {}".format(SEND_HB_TO_CLIENT_PROC_HANDLE.pid))
+
+    # Checking the total number of child processes
+    check_num_procs_hdl = multiprocessing.Process(target=check_num_procs)
+    check_num_procs_hdl.daemon = True
+    check_num_procs_hdl.start()
+    logger.debug("check_num_procs_hdl pid = {}".format(check_num_procs_hdl.pid))
 
     if worker_timeout_in_sec != 0:
         logger.info("The worker timeout is set to %s sec. Will not be terminated even without jtm's heartbeat.",
@@ -1686,6 +1556,8 @@ wait
             RECV_POISON_PROC_HANDLE.terminate()
         if TASK_KILL_PROC_HANDLE:
             TASK_KILL_PROC_HANDLE.terminate()
+        if check_num_procs_hdl:
+            check_num_procs_hdl.terminate()
         ch.stop_consuming()
 
     # Wait for all to complete
@@ -1700,9 +1572,3 @@ wait
         conn.close()
 
     return 0
-
-
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
-    sys.exit(worker(sys.argv))

@@ -115,7 +115,7 @@ def rest(config_file: str, log_file: str) -> None:
     }
     db.init_app(connex.app)
 
-    rpc_manager.rpc = rpc_manager.JawsRpc(conf)
+    rpc_manager.manager = rpc_manager.JawsRpc(conf)
 
     connex.run(host="0.0.0.0", port=5000, debug=False)
 

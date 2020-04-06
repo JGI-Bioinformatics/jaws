@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #
-# JtmInterface retunrs code
+# JtmInterface returns code
 #   'task_id' if successfully queued
 #
 # jtm-submit exits with code 0 if successfully submitted
@@ -43,8 +43,8 @@ def submit():
                        dest="cromwell")  # generic for command submission ex) jtm-submit -cr "ls"
     group.add_argument("-f", "--task-json-file",
                        dest="taskFile")
-    group.add_argument("-j", "--task-json-str",
-                       dest="task_in_json_str")
+    # group.add_argument("-j", "--task-json-str",
+    #                    dest="task_in_json_str")
     parser.add_argument("-l", "--loglevel",
                         help="Set loglevel (default=info).",
                         dest="log_level",

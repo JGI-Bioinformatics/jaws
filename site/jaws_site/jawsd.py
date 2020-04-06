@@ -1,5 +1,6 @@
 """
-JAWS Daemon process periodically checks on runs and performs actions to usher them to the next state.
+JAWS Daemon process periodically checks on runs and performs actions to usher
+them to the next state.
 """
 
 import schedule
@@ -8,9 +9,9 @@ import os
 import requests
 import globus_sdk
 import logging
-import click
 
-from jaws_site import models, wfcopy, config, database
+from jaws_site import models, wfcopy
+from jaws_site.config import jaws_config
 
 
 class DataError(Exception):
@@ -34,31 +35,27 @@ class JAWSd:
         "running",
         "aborting",
     )
-    site_id = None
-    session = None
-    staging_dir = None
-    workflows_url = None
-    results_dir = None
-    globus_endpoint = None
-    results_subdir = None
 
-    def __init__(self, conf, db):
+    def __init__(self, db):
         """
         Init obj
         """
+        self.conf = jaws_config
         self.logger = logging.getLogger(__package__)
         self.logger.debug("Initializing daemon")
-        self.site_id = conf.get("SITE", "id")
+        self.site_id = self.conf.get("SITE", "id")
         self.session = db.session()
         self.staging_dir = os.path.join(
-            conf.get("GLOBUS", "root_dir"), conf.get("SITE", "staging_subdirectory")
+            self.conf.get("GLOBUS", "root_dir"),
+            self.conf.get("SITE", "staging_subdirectory")
         )
-        self.workflows_url = conf.get("CROMWELL", "workflows_url")
+        self.workflows_url = self.conf.get("CROMWELL", "workflows_url")
         self.results_dir = os.path.join(
-            conf.get("GLOBUS", "root_dir"), conf.get("SITE", "results_subdirectory")
+            self.conf.get("GLOBUS", "root_dir"),
+            self.conf.get("SITE", "results_subdirectory")
         )
-        self.globus_endpoint = conf.get("GLOBUS", "endpoint_id")
-        self.results_subdir = conf.get("SITE", "results_subdirectory")
+        self.globus_endpoint = self.conf.get("GLOBUS", "endpoint_id")
+        self.results_subdir = self.conf.get("SITE", "results_subdirectory")
 
     def start_daemon(self):
         """
@@ -69,23 +66,35 @@ class JAWSd:
             schedule.run_pending()
             time.sleep(5)
 
+    def _query_by_site(self):
+        return (
+            self.session.query(models.Run)
+            .filter_by(site_id=self.site_id)
+            .filter(models.Run.status.in_(self.watched_states))
+            .all()
+        )
+
+    def _query_user_id(self, run):
+        return self.session.query(models.User).get(run.user_id)
+
+    def _authorize_transfer_client(self, token):
+        client_id = self.conf.get("GLOBUS", "client_id")
+        client = globus_sdk.NativeAppAuthClient(client_id)
+        authorizer = globus_sdk.RefreshTokenAuthorizer(token, client)
+        return globus_sdk.TransferClient(authorizer=authorizer)
+
     def check_runs(self):
         """
         Check for runs in particular states.
         """
         self.logger.debug("Query db for updated runs")
         try:
-            q = (
-                self.session.query(models.Run)
-                .filter_by(site_id=self.site_id)
-                .filter(models.Run.status.in_(self.watched_states))
-                .all()
-            )
+            q = self._query_by_site()
         except Exception:
             self.logger.warning(
                 "Failed to query db for runs in watched states", exc_info=True
             )
-            return  # sqlalchemy should reconnect and the connection shall be available next time
+            return  # sqlalchemy should reconnect
         for run in q:
             if run.status == "uploading":
                 self.check_transfer_status(run)
@@ -105,18 +114,15 @@ class JAWSd:
         """
         Check on the status of one uploading run.
         """
-        user = self.session.query(models.User).get(run.user_id)
+        user = self._query_user_id(run)
         transfer_rt = user.transfer_refresh_token
-        client_id = config.conf.get("GLOBUS", "client_id")
         try:
-            client = globus_sdk.NativeAppAuthClient(client_id)
-            authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
-            transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
+            transfer_client = self._authorize_transfer_client(transfer_rt)
             task = transfer_client.get_task(run.upload_task_id)
             globus_status = task["status"]
-        except globus_sdk.GlobusAPIError:
-            self.logger.error("Failed to check Globus upload status", exc_info=True)
-            return
+        except Exception:
+            self.logger.warning("Failed to check Globus upload status", exc_info=True)
+            raise
         if globus_status == "FAILED":
             run.status = "upload failed"
             self.session.commit()
@@ -130,48 +136,53 @@ class JAWSd:
         """
         Submit a run to Cromwell.
         """
-        wdl_file = os.path.join(
-            self.staging_dir, run.submission_id + ".wdl"
-        )
-        json_file = os.path.join(
-            self.staging_dir, run.submission_id + ".json"
-        )
-        zip_file = os.path.join(
-            self.staging_dir, run.submission_id + ".zip"
-        )  # might not exist
+        file_path = os.path.join(self.staging_dir, run.user_id,
+                                 run.submission_id)
+        wdl_file = file_path + ".wdl"
+        json_file = file_path + ".json"
+        zip_file = file_path + ".zip"  # might not exist
         files = {}
-        try:
+        if os.path.exists(json_file):
             files["workflowInputs"] = (
                 "workflowInputs",
                 open(json_file, "r"),
                 "application/json",
             )
+        else:
+            self.logger.warning(f"Missing inputs JSON for run {run.id}")
+            run.status = "invalid_input"
+            self.session.commit()
+        if os.path.exists(wdl_file):
             files["workflowSource"] = (
                 "workflowSource",
                 open(wdl_file, "r"),
                 "application/json",
             )
-            if os.path.exists(zip_file):
-                files["workflowDependencies"] = (
-                    "workflowDependencies",
-                    open(zip_file, "rb"),
-                    "application/zip",
-                )
-        except Exception:
-            self.logger.warning(f"Invalid input for run {run.id}", exc_info=True)
+        else:
+            self.logger.warning(f"Missing WDL for run {run.id}", exc_info=True)
             run.status = "invalid_input"
             self.session.commit()
+        if os.path.exists(zip_file):
+            files["workflowDependencies"] = (
+                "workflowDependencies",
+                open(zip_file, "rb"),
+                "application/zip",
+            )
         try:
             r = requests.post(self.workflows_url, files=files)
         except requests.ConnectionError:
             self.logger.info("Cromwell server timeout")
             # don't update state; keep trying
             return
+        except Exception as err:
+            self.logger.error(f"Unknown error while submitting {run.id} to Cromwell: {err}")
+            # don't update state; keep trying
+            return
         if r.status_code == 201:
             run.cromwell_id = r.json()["id"]
             run.status = "submitted"
         else:
-            self.logger.warn(f"Run submission {run.id} failed")
+            self.logger.warning(f"Run submission {run.id} failed")
             run.status = "submission failed"
         self.session.commit()
 
@@ -180,7 +191,8 @@ class JAWSd:
         Check on the status of one Run.
         """
         try:
-            r = requests.get("%s/%s/status" % (self.workflows_url, run.cromwell_id))
+            r = requests.get("%s/%s/status" % (self.workflows_url,
+                                               run.cromwell_id))
         except requests.ConnectionError:
             self.logger.warning("Cromwell server timeout")
             return
@@ -226,14 +238,11 @@ class JAWSd:
         """
         Send run output via Globus
         """
-        user = self.session.query(models.User).get(run.user_id)
+        user = self._query_user_id(run)
         nice_dir = os.path.join(self.results_subdir, str(run.id))
         transfer_rt = user.transfer_refresh_token
-        client_id = config.conf.get("GLOBUS", "client_id")
         try:
-            client = globus_sdk.NativeAppAuthClient(client_id)
-            authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
-            transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
+            transfer_client = self._authorize_transfer_client(transfer_rt)
         except globus_sdk.GlobusAPIError:
             self.logger.warning(
                 f"Failed to get Globus transfer client for run {run.id}", exc_info=True
@@ -273,68 +282,21 @@ class JAWSd:
         """
         If download is complete, change state.
         """
-        user = self.session.query(models.User).get(run.user_id)
+        user = self._query_user_id(run)
         task_id = run.download_task_id
-        user = self.session.query(models.User).get(run.user_id)
-        transfer_rt = user.transfer_refresh_token
-        client_id = config.conf.get("GLOBUS", "client_id")
+        token = user.transfer_refresh_token
         try:
-            client = globus_sdk.NativeAppAuthClient(client_id)
-            authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
-            transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
-        except globus_sdk.GlobusAPIError:
-            self.logger.error(
-                f"Failed to get Globus Transfer Client for run {run.id}", exc_info=True,
-            )
-        try:
+            transfer_client = self._authorize_transfer_client(token)
             result = transfer_client.get_task(task_id)
             status = result["status"]
-        except Exception:
-            self.logger.warning(f"Failed to get download status for task {task_id}")
+        except globus_sdk.GlobusAPIError:
+            self.logger.warning(
+                f"Failed to get Globus Transfer Client for run {run.id}"
+            )
+            raise
         if status == "SUCCEEDED":
             run.status = "finished"
             self.session.commit()
         elif status == "FAILED":
-            run.status == "download failed"
+            run.status = "download failed"
             self.session.commit()
-
-
-@click.group(context_settings={"help_option_names": ["-h", "--help"]})
-def cli():
-    """JAWS-Site RPC functions"""
-    pass
-
-
-@cli.command()
-def check_runs():
-    """Check if any runs need action."""
-    conf = config.conf
-    db = database.db
-    jawsd = JAWSd(conf, db)
-    jawsd.check_runs()
-
-
-@cli.command()
-@click.argument("user_id")
-@click.argument("submission_id")
-@click.argument("dest_endpoint")
-@click.argument("dest_dir")
-def submit_run(user_id: str, submission_id: str, dest_endpoint: str, dest_dir: str):
-    """Submit a new run."""
-    conf = config.conf
-    db = database.db
-    jawsd = JAWSd(conf, db)
-    user = jawsd.session.query(models.User).get(user_id).one_or_none()
-    if user is None:
-        raise DataError(f"User does not exist: {user_id}")
-    run = models.Run(
-        user_id=user_id,
-        status="staged",
-        submission_id=submission_id,
-        upload_task_id="NA",
-        globus_endpoint=dest_endpoint,
-        outdir=dest_dir,
-    )
-    jawsd.session.add(run)
-    jawsd.session.commit()
-    jawsd.submit_run(run)

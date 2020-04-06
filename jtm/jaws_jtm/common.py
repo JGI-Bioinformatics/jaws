@@ -55,15 +55,23 @@ def setup_custom_logger(level, log_dest_dir, b_stream_loggin=True, b_file_loggin
         worker_log_dir_name = os.path.join(log_dest_dir, "worker")
 
         make_dir(worker_log_dir_name)
-        os.chmod(worker_log_dir_name, 0o775)
+        try:
+            os.chmod(worker_log_dir_name, 0o775)
+        except OSError:
+            logger.warning("Cannot change the permission of {} to 0775".format(worker_log_dir_name))
+            raise
 
-        logFileName = '%s/jtm_%s.log' % (worker_log_dir_name, datetime_str)
+        log_file_name = '%s/jtm_%s.log' % (worker_log_dir_name, datetime_str)
         if worker_id:
-            logFileName = '%s/jtm_worker_%s.log' % (worker_log_dir_name, datetime_str)
+            log_file_name = '%s/jtm_worker_%s.log' % (worker_log_dir_name, datetime_str)
 
-        file_logger = logging.FileHandler(logFileName)
+        file_logger = logging.FileHandler(log_file_name)
         file_logger.setFormatter(formatter)
         file_logger.setLevel(numeric_level)
         logger.addHandler(file_logger)
-        logger.info("Log file name: %s" % (logFileName))
-        os.chmod(logFileName, 0o775)
+        logger.info("Log file name: %s" % (log_file_name))
+        try:
+            os.chmod(log_file_name, 0o775)
+        except OSError:
+            logger.warning("Cannot change the permission of {} to 0775".format(log_file_name))
+            raise

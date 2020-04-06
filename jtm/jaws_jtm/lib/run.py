@@ -211,7 +211,7 @@ def chmod(path, mode, opts="", dry_run=False):
 
 # -------------------------------------------------------------------------------
 def run_sh_command(
-    cmd, live=False, log=None, run_time=False, stdoutPrint=True, timeout_sec=0
+    cmd, live=False, log=None, run_time=False, show_stdout=True, timeout_sec=0
 ):
     """
     Run a command, catch stdout and stderr and exit_code
@@ -219,7 +219,7 @@ def run_sh_command(
     :param live: live (boolean, default false - don't run the command but pretend we did)
     :param log:
     :param run_time: flag to print elapsed time as log
-    :param stdoutPrint: flag to show stdout or not
+    :param show_stdout: flag to show stdout or not
     :param timeout_sec: timeout to terminate the specified command
     :return:
 
@@ -239,7 +239,7 @@ def run_sh_command(
             std_out = "Not live: cmd = '%s'" % (cmd)
             exit_code = 0
         else:
-            if log and stdoutPrint:
+            if log and show_stdout:
                 log.info("cmd: %s" % (cmd))
 
             # ---------
@@ -259,7 +259,12 @@ def run_sh_command(
                 if timeout_sec > 0:
                     timer.start()
                 std_out, std_err = p.communicate()
-                print(std_out)  # for printing slurm job id
+                if type(std_out) is bytes:
+                    std_out = std_out.decode()
+                if type(std_err) is bytes:
+                    std_err = std_err.decode()
+                if show_stdout:
+                    print(std_out)  # for printing slurm job id
                 exit_code = p.returncode
             finally:
                 if timeout_sec > 0:
@@ -277,7 +282,7 @@ def run_sh_command(
 
                     log.info("*************************************")
 
-            if log and stdoutPrint:
+            if log and show_stdout:
                 log.info(
                     "Return values: exit_code="
                     + str(exit_code)

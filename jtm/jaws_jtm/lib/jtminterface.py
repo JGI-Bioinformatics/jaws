@@ -107,10 +107,6 @@ class JtmInterface(object):
         else:  # jtm-status, jtm-kill, jtm-resource, jtm-check-*
             json_data_dict = {}
 
-        # if kw["log_level"] == "debug":
-        #     print("JSON in JtmInterface: \n")
-        #     pprint.pprint(json_data_dict)
-
         if "task_pool" in kw and kw["task_pool"]:
             json_data_dict["task_pool"] = kw["task_pool"]
         if "jtm_host_name" in kw and kw["jtm_host_name"]:
@@ -214,7 +210,7 @@ class JtmInterface(object):
                                 queue=JTM_TASK_REQUEST_Q,
                                 routing_key=JTM_TASK_REQUEST_Q)
 
-        if "log_level" in kw and kw["log_level"] == "debug":
+        if "log_level" in kw and kw["log_level"] is True:
             print("kw")
             pprint.pprint(kw)
             print("json_data_dict")
@@ -252,17 +248,17 @@ class JtmInterface(object):
                 if cnt == JTMINTERFACE_MAX_TRIAL:
                     make_dir(os.path.join(JTM_LOG, "jtm-submit"))
                     eprint("Failed to get a reply from the manager: {} {}".format(json_data_dict, self.response))
-                    jtmSubmitLogFile = os.path.join(JTM_LOG, "jtm-submit", "jtm_submit_%s"
-                                                    % (datetime.datetime.now().strftime("%Y-%m-%d")))
-                    with open(jtmSubmitLogFile, 'a') as jslogf:
+                    jtm_submit_log_file = os.path.join(JTM_LOG, "jtm-submit", "jtm_submit_%s"
+                                                       % (datetime.datetime.now().strftime("%Y-%m-%d")))
+                    with open(jtm_submit_log_file, 'a') as jslogf:
                         jslogf.write("{} {}\n".format(json_data_dict, self.response))
-                    os.chmod(jtmSubmitLogFile, 0o777)
+                    os.chmod(jtm_submit_log_file, 0o777)
                     if self.response is None:  # still none?
                         self.response = -88
                     break
         except Exception as e:
-            print("no task id returned")
-            print(e)
+            eprint("No task id returned")
+            eprint(e)
 
         return self.response
 

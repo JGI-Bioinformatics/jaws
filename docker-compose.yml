@@ -11,6 +11,9 @@ services:
   rabbitmq:
     image: "rabbitmq:3-management"
     hostname: "rabbit"
+    enviroment:
+      RABBITMQ_DEFAULT_USER: jaws
+      RABBITMQ_DEFAULT_PASS: jawstest
     ports:
       - "15672:15672"
       - "5672:5672"

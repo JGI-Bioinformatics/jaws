@@ -109,44 +109,10 @@ def tasks(run_id: int) -> None:
     :type run_id: int
     :return:
     """
-    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
+    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/tasks'
     r = _get(url)
     result = r.json()
-    metadata = r.json()
-    if "run_id" not in metadata:
-        raise SystemExit(f"Invalid response from JAWS: {metadata}")
-    status = metadata["status"]
-    print("status: " + status)
-
-    # failures
-    if "failures" in metadata:
-        print("failures:")
-        for failure in metadata["failures"]:
-            print("\t" + failure["message"])
-
-    # call summary
-    if "calls" not in metadata:
-        return
-    print("calls:")
-    calls = metadata["calls"]
-    result = []
-    for task_name in calls.keys():
-        task = calls[task_name]
-        for attempt in task:
-            if "executionStatus" not in attempt:
-                continue
-            status = attempt["executionStatus"]
-            if "shardIndex" not in attempt:
-                continue
-            shard = attempt["shardIndex"]
-            result.append((task_name, shard, status))
-            if shard > -1:
-                print(task_name + "[" + str(shard) + "]\t" + status)
-            else:
-                print("\t".join((task_name, status)))
-            if status == "Failed":
-                for failure in attempt["failures"]:
-                    print("\t" + failure["message"])
+    print(json.dumps(result, indent=4, sort_keys=True))
 
 
 @run.command()

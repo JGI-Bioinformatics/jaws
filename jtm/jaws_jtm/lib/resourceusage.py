@@ -16,9 +16,11 @@ import pprint
 
 from jaws_jtm.lib.run import back_ticks, eprint
 from jaws_jtm.common import logger
+from jaws_jtm.config import JtmConfig
 
 SCALE_INV = ((1024.*1024., "MB"), (1024., "KB"))
-JTM_WORKER_NUM_THREADS = 5
+config = JtmConfig()
+NUM_WORKER_PROCS = config.constants.NUM_WORKER_PROCS
 
 
 # -------------------------------------------------------------------------------
@@ -33,8 +35,10 @@ def get_cpu_load(pid):
 
     try:
         ps_stdout_str = back_ticks(ps_cmd, shell=True)
+        if type(ps_stdout_str) is bytes:
+            ps_stdout_str = ps_stdout_str.decode()
         if sys.platform.lower() == "darwin":
-            ps_stdout_str = ps_stdout_str.decode().strip().split('\n')[1]
+            ps_stdout_str = ps_stdout_str.strip().split('\n')[1]
         cpu_load = ps_stdout_str.strip()
     except subprocess.CalledProcessError as e:
         eprint("get_cpu_load(): %s" % e)
@@ -140,21 +144,21 @@ def _VmB(VmKey, pid):
 
 
 # -------------------------------------------------------------------------------
-def toScale(x):
+def convert_scale(x):
     """
     convert scale: convert 'x' to a string with B/KB/MB units
     :param x: integer or float
     :return:
 
-    >>> toScale("no int")
+    >>> convert_scale("no int")
     Traceback (most recent call last):
         ...
     TypeError: unsupported operand type(s) for /: 'str' and 'float'
-    >>> toScale(100.0)
+    >>> convert_scale(100.0)
     '0.098B'
-    >>> toScale(1024)
+    >>> convert_scale(1024)
     '1.000KB'
-    >>> toScale(1024*1024)
+    >>> convert_scale(1024*1024)
     '1.000MB'
     """
     for sc in SCALE_INV:
@@ -175,7 +179,7 @@ def get_virtual_memory_usage(pid, since=0.0, as_str=True):
     """
     b = _VmB('VmSize:', pid) - since
     if as_str:
-        return "VirtMem: " + toScale(b)
+        return "VirtMem: " + convert_scale(b)
     else:
         return b
 
@@ -194,7 +198,7 @@ def get_resident_memory_usage(pid, since=0.0, as_str=True):
     """
     b = _VmB('VmRSS:', pid) - since
     if as_str:
-        return "ResMem: " + toScale(b)
+        return "ResMem: " + convert_scale(b)
     else:
         return b
 
@@ -210,7 +214,7 @@ def get_stacksize(pid, since=0.0, as_str=True):
     """
     b = _VmB('VmStk:', pid) - since
     if as_str:
-        return "StackMem: " + toScale(b)
+        return "StackMem: " + convert_scale(b)
     else:
         return b
 
@@ -248,7 +252,9 @@ def get_pid_tree(pid):
         try:
             # ps_stdout_str = back_ticks(cmd, shell=True)
             ps_stdout_str = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE).communicate()[0]
-            child_pid_list.extend([int(pidStr) for pidStr in ps_stdout_str.decode().split("\n")[:-1]])
+            if type(ps_stdout_str) is bytes:
+                ps_stdout_str = ps_stdout_str.decode()
+            child_pid_list.extend([int(pidStr) for pidStr in ps_stdout_str.split("\n")[:-1]])
         except subprocess.CalledProcessError as msg:
             logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
             child_pid_list = []
@@ -276,11 +282,13 @@ def get_total_mem_usage_per_node():
     else:  # linux
         cmd = "free"
         try:
-            freeOut = back_ticks(cmd, shell=True)
+            free_output = back_ticks(cmd, shell=True)
+            if type(free_output) is bytes:
+                free_output = free_output.decode()
         except subprocess.CalledProcessError as msg:
             logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
             return -1
-        mem_perc = float(freeOut.split('\n')[1].split()[2]) / float(freeOut.split('\n')[1].split()[1]) * 100.0
+        mem_perc = float(free_output.split('\n')[1].split()[2]) / float(free_output.split('\n')[1].split()[1]) * 100.0
 
     return mem_perc
 
@@ -303,7 +311,7 @@ def get_num_workers_on_node():
         logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
         return -1
 
-    return int(ps_stdout_str) / JTM_WORKER_NUM_THREADS  # we have three processes per a worker
+    return int(ps_stdout_str) / NUM_WORKER_PROCS
 
 
 # -------------------------------------------------------------------------------

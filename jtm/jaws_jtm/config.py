@@ -12,7 +12,7 @@ class JtmConstants():
 
     # Supported cluster
     COMPUTE_RESOURCES = ["cori",
-                         "lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster",  # lbl it
+                         "lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster",  "lbl",  # lbl it
                          "rhea", "summit",  # olcf
                          "ssul-dm_dhcp_lbl_gov", "sjsul-lm-2_local", "sjsul-lm.dhcp.lbnl.us",  # testing
                          "summit", "rhea", "slate",  # OLCF
@@ -99,8 +99,10 @@ class JtmConstants():
                 "jgi_exvivo",
                 "condo_jgicloud"
                 ]
-
+    CONSTRAINT_LIST = ["haswell", "knl", "skylake"]
     DEFAULT_POOL = ["small", "medium", "large", "xlarge"]
+    NUM_MANAGER_PROCS = 7
+    NUM_WORKER_PROCS = 6
 
 
 class JtmConfig(object):
