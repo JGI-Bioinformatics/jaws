@@ -1,4 +1,6 @@
-from jaws_central import rpc_manager
+from jaws_central import rpc_manager, config
+import amqpstorm
+import urllib.parse
 
 
 def status() -> dict:
@@ -21,4 +23,36 @@ def status() -> dict:
         else:
             result[site_id + "-Site"] = "UP"
             result[site_id + "-Cromwell"] = "DOWN"
+        result[f"{site_id}-RMQ"] = _rmq_server_status(config.conf.sites[site_id])
     return result, 200
+
+
+def _rmq_server_status(params):
+    """Check RMQ server status.
+
+    :param params: A dictionary containing host, user, password, vhost, queue
+    :type params: dict
+    :return: "UP" or "DOWN"
+    :rtype: str
+    """
+    if params.get("amqp_vhost", None):
+        uri = "amqp://%s:%s@%s:5672/%s?heartbeat=60" % (
+            params["amqp_user"],
+            urllib.parse.quote_plus(params["amqp_password"]),
+            params["amqp_host"],
+            params["amqp_vhost"],
+        )
+        try:
+            connection = amqpstorm.UriConnection(uri)
+            connection.check_for_errors()
+        except amqpstorm.AMQPConnectionError:
+            return "DOWN"
+    else:
+        try:
+            connection = amqpstorm.Connection(
+                params["amqp_host"], params["amqp_user"], params["amqp_password"]
+            )
+            connection.check_for_errors()
+        except amqpstorm.AMQPConnectionError:
+            return "DOWN"
+    return "UP"
