@@ -51,7 +51,7 @@ class Mutex(click.Option):
 
 
 @click.group()
-@click.option("--debug/--no-debug", default=False)
+@click.option("--debug", is_flag=True, default=False)
 def cli(debug):
     # print("Debug mode is %s" % ("on" if debug else "off"))
     pass
@@ -63,14 +63,15 @@ def cli(debug):
               required=False)
 @click.option("-r", "--show_resource_log",
               help="Show resource usage log from worker(s)",
-              default=False)
-@click.option("--debug", default=False)
+              default=False,
+              is_flag=True)
+@click.option("--debug", is_flag=True, default=False)
 def manager(log_dir, show_resource_log: bool, debug: bool) -> int:
     sys.exit(jtmmanager(log_dir, show_resource_log, debug))
 
 
 @cli.command()
-@click.option("--debug", default=False)
+@click.option("--debug", is_flag=True, default=False)
 @click.option("-hb", "--heartbeat_interval",
               help="heartbeat interval in second (default=10).",
               type=int)
@@ -88,7 +89,8 @@ def manager(log_dir, show_resource_log: bool, debug: bool) -> int:
               type=int)
 @click.option("-dr", "--dry_run",
               help="Dry run. To print batch job script on screen",
-              default=False)
+              default=False,
+              is_flag=True)
 @click.option("-j", "--slurm_job_id",
               help="Slurm job ID",
               type=int,
@@ -164,7 +166,7 @@ def worker(heartbeat_interval, log_dir, job_script_dir_name, pool_name,
               help="Set the architecture to Haswell or KNL on Cori",
               type=click.Choice(CONSTRAINT_LIST),
               default=CONSTRAINT)
-@click.option("--debug", default=False)
+@click.option("--debug", is_flag=True, default=False)
 @click.option("-jid", "--cromwell_job_id",
               help="Unique Cromwell job id with step name",
               required=False)
@@ -262,7 +264,7 @@ def submit(task_file, cluster, command, pool_name, account, ncpu: int, constrain
               help="JTM task ID",
               type=int,
               required=True)
-@click.option("--debug", default=False)
+@click.option("--debug", is_flag=True, default=False)
 def kill(task_id, debug: bool) -> int:
     """
     # JtmInterface returns code
@@ -296,7 +298,7 @@ def kill(task_id, debug: bool) -> int:
               help="JTM task ID",
               type=int,
               required=True)
-@click.option("--debug", default=False)
+@click.option("--debug", is_flag=True, default=False)
 def isalive(task_id, debug: bool) -> int:
     """
     JtmInterface returns
@@ -332,7 +334,7 @@ def isalive(task_id, debug: bool) -> int:
               help="JTM task ID",
               type=int,
               required=True)
-@click.option("--debug", default=False)
+@click.option("--debug", is_flag=True, default=False)
 def status(task_id: int, debug: bool) -> int:
     """
     JtmInterface returns
@@ -364,7 +366,7 @@ def status(task_id: int, debug: bool) -> int:
               required=True)
 @click.option("-cl", "--cluster",
               type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False))
-@click.option("--debug", default=False)
+@click.option("--debug", is_flag=True, default=False)
 def remove_pool(pool_name, cluster, debug: bool) -> int:
     """
     Remove pool of workers from HPC
@@ -398,7 +400,7 @@ def remove_pool(pool_name, cluster, debug: bool) -> int:
               show_default=True)
 @click.option("-cl", "--cluster",
               type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False))
-@click.option("--debug", default=False)
+@click.option("--debug", is_flag=True, default=False)
 def check_worker(pool_name, slurm_info: bool, cluster, debug: bool) -> int:
     """
     total number of workers of the site
@@ -434,7 +436,7 @@ def check_worker(pool_name, slurm_info: bool, cluster, debug: bool) -> int:
 @cli.command()
 @click.option("-cl", "--cluster",
               type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False))
-@click.option("--debug", default=False)
+@click.option("--debug", is_flag=True, default=False)
 def check_manager(cluster, debug: bool) -> int:
     """
     check if a JTM manager is running on a site
@@ -461,7 +463,7 @@ def check_manager(cluster, debug: bool) -> int:
               help="JTM task ID",
               type=int,
               required=True)
-@click.option("--debug", default=False)
+@click.option("--debug", is_flag=True, default=False)
 def resource_log(task_id, debug: bool) -> int:
     """
     Find resource log file from LOG_DIR for a task id

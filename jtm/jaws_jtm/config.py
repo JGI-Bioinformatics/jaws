@@ -12,7 +12,7 @@ class JtmConstants():
 
     # Supported cluster
     COMPUTE_RESOURCES = ["cori",
-                         "lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster",  # lbl it
+                         "lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster",  "lbl",  # lbl it
                          "rhea", "summit",  # olcf
                          "ssul-dm_dhcp_lbl_gov", "sjsul-lm-2_local", "sjsul-lm.dhcp.lbnl.us",  # testing
                          "summit", "rhea", "slate",  # OLCF
