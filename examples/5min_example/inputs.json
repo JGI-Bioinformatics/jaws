@@ -1,4 +1,4 @@
 {
-    "bbtools.reads": "/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq",
-    "bbtools.ref": "/global/dna/shared/data/jfroula/JAWS/data/5min_ref.fasta"
+    "bbtools.reads": "../data/sample.fastq.bz2",
+    "bbtools.ref": "../data/sample.fasta"
 }

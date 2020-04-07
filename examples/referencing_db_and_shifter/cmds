@@ -1,3 +1,0 @@
-java -Dconfig.file=shifter.conf -jar /global/cfs/projectdirs/jaws_jtm/dev/jtm/opt/cromwell.jar run test_shifter.wdl -i inputs.json
-
- java -Dconfig.file=/global/cfs/projectdirs/jaws_jtm/dev/jtm/etc/cromwell.conf -jar $(cromdev) run test_shifter.wdl -i inputs.json 

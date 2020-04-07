@@ -23,7 +23,7 @@ Please see the `shard_test.wdl`
 
 # Run the Example
 ```
-java -jar /global/dna/projectdirs/DSI/workflows/cromwell/java/cromwell.jar run shard_test.wdl -i shard.json
+java -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run shard_test.wdl -i shard.json
 
 ```
 
