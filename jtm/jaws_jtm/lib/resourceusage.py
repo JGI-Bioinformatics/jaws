@@ -13,8 +13,9 @@ import time
 import subprocess
 import re
 import pprint
+import psutil
 
-from jaws_jtm.lib.run import back_ticks, eprint
+from jaws_jtm.lib.run import eprint, run_sh_command
 from jaws_jtm.common import logger
 from jaws_jtm.config import JtmConfig
 
@@ -34,9 +35,8 @@ def get_cpu_load(pid):
     cpu_load = 0
 
     try:
-        ps_stdout_str = back_ticks(ps_cmd, shell=True)
-        if type(ps_stdout_str) is bytes:
-            ps_stdout_str = ps_stdout_str.decode()
+        # ps_stdout_str = back_ticks(ps_cmd, shell=True)
+        ps_stdout_str, _, _ = run_sh_command(ps_cmd, live=True, log=logger, show_stdout=False)
         if sys.platform.lower() == "darwin":
             ps_stdout_str = ps_stdout_str.strip().split('\n')[1]
         cpu_load = ps_stdout_str.strip()
@@ -63,28 +63,32 @@ def get_runtime(pid):
     proc_run_time = 0
 
     try:
-        boot_time = back_ticks(grep_cmd, shell=True)
-        try:
-            boot_time = int(boot_time.strip())
-        except ValueError:
-            boot_time = 0
-
-        if os.path.exists(proc_stat_file):
-            msec_since_boot = back_ticks(cat_cmd, shell=True)
-        else:
-            return proc_run_time
-
-        try:  # To handle ValueError: invalid literal for int() with base 10: ''
-            msec_since_boot = int(msec_since_boot.strip())
-            sec_since_boot = msec_since_boot / 100
-        except ValueError:
-            sec_since_boot = 0
-
-        proc_start_time = boot_time + sec_since_boot
-        now = time.time()
-        proc_run_time = int(now - proc_start_time)  # unit in seconds will be enough
+        boot_time, _, _ = run_sh_command(grep_cmd, live=True, log=logger, show_stdout=False)
     except subprocess.CalledProcessError as msg:
         logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
+
+    try:
+        boot_time = int(boot_time.strip())
+    except ValueError:
+        boot_time = 0
+
+    try:
+        if os.path.exists(proc_stat_file):
+            msec_since_boot, _, _ = run_sh_command(cat_cmd, live=True, log=logger, show_stdout=False)
+        else:
+            return 0
+    except subprocess.CalledProcessError as msg:
+        logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
+
+    try:  # To handle ValueError: invalid literal for int() with base 10: ''
+        msec_since_boot = int(msec_since_boot.strip())
+        sec_since_boot = msec_since_boot / 100
+    except ValueError:
+        sec_since_boot = 0
+
+    proc_start_time = boot_time + sec_since_boot
+    now = time.time()
+    proc_run_time = int(now - proc_start_time)  # unit in seconds will be enough
 
     return proc_run_time
 
@@ -177,11 +181,24 @@ def get_virtual_memory_usage(pid, since=0.0, as_str=True):
     :param as_str:
     :return:
     """
-    b = _VmB('VmSize:', pid) - since
-    if as_str:
-        return "VirtMem: " + convert_scale(b)
+    if sys.platform.lower() == "darwin":
+        # OLD
+        # out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
+        #                        stdout=subprocess.PIPE).communicate()[0].split(b'\n')
+        # vsz_index = out[0].split().index(b'VSZ')
+        # mem = float(out[1].split()[vsz_index]) *1024
+        # print("vms mem %d" % mem)
+
+        # NEW
+        process = psutil.Process(pid)
+        # print("vms: %d" % process.memory_info().vms)
+        return process.memory_info().vms  # in bytes
     else:
-        return b
+        b = _VmB('VmSize:', pid) - since
+        if as_str:
+            return "VirtMem: " + convert_scale(b)
+        else:
+            return b
 
 
 # -------------------------------------------------------------------------------
@@ -196,11 +213,24 @@ def get_resident_memory_usage(pid, since=0.0, as_str=True):
     >>> get_resident_memory_usage(0)
     'ResMem: 0.000B'
     """
-    b = _VmB('VmRSS:', pid) - since
-    if as_str:
-        return "ResMem: " + convert_scale(b)
+    if sys.platform.lower() == "darwin":
+        # OLD
+        # out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
+        #                        stdout=subprocess.PIPE).communicate()[0].split(b'\n')
+        # vsz_index = out[0].split().index(b'RSS')
+        # mem = float(out[1].split()[vsz_index]) *1024
+        # print("mem %d" % mem)
+
+        # NEW
+        process = psutil.Process(pid)
+        # print("rss: %d" % process.memory_info().rss)
+        return process.memory_info().rss  # in bytes
     else:
-        return b
+        b = _VmB('VmRSS:', pid) - since
+        if as_str:
+            return "ResMem: " + convert_scale(b)
+        else:
+            return b
 
 
 # -------------------------------------------------------------------------------
@@ -238,22 +268,23 @@ def get_pid_tree(pid):
     child_pid_list = []
     if sys.platform.lower() == "darwin":  # if mac os
         # Todo
-        import psutil
         try:
             child_pid_list.extend([p.pid for p in psutil.Process(pid).children(recursive=True)])
         except psutil.NoSuchProcess:
             logger.exception("Failed to call psutil.Process(). Process id is not exist.")
         except Exception as psutil_error:
             logger.exception(psutil_error)
-            raise
+            # raise
     else:
         cmd = "ps -o pid --ppid %d --noheaders" % pid
         child_pid_list.append(pid)
         try:
             # ps_stdout_str = back_ticks(cmd, shell=True)
             ps_stdout_str = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE).communicate()[0]
+
             if type(ps_stdout_str) is bytes:
                 ps_stdout_str = ps_stdout_str.decode()
+
             child_pid_list.extend([int(pidStr) for pidStr in ps_stdout_str.split("\n")[:-1]])
         except subprocess.CalledProcessError as msg:
             logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
@@ -274,21 +305,30 @@ def get_total_mem_usage_per_node():
     mem_perc = 0.0
     if sys.platform.lower() == "darwin":
         cmd = "top -l 1 | head -n 10 | grep PhysMem | sed 's/,//g'"
-        out = back_ticks(cmd, shell=True)
-        # logger.debug(out)
-        p = r"(\d+)"
-        f = re.findall(p, out.decode())
-        mem_perc = 100.0 - float(f[2]) / (float(f[0]) * 1024) * 100.0
-    else:  # linux
-        cmd = "free"
         try:
-            free_output = back_ticks(cmd, shell=True)
-            if type(free_output) is bytes:
-                free_output = free_output.decode()
+            top_out, _, _ = run_sh_command(cmd, live=True, log=logger, show_stdout=False)
         except subprocess.CalledProcessError as msg:
             logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
             return -1
-        mem_perc = float(free_output.split('\n')[1].split()[2]) / float(free_output.split('\n')[1].split()[1]) * 100.0
+        p = r"(\d+)"
+        f = re.findall(p, top_out)
+        try:
+            mem_perc = 100.0 - float(f[2]) / (float(f[0]) * 1024) * 100.0
+        except ZeroDivisionError:
+            mem_perc = 0
+
+    else:  # linux
+        cmd = "free"
+        try:
+            free_output, _, _ = run_sh_command(cmd, live=True, log=logger, show_stdout=False)
+        except subprocess.CalledProcessError as msg:
+            logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
+            return -1
+        try:
+            mem_perc = float(free_output.split('\n')[1].split()[2]) / \
+                       float(free_output.split('\n')[1].split()[1]) * 100.0
+        except ZeroDivisionError:
+            mem_perc = 0
 
     return mem_perc
 
@@ -303,10 +343,10 @@ def get_num_workers_on_node():
     0
     """
     cmd = "ps ax | grep -v grep | grep jtm-worker | wc -l"
-    ps_stdout_str = 0
+    ps_stdout_str = None
 
     try:
-        ps_stdout_str = back_ticks(cmd, shell=True)
+        ps_stdout_str, _, _ = run_sh_command(cmd, live=True, log=logger, show_stdout=False)
     except subprocess.CalledProcessError as msg:
         logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
         return -1
@@ -353,3 +393,23 @@ def darwin_free():
     print(('Inactive Memory:\t%d MB' % (vm_stats_dict["Pages inactive"] / 1024 / 1024)))
     print(('Free Memory:\t\t%d MB' % (vm_stats_dict["Pages free"] / 1024 / 1024)))
     print(('Real Mem Total (ps):\t%.3f MB' % (rss_total / 1024 / 1024)))
+
+
+# -------------------------------------------------------------------------------
+def mem_rss_usage_pid_darwin():
+    """
+    rss
+    :return:
+    """
+    process = psutil.Process(os.getpid())
+    return process.memory_info().rss  # in bytes
+
+
+# -------------------------------------------------------------------------------
+def mem_vms_usage_pid_darwin():
+    """
+    vms
+    :return:
+    """
+    process = psutil.Process(os.getpid())
+    return process.memory_info().vms  # in bytes

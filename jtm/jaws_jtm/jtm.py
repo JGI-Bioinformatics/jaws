@@ -15,8 +15,7 @@ from jaws_jtm.jtm_worker import worker as jtmworker
 config = JtmConfig()
 
 COMPUTE_RESOURCES = config.constants.COMPUTE_RESOURCES
-QOS_LIST = config.constants.QOS_LIST
-CONSTRAINT_LIST = config.constants.CONSTRAINT_LIST
+CLUSTER = config.configparser.get("SITE", "jtm_host_name")
 TASK_STATUS = config.constants.TASK_STATUS
 
 NCPUS = config.configparser.getint("SLURM", "ncpus")
@@ -25,6 +24,7 @@ CHARGE_ACCOUNT = config.configparser.get("SLURM", "charge_accnt")
 QOS = config.configparser.get("SLURM", "qos")
 NNODES = config.configparser.getint("SLURM", "nnodes")
 CONSTRAINT = config.configparser.get("SLURM", "constraint")
+CONSTRAINT_LIST = config.configparser.get("SLURM", "CONSTRAINT_LIST").split(',')
 NWORKERS_PER_NODE = config.configparser.get("JTM", "num_workers_per_node")
 
 
@@ -53,7 +53,7 @@ class Mutex(click.Option):
 @click.group()
 @click.option("--debug", is_flag=True, default=False)
 def cli(debug):
-    # print("Debug mode is %s" % ("on" if debug else "off"))
+    # click.echo("Debug mode is %s" % ("on" if debug else "off"))
     pass
 
 
@@ -66,7 +66,15 @@ def cli(debug):
               default=False,
               is_flag=True)
 @click.option("--debug", is_flag=True, default=False)
-def manager(log_dir, show_resource_log: bool, debug: bool) -> int:
+def manager(log_dir: str, show_resource_log: bool, debug: bool) -> int:
+    """
+    JTM Manager Click wrapper
+
+    :param log_dir: custom log dir
+    :param show_resource_log: show/not show resource usage log
+    :param debug:
+    :return:
+    """
     sys.exit(jtmmanager(log_dir, show_resource_log, debug))
 
 
@@ -96,12 +104,13 @@ def manager(log_dir, show_resource_log: bool, debug: bool) -> int:
               type=int,
               default=0)
 @click.option("-wt", "--worker_type",
-              help="jtm worker type = [static | dynamic]",
+              help="jtm worker type = [manual | dynamic]",
               default="manual",
-              type=click.Choice(["manual", "static", "dynamic"], case_sensitive=False))
+              type=click.Choice(["manual", "dynamic"], case_sensitive=False))
 @click.option("-cl", "--cluster",
               help="cluster name = [%s]" % (str(COMPUTE_RESOURCES)),
-              type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False))
+              type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False),
+              default=CLUSTER)
 @click.option("-ctr", "--clone_time_rate",
               help="cloning timing",
               type=float)
@@ -132,11 +141,37 @@ def manager(log_dir, show_resource_log: bool, debug: bool) -> int:
               help="Quality of service")
 @click.option("-t", "--job_time",
               help="Job time (hh:mm:ss)")
-def worker(heartbeat_interval, log_dir, job_script_dir_name, pool_name,
-           timeout: int, dry_run: bool, slurm_job_id: int, worker_type, cluster,
+def worker(heartbeat_interval: int, log_dir: str, job_script_dir_name: str, pool_name: str,
+           timeout: int, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
            clone_time_rate: float, num_worker_per_node: int, worker_id: str,
-           charging_account, nnodes: int, cpus_per_task: int, constraint, mem: str,
-           mem_per_cpu: str, qos, job_time: str, debug: bool) -> int:
+           charging_account: str, nnodes: int, cpus_per_task: int, constraint: str, mem: str,
+           mem_per_cpu: str, qos: str, job_time: str, debug: bool) -> int:
+    """
+    JTM Worker Click wrapper
+
+    :param heartbeat_interval: worker HB interval to the manager
+    :param log_dir: custom log directory
+    :param job_script_dir_name: custom sbatch script saving directory
+    :param pool_name: worker pool name
+    :param timeout: worker max time for waiting for a manager
+    :param dry_run:
+    :param slurm_job_id: SLURM job id
+    :param worker_type: manual or dynamic
+    :param cluster: destination cluster name
+    :param clone_time_rate: OBSOLETE
+    :param num_worker_per_node:
+    :param worker_id:
+    :param charging_account: SLURM charging account
+    :param nnodes: number of nodes
+    :param cpus_per_task: number of cpus
+    :param constraint: SLURM constraint
+    :param mem: memory request
+    :param mem_per_cpu: memory request per cpu
+    :param qos:
+    :param job_time: wallclocktime
+    :param debug:
+    :return:
+    """
     sys.exit(jtmworker(heartbeat_interval, log_dir, job_script_dir_name, pool_name,
                        timeout, dry_run, slurm_job_id, worker_type, cluster,
                        clone_time_rate, num_worker_per_node, worker_id,
@@ -147,7 +182,8 @@ def worker(heartbeat_interval, log_dir, job_script_dir_name, pool_name,
 @cli.command()
 @click.option("-cl", "--cluster",
               help="cluster (site) name to run task",
-              type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False))
+              type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False),
+              default=CLUSTER)
 @click.option("-cmd", "--command",
               help="user command",
               cls=Mutex,
@@ -164,8 +200,7 @@ def worker(heartbeat_interval, log_dir, job_script_dir_name, pool_name,
               type=int)
 @click.option("-C", "--constraint",  # only for nersc
               help="Set the architecture to Haswell or KNL on Cori",
-              type=click.Choice(CONSTRAINT_LIST),
-              default=CONSTRAINT)
+              type=click.Choice(CONSTRAINT_LIST))
 @click.option("--debug", is_flag=True, default=False)
 @click.option("-jid", "--cromwell_job_id",
               help="Unique Cromwell job id with step name",
@@ -186,17 +221,17 @@ def worker(heartbeat_interval, log_dir, job_script_dir_name, pool_name,
               help="User worker pool name",
               required=True)
 @click.option("-q", "--qos",
-              type=click.Choice(QOS_LIST),
-              default=QOS)
+              help="SLURM QOS")
 @click.option("-s", "--shared",
               help="Shared workers.",
               type=int,
               default=1)
 @click.option("-t", "--job_time",
               help="Job time (hh:mm:ss)",)
-def submit(task_file, cluster, command, pool_name, account, ncpu: int, constraint,
-           num_worker_per_node: int, cromwell_job_id: str, memory, nnodes: int, qos,
-           shared: int, job_time, debug: bool) -> int:
+def submit(task_file: str, cluster: str, command: str, pool_name: str, account: str,
+           ncpu: int, constraint: str,
+           num_worker_per_node: int, cromwell_job_id: str, memory: str, nnodes: int,
+           qos: str, shared: int, job_time, debug: bool) -> int:
     """
     JtmInterface returns 'task_id' if successfully queued
     jtm-submit exits with code 0 if successfully submitted
@@ -224,7 +259,7 @@ def submit(task_file, cluster, command, pool_name, account, ncpu: int, constrain
     :return:
     """
     if debug:
-        print("Debug mode")
+        click.echo("Debug mode")
 
     if job_time:
         assert ncpu and memory and \
@@ -255,7 +290,7 @@ def submit(task_file, cluster, command, pool_name, account, ncpu: int, constrain
         eprint("jtm-submit: command timeout.")
         return -1
 
-    print("JTM task ID %d" % ret)
+    click.echo("JTM task ID %d" % ret)
     return 0 if ret != 0 else 1
 
 
@@ -265,7 +300,7 @@ def submit(task_file, cluster, command, pool_name, account, ncpu: int, constrain
               type=int,
               required=True)
 @click.option("--debug", is_flag=True, default=False)
-def kill(task_id, debug: bool) -> int:
+def kill(task_id: int, debug: bool) -> int:
     """
     # JtmInterface returns code
     #   0: terminated successfully
@@ -289,7 +324,7 @@ def kill(task_id, debug: bool) -> int:
         sys.exit(-1)
     sys.exit(0) if ret == 0 else sys.exit(1)
     # if ret != 0:
-    #     print "jtm-kill failed with task id %d" % taskID
+    #     click.echo("jtm-kill failed with task id %d" % taskID)
     # sys.exit(0)
 
 
@@ -299,7 +334,7 @@ def kill(task_id, debug: bool) -> int:
               type=int,
               required=True)
 @click.option("--debug", is_flag=True, default=False)
-def isalive(task_id, debug: bool) -> int:
+def isalive(task_id: int, debug: bool) -> int:
     """
     JtmInterface returns
       0 if ready
@@ -311,7 +346,7 @@ def isalive(task_id, debug: bool) -> int:
     jtm-isalive exits with 0 if it's in ['ready', 'queued', 'running'] status
                           1 if it's done successfully or failed
 
-    print("isalive")
+    click.echo("isalive")
 
     :param task_id:
     :return:
@@ -322,10 +357,10 @@ def isalive(task_id, debug: bool) -> int:
         eprint("jtm isalive: command timeout.")
         sys.exit(-1)
     elif ret in [0, 1, 2]:
-        print("yes")
+        click.echo("yes")
         sys.exit(0)
     else:
-        print("no")
+        click.echo("no")
         sys.exit(1)
 
 
@@ -356,7 +391,7 @@ def status(task_id: int, debug: bool) -> int:
         eprint("jtm status: command timeout.")
         sys.exit(-1)
     reversed_task_status = dict(map(reversed, TASK_STATUS.items()))
-    print(reversed_task_status[ret])
+    click.echo(reversed_task_status[ret])
     sys.exit(0) if ret in [0, 1, 2] else sys.exit(1)
 
 
@@ -365,9 +400,10 @@ def status(task_id: int, debug: bool) -> int:
               help="User worker pool name",
               required=True)
 @click.option("-cl", "--cluster",
-              type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False))
+              type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False),
+              default=CLUSTER)
 @click.option("--debug", is_flag=True, default=False)
-def remove_pool(pool_name, cluster, debug: bool) -> int:
+def remove_pool(pool_name: str, cluster: str, debug: bool) -> int:
     """
     Remove pool of workers from HPC
     This actually looks up SLURM IDs for the pool
@@ -386,7 +422,7 @@ def remove_pool(pool_name, cluster, debug: bool) -> int:
     ret = int(JtmInterface('remove_pool', info_tag=pool_name).call(task_pool=pool_name,
                                                                    jtm_host_name=cluster,
                                                                    log_level=debug))
-    print("removed" if ret == 1 else "failed")
+    click.echo("removed" if ret == 1 else "failed")
     sys.exit(0) if ret > 0 else sys.exit(1)
 
 
@@ -399,9 +435,10 @@ def remove_pool(pool_name, cluster, debug: bool) -> int:
               default=False,
               show_default=True)
 @click.option("-cl", "--cluster",
-              type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False))
+              type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False),
+              default=CLUSTER)
 @click.option("--debug", is_flag=True, default=False)
-def check_worker(pool_name, slurm_info: bool, cluster, debug: bool) -> int:
+def check_worker(pool_name: str, slurm_info: bool, cluster, debug: bool) -> int:
     """
     total number of workers of the site
     if pool_name is specified,
@@ -429,15 +466,16 @@ def check_worker(pool_name, slurm_info: bool, cluster, debug: bool) -> int:
                                info_tag=add_info).call(task_pool=pool_name,
                                                        jtm_host_name=cluster,
                                                        log_level=debug))
-        print(ret)
+        click.echo(ret)
     sys.exit(0) if ret > 0 else sys.exit(1)
 
 
 @cli.command()
 @click.option("-cl", "--cluster",
-              type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False))
+              type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False),
+              default=CLUSTER)
 @click.option("--debug", is_flag=True, default=False)
-def check_manager(cluster, debug: bool) -> int:
+def check_manager(cluster: str, debug: bool) -> int:
     """
     check if a JTM manager is running on a site
 
@@ -464,7 +502,7 @@ def check_manager(cluster, debug: bool) -> int:
               type=int,
               required=True)
 @click.option("--debug", is_flag=True, default=False)
-def resource_log(task_id, debug: bool) -> int:
+def resource_log(task_id: int, debug: bool) -> int:
     """
     Find resource log file from LOG_DIR for a task id
     and return a json format if exist
@@ -510,7 +548,7 @@ def resource_log(task_id, debug: bool) -> int:
             "jtm_host_name",  # 25
             "nwpn"  # 26
         ))
-        print("""{ "task_id": %d, "resource_log": %s }""" % (task_id, json.dumps([row for row in reader])))
+        click.echo("""{ "task_id": %d, "resource_log": %s }""" % (task_id, json.dumps([row for row in reader])))
     else:
         eprint("Resource file, %s, not found." % (resource_log_file))
         resource_log_file = None

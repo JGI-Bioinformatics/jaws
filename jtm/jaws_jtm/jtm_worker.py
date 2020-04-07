@@ -116,7 +116,7 @@ Revisions
 """
 import os
 import sys
-import multiprocessing
+import multiprocessing as mp
 import shortuuid
 import datetime
 import json
@@ -125,7 +125,6 @@ import subprocess
 import socket
 import time
 import pika
-import getpass
 
 from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.config import JtmConfig
@@ -134,26 +133,26 @@ from jaws_jtm.lib.resourceusage import get_cpu_load, \
     get_runtime, get_pid_tree, get_virtual_memory_usage, \
     get_resident_memory_usage, get_total_mem_usage_per_node, \
     get_num_workers_on_node
-from jaws_jtm.lib.run import make_dir, run_sh_command, back_ticks
+from jaws_jtm.lib.run import make_dir, run_sh_command
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 
 # This ipc pipe is to send task_id (by on_request())to send_hb_to_client_proc()
 # when a task is requested
-PIPE_TASK_ID_SEND, PIPE_TASK_ID_RECV = multiprocessing.Pipe()
+PIPE_TASK_ID_SEND, PIPE_TASK_ID_RECV = mp.Pipe()
 
 # -------------------------------------------------------------------------------
 # Globals
 # -------------------------------------------------------------------------------
-RECV_HB_FROM_CLIENT_PROC_HANDLE = None
-SEND_HB_TO_CLIENT_PROC_HANDLE = None
-RECV_POISON_PROC_HANDLE = None
-TASK_KILL_PROC_HANDLE = None
-USER_PROC_PROC_ID = multiprocessing.Value("i", 0)
+# To share user task proc id
+USER_PROC_PROC_ID = mp.Value("i", 0)
+# To share this worker life left
+WORKER_LIFE_LEFT_IN_MINUTE = mp.Value("i", 0)
 ALLOW_EMPTY_OUTPUT_FILE = False  # False ==> if size(output file)==0, return error code
 UNIQ_WORKER_ID = str(shortuuid.uuid())
 IS_CLIENT_ALIVE = False
 WORKER_START_TIME = datetime.datetime.now()
 PARENT_PROCESS_ID = os.getpid()  # parent process id
+THIS_WORKER_TYPE = None
 
 config = JtmConfig()
 WORKER_TYPE = config.constants.WORKER_TYPE
@@ -163,6 +162,7 @@ COMPUTE_RESOURCES = config.constants.COMPUTE_RESOURCES
 TASK_TYPE = config.constants.TASK_TYPE
 DONE_FLAGS = config.constants.DONE_FLAGS
 NUM_WORKER_PROCS = config.constants.NUM_WORKER_PROCS
+TASK_KILL_TIMEOUT_MINUTE = config.constants.TASK_KILL_TIMEOUT_MINUTE
 
 CNAME = config.configparser.get("SITE", "instance_name")
 JTM_HOST_NAME = config.configparser.get("SITE", "jtm_host_name")
@@ -211,6 +211,14 @@ def run_something(msg_unzipped, return_msg):
     # logger.info("Running task/task ID, %s/%d...", cromwell_job_id, task_id)
 
     p = None
+    time_out_in_minute = None
+    if THIS_WORKER_TYPE != "manual":
+        # ex) WORKER_LIFE_LEFT_IN_MINUTE = 20min and TASK_KILL_TIMEOUT_MINUTE = 10min
+        # timeout will be set as 10min
+        # TASK_KILL_TIMEOUT_MINUTE is a extra housekeeping time after explicitly
+        # terminate a task.
+        time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - TASK_KILL_TIMEOUT_MINUTE)
+        logger.debug("timeout in minute: %d", time_out_in_minute)
 
     try:
         p = subprocess.Popen(user_task_cmd.split(),
@@ -221,6 +229,7 @@ def run_something(msg_unzipped, return_msg):
     except Exception as detail:
         logger.exception("Exception: Failed to run user command, %s", user_task_cmd)
         logger.exception("Detail: %s", str(detail))
+        raise
 
     # Set USER_PROC_PROC_ID = forked child process id (this value will be sent
     # to send_hb_to_client function)
@@ -229,11 +238,26 @@ def run_something(msg_unzipped, return_msg):
     logger.debug("User command: %s", user_task_cmd)
 
     proc_return_code = -1
+    stdout_str = None
+    time_out_in_second = None
+    if time_out_in_minute is not None:
+        time_out_in_second = time_out_in_minute * 60
+
     if p is not None:
-        stdout_str = p.communicate()[0]
-        p.wait()
-        p.poll()
-        proc_return_code = p.returncode
+        # ref)
+        # https://www.programcreek.com/python/example/56781/subprocess.TimeoutExpired
+        try:
+            stdout_str = p.communicate(timeout=time_out_in_second)[0]
+            if type(stdout_str) == bytes:
+                stdout_str = stdout_str.decode()
+        except subprocess.TimeoutExpired:
+            logger.exception("subprocess call timeout")
+            p.kill()
+            proc_return_code = -6
+        else:
+            p.wait()
+            p.poll()
+            proc_return_code = p.returncode
     else:
         logger.error("subprocess call failed")
 
@@ -246,7 +270,11 @@ def run_something(msg_unzipped, return_msg):
         return_msg["done_flag"] = DONE_FLAGS["failed with user termination"]
         return_msg["ret_msg"] = "Task cancelled."
     else:
-        if proc_return_code == 2:
+        if proc_return_code == -6:
+            logger.info("User task timeout. Not enough time left for the worker.")
+            return_msg["done_flag"] = "-6"
+            return_msg["ret_msg"] = "User task timeout"
+        elif proc_return_code == 2:
             logger.info("input file not found.")
             return_msg["done_flag"] = "1"
             return_msg["ret_msg"] = "Input file not found."
@@ -343,19 +371,20 @@ def on_request(ch, method, props, body):
         # so that the other workers can get it.
         #
         ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
-        ch.stop_consuming()
-        ch.close()
-
-        if RECV_HB_FROM_CLIENT_PROC_HANDLE:
-            RECV_HB_FROM_CLIENT_PROC_HANDLE.terminate()
-        if SEND_HB_TO_CLIENT_PROC_HANDLE:
-            SEND_HB_TO_CLIENT_PROC_HANDLE.terminate()
-        if RECV_POISON_PROC_HANDLE:
-            RECV_POISON_PROC_HANDLE.terminate()
-        if TASK_KILL_PROC_HANDLE:
-            TASK_KILL_PROC_HANDLE.terminate()
-
-        sys.exit(0)
+        # ch.stop_consuming()
+        # ch.close()
+        #
+        # if recv_hb_from_client_proc_hdl:
+        #     recv_hb_from_client_proc_hdl.terminate()
+        # if send_hb_to_client_proc_hdl:
+        #     send_hb_to_client_proc_hdl.terminate()
+        # if recv_poison_proc_hdl:
+        #     recv_poison_proc_hdl.terminate()
+        # if task_kill_proc_hdl:
+        #     task_kill_proc_hdl.terminate()
+        #
+        # sys.exit(0)
+        raise OSError(2, 'Worker termination request')
 
     logger.info("Received a task, %r" % (msg_unzipped,))
     logger.debug("Return queue = %s", props.reply_to)
@@ -372,7 +401,8 @@ def on_request(ch, method, props, body):
     # https://stackoverflow.com/questions/14572020/handling-long-running-tasks-in-pika-rabbitmq
     #
     result_dict = {}
-    thread = threading.Thread(target=run_something, args=(msg_unzipped, result_dict))
+    thread = threading.Thread(target=run_something,
+                              args=(msg_unzipped, result_dict))
     thread.start()
     while thread.is_alive():  # Loop while the thread is processing
         ch._connection.sleep(1.0)
@@ -406,6 +436,7 @@ def on_request(ch, method, props, body):
 
     except Exception as e:
         logger.critical("Something wrong in on_request(): %s", e)
+        raise
 
     # Send taskid=0 to send_hb_to_client_proc() b/c the requested task is completed
     PIPE_TASK_ID_SEND.send(0)
@@ -470,19 +501,15 @@ def check_output(out_files, out_file_check_wait_time=3,
 
 
 # -------------------------------------------------------------------------------
-def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_id, pipe_task_id,
-                           slurm_job_id, worker_type, mem_per_node, mem_per_core, num_cores,
+def send_hb_to_client_proc(interval, pipe_task_id,
+                           slurm_job_id, mem_per_node, mem_per_core, num_cores,
                            job_time, clone_time_rate, task_queue_name, pool_name, nwpn,
                            exch_name, worker_hb_queue):
     """
     Send heartbeats to the client
-    :param root_proc_id: root_proc_id of this worker
     :param interval: time interval to send heartbeats to the client
-    :param queue_child_proc_id: child pid for user command
-    :param worker_id: worker id
     :param pipe_task_id: Pythin IPC pipe for getting task id
     :param slurm_job_id: SLURM job id
-    :param worker_type: worker type [manual, static, dynamic]
     :param mem_per_node: memory request per node
     :param mem_per_core: memory request per core
     :param num_cores: number of cores
@@ -526,30 +553,29 @@ def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_i
             #
             # NOTE: must cope with the fast mem consumption at the begining of the process
             #
-            logger.debug("rootpid = {} childpid = {}".format(root_proc_id, queue_child_proc_id))
-            root_proc_id = int(root_proc_id)
-            if queue_child_proc_id.value == 0:
-                child_pid = root_proc_id
+            logger.debug("rootpid = {} childpid = {}".format(PARENT_PROCESS_ID, USER_PROC_PROC_ID.value))
+            if USER_PROC_PROC_ID.value == 0:
+                child_pid = PARENT_PROCESS_ID
             else:
-                child_pid = int(queue_child_proc_id.value)
+                child_pid = int(USER_PROC_PROC_ID.value)
 
             # Collect pids from process tree
-            root_pid_list = get_pid_tree(root_proc_id)
-            logger.debug("get_pid_tree(root_proc_id={}) = {}".format(root_proc_id, root_pid_list))
+            root_pid_num = get_pid_tree(PARENT_PROCESS_ID)
+            logger.debug("get_pid_tree(root_proc_id={}) = {}".format(PARENT_PROCESS_ID, root_pid_num))
 
-            if root_proc_id != child_pid:
+            if PARENT_PROCESS_ID != child_pid:
                 if child_pid == -9:  # if it's terminated by "kill"
-                    child_pid = root_proc_id
-                pidListChild = get_pid_tree(child_pid)
-                logger.debug("get_pid_tree(child_pid={}) = {}".format(child_pid, pidListChild))
-                if len(pidListChild) > 0:
-                    proc_id_list_merged = root_pid_list + pidListChild[1:]
+                    child_pid = PARENT_PROCESS_ID
+                pid_list_child = get_pid_tree(child_pid)
+                logger.debug("get_pid_tree(child_pid={}) = {}".format(child_pid, pid_list_child))
+                if len(pid_list_child) > 0:
+                    proc_id_list_merged = root_pid_num + pid_list_child[1:]
                 else:
                     # NOTE: be careful on this resetting! Might lose child pid
-                    # queue_child_proc_id.value = 0
-                    proc_id_list_merged = root_pid_list
+                    # USER_PROC_PROC_ID.value = 0
+                    proc_id_list_merged = root_pid_num
             else:
-                proc_id_list_merged = root_pid_list
+                proc_id_list_merged = root_pid_num
 
             vmem_usage_list = []
             rmem_usage_list = []
@@ -571,18 +597,24 @@ def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_i
             # Collect cpu_usages for all pids in the tree and get max()
             try:
                 cpu_load_list = [float(get_cpu_load(pid)) for pid in proc_id_list_merged]
-            except Exception:
-                logger.exception("get_cpu_load() exception")
-                ch.stop_consuming()
-                ch.close()
-                conn.close()
-                os._exit(1)
+            except Exception as e:
+                logger.exception("get_cpu_load() exception: {}".format(e))
+                # ch.stop_consuming()
+                # ch.close()
+                # conn.close()
+                # os._exit(1)
+                raise
 
             max_cpu_load = max(cpu_load_list) if len(cpu_load_list) > 0 else 0.0
 
             # Collect mem_usages for all pids in the tree and get sum()
             rmem_usage = "%.1f" % sum(rmem_usage_list)
             vmem_usage = "%.1f" % sum(vmem_usage_list)
+
+            # TODO
+            # Compare mem_per_node with rmem_usage or vmem_usage
+            # if mem usage >= mem_per_node, terminate the task (=: margin)
+            # using
 
             # Only get the run time of child_pid
             if sys.platform.lower() == "darwin":
@@ -608,11 +640,12 @@ def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_i
 
             today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             end_date_time = None
-            worker_age_in_minute = 0
+            # worker_life_left_in_minute = 0
+            # WORKER_LIFE_LEFT_IN_MINUTE.value = 0
 
             try:
                 # Note: this only works with SLURM. For other HPCs/Clouds, methods to get the
-                #  remaining life are needed! ==> resovled!
+                #  remaining life are needed! ==> resolved!
                 if slurm_job_id:
                     # OLD
                     # fixme; slurm overload
@@ -623,7 +656,7 @@ def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_i
                     # entries = dict((k, v.split()) for k, v in pat.findall(so))
                     # delta = datetime.datetime.now() - datetime.datetime.strptime(entries["EndTime"][0],
                     # "%Y-%m-%dT%H:%M:%S")
-                    # worker_age_in_minute = -divmod(delta.total_seconds(), 60)[0]
+                    # worker_life_left_in_minute = -divmod(delta.total_seconds(), 60)[0]
                     # end_date_time = entries["EndTime"][0]
 
                     # NEW
@@ -634,15 +667,17 @@ def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_i
                     job_runtime_in_sec = int(job_time.split(':')[0]) * 3600 + \
                                          int(job_time.split(':')[1]) * 60 + \
                                          int(job_time.split(':')[2])
-                    end_date_time = WORKER_START_TIME + datetime.timedelta(seconds=job_runtime_in_sec)
+                    end_date_time = WORKER_START_TIME + datetime.timedelta(seconds=int(job_runtime_in_sec))
                     delta = end_date_time - datetime.datetime.now()
-                    worker_age_in_minute = divmod(delta.total_seconds(), 60)[0]
+                    #  = divmod(delta.total_seconds(), 60)[0]
+                    WORKER_LIFE_LEFT_IN_MINUTE.value = int(divmod(delta.total_seconds(), 60)[0])
             except Exception as e:
                 logger.critical("Something wrong in computing remaining wall clock time: %s", e)
-                ch.stop_consuming()
-                ch.close()
-                conn.close()
-                os._exit(1)
+                # ch.stop_consuming()
+                # ch.close()
+                # conn.close()
+                # os._exit(1)
+                raise
 
             # Get the total number of tasks in the task queue for this pool
             hb_queue_len = ch.queue_declare(queue=task_queue_name,
@@ -658,8 +693,8 @@ def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_i
                 # eprint("Exception: Failed to get ip address: %s" % e)
                 ip_address = None
 
-            ncore_param = multiprocessing.cpu_count()
-            if WORKER_TYPE[worker_type] > 0:
+            ncore_param = mp.cpu_count()
+            if WORKER_TYPE[THIS_WORKER_TYPE] > 0:
                 ncore_param = num_cores
 
             msg_dict_to_send = {HB_MSG["child_pid"]: child_pid,
@@ -668,11 +703,11 @@ def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_i
                                 HB_MSG["end_date"]: today,  # Note: for dynamic worker endDate update
                                 HB_MSG["host_name"]: host_name,
                                 HB_MSG["ip_address"]: ip_address,
-                                HB_MSG["job_time"]: job_time if WORKER_TYPE[worker_type] > 0 else None,
+                                HB_MSG["job_time"]: job_time if WORKER_TYPE[THIS_WORKER_TYPE] > 0 else None,
                                 HB_MSG["jtm_host_name"]: JTM_HOST_NAME,
-                                HB_MSG["life_left"]: worker_age_in_minute,
-                                HB_MSG["mem_per_core"]: mem_per_core if WORKER_TYPE[worker_type] > 0 else "",
-                                HB_MSG["mem_per_node"]: mem_per_node if WORKER_TYPE[worker_type] > 0 else "",
+                                HB_MSG["life_left"]: WORKER_LIFE_LEFT_IN_MINUTE.value,
+                                HB_MSG["mem_per_core"]: mem_per_core if WORKER_TYPE[THIS_WORKER_TYPE] > 0 else "",
+                                HB_MSG["mem_per_node"]: mem_per_node if WORKER_TYPE[THIS_WORKER_TYPE] > 0 else "",
                                 HB_MSG["num_cores"]: ncore_param,
                                 HB_MSG["num_tasks"]: hb_queue_len,
                                 HB_MSG["num_workers_on_node"]: num_workers_on_node,
@@ -680,13 +715,13 @@ def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_i
                                 HB_MSG["pool_name"]: pool_name,
                                 HB_MSG["ret_msg"]: "hb",
                                 HB_MSG["rmem_usage"]: rmem_usage,
-                                HB_MSG["root_pid"]: root_proc_id,
+                                HB_MSG["root_pid"]: PARENT_PROCESS_ID,
                                 HB_MSG["run_time"]: proc_run_time,
                                 HB_MSG["slurm_jobid"]: slurm_job_id,
                                 HB_MSG["task_id"]: task_id,
                                 HB_MSG["vmem_usage"]: vmem_usage,
-                                HB_MSG["worker_id"]: worker_id,
-                                HB_MSG["worker_type"]: WORKER_TYPE[worker_type],
+                                HB_MSG["worker_id"]: UNIQ_WORKER_ID,
+                                HB_MSG["worker_type"]: WORKER_TYPE[THIS_WORKER_TYPE],
                                 HB_MSG["nwpn"]: nwpn}
 
             msg_zipped_to_send = zdumps(json.dumps(msg_dict_to_send))
@@ -701,10 +736,11 @@ def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_i
         except Exception as e:
             logger.critical("Something wrong with send_hb_to_client(): %s", e)
             # Note: Need to terminate the whole program, not this thread only.
-            ch.stop_consuming()
-            ch.close()
-            conn.close()
-            os._exit(1)
+            # ch.stop_consuming()
+            # ch.close()
+            # conn.close()
+            # os._exit(1)
+            raise
 
         # Todo: Need to start with shorted interval like (0.5-1 sec) for about 30 sec
         #  from the beginning and then use the user specified interval
@@ -717,11 +753,18 @@ def send_hb_to_client_proc(root_proc_id, interval, queue_child_proc_id, worker_i
 
 
 # -----------------------------------------------------------------------
-def recv_hb_from_client_proc2(task_queue, worker_id, exch_name, cl_hb_q_postfix):
+def recv_hb_from_client_proc2(task_queue, exch_name, cl_hb_q_postfix):
+    """
+
+    :param task_queue:
+    :param exch_name:
+    :param cl_hb_q_postfix:
+    :return:
+    """
     rmq_conn = RmqConnectionHB()
     conn = rmq_conn.open()
     ch = conn.channel()
-    host_name = socket.gethostname()
+    # host_name = socket.gethostname()
 
     # Declare exchange
     ch.exchange_declare(exchange=exch_name,
@@ -731,7 +774,7 @@ def recv_hb_from_client_proc2(task_queue, worker_id, exch_name, cl_hb_q_postfix)
                         auto_delete=False)
 
     # Declare queue
-    client_hb_queue_name = "_jtm_worker_%s%s" % (worker_id, cl_hb_q_postfix)
+    client_hb_queue_name = "_jtm_worker_%s%s" % (UNIQ_WORKER_ID, cl_hb_q_postfix)
     ch.queue_declare(queue=client_hb_queue_name,
                      durable=False,
                      exclusive=True,
@@ -744,27 +787,28 @@ def recv_hb_from_client_proc2(task_queue, worker_id, exch_name, cl_hb_q_postfix)
 
     logger.info('[*] Waiting for the manager.')
 
-    def stop():
-        logger.info("Terminate myself: {} on {}".format(worker_id, host_name))
-        if RECV_HB_FROM_CLIENT_PROC_HANDLE:
-            RECV_HB_FROM_CLIENT_PROC_HANDLE.terminate()
-        if SEND_HB_TO_CLIENT_PROC_HANDLE:
-            SEND_HB_TO_CLIENT_PROC_HANDLE.terminate()
-        if RECV_POISON_PROC_HANDLE:
-            RECV_POISON_PROC_HANDLE.terminate()
-        if TASK_KILL_PROC_HANDLE:
-            TASK_KILL_PROC_HANDLE.terminate()
-        ch.stop_consuming()
-        # os.kill(int(ppid), signal.SIGTERM)  # term jtm-worker process
-        # sys.exit(10)
-        ch.close()
-        conn.close()
-        os._exit(1)
+    # def stop():
+    #     logger.info("Terminate myself: {} on {}".format(UNIQ_WORKER_ID, host_name))
+    #     if recv_hb_from_client_proc_hdl:
+    #         recv_hb_from_client_proc_hdl.terminate()
+    #     if send_hb_to_client_proc_hdl:
+    #         send_hb_to_client_proc_hdl.terminate()
+    #     if recv_poison_proc_hdl:
+    #         recv_poison_proc_hdl.terminate()
+    #     if task_kill_proc_hdl:
+    #         task_kill_proc_hdl.terminate()
+    #     ch.stop_consuming()
+    #     # os.kill(int(ppid), signal.SIGTERM)  # term jtm-worker process
+    #     # sys.exit(10)
+    #     ch.close()
+    #     conn.close()
+    #     os._exit(1)
 
     def callback(ch, method, properties, body):
         msg_unzipped = json.loads(zloads(body))
         if msg_unzipped["task_type"] == TASK_TYPE["term"] and msg_unzipped["task_queue"] == task_queue:
-            stop()
+            # stop()
+            raise OSError(2, 'Worker terminatin request received.')
         elif msg_unzipped["task_type"] == TASK_TYPE["hb"]:
             # Poison from the manager. Terminate itself.
             logger.debug("Received heartbeats from the client, %r:%r" % (method.routing_key, msg_unzipped))
@@ -777,19 +821,21 @@ def recv_hb_from_client_proc2(task_queue, worker_id, exch_name, cl_hb_q_postfix)
 
 
 # -------------------------------------------------------------------------------
-def recv_task_kill_request_proc(task_queue, worker_id, cluster_name, exch_name, queue_name):
+def recv_task_kill_request_proc():
     """
     Wait for task termination request from JTM
-    :param task_queue: task queue (pool) name
-    :param worker_id: worker id
-    :param cluster_name: cluster name
+
+    :param exch_name:
+    :param queue_name:
     :return:
     """
+
     rmq_conn = RmqConnectionHB()
     conn = rmq_conn.open()
     ch = conn.channel()
-
-    routing_key = str(worker_id)
+    exch_name = JTM_TASK_KILL_EXCH
+    queue_name = JTM_TASK_KILL_Q
+    routing_key = UNIQ_WORKER_ID
 
     ch.exchange_declare(exchange=exch_name,
                         exchange_type="fanout",
@@ -808,7 +854,7 @@ def recv_task_kill_request_proc(task_queue, worker_id, cluster_name, exch_name, 
         msg_unzipped = json.loads(zloads(body))
         logger.debug("Received task termination command: %r" % msg_unzipped)
 
-        if msg_unzipped["worker_id"] == worker_id:
+        if msg_unzipped["worker_id"] == UNIQ_WORKER_ID:
             if msg_unzipped["child_pid"] > 0:
                 logger.info("Process termination request received.")
 
@@ -822,7 +868,7 @@ def recv_task_kill_request_proc(task_queue, worker_id, cluster_name, exch_name, 
                     # kill_cmd = "kill -9 %d" % msg_unzipped["child_pid"]
                     kill_cmd = "kill -9 %d" % i
                     logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
-                    so, se, ec = run_sh_command(kill_cmd, live=True, log=logger)
+                    _, _, ec = run_sh_command(kill_cmd, live=True, log=logger)
                     if ec == 0:
                         logger.info("Successfully terminate a user task process.")
                     else:
@@ -836,7 +882,7 @@ def recv_task_kill_request_proc(task_queue, worker_id, cluster_name, exch_name, 
                 # Note: can consider to use "pkill -9 -P ppid" to kill the family
                 kill_cmd = "kill -9 %d" % msg_unzipped["child_pid"]
                 logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
-                so, se, ec = run_sh_command(kill_cmd, live=True, log=logger)
+                _, _, ec = run_sh_command(kill_cmd, live=True, log=logger)
                 if ec == 0:
                     logger.info("Successfully terminate a user task process.")
                 else:
@@ -849,27 +895,30 @@ def recv_task_kill_request_proc(task_queue, worker_id, cluster_name, exch_name, 
 
         else:
             # ch.basic_nack(delivery_tag=method.delivery_tag)
-            # If worker_id is not for me, reject and requeue it
-            ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
+            # If UNIQ_WORKER_ID is not for me, reject and requeue it
+            ch.basic_reject(delivery_tag=method.delivery_tag,
+                            requeue=True)
 
     # Waiting for a task kill
     ch.basic_qos(prefetch_count=1)
-    ch.basic_consume(queue=queue_name, on_message_callback=on_kill, auto_ack=False)
+    ch.basic_consume(queue=queue_name,
+                     on_message_callback=on_kill,
+                     auto_ack=False)
 
     try:
         ch.start_consuming()
     except KeyboardInterrupt:
         ch.stop_consuming()
+        raise
 
 
 # -------------------------------------------------------------------------------
-def recv_reproduce_or_die_proc(task_queue, worker_id, cluster_name, mem_per_node, mem_per_core,
-                               num_nodes, num_cores, wallclocktime, clone_time_rate, nwpn,
-                               exch_name, queue_name):
+def recv_reproduce_or_die_proc(task_queue, cluster_name, mem_per_node, mem_per_core,
+                               num_nodes, num_cores, wallclocktime, clone_time_rate,
+                               nwpn, exch_name, queue_name):
     """
     Wait for process termination request from JTM
     :param task_queue: task queue (pool) name
-    :param worker_id: worker id
     :param cluster_name: cluster name
     :param mem_per_node: memory size per node
     :param mem_per_core: memory size per core
@@ -895,12 +944,12 @@ def recv_reproduce_or_die_proc(task_queue, worker_id, cluster_name, mem_per_node
                      auto_delete=True)
     ch.queue_bind(exchange=exch_name,
                   queue=queue_name,
-                  routing_key=worker_id)
+                  routing_key=UNIQ_WORKER_ID)
 
     def on_poison(ch, method, props, body):
         msg_unzipped = json.loads(zloads(body))
 
-        if msg_unzipped["worker_id"] == worker_id:
+        if msg_unzipped["worker_id"] == UNIQ_WORKER_ID:
 
             # If static worker cloning request
             if msg_unzipped["num_clones"] == -1:
@@ -932,48 +981,63 @@ def recv_reproduce_or_die_proc(task_queue, worker_id, cluster_name, mem_per_node
                 logger.info("Executing {}".format(jtm_worker_cmd))
                 so, se, ec = run_sh_command(jtm_worker_cmd, live=True, log=logger)
                 logger.debug("{} {} {}".format(so, se, ec))
-                _, _, _ = run_sh_command(jtm_worker_cmd + " --dry-run", live=True, log=logger)
+                run_sh_command(jtm_worker_cmd + " --dry-run", live=True, log=logger)
 
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         else:
             # ch.basic_nack(delivery_tag=method.delivery_tag)
-            # If worker_id is not for me, reject and requeue it
-            ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
+            # If UNIQ_WORKER_ID is not for me, reject and requeue it
+            ch.basic_reject(delivery_tag=method.delivery_tag,
+                            requeue=True)
 
     # waiting for poison or cloning command
     ch.basic_qos(prefetch_count=1)
-    ch.basic_consume(queue=queue_name, on_message_callback=on_poison, auto_ack=False)
+    ch.basic_consume(queue=queue_name,
+                     on_message_callback=on_poison,
+                     auto_ack=False)
 
     try:
         ch.start_consuming()
     except KeyboardInterrupt:
         ch.stop_consuming()
+        raise
 
 
 # -------------------------------------------------------------------------------
-def check_num_procs():
+def check_processes(pid_list):
     """
     Checking if the total number of processes from the worker is NUM_WORKER_PROCS
     if not, terminate the all the proc ids
 
     """
-    ps_cmd = "ps -aef | grep '%s' | grep %s | grep -v grep | awk '{print $2}'" \
-             % ("jtm worker", getpass.getuser())
-    if sys.platform.lower() == "darwin":
-        ps_cmd = "ps -aef | grep '%s' | grep -v grep | awk '{print $2}'" \
-                 % ("jtm worker")
+    # ps_cmd = "ps -aef | grep '%s' | grep %s | grep -v grep | awk '{print $2}'" \
+    #          % ("jtm worker", getpass.getuser())
+    # if sys.platform.lower() == "darwin":
+    #     ps_cmd = "ps -aef | grep '%s' | grep -v grep | awk '{print $2}'" \
+    #              % ("jtm worker")
+    # while 1:
+    #     pid_list = back_ticks(ps_cmd, shell=True)
+    #     if type(pid_list) is bytes:
+    #         pid_list = pid_list.decode()
+    #     pid_list = [int(i) for i in pid_list.split('\n') if i]
+    #     logger.debug("ps_cmd: {}".format(ps_cmd))
+    #     logger.debug("pid list = {}".format(pid_list))
+    #     logger.debug("len(pid) = {}".format(len(pid_list)))
+    #     # if len(pid_list) != NUM_WORKER_PROCS:
+    #     #     logger.critical("JTM worker child process error.")
+    #     #     [os.kill(i, signal.SIGTERM) for i in pid_list]
+    #     time.sleep(NUM_PROCS_CHECK_INTERVAL)
+
     while 1:
-        pid_list = back_ticks(ps_cmd, shell=True)
-        if type(pid_list) is bytes:
-            pid_list = pid_list.decode()
-        pid_list = [int(i) for i in pid_list.split('\n') if i]
-        logger.debug("ps_cmd: {}".format(ps_cmd))
-        logger.debug("pid list = {}".format(pid_list))
-        logger.debug("len(pid) = {}".format(len(pid_list)))
-        # if len(pid_list) != NUM_WORKER_PROCS:
-        #     logger.critical("JTM worker child process error.")
-        #     [os.kill(i, signal.SIGTERM) for i in pid_list]
+        logger.debug("Proc ID list: {}".format(pid_list))
+        for pid in pid_list:
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                logger.critical("Child process doesn't exist: %d" % (pid))
+                raise
+
         time.sleep(NUM_PROCS_CHECK_INTERVAL)
 
 
@@ -983,9 +1047,9 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
            slurm_job_id_param: int, worker_type_param, cluster_name_param,
            worker_clone_time_rate_param: float, num_workers_per_node_param: int,
            worker_id_param: str, charging_account_param, num_nodes_to_request_param: int,
-           num_cores_to_request_param: int, constraint_param, mem_per_node_to_request_param: str,
-           mem_per_cpu_to_request_param: str, qos_param, job_time_to_request_param: str,
-           debug: bool) -> int:
+           num_cores_to_request_param: int, constraint_param,
+           mem_per_node_to_request_param: str, mem_per_cpu_to_request_param: str,
+           qos_param, job_time_to_request_param: str, debug: bool) -> int:
 
     # Job dir setting
     job_script_dir_name = os.path.join(config.configparser.get("JTM", "log_dir"), "job")
@@ -1015,7 +1079,8 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
                         1, 1,
                         worker_id=UNIQ_WORKER_ID)
 
-    logger.info("\n*****************\nDebug mode is %s\n*****************" % ("ON" if debug else "OFF"))
+    logger.info("\n*****************\nDebug mode is %s\n*****************"
+                % ("ON" if debug else "OFF"))
 
     RMQ_HOST = config.configparser.get("RMQ", "host")
     RMQ_PORT = config.configparser.get("RMQ", "port")
@@ -1071,7 +1136,8 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
     charging_account = charging_account_param if charging_account_param else CHARGE_ACCNT
     qos = qos_param if qos_param else QOS
 
-    worker_type = worker_type_param
+    global THIS_WORKER_TYPE
+    THIS_WORKER_TYPE = worker_type_param
     job_name = "jtm_worker_" + pool_name_param
 
     # Set task queue name
@@ -1080,6 +1146,11 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
         hearbeat_interval = heartbeat_interval_param
     if worker_timeout_in_sec_param:
         worker_timeout_in_sec = worker_timeout_in_sec_param
+
+    # Start hb receive thread
+    tp_name = ""
+    if pool_name_param:
+        tp_name = pool_name_param
 
     # If you want to create a custom worker pool, use this.
     # JTM detects "pool" field from task json, and creates custom pool if it's set.
@@ -1098,7 +1169,7 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
     #     inner_task_request_queue = JTM_INNER_REQUEST_Q
 
     worker_clone_time_rate = worker_clone_time_rate_param if worker_clone_time_rate_param else CTR
-    if worker_type in ("static", "dynamic"):
+    if THIS_WORKER_TYPE in ("static", "dynamic"):
         assert cluster_name_param != "" and \
                cluster_name_param != "local", "Static or dynamic worker needs a cluster setting (-cl)."
 
@@ -1112,11 +1183,11 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
 
     logger.info("RabbitMQ broker: %s", RMQ_HOST)
     logger.info("Task queue name: %s", inner_task_request_queue)
-    logger.info("Worker type: %s", worker_type_param)
+    logger.info("Worker type: %s", THIS_WORKER_TYPE)
 
-    if slurm_job_id == 0 and worker_type in ["static", "dynamic"]:
+    if slurm_job_id == 0 and THIS_WORKER_TYPE in ["static", "dynamic"]:
         batch_job_script_file = os.path.join(job_script_dir_name, "jtm_%s_worker_%s.job" %
-                                             (worker_type, UNIQ_WORKER_ID))
+                                             (THIS_WORKER_TYPE, UNIQ_WORKER_ID))
         batch_job_script_str = ""
         batch_job_misc_params = ""
 
@@ -1258,15 +1329,7 @@ module unload python
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
-    #jtm-worker --jobid $SLURM_JOB_ID \
--cl cori \
--wt %(worker_type)s \
--t %(wall_time)s \
--ct %(clone_time_rate)f %(task_queue)s \
--nw %(num_workers_per_node)d \
--C %(constraint)s \
-%(other_params)s &
-    jtm worker --slurm_job_id $SLURM_JOB_ID \
+    jtm worker %(debug)s --slurm_job_id $SLURM_JOB_ID \
 -cl cori \
 -wt %(worker_type)s \
 -t %(wall_time)s \
@@ -1278,10 +1341,11 @@ do
 done
 wait
 """ % \
-                                                dict(wall_time=job_time_to_request,
+                                                dict(debug="--debug" if debug else "",
+                                                     wall_time=job_time_to_request,
                                                      job_dir=job_script_dir_name,
                                                      worker_id=UNIQ_WORKER_ID,
-                                                     worker_type=worker_type,
+                                                     worker_type=THIS_WORKER_TYPE,
                                                      clone_time_rate=worker_clone_time_rate,
                                                      task_queue=tq_param,
                                                      num_workers_per_node=num_workers_per_node,
@@ -1295,7 +1359,8 @@ wait
 
                     if worker_id_param:
                         # batch_job_misc_params += " -wi %s" % (worker_id_param)
-                        batch_job_misc_params += " -wi %(worker_id)s${i}" % dict(worker_id=UNIQ_WORKER_ID)
+                        batch_job_misc_params += " -wi %(worker_id)s${i}" \
+                                                 % dict(worker_id=UNIQ_WORKER_ID)
 
                     tp_param = ""
                     if pool_name_param:
@@ -1319,7 +1384,8 @@ wait
                     if num_nodes_to_request_param:
                         nnode_param = num_nodes_to_request
 
-                    mnode_param = "#SBATCH --mem=%(mem)s" % dict(mem=mem_per_node_to_request)
+                    mnode_param = "#SBATCH --mem=%(mem)s" \
+                                  % dict(mem=mem_per_node_to_request)
 
                     setenv_param = ""
                     if cluster_name == "jaws_lbl_gov":
@@ -1341,14 +1407,7 @@ wait
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
-    #jtm-worker --jobid $SLURM_JOB_ID \
--cl %(lbl_cluster_name)s \
--wt %(worker_type)s \
--t %(wall_time)s \
--ct %(clone_time_rate)f %(task_queue)s \
--nw %(num_workers_per_node)d \
-%(other_params)s &
-    jtm worker --slurm_job_id $SLURM_JOB_ID \
+    jtm worker %(debug)s --slurm_job_id $SLURM_JOB_ID \
 -cl %(lbl_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
@@ -1359,7 +1418,8 @@ do
 done
 wait
 """ % \
-                                            dict(wall_time=job_time_to_request,
+                                            dict(debug="--debug" if debug else "",
+                                                 wall_time=job_time_to_request,
                                                  job_name=job_name,
                                                  partition_name=part_param,
                                                  qosname=qos_param,
@@ -1372,7 +1432,7 @@ wait
                                                  env_activation_cmd=ENV_ACTIVATION,
                                                  num_workers_per_node=num_workers_per_node,
                                                  lbl_cluster_name=cluster_name,
-                                                 worker_type=worker_type,
+                                                 worker_type=THIS_WORKER_TYPE,
                                                  clone_time_rate=worker_clone_time_rate,
                                                  task_queue=tp_param,
                                                  other_params=batch_job_misc_params)
@@ -1385,14 +1445,10 @@ wait
                 print(batch_job_script_str)
                 sys.exit(0)
 
-            so, se, ec = run_sh_command("sbatch --parsable %s" % (batch_job_script_file), live=True, log=logger)
+            _, _, ec = run_sh_command("sbatch --parsable %s"
+                                      % (batch_job_script_file), live=True, log=logger)
             assert ec == 0, "Failed to run 'jtm worker' to sbatch dynamic worker."
             return ec
-            # if ec == 0:
-            #     sys.exit(0)
-            # else:
-            #     logger.critical("Failed to run jtm-worker to sbatch dynamic worker.")
-            #     sys.exit(1)
 
         elif cluster_name == "aws":
             pass
@@ -1404,16 +1460,16 @@ wait
     # sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j <jobid> --allsteps
     #
     # if endtime - starttime <= 10%, execute sbatch again
-    # if slurm_job_id != 0 and worker_type == "static":
-    #     logger.debug("worker_type: {}".format(worker_type))
+    # if slurm_job_id != 0 and THIS_WORKER_TYPE == "static":
+    #     logger.debug("worker_type: {}".format(THIS_WORKER_TYPE))
     #     logger.debug("slurm_job_id: {}".format(slurm_job_id))
 
     # Dynamic workers creates [[two]] children when it approaches to the wallclocktime limit
     # considering the task queue length
     # Also, maintain the already requested number of workers
     # if no more workers needed, it won't call sbatch
-    # elif slurm_job_id != 0 and worker_type == "dynamic":
-    #     logger.debug("worker_type: {}".format(worker_type))
+    # elif slurm_job_id != 0 and THIS_WORKER_TYPE == "dynamic":
+    #     logger.debug("worker_type: {}".format(THIS_WORKER_TYPE))
     #     logger.debug("slurm_job_id: {}".format(slurm_job_id))
 
     # Remote broker (rmq.nersc.gov)
@@ -1446,84 +1502,105 @@ wait
     logger.info("Waiting for a request...")
     logger.debug("Main pid = {}".format(PARENT_PROCESS_ID))
 
+    pid_list = []
+    pid_list.append(PARENT_PROCESS_ID)
+
+    def proc_clean():
+        if recv_hb_from_client_proc_hdl:
+            recv_hb_from_client_proc_hdl.terminate()
+        if send_hb_to_client_proc_hdl:
+            send_hb_to_client_proc_hdl.terminate()
+        if recv_poison_proc_hdl:
+            recv_poison_proc_hdl.terminate()
+        if task_kill_proc_hdl:
+            task_kill_proc_hdl.terminate()
+        if check_processes_hdl:
+            check_processes_hdl.terminate()
+
     # Start task termination thread
-    global TASK_KILL_PROC_HANDLE
-    TASK_KILL_PROC_HANDLE = multiprocessing.Process(target=recv_task_kill_request_proc,
-                                                    args=(pool_name_param,
-                                                          UNIQ_WORKER_ID,
-                                                          cluster_name,
-                                                          JTM_TASK_KILL_EXCH,
-                                                          JTM_TASK_KILL_Q))
-    TASK_KILL_PROC_HANDLE.daemon = True
-    TASK_KILL_PROC_HANDLE.start()
-    logger.debug("TASK_KILL_PROC_HANDLE pid = {}".format(TASK_KILL_PROC_HANDLE.pid))
+    task_kill_proc_hdl = mp.Process(target=recv_task_kill_request_proc)
+    task_kill_proc_hdl.daemon = True
+    task_kill_proc_hdl.start()
+    pid_list.append(task_kill_proc_hdl.pid)
 
-    # Start hb receive thread
-    global RECV_HB_FROM_CLIENT_PROC_HANDLE
-    tp_name = ""
-    if pool_name_param:
-        tp_name = pool_name_param
-    RECV_HB_FROM_CLIENT_PROC_HANDLE = multiprocessing.Process(target=send_hb_to_client_proc,
-                                                              args=(PARENT_PROCESS_ID,
-                                                                    hearbeat_interval,
-                                                                    USER_PROC_PROC_ID,
-                                                                    UNIQ_WORKER_ID,
-                                                                    PIPE_TASK_ID_RECV,
-                                                                    slurm_job_id,
-                                                                    worker_type,
-                                                                    mem_per_node_to_request,
-                                                                    mem_per_cpu_to_request,
-                                                                    num_cpus_to_request,
-                                                                    job_time_to_request,
-                                                                    worker_clone_time_rate,
-                                                                    inner_task_request_queue,
-                                                                    tp_name,
-                                                                    num_workers_per_node,
-                                                                    JTM_WORKER_HB_EXCH,
-                                                                    WORKER_HB_Q_POSTFIX))
+    try:
+        recv_hb_from_client_proc_hdl = mp.Process(target=send_hb_to_client_proc,
+                                                  args=(hearbeat_interval,
+                                                        PIPE_TASK_ID_RECV,
+                                                        slurm_job_id,
+                                                        mem_per_node_to_request,
+                                                        mem_per_cpu_to_request,
+                                                        num_cpus_to_request,
+                                                        job_time_to_request,
+                                                        worker_clone_time_rate,
+                                                        inner_task_request_queue,
+                                                        tp_name,
+                                                        num_workers_per_node,
+                                                        JTM_WORKER_HB_EXCH,
+                                                        WORKER_HB_Q_POSTFIX))
 
-    RECV_HB_FROM_CLIENT_PROC_HANDLE.daemon = True
-    RECV_HB_FROM_CLIENT_PROC_HANDLE.start()
-    logger.debug("RECV_HB_FROM_CLIENT_PROC_HANDLE pid = {}".format(RECV_HB_FROM_CLIENT_PROC_HANDLE.pid))
+        recv_hb_from_client_proc_hdl.daemon = True
+        recv_hb_from_client_proc_hdl.start()
+    except Exception as e:
+        logger.exception("send_hb_to_client_proc: {}".format(e))
+        proc_clean()
+        ch.stop_consuming()
+        ch.close()
+        conn.close()
+        sys.exit(1)
 
-    logger.info("Start sending my heartbeat to the client in every %d sec to %s" %
-                (hearbeat_interval, WORKER_HB_Q_POSTFIX))
+    pid_list.append(recv_hb_from_client_proc_hdl.pid)
+    logger.info("Start sending my heartbeat to the client in every %d sec to %s"
+                % (hearbeat_interval, WORKER_HB_Q_POSTFIX))
 
     # Start poison receive thread
-    global RECV_POISON_PROC_HANDLE
-    RECV_POISON_PROC_HANDLE = multiprocessing.Process(target=recv_reproduce_or_die_proc,
-                                                      args=(pool_name_param,
-                                                            UNIQ_WORKER_ID,
-                                                            cluster_name,
-                                                            mem_per_node_to_request,
-                                                            mem_per_cpu_to_request,
-                                                            num_nodes_to_request,
-                                                            num_cpus_to_request,
-                                                            job_time_to_request,
-                                                            worker_clone_time_rate,
-                                                            num_workers_per_node,
-                                                            JTM_WORKER_POISON_EXCH,
-                                                            JTM_WORKER_POISON_Q))
-    RECV_POISON_PROC_HANDLE.daemon = True
-    RECV_POISON_PROC_HANDLE.start()
-    logger.debug("RECV_POISON_PROC_HANDLE pid = {}".format(RECV_POISON_PROC_HANDLE.pid))
+    recv_poison_proc_hdl = mp.Process(target=recv_reproduce_or_die_proc,
+                                      args=(pool_name_param,
+                                            cluster_name,
+                                            mem_per_node_to_request,
+                                            mem_per_cpu_to_request,
+                                            num_nodes_to_request,
+                                            num_cpus_to_request,
+                                            job_time_to_request,
+                                            worker_clone_time_rate,
+                                            num_workers_per_node,
+                                            JTM_WORKER_POISON_EXCH,
+                                            JTM_WORKER_POISON_Q))
+    recv_poison_proc_hdl.daemon = True
+    recv_poison_proc_hdl.start()
+    pid_list.append(recv_poison_proc_hdl.pid)
 
     # Start hb send thread
-    global SEND_HB_TO_CLIENT_PROC_HANDLE
-    SEND_HB_TO_CLIENT_PROC_HANDLE = multiprocessing.Process(target=recv_hb_from_client_proc2,
-                                                            args=(inner_task_request_queue,
-                                                                  UNIQ_WORKER_ID,
-                                                                  JTM_CLIENT_HB_EXCH,
-                                                                  CLIENT_HB_Q_POSTFIX))
-    SEND_HB_TO_CLIENT_PROC_HANDLE.daemon = True
-    SEND_HB_TO_CLIENT_PROC_HANDLE.start()
-    logger.debug("SEND_HB_TO_CLIENT_PROC_HANDLE pid = {}".format(SEND_HB_TO_CLIENT_PROC_HANDLE.pid))
+    try:
+        send_hb_to_client_proc_hdl = mp.Process(target=recv_hb_from_client_proc2,
+                                                args=(inner_task_request_queue,
+                                                      JTM_CLIENT_HB_EXCH,
+                                                      CLIENT_HB_Q_POSTFIX))
+        send_hb_to_client_proc_hdl.daemon = True
+        send_hb_to_client_proc_hdl.start()
+    except OSError as e:
+        logger.exception("Worker termination request: {}".format(e))
+        proc_clean()
+        ch.stop_consuming()
+        ch.close()
+        conn.close()
+        sys.exit(1)
+
+    pid_list.append(send_hb_to_client_proc_hdl.pid)
 
     # Checking the total number of child processes
-    check_num_procs_hdl = multiprocessing.Process(target=check_num_procs)
-    check_num_procs_hdl.daemon = True
-    check_num_procs_hdl.start()
-    logger.debug("check_num_procs_hdl pid = {}".format(check_num_procs_hdl.pid))
+    try:
+        check_processes_hdl = mp.Process(target=check_processes,
+                                         args=(pid_list,))
+        check_processes_hdl.daemon = True
+        check_processes_hdl.start()
+    except OSError as e:
+        logger.exception("check_processes: {}".format(e))
+        proc_clean()
+        ch.stop_consuming()
+        ch.close()
+        conn.close()
+        sys.exit(1)
 
     if worker_timeout_in_sec != 0:
         logger.info("The worker timeout is set to %s sec. Will not be terminated even without jtm's heartbeat.",
@@ -1531,41 +1608,39 @@ wait
 
     # Waiting for request
     ch.basic_qos(prefetch_count=1)
-    ch.basic_consume(queue=inner_task_request_queue,
-                     on_message_callback=on_request,
-                     auto_ack=False)
+    try:
+        ch.basic_consume(queue=inner_task_request_queue,
+                         on_message_callback=on_request,
+                         auto_ack=False)
+    except OSError as err:
+        logger.exception("Worker terminated: {}".format(err))
+        proc_clean()
+        ch.stop_consuming()
+        ch.close()
+        conn.close()
+        sys.exit(1)
 
     # NEW
     # Ref) https://github.com/pika/pika/blob/1.0.1/examples/basic_consumer_threaded.py
     #      https://stackoverflow.com/questions/51752890/how-to-disable-heartbeats-with-pika-and-rabbitmq
     # threads = []
     # on_message_callback = functools.partial(on_task_request, args=(conn, threads))
-    # if int(PIKA_VER[0]) < 1:  # v0.13.1
-    #     ch.basic_consume(inner_task_request_queue, on_message_callback)
-    # else:  # v1.0.1 or higher
-    #     ch.basic_consume(queue=inner_task_request_queue, on_message_callback=on_message_callback)
+    # ch.basic_consume(queue=inner_task_request_queue,
+    #                  on_message_callback=on_message_callback)
 
     try:
         ch.start_consuming()
     except KeyboardInterrupt:
-        if RECV_HB_FROM_CLIENT_PROC_HANDLE:
-            RECV_HB_FROM_CLIENT_PROC_HANDLE.terminate()
-        if SEND_HB_TO_CLIENT_PROC_HANDLE:
-            SEND_HB_TO_CLIENT_PROC_HANDLE.terminate()
-        if RECV_POISON_PROC_HANDLE:
-            RECV_POISON_PROC_HANDLE.terminate()
-        if TASK_KILL_PROC_HANDLE:
-            TASK_KILL_PROC_HANDLE.terminate()
-        if check_num_procs_hdl:
-            check_num_procs_hdl.terminate()
+        proc_clean()
         ch.stop_consuming()
+        ch.close()
+        conn.close()
 
     # Wait for all to complete
     # Note: prefetch_count=1 ==> #thread = 1
     # for thread in threads:
     #     thread.join()
 
-    # Unreachable
     if ch:
         ch.close()
     if conn:

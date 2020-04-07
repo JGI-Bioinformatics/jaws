@@ -60,32 +60,32 @@ def run(*popenargs, **kwargs):
 
 
 # -------------------------------------------------------------------------------
-def back_ticks(*popenargs, **kwargs):
-    """
-    Similar to shell backticks, e.g. a = `ls -1` <=> a = backticks(['ls','-1']).
-    If 'dry_run=True' is given as keyword argument, then 'dryRet' keyword must
-    provide a value to return from this function.
-    :param popenargs: command and options to run
-    :param kwargs: additional parameters
-    :return: command result (stdout)
-    """
-    kw = {}
-    kw.update(kwargs)
-    dry_run = kw.pop("dry_run", False)
-    dryRet = kw.pop("dryRet", None)
-
-    if dry_run:
-        print(popenargs)
-        return dryRet
-    else:
-        kw["stdout"] = PIPE
-        p = Popen(*popenargs, **kw)
-        retOut = p.communicate()[0]
-        if p.returncode != 0:
-            eprint("Failed to run back_ticks()")
-            return 1
-
-        return retOut
+# def back_ticks(*popenargs, **kwargs):
+#     """
+#     Similar to shell backticks, e.g. a = `ls -1` <=> a = backticks(['ls','-1']).
+#     If 'dry_run=True' is given as keyword argument, then 'dryRet' keyword must
+#     provide a value to return from this function.
+#     :param popenargs: command and options to run
+#     :param kwargs: additional parameters
+#     :return: command result (stdout)
+#     """
+#     kw = {}
+#     kw.update(kwargs)
+#     dry_run = kw.pop("dry_run", False)
+#     dryRet = kw.pop("dryRet", None)
+#
+#     if dry_run:
+#         print(popenargs)
+#         return dryRet
+#     else:
+#         kw["stdout"] = PIPE
+#         p = Popen(*popenargs, **kw)
+#         retOut = p.communicate()[0]
+#         if p.returncode != 0:
+#             eprint("Failed to run back_ticks()")
+#             return 1
+#
+#         return retOut
 
 
 # -------------------------------------------------------------------------------
@@ -300,6 +300,11 @@ def run_sh_command(
         if log:
             log.error("- No command to run.")
             return None, None, -1
+
+    if type(std_out) is bytes:
+        std_out = std_out.decode()
+    if type(std_err) is bytes:
+        std_err = std_err.decode()
 
     return std_out, std_err, exit_code
 

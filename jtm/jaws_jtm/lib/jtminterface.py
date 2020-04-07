@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # Seung-Jin Sul (ssul@lbl.gov)
 import os
-import socket
 import pprint
 import shortuuid
 import json
@@ -22,6 +21,7 @@ JGI_JTM_MAIN_EXCH = config.configparser.get("JTM", "jgi_jtm_main_exch")
 USER_NAME = config.configparser.get("SITE", "user_name")
 JTM_TASK_REQUEST_Q = config.configparser.get("JTM", "jtm_task_request_q")
 JTMINTERFACE_MAX_TRIAL = config.configparser.getint("JTM", "jtminterface_max_trial")
+JTM_HOST_NAME = config.configparser.get("SITE", "jtm_host_name")
 
 
 class JtmInterface(object):
@@ -173,28 +173,29 @@ class JtmInterface(object):
 
         # USER_NAME = getpass.getuser()
         user_name = USER_NAME  # Config.py. For now, it's fixed as "jaws"
+        jtm_host_name = JTM_HOST_NAME
 
         # If jtm_host_name is not set, try to find it
-        if not jtm_host_name:
-            if "pool" in json_data_dict and json_data_dict["pool"] and "cluster" in json_data_dict["pool"]:
-                jtm_host_name = json_data_dict["pool"]["cluster"]
-                # if "name" in json_data_dict["pool"]:
-                #     customPoolName = json_data_dict["pool"]["name"]
-            elif "jtm_host_name" in json_data_dict and json_data_dict["jtm_host_name"]:
-                jtm_host_name = json_data_dict["jtm_host_name"]
-            else:
-                if "NERSC_HOST" in os.environ:
-                    jtm_host_name = os.environ["NERSC_HOST"]
-                elif "JTM_HOST_NAME" in os.environ:  # for custom name like ["aws' | 'olcf' | 'pc']
-                    jtm_host_name = os.environ["JTM_HOST_NAME"]
-                elif "HOSTNAME" in os.environ:
-                    jtm_host_name = os.environ["HOSTNAME"]
-                else:
-                    jtm_host_name = socket.gethostname()
+        # if not jtm_host_name:
+        #     if "pool" in json_data_dict and json_data_dict["pool"] and "cluster" in json_data_dict["pool"]:
+        #         jtm_host_name = json_data_dict["pool"]["cluster"]
+        #         # if "name" in json_data_dict["pool"]:
+        #         #     customPoolName = json_data_dict["pool"]["name"]
+        #     elif "jtm_host_name" in json_data_dict and json_data_dict["jtm_host_name"]:
+        #         jtm_host_name = json_data_dict["jtm_host_name"]
+        #     else:
+        #         if "NERSC_HOST" in os.environ:
+        #             jtm_host_name = os.environ["NERSC_HOST"]
+        #         elif "JTM_HOST_NAME" in os.environ:  # for custom name like ["aws' | 'olcf' | 'pc']
+        #             jtm_host_name = os.environ["JTM_HOST_NAME"]
+        #         elif "HOSTNAME" in os.environ:
+        #             jtm_host_name = os.environ["HOSTNAME"]
+        #         else:
+        #             jtm_host_name = socket.gethostname()
 
         # Prepare rmq message
         jtm_host_name = jtm_host_name.replace(".", "_")
-        host_and_user_name = jtm_host_name + "." + user_name  # username = jtm
+        host_and_user_name = jtm_host_name + "." + user_name
 
         # It's not good to have here again but it's for dealing with multiple jtm instances
         jtmTaskRequestQ = "_jtm_task_request_queue" + "." + host_and_user_name
