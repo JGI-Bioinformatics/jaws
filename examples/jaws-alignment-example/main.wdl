@@ -29,7 +29,7 @@ task bam_stats {
     }
 
     runtime {
-        docker: "jfroula/aligner-bbmap:1.0.1"
+        docker: "jfroula/aligner-bbmap:1.1.3"
         poolname: "extrasmall"
         shared: 1
         node: 1

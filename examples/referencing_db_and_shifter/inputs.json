@@ -1,3 +1,4 @@
 {
-	"runblastplus_sub.reads": "/global/dna/shared/data/jfroula/JAWS/data/veryshort.fastq.bz2"
+	"runblastplus_sub.reads": "../data/sample.fastq.bz2",
+	"runblastplus_sub.ncbi_nt": "/refdata/"
 }

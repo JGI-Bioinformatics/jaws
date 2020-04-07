@@ -1,4 +1,0 @@
-conda activate jaws-dev
-
-java -Dconfig.file=/global/home/groups-sw/lr_jgicloud/dev/jtm/etc/cromwell.conf -jar /global/home/groups-sw/lr_jgicloud/dev/jtm/opt/cromwell.jar run alignment.wdl -i inputs.align.json
-

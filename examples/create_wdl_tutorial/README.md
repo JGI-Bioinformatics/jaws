@@ -1,22 +1,16 @@
-# set dockerRoot variable
-You need to make sure the config file's `dockerRoot` is set to your current working directory and you've added `cromwell-executions` at the end.  For example:
-`dockerRoot = /path/to/current/working/dir/cromwell-executions`
+# Running example
 
-# How to Access Reference Databases
-in your commands section in the WDL, you use `/refdata` as a root, and then add whatever specific database directory you want, for example to use  the blast nt database from NCBI you would have a command
-`blastn -db /refdata/nt/nt`
-where the first `nt` is the directory with all the index files and the second `nt` is the prefix to the index files (i.e. `nt.nih`).
+##Run using `java -jar cromwell.jar` command
 
-# Run Example 
-This workflow just lists the contents of the nt database.
+cori
+`java -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run align.wdl -i inputs.json`
 
-```
-java -Dconfig.file=shifter.conf -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run test_shifter.wdl
-```
+lbl
+`java -jar /global/home/groups-sw/lr_jgicloud/dev/jtm/opt/cromwell.jar run align.wdl -i inputs.json`
 
-# run with jaws
+# Run with JAWS
 This is an example running a pipeline in JAWS. 
-It demonstrates the usage of a docker image and using a reference db.
+It demonstrates the usage of a docker image, a subworkflow and how sharding of an input file is done.
 
 ## Set up JAWS Environment
 ```
