@@ -258,6 +258,17 @@ JTM_SQL = {
             (slurmJobId > 1 and lifeLeft = -1 and
             TIMESTAMPDIFF(SECOND, endDate, NOW()) < 18) and TIMESTAMPDIFF(SECOND, endDate, NOW()) >= 0)
         );""",
+    "select_distinct_jid_workers_by_poolname": """
+        SELECT DISTINCT(slurmJobId)
+        FROM workers
+        WHERE poolName = '%(pool_name)s' and workerType = 2 and (
+            (lifeLeft != -1 and TIMESTAMPDIFF(SECOND, endDate, NOW()) < 18)
+            or
+            ((slurmJobId > 1 and startDate = endDate)
+            or
+            (slurmJobId > 1 and lifeLeft = -1 and
+            TIMESTAMPDIFF(SECOND, endDate, NOW()) < 18) and TIMESTAMPDIFF(SECOND, endDate, NOW()) >= 0)
+        );""",
     # process_remove_pool()
     "update_lifeleft_enddate_workers_by_poolname": """
         update workers

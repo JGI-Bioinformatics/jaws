@@ -230,7 +230,7 @@ Revisions:
     03.03.2020 5.6.7: Updated to use custom queue name instead of random in jtm-* interface;
 
 """
-import multiprocessing
+import multiprocessing as mp
 import time
 import json
 from math import ceil
@@ -240,15 +240,14 @@ import sys
 import pika
 import shortuuid
 import os
-import getpass
-import signal
+# import getpass
+# import signal
 
-# from jaws_jtm.config import config, TASK_STATUS, VERSION, TASK_TYPE, WORKER_TYPE, DONE_FLAGS, HB_MSG
 from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.lib.sqlstmt import JTM_SQL
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB, send_msg_callback
 from jaws_jtm.lib.dbutils import DbSqlMy
-from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command, back_ticks
+from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 
 from jaws_jtm.config import JtmConfig
@@ -287,16 +286,19 @@ CLIENT_HB_SEND_INTERVAL = config.configparser.getfloat("JTM", "client_hb_send_in
 NUM_RESULT_RECV_THREADS = config.configparser.getint("JTM", "num_result_recv_threads")
 NUM_PROCS_CHECK_INTERVAL = config.configparser.getfloat("JTM", "num_procs_check_interval")
 ENV_ACTIVATION = config.configparser.get("JTM", "env_activation")
+RESULT_RECEIVE_INTERVAL = config.configparser.getfloat("JTM", "result_receive_interval")
+RUNS_INFO_UPDATE_WAIT = config.configparser.getfloat("JTM", "runs_info_update_wait")
+WORKER_INFO_UPDATE_WAIT = config.configparser.getfloat("JTM", "worker_info_update_wait")
 
 
 # --------------------------------------------------------------------------------------------------
 # Globals
 # --------------------------------------------------------------------------------------------------
-NUM_TOTAL_WORKERS = multiprocessing.Value('i', 0)
+NUM_TOTAL_WORKERS = mp.Value('i', 0)
 
 
 # --------------------------------------------------------------------------------------------------
-def recv_hb_from_worker_proc(hb_queue_name, hb_send_proc_handle, log_dest_dir, b_resource_log):
+def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     """
     Receive hearbeats from all the workers running
     :param hb_queue_name: hb queue name
@@ -328,10 +330,11 @@ def recv_hb_from_worker_proc(hb_queue_name, hb_send_proc_handle, log_dest_dir, b
     except Exception as detail:
         logger.exception("Exception: The queue, %s is in use.", hb_queue_name)
         logger.exception("Detail: %s", str(detail))
-        ch.stop_consuming()
-        ch.close()
-        conn.close()
-        sys.exit(1)
+        # ch.stop_consuming()
+        # ch.close()
+        # conn.close()
+        # sys.exit(1)
+        raise
 
     # Queue binding for the queue to receive hb from workers
     ch.queue_bind(exchange=exch_name,
@@ -360,10 +363,11 @@ def recv_hb_from_worker_proc(hb_queue_name, hb_send_proc_handle, log_dest_dir, b
         except Exception as detail:
             logger.exception("Exception: Failed to get a message from %s.", hb_queue_name)
             logger.exception("Detail: %s", str(detail))
-            ch.stop_consuming()
-            ch.close()
-            conn.close()
-            os._exit(1)
+            # ch.stop_consuming()
+            # ch.close()
+            # conn.close()
+            # os._exit(1)
+            raise
 
         if body and not b_is_msg_cleared:
             # To clear up any heartbeat messages left in the heartbeat queue.
@@ -428,6 +432,7 @@ def recv_hb_from_worker_proc(hb_queue_name, hb_send_proc_handle, log_dest_dir, b
 
                 # Fixme: bytearray index out of range EXCEPTION with gpdb23
                 success = False
+
                 # Todo: still need to do "while" for checking db connection?
                 while success is not True:
                     success = True
@@ -689,8 +694,8 @@ def recv_hb_from_worker_proc(hb_queue_name, hb_send_proc_handle, log_dest_dir, b
             # alive_total_num_workers = db.selectScalar(JTM_SQL["select_sum_nwpn_workers_by_lifeleft"])
             alive_total_num_workers = db.selectScalar(JTM_SQL["select_sum_nwpn_workers_by_lifeleftt_jtmhostname"]
                                                       % dict(jtm_host_name=jtm_host_name))
-            logger.debug(JTM_SQL["select_sum_nwpn_workers_by_lifeleftt_jtmhostname"]
-                         % dict(jtm_host_name=jtm_host_name))
+            # logger.debug(JTM_SQL["select_sum_nwpn_workers_by_lifeleftt_jtmhostname"]
+            #              % dict(jtm_host_name=jtm_host_name))
 
             db.close()
             NUM_TOTAL_WORKERS.value = int(alive_total_num_workers) if alive_total_num_workers else 0
@@ -715,13 +720,7 @@ def recv_hb_from_worker_proc(hb_queue_name, hb_send_proc_handle, log_dest_dir, b
             if WORKER_HB_CHECK_MAX_COUNT != 0 and \
                     max_worker_check_count > WORKER_HB_CHECK_MAX_COUNT:  # hit the max checking limit
                 # Close connection and kill parent and itself
-                ch.stop_consuming()
-                ch.close()
-                conn.close()
-                hb_send_proc_handle.terminate()
-                # os.kill(int(parentPid), signal.SIGTERM)
-                # sys.exit(1)
-                os._exit(1)
+                raise OSError(2, 'Worker not found')
 
             # If there no workers alive after 5 checks, set life_left to -1 for all
             if max_worker_check_count == 3:
@@ -747,10 +746,11 @@ def recv_hb_from_worker_proc(hb_queue_name, hb_send_proc_handle, log_dest_dir, b
         except Exception as e:
             logger.critical(e)
             logger.critical("RMQ connection lost.")
-            ch.stop_consuming()
-            ch.close()
-            conn.close()
-            os._exit(1)
+            # ch.stop_consuming()
+            # ch.close()
+            # conn.close()
+            # os._exit(1)
+            raise
 
     # unreachable
     # db.close()
@@ -828,11 +828,12 @@ def recv_result_from_workers_proc():
     except Exception as detail:
         logger.exception("Exception: The queue, %s is in use.", JTM_TASK_RESULT_Q)
         logger.exception("Detail: %s", str(detail))
-        ch.stop_consuming()
-        ch.close()
-        conn.close()
-        # sys.exit(1)
-        os._exit(1)
+        # ch.stop_consuming()
+        # ch.close()
+        # conn.close()
+        # # sys.exit(1)
+        # os._exit(1)
+        raise
 
     # Queue binding for the queue to receive hb from workers
     ch.queue_bind(exchange=exch_name,
@@ -850,7 +851,18 @@ def recv_result_from_workers_proc():
     # ch.basic_consume(recv_result_on_result_callback, inner_result_queue_name, auto_ack=False)
 
     # OLD
-    ch.basic_consume(queue=inner_result_queue_name, on_message_callback=recv_result_on_result)
+    try:
+        ch.basic_consume(queue=inner_result_queue_name,
+                         on_message_callback=recv_result_on_result)
+    except Exception as detail:
+        logger.exception("Exception: The queue, %s is in use.", JTM_TASK_RESULT_Q)
+        logger.exception("Detail: %s", str(detail))
+        # ch.stop_consuming()
+        # ch.close()
+        # conn.close()
+        # # sys.exit(1)
+        # os._exit(1)
+        raise
 
     # NEW
     # threads = []
@@ -861,6 +873,7 @@ def recv_result_from_workers_proc():
         ch.start_consuming()
     except KeyboardInterrupt:
         ch.stop_consuming()
+        raise
 
     # Wait for all to complete
     # for thread in threads:
@@ -941,9 +954,10 @@ def recv_result_on_result(ch, method, props, body):
         except Exception as e:
             logger.critical(e)
             logger.exception("Failed to load returned result message, {}".format(body))
-            ch.stop_consuming()
-            ch.close()
-            os._exit(1)
+            # ch.stop_consuming()
+            # ch.close()
+            # os._exit(1)
+            raise
 
         assert "task_id" in msg_unzipped
         task_id = int(msg_unzipped["task_id"])
@@ -981,21 +995,25 @@ def recv_result_on_result(ch, method, props, body):
                     task_status_int = TASK_STATUS["outofresource"]
                 elif done_flag == -4:
                     task_status_int = TASK_STATUS["terminated"]
+                elif done_flag == -6:
+                    task_status_int = TASK_STATUS["timeout"]
                 else:
                     logger.critical("Unknown return code {}".format(done_flag))
-                    ch.stop_consuming()
-                    ch.close()
-                    sys.exit(1)
+                    # ch.stop_consuming()
+                    # ch.close()
+                    # sys.exit(1)
+                    raise OSError(2)
 
             # This seems like resolving runs table lock issue
             # issue: status is not changed to 4 after the update
             # Todo: need to improve
             #############################################
-            RESULT_RECEIVE_INTERVAL = config.configparser.getfloat("JTM", "result_receive_interval")
             ch._connection.sleep(RESULT_RECEIVE_INTERVAL)
             #############################################
 
-            logger.debug("Update runs for taskid {} with {}".format(task_id, task_status_int))
+            logger.debug("Update runs for task id = {} with {} for worker {}".format(task_id,
+                                                                                     task_status_int,
+                                                                                     a_worker_id))
 
             # Sometimes workerId2 ==> 0
             # so wait a little bit if that happened
@@ -1004,6 +1022,7 @@ def recv_result_on_result(ch, method, props, body):
             rows = db.selectAll(JTM_SQL["select_workerid2_workers_by_wid"]
                                 % dict(worker_id=a_worker_id))
             db.close()
+
             try:
                 a_worker_id_to_check = int(rows[0][0])
             except Exception:
@@ -1020,7 +1039,7 @@ def recv_result_on_result(ch, method, props, body):
                 except Exception:
                     a_worker_id_to_check = 0
 
-                WORKER_INFO_UPDATE_WAIT = config.configparser.getfloat("JTM", "worker_info_update_wait")
+                # time.sleep(WORKER_INFO_UPDATE_WAIT)
                 ch._connection.sleep(WORKER_INFO_UPDATE_WAIT)
 
             # new
@@ -1038,8 +1057,11 @@ def recv_result_on_result(ch, method, props, body):
                                       wid2=a_worker_id_to_check,
                                       now=time.strftime("%Y-%m-%d %H:%M:%S"),
                                       task_id=task_id))
+                    logger.debug("status {}, worker id {}, taskid {}".format(task_status_int,
+                                                                             a_worker_id_to_check,
+                                                                             task_id))
                     db.commit()
-                    # logger.debug(db.selectAll("select * from runs where task_id=%d" % task_id))
+                    # logger.debug(db.selectAll("select * from runs where taskId=%d" % task_id))
                     db.close()
 
                 except Exception as e:
@@ -1048,8 +1070,7 @@ def recv_result_on_result(ch, method, props, body):
                     logger.debug("Retry to update runs table for status and workerid2.")
                     # raise
                     success = False
-                    RUNS_INFO_UPDATE_WAIT = config.configparser.getfloat("JTM", "runs_info_update_wait")
-                    logger.debug("update_runs_status_workerid2_by_taskid_2 sleep for %d" % RUNS_INFO_UPDATE_WAIT)
+                    logger.debug("update_runs_status_workerid2_by_taskid_2 sleep for %f" % RUNS_INFO_UPDATE_WAIT)
                     # time.sleep(RUNS_INFO_UPDATE_WAIT)
                     ch._connection.sleep(RUNS_INFO_UPDATE_WAIT)
 
@@ -1076,10 +1097,16 @@ def recv_result_on_result(ch, method, props, body):
             elif done_flag == DONE_FLAGS["failed with user termination"]:  # -4
                 logger.info("Task %s --> Failed by user termination. stdout = %s, worker/host: %s/%s",
                             task_id, ret_msg, a_worker_id, host_name)
+
+            elif done_flag == DONE_FLAGS["failed with timeout"]:  # -6
+                logger.info("Task %s --> Failed with timeout. stdout = %s, worker/host: %s/%s",
+                            task_id, ret_msg, a_worker_id, host_name)
+
             else:
                 logger.warning("Cannot recognize the return code: %d" % done_flag)
                 logger.info("Task %s --> worker/host: %s/%s", task_id, a_worker_id, host_name)
-                sys.exit(1)
+                # sys.exit(1)
+                raise OSError(2, 'Cannot recognize the DONE_FLAG return code')
 
         else:
             # If it is not a result msg, return it back to the exchange
@@ -1092,7 +1119,8 @@ def recv_result_on_result(ch, method, props, body):
 
     else:
         logger.critical("No data found from the result message.")
-        sys.exit(1)
+        # sys.exit(1)
+        raise OSError(2, 'No data found from the result message')
 
 
 # -------------------------------------------------------------------------------
@@ -1236,6 +1264,13 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         #                                     % dict(pool_name=inner_task_request_queue,
         #                                            hbinterval=WORKER_HB_RECV_INTERVAL * 3))
 
+        # TODO: slurm jid --> sacct --> doublecheck the status of node allocation and worker
+        #  if no real alive workers --> request new node
+        slurm_jid_list = db.selectAll(JTM_SQL["select_distinct_jid_workers_by_poolname"]
+                                      % dict(pool_name=inner_task_request_queue,
+                                             hbinterval=WORKER_HB_RECV_INTERVAL * 3))
+        logger.debug("slurm id for {}: {}".format(inner_task_request_queue, slurm_jid_list))
+
         num_slurm_jid_in_pool = db.selectScalar(JTM_SQL["select_count_distinct_jid_workers_by_poolname"]
                                                 % dict(pool_name=inner_task_request_queue,
                                                        hbinterval=WORKER_HB_RECV_INTERVAL * 3))
@@ -1286,10 +1321,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                        pool_charge_account)
 
             logger.info("Executing {}".format(sbatch_cmd_str))
-            so, se, ec = run_sh_command(sbatch_cmd_str, live=True, log=logger)
-            so = so.decode() if type(so) is bytes else so
-            se = se.decode() if type(se) is bytes else se
-            ec = ec.decode() if type(ec) is bytes else ec
+            so, _, ec = run_sh_command(sbatch_cmd_str, live=True, log=logger)
 
             # Print job script for logging
             run_sh_command(sbatch_cmd_str + " --dry-run", live=True, log=logger)
@@ -1444,9 +1476,10 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                     logger.exception("Exception: Failed to send a request to %s", inner_task_request_queue)
                     logger.exception("Detail: %s", str(detail))
                     # Todo: set the task status --> failed
-                    ch.stop_consuming()
-                    ch.close()
-                    sys.exit(1)
+                    # ch.stop_consuming()
+                    # ch.close()
+                    # sys.exit(1)
+                    raise OSError(2, 'Failed to send a request to a worker')
 
                 # Update status to "queued"
                 # Todo: need this update to change the task status to "queued"?
@@ -1858,10 +1891,7 @@ def process_remove_pool(ch, method, props, msg_unzipped):
     for jid in zombie_slurm_job_id_list:
         # print jid[0]
         scancel_cmd = "scancel %s" % (jid[0])
-        so, se, ec = run_sh_command(scancel_cmd, live=True, log=logger)
-        so = so.decode() if type(so) is bytes else so
-        se = se.decode() if type(se) is bytes else se
-        ec = ec.decode() if type(ec) is bytes else ec
+        _, _, ec = run_sh_command(scancel_cmd, live=True, log=logger)
         if ec == 0:
             logger.info("Successfully cancel the job, %s" % (jid[0]))
         else:
@@ -1965,41 +1995,43 @@ def on_task_request(ch, method, props, body):
 
 
 # -------------------------------------------------------------------------------
-def kill_all_workers(pool):
-    """
-    Send termination signal to all the workers
-    :param pool: worker pool name (= taskqueue name) to kill
-    :return:
-    """
-    # Remote broker (rmq.nersc.gov) connection open
-    rmq_conn = RmqConnectionHB()
-    conn = rmq_conn.open()
-    ch = conn.channel()
-    ch.exchange_declare(exchange=JTM_INNER_MAIN_EXCH,
-                        exchange_type="fanout",
-                        durable=False,
-                        auto_delete=False)
-
-    msg_to_send_dict = {}
-    msg_to_send_dict["task_type"] = TASK_TYPE["term"]
-    msg_to_send_dict["task_queue"] = pool
-    msg_zipped = zdumps(json.dumps(msg_to_send_dict))
-
-    assert pool.endswith(CNAME)
-    try:
-        ch.basic_publish(exchange=JTM_INNER_MAIN_EXCH,
-                         routing_key=pool,
-                         body=msg_zipped)
-    except Exception as detail:
-        logger.exception("Exception: Failed to submit a TERM signal to the workers.")
-        logger.exception("Detail: %s", str(detail))
-        ch.stop_consuming()
-        ch.close()
-        conn.close()
-        sys.exit(1)
-
-    ch.close()
-    conn.close()
+# Not used
+# def kill_all_workers(pool):
+#     """
+#     Send termination signal to all the workers
+#     :param pool: worker pool name (= taskqueue name) to kill
+#     :return:
+#     """
+#     # Remote broker (rmq.nersc.gov) connection open
+#     rmq_conn = RmqConnectionHB()
+#     conn = rmq_conn.open()
+#     ch = conn.channel()
+#     ch.exchange_declare(exchange=JTM_INNER_MAIN_EXCH,
+#                         exchange_type="fanout",
+#                         durable=False,
+#                         auto_delete=False)
+#
+#     msg_to_send_dict = {}
+#     msg_to_send_dict["task_type"] = TASK_TYPE["term"]
+#     msg_to_send_dict["task_queue"] = pool
+#     msg_zipped = zdumps(json.dumps(msg_to_send_dict))
+#
+#     assert pool.endswith(CNAME)
+#     try:
+#         ch.basic_publish(exchange=JTM_INNER_MAIN_EXCH,
+#                          routing_key=pool,
+#                          body=msg_zipped)
+#     except Exception as detail:
+#         logger.exception("Exception: Failed to submit a TERM signal to the workers.")
+#         logger.exception("Detail: %s", str(detail))
+#         # ch.stop_consuming()
+#         # ch.close()
+#         # conn.close()
+#         # sys.exit(1)
+#         raise
+#
+#     ch.close()
+#     conn.close()
 
 
 # -------------------------------------------------------------------------------
@@ -2071,11 +2103,7 @@ def zombie_worker_cleanup_proc():
         for j in slurm_job_id:
             # Note: slurm dependent code!
             cmd = "sacct -j %d" % j
-            so, se, ec = run_sh_command(cmd, live=True, log=logger)
-            so = so.decode() if type(so) is bytes else so
-            se = se.decode() if type(se) is bytes else se
-            ec = ec.decode() if type(ec) is bytes else ec
-
+            so, _, ec = run_sh_command(cmd, live=True, log=logger)
             if ec == 0 and so.find("CANCELLED") != -1:
                 db = DbSqlMy(db=MYSQL_DB)
                 db.execute(JTM_SQL["update_workers_lifeleft_by_slurmjid"]
@@ -2089,28 +2117,39 @@ def zombie_worker_cleanup_proc():
 
 
 # -------------------------------------------------------------------------------
-def check_num_procs():
+def check_processes(pid_list):
     """
     Checking if the total number of processes from the manager is NUM_MANAGER_PROCS
     if not, terminate the all the proc ids
 
     """
-    ps_cmd = "ps -aef | grep '%s' | grep %s | grep -v grep | awk '{print $2}'" \
-             % ("jtm manager", getpass.getuser())
-    if sys.platform.lower() == "darwin":
-        ps_cmd = "ps -aef | grep '%s' | grep -v grep | awk '{print $2}'" \
-                 % ("jtm manager")
+    # ps_cmd = "ps -aef | grep '%s' | grep %s | grep -v grep | awk '{print $2}'" \
+    #          % ("jtm manager", getpass.getuser())
+    # if sys.platform.lower() == "darwin":
+    #     ps_cmd = "ps -aef | grep '%s' | grep -v grep | awk '{print $2}'" \
+    #              % ("jtm manager")
+    # while 1:
+    #     pid_list = back_ticks(ps_cmd, shell=True)
+    #     if type(pid_list) is bytes:
+    #         pid_list = pid_list.decode()
+    #     pid_list = [int(i) for i in pid_list.split('\n') if i]
+    #     logger.debug("ps_cmd: {}".format(ps_cmd))
+    #     logger.debug("pid list = {}".format(pid_list))
+    #     logger.debug("len(pid) = {}".format(len(pid_list)))
+    #     if len(pid_list) != NUM_MANAGER_PROCS:
+    #         logger.critical("JTM manager child process error.")
+    #         [os.kill(i, signal.SIGTERM) for i in pid_list]
+    #     time.sleep(NUM_PROCS_CHECK_INTERVAL)
+
     while 1:
-        pid_list = back_ticks(ps_cmd, shell=True)
-        if type(pid_list) is bytes:
-            pid_list = pid_list.decode()
-        pid_list = [int(i) for i in pid_list.split('\n') if i]
-        logger.debug("ps_cmd: {}".format(ps_cmd))
-        logger.debug("pid list = {}".format(pid_list))
-        logger.debug("len(pid) = {}".format(len(pid_list)))
-        if len(pid_list) != NUM_MANAGER_PROCS:
-            logger.critical("JTM manager child process error.")
-            [os.kill(i, signal.SIGTERM) for i in pid_list]
+        logger.debug("Proc ID list: {}".format(pid_list))
+        for pid in pid_list:
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                logger.critical("Child process doesn't exist: %d" % (pid))
+                raise
+
         time.sleep(NUM_PROCS_CHECK_INTERVAL)
 
 
@@ -2211,49 +2250,91 @@ def manager(custom_log_dir_name: str, b_resource_usage_log_on: bool, debug: bool
 
     logger.debug("Main pid = {}".format(PARENT_PROCESS_ID))
 
+    pid_list = []
+    pid_list.append(PARENT_PROCESS_ID)
+
     # Start heartbeat checking thread
-    send_hb_to_worker_proc_hdl = multiprocessing.Process(target=send_hb_to_worker_proc)
+    send_hb_to_worker_proc_hdl = mp.Process(target=send_hb_to_worker_proc)
     send_hb_to_worker_proc_hdl.daemon = True
     send_hb_to_worker_proc_hdl.start()
-    logger.debug("send_hb_to_worker_proc  pid = {}".format(send_hb_to_worker_proc_hdl.pid))
+    pid_list.append(send_hb_to_worker_proc_hdl.pid)
     logger.info("Broadcasting heartbeats to workers...")
+
+    def proc_clean():
+        if send_hb_to_worker_proc_hdl:
+            send_hb_to_worker_proc_hdl.terminate()
+        if rect_hb_from_worker_proc_hdl:
+            rect_hb_from_worker_proc_hdl.terminate()
+        if recv_result_from_worker_proc_hdl:
+            recv_result_from_worker_proc_hdl.terminate()
+        if task_kill_proc_hdl:
+            task_kill_proc_hdl.terminate()
+        if worker_cleanup_proc_hdl:
+            worker_cleanup_proc_hdl.terminate()
+        if check_processes_hdl:
+            check_processes_hdl.terminate()
 
     # Start heartbeat receiving thread
     worker_hb_queue_name = WORKER_HB_Q_POSTFIX
-    rect_hb_from_worker_proc_hdl = multiprocessing.Process(target=recv_hb_from_worker_proc,
-                                                           args=(worker_hb_queue_name,
-                                                                 send_hb_to_worker_proc_hdl,
-                                                                 log_dir_name,
-                                                                 b_resource_usage_log_on))
-    rect_hb_from_worker_proc_hdl.daemon = True
-    rect_hb_from_worker_proc_hdl.start()
-    logger.debug("rect_hb_from_worker_proc pid = {}".format(rect_hb_from_worker_proc_hdl.pid))
+    try:
+        rect_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc,
+                                                  args=(worker_hb_queue_name,
+                                                        log_dir_name,
+                                                        b_resource_usage_log_on))
+        rect_hb_from_worker_proc_hdl.daemon = True
+        rect_hb_from_worker_proc_hdl.start()
+    except Exception as err:
+        logger.exception("Worker not found: {}".format(err))
+        proc_clean()
+        ch.stop_consuming()
+        ch.close()
+        conn.close()
+        sys.exit(1)
+
+    pid_list.append(rect_hb_from_worker_proc_hdl.pid)
     logger.info("Waiting for worker\'s heartbeats from %s", worker_hb_queue_name)
 
     # Start task kill thread
-    task_kill_proc_hdl = multiprocessing.Process(target=task_kill_proc)
+    task_kill_proc_hdl = mp.Process(target=task_kill_proc)
     task_kill_proc_hdl.daemon = True
     task_kill_proc_hdl.start()
-    logger.debug("task_kill_proc pid = {}".format(task_kill_proc_hdl.pid))
+    pid_list.append(task_kill_proc_hdl.pid)
 
     # Start worker cleanup thread
-    worker_cleanup_proc_hdl = multiprocessing.Process(target=zombie_worker_cleanup_proc)
+    worker_cleanup_proc_hdl = mp.Process(target=zombie_worker_cleanup_proc)
     worker_cleanup_proc_hdl.daemon = True
     worker_cleanup_proc_hdl.start()
-    logger.debug("zombie_worker_cleanup_proc pid = {}".format(worker_cleanup_proc_hdl.pid))
+    pid_list.append(worker_cleanup_proc_hdl.pid)
 
     # Start result receiving thread
     # listening to JTM_INNER_RESULT_Q to which all workers will send result messages
-    recv_result_from_worker_proc_hdl = multiprocessing.Process(target=recv_result_from_workers_proc)
-    recv_result_from_worker_proc_hdl.daemon = True
-    recv_result_from_worker_proc_hdl.start()
-    logger.debug("recv_result_from_workers_proc pid = {}".format(recv_result_from_worker_proc_hdl.pid))
+    try:
+        recv_result_from_worker_proc_hdl = mp.Process(target=recv_result_from_workers_proc)
+        recv_result_from_worker_proc_hdl.daemon = True
+        recv_result_from_worker_proc_hdl.start()
+    except Exception as err:
+        logger.exception("recv_result_from_workers_proc: {}".format(err))
+        proc_clean()
+        ch.stop_consuming()
+        ch.close()
+        conn.close()
+        sys.exit(1)
+
+    pid_list.append(recv_result_from_worker_proc_hdl.pid)
 
     # Checking the total number of child processes
-    check_num_procs_hdl = multiprocessing.Process(target=check_num_procs)
-    check_num_procs_hdl.daemon = True
-    check_num_procs_hdl.start()
-    logger.debug("check_num_procs pid = {}".format(check_num_procs_hdl.pid))
+    try:
+        check_processes_hdl = mp.Process(target=check_processes,
+                                         args=(pid_list,))
+        check_processes_hdl.daemon = True
+        check_processes_hdl.start()
+    except OSError as e:
+        logger.exception("check_processes: {}".format(e))
+        proc_clean()
+        ch.stop_consuming()
+        ch.close()
+        conn.close()
+        sys.exit(1)
 
     logger.info("Waiting for a task request from %s", JTM_TASK_REQUEST_Q)
 
@@ -2269,7 +2350,17 @@ def manager(custom_log_dir_name: str, b_resource_usage_log_on: bool, debug: bool
     # all_channels (bool) – Should the QoS apply to all channels
     #
     ch.basic_qos(prefetch_count=1)
-    ch.basic_consume(queue=JTM_TASK_REQUEST_Q, on_message_callback=on_task_request, auto_ack=False)
+    try:
+        ch.basic_consume(queue=JTM_TASK_REQUEST_Q,
+                         on_message_callback=on_task_request,
+                         auto_ack=False)
+    except Exception as e:
+        logger.exception("basic_consume: {}".format(e))
+        proc_clean()
+        ch.stop_consuming()
+        ch.close()
+        conn.close()
+        sys.exit(1)
 
     # NOTE: the below methods might cause error in consuming messages which are already queued
     # ch.basic_consume(lambda ch, method, properties, body: on_task_request(ch, method, properties, body, g_dbConnPool),
@@ -2284,18 +2375,7 @@ def manager(custom_log_dir_name: str, b_resource_usage_log_on: bool, debug: bool
     try:
         ch.start_consuming()
     except KeyboardInterrupt:
-        if send_hb_to_worker_proc_hdl:
-            send_hb_to_worker_proc_hdl.terminate()
-        if rect_hb_from_worker_proc_hdl:
-            rect_hb_from_worker_proc_hdl.terminate()
-        if recv_result_from_worker_proc_hdl:
-            recv_result_from_worker_proc_hdl.terminate()
-        if task_kill_proc_hdl:
-            task_kill_proc_hdl.terminate()
-        if worker_cleanup_proc_hdl:
-            worker_cleanup_proc_hdl.terminate()
-        if check_num_procs_hdl:
-            check_num_procs_hdl.terminate()
+        proc_clean()
         ch.stop_consuming()
 
     # unreachable

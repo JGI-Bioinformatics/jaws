@@ -1,22 +1,25 @@
 import configparser
 import os
 
-DEFAULT_CONFIG_FILE = '~/jtm.ini'
+DEFAULT_CONFIG_FILE = 'jtm.ini'
 
 
 # -------------------------------------------------------------------------------------------
 # CONSTANTS
 # -------------------------------------------------------------------------------------------
 class JtmConstants():
-    VERSION = "5.6.8"
+    VERSION = "5.7.0"
 
     # Supported cluster
-    COMPUTE_RESOURCES = ["cori",
-                         "lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster",  "lbl",  # lbl it
-                         "rhea", "summit",  # olcf
-                         "ssul-dm_dhcp_lbl_gov", "sjsul-lm-2_local", "sjsul-lm.dhcp.lbnl.us",  # testing
-                         "summit", "rhea", "slate",  # OLCF
-                         "aws"  # future support
+    # COMPUTE_RESOURCES = ["cori",
+    #                      "lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster", "lbl",  # lbl it
+    #                      "sjsul-lm-2_local", "sjsul-lm.dhcp.lbnl.us",  # testing
+    #                      "summit", "rhea", "slate",  # OLCF
+    #                      "aws"  # future support
+    #                      ]
+    COMPUTE_RESOURCES = ["cori",  # cori @ NERSC
+                         "lbl",  # jgi cluster @ lbl it
+                         "ssul_laptop"  # for testing
                          ]
 
     # task types
@@ -35,11 +38,12 @@ class JtmConstants():
                    "queued": 1,
                    "running": 2,
                    "success": 4,
-                   "outputerror": -1,    # output file(s) not found.
+                   "outputerror": -1,  # output file(s) not found.
                    "failed": -2,
                    "outofresource": -3,  # out of mem
-                   "terminated": -4,     # terminated by user
-                   "invalidtask": -5     # task definition in the mesasge from jtm_submit is not valid
+                   "terminated": -4,  # terminated
+                   "invalidtask": -5,  # task definition in the message from jtm_submit is not valid
+                   "timeout": -6
                    }
 
     DONE_FLAGS = {"success": 1,
@@ -47,7 +51,8 @@ class JtmConstants():
                   "failed to check output file(s)": -1,
                   "failed to run user command": -2,
                   "failed with out-of-mem": -3,  # not used
-                  "failed with user termination": -4
+                  "failed with user termination": -4,
+                  "failed with timeout": -6
                   }
 
     WORKER_TYPE = {"manual": 0,
@@ -91,24 +96,28 @@ class JtmConstants():
     # overrun,premium,regular_0,regular_1,regular_bigmem,resv,resv_shared,shared,xfer|||
     # cori|m342|jaws_jtm||1||||||||bb/datawarp=52828800M|||||debug_hsw,debug_knl,flex,interactive,jupyter,long,low_knl,
     # overrun,premium,regular_0,regular_1,regular_bigmem,resv,resv_shared,shared,xfer|||
-    QOS_LIST = ["genepool_special",
-                "genepool_shared",
-                "genepool",
-                "regular",
-                "jgi_shared",
-                "jgi_exvivo",
-                "condo_jgicloud"
-                ]
-    CONSTRAINT_LIST = ["haswell", "knl", "skylake"]
+    # QOS_LIST = ["genepool_special",
+    #             "genepool_shared",
+    #             "genepool",
+    #             "regular",
+    #             "jgi_shared",
+    #             "jgi_exvivo",
+    #             "condo_jgicloud"
+    #             ]
+
     DEFAULT_POOL = ["small", "medium", "large", "xlarge"]
+    # Number of child processes for manager and worker
     NUM_MANAGER_PROCS = 7
     NUM_WORKER_PROCS = 6
+    # Explicit task kill if the worker's job time will be expired after TASK_KILL_TIMEOUT minute
+    TASK_KILL_TIMEOUT_MINUTE = 5
 
 
 class JtmConfig(object):
-    '''
+    """
     JTM config utility
-    '''
+
+    """
     def __init__(self, config_file=None):
         if not config_file:
             config_file = self.get_config_file()
