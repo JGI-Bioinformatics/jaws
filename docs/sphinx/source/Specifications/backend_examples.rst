@@ -19,17 +19,30 @@ cromwell_nersc_dev.conf
 
       config {
         runtime-attributes = """
-        String? docker
-        String time = "00:00:00"
-        Int cpu = 1
-        String mem = "0G"
-        Int node = 1
-        Int nwpn = 1
+          String? docker
+          String time = "00:00:00"
+          Int cpu = 1
+          String mem = "0G"
+          Int node = 1
+          Int nwpn = 1
         """
 
-        submit = "jtm-submit -cr '/bin/bash ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared}"
-        kill = "jtm-kill ${job_id}"
-        check-alive = "jtm-isalive ${job_id}"
+        submit = "jtm submit \
+          -cr '/bin/bash ${script}' \
+          -cl ${cluster} \
+          -t ${time} \
+          -c ${cpu} \
+          -m ${mem} \
+          -p ${poolname} \
+          -C ${constraint} \
+          -N ${node} \
+          -nwpn ${nwpn} \
+          -jid ${job_name} \
+          --shared ${shared} \
+          --qos ${qos} \
+          -A ${account}"
+        kill = "jtm kill -tid ${job_id}"
+        check-alive = "jtm isalive -tid ${job_id}"
 
         job-id-regex = "JTM task ID (\\d+)"
 
@@ -40,9 +53,20 @@ cromwell_nersc_dev.conf
                 shifterimg pull ${docker}
             fi
 
-		jtm-submit -cr 'shifter_exec.sh ${docker} ${job_shell} ${script}' \
-                -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} \
-            -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared}
+		    jtm submit
+              -cr 'shifter_exec.sh ${docker} ${job_shell} ${script}' \
+              -cl ${cluster} \
+              -t ${time} \
+              -c ${cpu} \
+              -m ${mem} \
+              -p ${poolname} \
+              -C ${constraint} \
+              -N ${node} \
+              -nwpn ${nwpn} \
+              -jid ${job_name} \
+              --shared ${shared} \
+              --qos ${qos} \
+              -A ${account}"
         """
 
         # Root directory where Cromwell writes job results in the container. This value
@@ -89,24 +113,36 @@ cromwell.conf
 
       config {
         runtime-attributes = """
-        String? docker
-        String time = "00:00:00"
-        Int cpu = 1
-        String mem = "0G"
-        String cluster = "cori"
-        String poolname = "small"
-        #Int poolsize = 1
-        String constraint = "haswell"
-        String qos = "genepool_special"
-        String account = "fungalp"
-        Int node = 1
-        Int nwpn = 1
-        Int shared = 1
+          String? docker
+          String time = "00:00:00"
+          Int cpu = 1
+          String mem = "0G"
+          String cluster = "cori"
+          String poolname = "small"
+          String constraint = "haswell"
+          String qos = "genepool_special"
+          String account = "fungalp"
+          Int node = 1
+          Int nwpn = 1
+          Int shared = 1
         """
 
-        submit = "jtm-submit -cr '/bin/bash ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared} --qos ${qos} --account ${account}"
-        kill = "jtm-kill ${job_id}"
-        check-alive = "jtm-isalive ${job_id}"
+        submit = "jtm submit \
+          -cr '/bin/bash ${script}' \
+          -cl ${cluster} \
+          -t ${time} \
+          -c ${cpu} \
+          -m ${mem} \
+          -p ${poolname} \
+          -C ${constraint} \
+          -N ${node} \
+          -nwpn ${nwpn} \
+          -jid ${job_name} \
+          --shared ${shared} \
+          --qos ${qos} \
+          -A ${account}"
+        kill = "jtm kill -tid ${job_id}"
+        check-alive = "jtm isalive -tid ${job_id}"
         job-id-regex = "JTM task ID (\\d+)"
 
         # Submit string when there is a "docker" runtime attribute.
@@ -116,9 +152,20 @@ cromwell.conf
                 shifterimg pull ${docker}
             fi
 
-            jtm-submit -cr 'shifter_exec.sh ${docker} ${job_shell} ${script}' \
-            -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} \
-            -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared}
+            jtm submit \
+              -cr 'shifter_exec.sh ${docker} ${job_shell} ${script}' \
+              -cl ${cluster} \
+              -t ${time} \
+              -c ${cpu} \
+              -m ${mem} \
+              -p ${poolname} \
+              -C ${constraint} \
+              -N ${node} \
+              -nwpn ${nwpn} \
+              -jid ${job_name} \
+              --shared ${shared} \
+              --qos ${qos} \
+              -A ${account}"
         """
 
         # Root directory where Cromwell writes job results in the container. This value
