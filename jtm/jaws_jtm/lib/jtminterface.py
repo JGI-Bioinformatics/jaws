@@ -15,7 +15,6 @@ from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_jtm.lib.run import make_dir, eprint
 
 config = JtmConfig()
-DEFAULT_POOL = config.constants.DEFAULT_POOL
 JTM_LOG = config.configparser.get("JTM", "log_dir")
 JGI_JTM_MAIN_EXCH = config.configparser.get("JTM", "jgi_jtm_main_exch")
 USER_NAME = config.configparser.get("SITE", "user_name")
@@ -144,8 +143,7 @@ class JtmInterface(object):
             if kw["job_time"] and kw["node_mem"] and kw["num_core"] and \
                kw["pool_name"] and kw["job_time"] != "" and kw["node_mem"] != "" and \
                kw["num_core"] != 0 and kw["pool_name"] != "" and kw["node"] != 0 and \
-               kw["job_time"] != "00:00:00" and kw["node_mem"] != "0G" and kw["num_core"] != 0 and \
-               kw["pool_name"] != "default" and kw["pool_name"] not in DEFAULT_POOL:
+               kw["job_time"] != "00:00:00" and kw["node_mem"] != "0G" and kw["num_core"] != 0:
                 json_data_dict["pool"] = {}
                 json_data_dict["pool"]["time"] = kw["job_time"]
                 json_data_dict["pool"]["cpu"] = kw["num_core"]

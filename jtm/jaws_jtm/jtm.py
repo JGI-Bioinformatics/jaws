@@ -24,7 +24,6 @@ CHARGE_ACCOUNT = config.configparser.get("SLURM", "charge_accnt")
 QOS = config.configparser.get("SLURM", "qos")
 NNODES = config.configparser.getint("SLURM", "nnodes")
 CONSTRAINT = config.configparser.get("SLURM", "constraint")
-CONSTRAINT_LIST = config.configparser.get("SLURM", "CONSTRAINT_LIST").split(',')
 NWORKERS_PER_NODE = config.configparser.get("JTM", "num_workers_per_node")
 
 
@@ -81,10 +80,10 @@ def manager(log_dir: str, show_resource_log: bool, debug: bool) -> int:
 @cli.command()
 @click.option("--debug", is_flag=True, default=False)
 @click.option("-hb", "--heartbeat_interval",
-              help="heartbeat interval in second (default=10).",
+              help="Heartbeat interval in second (default=10).",
               type=int)
 @click.option("-jd", "--job_script_dir_name",
-              help="jtm job file path.")
+              help="Slurm batch job file path.")
 @click.option("-ld", "--log_dir",
               help="Custom log directory",
               required=False)
@@ -104,48 +103,47 @@ def manager(log_dir: str, show_resource_log: bool, debug: bool) -> int:
               type=int,
               default=0)
 @click.option("-wt", "--worker_type",
-              help="jtm worker type = [manual | dynamic]",
+              help="Worker type = [manual | dynamic]",
               default="manual",
               type=click.Choice(["manual", "dynamic"], case_sensitive=False))
 @click.option("-cl", "--cluster",
-              help="cluster name = [%s]" % (str(COMPUTE_RESOURCES)),
+              help="Cluster name = [%s]" % (str(COMPUTE_RESOURCES)),
               type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False),
               default=CLUSTER)
 @click.option("-ctr", "--clone_time_rate",
-              help="cloning timing",
+              help="Cloning time rate (OBSOLETE)",
               type=float)
 @click.option("-nwpn", "--num_worker_per_node",
+              help="Set number of workers per a node",
               required=False,
               type=int,
               default=NWORKERS_PER_NODE)
 @click.option("-wi", "--worker_id",
-              help="worker ID for dynamic workers")
+              help="Unique worker ID")
 @click.option("-A", "--charging_account",
-              help="Charging account.")
+              help="Slurm charging account.")
 @click.option("-N", "--nnodes",
-              help="Number of nodes",
+              help="Slurm number of nodes",
               type=int)
 @click.option("-c", "--cpus_per_task",
-              help="Number of cpus",
+              help="Slurm number of cpus",
               type=int)
 @click.option("-C", "--constraint",
-              help="NERSC Cori constraint (default: haswell)",
-              type=click.Choice(["haswell", "knl", "skylake"], case_sensitive=False),
-              default="haswell",
+              help="Slurm constraint (default: haswell)",
               required=False)
 @click.option("-m", "--mem",
-              help="Specify the real memory required per node")
+              help="Slurm real memory required per node")
 @click.option("-mc", "--mem_per_cpu",
-              help="minimum memory required per allocated CPU")
+              help="Slurm minimum memory required per allocated CPU")
 @click.option("-q", "--qos",
-              help="Quality of service")
+              help="Slurm quality of service")
 @click.option("-t", "--job_time",
-              help="Job time (hh:mm:ss)")
+              help="Slurm Job time (hh:mm:ss)")
 def worker(heartbeat_interval: int, log_dir: str, job_script_dir_name: str, pool_name: str,
            timeout: int, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
            clone_time_rate: float, num_worker_per_node: int, worker_id: str,
-           charging_account: str, nnodes: int, cpus_per_task: int, constraint: str, mem: str,
-           mem_per_cpu: str, qos: str, job_time: str, debug: bool) -> int:
+           charging_account: str, nnodes: int, cpus_per_task: int, constraint: str,
+           mem: str, mem_per_cpu: str, qos: str, job_time: str, debug: bool) -> int:
     """
     JTM Worker Click wrapper
 
@@ -181,35 +179,35 @@ def worker(heartbeat_interval: int, log_dir: str, job_script_dir_name: str, pool
 
 @cli.command()
 @click.option("-cl", "--cluster",
-              help="cluster (site) name to run task",
+              help="Cluster (site) name to run task",
               type=click.Choice(COMPUTE_RESOURCES, case_sensitive=False),
               default=CLUSTER)
 @click.option("-cmd", "--command",
-              help="user command",
+              help="User task command",
               cls=Mutex,
               not_required_if=['task_file'])
 @click.option("-f", "--task_file",
-              help="user task in a json file",
+              help="User task in a json file",
               cls=Mutex,
               not_required_if=['command'])
 @click.option("-A", "--account",
               default=CHARGE_ACCOUNT,
-              help="Charging account name",)
+              help="Slurm charging account name",)
 @click.option("-c", "--ncpu",
-              help="Number of cores",
+              help="Slurm number of cores",
               type=int)
-@click.option("-C", "--constraint",  # only for nersc
-              help="Set the architecture to Haswell or KNL on Cori",
-              type=click.Choice(CONSTRAINT_LIST))
+@click.option("-C", "--constraint",
+              help="Slurm architecture constraint",
+              default=CONSTRAINT)
 @click.option("--debug", is_flag=True, default=False)
 @click.option("-jid", "--cromwell_job_id",
               help="Unique Cromwell job id with step name",
               required=False)
 @click.option("-m", "--memory",
-              help="Memory request per node",
+              help="Slurm memory request per node",
               default=MEM_PER_NODE)
 @click.option("-N", "--nnodes",
-              help="Number of nodes for the pool. Default=1.",
+              help="Slurm number of nodes for the pool. Default=1.",
               type=int,
               default=NNODES)
 @click.option("-nwpn", "--num_worker_per_node",
@@ -221,9 +219,11 @@ def worker(heartbeat_interval: int, log_dir: str, job_script_dir_name: str, pool
               help="User worker pool name",
               required=True)
 @click.option("-q", "--qos",
-              help="SLURM QOS")
+              help="Slurm QOS",
+              default=QOS,
+              required=True)
 @click.option("-s", "--shared",
-              help="Shared workers.",
+              help="Shared/non-shared worker",
               type=int,
               default=1)
 @click.option("-t", "--job_time",
@@ -234,7 +234,7 @@ def submit(task_file: str, cluster: str, command: str, pool_name: str, account: 
            qos: str, shared: int, job_time, debug: bool) -> int:
     """
     JtmInterface returns 'task_id' if successfully queued
-    jtm-submit exits with code 0 if successfully submitted
+    jtm submit exits with code 0 if successfully submitted
                                1 if not
 
     USAGE
@@ -284,10 +284,10 @@ def submit(task_file: str, cluster: str, command: str, pool_name: str, account: 
                                                            account=account))
 
     if ret == -5:
-        eprint("jtm-submit: invalid task or runtime definition.")
+        eprint("jtm submit: invalid task or runtime definition.")
         return 1
     elif ret == -88:
-        eprint("jtm-submit: command timeout.")
+        eprint("jtm submit: command timeout.")
         return -1
 
     click.echo("JTM task ID %d" % ret)
@@ -307,7 +307,7 @@ def kill(task_id: int, debug: bool) -> int:
     #  -1: no task found
     #   4: the task has already been completed
     #
-    # jtm-kill exits with 0 if it's successfully terminated.#
+    # jtm kill exits with 0 if it's successfully terminated.#
     #                     1 else
     #
 
@@ -324,7 +324,7 @@ def kill(task_id: int, debug: bool) -> int:
         sys.exit(-1)
     sys.exit(0) if ret == 0 else sys.exit(1)
     # if ret != 0:
-    #     click.echo("jtm-kill failed with task id %d" % taskID)
+    #     click.echo("jtm kill failed with task id %d" % taskID)
     # sys.exit(0)
 
 
@@ -343,7 +343,7 @@ def isalive(task_id: int, debug: bool) -> int:
       4 if successfully done
       -1, -2, -3, -4: failed
 
-    jtm-isalive exits with 0 if it's in ['ready', 'queued', 'running'] status
+    jtm isalive exits with 0 if it's in ['ready', 'queued', 'running'] status
                           1 if it's done successfully or failed
 
     click.echo("isalive")
@@ -379,7 +379,7 @@ def status(task_id: int, debug: bool) -> int:
       4 if successfully done
       -1, -2, -3, -4: failed
 
-    jtm-status exits with 0 if it's in ['ready', 'queued', 'running'] status
+    jtm status exits with 0 if it's in ['ready', 'queued', 'running'] status
                           1 if it's done successfully or failed
 
     :param task_id:
@@ -514,7 +514,7 @@ def resource_log(task_id: int, debug: bool) -> int:
     resource_log_file = JtmInterface('resource', info_tag=task_id).call(task_id=task_id,
                                                                         log_level=debug)
     if resource_log_file == -88:
-        eprint("jtm-resource-log: command timeout.")
+        eprint("jtm resource-log: command timeout.")
         sys.exit(-1)
     # print resource_log_file
     # http://www.andymboyle.com/2011/11/02/quick-csv-to-json-parser-in-python/
