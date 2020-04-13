@@ -8,9 +8,10 @@ setup(
     .strip()
     .replace("-", "+", 1),
     description="JGI Analysis Workflow Service Central REST Server",
-    url="https://gitlab.com/jgi-dsi/aa/jaws/site",
+    url="https://code.jgi.doe.gov/advanced-analysis/jaws",
     author="The JAWS Team",
     packages=["jaws_central"],
+    include_package_data=True,
     install_requires=[line.strip() for line in open("requirements.txt")],
     entry_points={"console_scripts": ["jaws-central = jaws_central.cli:jaws", ]},
     zip_safe=False,

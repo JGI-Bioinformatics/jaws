@@ -21,21 +21,16 @@ password = succotash
 queue = rabbit_season
 
 [RPC]
-host = currenthost
-vhost = current_vhost
-user = bugs_bunny
-password = doc
-queue = duck_season
-num_threads = 7
+num_threads = 5
 max_retries = 3
 
 [GLOBUS]
 client_id = foghorn_leghorn
 endpoint_id = rooster
 root_dir = cwd
-subdir = cwd
 
 [DB]
+dialect = mysql+mysqlconnector
 host = myhost
 port = 60032
 user = elmer_fudd
@@ -43,8 +38,13 @@ password = hunting
 db = hunting_sites
 
 [CROMWELL]
-host = current_host
-port = 8000
+workflows_url = http://localhost:8000/api/workflows/v1
+engine_status_url = http://localhost:8000/engine/v1/status
+
+[SITE]
+id = eagle
+staging_subdirectory = staging
+results_subdirectory = results
 """
 
     cfg.write_text(content)
@@ -63,8 +63,8 @@ password = xqweasdasa
 max_retries = 10
 
 [CROMWELL]
-host = https://lrc.services.gov
-port = 60034
+workflows_url = http://localhost:8000/api/workflows/v1
+engine_status_url = http://localhost:8000/engine/v1/status
     """
     cfg.write_text(content)
     return cfg.as_posix()
@@ -572,5 +572,5 @@ class MockTransferData:
 
 @pytest.fixture()
 def mock_query_user_id(monkeypatch):
-    from jaws_site.jawsd import JAWSd
-    monkeypatch.setattr(JAWSd, "_query_user_id", query_jaws_id)
+    from jaws_site.jawsd import Daemon
+    monkeypatch.setattr(Daemon, "_query_user_id", query_jaws_id)

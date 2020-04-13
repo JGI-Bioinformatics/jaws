@@ -10,15 +10,14 @@ import requests
 import globus_sdk
 import logging
 
-from jaws_site import models, wfcopy
-from jaws_site.config import jaws_config
+from jaws_site import models, wfcopy, config
 
 
 class DataError(Exception):
     pass
 
 
-class JAWSd:
+class Daemon:
     """
     JAWS Daemon class
     """
@@ -40,22 +39,22 @@ class JAWSd:
         """
         Init obj
         """
-        self.conf = jaws_config
+        conf = config.conf
         self.logger = logging.getLogger(__package__)
         self.logger.debug("Initializing daemon")
-        self.site_id = self.conf.get("SITE", "id")
+        self.site_id = conf.get("SITE", "id")
         self.session = db.session()
         self.staging_dir = os.path.join(
-            self.conf.get("GLOBUS", "root_dir"),
-            self.conf.get("SITE", "staging_subdirectory")
+            conf.get("GLOBUS", "root_dir"),
+            conf.get("SITE", "staging_subdirectory")
         )
-        self.workflows_url = self.conf.get("CROMWELL", "workflows_url")
+        self.workflows_url = conf.get("CROMWELL", "workflows_url")
         self.results_dir = os.path.join(
-            self.conf.get("GLOBUS", "root_dir"),
-            self.conf.get("SITE", "results_subdirectory")
+            conf.get("GLOBUS", "root_dir"),
+            conf.get("SITE", "results_subdirectory")
         )
-        self.globus_endpoint = self.conf.get("GLOBUS", "endpoint_id")
-        self.results_subdir = self.conf.get("SITE", "results_subdirectory")
+        self.globus_endpoint = conf.get("GLOBUS", "endpoint_id")
+        self.results_subdir = conf.get("SITE", "results_subdirectory")
 
     def start_daemon(self):
         """
@@ -78,7 +77,7 @@ class JAWSd:
         return self.session.query(models.User).get(run.user_id)
 
     def _authorize_transfer_client(self, token):
-        client_id = self.conf.get("GLOBUS", "client_id")
+        client_id = config.conf.get("GLOBUS", "client_id")
         client = globus_sdk.NativeAppAuthClient(client_id)
         authorizer = globus_sdk.RefreshTokenAuthorizer(token, client)
         return globus_sdk.TransferClient(authorizer=authorizer)
@@ -136,8 +135,7 @@ class JAWSd:
         """
         Submit a run to Cromwell.
         """
-        file_path = os.path.join(self.staging_dir, run.user_id,
-                                 run.submission_id)
+        file_path = os.path.join(self.staging_dir, run.submission_id)
         wdl_file = file_path + ".wdl"
         json_file = file_path + ".json"
         zip_file = file_path + ".zip"  # might not exist
@@ -149,7 +147,7 @@ class JAWSd:
                 "application/json",
             )
         else:
-            self.logger.warning(f"Missing inputs JSON for run {run.id}")
+            self.logger.warning(f"Missing inputs JSON for run {run.id}: {json_file}")
             run.status = "invalid_input"
             self.session.commit()
         if os.path.exists(wdl_file):
@@ -159,7 +157,7 @@ class JAWSd:
                 "application/json",
             )
         else:
-            self.logger.warning(f"Missing WDL for run {run.id}", exc_info=True)
+            self.logger.warning(f"Missing WDL for run {run.id}: {wdl_file}")
             run.status = "invalid_input"
             self.session.commit()
         if os.path.exists(zip_file):

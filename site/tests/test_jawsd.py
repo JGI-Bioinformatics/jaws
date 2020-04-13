@@ -1,7 +1,7 @@
 import pytest
 import globus_sdk
 
-from jaws_site.jawsd import JAWSd
+from jaws_site.jawsd import Daemon
 import tests.conftest
 import requests
 
@@ -11,19 +11,19 @@ import requests
                          ids=["failed", "inactive"])
 def test_check_transfer_status(statuses, monkeypatch):
     """
-    Tests check_transfer_status from JAWSd class. This only tests two
+    Tests check_transfer_status from Daemon class. This only tests two
     statuses since the 'SUCCEEDED' status calls another method we want to
     test later and separately.
     """
-    monkeypatch.setattr(JAWSd, "_query_user_id", tests.conftest.query_jaws_id)
+    monkeypatch.setattr(Daemon, "_query_user_id", tests.conftest.query_jaws_id)
     db = tests.conftest.MockDb()
-    jawsd = JAWSd(db)
+    jawsd = Daemon(db)
     run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "submitted")
 
     def mock_authorize_client(jawsd, token):
         return tests.conftest.MockTransferClient(statuses)
 
-    monkeypatch.setattr(JAWSd,
+    monkeypatch.setattr(Daemon,
                         "_authorize_transfer_client",
                         mock_authorize_client)
     jawsd.check_transfer_status(run)
@@ -35,7 +35,7 @@ def test_submit_run(monkeypatch, staging_files):
         return tests.conftest.MockResponses({"id": "2"}, 201)
 
     db = tests.conftest.MockDb()
-    jawsd = JAWSd(db)
+    jawsd = Daemon(db)
     run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "submitted")
 
     monkeypatch.setattr(requests, "post", workflows_post)
@@ -55,7 +55,7 @@ def test_check_run_status(status, current_status, expected_run, monkeypatch):
         return tests.conftest.MockResponses(status, 200)
 
     db = tests.conftest.MockDb()
-    jawsd = JAWSd(db)
+    jawsd = Daemon(db)
     run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", current_status)
 
     monkeypatch.setattr(requests, "get", workflows_get)
@@ -75,13 +75,13 @@ def test_transfer_results(mock_query_user_id, monkeypatch):
     def mock_authorize_client(jawd, token):
         return tests.conftest.MockTransferClient({"status": "running"})
 
-    monkeypatch.setattr(JAWSd, "_authorize_transfer_client",
+    monkeypatch.setattr(Daemon, "_authorize_transfer_client",
                         mock_authorize_client)
     monkeypatch.setattr(globus_sdk, "TransferData",
                         tests.conftest.MockTransferData)
 
     db = tests.conftest.MockDb()
-    jawsd = JAWSd(db)
+    jawsd = Daemon(db)
     run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "running")
 
     jawsd.transfer_results(run)
@@ -100,11 +100,11 @@ def test_check_if_downloads_completes(status, expected, monkeypatch,
     def mock_authorize_client(jawd, token):
         return tests.conftest.MockTransferClient(status)
 
-    monkeypatch.setattr(JAWSd, "_authorize_transfer_client",
+    monkeypatch.setattr(Daemon, "_authorize_transfer_client",
                         mock_authorize_client)
 
     db = tests.conftest.MockDb()
-    jawsd = JAWSd(db)
+    jawsd = Daemon(db)
     run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "submitted")
 
     jawsd.check_if_download_complete(run)

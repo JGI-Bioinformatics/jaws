@@ -10,7 +10,7 @@ setup(
     description="JGI Analysis Workflow Service - JGI Task Manager",
     url="https://code.jgi.doe.gov/advanced-analysis/jaws",
     author="The JAWS Team",
-    packages=["jaws_jtm"],
+    packages=["jaws_jtm", "jaws_jtm.lib"],
     install_requires=[line.strip() for line in open("requirements.txt")],
     entry_points={
         "console_scripts": [

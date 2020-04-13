@@ -59,7 +59,6 @@ def setup_custom_logger(level, log_dest_dir, b_stream_loggin=True, b_file_loggin
             os.chmod(worker_log_dir_name, 0o775)
         except OSError:
             logger.warning("Cannot change the permission of {} to 0775".format(worker_log_dir_name))
-            raise
 
         log_file_name = '%s/jtm_%s.log' % (worker_log_dir_name, datetime_str)
         if worker_id:

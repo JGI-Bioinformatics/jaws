@@ -8,8 +8,8 @@ import json
 import urllib.parse
 import amqpstorm
 
-from jaws_site.dispatch import dispatch, failure
-from jaws_site.config import jaws_config
+from jaws_site import config
+from jaws_site.dispatch import dispatch
 
 logger = logging.getLogger(__package__)
 
@@ -27,7 +27,6 @@ class Consumer(object):
         self.channel = None
         self.active = False
         self.logger = logging.getLogger(__package__)
-        self.conf = jaws_config
 
     def start(self, connection):
         """Start the consumer"""
@@ -70,11 +69,7 @@ class Consumer(object):
         self.logger.info(f'Dispatching request for method {method}, corr_id {corr_id}')
 
         # GET RESPONSE FROM DISPATCHER
-        if "cromwell_id" not in params:
-            response_dict = failure(400)
-            self.logger.error(f'cromwell_id not included in {method}')
-        else:
-            response_dict = dispatch(method, params)
+        response_dict = dispatch(method, params)
 
         # VALIDATE RESPONSE
         response_dict["jsonrpc"] = "2.0"
@@ -104,17 +99,16 @@ class Consumer(object):
 class RpcServer(object):
 
     def __init__(self) -> None:
-        self.hostname = jaws_config.get("AMQP", "host")
-        self.vhost = jaws_config.get("AMQP", "vhost")
-        self.user = jaws_config.get("AMQP", "user")
-        self.password = jaws_config.get("AMQP", "password")
-        self.rpc_queue = jaws_config.get("AMQP", "queue")
-        self.max_retries = int(jaws_config.get("RPC", "max_retries"))
-        number_of_consumers = int(jaws_config.get("RPC", "num_threads"))
+        self.hostname = config.conf.get("AMQP", "host")
+        self.vhost = config.conf.get("AMQP", "vhost")
+        self.user = config.conf.get("AMQP", "user")
+        self.password = config.conf.get("AMQP", "password")
+        self.rpc_queue = config.conf.get("AMQP", "queue")
+        self.max_retries = int(config.conf.get("RPC", "max_retries"))
+        number_of_consumers = int(config.conf.get("RPC", "num_threads"))
         self.consumers = [Consumer(self.rpc_queue) for _ in range(number_of_consumers)]
         self.stopped = threading.Event()
         self.connection = self.create_connection()
-        self.conf = jaws_config
 
     def start_server(self) -> None:
         """Start the RPC Server.

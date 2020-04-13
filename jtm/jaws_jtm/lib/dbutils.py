@@ -451,10 +451,7 @@ class DbSqlMy(DbSql):
                 "host": MYSQL_HOST,
                 "port": "%d" % MYSQL_PORT,
                 "database": MYSQL_DB}
-            try:
-                self.con = self.dbmod.connect(**config)
-            except Exception as e:
-                sys.exit(e)
+            self.con = self.dbmod.connect(**config)
 
     def close(self):
         self.commit()

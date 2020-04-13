@@ -12,6 +12,6 @@ setup(
     author="The JAWS Team",
     packages=["jaws_site"],
     install_requires=[line.strip() for line in open("requirements.txt")],
-    entry_points={"console_scripts": ["jaws-site = jaws_site.cli:cli", ]},
+    entry_points={"console_scripts": ["jaws-site = jaws_site.cli:jaws", ]},
     zip_safe=False,
 )
