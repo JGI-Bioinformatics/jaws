@@ -100,7 +100,7 @@ Revisions
 
     05.09.2019 5.1.1: Fixed life left calculation; Removed raise;
 
-    06.11.2019 5.4.0: Run run_something() with threading.Thread; Added ch._connection.sleep() to fix
+    06.11.2019 5.4.0: Run run_user_task() with threading.Thread; Added ch._connection.sleep() to fix
                       lost connection issue;
     06.13.2019 5.4.2: Multiprocessing -> threading;
     06.18.2019 5.4.3: Send endData as today in hb to the manager even if the worker is dynamic;
@@ -125,6 +125,8 @@ import subprocess
 import socket
 import time
 import pika
+import resource
+import psutil
 
 from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.config import JtmConfig
@@ -132,7 +134,7 @@ from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.resourceusage import get_cpu_load, \
     get_runtime, get_pid_tree, get_virtual_memory_usage, \
     get_resident_memory_usage, get_total_mem_usage_per_node, \
-    get_num_workers_on_node
+    get_num_workers_on_node, get_free_memory
 from jaws_jtm.lib.run import make_dir, run_sh_command
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 
@@ -182,7 +184,7 @@ ENV_ACTIVATION = config.configparser.get("JTM", "env_activation")
 
 
 # -------------------------------------------------------------------------------
-def run_something(msg_unzipped, return_msg):
+def run_user_task(msg_unzipped, return_msg, ch):
     """
     Run a user command in msg_zipped_to_send
     :param msg_unzipped: uncompressed msg from client
@@ -190,6 +192,7 @@ def run_something(msg_unzipped, return_msg):
     :return:
     """
     # Uncompress msg to get a task
+    logger.info(msg_unzipped)
     task_id = msg_unzipped["task_id"]
     user_task_cmd = msg_unzipped["user_cmd"]
     out_files = msg_unzipped["output_files"]
@@ -211,14 +214,26 @@ def run_something(msg_unzipped, return_msg):
     # logger.info("Running task/task ID, %s/%d...", cromwell_job_id, task_id)
 
     p = None
-    time_out_in_minute = None
+    time_out_in_minute = 0
+
     if THIS_WORKER_TYPE != "manual":
+        # wait until WORKER_LIFE_LEFT_IN_MINUTE is updated
+        if WORKER_LIFE_LEFT_IN_MINUTE.value <= 0:
+            while 1:
+                if WORKER_LIFE_LEFT_IN_MINUTE.value > 0:
+                    break
+                # time.sleep(3)
+                ch._connection.sleep(3)
+
         # ex) WORKER_LIFE_LEFT_IN_MINUTE = 20min and TASK_KILL_TIMEOUT_MINUTE = 10min
         # timeout will be set as 10min
         # TASK_KILL_TIMEOUT_MINUTE is a extra housekeeping time after explicitly
         # terminate a task.
+        logger.info("worker life: %d", WORKER_LIFE_LEFT_IN_MINUTE.value)
         time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - TASK_KILL_TIMEOUT_MINUTE)
-        logger.debug("timeout in minute: %d", time_out_in_minute)
+        logger.info("Timeout in minute: %d", time_out_in_minute)
+
+    proc_return_code = -1
 
     try:
         p = subprocess.Popen(user_task_cmd.split(),
@@ -226,21 +241,25 @@ def run_something(msg_unzipped, return_msg):
                              env=os.environ,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
+    except MemoryError:
+        logger.exception("Exception: Out of memory, %s", user_task_cmd)
+        proc_return_code = DONE_FLAGS["failed with out-of-mem"]
+    except FileNotFoundError:
+        logger.exception("Exception: Input file or command not found, %s", user_task_cmd)
+        proc_return_code = 2
     except Exception as detail:
         logger.exception("Exception: Failed to run user command, %s", user_task_cmd)
         logger.exception("Detail: %s", str(detail))
-        raise
+    else:
+        # Set USER_PROC_PROC_ID = forked child process id (this value will be sent
+        # to send_hb_to_client function)
+        USER_PROC_PROC_ID.value = p.pid
+        logger.debug("USER_PROC_PROC_ID.value %d" % USER_PROC_PROC_ID.value)
+        logger.debug("User command: %s", user_task_cmd)
 
-    # Set USER_PROC_PROC_ID = forked child process id (this value will be sent
-    # to send_hb_to_client function)
-    USER_PROC_PROC_ID.value = p.pid
-    logger.debug("USER_PROC_PROC_ID.value %d" % USER_PROC_PROC_ID.value)
-    logger.debug("User command: %s", user_task_cmd)
-
-    proc_return_code = -1
     stdout_str = None
     time_out_in_second = None
-    if time_out_in_minute is not None:
+    if time_out_in_minute != 0:
         time_out_in_second = time_out_in_minute * 60
 
     if p is not None:
@@ -253,7 +272,8 @@ def run_something(msg_unzipped, return_msg):
         except subprocess.TimeoutExpired:
             logger.exception("subprocess call timeout")
             p.kill()
-            proc_return_code = -6
+            #
+            proc_return_code = DONE_FLAGS["failed with timeout"]
         else:
             p.wait()
             p.poll()
@@ -270,20 +290,23 @@ def run_something(msg_unzipped, return_msg):
         return_msg["done_flag"] = DONE_FLAGS["failed with user termination"]
         return_msg["ret_msg"] = "Task cancelled."
     else:
-        if proc_return_code == -6:
+        if proc_return_code == DONE_FLAGS["failed with timeout"]:
             logger.info("User task timeout. Not enough time left for the worker.")
-            return_msg["done_flag"] = "-6"
+            return_msg["done_flag"] = str(DONE_FLAGS["failed with timeout"])
             return_msg["ret_msg"] = "User task timeout"
-        elif proc_return_code == 2:
-            logger.info("input file not found.")
-            return_msg["done_flag"] = "1"
-            return_msg["ret_msg"] = "Input file not found."
-
-        elif proc_return_code == 0:
+        elif proc_return_code == DONE_FLAGS["failed with out-of-mem"]:
+            logger.info("User task out-of-mem.")
+            return_msg["done_flag"] = str(DONE_FLAGS["failed with out-of-mem"])
+            return_msg["ret_msg"] = "User task out-of-mem"
+        elif proc_return_code == 2:  # system code
+            logger.info("input file or command not found.")
+            return_msg["done_flag"] = DONE_FLAGS["failed with input file or command not found"]
+            return_msg["ret_msg"] = "Input file or command not found."
+        elif proc_return_code == 0:  # system code
             logger.info("Task# %s completed!" % (str(task_id)))
 
             # Output file checking
-            if len(out_files):
+            if out_files:
                 ofs = out_files.split(",")
                 logger.debug("Number of output files = %d.", len(ofs))
                 out_file_list = []
@@ -316,10 +339,7 @@ def run_something(msg_unzipped, return_msg):
             return_msg["done_flag"] = DONE_FLAGS["failed to run user command"]
             return_msg["ret_msg"] = stdout_str
 
-    # json_data = json.dumps(return_msg)
-    logger.debug("Reply msg with result: %s" % str(return_msg))
-    # msgZippedToSend = zdumps(json_data)
-    # return msgZippedToSend
+    logger.info("Reply msg with result: %s" % str(return_msg))
 
 
 # -------------------------------------------------------------------------------
@@ -371,19 +391,6 @@ def on_request(ch, method, props, body):
         # so that the other workers can get it.
         #
         ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
-        # ch.stop_consuming()
-        # ch.close()
-        #
-        # if recv_hb_from_client_proc_hdl:
-        #     recv_hb_from_client_proc_hdl.terminate()
-        # if send_hb_to_client_proc_hdl:
-        #     send_hb_to_client_proc_hdl.terminate()
-        # if recv_poison_proc_hdl:
-        #     recv_poison_proc_hdl.terminate()
-        # if task_kill_proc_hdl:
-        #     task_kill_proc_hdl.terminate()
-        #
-        # sys.exit(0)
         raise OSError(2, 'Worker termination request')
 
     logger.info("Received a task, %r" % (msg_unzipped,))
@@ -391,7 +398,7 @@ def on_request(ch, method, props, body):
 
     ######################################
     # OLD
-    # response = run_something(msg_unzipped)
+    # response = run_user_task(msg_unzipped)
 
     # NEW
     # Note: to fix connection lost
@@ -401,8 +408,8 @@ def on_request(ch, method, props, body):
     # https://stackoverflow.com/questions/14572020/handling-long-running-tasks-in-pika-rabbitmq
     #
     result_dict = {}
-    thread = threading.Thread(target=run_something,
-                              args=(msg_unzipped, result_dict))
+    thread = threading.Thread(target=run_user_task,
+                              args=(msg_unzipped, result_dict, ch))
     thread.start()
     while thread.is_alive():  # Loop while the thread is processing
         ch._connection.sleep(1.0)
@@ -481,8 +488,7 @@ def check_output(out_files, out_file_check_wait_time=3,
                 file_size = os.path.getsize(a_file)
                 if file_size == 0:
                     logger.warning("File, %s is zero size.", a_file)
-
-                if b_is_file_exist and file_size > 0:
+                if file_size > 0:
                     b_is_file_found = True
                     logger.info("Output file '%s' is OK.", a_file)
                     break
@@ -553,7 +559,8 @@ def send_hb_to_client_proc(interval, pipe_task_id,
             #
             # NOTE: must cope with the fast mem consumption at the begining of the process
             #
-            logger.debug("rootpid = {} childpid = {}".format(PARENT_PROCESS_ID, USER_PROC_PROC_ID.value))
+            logger.debug("rootpid = {} childpid = {}".format(PARENT_PROCESS_ID,
+                                                             USER_PROC_PROC_ID.value))
             if USER_PROC_PROC_ID.value == 0:
                 child_pid = PARENT_PROCESS_ID
             else:
@@ -561,13 +568,15 @@ def send_hb_to_client_proc(interval, pipe_task_id,
 
             # Collect pids from process tree
             root_pid_num = get_pid_tree(PARENT_PROCESS_ID)
-            logger.debug("get_pid_tree(root_proc_id={}) = {}".format(PARENT_PROCESS_ID, root_pid_num))
+            logger.debug("get_pid_tree(root_proc_id={}) = {}".format(PARENT_PROCESS_ID,
+                                                                     root_pid_num))
 
             if PARENT_PROCESS_ID != child_pid:
                 if child_pid == -9:  # if it's terminated by "kill"
                     child_pid = PARENT_PROCESS_ID
                 pid_list_child = get_pid_tree(child_pid)
-                logger.debug("get_pid_tree(child_pid={}) = {}".format(child_pid, pid_list_child))
+                logger.debug("get_pid_tree(child_pid={}) = {}".format(child_pid,
+                                                                      pid_list_child))
                 if len(pid_list_child) > 0:
                     proc_id_list_merged = root_pid_num + pid_list_child[1:]
                 else:
@@ -596,13 +605,9 @@ def send_hb_to_client_proc(interval, pipe_task_id,
 
             # Collect cpu_usages for all pids in the tree and get max()
             try:
-                cpu_load_list = [float(get_cpu_load(pid)) for pid in proc_id_list_merged]
+                cpu_load_list = [get_cpu_load(pid) for pid in proc_id_list_merged]
             except Exception as e:
                 logger.exception("get_cpu_load() exception: {}".format(e))
-                # ch.stop_consuming()
-                # ch.close()
-                # conn.close()
-                # os._exit(1)
                 raise
 
             max_cpu_load = max(cpu_load_list) if len(cpu_load_list) > 0 else 0.0
@@ -650,7 +655,7 @@ def send_hb_to_client_proc(interval, pipe_task_id,
                     # OLD
                     # fixme; slurm overload
                     # so, se, ec = run_sh_command("scontrol show jobid %d"
-                    #                             % (slurm_job_id), live=True, log=logger, stdoutPrint=False)
+                    #                             % (slurm_job_id), log=logger, stdoutPrint=False)
                     # pat = re.compile(r"""([^\s=]+)=\s*((?:[^\s=]+(?:\s|$))*)""")
                     # # Convert a list of x=y to dict
                     # entries = dict((k, v.split()) for k, v in pat.findall(so))
@@ -669,14 +674,9 @@ def send_hb_to_client_proc(interval, pipe_task_id,
                                          int(job_time.split(':')[2])
                     end_date_time = WORKER_START_TIME + datetime.timedelta(seconds=int(job_runtime_in_sec))
                     delta = end_date_time - datetime.datetime.now()
-                    #  = divmod(delta.total_seconds(), 60)[0]
                     WORKER_LIFE_LEFT_IN_MINUTE.value = int(divmod(delta.total_seconds(), 60)[0])
             except Exception as e:
                 logger.critical("Something wrong in computing remaining wall clock time: %s", e)
-                # ch.stop_consuming()
-                # ch.close()
-                # conn.close()
-                # os._exit(1)
                 raise
 
             # Get the total number of tasks in the task queue for this pool
@@ -735,11 +735,6 @@ def send_hb_to_client_proc(interval, pipe_task_id,
 
         except Exception as e:
             logger.critical("Something wrong with send_hb_to_client(): %s", e)
-            # Note: Need to terminate the whole program, not this thread only.
-            # ch.stop_consuming()
-            # ch.close()
-            # conn.close()
-            # os._exit(1)
             raise
 
         # Todo: Need to start with shorted interval like (0.5-1 sec) for about 30 sec
@@ -787,28 +782,10 @@ def recv_hb_from_client_proc2(task_queue, exch_name, cl_hb_q_postfix):
 
     logger.info('[*] Waiting for the manager.')
 
-    # def stop():
-    #     logger.info("Terminate myself: {} on {}".format(UNIQ_WORKER_ID, host_name))
-    #     if recv_hb_from_client_proc_hdl:
-    #         recv_hb_from_client_proc_hdl.terminate()
-    #     if send_hb_to_client_proc_hdl:
-    #         send_hb_to_client_proc_hdl.terminate()
-    #     if recv_poison_proc_hdl:
-    #         recv_poison_proc_hdl.terminate()
-    #     if task_kill_proc_hdl:
-    #         task_kill_proc_hdl.terminate()
-    #     ch.stop_consuming()
-    #     # os.kill(int(ppid), signal.SIGTERM)  # term jtm-worker process
-    #     # sys.exit(10)
-    #     ch.close()
-    #     conn.close()
-    #     os._exit(1)
-
     def callback(ch, method, properties, body):
         msg_unzipped = json.loads(zloads(body))
         if msg_unzipped["task_type"] == TASK_TYPE["term"] and msg_unzipped["task_queue"] == task_queue:
-            # stop()
-            raise OSError(2, 'Worker terminatin request received.')
+            raise OSError(2, 'Worker termination request received.')
         elif msg_unzipped["task_type"] == TASK_TYPE["hb"]:
             # Poison from the manager. Terminate itself.
             logger.debug("Received heartbeats from the client, %r:%r" % (method.routing_key, msg_unzipped))
@@ -858,17 +835,16 @@ def recv_task_kill_request_proc():
             if msg_unzipped["child_pid"] > 0:
                 logger.info("Process termination request received.")
 
-                # This -9 is to notify run_something() that it's killed by user requests
+                # This -9 is to notify run_user_task() that it's killed by user requests
                 # Also send_hb_to_client() will check this for adjust childpid and parentpid
-                # Note: this should done first to signal run_something() that the process is killed.
+                # Note: this should done first to signal run_user_task() that the process is killed.
                 USER_PROC_PROC_ID.value = -9
 
                 # kill if there is child's children
                 for i in get_pid_tree(msg_unzipped["child_pid"]):
-                    # kill_cmd = "kill -9 %d" % msg_unzipped["child_pid"]
                     kill_cmd = "kill -9 %d" % i
                     logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
-                    _, _, ec = run_sh_command(kill_cmd, live=True, log=logger)
+                    _, _, ec = run_sh_command(kill_cmd, log=logger)
                     if ec == 0:
                         logger.info("Successfully terminate a user task process.")
                     else:
@@ -882,7 +858,7 @@ def recv_task_kill_request_proc():
                 # Note: can consider to use "pkill -9 -P ppid" to kill the family
                 kill_cmd = "kill -9 %d" % msg_unzipped["child_pid"]
                 logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
-                _, _, ec = run_sh_command(kill_cmd, live=True, log=logger)
+                _, _, ec = run_sh_command(kill_cmd, log=logger)
                 if ec == 0:
                     logger.info("Successfully terminate a user task process.")
                 else:
@@ -979,9 +955,9 @@ def recv_reproduce_or_die_proc(task_queue, cluster_name, mem_per_node, mem_per_c
                         jtm_worker_cmd += " -mc {}".format(mem_per_core)
 
                 logger.info("Executing {}".format(jtm_worker_cmd))
-                so, se, ec = run_sh_command(jtm_worker_cmd, live=True, log=logger)
-                logger.debug("{} {} {}".format(so, se, ec))
-                run_sh_command(jtm_worker_cmd + " --dry-run", live=True, log=logger)
+                so, se, ec = run_sh_command(jtm_worker_cmd, log=logger)
+                # logger.debug("{} {} {}".format(so, se, ec))
+                run_sh_command(jtm_worker_cmd + " --dry-run", log=logger)
 
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -1011,26 +987,7 @@ def check_processes(pid_list):
     if not, terminate the all the proc ids
 
     """
-    # ps_cmd = "ps -aef | grep '%s' | grep %s | grep -v grep | awk '{print $2}'" \
-    #          % ("jtm worker", getpass.getuser())
-    # if sys.platform.lower() == "darwin":
-    #     ps_cmd = "ps -aef | grep '%s' | grep -v grep | awk '{print $2}'" \
-    #              % ("jtm worker")
-    # while 1:
-    #     pid_list = back_ticks(ps_cmd, shell=True)
-    #     if type(pid_list) is bytes:
-    #         pid_list = pid_list.decode()
-    #     pid_list = [int(i) for i in pid_list.split('\n') if i]
-    #     logger.debug("ps_cmd: {}".format(ps_cmd))
-    #     logger.debug("pid list = {}".format(pid_list))
-    #     logger.debug("len(pid) = {}".format(len(pid_list)))
-    #     # if len(pid_list) != NUM_WORKER_PROCS:
-    #     #     logger.critical("JTM worker child process error.")
-    #     #     [os.kill(i, signal.SIGTERM) for i in pid_list]
-    #     time.sleep(NUM_PROCS_CHECK_INTERVAL)
-
     while 1:
-        logger.debug("Proc ID list: {}".format(pid_list))
         for pid in pid_list:
             try:
                 os.kill(pid, 0)
@@ -1042,14 +999,15 @@ def check_processes(pid_list):
 
 
 # -------------------------------------------------------------------------------
-def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
-           pool_name_param, worker_timeout_in_sec_param: int, dry_run: bool,
-           slurm_job_id_param: int, worker_type_param, cluster_name_param,
+def worker(heartbeat_interval_param: int, custom_log_dir: str, custom_job_log_dir_name: str,
+           pool_name_param: str, worker_timeout_in_sec_param: int, dry_run: bool,
+           slurm_job_id_param: int, worker_type_param: str, cluster_name_param: str,
            worker_clone_time_rate_param: float, num_workers_per_node_param: int,
-           worker_id_param: str, charging_account_param, num_nodes_to_request_param: int,
-           num_cores_to_request_param: int, constraint_param,
+           worker_id_param: str, charging_account_param: str,
+           num_nodes_to_request_param: int,
+           num_cores_to_request_param: int, constraint_param: str,
            mem_per_node_to_request_param: str, mem_per_cpu_to_request_param: str,
-           qos_param, job_time_to_request_param: str, debug: bool) -> int:
+           qos_param: str, job_time_to_request_param: str, debug: bool) -> int:
 
     # Job dir setting
     job_script_dir_name = os.path.join(config.configparser.get("JTM", "log_dir"), "job")
@@ -1094,6 +1052,7 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
     QOS = config.configparser.get("SLURM", "qos")
     PARTITION = config.configparser.get("SLURM", "partition")
     MEMPERCPU = config.configparser.get("SLURM", "mempercpu")
+    MEMPERNODE = config.configparser.get("SLURM", "mempernode")
     NWORKERS = config.configparser.getint("JTM", "num_workers_per_node")
     NCPUS = config.configparser.getint("SLURM", "ncpus")
 
@@ -1122,13 +1081,85 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
         #  Cori and JGI Cloud are exclusive allocation. So this is not needed.
         # assert mem_per_node_to_request_param is not None, "-N needs --mem-per-cpu (-mc) setting."
 
-    ###########################################################################
     # 11.13.2018 decided to remove all default values from argparse
     num_workers_per_node = num_workers_per_node_param if num_workers_per_node_param else NWORKERS
-    num_cpus_to_request = num_cores_to_request_param if num_cores_to_request_param else NCPUS
+    assert num_workers_per_node > 0
     mem_per_cpu_to_request = mem_per_cpu_to_request_param if mem_per_cpu_to_request_param else MEMPERCPU
-    mem_per_node_to_request = mem_per_node_to_request_param if mem_per_node_to_request_param else ""
-    ###########################################################################
+    mem_per_node_to_request = mem_per_node_to_request_param if mem_per_node_to_request_param else MEMPERNODE
+    assert mem_per_cpu_to_request
+    assert mem_per_node_to_request
+    num_cpus_to_request = num_cores_to_request_param if num_cores_to_request_param else NCPUS
+    assert num_cpus_to_request
+
+    # Set CPU affinity for limiting the number of cores to use
+    if worker_type_param != "manual" and worker_id_param.find('_') != -1:
+        # ex)
+        # total_cpu_num = 32, num_workers_per_node = 4
+        # split_cpu_num = 8
+        # worker_number - 1 == 0 --> [0, 1, 2, 3, 4, 5, 6, 7]
+        # worker_number - 1 == 1 --> [8, 9, 10, 11, 12, 13, 14, 15]
+        proc = psutil.Process(PARENT_PROCESS_ID)
+        try:
+            # Use the appended worker id number as worker_number
+            # ex) 5wZwyCM8rxgNtERsU8znJU_1 --> extract "1" --> worker number
+            worker_number = int(worker_id_param.split('_')[-1]) - 1
+        except ValueError:
+            logger.exception("Not an expected worker ID. Cancelling CPU affinity setting")
+        else:
+            # Note: may need to use num_cpus_to_request outside LBL
+            total_cpu_num = psutil.cpu_count()
+            logger.info("Total number of cores available: {}".format(total_cpu_num))
+            split_cpu_num = int(total_cpu_num / num_workers_per_node)
+            cpu_affinity_list = list(range(worker_number * split_cpu_num,
+                                           ((worker_number + 1) * split_cpu_num)))
+            logger.info("Set CPU affinity to use: {}".format(cpu_affinity_list))
+            try:
+                proc.cpu_affinity(cpu_affinity_list)
+            except Exception as e:
+                logger.exception("Failed to set the CPU usage limit: %s" % (e))
+                sys.exit(1)
+
+    # Set memory upper limit
+    # Todo: May need to use all free_memory on Cori and Lbl
+    system_free_mem_bytes = get_free_memory()
+    logger.info("Total available memory (MBytes): %d"
+                % (system_free_mem_bytes / 1024.0 / 1024.0))
+    if worker_type_param != "manual" and num_workers_per_node > 1:
+        try:
+            mem_per_node_to_request_byte = int(mem_per_node_to_request.lower()
+                                               .replace("gb", "")
+                                               .replace("g", "")) * 1024.0 * 1024.0 * 1024.0
+            logger.info("Requested memory for this worker (MBytes): %d"
+                        % (mem_per_node_to_request_byte / 1024.0 / 1024.0))
+
+            # if requested mempernode is larger than system avaiable mem space
+            if system_free_mem_bytes < mem_per_node_to_request_byte:
+                logger.critical("Requested memory space is not available")
+                logger.critical("Available space: %d (MBytes)"
+                                % (system_free_mem_bytes / 1024.0 / 1024.0))
+                logger.critical("Requested space: %d (MBytes)"
+                                % (mem_per_node_to_request_byte / 1024.0 / 1024.0))
+                # Option 1
+                # mem_per_node_to_request_byte = system_free_mem_bytes
+                # Option 2
+                raise MemoryError
+
+            MEM_LIMIT_PER_WORKER_BYTES = int(mem_per_node_to_request_byte /
+                                             num_workers_per_node)
+        except Exception as e:
+            logger.exception("Failed to compute the memory limit: %s", mem_per_node_to_request)
+            logger.exception(e)
+            sys.exit(1)
+
+        try:
+            soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+            resource.setrlimit(resource.RLIMIT_AS, (MEM_LIMIT_PER_WORKER_BYTES, hard))
+            logger.info("Set the memory usage upper limit (MBytes): %d"
+                        % (MEM_LIMIT_PER_WORKER_BYTES / 1024.0 / 1024.0))
+        except Exception as e:
+            logger.exception("Failed to set the memory usage limit: %s", mem_per_node_to_request)
+            logger.exception(e)
+            sys.exit(1)
 
     job_time_to_request = job_time_to_request_param if job_time_to_request_param else JOBTIME
 
@@ -1152,21 +1183,8 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
     if pool_name_param:
         tp_name = pool_name_param
 
-    # If you want to create a custom worker pool, use this.
-    # JTM detects "pool" field from task json, and creates custom pool if it's set.
-    # All tasks with the pool name will be directed to the custom pool
-    # user_account_name = getpass.getuser().lower()
-
-    # Todo: feature to add a manual worker to a specific cluster??
-    #  ex) $ jtm-worker -cl cori -p small (on cori)
-    # if worker_type_param == "manual" and cluster_name_param != "local":
-    #     # inner_task_request_queue = "_jtm_inner_request_queue." + cluster_name_param + "." + pool_name_param
-    #     JTM_INNER_REQUEST_Q = "_jtm_inner_request_queue." + cluster_name_param + "." + USER_NAME
-
     assert pool_name_param is not None, "User pool name is not set"
     inner_task_request_queue = JTM_INNER_REQUEST_Q + "." + pool_name_param
-    # else:  # not reachable. default inner_task_request_queue = small
-    #     inner_task_request_queue = JTM_INNER_REQUEST_Q
 
     worker_clone_time_rate = worker_clone_time_rate_param if worker_clone_time_rate_param else CTR
     if THIS_WORKER_TYPE in ("static", "dynamic"):
@@ -1218,7 +1236,7 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
                         batch_job_misc_params += " -c %(num_cores)d" % \
                                                  dict(num_cores=num_cpus_to_request)
 
-                        if mem_per_node_to_request_param:
+                        if mem_per_node_to_request:
                             batch_job_script_str += """
 #SBATCH --mem=%(mem)s""" % dict(mem=mem_per_node_to_request)
                             batch_job_misc_params += " -m %(mem)s " % \
@@ -1230,12 +1248,11 @@ def worker(heartbeat_interval_param, custom_log_dir, custom_job_log_dir_name,
                                                      dict(mempercore=mem_per_cpu_to_request)
 
                         if worker_id_param:
-                            batch_job_misc_params += " -wi %(worker_id)s${i}" % \
+                            batch_job_misc_params += " -wi %(worker_id)s_${i}" % \
                                                      dict(worker_id=UNIQ_WORKER_ID)
 
                     ###########################
-                    if cluster_name == "cori":
-
+                    if 1:
                         # Need to set both --qos=genepool (or genepool_shared) _and_ -A fungalp
                         # OR
                         # no qos _and_ -A m342 _and_ -C haswell
@@ -1336,6 +1353,7 @@ do
 --clone_time_rate %(clone_time_rate)f %(task_queue)s \
 --num_worker_per_node %(num_workers_per_node)d \
 -C %(constraint)s \
+-m %(mem)s \
 %(other_params)s &
     sleep 1
 done
@@ -1352,14 +1370,14 @@ wait
                                                      env_activation_cmd=ENV_ACTIVATION,
                                                      other_params=batch_job_misc_params,
                                                      constraint=constraint,
+                                                     mem=mem_per_node_to_request,
                                                      job_name=job_name,
                                                      exclusive=excl_param)
 
                 elif cluster_name in ("lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster", "lbl"):
 
                     if worker_id_param:
-                        # batch_job_misc_params += " -wi %s" % (worker_id_param)
-                        batch_job_misc_params += " -wi %(worker_id)s${i}" \
+                        batch_job_misc_params += " -wi %(worker_id)s_${i}" \
                                                  % dict(worker_id=UNIQ_WORKER_ID)
 
                     tp_param = ""
@@ -1387,10 +1405,6 @@ wait
                     mnode_param = "#SBATCH --mem=%(mem)s" \
                                   % dict(mem=mem_per_node_to_request)
 
-                    setenv_param = ""
-                    if cluster_name == "jaws_lbl_gov":
-                        setenv_param = "export JTM_HOST_NAME=jaws_lbl_gov"
-
                     batch_job_script_str += """
 #SBATCH --time=%(wall_time)s
 #SBATCH --job-name=%(job_name)s
@@ -1401,7 +1415,6 @@ wait
 %(mem_per_node_setting)s
 #SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
 #SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
-%(set_env_for_jtm_host_name)s
 %(env_activation_cmd)s
 
 for i in {1..%(num_workers_per_node)d}
@@ -1413,6 +1426,7 @@ do
 -t %(wall_time)s \
 --clone_time_rate %(clone_time_rate)f %(task_queue)s \
 --num_worker_per_node %(num_workers_per_node)d \
+-m %(mem)s \
 %(other_params)s &
     sleep 1
 done
@@ -1428,9 +1442,9 @@ wait
                                                  mem_per_node_setting=mnode_param,
                                                  worker_id=UNIQ_WORKER_ID,
                                                  job_dir=job_script_dir_name,
-                                                 set_env_for_jtm_host_name=setenv_param,
                                                  env_activation_cmd=ENV_ACTIVATION,
                                                  num_workers_per_node=num_workers_per_node,
+                                                 mem=mem_per_node_to_request,
                                                  lbl_cluster_name=cluster_name,
                                                  worker_type=THIS_WORKER_TYPE,
                                                  clone_time_rate=worker_clone_time_rate,
@@ -1445,8 +1459,8 @@ wait
                 print(batch_job_script_str)
                 sys.exit(0)
 
-            _, _, ec = run_sh_command("sbatch --parsable %s"
-                                      % (batch_job_script_file), live=True, log=logger)
+            sbatch_cmd = "sbatch --parsable %s" % (batch_job_script_file)
+            _, _, ec = run_sh_command(sbatch_cmd, log=logger)
             assert ec == 0, "Failed to run 'jtm worker' to sbatch dynamic worker."
             return ec
 

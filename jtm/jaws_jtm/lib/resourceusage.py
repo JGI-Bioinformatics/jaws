@@ -12,7 +12,6 @@ import sys
 import time
 import subprocess
 import re
-import pprint
 import psutil
 
 from jaws_jtm.lib.run import eprint, run_sh_command
@@ -25,21 +24,24 @@ NUM_WORKER_PROCS = config.constants.NUM_WORKER_PROCS
 
 
 # -------------------------------------------------------------------------------
-def get_cpu_load(pid):
+def get_cpu_load(pid: int) -> float:
     """
     return cpu usage of process
     :param pid: process id for running "ps"
     :return:
     """
     ps_cmd = "ps h -o pcpu -p %d" % (pid)
-    cpu_load = 0
+    cpu_load = 0.0
 
     try:
         # ps_stdout_str = back_ticks(ps_cmd, shell=True)
-        ps_stdout_str, _, _ = run_sh_command(ps_cmd, live=True, log=logger, show_stdout=False)
+        ps_stdout_str, _, _ = run_sh_command(ps_cmd, log=logger, show_stdout=False)
         if sys.platform.lower() == "darwin":
             ps_stdout_str = ps_stdout_str.strip().split('\n')[1]
-        cpu_load = ps_stdout_str.strip()
+        cpu_load = float(ps_stdout_str.strip())
+    except ValueError as e:
+        eprint(e)
+        cpu_load = 0.0
     except subprocess.CalledProcessError as e:
         eprint("get_cpu_load(): %s" % e)
         raise
@@ -51,7 +53,7 @@ def get_cpu_load(pid):
 
 
 # -------------------------------------------------------------------------------
-def get_runtime(pid):
+def get_runtime(pid: int) -> int:
     """
     get the total runtime in sec for a given pid.
     :param pid: process id for procstat
@@ -63,7 +65,7 @@ def get_runtime(pid):
     proc_run_time = 0
 
     try:
-        boot_time, _, _ = run_sh_command(grep_cmd, live=True, log=logger, show_stdout=False)
+        boot_time, _, _ = run_sh_command(grep_cmd, log=logger, show_stdout=False)
     except subprocess.CalledProcessError as msg:
         logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
 
@@ -74,7 +76,7 @@ def get_runtime(pid):
 
     try:
         if os.path.exists(proc_stat_file):
-            msec_since_boot, _, _ = run_sh_command(cat_cmd, live=True, log=logger, show_stdout=False)
+            msec_since_boot, _, _ = run_sh_command(cat_cmd, log=logger, show_stdout=False)
         else:
             return 0
     except subprocess.CalledProcessError as msg:
@@ -104,7 +106,7 @@ def get_runtime(pid):
 
 
 # -------------------------------------------------------------------------------
-def _VmB(VmKey, pid):
+def _VmB(VmKey: str, pid: int) -> int:
     """
     get various mem usage properties of process with id pid in MB
     :param VmKey:
@@ -148,7 +150,7 @@ def _VmB(VmKey, pid):
 
 
 # -------------------------------------------------------------------------------
-def convert_scale(x):
+def convert_scale(x: int) -> str:
     """
     convert scale: convert 'x' to a string with B/KB/MB units
     :param x: integer or float
@@ -173,7 +175,7 @@ def convert_scale(x):
 
 
 # -------------------------------------------------------------------------------
-def get_virtual_memory_usage(pid, since=0.0, as_str=True):
+def get_virtual_memory_usage(pid: int, since=0.0, as_str=True):
     """
     Return memory usage in bytes or as formatted string.
     :param pid:
@@ -192,7 +194,7 @@ def get_virtual_memory_usage(pid, since=0.0, as_str=True):
         # NEW
         process = psutil.Process(pid)
         # print("vms: %d" % process.memory_info().vms)
-        return process.memory_info().vms  # in bytes
+        return process.memory_info().vms / 1024.0 / 1024.0  # in MB
     else:
         b = _VmB('VmSize:', pid) - since
         if as_str:
@@ -202,7 +204,7 @@ def get_virtual_memory_usage(pid, since=0.0, as_str=True):
 
 
 # -------------------------------------------------------------------------------
-def get_resident_memory_usage(pid, since=0.0, as_str=True):
+def get_resident_memory_usage(pid: int, since=0.0, as_str=True):
     """
     Return resident memory usage in bytes.
     :param pid:
@@ -224,7 +226,7 @@ def get_resident_memory_usage(pid, since=0.0, as_str=True):
         # NEW
         process = psutil.Process(pid)
         # print("rss: %d" % process.memory_info().rss)
-        return process.memory_info().rss  # in bytes
+        return process.memory_info().rss / 1024.0 / 1024.0  # in MB
     else:
         b = _VmB('VmRSS:', pid) - since
         if as_str:
@@ -234,7 +236,7 @@ def get_resident_memory_usage(pid, since=0.0, as_str=True):
 
 
 # -------------------------------------------------------------------------------
-def get_stacksize(pid, since=0.0, as_str=True):
+def get_stacksize(pid: int, since=0.0, as_str=True):
     """
     Return stack size in bytes.
     :param pid:
@@ -250,7 +252,7 @@ def get_stacksize(pid, since=0.0, as_str=True):
 
 
 # -------------------------------------------------------------------------------
-def get_pid_tree(pid):
+def get_pid_tree(pid: int) -> list:
     """
     get the process id tree from parentPid = root to leaf processes
     :param pid:
@@ -297,7 +299,7 @@ def get_pid_tree(pid):
 
 
 # -------------------------------------------------------------------------------
-def get_total_mem_usage_per_node():
+def get_total_mem_usage_per_node() -> float:
     """
     get % mem used per node
     :return:
@@ -306,7 +308,7 @@ def get_total_mem_usage_per_node():
     if sys.platform.lower() == "darwin":
         cmd = "top -l 1 | head -n 10 | grep PhysMem | sed 's/,//g'"
         try:
-            top_out, _, _ = run_sh_command(cmd, live=True, log=logger, show_stdout=False)
+            top_out, _, _ = run_sh_command(cmd, log=logger, show_stdout=False)
         except subprocess.CalledProcessError as msg:
             logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
             return -1
@@ -320,7 +322,7 @@ def get_total_mem_usage_per_node():
     else:  # linux
         cmd = "free"
         try:
-            free_output, _, _ = run_sh_command(cmd, live=True, log=logger, show_stdout=False)
+            free_output, _, _ = run_sh_command(cmd, log=logger, show_stdout=False)
         except subprocess.CalledProcessError as msg:
             logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
             return -1
@@ -334,9 +336,9 @@ def get_total_mem_usage_per_node():
 
 
 # -------------------------------------------------------------------------------
-def get_num_workers_on_node():
+def get_num_workers_on_node() -> int:
     """
-    get total number of workers on a given node
+    Get total number of workers on a given node
     :return:
 
     >>> get_num_workers_on_node()
@@ -346,7 +348,7 @@ def get_num_workers_on_node():
     ps_stdout_str = None
 
     try:
-        ps_stdout_str, _, _ = run_sh_command(cmd, live=True, log=logger, show_stdout=False)
+        ps_stdout_str, _, _ = run_sh_command(cmd, log=logger, show_stdout=False)
     except subprocess.CalledProcessError as msg:
         logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
         return -1
@@ -355,14 +357,16 @@ def get_num_workers_on_node():
 
 
 # -------------------------------------------------------------------------------
-def darwin_free():
+def darwin_free_mem() -> int:
     """
     mac os version free()
     :return:
     """
     # Get process info
-    ps = subprocess.Popen(['ps', '-caxm', '-orss,comm'], stdout=subprocess.PIPE).communicate()[0].decode()
-    vm = subprocess.Popen(['vm_stat'], stdout=subprocess.PIPE).communicate()[0].decode()
+    ps = subprocess.Popen(['ps', '-caxm', '-orss,comm'],
+                          stdout=subprocess.PIPE).communicate()[0].decode()
+    vm = subprocess.Popen(['vm_stat'],
+                          stdout=subprocess.PIPE).communicate()[0].decode()
 
     # Iterate processes
     ps_stdout_split_list = ps.split('\n')
@@ -384,21 +388,24 @@ def darwin_free():
     for row in range(1, len(vm_lines_list) - 2):
         row_text = vm_lines_list[row].strip()
         row_element = sep.split(row_text)
-        print(row_element)
+        # print(row_element)
         vm_stats_dict[(row_element[0])] = int(row_element[1].strip('.')) * 4096
 
-    pprint.pprint(vm_stats_dict)
-    print(('Wired Memory:\t\t%d MB' % (vm_stats_dict["Pages wired down"] / 1024 / 1024)))
-    print(('Active Memory:\t\t%d MB' % (vm_stats_dict["Pages active"] / 1024 / 1024)))
-    print(('Inactive Memory:\t%d MB' % (vm_stats_dict["Pages inactive"] / 1024 / 1024)))
-    print(('Free Memory:\t\t%d MB' % (vm_stats_dict["Pages free"] / 1024 / 1024)))
-    print(('Real Mem Total (ps):\t%.3f MB' % (rss_total / 1024 / 1024)))
+    # pprint.pprint(vm_stats_dict)
+    # print(('Wired Memory:\t\t%d MB' % (vm_stats_dict["Pages wired down"] / 1024 / 1024)))
+    # print(('Active Memory:\t\t%d MB' % (vm_stats_dict["Pages active"] / 1024 / 1024)))
+    # print(('Inactive Memory:\t%d MB' % (vm_stats_dict["Pages inactive"] / 1024 / 1024)))
+    # print(('Free Memory:\t\t%d MB' % (vm_stats_dict["Pages free"] / 1024 / 1024)))
+    # print(('Real Mem Total (ps):\t%.3f MB' % (rss_total / 1024 / 1024)))
+
+    # byte unit
+    return vm_stats_dict["Pages free"]
 
 
 # -------------------------------------------------------------------------------
-def mem_rss_usage_pid_darwin():
+def mem_rss_usage_pid_darwin() -> int:
     """
-    rss
+    Get memory size for rss
     :return:
     """
     process = psutil.Process(os.getpid())
@@ -406,10 +413,33 @@ def mem_rss_usage_pid_darwin():
 
 
 # -------------------------------------------------------------------------------
-def mem_vms_usage_pid_darwin():
+def mem_vms_usage_pid_darwin() -> int:
     """
-    vms
+    Get memory size for vms
     :return:
     """
     process = psutil.Process(os.getpid())
     return process.memory_info().vms  # in bytes
+
+
+# -------------------------------------------------------------------------------
+def get_free_memory() -> int:
+    """
+    Get free memory size for Linux
+    :return:
+    """
+    free_mem_bytes = 0
+    if sys.platform.lower() == "darwin":  # if mac os
+        free_mem_bytes = darwin_free_mem()
+    else:
+        with open('/proc/meminfo', 'r') as mem:
+            for line in mem:
+                sline = line.split()
+                # if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
+                #     free_memory += int(sline[1])
+                if str(sline[0]) == 'MemAvailable:':
+                    free_mem_bytes = int(sline[1]) * 1024.0  # Bytes
+                    break
+
+    # byte unit
+    return free_mem_bytes

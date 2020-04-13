@@ -1,5 +1,9 @@
 import configparser
 import os
+import sys
+
+from jaws_jtm.lib.run import eprint
+
 
 DEFAULT_CONFIG_FILE = 'jtm.ini'
 
@@ -8,7 +12,7 @@ DEFAULT_CONFIG_FILE = 'jtm.ini'
 # CONSTANTS
 # -------------------------------------------------------------------------------------------
 class JtmConstants():
-    VERSION = "5.7.0"
+    VERSION = "5.8.1"
 
     # Supported cluster
     # COMPUTE_RESOURCES = ["cori",
@@ -50,9 +54,10 @@ class JtmConstants():
                   "success with correct output file(s)": 2,
                   "failed to check output file(s)": -1,
                   "failed to run user command": -2,
-                  "failed with out-of-mem": -3,  # not used
+                  "failed with out-of-mem": -3,
                   "failed with user termination": -4,
-                  "failed with timeout": -6
+                  "failed with input file or command not found": -5,
+                  "failed with timeout": -6,
                   }
 
     WORKER_TYPE = {"manual": 0,
@@ -105,7 +110,7 @@ class JtmConstants():
     #             "condo_jgicloud"
     #             ]
 
-    DEFAULT_POOL = ["small", "medium", "large", "xlarge"]
+    DEFAULT_POOL_NAME = ["small", "medium", "large", "xlarge"]
     # Number of child processes for manager and worker
     NUM_MANAGER_PROCS = 7
     NUM_WORKER_PROCS = 6
@@ -125,7 +130,19 @@ class JtmConfig(object):
         self.constants = JtmConstants()
 
     def get_config_file(self):
-        return os.environ.get('JTM_CONFIG_FILE', DEFAULT_CONFIG_FILE)
+        found = None
+        if 'JTM_CONFIG_FILE' in os.environ:
+            found = os.environ.get('JTM_CONFIG_FILE')
+        else:
+            eprint("JTM_CONFIG_FILE is not defined. Checking current directory...")
+            if os.path.isfile(DEFAULT_CONFIG_FILE):
+                eprint("Found: %s" % DEFAULT_CONFIG_FILE)
+                found = DEFAULT_CONFIG_FILE
+            else:
+                eprint("JTM configuration file not found")
+                sys.exit(1)
+
+        return found
 
     def create_config(self, config_file=None):
         config_parser = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())

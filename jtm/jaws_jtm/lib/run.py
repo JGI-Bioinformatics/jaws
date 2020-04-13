@@ -210,13 +210,12 @@ def chmod(path, mode, opts="", dry_run=False):
 
 
 # -------------------------------------------------------------------------------
-def run_sh_command(
-    cmd, live=False, log=None, run_time=False, show_stdout=True, timeout_sec=0
-):
+def run_sh_command(cmd, live=True, log=None, run_time=False,
+                   show_stdout=True, timeout_sec=0):
     """
     Run a command, catch stdout and stderr and exit_code
     :param cmd:
-    :param live: live (boolean, default false - don't run the command but pretend we did)
+    :param live: live (boolean, default True - don't run the command but pretend we did)
     :param log:
     :param run_time: flag to print elapsed time as log
     :param show_stdout: flag to show stdout or not
@@ -232,7 +231,6 @@ def run_sh_command(
     start = 0
     end = 0
     elapsed_sec = 0
-    # job_id = -1
 
     if cmd:
         if not live:

@@ -179,6 +179,10 @@ JTM_SQL = {
         UPDATE runs
         SET status = %(status_id)d, enddate = '%(now)s'
         WHERE taskId = %(task_id)d;""",
+    "update_runs_status_cancelled_to_terminated_by_tid": """
+        UPDATE runs
+        SET status = %(status_id)d, enddate = '%(now)s', cancelled = 2
+        WHERE taskId = %(task_id)d;""",
     "update_runs_cancelled_by_tid": """
         UPDATE runs
         SET cancelled = 1, enddate = '%(now)s'
@@ -199,6 +203,10 @@ JTM_SQL = {
         SELECT taskId
         FROM runs
         WHERE cancelled = 1 AND workerId2 != 0 AND childPid != 0 AND status != -4;""",
+    "select_tids_runs_by_cancelled_and_wid2": """
+        SELECT taskId
+        FROM runs
+        WHERE cancelled = 1 AND workerId2 != 0 AND childPid != 0;""",
     "select_count_workers_by_poolname_enddate": """
         SELECT count(*)
         FROM workers
@@ -278,6 +286,10 @@ JTM_SQL = {
         SELECT DISTINCT(slurmJobId)
         FROM workers
         where workerType = 2 and slurmJobId > 1 and (lifeLeft > 0 or lifeLeft = -2) and poolName = '%(pool_name)s';""",
+    "select_all_jid_workers_by_poolname": """
+        SELECT DISTINCT(slurmJobId)
+        FROM workers
+        where slurmJobId > 1 and poolName = '%(pool_name)s';""",
     "select_slurmjid_workers_by_lifeleft": """
         select DISTINCT(slurmJobId)
         from workers
@@ -286,5 +298,11 @@ JTM_SQL = {
     "update_workers_lifeleft_by_slurmjid": """
         update workers
         set lifeLeft = -1, endDate = '%(now)s'
-        where slurmJobId = %(slurm_jid)d""",
+        where slurmJobId = %(slurm_jid)d;""",
+    "delete_from_workers_by_poolname": """
+        delete from workers
+        where poolName = '%(pool_name)s';""",
+    "delete_from_workers_by_slurmjid": """
+        delete from workers
+        where slurmJobId = %(slurm_jid)d;""",
 }
