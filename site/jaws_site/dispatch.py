@@ -1,5 +1,4 @@
 """
-                20180215.DECKv1b_abrupt4xCO2.ne30_oEC.edison_01_000101_015001_climo.nc
 RPC functions.  Most of these simply wrap the localhost Cromwell REST functions.
 """
 
@@ -7,15 +6,7 @@ import requests
 from http.client import responses
 import logging
 import os
-
-from jaws_site.config import jaws_config
-
-
-logger = logging.getLogger(__package__)
-
-
-CROMWELL_ENGINE_STATUS_URL = jaws_config.get("CROMWELL", "engine_status_url")
-WORKFLOWS_URL = jaws_config.get("CROMWELL", "workflows_url")
+from jaws_site import config
 
 
 def dispatch(method, params):
@@ -84,8 +75,10 @@ def do_request(url, method):
         res = method(url)
     except requests.exceptions.RequestException:
         msg = "Cromwell server timeout"
+        logger = logging.getLogger(__package__)
         logger.warning(msg)
-        return failure(503, msg)
+        res = requests.Response()
+        res.status_code = 503
     return res
 
 
@@ -96,7 +89,7 @@ def server_status(params):
     if Cromwell up or not.
     :rtype: dict
     """
-    response = do_request(CROMWELL_ENGINE_STATUS_URL, requests.get)
+    response = do_request(config.conf.get("CROMWELL", "engine_status_url"), requests.get)
     if response.status_code != requests.codes.ok:
         return failure(response.status_code)
     response = {"Cromwell": "UP"}
@@ -111,9 +104,9 @@ def run_metadata(params):
     :return: The Cromwell metadata for the specified run.
     :rtype: dict
     """
-
-    url = f"{WORKFLOWS_URL}/{params['cromwell_id']}/metadata"
-
+    if "cromwell_id" not in params:
+        return failure(400, "cromwell_id not in params")
+    url = f"{config.conf.get('CROMWELL', 'workflows_url')}/{params['cromwell_id']}/metadata"
     r = do_request(url, requests.get)
     if r.status_code != requests.codes.ok:
         return failure(r.status_code)
@@ -141,7 +134,9 @@ def task_status(params):
     :return: A list of task:status tuples, ordered by start time.
     :rtype: list
     """
-    url = f"{WORKFLOWS_URL}/{params['cromwell_id']}/metadata"
+    if "cromwell_id" not in params:
+        return failure(400, "cromwell_id not in params")
+    url = f"{config.conf.get('CROMWELL', 'workflows_url')}/{params['cromwell_id']}/metadata"
     r = do_request(url, requests.get)
     if r.status_code != requests.codes.ok:
         return failure(r.status_code)
@@ -175,7 +170,9 @@ def task_ids(params):
     only the last is included.
     :rtype: list
     """
-    url = f"{WORKFLOWS_URL}/{params['cromwell_id']}/metadata"
+    if "cromwell_id" not in params:
+        return failure(400, "cromwell_id not in params")
+    url = f"{config.conf.get('CROMWELL', 'workflows_url')}/{params['cromwell_id']}/metadata"
 
     r = do_request(url, requests.get)
 
@@ -196,7 +193,9 @@ def cancel_run(params):
     if the run could be cancelled or not.
     :rtype: dict
     """
-    url = f"{WORKFLOWS_URL}/{params['cromwell_id']}/abort"
+    if "cromwell_id" not in params:
+        return failure(400, "cromwell_id not in params")
+    url = f"{config.conf.get('CROMWELL', 'workflows_url')}/{params['cromwell_id']}/abort"
     r = do_request(url, requests.post)
     if r.status_code != requests.codes.ok:
         return failure(r.status_code)
@@ -209,11 +208,14 @@ def run_logs(params):
     """
     Retrieve the Cromwell logs for a run.
     """
-    url = f'{WORKFLOWS_URL}/{params["cromwell_id"]}/logs'
+    if "cromwell_id" not in params:
+        return failure(400, "cromwell_id not in params")
+    url = f"{config.conf.get('CROMWELL', 'workflows_url')}/{params['cromwell_id']}/logs"
 
     try:
         r = requests.get(url)
     except requests.exceptions.RequestException:
+        logger = logging.getLogger(__package__)
         logger.warning("Cromwell server timeout")
         return failure(500, "Cromwell server timeout")
     if r.status_code != requests.codes.ok:
@@ -278,7 +280,9 @@ def failure_logs(params):
     Concatenate stdout, stderr files of any failed tasks.
     """
     # GET RUN FOLDER
-    url = f'{WORKFLOWS_URL}/{params["cromwell_id"]}/metadata'
+    if "cromwell_id" not in params:
+        return failure(400, "cromwell_id not in params")
+    url = f"{config.conf.get('CROMWELL', 'workflows_url')}/{params['cromwell_id']}/metadata"
     r = do_request(url, requests.get)
 
     if r.status_code != requests.codes.ok:

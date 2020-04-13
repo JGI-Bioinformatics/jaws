@@ -53,7 +53,6 @@ class Workflow(Base):
     """A workflow in the Catalog is comprised of WDL and MD files.
     Once marked as "released", a workflow cannot be changed or deleted, only deprecated.
     """
-
     __tablename__ = "workflows"
     id = Column(Integer, primary_key=True)
     name = Column(String(32), nullable=False)

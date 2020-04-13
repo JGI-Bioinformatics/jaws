@@ -45,7 +45,9 @@ class JawsConfig(metaclass=Singleton):
         required_sections = ("DB", "GLOBUS")
         for section in required_sections:
             if section not in self.config:
-                error_msg = f'Config file, {config_file}, missing required "{section}" section'
+                error_msg = (
+                    f'Config file, {config_file}, missing required "{section}" section'
+                )
                 logger.warn(error_msg)
                 raise ConfigurationError(error_msg)
         global conf

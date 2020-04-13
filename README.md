@@ -12,10 +12,9 @@ See docs/startingServices.md
 ## Contributing
 * Nicole Free <nlfree@lbl.gov>
 * Jeff Froula <jlfroula@lbl.gov>  
-* Ed Kirton <eskirton@lbl.gov>  
+* Edward Kirton <eskirton@lbl.gov>  
 * Mario Melara <mamelara@lbl.gov>  
 * Georg Rath <gbrath@lbl.gov>  
 * Hugh Salamon <hsalamon@lbl.gov> 
 * Seung-Jin Sul <ssul@lbl.gov>   
 * Stephan Trong <strong@lbl.gov>  
-

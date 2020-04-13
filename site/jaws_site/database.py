@@ -10,16 +10,16 @@ import jaws_site.utils
 db = None
 
 
-class JawsDb(metaclass=jaws_site.utils.Singleton):
+class Database(metaclass=jaws_site.utils.Singleton):
     """Database singleton class"""
     engine = None
 
     def __init__(self, conf):
         """Constructor
 
-        :param conf: An initialized JawsConfig object
+        :param conf: An initialized Configuration object
         :type conf: obj
-        :return: JawsDb singleton object
+        :return: Database singleton object
         :rtype: obj
         """
         logger = logging.getLogger(__package__)

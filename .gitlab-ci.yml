@@ -1,8 +1,7 @@
 stages:
   - unit-test
   - package
-  - deploy-cluster
-  - deploy-jaws-site
+  - deploy-jaws
   - integration-test
   - .post
 
@@ -72,35 +71,33 @@ package:
       - jtm/dist
 
 ## integration tests - only run on merge request
-deploy-cluster:
-  stage: deploy-cluster
-  script: ./test/integration/deploy-cluster
-  cache:
-    paths:
-      - venv/
-  only:
-  - merge_requests
-
-deploy-jaws-site:
-  stage: deploy-jaws-site
+deploy-jaws-cori:
+  stage: deploy-jaws
+  tags:
+    - cori
   script:
-    - ./test/integration/on-site
-  dependencies:
-    - package
-  cache:
-    paths:
-      - venv/
+    ## configs first, to be able to talk to supervisord
+    - test -d /tmp/jaws-dev/ || mkdir /tmp/jaws-dev/
+    - test -d /tmp/jaws-dev/configs || mkdir /tmp/jaws-dev/configs
+    - test -d /tmp/jaws-dev/logs || mkdir /tmp/jaws-dev/logs && test -d /tmp/jaws-dev/logs/jtm || mkdir /tmp/jaws-dev/logs/jtm && chgrp jaws_jtm /tmp/jaws-dev/logs/jtm && chmod 770 /tmp/jaws-dev/logs/jtm
+    - chgrp jaws_jtm /tmp/jaws-dev/ 
+    - ./test/integration/cori/generate-configs /tmp/jaws-dev/configs/
+    - chmod 700 /tmp/jaws-dev/configs/*
+    - chgrp jaws_jtm /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 770 /tmp/jaws-dev/configs/jaws-jtm.conf
+    - chgrp jaws_jtm /tmp/jaws-dev/configs/cromwell.conf && chmod 770 /tmp/jaws-dev/configs/cromwell.conf
+    - ./test/integration/cori/deploy-supervisord /tmp/jaws-supervisord/ /tmp/jaws-dev/
+    - chgrp jaws_jtm /tmp/jaws-supervisord/ && chgrp -R jaws_jtm /tmp/jaws-supervisord/{bin,venv}
+    - ./test/integration/cori/generate-shims /tmp/jaws-dev/ 
+    - module load python
+    - make pkg
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
+    - python3 -m venv /tmp/jaws-dev/client  && . /tmp/jaws-dev/client/bin/activate  && pip install client/dist/*  && deactivate
+    - python3 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate    && pip install site/dist/*    && deactivate
+    - python3 -m venv /tmp/jaws-dev/central && . /tmp/jaws-dev/central/bin/activate && pip install central/dist/* && deactivate
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start jaws-dev:*
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf stop jaws-dev:*
+    - python3 -m venv /tmp/jaws-dev/jtm     && . /tmp/jaws-dev/jtm/bin/activate     && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-dev/jtm
+    - cp /global/cfs/projectdirs/jaws/cromwell/cromwell.jar /tmp/jaws-dev/cromwell.jar && chgrp jaws_jtm /tmp/jaws-dev/cromwell.jar
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf start jaws-dev:*
   only:
-  - merge_requests
-
-destroy-cluster:
-  stage: .post
-  script: ./test/integration/destroy-cluster
-  when: always
-  dependencies:
-    - deploy-cluster
-  cache:
-    paths:
-      - venv/
-  only:
-  - merge_requests
+  - dev
