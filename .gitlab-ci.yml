@@ -25,7 +25,6 @@ test-site:
     - pip install flake8
     - pip install pytest
     - make test-site
-  allow_failure: true
 test-central:
   <<: *only-default
   stage: unit-test
@@ -36,7 +35,6 @@ test-central:
     - pip install flake8
     - pip install pytest
     - make test-central
-  allow_failure: true
 test-client:
   <<: *only-default
   stage: unit-test
@@ -47,7 +45,6 @@ test-client:
     - pip install flake8
     - pip install pytest
     - make test-client
-  allow_failure: true
 test-jtm:
   <<: *only-default
   stage: unit-test
@@ -57,7 +54,6 @@ test-jtm:
     - pip install flake8
     - pip install pytest
     - make test-jtm
-  allow_failure: true
 package:
   <<: *only-default
   stage: package
