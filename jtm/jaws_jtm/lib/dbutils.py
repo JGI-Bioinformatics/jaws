@@ -7,6 +7,8 @@ import atexit
 import time
 
 from jaws_jtm.config import JtmConfig
+from jaws_jtm.common import logger
+
 config = JtmConfig()
 MYSQL_HOST = config.configparser.get("MYSQL", "host")
 MYSQL_USER = config.configparser.get("MYSQL", "user")
@@ -149,7 +151,9 @@ class DbSql(object):
             watch()
             curs.close()
 
-    def execute(self, sql, ifDialect=None, **kw):
+    def execute(self, sql, ifDialect=None, debug=False, **kw):
+        if debug:
+            logger.debug("SQL: {}".format(sql))
         if self.dialectMatch(ifDialect):
             curs = self.cursor()
             watch = SqlWatch(sql, self.debug)
@@ -199,41 +203,49 @@ class DbSql(object):
     def executeAndAssertZero(self, sql, message=None, **kw):
         self.executeAndAssert(sql, ((0,),), message=message, **kw)
 
-    def selectAll(self, sql, **kw):
+    def selectAll(self, sql, debug=False, **kw):
         """
         Convenience method that does for select statement and execute+fetchall in one step.
         Use for statements with small result set.
         @param sql SQL SELECT statement
         @return result of cursor.fetchall (sequence of tuples)
         """
+        if debug:
+            logger.debug("SQL: {}".format(sql))
         curs = self.execute(sql, **kw)
         ret = curs.fetchall()
         curs.close()
         return ret
 
-    def selectScalar(self, sql, **kw):
+    def selectScalar(self, sql, debug=False, **kw):
         """
         Execute sql that must return a single row with a single column and return result as scalar value.
         """
+        if debug:
+            logger.debug("SQL: {}".format(sql))
         ret = self.selectAll(sql=sql, **kw)
         assert len(ret) == 1 and len(ret[0]) == 1, "Non-scalar value obtained in 'selectScalar()'"
         ret = ret[0][0]
         return ret
 
-    def selectAsNx1Dict(self, sql, **kw):
+    def selectAsNx1Dict(self, sql, debug=False, **kw):
         """
         Execute sql that must return two columns with Nx1 relation and return result as dict(first->second).
         """
+        if debug:
+            logger.debug("SQL: {}".format(sql))
         ret = self.selectAll(sql=sql, **kw)
         assert len(ret) == 0 or len(ret[0]) == 2, "Result set must be two columns"
         dret = dict(ret)
         assert len(ret) == len(dret), "Result set must be Nx1 relation. Multi-valued keys were found."
         return dret
 
-    def selectAs1Col(self, sql, **kw):
+    def selectAs1Col(self, sql, debug=False, **kw):
         """
         Execute sql that must return one column and return result as 1D sequence.
         """
+        if debug:
+            logger.debug("SQL: {}".format(sql))
         ret = self.selectAll(sql=sql, **kw)
         assert len(ret) == 0 or len(ret[0]) == 1, "Result set must have one column"
         return [row[0] for row in ret]
@@ -424,7 +436,7 @@ class DbSqlLite(DbSql):
             self.ddl(sql)
 
 
-class DbSqlMy(DbSql):
+class DbSqlMysql(DbSql):
     """
     Derivative of DbSql specific for MySQL DB engine
     """

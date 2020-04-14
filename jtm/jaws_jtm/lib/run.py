@@ -106,7 +106,7 @@ def make_dir(path, dry_run=False):
             finally:
                 os.umask(original_umask)
     else:
-        print(("make_dir %s" % (path,)))
+        print("make_dir %s" % (path,))
 
     return 0
 

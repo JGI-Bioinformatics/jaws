@@ -272,11 +272,11 @@ def get_pid_tree(pid: int) -> list:
         # Todo
         try:
             child_pid_list.extend([p.pid for p in psutil.Process(pid).children(recursive=True)])
-        except psutil.NoSuchProcess:
-            logger.exception("Failed to call psutil.Process(). Process id is not exist.")
+        except (psutil.NoSuchProcess, ProcessLookupError):
+            logger.warning("Failed to call psutil.Process(). Process id is not exist.")
         except Exception as psutil_error:
-            logger.exception(psutil_error)
-            # raise
+            logger.warning(psutil_error)
+
     else:
         cmd = "ps -o pid --ppid %d --noheaders" % pid
         child_pid_list.append(pid)
@@ -289,11 +289,10 @@ def get_pid_tree(pid: int) -> list:
 
             child_pid_list.extend([int(pidStr) for pidStr in ps_stdout_str.split("\n")[:-1]])
         except subprocess.CalledProcessError as msg:
-            logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
+            logger.warning("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
             child_pid_list = []
         except Exception as ps_error:
-            logger.exception(ps_error)
-            # raise
+            logger.warning(ps_error)
 
     return child_pid_list
 
