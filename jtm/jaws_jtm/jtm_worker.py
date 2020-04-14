@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+# pylint: disable=C0111,C0103,R0205
 # -*- coding: utf-8 -*-
 # Seung-Jin Sul (ssul@lbl.gov)
 
@@ -138,7 +139,7 @@ from jaws_jtm.lib.resourceusage import get_cpu_load, \
 from jaws_jtm.lib.run import make_dir, run_sh_command
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 
-# This ipc pipe is to send task_id (by on_request())to send_hb_to_client_proc()
+# This ipc pipe is to send task_id (by do_work())to send_hb_to_client_proc()
 # when a task is requested
 PIPE_TASK_ID_SEND, PIPE_TASK_ID_RECV = mp.Pipe()
 
@@ -155,6 +156,7 @@ IS_CLIENT_ALIVE = False
 WORKER_START_TIME = datetime.datetime.now()
 PARENT_PROCESS_ID = os.getpid()  # parent process id
 THIS_WORKER_TYPE = None
+# MEM_LIMIT_PER_WORKER_BYTES = 0
 
 config = JtmConfig()
 WORKER_TYPE = config.constants.WORKER_TYPE
@@ -360,7 +362,7 @@ def ack_message(ch, delivery_tag):
 
 
 # -------------------------------------------------------------------------------
-def on_request(ch, method, props, body):
+def do_work(ch, method, props, body):
     """
     A callback function whenever a message is received.
     :param ch: channel
@@ -402,7 +404,7 @@ def on_request(ch, method, props, body):
 
     # NEW
     # Note: to fix connection lost
-    # ex) 2019-06-10 12:13:37,917 | jtm-worker | on_request | CRITICAL : Something wrong in on_request():
+    # ex) 2019-06-10 12:13:37,917 | jtm-worker | do_work | CRITICAL : Something wrong in do_work():
     # Stream connection lost: error(104, 'Connection reset by peer')
     #
     # https://stackoverflow.com/questions/14572020/handling-long-running-tasks-in-pika-rabbitmq
@@ -440,9 +442,8 @@ def on_request(ch, method, props, body):
         #  If this worker crashes while running a user command, this task will
         #  be sent to other workers available
         ch.basic_ack(delivery_tag=method.delivery_tag)
-
     except Exception as e:
-        logger.critical("Something wrong in on_request(): %s", e)
+        logger.critical("Something wrong in do_work(): %s", e)
         raise
 
     # Send taskid=0 to send_hb_to_client_proc() b/c the requested task is completed
@@ -1092,9 +1093,9 @@ def worker(heartbeat_interval_param: int, custom_log_dir: str, custom_job_log_di
     assert num_cpus_to_request
 
     # Set CPU affinity for limiting the number of cores to use
-    if worker_type_param != "manual" and worker_id_param.find('_') != -1:
+    if worker_type_param != "manual" and worker_id_param and worker_id_param.find('_') != -1:
         # ex)
-        # total_cpu_num = 32, num_workers_per_node = 4
+        # total_cpu_num = 32, num_workers_per_node_param = 4
         # split_cpu_num = 8
         # worker_number - 1 == 0 --> [0, 1, 2, 3, 4, 5, 6, 7]
         # worker_number - 1 == 1 --> [8, 9, 10, 11, 12, 13, 14, 15]
@@ -1531,6 +1532,11 @@ wait
         if check_processes_hdl:
             check_processes_hdl.terminate()
 
+    def conn_clean():
+        ch.stop_consuming()
+        ch.close()
+        conn.close()
+
     # Start task termination thread
     task_kill_proc_hdl = mp.Process(target=recv_task_kill_request_proc)
     task_kill_proc_hdl.daemon = True
@@ -1558,9 +1564,7 @@ wait
     except Exception as e:
         logger.exception("send_hb_to_client_proc: {}".format(e))
         proc_clean()
-        ch.stop_consuming()
-        ch.close()
-        conn.close()
+        conn_clean()
         sys.exit(1)
 
     pid_list.append(recv_hb_from_client_proc_hdl.pid)
@@ -1595,9 +1599,7 @@ wait
     except OSError as e:
         logger.exception("Worker termination request: {}".format(e))
         proc_clean()
-        ch.stop_consuming()
-        ch.close()
-        conn.close()
+        conn_clean()
         sys.exit(1)
 
     pid_list.append(send_hb_to_client_proc_hdl.pid)
@@ -1611,9 +1613,7 @@ wait
     except OSError as e:
         logger.exception("check_processes: {}".format(e))
         proc_clean()
-        ch.stop_consuming()
-        ch.close()
-        conn.close()
+        conn_clean()
         sys.exit(1)
 
     if worker_timeout_in_sec != 0:
@@ -1622,21 +1622,22 @@ wait
 
     # Waiting for request
     ch.basic_qos(prefetch_count=1)
+
+    # OLD
     try:
         ch.basic_consume(queue=inner_task_request_queue,
-                         on_message_callback=on_request,
+                         on_message_callback=do_work,
                          auto_ack=False)
     except OSError as err:
         logger.exception("Worker terminated: {}".format(err))
         proc_clean()
-        ch.stop_consuming()
-        ch.close()
-        conn.close()
+        conn_clean()
         sys.exit(1)
 
     # NEW
     # Ref) https://github.com/pika/pika/blob/1.0.1/examples/basic_consumer_threaded.py
     #      https://stackoverflow.com/questions/51752890/how-to-disable-heartbeats-with-pika-and-rabbitmq
+    #      https://github.com/pika/pika/blob/master/examples/basic_consumer_threaded.py
     # threads = []
     # on_message_callback = functools.partial(on_task_request, args=(conn, threads))
     # ch.basic_consume(queue=inner_task_request_queue,
@@ -1646,17 +1647,13 @@ wait
         ch.start_consuming()
     except KeyboardInterrupt:
         proc_clean()
-        ch.stop_consuming()
-        ch.close()
-        conn.close()
+        conn_clean()
 
     # Wait for all to complete
     # Note: prefetch_count=1 ==> #thread = 1
     # for thread in threads:
     #     thread.join()
 
-    if ch:
-        ch.close()
     if conn:
         conn.close()
 

@@ -197,7 +197,7 @@ def worker(heartbeat_interval: int, log_dir: str, job_script_dir_name: str, pool
               help="Slurm number of cores",
               type=int)
 @click.option("-C", "--constraint",
-              help="Slurm architecture constraint",
+              help="Set the architecture for SLURM request",
               default=CONSTRAINT)
 @click.option("--debug", is_flag=True, default=False)
 @click.option("-jid", "--cromwell_job_id",
@@ -216,10 +216,10 @@ def worker(heartbeat_interval: int, log_dir: str, job_script_dir_name: str, pool
               type=int,
               default=NWORKERS_PER_NODE)
 @click.option("-p", "--pool_name",
-              help="User worker pool name",
+              help="User pool name",
               required=True)
 @click.option("-q", "--qos",
-              help="Slurm QOS",
+              help="Set the QOS for SLURM request",
               default=QOS,
               required=True)
 @click.option("-s", "--shared",
