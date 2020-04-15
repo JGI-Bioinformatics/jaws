@@ -1103,7 +1103,8 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     logger.info("Unique worker ID: %s", UNIQ_WORKER_ID)
     logger.info("\n*****************\nRun mode is %s\n*****************"
                 % ("PROD" if PRODUCTION else "DEV"))
-    logger.debug("env activation: %s", ENV_ACTIVATION)
+    logger.info("env activation: %s", ENV_ACTIVATION)
+    logger.info("JTM config file: %s" % (config.config_file))
 
     # Slurm config
     num_nodes_to_request = 0
@@ -1375,10 +1376,11 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
 
 module unload python
 %(env_activation_cmd)s
+%(export_jtm_config_file)s
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
-    jtm worker %(debug)s --slurm_job_id $SLURM_JOB_ID \
+    jtm %(set_jtm_config_file)s worker %(debug)s --slurm_job_id $SLURM_JOB_ID \
 -cl cori \
 -wt %(worker_type)s \
 -t %(wall_time)s \
@@ -1404,7 +1406,11 @@ wait
                                                      constraint=constraint,
                                                      mem=mem_per_node_to_request,
                                                      job_name=job_name,
-                                                     exclusive=excl_param)
+                                                     exclusive=excl_param,
+                                                     export_jtm_config_file="export JTM_CONFIG_FILE=%s"
+                                                                            % config.config_file if config else "",
+                                                     set_jtm_config_file="--config=%s"
+                                                                         % config.config_file if config else "")
 
                 elif cluster_name in ("lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster", "lbl"):
 
@@ -1447,12 +1453,13 @@ wait
 %(mem_per_node_setting)s
 #SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
 #SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
-%(env_activation_cmd)s
 
+%(env_activation_cmd)s
+%(export_jtm_config_file)s
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
-    jtm worker %(debug)s --slurm_job_id $SLURM_JOB_ID \
+    jtm %(set_jtm_config_file)s worker %(debug)s --slurm_job_id $SLURM_JOB_ID \
 -cl %(lbl_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
@@ -1481,7 +1488,11 @@ wait
                                                  worker_type=THIS_WORKER_TYPE,
                                                  clone_time_rate=worker_clone_time_rate,
                                                  task_queue=tp_param,
-                                                 other_params=batch_job_misc_params)
+                                                 other_params=batch_job_misc_params,
+                                                 export_jtm_config_file="export JTM_CONFIG_FILE=%s"
+                                                                        % config.config_file if config else "",
+                                                 set_jtm_config_file="--config=%s"
+                                                                     % config.config_file if config else "")
 
                 jf.writelines(batch_job_script_str)
 

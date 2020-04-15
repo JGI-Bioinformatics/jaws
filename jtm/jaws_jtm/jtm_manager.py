@@ -1143,7 +1143,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             b_failed_to_request_worker = False
             # NOTE: User can request only "dynamic" workers from WDL.
             uniq_worker_id = str(shortuuid.uuid())
-            sbatch_cmd_str = """{}jtm worker \
+            sbatch_cmd_str = """{}jtm {} worker \
                 -wt dynamic \
                 -p {} \
                 -cl {} \
@@ -1154,6 +1154,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                 -nwpn {} \
                 --qos {} \
                 -A {}""".format("%s && " % ENV_ACTIVATION if ENV_ACTIVATION else "",
+                                "--config=%s" % CONFIG.config_file if CONFIG else "",
                                 pool_name,
                                 pool_cluster,
                                 pool_ncpus,
@@ -2031,86 +2032,87 @@ def manager(ctx: object,
             custom_log_dir_name: str,
             b_resource_usage_log_on: bool) -> int:
 
-    config = ctx.obj['config']
+    global CONFIG
+    CONFIG = ctx.obj['config']
     debug = ctx.obj['debug']
     global DEBUG
     DEBUG = debug
     global TASK_STATUS
-    TASK_STATUS = config.constants.TASK_STATUS
-    VERSION = config.constants.VERSION
+    TASK_STATUS = CONFIG.constants.TASK_STATUS
+    VERSION = CONFIG.constants.VERSION
     global TASK_TYPE
-    TASK_TYPE = config.constants.TASK_TYPE
+    TASK_TYPE = CONFIG.constants.TASK_TYPE
     global WORKER_TYPE
-    WORKER_TYPE = config.constants.WORKER_TYPE
+    WORKER_TYPE = CONFIG.constants.WORKER_TYPE
     global DONE_FLAGS
-    DONE_FLAGS = config.constants.DONE_FLAGS
+    DONE_FLAGS = CONFIG.constants.DONE_FLAGS
     global HB_MSG
-    HB_MSG = config.constants.HB_MSG
+    HB_MSG = CONFIG.constants.HB_MSG
     global NUM_MANAGER_PROCS
-    NUM_MANAGER_PROCS = config.constants.NUM_MANAGER_PROCS
+    NUM_MANAGER_PROCS = CONFIG.constants.NUM_MANAGER_PROCS
     global PARENT_PROCESS_ID
     PARENT_PROCESS_ID = os.getpid()  # parent process id
 
-    MYSQL_HOST = config.configparser.get("MYSQL", "host")
-    MYSQL_USER = config.configparser.get("MYSQL", "user")
-    MYSQL_PORT = config.configparser.getint("MYSQL", "port")
+    MYSQL_HOST = CONFIG.configparser.get("MYSQL", "host")
+    MYSQL_USER = CONFIG.configparser.get("MYSQL", "user")
+    MYSQL_PORT = CONFIG.configparser.getint("MYSQL", "port")
     global MYSQL_DB
-    MYSQL_DB = config.configparser.get("MYSQL", "db")
+    MYSQL_DB = CONFIG.configparser.get("MYSQL", "db")
     global JTM_INNER_MAIN_EXCH
-    JTM_INNER_MAIN_EXCH = config.configparser.get("JTM", "jtm_inner_main_exch")
+    JTM_INNER_MAIN_EXCH = CONFIG.configparser.get("JTM", "jtm_inner_main_exch")
     global CNAME
-    CNAME = config.configparser.get("SITE", "instance_name")
+    CNAME = CONFIG.configparser.get("SITE", "instance_name")
     global JTM_TASK_RESULT_Q
-    JTM_TASK_RESULT_Q = config.configparser.get("JTM", "jtm_task_result_q")
+    JTM_TASK_RESULT_Q = CONFIG.configparser.get("JTM", "jtm_task_result_q")
     global JTM_TASK_REQUEST_Q
-    JTM_TASK_REQUEST_Q = config.configparser.get("JTM", "jtm_task_request_q")
+    JTM_TASK_REQUEST_Q = CONFIG.configparser.get("JTM", "jtm_task_request_q")
     global JGI_JTM_MAIN_EXCH
-    JGI_JTM_MAIN_EXCH = config.configparser.get("JTM", "jgi_jtm_main_exch")
+    JGI_JTM_MAIN_EXCH = CONFIG.configparser.get("JTM", "jgi_jtm_main_exch")
     global JTM_INNER_REQUEST_Q
-    JTM_INNER_REQUEST_Q = config.configparser.get("JTM", "jtm_inner_request_q")
+    JTM_INNER_REQUEST_Q = CONFIG.configparser.get("JTM", "jtm_inner_request_q")
     global JTM_INNER_RESULT_Q
-    JTM_INNER_RESULT_Q = config.configparser.get("JTM", "jtm_inner_result_q")
+    JTM_INNER_RESULT_Q = CONFIG.configparser.get("JTM", "jtm_inner_result_q")
     global WORKER_HB_RECV_INTERVAL
-    WORKER_HB_RECV_INTERVAL = config.configparser.getfloat("JTM", "worker_hb_recv_interval")
+    WORKER_HB_RECV_INTERVAL = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
     global JTM_WORKER_POISON_EXCH
-    JTM_WORKER_POISON_EXCH = config.configparser.get("JTM", "jtm_worker_poison_exch")
+    JTM_WORKER_POISON_EXCH = CONFIG.configparser.get("JTM", "jtm_worker_poison_exch")
     global JTM_WORKER_POISON_Q
-    JTM_WORKER_POISON_Q = config.configparser.get("JTM", "jtm_worker_poison_q")
+    JTM_WORKER_POISON_Q = CONFIG.configparser.get("JTM", "jtm_worker_poison_q")
     global JTM_TASK_KILL_EXCH
-    JTM_TASK_KILL_EXCH = config.configparser.get("JTM", "jtm_task_kill_exch")
+    JTM_TASK_KILL_EXCH = CONFIG.configparser.get("JTM", "jtm_task_kill_exch")
     global JTM_TASK_KILL_Q
-    JTM_TASK_KILL_Q = config.configparser.get("JTM", "jtm_task_kill_q")
+    JTM_TASK_KILL_Q = CONFIG.configparser.get("JTM", "jtm_task_kill_q")
     global TASK_STAT_UPDATE_INTERVAL
-    TASK_STAT_UPDATE_INTERVAL = config.configparser.getfloat("JTM", "task_stat_update_interval")
+    TASK_STAT_UPDATE_INTERVAL = CONFIG.configparser.getfloat("JTM", "task_stat_update_interval")
     global JTM_CLIENT_HB_EXCH
-    JTM_CLIENT_HB_EXCH = config.configparser.get("JTM", "jtm_client_hb_exch")
+    JTM_CLIENT_HB_EXCH = CONFIG.configparser.get("JTM", "jtm_client_hb_exch")
     global JTM_WORKER_HB_EXCH
-    JTM_WORKER_HB_EXCH = config.configparser.get("JTM", "jtm_worker_hb_exch")
+    JTM_WORKER_HB_EXCH = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
     global WORKER_KILL_INTERVAL
-    WORKER_KILL_INTERVAL = config.configparser.getfloat("JTM", "worker_kill_interval")
+    WORKER_KILL_INTERVAL = CONFIG.configparser.getfloat("JTM", "worker_kill_interval")
     global TASK_KILL_INTERVAL
-    TASK_KILL_INTERVAL = config.configparser.getfloat("JTM", "task_kill_interval")
+    TASK_KILL_INTERVAL = CONFIG.configparser.getfloat("JTM", "task_kill_interval")
     global CLIENT_HB_SEND_INTERVAL
-    CLIENT_HB_SEND_INTERVAL = config.configparser.getfloat("JTM", "client_hb_send_interval")
+    CLIENT_HB_SEND_INTERVAL = CONFIG.configparser.getfloat("JTM", "client_hb_send_interval")
     global NUM_RESULT_RECV_THREADS
-    NUM_RESULT_RECV_THREADS = config.configparser.getint("JTM", "num_result_recv_threads")
+    NUM_RESULT_RECV_THREADS = CONFIG.configparser.getint("JTM", "num_result_recv_threads")
     global NUM_PROCS_CHECK_INTERVAL
-    NUM_PROCS_CHECK_INTERVAL = config.configparser.getfloat("JTM", "num_procs_check_interval")
+    NUM_PROCS_CHECK_INTERVAL = CONFIG.configparser.getfloat("JTM", "num_procs_check_interval")
     global ENV_ACTIVATION
-    ENV_ACTIVATION = config.configparser.get("JTM", "env_activation")
+    ENV_ACTIVATION = CONFIG.configparser.get("JTM", "env_activation")
     global RESULT_RECEIVE_INTERVAL
-    RESULT_RECEIVE_INTERVAL = config.configparser.getfloat("JTM", "result_receive_interval")
+    RESULT_RECEIVE_INTERVAL = CONFIG.configparser.getfloat("JTM", "result_receive_interval")
     global RUNS_INFO_UPDATE_WAIT
-    RUNS_INFO_UPDATE_WAIT = config.configparser.getfloat("JTM", "runs_info_update_wait")
+    RUNS_INFO_UPDATE_WAIT = CONFIG.configparser.getfloat("JTM", "runs_info_update_wait")
     global WORKER_INFO_UPDATE_WAIT
-    WORKER_INFO_UPDATE_WAIT = config.configparser.getfloat("JTM", "worker_info_update_wait")
+    WORKER_INFO_UPDATE_WAIT = CONFIG.configparser.getfloat("JTM", "worker_info_update_wait")
     global CLIENT_HB_RECV_INTERVAL
-    CLIENT_HB_RECV_INTERVAL = config.configparser.getfloat("JTM", "client_hb_recv_interval")
+    CLIENT_HB_RECV_INTERVAL = CONFIG.configparser.getfloat("JTM", "client_hb_recv_interval")
     global WORKER_HB_CHECK_MAX_COUNT
-    WORKER_HB_CHECK_MAX_COUNT = config.configparser.getint("JTM", "worker_hb_check_max_count")
+    WORKER_HB_CHECK_MAX_COUNT = CONFIG.configparser.getint("JTM", "worker_hb_check_max_count")
 
     # Log dir setting
-    log_dir_name = os.path.join(config.configparser.get("JTM", "log_dir"), "log")
+    log_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "log")
     if custom_log_dir_name:
         log_dir_name = custom_log_dir_name
     make_dir(log_dir_name)
@@ -2124,33 +2126,33 @@ def manager(ctx: object,
     logger.info("\n*****************\nDebug mode is %s\n*****************" % ("ON" if debug else "OFF"))
     logger.info("Set jtm log file location to %s", log_dir_name)
 
-    RMQ_HOST = config.configparser.get("RMQ", "host")
-    RMQ_PORT = config.configparser.get("RMQ", "port")
-    USER_NAME = config.configparser.get("SITE", "user_name")
+    RMQ_HOST = CONFIG.configparser.get("RMQ", "host")
+    RMQ_PORT = CONFIG.configparser.get("RMQ", "port")
+    USER_NAME = CONFIG.configparser.get("SITE", "user_name")
     PRODUCTION = False
-    if config.configparser.get("JTM", "run_mode") == "prod":
+    if CONFIG.configparser.get("JTM", "run_mode") == "prod":
         PRODUCTION = True
-    JGI_JTM_MAIN_EXCH = config.configparser.get("JTM", "jgi_jtm_main_exch")
-    JTM_TASK_RESULT_Q = config.configparser.get("JTM", "jtm_task_result_q")
-    JTM_TASK_REQUEST_Q = config.configparser.get("JTM", "jtm_task_request_q")
-    WORKER_HB_Q_POSTFIX = config.configparser.get("JTM", "worker_hb_q_postfix")
+    JGI_JTM_MAIN_EXCH = CONFIG.configparser.get("JTM", "jgi_jtm_main_exch")
+    JTM_TASK_RESULT_Q = CONFIG.configparser.get("JTM", "jtm_task_result_q")
+    JTM_TASK_REQUEST_Q = CONFIG.configparser.get("JTM", "jtm_task_request_q")
+    WORKER_HB_Q_POSTFIX = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
 
     global POOL_CLUSTER
-    POOL_CLUSTER = config.configparser.get("JTM", "cluster")
+    POOL_CLUSTER = CONFIG.configparser.get("JTM", "cluster")
     global POOL_NCPUS
-    POOL_NCPUS = config.configparser.getint("SLURM", "ncpus")
+    POOL_NCPUS = CONFIG.configparser.getint("SLURM", "ncpus")
     global POOL_MEM
-    POOL_MEM = config.configparser.get("SLURM", "mempernode")
+    POOL_MEM = CONFIG.configparser.get("SLURM", "mempernode")
     global POOL_CONSTRAINT
-    POOL_CONSTRAINT = config.configparser.get("SLURM", "constraint")
+    POOL_CONSTRAINT = CONFIG.configparser.get("SLURM", "constraint")
     global POOL_CHARGE_ACCOUNT
-    POOL_CHARGE_ACCOUNT = config.configparser.get("SLURM", "charge_accnt")
+    POOL_CHARGE_ACCOUNT = CONFIG.configparser.get("SLURM", "charge_accnt")
     global POOL_QOS
-    POOL_QOS = config.configparser.get("SLURM", "qos")
+    POOL_QOS = CONFIG.configparser.get("SLURM", "qos")
     global NUM_WORKERS_PER_NODE
-    NUM_WORKERS_PER_NODE = config.configparser.getint("JTM", "num_workers_per_node")
+    NUM_WORKERS_PER_NODE = CONFIG.configparser.getint("JTM", "num_workers_per_node")
     global NUM_NODES_TO_REQUEST
-    NUM_NODES_TO_REQUEST = config.configparser.getint("SLURM", "nnodes")
+    NUM_NODES_TO_REQUEST = CONFIG.configparser.getint("SLURM", "nnodes")
 
     # Remote broker (rmq.nersc.gov) connection open
     rmq_conn = RmqConnectionHB()
@@ -2193,7 +2195,7 @@ def manager(ctx: object,
                   routing_key=JTM_TASK_REQUEST_Q)
 
     logger.info("JGI Task Manager, version: %s" % (VERSION))
-    logger.info("JTM config file: %s" % (config.config_file))
+    logger.info("JTM config file: %s" % (CONFIG.config_file))
     logger.info("RabbitMQ broker: %s", RMQ_HOST)
     logger.info("RabbitMQ port: %s", RMQ_PORT)
     logger.info("Default task queue name: %s", JTM_TASK_REQUEST_Q)
