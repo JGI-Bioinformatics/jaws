@@ -82,10 +82,10 @@ def login() -> None:
 
     # POST TOKENS TO JAWS CENTRAL
     data = {}
-    auth_service_name = config.conf.get("GLOBUS", "auth_service_name")
+    auth_service_name = "auth.globus.org"
     auth = token_response.by_resource_server[auth_service_name]
     data["auth_refresh_token"] = auth["refresh_token"]
-    transfer_service_name = config.conf.get("GLOBUS", "transfer_service_name")
+    transfer_service_name = "transfer.api.globus.org"
     transfer = token_response.by_resource_server[transfer_service_name]
     data["transfer_refresh_token"] = transfer["refresh_token"]
     current_user = user.User()
