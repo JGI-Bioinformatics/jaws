@@ -244,10 +244,10 @@ backend
             if [[ ! \$LOOKUP ]]; then
                 shifterimg pull \${docker}
             fi
-	          shifter --image=\${docker} \
-	            -V /global/dna/shared/rqc/ref_databases:/refdata \
-	            \${job_shell} \${script}
-	      """
+                  shifter --image=\${docker} \
+                    -V /global/dna/shared/rqc/ref_databases:/refdata \
+                    \${job_shell} \${script}
+              """
         dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
         filesystems
         {
@@ -301,25 +301,25 @@ backend
           --qos \${qos} \
           -A \${account} \
           --shared \${shared}"""
-	kill = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
-	        kill -tid \${job_id}"
-	check-alive = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
-	               isalive -tid \${job_id}"
-	job-id-regex = "JTM task ID (\\\d+)"
-	submit-docker = """
-	    LOOKUP=\$(shifterimg lookup \${docker})
-	    if [[ ! \$LOOKUP ]]; then
-		shifterimg pull \${docker}
-	    fi
+        kill = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+                kill -tid \${job_id}"
+        check-alive = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+                       isalive -tid \${job_id}"
+        job-id-regex = "JTM task ID (\\\d+)"
+        submit-docker = """
+            LOOKUP=\$(shifterimg lookup \${docker})
+            if [[ ! \$LOOKUP ]]; then
+                shifterimg pull \${docker}
+            fi
             jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
               submit \
               -cmd 'shifter_exec.sh \${docker} \${job_shell} \${script}' \
-	            -cl \${cluster} \
-	            -t \${time} \
-	            -c \${cpu} \
-	            -m \${mem} \
-	            -p \${poolname} \
-	            -C \${constraint} \
+                    -cl \${cluster} \
+                    -t \${time} \
+                    -c \${cpu} \
+                    -m \${mem} \
+                    -p \${poolname} \
+                    -C \${constraint} \
               -N \${node} \
               -nwpn \${nwpn} \
               -jid \${job_name} \
@@ -343,13 +343,13 @@ backend
         run-in-background = true
         # The list of possible runtime custom attributes.
         runtime-attributes = """
-        	String? docker
-			    String qos = "debug"
-			    String constraint = "haswell"
-			    String account = "m342"
-			    String mem = "5G"
-			    String time = "00:10:00"
-			    Int cpu = 4
+                String? docker
+                            String qos = "debug"
+                            String constraint = "haswell"
+                            String account = "m342"
+                            String mem = "5G"
+                            String time = "00:10:00"
+                            Int cpu = 4
         """
         # Submit string when there is no "docker" runtime attribute.
         submit = """
@@ -361,7 +361,7 @@ backend
               -C \${constraint} \
               -A \${account} \
               --wrap "/bin/bash \${script}"
-		    """
+                    """
         # Submit string when there is a "docker" runtime attribute.
         submit-docker = """
             # Submit the script to SLURM
@@ -374,7 +374,7 @@ backend
               -t \${time} \
               \${"-c " + cpu} \
               --mem=\${mem} \
-	            --qos=\${qos} -C \${constraint} -A \${account} \
+                    --qos=\${qos} -C \${constraint} -A \${account} \
               --wrap "shifter \
               --image=\${docker} \
               --volume=/global/dna/shared/rqc/ref_databases:/refdata \${job_shell} \${script}"
