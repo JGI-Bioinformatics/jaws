@@ -1154,7 +1154,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                 -nwpn {} \
                 --qos {} \
                 -A {}""".format("%s && " % ENV_ACTIVATION if ENV_ACTIVATION else "",
-                                "--config=%s" % CONFIG.config_file if config else "",
+                                "--config=%s" % CONFIG.config_file if CONFIG else "",
                                 pool_name,
                                 pool_cluster,
                                 pool_ncpus,
