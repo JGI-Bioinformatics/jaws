@@ -326,8 +326,7 @@ JTM_SQL = {
     # zombie_worker_cleanup_thead()
     "update_workers_lifeleft_by_slurmjid": """
         update workers
-        set lifeLeft = -1,
-            endDate = '%(now)s'
+        set lifeLeft = -1, endDate = '%(now)s'
         where slurmJobId = %(slurm_jid)d;""",
     "delete_from_workers_by_poolname": """
         delete from workers
@@ -337,16 +336,14 @@ JTM_SQL = {
         where slurmJobId = %(slurm_jid)d;""",
     "update_runs_status_cancelled_by_status_workerId2_poolname": """
         update runs
-        set status = -4,
-            cancelled = 2
+        set status = -4, cancelled = 3
         where status in (0, 1, 2) and
               workerId2 in (select workerId2
                             from workers
                             where poolName = '%(pool_name)s';""",
     "update_runs_status_cancelled_by_status_workerId2_jid": """
         update runs
-        set status = -4,
-            cancelled = 2
+        set status = -4, cancelled = 4
         where status in (0, 1, 2) and
               workerId2 in (select workerId2
                             from workers

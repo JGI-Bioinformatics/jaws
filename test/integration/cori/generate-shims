@@ -16,21 +16,21 @@ cat <<EOM > $SHIMDIR/jaws-central-rest-dev
 #!/usr/bin/env bash
 
 source $INSTALLDIR/central/bin/activate
-exec jaws-central rest --log /tmp/jaws-dev/logs/central-rest.log --config /tmp/jaws-dev/configs/jaws-central.conf
+exec jaws-central rest --log $INSTALLDIR/logs/central-rest.log --config $INSTALLDIR/configs/jaws-central.conf
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-site-daemon-dev
 #!/usr/bin/env bash
 
 source $INSTALLDIR/site/bin/activate
-exec jaws-site --log /tmp/jaws-dev/logs/site-daemon.log --config /tmp/jaws-dev/configs/jaws-site.conf daemon
+exec jaws-site --log $INSTALLDIR/logs/site-daemon.log --config $INSTALLDIR/configs/jaws-site.conf daemon
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-site-server-dev
 #!/usr/bin/env bash
 
 source $INSTALLDIR/site/bin/activate
-exec jaws-site --log /tmp/jaws-dev/logs/site-server.log --config /tmp/jaws-dev/configs/jaws-site.conf server
+exec jaws-site --log $INSTALLDIR/logs/site-server.log --config $INSTALLDIR/configs/jaws-site.conf server
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-jtm-dev
@@ -38,7 +38,7 @@ cat <<EOM > $SHIMDIR/jaws-jtm-dev
 
 source $INSTALLDIR/jtm/bin/activate
 export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
-exec jtm manager -ld $INSTALLDIR/logs/jtm
+exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-cromwell-dev
