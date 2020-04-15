@@ -286,7 +286,7 @@ backend
         Int nwpn = 1
         Int shared = 1
         """
-        submit = """jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+        submit = """jtm --config=/global/u1/j/jaws_jtm/jaws-jtm.conf \
           submit \
           -cmd '/bin/bash \${script}' \
           -cl \${cluster} \
@@ -301,9 +301,9 @@ backend
           --qos \${qos} \
           -A \${account} \
           --shared \${shared}"""
-        kill = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+        kill = "jtm --config=/global/u1/j/jaws_jtm/jaws-jtm.conf \
                 kill -tid \${job_id}"
-        check-alive = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+        check-alive = "jtm --config=/global/u1/j/jaws_jtm/jaws-jtm.conf \
                        isalive -tid \${job_id}"
         job-id-regex = "JTM task ID (\\\d+)"
         submit-docker = """
@@ -311,7 +311,7 @@ backend
             if [[ ! \$LOOKUP ]]; then
                 shifterimg pull \${docker}
             fi
-            jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+            jtm --config=/global/u1/j/jaws_jtm/jaws-jtm.conf \
               submit \
               -cmd 'shifter_exec.sh \${docker} \${job_shell} \${script}' \
                     -cl \${cluster} \
