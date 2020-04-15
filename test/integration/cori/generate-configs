@@ -115,10 +115,8 @@ mempercpu = 1gb
 mempernode = 5gb
 partition = lr3
 qos = genepool
-qos_list =
 charge_accnt = fungalp
 constraint = haswell
-constraint_list = haswell,knl,skylake
 [JTM]
 cluster = ${SITE:jtm_host_name}
 run_mode = dev
@@ -288,8 +286,9 @@ backend
         Int nwpn = 1
         Int shared = 1
         """
-        submit = """jtm submit \
-          -cr '/bin/bash \${script}' \
+        submit = """jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+          submit \
+          -cmd '/bin/bash \${script}' \
           -cl \${cluster} \
           -t \${time} \
           -c \${cpu} \
@@ -302,16 +301,19 @@ backend
           --qos \${qos} \
           -A \${account} \
           --shared \${shared}"""
-	kill = "jtm-kill \${job_id}"
-	check-alive = "jtm-isalive \${job_id}"
+	kill = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+	        kill -tid \${job_id}"
+	check-alive = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+	               isalive -tid \${job_id}"
 	job-id-regex = "JTM task ID (\\\d+)"
 	submit-docker = """
 	    LOOKUP=\$(shifterimg lookup \${docker})
 	    if [[ ! \$LOOKUP ]]; then
 		shifterimg pull \${docker}
 	    fi
-            jtm submit \
-              -cr 'shifter_exec.sh \${docker} \${job_shell} \${script}' \
+            jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+              submit \
+              -cmd 'shifter_exec.sh \${docker} \${job_shell} \${script}' \
 	            -cl \${cluster} \
 	            -t \${time} \
 	            -c \${cpu} \

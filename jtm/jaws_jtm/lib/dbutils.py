@@ -118,8 +118,8 @@ class DbSql(object):
         try:
             curs.execute(*l, **kw)
         except Exception as msg:
-            print((l, kw))
-            print(msg)
+            logger.debug((l, kw))
+            logger.debug(msg)
         curs.close()
 
     def ddl(self, sql, ifDialect=None, dropList=tuple(), ignoreError=False, **kw):
@@ -134,7 +134,7 @@ class DbSql(object):
                     try:
                         dropSql = "drop %s" % (dbobj,)
                         if self.debug > 0:
-                            print(dropSql)
+                            logger.debug(dropSql)
                         curs.execute(dropSql)
                     except Exception:
                         pass
@@ -143,8 +143,8 @@ class DbSql(object):
                 curs.execute(sql, **kw)
             except Exception as msg:
                 if ignoreError:
-                    print((sql, kw))
-                    print(msg)
+                    logger.debug((sql, kw))
+                    logger.debug(msg)
                 else:
                     sys.stderr.write("%s %s" % (sql, kw))
                     raise
@@ -194,7 +194,7 @@ class DbSql(object):
     def executeAndPrint(self, sql, **kw):
         curs = self.execute(sql, **kw)
         if curs is not None:
-            print((curs.fetchall()))
+            logger.debug((curs.fetchall()))
             curs.close()
 
     def executeAndAssertEmpty(self, sql, message=None, **kw):
@@ -331,7 +331,7 @@ class DbSql(object):
         if self.debug:
             curs = self.execute("select count(*) from %s" % (name,))
             if curs is not None:
-                print(("%s rows created in table %s" % (curs.fetchall(), name)))
+                logger.debug(("%s rows created in table %s" % (curs.fetchall(), name)))
                 curs.close()
         if indices is not None and len(indices) > 0:
             self.createIndices(table=name, **indices)
@@ -529,12 +529,12 @@ class SqlWatch:
             # time.clock() seems to be broken on SuSe 10 x86_64 Python 2.4
             # - it always returns the same value
             self.start = time.time()
-            print(sql)
+            logger.debug(sql)
 
     def __call__(self):
         if self.debug > 0:
             finish = time.time()
-            print(("SQL finished in %.3f sec" % (finish-self.start)))
+            logger.debug(("SQL finished in %.3f sec" % (finish-self.start)))
             self.start = finish
 
 

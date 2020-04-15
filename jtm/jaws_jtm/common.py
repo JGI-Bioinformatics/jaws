@@ -15,7 +15,7 @@ logging.getLogger('pika').setLevel(logging.INFO)
 
 
 # -------------------------------------------------------------------------------
-def setup_custom_logger(level, log_dest_dir, b_stream_loggin=True, b_file_loggin=False, worker_id=None):
+def setup_custom_logger(level, log_dest_dir, b_stream_logging=True, b_file_logging=False, worker_id=None):
     """
     Setting up logging
 
@@ -34,18 +34,19 @@ def setup_custom_logger(level, log_dest_dir, b_stream_loggin=True, b_file_loggin
     if not isinstance(numeric_level, int):
         raise ValueError('Invalid log level: %s' % level)
 
-    formatter = logging.Formatter('%(asctime)s | %(module)s | %(funcName)s | %(levelname)s : %(message)s')
+    formatter = logging.Formatter('%(asctime)s | %(module)s | %(lineno)d | %(funcName)s | %(levelname)s : %(message)s',
+                                  "%Y-%m-%d %H:%M:%S")
     logger.setLevel(numeric_level)
 
     # StreamLogger
-    if b_stream_loggin:
+    if b_stream_logging:
         streamLogger = logging.StreamHandler()
         streamLogger.setLevel(numeric_level)
         streamLogger.setFormatter(formatter)
         logger.addHandler(streamLogger)
 
     # FileLogger
-    if b_file_loggin:
+    if b_file_logging:
         datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
         if worker_id:
             datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")

@@ -126,6 +126,7 @@ class JtmConfig(object):
     def __init__(self, config_file=None):
         if not config_file:
             config_file = self.get_config_file()
+        self.config_file = config_file
         self.configparser = self.create_config(config_file)
         self.constants = JtmConstants()
 
