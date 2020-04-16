@@ -38,6 +38,11 @@ cat <<EOM > $SHIMDIR/jaws-jtm-dev
 
 source $INSTALLDIR/jtm/bin/activate
 export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
+
+#HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
+cp /tmp/jaws-dev/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
+chmod 700 /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
+
 exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
 EOM
 
