@@ -6,18 +6,7 @@ import sys
 import atexit
 import time
 
-from jaws_jtm.config import JtmConfig
 from jaws_jtm.common import logger
-
-config = JtmConfig()
-MYSQL_HOST = config.configparser.get("MYSQL", "host")
-MYSQL_USER = config.configparser.get("MYSQL", "user")
-MYSQL_PW = config.configparser.get("MYSQL", "password")
-MYSQL_PORT = config.configparser.getint("MYSQL", "port")
-MYSQL_DB = config.configparser.get("MYSQL", "db")
-
-# Classes that describe definitions of SQL fields and table
-# These are used primarily to construct DDL statements.
 
 
 class SqlField:
@@ -441,9 +430,18 @@ class DbSqlMysql(DbSql):
     Derivative of DbSql specific for MySQL DB engine
     """
 
-    def __init__(self, dry_run=False, **kw):
+    def __init__(self, config=None, dry_run=False, **kw):
         import mysql.connector as dbmod
         self.dbmod = dbmod
+
+        if config:
+            self.config = config
+            self.MYSQL_HOST = self.config.configparser.get("MYSQL", "host")
+            self.MYSQL_USER = self.config.configparser.get("MYSQL", "user")
+            self.MYSQL_PW = self.config.configparser.get("MYSQL", "password")
+            self.MYSQL_PORT = self.config.configparser.getint("MYSQL", "port")
+            self.MYSQL_DB = self.config.configparser.get("MYSQL", "db")
+
         DbSql.__init__(self)
         self.open(**kw)
 
@@ -458,11 +456,11 @@ class DbSqlMysql(DbSql):
             self.con = kw['conn']
         else:
             config = {
-                "user": MYSQL_USER,
-                "password": MYSQL_PW,
-                "host": MYSQL_HOST,
-                "port": "%d" % MYSQL_PORT,
-                "database": MYSQL_DB}
+                "user": self.MYSQL_USER,
+                "password": self.MYSQL_PW,
+                "host": self.MYSQL_HOST,
+                "port": "%d" % self.MYSQL_PORT,
+                "database": self.MYSQL_DB}
             self.con = self.dbmod.connect(**config)
 
     def close(self):

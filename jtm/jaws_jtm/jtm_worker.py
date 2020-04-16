@@ -503,7 +503,7 @@ def send_hb_to_client_proc(interval, pipe_task_id,
     # with heartbeat_interval=0
     # ref) http://stackoverflow.com/questions/14572020/handling-long-running-tasks-in-pika-rabbitmq,
     # http://stackoverflow.com/questions/34721178/pika-blockingconnection-rabbitmq-connection-closed
-    rmq_conn = RmqConnectionHB()
+    rmq_conn = RmqConnectionHB(config=CONFIG)
     conn = rmq_conn.open()
     ch = conn.channel()
     host_name = socket.gethostname()
@@ -609,7 +609,7 @@ def send_hb_to_client_proc(interval, pipe_task_id,
             # Get % mem used per node
             # This is for node-based scheduling
             perc_used_mem = "%.1f" % get_total_mem_usage_per_node()
-            num_workers_on_node = get_num_workers_on_node()
+            num_workers_on_node = get_num_workers_on_node(CONFIG)
 
             # Check if there is any task id in the ipc pipe
             if pipe_task_id.poll():
@@ -728,7 +728,7 @@ def recv_hb_from_client_proc2(task_queue, exch_name, cl_hb_q_postfix):
     :param cl_hb_q_postfix:
     :return:
     """
-    rmq_conn = RmqConnectionHB()
+    rmq_conn = RmqConnectionHB(config=CONFIG)
     conn = rmq_conn.open()
     ch = conn.channel()
     # host_name = socket.gethostname()
@@ -779,12 +779,15 @@ def recv_task_kill_request_proc():
     :return:
     """
 
-    rmq_conn = RmqConnectionHB()
+    rmq_conn = RmqConnectionHB(config=CONFIG)
     conn = rmq_conn.open()
     ch = conn.channel()
     exch_name = JTM_TASK_KILL_EXCH
     queue_name = JTM_TASK_KILL_Q
     routing_key = UNIQ_WORKER_ID
+    logger.debug("JTM_TASK_KILL_EXCH: %s" % JTM_TASK_KILL_EXCH)
+    logger.debug("JTM_TASK_KILL_Q: %s" % JTM_TASK_KILL_Q)
+    logger.debug("UNIQ_WORKER_ID: %s" % UNIQ_WORKER_ID)
 
     ch.exchange_declare(exchange=exch_name,
                         exchange_type="fanout",
@@ -877,7 +880,7 @@ def recv_reproduce_or_die_proc(task_queue, cluster_name, mem_per_node, mem_per_c
     :param nwpn: number of workers per node
     :return:
     """
-    rmq_conn = RmqConnectionHB()
+    rmq_conn = RmqConnectionHB(config=CONFIG)
     conn = rmq_conn.open()
     ch = conn.channel()
 
@@ -982,90 +985,91 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
            mem_per_node_to_request_param: str, mem_per_cpu_to_request_param: str,
            qos_param: str, job_time_to_request_param: str) -> int:
 
-    config = ctx.obj['config']
+    global CONFIG
+    CONFIG = ctx.obj['config']
     debug = ctx.obj['debug']
     global DEBUG
     DEBUG = debug
     global WORKER_TYPE
-    WORKER_TYPE = config.constants.WORKER_TYPE
+    WORKER_TYPE = CONFIG.constants.WORKER_TYPE
     global HB_MSG
-    HB_MSG = config.constants.HB_MSG
+    HB_MSG = CONFIG.constants.HB_MSG
     global VERSION
-    VERSION = config.constants.VERSION
+    VERSION = CONFIG.constants.VERSION
     global COMPUTE_RESOURCES
-    COMPUTE_RESOURCES = config.constants.COMPUTE_RESOURCES
+    COMPUTE_RESOURCES = CONFIG.constants.COMPUTE_RESOURCES
     global TASK_TYPE
-    TASK_TYPE = config.constants.TASK_TYPE
+    TASK_TYPE = CONFIG.constants.TASK_TYPE
     global DONE_FLAGS
-    DONE_FLAGS = config.constants.DONE_FLAGS
+    DONE_FLAGS = CONFIG.constants.DONE_FLAGS
     global NUM_WORKER_PROCS
-    NUM_WORKER_PROCS = config.constants.NUM_WORKER_PROCS
+    NUM_WORKER_PROCS = CONFIG.constants.NUM_WORKER_PROCS
     global TASK_KILL_TIMEOUT_MINUTE
-    TASK_KILL_TIMEOUT_MINUTE = config.constants.TASK_KILL_TIMEOUT_MINUTE
+    TASK_KILL_TIMEOUT_MINUTE = CONFIG.constants.TASK_KILL_TIMEOUT_MINUTE
 
     global CNAME
-    CNAME = config.configparser.get("SITE", "instance_name")
+    CNAME = CONFIG.configparser.get("SITE", "instance_name")
     global JTM_HOST_NAME
-    JTM_HOST_NAME = config.configparser.get("SITE", "jtm_host_name")
+    JTM_HOST_NAME = CONFIG.configparser.get("SITE", "jtm_host_name")
     global JTM_INNER_REQUEST_Q
-    JTM_INNER_REQUEST_Q = config.configparser.get("JTM", "jtm_inner_request_q")
+    JTM_INNER_REQUEST_Q = CONFIG.configparser.get("JTM", "jtm_inner_request_q")
     global CTR
-    CTR = config.configparser.getfloat("JTM", "clone_time_rate")
+    CTR = CONFIG.configparser.getfloat("JTM", "clone_time_rate")
     global JTM_INNER_MAIN_EXCH
-    JTM_INNER_MAIN_EXCH = config.configparser.get("JTM", "jtm_inner_main_exch")
+    JTM_INNER_MAIN_EXCH = CONFIG.configparser.get("JTM", "jtm_inner_main_exch")
     global JTM_CLIENT_HB_EXCH
-    JTM_CLIENT_HB_EXCH = config.configparser.get("JTM", "jtm_client_hb_exch")
+    JTM_CLIENT_HB_EXCH = CONFIG.configparser.get("JTM", "jtm_client_hb_exch")
     global JTM_WORKER_HB_EXCH
-    JTM_WORKER_HB_EXCH = config.configparser.get("JTM", "jtm_worker_hb_exch")
+    JTM_WORKER_HB_EXCH = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
     global CLIENT_HB_Q_POSTFIX
-    CLIENT_HB_Q_POSTFIX = config.configparser.get("JTM", "client_hb_q_postfix")
+    CLIENT_HB_Q_POSTFIX = CONFIG.configparser.get("JTM", "client_hb_q_postfix")
     global WORKER_HB_Q_POSTFIX
-    WORKER_HB_Q_POSTFIX = config.configparser.get("JTM", "worker_hb_q_postfix")
+    WORKER_HB_Q_POSTFIX = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
     global JTM_TASK_KILL_EXCH
-    JTM_TASK_KILL_EXCH = config.configparser.get("JTM", "jtm_task_kill_exch")
+    JTM_TASK_KILL_EXCH = CONFIG.configparser.get("JTM", "jtm_task_kill_exch")
     global JTM_TASK_KILL_Q
-    JTM_TASK_KILL_Q = config.configparser.get("JTM", "jtm_task_kill_q")
+    JTM_TASK_KILL_Q = CONFIG.configparser.get("JTM", "jtm_task_kill_q")
     global JTM_WORKER_POISON_EXCH
-    JTM_WORKER_POISON_EXCH = config.configparser.get("JTM", "jtm_worker_poison_exch")
+    JTM_WORKER_POISON_EXCH = CONFIG.configparser.get("JTM", "jtm_worker_poison_exch")
     global JTM_WORKER_POISON_Q
-    JTM_WORKER_POISON_Q = config.configparser.get("JTM", "jtm_worker_poison_q")
+    JTM_WORKER_POISON_Q = CONFIG.configparser.get("JTM", "jtm_worker_poison_q")
     global NUM_PROCS_CHECK_INTERVAL
-    NUM_PROCS_CHECK_INTERVAL = config.configparser.getfloat("JTM", "num_procs_check_interval")
+    NUM_PROCS_CHECK_INTERVAL = CONFIG.configparser.getfloat("JTM", "num_procs_check_interval")
     global ENV_ACTIVATION
-    ENV_ACTIVATION = config.configparser.get("JTM", "env_activation")
-    WORKER_CONFIG_FILE = config.configparser.get("JTM", "worker_config_file")
+    ENV_ACTIVATION = CONFIG.configparser.get("JTM", "env_activation")
+    WORKER_CONFIG_FILE = CONFIG.configparser.get("JTM", "worker_config_file")
 
-    RMQ_HOST = config.configparser.get("RMQ", "host")
-    RMQ_PORT = config.configparser.get("RMQ", "port")
-    USER_NAME = config.configparser.get("SITE", "user_name")
+    RMQ_HOST = CONFIG.configparser.get("RMQ", "host")
+    RMQ_PORT = CONFIG.configparser.get("RMQ", "port")
+    USER_NAME = CONFIG.configparser.get("SITE", "user_name")
     PRODUCTION = False
-    if config.configparser.get("JTM", "run_mode") == "prod":
+    if CONFIG.configparser.get("JTM", "run_mode") == "prod":
         PRODUCTION = True
-    JOBTIME = config.configparser.get("SLURM", "jobtime")
-    CONSTRAINT = config.configparser.get("SLURM", "constraint")
-    CHARGE_ACCNT = config.configparser.get("SLURM", "charge_accnt")
-    QOS = config.configparser.get("SLURM", "qos")
-    PARTITION = config.configparser.get("SLURM", "partition")
-    MEMPERCPU = config.configparser.get("SLURM", "mempercpu")
-    MEMPERNODE = config.configparser.get("SLURM", "mempernode")
-    NWORKERS = config.configparser.getint("JTM", "num_workers_per_node")
-    NCPUS = config.configparser.getint("SLURM", "ncpus")
+    JOBTIME = CONFIG.configparser.get("SLURM", "jobtime")
+    CONSTRAINT = CONFIG.configparser.get("SLURM", "constraint")
+    CHARGE_ACCNT = CONFIG.configparser.get("SLURM", "charge_accnt")
+    QOS = CONFIG.configparser.get("SLURM", "qos")
+    PARTITION = CONFIG.configparser.get("SLURM", "partition")
+    MEMPERCPU = CONFIG.configparser.get("SLURM", "mempercpu")
+    MEMPERNODE = CONFIG.configparser.get("SLURM", "mempernode")
+    NWORKERS = CONFIG.configparser.getint("JTM", "num_workers_per_node")
+    NCPUS = CONFIG.configparser.getint("SLURM", "ncpus")
 
     global FILE_CHECK_INTERVAL
-    FILE_CHECK_INTERVAL = config.configparser.getfloat("JTM", "file_check_interval")
+    FILE_CHECK_INTERVAL = CONFIG.configparser.getfloat("JTM", "file_check_interval")
     global FILE_CHECKING_MAX_TRIAL
-    FILE_CHECKING_MAX_TRIAL = config.configparser.getint("JTM", "file_checking_max_trial")
+    FILE_CHECKING_MAX_TRIAL = CONFIG.configparser.getint("JTM", "file_checking_max_trial")
     global FILE_CHECK_INT_INC
-    FILE_CHECK_INT_INC = config.configparser.getfloat("JTM", "file_check_int_inc")
+    FILE_CHECK_INT_INC = CONFIG.configparser.getfloat("JTM", "file_check_int_inc")
 
     # Job dir setting
-    job_script_dir_name = os.path.join(config.configparser.get("JTM", "log_dir"), "job")
+    job_script_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "job")
     if custom_job_log_dir_name:
         job_script_dir_name = custom_job_log_dir_name
     make_dir(job_script_dir_name)
 
     # Log dir setting
-    log_dir_name = os.path.join(config.configparser.get("JTM", "log_dir"), "log")
+    log_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "log")
     if custom_log_dir:
         log_dir_name = custom_log_dir
     make_dir(log_dir_name)
@@ -1090,10 +1094,10 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                 % ("ON" if debug else "OFF"))
 
     # # Todo: site specific setting --> remove
-    # CORI_KNL_CHARGE_ACCNT = config.configparser.get("SLURM", "knl_charge_accnt")
-    # CORI_KNL_QOS = config.configparser.get("SLURM", "knl_qos")
-    hearbeat_interval = config.configparser.getfloat("JTM", "worker_hb_send_interval")
-    worker_timeout_in_sec = config.configparser.getfloat("JTM", "worker_timeout")
+    # CORI_KNL_CHARGE_ACCNT = CONFIG.configparser.get("SLURM", "knl_charge_accnt")
+    # CORI_KNL_QOS = CONFIG.configparser.get("SLURM", "knl_qos")
+    hearbeat_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_send_interval")
+    worker_timeout_in_sec = CONFIG.configparser.getfloat("JTM", "worker_timeout")
 
     logger.info("Set jtm log file location to %s", log_dir_name)
     logger.info("Set jtm job file location to %s", job_script_dir_name)
@@ -1105,7 +1109,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     logger.info("\n*****************\nRun mode is %s\n*****************"
                 % ("PROD" if PRODUCTION else "DEV"))
     logger.info("env activation: %s", ENV_ACTIVATION)
-    logger.info("JTM config file: %s" % (config.config_file))
+    logger.info("JTM config file: %s" % (CONFIG.config_file))
 
     # Slurm config
     num_nodes_to_request = 0
@@ -1243,7 +1247,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         batch_job_script_str = ""
         batch_job_misc_params = ""
 
-        worker_config = config.config_file if config else ""
+        worker_config = CONFIG.config_file if CONFIG else ""
         if WORKER_CONFIG_FILE:
             worker_config = WORKER_CONFIG_FILE
 
@@ -1385,7 +1389,7 @@ module unload python
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
-    jtm %(set_jtm_config_file)s worker %(debug)s --slurm_job_id $SLURM_JOB_ID \
+    jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
 -cl cori \
 -wt %(worker_type)s \
 -t %(wall_time)s \
@@ -1464,7 +1468,7 @@ wait
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
-    jtm %(set_jtm_config_file)s worker %(debug)s --slurm_job_id $SLURM_JOB_ID \
+    jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
 -cl %(lbl_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
@@ -1535,7 +1539,7 @@ wait
     #     logger.debug("slurm_job_id: {}".format(slurm_job_id))
 
     # Remote broker (rmq.nersc.gov)
-    rmq_conn = RmqConnectionHB()
+    rmq_conn = RmqConnectionHB(config=CONFIG)
     conn = rmq_conn.open()
     ch = conn.channel()
     # ch.confirm_delivery()

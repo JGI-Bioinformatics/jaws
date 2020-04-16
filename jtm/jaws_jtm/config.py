@@ -137,7 +137,6 @@ class JtmConfig(object):
         else:
             eprint("JTM_CONFIG_FILE is not defined. Checking current directory...")
             if os.path.isfile(DEFAULT_CONFIG_FILE):
-                eprint("Found: %s" % DEFAULT_CONFIG_FILE)
                 found = DEFAULT_CONFIG_FILE
             else:
                 eprint("JTM configuration file not found")

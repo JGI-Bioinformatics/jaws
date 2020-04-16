@@ -18,13 +18,13 @@ class JtmInterface(object):
     """
     Class for jtm-* CLI tools
     """
-    def __init__(self, task_type, ctx, info_tag=None,):
+    def __init__(self, task_type, ctx=None, info_tag=None,):
         self.task_type = task_type
-        self.rmq_conn = RmqConnectionHB()
+        self.config = ctx.obj['config']
+        self.rmq_conn = RmqConnectionHB(config=self.config)
         self.connection = self.rmq_conn.open()
         self.channel = self.connection.channel()
         self.response = None
-        self.config = ctx.obj['config']
         self.JTM_LOG = self.config.configparser.get("JTM", "log_dir")
         self.JGI_JTM_MAIN_EXCH = self.config.configparser.get("JTM", "jgi_jtm_main_exch")
         self.USER_NAME = self.config.configparser.get("SITE", "user_name")

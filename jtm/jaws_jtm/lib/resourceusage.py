@@ -16,11 +16,8 @@ import psutil
 
 from jaws_jtm.lib.run import eprint, run_sh_command
 from jaws_jtm.common import logger
-from jaws_jtm.config import JtmConfig
 
 SCALE_INV = ((1024.*1024., "MB"), (1024., "KB"))
-config = JtmConfig()
-NUM_WORKER_PROCS = config.constants.NUM_WORKER_PROCS
 
 
 # -------------------------------------------------------------------------------
@@ -335,7 +332,7 @@ def get_total_mem_usage_per_node() -> float:
 
 
 # -------------------------------------------------------------------------------
-def get_num_workers_on_node() -> int:
+def get_num_workers_on_node(config=None) -> int:
     """
     Get total number of workers on a given node
     :return:
@@ -351,6 +348,10 @@ def get_num_workers_on_node() -> int:
     except subprocess.CalledProcessError as msg:
         logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
         return -1
+
+    NUM_WORKER_PROCS = 6
+    if config:
+        NUM_WORKER_PROCS = config.constants.NUM_WORKER_PROCS
 
     return int(ps_stdout_str) / NUM_WORKER_PROCS
 
