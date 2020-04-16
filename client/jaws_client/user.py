@@ -1,5 +1,3 @@
-import os
-import logging
 from jaws_client import config
 
 
@@ -10,17 +8,9 @@ class User:
 
     def __init__(self) -> None:
         """Load user's access token from file"""
-        logger = logging.getLogger(__package__)
-        if "HOME" not in os.environ:
-            raise SystemExit('Env var "HOME" not defined')
-        self.token_file = os.path.join(os.environ["HOME"], f'.{config.conf.get("JAWS", "name")}')
-        logger.debug(f"Reading user access token from {self.token_file}")
-        if not os.path.isfile(self.token_file):
-            raise SystemExit(f"Access token file not found: {self.token_file}.  Get yours from a JAWS Admin.")
-        with open(self.token_file, "r") as token_file:
-            self.access_token = token_file.read().strip()
+        self.access_token = config.conf.get("USER", "token")
         if not self.access_token:
-            raise SystemExit(f"Access token file not found: {self.token_file}.  Get yours from a JAWS Admin.")
+            raise SystemExit(f"User access token required; an contact admin to get yours.")
 
     def header(self) -> str:
         """Return HTTP OAuth2 header containing the authentication token"""

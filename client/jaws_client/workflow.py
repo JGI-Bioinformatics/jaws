@@ -252,13 +252,11 @@ class Workflow:
             elif value.startswith("Map[") and value.endswith(", File]"):
                 self.file_items[key] = "Other:File"
 
-    def prepare_submission(self, dest_basedir, dest_staging_subdir):
+    def prepare_submission(self, staging_dir, dest_basedir, dest_staging_subdir):
         """Prepare a workflow for submission to a JAWS-Site."""
         self.basename = str(uuid.uuid4())
         self.globus_basedir = config.conf.get("GLOBUS", "basedir")
-        self.staging_dir = os.path.join(
-            self.globus_basedir, config.conf.get("JAWS", "staging_subdir"),
-        )
+        self.staging_dir = staging_dir
         if not os.path.isdir(self.staging_dir):
             os.makedirs(self.staging_dir)
         self.dest_basedir = dest_basedir

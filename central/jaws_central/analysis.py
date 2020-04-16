@@ -146,6 +146,7 @@ def get_site(user, site_id):
     result = config.conf.get_site_info(site_id)
     if result is None:
         abort(404, "Invalid Site ID")
+    result["staging_subdir"] = f'{result["staging_subdir"]}/{user}'
     return result, 200
 
 

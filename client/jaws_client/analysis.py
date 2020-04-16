@@ -30,7 +30,9 @@ def _get(url):
     except requests.exceptions.Timeout as err:
         raise SystemExit("Unable to communicate with JAWS server (timeout)", err)
     except requests.exceptions.TooManyRedirects as err:
-        raise SystemExit("Unable to communicate with JAWS server (too many redirects; bad url?)", err)
+        raise SystemExit(
+            "Unable to communicate with JAWS server (too many redirects; bad url?)", err
+        )
     except requests.exceptions.HTTPError as err:
         raise SystemExit("Unable to communicate with JAWS server (http error)", err)
     except requests.exceptions.RequestException as err:
@@ -53,7 +55,7 @@ def queue() -> None:
     :return: List of user's current runs in JSON format
     :rtype: str
     """
-    url = f'{config.JawsConfig().get("JAWS", "url")}/search'
+    url = f'{config.conf.get("JAWS", "url")}/search'
     r = _get(url)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
@@ -67,7 +69,7 @@ def history(days: int) -> None:
     :param days: Time window to search, in days.
     :type days: int, optional
     """
-    url = f'{config.JawsConfig().get("JAWS", "url")}/search/{days}'
+    url = f'{config.conf.get("JAWS", "url")}/search/{days}'
     r = _get(url)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
@@ -81,7 +83,7 @@ def _run_status(run_id: int) -> Dict[str, str]:
     :return: Status of the run, in JSON string.
     :rtype: str
     """
-    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
     r = _get(url)
     result = r.json()
     return result
@@ -109,7 +111,7 @@ def tasks(run_id: int) -> None:
     :type run_id: int
     :return:
     """
-    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/tasks'
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/tasks'
     r = _get(url)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
@@ -125,7 +127,7 @@ def metadata(run_id: int) -> None:
     :type run_id: int
     :return:
     """
-    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/metadata'
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/metadata'
     r = _get(url)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
@@ -140,7 +142,7 @@ def logs(run_id: int) -> None:
     :type run_id: int
     :return:
     """
-    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/logs'
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/logs'
     r = _get(url)
     print(r.text)
 
@@ -167,7 +169,7 @@ def cancel(run_id):
     :param run_id: JAWS run ID to cancel.
     :type run_id: int
     """
-    url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
     _get(url)
 
 
@@ -185,9 +187,9 @@ def delete(run_id: int, task: str) -> None:
     """
     url = None
     if task is not None:
-        url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}'
+        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
     else:
-        url = f'{config.JawsConfig().get("JAWS", "url")}/run/{run_id}/{task}'
+        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/{task}'
     r = _get(url)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
@@ -225,13 +227,14 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
     compute_site_id = site.upper()
     current_user = user.User()
     logger = logging.getLogger(__package__)
-
     globus_basedir = config.conf.get("GLOBUS", "basedir")
-    staging_subdir = config.conf.get("JAWS", "staging_subdir")
-    staging_dir = os.path.join(globus_basedir, staging_subdir)
+    staging_dir = config.conf.get("USER", "staging_dir")
+    if not staging_dir.startswith(globus_basedir):
+        raise SystemExit(
+            f"Staging dir must be under endpoint's basedir: {globus_basedir}"
+        )
     if not os.path.isdir(staging_dir):
         os.makedirs(staging_dir)
-
     local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
     if out_ep is None:
         out_ep = local_endpoint_id
@@ -263,7 +266,9 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
         raise AnalysisError(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
         )
-    submission_id = run.prepare_submission(compute_basedir, compute_staging_subdir)
+    submission_id = run.prepare_submission(
+        staging_dir, compute_basedir, compute_staging_subdir
+    )
 
     # SUBMIT RUN
     data = {

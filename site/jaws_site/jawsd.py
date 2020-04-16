@@ -135,7 +135,7 @@ class Daemon:
         """
         Submit a run to Cromwell.
         """
-        file_path = os.path.join(self.staging_dir, run.submission_id)
+        file_path = os.path.join(self.staging_dir, run.user_id, run.submission_id)
         wdl_file = file_path + ".wdl"
         json_file = file_path + ".json"
         zip_file = file_path + ".zip"  # might not exist
