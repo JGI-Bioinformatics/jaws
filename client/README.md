@@ -36,6 +36,9 @@ when working out of the git repo directly. Changes to the source tree will be im
   python setup.py develop
 ```
 
+### Steps to install client
+see the section "Installing all services" in the main README.md 
+
 ### Versioning
 
 This project follows the [semantic versioning](https://semver.org/) spec.

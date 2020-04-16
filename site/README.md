@@ -4,9 +4,12 @@ Jaws site is an RPC server that communicates via REST endpoints using AMQP
 . It also connects with a SQL database to query and update for the status of
  each cromwell task. 
  
- ## Starting the RPC server
- ### Configuration
- Jaws site comes with a cli.py file that is the CLI client for the site
+### Steps to install client
+see the section "Installing all services" in the main README.md
+
+## Starting the RPC server
+### Configuration
+Jaws site comes with a cli.py file that is the CLI client for the site
  . Before starting the server it is recommended you create a configuration
   file with the following contents: 
   
@@ -50,7 +53,7 @@ Jaws site is an RPC server that communicates via REST endpoints using AMQP
 You can specify the location of a configuration file by setting the
  `JAWS_SITE_CONFIG` environment variable. 
  
- ### Setting up Jaws site services (RabbitMQ, Cromwell, MySQL)
+### Setting up Jaws site services (RabbitMQ, Cromwell, MySQL)
 Jaws comes with a `docker-compose.yml` that can be used to spin up services
 via localhost. To use this file make sure you have `Docker` installed as
 well as `docker-compose`. Once you have `docker-compose` installed, you can
@@ -91,3 +94,4 @@ Commands:
 ```
 
 To start up the RPC server, run the command `./cli.py server`.  
+
