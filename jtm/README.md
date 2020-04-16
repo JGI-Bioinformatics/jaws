@@ -105,4 +105,6 @@ Start remote static jtm-workers
 $ jtm-worker -wt dynamic -cl cori -t 01:00:00 -m 10G -c 32 -N 1 -nwpn 1 -p test
 ```
 
+### Steps to install jtm
+see the section "Installing all services" in the main README.md
 

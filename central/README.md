@@ -27,3 +27,6 @@ There is also a separate JAWS OAuth2 service which supports authentication for a
 ### JAWS Site
 
 Each computing facility has a JAWS Site server for managing the analyses running there.  This is an AmqpStorm-RPC service using JSON-RPC2 messages and provides an interface to the Cromwell servers running there.  Cromwell, in turn, submits tasks to the JGI Task Manager (JTM) running at each site, which manages the jobs on the compute cluster, which is usually managed by a scheduler (e.g. SLURM, SGE, UGE) but not always (e.g. AWS, Google Cloud).
+
+### Steps to install central
+see the section "Installing all services" in the main README.md
