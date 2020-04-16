@@ -1243,6 +1243,10 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         batch_job_script_str = ""
         batch_job_misc_params = ""
 
+        worker_config = config.config_file if config else ""
+        if WORKER_CONFIG_FILE:
+            worker_config = WORKER_CONFIG_FILE
+
         if cluster_name in ("cori", "lawrencium", "jgi_cloud", "jaws_lbl_gov", "lbl", "jgi_cluster"):
 
             with open(batch_job_script_file, "w") as jf:
@@ -1367,10 +1371,6 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                         tq_param = ""
                         if pool_name_param:
                             tq_param = "-p " + pool_name_param
-
-                        worker_config = config.config_file if config else ""
-                        if WORKER_CONFIG_FILE:
-                            worker_config = WORKER_CONFIG_FILE
 
                         batch_job_script_str += """
 #SBATCH -t %(wall_time)s
