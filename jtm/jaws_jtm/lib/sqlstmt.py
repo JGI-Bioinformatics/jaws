@@ -347,5 +347,5 @@ JTM_SQL = {
         where status in (0, 1, 2) and
               workerId2 in (select workerId2
                             from workers
-                            where slurmJobId = %(slurm_jid)d;"""
+                            where slurmJobId = %(slurm_jid)d);"""
 }

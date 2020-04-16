@@ -7,10 +7,10 @@ import json
 import csv
 
 from jaws_jtm.config import JtmConfig
-from jaws_jtm.lib.jtminterface import JtmInterface
-from jaws_jtm.lib.run import eprint
 from jaws_jtm.jtm_manager import manager as jtmmanager
 from jaws_jtm.jtm_worker import worker as jtmworker
+from jaws_jtm.lib.jtminterface import JtmInterface
+from jaws_jtm.lib.run import eprint
 
 
 class Mutex(click.Option):
@@ -44,7 +44,7 @@ class Mutex(click.Option):
 def cli(ctx: object, debug: bool, config_file: str):
     # click.echo("Debug mode is %s" % ("on" if debug else "off"))
     if config_file:
-        config = JtmConfig(config_file)
+        config = JtmConfig(config_file=config_file)
     else:
         config = JtmConfig()
     # print(f"Config using {config.config_file}")

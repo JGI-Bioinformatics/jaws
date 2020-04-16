@@ -6,17 +6,8 @@
 #
 import pika
 import sys
-from jaws_jtm.config import JtmConfig
 from jaws_jtm.common import logger
 from jaws_jtm.lib.msgcompress import zdumps
-
-config = JtmConfig()
-RMQ_USER = config.configparser.get("RMQ", "user")
-RMQ_HOST = config.configparser.get("RMQ", "host")
-RMQ_PORT = config.configparser.getint("RMQ", "port")
-RMQ_PASS = config.configparser.get("RMQ", "password")
-RMQ_VHOST = config.configparser.get("RMQ", "vhost")
-JGI_JTM_MAIN_EXCH = config.configparser.get("JTM", "jgi_jtm_main_exch")
 
 
 class RmqConnectionHB(object):
@@ -28,8 +19,16 @@ class RmqConnectionHB(object):
     """
     __connection = None
 
-    def __init__(self):
+    def __init__(self, config=None):
         if not self.__connection:
+            if config:
+                self.config = config
+                RMQ_USER = self.config.configparser.get("RMQ", "user")
+                RMQ_HOST = self.config.configparser.get("RMQ", "host")
+                RMQ_PORT = self.config.configparser.getint("RMQ", "port")
+                RMQ_PASS = self.config.configparser.get("RMQ", "password")
+                RMQ_VHOST = self.config.configparser.get("RMQ", "vhost")
+
             creds = pika.PlainCredentials(RMQ_USER, RMQ_PASS)
             params = pika.ConnectionParameters(credentials=creds,
                                                host=RMQ_HOST,
@@ -59,11 +58,14 @@ def rmq_close(rmq_conn_obj):
 
 def send_msg_callback(ch, method, props, msg, exch=None, queue=None, delivery_mode=1):
     exch_name = exch if exch is not None else ''
+    # exch_name = exch
+    # assert exch_name
     routing_key = queue if queue is not None else props.reply_to
+    assert routing_key
 
     try:
 
-        ch.basic_publish(exchange=JGI_JTM_MAIN_EXCH,
+        ch.basic_publish(exchange=exch_name,
                          routing_key=props.reply_to,  # use the queue which the client created
                          properties=pika.BasicProperties(delivery_mode=delivery_mode,  # make message persistent
                                                          correlation_id=props.correlation_id),
