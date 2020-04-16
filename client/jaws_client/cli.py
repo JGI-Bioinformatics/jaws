@@ -10,38 +10,32 @@ import logging
 import globus_sdk
 from jaws_client import log, config, analysis, catalog, user
 
+JAWS_CLIENT_LOG = "JAWS_CLIENT_LOG"
+JAWS_DEFAULT_LOG = "~/jaws.log"
+JAWS_CLIENT_CONFIG = "JAWS_CLIENT_CONFIG"
+JAWS_DEFAULT_CONFIG = "~/jaws.conf"
+
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
-def cli():
-    """JGI Analysis Workflows Service"""
-    pass
-
-
-def find_config_file(env_var: str, config_file: str) -> str:
-    """Find config file by checking env var, cwd, and home, in that order.
-
-    :param config_file: filename of configuration file
-    :type config_file: str
-    :param env_var: name of config file environment variable
-    :type env_var: str
-    :return: absolute path if found, None otherwise.
-    :rtype: str
-    """
-    if env_var in os.environ:
-        cf = os.environ[env_var]
-        if os.path.isfile(cf):
-            return cf
+@click.option("--config", "config_file", default=None, help="Config INI file")
+@click.option("--log", "log_file", default=None, help="Log file")
+def cli(config_file: str, log_file: str):
+    """JGI Analysis Workflows Service."""
+    if log_file is None:
+        if JAWS_CLIENT_LOG in os.environ:
+            log_file = os.environ[JAWS_CLIENT_LOG]
         else:
-            raise IOError(f"File not found: {cf}")
+            log_file = os.path.expanduser(JAWS_DEFAULT_LOG)
+    logger = log.setup_logger(__package__, log_file)
 
-    cf = os.path.abspath(config_file)
-    if os.path.isfile(cf):
-        return cf
-
-    cf = os.path.join(os.environ["HOME"], config_file)
-    if os.path.isfile(cf):
-        return cf
-    raise SystemExit(f"Unable to find config file; please set {env_var}")
+    if config_file is None:
+        if JAWS_CLIENT_CONFIG in os.environ:
+            config_file = os.environ[JAWS_CLIENT_CONFIG]
+        else:
+            config_file = os.path.expanduser(JAWS_DEFAULT_CONFIG)
+    conf = config.Configuration(config_file)
+    jaws = conf.get("JAWS", "name")
+    logger.debug(f"Using {jaws} : {config_file}")
 
 
 @cli.command()
@@ -100,13 +94,6 @@ def login() -> None:
 
 def jaws():
     """Entrypoint for jaws-client app."""
-    log_file = os.path.join(os.environ["HOME"], "jaws.log")
-    logger = log.setup_logger(__package__, log_file)
-
-    config_file = find_config_file("JAWS_CLIENT_CONFIG", "jaws-client.ini")
-    logger.debug(f"jaws-client using {config_file}")
-    config.conf = config.JawsConfig(config_file)
-
     cli.add_command(analysis.run)
     cli.add_command(catalog.wdl)
     cli()

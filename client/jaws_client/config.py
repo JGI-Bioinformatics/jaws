@@ -25,9 +25,8 @@ class ConfigurationError(Exception):
         super().__init__(message)
 
 
-class JawsConfig(metaclass=Singleton):
+class Configuration(metaclass=Singleton):
     config = None
-    logger = None
 
     def __init__(self, config_file=None) -> None:
         """Initialize the configuration object singleton
