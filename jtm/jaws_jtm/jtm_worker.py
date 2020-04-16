@@ -1033,6 +1033,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     NUM_PROCS_CHECK_INTERVAL = config.configparser.getfloat("JTM", "num_procs_check_interval")
     global ENV_ACTIVATION
     ENV_ACTIVATION = config.configparser.get("JTM", "env_activation")
+    WORKER_CONFIG_FILE = config.configparser.get("JTM", "worker_config_file")
 
     RMQ_HOST = config.configparser.get("RMQ", "host")
     RMQ_PORT = config.configparser.get("RMQ", "port")
@@ -1367,6 +1368,10 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                         if pool_name_param:
                             tq_param = "-p " + pool_name_param
 
+                        worker_config = config.config_file if config else ""
+                        if WORKER_CONFIG_FILE:
+                            worker_config = WORKER_CONFIG_FILE
+
                         batch_job_script_str += """
 #SBATCH -t %(wall_time)s
 #SBATCH --job-name=%(job_name)s
@@ -1408,9 +1413,9 @@ wait
                                                      job_name=job_name,
                                                      exclusive=excl_param,
                                                      export_jtm_config_file="export JTM_CONFIG_FILE=%s"
-                                                                            % config.config_file if config else "",
+                                                                            % worker_config,
                                                      set_jtm_config_file="--config=%s"
-                                                                         % config.config_file if config else "")
+                                                                         % worker_config)
 
                 elif cluster_name in ("lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster", "lbl"):
 
@@ -1490,9 +1495,9 @@ wait
                                                  task_queue=tp_param,
                                                  other_params=batch_job_misc_params,
                                                  export_jtm_config_file="export JTM_CONFIG_FILE=%s"
-                                                                        % config.config_file if config else "",
+                                                                        % worker_config,
                                                  set_jtm_config_file="--config=%s"
-                                                                     % config.config_file if config else "")
+                                                                     % worker_config)
 
                 jf.writelines(batch_job_script_str)
 

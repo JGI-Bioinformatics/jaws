@@ -93,10 +93,15 @@ user_name = jtm_dev
 instance_name = \${jtm_host_name}.\${user_name}
 scratch = /global/cscratch1/sd/jaws_jtm/
 [RMQ]
-host = rmq.nersc.gov
-vhost = jgi
-user = sulsj
-password = $JAWS_JTM_CORI_RMQ_PW
+#host = rmq.nersc.gov
+#vhost = jgi
+#user = sulsj
+#password = $JAWS_JTM_CORI_RMQ_PW
+#port = 5672
+host = rmq.lbl.gov
+vhost = jaws
+user = jaws
+password = $JAWS_JTM_LBL_RMQ_PW
 port = 5672
 [MYSQL]
 host = db.mysql.dev-cattle.stable.spin.nersc.org
@@ -153,6 +158,8 @@ num_result_recv_threads = 5
 client_hb_send_interval = 3.0
 # live worker checking count limit
 worker_hb_check_max_count = 0
+# config file location of worker
+worker_config_file = /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
 # worker->client heartbeat receiving interval
 client_hb_recv_interval = 6.0
 # max number of trial for checking
@@ -286,7 +293,7 @@ backend
         Int nwpn = 1
         Int shared = 1
         """
-        submit = """jtm --config=/global/u1/j/jaws_jtm/jaws-jtm.conf \
+        submit = """jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
           submit \
           -cmd '/bin/bash \${script}' \
           -cl \${cluster} \
@@ -301,9 +308,9 @@ backend
           --qos \${qos} \
           -A \${account} \
           --shared \${shared}"""
-        kill = "jtm --config=/global/u1/j/jaws_jtm/jaws-jtm.conf \
+        kill = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
                 kill -tid \${job_id}"
-        check-alive = "jtm --config=/global/u1/j/jaws_jtm/jaws-jtm.conf \
+        check-alive = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
                        isalive -tid \${job_id}"
         job-id-regex = "JTM task ID (\\\d+)"
         submit-docker = """
@@ -311,7 +318,7 @@ backend
             if [[ ! \$LOOKUP ]]; then
                 shifterimg pull \${docker}
             fi
-            jtm --config=/global/u1/j/jaws_jtm/jaws-jtm.conf \
+            jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
               submit \
               -cmd 'shifter_exec.sh \${docker} \${job_shell} \${script}' \
                     -cl \${cluster} \
