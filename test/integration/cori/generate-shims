@@ -37,10 +37,8 @@ cat <<EOM > $SHIMDIR/jaws-jtm-dev
 #!/usr/bin/env bash
 
 source $INSTALLDIR/jtm/bin/activate
-#export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
-#exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
-export JTM_CONFIG_FILE=/global/u1/j/jaws_jtm/jaws-jtm.conf
-exec jtm --config=/global/u1/j/jaws_jtm/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
+export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
+exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-cromwell-dev
