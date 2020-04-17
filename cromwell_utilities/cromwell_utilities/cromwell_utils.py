@@ -222,7 +222,7 @@ def _prepare_labels_file(outfile, username, infile=None):
 @cromwell.command()
 @click.argument("src", nargs=1)
 @click.argument("dest", nargs=1)
-@click.option("--flatten", default=False)
+@click.option("--flatten", is_flag=True)
 def wfcopy(src, dest, flatten):
     """Reformat and copy cromwell run output"""
     src = os.path.abspath(src)
