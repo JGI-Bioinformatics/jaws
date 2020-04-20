@@ -44,7 +44,7 @@ def _rpc_call(user, run_id, method, params={}):
     result = site_rpc_call.request(method, params)
     if "error" in result:
         abort(result["error"]["code"], result["error"]["message"])
-    return result, 200
+    return result["result"], 200
 
 
 def user_queue(user):

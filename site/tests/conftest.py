@@ -129,8 +129,7 @@ class MockQueue:
         pass
 
     def declare(self, queue_name):
-        return {"jsonrpc": "2.0", "result": "result", "error": "error",
-                "id": "id"}
+        return {"jsonrpc": "2.0", "result": "result", "error": "error", "id": "id"}
 
 
 class MockBasic:
@@ -141,8 +140,7 @@ class MockBasic:
         return "consumer tag"
 
     def qos(self, number):
-        return {"jsonrpc": "2.0", "result": "result", "error": "error",
-                "id": "id"}
+        return {"jsonrpc": "2.0", "result": "result", "error": "error", "id": "id"}
 
 
 class MockChannel:
@@ -235,17 +233,12 @@ METADATA = {
                 "stdout": "/path/to/stdout",
                 "shardIndex": -1,
                 "outputs": {
-                    "split_files": [
-                        "/home/jdoe/temp_aa",
-                        "/home/jdoe/temp_ad"
-                    ]
+                    "split_files": ["/home/jdoe/temp_aa", "/home/jdoe/temp_ad"]
                 },
-                "inputs": {
-                    "input_file": "/home/jdoe/cromwell/11.txt"
-                },
+                "inputs": {"input_file": "/home/jdoe/cromwell/11.txt"},
                 "runtimeAttributes": {
                     "failOnStderr": "true",
-                    "continueOnReturnCode": "0"
+                    "continueOnReturnCode": "0",
                 },
                 "returnCode": 0,
                 "backend": "Local",
@@ -253,7 +246,7 @@ METADATA = {
                 "stderr": "/home/jdoe/stderr",
                 "attempt": 1,
                 "executionEvents": [],
-                "start": "2016-02-04T13:47:55.000-05:00"
+                "start": "2016-02-04T13:47:55.000-05:00",
             }
         ],
         "sc_test.do_scatter": [
@@ -264,78 +257,66 @@ METADATA = {
                 "outputs": {},
                 "runtimeAttributes": {
                     "failOnStderr": "true",
-                    "continueOnReturnCode": "0"
+                    "continueOnReturnCode": "0",
                 },
-                "inputs": {
-                    "input_file": "f"
-                },
+                "inputs": {"input_file": "f"},
                 "backend": "Local",
                 "end": "2016-02-04T13:47:56.000-05:00",
                 "stderr": "/home/jdoe/0/stderr",
                 "attempt": 1,
                 "executionEvents": [],
-                "start": "2016-02-04T13:47:56.000-05:00"
+                "start": "2016-02-04T13:47:56.000-05:00",
             },
             {
                 "executionStatus": "Done",
                 "stdout": "/home/jdoe/shard-0/attempt-2/stdout",
                 "shardIndex": 0,
-                "outputs": {
-                    "count_file": "/home/jdoe/0/attempt-2/output.txt"
-                },
+                "outputs": {"count_file": "/home/jdoe/0/attempt-2/output.txt"},
                 "runtimeAttributes": {
                     "failOnStderr": "true",
-                    "continueOnReturnCode": "0"
+                    "continueOnReturnCode": "0",
                 },
-                "inputs": {
-                    "input_file": "f"
-                },
+                "inputs": {"input_file": "f"},
                 "returnCode": 0,
                 "end": "2016-02-04T13:47:56.000-05:00",
                 "stderr": "/home/jdoe/shard-0/attempt-2/stderr",
                 "attempt": 2,
                 "executionEvents": [],
-                "start": "2016-02-04T13:47:56.000-05:00"
+                "start": "2016-02-04T13:47:56.000-05:00",
             },
             {
                 "executionStatus": "Done",
                 "stdout": "/home/jdoe/shard-1/stdout",
                 "shardIndex": 1,
-                "outputs": {
-                    "count_file": "/home/jdoe/shard-1/output.txt"
-                },
+                "outputs": {"count_file": "/home/jdoe/shard-1/output.txt"},
                 "runtimeAttributes": {
                     "failOnStderr": "true",
-                    "continueOnReturnCode": "0"
+                    "continueOnReturnCode": "0",
                 },
-                "inputs": {
-                    "input_file": "f"
-                },
+                "inputs": {"input_file": "f"},
                 "returnCode": 0,
                 "backend": "Local",
                 "end": "2016-02-04T13:47:56.000-05:00",
                 "stderr": "/home/jdoe/shard-1/stderr",
                 "attempt": 1,
                 "executionEvents": [],
-                "start": "2016-02-04T13:47:56.000-05:00"
-            }
+                "start": "2016-02-04T13:47:56.000-05:00",
+            },
         ],
         "sc_test.do_gather": [
             {
                 "executionStatus": "Done",
                 "stdout": "/home/jdoe/call-do_gather/stdout",
                 "shardIndex": -1,
-                "outputs": {
-                    "sum": 12
-                },
+                "outputs": {"sum": 12},
                 "runtimeAttributes": {
                     "failOnStderr": "true",
-                    "continueOnReturnCode": "0"
+                    "continueOnReturnCode": "0",
                 },
                 "inputs": {
                     "input_files": [
                         "/home/jdoe/shard-0/attempt-2/output.txt",
-                        "/home/jdoe/shard-1/output.txt"
+                        "/home/jdoe/shard-1/output.txt",
                     ]
                 },
                 "returnCode": 0,
@@ -344,23 +325,27 @@ METADATA = {
                 "stderr": "/home/jdoe/call-do_gather/stderr",
                 "attempt": 1,
                 "executionEvents": [],
-                "start": "2016-02-04T13:47:56.000-05:00"
+                "start": "2016-02-04T13:47:56.000-05:00",
             }
-        ]
-    }, "outputs": {
+        ],
+    },
+    "outputs": {
         "sc_test.do_gather.sum": 12,
         "sc_test.do_prepare.split_files": [
             "/home/jdoe/call-do_prepare/temp_aa",
-            "/home/jdoe/call-do_prepare/temp_ad"
+            "/home/jdoe/call-do_prepare/temp_ad",
         ],
         "sc_test.do_scatter.count_file": [
             "/home/jdoe/shard-0/attempt-2/output.txt",
-            "/home/jdoe/shard-1/output.txt"
-        ]}, "id": "8e592ed8-ebe5-4be0-8dcb-4073a41fe180", "inputs": {
-        "sc_test.do_prepare.input_file": "/home/jdoe/cromwell/11.txt"},
-    "submission": "2016-02-04T13:47:55.000-05:00", "status": "Succeeded",
-    "end": "2016-02-04T13:47:57.000-05:00", "start":
-        "2016-02-04T13:47:55.000-05:00"
+            "/home/jdoe/shard-1/output.txt",
+        ],
+    },
+    "id": "8e592ed8-ebe5-4be0-8dcb-4073a41fe180",
+    "inputs": {"sc_test.do_prepare.input_file": "/home/jdoe/cromwell/11.txt"},
+    "submission": "2016-02-04T13:47:55.000-05:00",
+    "status": "Succeeded",
+    "end": "2016-02-04T13:47:57.000-05:00",
+    "start": "2016-02-04T13:47:55.000-05:00",
 }
 
 LOGS = {
@@ -369,36 +354,33 @@ LOGS = {
         "call.ps": [
             {
                 "stderr": "/home/user/call-ps/stderr6126967977036995110.tmp",
-                "stdout": "/home/user/call-ps/stdout6128485235785447571.tmp"
+                "stdout": "/home/user/call-ps/stdout6128485235785447571.tmp",
             }
         ],
         "call.cgrep": [
             {
                 "stderr": "/home/user/call-cgrep/stderr6126967977036995110.tmp",
-                "stdout": "/home/user/call-cgrep/stdout6128485235785447571.tmp"
+                "stdout": "/home/user/call-cgrep/stdout6128485235785447571.tmp",
             }
         ],
         "call.wc": [
             {
                 "stderr": "/home/user/call-wc/stderr6126967977036995110.tmp",
-                "stdout": "/home/user/call-wc/stdout6128485235785447571.tmp"
+                "stdout": "/home/user/call-wc/stdout6128485235785447571.tmp",
             }
-        ]
-    }
+        ],
+    },
 }
 
-ABORT = {
-    "id": "e442e52a-9de1-47f0-8b4f-e6e565008cf1",
-    "status": "Aborted"
-}
+ABORT = {"id": "e442e52a-9de1-47f0-8b4f-e6e565008cf1", "status": "Aborted"}
 
 
 @pytest.fixture()
 def server_status_down():
     def get(url):
-        return MockResponses({"serviceName": "cori",
-                              "messages": "server unhealthy",
-                              "ok": "false"}, 500)
+        return MockResponses(
+            {"serviceName": "cori", "messages": "server unhealthy", "ok": "false"}, 500
+        )
 
     return get
 
@@ -406,9 +388,9 @@ def server_status_down():
 @pytest.fixture()
 def server_status_up():
     def get(url):
-        return MockResponses({"serviceName": "cori",
-                              "messages": "server healthy",
-                              "ok": "true"}, 200)
+        return MockResponses(
+            {"serviceName": "cori", "messages": "server healthy", "ok": "true"}, 200
+        )
 
     return get
 
@@ -458,31 +440,49 @@ def log_file(tmp_path):
 
 @pytest.fixture()
 def cromwell_run_dir(tmp_path):
-    subdirs = ["call-asm_1", "call-asm_2", "call-asm_3",
-               "call-callGenes", "call-circularizeAssembly",
-               "call-createNonMitoReads", "call-doHmmSearch",
-               "call-filterHighGc", "call-getContigsMatchingHmmSearch"]
+    subdirs = [
+        "call-asm_1",
+        "call-asm_2",
+        "call-asm_3",
+        "call-callGenes",
+        "call-circularizeAssembly",
+        "call-createNonMitoReads",
+        "call-doHmmSearch",
+        "call-filterHighGc",
+        "call-getContigsMatchingHmmSearch",
+    ]
 
     # These dirs will have an rc file with non-zero exit code
-    non_zero_dirs = ["call-asm_1", "call-circularizeAssembly",
-                     "call-filterHighGc"]
+    non_zero_dirs = ["call-asm_1", "call-circularizeAssembly", "call-filterHighGc"]
+
+    # These dirs will have nonzero stderr.submit files (submission errors)
+    submission_error_dirs = ["call-doHmmSearch"]
 
     for d in subdirs:
         dir_path = tmp_path / d / "execution"
         dir_path.mkdir(parents=True)
         rc_file = dir_path / "rc"
-        if d in non_zero_dirs:
-            rc_file.write_text("127")
-        else:
-            rc_file.write_text("0")
         stdout = dir_path / "stdout"
         stderr = dir_path / "stderr"
         stdout_sub = dir_path / "stdout.submit"
         stderr_sub = dir_path / "stderr.submit"
+
         stdout.write_text(f"This is standard output from {d}")
-        stderr.write_text(f"This is standard error. This {d} had an error")
         stdout_sub.write_text(f"This is submit stdout from {d}")
-        stderr_sub.write_text(f"This is submit stderr from {d}")
+        if d in non_zero_dirs:
+            rc_file.write_text("127")
+            stderr.write_text(f"This is standard error. This {d} had an error")
+            stderr_sub.write_text(f"This is submit stderr from {d}")
+        else:
+            rc_file.write_text("0")
+            stderr.write_text(f"This is standard error. This {d} had no errors")
+            stderr_sub.write_text("")
+        if d in submission_error_dirs:
+            stderr.write_text(f"This is standard error. This {d} had an error")
+            stderr_sub.write_text(f"This is submit stderr from {d}")
+        else:
+            stderr.write_text(f"This is standard error. This {d} had no errors")
+            stderr_sub.write_text("")
     return tmp_path.as_posix()
 
 
@@ -504,7 +504,6 @@ def staging_files():
 
 
 class MockSession:
-
     def __init__(self):
         return
 
@@ -516,7 +515,6 @@ class MockSession:
 
 
 class MockDb:
-
     def __init__(self):
         return
 
@@ -525,7 +523,6 @@ class MockDb:
 
 
 class MockRun:
-
     def __init__(self, user_id, task_id, submit_id, cromwell_id, id, status):
         self.user_id = user_id
         self.upload_task_id = task_id
@@ -538,7 +535,6 @@ class MockRun:
 
 
 class MockTransferClient:
-
     def __init__(self, status, transfer_result={"task_id": "325"}):
         self.status = status
         self.transfer_result = transfer_result
@@ -551,7 +547,6 @@ class MockTransferClient:
 
 
 class MockUser:
-
     def __init__(self):
         self.id = "jaws_user"
         self.transfer_refresh_token = "1234567890"
@@ -562,7 +557,6 @@ def query_jaws_id(jawsd, run):
 
 
 class MockTransferData:
-
     def __init__(self, *args, **kwargs):
         return
 
@@ -573,4 +567,5 @@ class MockTransferData:
 @pytest.fixture()
 def mock_query_user_id(monkeypatch):
     from jaws_site.jawsd import Daemon
+
     monkeypatch.setattr(Daemon, "_query_user_id", query_jaws_id)

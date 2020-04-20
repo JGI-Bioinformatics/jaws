@@ -76,7 +76,7 @@ def test_cancel_run(monkeypatch, abort_post):
 
 
 def test_tail_files(log_file):
-    logs, is_truncated = dispatch.tail(log_file)
+    logs, is_truncated = dispatch.__tail(log_file)
     print(logs)
     assert is_truncated
     assert len(logs) == 1000
@@ -86,9 +86,9 @@ def test_tail_files(log_file):
 
 def test_find_rc_failed_files(cromwell_run_dir):
     run_dir = cromwell_run_dir
-    output = dispatch.find_failure_logs(run_dir)
+    output = dispatch._find_failure_logs(run_dir)
     logs_with_failure = ["call-asm_1", "call-circularizeAssembly",
-                         "call-filterHighGc"]
+                         "call-filterHighGc", "call-doHmmSearch"]
     print(output)
     for job in logs_with_failure:
         assert job in output
