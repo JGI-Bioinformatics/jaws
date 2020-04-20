@@ -29,8 +29,11 @@ def dispatch(method, params):
         "failure_logs": failure_logs,
     }
     proc = operations.get(method)
+    logger = logging.getLogger(__package__)
     if proc:
+        logger.debug(f"RPC {method} : {params}")
         return proc(params)
+    logger.error(f"Unknown RPC method: {method}")
     return failure(400, "Unknown method")
 
 
@@ -223,55 +226,40 @@ def run_logs(params):
     return success(r.json())
 
 
-def rc_exit_code(rc_file):
-    """
-    Parses the rc file for an exit code
-    """
-    with open(rc_file, "r") as rc_in:
-        exit_code = rc_in.readline().strip()
-    return exit_code
-
-
-def contains_failed_rc(root_dir):
-    """
-    Checks whether the exit code in an rc file is a non-zero exit code.
-
-    It first checks whether we are in an execution directory and whether
-    that execution directory contains an rc file. If it does it will
-    check the exit code.
-    """
-    failed_rc_present = True
-    rc = os.path.join(root_dir, "rc")
-    if not root_dir.endswith("execution") and not os.path.isfile(rc):
-        failed_rc_present = False
-    elif rc_exit_code(rc) == "0":
-        failed_rc_present = False
-    return failed_rc_present
-
-
-def find_failure_logs(run_dir):
+def _find_failure_logs(run_dir):
     max_lines = 1000
-    separator = "-" * 20 + "\n"
-    target_files = ["stdout", "stderr", "stdout.submit", "stderr.submit"]
+    separator = "\n\n" + "-" * 20 + "\n\n"
+    target_files = ["rc", "stdout", "stderr", "stdout.submit", "stderr.submit"]
     output = ""
     for root_dir, subdirs, files in os.walk(run_dir):
-        if not contains_failed_rc(root_dir):
+        if not root_dir.endswith("/execution"):
             continue
+        output += f"TASK: {root_dir}\n"
+
         rc_file = os.path.join(root_dir, "rc")
-        output += f"[{rc_file}]\n{rc_exit_code(rc_file)}\n" + separator
+        stderr_submit_file = os.path.join(root_dir, "stderr.submit")
+        if os.path.isfile(rc_file):
+            # TASK RAN, CHECK RC
+            rc = None
+            with open(rc_file, "r") as fh:
+                rc = fh.readline().strip()
+            if rc == 0:
+                continue
+        else:
+            # TASK DID NOT RUN, CHECK SUBMISSION LOG
+            if not os.path.isfile(stderr_submit_file) or os.path.getsize(stderr_submit_file) == 0:
+                continue
+        # TASK HAS ERROR
         for fname in files:
             if fname not in target_files:
                 continue
             full_filepath = os.path.join(root_dir, fname)
-            lines, is_truncated = tail(full_filepath, max_lines)
-            output += f"[{full_filepath}] "
+            lines, is_truncated = __tail(full_filepath, max_lines)
             if is_truncated:
-                output += " (limited to last {max_lines} lines \n"
+                output += f"\n[{fname}] showing only last {max_lines} lines\n" + "\n".join(lines)
             else:
-                output += "\n"
-            for line in lines:
-                output += line
-            output += " " + separator
+                output += f"\n[{fname}]\n" + "\n".join(lines)
+        output += separator
     return output
 
 
@@ -289,11 +277,11 @@ def failure_logs(params):
         return failure(r.status_code)
 
     run_dir = r.json()["workflowRoot"]
-    output = find_failure_logs(run_dir)
+    output = _find_failure_logs(run_dir)
     return success(output)
 
 
-def tail(filename, max_lines=1000):
+def __tail(filename, max_lines=1000):
     """Return the last n lines of a file.
 
     :param filename: path to file

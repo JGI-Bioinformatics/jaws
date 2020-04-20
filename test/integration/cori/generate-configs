@@ -320,7 +320,7 @@ backend
             fi
             jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
               submit \
-              -cmd 'shifter_exec.sh \${docker} \${job_shell} \${script}' \
+              -cmd '/global/cfs/projectdirs/jaws/cromwell/shifter_exec.sh \${docker} \${job_shell} \${script}' \
                     -cl \${cluster} \
                     -t \${time} \
                     -c \${cpu} \
