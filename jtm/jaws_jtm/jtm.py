@@ -98,10 +98,6 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
 @click.option("-p", "--pool_name",
               help="Set user-defined pool name. This should be same with task's 'pool' name.",
               required=True)
-@click.option("-to", "--timeout",
-              help="Set the timer for worker to terminate. If there is no request from the client \
-              for the specified seconds, the worker terminates itself (default: 60 seconds)",
-              type=int)
 @click.option("-dr", "--dry_run",
               help="Dry run. To print batch job script on screen",
               default=False,
@@ -146,8 +142,8 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
 @click.option("-t", "--job_time",
               help="Slurm Job time (hh:mm:ss)")
 @click.pass_context
-def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_name: str, pool_name: str,
-           timeout: int, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
+def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_name: str,
+           pool_name: str, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
            clone_time_rate: float, num_worker_per_node: int, worker_id: str,
            charging_account: str, nnodes: int, cpus_per_task: int, constraint: str,
            mem: str, mem_per_cpu: str, qos: str, job_time: str) -> int:
@@ -159,7 +155,6 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :param log_dir: custom log directory
     :param job_script_dir_name: custom sbatch script saving directory
     :param pool_name: worker pool name
-    :param timeout: worker max time for waiting for a manager
     :param dry_run:
     :param slurm_job_id: SLURM job id
     :param worker_type: manual or dynamic
@@ -178,7 +173,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :return:
     """
     sys.exit(jtmworker(ctx, heartbeat_interval, log_dir, job_script_dir_name, pool_name,
-                       timeout, dry_run, slurm_job_id, worker_type, cluster,
+                       dry_run, slurm_job_id, worker_type, cluster,
                        clone_time_rate, num_worker_per_node, worker_id,
                        charging_account, nnodes, cpus_per_task, constraint, mem,
                        mem_per_cpu, qos, job_time))

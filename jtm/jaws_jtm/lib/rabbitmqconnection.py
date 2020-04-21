@@ -16,6 +16,10 @@ class RmqConnectionHB(object):
     # With heartbeat_interval=0
     # ref) http://stackoverflow.com/questions/14572020/handling-long-running-tasks-in-pika-rabbitmq,
     # http://stackoverflow.com/questions/34721178/pika-blockingconnection-rabbitmq-connection-closed
+    #
+    # WIth heartbeat_interval=5
+    # ref) https://github.com/pika/pika/blob/master/examples/basic_consumer_threaded.py
+    # for functool and threading method to prevent connection lost
     """
     __connection = None
 
@@ -34,7 +38,8 @@ class RmqConnectionHB(object):
                                                host=RMQ_HOST,
                                                virtual_host=RMQ_VHOST,
                                                port=RMQ_PORT,
-                                               heartbeat=0,
+                                               # heartbeat=0,
+                                               heartbeat=5,  # for functools method
                                                )
             self.__connection = pika.BlockingConnection(params)
 

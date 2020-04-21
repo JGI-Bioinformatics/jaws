@@ -39,7 +39,7 @@ JTM_SQL = {
     "create_table_workers": """
         CREATE TABLE if not exists workers(
             workerId2 INTEGER PRIMARY KEY AUTO_INCREMENT,
-            workerId CHAR(24),
+            workerId CHAR(25),
             workerType TINYINT,
             slurmJobId INTEGER NOT NULL DEFAULT 0,
             startDate TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -340,7 +340,7 @@ JTM_SQL = {
         where status in (0, 1, 2) and
               workerId2 in (select workerId2
                             from workers
-                            where poolName = '%(pool_name)s';""",
+                            where poolName = '%(pool_name)s');""",
     "update_runs_status_cancelled_by_status_workerId2_jid": """
         update runs
         set status = -4, cancelled = 4
