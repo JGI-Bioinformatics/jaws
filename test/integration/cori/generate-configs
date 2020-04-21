@@ -280,18 +280,18 @@ backend
       config {
         runtime-attributes = """
         String? docker
-        String time = "00:00:00"
+        String time = "00:30:00"
         Int cpu = 1
-        String mem = "0G"
+        String mem = "5G"
         String cluster = "cori"
         String poolname = "small"
         #Int poolsize = 1
         String constraint = "haswell"
-        String qos = "genepool"
+        String qos = "genepool_special"
         String account = "fungalp"
         Int node = 1
         Int nwpn = 1
-        Int shared = 1
+        Int shared = 0
         """
         submit = """jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
           submit \
@@ -428,4 +428,3 @@ database
   insert-batch-size = 2000
 }
 EOM
-
