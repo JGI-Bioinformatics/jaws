@@ -79,7 +79,21 @@ def user_queue(user):
     result = []
     for run in q:
         result.append(
-            [run.id, run.submitted, run.status, run.submission_id, run.upload_task_id]
+            {
+                "id": run.id,
+                "submission_id": run.submission_id,
+                "cromwell_id": run.cromwell_id,
+                "status": run.status,
+                "site_id": run.site_id,
+                "submitted": run.submitted,
+                "updated": run.updated,
+                "input_site_id": run.input_site_id,
+                "input_endpoint": run.input_endpoint,
+                "upload_task_id": run.upload_task_id,
+                "output_endpoint": run.output_endpoint,
+                "output_dir": run.output_dir,
+                "download_task_id": run.download_task_id,
+            }
         )
     return result, 200
 
@@ -110,10 +124,18 @@ def user_history(user, delta_days=10):
         result.append(
             {
                 "id": run.id,
-                "submitted": run.submitted,
-                "status": run.status,
                 "submission_id": run.submission_id,
+                "cromwell_id": run.cromwell_id,
+                "status": run.status,
+                "site_id": run.site_id,
+                "submitted": run.submitted,
+                "updated": run.updated,
+                "input_site_id": run.input_site_id,
+                "input_endpoint": run.input_endpoint,
                 "upload_task_id": run.upload_task_id,
+                "output_endpoint": run.output_endpoint,
+                "output_dir": run.output_dir,
+                "download_task_id": run.download_task_id,
             }
         )
     return result, 200
@@ -300,8 +322,22 @@ def run_status(user, run_id):
     :return: The status of the run, if found; abort otherwise
     :rtype: dict
     """
-    q = _get_run(run_id)
-    result = {"status": q.status}
+    run = _get_run(run_id)
+    result = {
+                "id": run.id,
+                "submission_id": run.submission_id,
+                "cromwell_id": run.cromwell_id,
+                "status": run.status,
+                "site_id": run.site_id,
+                "submitted": run.submitted,
+                "updated": run.updated,
+                "input_site_id": run.input_site_id,
+                "input_endpoint": run.input_endpoint,
+                "upload_task_id": run.upload_task_id,
+                "output_endpoint": run.output_endpoint,
+                "output_dir": run.output_dir,
+                "download_task_id": run.download_task_id,
+            }
     return result, 200
 
 
