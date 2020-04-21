@@ -56,7 +56,7 @@ def user_queue(user):
     :rtype: list
     """
     try:
-        q = (
+        queue = (
             db.session.query(Run)
             .filter_by(user_id=user)
             .filter(
@@ -73,11 +73,11 @@ def user_queue(user):
             )
             .all()
         )
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, f"Db error; {e}")
+    except SQLAlchemyError as error:
+        logger.error(error)
+        abort(500, f"Db error; {error}")
     result = []
-    for run in q:
+    for run in queue:
         result.append(
             {
                 "id": run.id,
@@ -110,7 +110,7 @@ def user_history(user, delta_days=10):
     """
     start_date = datetime.today() - timedelta(int(delta_days))
     try:
-        q = (
+        history = (
             db.session.query(Run)
             .filter_by(user_id=user)
             .filter(Run.submitted >= start_date)
@@ -120,7 +120,7 @@ def user_history(user, delta_days=10):
         logger.error(e)
         abort(500, f"Db error; {e}")
     result = []
-    for run in q:
+    for run in history:
         result.append(
             {
                 "id": run.id,
@@ -232,7 +232,7 @@ def submit_run(user):
         transfer_client,
         input_endpoint,
         compute_endpoint,
-        label=str(run.id),
+        label=f"Upload run {run.id}",
         sync_level="checksum",
         verify_checksum=True,
         preserve_timestamp=True,
@@ -288,17 +288,17 @@ def _get_run(run_id):
     :rtype: sqlalchemy.model
     """
     try:
-        q = db.session.query(Run).get(run_id)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, f"Db error; {e}")
-    if not q:
+        run = db.session.query(Run).get(run_id)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        abort(500, f"Db error; {error}")
+    if not run:
         abort(404, "Run not found")
-    return q
+    return run
 
 
-def _pre_cromwell(run):
-    """Return True if the run hasn't been submitted to Cromwell yet.
+def __abort_if_pre_cromwell(run):
+    """Returns if run was submitted to Cromwell, aborts otherwise.
 
     :param run: SQLAlchemy Model Run object
     :type param: sqlalchemy.model
@@ -306,9 +306,7 @@ def _pre_cromwell(run):
     :rtype: boolean
     """
     if run.status.startswith("upload") or run.status == "created":
-        return True
-    else:
-        return False
+        abort(204, "No data because Run has not been submitted to Cromwell yet")
 
 
 def run_status(user, run_id):
@@ -352,11 +350,9 @@ def task_status(user, run_id):
     :return: The status of each task in a run, if found; abort otherwise
     :rtype: dict
     """
-    q = _get_run(run_id)
-    if _pre_cromwell(q):
-        return {"status": q.status}, 200
-    else:
-        return _rpc_call(user, run_id, "task_status")
+    run = _get_run(run_id)
+    __abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "task_status")
 
 
 def run_metadata(user, run_id):
@@ -370,11 +366,9 @@ def run_metadata(user, run_id):
     :return: Cromwell metadata for the run, if found; abort otherwise
     :rtype: dict
     """
-    q = _get_run(run_id)
-    if _pre_cromwell(q):
-        return {"status": q.status}, 200
-    else:
-        return _rpc_call(user, run_id, "run_metadata")
+    run = _get_run(run_id)
+    __abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "run_metadata")
 
 
 def run_logs(user, run_id):
@@ -388,11 +382,9 @@ def run_logs(user, run_id):
     :return: Cromwell metadata for the run, if found; abort otherwise
     :rtype: dict
     """
-    q = _get_run(run_id)
-    if _pre_cromwell(q):
-        return {"status": q.status}, 200
-    else:
-        return _rpc_call(user, run_id, "run_logs")
+    run = _get_run(run_id)
+    __abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "run_logs")
 
 
 def failure_logs(user, run_id):
@@ -406,11 +398,9 @@ def failure_logs(user, run_id):
     :return: Cromwell stdout/stderr/submit files for failed tasks.
     :rtype: str
     """
-    q = _get_run(run_id)
-    if _pre_cromwell(q):
-        return {"status": q.status}, 200
-    else:
-        return _rpc_call(user, run_id, "failure_logs")
+    run = _get_run(run_id)
+    __abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "failure_logs")
 
 
 def cancel_run(user, run_id):
@@ -424,10 +414,14 @@ def cancel_run(user, run_id):
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    q = _get_run(run_id)
-    if _pre_cromwell(q):
-        q.status = "canceled"
-        db.session.commit()
-        result = {"cancel": "OK"}
-        return result, 200
-    return _rpc_call(user, run_id, "cancel_run")
+    run = _get_run(run_id)
+    result = {"cancel": "OK"}
+    if run.status.startswith("upload"):
+        result["message"] = "canceling does not abort Globus transfer"
+    elif run.status == "created":
+        result["message"] = "Globus upload had completed"
+    else:
+        result = _rpc_call(user, run_id, "cancel_run")
+    run.status = "canceled"
+    db.session.commit()
+    return result, 200

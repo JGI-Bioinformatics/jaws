@@ -227,7 +227,7 @@ class Daemon:
             return
         orig_dir = r.json()["workflowRoot"]
         nice_dir = os.path.join(self.results_dir, str(run.id))
-        wfcopy.wfcopy(orig_dir, nice_dir, flattenShardDir=False, verbose=False)
+        wfcopy.wfcopy(orig_dir, nice_dir, flattenShardDir=False)
         run.status = "ready"
         self.session.commit()
         self.transfer_results(run)
@@ -237,7 +237,7 @@ class Daemon:
         Send run output via Globus
         """
         user = self._query_user_id(run)
-        nice_dir = os.path.join(self.results_subdir, str(run.id))
+        nice_dir = os.path.join(self.results_dir, str(run.id))
         transfer_rt = user.transfer_refresh_token
         try:
             transfer_client = self._authorize_transfer_client(transfer_rt)
@@ -251,11 +251,11 @@ class Daemon:
                 transfer_client,
                 self.globus_endpoint,
                 run.output_endpoint,
-                label=f"run_id={run.id}",
+                label=f"Download run {run.id}",
                 sync_level="checksum",
                 verify_checksum=True,
                 preserve_timestamp=True,
-                notify_on_succeeded=True,
+                notify_on_succeeded=False,
                 notify_on_failed=True,
                 notify_on_inactive=True,
                 skip_activation_check=True,
@@ -274,6 +274,7 @@ class Daemon:
             )
             return
         run.download_task_id = transfer_result["task_id"]
+        run.status = "downloading"
         self.session.commit()
 
     def check_if_download_complete(self, run):
