@@ -30,7 +30,7 @@ num_threads = 5
 max_retries = 3
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-endpoint_id = b445e71a-4933-11ea-9714-021304b0cca7
+endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
 root_dir = /
 [SITE]
 id = NERSC
