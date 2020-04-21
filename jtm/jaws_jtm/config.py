@@ -12,15 +12,9 @@ DEFAULT_CONFIG_FILE = 'jtm.ini'
 # CONSTANTS
 # -------------------------------------------------------------------------------------------
 class JtmConstants():
-    VERSION = "5.9.0"
+    VERSION = "6.0.0"
 
     # Supported cluster
-    # COMPUTE_RESOURCES = ["cori",
-    #                      "lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster", "lbl",  # lbl it
-    #                      "sjsul-lm-2_local", "sjsul-lm.dhcp.lbnl.us",  # testing
-    #                      "summit", "rhea", "slate",  # OLCF
-    #                      "aws"  # future support
-    #                      ]
     COMPUTE_RESOURCES = ["cori",  # cori @ NERSC
                          "lbl",  # jgi cluster @ lbl it
                          "ssul_laptop"  # for testing
@@ -47,7 +41,8 @@ class JtmConstants():
                    "outofresource": -3,  # out of mem
                    "terminated": -4,  # terminated
                    "invalidtask": -5,  # task definition in the message from jtm_submit is not valid
-                   "timeout": -6
+                   "timeout": -6,
+                   "lostconnection": -7
                    }
 
     DONE_FLAGS = {"success": 1,
@@ -58,6 +53,7 @@ class JtmConstants():
                   "failed with user termination": -4,
                   "failed with input file or command not found": -5,
                   "failed with timeout": -6,
+                  "failed with lost connection": -7
                   }
 
     WORKER_TYPE = {"manual": 0,
@@ -115,7 +111,7 @@ class JtmConstants():
     NUM_MANAGER_PROCS = 7
     NUM_WORKER_PROCS = 6
     # Explicit task kill if the worker's job time will be expired after TASK_KILL_TIMEOUT minute
-    TASK_KILL_TIMEOUT_MINUTE = 5
+    TASK_KILL_TIMEOUT_MINUTE = 3
 
 
 class JtmConfig(object):

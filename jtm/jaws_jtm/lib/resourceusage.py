@@ -36,6 +36,9 @@ def get_cpu_load(pid: int) -> float:
         if sys.platform.lower() == "darwin":
             ps_stdout_str = ps_stdout_str.strip().split('\n')[1]
         cpu_load = float(ps_stdout_str.strip())
+    except IndexError as e:
+        eprint(e)
+        cpu_load = 0.0
     except ValueError as e:
         eprint(e)
         cpu_load = 0.0

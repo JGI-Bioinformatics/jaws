@@ -92,17 +92,18 @@ jtm_host_name = cori
 user_name = jtm_dev
 instance_name = \${jtm_host_name}.\${user_name}
 scratch = /global/cscratch1/sd/jaws_jtm/
+debug = 0
 [RMQ]
-#host = rmq.nersc.gov
-#vhost = jgi
-#user = sulsj
-#password = $JAWS_JTM_CORI_RMQ_PW
-#port = 5672
-host = rmq.lbl.gov
-vhost = jaws
-user = jaws
-password = $JAWS_JTM_LBL_RMQ_PW
+host = rmq.nersc.gov
+vhost = jgi
+user = sulsj
+password = $JAWS_JTM_CORI_RMQ_PW
 port = 5672
+#host = rmq.lbl.gov
+#vhost = jaws
+#user = jaws
+#password = $JAWS_JTM_LBL_RMQ_PW
+#port = 5672
 [MYSQL]
 host = db.mysql.dev-cattle.stable.spin.nersc.org
 port = 60005
@@ -153,7 +154,7 @@ worker_info_update_wait = 0.5
 # interval to check the result from jtm
 result_receive_interval = 0.1
 # num threads to recv results from workers
-num_result_recv_threads = 5
+num_result_recv_threads = 1
 # client->worker heartbeat sending interval
 client_hb_send_interval = 3.0
 # live worker checking count limit
@@ -195,9 +196,9 @@ webservice
 }
 system
 {
-  abort-jobs-on-terminate = false
+  abort-jobs-on-terminate = true
   graceful-server-shutdown = true
-  workflow-restart = true
+  workflow-restart = false
   max-concurrent-workflows = 100000
   max-workflow-launch-count = 100000
   new-workflow-poll-rate = 1
@@ -285,7 +286,6 @@ backend
         String mem = "5G"
         String cluster = "cori"
         String poolname = "small"
-        #Int poolsize = 1
         String constraint = "haswell"
         String qos = "genepool_special"
         String account = "fungalp"
