@@ -15,7 +15,8 @@ logging.getLogger('pika').setLevel(logging.INFO)
 
 
 # -------------------------------------------------------------------------------
-def setup_custom_logger(level, log_dest_dir, b_stream_logging=True, b_file_logging=False, worker_id=None):
+def setup_custom_logger(level, log_dest_dir,
+                        b_stream_logging=True, b_file_logging=False, worker_id=None):
     """
     Setting up logging
 

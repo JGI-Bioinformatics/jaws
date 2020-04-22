@@ -31,7 +31,6 @@ def get_cpu_load(pid: int) -> float:
     cpu_load = 0.0
 
     try:
-        # ps_stdout_str = back_ticks(ps_cmd, shell=True)
         ps_stdout_str, _, _ = run_sh_command(ps_cmd, log=logger, show_stdout=False)
         if sys.platform.lower() == "darwin":
             ps_stdout_str = ps_stdout_str.strip().split('\n')[1]
@@ -93,16 +92,6 @@ def get_runtime(pid: int) -> int:
     proc_run_time = int(now - proc_start_time)  # unit in seconds will be enough
 
     return proc_run_time
-
-
-# -------------------------------------------------------------------------------
-# def get_memory_usage(pid):
-#    """
-#    return memory usage in Mb.
-#
-#    :param pid:
-#    """
-#    return _VmB('VmSize:', pid)
 
 
 # -------------------------------------------------------------------------------
@@ -184,13 +173,6 @@ def get_virtual_memory_usage(pid: int, since=0.0, as_str=True):
     :return:
     """
     if sys.platform.lower() == "darwin":
-        # OLD
-        # out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
-        #                        stdout=subprocess.PIPE).communicate()[0].split(b'\n')
-        # vsz_index = out[0].split().index(b'VSZ')
-        # mem = float(out[1].split()[vsz_index]) *1024
-        # print("vms mem %d" % mem)
-
         # NEW
         process = psutil.Process(pid)
         # print("vms: %d" % process.memory_info().vms)
@@ -216,16 +198,8 @@ def get_resident_memory_usage(pid: int, since=0.0, as_str=True):
     'ResMem: 0.000B'
     """
     if sys.platform.lower() == "darwin":
-        # OLD
-        # out = subprocess.Popen(['ps', 'v', '-p', str(pid)],
-        #                        stdout=subprocess.PIPE).communicate()[0].split(b'\n')
-        # vsz_index = out[0].split().index(b'RSS')
-        # mem = float(out[1].split()[vsz_index]) *1024
-        # print("mem %d" % mem)
-
         # NEW
         process = psutil.Process(pid)
-        # print("rss: %d" % process.memory_info().rss)
         return process.memory_info().rss / 1024.0 / 1024.0  # in MB
     else:
         b = _VmB('VmRSS:', pid) - since
@@ -281,7 +255,6 @@ def get_pid_tree(pid: int) -> list:
         cmd = "ps -o pid --ppid %d --noheaders" % pid
         child_pid_list.append(pid)
         try:
-            # ps_stdout_str = back_ticks(cmd, shell=True)
             ps_stdout_str = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE).communicate()[0]
 
             if type(ps_stdout_str) is bytes:
@@ -394,13 +367,6 @@ def darwin_free_mem() -> int:
         # print(row_element)
         vm_stats_dict[(row_element[0])] = int(row_element[1].strip('.')) * 4096
 
-    # pprint.pprint(vm_stats_dict)
-    # print(('Wired Memory:\t\t%d MB' % (vm_stats_dict["Pages wired down"] / 1024 / 1024)))
-    # print(('Active Memory:\t\t%d MB' % (vm_stats_dict["Pages active"] / 1024 / 1024)))
-    # print(('Inactive Memory:\t%d MB' % (vm_stats_dict["Pages inactive"] / 1024 / 1024)))
-    # print(('Free Memory:\t\t%d MB' % (vm_stats_dict["Pages free"] / 1024 / 1024)))
-    # print(('Real Mem Total (ps):\t%.3f MB' % (rss_total / 1024 / 1024)))
-
     # byte unit
     return vm_stats_dict["Pages free"]
 
@@ -438,8 +404,6 @@ def get_free_memory() -> int:
         with open('/proc/meminfo', 'r') as mem:
             for line in mem:
                 sline = line.split()
-                # if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
-                #     free_memory += int(sline[1])
                 if str(sline[0]) == 'MemAvailable:':
                     free_mem_bytes = int(sline[1]) * 1024.0  # Bytes
                     break

@@ -1,0 +1,317 @@
+MANAGER:
+Revisions:
+
+    10.01.2015 2.6.0: Tested with pika 0.10.0
+
+    12.03.2015 2.7.0: Tested with heartbeat_interval=0 for worker and  heartbeat_interval=60 for
+                      client in BlockingConnection()
+    08.22.2016 2.7.1: Checked invalid user command
+    11.15.2016 2.7.2: Added "-lf" option to set jtm log file saving location
+    03.03.2017 2.7.3: Used execute many to insert tasks into tasks table when "-d" option is used
+
+    03.03.2017 3.0.0: Updated to set hearbeat_internal=0 (RmqConnectionHB(0)) so that connection
+                      timeout is disalbed
+    03.10.2017 3.0.1: Changed to use executemany for creating task list sqlite database
+    03.16.2017 3.0.2: Added custom separator (default=':') for creating task list
+
+    09.12.2018 3.1.0: Branched out 'jtm'; Updated for pika=0.12.0; Changed 'type' to 'exchange_type'
+                      in exchange_declare()
+                      Added 'jgi_jtm_task_manager' exchange for task and result messages
+    09.13.2018 3.1.1: Added unique worker id
+
+    09.13.2018 3.2.0: Added worker heartbeat exchange
+
+    ---------------------------------------------------------------------------------------------
+
+    09.19.2018 0.0.9: Started jgi-task-manager
+
+    09.21.2018 1.0.0: Working version done
+    09.27.2018 1.1.0: Updated message structure;
+
+    10.03.2018 1.2.0: Added task_type; Added db utils;
+    10.04.2018 1.2.1: Set jgi_jtm_client_hb_exchange durable=True and auto_delete=False so that it
+                      can be maintained even with no worker; Added runs table;
+    10.05.2018 1.2.2: Updated resource msg as dict
+    10.05.2018 1.2.3: Updated send hb to client interval to 5sec;
+                      Added comm pipe to send taskid with hb;
+    10.05.2018 1.2.4: Updated to update runs table with resource data
+
+    10.09.2018 1.3.0: Added JtmInterface class; Added jtm_submit and jtm_status
+    10.10.2018 1.3.1: Changed to MySQL
+    10.12.2018 1.3.2: Updated recv_hb_from_worker;
+               1.3.3: Updated to make connection per each SQL;
+
+               1.4.0: jtm_kill works
+    10.15.2018 1.4.1: Fixed to keep task requests when no worker is available
+    10.19.2018 1.4.4: Worker can use different queue name (=pool) when user task json has 'pool' key
+    10.22.2018 1.4.5: Updated workers table; workerId2 for workers table; life_left;
+    10.23.2018 1.4.6: Bug fix about workerId2
+    10.24.2018 1.4.7: Updated to set -1 for dead workers
+    10.26.2018 1.4.8: Fixed user termination error code update (-4)
+
+    10.26.2018 1.5.0: Demo version with static workers tested
+    10.28.2018 1.5.1: Added ipaddress to worker hb
+    11.02.2018 1.5.2: Updated 'lifeleft' in workers table for the last dead worker
+
+    11.06.2018 1.6.0: Tested static workers and sbatch on cori and denovo
+               1.6.1: Remove user account name from queue name for EC2
+    11.08.2018 1.6.2: Added custom queue name postfix for testing in Config
+    11.13.2018 1.6.3: Updated jtm_submit for large node sbatch; Updated send_hb to use CNAME as
+                      postfix; Added jtm_check_manager cli; Added jtm-check-worker;
+
+    11.13.2018 1.7.0: Updated sbatch for static worker cloning; removed 'interval' from hb;
+                      Added '-r' jgi-task-manager option; Added CLIENT_HB_RECV_INTERVAL = 8
+    11.14.2018 1.7.1: Added dynamic worker spawning
+
+    11.15.2018 1.8.0: Dynamic workers; Changed hb header format;
+    11.19.2018 1.8.1: Changed basic_consume callback args; Changed process_task_request to use the
+                      custom pool name as task queue if -tp is used; Updated routine to get the
+                      current live workers and add a feature to get the num workers per pool name;
+    11.20.2018 1.8.2: Fixed message unconsumed from inner result queue
+    12.13.2018 1.8.2: Changed mysql to gpdb23
+
+    12.17.2018 1.9.0: Updated to use gpdb23; Test the client on denovo
+
+    12.19.2018 2.0.0: Updated to have multiple jtm instances; Updated jtmInterface to determine
+                      task request queue and task result queue in run time; Added jtm_host_name to
+                      workers table;
+    12.21.2018 2.0.1: Updated jtm-submit to use 'cl' param;
+    12.22.2018 2.0.2: Testing mysql packet exception error;
+    01.03.2019 2.0.3: Changed queue name format to hostname.username.customepoolname;
+                      Added exception for losing db connection;
+    01.04.2019 2.0.4: Changed to auto_delete=True for main task request/result queues;
+                      Changed to auto_delete=True for inner task request/result queues;
+    01.08.2019 2.0.5: Changed clonecnt update for handle multiple static workers on a same node
+    01.09.2019 2.0.6: Fixed nw option to automatically clone n static workers;
+
+    01.14.2019 3.0.0: Tested with Jaws + jtm + jaws account
+    01.24.2019 3.0.2: Updated to print error messages to stderr in jtm cli tools;
+                      logger.exception("Failed to call %s.
+                      Exit code=%s" % (msg.cmd, msg.returncode))
+    01.25.2019 3.0.3: Connected jaws custom pool setting to jtm;
+                      Read jtm-submit params and start a pool of workers if necessary;
+
+    01.30.2019 3.1.0: Updated worker and manager to handle wid by option params; Updated to support
+                      a custom pool creation for Cromwell scatter function so that a pool can be
+                      reused for multiple tasks from a scatter;
+    02.01.2019 3.1.1: Set 20 for jtm-submit waittime; Removed all sql pool con;
+
+    02.21.2019 3.2.1: Changed the way to count active workers; ==> not working, reverted 0226
+    02.25.2019 3.2.2: Changed to exclusive=False for worker hb queue;
+    02.26.2019 3.2.3: Added default queues, small, medium, large, and xlarge;
+                      Set default queue as "small";
+    02.27.2019 3.2.4: Set default queue as "small"
+    02.28.2019 3.2.5: Changed client hb -> worker(s) exchange type from fanout to topic;
+    03.06.2019 3.2.6: Changed worker cnt routine to get the # activate workers per pool name;
+    03.07.2019 3.2.7: Use unique worker id for processing each individual hb from workers;
+                      Changed resource log target dir;
+    03.21.2019 3.2.10: Added Cori KNL support;
+    03.27.2019 3.2.11: Fixed jtm-submit by checking response value is None or not;
+
+    03.28.2019 3.3.0: Fixed scatter support (Something wrong with exchanges);
+                      Redid JtmInterface message receiving;
+    04.02.2019 3.3.1: Fixed dynamic worker multi-sbatch; For new worker request, set lifeleft=-2;
+
+    04.02.2019 3.4.0: Improving jtm-kill;
+    04.03.2019 3.4.1: Improved process_task_kill() for updated runs table for the case of task
+                      cancellation;
+    04.03.2019 3.4.3: Changed to single poison queue per clust r;
+
+    04.04.2019 4.0.0: Added a thread for checking termination requested task; Added kill exchnage
+                      and queue;
+    04.08.2019 4.0.2: Changed result recv interval 6->2secs
+    04.15.2019 4.0.3: RESULT_RECEIVE_INTERVAL = 0.5, WORKER_INFO_UPDATE_WAIT = 1;
+                      Fixed JtmInterface for recv task id;
+
+    04.15.2019 4.1.0: JtmInterface max wait => 50 rounds;
+                      Created separate queue per each jtm interface command;
+    04.16.2019 4.2.0: Set each jtm-submit creates a temp queue for recv task id;
+    04.17.2019 4.2.2: Fixed getting alive #worker routine -> Set slurm id once sbatched and check
+                      slurmid != 0 when count the alive or sbatched workers with given pool name;
+                      Restrict auto cloning only if workertype ==1 and slurm jobid > 1;
+    04.22.2019 4.2.4: Updated select_count_workers_by_poolname_enddate and
+                      select_count_workers_by_jtmhostname to count sbatched worekrs;
+                      Added nwpn (num workers per node) to jtm-submit and cromwell conf;
+                      Updated process_task_request to double check the number of workers needed;
+
+    04.24.2019 5.0.0: Added nwpn; chance all counting alive workers routines;
+                      Added the feature of "shared=0" for jtm-worker pool. If shared=0, the pool won't be shared
+                      among workflows which use the same pool name;
+    04.25.2019 5.0.2: Updated to detect slurm failure;
+    04.29.2019 5.0.3: Added cromwell job id in cromwell conf;
+                      Added exclusive;
+    04.30.2019 5.0.4: Tested exclusive;
+
+    05.03.2019 5.1.0: Change to insert all workers by nwpn -> Set nWorkersPerNode=1 for dynamic worker;
+                      Appended serial number to uniq worker id for dynamic worker -> Change the
+                      workerid len from 22 to 23;
+                      Change hb interval send->2sec, recv->8sec;
+                      Tested jtm-worker -wt static -t 00:05:00 -cl cori -nwpn 4;
+                      Even with nwpn=4, cloning is done by node based (b/c of clone count checking);
+                      Resource log subdir -> padded string from task id to store resource log
+                      ex) task_id=228 --> 00/00/02;
+
+    05.10.2019 5.2.0: Created single db connection for worker's hb recv;
+    05.15.2019 5.2.1: Improved jtm-kill by sending kill msg to workers only from task_kill_proc();
+    05.16.2019 5.2.2: Updated to record resource log file full path in
+    05.22.2019 5.2.3: Added jtm-resource-log;
+    05.24.2019 5.2.4: Updated jtminterface wait method from time_limit to sleep;
+                      Added taskqueue declaration and biding in jtminterface so that jtm-submit
+                      requests are maintained for the case where the manager is not available;
+                      Keep jtm-submit waittime = 600s;
+                      Bug fix: short task ("ls") status update bug fix in
+                      update_runs_tid_startdate_by_tid;
+
+    05.28.2019 5.3.0: Cronjob started on cori20;
+    05.30.2019 5.3.1: Tested with py3;
+                      pika upgraded to 1.0.1;
+                      RmqConnectionHB --> remove heartbeat_interval;
+                      no_ack --> auto_ack;
+                      basic_consume param changed;
+                      cPickle is not supported in py3; Need to upgrade it for py3 in JAWS conda env;
+                      jtm needs pip install mysqlclient ==> not working ==> downgrade openssl ==>
+                      conda install openssl=1.0.2r (will lower python 3.7.1 to 3.7.0);
+                      jaws conda needs "conda install -c conda-forge shortuuid,
+                      conda install -c conda-forge pika,
+                      conda install -c anaconda numpy";
+
+    06.11.2019 5.4.0: Replace time.sleep() in recv_hb_from_worker()
+                      with conn.process_data_events(time_limit=interval) to fix lost connection;
+                      Replace time.sleep() in the all callbacks with ch._connection.sleep();
+    06.12.2019 5.4.1: Still lost connection in recv_hb_from_worker() -> set heartbeat=600,
+                      blocked_connection_timeout=600 in RabbitmqConnecion param;
+                      ** single db conn open/close in recv_hb_from_worker_proc;
+    06.13.2019 5.4.2: Multiprocessing -> threading;
+                      recv_result -> multithreaded (default: 10)
+    06.25.2019 5.4.4: Revered back to multiprocessing
+                      (ref. https://stackoverflow.com/questions/3044580/multiprocessing-vs-threading-python)
+    08.13.2019 5.4.5: Removed threads for on_result(); pika upgraded to v1.1.0;
+    09.19.2019 5.4.6: Found missing db connection; Open and close db multiple times in recv_hb_from_worker_proc;
+                      Delete tag 5.5.0 (= thread test)
+                      Released as a stable production version;
+    10.03.2019 5.4.7: Testing sending hb rates (worker sending: 1sec, manager recving: 3sec)
+
+    11.21.2019 5.6.0: Set heartbeat=0 to prevent possible lost connection in BlockingConnection (in pika 0.9,
+                      it was set to 580sec. In pika 1.0, it is set to 60sec)
+    11.26.2019 5.6.1: Fixed bug for wrong number of workers -> needed to set nWorkersPerNode in workers table to 1;
+                      Fixed process_check_worker() to get the correct number of workers alive
+                      --> Added life_left>-0
+                      to select_sum_nwpn_workers_by_jtm_host_name_enddate
+                         select_sum_nwpn_workers_by_jtm_host_name_enddate
+                         select_sum_nwpn_workers_by_poolname_enddate SQLs;
+    12.09.2019 5.6.2: Updated to use mysql.connector;
+    02.03.2020 5.6.3: Jtm-status fix; jtm-kill updates runs table for cancelled=1 but jtm-status still
+                      checked only "status" field. So changed jtm-status to check "cancelled" field
+                      to determine the status.
+    02.12.2020 5.6.4: Updated log file permissions;
+    02.14.2020 5.6.5: Updated to support custom charging account for knl;
+    03.03.2020 5.6.7: Updated to use custom queue name instead of random in jtm-* interface;
+
+    04.08.2020 5.8.1: Delete inactive workers instead of updating lifeleft;
+                      Config file checking and error message print;
+                      remove-pool: delete workers instead of updating info;
+                      For checking alive nodes, use squeue instead of sacct;
+                      Set core count limit with affinity control;
+
+    04.18.20120 6.0.0 Set debug option from config support;
+                      Fix long running task by functools, threading;
+                      Increased workerid to char(25) in workers table;
+                      Replaced process_data_events with connection.sleep();
+
+
+######################
+
+WORKER:
+Revisions
+
+    05.06.2015 Debugging worker socket disconnection issue;
+    05.19.2015 Added channel.close();
+    05.20.2015 Added RMQ reconnection for when the connection is lost due to long task processing;
+
+    05.20.2015 2.5.0 released!
+
+    12.03.2015 2.7.0: Tested with heartbeat_interval=0 (RmqConnectionHB(0)) for worker and
+                      heartbeat_interval=60 for client in BlockingConnection()
+
+    03.03.2017 3.0.0: Updated to set hearbeat_internal=0 so that connection timeout is disabled
+    03.03.2017 3.0.3: Added custom log file location option for worker
+    07.10.2017 3.0.4: Updated to print task id when completed
+
+    09.12.2018 3.1.0: Branched out "JTM"; Updated for pika=0.12.0; Changed "type" to "exchange_type"
+                      in exchange_declare();
+                      Added "jgi_jtm_task_manager" exchange for task and result messages
+    09.13.2018 3.1.1: Added unique worker id
+
+    09.13.2018 3.2.0: Added worker heartbeat exchange
+
+    ---------------------------------------------------------------------------------------------
+
+    09.19.2018 0.0.9: Started jtm-worker
+
+    09.21.2018 1.0.0: Working version
+    09.27.2018 1.1.0: Updated message structure;
+
+    10.03.2018 1.2.0: Added task_type
+    10.04.2018 1.2.1: Set jgi_jtm_client_hb_exchange durable=True and auto_delete=False so that it
+                      can be maintained even with no worker
+    10.05.2018 1.2.2: Updated resource msg as dict
+    10.05.2018 1.2.3: Updated sned hb to client interval to 5sec; Added comm pipe to send taskid
+                      with hb;
+
+    10.12.2018 1.4.0: Added recv_reproduce_or_die_proc; jtm_kill done
+    10.17.2018 1.4.2: Fixed panic() to terminate child processes
+    10.18.2018 1.4.3: Added darwin support for resource reporting
+    10.19.2018 1.4.4: Worker can use different queue name (=pool) when user task json has "pool" key
+    10.22.2018 1.4.5: Updated workers table; workerId2 for workers table; life_left;
+    10.23.2018 1.4.6: Bug fix about workerId2
+    10.26.2018 1.4.8: Fixed user termination error code update (-4); Set USER_PROC_PROC_ID = -9 if user
+                      process is killed
+
+    10.26.2018 1.5.0: Demo version with static workers tested
+    10.28.2018 1.5.1: Added ipaddress to worker hb
+
+    11.06.2018 1.6.0: Tested static workers and sbatch
+               1.6.1: Remove user account name from queue name for EC2
+    11.08.2018 1.6.2: Added custom queue name postfix for testing in Config
+    11.13.2018 1.6.3: Updated jtm_submit for large node sbatch; Updated send_hb to use CNAME as
+                      postfix; Added jtm_check_manager cli;
+
+    11.13.2018 1.7.0: Updated sbatch for static worker cloning; removed 'interval' from hb;
+    11.14.2018 1.7.1: Added dynamic worker spawning
+
+    11.15.2018 1.8.0: Dynamic workers; Changed hb header format;
+    11.19.2018 1.8.1: Changed basic_consume callback args; Changed process_task_request to use the
+                      custom pool name as task queue if -p is used; Updated routine to get the
+                      current live workers and add a feature to get the num workers per pool name;
+
+    01.16.2019 3.0.1: Fixed options for -wt and -cl;
+
+    02.19.2019 3.2.0: Added Lawrencium slurm support;
+    02.25.2019 3.2.3: Set default worker queue name = "small"
+    03.11.2019 3.2.8: Fixed invalid child process id in get_pid_tree();
+    03.14.2019 3.2.9: Added "--exclusive" for cori sbatch (genepool_special needs it)
+    03.21.2019 3.2.10: Added Cori KNL support (KNL constraint doesn't need --qos and --account);
+
+    04.03.2019 3.4.2: Fixed child process killing;
+
+    04.04.2019 4.0.0: Added thread to recv task kill request; Added sleep 10 in sbatch script;
+
+    04.16.2019 4.2.1: Added ack and nack in on_poison(); Added ack and nack in on_kill();
+    04.18.2019 4.2.3: Bug fix worker cloning -> basic_reject + requeue=True;
+
+    05.01.2019 5.0.5: Removed scontrol;
+
+    05.09.2019 5.1.1: Fixed life left calculation; Removed raise;
+
+    06.11.2019 5.4.0: Run run_user_task() with threading.Thread; Added ch._connection.sleep() to fix
+                      lost connection issue;
+    06.13.2019 5.4.2: Multiprocessing -> threading;
+    06.18.2019 5.4.3: Send endData as today in hb to the manager even if the worker is dynamic;
+
+    10.08.2019 5.5.0: Revised recv_hb_from_client_thread;
+    10.21.2019 5.5.1: Tested jgi cloud; Updated config; Updated sbatch params;
+    10.26.2019 5.6.1: Updated unique worker id + for_loop_index for jaws_lbl_gov;
+
+    02.26.2020 5.6.6: Set slurm job name with pool name;
+
+

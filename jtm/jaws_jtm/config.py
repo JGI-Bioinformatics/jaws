@@ -89,23 +89,6 @@ class JtmConstants():
               "nwpn": 26  # num workers per node, NOT USED
               }
 
-    # Note: to see all the qos assigned
-    # $ sacctmgr show assoc user=jaws_jtm -p
-    # Cluster|Account|User|Partition|Share|Priority|GrpJobs|GrpTRES|GrpSubmit|GrpWall|GrpTRESMins|MaxJobs|MaxTRES|
-    # MaxTRESPerNode|MaxSubmit|MaxWall|MaxTRESMins|QOS|Def QOS|GrpTRESRunMins|
-    # escori|m342|jaws_jtm||1||||||||bb/datawarp=52828800M|||||debug_hsw,debug_knl,flex,interactive,jupyter,long,low_knl,
-    # overrun,premium,regular_0,regular_1,regular_bigmem,resv,resv_shared,shared,xfer|||
-    # cori|m342|jaws_jtm||1||||||||bb/datawarp=52828800M|||||debug_hsw,debug_knl,flex,interactive,jupyter,long,low_knl,
-    # overrun,premium,regular_0,regular_1,regular_bigmem,resv,resv_shared,shared,xfer|||
-    # QOS_LIST = ["genepool_special",
-    #             "genepool_shared",
-    #             "genepool",
-    #             "regular",
-    #             "jgi_shared",
-    #             "jgi_exvivo",
-    #             "condo_jgicloud"
-    #             ]
-
     DEFAULT_POOL_NAME = ["small", "medium", "large", "xlarge"]
     # Number of child processes for manager and worker
     NUM_MANAGER_PROCS = 6

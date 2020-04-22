@@ -42,27 +42,15 @@ class Mutex(click.Option):
               help="Config INI file")
 @click.pass_context
 def cli(ctx: object, debug: bool, config_file: str):
-    # click.echo("Debug mode is %s" % ("on" if debug else "off"))
     if config_file:
         config = JtmConfig(config_file=config_file)
     else:
         config = JtmConfig()
-    # print(f"Config using {config.config_file}")
     ctx.obj = {
         'config_file': config_file,
         'config': config,
         'debug': debug
     }
-    # COMPUTE_RESOURCES = config.constants.COMPUTE_RESOURCES
-    # CLUSTER = config.configparser.get("SITE", "jtm_host_name")
-    # TASK_STATUS = config.constants.TASK_STATUS
-    # NCPUS = config.configparser.getint("SLURM", "ncpus")
-    # MEM_PER_NODE = config.configparser.get("SLURM", "mempernode")
-    # CHARGE_ACCOUNT = config.configparser.get("SLURM", "charge_accnt")
-    # QOS = config.configparser.get("SLURM", "qos")
-    # NNODES = config.configparser.getint("SLURM", "nnodes")
-    # CONSTRAINT = config.configparser.get("SLURM", "constraint")
-    # NWORKERS_PER_NODE = config.configparser.getint("JTM", "num_workers_per_node")
 
 
 @cli.command()
@@ -317,9 +305,6 @@ def kill(ctx: object, task_id: int) -> int:
         eprint("jtm kill: task id not found.")
         sys.exit(-1)
     sys.exit(0) if ret == 0 else sys.exit(1)
-    # if ret != 0:
-    #     click.echo("jtm kill failed with task id %d" % taskID)
-    # sys.exit(0)
 
 
 @cli.command()
@@ -502,8 +487,8 @@ def resource_log(ctx: object, task_id: int) -> int:
     if resource_log_file == -88:
         eprint("jtm resource-log: command timeout.")
         sys.exit(-1)
-    # print resource_log_file
-    # http://www.andymboyle.com/2011/11/02/quick-csv-to-json-parser-in-python/
+
+    # Ref) http://www.andymboyle.com/2011/11/02/quick-csv-to-json-parser-in-python/
     if os.path.isfile(resource_log_file):
         f = open(resource_log_file, 'rU')
         reader = csv.DictReader(f, fieldnames=(
@@ -534,7 +519,8 @@ def resource_log(ctx: object, task_id: int) -> int:
             "jtm_host_name",  # 25
             "nwpn"  # 26
         ))
-        click.echo("""{ "task_id": %d, "resource_log": %s }""" % (task_id, json.dumps([row for row in reader])))
+        click.echo("""{ "task_id": %d, "resource_log": %s }"""
+                   % (task_id, json.dumps([row for row in reader])))
     else:
         eprint("Resource file, %s, not found." % (resource_log_file))
         resource_log_file = None
