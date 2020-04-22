@@ -612,7 +612,7 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
 
 
 # -----------------------------------------------------------------------
-def recv_hb_from_client_proc2(task_queue, exch_name, cl_hb_q_postfix):
+def recv_hb_from_client_proc(task_queue, exch_name, cl_hb_q_postfix):
     """
 
     :param task_queue:
@@ -747,97 +747,6 @@ def recv_task_kill_request_proc():
     ch.basic_qos(prefetch_count=1)
     ch.basic_consume(queue=queue_name,
                      on_message_callback=on_kill,
-                     auto_ack=False)
-
-    try:
-        ch.start_consuming()
-    except KeyboardInterrupt:
-        ch.stop_consuming()
-        raise
-
-
-# -------------------------------------------------------------------------------
-def recv_reproduce_or_die_proc(task_queue, cluster_name, mem_per_node, mem_per_core,
-                               num_nodes, num_cores, wallclocktime, clone_time_rate,
-                               nwpn, exch_name, queue_name):
-    """
-    Wait for process termination request from JTM
-    :param task_queue: task queue (pool) name
-    :param cluster_name: cluster name
-    :param mem_per_node: memory size per node
-    :param mem_per_core: memory size per core
-    :param num_nodes: number of nodes
-    :param num_cores: number of cores
-    :param wallclocktime: wallclocktime request
-    :param clone_time_rate: cloning time rate (remaining runtime / total runtime)
-    :param nwpn: number of workers per node
-    :return:
-    """
-    rmq_conn = RmqConnectionHB(config=CONFIG)
-    conn = rmq_conn.open()
-    ch = conn.channel()
-
-    ch.exchange_declare(exchange=exch_name,
-                        exchange_type="direct",
-                        durable=True,
-                        auto_delete=False)
-    ch.queue_declare(queue=queue_name,
-                     durable=True,
-                     exclusive=False,
-                     auto_delete=True)
-    ch.queue_bind(exchange=exch_name,
-                  queue=queue_name,
-                  routing_key=UNIQ_WORKER_ID)
-
-    def on_poison(ch, method, props, body):
-        msg_unzipped = json.loads(zloads(body))
-
-        if msg_unzipped["worker_id"] == UNIQ_WORKER_ID:
-
-            # If static worker cloning request
-            if msg_unzipped["num_clones"] == -1:
-                # Kill the worker request
-                pass
-            elif msg_unzipped["num_clones"] == 1:
-                logger.info("Static worker cloning request received.")
-
-                jtm_worker_cmd = "jtm worker -wt static -cl {} -t {} -ct {}".format(
-                                  cluster_name, wallclocktime, clone_time_rate)
-
-                if task_queue is not None:
-                    jtm_worker_cmd += " -p {}".format(task_queue)
-
-                if nwpn != "" and int(nwpn) > 1:
-                    jtm_worker_cmd += " -nw {}".format(nwpn)
-                else:
-                    jtm_worker_cmd += " -nw 1"
-
-                if num_nodes != "" and int(num_nodes) > 0:
-                    jtm_worker_cmd += " -N {} -m {} -c {}".format(num_nodes, mem_per_node, num_cores)
-                else:
-                    jtm_worker_cmd += " -c {}".format(num_cores)
-                    if mem_per_node not in ("", None):  # if node mem defined, set --mem
-                        jtm_worker_cmd += " -m {}".format(mem_per_node)
-                    else:  # if not, set mem per core
-                        jtm_worker_cmd += " -mc {}".format(mem_per_core)
-
-                logger.info("Executing {}".format(jtm_worker_cmd))
-                so, se, ec = run_sh_command(jtm_worker_cmd, log=logger)
-                run_sh_command(jtm_worker_cmd + " --dry-run", log=logger)
-
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-
-        else:
-            # ch.basic_nack(delivery_tag=method.delivery_tag)
-            # If UNIQ_WORKER_ID is not for me, reject and requeue it
-            logger.info("NACK sent to the broker")
-            ch.basic_reject(delivery_tag=method.delivery_tag,
-                            requeue=True)
-
-    # waiting for poison or cloning command
-    ch.basic_qos(prefetch_count=1)
-    ch.basic_consume(queue=queue_name,
-                     on_message_callback=on_poison,
                      auto_ack=False)
 
     try:
@@ -1661,7 +1570,7 @@ wait
 
     # Start send_hb_to_client_proc proc
     try:
-        recv_hb_from_client_proc_hdl = mp.Process(target=send_hb_to_client_proc,
+        send_hb_to_client_proc_hdl = mp.Process(target=send_hb_to_client_proc,
                                                   args=(hearbeat_interval,
                                                         slurm_job_id,
                                                         mem_per_node_to_request,
@@ -1674,8 +1583,8 @@ wait
                                                         num_workers_per_node,
                                                         JTM_WORKER_HB_EXCH,
                                                         WORKER_HB_Q_POSTFIX))
-        recv_hb_from_client_proc_hdl.start()
-        pid_list.append(recv_hb_from_client_proc_hdl)
+        send_hb_to_client_proc_hdl.start()
+        pid_list.append(send_hb_to_client_proc_hdl)
     except Exception as e:
         logger.exception("send_hb_to_client_proc: {}".format(e))
         proc_clean(pid_list)
@@ -1685,38 +1594,16 @@ wait
     logger.info("Start sending my heartbeat to the client in every %d sec to %s"
                 % (hearbeat_interval, WORKER_HB_Q_POSTFIX))
 
-    # Start poison receive thread
-    try:
-        recv_poison_proc_hdl = mp.Process(target=recv_reproduce_or_die_proc,
-                                          args=(pool_name_param,
-                                                cluster_name,
-                                                mem_per_node_to_request,
-                                                mem_per_cpu_to_request,
-                                                num_nodes_to_request,
-                                                num_cpus_to_request,
-                                                job_time_to_request,
-                                                worker_clone_time_rate,
-                                                num_workers_per_node,
-                                                JTM_WORKER_POISON_EXCH,
-                                                JTM_WORKER_POISON_Q))
-        recv_poison_proc_hdl.start()
-        pid_list.append(recv_poison_proc_hdl)
-    except Exception as e:
-        logger.exception("recv_reproduce_or_die_proc: {}".format(e))
-        proc_clean(pid_list)
-        conn_clean(conn, ch)
-        sys.exit(1)
-
     # Start hb send thread
     try:
-        send_hb_to_client_proc_hdl = mp.Process(target=recv_hb_from_client_proc2,
-                                                args=(inner_task_request_queue,
-                                                      JTM_CLIENT_HB_EXCH,
-                                                      CLIENT_HB_Q_POSTFIX))
-        send_hb_to_client_proc_hdl.start()
-        pid_list.append(send_hb_to_client_proc_hdl)
+        recv_hb_from_client_proc_hdl = mp.Process(target=recv_hb_from_client_proc,
+                                              args=(inner_task_request_queue,
+                                                    JTM_CLIENT_HB_EXCH,
+                                                    CLIENT_HB_Q_POSTFIX))
+        recv_hb_from_client_proc_hdl.start()
+        pid_list.append(recv_hb_from_client_proc_hdl)
     except Exception as e:
-        logger.exception("Worker termination request: {}".format(e))
+        logger.exception("recv_hb_from_client_proc: {}".format(e))
         proc_clean(pid_list)
         conn_clean(conn, ch)
         sys.exit(1)

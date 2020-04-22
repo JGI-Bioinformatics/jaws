@@ -254,7 +254,7 @@ import signal
 
 from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.lib.sqlstmt import JTM_SQL
-from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB, send_msg_callback
+from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB, send_msg_callback, RmqConnectionAmqpstorm
 from jaws_jtm.lib.dbutils import DbSqlMysql
 from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command
 from jaws_jtm.lib.msgcompress import zdumps, zloads
@@ -265,6 +265,71 @@ from jaws_jtm.lib.msgcompress import zdumps, zloads
 # --------------------------------------------------------------------------------------------------
 NUM_TOTAL_WORKERS = mp.Value('i', 0)
 DEBUG = False
+
+
+# --------------------------------------------------------------------------------------------------
+def recv_hb_from_worker_proc_amqpstorm(hb_queue_name, log_dest_dir, b_resource_log):
+    with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
+        with conn.channel() as ch:
+            ch.queue.declare(queue=hb_queue_name,
+                             durable=False,
+                             exclusive=False,
+                             auto_delete=True)
+            ch.exchange.declare(exchange=JTM_WORKER_HB_EXCH,
+                                exchange_type='direct',
+                                durable=False,
+                                auto_delete=False)
+            ch.queue.bind(exchange=JTM_WORKER_HB_EXCH,
+                          queue=hb_queue_name,
+                          routing_key=hb_queue_name)
+            while True:
+                worker_ids_dict = {}
+                ch.basic.qos(100)
+                message = ch.basic.get(queue=hb_queue_name, no_ack=True)
+                if message:
+                    cnt = message.method['message_count']
+                    print("msg count: {}".format(cnt))
+                    msg_unzipped = json.loads(zloads(message.body))
+                    msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
+                    a_worker_id = msg_unzipped[HB_MSG["worker_id"]]
+                    worker_ids_dict[a_worker_id] = msg_unzipped
+                    for i in range(cnt):
+                        message = ch.basic.get(queue=hb_queue_name, no_ack=True)
+                        msg_unzipped = json.loads(zloads(message.body))
+                        msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
+                        a_worker_id = msg_unzipped[HB_MSG["worker_id"]]
+                        worker_ids_dict[a_worker_id] = msg_unzipped
+                    for k, v in worker_ids_dict.items():
+                        task_id = v[HB_MSG["task_id"]]
+                        root_proc_id = v[HB_MSG["root_pid"]]
+                        child_proc_id = v[HB_MSG["child_pid"]]
+                        a_worker_id = v[HB_MSG["worker_id"]]
+                        slurm_job_id = v[HB_MSG["slurm_jobid"]]
+                        worker_type = v[HB_MSG["worker_type"]]
+                        end_datetime = v[HB_MSG["end_date"]]
+                        life_left = v[HB_MSG["life_left"]]
+                        mem_per_node = v[HB_MSG["mem_per_node"]]
+                        mem_per_core = v[HB_MSG["mem_per_core"]]
+                        num_cores = v[HB_MSG["num_cores"]]
+                        job_time = v[HB_MSG["job_time"]]
+                        clone_time = v[HB_MSG["clone_time_rate"]]
+                        host_name = v[HB_MSG["host_name"]]
+                        jtm_host_name = v[HB_MSG["jtm_host_name"]]
+                        ip_addr = v[HB_MSG["ip_address"]]
+                        pool_name = v[HB_MSG["pool_name"]]
+                    if b_resource_log:
+                        logger.resource(v)
+                    if pool_name:
+                        queue_name = JTM_INNER_REQUEST_Q + "." + pool_name
+                    else:
+                        queue_name = ""
+
+                    # Collect worker_ids from hb
+                    alive_worker_id_list = []
+                    for k, v in worker_ids_dict.items():
+                        alive_worker_id_list.append(v[HB_MSG["worker_id"]])
+                    print(len(alive_worker_id_list))
+                time.sleep(CLIENT_HB_RECV_INTERVAL)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -2035,7 +2100,11 @@ def manager(ctx: object, custom_log_dir_name: str,
     # Start heartbeat receiving proc
     worker_hb_queue_name = WORKER_HB_Q_POSTFIX
     try:
-        rect_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc,
+        # rect_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc,
+        #                                           args=(worker_hb_queue_name,
+        #                                                 log_dir_name,
+        #                                                 b_resource_usage_log_on))
+        rect_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc_amqpstorm,
                                                   args=(worker_hb_queue_name,
                                                         log_dir_name,
                                                         b_resource_usage_log_on))
