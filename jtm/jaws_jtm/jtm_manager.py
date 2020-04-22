@@ -2100,14 +2100,14 @@ def manager(ctx: object, custom_log_dir_name: str,
     # Start heartbeat receiving proc
     worker_hb_queue_name = WORKER_HB_Q_POSTFIX
     try:
-        # rect_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc,
-        #                                           args=(worker_hb_queue_name,
-        #                                                 log_dir_name,
-        #                                                 b_resource_usage_log_on))
-        rect_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc_amqpstorm,
+        rect_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc,
                                                   args=(worker_hb_queue_name,
                                                         log_dir_name,
                                                         b_resource_usage_log_on))
+        # rect_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc_amqpstorm,
+        #                                           args=(worker_hb_queue_name,
+        #                                                 log_dir_name,
+        #                                                 b_resource_usage_log_on))
         rect_hb_from_worker_proc_hdl.start()
         plist.append(rect_hb_from_worker_proc_hdl)
     except Exception as e:
