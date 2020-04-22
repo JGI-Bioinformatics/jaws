@@ -657,44 +657,6 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
 
 
 # -------------------------------------------------------------------------------
-def send_hb_to_worker_proc():
-    """
-    Broadcast heartbeat to all workers
-    Ref) http://www.rabbitmq.com/tutorials/tutorial-three-python.html
-    """
-    # Remote broker (mq.nersc.gov)
-    rmq_conn = RmqConnectionHB(config=CONFIG)
-    conn = rmq_conn.open()
-    ch = conn.channel()
-    exch_name = JTM_CLIENT_HB_EXCH
-
-    ch.exchange_declare(exchange=exch_name,
-                        exchange_type="topic",
-                        durable=False,
-                        auto_delete=False)
-
-    msg_to_send_dict = {}
-    msg_to_send_dict["task_type"] = TASK_TYPE["hb"]
-    msg_zipped = zdumps(json.dumps(msg_to_send_dict))
-
-    try:
-        while True:
-            ch.basic_publish(exchange=exch_name,
-                             routing_key="*." + CNAME,  # all workers with CNAME can hear it
-                             body=msg_zipped)
-            conn.sleep(CLIENT_HB_SEND_INTERVAL)
-    except Exception as e:
-        logger.critical("Something wrong in send_hb_to_worker_proc(): %s", e)
-        ch.close()
-        conn.close()
-        raise
-
-    # unreachable
-    ch.close()
-    conn.close()
-
-
-# -------------------------------------------------------------------------------
 def recv_result_from_workers_proc():
     """
     Receive hearbeats from all the workers running
@@ -2083,19 +2045,6 @@ def manager(ctx: object, custom_log_dir_name: str,
     logger.debug("Main pid = {}".format(PARENT_PROCESS_ID))
 
     plist = list()
-
-    # Start heartbeat checking proc
-    try:
-        send_hb_to_worker_proc_hdl = mp.Process(target=send_hb_to_worker_proc)
-        send_hb_to_worker_proc_hdl.start()
-        plist.append(send_hb_to_worker_proc_hdl)
-    except Exception as e:
-        logger.exception("send_hb_to_worker_proc: {}".format(e))
-        proc_clean(plist)
-        conn_clean(conn, ch)
-        sys.exit(1)
-
-    logger.info("Broadcasting heartbeats to workers...")
 
     # Start heartbeat receiving proc
     worker_hb_queue_name = WORKER_HB_Q_POSTFIX
