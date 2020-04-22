@@ -730,7 +730,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         uniq_worker_id = None
         for i in range(0, num_worker_to_add):
             b_failed_to_request_worker = False
-            # NOTE: User can request only "dynamic" workers from WDL.
+            # User can request only "dynamic" workers from WDL.
             uniq_worker_id = str(shortuuid.uuid())
             sbatch_cmd_str = """{}jtm {} worker \
                 -wt dynamic \
@@ -820,7 +820,6 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             success = True
             try:
                 db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
-                # table fields: userCmd, outFiles, doneFlag, retryCnt, task_type
                 db.execute(JTM_SQL["insert_tasks_usercmd_outfiles"]
                            % (user_task_cmd, output_file, "0", 0, TASK_TYPE[task_type]))
                 db.commit()

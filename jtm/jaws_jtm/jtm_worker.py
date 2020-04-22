@@ -1015,15 +1015,15 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     inner_task_request_queue = JTM_INNER_REQUEST_Q + "." + pool_name_param
 
     worker_clone_time_rate = worker_clone_time_rate_param if worker_clone_time_rate_param else CTR
-    if THIS_WORKER_TYPE in ("static", "dynamic"):
+    if THIS_WORKER_TYPE == "dynamic":
         assert cluster_name_param != "" and \
                cluster_name_param != "local", "Static or dynamic worker needs a cluster setting (-cl)."
 
     slurm_job_id = slurm_job_id_param
     cluster_name = cluster_name_param
 
-    if cluster_name == "cori" and mem_per_cpu_to_request != "" and \
-            float(mem_per_cpu_to_request.replace("GB", "").replace("G", "").replace("gb", "")) > 1.0:
+    if cluster_name == "cori" and mem_per_cpu_to_request != "" \
+            and float(mem_per_cpu_to_request.replace("GB", "").replace("G", "").replace("gb", "")) > 1.0:
         logger.critical("--mem-per-cpu in Cori shouldn't be larger than 1GB. User '--mem' instead.")
         sys.exit(1)
 
@@ -1031,9 +1031,9 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     logger.info("Task queue name: %s", inner_task_request_queue)
     logger.info("Worker type: %s", THIS_WORKER_TYPE)
 
-    if slurm_job_id == 0 and THIS_WORKER_TYPE in ["static", "dynamic"]:
-        batch_job_script_file = os.path.join(job_script_dir_name, "jtm_%s_worker_%s.job" %
-                                             (THIS_WORKER_TYPE, UNIQ_WORKER_ID))
+    if slurm_job_id == 0 and THIS_WORKER_TYPE == "dynamic":
+        batch_job_script_file = os.path.join(job_script_dir_name, "jtm_%s_worker_%s.job"
+                                             % (THIS_WORKER_TYPE, UNIQ_WORKER_ID))
         batch_job_script_str = ""
         batch_job_misc_params = ""
 
@@ -1316,9 +1316,6 @@ wait
     # sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j <jobid> --allsteps
     #
     # if endtime - starttime <= 10%, execute sbatch again
-    # if slurm_job_id != 0 and THIS_WORKER_TYPE == "static":
-    #     logger.debug("worker_type: {}".format(THIS_WORKER_TYPE))
-    #     logger.debug("slurm_job_id: {}".format(slurm_job_id))
 
     # Dynamic workers creates [[two]] children when it approaches to the wallclocktime limit
     # considering the task queue length
