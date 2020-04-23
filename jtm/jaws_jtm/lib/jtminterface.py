@@ -156,9 +156,10 @@ class JtmInterface(object):
                 if jtm_host_name == "cori" and kw["constraint"] not in ("haswell", "knl", "skylake"):
                     logger.critical("Unsupported constarint")
                     return -5
-                if type(kw["node_mem"]) != str:
+                node_mem = kw["node_mem"] if 'node_mem' in kw and kw["node_mem"] else self.mempernode
+                if type(node_mem) != str:
                     logger.critical("Memory requirement should be in string like 5G or 10g")
-                    logger.critical("Userd value: {}".format(kw["node_mem"]))
+                    logger.critical("Userd value: {}".format(node_mem))
                     return -5
                 if jtm_host_name == "lbl" and kw["partition"] != "lr3":
                     logger.critical("Unsupported partition")
@@ -173,7 +174,7 @@ class JtmInterface(object):
                 json_data_dict["pool"] = {}
                 json_data_dict["pool"]["time"] = kw["job_time"] if 'job_time' in kw and kw["job_time"] else self.jobtime
                 json_data_dict["pool"]["cpu"] = kw["num_core"] if 'num_core' in kw and kw["num_core"] else self.ncpus
-                json_data_dict["pool"]["mem"] = kw["node_mem"] if 'node_mem' in kw and kw["node_mem"] else self.mempernode
+                json_data_dict["pool"]["mem"] = node_mem
                 json_data_dict["pool"]["mempercpu"] = kw["mempercpu"] if 'mempercpu' in kw and kw["mempercpu"] else self.mempercpu
                 json_data_dict["pool"]["name"] = kw["pool_name"] if 'pool_name' in kw and kw["pool_name"] else self.poolname
                 json_data_dict["pool"]["cluster"] = jtm_host_name
