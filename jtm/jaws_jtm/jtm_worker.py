@@ -70,6 +70,7 @@ THIS_WORKER_TYPE = None
 def run_user_task(msg_unzipped, return_msg, ch):
     """
     Run a user command in msg_zipped_to_send
+
     :param msg_unzipped: uncompressed msg from client
     :param return_msg: msg to return
     :param ch: rmq channel
@@ -224,6 +225,7 @@ def check_output(out_files, out_file_check_wait_time=3,
                  max_trial=3, out_file_check_wait_time_increase=1.5):
     """
     Check 1) existence, 2) size>0 for each file in out_files
+
     :param out_files: list of absolute paths to the output files to check
     :param out_file_check_wait_time: sleep time between output file checking before retiral
     :param max_trial: max trial for checking
@@ -278,6 +280,7 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                            nwpn, exch_name, worker_hb_queue):
     """
     Send heartbeats to the client
+
     :param interval: time interval to send heartbeats to the client
     :param slurm_job_id: SLURM job id
     :param mem_per_node: memory request per node
@@ -577,6 +580,7 @@ def check_processes(pid_list):
     """
     Checking if the total number of processes from the worker is NUM_WORKER_PROCS
     if not, terminate the all the proc ids
+
     :param pid_list: process id list
     :return:
     """
@@ -716,6 +720,7 @@ def run_task(conn, ch, delivery_tag, reply_to, correlation_id, body):
 def on_task_request(ch, method_frame, _header_frame, body, args):
     """
     Threaded way to consume request from manager
+
     :param ch:
     :param method_frame:
     :param _header_frame:
@@ -764,16 +769,29 @@ def conn_clean(conn, ch):
 
 
 # -------------------------------------------------------------------------------
-def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
-           custom_job_log_dir_name: str, pool_name_param: str,
-           slurm_job_id_param: int, worker_type_param: str, cluster_name_param: str,
-           num_workers_per_node_param: int,
-           worker_id_param: str,
-           num_cores_to_request_param: int,
-           mem_per_node_to_request_param: str,
-           mem_per_cpu_to_request_param: str,
+def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str, custom_job_log_dir_name: str,
+           pool_name_param: str, slurm_job_id_param: int, worker_type_param: str, cluster_name_param: str,
+           num_workers_per_node_param: int, worker_id_param: str, num_cores_to_request_param: int,
+           mem_per_node_to_request_param: str, mem_per_cpu_to_request_param: str,
            job_time_to_request_param: str) -> int:
+    """
 
+    :param ctx:
+    :param heartbeat_interval_param:
+    :param custom_log_dir:
+    :param custom_job_log_dir_name:
+    :param pool_name_param:
+    :param slurm_job_id_param:
+    :param worker_type_param:
+    :param cluster_name_param:
+    :param num_workers_per_node_param:
+    :param worker_id_param:
+    :param num_cores_to_request_param:
+    :param mem_per_node_to_request_param:
+    :param mem_per_cpu_to_request_param:
+    :param job_time_to_request_param:
+    :return:
+    """
     global CONFIG
     CONFIG = ctx.obj['config']
     global DEBUG
@@ -829,6 +847,9 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     logger.info("JTM config file: %s" % (CONFIG.config_file))
 
     # Slurm info
+    # Note: check worker command created from manager
+    # jtm worker --slurm_job_id $SLURM_JOB_ID
+    # -cl lbl -wt dynamic -t 00:10:00 -p xxx --num_worker_per_node 1 -m 10G  -wi HDwi4PXB2adPKjbkWp5pSM_${i} &
     num_workers_per_node = num_workers_per_node_param \
         if num_workers_per_node_param else CONFIG.configparser.getint("JTM", "num_workers_per_node")
     assert num_workers_per_node > 0
@@ -917,7 +938,6 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
 
     global THIS_WORKER_TYPE
     THIS_WORKER_TYPE = worker_type_param
-    job_name = "jtm_worker_" + pool_name_param
 
     # Set task queue name
     if heartbeat_interval_param:

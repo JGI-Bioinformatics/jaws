@@ -113,11 +113,9 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
 @click.option("-t", "--job_time",
               help="Slurm Job time (hh:mm:ss)")
 @click.pass_context
-def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_name: str,
-           pool_name: str, slurm_job_id: int, worker_type: str, cluster: str,
-           num_worker_per_node: int, worker_id: str,
-           cpus_per_task: int,
-           mem: str, mem_per_cpu: str, job_time: str) -> int:
+def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_name: str, pool_name: str,
+           slurm_job_id: int, worker_type: str, cluster: str, num_worker_per_node: int, worker_id: str,
+           cpus_per_task: int, mem: str, mem_per_cpu: str, job_time: str) -> int:
     """
     JTM Worker Click wrapper
 
@@ -137,11 +135,8 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :param job_time: wallclocktime
     :return:
     """
-    sys.exit(jtmworker(ctx, heartbeat_interval, log_dir, job_script_dir_name, pool_name,
-                       slurm_job_id, worker_type, cluster,
-                       num_worker_per_node, worker_id,
-                       cpus_per_task, mem,
-                       mem_per_cpu, job_time))
+    sys.exit(jtmworker(ctx, heartbeat_interval, log_dir, job_script_dir_name, pool_name, slurm_job_id, worker_type,
+                       cluster, num_worker_per_node, worker_id, cpus_per_task, mem, mem_per_cpu, job_time))
 
 
 @cli.command()
@@ -197,11 +192,9 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
 @click.option("-t", "--job_time",
               help="Job time (hh:mm:ss)",)
 @click.pass_context
-def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: str, account: str,
-           ncpu: int, constraint: str,
-           num_worker_per_node: int, cromwell_job_id: str, memory: str, mempercpu: str,
-           nnodes: int, partition: str,
-           qos: str, shared: int, job_time, dry_run: bool) -> int:
+def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: str, account: str, ncpu: int,
+           constraint: str, num_worker_per_node: int, cromwell_job_id: str, memory: str, mempercpu: str, nnodes: int,
+           partition: str, qos: str, shared: int, job_time, dry_run: bool) -> int:
     """
     JtmInterface returns 'task_id' if successfully queued
     jtm submit exits with code 0 if successfully submitted
@@ -222,10 +215,12 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
     :param num_worker_per_node:
     :param cromwell_job_id:
     :param memory:
+    :param mempercpu:
     :param nnodes:
     :param qos:
     :param shared:
     :param job_time:
+    :param dry_run:
     :return:
     """
     if ctx.obj['debug']:
@@ -238,6 +233,7 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
                                                                 jtm_host_name=cluster,
                                                                 job_time=job_time,
                                                                 node_mem=memory,
+                                                                mempercpu=mempercpu,
                                                                 num_core=ncpu,
                                                                 pool_name=pool_name,
                                                                 partition=partition,
