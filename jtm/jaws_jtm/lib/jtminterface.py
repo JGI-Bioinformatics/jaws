@@ -153,7 +153,8 @@ class JtmInterface(object):
                kw["job_time"] != "00:00:00" and kw["node_mem"] != "0G" and kw["num_core"] != 0:
 
                 # Site specific param checking can be done here
-                if jtm_host_name == "cori" and kw["constraint"] not in ("haswell", "knl", "skylake"):
+                constraint_name = kw["constraint"] if 'constraint' in kw and kw["constraint"] else self.constraint
+                if jtm_host_name == "cori" and constraint_name not in ("haswell", "knl", "skylake"):
                     logger.critical("Unsupported constarint")
                     return -5
                 node_mem = kw["node_mem"] if 'node_mem' in kw and kw["node_mem"] else self.mempernode
@@ -161,13 +162,16 @@ class JtmInterface(object):
                     logger.critical("Memory requirement should be in string like 5G or 10g")
                     logger.critical("Userd value: {}".format(node_mem))
                     return -5
-                if jtm_host_name == "lbl" and kw["partition"] != "lr3":
+                partition_name = kw["partition"] if 'partition' in kw and kw["partition"] else self.partition
+                if jtm_host_name == "lbl" and partition_name != "lr3":
                     logger.critical("Unsupported partition")
                     return -5
-                if jtm_host_name == "lbl" and kw["qos"] != "condo_jgicloud":
+                qos_name = kw["qos"] if 'qos' in kw and kw["qos"] else self.qos
+                if jtm_host_name == "lbl" and qos_name != "condo_jgicloud":
                     logger.critical("Unsupported qos")
                     return -5
-                if jtm_host_name == "lbl" and kw["account"] != "lr_jgicloud":
+                c_account = kw["account"] if 'account' in kw and kw["account"] else self.charge_accnt
+                if jtm_host_name == "lbl" and c_account != "lr_jgicloud":
                     logger.critical("Unsupported charging account")
                     return -5
 
@@ -181,10 +185,10 @@ class JtmInterface(object):
                 json_data_dict["pool"]["nwpn"] = kw["nwpn"] if 'nwpn' in kw and kw["nwpn"] else self.nwpn
                 json_data_dict["pool"]["node"] = kw["node"] if 'node' in kw and kw["node"] else self.nnodes
                 json_data_dict["pool"]["shared"] = int(kw["shared"])
-                json_data_dict["pool"]["constraint"] = kw["constraint"] if 'constraint' in kw and kw["constraint"] else self.constraint
-                json_data_dict["pool"]["qos"] = kw["qos"] if 'qos' in kw and kw["qos"] else self.qos
-                json_data_dict["pool"]["account"] = kw["account"] if 'account' in kw and kw["account"] else self.charge_accnt
-                json_data_dict["pool"]["partition"] = kw["partition"] if 'partition' in kw and kw["partition"] else self.partition
+                json_data_dict["pool"]["constraint"] = constraint_name
+                json_data_dict["pool"]["qos"] = qos_name
+                json_data_dict["pool"]["account"] = c_account
+                json_data_dict["pool"]["partition"] = partition_name
                 json_data_dict["pool"]["dryrun"] = kw["dry_run"]
 
         # For the command like, "jtm-submit -cr 'ls' -cl cori -p test"
