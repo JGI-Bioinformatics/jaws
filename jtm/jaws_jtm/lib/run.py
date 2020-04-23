@@ -60,35 +60,6 @@ def run(*popenargs, **kwargs):
 
 
 # -------------------------------------------------------------------------------
-# def back_ticks(*popenargs, **kwargs):
-#     """
-#     Similar to shell backticks, e.g. a = `ls -1` <=> a = backticks(['ls','-1']).
-#     If 'dry_run=True' is given as keyword argument, then 'dryRet' keyword must
-#     provide a value to return from this function.
-#     :param popenargs: command and options to run
-#     :param kwargs: additional parameters
-#     :return: command result (stdout)
-#     """
-#     kw = {}
-#     kw.update(kwargs)
-#     dry_run = kw.pop("dry_run", False)
-#     dryRet = kw.pop("dryRet", None)
-#
-#     if dry_run:
-#         print(popenargs)
-#         return dryRet
-#     else:
-#         kw["stdout"] = PIPE
-#         p = Popen(*popenargs, **kw)
-#         retOut = p.communicate()[0]
-#         if p.returncode != 0:
-#             eprint("Failed to run back_ticks()")
-#             return 1
-#
-#         return retOut
-
-
-# -------------------------------------------------------------------------------
 def make_dir(path, dry_run=False):
     """
     Create one dir with pathname path or do nothing if it already exists. Same as Linux 'mkdir -p'.
@@ -149,7 +120,7 @@ def rm_dir(path, dry_run=False):
 
 
 # -------------------------------------------------------------------------------
-def rmf(path, dry_run=False):
+def rmf(path):
     """
     Remove file.
     :param path: path to delete
@@ -165,7 +136,7 @@ def rmf(path, dry_run=False):
 
 
 # -------------------------------------------------------------------------------
-def rmf_many(paths, dry_run=False):
+def rmf_many(paths):
     """
     Remove multiple files.
     :param paths: path to delete
@@ -250,8 +221,6 @@ def run_sh_command(cmd, live=True, log=None, run_time=False,
             # ref) http://stackoverflow.com/questions/1191374/using-module-subprocess-with-timeout
             if timeout_sec > 0:
                 timer = Timer(timeout_sec, p.kill)
-
-            # p.wait()
 
             try:
                 if timeout_sec > 0:

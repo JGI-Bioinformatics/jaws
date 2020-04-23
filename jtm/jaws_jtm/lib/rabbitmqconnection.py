@@ -8,6 +8,31 @@ import pika
 import sys
 from jaws_jtm.common import logger
 from jaws_jtm.lib.msgcompress import zdumps
+from amqpstorm import Connection
+
+
+class RmqConnectionAmqpstorm(object):
+    __connection = None
+
+    def __init__(self, config):
+        assert config
+        self.config = config
+        RMQ_HOST = self.config.configparser.get("RMQ", "host")
+        RMQ_USER = self.config.configparser.get("RMQ", "user")
+        RMQ_PORT = self.config.configparser.getint("RMQ", "port")
+        RMQ_PASS = self.config.configparser.get("RMQ", "password")
+        RMQ_VHOST = self.config.configparser.get("RMQ", "vhost")
+        self.__connection = Connection(RMQ_HOST, RMQ_USER, RMQ_PASS,
+                                       port=RMQ_PORT,
+                                       virtual_host=RMQ_VHOST,
+                                       heartbeat=120,
+                                       timeout=180,)
+
+    def open(self):
+        return self.__connection
+
+    def close(self):
+        self.__connection.close()
 
 
 class RmqConnectionHB(object):
@@ -38,7 +63,6 @@ class RmqConnectionHB(object):
                                                host=RMQ_HOST,
                                                virtual_host=RMQ_VHOST,
                                                port=RMQ_PORT,
-                                               # heartbeat=0,
                                                heartbeat=5,  # for functools method
                                                )
             self.__connection = pika.BlockingConnection(params)
@@ -63,8 +87,6 @@ def rmq_close(rmq_conn_obj):
 
 def send_msg_callback(ch, method, props, msg, exch=None, queue=None, delivery_mode=1):
     exch_name = exch if exch is not None else ''
-    # exch_name = exch
-    # assert exch_name
     routing_key = queue if queue is not None else props.reply_to
     assert routing_key
 

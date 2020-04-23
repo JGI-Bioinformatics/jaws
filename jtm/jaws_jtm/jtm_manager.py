@@ -9,8 +9,8 @@ JGI task manager
 
 
 Example of task processing scenario
-1. jtm-submiit sends a msg to "jgi_microservice" with "jtm_task_request_queue" tag.
-2. jtm-manager listens to "jtm_task_request_queue" which is bound to "jgi_microservice"
+1. jtm-submiit sends a msg to "jtm_main_exchange" with "jtm_task_request_queue" tag.
+2. jtm-manager listens to "jtm_task_request_queue" which is bound to "jtm_main_exchange"
 3. When a task is published, jtm-manager takes it and sends it to a pool
    (to jgi_jtm_inner_main_exchange)
 4. Workers listen to jgi_jtm_inner_request_queue which is bound to "jgi_jtm_inner_main_exchange"
@@ -19,227 +19,8 @@ Example of task processing scenario
 6. jtm-manager listens to "jgi_jtm_inner_result_queue" queue. When a result is ready,
    takes and updates tables
 
-
-Revisions:
-
-    10.01.2015 2.6.0: Tested with pika 0.10.0
-
-    12.03.2015 2.7.0: Tested with heartbeat_interval=0 for worker and  heartbeat_interval=60 for
-                      client in BlockingConnection()
-    08.22.2016 2.7.1: Checked invalid user command
-    11.15.2016 2.7.2: Added "-lf" option to set jtm log file saving location
-    03.03.2017 2.7.3: Used execute many to insert tasks into tasks table when "-d" option is used
-
-    03.03.2017 3.0.0: Updated to set hearbeat_internal=0 (RmqConnectionHB(0)) so that connection
-                      timeout is disalbed
-    03.10.2017 3.0.1: Changed to use executemany for creating task list sqlite database
-    03.16.2017 3.0.2: Added custom separator (default=':') for creating task list
-
-    09.12.2018 3.1.0: Branched out 'jtm'; Updated for pika=0.12.0; Changed 'type' to 'exchange_type'
-                      in exchange_declare()
-                      Added 'jgi_jtm_task_manager' exchange for task and result messages
-    09.13.2018 3.1.1: Added unique worker id
-
-    09.13.2018 3.2.0: Added worker heartbeat exchange
-
-    ---------------------------------------------------------------------------------------------
-
-    09.19.2018 0.0.9: Started jgi-task-manager
-
-    09.21.2018 1.0.0: Working version done
-    09.27.2018 1.1.0: Updated message structure;
-
-    10.03.2018 1.2.0: Added task_type; Added db utils;
-    10.04.2018 1.2.1: Set jgi_jtm_client_hb_exchange durable=True and auto_delete=False so that it
-                      can be maintained even with no worker; Added runs table;
-    10.05.2018 1.2.2: Updated resource msg as dict
-    10.05.2018 1.2.3: Updated send hb to client interval to 5sec;
-                      Added comm pipe to send taskid with hb;
-    10.05.2018 1.2.4: Updated to update runs table with resource data
-
-    10.09.2018 1.3.0: Added JtmInterface class; Added jtm_submit and jtm_status
-    10.10.2018 1.3.1: Changed to MySQL
-    10.12.2018 1.3.2: Updated recv_hb_from_worker;
-               1.3.3: Updated to make connection per each SQL;
-
-               1.4.0: jtm_kill works
-    10.15.2018 1.4.1: Fixed to keep task requests when no worker is available
-    10.19.2018 1.4.4: Worker can use different queue name (=pool) when user task json has 'pool' key
-    10.22.2018 1.4.5: Updated workers table; workerId2 for workers table; life_left;
-    10.23.2018 1.4.6: Bug fix about workerId2
-    10.24.2018 1.4.7: Updated to set -1 for dead workers
-    10.26.2018 1.4.8: Fixed user termination error code update (-4)
-
-    10.26.2018 1.5.0: Demo version with static workers tested
-    10.28.2018 1.5.1: Added ipaddress to worker hb
-    11.02.2018 1.5.2: Updated 'lifeleft' in workers table for the last dead worker
-
-    11.06.2018 1.6.0: Tested static workers and sbatch on cori and denovo
-               1.6.1: Remove user account name from queue name for EC2
-    11.08.2018 1.6.2: Added custom queue name postfix for testing in Config
-    11.13.2018 1.6.3: Updated jtm_submit for large node sbatch; Updated send_hb to use CNAME as
-                      postfix; Added jtm_check_manager cli; Added jtm-check-worker;
-
-    11.13.2018 1.7.0: Updated sbatch for static worker cloning; removed 'interval' from hb;
-                      Added '-r' jgi-task-manager option; Added CLIENT_HB_RECV_INTERVAL = 8
-    11.14.2018 1.7.1: Added dynamic worker spawning
-
-    11.15.2018 1.8.0: Dynamic workers; Changed hb header format;
-    11.19.2018 1.8.1: Changed basic_consume callback args; Changed process_task_request to use the
-                      custom pool name as task queue if -tp is used; Updated routine to get the
-                      current live workers and add a feature to get the num workers per pool name;
-    11.20.2018 1.8.2: Fixed message unconsumed from inner result queue
-    12.13.2018 1.8.2: Changed mysql to gpdb23
-
-    12.17.2018 1.9.0: Updated to use gpdb23; Test the client on denovo
-
-    12.19.2018 2.0.0: Updated to have multiple jtm instances; Updated jtmInterface to determine
-                      task request queue and task result queue in run time; Added jtm_host_name to
-                      workers table;
-    12.21.2018 2.0.1: Updated jtm-submit to use 'cl' param;
-    12.22.2018 2.0.2: Testing mysql packet exception error;
-    01.03.2019 2.0.3: Changed queue name format to hostname.username.customepoolname;
-                      Added exception for losing db connection;
-    01.04.2019 2.0.4: Changed to auto_delete=True for main task request/result queues;
-                      Changed to auto_delete=True for inner task request/result queues;
-    01.08.2019 2.0.5: Changed clonecnt update for handle multiple static workers on a same node
-    01.09.2019 2.0.6: Fixed nw option to automatically clone n static workers;
-
-    01.14.2019 3.0.0: Tested with Jaws + jtm + jaws account
-    01.24.2019 3.0.2: Updated to print error messages to stderr in jtm cli tools;
-                      logger.exception("Failed to call %s.
-                      Exit code=%s" % (msg.cmd, msg.returncode))
-    01.25.2019 3.0.3: Connected jaws custom pool setting to jtm;
-                      Read jtm-submit params and start a pool of workers if necessary;
-
-    01.30.2019 3.1.0: Updated worker and manager to handle wid by option params; Updated to support
-                      a custom pool creation for Cromwell scatter function so that a pool can be
-                      reused for multiple tasks from a scatter;
-    02.01.2019 3.1.1: Set 20 for jtm-submit waittime; Removed all sql pool con;
-
-    02.21.2019 3.2.1: Changed the way to count active workers; ==> not working, reverted 0226
-    02.25.2019 3.2.2: Changed to exclusive=False for worker hb queue;
-    02.26.2019 3.2.3: Added default queues, small, medium, large, and xlarge;
-                      Set default queue as "small";
-    02.27.2019 3.2.4: Set default queue as "small"
-    02.28.2019 3.2.5: Changed client hb -> worker(s) exchange type from fanout to topic;
-    03.06.2019 3.2.6: Changed worker cnt routine to get the # activate workers per pool name;
-    03.07.2019 3.2.7: Use unique worker id for processing each individual hb from workers;
-                      Changed resource log target dir;
-    03.21.2019 3.2.10: Added Cori KNL support;
-    03.27.2019 3.2.11: Fixed jtm-submit by checking response value is None or not;
-
-    03.28.2019 3.3.0: Fixed scatter support (Something wrong with exchanges);
-                      Redid JtmInterface message receiving;
-    04.02.2019 3.3.1: Fixed dynamic worker multi-sbatch; For new worker request, set lifeleft=-2;
-
-    04.02.2019 3.4.0: Improving jtm-kill;
-    04.03.2019 3.4.1: Improved process_task_kill() for updated runs table for the case of task
-                      cancellation;
-    04.03.2019 3.4.3: Changed to single poison queue per clust r;
-
-    04.04.2019 4.0.0: Added a thread for checking termination requested task; Added kill exchnage
-                      and queue;
-    04.08.2019 4.0.2: Changed result recv interval 6->2secs
-    04.15.2019 4.0.3: RESULT_RECEIVE_INTERVAL = 0.5, WORKER_INFO_UPDATE_WAIT = 1;
-                      Fixed JtmInterface for recv task id;
-
-    04.15.2019 4.1.0: JtmInterface max wait => 50 rounds;
-                      Created separate queue per each jtm interface command;
-    04.16.2019 4.2.0: Set each jtm-submit creates a temp queue for recv task id;
-    04.17.2019 4.2.2: Fixed getting alive #worker routine -> Set slurm id once sbatched and check
-                      slurmid != 0 when count the alive or sbatched workers with given pool name;
-                      Restrict auto cloning only if workertype ==1 and slurm jobid > 1;
-    04.22.2019 4.2.4: Updated select_count_workers_by_poolname_enddate and
-                      select_count_workers_by_jtmhostname to count sbatched worekrs;
-                      Added nwpn (num workers per node) to jtm-submit and cromwell conf;
-                      Updated process_task_request to double check the number of workers needed;
-
-    04.24.2019 5.0.0: Added nwpn; chance all counting alive workers routines;
-                      Added the feature of "shared=0" for jtm-worker pool. If shared=0, the pool won't be shared
-                      among workflows which use the same pool name;
-    04.25.2019 5.0.2: Updated to detect slurm failure;
-    04.29.2019 5.0.3: Added cromwell job id in cromwell conf;
-                      Added exclusive;
-    04.30.2019 5.0.4: Tested exclusive;
-
-    05.03.2019 5.1.0: Change to insert all workers by nwpn -> Set nWorkersPerNode=1 for dynamic worker;
-                      Appended serial number to uniq worker id for dynamic worker -> Change the
-                      workerid len from 22 to 23;
-                      Change hb interval send->2sec, recv->8sec;
-                      Tested jtm-worker -wt static -t 00:05:00 -cl cori -nwpn 4;
-                      Even with nwpn=4, cloning is done by node based (b/c of clone count checking);
-                      Resource log subdir -> padded string from task id to store resource log
-                      ex) task_id=228 --> 00/00/02;
-
-    05.10.2019 5.2.0: Created single db connection for worker's hb recv;
-    05.15.2019 5.2.1: Improved jtm-kill by sending kill msg to workers only from task_kill_proc();
-    05.16.2019 5.2.2: Updated to record resource log file full path in
-    05.22.2019 5.2.3: Added jtm-resource-log;
-    05.24.2019 5.2.4: Updated jtminterface wait method from time_limit to sleep;
-                      Added taskqueue declaration and biding in jtminterface so that jtm-submit
-                      requests are maintained for the case where the manager is not available;
-                      Keep jtm-submit waittime = 600s;
-                      Bug fix: short task ("ls") status update bug fix in
-                      update_runs_tid_startdate_by_tid;
-
-    05.28.2019 5.3.0: Cronjob started on cori20;
-    05.30.2019 5.3.1: Tested with py3;
-                      pika upgraded to 1.0.1;
-                      RmqConnectionHB --> remove heartbeat_interval;
-                      no_ack --> auto_ack;
-                      basic_consume param changed;
-                      cPickle is not supported in py3; Need to upgrade it for py3 in JAWS conda env;
-                      jtm needs pip install mysqlclient ==> not working ==> downgrade openssl ==>
-                      conda install openssl=1.0.2r (will lower python 3.7.1 to 3.7.0);
-                      jaws conda needs "conda install -c conda-forge shortuuid,
-                      conda install -c conda-forge pika,
-                      conda install -c anaconda numpy";
-
-    06.11.2019 5.4.0: Replace time.sleep() in recv_hb_from_worker()
-                      with conn.process_data_events(time_limit=interval) to fix lost connection;
-                      Replace time.sleep() in the all callbacks with ch._connection.sleep();
-    06.12.2019 5.4.1: Still lost connection in recv_hb_from_worker() -> set heartbeat=600,
-                      blocked_connection_timeout=600 in RabbitmqConnecion param;
-                      ** single db conn open/close in recv_hb_from_worker_proc;
-    06.13.2019 5.4.2: Multiprocessing -> threading;
-                      recv_result -> multithreaded (default: 10)
-    06.25.2019 5.4.4: Revered back to multiprocessing
-                      (ref. https://stackoverflow.com/questions/3044580/multiprocessing-vs-threading-python)
-    08.13.2019 5.4.5: Removed threads for on_result(); pika upgraded to v1.1.0;
-    09.19.2019 5.4.6: Found missing db connection; Open and close db multiple times in recv_hb_from_worker_proc;
-                      Delete tag 5.5.0 (= thread test)
-                      Released as a stable production version;
-    10.03.2019 5.4.7: Testing sending hb rates (worker sending: 1sec, manager recving: 3sec)
-
-    11.21.2019 5.6.0: Set heartbeat=0 to prevent possible lost connection in BlockingConnection (in pika 0.9,
-                      it was set to 580sec. In pika 1.0, it is set to 60sec)
-    11.26.2019 5.6.1: Fixed bug for wrong number of workers -> needed to set nWorkersPerNode in workers table to 1;
-                      Fixed process_check_worker() to get the correct number of workers alive
-                      --> Added life_left>-0
-                      to select_sum_nwpn_workers_by_jtm_host_name_enddate
-                         select_sum_nwpn_workers_by_jtm_host_name_enddate
-                         select_sum_nwpn_workers_by_poolname_enddate SQLs;
-    12.09.2019 5.6.2: Updated to use mysql.connector;
-    02.03.2020 5.6.3: Jtm-status fix; jtm-kill updates runs table for cancelled=1 but jtm-status still
-                      checked only "status" field. So changed jtm-status to check "cancelled" field
-                      to determine the status.
-    02.12.2020 5.6.4: Updated log file permissions;
-    02.14.2020 5.6.5: Updated to support custom charging account for knl;
-    03.03.2020 5.6.7: Updated to use custom queue name instead of random in jtm-* interface;
-
-    04.08.2020 5.8.1: Delete inactive workers instead of updating lifeleft;
-                      Config file checking and error message print;
-                      remove-pool: delete workers instead of updating info;
-                      For checking alive nodes, use squeue instead of sacct;
-                      Set core count limit with affinity control;
-
-    04.18.20120 6.0.0 Set debug option from config support;
-                      Fix long running task by functools, threading;
-                      Increased workerid to char(25) in workers table;
-                      Replaced process_data_events with connection.sleep();
-
 """
+
 import multiprocessing as mp
 import time
 import json
@@ -271,8 +52,8 @@ DEBUG = False
 def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     """
     Receive hearbeats from all the workers running
+
     :param hb_queue_name: hb queue name
-    :param hb_send_proc_handle: hb sending process handle
     :param log_dest_dir: log destination path
     :param b_resource_log: if true, create resource log file
     :return:
@@ -281,7 +62,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     conn = rmq_conn.open()
     ch = conn.channel()
 
-    exch_name = JTM_WORKER_HB_EXCH
+    exch_name = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
 
     ch.exchange_declare(exchange=exch_name,
                         exchange_type="direct",
@@ -307,7 +88,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     b_is_msg_cleared = False  # all stacked messages are processed or not
     b_is_worker_found = False  # is any alive worker
     max_worker_check_count = 0  # max number of checking workers
-    interval = CLIENT_HB_RECV_INTERVAL
+    interval = CONFIG.configparser.getfloat("JTM", "client_hb_recv_interval")
 
     while True:
         worker_ids_dict = {}
@@ -330,11 +111,13 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
             # each hostname and pid. Using "dict", get the number of unique
             # pids of the running workers.
             msg_unzipped = json.loads(zloads(body))
+
             # type conversion and sort by key
             msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
 
             # worker id is used to collect unique root_proc_id (= num of workers)
-            a_worker_id = msg_unzipped[HB_MSG["worker_id"]]
+            hb_msg = CONFIG.constants.HB_MSG
+            a_worker_id = msg_unzipped[hb_msg["worker_id"]]
             worker_ids_dict[a_worker_id] = msg_unzipped
 
             # NOTE: Workers send it"s hb interval to the client in the msg packet.
@@ -346,27 +129,27 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                 method_frame, header_frame, body = ch.basic_get(queue=hb_queue_name, auto_ack=True)
                 msg_unzipped = json.loads(zloads(body))
                 msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
-                a_worker_id = msg_unzipped[HB_MSG["worker_id"]]
+                a_worker_id = msg_unzipped[hb_msg["worker_id"]]
                 worker_ids_dict[a_worker_id] = msg_unzipped
 
             for k, v in worker_ids_dict.items():
-                task_id = v[HB_MSG["task_id"]]
-                root_proc_id = v[HB_MSG["root_pid"]]
-                child_proc_id = v[HB_MSG["child_pid"]]
-                a_worker_id = v[HB_MSG["worker_id"]]
-                slurm_job_id = v[HB_MSG["slurm_jobid"]]
-                worker_type = v[HB_MSG["worker_type"]]
-                end_datetime = v[HB_MSG["end_date"]]
-                life_left = v[HB_MSG["life_left"]]
-                mem_per_node = v[HB_MSG["mem_per_node"]]
-                mem_per_core = v[HB_MSG["mem_per_core"]]
-                num_cores = v[HB_MSG["num_cores"]]
-                job_time = v[HB_MSG["job_time"]]
-                clone_time = v[HB_MSG["clone_time_rate"]]
-                host_name = v[HB_MSG["host_name"]]
-                jtm_host_name = v[HB_MSG["jtm_host_name"]]
-                ip_addr = v[HB_MSG["ip_address"]]
-                pool_name = v[HB_MSG["pool_name"]]
+                task_id = v[hb_msg["task_id"]]
+                root_proc_id = v[hb_msg["root_pid"]]
+                child_proc_id = v[hb_msg["child_pid"]]
+                a_worker_id = v[hb_msg["worker_id"]]
+                slurm_job_id = v[hb_msg["slurm_jobid"]]
+                worker_type = v[hb_msg["worker_type"]]
+                end_datetime = v[hb_msg["end_date"]]
+                life_left = v[hb_msg["life_left"]]
+                mem_per_node = v[hb_msg["mem_per_node"]]
+                mem_per_core = v[hb_msg["mem_per_core"]]
+                num_cores = v[hb_msg["num_cores"]]
+                job_time = v[hb_msg["job_time"]]
+                clone_time = v[hb_msg["clone_time_rate"]]
+                host_name = v[hb_msg["host_name"]]
+                jtm_host_name = v[hb_msg["jtm_host_name"]]
+                ip_addr = v[hb_msg["ip_address"]]
+                pool_name = v[hb_msg["pool_name"]]
 
                 if b_resource_log:
                     logger.resource(v)
@@ -382,7 +165,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                 while success is not True:
                     success = True
                     try:
-                        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                        db = DbSqlMysql(config=CONFIG)
                         bExists = db.selectScalar(JTM_SQL["select_exists_workers_by_workerid"]
                                                   % dict(worker_id=a_worker_id))
 
@@ -432,37 +215,6 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                     resource_log_fname = "%s/%s/jtm_resource_%d_%s.log" \
                                          % (log_dir_name, padded_dir_str, task_id, datetime_str)
 
-                    # new header ################
-                    # "child_pid": 1,
-                    # "clone_time_rate": 2,
-                    # "cpu_load": 3,
-                    # "end_date": 4,
-                    # "host_name": 5,
-                    # "ip_address": 6,
-                    # "job_time": 7,
-                    # "life_left": 8,
-                    # "mem_per_core": 9,
-                    # "mem_per_node": 10,
-                    # "num_cores": 11,
-                    # "num_tasks": 12,
-                    # "num_workers_on_node": 13,
-                    # "perc_mem_used": 14,
-                    # "pool_name": 15,
-                    # "ret_msg": 16,
-                    # "rmem_usage": 17,
-                    # "root_pid": 18,
-                    # "run_time": 19,
-                    # "slurm_jobid": 20,
-                    # "task_id": 21,
-                    # "vmem_usage": 22,
-                    # "worker_id": 23,
-                    # "worker_type": 24
-                    # "jtm_host_name": 25
-                    # "nwpn": 26
-                    # - parent_pid: jtm-worker's pid
-                    # - user_command_pid: sh process pid for running user command
-                    # - task_id: if registered to JTM, valid task_id, if not, 0
-
                     with open(resource_log_fname, 'a') as rf:
                         rf.write(",".join([str(i) for i in v.values()]))
                         rf.write('\n')
@@ -471,7 +223,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
 
                     try:
                         # Update tasks table with "running" status == 2 if status is still 0 or 1
-                        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                        db = DbSqlMysql(config=CONFIG)
 
                         # Update runs table for a task
                         # Todo: really need to store full path to the log?
@@ -491,20 +243,18 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                         conn.close()
                         raise
 
-            #
             # Set unresponsive workers as dead
-            #
             # Collect worker_ids from hb
             alive_worker_id_list = []
             for k, v in worker_ids_dict.items():
-                alive_worker_id_list.append(v[HB_MSG["worker_id"]])
+                alive_worker_id_list.append(v[hb_msg["worker_id"]])
 
             # Collect worker_id which are still set as alive from workers table
             success = False
             while success is not True:
                 success = True
                 try:
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     live_worker_id_list = db.selectAll(JTM_SQL["select_workerid_workers_by_lifeleft_jtmhostname"]
                                                        % dict(jtm_host_name=jtm_host_name),
                                                        debug=False)
@@ -527,7 +277,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                     success = False
                     conn.sleep(1)
 
-            db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+            db = DbSqlMysql(config=CONFIG)
             alive_total_num_workers = db.selectScalar(JTM_SQL["select_sum_nwpn_workers_by_lifeleftt_jtmhostname"]
                                                       % dict(jtm_host_name=jtm_host_name),
                                                       debug=False)
@@ -545,13 +295,9 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
             max_worker_check_count += 1
             NUM_TOTAL_WORKERS.value = 0
             logger.info("Waiting for worker(s)...")
+            max_count = CONFIG.configparser.getint("JTM", "worker_hb_check_max_count")
 
-            # NOTE: 2013.09.05 To prevent from failing to detect workers
-            # Increase interval. default=1.2
-            # Todo: still need this? ==> 11.13.2018 removed
-            # intervalIncRate <= intervalIncRate * CLIENT_HB_RECEIVE_INT_INC_RATE
-            if WORKER_HB_CHECK_MAX_COUNT != 0 and \
-                    max_worker_check_count > WORKER_HB_CHECK_MAX_COUNT:  # hit the max checking limit
+            if max_count != 0 and max_worker_check_count > max_count:  # hit the max checking limit
                 # Close connection and kill parent and itself
                 ch.close()
                 conn.close()
@@ -560,7 +306,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
             # If there no workers alive after 5 checks, set life_left to -1 for all
             if max_worker_check_count == 3:
                 try:
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_workers_lifeleft_for_last"])
                     db.commit()
                     db.close()
@@ -592,44 +338,6 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
 
 
 # -------------------------------------------------------------------------------
-def send_hb_to_worker_proc():
-    """
-    Broadcast heartbeat to all workers
-    Ref) http://www.rabbitmq.com/tutorials/tutorial-three-python.html
-    """
-    # Remote broker (mq.nersc.gov)
-    rmq_conn = RmqConnectionHB(config=CONFIG)
-    conn = rmq_conn.open()
-    ch = conn.channel()
-    exch_name = JTM_CLIENT_HB_EXCH
-
-    ch.exchange_declare(exchange=exch_name,
-                        exchange_type="topic",
-                        durable=False,
-                        auto_delete=False)
-
-    msg_to_send_dict = {}
-    msg_to_send_dict["task_type"] = TASK_TYPE["hb"]
-    msg_zipped = zdumps(json.dumps(msg_to_send_dict))
-
-    try:
-        while True:
-            ch.basic_publish(exchange=exch_name,
-                             routing_key="*." + CNAME,  # all workers with CNAME can hear it
-                             body=msg_zipped)
-            conn.sleep(CLIENT_HB_SEND_INTERVAL)
-    except Exception as e:
-        logger.critical("Something wrong in send_hb_to_worker_proc(): %s", e)
-        ch.close()
-        conn.close()
-        raise
-
-    # unreachable
-    ch.close()
-    conn.close()
-
-
-# -------------------------------------------------------------------------------
 def recv_result_from_workers_proc():
     """
     Receive hearbeats from all the workers running
@@ -640,7 +348,7 @@ def recv_result_from_workers_proc():
     ch = conn.channel()
 
     exch_name = JTM_INNER_MAIN_EXCH
-    inner_result_queue_name = JTM_INNER_RESULT_Q
+    inner_result_queue_name = CONFIG.configparser.get("JTM", "jtm_inner_result_q")
 
     # Default; exch_name = jgi_jtm_inner_main_exchange
     ch.exchange_declare(exchange=exch_name,
@@ -672,7 +380,7 @@ def recv_result_from_workers_proc():
                   routing_key=inner_result_queue_name)
 
     # Todo: change to a threaded version
-    ch.basic_qos(prefetch_count=NUM_RESULT_RECV_THREADS)
+    ch.basic_qos(prefetch_count=CONFIG.configparser.getint("JTM", "num_result_recv_threads"))
 
     try:
         ch.basic_consume(queue=inner_result_queue_name,
@@ -698,6 +406,7 @@ def recv_result_from_workers_proc():
 def recv_result_on_result(ch, method, props, body):
     """
     recv_result_from_workers_proc's basic_consume callback
+
     :param ch: channel
     :param method: method_frame
     :param props: pika connection property
@@ -724,7 +433,7 @@ def recv_result_on_result(ch, method, props, body):
         if ret_msg != "hb":
             logger.debug("Update tasks {} with {}".format(task_id, done_flag))
             try:
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 db.execute(JTM_SQL["update_tasks_doneflag_by_taskid"]
                            % dict(task_id=task_id,
                                   done_flag=done_flag))
@@ -759,15 +468,12 @@ def recv_result_on_result(ch, method, props, body):
 
             # This seems like resolving runs table lock issue
             # issue: status is not changed to 4 after the update
-            # Todo: need to improve
-            #############################################
-            ch._connection.sleep(RESULT_RECEIVE_INTERVAL)
-            #############################################
+            ch._connection.sleep(CONFIG.configparser.getfloat("JTM", "result_receive_interval"))
 
             # Sometimes workerId2 ==> 0
             # so wait a little bit if that happened
             a_worker_id_to_check = 0
-            db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+            db = DbSqlMysql(config=CONFIG)
             rows = db.selectAll(JTM_SQL["select_workerid2_workers_by_wid"]
                                 % dict(worker_id=a_worker_id))
             db.close()
@@ -779,7 +485,7 @@ def recv_result_on_result(ch, method, props, body):
 
             # Just in case
             while a_worker_id_to_check == 0:
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 rows = db.selectAll(JTM_SQL["select_workerid2_workers_by_wid"]
                                     % dict(worker_id=a_worker_id))
                 db.close()
@@ -788,7 +494,7 @@ def recv_result_on_result(ch, method, props, body):
                 except Exception:
                     a_worker_id_to_check = 0
 
-                ch._connection.sleep(WORKER_INFO_UPDATE_WAIT)
+                ch._connection.sleep(CONFIG.configparser.getfloat("JTM", "worker_info_update_wait"))
 
             # new
             # Fixme: bytearray index out of range EXCEPTION from gpdb23. Seems like network delay to
@@ -799,7 +505,7 @@ def recv_result_on_result(ch, method, props, body):
             while success is not True:
                 success = True
                 try:
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_runs_status_workerid2_by_taskid_2"]
                                % dict(status_id=task_status_int,
                                       wid2=a_worker_id_to_check,
@@ -817,32 +523,32 @@ def recv_result_on_result(ch, method, props, body):
                     logger.critical("Failed to update runs table for status and workerid2.")
                     logger.debug("Retry to update runs table for status and workerid2.")
                     success = False
-                    logger.debug("update_runs_status_workerid2_by_taskid_2 sleep for %f" % RUNS_INFO_UPDATE_WAIT)
-                    ch._connection.sleep(RUNS_INFO_UPDATE_WAIT)
+                    ch._connection.sleep(CONFIG.configparser.getfloat("JTM", "runs_info_update_wait"))
 
             # Print report
-            if done_flag == DONE_FLAGS["success"]:  # 1
+            done_flags = CONFIG.constants.DONE_FLAGS
+            if done_flag == done_flags["success"]:  # 1
                 logger.info("Task %s --> Success on worker/host, %s/%s",
                             task_id, a_worker_id, host_name)
-            elif done_flag == DONE_FLAGS["success with correct output file(s)"]:  # 2
+            elif done_flag == done_flags["success with correct output file(s)"]:  # 2
                 logger.info("Task %s --> Success with valid output(s) on worker/host, %s/%s",
                             task_id, a_worker_id, host_name)
-            elif done_flag == DONE_FLAGS["failed to check output file(s)"]:  # -1
+            elif done_flag == done_flags["failed to check output file(s)"]:  # -1
                 logger.info("Task %s --> %s, worker/host: %s/%s",
                             task_id, ret_msg, a_worker_id, host_name)
-            elif done_flag == DONE_FLAGS["failed to run user command"]:  # -2
+            elif done_flag == done_flags["failed to run user command"]:  # -2
                 logger.info("Task %s --> Failed with non-zero exit code. stdout = %s, worker/host: %s/%s",
                             task_id, ret_msg, a_worker_id, host_name)
-            elif done_flag == DONE_FLAGS["failed with out-of-mem"]:  # -3
+            elif done_flag == done_flags["failed with out-of-mem"]:  # -3
                 logger.info("Task %s --> Failed with out-of-mem. stdout = %s, worker/host: %s/%s",
                             task_id, ret_msg, a_worker_id, host_name)
-            elif done_flag == DONE_FLAGS["failed with user termination"]:  # -4
+            elif done_flag == done_flags["failed with user termination"]:  # -4
                 logger.info("Task %s --> Failed by user termination. stdout = %s, worker/host: %s/%s",
                             task_id, ret_msg, a_worker_id, host_name)
-            elif done_flag == DONE_FLAGS["failed with input file or command not found"]:  # -5
+            elif done_flag == done_flags["failed with input file or command not found"]:  # -5
                 logger.info("Task %s --> Failed with input file or command not found. stdout = %s, worker/host: %s/%s",
                             task_id, ret_msg, a_worker_id, host_name)
-            elif done_flag == DONE_FLAGS["failed with timeout"]:  # -6
+            elif done_flag == done_flags["failed with timeout"]:  # -6
                 logger.info("Task %s --> Failed with timeout. stdout = %s, worker/host: %s/%s",
                             task_id, ret_msg, a_worker_id, host_name)
             else:
@@ -865,9 +571,335 @@ def recv_result_on_result(ch, method, props, body):
 
 
 # -------------------------------------------------------------------------------
+def create_sbatch_cmd_lbl(pool_name,
+                          pool_cluster,
+                          num_cpus_to_request,
+                          pool_time,
+                          mem_per_node_to_request,
+                          mem_per_cpu_to_request,
+                          pool_partition,
+                          uniq_worker_id,
+                          num_workers_per_node,
+                          pool_qos,
+                          charging_account,
+                          job_script_dir,
+                          num_nodes_to_request,
+                          dry_run):
+    """
+    Create sbatch script for nersc cori
+
+    :param pool_name:
+    :param pool_cluster:
+    :param num_cpus_to_request:
+    :param pool_time:
+    :param mem_per_node_to_request:
+    :param mem_per_cpu_to_request:
+    :param pool_partition:
+    :param uniq_worker_id:
+    :param num_workers_per_node:
+    :param pool_qos:
+    :param charging_account:
+    :param job_script_dir:
+    :param num_nodes_to_request:
+    :param dry_run:
+    :return:
+    """
+    batch_job_script_file = os.path.join(job_script_dir, "jtm_dynamic_worker_%s.job"
+                                         % (uniq_worker_id))
+    batch_job_script_str = ""
+    batch_job_misc_params = ""
+    job_name = "jtm_worker_" + pool_name
+
+    worker_config = CONFIG.config_file
+    worker_config_file = CONFIG.configparser.get("JTM", "worker_config_file")
+    env_activation = CONFIG.configparser.get("JTM", "env_activation")
+    partition = CONFIG.configparser.get("SLURM", "partition")
+    qos = CONFIG.configparser.get("SLURM", "qos")
+
+    if not pool_partition:
+        partition = pool_partition
+    if not (charging_account and pool_time):
+        logger.info("charging_account, jobtime: {} {}".format(charging_account,
+                                                              pool_time))
+        logger.critical("Need charging account, job time for LBL")
+        return None
+    if not pool_qos:
+        qos = pool_qos
+
+    if worker_config_file:
+        worker_config = worker_config_file
+
+    with open(batch_job_script_file, "w") as jf:
+        batch_job_script_str += "#!/bin/bash -l"
+        if uniq_worker_id:
+            batch_job_misc_params += " -wi %(worker_id)s_${i}" \
+                                     % dict(worker_id=uniq_worker_id)
+
+        tp_param = "-p " + pool_name
+        part_param = partition
+        qos_param = qos
+        charge_param = charging_account
+        nnode_param = 1
+        if num_nodes_to_request:
+            nnode_param = num_nodes_to_request
+        mnode_param = "#SBATCH --mem=%(mem)s" \
+                      % dict(mem=mem_per_node_to_request)
+
+        batch_job_script_str += """
+#SBATCH --time=%(wall_time)s
+#SBATCH --job-name=%(job_name)s
+#SBATCH --partition=%(partition_name)s
+#SBATCH --qos=%(qosname)s
+#SBATCH --account=%(charging_account)s
+#SBATCH --nodes=%(num_nodes_to_request)d
+%(mem_per_node_setting)s
+#SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
+#SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
+
+%(env_activation_cmd)s
+%(export_jtm_config_file)s
+for i in {1..%(num_workers_per_node)d}
+do
+    echo "jobid: $SLURM_JOB_ID"
+    jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
+-cl %(lbl_cluster_name)s \
+-wt %(worker_type)s \
+-t %(wall_time)s %(task_queue)s \
+--num_worker_per_node %(num_workers_per_node)d \
+-m %(mem)s \
+%(other_params)s &
+    sleep 1
+done
+wait
+""" % dict(debug="--debug" if DEBUG else "",
+           wall_time=pool_time,
+           job_name=job_name,
+           partition_name=part_param,
+           qosname=qos_param,
+           charging_account=charge_param,
+           num_nodes_to_request=nnode_param,
+           mem_per_node_setting=mnode_param,
+           worker_id=uniq_worker_id,
+           job_dir=job_script_dir,
+           env_activation_cmd=env_activation,
+           num_workers_per_node=num_workers_per_node,
+           mem=mem_per_node_to_request,
+           lbl_cluster_name=pool_cluster,
+           worker_type="dynamic",
+           task_queue=tp_param,
+           other_params=batch_job_misc_params,
+           export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
+           set_jtm_config_file="--config=%s" % worker_config)
+
+        logger.info(batch_job_script_str)
+        if not dry_run:
+            jf.writelines(batch_job_script_str)
+
+    if not dry_run:
+        os.chmod(batch_job_script_file, 0o775)
+
+    return "sbatch --parsable %s" % (batch_job_script_file)
+
+
+# -------------------------------------------------------------------------------
+def create_sbatch_cmd_nersc(pool_name,
+                            pool_cluster,
+                            num_cpus_to_request,
+                            pool_time,
+                            mem_per_node_to_request,
+                            mem_per_cpu_to_request,
+                            uniq_worker_id,
+                            contraint_param,
+                            num_workers_per_node,
+                            qos,
+                            charging_account,
+                            job_script_dir,
+                            num_nodes_to_request,
+                            dry_run):
+    """
+    Create sbatch script for lblit
+
+    :param pool_name:
+    :param pool_cluster:
+    :param num_cpus_to_request:
+    :param pool_time:
+    :param mem_per_node_to_request:
+    :param mem_per_cpu_to_request:
+    :param uniq_worker_id:
+    :param contraint_param:
+    :param num_workers_per_node:
+    :param qos:
+    :param charging_account:
+    :param job_script_dir:
+    :param num_nodes_to_request:
+    :param dry_run:
+    :return:
+    """
+
+    batch_job_script_file = os.path.join(job_script_dir, "jtm_dynamic_worker_%s.job"
+                                         % (uniq_worker_id))
+    batch_job_script_str = ""
+    batch_job_misc_params = ""
+    job_name = "jtm_worker_" + pool_name
+
+    worker_config = CONFIG.config_file
+    worker_config_file = CONFIG.configparser.get("JTM", "worker_config_file")
+    env_activation = CONFIG.configparser.get("JTM", "env_activation")
+    constraint = CONFIG.configparser.get("SLURM", "constraint")
+    if contraint_param:
+        constraint = contraint_param
+
+    if not (constraint and charging_account and pool_time):
+        logger.info("constraint, charging_account, jobtime: {} {} {}".format(constraint,
+                                                                             charging_account,
+                                                                             pool_time))
+        logger.critical("Need constraint, charging account, job time for Cori")
+        return None
+
+    if contraint_param:
+        constraint = contraint_param
+
+    if worker_config_file:
+        worker_config = worker_config_file
+
+    with open(batch_job_script_file, "w") as jf:
+        batch_job_script_str += "#!/bin/bash -l"
+        if num_nodes_to_request:
+            batch_job_script_str += """
+#SBATCH -N %(num_nodes_to_request)d
+#SBATCH --mem=%(mem)s""" % dict(num_nodes_to_request=num_nodes_to_request,
+                                mem=mem_per_node_to_request)
+            batch_job_misc_params += " -N %(num_nodes_to_request)d" \
+                                     % dict(num_nodes_to_request=num_nodes_to_request,)
+            if num_cpus_to_request:
+                batch_job_script_str += """
+#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_request)
+                batch_job_misc_params += " -c %(num_cores)d" \
+                                         % dict(num_cores=num_cpus_to_request)
+
+        else:
+            batch_job_script_str += """
+#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_request)
+            batch_job_misc_params += " -c %(num_cores)d" \
+                                     % dict(num_cores=num_cpus_to_request)
+
+            if mem_per_node_to_request:
+                batch_job_script_str += """
+#SBATCH --mem=%(mem)s""" % dict(mem=mem_per_node_to_request)
+                batch_job_misc_params += " -m %(mem)s " \
+                                         % dict(mem=mem_per_node_to_request)
+            else:
+                batch_job_script_str += """
+#SBATCH --mem-per-cpu=%(mempercore)s""" % dict(mempercore=mem_per_cpu_to_request)
+                batch_job_misc_params += " -mc %(mempercore)s" \
+                                         % dict(mempercore=mem_per_cpu_to_request)
+
+            if uniq_worker_id:
+                batch_job_misc_params += " -wi %(worker_id)s_${i}" \
+                                         % dict(worker_id=uniq_worker_id)
+
+        if constraint == "haswell":
+            if qos:
+                batch_job_script_str += """
+#SBATCH -q %(qosname)s""" % dict(qosname=qos)
+                batch_job_misc_params += " -q %(qosname)s" \
+                                         % dict(qosname=qos)
+
+            else:
+                batch_job_script_str += """
+#SBATCH -q %(qosname)s""" % dict(qosname=qos)
+
+            batch_job_script_str += """
+#SBATCH -C haswell"""
+
+            if charging_account == "m342":
+                batch_job_misc_params += " -A %(sa)s" % dict(sa="m342")
+
+            batch_job_script_str += """
+#SBATCH -A %(charging_account)s""" % dict(charging_account=charging_account)
+
+        elif constraint == "knl":
+            batch_job_script_str += """
+#SBATCH -C knl
+#SBATCH -A %(charging_account)s
+#SBATCH -q %(qosname)s""" % dict(charging_account=charging_account, qosname=qos)
+
+            batch_job_misc_params += " -A %(charging_account)s -q %(qosname)s" \
+                                     % dict(charging_account=charging_account,
+                                            qosname=qos)
+
+        elif constraint == "skylake":
+            batch_job_script_str += """
+#SBATCH -C skylake
+#SBATCH -A %(charging_account)s
+#SBATCH -q %(qosname)s""" % dict(charging_account=charging_account, qosname=qos)
+            batch_job_misc_params += " -A %(charging_account)s -q %(qosname)s" \
+                                     % dict(charging_account=charging_account,
+                                            qosname=qos)
+        excl_param = ""
+        if constraint != "skylake":
+            excl_param = "#SBATCH --exclusive"
+
+        tq_param = ""
+        if pool_name:
+            tq_param = "-p " + pool_name
+
+        batch_job_script_str += """
+#SBATCH -t %(wall_time)s
+#SBATCH --job-name=%(job_name)s
+#SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
+#SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
+%(exclusive)s
+
+module unload python
+%(env_activation_cmd)s
+%(export_jtm_config_file)s
+for i in {1..%(num_workers_per_node)d}
+do
+    echo "jobid: $SLURM_JOB_ID"
+    jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
+-cl %(cluster)s \
+-wt %(worker_type)s \
+-t %(wall_time)s %(task_queue)s \
+--num_worker_per_node %(num_workers_per_node)d \
+-C %(constraint)s \
+-m %(mem)s \
+%(other_params)s &
+    sleep 1
+done
+wait
+    """ % dict(worker_type="dynamic",
+               debug="--debug" if DEBUG else "",
+               cluster=pool_cluster,
+               wall_time=pool_time,
+               job_dir=job_script_dir,
+               worker_id=uniq_worker_id,
+               task_queue=tq_param,
+               num_workers_per_node=num_workers_per_node,
+               env_activation_cmd=env_activation,
+               other_params=batch_job_misc_params,
+               constraint=constraint,
+               mem=mem_per_node_to_request,
+               job_name=job_name,
+               exclusive=excl_param,
+               export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
+               set_jtm_config_file="--config=%s" % worker_config)
+
+        logger.info(batch_job_script_str)
+        if not dry_run:
+            jf.writelines(batch_job_script_str)
+
+    if not dry_run:
+        os.chmod(batch_job_script_file, 0o775)
+
+    return "sbatch --parsable %s" % (batch_job_script_file)
+
+
+# -------------------------------------------------------------------------------
 def process_task_request(ch, method, props, msg, inner_task_request_queue):
     """
     Get task request from jtm-submit and send it to a worker
+
     :param ch:
     :param method:
     :param props:
@@ -886,11 +918,11 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
 
     user_task_cmd = msg["command"]
     task_type = msg["task_type"]
-    output_file = msg["output_files"] if "output_files" in msg else ""  # comma separated list ex) "a.out,b.out,c.out"
+    # comma separated list ex) "a.out,b.out,c.out"
+    output_file = msg["output_files"] if "output_files" in msg else ""
     output_dir = msg["output_dir"] if "output_dir" in msg else ""
     stdout_file = msg["stdout"] if "stdout" in msg else ""
     stderr_file = msg["stderr"] if "stderr" in msg else ""
-    # cromwellJid = msg["job_id"] if "job_id" in msg else ""
 
     # Deal with custom pool of workers
     # If user task json has "pool", jtm creates the specified number (=size) of workers
@@ -904,26 +936,26 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
     #
     # ex)
     # $ jtm submit -cmd 'ls' -cl cori -p test2 -t "00:10:00" -c 1 -s 1 -m 5G
-    #
+
     b_failed_to_request_worker = False
+    dry_run = False
     if "pool" in msg and "name" in msg["pool"] and "time" in msg["pool"]:
-        # {u'resource': u'cori', u'name': u'test', u'size': 1}
-        # ==> {"resource": "cori", "name": "test", "size": 1}
         pool_spec_json_str = json.loads(json.dumps(msg["pool"]))
 
         # Set default values defined in Config.py
         assert "name" in pool_spec_json_str
         pool_name = pool_spec_json_str["name"]
-        assert pool_name is not None
-        pool_cluster = POOL_CLUSTER
-        pool_ncpus = POOL_NCPUS
-        pool_mem = POOL_MEM
-        pool_constraint = POOL_CONSTRAINT
-        pool_charge_account = POOL_CHARGE_ACCOUNT
-        pool_qos = POOL_QOS
+        assert pool_name is not None and pool_name != ""
+        pool_cluster = CONFIG.configparser.get("JTM", "cluster")
+        pool_ncpus = CONFIG.configparser.getint("SLURM", "ncpus")
+        pool_mem = CONFIG.configparser.get("SLURM", "mempernode")
+        pool_constraint = CONFIG.configparser.get("SLURM", "constraint")
+        pool_charge_account = CONFIG.configparser.get("SLURM", "charge_accnt")
+        pool_qos = CONFIG.configparser.get("SLURM", "qos")
+
         # Note: pool size = num_nodes_to_request * num_workers_per_node
-        num_workers_per_node = NUM_WORKERS_PER_NODE
-        num_nodes_to_request = NUM_NODES_TO_REQUEST
+        num_workers_per_node = CONFIG.configparser.getint("JTM", "num_workers_per_node")
+        num_nodes_to_request = CONFIG.configparser.getint("SLURM", "nnodes")
 
         # Worker type is restricted to "dynamic" for now.
         # Todo: add the feature to remove the custom pool by user task to support "static"
@@ -936,9 +968,6 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         # if not,
         # only one dynamic worker will be created. The worker will be terminated if there is
         # no tasks in the queue for a specified time duration
-
-        # if "size" in pool_spec_json_str:  # pool size = the number workers in the pool
-        #     pool_size = int(pool_spec_json_str["size"])
         if "cluster" in pool_spec_json_str:  # cluster/clouds name
             pool_cluster = pool_spec_json_str["cluster"]
         if "time" in pool_spec_json_str:  # wallclocktime request
@@ -947,25 +976,27 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             pool_ncpus = int(pool_spec_json_str["cpu"])
         if "mem" in pool_spec_json_str:  # node memory request
             pool_mem = pool_spec_json_str["mem"]
+        if "mempercpu" in pool_spec_json_str:  # node memory request
+            pool_mempercpu = pool_spec_json_str["mempercpu"]
         if "constraint" in pool_spec_json_str:  # [haswell | knl | skylake]
             pool_constraint = pool_spec_json_str["constraint"]
         if "qos" in pool_spec_json_str:
             pool_qos = pool_spec_json_str["qos"]  # ["genepool_special", "genepool_shared", "jgi_shared", "jgi_exvivo"]
         if "account" in pool_spec_json_str:
             pool_charge_account = pool_spec_json_str["account"]  # for example, gtrqc for skylake, fungalp for the rest
-
-        # Todo: This is not used for now.
-        #     #  If shared=0 is set from jtm-submit and if the pool needs to be removed forcefully,
-        #     #  jtm-manager should send a poison to the worker(s
-        # if "shared" in pool_spec_json_str:
-        #     pool_shared = pool_spec_json_str["shared"]
         if "nwpn" in pool_spec_json_str:
             num_workers_per_node = int(pool_spec_json_str["nwpn"])
         if "node" in pool_spec_json_str:
             num_nodes_to_request = int(pool_spec_json_str["node"])
+        if "partition" in pool_spec_json_str:
+            pool_partition = pool_spec_json_str["partition"]
+        if "dryrun" in pool_spec_json_str:
+            dry_run = pool_spec_json_str["dryrun"]
 
         assert (len(user_task_cmd) <= 1024)
         assert (len(output_file) <= 1024)
+
+        worker_hb_recv_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
 
         ################
         # Create a pool
@@ -976,22 +1007,22 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         #    else send tasks to the pool
 
         # Todo: maintain the number of workers sbatched -->
-        #   num_worker_to_add = pool_size - num_live_worker_in_pool - nWorkerSbatched
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        #   num_node_to_add = pool_size - num_live_worker_in_pool - nWorkerSbatched
+        db = DbSqlMysql(config=CONFIG)
         num_slurm_jid_in_pool = db.selectScalar(JTM_SQL["select_count_distinct_jid_workers_by_poolname"]
                                                 % dict(pool_name=inner_task_request_queue,
-                                                       hbinterval=WORKER_HB_RECV_INTERVAL * 3),
+                                                       hbinterval=worker_hb_recv_interval * 3),
                                                 debug=False)
 
         # TODO: slurm jid --> sacct --> doublecheck the status of node allocation and worker
         #  if no real alive workers --> request new node
         #
-        #  if num_worker_to_add == 0, squeue -j slurm jid
+        #  if num_node_to_add == 0, squeue -j slurm jid
         #
         ####################################################################################
         slurm_jid_list = db.selectAll(JTM_SQL["select_distinct_jid_workers_by_poolname"]
                                       % dict(pool_name=inner_task_request_queue,
-                                             hbinterval=WORKER_HB_RECV_INTERVAL * 3))
+                                             hbinterval=worker_hb_recv_interval * 3))
         logger.debug("slurm job id for {}: {}".format(inner_task_request_queue, slurm_jid_list))
         db.close()
 
@@ -1003,7 +1034,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
 
                 # Delete worker info
                 logger.info("Found dead worker(s) from %s, %s" % (str(jid), so))
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 db.execute(JTM_SQL["delete_from_workers_by_slurmjid"]
                            % dict(slurm_jid=jid, ),
                            debug=DEBUG)
@@ -1014,12 +1045,11 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         pool_size = num_nodes_to_request * num_workers_per_node
         # This is the actual number of workers = jid * nwpn
         num_live_worker_in_pool = num_slurm_jid_in_pool * num_workers_per_node
-        num_worker_to_add = int(ceil(float(pool_size - num_live_worker_in_pool) /
-                                     num_workers_per_node))
+        num_node_to_add = int(ceil(float(pool_size - num_live_worker_in_pool) / num_workers_per_node))
 
-        logger.debug("num_worker_to_add={} pool_size={} "
+        logger.debug("num_node_to_add={} pool_size={} "
                      "num_live_worker_in_pool={} num_slurm_jid_in_pool={} "
-                     "NUM_TOTAL_WORKERS={} num_workers_per_node={}""".format(num_worker_to_add,
+                     "NUM_TOTAL_WORKERS={} num_workers_per_node={}""".format(num_node_to_add,
                                                                              pool_size,
                                                                              num_live_worker_in_pool,
                                                                              num_slurm_jid_in_pool,
@@ -1027,89 +1057,107 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                                                                              num_workers_per_node))
 
         uniq_worker_id = None
-        for i in range(0, num_worker_to_add):
-            b_failed_to_request_worker = False
-            # NOTE: User can request only "dynamic" workers from WDL.
+        # Job dir setting
+        job_script_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "job")
+        make_dir(job_script_dir_name)
+
+        for i in range(0, num_node_to_add):
             uniq_worker_id = str(shortuuid.uuid())
-            sbatch_cmd_str = """{}jtm {} worker \
-                -wt dynamic \
-                -p {} \
-                -cl {} \
-                -c {} \
-                -t {} \
-                -m {} \
-                -wi {} {} \
-                -nwpn {} \
-                --qos {} \
-                -A {}""".format("%s && " % ENV_ACTIVATION if ENV_ACTIVATION else "",
-                                "--config=%s" % CONFIG.config_file if CONFIG else "",
-                                pool_name,
-                                pool_cluster,
-                                pool_ncpus,
-                                pool_time,
-                                pool_mem,
-                                uniq_worker_id,
-                                "-C %s" % pool_constraint if pool_constraint else "",
-                                num_workers_per_node,
-                                pool_qos,
-                                pool_charge_account)
+            if pool_cluster == "cori":
+                sbatch_cmd_str = create_sbatch_cmd_nersc(pool_name,
+                                                         pool_cluster,
+                                                         pool_ncpus,
+                                                         pool_time,
+                                                         pool_mem,
+                                                         pool_mempercpu,
+                                                         uniq_worker_id,
+                                                         pool_constraint,
+                                                         num_workers_per_node,
+                                                         pool_qos,
+                                                         pool_charge_account,
+                                                         job_script_dir_name,
+                                                         1,
+                                                         dry_run)
+            elif pool_cluster == "lbl":
+                sbatch_cmd_str = create_sbatch_cmd_lbl(pool_name,
+                                                       pool_cluster,
+                                                       pool_ncpus,
+                                                       pool_time,
+                                                       pool_mem,
+                                                       pool_mempercpu,
+                                                       pool_partition,
+                                                       uniq_worker_id,
+                                                       num_workers_per_node,
+                                                       pool_qos,
+                                                       pool_charge_account,
+                                                       job_script_dir_name,
+                                                       1,
+                                                       dry_run)
 
-            logger.info("Executing {}".format(sbatch_cmd_str))
+            b_failed_to_request_worker = True
+            if not dry_run and sbatch_cmd_str is not None and sbatch_cmd_str != "":
+                # User can request only "dynamic" workers from WDL.
+                logger.info("Executing {}".format(sbatch_cmd_str))
+                # Run sbatch from jtm worker command
+                so, _, ec = run_sh_command(sbatch_cmd_str, log=logger)
+                assert ec == 0, "Failed to run sbatch commands: %s" % sbatch_cmd_str
 
-            # Run sbatch from jtm worker command
-            so, _, ec = run_sh_command(sbatch_cmd_str, log=logger)
-            assert ec == 0, "Failed to run sbatch commands: %s" % sbatch_cmd_str
+                # # Print job script for logging
+                # run_sh_command(sbatch_cmd_str + " --dry_run", log=logger)
 
-            # Print job script for logging
-            run_sh_command(sbatch_cmd_str + " --dry_run", log=logger)
+                # Get the slurm job id returned from jtm-worker
+                try:
+                    slurm_job_id = int(so.strip())
+                except Exception:
+                    logger.critical("Failed to get a valid job ID back from requesting a dynamic worker")
+                    ec = 1  # make it fail
 
-            # Get the slurm job id returned from jtm-worker
-            try:
-                slurm_job_id = int(so.split('\n')[1])
-            except Exception:
-                logger.critical("Failed to get a valid job ID back from requesting a dynamic worker")
-                ec = 1  # make it fail
+                if ec == 0:  # if sbatch by jtm-worker done successfully
+                    logger.debug("Insert into workers table.")
+                    for nwpn in range(num_workers_per_node):
+                        # Insert into workers for new worker id
+                        try:
+                            db = DbSqlMysql(config=CONFIG)
+                            # If a dynamic worker is requested successfully,
+                            # insert the info into workers table
+                            # loggger.info("Try to update workers table")check_worker
 
-            if ec == 0:  # if sbatch by jtm-worker done successfully
-                logger.debug("Insert into workers table.")
-                for nwpn in range(num_workers_per_node):
-                    # Insert into workers for new worker id
-                    try:
-                        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
-                        # If a dynamic worker is requested successfully,
-                        # insert the info into workers table
-                        # loggger.info("Try to update workers table")check_worker
+                            # Fixme: After sbatch, another sbatch with the same pool name will be executed
+                            #  again.
+                            # Solution: Set the lifeleft=-2 and update select_count_workers_by_poolname sql
+                            # statement to check only lifeleft!=-1 so that num_live_worker_in_pool can include
+                            # already sbatched workers for the pool.
+                            #
+                            worker_t = CONFIG.constants.WORKER_TYPE
+                            db.execute(JTM_SQL["insert_workers_workerid_workertype_poolname"]
+                                       % dict(worker_id=uniq_worker_id + str(nwpn+1),
+                                              worker_type=worker_t["dynamic"],
+                                              pool_name=inner_task_request_queue,
+                                              jtm_host_name=pool_cluster,
+                                              lifeleft=-2,
+                                              slurm_jid=slurm_job_id,
+                                              nwpn=1))
+                            db.commit()
+                            db.close()
+                        except Exception as e:
+                            logger.critical(e)
+                            logger.critical("Failed to insert workers table for workerid and workertype.")
+                            logger.debug("Retry to insert workers table for workerid and workertype.")
+                            raise
+                        else:
+                            b_failed_to_request_worker = False
+                else:
+                    logger.critical("Failed to execute the command, %s" % (sbatch_cmd_str))
+                    logger.critical("Failed to request workers.")
+                    send_msg_callback(ch, method, props, TASK_STATUS["invalidtask"],
+                                      JGI_JTM_MAIN_EXCH, JTM_TASK_RESULT_Q, delivery_mode=2)
+                    b_failed_to_request_worker = True
+                    break
 
-                        # Fixme: After sbatch, another sbatch with the same pool name will be executed
-                        #  again.
-                        # Solution: Set the lifeleft=-2 and update select_count_workers_by_poolname sql
-                        # statement to check only lifeleft!=-1 so that num_live_worker_in_pool can include
-                        # already sbatched workers for the pool.
-                        #
-                        db.execute(JTM_SQL["insert_workers_workerid_workertype_poolname"]
-                                   % dict(worker_id=uniq_worker_id + str(nwpn+1),
-                                          worker_type=WORKER_TYPE["dynamic"],
-                                          pool_name=inner_task_request_queue,
-                                          jtm_host_name=pool_cluster,
-                                          lifeleft=-2,
-                                          slurm_jid=slurm_job_id,
-                                          nwpn=1))
-                        db.commit()
-                        db.close()
-                    except Exception as e:
-                        logger.critical(e)
-                        logger.critical("Failed to insert workers table for workerid and workertype.")
-                        logger.debug("Retry to insert workers table for workerid and workertype.")
-                        raise
-            else:
-                logger.critical("Failed to execute the command, %s" % (sbatch_cmd_str))
-                logger.critical("Failed to request workers.")
-                send_msg_callback(ch, method, props, TASK_STATUS["invalidtask"],
-                                  JGI_JTM_MAIN_EXCH, JTM_TASK_RESULT_Q, delivery_mode=2)
-                b_failed_to_request_worker = True
-                break
+    if dry_run:
+        send_msg_callback(ch, method, props, -87,  JGI_JTM_MAIN_EXCH, JTM_TASK_RESULT_Q, delivery_mode=2)
 
-    if not b_failed_to_request_worker:
+    elif not b_failed_to_request_worker:
         lastTid = -1
 
         # Fixme: mysql connection.py IndexError: bytearray index out of range
@@ -1118,8 +1166,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         while success is not True:
             success = True
             try:
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
-                # table fields: userCmd, outFiles, doneFlag, retryCnt, task_type
+                db = DbSqlMysql(config=CONFIG)
                 db.execute(JTM_SQL["insert_tasks_usercmd_outfiles"]
                            % (user_task_cmd, output_file, "0", 0, TASK_TYPE[task_type]))
                 db.commit()
@@ -1137,7 +1184,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         while success is not True:
             success = True
             try:
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 db.execute(JTM_SQL["insert_runs_tid_sid"]
                            % dict(task_id=lastTid,
                                   status_id=TASK_STATUS["ready"]))
@@ -1154,7 +1201,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         #  dynamic worker by a static worker
         if lastTid != -1:  # if it successfully updates runs table and gets a task id
             # Todo: Check if cancelled or terminated
-            db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+            db = DbSqlMysql(config=CONFIG)
             task_status_int = int(db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
                                                   % dict(task_id=lastTid)))
             b_already_canceled = int(db.selectScalar(JTM_SQL["select_cancelled_runs_by_taskid"]
@@ -1166,7 +1213,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             #  status change.
             if b_already_canceled == 1 or task_status_int == TASK_STATUS["terminated"]:
                 if task_status_int != TASK_STATUS["terminated"]:
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_tasks_doneflag_by_taskid"]
                                % dict(task_id=lastTid,
                                       done_flag=TASK_STATUS["terminated"]))
@@ -1184,7 +1231,6 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                 msg_to_send_dict["output_dir"] = output_dir
                 msg_to_send_dict["stdout"] = stdout_file
                 msg_to_send_dict["stderr"] = stderr_file
-                # msg_to_send_dict["cromwell_jid"] = cromwellJid
 
                 logger.info("Total number of workers (alive + requested): %d", NUM_TOTAL_WORKERS.value)
 
@@ -1198,8 +1244,8 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                     ch.basic_publish(exchange=JTM_INNER_MAIN_EXCH,
                                      routing_key=inner_task_request_queue,
                                      properties=pika.BasicProperties(
-                                         delivery_mode=2,  # make message persistent
-                                         reply_to=JTM_INNER_RESULT_Q,  # set reply queue name
+                                         delivery_mode=2,
+                                         reply_to=CONFIG.configparser.get("JTM", "jtm_inner_result_q"),
                                          correlation_id=corr_id),
                                      body=msg_zipped)
                 except Exception as detail:
@@ -1209,10 +1255,10 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
 
                 # Update status to "queued"
                 # Todo: need this update to change the task status to "queued"?
-                ch._connection.sleep(TASK_STAT_UPDATE_INTERVAL)
+                ch._connection.sleep(CONFIG.configparser.getfloat("JTM", "task_stat_update_interval"))
 
                 try:
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_runs_tid_startdate_by_tid"]
                                % dict(status_id=TASK_STATUS["queued"],
                                       now=time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -1223,14 +1269,15 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                 except Exception as e:
                     logger.critical(e)
                     logger.critical("Failed to update runs table for status and startdate.")
-                    # Todo: properly update runs for the failure
-                    # Todo: set the task status --> failed
-                    # lastTid = -1
                     raise
 
         # Send task id to jtm_receive
         logger.debug("Sending task id = %d to jtm-submit via %s" % (lastTid, props.reply_to))
         send_msg_callback(ch, method, props, lastTid, JGI_JTM_MAIN_EXCH, JTM_TASK_RESULT_Q, delivery_mode=2)
+
+    else:
+        logger.debug("Sending task id = %d to jtm-submit via %s" % (-5, props.reply_to))
+        send_msg_callback(ch, method, props, -5, JGI_JTM_MAIN_EXCH, JTM_TASK_RESULT_Q, delivery_mode=2)
 
 
 # -------------------------------------------------------------------------------
@@ -1244,13 +1291,13 @@ def process_task_status(ch, method, props, task_id):
     :return:
     """
 
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+    db = DbSqlMysql(config=CONFIG)
     cur = db.execute(JTM_SQL["select_status_cancelled_runs_by_taskid"]
                      % dict(task_id=task_id))
     ret = cur.fetchone()
     db.close()
 
-    if ret is not None:
+    if ret is not None and ret != "":
         logger.debug("Task status from runs table: status, cancelled = {}".format(ret))
         if ret[1] == 1:  # cancellation requested
             task_status_int = TASK_STATUS["terminated"]
@@ -1277,7 +1324,7 @@ def process_resource_log(ch, method, props, task_id):
     :return:
     """
     resource_log_file = None
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+    db = DbSqlMysql(config=CONFIG)
     cur = db.execute(JTM_SQL["select_resource_runs_by_taskid"]
                      % dict(task_id=task_id))
     ret = cur.fetchone()
@@ -1307,11 +1354,10 @@ def send_task_kill_request(task_id, wid, cpid):
     conn = rmq_conn.open()
     ch = conn.channel()
 
-    exch = JTM_TASK_KILL_EXCH
-    queue_name = JTM_TASK_KILL_Q
+    exch = CONFIG.configparser.get("JTM", "jtm_task_kill_exch")
+    queue_name = CONFIG.configparser.get("JTM", "jtm_task_kill_q")
 
-    # Here worker id with task id to cancel are sent to all workers
-    # using "fanout".
+    # Here worker id with task id to cancel are sent to all workers using "fanout".
     # Each worker will check if the worker id matches.
     # if matched, the worker kills the pid
     ch.exchange_declare(exchange=exch,
@@ -1338,7 +1384,6 @@ def send_task_kill_request(task_id, wid, cpid):
     try:
         logger.info("Send send_task_kill_request to worker %s, %r with routing key %s, for task id %d" %
                     (queue_name, message, routing_key, task_id))
-        assert queue_name.endswith(CNAME)
         ch.basic_publish(exchange=exch,
                          routing_key=queue_name,
                          properties=pika.BasicProperties(delivery_mode=2),  # make message persistent
@@ -1371,13 +1416,13 @@ def process_task_kill(ch, method, props, msg):
     task_id = int(msg["task_id"])
     return_msg = None
 
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+    db = DbSqlMysql(config=CONFIG)
     task_status = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
                                   % dict(task_id=task_id))
     db.close()
 
     def update_runs_cancelled(task_id):
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         logger.debug(db.selectAll(
             "select taskId, status, cancelled from runs where taskId = %(task_id)s"
             % dict(task_id=task_id, )))
@@ -1398,18 +1443,6 @@ def process_task_kill(ch, method, props, msg):
         # because worker id and pid is not known yet
 
     if task_status:
-        # All task status
-        # "ready": 0,
-        # "queued": 1,
-        # "running": 2,
-        # "success": 4,
-        # "outputerror": -1,
-        # "failed": -2,
-        # "outofresource": -3,
-        # "terminated": -4,
-        # "invalidtask": -5,
-        # "timeout": -6
-        # "connection lost": -7
         if task_status in (TASK_STATUS["ready"], TASK_STATUS["queued"]):
             logger.debug("Task cancellation requested but the task, %d has already been queued." % (task_id))
             logger.debug("The task will be terminated once it's started.")
@@ -1420,7 +1453,7 @@ def process_task_kill(ch, method, props, msg):
             update_runs_cancelled(task_id)
 
             # Get the wid and child pid
-            db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+            db = DbSqlMysql(config=CONFIG)
             worker_id_list = db.selectAs1Col(JTM_SQL["select_workerid_workers_by_tid"]
                                              % dict(task_id=task_id),
                                              debug=False)
@@ -1468,10 +1501,11 @@ def process_check_worker(ch, method, props, msg_unzipped):
     # If custom_pool name is set, get the number of workers in the pool
     # else the total number of live workers will be sent
     logger.debug("jtm-check-worker: %s" % str(msg_unzipped))
+    worker_hb_recv_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
 
     if "task_pool" in msg_unzipped and msg_unzipped["task_pool"] and \
             "jtm_host_name" in msg_unzipped and msg_unzipped["jtm_host_name"]:
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         # Try to select "pool_name" in workers table by hostname + uselifeLeftrname + poolname
         # Check timediff(now()-end_datetime) in workers table to filter out dead worker
 
@@ -1479,14 +1513,14 @@ def process_check_worker(ch, method, props, msg_unzipped):
         num_live_worker_in_pool = db.selectScalar(JTM_SQL["select_count_workers_by_jtm_host_name_poolname_enddate"]
                                                   % dict(jtm_host_name=msg_unzipped["jtm_host_name"],
                                                          pool_name=new_pool_name,
-                                                         hbinterval=WORKER_HB_RECV_INTERVAL * 3),
+                                                         hbinterval=worker_hb_recv_interval * 3),
                                                   debug=False)
         logger.debug("node cnt in the pool: %s" % num_live_worker_in_pool)
 
         num_total_num_workers = db.selectScalar(JTM_SQL["select_sum_nwpn_workers_by_jtm_host_name_poolname_enddate"]
                                                 % dict(jtm_host_name=msg_unzipped["jtm_host_name"],
                                                        pool_name=new_pool_name,
-                                                       hbinterval=WORKER_HB_RECV_INTERVAL * 3),
+                                                       hbinterval=worker_hb_recv_interval * 3),
                                                 debug=False)
         logger.debug("worker cnt in the pool: %s" % num_total_num_workers)
 
@@ -1498,42 +1532,41 @@ def process_check_worker(ch, method, props, msg_unzipped):
                           JTM_TASK_RESULT_Q)
 
     elif "task_pool" in msg_unzipped and msg_unzipped["task_pool"]:
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         # Try to select "pool_name" in workers table by hostname + uselifeLeftrname + poolname
         # Check timediff(now()-end_datetime) in workers table to filter out dead worker
 
         new_pool_name = JTM_INNER_REQUEST_Q + '.' + msg_unzipped["task_pool"]
         num_live_worker_in_pool = db.selectScalar(JTM_SQL["select_count_workers_by_poolname_enddate"]
                                                   % dict(pool_name=new_pool_name,
-                                                         hbinterval=WORKER_HB_RECV_INTERVAL * 3),
+                                                         hbinterval=worker_hb_recv_interval * 3),
                                                   debug=False)
         logger.debug("node cnt in the pool: %s" % num_live_worker_in_pool)
 
         num_total_num_workers = db.selectScalar(JTM_SQL["select_sum_nwpn_workers_by_poolname_enddate"]
                                                 % dict(pool_name=new_pool_name,
-                                                       hbinterval=WORKER_HB_RECV_INTERVAL * 3),
+                                                       hbinterval=worker_hb_recv_interval * 3),
                                                 debug=False)
         logger.debug("worker cnt in the pool: %s" % num_total_num_workers)
         db.close()
 
-        # send_msg_callback(ch, method, props, num_live_worker_in_pool, JGI_JTM_MAIN_EXCH, JTM_TASK_RESULT_Q)
         send_msg_callback(ch, method, props,
                           num_total_num_workers if num_total_num_workers else 0,
                           JGI_JTM_MAIN_EXCH,
                           JTM_TASK_RESULT_Q)
 
     elif "jtm_host_name" in msg_unzipped and msg_unzipped["jtm_host_name"]:
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         # Check timediff(now() - end_datetime) in workers table to filter out dead worker
         num_live_workers = db.selectScalar(JTM_SQL["select_count_workers_by_jtm_host_name"]
                                            % dict(jtm_host_name=msg_unzipped["jtm_host_name"],
-                                                  hbinterval=WORKER_HB_RECV_INTERVAL * 3),
+                                                  hbinterval=worker_hb_recv_interval * 3),
                                            debug=False)
         logger.debug("node cnt in the host: %s" % num_live_workers)
 
         num_total_num_workers = db.selectScalar(JTM_SQL["select_sum_nwpn_workers_by_jtm_host_name_enddate"]
                                                 % dict(jtm_host_name=msg_unzipped["jtm_host_name"],
-                                                       hbinterval=WORKER_HB_RECV_INTERVAL * 3),
+                                                       hbinterval=worker_hb_recv_interval * 3),
                                                 debug=False)
         logger.debug("worker cnt in the host: %s" % num_total_num_workers)
         db.close()
@@ -1543,16 +1576,13 @@ def process_check_worker(ch, method, props, msg_unzipped):
                           JGI_JTM_MAIN_EXCH,
                           JTM_TASK_RESULT_Q)
     else:
-        send_msg_callback(ch, method, props,
-                          NUM_TOTAL_WORKERS.value,
-                          JGI_JTM_MAIN_EXCH,
-                          JTM_TASK_RESULT_Q)
+        send_msg_callback(ch, method, props, NUM_TOTAL_WORKERS.value, JGI_JTM_MAIN_EXCH,  JTM_TASK_RESULT_Q)
 
 
 # -------------------------------------------------------------------------------
 def process_remove_pool(ch, method, props, msg_unzipped):
     task_pool_name = JTM_INNER_REQUEST_Q + '.' + msg_unzipped["task_pool"]
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+    db = DbSqlMysql(config=CONFIG)
     # Get all job id
     zombie_slurm_job_id_list = db.selectAll(JTM_SQL["select_all_jid_workers_by_poolname"]
                                             % dict(pool_name=task_pool_name,),
@@ -1569,20 +1599,7 @@ def process_remove_pool(ch, method, props, msg_unzipped):
             else:
                 logger.debug("%s not found." % (jid[0]))
 
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
-    # Note: update status from runs where workerId2 = (select workerId2 from workers where poolName = task_pool_name)
-    # if task status in (0,1,2), then change it to -4 (terminated)
-    # select *
-    # from runs where
-    # status in (0, 1, 2) and
-    # workerId2 in (select workerId2 from workers
-    #               where poolName = "_jtm_inner_request_queue.ssul_laptop.sulsj.sulsj_local");
-    #
-    # update runs
-    # set status = -4, cancelled = 2
-    # where status in (0, 1, 2) and
-    #       workerId2 in (select workerId2 from workers
-    #                     where poolName = %(pool_name)s;
+    db = DbSqlMysql(config=CONFIG)
     logger.debug("process_remove_pool ****************************************** ")
     db.execute(JTM_SQL["update_runs_status_cancelled_by_status_workerId2_poolname"]
                % dict(pool_name=task_pool_name, ),
@@ -1604,7 +1621,6 @@ def on_task_request(ch, method, props, body):
     """
     Event handler for processing request from jtm-* CLI tools
     """
-    # Uncompress msg
     msg_unzipped = json.loads(zloads(body))
 
     logger.info("New task: {}".format(msg_unzipped))
@@ -1620,7 +1636,7 @@ def on_task_request(ch, method, props, body):
         pool_spec_json_str = json.loads(json.dumps(msg_unzipped["pool"]))
         pool_name = pool_spec_json_str["name"] if "name" in pool_spec_json_str and pool_spec_json_str["name"] else None
         if pool_name:
-            # _jtm_inner_request_queue.<cluster_name>.jtm.<pool_name>
+            # Naming: _jtm_inner_request_queue.<cluster_name>.jtm.<pool_name>
             inner_task_request_queue = JTM_INNER_REQUEST_Q + "." + pool_name
         else:
             inner_task_request_queue = JTM_INNER_REQUEST_Q + ".small"
@@ -1684,7 +1700,7 @@ def task_kill_proc():
 
     """
     while True:
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         # Get a list of task ids where canceled -> requested but status != terminated
         tids = [int(i) for i in db.selectAs1Col(JTM_SQL["select_tids_runs_by_cancelled_and_wid2"])]
         logger.debug("tid to kill: {}".format(tids))
@@ -1694,7 +1710,7 @@ def task_kill_proc():
         for tid in tids:
             try:
                 # Get the wid and child pid
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 worker_id_list = db.selectAs1Col(JTM_SQL["select_workerid_workers_by_tid"]
                                                  % dict(task_id=tid),
                                                  debug=False)
@@ -1715,7 +1731,7 @@ def task_kill_proc():
 
                 # Update runs table with "terminated" status
                 logger.debug("Update runs table with terminated for tid {}".format(tid))
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 db.execute(JTM_SQL["update_runs_status_cancelled_to_terminated_by_tid"]
                            % dict(task_id=tid,
                                   status_id=TASK_STATUS["terminated"],
@@ -1732,7 +1748,7 @@ def task_kill_proc():
                 logger.exception("Something goes wrong in task_kill_proc(): {}".format(e))
                 raise
 
-        time.sleep(TASK_KILL_INTERVAL)
+        time.sleep(CONFIG.configparser.getfloat("JTM", "task_kill_interval"))
 
 
 # -------------------------------------------------------------------------------
@@ -1745,7 +1761,7 @@ def zombie_worker_cleanup_proc():
 
     """
     while True:
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         slurm_job_id = [int(i) for i in db.selectAs1Col(JTM_SQL["select_slurmjid_workers_by_lifeleft"])]
         db.close()
         if len(slurm_job_id) > 0:
@@ -1756,7 +1772,7 @@ def zombie_worker_cleanup_proc():
             so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
             if ec != 0:
                 logger.info("Found dead worker(s) from %s, %s" % (str(j), so))
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 # Note: update status from runs where workerId2 = (select workerId2 from workers)
                 logger.debug("zombie_worker_cleanup_proc ****************************** ")
                 db.execute(JTM_SQL["update_runs_status_cancelled_by_status_workerId2_jid"]
@@ -1773,7 +1789,7 @@ def zombie_worker_cleanup_proc():
 
             time.sleep(1)
 
-        time.sleep(WORKER_KILL_INTERVAL)
+        time.sleep(CONFIG.configparser.getfloat("JTM", "worker_kill_interval"))
 
 
 # -------------------------------------------------------------------------------
@@ -1785,9 +1801,9 @@ def check_processes(pid_list):
     """
     while True:
         logger.debug("Total Number of processes of the manager = %d" % (len(pid_list)+2))
-        if len(pid_list) != NUM_MANAGER_PROCS - 2:
+        if len(pid_list) != CONFIG.constants.NUM_MANAGER_PROCS - 2:
             raise OSError(2, 'Number of processes is wrong')
-        time.sleep(NUM_PROCS_CHECK_INTERVAL)
+        time.sleep(CONFIG.configparser.getfloat("JTM", "num_procs_check_interval"))
 
 
 # -------------------------------------------------------------------------------
@@ -1817,91 +1833,40 @@ def conn_clean(conn, ch):
 
 
 # -------------------------------------------------------------------------------
-def manager(ctx: object, custom_log_dir_name: str,
-            b_resource_usage_log_on: bool) -> int:
+def manager(ctx: object, custom_log_dir_name: str, b_resource_usage_log_on: bool) -> int:
+    """
 
+    :param ctx:
+    :param custom_log_dir_name:
+    :param b_resource_usage_log_on:
+    :return:
+    """
     global CONFIG
     CONFIG = ctx.obj['config']
-    debug = ctx.obj['debug']
+    global DEBUG
+    DEBUG = ctx.obj['debug']
     # config file has precedence
     config_debug = CONFIG.configparser.getboolean("SITE", "debug")
     if config_debug:
-        debug = config_debug
-    global DEBUG
-    DEBUG = debug
+        DEBUG = config_debug
     global TASK_STATUS
     TASK_STATUS = CONFIG.constants.TASK_STATUS
-    VERSION = CONFIG.constants.VERSION
     global TASK_TYPE
     TASK_TYPE = CONFIG.constants.TASK_TYPE
-    global WORKER_TYPE
-    WORKER_TYPE = CONFIG.constants.WORKER_TYPE
-    global DONE_FLAGS
-    DONE_FLAGS = CONFIG.constants.DONE_FLAGS
-    global HB_MSG
-    HB_MSG = CONFIG.constants.HB_MSG
-    global NUM_MANAGER_PROCS
-    NUM_MANAGER_PROCS = CONFIG.constants.NUM_MANAGER_PROCS
-    global PARENT_PROCESS_ID
-    PARENT_PROCESS_ID = os.getpid()  # parent process id
-
-    MYSQL_HOST = CONFIG.configparser.get("MYSQL", "host")
-    MYSQL_USER = CONFIG.configparser.get("MYSQL", "user")
-    MYSQL_PORT = CONFIG.configparser.getint("MYSQL", "port")
-    global MYSQL_DB
-    MYSQL_DB = CONFIG.configparser.get("MYSQL", "db")
     global JTM_INNER_MAIN_EXCH
     JTM_INNER_MAIN_EXCH = CONFIG.configparser.get("JTM", "jtm_inner_main_exch")
-    global CNAME
-    CNAME = CONFIG.configparser.get("SITE", "instance_name")
     global JTM_TASK_RESULT_Q
     JTM_TASK_RESULT_Q = CONFIG.configparser.get("JTM", "jtm_task_result_q")
-    global JTM_TASK_REQUEST_Q
-    JTM_TASK_REQUEST_Q = CONFIG.configparser.get("JTM", "jtm_task_request_q")
+    jtm_task_request_q = CONFIG.configparser.get("JTM", "jtm_task_request_q")
     global JGI_JTM_MAIN_EXCH
     JGI_JTM_MAIN_EXCH = CONFIG.configparser.get("JTM", "jgi_jtm_main_exch")
     global JTM_INNER_REQUEST_Q
     JTM_INNER_REQUEST_Q = CONFIG.configparser.get("JTM", "jtm_inner_request_q")
-    global JTM_INNER_RESULT_Q
-    JTM_INNER_RESULT_Q = CONFIG.configparser.get("JTM", "jtm_inner_result_q")
-    global WORKER_HB_RECV_INTERVAL
-    WORKER_HB_RECV_INTERVAL = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
-    global JTM_WORKER_POISON_EXCH
-    JTM_WORKER_POISON_EXCH = CONFIG.configparser.get("JTM", "jtm_worker_poison_exch")
-    global JTM_WORKER_POISON_Q
-    JTM_WORKER_POISON_Q = CONFIG.configparser.get("JTM", "jtm_worker_poison_q")
-    global JTM_TASK_KILL_EXCH
-    JTM_TASK_KILL_EXCH = CONFIG.configparser.get("JTM", "jtm_task_kill_exch")
-    global JTM_TASK_KILL_Q
-    JTM_TASK_KILL_Q = CONFIG.configparser.get("JTM", "jtm_task_kill_q")
-    global TASK_STAT_UPDATE_INTERVAL
-    TASK_STAT_UPDATE_INTERVAL = CONFIG.configparser.getfloat("JTM", "task_stat_update_interval")
-    global JTM_CLIENT_HB_EXCH
-    JTM_CLIENT_HB_EXCH = CONFIG.configparser.get("JTM", "jtm_client_hb_exch")
-    global JTM_WORKER_HB_EXCH
-    JTM_WORKER_HB_EXCH = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
-    global WORKER_KILL_INTERVAL
-    WORKER_KILL_INTERVAL = CONFIG.configparser.getfloat("JTM", "worker_kill_interval")
-    global TASK_KILL_INTERVAL
-    TASK_KILL_INTERVAL = CONFIG.configparser.getfloat("JTM", "task_kill_interval")
-    global CLIENT_HB_SEND_INTERVAL
-    CLIENT_HB_SEND_INTERVAL = CONFIG.configparser.getfloat("JTM", "client_hb_send_interval")
-    global NUM_RESULT_RECV_THREADS
-    NUM_RESULT_RECV_THREADS = CONFIG.configparser.getint("JTM", "num_result_recv_threads")
-    global NUM_PROCS_CHECK_INTERVAL
-    NUM_PROCS_CHECK_INTERVAL = CONFIG.configparser.getfloat("JTM", "num_procs_check_interval")
-    global ENV_ACTIVATION
-    ENV_ACTIVATION = CONFIG.configparser.get("JTM", "env_activation")
-    global RESULT_RECEIVE_INTERVAL
-    RESULT_RECEIVE_INTERVAL = CONFIG.configparser.getfloat("JTM", "result_receive_interval")
-    global RUNS_INFO_UPDATE_WAIT
-    RUNS_INFO_UPDATE_WAIT = CONFIG.configparser.getfloat("JTM", "runs_info_update_wait")
-    global WORKER_INFO_UPDATE_WAIT
-    WORKER_INFO_UPDATE_WAIT = CONFIG.configparser.getfloat("JTM", "worker_info_update_wait")
-    global CLIENT_HB_RECV_INTERVAL
-    CLIENT_HB_RECV_INTERVAL = CONFIG.configparser.getfloat("JTM", "client_hb_recv_interval")
-    global WORKER_HB_CHECK_MAX_COUNT
-    WORKER_HB_CHECK_MAX_COUNT = CONFIG.configparser.getint("JTM", "worker_hb_check_max_count")
+
+    mysql_db = CONFIG.configparser.get("MYSQL", "db")
+    prod_mode = False
+    if CONFIG.configparser.get("JTM", "run_mode") == "prod":
+        prod_mode = True
 
     # Log dir setting
     log_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "log")
@@ -1913,47 +1878,16 @@ def manager(ctx: object, custom_log_dir_name: str,
     if DEBUG:
         log_level = "debug"
 
-    print("JTM Manager, version: {}".format(VERSION))
-
+    logger.info("JGI Task Manager, version: %s" % (CONFIG.constants.VERSION))
     setup_custom_logger(log_level, log_dir_name, 1, 1)
-
     logger.info("\n*****************\nDebug mode is %s\n*****************"
                 % ("ON" if DEBUG else "OFF"))
     logger.info("Set jtm log file location to %s", log_dir_name)
-
-    RMQ_HOST = CONFIG.configparser.get("RMQ", "host")
-    RMQ_PORT = CONFIG.configparser.get("RMQ", "port")
-    USER_NAME = CONFIG.configparser.get("SITE", "user_name")
-    PRODUCTION = False
-    if CONFIG.configparser.get("JTM", "run_mode") == "prod":
-        PRODUCTION = True
-    JGI_JTM_MAIN_EXCH = CONFIG.configparser.get("JTM", "jgi_jtm_main_exch")
-    JTM_TASK_RESULT_Q = CONFIG.configparser.get("JTM", "jtm_task_result_q")
-    JTM_TASK_REQUEST_Q = CONFIG.configparser.get("JTM", "jtm_task_request_q")
-    WORKER_HB_Q_POSTFIX = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
-
-    global POOL_CLUSTER
-    POOL_CLUSTER = CONFIG.configparser.get("JTM", "cluster")
-    global POOL_NCPUS
-    POOL_NCPUS = CONFIG.configparser.getint("SLURM", "ncpus")
-    global POOL_MEM
-    POOL_MEM = CONFIG.configparser.get("SLURM", "mempernode")
-    global POOL_CONSTRAINT
-    POOL_CONSTRAINT = CONFIG.configparser.get("SLURM", "constraint")
-    global POOL_CHARGE_ACCOUNT
-    POOL_CHARGE_ACCOUNT = CONFIG.configparser.get("SLURM", "charge_accnt")
-    global POOL_QOS
-    POOL_QOS = CONFIG.configparser.get("SLURM", "qos")
-    global NUM_WORKERS_PER_NODE
-    NUM_WORKERS_PER_NODE = CONFIG.configparser.getint("JTM", "num_workers_per_node")
-    global NUM_NODES_TO_REQUEST
-    NUM_NODES_TO_REQUEST = CONFIG.configparser.getint("SLURM", "nnodes")
 
     # Remote broker (rmq.nersc.gov) connection open
     rmq_conn = RmqConnectionHB(config=CONFIG)
     conn = rmq_conn.open()
     ch = conn.channel()
-    # ch.confirm_delivery()  # 11192018 to test task is not discarded
     ch.exchange_declare(exchange=JGI_JTM_MAIN_EXCH,
                         exchange_type="direct",
                         durable=True,
@@ -1970,7 +1904,7 @@ def manager(ctx: object, custom_log_dir_name: str,
     #
     try:
         # exclusive=False -> do not remove the queue even when the connection is closed.
-        ch.queue_declare(queue=JTM_TASK_REQUEST_Q,
+        ch.queue_declare(queue=jtm_task_request_q,
                          durable=True,
                          exclusive=False,
                          auto_delete=True)
@@ -1981,59 +1915,35 @@ def manager(ctx: object, custom_log_dir_name: str,
     except Exception as detail:
         logger.exception("Exception: The queue, %s is already in use.", JTM_TASK_RESULT_Q)
         logger.exception("Detail: %s", str(detail))
-        # sys.exit(1)
         return 1
 
     # Queue binding for getting task request from JAWS
     ch.queue_bind(exchange=JGI_JTM_MAIN_EXCH,
-                  queue=JTM_TASK_REQUEST_Q,
-                  routing_key=JTM_TASK_REQUEST_Q)
+                  queue=jtm_task_request_q,
+                  routing_key=jtm_task_request_q)
 
-    logger.info("JGI Task Manager, version: %s" % (VERSION))
     logger.info("JTM config file: %s" % (CONFIG.config_file))
-    logger.info("RabbitMQ broker: %s", RMQ_HOST)
-    logger.info("RabbitMQ port: %s", RMQ_PORT)
-    logger.info("Default task queue name: %s", JTM_TASK_REQUEST_Q)
+    logger.info("RabbitMQ broker: %s", CONFIG.configparser.get("RMQ", "host"))
+    logger.info("Default task queue name: %s", jtm_task_request_q)
     logger.info("Default result queue name: %s", JTM_TASK_RESULT_Q)
     logger.info("Pika version: %s", pika.__version__)
-    logger.info("Database server: %s", MYSQL_HOST)
-    logger.info("Database port: %s", MYSQL_PORT)
-    logger.info("Database user name: %s", MYSQL_USER)
-    logger.info("Database name: %s", MYSQL_DB)
-    logger.info("JTM user name: %s", USER_NAME)
+    logger.info("JTM user name: %s", CONFIG.configparser.get("SITE", "user_name"))
     logger.info("\n*****************\nRun mode is %s\n*****************"
-                % ("PROD" if PRODUCTION else "DEV"))
+                % ("PROD" if prod_mode else "DEV"))
 
-    #
     # MySQL: prepare task table
-    #
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
-    db.ddl(JTM_SQL["create_database"] % MYSQL_DB)
-    db.ddl(JTM_SQL["use_database"] % MYSQL_DB)
+    db = DbSqlMysql(config=CONFIG)
+    db.ddl(JTM_SQL["create_database"] % mysql_db)
+    db.ddl(JTM_SQL["use_database"] % mysql_db)
     db.ddl(JTM_SQL["create_table_tasks"])
     db.ddl(JTM_SQL["create_table_runs"])
     db.ddl(JTM_SQL["create_table_workers"])
     db.close()
 
-    logger.debug("Main pid = {}".format(PARENT_PROCESS_ID))
-
     plist = list()
 
-    # Start heartbeat checking proc
-    try:
-        send_hb_to_worker_proc_hdl = mp.Process(target=send_hb_to_worker_proc)
-        send_hb_to_worker_proc_hdl.start()
-        plist.append(send_hb_to_worker_proc_hdl)
-    except Exception as e:
-        logger.exception("send_hb_to_worker_proc: {}".format(e))
-        proc_clean(plist)
-        conn_clean(conn, ch)
-        sys.exit(1)
-
-    logger.info("Broadcasting heartbeats to workers...")
-
     # Start heartbeat receiving proc
-    worker_hb_queue_name = WORKER_HB_Q_POSTFIX
+    worker_hb_queue_name = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
     try:
         rect_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc,
                                                   args=(worker_hb_queue_name,
@@ -2100,22 +2010,11 @@ def manager(ctx: object, custom_log_dir_name: str,
 
     signal.signal(signal.SIGTERM, signal_handler)
 
-    logger.info("Waiting for a task request from %s", JTM_TASK_REQUEST_Q)
+    logger.info("Waiting for a task request from %s", jtm_task_request_q)
 
-    # basic_qos():
-    # prefetch_size (int) – This field specifies the prefetch window size. The server will send a message in advance
-    # if it is equal to or smaller in size than the available prefetch size (and also falls into other prefetch limits).
-    # May be set to zero, meaning “no specific limit”, although other prefetch limits may still apply. The prefetch-size
-    # is ignored if the no-ack option is set in the consumer.
-    # prefetch_count (int) – Specifies a prefetch window in terms of whole messages. This field may be used in
-    # combination with the prefetch-size field; a message will only be sent in advance if both prefetch windows (and
-    # those at the channel and connection level) allow it. The prefetch-count is ignored if the no-ack option is set in
-    # the consumer.
-    # all_channels (bool) – Should the QoS apply to all channels
-    #
     ch.basic_qos(prefetch_count=1)
     try:
-        ch.basic_consume(queue=JTM_TASK_REQUEST_Q,
+        ch.basic_consume(queue=jtm_task_request_q,
                          on_message_callback=on_task_request,
                          auto_ack=False)
     except Exception as e:
