@@ -275,7 +275,7 @@ def check_output(out_files, out_file_check_wait_time=3,
 # -------------------------------------------------------------------------------
 def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                            num_cores,
-                           job_time, clone_time_rate, task_queue_name, pool_name,
+                           job_time, task_queue_name, pool_name,
                            nwpn, exch_name, worker_hb_queue):
     """
     Send heartbeats to the client
@@ -285,7 +285,6 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
     :param mem_per_core: memory request per core
     :param num_cores: number of cores
     :param job_time: wallclocktime
-    :param clone_time_rate: clone time rate
     :param task_queue_name: task queue name
     :param pool_name: pool name
     :param nwpn: number of workers per node
@@ -436,7 +435,7 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                 ncore_param = num_cores
 
             msg_dict_to_send = {HB_MSG["child_pid"]: child_pid,
-                                HB_MSG["clone_time_rate"]: clone_time_rate,
+                                HB_MSG["clone_time_rate"]: 0.0,
                                 HB_MSG["cpu_load"]: max_cpu_load,
                                 HB_MSG["end_date"]: today,  # Note: for dynamic worker endDate update
                                 HB_MSG["host_name"]: host_name,
@@ -772,7 +771,7 @@ def conn_clean(conn, ch):
 def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
            custom_job_log_dir_name: str, pool_name_param: str, dry_run: bool,
            slurm_job_id_param: int, worker_type_param: str, cluster_name_param: str,
-           worker_clone_time_rate_param: float, num_workers_per_node_param: int,
+           num_workers_per_node_param: int,
            worker_id_param: str, charging_account_param: str,
            num_nodes_to_request_param: int, num_cores_to_request_param: int,
            constraint_param: str, mem_per_node_to_request_param: str,
@@ -811,8 +810,6 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     JTM_HOST_NAME = CONFIG.configparser.get("SITE", "jtm_host_name")
     global JTM_INNER_REQUEST_Q
     JTM_INNER_REQUEST_Q = CONFIG.configparser.get("JTM", "jtm_inner_request_q")
-    global CTR
-    CTR = CONFIG.configparser.getfloat("JTM", "clone_time_rate")
     global JTM_INNER_MAIN_EXCH
     JTM_INNER_MAIN_EXCH = CONFIG.configparser.get("JTM", "jtm_inner_main_exch")
     global JTM_CLIENT_HB_EXCH
@@ -1011,10 +1008,9 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     if pool_name_param:
         tp_name = pool_name_param
 
-    assert pool_name_param is not None, "User pool name is not set"
+    assert pool_name_param is not None and pool_name_param != "", "User pool name is not set"
     inner_task_request_queue = JTM_INNER_REQUEST_Q + "." + pool_name_param
 
-    worker_clone_time_rate = worker_clone_time_rate_param if worker_clone_time_rate_param else CTR
     if THIS_WORKER_TYPE == "dynamic":
         assert cluster_name_param != "" and \
                cluster_name_param != "local", "Static or dynamic worker needs a cluster setting (-cl)."
@@ -1042,7 +1038,6 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
             worker_config = WORKER_CONFIG_FILE
 
         if cluster_name in ("cori", "lawrencium", "lbl"):
-
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
 
@@ -1051,7 +1046,8 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                     if num_nodes_to_request_param:
                         batch_job_script_str += """
 #SBATCH -N %(num_nodes_to_request)d
-#SBATCH --mem=%(mem)s""" % dict(num_nodes_to_request=num_nodes_to_request, mem=mem_per_node_to_request)
+#SBATCH --mem=%(mem)s""" % dict(num_nodes_to_request=num_nodes_to_request,
+                                mem=mem_per_node_to_request)
                         batch_job_misc_params += " -N %(num_nodes_to_request)d -m %(mem)s" % \
                                                  dict(num_nodes_to_request=num_nodes_to_request,
                                                       mem=mem_per_node_to_request)
@@ -1182,8 +1178,7 @@ do
     jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
 -cl cori \
 -wt %(worker_type)s \
--t %(wall_time)s \
---clone_time_rate %(clone_time_rate)f %(task_queue)s \
+-t %(wall_time)s %(task_queue)s \
 --num_worker_per_node %(num_workers_per_node)d \
 -C %(constraint)s \
 -m %(mem)s \
@@ -1197,7 +1192,6 @@ wait
                                                      job_dir=job_script_dir_name,
                                                      worker_id=UNIQ_WORKER_ID,
                                                      worker_type=THIS_WORKER_TYPE,
-                                                     clone_time_rate=worker_clone_time_rate,
                                                      task_queue=tq_param,
                                                      num_workers_per_node=num_workers_per_node,
                                                      env_activation_cmd=ENV_ACTIVATION,
@@ -1212,7 +1206,6 @@ wait
                                                                          % worker_config)
 
                 elif cluster_name in ("lawrencium", "lbl"):
-
                     if worker_id_param:
                         batch_job_misc_params += " -wi %(worker_id)s_${i}" \
                                                  % dict(worker_id=UNIQ_WORKER_ID)
@@ -1261,8 +1254,7 @@ do
     jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
 -cl %(lbl_cluster_name)s \
 -wt %(worker_type)s \
--t %(wall_time)s \
---clone_time_rate %(clone_time_rate)f %(task_queue)s \
+-t %(wall_time)s %(task_queue)s \
 --num_worker_per_node %(num_workers_per_node)d \
 -m %(mem)s \
 %(other_params)s &
@@ -1285,7 +1277,6 @@ wait
                                                  mem=mem_per_node_to_request,
                                                  lbl_cluster_name=cluster_name,
                                                  worker_type=THIS_WORKER_TYPE,
-                                                 clone_time_rate=worker_clone_time_rate,
                                                  task_queue=tp_param,
                                                  other_params=batch_job_misc_params,
                                                  export_jtm_config_file="export JTM_CONFIG_FILE=%s"
@@ -1372,7 +1363,6 @@ wait
                                                       mem_per_cpu_to_request,
                                                       num_cpus_to_request,
                                                       job_time_to_request,
-                                                      worker_clone_time_rate,
                                                       inner_task_request_queue,
                                                       tp_name,
                                                       num_workers_per_node,

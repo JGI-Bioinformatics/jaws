@@ -573,6 +573,295 @@ def recv_result_on_result(ch, method, props, body):
 
 
 # -------------------------------------------------------------------------------
+def create_sbatch_cmd_lbl(pool_name,
+                          pool_cluster,
+                          num_cpus_to_request,
+                          pool_time,
+                          mem_per_node_to_request,
+                          mem_per_cpu_to_request,
+                          pool_partition,
+                          uniq_worker_id,
+                          num_workers_per_node,
+                          pool_qos,
+                          charging_account,
+                          job_script_dir,
+                          num_nodes_to_request,
+                          dry_run):
+    batch_job_script_file = os.path.join(job_script_dir, "jtm_dynamic_worker_%s.job"
+                                         % (uniq_worker_id))
+    batch_job_script_str = ""
+    batch_job_misc_params = ""
+    job_name = "jtm_worker_" + pool_name
+
+    worker_config = CONFIG.config_file
+    worker_config_file = CONFIG.configparser.get("JTM", "worker_config_file")
+    env_activation = CONFIG.configparser.get("JTM", "env_activation")
+    partition = CONFIG.configparser.get("SLURM", "partition")
+    qos = CONFIG.configparser.get("SLURM", "qos")
+
+    if not pool_partition:
+        partition = pool_partition
+    if not (charging_account and pool_time):
+        logger.info("charging_account, jobtime: {} {}".format(charging_account,
+                                                              pool_time))
+        logger.critical("Need charging account, job time for LBL")
+        return None
+    if not pool_qos:
+        qos = pool_qos
+
+    if worker_config_file:
+        worker_config = worker_config_file
+
+    with open(batch_job_script_file, "w") as jf:
+        batch_job_script_str += "#!/bin/bash -l"
+        if uniq_worker_id:
+            batch_job_misc_params += " -wi %(worker_id)s_${i}" \
+                                     % dict(worker_id=uniq_worker_id)
+
+        tp_param = "-p " + pool_name
+        part_param = partition
+        qos_param = qos
+        charge_param = charging_account
+        nnode_param = 1
+        if num_nodes_to_request:
+            nnode_param = num_nodes_to_request
+        mnode_param = "#SBATCH --mem=%(mem)s" \
+                      % dict(mem=mem_per_node_to_request)
+
+        batch_job_script_str += """
+#SBATCH --time=%(wall_time)s
+#SBATCH --job-name=%(job_name)s
+#SBATCH --partition=%(partition_name)s
+#SBATCH --qos=%(qosname)s
+#SBATCH --account=%(charging_account)s
+#SBATCH --nodes=%(num_nodes_to_request)d
+%(mem_per_node_setting)s
+#SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
+#SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
+
+%(env_activation_cmd)s
+%(export_jtm_config_file)s
+for i in {1..%(num_workers_per_node)d}
+do
+    echo "jobid: $SLURM_JOB_ID"
+    jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
+-cl %(lbl_cluster_name)s \
+-wt %(worker_type)s \
+-t %(wall_time)s %(task_queue)s \
+--num_worker_per_node %(num_workers_per_node)d \
+-m %(mem)s \
+%(other_params)s &
+    sleep 1
+done
+wait
+""" % dict(debug="--debug" if DEBUG else "",
+           wall_time=pool_time,
+           job_name=job_name,
+           partition_name=part_param,
+           qosname=qos_param,
+           charging_account=charge_param,
+           num_nodes_to_request=nnode_param,
+           mem_per_node_setting=mnode_param,
+           worker_id=uniq_worker_id,
+           job_dir=job_script_dir,
+           env_activation_cmd=env_activation,
+           num_workers_per_node=num_workers_per_node,
+           mem=mem_per_node_to_request,
+           lbl_cluster_name=pool_cluster,
+           worker_type="dynamic",
+           task_queue=tp_param,
+           other_params=batch_job_misc_params,
+           export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
+           set_jtm_config_file="--config=%s" % worker_config)
+
+        if dry_run:
+            logger.info(batch_job_script_str)
+        else:
+            jf.writelines(batch_job_script_str)
+
+    if not dry_run:
+        os.chmod(batch_job_script_file, 0o775)
+
+    return "sbatch --parsable %s" % (batch_job_script_file)
+
+
+# -------------------------------------------------------------------------------
+def create_sbatch_cmd_nersc(pool_name,
+                            pool_cluster,
+                            num_cpus_to_request,
+                            pool_time,
+                            mem_per_node_to_request,
+                            mem_per_cpu_to_request,
+                            uniq_worker_id,
+                            contraint_param,
+                            num_workers_per_node,
+                            qos,
+                            charging_account,
+                            job_script_dir,
+                            num_nodes_to_request,
+                            dry_run):
+
+    batch_job_script_file = os.path.join(job_script_dir, "jtm_dynamic_worker_%s.job"
+                                         % (uniq_worker_id))
+    batch_job_script_str = ""
+    batch_job_misc_params = ""
+    job_name = "jtm_worker_" + pool_name
+
+    worker_config = CONFIG.config_file
+    worker_config_file = CONFIG.configparser.get("JTM", "worker_config_file")
+    env_activation = CONFIG.configparser.get("JTM", "env_activation")
+    constraint = CONFIG.configparser.get("SLURM", "constraint")
+    if contraint_param:
+        constraint = contraint_param
+
+    if not (constraint and charging_account and pool_time):
+        logger.info("constraint, charging_account, jobtime: {} {} {}".format(constraint,
+                                                                             charging_account,
+                                                                             pool_time))
+        logger.critical("Need constraint, charging account, job time for Cori")
+        return None
+
+    if contraint_param:
+        constraint = contraint_param
+
+    if worker_config_file:
+        worker_config = worker_config_file
+
+    with open(batch_job_script_file, "w") as jf:
+        batch_job_script_str += "#!/bin/bash -l"
+        if num_nodes_to_request:
+            batch_job_script_str += """
+#SBATCH -N %(num_nodes_to_request)d
+#SBATCH --mem=%(mem)s""" % dict(num_nodes_to_request=num_nodes_to_request,
+                                mem=mem_per_node_to_request)
+            batch_job_misc_params += " -N %(num_nodes_to_request)d" \
+                                     % dict(num_nodes_to_request=num_nodes_to_request,)
+            if num_cpus_to_request:
+                batch_job_script_str += """
+#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_request)
+                batch_job_misc_params += " -c %(num_cores)d" \
+                                         % dict(num_cores=num_cpus_to_request)
+
+        else:
+            batch_job_script_str += """
+#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_request)
+            batch_job_misc_params += " -c %(num_cores)d" \
+                                     % dict(num_cores=num_cpus_to_request)
+
+            if mem_per_node_to_request:
+                batch_job_script_str += """
+#SBATCH --mem=%(mem)s""" % dict(mem=mem_per_node_to_request)
+                batch_job_misc_params += " -m %(mem)s " \
+                                         % dict(mem=mem_per_node_to_request)
+            else:
+                batch_job_script_str += """
+#SBATCH --mem-per-cpu=%(mempercore)s""" % dict(mempercore=mem_per_cpu_to_request)
+                batch_job_misc_params += " -mc %(mempercore)s" \
+                                         % dict(mempercore=mem_per_cpu_to_request)
+
+            if uniq_worker_id:
+                batch_job_misc_params += " -wi %(worker_id)s_${i}" \
+                                         % dict(worker_id=uniq_worker_id)
+
+        if constraint == "haswell":
+            if qos:
+                batch_job_script_str += """
+#SBATCH -q %(qosname)s""" % dict(qosname=qos)
+                batch_job_misc_params += " -q %(qosname)s" \
+                                         % dict(qosname=qos)
+
+            else:
+                batch_job_script_str += """
+#SBATCH -q %(qosname)s""" % dict(qosname=qos)
+
+            batch_job_script_str += """
+#SBATCH -C haswell"""
+
+            if charging_account == "m342":
+                batch_job_misc_params += " -A %(sa)s" % dict(sa="m342")
+
+            batch_job_script_str += """
+#SBATCH -A %(charging_account)s""" % dict(charging_account=charging_account)
+
+        elif constraint == "knl":
+            batch_job_script_str += """
+#SBATCH -C knl
+#SBATCH -A %(charging_account)s
+#SBATCH -q %(qosname)s""" % dict(charging_account=charging_account, qosname=qos)
+
+            batch_job_misc_params += " -A %(charging_account)s -q %(qosname)s" \
+                                     % dict(charging_account=charging_account,
+                                            qosname=qos)
+
+        elif constraint == "skylake":
+            batch_job_script_str += """
+#SBATCH -C skylake
+#SBATCH -A %(charging_account)s
+#SBATCH -q %(qosname)s""" % dict(charging_account=charging_account, qosname=qos)
+            batch_job_misc_params += " -A %(charging_account)s -q %(qosname)s" \
+                                     % dict(charging_account=charging_account,
+                                            qosname=qos)
+        excl_param = ""
+        if constraint != "skylake":
+            excl_param = "#SBATCH --exclusive"
+
+        tq_param = ""
+        if pool_name:
+            tq_param = "-p " + pool_name
+
+        batch_job_script_str += """
+#SBATCH -t %(wall_time)s
+#SBATCH --job-name=%(job_name)s
+#SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
+#SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
+%(exclusive)s
+
+module unload python
+%(env_activation_cmd)s
+%(export_jtm_config_file)s
+for i in {1..%(num_workers_per_node)d}
+do
+    echo "jobid: $SLURM_JOB_ID"
+    jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
+-cl %(cluster)s \
+-wt %(worker_type)s \
+-t %(wall_time)s %(task_queue)s \
+--num_worker_per_node %(num_workers_per_node)d \
+-C %(constraint)s \
+-m %(mem)s \
+%(other_params)s &
+    sleep 1
+done
+wait
+    """ % dict(worker_type="dynamic",
+               debug="--debug" if DEBUG else "",
+               cluster=pool_cluster,
+               wall_time=pool_time,
+               job_dir=job_script_dir,
+               worker_id=uniq_worker_id,
+               task_queue=tq_param,
+               num_workers_per_node=num_workers_per_node,
+               env_activation_cmd=env_activation,
+               other_params=batch_job_misc_params,
+               constraint=constraint,
+               mem=mem_per_node_to_request,
+               job_name=job_name,
+               exclusive=excl_param,
+               export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
+               set_jtm_config_file="--config=%s" % worker_config)
+
+        if dry_run:
+            logger.info(batch_job_script_str)
+        else:
+            jf.writelines(batch_job_script_str)
+
+    if not dry_run:
+        os.chmod(batch_job_script_file, 0o775)
+
+    return "sbatch --parsable %s" % (batch_job_script_file)
+
+
+# -------------------------------------------------------------------------------
 def process_task_request(ch, method, props, msg, inner_task_request_queue):
     """
     Get task request from jtm-submit and send it to a worker
@@ -619,7 +908,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         # Set default values defined in Config.py
         assert "name" in pool_spec_json_str
         pool_name = pool_spec_json_str["name"]
-        assert pool_name is not None
+        assert pool_name is not None and pool_name != ""
         pool_cluster = POOL_CLUSTER
         pool_ncpus = POOL_NCPUS
         pool_mem = POOL_MEM
@@ -650,20 +939,22 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             pool_ncpus = int(pool_spec_json_str["cpu"])
         if "mem" in pool_spec_json_str:  # node memory request
             pool_mem = pool_spec_json_str["mem"]
+        if "mempercpu" in pool_spec_json_str:  # node memory request
+            pool_mempercpu = pool_spec_json_str["mempercpu"]
         if "constraint" in pool_spec_json_str:  # [haswell | knl | skylake]
             pool_constraint = pool_spec_json_str["constraint"]
         if "qos" in pool_spec_json_str:
             pool_qos = pool_spec_json_str["qos"]  # ["genepool_special", "genepool_shared", "jgi_shared", "jgi_exvivo"]
         if "account" in pool_spec_json_str:
             pool_charge_account = pool_spec_json_str["account"]  # for example, gtrqc for skylake, fungalp for the rest
-
-        # Todo: This is not used for now.
-        #     #  If shared=0 is set from jtm-submit and if the pool needs to be removed forcefully,
-        #     #  jtm-manager should send a poison to the worker(s
         if "nwpn" in pool_spec_json_str:
             num_workers_per_node = int(pool_spec_json_str["nwpn"])
         if "node" in pool_spec_json_str:
             num_nodes_to_request = int(pool_spec_json_str["node"])
+        if "partition" in pool_spec_json_str:
+            pool_partition = pool_spec_json_str["partition"]
+        if "dryrun" in pool_spec_json_str:
+            dry_run = pool_spec_json_str["dryrun"]
 
         assert (len(user_task_cmd) <= 1024)
         assert (len(output_file) <= 1024)
@@ -677,7 +968,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         #    else send tasks to the pool
 
         # Todo: maintain the number of workers sbatched -->
-        #   num_worker_to_add = pool_size - num_live_worker_in_pool - nWorkerSbatched
+        #   num_node_to_add = pool_size - num_live_worker_in_pool - nWorkerSbatched
         db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
         num_slurm_jid_in_pool = db.selectScalar(JTM_SQL["select_count_distinct_jid_workers_by_poolname"]
                                                 % dict(pool_name=inner_task_request_queue,
@@ -687,7 +978,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         # TODO: slurm jid --> sacct --> doublecheck the status of node allocation and worker
         #  if no real alive workers --> request new node
         #
-        #  if num_worker_to_add == 0, squeue -j slurm jid
+        #  if num_node_to_add == 0, squeue -j slurm jid
         #
         ####################################################################################
         slurm_jid_list = db.selectAll(JTM_SQL["select_distinct_jid_workers_by_poolname"]
@@ -715,12 +1006,11 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         pool_size = num_nodes_to_request * num_workers_per_node
         # This is the actual number of workers = jid * nwpn
         num_live_worker_in_pool = num_slurm_jid_in_pool * num_workers_per_node
-        num_worker_to_add = int(ceil(float(pool_size - num_live_worker_in_pool) /
-                                     num_workers_per_node))
+        num_node_to_add = int(ceil(float(pool_size - num_live_worker_in_pool) / num_workers_per_node))
 
-        logger.debug("num_worker_to_add={} pool_size={} "
+        logger.debug("num_node_to_add={} pool_size={} "
                      "num_live_worker_in_pool={} num_slurm_jid_in_pool={} "
-                     "NUM_TOTAL_WORKERS={} num_workers_per_node={}""".format(num_worker_to_add,
+                     "NUM_TOTAL_WORKERS={} num_workers_per_node={}""".format(num_node_to_add,
                                                                              pool_size,
                                                                              num_live_worker_in_pool,
                                                                              num_slurm_jid_in_pool,
@@ -728,89 +1018,134 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                                                                              num_workers_per_node))
 
         uniq_worker_id = None
-        for i in range(0, num_worker_to_add):
-            b_failed_to_request_worker = False
-            # User can request only "dynamic" workers from WDL.
+        # Job dir setting
+        job_script_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "job")
+        make_dir(job_script_dir_name)
+
+        for i in range(0, num_node_to_add):
             uniq_worker_id = str(shortuuid.uuid())
-            sbatch_cmd_str = """{}jtm {} worker \
-                -wt dynamic \
-                -p {} \
-                -cl {} \
-                -c {} \
-                -t {} \
-                -m {} \
-                -wi {} {} \
-                -nwpn {} \
-                --qos {} \
-                -A {}""".format("%s && " % ENV_ACTIVATION if ENV_ACTIVATION else "",
-                                "--config=%s" % CONFIG.config_file if CONFIG else "",
-                                pool_name,
-                                pool_cluster,
-                                pool_ncpus,
-                                pool_time,
-                                pool_mem,
-                                uniq_worker_id,
-                                "-C %s" % pool_constraint if pool_constraint else "",
-                                num_workers_per_node,
-                                pool_qos,
-                                pool_charge_account)
+            if pool_cluster == "cori":
+                sbatch_cmd_str = create_sbatch_cmd_nersc(pool_name,
+                                                         pool_cluster,
+                                                         pool_ncpus,
+                                                         pool_time,
+                                                         pool_mem,
+                                                         pool_mempercpu,
+                                                         uniq_worker_id,
+                                                         pool_constraint,
+                                                         num_workers_per_node,
+                                                         pool_qos,
+                                                         pool_charge_account,
+                                                         job_script_dir_name,
+                                                         1,
+                                                         dry_run)
+            elif pool_cluster == "lbl":
+                sbatch_cmd_str = create_sbatch_cmd_lbl(pool_name,
+                                                       pool_cluster,
+                                                       pool_ncpus,
+                                                       pool_time,
+                                                       pool_mem,
+                                                       pool_mempercpu,
+                                                       pool_partition,
+                                                       uniq_worker_id,
+                                                       num_workers_per_node,
+                                                       pool_qos,
+                                                       pool_charge_account,
+                                                       job_script_dir_name,
+                                                       1,
+                                                       dry_run)
 
-            logger.info("Executing {}".format(sbatch_cmd_str))
+            b_failed_to_request_worker = True
+            if not dry_run and sbatch_cmd_str is not None and sbatch_cmd_str != "":
+                # User can request only "dynamic" workers from WDL.
+                # sbatch_cmd_str = """{}jtm {} worker \
+                #     -wt dynamic \
+                #     -p {} \
+                #     -cl {} \
+                #     -c {} \
+                #     -t {} \
+                #     -m {} \
+                #     -wi {} {} \
+                #     -nwpn {} \
+                #     --qos {} \
+                #     -A {}""".format("%s && " % ENV_ACTIVATION if ENV_ACTIVATION else "",
+                #                     "--config=%s" % CONFIG.config_file if CONFIG else "",
+                #                     pool_name,
+                #                     pool_cluster,
+                #                     pool_ncpus,
+                #                     pool_time,
+                #                     pool_mem,
+                #                     uniq_worker_id,
+                #                     "-C %s" % pool_constraint if pool_constraint else "",
+                #                     num_workers_per_node,
+                #                     pool_qos,
+                #                     pool_charge_account)
 
-            # Run sbatch from jtm worker command
-            so, _, ec = run_sh_command(sbatch_cmd_str, log=logger)
-            assert ec == 0, "Failed to run sbatch commands: %s" % sbatch_cmd_str
+                if dry_run:
+                    logger.info(sbatch_cmd_str)
+                    b_failed_to_request_worker = False
+                else:
+                    logger.info("Executing {}".format(sbatch_cmd_str))
+                    # Run sbatch from jtm worker command
+                    so, _, ec = run_sh_command(sbatch_cmd_str, log=logger)
+                    assert ec == 0, "Failed to run sbatch commands: %s" % sbatch_cmd_str
 
-            # Print job script for logging
-            run_sh_command(sbatch_cmd_str + " --dry_run", log=logger)
+                    # # Print job script for logging
+                    # run_sh_command(sbatch_cmd_str + " --dry_run", log=logger)
 
-            # Get the slurm job id returned from jtm-worker
-            try:
-                slurm_job_id = int(so.split('\n')[1])
-            except Exception:
-                logger.critical("Failed to get a valid job ID back from requesting a dynamic worker")
-                ec = 1  # make it fail
-
-            if ec == 0:  # if sbatch by jtm-worker done successfully
-                logger.debug("Insert into workers table.")
-                for nwpn in range(num_workers_per_node):
-                    # Insert into workers for new worker id
+                    # Get the slurm job id returned from jtm-worker
                     try:
-                        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
-                        # If a dynamic worker is requested successfully,
-                        # insert the info into workers table
-                        # loggger.info("Try to update workers table")check_worker
+                        slurm_job_id = int(so.split('\n')[1])
+                    except Exception:
+                        logger.critical("Failed to get a valid job ID back from requesting a dynamic worker")
+                        ec = 1  # make it fail
 
-                        # Fixme: After sbatch, another sbatch with the same pool name will be executed
-                        #  again.
-                        # Solution: Set the lifeleft=-2 and update select_count_workers_by_poolname sql
-                        # statement to check only lifeleft!=-1 so that num_live_worker_in_pool can include
-                        # already sbatched workers for the pool.
-                        #
-                        db.execute(JTM_SQL["insert_workers_workerid_workertype_poolname"]
-                                   % dict(worker_id=uniq_worker_id + str(nwpn+1),
-                                          worker_type=WORKER_TYPE["dynamic"],
-                                          pool_name=inner_task_request_queue,
-                                          jtm_host_name=pool_cluster,
-                                          lifeleft=-2,
-                                          slurm_jid=slurm_job_id,
-                                          nwpn=1))
-                        db.commit()
-                        db.close()
-                    except Exception as e:
-                        logger.critical(e)
-                        logger.critical("Failed to insert workers table for workerid and workertype.")
-                        logger.debug("Retry to insert workers table for workerid and workertype.")
-                        raise
-            else:
-                logger.critical("Failed to execute the command, %s" % (sbatch_cmd_str))
-                logger.critical("Failed to request workers.")
-                send_msg_callback(ch, method, props, TASK_STATUS["invalidtask"],
-                                  JGI_JTM_MAIN_EXCH, JTM_TASK_RESULT_Q, delivery_mode=2)
-                b_failed_to_request_worker = True
-                break
+                    if ec == 0:  # if sbatch by jtm-worker done successfully
+                        logger.debug("Insert into workers table.")
+                        for nwpn in range(num_workers_per_node):
+                            # Insert into workers for new worker id
+                            try:
+                                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                                # If a dynamic worker is requested successfully,
+                                # insert the info into workers table
+                                # loggger.info("Try to update workers table")check_worker
 
-    if not b_failed_to_request_worker:
+                                # Fixme: After sbatch, another sbatch with the same pool name will be executed
+                                #  again.
+                                # Solution: Set the lifeleft=-2 and update select_count_workers_by_poolname sql
+                                # statement to check only lifeleft!=-1 so that num_live_worker_in_pool can include
+                                # already sbatched workers for the pool.
+                                #
+                                db.execute(JTM_SQL["insert_workers_workerid_workertype_poolname"]
+                                           % dict(worker_id=uniq_worker_id + str(nwpn+1),
+                                                  worker_type=WORKER_TYPE["dynamic"],
+                                                  pool_name=inner_task_request_queue,
+                                                  jtm_host_name=pool_cluster,
+                                                  lifeleft=-2,
+                                                  slurm_jid=slurm_job_id,
+                                                  nwpn=1))
+                                db.commit()
+                                db.close()
+                            except Exception as e:
+                                logger.critical(e)
+                                logger.critical("Failed to insert workers table for workerid and workertype.")
+                                logger.debug("Retry to insert workers table for workerid and workertype.")
+                                raise
+                    else:
+                        logger.critical("Failed to execute the command, %s" % (sbatch_cmd_str))
+                        logger.critical("Failed to request workers.")
+                        send_msg_callback(ch, method, props, TASK_STATUS["invalidtask"],
+                                          JGI_JTM_MAIN_EXCH, JTM_TASK_RESULT_Q, delivery_mode=2)
+                        b_failed_to_request_worker = True
+                        break
+
+    if dry_run:
+        send_msg_callback(ch, method, props, -87,
+                          JGI_JTM_MAIN_EXCH,
+                          JTM_TASK_RESULT_Q,
+                          delivery_mode=2)
+
+    elif not b_failed_to_request_worker:
         lastTid = -1
 
         # Fixme: mysql connection.py IndexError: bytearray index out of range
@@ -931,6 +1266,10 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         logger.debug("Sending task id = %d to jtm-submit via %s" % (lastTid, props.reply_to))
         send_msg_callback(ch, method, props, lastTid, JGI_JTM_MAIN_EXCH, JTM_TASK_RESULT_Q, delivery_mode=2)
 
+    else:
+        logger.debug("Sending task id = %d to jtm-submit via %s" % (-5, props.reply_to))
+        send_msg_callback(ch, method, props, -5, JGI_JTM_MAIN_EXCH, JTM_TASK_RESULT_Q, delivery_mode=2)
+
 
 # -------------------------------------------------------------------------------
 def process_task_status(ch, method, props, task_id):
@@ -949,7 +1288,7 @@ def process_task_status(ch, method, props, task_id):
     ret = cur.fetchone()
     db.close()
 
-    if ret is not None:
+    if ret is not None and ret != "":
         logger.debug("Task status from runs table: status, cancelled = {}".format(ret))
         if ret[1] == 1:  # cancellation requested
             task_status_int = TASK_STATUS["terminated"]

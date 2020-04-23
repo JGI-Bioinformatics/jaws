@@ -100,9 +100,6 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
               type=click.Choice(["manual", "dynamic"], case_sensitive=False))
 @click.option("-cl", "--cluster",
               help="Cluster name")
-@click.option("-ctr", "--clone_time_rate",
-              help="Cloning time rate (OBSOLETE)",
-              type=float)
 @click.option("-nwpn", "--num_worker_per_node",
               help="Set number of workers per a node",
               required=False,
@@ -132,7 +129,7 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
 @click.pass_context
 def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_name: str,
            pool_name: str, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
-           clone_time_rate: float, num_worker_per_node: int, worker_id: str,
+           num_worker_per_node: int, worker_id: str,
            charging_account: str, nnodes: int, cpus_per_task: int, constraint: str,
            mem: str, mem_per_cpu: str, qos: str, job_time: str) -> int:
     """
@@ -147,7 +144,6 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :param slurm_job_id: SLURM job id
     :param worker_type: manual or dynamic
     :param cluster: destination cluster name
-    :param clone_time_rate: OBSOLETE
     :param num_worker_per_node:
     :param worker_id:
     :param charging_account: SLURM charging account
@@ -162,7 +158,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     """
     sys.exit(jtmworker(ctx, heartbeat_interval, log_dir, job_script_dir_name, pool_name,
                        dry_run, slurm_job_id, worker_type, cluster,
-                       clone_time_rate, num_worker_per_node, worker_id,
+                       num_worker_per_node, worker_id,
                        charging_account, nnodes, cpus_per_task, constraint, mem,
                        mem_per_cpu, qos, job_time))
 
@@ -182,14 +178,21 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
               help="Slurm charging account name",)
 @click.option("-c", "--ncpu",
               help="Slurm number of cores",
-              type=int)
+              type=int,
+              default=1)
 @click.option("-C", "--constraint",
               help="Set the architecture for SLURM request")
+@click.option("-dr", "--dry_run",
+              help="Dry run. To print batch job script on screen",
+              default=False,
+              is_flag=True)
 @click.option("-jid", "--cromwell_job_id",
               help="Unique Cromwell job id with step name",
               required=False)
 @click.option("-m", "--memory",
               help="Slurm memory request per node")
+@click.option("-mc", "--mempercpu",
+              help="Slurm memory request per cpu")
 @click.option("-N", "--nnodes",
               help="Slurm number of nodes for the pool. Default=1.",
               type=int,
@@ -202,19 +205,22 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
 @click.option("-p", "--pool_name",
               help="User pool name",
               required=True)
+@click.option("-P", "--partition",
+              help="Partition name for SLURM request")
 @click.option("-q", "--qos",
               help="Set the QOS for SLURM request")
 @click.option("-s", "--shared",
               help="Shared/non-shared worker",
               type=int,
-              default=1)
+              default=0)
 @click.option("-t", "--job_time",
               help="Job time (hh:mm:ss)",)
 @click.pass_context
 def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: str, account: str,
            ncpu: int, constraint: str,
-           num_worker_per_node: int, cromwell_job_id: str, memory: str, nnodes: int,
-           qos: str, shared: int, job_time) -> int:
+           num_worker_per_node: int, cromwell_job_id: str, memory: str, mempercpu: str,
+           nnodes: int, partition: str,
+           qos: str, shared: int, job_time, dry_run: bool) -> int:
     """
     JtmInterface returns 'task_id' if successfully queued
     jtm submit exits with code 0 if successfully submitted
@@ -244,10 +250,6 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
     if ctx.obj['debug']:
         click.echo("Debug mode")
 
-    if job_time:
-        assert ncpu and memory and \
-               nnodes and pool_name, \
-               "USAGE: runtime (-t) should be set with 'num_cpus' (-c), memory (-m), node (-nn), and pool name (-p)."
     add_info = pool_name
     ret = int(JtmInterface('task', ctx, info_tag=add_info).call(task_file=task_file,
                                                                 task_json=command,
@@ -257,17 +259,22 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
                                                                 node_mem=memory,
                                                                 num_core=ncpu,
                                                                 pool_name=pool_name,
+                                                                partition=partition,
                                                                 shared=shared,
                                                                 nwpn=num_worker_per_node,
                                                                 node=nnodes,
                                                                 job_id=cromwell_job_id,
                                                                 constraint=constraint,
                                                                 qos=qos,
-                                                                account=account))
+                                                                account=account,
+                                                                dry_run=dry_run))
 
     if ret == -5:
         eprint("jtm submit: invalid task or runtime definition.")
         return 1
+    elif ret == -87:
+        eprint("jtm submit dry run")
+        return 0
     elif ret == -88:
         eprint("jtm submit: command timeout.")
         return -1
