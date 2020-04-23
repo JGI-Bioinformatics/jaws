@@ -1878,7 +1878,7 @@ def manager(ctx: object, custom_log_dir_name: str, b_resource_usage_log_on: bool
     if DEBUG:
         log_level = "debug"
 
-    logger.info("JGI Task Manager, version: %s" % (CONFIG.constants.VERSION))
+    print("JTM Manager, version: {}".format(CONFIG.constants.VERSION))
     setup_custom_logger(log_level, log_dir_name, 1, 1)
     logger.info("\n*****************\nDebug mode is %s\n*****************"
                 % ("ON" if DEBUG else "OFF"))

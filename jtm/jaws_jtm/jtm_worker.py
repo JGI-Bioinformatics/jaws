@@ -584,6 +584,7 @@ def check_processes(pid_list):
     :param pid_list: process id list
     :return:
     """
+    1/0
     while True:
         logger.debug("Total Number of processes of the worker = %d" % (len(pid_list)+2))
         if len(pid_list) != CONFIG.constants.NUM_WORKER_PROCS - 2:
@@ -818,8 +819,6 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str, cust
         log_dir_name = custom_log_dir
     make_dir(log_dir_name)
 
-    print("JTM Worker, version: {}".format(CONFIG.constants.VERSION))
-
     # Set uniq worker id if worker id is provided in the params
     if worker_id_param:
         global UNIQ_WORKER_ID
@@ -829,13 +828,11 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str, cust
     if DEBUG:
         log_level = "debug"
 
+    print("JTM Worker, version: {}".format(CONFIG.constants.VERSION))
     setup_custom_logger(log_level, log_dir_name, 1, 1, worker_id=UNIQ_WORKER_ID)
-
     logger.info("\n*****************\nDebug mode is %s\n*****************"
                 % ("ON" if DEBUG else "OFF"))
-
     hearbeat_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_send_interval")
-
     logger.info("Set jtm log file location to %s", log_dir_name)
     logger.info("Set jtm job file location to %s", job_script_dir_name)
     logger.info("RabbitMQ broker: %s", CONFIG.configparser.get("RMQ", "host"))
