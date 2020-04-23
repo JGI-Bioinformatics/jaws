@@ -116,7 +116,7 @@ def run_user_task(msg_unzipped, return_msg, ch):
 
     proc_return_code = -1
     done_flags = CONFIG.constants.DONE_FLAGS
-    logger.debug("Start subprocess to run a task.")
+    logger.info("Start subprocess to run a task.")
     try:
         p = subprocess.Popen(user_task_cmd.split(),
                              env=os.environ,
@@ -584,7 +584,6 @@ def check_processes(pid_list):
     :param pid_list: process id list
     :return:
     """
-    1/0
     while True:
         logger.debug("Total Number of processes of the worker = %d" % (len(pid_list)+2))
         if len(pid_list) != CONFIG.constants.NUM_WORKER_PROCS - 2:
