@@ -158,6 +158,7 @@ class JtmInterface(object):
                     return -5
                 if type(kw["node_mem"]) != str:
                     logger.critical("Memory requirement should be in string like 5G or 10g")
+                    logger.critical("Userd value: {}".format(kw["node_mem"]))
                     return -5
                 if jtm_host_name == "lbl" and kw["partition"] != "lr3":
                     logger.critical("Unsupported partition")
