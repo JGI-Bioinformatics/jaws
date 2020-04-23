@@ -1131,6 +1131,8 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                                 logger.critical("Failed to insert workers table for workerid and workertype.")
                                 logger.debug("Retry to insert workers table for workerid and workertype.")
                                 raise
+                            else:
+                                b_failed_to_request_worker = False
                     else:
                         logger.critical("Failed to execute the command, %s" % (sbatch_cmd_str))
                         logger.critical("Failed to request workers.")
