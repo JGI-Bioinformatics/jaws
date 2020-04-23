@@ -422,7 +422,7 @@ def logs_get():
 @pytest.fixture()
 def abort_post():
     def post(url):
-        return MockResponses({"id": CROMWELL_ID, "status": "Aborted"}, 200)
+        return MockResponses({"id": CROMWELL_ID, "status": "Aborting"}, 201)
 
     return post
 

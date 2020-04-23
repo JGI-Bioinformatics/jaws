@@ -169,8 +169,16 @@ def cancel(run_id):
     :param run_id: JAWS run ID to cancel.
     :type run_id: int
     """
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
-    _get(url)
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/abort'
+    current_user = user.User()
+    try:
+        r = requests.put(url, headers=current_user.header())
+    except requests.exceptions.RequestException:
+        raise SystemExit("Unable to communicate with JAWS server")
+    if r.status_code != 201:
+        raise SystemExit(r.text)
+    result = r.json()
+    print(json.dumps(result, indent=4, sort_keys=True))
 
 
 @run.command()

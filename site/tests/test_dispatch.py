@@ -72,7 +72,7 @@ def test_cancel_run(monkeypatch, abort_post):
     params = {"cromwell_id": CROMWELL_ID}
     response = dispatch.cancel_run(params)
 
-    assert "Cancelling" == response['result']['status']
+    assert "OK" == response['result']['cancel']
 
 
 def test_tail_files(log_file):
