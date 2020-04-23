@@ -86,10 +86,6 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
 @click.option("-p", "--pool_name",
               help="Set user-defined pool name. This should be same with task's 'pool' name.",
               required=True)
-@click.option("-dr", "--dry_run",
-              help="Dry run. To print batch job script on screen",
-              default=False,
-              is_flag=True)
 @click.option("-j", "--slurm_job_id",
               help="Slurm job ID",
               type=int,
@@ -107,31 +103,21 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
               default=1)
 @click.option("-wi", "--worker_id",
               help="Unique worker ID")
-@click.option("-A", "--charging_account",
-              help="Slurm charging account.")
-@click.option("-N", "--nnodes",
-              help="Slurm number of nodes",
-              type=int)
 @click.option("-c", "--cpus_per_task",
               help="Slurm number of cpus",
               type=int)
-@click.option("-C", "--constraint",
-              help="Slurm constraint (default: haswell)",
-              required=False)
 @click.option("-m", "--mem",
               help="Slurm real memory required per node")
 @click.option("-mc", "--mem_per_cpu",
               help="Slurm minimum memory required per allocated CPU")
-@click.option("-q", "--qos",
-              help="Slurm quality of service")
 @click.option("-t", "--job_time",
               help="Slurm Job time (hh:mm:ss)")
 @click.pass_context
 def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_name: str,
-           pool_name: str, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
+           pool_name: str, slurm_job_id: int, worker_type: str, cluster: str,
            num_worker_per_node: int, worker_id: str,
-           charging_account: str, nnodes: int, cpus_per_task: int, constraint: str,
-           mem: str, mem_per_cpu: str, qos: str, job_time: str) -> int:
+           cpus_per_task: int,
+           mem: str, mem_per_cpu: str, job_time: str) -> int:
     """
     JTM Worker Click wrapper
 
@@ -140,27 +126,22 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :param log_dir: custom log directory
     :param job_script_dir_name: custom sbatch script saving directory
     :param pool_name: worker pool name
-    :param dry_run:
     :param slurm_job_id: SLURM job id
     :param worker_type: manual or dynamic
     :param cluster: destination cluster name
     :param num_worker_per_node:
     :param worker_id:
-    :param charging_account: SLURM charging account
-    :param nnodes: number of nodes
     :param cpus_per_task: number of cpus
-    :param constraint: SLURM constraint
     :param mem: memory request
     :param mem_per_cpu: memory request per cpu
-    :param qos:
     :param job_time: wallclocktime
     :return:
     """
     sys.exit(jtmworker(ctx, heartbeat_interval, log_dir, job_script_dir_name, pool_name,
-                       dry_run, slurm_job_id, worker_type, cluster,
+                       slurm_job_id, worker_type, cluster,
                        num_worker_per_node, worker_id,
-                       charging_account, nnodes, cpus_per_task, constraint, mem,
-                       mem_per_cpu, qos, job_time))
+                       cpus_per_task, mem,
+                       mem_per_cpu, job_time))
 
 
 @cli.command()
