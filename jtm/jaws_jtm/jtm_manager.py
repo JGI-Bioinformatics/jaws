@@ -1095,7 +1095,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
 
                     # Get the slurm job id returned from jtm-worker
                     try:
-                        slurm_job_id = int(so.split('\n')[1])
+                        slurm_job_id = int(so.strip())
                     except Exception:
                         logger.critical("Failed to get a valid job ID back from requesting a dynamic worker")
                         ec = 1  # make it fail
