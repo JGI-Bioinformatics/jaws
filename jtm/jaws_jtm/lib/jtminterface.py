@@ -175,15 +175,22 @@ class JtmInterface(object):
                     logger.critical("Unsupported charging account")
                     return -5
 
+                pool_name = kw["pool_name"] if 'pool_name' in kw and kw["pool_name"] else self.poolname
+
                 json_data_dict["pool"] = {}
-                json_data_dict["pool"]["time"] = kw["job_time"] if 'job_time' in kw and kw["job_time"] else self.jobtime
-                json_data_dict["pool"]["cpu"] = kw["num_core"] if 'num_core' in kw and kw["num_core"] else self.ncpus
+                json_data_dict["pool"]["time"] = kw["job_time"] \
+                    if 'job_time' in kw and kw["job_time"] else self.jobtime
+                json_data_dict["pool"]["cpu"] = kw["num_core"] \
+                    if 'num_core' in kw and kw["num_core"] else self.ncpus
                 json_data_dict["pool"]["mem"] = node_mem
-                json_data_dict["pool"]["mempercpu"] = kw["mempercpu"] if 'mempercpu' in kw and kw["mempercpu"] else self.mempercpu
-                json_data_dict["pool"]["name"] = kw["pool_name"] if 'pool_name' in kw and kw["pool_name"] else self.poolname
+                json_data_dict["pool"]["mempercpu"] = kw["mempercpu"] \
+                    if 'mempercpu' in kw and kw["mempercpu"] else self.mempercpu
+                json_data_dict["pool"]["name"] = pool_name
                 json_data_dict["pool"]["cluster"] = jtm_host_name
-                json_data_dict["pool"]["nwpn"] = kw["nwpn"] if 'nwpn' in kw and kw["nwpn"] else self.nwpn
-                json_data_dict["pool"]["node"] = kw["node"] if 'node' in kw and kw["node"] else self.nnodes
+                json_data_dict["pool"]["nwpn"] = kw["nwpn"] \
+                    if 'nwpn' in kw and kw["nwpn"] else self.nwpn
+                json_data_dict["pool"]["node"] = kw["node"] \
+                    if 'node' in kw and kw["node"] else self.nnodes
                 json_data_dict["pool"]["shared"] = int(kw["shared"])
                 json_data_dict["pool"]["constraint"] = constraint_name
                 json_data_dict["pool"]["qos"] = qos_name
@@ -254,7 +261,7 @@ class JtmInterface(object):
                 cnt += 1
                 if cnt == self.jtminterface_max_trial:
                     make_dir(os.path.join(self.jtm_log, "jtm-submit"))
-                    eprint("Failed to get a reply from the manager: {} {}".format(json_data_dict, self.response))
+                    logger.error("Failed to get a reply from the manager: {} {}".format(json_data_dict, self.response))
                     jtm_submit_log_file = os.path.join(self.jtm_log, "jtm-submit", "jtm_submit_%s"
                                                        % (datetime.datetime.now().strftime("%Y-%m-%d")))
                     with open(jtm_submit_log_file, 'a') as jslogf:
@@ -268,7 +275,6 @@ class JtmInterface(object):
             logger.exception(e)
 
         return self.response
-
 
     def close(self):
         self.channel.close()

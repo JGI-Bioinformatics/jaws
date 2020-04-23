@@ -674,9 +674,8 @@ wait
            export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
            set_jtm_config_file="--config=%s" % worker_config)
 
-        if dry_run:
-            logger.info(batch_job_script_str)
-        else:
+        logger.info(batch_job_script_str)
+        if not dry_run:
             jf.writelines(batch_job_script_str)
 
     if not dry_run:
@@ -850,9 +849,8 @@ wait
                export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
                set_jtm_config_file="--config=%s" % worker_config)
 
-        if dry_run:
-            logger.info(batch_job_script_str)
-        else:
+        logger.info(batch_job_script_str)
+        if not dry_run:
             jf.writelines(batch_job_script_str)
 
     if not dry_run:
@@ -902,6 +900,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
     # $ jtm submit -cmd 'ls' -cl cori -p test2 -t "00:10:00" -c 1 -s 1 -m 5G
 
     b_failed_to_request_worker = False
+    dry_run = False
     if "pool" in msg and "name" in msg["pool"] and "time" in msg["pool"]:
         pool_spec_json_str = json.loads(json.dumps(msg["pool"]))
 
