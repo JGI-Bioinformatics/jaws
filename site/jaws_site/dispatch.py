@@ -200,10 +200,9 @@ def cancel_run(params):
         return failure(400, "cromwell_id not in params")
     url = f"{config.conf.get('CROMWELL', 'workflows_url')}/{params['cromwell_id']}/abort"
     r = do_request(url, requests.post)
-    if r.status_code != requests.codes.ok:
+    if r.status_code != 201:
         return failure(r.status_code)
-    result = r.json()
-    result["status"] = "Cancelling"
+    result = {"cancel": "OK"}
     return success(result)
 
 

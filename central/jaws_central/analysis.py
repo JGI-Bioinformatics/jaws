@@ -322,20 +322,20 @@ def run_status(user, run_id):
     """
     run = _get_run(run_id)
     result = {
-                "id": run.id,
-                "submission_id": run.submission_id,
-                "cromwell_id": run.cromwell_id,
-                "status": run.status,
-                "site_id": run.site_id,
-                "submitted": run.submitted,
-                "updated": run.updated,
-                "input_site_id": run.input_site_id,
-                "input_endpoint": run.input_endpoint,
-                "upload_task_id": run.upload_task_id,
-                "output_endpoint": run.output_endpoint,
-                "output_dir": run.output_dir,
-                "download_task_id": run.download_task_id,
-            }
+        "id": run.id,
+        "submission_id": run.submission_id,
+        "cromwell_id": run.cromwell_id,
+        "status": run.status,
+        "site_id": run.site_id,
+        "submitted": run.submitted,
+        "updated": run.updated,
+        "input_site_id": run.input_site_id,
+        "input_endpoint": run.input_endpoint,
+        "upload_task_id": run.upload_task_id,
+        "output_endpoint": run.output_endpoint,
+        "output_dir": run.output_dir,
+        "download_task_id": run.download_task_id,
+    }
     return result, 200
 
 
@@ -415,13 +415,13 @@ def cancel_run(user, run_id):
     :rtype: dict
     """
     run = _get_run(run_id)
-    result = {"cancel": "OK"}
-    if run.status.startswith("upload"):
-        result["message"] = "canceling does not abort Globus transfer"
-    elif run.status == "created":
-        result["message"] = "Globus upload had completed"
-    else:
-        result = _rpc_call(user, run_id, "cancel_run")
+    if run.user_id != user:
+        abort(401, "Access denied")
+    if run.status == "submitted" or run.status == "running":
+        # if running, instruct Cromwell to cancel
+        params = {"cromwell_id": run.cromwell_id}
+        _rpc_call(user, run_id, "cancel_run", params)  # will abort if fail
     run.status = "canceled"
     db.session.commit()
-    return result, 200
+    result = {"cancel": "OK"}
+    return result, 201
