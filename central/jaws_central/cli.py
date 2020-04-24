@@ -4,6 +4,7 @@
 
 import os
 import click
+import logging
 import connexion
 from urllib.parse import quote_plus
 import secrets
@@ -11,62 +12,52 @@ from jaws_central import config, log, rpc_manager
 from jaws_central.models import db
 
 
-@click.group()
-def cli() -> None:
-    pass
+JAWS_LOG_ENV = "JAWS_CENTRAL_LOG"
+JAWS_CWD_LOG = os.path.join(os.getcwd(), f"{__package__}.log")
+JAWS_CONFIG_ENV = "JAWS_CENTRAL_CONFIG"
+JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
 
 
-def find_config_file(env_var: str, config_file: str) -> str:
-    """Find config file by checking env var, cwd, and home, in that order.
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+@click.option("--config", "config_file", default=None, help="Config INI file")
+@click.option("--log", "log_file", default=None, help="Log file")
+def cli(config_file: str, log_file: str) -> None:
+    """JAWS-Central.
 
     :param config_file: filename of configuration file
     :type config_file: str
-    :param env_var: name of config file environment variable
-    :type env_var: str
-    :return: absolute path if found, None otherwise.
-    :rtype: str
+    :param log_file: filename of log file
+    :type log_file: str
+    :return:
     """
-    if env_var in os.environ:
-        cf = os.environ[env_var]
-        if os.path.isfile(cf):
-            return cf
-        else:
-            raise IOError(f"File not found: {cf}")
-
-    cf = os.path.abspath(config_file)
-    if os.path.isfile(cf):
-        return cf
-
-    cf = os.path.join(os.environ["HOME"], config_file)
-    if os.path.isfile(cf):
-        return cf
-    raise IOError("Unable to find config file")
+    # Initialize logging and configuration singletons;
+    # as they are singletons, the Click context object is not needed.
+    if log_file is None:
+        log_file = os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
+    logger = log.setup_logger(__package__, log_file)
+    if config_file is None:
+        config_file = os.environ[JAWS_CONFIG_ENV] if JAWS_CONFIG_ENV in os.environ else JAWS_CWD_CONFIG
+    conf = config.Configuration(config_file)
+    if conf:
+        logger.debug(f"Config using {config_file}")
 
 
 @cli.command()
-@click.option(
-    "--config", "config_file", default="jaws-central.ini", help="Config INI file"
-)
-@click.option("--log", "log_file", default="jaws-auth.log", help="Log file")
-def auth(config_file, log_file):
+@click.option("--port", default=3000, help="Port (default=3000)")
+def auth(port: int) -> None:
     """Start JAWS OAuth server"""
-    logger = log.setup_logger(__package__, log_file)
-    logger.debug("Starting jaws-auth server")
-
-    config_file = find_config_file("JAWS_AUTH_CONFIG", config_file)
-    conf = config.JawsConfig(config_file)
-
-    logger.debug("Initializing Connexion app")
+    logger = logging.getLogger(__package__)
+    logger.debug("Initializing OAuth server")
     basedir = os.path.abspath(os.path.dirname(__file__))
     connex = connexion.FlaskApp(__name__, specification_dir=basedir)
     connex.add_api("swagger.auth.yml")
 
     connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s/%s" % (
-        conf.get("DB", "dialect"),
-        conf.get("DB", "user"),
-        quote_plus(conf.get("DB", "password")),
-        conf.get("DB", "host"),
-        conf.get("DB", "db"),
+        config.conf.get("DB", "dialect"),
+        config.conf.get("DB", "user"),
+        quote_plus(config.conf.get("DB", "password")),
+        config.conf.get("DB", "host"),
+        config.conf.get("DB", "db"),
     )
     connex.app.config["SQLALCHEMY_ECHO"] = False
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -76,36 +67,25 @@ def auth(config_file, log_file):
     }
     db.init_app(connex.app)
 
-    connex.run(host="0.0.0.0", port=3000, debug=False)
+    connex.run(host="0.0.0.0", port=port, debug=False)
 
 
 @cli.command()
-@click.option(
-    "--config",
-    "config_file",
-    default="jaws-central.ini",
-    help="Central configuration INI file",
-)
-@click.option("--log", "log_file", default="jaws-rest.log", help="Log file")
-def rest(config_file: str, log_file: str) -> None:
+@click.option("--port", default=5000, help="Port (default=5000)")
+def rest(port: int) -> None:
     """Start JAWS REST server."""
-    logger = log.setup_logger(__package__, log_file)
-    logger.debug("Starting jaws-central server")
-
-    config_file = find_config_file("JAWS_REST_CONFIG", config_file)
-    conf = config.JawsConfig(config_file)
-
-    logger.debug("Initializing Connexion app")
+    logger = logging.getLogger(__package__)
+    logger.debug("Starting jaws-central REST server")
     basedir = os.path.abspath(os.path.dirname(__file__))
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")
 
     connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s/%s" % (
-        conf.get("DB", "dialect"),
-        conf.get("DB", "user"),
-        quote_plus(conf.get("DB", "password")),
-        conf.get("DB", "host"),
-        conf.get("DB", "db"),
+        config.conf.get("DB", "dialect"),
+        config.conf.get("DB", "user"),
+        quote_plus(config.conf.get("DB", "password")),
+        config.conf.get("DB", "host"),
+        config.conf.get("DB", "db"),
     )
     connex.app.config["SQLALCHEMY_ECHO"] = False
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -115,33 +95,27 @@ def rest(config_file: str, log_file: str) -> None:
     }
     db.init_app(connex.app)
 
-    rpc_manager.manager = rpc_manager.JawsRpc(conf)
+    rpc_manager.manager = rpc_manager.JawsRpc(config.conf)
 
-    connex.run(host="0.0.0.0", port=5000, debug=False)
+    connex.run(host="0.0.0.0", port=port, debug=False)
 
 
 @cli.command()
-@click.option(
-    "--config", "config_file", default="jaws-central.ini", help="Config INI file"
-)
-@click.option("--log", "log_file", default="jaws-auth.log", help="Log file")
-def create_tables(config_file: str, log_file: str) -> None:
+def create_tables() -> None:
     """Create all database tables"""
-    logger = log.setup_logger(__package__, log_file)
-
-    config_file = find_config_file("JAWS_REST_CONFIG", config_file)
-    conf = config.JawsConfig(config_file)
+    logger = logging.getLogger(__package__)
+    logger.debug("Creating RDb tables")
 
     basedir = os.path.abspath(os.path.dirname(__file__))
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")
 
     connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s/%s" % (
-        conf.get("DB", "dialect"),
-        conf.get("DB", "user"),
-        quote_plus(conf.get("DB", "password")),
-        conf.get("DB", "host"),
-        conf.get("DB", "db"),
+        config.conf.get("DB", "dialect"),
+        config.conf.get("DB", "user"),
+        quote_plus(config.conf.get("DB", "password")),
+        config.conf.get("DB", "host"),
+        config.conf.get("DB", "db"),
     )
     connex.app.config["SQLALCHEMY_ECHO"] = False
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -165,29 +139,23 @@ def create_tables(config_file: str, log_file: str) -> None:
 @click.argument("uid")
 @click.argument("email")
 @click.option("--admin", is_flag=True, default=False, help="Grant admin privileges")
-@click.option(
-    "--config", "config_file", default="jaws-central.ini", help="Config INI file"
-)
-@click.option("--log", "log_file", default="jaws-auth.log", help="Log file")
 def add_user(
-    uid: str, email: str, config_file: str, log_file: str, admin: bool = False
+    uid: str, email: str, admin: bool = False
 ) -> None:
     """Add user and generate OAuth2 token."""
-    logger = log.setup_logger(__package__, log_file)
-
-    config_file = find_config_file("JAWS_REST_CONFIG", config_file)
-    conf = config.JawsConfig(config_file)
+    logger = logging.getLogger(__package__)
+    logger.debug(f"Adding new user, {uid}")
 
     basedir = os.path.abspath(os.path.dirname(__file__))
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")
 
     connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s/%s" % (
-        conf.get("DB", "dialect"),
-        conf.get("DB", "user"),
-        quote_plus(conf.get("DB", "password")),
-        conf.get("DB", "host"),
-        conf.get("DB", "db"),
+        config.conf.get("DB", "dialect"),
+        config.conf.get("DB", "user"),
+        quote_plus(config.conf.get("DB", "password")),
+        config.conf.get("DB", "host"),
+        config.conf.get("DB", "db"),
     )
     connex.app.config["SQLALCHEMY_ECHO"] = False
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False

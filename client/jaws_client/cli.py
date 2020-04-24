@@ -10,10 +10,10 @@ import logging
 import globus_sdk
 from jaws_client import log, config, analysis, catalog, user
 
-JAWS_CLIENT_LOG = "JAWS_CLIENT_LOG"
-JAWS_DEFAULT_LOG = "~/jaws.log"
-JAWS_CLIENT_CONFIG = "JAWS_CLIENT_CONFIG"
-JAWS_DEFAULT_CONFIG = "~/jaws.conf"
+JAWS_LOG_ENV = "JAWS_CLIENT_LOG"
+JAWS_USER_LOG = os.path.expanduser("~/jaws.log")
+JAWS_CONFIG_ENV = "JAWS_CLIENT_CONFIG"
+JAWS_USER_CONFIG = os.path.expanduser("~/jaws.conf")
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -22,20 +22,13 @@ JAWS_DEFAULT_CONFIG = "~/jaws.conf"
 def cli(config_file: str, log_file: str):
     """JGI Analysis Workflows Service."""
     if log_file is None:
-        if JAWS_CLIENT_LOG in os.environ:
-            log_file = os.environ[JAWS_CLIENT_LOG]
-        else:
-            log_file = os.path.expanduser(JAWS_DEFAULT_LOG)
+        log_file = os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_USER_LOG
     logger = log.setup_logger(__package__, log_file)
-
     if config_file is None:
-        if JAWS_CLIENT_CONFIG in os.environ:
-            config_file = os.environ[JAWS_CLIENT_CONFIG]
-        else:
-            config_file = os.path.expanduser(JAWS_DEFAULT_CONFIG)
+        config_file = os.environ[JAWS_CONFIG_ENV] if JAWS_CONFIG_ENV in os.environ else JAWS_USER_CONFIG
     conf = config.Configuration(config_file)
-    jaws = conf.get("JAWS", "name")
-    logger.debug(f"Using {jaws} : {config_file}")
+    if conf:
+        logger.debug(f"Config using {config_file}")
 
 
 @cli.command()

@@ -12,8 +12,10 @@ import click
 
 from jaws_site import database, rpc_server, jawsd, log, config
 
-JAWS_SITE_LOG = "JAWS_SITE_LOG"
-JAWS_CWD_LOG = os.path.join(os.getcwd(), 'jaws-site.log')
+JAWS_LOG_ENV = "JAWS_SITE_LOG"
+JAWS_CWD_LOG = os.path.join(os.getcwd(), f"{__package__}.log")
+JAWS_CONFIG_ENV = "JAWS_SITE_CONFIG"
+JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -24,10 +26,13 @@ def cli(config_file: str, log_file: str):
     # Initialize logging and configuration singletons;
     # as they are singletons, the Click context object is not needed.
     if log_file is None:
-        log_file = os.environ[JAWS_SITE_LOG] if JAWS_SITE_LOG in os.environ else JAWS_CWD_LOG
+        log_file = os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
     logger = log.setup_logger(__package__, log_file)
+    if config_file is None:
+        config_file = os.environ[JAWS_CONFIG_ENV] if JAWS_CONFIG_ENV in os.environ else JAWS_CWD_CONFIG
     conf = config.Configuration(config_file)
-    logger.debug(f"Config using {conf.config_file}")
+    if conf:
+        logger.debug(f"Config using {config_file}")
 
 
 @cli.command()

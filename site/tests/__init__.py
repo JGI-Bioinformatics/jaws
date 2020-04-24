@@ -1,3 +1,3 @@
 from jaws_site import config
 
-conf = config.Configuration()
+conf = config.Configuration("./jaws-site.ini")

@@ -8,7 +8,7 @@ import json
 @pytest.fixture
 def configuration():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    config = jaws_client.config.Configuration(f'{base_dir}/jaws_client.ini')
+    config = jaws_client.config.Configuration(f'{base_dir}/../jaws-client.ini')
     return config
 
 

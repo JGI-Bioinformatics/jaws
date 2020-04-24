@@ -1,12 +1,7 @@
 import os
+import logging
 import configparser
 import jaws_site.utils
-
-
-JAWS_SITE_CONFIG = "JAWS_SITE_CONFIG"
-JAWS_SITE_CONFIG_FILENAME = "jaws-site.ini"
-USER_JAWSRC = os.path.join(os.path.expanduser("~"), ".jawsrc", JAWS_SITE_CONFIG_FILENAME)
-CWD_JAWSRC = os.path.join(os.getcwd(), JAWS_SITE_CONFIG_FILENAME)
 
 
 conf = None
@@ -50,29 +45,25 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         },
     }
 
-    def __init__(self, config_file: str = None):
+    config = None
+
+    def __init__(self, config_file: str) -> None:
         """Constructor sets global singleton.
 
         :param config_file: Path to configuration file in INI format
         :type config_file: str
         """
-        if config_file is not None:
-            pass
-        elif JAWS_SITE_CONFIG in os.environ:
-            config_file = os.environ.get(JAWS_SITE_CONFIG)
-        elif os.path.exists(USER_JAWSRC):
-            config_file = USER_JAWSRC
-        elif os.path.exists(CWD_JAWSRC):
-            config_file = CWD_JAWSRC
-        self.config_file = config_file
+        logger = logging.getLogger(__package__)
+        logger.debug(f"Loading config from {config_file}")
+        if not os.path.isfile(config_file):
+            raise FileNotFoundError(f"{config_file} does not exist")
         self.config = configparser.ConfigParser()
         self.config.read_dict(self.defaults)
-
-        if config_file and not os.path.exists(config_file):
-            raise FileNotFoundError(f"{config_file} does not exist")
-        else:
+        try:
             self.config.read(config_file)
-
+        except Exception as error:
+            logger.exception(f"Unable to load config file {config_file}: {error}")
+            raise
         global conf
         conf = self
 

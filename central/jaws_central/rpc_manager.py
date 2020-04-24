@@ -26,10 +26,10 @@ class JawsRpc(metaclass=Singleton):
 
     clients = {}
 
-    def __init__(self, conf: config.JawsConfig):
+    def __init__(self, conf: config.Configuration):
         """Initialize an RPC client object for each configured Site.
 
-        :param config: JawsConfig object
+        :param config: Configuration object
         :type: obj
         :return: JawsRpc object
         :rtype: obj
