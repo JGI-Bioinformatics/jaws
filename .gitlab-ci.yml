@@ -101,10 +101,15 @@ deploy-jaws-cori:
     - python3 -m venv /tmp/jaws-dev/client  && . /tmp/jaws-dev/client/bin/activate  && pip install client/dist/*  && deactivate
     - python3 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate    && pip install site/dist/*    && deactivate
     - python3 -m venv /tmp/jaws-dev/central && . /tmp/jaws-dev/central/bin/activate && pip install central/dist/* && deactivate
+    - pkill supervisord
+    - /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jaws.conf
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start jaws-dev:*
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf stop jaws-dev:*
     - python3 -m venv /tmp/jaws-dev/jtm     && . /tmp/jaws-dev/jtm/bin/activate     && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-dev/jtm || true
     - cp /global/cfs/projectdirs/jaws/cromwell/cromwell.jar /tmp/jaws-dev/cromwell.jar && chgrp jaws_jtm /tmp/jaws-dev/cromwell.jar
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf reread
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf update
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf reload
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf start jaws-dev:*
     - python3 -m venv /global/cfs/projectdirs/jaws/jtm-dev && . /global/cfs/projectdirs/jaws/jtm-dev/bin/activate && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/cfs/projectdirs/jaws/jtm-dev || true
     - chgrp jaws_jtm /tmp/jaws-dev/configs/jaws-jtm.conf && chmod u=rx,g=rx,o= /tmp/jaws-dev/configs/jaws-jtm.conf
