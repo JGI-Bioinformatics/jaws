@@ -22,13 +22,24 @@ class ConfigurationError(Exception):
         super().__init__(message)
 
 
-class JawsConfig(metaclass=Singleton):
-    """Configuration singleton class.
-    """
+class Configuration(metaclass=Singleton):
+    """Configuration singleton class."""
+
+    defaults = {
+        "DB": {
+            "dialect": "mysql+mysqlconnector",
+            "host": "localhost",
+            "port": 3306,
+            "user": "jaws",
+            "password": "",
+            "db": "jaws",
+        },
+        "GLOBUS": {"client_id": ""},
+    }
 
     config = None
 
-    def __init__(self, config_file=None):
+    def __init__(self, config_file: str) -> None:
         """Constructor
 
         :param config_file: Path to config file in YAML format
@@ -36,20 +47,15 @@ class JawsConfig(metaclass=Singleton):
         """
         logger = logging.getLogger(__package__)
         logger.debug(f"Loading configuration from {config_file}")
-        if not config_file:
-            raise FileNotFoundError("config file not specified")
         if not os.path.isfile(config_file):
             raise FileNotFoundError(f"{config_file} does not exist")
         self.config = configparser.ConfigParser()
-        self.config.read(config_file)
-        required_sections = ("DB", "GLOBUS")
-        for section in required_sections:
-            if section not in self.config:
-                error_msg = (
-                    f'Config file, {config_file}, missing required "{section}" section'
-                )
-                logger.warn(error_msg)
-                raise ConfigurationError(error_msg)
+        self.config.read_dict(self.defaults)
+        try:
+            self.config.read(config_file)
+        except Exception as error:
+            logger.exception(f"Unable to load config file {config_file}: {error}")
+            raise
         global conf
         conf = self
         self._init_sites()
@@ -60,9 +66,13 @@ class JawsConfig(metaclass=Singleton):
             if section.startswith("SITE:"):
                 site_id = section[len("SITE:"):].upper()
                 if len(site_id) > 8:
-                    raise ConfigurationError(f"Invalid Site ID: {site_id} (max. 8 char.)")
+                    raise ConfigurationError(
+                        f"Invalid Site ID: {site_id} (max. 8 char.)"
+                    )
                 s = self.sites[site_id] = self.config[section]
-                s["staging_dir"] = os.path.join(s["globus_basepath"], s["staging_subdir"])
+                s["staging_dir"] = os.path.join(
+                    s["globus_basepath"], s["staging_subdir"]
+                )
 
     def get(self, section: str, key: str) -> str:
         if section not in self.config:

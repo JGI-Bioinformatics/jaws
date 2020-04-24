@@ -26,26 +26,45 @@ class ConfigurationError(Exception):
 
 
 class Configuration(metaclass=Singleton):
+    """Configuration singleton."""
+
+    defaults = {
+        "USER": {
+            "token": "",
+            "staging_dir": ""
+        },
+        "JAWS": {
+            "name": "JAWS",
+            "site_id": "",
+            "url": "http://localhost:5000",
+            "womtool": ""
+        },
+        "GLOBUS": {
+            "client_id": "",
+            "endpoint_id": "",
+            "basedir": "/"
+        }
+    }
+
     config = None
 
-    def __init__(self, config_file=None) -> None:
+    def __init__(self, config_file) -> None:
         """Initialize the configuration object singleton
 
         :param config_file: Path to configuration file
         :type config_file: str
         """
         logger = logging.getLogger(__package__)
-        logger.debug("loading configuration...")
-        if not config_file:
-            raise FileNotFoundError("config file not specified")
+        logger.debug(f"Loading config from {config_file}")
         if not os.path.isfile(config_file):
             raise FileNotFoundError(f"{config_file} does not exist")
         self.config = configparser.ConfigParser()
+        self.config.read_dict(self.defaults)
         try:
             self.config.read(config_file)
-        except Exception as e:
-            logger.exception(f"Unable to load config from {config_file}: {e}")
-            raise ConfigurationError(f"Invalid config file: {config_file}")
+        except Exception as error:
+            logger.exception(f"Unable to load config from {config_file}: {error}")
+            raise
         global conf
         conf = self
 
