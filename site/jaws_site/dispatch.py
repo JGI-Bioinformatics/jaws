@@ -31,7 +31,7 @@ def dispatch(method, params):
     proc = operations.get(method)
     logger = logging.getLogger(__package__)
     if proc:
-        logger.debug(f"RPC {method} : {params}")
+        logger.info(f"RPC: {method} : {params}")
         return proc(params)
     logger.error(f"Unknown RPC method: {method}")
     return failure(400, "Unknown method")

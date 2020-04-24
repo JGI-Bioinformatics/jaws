@@ -40,6 +40,7 @@ def _rpc_call(user, run_id, method, params={}):
     if run.user_id != user:
         abort(401, "Access denied")
     site_rpc_call = rpc_manager.manager.get_client(run.site_id)
+    params["user"] = user
     params["cromwell_id"] = run.cromwell_id
     result = site_rpc_call.request(method, params)
     if "error" in result:

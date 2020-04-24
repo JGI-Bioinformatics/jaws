@@ -11,8 +11,6 @@ import amqpstorm
 from jaws_site import config
 from jaws_site.dispatch import dispatch
 
-logger = logging.getLogger(__package__)
-
 
 class Consumer(object):
 
@@ -23,10 +21,10 @@ class Consumer(object):
         :type rpc_queue: str
         :return:
         """
+        self.logger = logging.getLogger(__package__)
         self.rpc_queue = rpc_queue
         self.channel = None
         self.active = False
-        self.logger = logging.getLogger(__package__)
 
     def start(self, connection):
         """Start the consumer"""
@@ -59,14 +57,10 @@ class Consumer(object):
         :type message: str
         :return:
         """
-        corr_id = message.correlation_id
-
         # DECODE JSON-RPC2 REQUEST
         request = json.loads(message.body)
         method = request["method"]
         params = request["params"]
-
-        self.logger.info(f'Dispatching request for method {method}, corr_id {corr_id}')
 
         # GET RESPONSE FROM DISPATCHER
         response_dict = dispatch(method, params)
@@ -99,6 +93,7 @@ class Consumer(object):
 class RpcServer(object):
 
     def __init__(self) -> None:
+        self.logger = logging.getLogger(__package__)
         self.hostname = config.conf.get("AMQP", "host")
         self.vhost = config.conf.get("AMQP", "vhost")
         self.user = config.conf.get("AMQP", "user")
@@ -123,7 +118,7 @@ class RpcServer(object):
             except amqpstorm.AMQPConnectionError as e:
                 # If an error occurs, re-connect and let update_consumers
                 # re-open the channels.
-                logger.warning(str(e))
+                self.logger.warning(str(e))
                 self.stop_consumers(len(self.consumers))
                 self.create_connection()
             time.sleep(1)
@@ -176,7 +171,7 @@ class RpcServer(object):
                     return amqpstorm.Connection(self.hostname, self.user,
                                                 self.password)
             except amqpstorm.AMQPConnectionError as e:
-                logger.warning(str(e))
+                self.logger.warning(str(e))
                 time.sleep(1)
         raise ExceededRetries("Reached the maximum level of retries")
 

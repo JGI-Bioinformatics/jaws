@@ -32,7 +32,7 @@ def cli(config_file: str, log_file: str):
         config_file = os.environ[JAWS_CONFIG_ENV] if JAWS_CONFIG_ENV in os.environ else JAWS_CWD_CONFIG
     conf = config.Configuration(config_file)
     if conf:
-        logger.debug(f"Config using {config_file}")
+        logger.info(f"Config using {config_file}")
 
 
 @cli.command()

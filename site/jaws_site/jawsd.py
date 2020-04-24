@@ -41,7 +41,7 @@ class Daemon:
         """
         conf = config.conf
         self.logger = logging.getLogger(__package__)
-        self.logger.debug("Initializing daemon")
+        self.logger.info("Initializing daemon")
         self.site_id = conf.get("SITE", "id")
         self.session = db.session()
         self.staging_dir = os.path.join(
@@ -123,12 +123,15 @@ class Daemon:
             self.logger.warning("Failed to check Globus upload status", exc_info=True)
             raise
         if globus_status == "FAILED":
+            self.logger.info(f"Run {run.id}: upload failed")
             run.status = "upload failed"
             self.session.commit()
         elif globus_status == "INACTIVE":
+            self.logger.info(f"Run {run.id}: upload inactive")
             run.status = "upload inactive"
             self.session.commit()
         elif globus_status == "SUCCEEDED":
+            self.logger.info(f"Run {run.id}: upload succeeded")
             self.submit_run(run)
 
     def submit_run(self, run):
@@ -179,9 +182,11 @@ class Daemon:
         if r.status_code == 201:
             run.cromwell_id = r.json()["id"]
             run.status = "submitted"
+            self.logger.info(f"Run {run.id}: submitted; cromwell_id={run.cromwell_id}")
         else:
             self.logger.warning(f"Run submission {run.id} failed")
             run.status = "submission failed"
+            self.logger.info(f"Run {run.id}: submission failed")
         self.session.commit()
 
     def check_run_status(self, run):
@@ -201,16 +206,20 @@ class Daemon:
         if cromwell_status == "Running":
             if run.status == "submitted":
                 run.status = "running"
+                self.logger.info(f"Run {run.id}: running")
                 self.session.commit()
         elif cromwell_status == "Failed":
             run.status = "failed"
+            self.logger.info(f"Run {run.id}: failed")
             self.session.commit()
         elif cromwell_status == "Succeeded":
             run.status = "succeeded"
+            self.logger.info(f"Run {run.id}: succeeded")
             self.session.commit()
             self.prepare_run_output(run)
         elif cromwell_status == "Aborted" and run.status == "aborting":
             run.status = "aborted"
+            self.logger.info(f"Run {run.id}: aborted")
             self.session.commit()
 
     def prepare_run_output(self, run):
@@ -229,6 +238,7 @@ class Daemon:
         nice_dir = os.path.join(self.results_dir, str(run.id))
         wfcopy.wfcopy(orig_dir, nice_dir, flattenShardDir=False)
         run.status = "ready"
+        self.logger.info(f"Run {run.id}: ready")
         self.session.commit()
         self.transfer_results(run)
 
@@ -275,6 +285,7 @@ class Daemon:
             return
         run.download_task_id = transfer_result["task_id"]
         run.status = "downloading"
+        self.logger.info(f"Run {run.id}: downloading")
         self.session.commit()
 
     def check_if_download_complete(self, run):
@@ -295,7 +306,9 @@ class Daemon:
             raise
         if status == "SUCCEEDED":
             run.status = "finished"
+            self.logger.info(f"Run {run.id}: finished")
             self.session.commit()
         elif status == "FAILED":
             run.status = "download failed"
+            self.logger.info(f"Run {run.id}: download failed")
             self.session.commit()
