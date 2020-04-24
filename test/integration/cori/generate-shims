@@ -9,14 +9,14 @@ cat <<EOM > $SHIMDIR/jaws-central-auth-dev
 #!/usr/bin/env bash
 
 source $INSTALLDIR/central/bin/activate
-exec jaws-central auth --log $INSTALLDIR/logs/central-auth.log --config $INSTALLDIR/configs/jaws-central.conf
+exec jaws-central --log $INSTALLDIR/logs/central-auth.log --config $INSTALLDIR/configs/jaws-central.conf auth
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-central-rest-dev
 #!/usr/bin/env bash
 
 source $INSTALLDIR/central/bin/activate
-exec jaws-central rest --log $INSTALLDIR/logs/central-rest.log --config $INSTALLDIR/configs/jaws-central.conf
+exec jaws-central --log $INSTALLDIR/logs/central-rest.log --config $INSTALLDIR/configs/jaws-central.conf rest
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-site-daemon-dev
