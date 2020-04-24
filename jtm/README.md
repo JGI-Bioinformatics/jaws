@@ -3,7 +3,6 @@ JGI Task Manager (JTM)
 
 
 
-
 - Note
    . Online documentation: https://jaws-docs.readthedocs.io/en/latest/index.html
 
