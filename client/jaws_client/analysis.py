@@ -7,6 +7,7 @@ import json
 import requests
 import click
 import logging
+import subprocess
 from typing import Dict
 from jaws_client import config, user, workflow
 
@@ -302,3 +303,24 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
         raise SystemExit(f"Invalid response from JAWS: {result}")
     run_id = result["run_id"]
     print(f"Successfully queued run {run_id}")
+
+
+@run.command()
+@click.argument("wdl_file", nargs=1)
+def inputs(wdl_file: str) -> None:
+    """Generate inputs template (JSON) from workflow (WDL) file.
+
+    :param wdl_file: Path to workflow specification (WDL) file
+    :type wdl_file: str
+    :return:
+    """
+    if not os.path.isfile(wdl_file):
+        raise IOError(f"File not found: {wdl_file}")
+    proc = subprocess.run(
+        ["java", "-jar", config.conf.get("JAWS", "womtool_jar"), "inputs", wdl_file, ],
+        capture_output=True,
+        text=True,
+    )
+    if proc.stderr:
+        raise SystemExit(proc.stderr)
+    print(proc.stdout.strip())
