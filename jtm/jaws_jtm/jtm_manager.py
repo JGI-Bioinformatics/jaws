@@ -1061,7 +1061,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         job_script_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "job")
         make_dir(job_script_dir_name)
 
-        for i in range(0, num_node_to_add):
+        for _ in range(0, num_node_to_add):
             uniq_worker_id = str(shortuuid.uuid())
             if pool_cluster == "cori":
                 sbatch_cmd_str = create_sbatch_cmd_nersc(pool_name,
@@ -1862,7 +1862,6 @@ def manager(ctx: object, custom_log_dir_name: str, b_resource_usage_log_on: bool
     JGI_JTM_MAIN_EXCH = CONFIG.configparser.get("JTM", "jgi_jtm_main_exch")
     global JTM_INNER_REQUEST_Q
     JTM_INNER_REQUEST_Q = CONFIG.configparser.get("JTM", "jtm_inner_request_q")
-
     mysql_db = CONFIG.configparser.get("MYSQL", "db")
     prod_mode = False
     if CONFIG.configparser.get("JTM", "run_mode") == "prod":

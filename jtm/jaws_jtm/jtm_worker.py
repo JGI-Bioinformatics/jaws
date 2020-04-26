@@ -276,8 +276,7 @@ def check_output(out_files, out_file_check_wait_time=3,
 
 # -------------------------------------------------------------------------------
 def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
-                           num_cores, job_time, task_queue_name, pool_name,
-                           nwpn, exch_name, worker_hb_queue):
+                           num_cores, job_time, task_queue_name, pool_name, nwpn):
     """
     Send heartbeats to the client
 
@@ -290,8 +289,6 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
     :param task_queue_name: task queue name
     :param pool_name: pool name
     :param nwpn: number of workers per node
-    :param exch_name
-    :param worker_hb_queue: worker hb queue postfix
     :return:
     """
     # Remote broker (mq.nersc.gov)
@@ -303,6 +300,9 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
     conn = rmq_conn.open()
     ch = conn.channel()
     host_name = socket.gethostname()
+
+    exch_name = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
+    worker_hb_queue = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
 
     ch.exchange_declare(exchange=exch_name,
                         exchange_type="direct",
@@ -859,12 +859,15 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str, cust
         if num_cores_to_request_param else CONFIG.configparser.getint("SLURM", "ncpus")
 
     # Set CPU affinity for limiting the number of cores to use
+    # Worker id ends with _x, x means the number in the node if nwpn > 1
+    # using x, control the CPU affinity
+    # ex)
+    # total_cpu_num = 32, num_workers_per_node_param = 4
+    # split_cpu_num = 8
+    # worker_number - 1 == 0 --> [0, 1, 2, 3, 4, 5, 6, 7]
+    # worker_number - 1 == 1 --> [8, 9, 10, 11, 12, 13, 14, 15]
     if worker_type_param != "manual" and worker_id_param and worker_id_param.find('_') != -1:
-        # ex)
-        # total_cpu_num = 32, num_workers_per_node_param = 4
-        # split_cpu_num = 8
-        # worker_number - 1 == 0 --> [0, 1, 2, 3, 4, 5, 6, 7]
-        # worker_number - 1 == 1 --> [8, 9, 10, 11, 12, 13, 14, 15]
+
         proc = psutil.Process(PARENT_PROCESS_ID)
         try:
             # Use the appended worker id number as worker_number
@@ -1013,9 +1016,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str, cust
                                                       job_time_to_request,
                                                       inner_task_request_queue,
                                                       tp_name,
-                                                      num_workers_per_node,
-                                                      CONFIG.configparser.get("JTM", "jtm_worker_hb_exch"),
-                                                      CONFIG.configparser.get("JTM", "worker_hb_q_postfix")))
+                                                      num_workers_per_node))
         send_hb_to_client_proc_hdl.start()
         pid_list.append(send_hb_to_client_proc_hdl)
     except Exception as e:
