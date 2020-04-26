@@ -13,6 +13,7 @@ import logging
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_jtm.lib.run import make_dir
+from jaws_jtm.config import JtmConfig
 
 logger = logging.getLogger(__package__)
 
@@ -21,9 +22,17 @@ class JtmInterface(object):
     """
     Class for jtm-* CLI tools
     """
-    def __init__(self, task_type, ctx=None, info_tag=None,):
+    def __init__(self, task_type, ctx=None, info_tag=None, config_file=None):
         self.task_type = task_type
-        self.config = ctx.obj['config']
+        if ctx is not None:
+            self.config = ctx.obj['config']
+            self.debug = ctx.obj['debug']
+        else:
+            if config_file:
+                self.config = JtmConfig(config_file=config_file)
+            else:
+                self.config = JtmConfig()
+            self.debug = self.config.configparser.getboolean("SITE", "debug")
         self.rmq_conn = RmqConnectionHB(config=self.config)
         self.connection = self.rmq_conn.open()
         self.channel = self.connection.channel()
@@ -34,7 +43,6 @@ class JtmInterface(object):
         self.jtm_task_request_q = self.config.configparser.get("JTM", "jtm_task_request_q")
         self.jtminterface_max_trial = self.config.configparser.getint("JTM", "jtminterface_max_trial")
         self.jtm_host_name = self.config.configparser.get("SITE", "jtm_host_name").replace(".", "_")
-        self.debug = ctx.obj['debug']
         self.jobtime = self.config.configparser.get("SLURM", "jobtime")
         self.constraint = self.config.configparser.get("SLURM", "constraint")
         self.charge_accnt = self.config.configparser.get("SLURM", "charge_accnt")

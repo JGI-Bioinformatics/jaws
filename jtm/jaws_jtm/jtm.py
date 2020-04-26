@@ -5,12 +5,33 @@ import click
 import socket
 import json
 import csv
+from flask import Flask, request
+from flask_restful import Resource, Api
 
 from jaws_jtm.config import JtmConfig
 from jaws_jtm.jtm_manager import manager as jtmmanager
 from jaws_jtm.jtm_worker import worker as jtmworker
 from jaws_jtm.lib.jtminterface import JtmInterface
 from jaws_jtm.lib.run import eprint
+
+app = Flask(__name__)
+api = Api(app)
+
+todos = {}
+
+
+class GetStatus(Resource):
+    def get(self, task_id: int):
+        return {"status": int(JtmInterface('status', ctx=None, info_tag=task_id).call(task_id=task_id))}
+
+
+class GetResourcelog(Resource):
+    def get(self, task_id: int):
+        return {"file": JtmInterface('resource', ctx=None, info_tag=task_id).call(task_id=task_id)}
+
+
+api.add_resource(GetStatus, '/status/<int:task_id>')
+api.add_resource(GetResourcelog, '/resource-log/<int:task_id>')
 
 
 class Mutex(click.Option):
@@ -193,8 +214,8 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
               help="Job time (hh:mm:ss)",)
 @click.pass_context
 def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: str, account: str, ncpu: int,
-           constraint: str, num_worker_per_node: int, cromwell_job_id: str, memory: str, mempercpu: str, nnodes: int,
-           partition: str, qos: str, shared: int, job_time, dry_run: bool) -> int:
+           constraint: str, num_worker_per_node: int, cromwell_job_id: str, memory: str, mempercpu: str,
+           nnodes: int, partition: str, qos: str, shared: int, job_time, dry_run: bool) -> int:
     """
     JtmInterface returns 'task_id' if successfully queued
     jtm submit exits with code 0 if successfully submitted
@@ -510,6 +531,15 @@ def resource_log(ctx: object, task_id: int) -> int:
         resource_log_file = None
 
     sys.exit(0) if resource_log_file is not None else sys.exit(1)
+
+
+@cli.command()
+def server():
+    """
+    RESTful API Server
+    :return:
+    """
+    app.run(debug=True)
 
 
 def jtm():
