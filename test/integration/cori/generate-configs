@@ -169,6 +169,8 @@ file_check_interval = 3.0
 file_check_int_inc = 1.5
 # jtm_* CLI command timeout in secs.
 jtminterface_max_trial = 300
+# worker lifeleft for task timeout
+task_kill_timeout_minute = 3
 jtm_inner_request_q = _jtm_inner_request_queue.\${SITE:instance_name}
 jtm_inner_result_q = _jtm_inner_result_queue.\${SITE:instance_name}
 jtm_task_kill_q = _jtm_task_kill.\${SITE:instance_name}

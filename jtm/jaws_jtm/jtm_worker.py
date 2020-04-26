@@ -110,8 +110,9 @@ def run_user_task(msg_unzipped, return_msg, ch):
         # timeout will be set as 10min
         # TASK_KILL_TIMEOUT_MINUTE is a extra housekeeping time after explicitly
         # terminate a task.
+        task_kill_timeout_minute = CONFIG.configparser.getint("JTM", "task_kill_timeout_minute")
         logger.debug("worker life: %d", WORKER_LIFE_LEFT_IN_MINUTE.value)
-        time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - CONFIG.constants.TASK_KILL_TIMEOUT_MINUTE)
+        time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - task_kill_timeout_minute)
         logger.info("Timeout in minute: %d", time_out_in_minute)
 
     proc_return_code = -1
@@ -315,18 +316,6 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
 
     while True:
         try:
-            # Todo: make it optional to send the resource info on hb message
-            #
-            # To check out-of-mem
-            # 1. On genepool node
-            #    Need to get ram.c and v_mem.c, and compare them with sum(mem usages
-            #    from all processes) to check out-of-mem
-            # 2. On Mendel node
-            #    Use "free" call for getting mem usage (%) for the node
-            #    If >90% used, kill a process (selection strategy is needed)
-            #
-            # NOTE: must cope with the fast mem consumption at the begining of the process
-
             if USER_PROC_PROC_ID.value == 0:
                 child_pid = PARENT_PROCESS_ID
             else:

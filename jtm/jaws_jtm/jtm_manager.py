@@ -1079,7 +1079,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                                                          1,
                                                          dry_run)
             elif pool_cluster == "lbl":
-                sbatch_cmd_str = create_sbatch_cmd_lbl(pool_name,
+                sbatch_cmd_str = TASK_KILL_TIMEOUT_MINUTE(pool_name,
                                                        pool_cluster,
                                                        pool_ncpus,
                                                        pool_time,
