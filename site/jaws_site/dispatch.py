@@ -6,6 +6,7 @@ import requests
 from http.client import responses
 import logging
 import os
+import shutil
 from jaws_site import config
 
 
@@ -27,6 +28,7 @@ def dispatch(method, params):
         "cancel_run": cancel_run,
         "run_logs": run_logs,
         "failure_logs": failure_logs,
+        "delete_run": delete_run,
     }
     proc = operations.get(method)
     logger = logging.getLogger(__package__)
@@ -301,3 +303,34 @@ def __tail(filename, max_lines=1000):
                 del lines[0]
                 is_truncated = True
     return lines, is_truncated
+
+
+def delete_run(params):
+    """Delete a run's output.
+
+    :param cromwell_id: The Cromwell run ID
+    :type cromwell_id: str
+    :return: Either a JSON-RPC2-compliant success or failure message,
+    :rtype: dict
+    """
+    logger = logging.getLogger(__package__)
+    if "cromwell_id" not in params:
+        return failure(400, "cromwell_id not in params")
+    cromwell_id = params["cromwell_id"]
+    run_id = params["run_id"]
+    url = f"{config.conf.get('CROMWELL', 'workflows_url')}/{cromwell_id}/metadata"
+    r = do_request(url, requests.get)
+    run_dir = r.json()["workflowRoot"]
+    if not run_dir:
+        return failure(404, f"workflowRoot not found for {cromwell_id}")
+    result = {}
+    logger.info(f"Delete output of run_id {run_id} : cromwell_id {cromwell_id} : {run_dir}")
+    try:
+        # rmtree may take too long, resulting in server timeout error; rename instead
+        dest_dir = os.path.join(os.path.dirname(run_dir), f"{os.path.basename(run_dir)}.IGNORE")
+        shutil.move(run_dir, dest_dir)
+        result["message"] = f"Purged run {run_id} from cache"
+    except Exception as error:
+        logger.error(f"Failed to purge run {run_id} in {run_dir}: {error}")
+        return failure(500, f"Failed to purge run {run_id} in {run_dir}: {error}")
+    return success(result)

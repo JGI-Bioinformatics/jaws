@@ -399,6 +399,25 @@ paths:
         404:
           description: The specified record does not exist
 
+    delete:
+      operationId: jaws_central.analysis.delete_run
+      tags:
+        - run
+      summary: Purge a run's output
+      description: Purging prevents reuse by cache
+      parameters:
+        - name: run_id
+          in: path
+          type: integer
+          required: True
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+        404:
+          description: The specified record does not exist
+
   /run/{run_id}/abort:
     put:
       operationId: jaws_central.analysis.cancel_run

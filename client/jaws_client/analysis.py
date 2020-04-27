@@ -184,22 +184,21 @@ def cancel(run_id):
 
 @run.command()
 @click.argument("run_id")
-@click.option("--task", default=None)
-def delete(run_id: int, task: str) -> None:
+def delete(run_id: int) -> None:
     """Delete the output of a run or task to avoid caching.
 
     :param run_id: JAWS run ID
     :type run_id: int
-    :param task: Name of the task to invalidate
-    :type task: str, optional
     :return:
     """
-    url = None
-    if task is not None:
-        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
-    else:
-        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/{task}'
-    r = _get(url)
+    current_user = user.User()
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
+    try:
+        r = requests.delete(url, headers=current_user.header())
+    except requests.exceptions.RequestException:
+        raise SystemExit("Unable to communicate with JAWS server")
+    if r.status_code != 200:
+        raise SystemExit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
