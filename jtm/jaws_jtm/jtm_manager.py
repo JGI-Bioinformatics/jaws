@@ -204,14 +204,16 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                         conn.sleep(1)
 
                 # todo: handle "pending" here
-                #  which value indicates it's in pending?
-                if task_id > 0 and root_proc_id == child_proc_id:
+                #  which value indicates task's in pending?
+                if task_id > 0 and root_proc_id == child_proc_id and slurm_job_id > 0:
+                    logger.debug("Task status ==> queued")
                     db.execute(JTM_SQL["update_runs_status_to_pending_by_taskid"]
                                % dict(status_id=TASK_STATUS["queued"],
                                       task_id=task_id,
                                       worker_id=a_worker_id),
                                debug=False)
                 elif task_id > 0 and root_proc_id != child_proc_id:  # if user process processing started
+                    logger.debug("Task status ==> running")
                     datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
                     if log_dest_dir:
                         log_dir_name = os.path.join(log_dest_dir, "resource")
@@ -1193,6 +1195,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             success = True
             try:
                 db = DbSqlMysql(config=CONFIG)
+                logger.debug("Task status ==> ready")
                 db.execute(JTM_SQL["insert_runs_tid_sid"]
                            % dict(task_id=lastTid,
                                   status_id=TASK_STATUS["ready"]))
