@@ -113,6 +113,14 @@ JTM_SQL = {
             resource = '%(resource_log)s'
         WHERE taskId = %(task_id)d
               and status < 2;""",
+    "update_runs_status_to_pending_by_taskid": """
+        UPDATE runs
+        SET status = %(status_id)d,
+            workerId2 = (select workerId2
+                         from workers
+                         where workerId='%(worker_id)s')
+        WHERE taskId = %(task_id)d
+              and status < 3;""",
     "select_clonecnt_workers_by_workerid": """
         SELECT cloneCnt
         FROM workers
@@ -154,10 +162,6 @@ JTM_SQL = {
             workerId2 = %(wid2)d,
             endDate = '%(now)s'
         WHERE taskId = %(task_id)d;""",
-    # "select_status_runs_by_taskid": """
-    #     SELECT status
-    #     FROM runs
-    #     WHERE taskId = %(task_id)d""",
     "select_resource_runs_by_taskid": """
         SELECT resource
         FROM runs

@@ -203,7 +203,14 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                         success = False
                         conn.sleep(1)
 
-                if task_id > 0 and root_proc_id != child_proc_id:  # if there is a user process started
+                # todo: handle "pending" here
+                if task_id > 0 and root_proc_id == child_proc_id and slurm_job_id > 0:
+                    db.execute(JTM_SQL["update_runs_status_by_taskid"]
+                               % dict(status_id=TASK_STATUS["queued"],
+                                      task_id=task_id,
+                                      worker_id=a_worker_id),
+                               debug=False)
+                elif task_id > 0 and root_proc_id != child_proc_id:  # if user process processing started
                     datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
                     if log_dest_dir:
                         log_dir_name = os.path.join(log_dest_dir, "resource")
@@ -1079,7 +1086,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                                                          1,
                                                          dry_run)
             elif pool_cluster == "lbl":
-                sbatch_cmd_str = TASK_KILL_TIMEOUT_MINUTE(pool_name,
+                sbatch_cmd_str = create_sbatch_cmd_lbl(pool_name,
                                                        pool_cluster,
                                                        pool_ncpus,
                                                        pool_time,
@@ -1257,6 +1264,9 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                 # Todo: need this update to change the task status to "queued"?
                 ch._connection.sleep(CONFIG.configparser.getfloat("JTM", "task_stat_update_interval"))
 
+                # This TASK_STATUS["queued"] means it's queued to jtm task queue
+                # TASK_STATUS["pending"] means node requested to slurm
+                # TASK_STATUS["running"] means task processing started
                 try:
                     db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_runs_tid_startdate_by_tid"]
@@ -1443,9 +1453,13 @@ def process_task_kill(ch, method, props, msg):
         # because worker id and pid is not known yet
 
     if task_status:
-        if task_status in (TASK_STATUS["ready"], TASK_STATUS["queued"]):
+        if task_status in (TASK_STATUS["ready"], TASK_STATUS["queued"], TASK_STATUS["pending"]):
             logger.debug("Task cancellation requested but the task, %d has already been queued." % (task_id))
             logger.debug("The task will be terminated once it's started.")
+            update_runs_cancelled(task_id)
+            return_msg = 0
+        # todo: how to handle task cancellation with pending slurm job better?
+        if task_status == TASK_STATUS["pending"]:
             update_runs_cancelled(task_id)
             return_msg = 0
         elif task_status == TASK_STATUS["running"]:

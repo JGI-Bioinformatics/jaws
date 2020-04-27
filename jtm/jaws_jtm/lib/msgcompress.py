@@ -8,7 +8,6 @@ import pickle as cPickle
 import zlib
 
 
-# -------------------------------------------------------------------------------
 def zdumps(obj):
     """
     Dumps pickleable object into zlib compressed string
@@ -21,7 +20,6 @@ def zdumps(obj):
     return zlib.compress(cPickle.dumps(obj, cPickle.HIGHEST_PROTOCOL), 5)  # py3
 
 
-# -------------------------------------------------------------------------------
 def zloads(zstr):
     """
     Loads pickleable object from zlib compressed string

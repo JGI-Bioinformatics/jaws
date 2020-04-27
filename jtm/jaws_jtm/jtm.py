@@ -17,21 +17,20 @@ from jaws_jtm.lib.run import eprint
 app = Flask(__name__)
 api = Api(app)
 
-todos = {}
 
-
+# RESTful
 class GetStatus(Resource):
     def get(self, task_id: int):
         return {"status": int(JtmInterface('status', ctx=None, info_tag=task_id).call(task_id=task_id))}
 
 
-class GetResourcelog(Resource):
+class GetResourceLog(Resource):
     def get(self, task_id: int):
         return {"file": JtmInterface('resource', ctx=None, info_tag=task_id).call(task_id=task_id)}
 
 
 api.add_resource(GetStatus, '/status/<int:task_id>')
-api.add_resource(GetResourcelog, '/resource-log/<int:task_id>')
+api.add_resource(GetResourceLog, '/resource-log/<int:task_id>')
 
 
 class Mutex(click.Option):
@@ -90,7 +89,6 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
     :param ctx:
     :param log_dir: custom log dir
     :param show_resource_log: show/not show resource usage log
-    :return:
     """
     sys.exit(jtmmanager(ctx, log_dir, show_resource_log))
 
@@ -154,7 +152,6 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :param mem: memory request
     :param mem_per_cpu: memory request per cpu
     :param job_time: wallclocktime
-    :return:
     """
     sys.exit(jtmworker(ctx, heartbeat_interval, log_dir, job_script_dir_name, pool_name, slurm_job_id, worker_type,
                        cluster, num_worker_per_node, worker_id, cpus_per_task, mem, mem_per_cpu, job_time))
@@ -242,7 +239,7 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
     :param shared:
     :param job_time:
     :param dry_run:
-    :return:
+    :return: exit with 0 if succeeded, 1 if failed
     """
     if ctx.obj['debug']:
         click.echo("Debug mode")
@@ -300,7 +297,7 @@ def kill(ctx: object, task_id: int) -> int:
 
     :param ctx:
     :param task_id:
-    :return:
+    :return: exit with 0 if succeeded, 1 if failed
     """
     ret = int(JtmInterface('kill', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
@@ -334,7 +331,7 @@ def isalive(ctx: object, task_id: int) -> int:
 
     :param ctx:
     :param task_id:
-    :return:
+    :return: exit with 0 if alive, 1 if not
     """
     ret = int(JtmInterface('status', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
@@ -368,7 +365,11 @@ def status(ctx: object, task_id: int) -> int:
 
     :param ctx:
     :param task_id:
-    :return:
+    :return: 0 if ready
+      1 if queued
+      2 if running
+      4 if successfully done
+      < 0: failed
     """
     ret = int(JtmInterface('status', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
@@ -400,7 +401,7 @@ def remove_pool(ctx: object, pool_name: str, cluster: str) -> int:
     :param ctx:
     :param pool_name:
     :param cluster:
-    :return:
+    :return: exit with 0 if succeeded, 1 if failed
     """
     ret = int(JtmInterface('remove_pool', ctx, info_tag=pool_name).call(task_pool=pool_name,
                                                                         jtm_host_name=cluster))
@@ -429,7 +430,7 @@ def check_worker(ctx: object, pool_name: str, slurm_info: bool, cluster) -> int:
     :param pool_name:
     :param slurm_info:
     :param cluster:
-    :return:
+    :return: number of workers in the pool specified
     """
     add_info = socket.gethostname().replace(".", "_")
     if cluster:
@@ -459,7 +460,7 @@ def check_manager(ctx: object, cluster: str) -> int:
 
     :param ctx:
     :param cluster:
-    :return:
+    :return: exit with 0 if a manager found, 1 if not
     """
     add_info = socket.gethostname().replace(".", "_")
     if cluster:
@@ -486,7 +487,7 @@ def resource_log(ctx: object, task_id: int) -> int:
 
     :param ctx:
     :param task_id:
-    :return:
+    :return: JSON string
     """
     resource_log_file = JtmInterface('resource', ctx, info_tag=task_id).call(task_id=task_id)
     if resource_log_file == -88:
@@ -537,7 +538,6 @@ def resource_log(ctx: object, task_id: int) -> int:
 def server():
     """
     RESTful API Server
-    :return:
     """
     app.run(debug=True)
 
