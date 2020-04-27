@@ -41,8 +41,10 @@ Subworkflow: sub.wdl
 How to Run Subworflows in JAWS
 ##############################
 
-You can try running this example by downloading `subworkflow-helloworld <https://gitlab.com/jfroula/jaws-example-wdl/tree/master/subworkflow-helloworld>`_ repository and running
+You can try running this example by downloading `subworkflow-helloworld <https://code.jgi.doe.gov/advanced-analysis/jaws/tree/dev/examples/subworkflow-helloworld>`_ as a tar or zip or you can clone :bash:`https://code.jgi.doe.gov/advanced-analysis/jaws` and cd into jaws/examples/subworkflow-helloworld.
+
+Then run
 
 .. code-block:: bash
 
-   jaws run submit main.wdl fake.json
+   jaws run submit main.wdl inputs.json $(pwd)/out nersc
