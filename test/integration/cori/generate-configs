@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -eo pipefail
+
 readonly configdir=${1:-/tmp/}
 
 [[ -z $JAWS_SITE_CORI_DB_PW ]]     && { printf "Missing JAWS_SITE_CORI_DB_PW variable.\n"; exit 1; }
@@ -124,7 +126,7 @@ qos = genepool
 charge_accnt = fungalp
 constraint = haswell
 [JTM]
-cluster = ${SITE:jtm_host_name}
+cluster = \${SITE:jtm_host_name}
 run_mode = dev
 # static worker self cloning time rate. not used.s
 clone_time_rate = 0.2
