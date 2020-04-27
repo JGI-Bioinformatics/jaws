@@ -1316,6 +1316,10 @@ def process_task_status(ch, method, props, task_id):
         if ret[1] == 1:  # cancellation requested
             task_status_int = TASK_STATUS["terminated"]
         else:
+            # 0 if ready
+            # 1 if queued
+            # 2 if pending
+            # 3 if running
             task_status_int = ret[0]
     else:
         logger.debug("Task ID not found: {}".format(task_id))

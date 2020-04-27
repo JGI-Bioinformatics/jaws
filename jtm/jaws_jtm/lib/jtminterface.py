@@ -54,6 +54,7 @@ class JtmInterface(object):
         self.nnodes = self.config.configparser.getint("SLURM", "nnodes")
         self.poolname = self.config.configparser.get("JTM", "pool_name")
         self.nwpn = self.config.configparser.get("JTM", "num_workers_per_node")
+        self.corr_id = str(uuid.uuid4())
 
         self.channel.exchange_declare(exchange=self.jgi_jtm_main_exch,
                                       exchange_type='direct',
@@ -246,7 +247,6 @@ class JtmInterface(object):
             pprint.pprint(json_data_dict)
             print(("jtmTaskRequestQ = %s" % jtmTaskRequestQ))
 
-        self.corr_id = str(uuid.uuid4())
         self.channel.basic_publish(exchange=self.jgi_jtm_main_exch,
                                    routing_key=jtmTaskRequestQ,
                                    properties=pika.BasicProperties(

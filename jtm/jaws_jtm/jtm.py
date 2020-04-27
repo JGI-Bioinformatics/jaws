@@ -320,11 +320,12 @@ def isalive(ctx: object, task_id: int) -> int:
     JtmInterface returns
       0 if ready
       1 if queued
-      2 if running
+      2 if pending
+      3 if running
       4 if successfully done
       -1, -2, -3, -4: failed
 
-    jtm isalive exits with 0 if it's in ['ready', 'queued', 'running'] status
+    jtm isalive exits with 0 if it's in ['ready', 'queued', 'pending', 'running'] status
                           1 if it's done successfully or failed
 
     click.echo("isalive")
@@ -337,7 +338,7 @@ def isalive(ctx: object, task_id: int) -> int:
     if ret == -88:
         eprint("jtm isalive: command timeout.")
         sys.exit(-1)
-    elif ret in [0, 1, 2]:
+    elif ret in [0, 1, 2, 3]:
         click.echo("yes")
         sys.exit(0)
     else:
@@ -356,18 +357,20 @@ def status(ctx: object, task_id: int) -> int:
     JtmInterface returns
       0 if ready
       1 if queued
-      2 if running
+      2 if pending
+      3 if running
       4 if successfully done
       -1, -2, -3, -4: failed
 
-    jtm status exits with 0 if it's in ['ready', 'queued', 'running'] status
+    jtm status exits with 0 if it's in ['ready', 'queued', 'pending', 'running'] status
                           1 if it's done successfully or failed
 
     :param ctx:
     :param task_id:
     :return: 0 if ready
       1 if queued
-      2 if running
+      2 if pending
+      3 if running
       4 if successfully done
       < 0: failed
     """
@@ -377,7 +380,7 @@ def status(ctx: object, task_id: int) -> int:
         sys.exit(-1)
     reversed_task_status = dict(map(reversed, ctx.obj['config'].constants.TASK_STATUS.items()))
     click.echo(reversed_task_status[ret])
-    sys.exit(0) if ret in [0, 1, 2] else sys.exit(1)
+    sys.exit(0) if ret in [0, 1, 2, 3] else sys.exit(1)
 
 
 @cli.command()
