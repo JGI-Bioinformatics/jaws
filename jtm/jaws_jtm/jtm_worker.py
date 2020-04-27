@@ -486,59 +486,6 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
     conn.close()
 
 
-# -----------------------------------------------------------------------
-def recv_hb_from_client_proc2(task_queue):
-    """
-
-    :param task_queue:
-    :param exch_name:
-    :param cl_hb_q_postfix:
-    :return:
-    """
-    rmq_conn = RmqConnectionHB(config=CONFIG)
-    conn = rmq_conn.open()
-    ch = conn.channel()
-    exch_name = JTM_CLIENT_HB_EXCH
-    cl_hb_q_postfix = CLIENT_HB_Q_POSTFIX
-
-    # Declare exchange
-    ch.exchange_declare(exchange=exch_name,
-                        exchange_type="topic",
-                        durable=False,
-                        auto_delete=False)
-
-    # Declare queue
-    client_hb_queue_name = "_jtm_worker_%s%s" % (UNIQ_WORKER_ID, cl_hb_q_postfix)
-    ch.queue_declare(queue=client_hb_queue_name,
-                     durable=False,
-                     exclusive=True,
-                     auto_delete=True)
-
-    # Bind exchange to hb queue for receiving the client hb
-    ch.queue_bind(exchange=exch_name,
-                  queue=client_hb_queue_name,
-                  routing_key="*." + CNAME)
-
-    logger.info('[*] Waiting for the manager.')
-
-    def callback(ch, method, properties, body):
-        msg_unzipped = json.loads(zloads(body))
-        if msg_unzipped["task_type"] == TASK_TYPE["term"] and msg_unzipped["task_queue"] == task_queue:
-            raise OSError(2, 'Worker termination request received.')
-        elif msg_unzipped["task_type"] == TASK_TYPE["hb"]:
-            pass
-
-    ch.basic_consume(queue=client_hb_queue_name,
-                     on_message_callback=callback,
-                     auto_ack=True)
-
-    try:
-        ch.start_consuming()
-    except KeyboardInterrupt:
-        ch.stop_consuming()
-        raise
-
-
 # -------------------------------------------------------------------------------
 def recv_task_kill_request_proc():
     """
@@ -1524,18 +1471,6 @@ wait
         pid_list.append(recv_poison_proc_hdl)
     except Exception as e:
         logger.exception("recv_reproduce_or_die_proc: {}".format(e))
-        proc_clean(pid_list)
-        conn_clean(conn, ch)
-        sys.exit(1)
-
-    # Start hb send thread
-    try:
-        send_hb_to_client_proc_hdl = mp.Process(target=recv_hb_from_client_proc2,
-                                                args=(inner_task_request_queue,))
-        send_hb_to_client_proc_hdl.start()
-        pid_list.append(send_hb_to_client_proc_hdl)
-    except Exception as e:
-        logger.exception("Worker termination request: {}".format(e))
         proc_clean(pid_list)
         conn_clean(conn, ch)
         sys.exit(1)
