@@ -1,0 +1,1 @@
+jaws -f main.wdl --imports sub.wdl.zip -i fake.json

@@ -2,7 +2,7 @@
 WHY Use JAWS
 #############
 
-.. figure:: /Figures/benifits.jpg
+.. figure:: /Figures/benifits.svg
    :scale: 50%
 
 

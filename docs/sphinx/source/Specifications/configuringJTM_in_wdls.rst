@@ -19,16 +19,18 @@ Although there is a wait time because worker pools are allocated by submitting t
 .. code-block:: bash
 
    runtime {
-       cluster: "cori"          # [cori|lbl]
-       time: "12:00:00"         # up to 72hrs
-       mem: "115G"              # you get a exclusive machine no matter what this setting is. You have two choices: ["115G"|"500G"]
-       poolname: "my_pool_name" # your choice.
-       shared: 1                # a setting of 1 will allow other tasks (even from other workflows) to use identical pools if the "poolname" is the same.
+       time: "00:30:00"         # up to 72hrs
+       mem: "5G"                # you get a exclusive machine no matter what this setting is. You have two choices: ["115G"|"500G"]
+       poolname: "small"        # your choice.
+       shared: 0                # a setting of 1 will allow other tasks (even from other workflows) to use identical pools if the "poolname" is the same.
                                 # a setting of 0 will still allow different tasks within the same WDL to reuse the same "poolname", but prevent any other WDLS from reusing a pool. This guarantees that two identical WDLs running at the same time will be given different worker pools even though the poolname is the same.
        node: 1                  # number of nodes in the pool. You only need to set this higher when you are scattering a job.
        nwpn: 1                  # number of workers per node(up to 32).  This depends on the job's memory & thread requirements.
-       cpu: 32                  # this is not used by JTM if run on cori. You can ignore this parameter until we add other "cluster" options.
+       cpu: 1                   # this is not used by JTM if run on cori. You can ignore this parameter until we add other "cluster" options.
+       cluster: "cori"          # default will send nersc jobs to cori, not knl. jobs at other sites will ignore this value
        constraint: "haswell"    # [haswell|knl|skylake]. Don't use constraint at all if you want to use the default haswell nodes.
+       qos: "genepool_special"  # [haswell|knl|skylake]. Don't use constraint at all if you want to use the default haswell nodes.
+       account: "fungalp"       # [haswell|knl|skylake]. Don't use constraint at all if you want to use the default haswell nodes.
                                 # Warning: using "knl" will limit your pool to the debug queue which is 30min. limit (until further notice).
                                 # If you want to use high-mem node, set it as "skylake".
    }

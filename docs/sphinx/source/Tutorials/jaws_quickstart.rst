@@ -27,8 +27,7 @@ Currently JAWS can be run at
   * LBNL(Lawrencium)  
 
 .. note::
-    Important  
-    When running a JAWS job, you will always start it on Cori, and use the flag --site=[nersc|lbnl] to specify where you want to run it.
+    When running a JAWS job, you will always start it on Cori. You can specify as a command argument which site you want [nersc|lbnl].
 
 
 To use JAWS, you'll have to have an account at NERSC.  
@@ -106,7 +105,7 @@ Run WDL in JAWS
     cd jaws/examples/create_wdl_tutorial
     
     # run jaws run submit <workflow> <inputs> <full path to outdir> <site: [nersc|lbnl]>
-    jaws run submit align.wdl inputs.json $(pwd)/out nersc
+    jaws run submit align.wdl inputs.json out nersc
     
     # you should see something like this
     2020-04-16 13:04:18,434 - INFO - workflow - Validating WDL, align.wdl
