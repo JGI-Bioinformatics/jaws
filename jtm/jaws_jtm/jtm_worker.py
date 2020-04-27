@@ -19,101 +19,6 @@ Example scenario
 6. jtm listens to "jgi_jtm_inner_result_queue" queue; when a result is ready, takes and updates
    tables
 
-
-Revisions
-
-    05.06.2015 Debugging worker socket disconnection issue;
-    05.19.2015 Added channel.close();
-    05.20.2015 Added RMQ reconnection for when the connection is lost due to long task processing;
-
-    05.20.2015 2.5.0 released!
-
-    12.03.2015 2.7.0: Tested with heartbeat_interval=0 (RmqConnectionHB(0)) for worker and
-                      heartbeat_interval=60 for client in BlockingConnection()
-
-    03.03.2017 3.0.0: Updated to set hearbeat_internal=0 so that connection timeout is disabled
-    03.03.2017 3.0.3: Added custom log file location option for worker
-    07.10.2017 3.0.4: Updated to print task id when completed
-
-    09.12.2018 3.1.0: Branched out "JTM"; Updated for pika=0.12.0; Changed "type" to "exchange_type"
-                      in exchange_declare();
-                      Added "jgi_jtm_task_manager" exchange for task and result messages
-    09.13.2018 3.1.1: Added unique worker id
-
-    09.13.2018 3.2.0: Added worker heartbeat exchange
-
-    ---------------------------------------------------------------------------------------------
-
-    09.19.2018 0.0.9: Started jtm-worker
-
-    09.21.2018 1.0.0: Working version
-    09.27.2018 1.1.0: Updated message structure;
-
-    10.03.2018 1.2.0: Added task_type
-    10.04.2018 1.2.1: Set jgi_jtm_client_hb_exchange durable=True and auto_delete=False so that it
-                      can be maintained even with no worker
-    10.05.2018 1.2.2: Updated resource msg as dict
-    10.05.2018 1.2.3: Updated sned hb to client interval to 5sec; Added comm pipe to send taskid
-                      with hb;
-
-    10.12.2018 1.4.0: Added recv_reproduce_or_die_proc; jtm_kill done
-    10.17.2018 1.4.2: Fixed panic() to terminate child processes
-    10.18.2018 1.4.3: Added darwin support for resource reporting
-    10.19.2018 1.4.4: Worker can use different queue name (=pool) when user task json has "pool" key
-    10.22.2018 1.4.5: Updated workers table; workerId2 for workers table; life_left;
-    10.23.2018 1.4.6: Bug fix about workerId2
-    10.26.2018 1.4.8: Fixed user termination error code update (-4); Set USER_PROC_PROC_ID = -9 if user
-                      process is killed
-
-    10.26.2018 1.5.0: Demo version with static workers tested
-    10.28.2018 1.5.1: Added ipaddress to worker hb
-
-    11.06.2018 1.6.0: Tested static workers and sbatch
-               1.6.1: Remove user account name from queue name for EC2
-    11.08.2018 1.6.2: Added custom queue name postfix for testing in Config
-    11.13.2018 1.6.3: Updated jtm_submit for large node sbatch; Updated send_hb to use CNAME as
-                      postfix; Added jtm_check_manager cli;
-
-    11.13.2018 1.7.0: Updated sbatch for static worker cloning; removed 'interval' from hb;
-    11.14.2018 1.7.1: Added dynamic worker spawning
-
-    11.15.2018 1.8.0: Dynamic workers; Changed hb header format;
-    11.19.2018 1.8.1: Changed basic_consume callback args; Changed process_task_request to use the
-                      custom pool name as task queue if -p is used; Updated routine to get the
-                      current live workers and add a feature to get the num workers per pool name;
-
-    01.16.2019 3.0.1: Fixed options for -wt and -cl;
-
-    02.19.2019 3.2.0: Added Lawrencium slurm support;
-    02.25.2019 3.2.3: Set default worker queue name = "small"
-    03.11.2019 3.2.8: Fixed invalid child process id in get_pid_tree();
-    03.14.2019 3.2.9: Added "--exclusive" for cori sbatch (genepool_special needs it)
-    03.21.2019 3.2.10: Added Cori KNL support (KNL constraint doesn't need --qos and --account);
-
-    04.03.2019 3.4.2: Fixed child process killing;
-
-    04.04.2019 4.0.0: Added thread to recv task kill request; Added sleep 10 in sbatch script;
-
-    04.16.2019 4.2.1: Added ack and nack in on_poison(); Added ack and nack in on_kill();
-    04.18.2019 4.2.3: Bug fix worker cloning -> basic_reject + requeue=True;
-
-    05.01.2019 5.0.5: Removed scontrol;
-
-    05.09.2019 5.1.1: Fixed life left calculation; Removed raise;
-
-    06.11.2019 5.4.0: Run run_user_task() with threading.Thread; Added ch._connection.sleep() to fix
-                      lost connection issue;
-    06.13.2019 5.4.2: Multiprocessing -> threading;
-    06.18.2019 5.4.3: Send endData as today in hb to the manager even if the worker is dynamic;
-
-    10.08.2019 5.5.0: Revised recv_hb_from_client_thread;
-    10.21.2019 5.5.1: Tested jgi cloud; Updated config; Updated sbatch params;
-    10.26.2019 5.6.1: Updated unique worker id + for_loop_index for jaws_lbl_gov;
-
-    02.26.2020 5.6.6: Set slurm job name with pool name;
-
-
-
 """
 import os
 import sys
@@ -153,9 +58,7 @@ DEBUG = False
 USER_PROC_PROC_ID = mp.Value("i", 0)
 # To share this worker life left
 WORKER_LIFE_LEFT_IN_MINUTE = mp.Value("i", 0)
-ALLOW_EMPTY_OUTPUT_FILE = False  # False ==> if size(output file)==0, return error code
 UNIQ_WORKER_ID = str(shortuuid.uuid())
-IS_CLIENT_ALIVE = False
 WORKER_START_TIME = datetime.datetime.now()
 PARENT_PROCESS_ID = os.getpid()  # parent process id
 THIS_WORKER_TYPE = None
@@ -176,7 +79,6 @@ def run_user_task(msg_unzipped, return_msg, ch):
     out_files = msg_unzipped["output_files"]
     task_type = msg_unzipped["task_type"]
 
-    # return_msg = {}
     return_msg["task_id"] = task_id
     return_msg["user_cmd"] = user_task_cmd
     return_msg["task_type"] = task_type
@@ -199,9 +101,7 @@ def run_user_task(msg_unzipped, return_msg, ch):
                 logger.debug("worker life: %d", WORKER_LIFE_LEFT_IN_MINUTE.value)
                 if WORKER_LIFE_LEFT_IN_MINUTE.value > 0:
                     break
-                # time.sleep(1)
                 ch._connection.process_data_events(time_limit=1.0)
-                # ch._connection.sleep(3)
 
         # ex) WORKER_LIFE_LEFT_IN_MINUTE = 20min and TASK_KILL_TIMEOUT_MINUTE = 10min
         # timeout will be set as 10min
@@ -250,7 +150,6 @@ def run_user_task(msg_unzipped, return_msg, ch):
         except subprocess.TimeoutExpired:
             logger.exception("subprocess call timeout")
             p.kill()
-            #
             proc_return_code = DONE_FLAGS["failed with timeout"]
         else:
             p.wait()
@@ -374,7 +273,7 @@ def check_output(out_files, out_file_check_wait_time=3,
 def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                            num_cores,
                            job_time, clone_time_rate, task_queue_name, pool_name,
-                           nwpn, exch_name, worker_hb_queue):
+                           nwpn):
     """
     Send heartbeats to the client
     :param interval: time interval to send heartbeats to the client
@@ -398,6 +297,8 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
     conn = rmq_conn.open()
     ch = conn.channel()
     host_name = socket.gethostname()
+    exch_name = JTM_WORKER_HB_EXCH
+    worker_hb_queue = WORKER_HB_Q_POSTFIX
 
     ch.exchange_declare(exchange=exch_name,
                         exchange_type="direct",
@@ -421,9 +322,6 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
             #    If >90% used, kill a process (selection strategy is needed)
             #
             # NOTE: must cope with the fast mem consumption at the begining of the process
-            #
-            # logger.debug("rootpid = {} childpid = {}".format(PARENT_PROCESS_ID,
-            #                                                  USER_PROC_PROC_ID.value))
             if USER_PROC_PROC_ID.value == 0:
                 child_pid = PARENT_PROCESS_ID
             else:
@@ -431,15 +329,11 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
 
             # Collect pids from process tree
             root_pid_num = get_pid_tree(PARENT_PROCESS_ID)
-            # logger.debug("get_pid_tree(root_proc_id={}) = {}".format(PARENT_PROCESS_ID,
-            #                                                          root_pid_num))
 
             if PARENT_PROCESS_ID != child_pid:
                 if child_pid == -9:  # if it's terminated by "kill"
                     child_pid = PARENT_PROCESS_ID
                 pid_list_child = get_pid_tree(child_pid)
-                # logger.debug("get_pid_tree(child_pid={}) = {}".format(child_pid,
-                #                                                       pid_list_child))
                 if len(pid_list_child) > 0:
                     proc_id_list_merged = root_pid_num + pid_list_child[1:]
                 else:
@@ -508,25 +402,11 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
 
             today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             end_date_time = None
-            # worker_life_left_in_minute = 0
-            # WORKER_LIFE_LEFT_IN_MINUTE.value = 0
 
             try:
                 # Note: this only works with SLURM. For other HPCs/Clouds, methods to get the
                 #  remaining life are needed! ==> resolved!
                 if slurm_job_id:
-                    # OLD
-                    # fixme; slurm overload
-                    # so, se, ec = run_sh_command("scontrol show jobid %d"
-                    #                             % (slurm_job_id), log=logger, stdoutPrint=False)
-                    # pat = re.compile(r"""([^\s=]+)=\s*((?:[^\s=]+(?:\s|$))*)""")
-                    # # Convert a list of x=y to dict
-                    # entries = dict((k, v.split()) for k, v in pat.findall(so))
-                    # delta = datetime.datetime.now() - datetime.datetime.strptime(entries["EndTime"][0],
-                    # "%Y-%m-%dT%H:%M:%S")
-                    # worker_life_left_in_minute = -divmod(delta.total_seconds(), 60)[0]
-                    # end_date_time = entries["EndTime"][0]
-
                     # NEW
                     # jobtime2 = datetime.datetime.strptime(job_time, '%H:%M:%S')
                     # end_date_time = WORKER_START_TIME + timedelta(seconds=jobtime2.second+jobtime2.minute*60+
@@ -547,13 +427,11 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                                             durable=True,
                                             exclusive=False,
                                             auto_delete=True).method.message_count
-            # logger.debug("#tasks queued=%d in %s" % (hb_queue_len, task_queue_name))
 
             # To decrease the hb message size, changed to int key value
             try:
                 ip_address = socket.gethostbyname(host_name)
             except Exception:
-                # eprint("Exception: Failed to get ip address: %s" % e)
                 ip_address = None
 
             ncore_param = mp.cpu_count()
@@ -593,9 +471,6 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
             ch.basic_publish(exchange=exch_name,
                              routing_key=worker_hb_queue,
                              body=msg_zipped_to_send)
-
-            # logger.debug("Send HB to the client: {}".format(msg_dict_to_send))
-
         except Exception as e:
             logger.critical("Something wrong with send_hb_to_client(): %s", e)
             ch.close()
@@ -612,7 +487,7 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
 
 
 # -----------------------------------------------------------------------
-def recv_hb_from_client_proc2(task_queue, exch_name, cl_hb_q_postfix):
+def recv_hb_from_client_proc2(task_queue):
     """
 
     :param task_queue:
@@ -623,6 +498,8 @@ def recv_hb_from_client_proc2(task_queue, exch_name, cl_hb_q_postfix):
     rmq_conn = RmqConnectionHB(config=CONFIG)
     conn = rmq_conn.open()
     ch = conn.channel()
+    exch_name = JTM_CLIENT_HB_EXCH
+    cl_hb_q_postfix = CLIENT_HB_Q_POSTFIX
 
     # Declare exchange
     ch.exchange_declare(exchange=exch_name,
@@ -737,7 +614,6 @@ def recv_task_kill_request_proc():
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         else:
-            # ch.basic_nack(delivery_tag=method.delivery_tag)
             # If UNIQ_WORKER_ID is not for me, reject and requeue it
             logger.info("NACK sent to the broker")
             ch.basic_reject(delivery_tag=method.delivery_tag,
@@ -759,7 +635,7 @@ def recv_task_kill_request_proc():
 # -------------------------------------------------------------------------------
 def recv_reproduce_or_die_proc(task_queue, cluster_name, mem_per_node, mem_per_core,
                                num_nodes, num_cores, wallclocktime, clone_time_rate,
-                               nwpn, exch_name, queue_name):
+                               nwpn):
     """
     Wait for process termination request from JTM
     :param task_queue: task queue (pool) name
@@ -776,6 +652,8 @@ def recv_reproduce_or_die_proc(task_queue, cluster_name, mem_per_node, mem_per_c
     rmq_conn = RmqConnectionHB(config=CONFIG)
     conn = rmq_conn.open()
     ch = conn.channel()
+    exch_name = JTM_WORKER_POISON_EXCH
+    queue_name = JTM_WORKER_POISON_Q
 
     ch.exchange_declare(exchange=exch_name,
                         exchange_type="direct",
@@ -793,7 +671,6 @@ def recv_reproduce_or_die_proc(task_queue, cluster_name, mem_per_node, mem_per_c
         msg_unzipped = json.loads(zloads(body))
 
         if msg_unzipped["worker_id"] == UNIQ_WORKER_ID:
-
             # If static worker cloning request
             if msg_unzipped["num_clones"] == -1:
                 # Kill the worker request
@@ -828,7 +705,6 @@ def recv_reproduce_or_die_proc(task_queue, cluster_name, mem_per_node, mem_per_c
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         else:
-            # ch.basic_nack(delivery_tag=method.delivery_tag)
             # If UNIQ_WORKER_ID is not for me, reject and requeue it
             logger.info("NACK sent to the broker")
             ch.basic_reject(delivery_tag=method.delivery_tag,
@@ -951,29 +827,8 @@ def run_task(conn, ch, delivery_tag, reply_to, correlation_id, body):
 
     result_dict = {}
 
-    ######################################
     # OLD
     run_user_task(msg_unzipped, result_dict, ch)
-
-    # NEW
-    # Note: to fix connection lost
-    # ex) 2019-06-10 12:13:37,917 | jtm-worker | do_work | CRITICAL : Something wrong in do_work():
-    # Stream connection lost: error(104, 'Connection reset by peer')
-    #
-    # https://stackoverflow.com/questions/14572020/handling-long-running-tasks-in-pika-rabbitmq
-    #
-    # thread = threading.Thread(target=run_user_task,
-    #                           args=(msg_unzipped, result_dict, ch))
-    # thread.start()
-    #
-    # Note: if use this is_alive() with threaded ack method,
-    # ref) https://github.com/pika/pika/blob/master/examples/basic_consumer_threaded.py
-    # ==> psutil._exceptions.NoSuchProcess: psutil.NoSuchProcess process no longer exists (pid=97128)
-    # So if threaded ack method is used, just call run_user_task()
-    #
-    # while thread.is_alive():  # Loop while the thread is processing
-    #     ch._connection.sleep(1.0)
-    ######################################
 
     json_data = json.dumps(result_dict)
     logger.debug("Reply msg with result: %s" % str(json_data))
@@ -1291,7 +1146,6 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     job_name = "jtm_worker_" + pool_name_param
 
     # Set task queue name
-    inner_task_request_queue = None
     if heartbeat_interval_param:
         hearbeat_interval = heartbeat_interval_param
 
@@ -1598,26 +1452,6 @@ wait
         elif cluster_name == "aws":
             pass
 
-    # If it's spawned by sbatch
-    # Todo: need to record job_id, worker_id, worker_type, starting_time, wallclocktime
-    # scontrol show jobid -dd <jobid> ==> EndTime
-    # scontrol show jobid <jobid> ==> EndTime
-    # sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j <jobid> --allsteps
-    #
-    # if endtime - starttime <= 10%, execute sbatch again
-    # if slurm_job_id != 0 and THIS_WORKER_TYPE == "static":
-    #     logger.debug("worker_type: {}".format(THIS_WORKER_TYPE))
-    #     logger.debug("slurm_job_id: {}".format(slurm_job_id))
-
-    # Dynamic workers creates [[two]] children when it approaches to the wallclocktime limit
-    # considering the task queue length
-    # Also, maintain the already requested number of workers
-    # if no more workers needed, it won't call sbatch
-    # elif slurm_job_id != 0 and THIS_WORKER_TYPE == "dynamic":
-    #     logger.debug("worker_type: {}".format(THIS_WORKER_TYPE))
-    #     logger.debug("slurm_job_id: {}".format(slurm_job_id))
-
-    # Remote broker (rmq.nersc.gov)
     rmq_conn = RmqConnectionHB(config=CONFIG)
     conn = rmq_conn.open()
     ch = conn.channel()
@@ -1626,15 +1460,6 @@ wait
                         passive=False,
                         durable=True,
                         auto_delete=False)
-
-    # Declare task receiving queue (client --> worker)
-    #
-    # If you have a queueu that is durable, RabbitMQ will never lose our queue.
-    # If you have a queue that is exclusive, then when the channel that declared
-    # the queue is closed, the queue is deleted.
-    # If you have a queue that is auto-deleted, then when there are no
-    # subscriptions left on that queue it will be deleted.
-    #
     ch.queue_declare(queue=inner_task_request_queue,
                      durable=True,
                      exclusive=False,
@@ -1671,9 +1496,7 @@ wait
                                                         worker_clone_time_rate,
                                                         inner_task_request_queue,
                                                         tp_name,
-                                                        num_workers_per_node,
-                                                        JTM_WORKER_HB_EXCH,
-                                                        WORKER_HB_Q_POSTFIX))
+                                                        num_workers_per_node))
         recv_hb_from_client_proc_hdl.start()
         pid_list.append(recv_hb_from_client_proc_hdl)
     except Exception as e:
@@ -1696,9 +1519,7 @@ wait
                                                 num_cpus_to_request,
                                                 job_time_to_request,
                                                 worker_clone_time_rate,
-                                                num_workers_per_node,
-                                                JTM_WORKER_POISON_EXCH,
-                                                JTM_WORKER_POISON_Q))
+                                                num_workers_per_node))
         recv_poison_proc_hdl.start()
         pid_list.append(recv_poison_proc_hdl)
     except Exception as e:
@@ -1710,9 +1531,7 @@ wait
     # Start hb send thread
     try:
         send_hb_to_client_proc_hdl = mp.Process(target=recv_hb_from_client_proc2,
-                                                args=(inner_task_request_queue,
-                                                      JTM_CLIENT_HB_EXCH,
-                                                      CLIENT_HB_Q_POSTFIX))
+                                                args=(inner_task_request_queue,))
         send_hb_to_client_proc_hdl.start()
         pid_list.append(send_hb_to_client_proc_hdl)
     except Exception as e:
