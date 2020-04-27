@@ -42,6 +42,7 @@ def _rpc_call(user, run_id, method, params={}):
     site_rpc_call = rpc_manager.manager.get_client(run.site_id)
     params["user"] = user
     params["cromwell_id"] = run.cromwell_id
+    logger.info(f"User {user} RPC {method} params {params}")
     result = site_rpc_call.request(method, params)
     if "error" in result:
         abort(result["error"]["code"], result["error"]["message"])
@@ -426,3 +427,24 @@ def cancel_run(user, run_id):
     db.session.commit()
     result = {"cancel": "OK"}
     return result, 201
+
+
+def delete_run(user, run_id):
+    """
+    Delete a run's output.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: OK message upon success; abort otherwise
+    :rtype: dict
+    """
+    run = _get_run(run_id)
+    if run.user_id != user:
+        abort(401, "Access denied")
+    params = {"cromwell_id": run.cromwell_id, "run_id": run.id}
+    result = _rpc_call(user, run_id, "delete_run", params)
+    run.status = "purged"
+    db.session.commit()
+    return result, 200

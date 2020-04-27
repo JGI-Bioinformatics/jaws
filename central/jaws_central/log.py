@@ -20,7 +20,7 @@ def setup_logger(name: str, log_file="jaws_central.log") -> logging:
     handler_file.setFormatter(formatter)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     logger.addHandler(handler_stderr)
     logger.addHandler(handler_file)
     return logger
