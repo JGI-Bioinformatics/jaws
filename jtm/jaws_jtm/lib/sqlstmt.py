@@ -112,7 +112,7 @@ JTM_SQL = {
             childPid = %(child_pid)d,
             resource = '%(resource_log)s'
         WHERE taskId = %(task_id)d
-              and status < 2;""",
+              and status < 3;""",
     "update_runs_status_to_pending_by_taskid": """
         UPDATE runs
         SET status = %(status_id)d,
@@ -120,7 +120,7 @@ JTM_SQL = {
                          from workers
                          where workerId='%(worker_id)s')
         WHERE taskId = %(task_id)d
-              and status < 3;""",
+              and status < 2;""",
     "select_clonecnt_workers_by_workerid": """
         SELECT cloneCnt
         FROM workers

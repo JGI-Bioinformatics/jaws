@@ -204,8 +204,9 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                         conn.sleep(1)
 
                 # todo: handle "pending" here
-                if task_id > 0 and root_proc_id == child_proc_id and slurm_job_id > 0:
-                    db.execute(JTM_SQL["update_runs_status_by_taskid"]
+                #  which value indicates it's in pending?
+                if task_id > 0 and root_proc_id == child_proc_id:
+                    db.execute(JTM_SQL["update_runs_status_to_pending_by_taskid"]
                                % dict(status_id=TASK_STATUS["queued"],
                                       task_id=task_id,
                                       worker_id=a_worker_id),
@@ -1453,7 +1454,7 @@ def process_task_kill(ch, method, props, msg):
         # because worker id and pid is not known yet
 
     if task_status:
-        if task_status in (TASK_STATUS["ready"], TASK_STATUS["queued"], TASK_STATUS["pending"]):
+        if task_status in (TASK_STATUS["ready"], TASK_STATUS["queued"]):
             logger.debug("Task cancellation requested but the task, %d has already been queued." % (task_id))
             logger.debug("The task will be terminated once it's started.")
             update_runs_cancelled(task_id)
