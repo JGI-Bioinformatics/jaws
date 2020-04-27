@@ -215,7 +215,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                debug=False)
                     db.commit()
                     db.close()
-                elif task_id > 0 and root_proc_id != child_proc_id:  # if user process processing started
+                if task_id > 0 and root_proc_id != child_proc_id:  # if user process processing started
                     logger.debug("Task status ==> running")
                     datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
                     if log_dest_dir:
