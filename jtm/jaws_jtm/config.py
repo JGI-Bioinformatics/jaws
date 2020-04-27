@@ -33,8 +33,8 @@ class JtmConstants():
 
     TASK_STATUS = {"ready": 0,
                    "queued": 1,
-                   "running": 3,
                    "pending": 2,
+                   "running": 3,
                    "success": 4,
                    "outputerror": -1,  # output file(s) not found.
                    "failed": -2,
