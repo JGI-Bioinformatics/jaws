@@ -420,7 +420,15 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                         success = False
                         conn.sleep(1)
 
-                if task_id > 0 and root_proc_id != child_proc_id:  # if there is a user process started
+                # todo: handle "pending" here
+                if task_id > 0 and root_proc_id == child_proc_id and slurm_job_id > 0:
+                    logger.debug("Task status ==> queued")
+                    db.execute(JTM_SQL["update_runs_status_to_pending_by_taskid"]
+                               % dict(status_id=TASK_STATUS["queued"],
+                                      task_id=task_id,
+                                      worker_id=a_worker_id),
+                               debug=False)
+                elif task_id > 0 and root_proc_id != child_proc_id:  # if user process processing started
                     datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
                     if log_dest_dir:
                         log_dir_name = os.path.join(log_dest_dir, "resource")
@@ -475,6 +483,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
 
                         # Update runs table for a task
                         # Todo: really need to store full path to the log?
+                        logger.debug("Task status ==> running")
                         db.execute(JTM_SQL["update_runs_status_by_taskid"]
                                    % dict(status_id=TASK_STATUS["running"],
                                           task_id=task_id,
@@ -1138,6 +1147,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             success = True
             try:
                 db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                logger.debug("Task status ==> ready")
                 db.execute(JTM_SQL["insert_runs_tid_sid"]
                            % dict(task_id=lastTid,
                                   status_id=TASK_STATUS["ready"]))
@@ -1211,6 +1221,9 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                 # Todo: need this update to change the task status to "queued"?
                 ch._connection.sleep(TASK_STAT_UPDATE_INTERVAL)
 
+                # This TASK_STATUS["queued"] means it's queued to jtm task queue
+                # TASK_STATUS["pending"] means node requested to slurm
+                # TASK_STATUS["running"] means task processing started
                 try:
                     db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
                     db.execute(JTM_SQL["update_runs_tid_startdate_by_tid"]
@@ -1255,6 +1268,10 @@ def process_task_status(ch, method, props, task_id):
         if ret[1] == 1:  # cancellation requested
             task_status_int = TASK_STATUS["terminated"]
         else:
+            # 0 if ready
+            # 1 if queued
+            # 2 if pending
+            # 3 if running
             task_status_int = ret[0]
     else:
         logger.debug("Task ID not found: {}".format(task_id))
@@ -1413,6 +1430,10 @@ def process_task_kill(ch, method, props, msg):
         if task_status in (TASK_STATUS["ready"], TASK_STATUS["queued"]):
             logger.debug("Task cancellation requested but the task, %d has already been queued." % (task_id))
             logger.debug("The task will be terminated once it's started.")
+            update_runs_cancelled(task_id)
+            return_msg = 0
+        # todo: how to handle task cancellation with pending slurm job better?
+        elif task_status == TASK_STATUS["pending"]:
             update_runs_cancelled(task_id)
             return_msg = 0
         elif task_status == TASK_STATUS["running"]:

@@ -251,7 +251,7 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
     :param qos:
     :param shared:
     :param job_time:
-    :return:
+    :return: exit with 0 if succeeded, 1 if failed
     """
     if ctx.obj['debug']:
         click.echo("Debug mode")
@@ -307,7 +307,7 @@ def kill(ctx: object, task_id: int) -> int:
 
     :param ctx:
     :param task_id:
-    :return:
+    :return: exit with 0 if succeeded, 1 if failed
     """
     ret = int(JtmInterface('kill', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
@@ -344,13 +344,13 @@ def isalive(ctx: object, task_id: int) -> int:
 
     :param ctx:
     :param task_id:
-    :return:
+    :return: exit with 0 if alive, 1 if not
     """
     ret = int(JtmInterface('status', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
         eprint("jtm isalive: command timeout.")
         sys.exit(-1)
-    elif ret in [0, 1, 2]:
+    elif ret in [0, 1, 2, 3]:
         click.echo("yes")
         sys.exit(0)
     else:
@@ -369,11 +369,12 @@ def status(ctx: object, task_id: int) -> int:
     JtmInterface returns
       0 if ready
       1 if queued
-      2 if running
+      2 if pending
+      3 if running
       4 if successfully done
       -1, -2, -3, -4: failed
 
-    jtm status exits with 0 if it's in ['ready', 'queued', 'running'] status
+    jtm status exits with 0 if it's in ['ready', 'queued', 'pending', 'running'] status
                           1 if it's done successfully or failed
 
     :param ctx:
@@ -386,7 +387,7 @@ def status(ctx: object, task_id: int) -> int:
         sys.exit(-1)
     reversed_task_status = dict(map(reversed, ctx.obj['config'].constants.TASK_STATUS.items()))
     click.echo(reversed_task_status[ret])
-    sys.exit(0) if ret in [0, 1, 2] else sys.exit(1)
+    sys.exit(0) if ret in [0, 1, 2, 3] else sys.exit(1)
 
 
 @cli.command()
@@ -410,7 +411,7 @@ def remove_pool(ctx: object, pool_name: str, cluster: str) -> int:
     :param ctx:
     :param pool_name:
     :param cluster:
-    :return:
+    :return: exit with 0 if succeeded, 1 if failed
     """
     ret = int(JtmInterface('remove_pool', ctx, info_tag=pool_name).call(task_pool=pool_name,
                                                                         jtm_host_name=cluster))
@@ -439,7 +440,7 @@ def check_worker(ctx: object, pool_name: str, slurm_info: bool, cluster) -> int:
     :param pool_name:
     :param slurm_info:
     :param cluster:
-    :return:
+    :return: number of workers in the pool specified
     """
     add_info = socket.gethostname().replace(".", "_")
     if cluster:
@@ -469,7 +470,7 @@ def check_manager(ctx: object, cluster: str) -> int:
 
     :param ctx:
     :param cluster:
-    :return:
+    :return: exit with 0 if a manager found, 1 if not
     """
     add_info = socket.gethostname().replace(".", "_")
     if cluster:
@@ -496,7 +497,7 @@ def resource_log(ctx: object, task_id: int) -> int:
 
     :param ctx:
     :param task_id:
-    :return:
+    :return:  JSON string
     """
     resource_log_file = JtmInterface('resource', ctx, info_tag=task_id).call(task_id=task_id)
     if resource_log_file == -88:

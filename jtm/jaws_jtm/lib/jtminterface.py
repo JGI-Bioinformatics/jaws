@@ -32,6 +32,7 @@ class JtmInterface(object):
         self.JTMINTERFACE_MAX_TRIAL = self.config.configparser.getint("JTM", "jtminterface_max_trial")
         self.JTM_HOST_NAME = self.config.configparser.get("SITE", "jtm_host_name")
         self.DEBUG = ctx.obj['debug']
+        self.corr_id = str(uuid.uuid4())
 
         self.channel.exchange_declare(exchange=self.JGI_JTM_MAIN_EXCH,
                                       exchange_type='direct',
@@ -216,7 +217,6 @@ class JtmInterface(object):
             print(("jtmTaskRequestQ = %s" % jtmTaskRequestQ))
             # print "jtmTaskResultQ =", jtmTaskResultQ
 
-        self.corr_id = str(uuid.uuid4())
         # self.channel.confirm_delivery()  # 11192018 to test task is not discarded
         self.channel.basic_publish(exchange=self.JGI_JTM_MAIN_EXCH,
                                    routing_key=jtmTaskRequestQ,
