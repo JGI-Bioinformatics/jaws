@@ -39,8 +39,6 @@ class SqlTable:
         I_NAME = 0
         I_TYPE = 1
         I_SIZE = 3
-        # I_PREC = 4
-        # I_SCALE = 5
 
         descr = db.getTableDescr(name)
         fields = [SqlField(name=f[I_NAME], type="%s(%s)" % (f[I_TYPE], f[I_SIZE])) for f in descr]
@@ -88,7 +86,6 @@ class DbSql(object):
     def_field = SqlField(name="fld", type="char(40)")
 
     def __init__(self):
-        # import MySQLdb as dbmod
         import mysql.connector as dbmod
         self.dbmod = dbmod
         atexit.register(dbClose, dbObj=self)
