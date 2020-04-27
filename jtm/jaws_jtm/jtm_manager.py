@@ -422,12 +422,15 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
 
                 # todo: handle "pending" here
                 if task_id > 0 and root_proc_id == child_proc_id and slurm_job_id > 0:
-                    logger.debug("Task status ==> queued")
+                    logger.debug("Task status ==> pending")
+                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
                     db.execute(JTM_SQL["update_runs_status_to_pending_by_taskid"]
-                               % dict(status_id=TASK_STATUS["queued"],
+                               % dict(status_id=TASK_STATUS["pending"],
                                       task_id=task_id,
                                       worker_id=a_worker_id),
                                debug=False)
+                    db.commit()
+                    db.close()
                 elif task_id > 0 and root_proc_id != child_proc_id:  # if user process processing started
                     datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
                     if log_dest_dir:
