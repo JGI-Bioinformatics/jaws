@@ -8,7 +8,6 @@ import requests
 import click
 import logging
 import subprocess
-import pathlib
 import uuid
 from typing import Dict
 from jaws_client import config, user, workflow
@@ -253,19 +252,19 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
         out_ep = local_endpoint_id
     if out_ep == local_endpoint_id and not outdir.startswith(globus_basedir):
         raise SystemExit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
-    submission_id = str(uuid.uuid4())
-    if os.path.isdir(outdir):
-        touchfile = os.path.join(outdir, submission_id)
-        try:
-            pathlib.Path(touchfile.touch(mode=0o0600, exists_ok=False))
-        except Exception as error:
-            raise SystemExit(f"Invalid outdir, {outdir}: {error}")
-        os.remove(touchfile)
-    else:
+    if not os.path.isdir(outdir):
         try:
             os.makedirs(outdir)
         except Exception as error:
             raise SystemExit(f"Invalid outdir, {outdir}: {error}")
+    submission_id = str(uuid.uuid4())
+    testfile = os.path.join(outdir, submission_id)
+    try:
+        with open(testfile, "w") as fh:
+            fh.write(f"COMMAND: jaws run submit {wdl_file} {infile} {outdir} {site}")
+    except Exception as error:
+        raise SystemExit(f"Invalid outdir, {outdir}: {error}")
+    os.remove(testfile)
 
     # GET COMPUTE SITE INFO
     url = f'{config.conf.get("JAWS", "url")}/site/{compute_site_id}'
@@ -315,13 +314,16 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
         r = requests.post(url, data=data, files=files, headers=current_user.header())
     except requests.exceptions.RequestException:
         raise SystemExit("Unable to communicate with JAWS server")
-    if r.status_code != requests.codes.ok:
+    if r.status_code != 201:
         raise SystemExit(r.text)
     result = r.json()
     if "run_id" not in result:
         raise SystemExit(f"Invalid response from JAWS: {result}")
     run_id = result["run_id"]
-    print(f"Successfully queued run {run_id}")
+    logfile = os.path.join(outdir, f"jaws.run_{run_id}.log")
+    with open(logfile, "w") as fh:
+        fh.write(r.text+"\n")
+    print(r.text)
 
 
 @run.command()
