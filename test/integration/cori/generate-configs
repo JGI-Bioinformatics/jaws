@@ -126,8 +126,6 @@ constraint = haswell
 [JTM]
 cluster = ${SITE:jtm_host_name}
 run_mode = dev
-# static worker self cloning time rate. not used.s
-clone_time_rate = 0.2
 # number of workers per node
 num_workers_per_node = 1
 log_dir = \${SITE:scratch}/jtm
