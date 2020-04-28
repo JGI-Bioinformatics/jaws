@@ -5,12 +5,14 @@ import click
 import socket
 import json
 import csv
+import logging
 
 from jaws_jtm.config import JtmConfig
 from jaws_jtm.jtm_manager import manager as jtmmanager
 from jaws_jtm.jtm_worker import worker as jtmworker
 from jaws_jtm.lib.jtminterface import JtmInterface
-from jaws_jtm.common import logger
+
+logger = logging.getLogger(__package__)
 
 
 class Mutex(click.Option):
@@ -101,6 +103,9 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
               type=click.Choice(["manual", "dynamic"], case_sensitive=False))
 @click.option("-cl", "--cluster",
               help="Cluster name")
+@click.option("-ctr", "--clone_time_rate",
+              help="Cloning time rate (OBSOLETE)",
+              type=float)
 @click.option("-nwpn", "--num_worker_per_node",
               help="Set number of workers per a node",
               required=False,
@@ -132,7 +137,7 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
 @click.pass_context
 def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_name: str,
            pool_name: str, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
-           num_worker_per_node: int, worker_id: str,
+           clone_time_rate: float, num_worker_per_node: int, worker_id: str,
            charging_account: str, nnodes: int, cpus_per_task: int, constraint: str,
            mem: str, mem_per_cpu: str, qos: str, partition: str, job_time: str) -> int:
     """
@@ -147,6 +152,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :param slurm_job_id: SLURM job id
     :param worker_type: manual or dynamic
     :param cluster: destination cluster name
+    :param clone_time_rate: OBSOLETE
     :param num_worker_per_node:
     :param worker_id:
     :param charging_account: SLURM charging account
@@ -162,7 +168,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     """
     ret = jtmworker(ctx, heartbeat_interval, log_dir, job_script_dir_name, pool_name,
                     dry_run, slurm_job_id, worker_type, cluster,
-                    num_worker_per_node, worker_id,
+                    clone_time_rate, num_worker_per_node, worker_id,
                     charging_account, nnodes, cpus_per_task, constraint, mem,
                     mem_per_cpu, qos, partition, job_time)
 
