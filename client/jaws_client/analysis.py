@@ -8,6 +8,8 @@ import requests
 import click
 import logging
 import subprocess
+import pathlib
+import uuid
 from typing import Dict
 from jaws_client import config, user, workflow
 
@@ -232,6 +234,8 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
     :param site: JAWS Site ID at which to run
     :type site: str
     """
+    wdl_file = os.path.abspath(wdl_file)
+    infile = os.path.abspath(infile)
     compute_site_id = site.upper()
     current_user = user.User()
     logger = logging.getLogger(__package__)
@@ -248,6 +252,19 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
         out_ep = local_endpoint_id
     if out_ep == local_endpoint_id and not outdir.startswith(globus_basedir):
         raise SystemExit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
+    submission_id = str(uuid.uuid4())
+    if os.path.isdir(outdir):
+        touchfile = os.path.join(outdir, submission_id)
+        try:
+            pathlib.Path(touchfile.touch(mode=0o0600, exists_ok=False))
+        except Exception as error:
+            raise SystemExit(f"Invalid outdir, {outdir}: {error}")
+        os.remove(touchfile)
+    else:
+        try:
+            os.makedirs(outdir)
+        except Exception as error:
+            raise SystemExit(f"Invalid outdir, {outdir}: {error}")
 
     # GET COMPUTE SITE INFO
     url = f'{config.conf.get("JAWS", "url")}/site/{compute_site_id}'
@@ -274,8 +291,8 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
         raise AnalysisError(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
         )
-    submission_id = run.prepare_submission(
-        staging_dir, compute_basedir, compute_staging_subdir
+    run.prepare_submission(
+        staging_dir, submission_id, compute_basedir, compute_staging_subdir
     )
 
     # SUBMIT RUN
