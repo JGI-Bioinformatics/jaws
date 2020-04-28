@@ -907,7 +907,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                     ch.basic_publish(exchange=JTM_INNER_MAIN_EXCH,
                                      routing_key=inner_task_request_queue,
                                      properties=pika.BasicProperties(
-                                         delivery_mode=2,  # make message persistent
+                                         delivery_mode=2,
                                          reply_to=JTM_INNER_RESULT_Q,  # set reply queue name
                                          correlation_id=corr_id),
                                      body=msg_zipped)
@@ -1057,7 +1057,7 @@ def send_task_kill_request(task_id, wid, cpid):
         assert queue_name.endswith(CNAME)
         ch.basic_publish(exchange=exch,
                          routing_key=queue_name,
-                         properties=pika.BasicProperties(delivery_mode=2),  # make message persistent
+                         properties=pika.BasicProperties(delivery_mode=2),
                          body=msg_zipped)
     except Exception as e:
         logger.critical("Something wrong in send_task_kill_request(): %s", e)
@@ -1182,7 +1182,6 @@ def process_check_worker(ch, method, props, msg_unzipped):
         db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
         # Try to select "pool_name" in workers table by hostname + uselifeLeftrname + poolname
         # Check timediff(now()-end_datetime) in workers table to filter out dead worker
-
         new_pool_name = JTM_INNER_REQUEST_Q + '.' + msg_unzipped["task_pool"]
         num_live_worker_in_pool = db.selectScalar(JTM_SQL["select_count_workers_by_jtm_host_name_poolname_enddate"]
                                                   % dict(jtm_host_name=msg_unzipped["jtm_host_name"],

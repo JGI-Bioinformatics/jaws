@@ -637,9 +637,9 @@ def ack_message(ch, reply_to, correlation_id, delivery_tag, response):
                           exclusive=False,
                           auto_delete=True)
         ch3.basic_publish(exchange=JTM_INNER_MAIN_EXCH,
-                          routing_key=reply_to,  # use the queue which the client created
+                          routing_key=reply_to,
                           properties=pika.BasicProperties(
-                             delivery_mode=2,  # make message persistent
+                             delivery_mode=2,
                              correlation_id=correlation_id),
                           body=response)
         ch3.basic_reject(delivery_tag=delivery_tag, requeue=True)
