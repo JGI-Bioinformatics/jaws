@@ -151,6 +151,7 @@ class JtmInterface(object):
                 json_data_dict["pool"]["shared"] = int(kw["shared"])
                 json_data_dict["pool"]["constraint"] = kw["constraint"]
                 json_data_dict["pool"]["qos"] = kw["qos"]
+                json_data_dict["pool"]["partition"] = kw["partition"]
                 json_data_dict["pool"]["account"] = kw["account"]
 
         # For the command like, "jtm-submit -cr 'ls' -cl cori -p test"

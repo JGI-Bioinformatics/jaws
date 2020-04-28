@@ -667,6 +667,8 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             pool_constraint = pool_spec_json_str["constraint"]
         if "qos" in pool_spec_json_str:
             pool_qos = pool_spec_json_str["qos"]  # ["genepool_special", "genepool_shared", "jgi_shared", "jgi_exvivo"]
+        if "partition" in pool_spec_json_str:
+            pool_partition = pool_spec_json_str["partition"]
         if "account" in pool_spec_json_str:
             pool_charge_account = pool_spec_json_str["account"]  # for example, gtrqc for skylake, fungalp for the rest
 
@@ -755,18 +757,19 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                 -wi {} {} \
                 -nwpn {} \
                 --qos {} \
-                -A {}""".format("%s && " % env_act if env_act else "",
-                                "--config=%s" % CONFIG.config_file if CONFIG else "",
-                                pool_name,
-                                pool_cluster,
-                                pool_ncpus,
-                                pool_time,
-                                pool_mem,
-                                uniq_worker_id,
-                                "-C %s" % pool_constraint if pool_constraint else "",
-                                num_workers_per_node,
-                                pool_qos,
-                                pool_charge_account)
+                -A {} {}""".format("%s && " % env_act if env_act else "",
+                                   "--config=%s" % CONFIG.config_file if CONFIG else "",
+                                   pool_name,
+                                   pool_cluster,
+                                   pool_ncpus,
+                                   pool_time,
+                                   pool_mem,
+                                   uniq_worker_id,
+                                   "-C %s" % pool_constraint if pool_constraint else "",
+                                   num_workers_per_node,
+                                   pool_qos,
+                                   pool_charge_account,
+                                   "-P %s" % pool_partition if pool_partition else "")
 
             logger.info("Executing {}".format(sbatch_cmd_str))
 
