@@ -976,8 +976,7 @@ def process_task_status(ch, method, props, task_id):
 
     def check_slurm_state(slurm_jid):
         # Check if the slurm jid is in PD or R states
-        # if not,
-        cmd = "squeue -j %d --states=PD,R" % j
+        cmd = "squeue -j %d --states=PD,R" % slurm_jid
         so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
         return ec
 
