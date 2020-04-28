@@ -30,6 +30,10 @@ def rsync(src, dest):
     stdout, stderr = process.communicate()
     if process.returncode:
         logger.warn(f"Failed to rsync {src} to {dest}: " + stderr.strip())
+    if os.path.isdir(dest):
+        os.chmod(dest, 0o0775)
+    else:
+        os.chmod(dest, 0o0664)
 
 
 def getSubflowDirname(dirname):
@@ -79,14 +83,17 @@ def wfcopy(in_dir, out_dir, flattenShardDir=False):
     log_dir = os.path.join(out_dir, "log")
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
+        os.chmod(out_dir, 0o775)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
+        os.chmod(log_dir, 0o775)
 
     rcfile = os.path.join(log_dir, "workflow.rc")
     if os.path.exists(rcfile):
         os.remove(rcfile)
     with open(rcfile, "w") as fh:
         fh.write("#ExitCode\tTask\n")
+    os.chmod(rcfile, 0o0664)
 
     for root_dir, subdirs, files in os.walk(in_dir):
         shardname = None
@@ -114,6 +121,7 @@ def wfcopy(in_dir, out_dir, flattenShardDir=False):
 
             if not os.path.exists(task_dir):
                 os.makedirs(task_dir)
+                os.chmod(task_dir, 0o0775)
 
             for dname in subdirs:
                 rsync(os.path.join(root_dir, dname), task_dir)
@@ -123,17 +131,11 @@ def wfcopy(in_dir, out_dir, flattenShardDir=False):
                 outname = "%s-%s" % (taskname, shardname) if shardname else taskname
 
                 if fname == "stdout":
-                    rsync(
-                        fullname, os.path.join(log_dir, "%s.stdout" % outname),
-                    )
+                    rsync(fullname, os.path.join(log_dir, f"{outname}.stdout"))
                 if fname == "stderr":
-                    rsync(
-                        fullname, os.path.join(log_dir, "%s.stderr" % outname),
-                    )
+                    rsync(fullname, os.path.join(log_dir, f"{outname}.stderr"))
                 if fname == "script":
-                    rsync(
-                        fullname, os.path.join(log_dir, "%s.script" % outname),
-                    )
+                    rsync(fullname, os.path.join(log_dir, f"{outname}.script"))
                 if fname not in cromwellFilesToSkip:
                     rsync(fullname, task_dir)
                 if fname == "rc":
