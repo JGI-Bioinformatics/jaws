@@ -29,32 +29,3 @@ def zloads(zstr):
     :return:
     """
     return cPickle.loads(zlib.decompress(zstr))  # py3
-
-
-# To do
-# json or msgpack can be used for
-#
-#   pickle -- If you have no desire to support any language other than
-# Python, then using the pickle encoding will gain you the support of all
-# built-in Python data types (except class instances), smaller messages when
-# sending binary files, and a slight speedup over JSON processing. .
-#
-# import json
-#
-# msg = {
-#        "version": "1.0",
-#        "host": "www1",
-#        "short_message": "Short message",
-#        "full_message": "Backtrace here and more stuff",
-# }
-# zmessage = zlib.compress(str(msg))
-# data_json = json.dumps(msg)
-#
-# connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-# channel = connection.channel()
-#
-# print str(msg)
-# channel.queue_declare(queue='nodeLogs')
-# channel.basic_publish(exchange='', routing_key='nodeLogs', body=data_json)
-# print " [x] Sent 'Hello World!'"
-# connection.close()

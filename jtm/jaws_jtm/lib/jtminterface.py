@@ -11,7 +11,8 @@ import pika
 
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_jtm.lib.run import make_dir, eprint
+from jaws_jtm.lib.run import make_dir
+from jaws_jtm.common import logger
 
 
 class JtmInterface(object):
@@ -19,8 +20,9 @@ class JtmInterface(object):
     Class for jtm-* CLI tools
     """
     def __init__(self, task_type, ctx=None, info_tag=None,):
-        self.task_type = task_type
         self.config = ctx.obj['config']
+        self.debug = ctx.obj['debug']
+        self.task_type = task_type
         self.rmq_conn = RmqConnectionHB(config=self.config)
         self.connection = self.rmq_conn.open()
         self.channel = self.connection.channel()
@@ -31,15 +33,12 @@ class JtmInterface(object):
         self.JTM_TASK_REQUEST_Q = self.config.configparser.get("JTM", "jtm_task_request_q")
         self.JTMINTERFACE_MAX_TRIAL = self.config.configparser.getint("JTM", "jtminterface_max_trial")
         self.JTM_HOST_NAME = self.config.configparser.get("SITE", "jtm_host_name")
-        self.DEBUG = ctx.obj['debug']
+        self.corr_id = str(uuid.uuid4())
 
         self.channel.exchange_declare(exchange=self.JGI_JTM_MAIN_EXCH,
                                       exchange_type='direct',
                                       durable=True,
                                       auto_delete=False)
-
-        # OLD
-        # result = self.channel.queue_declare('_jtm_submit.' + CNAME,
 
         # NEW
         # Create a temp random queue
@@ -54,18 +53,14 @@ class JtmInterface(object):
         else:
             result = self.channel.queue_declare('',
                                                 durable=True,
-                                                # exclusive=True,
                                                 exclusive=False,
                                                 auto_delete=True)
             self.callback_queue = result.method.queue
-
-        # print(self.callback_queue)
 
         self.channel.queue_bind(exchange=self.JGI_JTM_MAIN_EXCH,
                                 queue=self.callback_queue,
                                 routing_key=self.callback_queue)
         self.channel.basic_qos(prefetch_count=1)
-
         self.channel.basic_consume(queue=self.callback_queue,
                                    on_message_callback=self.on_response,
                                    auto_ack=False)
@@ -154,6 +149,7 @@ class JtmInterface(object):
                 json_data_dict["pool"]["shared"] = int(kw["shared"])
                 json_data_dict["pool"]["constraint"] = kw["constraint"]
                 json_data_dict["pool"]["qos"] = kw["qos"]
+                json_data_dict["pool"]["partition"] = kw["partition"]
                 json_data_dict["pool"]["account"] = kw["account"]
 
         # For the command like, "jtm-submit -cr 'ls' -cl cori -p test"
@@ -167,28 +163,8 @@ class JtmInterface(object):
         msg_zipped = zdumps(json.dumps(json_data_dict))
 
         # Determine the destination queues
-
-        # self.USER_NAME = getpass.getuser()
         user_name = self.USER_NAME  # Config.py. For now, it's fixed as "jaws"
         jtm_host_name = self.JTM_HOST_NAME
-
-        # If jtm_host_name is not set, try to find it
-        # if not jtm_host_name:
-        #     if "pool" in json_data_dict and json_data_dict["pool"] and "cluster" in json_data_dict["pool"]:
-        #         jtm_host_name = json_data_dict["pool"]["cluster"]
-        #         # if "name" in json_data_dict["pool"]:
-        #         #     customPoolName = json_data_dict["pool"]["name"]
-        #     elif "jtm_host_name" in json_data_dict and json_data_dict["jtm_host_name"]:
-        #         jtm_host_name = json_data_dict["jtm_host_name"]
-        #     else:
-        #         if "NERSC_HOST" in os.environ:
-        #             jtm_host_name = os.environ["NERSC_HOST"]
-        #         elif "self.JTM_HOST_NAME" in os.environ:  # for custom name like ["aws' | 'olcf' | 'pc']
-        #             jtm_host_name = os.environ["self.JTM_HOST_NAME"]
-        #         elif "HOSTNAME" in os.environ:
-        #             jtm_host_name = os.environ["HOSTNAME"]
-        #         else:
-        #             jtm_host_name = socket.gethostname()
 
         # Prepare rmq message
         jtm_host_name = jtm_host_name.replace(".", "_")
@@ -196,7 +172,6 @@ class JtmInterface(object):
 
         # It's not good to have here again but it's for dealing with multiple jtm instances
         jtmTaskRequestQ = "_jtm_task_request_queue" + "." + host_and_user_name
-        # jtmTaskResultQ = "_jtm_task_result_queue" + "." + host_and_user_name + "." + self.task_type
 
         # Note: declare and bind are needed to keep jtm-submit requests in the queue
         #  and to let the manager consume it
@@ -208,16 +183,13 @@ class JtmInterface(object):
                                 queue=self.JTM_TASK_REQUEST_Q,
                                 routing_key=self.JTM_TASK_REQUEST_Q)
 
-        if self.DEBUG:
-            print("kw")
+        if self.debug:
+            logger.info("kw")
             pprint.pprint(kw)
-            print("json_data_dict")
+            logger.info("json_data_dict")
             pprint.pprint(json_data_dict)
-            print(("jtmTaskRequestQ = %s" % jtmTaskRequestQ))
-            # print "jtmTaskResultQ =", jtmTaskResultQ
+            logger.info(("jtmTaskRequestQ = %s" % jtmTaskRequestQ))
 
-        self.corr_id = str(uuid.uuid4())
-        # self.channel.confirm_delivery()  # 11192018 to test task is not discarded
         self.channel.basic_publish(exchange=self.JGI_JTM_MAIN_EXCH,
                                    routing_key=jtmTaskRequestQ,
                                    properties=pika.BasicProperties(
@@ -234,18 +206,12 @@ class JtmInterface(object):
                 #  granularity of the underlying ioloop. Zero means return as soon as possible.
                 #  None means there is no limit on processing time
                 #  and the function will block until I/O produces actionable events.
-                #
-                # Fixme: timeout. time_limit=0 or time_limit=None doesn't work. Set long enough processing time
-                #  fixed it! 04162019
-                #
-                # time.sleep(1)
-                # self.connection.process_data_events(time_limit=JTMINTERFACE_TIMEOUT)
                 self.connection.process_data_events(time_limit=1.0)
 
                 cnt += 1
                 if cnt == self.JTMINTERFACE_MAX_TRIAL:
                     make_dir(os.path.join(self.JTM_LOG, "jtm-submit"))
-                    eprint("Failed to get a reply from the manager: {} {}".format(json_data_dict, self.response))
+                    logger.error("Failed to get a reply from the manager: {} {}".format(json_data_dict, self.response))
                     jtm_submit_log_file = os.path.join(self.JTM_LOG, "jtm-submit", "jtm_submit_%s"
                                                        % (datetime.datetime.now().strftime("%Y-%m-%d")))
                     with open(jtm_submit_log_file, 'a') as jslogf:
@@ -255,8 +221,8 @@ class JtmInterface(object):
                         self.response = -88
                     break
         except Exception as e:
-            eprint("No task id returned")
-            eprint(e)
+            logger.error("No task id returned")
+            logger.error(e)
 
         return self.response
 

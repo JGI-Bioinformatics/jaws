@@ -10,7 +10,7 @@ from jaws_jtm.config import JtmConfig
 from jaws_jtm.jtm_manager import manager as jtmmanager
 from jaws_jtm.jtm_worker import worker as jtmworker
 from jaws_jtm.lib.jtminterface import JtmInterface
-from jaws_jtm.lib.run import eprint
+from jaws_jtm.common import logger
 
 
 class Mutex(click.Option):
@@ -47,22 +47,11 @@ def cli(ctx: object, debug: bool, config_file: str):
         config = JtmConfig(config_file=config_file)
     else:
         config = JtmConfig()
-    # print(f"Config using {config.config_file}")
     ctx.obj = {
         'config_file': config_file,
         'config': config,
         'debug': debug
     }
-    # COMPUTE_RESOURCES = config.constants.COMPUTE_RESOURCES
-    # CLUSTER = config.configparser.get("SITE", "jtm_host_name")
-    # TASK_STATUS = config.constants.TASK_STATUS
-    # NCPUS = config.configparser.getint("SLURM", "ncpus")
-    # MEM_PER_NODE = config.configparser.get("SLURM", "mempernode")
-    # CHARGE_ACCOUNT = config.configparser.get("SLURM", "charge_accnt")
-    # QOS = config.configparser.get("SLURM", "qos")
-    # NNODES = config.configparser.getint("SLURM", "nnodes")
-    # CONSTRAINT = config.configparser.get("SLURM", "constraint")
-    # NWORKERS_PER_NODE = config.configparser.getint("JTM", "num_workers_per_node")
 
 
 @cli.command()
@@ -137,6 +126,8 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
               help="Slurm real memory required per node")
 @click.option("-mc", "--mem_per_cpu",
               help="Slurm minimum memory required per allocated CPU")
+@click.option("-P", "--partition",
+              help="Slurm partition name")
 @click.option("-q", "--qos",
               help="Slurm quality of service")
 @click.option("-t", "--job_time",
@@ -146,7 +137,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
            pool_name: str, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
            clone_time_rate: float, num_worker_per_node: int, worker_id: str,
            charging_account: str, nnodes: int, cpus_per_task: int, constraint: str,
-           mem: str, mem_per_cpu: str, qos: str, job_time: str) -> int:
+           mem: str, mem_per_cpu: str, qos: str, partition: str, job_time: str) -> int:
     """
     JTM Worker Click wrapper
 
@@ -169,6 +160,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :param mem: memory request
     :param mem_per_cpu: memory request per cpu
     :param qos:
+    :param partition:
     :param job_time: wallclocktime
     :return:
     """
@@ -176,7 +168,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
                        dry_run, slurm_job_id, worker_type, cluster,
                        clone_time_rate, num_worker_per_node, worker_id,
                        charging_account, nnodes, cpus_per_task, constraint, mem,
-                       mem_per_cpu, qos, job_time))
+                       mem_per_cpu, qos, partition, job_time))
 
 
 @cli.command()
@@ -214,6 +206,8 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
 @click.option("-p", "--pool_name",
               help="User pool name",
               required=True)
+@click.option("-P", "--partition",
+              help="Slurm partition name")
 @click.option("-q", "--qos",
               help="Set the QOS for SLURM request")
 @click.option("-s", "--shared",
@@ -226,7 +220,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
 def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: str, account: str,
            ncpu: int, constraint: str,
            num_worker_per_node: int, cromwell_job_id: str, memory: str, nnodes: int,
-           qos: str, shared: int, job_time) -> int:
+           qos: str, partition: str, shared: int, job_time: str) -> int:
     """
     JtmInterface returns 'task_id' if successfully queued
     jtm submit exits with code 0 if successfully submitted
@@ -249,17 +243,14 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
     :param memory:
     :param nnodes:
     :param qos:
+    :param partition:
     :param shared:
     :param job_time:
-    :return:
+    :return: exit with 0 if succeeded, 1 if failed
     """
     if ctx.obj['debug']:
         click.echo("Debug mode")
 
-    if job_time:
-        assert ncpu and memory and \
-               nnodes and pool_name, \
-               "USAGE: runtime (-t) should be set with 'num_cpus' (-c), memory (-m), node (-nn), and pool name (-p)."
     add_info = pool_name
     ret = int(JtmInterface('task', ctx, info_tag=add_info).call(task_file=task_file,
                                                                 task_json=command,
@@ -275,13 +266,14 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
                                                                 job_id=cromwell_job_id,
                                                                 constraint=constraint,
                                                                 qos=qos,
+                                                                partition=partition,
                                                                 account=account))
 
     if ret == -5:
-        eprint("jtm submit: invalid task or runtime definition.")
+        logger.error("jtm submit: invalid task or runtime definition.")
         return 1
     elif ret == -88:
-        eprint("jtm submit: command timeout.")
+        logger.error("jtm submit: command timeout.")
         return -1
 
     click.echo("JTM task ID %d" % ret)
@@ -307,19 +299,16 @@ def kill(ctx: object, task_id: int) -> int:
 
     :param ctx:
     :param task_id:
-    :return:
+    :return: exit with 0 if succeeded, 1 if failed
     """
     ret = int(JtmInterface('kill', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
-        eprint("jtm kill: command timeout.")
+        logger.error("jtm kill: command timeout.")
         sys.exit(-1)
     elif ret == -5:
-        eprint("jtm kill: task id not found.")
+        logger.error("jtm kill: task id not found.")
         sys.exit(-1)
     sys.exit(0) if ret == 0 else sys.exit(1)
-    # if ret != 0:
-    #     click.echo("jtm kill failed with task id %d" % taskID)
-    # sys.exit(0)
 
 
 @cli.command()
@@ -333,24 +322,25 @@ def isalive(ctx: object, task_id: int) -> int:
     JtmInterface returns
       0 if ready
       1 if queued
-      2 if running
+      2 if pending
+      3 if running
       4 if successfully done
       -1, -2, -3, -4: failed
 
-    jtm isalive exits with 0 if it's in ['ready', 'queued', 'running'] status
+    jtm isalive exits with 0 if it's in ['ready', 'queued', 'pending', 'running'] status
                           1 if it's done successfully or failed
 
     click.echo("isalive")
 
     :param ctx:
     :param task_id:
-    :return:
+    :return: exit with 0 if alive, 1 if not
     """
     ret = int(JtmInterface('status', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
-        eprint("jtm isalive: command timeout.")
+        logger.error("jtm isalive: command timeout.")
         sys.exit(-1)
-    elif ret in [0, 1, 2]:
+    elif ret in [0, 1, 2, 3]:
         click.echo("yes")
         sys.exit(0)
     else:
@@ -369,11 +359,12 @@ def status(ctx: object, task_id: int) -> int:
     JtmInterface returns
       0 if ready
       1 if queued
-      2 if running
+      2 if pending
+      3 if running
       4 if successfully done
       -1, -2, -3, -4: failed
 
-    jtm status exits with 0 if it's in ['ready', 'queued', 'running'] status
+    jtm status exits with 0 if it's in ['ready', 'queued', 'pending', 'running'] status
                           1 if it's done successfully or failed
 
     :param ctx:
@@ -382,11 +373,11 @@ def status(ctx: object, task_id: int) -> int:
     """
     ret = int(JtmInterface('status', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
-        eprint("jtm status: command timeout.")
+        logger.error("jtm status: command timeout.")
         sys.exit(-1)
     reversed_task_status = dict(map(reversed, ctx.obj['config'].constants.TASK_STATUS.items()))
     click.echo(reversed_task_status[ret])
-    sys.exit(0) if ret in [0, 1, 2] else sys.exit(1)
+    sys.exit(0) if ret in [0, 1, 2, 3] else sys.exit(1)
 
 
 @cli.command()
@@ -410,7 +401,7 @@ def remove_pool(ctx: object, pool_name: str, cluster: str) -> int:
     :param ctx:
     :param pool_name:
     :param cluster:
-    :return:
+    :return: exit with 0 if succeeded, 1 if failed
     """
     ret = int(JtmInterface('remove_pool', ctx, info_tag=pool_name).call(task_pool=pool_name,
                                                                         jtm_host_name=cluster))
@@ -439,7 +430,7 @@ def check_worker(ctx: object, pool_name: str, slurm_info: bool, cluster) -> int:
     :param pool_name:
     :param slurm_info:
     :param cluster:
-    :return:
+    :return: number of workers in the pool specified
     """
     add_info = socket.gethostname().replace(".", "_")
     if cluster:
@@ -469,7 +460,7 @@ def check_manager(ctx: object, cluster: str) -> int:
 
     :param ctx:
     :param cluster:
-    :return:
+    :return: exit with 0 if a manager found, 1 if not
     """
     add_info = socket.gethostname().replace(".", "_")
     if cluster:
@@ -496,11 +487,11 @@ def resource_log(ctx: object, task_id: int) -> int:
 
     :param ctx:
     :param task_id:
-    :return:
+    :return:  JSON string
     """
     resource_log_file = JtmInterface('resource', ctx, info_tag=task_id).call(task_id=task_id)
     if resource_log_file == -88:
-        eprint("jtm resource-log: command timeout.")
+        logger.error("jtm resource-log: command timeout.")
         sys.exit(-1)
     # print resource_log_file
     # http://www.andymboyle.com/2011/11/02/quick-csv-to-json-parser-in-python/
@@ -536,7 +527,7 @@ def resource_log(ctx: object, task_id: int) -> int:
         ))
         click.echo("""{ "task_id": %d, "resource_log": %s }""" % (task_id, json.dumps([row for row in reader])))
     else:
-        eprint("Resource file, %s, not found." % (resource_log_file))
+        logger.error("Resource file, %s, not found." % (resource_log_file))
         resource_log_file = None
 
     sys.exit(0) if resource_log_file is not None else sys.exit(1)

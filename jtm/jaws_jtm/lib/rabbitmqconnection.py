@@ -38,7 +38,6 @@ class RmqConnectionHB(object):
                                                host=RMQ_HOST,
                                                virtual_host=RMQ_VHOST,
                                                port=RMQ_PORT,
-                                               # heartbeat=0,
                                                heartbeat=5,  # for functools method
                                                )
             self.__connection = pika.BlockingConnection(params)
@@ -63,8 +62,6 @@ def rmq_close(rmq_conn_obj):
 
 def send_msg_callback(ch, method, props, msg, exch=None, queue=None, delivery_mode=1):
     exch_name = exch if exch is not None else ''
-    # exch_name = exch
-    # assert exch_name
     routing_key = queue if queue is not None else props.reply_to
     assert routing_key
 

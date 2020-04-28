@@ -34,7 +34,8 @@ class JtmConstants():
 
     TASK_STATUS = {"ready": 0,
                    "queued": 1,
-                   "running": 2,
+                   "pending": 2,
+                   "running": 3,
                    "success": 4,
                    "outputerror": -1,  # output file(s) not found.
                    "failed": -2,
@@ -89,27 +90,10 @@ class JtmConstants():
               "nwpn": 26  # num workers per node, NOT USED
               }
 
-    # Note: to see all the qos assigned
-    # $ sacctmgr show assoc user=jaws_jtm -p
-    # Cluster|Account|User|Partition|Share|Priority|GrpJobs|GrpTRES|GrpSubmit|GrpWall|GrpTRESMins|MaxJobs|MaxTRES|
-    # MaxTRESPerNode|MaxSubmit|MaxWall|MaxTRESMins|QOS|Def QOS|GrpTRESRunMins|
-    # escori|m342|jaws_jtm||1||||||||bb/datawarp=52828800M|||||debug_hsw,debug_knl,flex,interactive,jupyter,long,low_knl,
-    # overrun,premium,regular_0,regular_1,regular_bigmem,resv,resv_shared,shared,xfer|||
-    # cori|m342|jaws_jtm||1||||||||bb/datawarp=52828800M|||||debug_hsw,debug_knl,flex,interactive,jupyter,long,low_knl,
-    # overrun,premium,regular_0,regular_1,regular_bigmem,resv,resv_shared,shared,xfer|||
-    # QOS_LIST = ["genepool_special",
-    #             "genepool_shared",
-    #             "genepool",
-    #             "regular",
-    #             "jgi_shared",
-    #             "jgi_exvivo",
-    #             "condo_jgicloud"
-    #             ]
-
     DEFAULT_POOL_NAME = ["small", "medium", "large", "xlarge"]
     # Number of child processes for manager and worker
-    NUM_MANAGER_PROCS = 7
-    NUM_WORKER_PROCS = 6
+    NUM_MANAGER_PROCS = 6
+    NUM_WORKER_PROCS = 4
     # Explicit task kill if the worker's job time will be expired after TASK_KILL_TIMEOUT minute
     TASK_KILL_TIMEOUT_MINUTE = 3
 
