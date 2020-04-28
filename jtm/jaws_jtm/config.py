@@ -93,7 +93,7 @@ class JtmConstants():
     DEFAULT_POOL_NAME = ["small", "medium", "large", "xlarge"]
     # Number of child processes for manager and worker
     NUM_MANAGER_PROCS = 6
-    NUM_WORKER_PROCS = 5
+    NUM_WORKER_PROCS = 4
     # Explicit task kill if the worker's job time will be expired after TASK_KILL_TIMEOUT minute
     TASK_KILL_TIMEOUT_MINUTE = 3
 
