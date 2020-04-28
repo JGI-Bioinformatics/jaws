@@ -5,14 +5,12 @@ import click
 import socket
 import json
 import csv
-import logging
 
 from jaws_jtm.config import JtmConfig
 from jaws_jtm.jtm_manager import manager as jtmmanager
 from jaws_jtm.jtm_worker import worker as jtmworker
 from jaws_jtm.lib.jtminterface import JtmInterface
-
-logger = logging.getLogger(__package__)
+from jaws_jtm.lib.run import eprint
 
 
 class Mutex(click.Option):
@@ -166,17 +164,11 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :param job_time: wallclocktime
     :return:
     """
-    ret = jtmworker(ctx, heartbeat_interval, log_dir, job_script_dir_name, pool_name,
-                    dry_run, slurm_job_id, worker_type, cluster,
-                    clone_time_rate, num_worker_per_node, worker_id,
-                    charging_account, nnodes, cpus_per_task, constraint, mem,
-                    mem_per_cpu, qos, partition, job_time)
-
-    if ret == -5:
-        logger.error("Invalid task or runtime definition.")
-        sys.exit(1)
-
-    sys.exit(0)
+    sys.exit(jtmworker(ctx, heartbeat_interval, log_dir, job_script_dir_name, pool_name,
+                       dry_run, slurm_job_id, worker_type, cluster,
+                       clone_time_rate, num_worker_per_node, worker_id,
+                       charging_account, nnodes, cpus_per_task, constraint, mem,
+                       mem_per_cpu, qos, partition, job_time))
 
 
 @cli.command()
@@ -259,6 +251,10 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
     if ctx.obj['debug']:
         click.echo("Debug mode")
 
+    if job_time:
+        assert ncpu and memory and \
+               nnodes and pool_name, \
+               "USAGE: runtime (-t) should be set with 'num_cpus' (-c), memory (-m), node (-nn), and pool name (-p)."
     add_info = pool_name
     ret = int(JtmInterface('task', ctx, info_tag=add_info).call(task_file=task_file,
                                                                 task_json=command,
@@ -278,10 +274,10 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
                                                                 account=account))
 
     if ret == -5:
-        logger.error("jtm submit: invalid task or runtime definition.")
+        eprint("jtm submit: invalid task or runtime definition.")
         return 1
     elif ret == -88:
-        logger.error("jtm submit: command timeout.")
+        eprint("jtm submit: command timeout.")
         return -1
 
     click.echo("JTM task ID %d" % ret)
@@ -311,10 +307,10 @@ def kill(ctx: object, task_id: int) -> int:
     """
     ret = int(JtmInterface('kill', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
-        logger.error("jtm kill: command timeout.")
+        eprint("jtm kill: command timeout.")
         sys.exit(-1)
     elif ret == -5:
-        logger.error("jtm kill: task id not found.")
+        eprint("jtm kill: task id not found.")
         sys.exit(-1)
     sys.exit(0) if ret == 0 else sys.exit(1)
 
@@ -346,7 +342,7 @@ def isalive(ctx: object, task_id: int) -> int:
     """
     ret = int(JtmInterface('status', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
-        logger.error("jtm isalive: command timeout.")
+        eprint("jtm isalive: command timeout.")
         sys.exit(-1)
     elif ret in [0, 1, 2, 3]:
         click.echo("yes")
@@ -381,7 +377,7 @@ def status(ctx: object, task_id: int) -> int:
     """
     ret = int(JtmInterface('status', ctx, info_tag=task_id).call(task_id=task_id))
     if ret == -88:
-        logger.error("jtm status: command timeout.")
+        eprint("jtm status: command timeout.")
         sys.exit(-1)
     reversed_task_status = dict(map(reversed, ctx.obj['config'].constants.TASK_STATUS.items()))
     click.echo(reversed_task_status[ret])
@@ -499,7 +495,7 @@ def resource_log(ctx: object, task_id: int) -> int:
     """
     resource_log_file = JtmInterface('resource', ctx, info_tag=task_id).call(task_id=task_id)
     if resource_log_file == -88:
-        logger.error("jtm resource-log: command timeout.")
+        eprint("jtm resource-log: command timeout.")
         sys.exit(-1)
     # print resource_log_file
     # http://www.andymboyle.com/2011/11/02/quick-csv-to-json-parser-in-python/
@@ -535,7 +531,7 @@ def resource_log(ctx: object, task_id: int) -> int:
         ))
         click.echo("""{ "task_id": %d, "resource_log": %s }""" % (task_id, json.dumps([row for row in reader])))
     else:
-        logger.error("Resource file, %s, not found." % (resource_log_file))
+        eprint("Resource file, %s, not found." % (resource_log_file))
         resource_log_file = None
 
     sys.exit(0) if resource_log_file is not None else sys.exit(1)

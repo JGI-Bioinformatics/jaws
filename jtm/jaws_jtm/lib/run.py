@@ -12,17 +12,14 @@ and other os-related tools
 
 """
 
+from subprocess import Popen, call, PIPE
 import os
-import sys
 import glob
 import shlex
 import re
 import time
-import logging
 from threading import Timer
-from subprocess import Popen, call, PIPE
-
-logger = logging.getLogger(__package__)
+import sys
 
 
 # -------------------------------------------------------------------------------
@@ -38,7 +35,7 @@ def run(*popenargs, **kwargs):
     dry_run = kw.pop("dry_run", False)
 
     if dry_run:
-        logger.info(popenargs)
+        print(popenargs)
     else:
         # convert something like run("ls -l") into run("ls -l", shell=True)
         if isinstance(popenargs[0], str) and len(shlex.split(popenargs[0])) > 1:
@@ -56,7 +53,7 @@ def run(*popenargs, **kwargs):
         if stdnull:
             stdnull.close()
         if return_code != 0:
-            logger.error("Failed to call run()")
+            eprint("Failed to call run()")
             return 1
 
     return 0
@@ -80,7 +77,7 @@ def make_dir(path, dry_run=False):
             finally:
                 os.umask(original_umask)
     else:
-        logger.info("make_dir %s" % (path,))
+        print("make_dir %s" % (path,))
 
     return 0
 
@@ -234,7 +231,7 @@ def run_sh_command(cmd, live=True, log=None, run_time=False,
                 if type(std_err) is bytes:
                     std_err = std_err.decode()
                 if show_stdout:
-                    logger.info(std_out)  # for printing slurm job id
+                    print(std_out)  # for printing slurm job id
                 exit_code = p.returncode
             finally:
                 if timeout_sec > 0:

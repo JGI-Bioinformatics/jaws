@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 # Seung-Jin Sul (ssul@lbl.gov)
 #
-import os
 import datetime
 import logging
+import os
 
 from jaws_jtm.lib.run import make_dir
 

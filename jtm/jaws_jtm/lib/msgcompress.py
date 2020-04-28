@@ -18,7 +18,7 @@ def zdumps(obj):
     # 1 is fastest and produces the least compression,
     # 9 is slowest and produces the most.
     # 0 is no compression
-    return zlib.compress(cPickle.dumps(obj, cPickle.HIGHEST_PROTOCOL), 5)
+    return zlib.compress(cPickle.dumps(obj, cPickle.HIGHEST_PROTOCOL), 5)  # py3
 
 
 # -------------------------------------------------------------------------------
@@ -28,4 +28,4 @@ def zloads(zstr):
     :param zstr: compress msg
     :return:
     """
-    return cPickle.loads(zlib.decompress(zstr))
+    return cPickle.loads(zlib.decompress(zstr))  # py3

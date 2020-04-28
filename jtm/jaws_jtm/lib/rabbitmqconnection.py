@@ -6,7 +6,6 @@
 #
 import pika
 import sys
-
 from jaws_jtm.common import logger
 from jaws_jtm.lib.msgcompress import zdumps
 
