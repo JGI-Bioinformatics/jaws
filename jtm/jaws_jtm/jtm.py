@@ -362,7 +362,7 @@ def status(ctx: object, task_id: int) -> int:
       2 if pending
       3 if running
       4 if successfully done
-      -1, -2, -3, -4: failed
+      -1 ~ -8: failed
 
     jtm status exits with 0 if it's in ['ready', 'queued', 'pending', 'running'] status
                           1 if it's done successfully or failed

@@ -162,10 +162,6 @@ JTM_SQL = {
             workerId2 = %(wid2)d,
             endDate = '%(now)s'
         WHERE taskId = %(task_id)d;""",
-    # "select_status_runs_by_taskid": """
-    #     SELECT status
-    #     FROM runs
-    #     WHERE taskId = %(task_id)d""",
     "select_resource_runs_by_taskid": """
         SELECT resource
         FROM runs
@@ -204,6 +200,10 @@ JTM_SQL = {
         UPDATE runs
         SET cancelled = 1, enddate = '%(now)s'
         WHERE taskId = %(task_id)d;""",
+    "update_runs_status_to_workernotfound_by_tid": """
+        UPDATE runs
+        SET status = %(status_id)d, enddate = '%(now)s'
+        WHERE taskId = %(task_id)d;""",
     "select_status_runs_by_taskid": """
         SELECT status
         FROM runs
@@ -211,6 +211,11 @@ JTM_SQL = {
     "select_status_cancelled_runs_by_taskid": """
         SELECT status, cancelled
         FROM runs
+        WHERE taskId = %(task_id)d;""",
+    "select_status_cancelled_slurmjid_runs_by_taskid": """
+        SELECT r.status, r.cancelled, w.slurmJobId
+        FROM runs as r
+        left join workers as w on r.workerId2 = w.workerId2
         WHERE taskId = %(task_id)d;""",
     "select_cancelled_runs_by_taskid": """
         SELECT cancelled

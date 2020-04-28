@@ -471,6 +471,8 @@ def recv_result_on_result(ch, method, props, body):
                     task_status_int = TASK_STATUS["timeout"]
                 elif done_flag == -7:
                     task_status_int = TASK_STATUS["lostconnection"]
+                elif done_flag == -8:
+                    task_status_int = TASK_STATUS["workernotfound"]
                 else:
                     logger.critical("Unknown return code {}".format(done_flag))
                     raise OSError(2)
@@ -964,21 +966,42 @@ def process_task_status(ch, method, props, task_id):
     """
 
     db = DbSqlMysql(config=CONFIG)
-    cur = db.execute(JTM_SQL["select_status_cancelled_runs_by_taskid"]
+    # ret[] => task status, canceled or not, slurm job id
+    cur = db.execute(JTM_SQL["select_status_cancelled_slurmjid_runs_by_taskid"]
                      % dict(task_id=task_id))
     ret = cur.fetchone()
     db.close()
+
+    task_status_int = 0
+
+    def check_slurm_state(slurm_jid):
+        # Check if the slurm jid is in PD or R states
+        # if not,
+        cmd = "squeue -j %d --states=PD,R" % j
+        so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
+        return ec
 
     if ret is not None:
         logger.debug("Task status from runs table: status, cancelled = {}".format(ret))
         if ret[1] == 1:  # cancellation requested
             task_status_int = TASK_STATUS["terminated"]
         else:
-            # 0 if ready
-            # 1 if queued
-            # 2 if pending
-            # 3 if running
-            task_status_int = ret[0]
+            if ret[0] in (TASK_STATUS["pending"], TASK_STATUS["running"]):
+                if ret[2] is not None and not check_slurm_state(ret[2]):
+                    task_status_int = ret[0]
+                else:
+                    task_status_int = TASK_STATUS["workernotfound"]
+                    db = DbSqlMysql(config=CONFIG)
+                    db.execute(JTM_SQL["update_runs_cancelled_by_tid"]
+                               % dict(task_id=task_id,
+                                      status_id=TASK_STATUS["workernotfound"],
+                                      now=time.strftime("%Y-%m-%d %H:%M:%S")),
+                               debug=DEBUG)
+                    db.commit()
+                    db.close()
+            else:
+                # 0 if ready, 1 if queued, or > 3, or < 0
+                task_status_int = ret[0]
     else:
         logger.debug("Task ID not found: {}".format(task_id))
         task_status_int = TASK_STATUS["invalidtask"]  # invalid task id
