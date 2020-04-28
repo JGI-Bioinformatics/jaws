@@ -43,7 +43,7 @@ export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
 cp /tmp/jaws-dev/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
 chmod 700 /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
 
-exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
+exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf --debug manager -ld $INSTALLDIR/logs/jtm
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-cromwell-dev

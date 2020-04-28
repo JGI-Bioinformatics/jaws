@@ -1481,7 +1481,7 @@ def check_processes(pid_list):
 
     """
     while True:
-        logger.debug("Total Number of processes of the manager = %d" % (len(pid_list)+2))
+        logger.info("Total Number of processes of the manager = %d" % (len(pid_list)+2))
         if len(pid_list) != CONFIG.constants.NUM_MANAGER_PROCS - 2:
             raise OSError(2, 'Number of processes is wrong')
         time.sleep(CONFIG.configparser.getfloat("JTM", "num_procs_check_interval"))
