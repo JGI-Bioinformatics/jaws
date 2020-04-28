@@ -8,21 +8,19 @@ import json
 import uuid
 import datetime
 import pika
-import logging
 
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_jtm.lib.run import make_dir
 from jaws_jtm.config import JtmConfig
-
-logger = logging.getLogger(__package__)
+from jaws_jtm.common import logger
 
 
 class JtmInterface(object):
     """
     Class for jtm-* CLI tools
     """
-    def __init__(self, task_type, ctx=None, info_tag=None,):
+    def __init__(self, task_type, ctx=None, info_tag=None, config_file=None):
         self.task_type = task_type
         if ctx is not None:
             self.config = ctx.obj['config']
@@ -134,8 +132,7 @@ class JtmInterface(object):
         # Pass Cromwell job id and step name to jtm manager
         exclusive_task_pool_name_postfix = ""
         if ("shared" in kw and kw["shared"] == 0) or \
-           ("pool" in json_data_dict and "shared" in json_data_dict["pool"]
-            and json_data_dict["pool"]["shared"] == 0):
+           ("pool" in json_data_dict and "shared" in json_data_dict["pool"] and json_data_dict["pool"]["shared"] == 0):
             # Note: here "job_id" is a Cromwell workflow job name sent by "jtm-submit -jid ${job_name}"
             #  from cromwell.conf
             # The "shared" means the dynamic pool won't be shared among multiple workflows
@@ -205,7 +202,6 @@ class JtmInterface(object):
                 json_data_dict["pool"]["qos"] = qos_name
                 json_data_dict["pool"]["account"] = c_account
                 json_data_dict["pool"]["partition"] = partition_name
-                json_data_dict["pool"]["dryrun"] = kw["dry_run"]
 
         # For the command like, "jtm-submit -cr 'ls' -cl cori -p test"
         if "pool" in json_data_dict and "name" in json_data_dict["pool"] \
