@@ -94,7 +94,7 @@ jtm_host_name = cori
 user_name = jtm_dev
 instance_name = \${jtm_host_name}.\${user_name}
 scratch = /global/cscratch1/sd/jaws_jtm/
-debug = 0
+debug = 1
 [RMQ]
 host = rmq.nersc.gov
 vhost = jgi
