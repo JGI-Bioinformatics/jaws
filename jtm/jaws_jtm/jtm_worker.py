@@ -580,97 +580,6 @@ def recv_task_kill_request_proc():
 
 
 # -------------------------------------------------------------------------------
-def recv_reproduce_or_die_proc(task_queue, cluster_name, mem_per_node, mem_per_core,
-                               num_nodes, num_cores, wallclocktime, clone_time_rate,
-                               nwpn):
-    """
-    Wait for process termination request from JTM
-    :param task_queue: task queue (pool) name
-    :param cluster_name: cluster name
-    :param mem_per_node: memory size per node
-    :param mem_per_core: memory size per core
-    :param num_nodes: number of nodes
-    :param num_cores: number of cores
-    :param wallclocktime: wallclocktime request
-    :param clone_time_rate: cloning time rate (remaining runtime / total runtime)
-    :param nwpn: number of workers per node
-    :return:
-    """
-    rmq_conn = RmqConnectionHB(config=CONFIG)
-    conn = rmq_conn.open()
-    ch = conn.channel()
-    exch_name = JTM_WORKER_POISON_EXCH
-    queue_name = JTM_WORKER_POISON_Q
-
-    ch.exchange_declare(exchange=exch_name,
-                        exchange_type="direct",
-                        durable=True,
-                        auto_delete=False)
-    ch.queue_declare(queue=queue_name,
-                     durable=True,
-                     exclusive=False,
-                     auto_delete=True)
-    ch.queue_bind(exchange=exch_name,
-                  queue=queue_name,
-                  routing_key=UNIQ_WORKER_ID)
-
-    def on_poison(ch, method, props, body):
-        msg_unzipped = json.loads(zloads(body))
-
-        if msg_unzipped["worker_id"] == UNIQ_WORKER_ID:
-            # If static worker cloning request
-            if msg_unzipped["num_clones"] == -1:
-                # Kill the worker request
-                pass
-            elif msg_unzipped["num_clones"] == 1:
-                logger.info("Static worker cloning request received.")
-
-                jtm_worker_cmd = "jtm worker -wt static -cl {} -t {} -ct {}".format(
-                                  cluster_name, wallclocktime, clone_time_rate)
-
-                if task_queue is not None:
-                    jtm_worker_cmd += " -p {}".format(task_queue)
-
-                if nwpn != "" and int(nwpn) > 1:
-                    jtm_worker_cmd += " -nw {}".format(nwpn)
-                else:
-                    jtm_worker_cmd += " -nw 1"
-
-                if num_nodes != "" and int(num_nodes) > 0:
-                    jtm_worker_cmd += " -N {} -m {} -c {}".format(num_nodes, mem_per_node, num_cores)
-                else:
-                    jtm_worker_cmd += " -c {}".format(num_cores)
-                    if mem_per_node not in ("", None):  # if node mem defined, set --mem
-                        jtm_worker_cmd += " -m {}".format(mem_per_node)
-                    else:  # if not, set mem per core
-                        jtm_worker_cmd += " -mc {}".format(mem_per_core)
-
-                logger.info("Executing {}".format(jtm_worker_cmd))
-                so, se, ec = run_sh_command(jtm_worker_cmd, log=logger)
-                run_sh_command(jtm_worker_cmd + " --dry-run", log=logger)
-
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-
-        else:
-            # If UNIQ_WORKER_ID is not for me, reject and requeue it
-            logger.info("NACK sent to the broker")
-            ch.basic_reject(delivery_tag=method.delivery_tag,
-                            requeue=True)
-
-    # waiting for poison or cloning command
-    ch.basic_qos(prefetch_count=1)
-    ch.basic_consume(queue=queue_name,
-                     on_message_callback=on_poison,
-                     auto_ack=False)
-
-    try:
-        ch.start_consuming()
-    except KeyboardInterrupt:
-        ch.stop_consuming()
-        raise
-
-
-# -------------------------------------------------------------------------------
 def check_processes(pid_list):
     """
     Checking if the total number of processes from the worker is NUM_WORKER_PROCS
@@ -870,13 +779,12 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
 
     global CONFIG
     CONFIG = ctx.obj['config']
-    debug = ctx.obj['debug']
+    global DEBUG
+    DEBUG = ctx.obj['debug']
     # config file has precedence
     config_debug = CONFIG.configparser.getboolean("SITE", "debug")
     if config_debug:
-        debug = config_debug
-    global DEBUG
-    DEBUG = debug
+        DEBUG = config_debug
     global WORKER_TYPE
     WORKER_TYPE = CONFIG.constants.WORKER_TYPE
     global HB_MSG
@@ -998,9 +906,6 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     num_nodes_to_request = 0
     if num_nodes_to_request_param:
         num_nodes_to_request = num_nodes_to_request_param
-        # Todo
-        #  Cori and JGI Cloud are exclusive allocation. So this is not needed.
-        # assert mem_per_node_to_request_param is not None, "-N needs --mem-per-cpu (-mc) setting."
 
     # 11.13.2018 decided to remove all default values from argparse
     num_workers_per_node = num_workers_per_node_param if num_workers_per_node_param else NWORKERS
@@ -1454,26 +1359,6 @@ wait
 
     logger.info("Start sending my heartbeat to the client in every %d sec to %s"
                 % (hearbeat_interval, WORKER_HB_Q_POSTFIX))
-
-    # Start poison receive thread
-    try:
-        recv_poison_proc_hdl = mp.Process(target=recv_reproduce_or_die_proc,
-                                          args=(pool_name_param,
-                                                cluster_name,
-                                                mem_per_node_to_request,
-                                                mem_per_cpu_to_request,
-                                                num_nodes_to_request,
-                                                num_cpus_to_request,
-                                                job_time_to_request,
-                                                worker_clone_time_rate,
-                                                num_workers_per_node))
-        recv_poison_proc_hdl.start()
-        pid_list.append(recv_poison_proc_hdl)
-    except Exception as e:
-        logger.exception("recv_reproduce_or_die_proc: {}".format(e))
-        proc_clean(pid_list)
-        conn_clean(conn, ch)
-        sys.exit(1)
 
     # Checking the total number of child processes
     try:

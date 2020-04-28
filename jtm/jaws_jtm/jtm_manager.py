@@ -1481,7 +1481,7 @@ def check_processes(pid_list):
         logger.debug("Total Number of processes of the manager = %d" % (len(pid_list)+2))
         if len(pid_list) != NUM_MANAGER_PROCS - 2:
             raise OSError(2, 'Number of processes is wrong')
-        time.sleep(NUM_PROCS_CHECK_INTERVAL)
+        time.sleep(CONFIG.configparser.getfloat("JTM", "num_procs_check_interval"))
 
 
 # -------------------------------------------------------------------------------
@@ -1516,13 +1516,12 @@ def manager(ctx: object, custom_log_dir_name: str,
 
     global CONFIG
     CONFIG = ctx.obj['config']
-    debug = ctx.obj['debug']
+    global DEBUG
+    DEBUG = ctx.obj['debug']
     # config file has precedence
     config_debug = CONFIG.configparser.getboolean("SITE", "debug")
     if config_debug:
-        debug = config_debug
-    global DEBUG
-    DEBUG = debug
+        DEBUG = config_debug
     global TASK_STATUS
     TASK_STATUS = CONFIG.constants.TASK_STATUS
     VERSION = CONFIG.constants.VERSION
@@ -1562,8 +1561,7 @@ def manager(ctx: object, custom_log_dir_name: str,
     WORKER_HB_RECV_INTERVAL = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
     global JTM_WORKER_POISON_EXCH
     JTM_WORKER_POISON_EXCH = CONFIG.configparser.get("JTM", "jtm_worker_poison_exch")
-    global JTM_WORKER_POISON_Q
-    JTM_WORKER_POISON_Q = CONFIG.configparser.get("JTM", "jtm_worker_poison_q")
+
     global JTM_TASK_KILL_EXCH
     JTM_TASK_KILL_EXCH = CONFIG.configparser.get("JTM", "jtm_task_kill_exch")
     global JTM_TASK_KILL_Q
@@ -1582,8 +1580,6 @@ def manager(ctx: object, custom_log_dir_name: str,
     CLIENT_HB_SEND_INTERVAL = CONFIG.configparser.getfloat("JTM", "client_hb_send_interval")
     global NUM_RESULT_RECV_THREADS
     NUM_RESULT_RECV_THREADS = CONFIG.configparser.getint("JTM", "num_result_recv_threads")
-    global NUM_PROCS_CHECK_INTERVAL
-    NUM_PROCS_CHECK_INTERVAL = CONFIG.configparser.getfloat("JTM", "num_procs_check_interval")
 
     # Log dir setting
     log_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "log")
@@ -1598,7 +1594,6 @@ def manager(ctx: object, custom_log_dir_name: str,
     print("JTM Manager, version: {}".format(VERSION))
 
     setup_custom_logger(log_level, log_dir_name, 1, 1)
-
     logger.info("\n*****************\nDebug mode is %s\n*****************"
                 % ("ON" if DEBUG else "OFF"))
     logger.info("Set jtm log file location to %s", log_dir_name)
@@ -1614,7 +1609,6 @@ def manager(ctx: object, custom_log_dir_name: str,
                         exchange_type="direct",
                         durable=True,
                         auto_delete=False)
-    logger.info("JTM main exchange: %s", JGI_JTM_MAIN_EXCH)
 
     # Declare task sending queue (client --> worker)
     #
@@ -1645,7 +1639,7 @@ def manager(ctx: object, custom_log_dir_name: str,
                   queue=JTM_TASK_REQUEST_Q,
                   routing_key=JTM_TASK_REQUEST_Q)
 
-    logger.info("JGI Task Manager, version: %s" % (VERSION))
+    logger.info("JTM main exchange: %s", JGI_JTM_MAIN_EXCH)
     logger.info("JTM config file: %s" % (CONFIG.config_file))
     logger.info("RabbitMQ broker: %s", CONFIG.configparser.get("RMQ", "host"))
     logger.info("Default task queue name: %s", JTM_TASK_REQUEST_Q)
