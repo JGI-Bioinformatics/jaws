@@ -91,6 +91,8 @@ class Run(Base):
     updated = Column(
         DateTime, default=same_as("date_submitted"), onupdate=datetime.datetime.utcnow
     )
+    wdl_file = Column(String(128), nullable=False)
+    input_file = Column(String(128), nullable=False)
     input_site_id = Column(String(8), nullable=False)
     input_endpoint = Column(String(36), nullable=False)
     upload_task_id = Column(String(36), nullable=False)

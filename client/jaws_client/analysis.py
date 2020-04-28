@@ -280,6 +280,8 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
 
     # SUBMIT RUN
     data = {
+        "wdl_file": wdl_file,
+        "input_file": infile,
         "site_id": site,
         "submission_id": submission_id,
         "input_site_id": config.conf.get("JAWS", "site_id"),

@@ -340,6 +340,16 @@ paths:
       summary: Begin run run process
       description: Returns site information to send infiles.
       parameters:
+        - name: wdl_file
+          description: workflow specification file
+          type: string
+          in: formData
+          required: True
+        - name: input_file
+          description: original inputs json file
+          type: string
+          in: formData
+          required: True
         - name: site_id
           description: computing site to use
           type: string

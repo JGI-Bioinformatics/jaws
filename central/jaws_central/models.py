@@ -90,6 +90,8 @@ class Run(db.Model):
         default=same_as("date_submitted"),
         onupdate=datetime.datetime.utcnow,
     )
+    wdl_file = db.Column(db.String(128), nullable=False)
+    input_file = db.Column(db.String(128), nullable=False)
     input_site_id = db.Column(db.String(8), nullable=False)
     input_endpoint = db.Column(db.String(36), nullable=False)
     upload_task_id = db.Column(db.String(36), nullable=True)
