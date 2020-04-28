@@ -8,13 +8,11 @@ import json
 import uuid
 import datetime
 import pika
-import logging
 
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_jtm.lib.run import make_dir
-
-logger = logging.getLogger(__package__)
+from jaws_jtm.common import logger
 
 
 class JtmInterface(object):

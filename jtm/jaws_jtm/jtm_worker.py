@@ -51,6 +51,7 @@ from jaws_jtm.lib.msgcompress import zdumps, zloads
 PIPE_TASK_ID_SEND, PIPE_TASK_ID_RECV = mp.Pipe()
 DEBUG = False
 
+
 # -------------------------------------------------------------------------------
 # Globals
 # -------------------------------------------------------------------------------
