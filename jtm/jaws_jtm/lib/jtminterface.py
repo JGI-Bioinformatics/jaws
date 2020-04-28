@@ -13,6 +13,7 @@ import logging
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_jtm.lib.run import make_dir
+from jaws_jtm.config import JtmConfig
 
 logger = logging.getLogger(__package__)
 
@@ -22,22 +23,40 @@ class JtmInterface(object):
     Class for jtm-* CLI tools
     """
     def __init__(self, task_type, ctx=None, info_tag=None,):
-        self.config = ctx.obj['config']
-        self.debug = ctx.obj['debug']
         self.task_type = task_type
+        if ctx is not None:
+            self.config = ctx.obj['config']
+            self.debug = ctx.obj['debug']
+        else:
+            if config_file:
+                self.config = JtmConfig(config_file=config_file)
+            else:
+                self.config = JtmConfig()
+            self.debug = self.config.configparser.getboolean("SITE", "debug")
         self.rmq_conn = RmqConnectionHB(config=self.config)
         self.connection = self.rmq_conn.open()
         self.channel = self.connection.channel()
         self.response = None
-        self.JTM_LOG = self.config.configparser.get("JTM", "log_dir")
-        self.JGI_JTM_MAIN_EXCH = self.config.configparser.get("JTM", "jgi_jtm_main_exch")
-        self.USER_NAME = self.config.configparser.get("SITE", "user_name")
-        self.JTM_TASK_REQUEST_Q = self.config.configparser.get("JTM", "jtm_task_request_q")
-        self.JTMINTERFACE_MAX_TRIAL = self.config.configparser.getint("JTM", "jtminterface_max_trial")
-        self.JTM_HOST_NAME = self.config.configparser.get("SITE", "jtm_host_name")
+        self.jtm_log = self.config.configparser.get("JTM", "log_dir")
+        self.jgi_jtm_main_exch = self.config.configparser.get("JTM", "jgi_jtm_main_exch")
+        self.user_name = self.config.configparser.get("SITE", "user_name")
+        self.jtm_task_request_q = self.config.configparser.get("JTM", "jtm_task_request_q")
+        self.jtminterface_max_trial = self.config.configparser.getint("JTM", "jtminterface_max_trial")
+        self.jtm_host_name = self.config.configparser.get("SITE", "jtm_host_name").replace(".", "_")
+        self.jobtime = self.config.configparser.get("SLURM", "jobtime")
+        self.constraint = self.config.configparser.get("SLURM", "constraint")
+        self.charge_accnt = self.config.configparser.get("SLURM", "charge_accnt")
+        self.qos = self.config.configparser.get("SLURM", "qos")
+        self.partition = self.config.configparser.get("SLURM", "partition")
+        self.mempernode = self.config.configparser.get("SLURM", "mempernode")
+        self.mempercpu = self.config.configparser.get("SLURM", "mempercpu")
+        self.ncpus = self.config.configparser.getint("SLURM", "ncpus")
+        self.nnodes = self.config.configparser.getint("SLURM", "nnodes")
+        self.poolname = self.config.configparser.get("JTM", "pool_name")
+        self.nwpn = self.config.configparser.get("JTM", "num_workers_per_node")
         self.corr_id = str(uuid.uuid4())
 
-        self.channel.exchange_declare(exchange=self.JGI_JTM_MAIN_EXCH,
+        self.channel.exchange_declare(exchange=self.jgi_jtm_main_exch,
                                       exchange_type='direct',
                                       durable=True,
                                       auto_delete=False)
@@ -48,7 +67,6 @@ class JtmInterface(object):
             uniq_queue_name = "_jtm_client_" + '_'.join([str(shortuuid.uuid()), task_type, str(info_tag)])
             self.channel.queue_declare(uniq_queue_name,
                                        durable=True,
-                                       # exclusive=True,
                                        exclusive=False,
                                        auto_delete=True)
             self.callback_queue = uniq_queue_name
@@ -59,9 +77,7 @@ class JtmInterface(object):
                                                 auto_delete=True)
             self.callback_queue = result.method.queue
 
-        # print(self.callback_queue)
-
-        self.channel.queue_bind(exchange=self.JGI_JTM_MAIN_EXCH,
+        self.channel.queue_bind(exchange=self.jgi_jtm_main_exch,
                                 queue=self.callback_queue,
                                 routing_key=self.callback_queue)
         self.channel.basic_qos(prefetch_count=1)
@@ -86,7 +102,7 @@ class JtmInterface(object):
         :return:
         """
         json_str = ""
-        jtm_host_name = ""
+        jtm_host_name = self.jtm_host_name
 
         if "task_file" in kw and kw["task_file"]:
             with open(kw["task_file"], "r") as jf:
@@ -100,7 +116,7 @@ class JtmInterface(object):
             try:
                 json_data_dict = json.loads(json_str)
             except ValueError:
-                print(json_str)
+                logger.exception(json_str)
                 raise
         else:  # jtm-status, jtm-kill, jtm-resource, jtm-check-*
             json_data_dict = {}
@@ -118,7 +134,8 @@ class JtmInterface(object):
         # Pass Cromwell job id and step name to jtm manager
         exclusive_task_pool_name_postfix = ""
         if ("shared" in kw and kw["shared"] == 0) or \
-           ("pool" in json_data_dict and "shared" in json_data_dict["pool"] and json_data_dict["pool"]["shared"] == 0):
+           ("pool" in json_data_dict and "shared" in json_data_dict["pool"]
+            and json_data_dict["pool"]["shared"] == 0):
             # Note: here "job_id" is a Cromwell workflow job name sent by "jtm-submit -jid ${job_name}"
             #  from cromwell.conf
             # The "shared" means the dynamic pool won't be shared among multiple workflows
@@ -139,26 +156,60 @@ class JtmInterface(object):
 
         # If cromwell task and custom pool setting found, create a separate pool for the tasks!
         if "job_time" in kw:
-            if kw["job_time"] and kw["node_mem"] and kw["num_core"] and \
+            if kw["job_time"] and kw["num_core"] and \
                kw["pool_name"] and kw["job_time"] != "" and kw["node_mem"] != "" and \
                kw["num_core"] != 0 and kw["pool_name"] != "" and kw["node"] != 0 and \
                kw["job_time"] != "00:00:00" and kw["node_mem"] != "0G" and kw["num_core"] != 0:
+
+                # Site specific param checking can be done here
+                constraint_name = kw["constraint"] if 'constraint' in kw and kw["constraint"] else self.constraint
+                if jtm_host_name == "cori" and constraint_name not in ("haswell", "knl", "skylake"):
+                    logger.critical("Unsupported constarint")
+                    return -5
+                node_mem = kw["node_mem"] if 'node_mem' in kw and kw["node_mem"] else self.mempernode
+                if type(node_mem) != str:
+                    logger.critical("Memory requirement should be in string like 5G or 10g")
+                    logger.critical("Userd value: {}".format(node_mem))
+                    return -5
+                partition_name = kw["partition"] if 'partition' in kw and kw["partition"] else self.partition
+                if jtm_host_name == "lbl" and partition_name != "lr3":
+                    logger.critical("Unsupported partition")
+                    return -5
+                qos_name = kw["qos"] if 'qos' in kw and kw["qos"] else self.qos
+                if jtm_host_name == "lbl" and qos_name != "condo_jgicloud":
+                    logger.critical("Unsupported qos")
+                    return -5
+                c_account = kw["account"] if 'account' in kw and kw["account"] else self.charge_accnt
+                if jtm_host_name == "lbl" and c_account != "lr_jgicloud":
+                    logger.critical("Unsupported charging account")
+                    return -5
+
+                pool_name = kw["pool_name"] if 'pool_name' in kw and kw["pool_name"] else self.poolname
+
                 json_data_dict["pool"] = {}
-                json_data_dict["pool"]["time"] = kw["job_time"]
-                json_data_dict["pool"]["cpu"] = kw["num_core"]
-                json_data_dict["pool"]["mem"] = kw["node_mem"]
-                json_data_dict["pool"]["name"] = kw["pool_name"]
-                json_data_dict["pool"]["cluster"] = kw["jtm_host_name"]
-                json_data_dict["pool"]["nwpn"] = kw["nwpn"] if 'nwpn' in kw else 1  # number of workers per node
-                json_data_dict["pool"]["node"] = kw["node"] if 'node' in kw else 1  # number of nodes
+                json_data_dict["pool"]["time"] = kw["job_time"] \
+                    if 'job_time' in kw and kw["job_time"] else self.jobtime
+                json_data_dict["pool"]["cpu"] = kw["num_core"] \
+                    if 'num_core' in kw and kw["num_core"] else self.ncpus
+                json_data_dict["pool"]["mem"] = node_mem
+                json_data_dict["pool"]["mempercpu"] = kw["mempercpu"] \
+                    if 'mempercpu' in kw and kw["mempercpu"] else self.mempercpu
+                json_data_dict["pool"]["name"] = pool_name
+                json_data_dict["pool"]["cluster"] = jtm_host_name
+                json_data_dict["pool"]["nwpn"] = kw["nwpn"] \
+                    if 'nwpn' in kw and kw["nwpn"] else self.nwpn
+                json_data_dict["pool"]["node"] = kw["node"] \
+                    if 'node' in kw and kw["node"] else self.nnodes
                 json_data_dict["pool"]["shared"] = int(kw["shared"])
-                json_data_dict["pool"]["constraint"] = kw["constraint"]
-                json_data_dict["pool"]["qos"] = kw["qos"]
-                json_data_dict["pool"]["partition"] = kw["partition"]
-                json_data_dict["pool"]["account"] = kw["account"]
+                json_data_dict["pool"]["constraint"] = constraint_name
+                json_data_dict["pool"]["qos"] = qos_name
+                json_data_dict["pool"]["account"] = c_account
+                json_data_dict["pool"]["partition"] = partition_name
+                json_data_dict["pool"]["dryrun"] = kw["dry_run"]
 
         # For the command like, "jtm-submit -cr 'ls' -cl cori -p test"
-        if "pool" in json_data_dict and "name" in json_data_dict["pool"] and json_data_dict["pool"]["name"] is not None:
+        if "pool" in json_data_dict and "name" in json_data_dict["pool"] \
+                and json_data_dict["pool"]["name"] is not None:
             pass
         else:
             if "pool_name" in kw and kw["pool_name"] and kw["pool_name"] != "default":
@@ -168,8 +219,8 @@ class JtmInterface(object):
         msg_zipped = zdumps(json.dumps(json_data_dict))
 
         # Determine the destination queues
-        user_name = self.USER_NAME  # Config.py. For now, it's fixed as "jaws"
-        jtm_host_name = self.JTM_HOST_NAME
+        user_name = self.user_name  # Config.py. For now, it's fixed as "jaws"
+        jtm_host_name = self.jtm_host_name
 
         # Prepare rmq message
         jtm_host_name = jtm_host_name.replace(".", "_")
@@ -180,22 +231,22 @@ class JtmInterface(object):
 
         # Note: declare and bind are needed to keep jtm-submit requests in the queue
         #  and to let the manager consume it
-        self.channel.queue_declare(queue=self.JTM_TASK_REQUEST_Q,
+        self.channel.queue_declare(queue=self.jtm_task_request_q,
                                    durable=True,
                                    exclusive=False,
                                    auto_delete=True)
-        self.channel.queue_bind(exchange=self.JGI_JTM_MAIN_EXCH,
-                                queue=self.JTM_TASK_REQUEST_Q,
-                                routing_key=self.JTM_TASK_REQUEST_Q)
+        self.channel.queue_bind(exchange=self.jgi_jtm_main_exch,
+                                queue=self.jtm_task_request_q,
+                                routing_key=self.jtm_task_request_q)
 
         if self.debug:
-            print("kw")
+            logger.debug("kw")
             pprint.pprint(kw)
-            print("json_data_dict")
+            logger.debug("json_data_dict")
             pprint.pprint(json_data_dict)
-            print(("jtmTaskRequestQ = %s" % jtmTaskRequestQ))
+            logger.debug(("jtmTaskRequestQ = %s" % jtmTaskRequestQ))
 
-        self.channel.basic_publish(exchange=self.JGI_JTM_MAIN_EXCH,
+        self.channel.basic_publish(exchange=self.jgi_jtm_main_exch,
                                    routing_key=jtmTaskRequestQ,
                                    properties=pika.BasicProperties(
                                        delivery_mode=2,  # added for fixing jtm-submit timeout
@@ -214,10 +265,10 @@ class JtmInterface(object):
                 self.connection.process_data_events(time_limit=1.0)
 
                 cnt += 1
-                if cnt == self.JTMINTERFACE_MAX_TRIAL:
-                    make_dir(os.path.join(self.JTM_LOG, "jtm-submit"))
+                if cnt == self.jtminterface_max_trial:
+                    make_dir(os.path.join(self.jtm_log, "jtm-submit"))
                     logger.error("Failed to get a reply from the manager: {} {}".format(json_data_dict, self.response))
-                    jtm_submit_log_file = os.path.join(self.JTM_LOG, "jtm-submit", "jtm_submit_%s"
+                    jtm_submit_log_file = os.path.join(self.jtm_log, "jtm-submit", "jtm_submit_%s"
                                                        % (datetime.datetime.now().strftime("%Y-%m-%d")))
                     with open(jtm_submit_log_file, 'a') as jslogf:
                         jslogf.write("{} {}\n".format(json_data_dict, self.response))
