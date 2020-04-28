@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 # pylint: disable=C0111,C0103,R0205
 # -*- coding: utf-8 -*-
 # Seung-Jin Sul (ssul@lbl.gov)
