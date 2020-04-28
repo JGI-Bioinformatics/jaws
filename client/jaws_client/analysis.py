@@ -236,6 +236,7 @@ def submit(wdl_file: str, infile: str, outdir: str, site: str, out_ep: str) -> N
     """
     wdl_file = os.path.abspath(wdl_file)
     infile = os.path.abspath(infile)
+    outdir = os.path.abspath(outdir)
     compute_site_id = site.upper()
     current_user = user.User()
     logger = logging.getLogger(__package__)
