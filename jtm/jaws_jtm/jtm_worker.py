@@ -774,7 +774,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
            num_nodes_to_request_param: int, num_cores_to_request_param: int,
            constraint_param: str, mem_per_node_to_request_param: str,
            mem_per_cpu_to_request_param: str,
-           qos_param: str, job_time_to_request_param: str) -> int:
+           qos_param: str, partition_param: str, job_time_to_request_param: str) -> int:
 
     global CONFIG
     CONFIG = ctx.obj['config']
@@ -833,11 +833,8 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     logger.info("JTM config file: %s" % (CONFIG.config_file))
 
     # Slurm config
-    num_nodes_to_request = 0
-    if num_nodes_to_request_param:
-        num_nodes_to_request = num_nodes_to_request_param
-
-    # 11.13.2018 decided to remove all default values from argparse
+    num_nodes_to_request = num_nodes_to_request_param \
+        if num_nodes_to_request_param else CONFIG.configparser.getint("SLURM", "nnodes")
     num_workers_per_node = num_workers_per_node_param \
         if num_workers_per_node_param else CONFIG.configparser.getint("JTM", "num_workers_per_node")
     assert num_workers_per_node > 0
@@ -929,6 +926,8 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         if charging_account_param else CONFIG.configparser.get("SLURM", "charge_accnt")
     qos = qos_param \
         if qos_param else CONFIG.configparser.get("SLURM", "qos")
+    partition = partition_param \
+        if partition_param else CONFIG.configparser.get("SLURM", "partition")
 
     global THIS_WORKER_TYPE
     THIS_WORKER_TYPE = worker_type_param
@@ -939,9 +938,8 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         hearbeat_interval = heartbeat_interval_param
 
     # Start hb receive thread
-    tp_name = ""
-    if pool_name_param:
-        tp_name = pool_name_param
+    tp_name = pool_name_param \
+        if pool_name_param else CONFIG.configparser.get("JTM", "pool_name")
 
     assert pool_name_param is not None, "User pool name is not set"
     inner_task_request_queue = CONFIG.configparser.get("JTM", "jtm_inner_request_q") + "." + pool_name_param
@@ -949,7 +947,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     worker_clone_time_rate = worker_clone_time_rate_param \
         if worker_clone_time_rate_param else CONFIG.configparser.getfloat("JTM", "clone_time_rate")
 
-    if THIS_WORKER_TYPE in ("static", "dynamic"):
+    if THIS_WORKER_TYPE in ("dynamic"):
         assert cluster_name_param != "" and \
                cluster_name_param != "local", "Static or dynamic worker needs a cluster setting (-cl)."
 
@@ -966,7 +964,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
 
     env_act = CONFIG.configparser.get("JTM", "env_activation")
 
-    if slurm_job_id == 0 and THIS_WORKER_TYPE in ["static", "dynamic"]:
+    if slurm_job_id == 0 and THIS_WORKER_TYPE in ["dynamic"]:
         batch_job_script_file = os.path.join(job_script_dir_name, "jtm_%s_worker_%s.job" %
                                              (THIS_WORKER_TYPE, UNIQ_WORKER_ID))
         batch_job_script_str = ""
@@ -976,7 +974,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         if CONFIG.configparser.get("JTM", "worker_config_file"):
             worker_config = CONFIG.configparser.get("JTM", "worker_config_file")
 
-        if cluster_name in ("cori", "lawrencium", "jgi_cloud", "jaws_lbl_gov", "lbl", "jgi_cluster"):
+        if cluster_name in ("cori", "lbl"):
 
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
@@ -1146,7 +1144,7 @@ wait
                                                      set_jtm_config_file="--config=%s"
                                                                          % worker_config)
 
-                elif cluster_name in ("lawrencium", "jgi_cloud", "jaws_lbl_gov", "jgi_cluster", "lbl"):
+                elif cluster_name in ("lawrencium", "lbl"):
 
                     if worker_id_param:
                         batch_job_misc_params += " -wi %(worker_id)s_${i}" \
@@ -1155,22 +1153,6 @@ wait
                     tp_param = ""
                     if pool_name_param:
                         tp_param = "-p " + pool_name_param
-
-                    part_param = ""
-                    if cluster_name == "lawrencium":
-                        part_param = CONFIG.configparser.get("SLURM", "partition")
-
-                    qos_param = ""
-                    if cluster_name == "lawrencium":
-                        qos_param = CONFIG.configparser.get("SLURM", "qos")
-
-                    charge_param = ""
-                    if cluster_name == "lawrencium":
-                        charge_param = CONFIG.configparser.get("SLURM", "charge_accnt")
-
-                    nnode_param = 1
-                    if num_nodes_to_request_param:
-                        nnode_param = num_nodes_to_request
 
                     mnode_param = "#SBATCH --mem=%(mem)s" \
                                   % dict(mem=mem_per_node_to_request)
@@ -1206,10 +1188,10 @@ wait
                                             dict(debug="--debug" if DEBUG else "",
                                                  wall_time=job_time_to_request,
                                                  job_name=job_name,
-                                                 partition_name=part_param,
-                                                 qosname=qos_param,
-                                                 charging_account=charge_param,
-                                                 num_nodes_to_request=nnode_param,
+                                                 partition_name=partition,
+                                                 qosname=qos,
+                                                 charging_account=charging_account,
+                                                 num_nodes_to_request=num_nodes_to_request,
                                                  mem_per_node_setting=mnode_param,
                                                  worker_id=UNIQ_WORKER_ID,
                                                  job_dir=job_script_dir_name,

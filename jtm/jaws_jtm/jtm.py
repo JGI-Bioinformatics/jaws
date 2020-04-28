@@ -203,6 +203,8 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
 @click.option("-p", "--pool_name",
               help="User pool name",
               required=True)
+@click.option("-P", "--partition",
+              help="Slurm partition name")
 @click.option("-q", "--qos",
               help="Set the QOS for SLURM request")
 @click.option("-s", "--shared",
@@ -215,7 +217,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
 def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: str, account: str,
            ncpu: int, constraint: str,
            num_worker_per_node: int, cromwell_job_id: str, memory: str, nnodes: int,
-           qos: str, shared: int, job_time) -> int:
+           qos: str, partition: str, shared: int, job_time) -> int:
     """
     JtmInterface returns 'task_id' if successfully queued
     jtm submit exits with code 0 if successfully submitted
@@ -238,6 +240,7 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
     :param memory:
     :param nnodes:
     :param qos:
+    :param partition:
     :param shared:
     :param job_time:
     :return: exit with 0 if succeeded, 1 if failed
@@ -264,6 +267,7 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
                                                                 job_id=cromwell_job_id,
                                                                 constraint=constraint,
                                                                 qos=qos,
+                                                                partition=partition,
                                                                 account=account))
 
     if ret == -5:
