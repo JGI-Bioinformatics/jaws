@@ -8,7 +8,6 @@ import json
 import subprocess
 import re
 import zipfile
-import uuid
 import logging
 from jaws_client import config
 
@@ -252,9 +251,9 @@ class Workflow:
             elif value.startswith("Map[") and value.endswith(", File]"):
                 self.file_items[key] = "Other:File"
 
-    def prepare_submission(self, staging_dir, dest_basedir, dest_staging_subdir):
+    def prepare_submission(self, staging_dir: str, basename: str, dest_basedir: str, dest_staging_subdir: str) -> None:
         """Prepare a workflow for submission to a JAWS-Site."""
-        self.basename = str(uuid.uuid4())
+        self.basename = basename
         self.globus_basedir = config.conf.get("GLOBUS", "basedir")
         self.staging_dir = staging_dir
         if not os.path.isdir(self.staging_dir):
@@ -266,7 +265,6 @@ class Workflow:
         self._prepare_infiles()
         self._prepare_inputs_json()
         self._write_manifest()
-        return self.basename
 
     def _prepare_wdls(self):
         """Filter WDLs (including subworkflows) and write to staging dir."""
