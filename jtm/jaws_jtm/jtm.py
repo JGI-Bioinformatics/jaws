@@ -47,22 +47,11 @@ def cli(ctx: object, debug: bool, config_file: str):
         config = JtmConfig(config_file=config_file)
     else:
         config = JtmConfig()
-    # print(f"Config using {config.config_file}")
     ctx.obj = {
         'config_file': config_file,
         'config': config,
         'debug': debug
     }
-    # COMPUTE_RESOURCES = config.constants.COMPUTE_RESOURCES
-    # CLUSTER = config.configparser.get("SITE", "jtm_host_name")
-    # TASK_STATUS = config.constants.TASK_STATUS
-    # NCPUS = config.configparser.getint("SLURM", "ncpus")
-    # MEM_PER_NODE = config.configparser.get("SLURM", "mempernode")
-    # CHARGE_ACCOUNT = config.configparser.get("SLURM", "charge_accnt")
-    # QOS = config.configparser.get("SLURM", "qos")
-    # NNODES = config.configparser.getint("SLURM", "nnodes")
-    # CONSTRAINT = config.configparser.get("SLURM", "constraint")
-    # NWORKERS_PER_NODE = config.configparser.getint("JTM", "num_workers_per_node")
 
 
 @cli.command()
@@ -317,9 +306,6 @@ def kill(ctx: object, task_id: int) -> int:
         eprint("jtm kill: task id not found.")
         sys.exit(-1)
     sys.exit(0) if ret == 0 else sys.exit(1)
-    # if ret != 0:
-    #     click.echo("jtm kill failed with task id %d" % taskID)
-    # sys.exit(0)
 
 
 @cli.command()
@@ -333,11 +319,12 @@ def isalive(ctx: object, task_id: int) -> int:
     JtmInterface returns
       0 if ready
       1 if queued
-      2 if running
+      2 if pending
+      3 if running
       4 if successfully done
       -1, -2, -3, -4: failed
 
-    jtm isalive exits with 0 if it's in ['ready', 'queued', 'running'] status
+    jtm isalive exits with 0 if it's in ['ready', 'queued', 'pending', 'running'] status
                           1 if it's done successfully or failed
 
     click.echo("isalive")
