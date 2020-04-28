@@ -72,7 +72,7 @@ def run_user_task(msg_unzipped, return_msg, ch):
     :param return_msg: msg to return
     :return:
     """
-    # Uncompress msg to get a task
+    # Uncompress msg to get a taska
     logger.info(msg_unzipped)
     task_id = msg_unzipped["task_id"]
     user_task_cmd = msg_unzipped["user_cmd"]
@@ -341,6 +341,7 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                     proc_id_list_merged = root_pid_num + pid_list_child[1:]
                 else:
                     # NOTE: be careful on this resetting! Might lose child pid
+                    # USER_PROC_PROC_ID.value = 0
                     proc_id_list_merged = root_pid_num
             else:
                 proc_id_list_merged = root_pid_num
@@ -541,7 +542,7 @@ def recv_task_kill_request_proc():
                                        % (kill_cmd))
                         # Todo: Failed to terminate a user process for some reason. How to deal
                         #  with this case?
-                        #  maybe --> ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
+                        # ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
 
                 # Kill the main child process
                 # Note: can consider to use "pkill -9 -P ppid" to kill the family
@@ -693,6 +694,8 @@ def run_task(conn, ch, delivery_tag, reply_to, correlation_id, body):
         # Note: After sending ack, the message will be deleted from RabbitMQ
         #  If this worker crashes while running a user command, this task will
         #  be sent to other workers available
+
+        # NEW
         cb = functools.partial(ack_message,
                                ch,
                                reply_to,

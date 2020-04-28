@@ -13,11 +13,13 @@ import time
 import subprocess
 import re
 import psutil
+import logging
 
 from jaws_jtm.lib.run import run_sh_command
 from jaws_jtm.common import logger
 
 SCALE_INV = ((1024.*1024., "MB"), (1024., "KB"))
+logger = logging.getLogger(__package__)
 
 
 # -------------------------------------------------------------------------------
@@ -36,16 +38,16 @@ def get_cpu_load(pid: int) -> float:
             ps_stdout_str = ps_stdout_str.strip().split('\n')[1]
         cpu_load = float(ps_stdout_str.strip())
     except IndexError as e:
-        logger.exception(e)
+        eprint(e)
         cpu_load = 0.0
     except ValueError as e:
-        logger.exception(e)
+        eprint(e)
         cpu_load = 0.0
     except subprocess.CalledProcessError as e:
-        logger.exception("get_cpu_load(): %s" % e)
+        eprint("get_cpu_load(): %s" % e)
         raise
     except Exception as ex:
-        logger.exception("get_cpu_load(): %s" % ex)
+        eprint("get_cpu_load(): %s" % ex)
         raise
 
     return cpu_load
@@ -196,7 +198,9 @@ def get_resident_memory_usage(pid: int, since=0.0, as_str=True):
     'ResMem: 0.000B'
     """
     if sys.platform.lower() == "darwin":
+        # NEW
         process = psutil.Process(pid)
+        # print("rss: %d" % process.memory_info().rss)
         return process.memory_info().rss / 1024.0 / 1024.0  # in MB
     else:
         b = _VmB('VmRSS:', pid) - since
@@ -252,11 +256,11 @@ def get_pid_tree(pid: int) -> list:
         cmd = "ps -o pid --ppid %d --noheaders" % pid
         child_pid_list.append(pid)
         try:
-            ps_stdout_str = subprocess.Popen([cmd],
-                                             shell=True,
-                                             stdout=subprocess.PIPE).communicate()[0]
+            ps_stdout_str = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE).communicate()[0]
+
             if type(ps_stdout_str) is bytes:
                 ps_stdout_str = ps_stdout_str.decode()
+
             child_pid_list.extend([int(pidStr) for pidStr in ps_stdout_str.split("\n")[:-1]])
         except subprocess.CalledProcessError as msg:
             logger.warning("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
@@ -361,6 +365,7 @@ def darwin_free_mem() -> int:
     for row in range(1, len(vm_lines_list) - 2):
         row_text = vm_lines_list[row].strip()
         row_element = sep.split(row_text)
+        # print(row_element)
         vm_stats_dict[(row_element[0])] = int(row_element[1].strip('.')) * 4096
 
     # byte unit
