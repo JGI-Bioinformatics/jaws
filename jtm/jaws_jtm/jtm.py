@@ -126,6 +126,8 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
               help="Slurm real memory required per node")
 @click.option("-mc", "--mem_per_cpu",
               help="Slurm minimum memory required per allocated CPU")
+@click.option("-P", "--partition",
+              help="Slurm partition name")
 @click.option("-q", "--qos",
               help="Slurm quality of service")
 @click.option("-t", "--job_time",
@@ -135,7 +137,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
            pool_name: str, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
            clone_time_rate: float, num_worker_per_node: int, worker_id: str,
            charging_account: str, nnodes: int, cpus_per_task: int, constraint: str,
-           mem: str, mem_per_cpu: str, qos: str, job_time: str) -> int:
+           mem: str, mem_per_cpu: str, qos: str, partition: str, job_time: str) -> int:
     """
     JTM Worker Click wrapper
 
@@ -158,6 +160,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :param mem: memory request
     :param mem_per_cpu: memory request per cpu
     :param qos:
+    :param partition:
     :param job_time: wallclocktime
     :return:
     """
@@ -165,7 +168,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
                        dry_run, slurm_job_id, worker_type, cluster,
                        clone_time_rate, num_worker_per_node, worker_id,
                        charging_account, nnodes, cpus_per_task, constraint, mem,
-                       mem_per_cpu, qos, job_time))
+                       mem_per_cpu, qos, partition, job_time))
 
 
 @cli.command()
@@ -217,7 +220,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
 def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: str, account: str,
            ncpu: int, constraint: str,
            num_worker_per_node: int, cromwell_job_id: str, memory: str, nnodes: int,
-           qos: str, partition: str, shared: int, job_time) -> int:
+           qos: str, partition: str, shared: int, job_time: str) -> int:
     """
     JtmInterface returns 'task_id' if successfully queued
     jtm submit exits with code 0 if successfully submitted
