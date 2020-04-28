@@ -134,6 +134,7 @@ clone_time_rate = 0.2
 num_workers_per_node = 1
 log_dir = \${SITE:scratch}/jtm
 env_activation = source /global/cfs/projectdirs/jaws/jtm-dev/bin/activate
+pool_name = small
 # Worker setting
 # worker->client heartbeat sending interval in worker
 worker_hb_send_interval = 2.0
