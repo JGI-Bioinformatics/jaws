@@ -13,45 +13,26 @@ from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_jtm.lib.run import make_dir
 from jaws_jtm.common import logger
-from jaws_jtm.config import JtmConfig
 
 
 class JtmInterface(object):
     """
     Class for jtm-* CLI tools
     """
-    def __init__(self, task_type, ctx=None, info_tag=None, config_file=None):
+    def __init__(self, task_type, ctx=None, info_tag=None,):
+        self.config = ctx.obj['config']
+        self.debug = ctx.obj['debug']
         self.task_type = task_type
-        if ctx is not None:
-            self.config = ctx.obj['config']
-            self.debug = ctx.obj['debug']
-        else:
-            if config_file:
-                self.config = JtmConfig(config_file=config_file)
-            else:
-                self.config = JtmConfig()
-            self.debug = self.config.configparser.getboolean("SITE", "debug")
         self.rmq_conn = RmqConnectionHB(config=self.config)
         self.connection = self.rmq_conn.open()
         self.channel = self.connection.channel()
         self.response = None
-        self.jtm_log = self.config.configparser.get("JTM", "log_dir")
-        self.jgi_jtm_main_exch = self.config.configparser.get("JTM", "jgi_jtm_main_exch")
-        self.user_name = self.config.configparser.get("SITE", "user_name")
-        self.jtm_task_request_q = self.config.configparser.get("JTM", "jtm_task_request_q")
-        self.jtminterface_max_trial = self.config.configparser.getint("JTM", "jtminterface_max_trial")
-        self.jtm_host_name = self.config.configparser.get("SITE", "jtm_host_name").replace(".", "_")
-        self.jobtime = self.config.configparser.get("SLURM", "jobtime")
-        self.constraint = self.config.configparser.get("SLURM", "constraint")
-        self.charge_accnt = self.config.configparser.get("SLURM", "charge_accnt")
-        self.qos = self.config.configparser.get("SLURM", "qos")
-        self.partition = self.config.configparser.get("SLURM", "partition")
-        self.mempernode = self.config.configparser.get("SLURM", "mempernode")
-        self.mempercpu = self.config.configparser.get("SLURM", "mempercpu")
-        self.ncpus = self.config.configparser.getint("SLURM", "ncpus")
-        self.nnodes = self.config.configparser.getint("SLURM", "nnodes")
-        self.poolname = self.config.configparser.get("JTM", "pool_name")
-        self.nwpn = self.config.configparser.get("JTM", "num_workers_per_node")
+        self.JTM_LOG = self.config.configparser.get("JTM", "log_dir")
+        self.JGI_JTM_MAIN_EXCH = self.config.configparser.get("JTM", "jgi_jtm_main_exch")
+        self.USER_NAME = self.config.configparser.get("SITE", "user_name")
+        self.JTM_TASK_REQUEST_Q = self.config.configparser.get("JTM", "jtm_task_request_q")
+        self.JTMINTERFACE_MAX_TRIAL = self.config.configparser.getint("JTM", "jtminterface_max_trial")
+        self.JTM_HOST_NAME = self.config.configparser.get("SITE", "jtm_host_name")
         self.corr_id = str(uuid.uuid4())
 
         self.channel.exchange_declare(exchange=self.JGI_JTM_MAIN_EXCH,
@@ -59,6 +40,7 @@ class JtmInterface(object):
                                       durable=True,
                                       auto_delete=False)
 
+        # NEW
         # Create a temp random queue
         if info_tag:
             uniq_queue_name = "_jtm_client_" + '_'.join([str(shortuuid.uuid()), task_type, str(info_tag)])
@@ -152,35 +134,23 @@ class JtmInterface(object):
 
         # If cromwell task and custom pool setting found, create a separate pool for the tasks!
         if "job_time" in kw:
-            if kw["job_time"] and kw["num_core"] and \
+            if kw["job_time"] and kw["node_mem"] and kw["num_core"] and \
                kw["pool_name"] and kw["job_time"] != "" and kw["node_mem"] != "" and \
                kw["num_core"] != 0 and kw["pool_name"] != "" and kw["node"] != 0 and \
                kw["job_time"] != "00:00:00" and kw["node_mem"] != "0G" and kw["num_core"] != 0:
-                constraint_name = kw["constraint"] if 'constraint' in kw and kw["constraint"] else self.constraint
-                node_mem = kw["node_mem"] if 'node_mem' in kw and kw["node_mem"] else self.mempernode
-                partition_name = kw["partition"] if 'partition' in kw and kw["partition"] else self.partition
-                qos_name = kw["qos"] if 'qos' in kw and kw["qos"] else self.qos
-                c_account = kw["account"] if 'account' in kw and kw["account"] else self.charge_accnt
-                pool_name = kw["pool_name"] if 'pool_name' in kw and kw["pool_name"] else self.poolname
                 json_data_dict["pool"] = {}
-                json_data_dict["pool"]["time"] = kw["job_time"] \
-                    if 'job_time' in kw and kw["job_time"] else self.jobtime
-                json_data_dict["pool"]["cpu"] = kw["num_core"] \
-                    if 'num_core' in kw and kw["num_core"] else self.ncpus
-                json_data_dict["pool"]["mem"] = node_mem
-                json_data_dict["pool"]["mempercpu"] = kw["mempercpu"] \
-                    if 'mempercpu' in kw and kw["mempercpu"] else self.mempercpu
-                json_data_dict["pool"]["name"] = pool_name
-                json_data_dict["pool"]["cluster"] = jtm_host_name
-                json_data_dict["pool"]["nwpn"] = kw["nwpn"] \
-                    if 'nwpn' in kw and kw["nwpn"] else self.nwpn
-                json_data_dict["pool"]["node"] = kw["node"] \
-                    if 'node' in kw and kw["node"] else self.nnodes
+                json_data_dict["pool"]["time"] = kw["job_time"]
+                json_data_dict["pool"]["cpu"] = kw["num_core"]
+                json_data_dict["pool"]["mem"] = kw["node_mem"]
+                json_data_dict["pool"]["name"] = kw["pool_name"]
+                json_data_dict["pool"]["cluster"] = kw["jtm_host_name"]
+                json_data_dict["pool"]["nwpn"] = kw["nwpn"] if 'nwpn' in kw else 1  # number of workers per node
+                json_data_dict["pool"]["node"] = kw["node"] if 'node' in kw else 1  # number of nodes
                 json_data_dict["pool"]["shared"] = int(kw["shared"])
-                json_data_dict["pool"]["constraint"] = constraint_name
-                json_data_dict["pool"]["qos"] = qos_name
-                json_data_dict["pool"]["account"] = c_account
-                json_data_dict["pool"]["partition"] = partition_name
+                json_data_dict["pool"]["constraint"] = kw["constraint"]
+                json_data_dict["pool"]["qos"] = kw["qos"]
+                json_data_dict["pool"]["partition"] = kw["partition"]
+                json_data_dict["pool"]["account"] = kw["account"]
 
         # For the command like, "jtm-submit -cr 'ls' -cl cori -p test"
         if "pool" in json_data_dict and "name" in json_data_dict["pool"] and json_data_dict["pool"]["name"] is not None:
@@ -214,11 +184,11 @@ class JtmInterface(object):
                                 routing_key=self.JTM_TASK_REQUEST_Q)
 
         if self.debug:
-            print("kw")
+            logger.info("kw")
             pprint.pprint(kw)
-            print("json_data_dict")
+            logger.info("json_data_dict")
             pprint.pprint(json_data_dict)
-            print(("jtmTaskRequestQ = %s" % jtmTaskRequestQ))
+            logger.info(("jtmTaskRequestQ = %s" % jtmTaskRequestQ))
 
         self.channel.basic_publish(exchange=self.JGI_JTM_MAIN_EXCH,
                                    routing_key=jtmTaskRequestQ,
