@@ -8,10 +8,13 @@ import json
 import uuid
 import datetime
 import pika
+import logging
 
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_jtm.lib.run import make_dir, eprint
+from jaws_jtm.lib.run import make_dir
+
+logger = logging.getLogger(__package__)
 
 
 class JtmInterface(object):
@@ -19,8 +22,9 @@ class JtmInterface(object):
     Class for jtm-* CLI tools
     """
     def __init__(self, task_type, ctx=None, info_tag=None,):
-        self.task_type = task_type
         self.config = ctx.obj['config']
+        self.debug = ctx.obj['debug']
+        self.task_type = task_type
         self.rmq_conn = RmqConnectionHB(config=self.config)
         self.connection = self.rmq_conn.open()
         self.channel = self.connection.channel()
@@ -31,7 +35,6 @@ class JtmInterface(object):
         self.JTM_TASK_REQUEST_Q = self.config.configparser.get("JTM", "jtm_task_request_q")
         self.JTMINTERFACE_MAX_TRIAL = self.config.configparser.getint("JTM", "jtminterface_max_trial")
         self.JTM_HOST_NAME = self.config.configparser.get("SITE", "jtm_host_name")
-        self.DEBUG = ctx.obj['debug']
         self.corr_id = str(uuid.uuid4())
 
         self.channel.exchange_declare(exchange=self.JGI_JTM_MAIN_EXCH,
@@ -185,7 +188,7 @@ class JtmInterface(object):
                                 queue=self.JTM_TASK_REQUEST_Q,
                                 routing_key=self.JTM_TASK_REQUEST_Q)
 
-        if self.DEBUG:
+        if self.debug:
             print("kw")
             pprint.pprint(kw)
             print("json_data_dict")
@@ -213,7 +216,7 @@ class JtmInterface(object):
                 cnt += 1
                 if cnt == self.JTMINTERFACE_MAX_TRIAL:
                     make_dir(os.path.join(self.JTM_LOG, "jtm-submit"))
-                    eprint("Failed to get a reply from the manager: {} {}".format(json_data_dict, self.response))
+                    logger.error("Failed to get a reply from the manager: {} {}".format(json_data_dict, self.response))
                     jtm_submit_log_file = os.path.join(self.JTM_LOG, "jtm-submit", "jtm_submit_%s"
                                                        % (datetime.datetime.now().strftime("%Y-%m-%d")))
                     with open(jtm_submit_log_file, 'a') as jslogf:
@@ -223,8 +226,8 @@ class JtmInterface(object):
                         self.response = -88
                     break
         except Exception as e:
-            eprint("No task id returned")
-            eprint(e)
+            logger.error("No task id returned")
+            logger.error(e)
 
         return self.response
 

@@ -163,7 +163,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                 while success is not True:
                     success = True
                     try:
-                        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                        db = DbSqlMysql(config=CONFIG)
                         bExists = db.selectScalar(JTM_SQL["select_exists_workers_by_workerid"]
                                                   % dict(worker_id=a_worker_id))
 
@@ -204,7 +204,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                 # todo: handle "pending" here
                 if task_id > 0 and root_proc_id == child_proc_id and slurm_job_id > 0:
                     logger.debug("Task %d status ==> pending" % task_id)
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_runs_status_to_pending_by_taskid"]
                                % dict(status_id=TASK_STATUS["pending"],
                                       task_id=task_id,
@@ -232,7 +232,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
 
                     try:
                         # Update tasks table with "running" status == 2 if status is still 0 or 1
-                        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                        db = DbSqlMysql(config=CONFIG)
 
                         # Update runs table for a task
                         # Todo: really need to store full path to the log?
@@ -264,7 +264,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
             while success is not True:
                 success = True
                 try:
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     live_worker_id_list = db.selectAll(JTM_SQL["select_workerid_workers_by_lifeleft_jtmhostname"]
                                                        % dict(jtm_host_name=jtm_host_name),
                                                        debug=False)
@@ -287,7 +287,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                     success = False
                     conn.sleep(1)
 
-            db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+            db = DbSqlMysql(config=CONFIG)
             alive_total_num_workers = db.selectScalar(JTM_SQL["select_sum_nwpn_workers_by_lifeleftt_jtmhostname"]
                                                       % dict(jtm_host_name=jtm_host_name),
                                                       debug=False)
@@ -320,7 +320,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
             # If there no workers alive after 5 checks, set life_left to -1 for all
             if max_worker_check_count == 3:
                 try:
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_workers_lifeleft_for_last"])
                     db.commit()
                     db.close()
@@ -442,7 +442,7 @@ def recv_result_on_result(ch, method, props, body):
         if ret_msg != "hb":
             logger.debug("Update tasks {} with {}".format(task_id, done_flag))
             try:
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 db.execute(JTM_SQL["update_tasks_doneflag_by_taskid"]
                            % dict(task_id=task_id,
                                   done_flag=done_flag))
@@ -485,7 +485,7 @@ def recv_result_on_result(ch, method, props, body):
             # Sometimes workerId2 ==> 0
             # so wait a little bit if that happened
             a_worker_id_to_check = 0
-            db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+            db = DbSqlMysql(config=CONFIG)
             rows = db.selectAll(JTM_SQL["select_workerid2_workers_by_wid"]
                                 % dict(worker_id=a_worker_id))
             db.close()
@@ -497,7 +497,7 @@ def recv_result_on_result(ch, method, props, body):
 
             # Just in case
             while a_worker_id_to_check == 0:
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 rows = db.selectAll(JTM_SQL["select_workerid2_workers_by_wid"]
                                     % dict(worker_id=a_worker_id))
                 db.close()
@@ -517,7 +517,7 @@ def recv_result_on_result(ch, method, props, body):
             while success is not True:
                 success = True
                 try:
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_runs_status_workerid2_by_taskid_2"]
                                % dict(status_id=task_status_int,
                                       wid2=a_worker_id_to_check,
@@ -692,7 +692,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         #    else send tasks to the pool
         # Todo: maintain the number of workers sbatched -->
         #   num_worker_to_add = pool_size - num_live_worker_in_pool - nWorkerSbatched
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         num_slurm_jid_in_pool = db.selectScalar(JTM_SQL["select_count_distinct_jid_workers_by_poolname"]
                                                 % dict(pool_name=inner_task_request_queue,
                                                        hbinterval=w_int * 3),
@@ -718,7 +718,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
 
                 # Delete worker info
                 logger.info("Found dead worker(s) from %s, %s" % (str(jid), so))
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 db.execute(JTM_SQL["delete_from_workers_by_slurmjid"]
                            % dict(slurm_jid=jid, ),
                            debug=DEBUG)
@@ -792,7 +792,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                 for nwpn in range(num_workers_per_node):
                     # Insert into workers for new worker id
                     try:
-                        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                        db = DbSqlMysql(config=CONFIG)
                         # If a dynamic worker is requested successfully,
                         # insert the info into workers table
                         # logger.info("Try to update workers table")check_worker
@@ -835,7 +835,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         while success is not True:
             success = True
             try:
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 # table fields: userCmd, outFiles, doneFlag, retryCnt, task_type
                 db.execute(JTM_SQL["insert_tasks_usercmd_outfiles"]
                            % (user_task_cmd, output_file, "0", 0, CONFIG.constants.TASK_TYPE[task_type]))
@@ -855,7 +855,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             success = True
             try:
                 logger.debug("Task %d status ==> ready" % lastTid)
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 db.execute(JTM_SQL["insert_runs_tid_sid"]
                            % dict(task_id=lastTid,
                                   status_id=TASK_STATUS["ready"]))
@@ -872,7 +872,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
         #  dynamic worker by a static worker
         if lastTid != -1:  # if it successfully updates runs table and gets a task id
             # Todo: Check if cancelled or terminated
-            db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+            db = DbSqlMysql(config=CONFIG)
             task_status_int = int(db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
                                                   % dict(task_id=lastTid)))
             b_already_canceled = int(db.selectScalar(JTM_SQL["select_cancelled_runs_by_taskid"]
@@ -884,7 +884,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
             #  status change.
             if b_already_canceled == 1 or task_status_int == TASK_STATUS["terminated"]:
                 if task_status_int != TASK_STATUS["terminated"]:
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_tasks_doneflag_by_taskid"]
                                % dict(task_id=lastTid,
                                       done_flag=TASK_STATUS["terminated"]))
@@ -932,7 +932,7 @@ def process_task_request(ch, method, props, msg, inner_task_request_queue):
                 # TASK_STATUS["running"] means task processing started
                 try:
                     logger.debug("Task %d status ==> queued" % lastTid)
-                    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                    db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_runs_tid_startdate_by_tid"]
                                % dict(status_id=TASK_STATUS["queued"],
                                       now=time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -963,7 +963,7 @@ def process_task_status(ch, method, props, task_id):
     :return:
     """
 
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+    db = DbSqlMysql(config=CONFIG)
     cur = db.execute(JTM_SQL["select_status_cancelled_runs_by_taskid"]
                      % dict(task_id=task_id))
     ret = cur.fetchone()
@@ -1000,7 +1000,7 @@ def process_resource_log(ch, method, props, task_id):
     :return:
     """
     resource_log_file = None
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+    db = DbSqlMysql(config=CONFIG)
     cur = db.execute(JTM_SQL["select_resource_runs_by_taskid"]
                      % dict(task_id=task_id))
     ret = cur.fetchone()
@@ -1093,13 +1093,13 @@ def process_task_kill(ch, method, props, msg):
     task_id = int(msg["task_id"])
     return_msg = None
 
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+    db = DbSqlMysql(config=CONFIG)
     task_status = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
                                   % dict(task_id=task_id))
     db.close()
 
     def update_runs_cancelled(task_id):
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         logger.debug(db.selectAll(
             "select taskId, status, cancelled from runs where taskId = %(task_id)s"
             % dict(task_id=task_id, )))
@@ -1134,7 +1134,7 @@ def process_task_kill(ch, method, props, msg):
             update_runs_cancelled(task_id)
 
             # Get the wid and child pid
-            db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+            db = DbSqlMysql(config=CONFIG)
             worker_id_list = db.selectAs1Col(JTM_SQL["select_workerid_workers_by_tid"]
                                              % dict(task_id=task_id),
                                              debug=False)
@@ -1186,7 +1186,7 @@ def process_check_worker(ch, method, props, msg_unzipped):
 
     if "task_pool" in msg_unzipped and msg_unzipped["task_pool"] and \
             "jtm_host_name" in msg_unzipped and msg_unzipped["jtm_host_name"]:
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         # Try to select "pool_name" in workers table by hostname + uselifeLeftrname + poolname
         # Check timediff(now()-end_datetime) in workers table to filter out dead worker
         new_pool_name = JTM_INNER_REQUEST_Q + '.' + msg_unzipped["task_pool"]
@@ -1212,7 +1212,7 @@ def process_check_worker(ch, method, props, msg_unzipped):
                           JTM_TASK_RESULT_Q)
 
     elif "task_pool" in msg_unzipped and msg_unzipped["task_pool"]:
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         # Try to select "pool_name" in workers table by hostname + uselifeLeftrname + poolname
         # Check timediff(now()-end_datetime) in workers table to filter out dead worker
         new_pool_name = JTM_INNER_REQUEST_Q + '.' + msg_unzipped["task_pool"]
@@ -1235,7 +1235,7 @@ def process_check_worker(ch, method, props, msg_unzipped):
                           JTM_TASK_RESULT_Q)
 
     elif "jtm_host_name" in msg_unzipped and msg_unzipped["jtm_host_name"]:
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         # Check timediff(now() - end_datetime) in workers table to filter out dead worker
         num_live_workers = db.selectScalar(JTM_SQL["select_count_workers_by_jtm_host_name"]
                                            % dict(jtm_host_name=msg_unzipped["jtm_host_name"],
@@ -1264,7 +1264,7 @@ def process_check_worker(ch, method, props, msg_unzipped):
 # -------------------------------------------------------------------------------
 def process_remove_pool(ch, method, props, msg_unzipped):
     task_pool_name = JTM_INNER_REQUEST_Q + '.' + msg_unzipped["task_pool"]
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+    db = DbSqlMysql(config=CONFIG)
     # Get all job id
     zombie_slurm_job_id_list = db.selectAll(JTM_SQL["select_all_jid_workers_by_poolname"]
                                             % dict(pool_name=task_pool_name,),
@@ -1282,7 +1282,7 @@ def process_remove_pool(ch, method, props, msg_unzipped):
                 logger.debug("%s not found." % (jid[0]))
 
     logger.debug("process_remove_pool ****************************************** ")
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+    db = DbSqlMysql(config=CONFIG)
     db.execute(JTM_SQL["update_runs_status_cancelled_by_status_workerId2_poolname"]
                % dict(pool_name=task_pool_name, ),
                debug=DEBUG)
@@ -1381,7 +1381,7 @@ def task_kill_proc():
 
     """
     while True:
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         # Get a list of task ids where canceled -> requested but status != terminated
         tids = [int(i) for i in db.selectAs1Col(JTM_SQL["select_tids_runs_by_cancelled_and_wid2"])]
         logger.debug("tid to kill: {}".format(tids))
@@ -1391,7 +1391,7 @@ def task_kill_proc():
         for tid in tids:
             try:
                 # Get the wid and child pid
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 worker_id_list = db.selectAs1Col(JTM_SQL["select_workerid_workers_by_tid"]
                                                  % dict(task_id=tid),
                                                  debug=False)
@@ -1412,7 +1412,7 @@ def task_kill_proc():
 
                 # Update runs table with "terminated" status
                 logger.debug("Update runs table with terminated for tid {}".format(tid))
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 db.execute(JTM_SQL["update_runs_status_cancelled_to_terminated_by_tid"]
                            % dict(task_id=tid,
                                   status_id=TASK_STATUS["terminated"],
@@ -1442,7 +1442,7 @@ def zombie_worker_cleanup_proc():
 
     """
     while True:
-        db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+        db = DbSqlMysql(config=CONFIG)
         slurm_job_id = [int(i) for i in db.selectAs1Col(JTM_SQL["select_slurmjid_workers_by_lifeleft"])]
         db.close()
         if len(slurm_job_id) > 0:
@@ -1454,7 +1454,7 @@ def zombie_worker_cleanup_proc():
             if ec != 0:
                 logger.info("Found dead worker(s) from %s, %s" % (str(j), so))
                 logger.debug("zombie_worker_cleanup_proc ****************************** ")
-                db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+                db = DbSqlMysql(config=CONFIG)
                 # Note: update status from runs where workerId2 = (select workerId2 from workers)
                 db.execute(JTM_SQL["update_runs_status_cancelled_by_status_workerId2_jid"]
                            % dict(slurm_jid=j,),
@@ -1602,7 +1602,7 @@ def manager(ctx: object, custom_log_dir_name: str, b_resource_usage_log_on: bool
                 % ("PROD" if prod_mod else "DEV"))
 
     # MySQL: prepare task table
-    db = DbSqlMysql(db=MYSQL_DB, config=CONFIG)
+    db = DbSqlMysql(config=CONFIG)
     db.ddl(JTM_SQL["create_database"] % MYSQL_DB)
     db.ddl(JTM_SQL["use_database"] % MYSQL_DB)
     db.ddl(JTM_SQL["create_table_tasks"])

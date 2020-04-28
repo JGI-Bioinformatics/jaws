@@ -13,11 +13,13 @@ import time
 import subprocess
 import re
 import psutil
+import logging
 
-from jaws_jtm.lib.run import eprint, run_sh_command
+from jaws_jtm.lib.run import run_sh_command
 from jaws_jtm.common import logger
 
 SCALE_INV = ((1024.*1024., "MB"), (1024., "KB"))
+logger = logging.getLogger(__package__)
 
 
 # -------------------------------------------------------------------------------
