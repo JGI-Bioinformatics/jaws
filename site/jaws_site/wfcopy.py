@@ -30,10 +30,6 @@ def rsync(src, dest):
     stdout, stderr = process.communicate()
     if process.returncode:
         logger.warn(f"Failed to rsync {src} to {dest}: " + stderr.strip())
-    if os.path.isdir(dest):
-        os.chmod(dest, 0o0775)
-    else:
-        os.chmod(dest, 0o0664)
 
 
 def getSubflowDirname(dirname):
@@ -83,17 +79,14 @@ def wfcopy(in_dir, out_dir, flattenShardDir=False):
     log_dir = os.path.join(out_dir, "log")
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
-        os.chmod(out_dir, 0o775)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-        os.chmod(log_dir, 0o775)
 
     rcfile = os.path.join(log_dir, "workflow.rc")
     if os.path.exists(rcfile):
         os.remove(rcfile)
     with open(rcfile, "w") as fh:
         fh.write("#ExitCode\tTask\n")
-    os.chmod(rcfile, 0o0664)
 
     for root_dir, subdirs, files in os.walk(in_dir):
         shardname = None
@@ -121,7 +114,6 @@ def wfcopy(in_dir, out_dir, flattenShardDir=False):
 
             if not os.path.exists(task_dir):
                 os.makedirs(task_dir)
-                os.chmod(task_dir, 0o0775)
 
             for dname in subdirs:
                 rsync(os.path.join(root_dir, dname), task_dir)
@@ -143,3 +135,19 @@ def wfcopy(in_dir, out_dir, flattenShardDir=False):
                         exitcode = fh.readlines()[0].strip()
                     with open(rcfile, "a") as fh:
                         fh.write("%s\t%s\n" % (exitcode, outname))
+    fix_perms(out_dir)
+
+
+def fix_perms(path: str) -> None:
+    """Recursively chmod.
+
+    :param path: Root dir
+    :type dirname: str
+    :return:
+    """
+    os.chmod(path, 0o0775)
+    for dirpath, dirnames, filenames in os.walk(path):
+        for dname in dirnames:
+            os.chmod(os.path.join(dirpath, dname), 0o0775)
+        for fname in filenames:
+            os.chmod(os.path.join(dirpath, fname), 0o0664)
