@@ -93,6 +93,7 @@ def run_user_task(msg_unzipped, return_msg, ch):
 
     p = None
     time_out_in_minute = 0
+    done_f = CONFIG.constants.DONE_FLAGS
 
     if THIS_WORKER_TYPE != "manual":
         # wait until WORKER_LIFE_LEFT_IN_MINUTE is updated
@@ -108,7 +109,7 @@ def run_user_task(msg_unzipped, return_msg, ch):
         # TASK_KILL_TIMEOUT_MINUTE is a extra housekeeping time after explicitly
         # terminate a task.
         logger.debug("worker life: %d", WORKER_LIFE_LEFT_IN_MINUTE.value)
-        time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - TASK_KILL_TIMEOUT_MINUTE)
+        time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - CONFIG.constants.TASK_KILL_TIMEOUT_MINUTE)
         logger.info("Timeout in minute: %d", time_out_in_minute)
 
     proc_return_code = -1
@@ -121,7 +122,7 @@ def run_user_task(msg_unzipped, return_msg, ch):
                              stderr=subprocess.STDOUT)
     except MemoryError:
         logger.exception("Exception: Out of memory, %s", user_task_cmd)
-        proc_return_code = DONE_FLAGS["failed with out-of-mem"]
+        proc_return_code = done_f["failed with out-of-mem"]
     except FileNotFoundError:
         logger.exception("Exception: Input file or command not found, %s", user_task_cmd)
         proc_return_code = 2
@@ -150,7 +151,7 @@ def run_user_task(msg_unzipped, return_msg, ch):
         except subprocess.TimeoutExpired:
             logger.exception("subprocess call timeout")
             p.kill()
-            proc_return_code = DONE_FLAGS["failed with timeout"]
+            proc_return_code = done_f["failed with timeout"]
         else:
             p.wait()
             p.poll()
@@ -164,20 +165,20 @@ def run_user_task(msg_unzipped, return_msg, ch):
     return_msg["host_name"] = socket.gethostname()
 
     if USER_PROC_PROC_ID.value == -9:
-        return_msg["done_flag"] = DONE_FLAGS["failed with user termination"]
+        return_msg["done_flag"] = done_f["failed with user termination"]
         return_msg["ret_msg"] = "Task cancelled."
     else:
-        if proc_return_code == DONE_FLAGS["failed with timeout"]:
+        if proc_return_code == done_f["failed with timeout"]:
             logger.info("User task timeout. Not enough time left for the worker.")
-            return_msg["done_flag"] = str(DONE_FLAGS["failed with timeout"])
+            return_msg["done_flag"] = str(done_f["failed with timeout"])
             return_msg["ret_msg"] = "User task timeout"
-        elif proc_return_code == DONE_FLAGS["failed with out-of-mem"]:
+        elif proc_return_code == done_f["failed with out-of-mem"]:
             logger.info("User task out-of-mem.")
-            return_msg["done_flag"] = str(DONE_FLAGS["failed with out-of-mem"])
+            return_msg["done_flag"] = str(done_f["failed with out-of-mem"])
             return_msg["ret_msg"] = "User task out-of-mem"
         elif proc_return_code == 2:  # system code
             logger.info("input file or command not found.")
-            return_msg["done_flag"] = DONE_FLAGS["failed with input file or command not found"]
+            return_msg["done_flag"] = done_f["failed with input file or command not found"]
             return_msg["ret_msg"] = "Input file or command not found."
         elif proc_return_code == 0:  # system code
             logger.info("Task# %s completed!" % (str(task_id)))
@@ -192,25 +193,25 @@ def run_user_task(msg_unzipped, return_msg, ch):
                     out_file_list.append(ofs[i])
 
                 ret, file_size = check_output(out_file_list,
-                                              FILE_CHECK_INTERVAL,
-                                              FILE_CHECKING_MAX_TRIAL,
-                                              FILE_CHECK_INT_INC)
+                                              CONFIG.configparser.getfloat("JTM", "file_check_interval"),
+                                              CONFIG.configparser.getint("JTM", "file_checking_max_trial"),
+                                              CONFIG.configparser.getfloat("JTM", "file_check_int_inc"))
 
                 if not ret:
                     ret_msg_str = "Failed to check output file(s): %s, file size = %s." % (ofs, file_size)
                     logger.critical(ret_msg_str)
-                    return_msg["done_flag"] = DONE_FLAGS["failed to check output file(s)"]
+                    return_msg["done_flag"] = done_f["failed to check output file(s)"]
                     return_msg["ret_msg"] = ret_msg_str
                 else:
-                    return_msg["done_flag"] = DONE_FLAGS["success with correct output file(s)"]
+                    return_msg["done_flag"] = done_f["success with correct output file(s)"]
                     return_msg["ret_msg"] = "Output file checking is OK."
             else:
-                return_msg["done_flag"] = DONE_FLAGS["success"]
+                return_msg["done_flag"] = done_f["success"]
                 return_msg["ret_msg"] = "No file(s) to check."
         else:
             logger.critical("Failed to execute a task, %s. Non-zero exit code. stdout = %s."
                             % (user_task_cmd, stdout_str))
-            return_msg["done_flag"] = DONE_FLAGS["failed to run user command"]
+            return_msg["done_flag"] = done_f["failed to run user command"]
             return_msg["ret_msg"] = stdout_str
 
     logger.info("Reply msg prepared with result: %s" % str(return_msg))
@@ -297,8 +298,8 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
     conn = rmq_conn.open()
     ch = conn.channel()
     host_name = socket.gethostname()
-    exch_name = JTM_WORKER_HB_EXCH
-    worker_hb_queue = WORKER_HB_Q_POSTFIX
+    exch_name = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
+    worker_hb_queue = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
 
     ch.exchange_declare(exchange=exch_name,
                         exchange_type="direct",
@@ -308,6 +309,8 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
 
     task_id = 0
     proc_id_list_merged = []
+    hbmsg = CONFIG.constants.HB_MSG
+    w_type = CONFIG.constants.WORKER_TYPE
 
     while True:
         try:
@@ -435,39 +438,38 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                 ip_address = None
 
             ncore_param = mp.cpu_count()
-            if WORKER_TYPE[THIS_WORKER_TYPE] > 0:
+            if CONFIG.constants.WORKER_TYPE[THIS_WORKER_TYPE] > 0:
                 ncore_param = num_cores
 
-            msg_dict_to_send = {HB_MSG["child_pid"]: child_pid,
-                                HB_MSG["clone_time_rate"]: clone_time_rate,
-                                HB_MSG["cpu_load"]: max_cpu_load,
-                                HB_MSG["end_date"]: today,  # Note: for dynamic worker endDate update
-                                HB_MSG["host_name"]: host_name,
-                                HB_MSG["ip_address"]: ip_address,
-                                HB_MSG["job_time"]: job_time if WORKER_TYPE[THIS_WORKER_TYPE] > 0 else None,
-                                HB_MSG["jtm_host_name"]: JTM_HOST_NAME,
-                                HB_MSG["life_left"]: WORKER_LIFE_LEFT_IN_MINUTE.value,
-                                HB_MSG["mem_per_core"]: mem_per_core if WORKER_TYPE[THIS_WORKER_TYPE] > 0 else "",
-                                HB_MSG["mem_per_node"]: mem_per_node if WORKER_TYPE[THIS_WORKER_TYPE] > 0 else "",
-                                HB_MSG["num_cores"]: ncore_param,
-                                HB_MSG["num_tasks"]: hb_queue_len,
-                                HB_MSG["num_workers_on_node"]: num_workers_on_node,
-                                HB_MSG["perc_mem_used"]: perc_used_mem,
-                                HB_MSG["pool_name"]: pool_name,
-                                HB_MSG["ret_msg"]: "hb",
-                                HB_MSG["rmem_usage"]: rmem_usage,
-                                HB_MSG["root_pid"]: PARENT_PROCESS_ID,
-                                HB_MSG["run_time"]: proc_run_time,
-                                HB_MSG["slurm_jobid"]: slurm_job_id,
-                                HB_MSG["task_id"]: task_id,
-                                HB_MSG["vmem_usage"]: vmem_usage,
-                                HB_MSG["worker_id"]: UNIQ_WORKER_ID,
-                                HB_MSG["worker_type"]: WORKER_TYPE[THIS_WORKER_TYPE],
-                                HB_MSG["nwpn"]: nwpn}
+            msg_dict_to_send = {hbmsg["child_pid"]: child_pid,
+                                hbmsg["clone_time_rate"]: clone_time_rate,
+                                hbmsg["cpu_load"]: max_cpu_load,
+                                hbmsg["end_date"]: today,  # Note: for dynamic worker endDate update
+                                hbmsg["host_name"]: host_name,
+                                hbmsg["ip_address"]: ip_address,
+                                hbmsg["job_time"]: job_time if w_type[THIS_WORKER_TYPE] > 0 else None,
+                                hbmsg["jtm_host_name"]: CONFIG.configparser.get("SITE", "jtm_host_name"),
+                                hbmsg["life_left"]: WORKER_LIFE_LEFT_IN_MINUTE.value,
+                                hbmsg["mem_per_core"]: mem_per_core if w_type[THIS_WORKER_TYPE] > 0 else "",
+                                hbmsg["mem_per_node"]: mem_per_node if w_type[THIS_WORKER_TYPE] > 0 else "",
+                                hbmsg["num_cores"]: ncore_param,
+                                hbmsg["num_tasks"]: hb_queue_len,
+                                hbmsg["num_workers_on_node"]: num_workers_on_node,
+                                hbmsg["perc_mem_used"]: perc_used_mem,
+                                hbmsg["pool_name"]: pool_name,
+                                hbmsg["ret_msg"]: "hb",
+                                hbmsg["rmem_usage"]: rmem_usage,
+                                hbmsg["root_pid"]: PARENT_PROCESS_ID,
+                                hbmsg["run_time"]: proc_run_time,
+                                hbmsg["slurm_jobid"]: slurm_job_id,
+                                hbmsg["task_id"]: task_id,
+                                hbmsg["vmem_usage"]: vmem_usage,
+                                hbmsg["worker_id"]: UNIQ_WORKER_ID,
+                                hbmsg["worker_type"]: w_type[THIS_WORKER_TYPE],
+                                hbmsg["nwpn"]: nwpn}
 
             msg_zipped_to_send = zdumps(json.dumps(msg_dict_to_send))
 
-            assert worker_hb_queue.endswith(CNAME)
             ch.basic_publish(exchange=exch_name,
                              routing_key=worker_hb_queue,
                              body=msg_zipped_to_send)
@@ -499,12 +501,9 @@ def recv_task_kill_request_proc():
     rmq_conn = RmqConnectionHB(config=CONFIG)
     conn = rmq_conn.open()
     ch = conn.channel()
-    exch_name = JTM_TASK_KILL_EXCH
-    queue_name = JTM_TASK_KILL_Q
+    exch_name = CONFIG.configparser.get("JTM", "jtm_task_kill_exch")
+    queue_name = CONFIG.configparser.get("JTM", "jtm_task_kill_q")
     routing_key = UNIQ_WORKER_ID
-    logger.debug("JTM_TASK_KILL_EXCH: %s" % JTM_TASK_KILL_EXCH)
-    logger.debug("JTM_TASK_KILL_Q: %s" % JTM_TASK_KILL_Q)
-    logger.debug("UNIQ_WORKER_ID: %s" % UNIQ_WORKER_ID)
 
     ch.exchange_declare(exchange=exch_name,
                         exchange_type="fanout",
@@ -588,9 +587,9 @@ def check_processes(pid_list):
     """
     while True:
         logger.debug("Total Number of processes of the worker = %d" % (len(pid_list)+2))
-        if len(pid_list) != NUM_WORKER_PROCS - 2:
+        if len(pid_list) != CONFIG.constants.NUM_WORKER_PROCS - 2:
             raise OSError(2, 'Number of processes is wrong')
-        time.sleep(NUM_PROCS_CHECK_INTERVAL)
+        time.sleep(CONFIG.configparser.getfloat("JTM", "num_procs_check_interval"))
 
 
 # -------------------------------------------------------------------------------
@@ -628,7 +627,7 @@ def ack_message(ch, reply_to, correlation_id, delivery_tag, response):
         conn3 = rmq_conn3.open()
         ch3 = conn3.channel()
         lost_connection_response = {}
-        lost_connection_response["done_flag"] = str(DONE_FLAGS["failed with lost connection"])
+        lost_connection_response["done_flag"] = str(CONFIG.constants.DONE_FLAGS["failed with lost connection"])
         lost_connection_response["ret_msg"] = "Stream connection lost"
         json_data = json.dumps(lost_connection_response)
         response = zdumps(json_data)
@@ -785,77 +784,12 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     config_debug = CONFIG.configparser.getboolean("SITE", "debug")
     if config_debug:
         DEBUG = config_debug
-    global WORKER_TYPE
-    WORKER_TYPE = CONFIG.constants.WORKER_TYPE
-    global HB_MSG
-    HB_MSG = CONFIG.constants.HB_MSG
-    global VERSION
-    VERSION = CONFIG.constants.VERSION
-    global COMPUTE_RESOURCES
-    COMPUTE_RESOURCES = CONFIG.constants.COMPUTE_RESOURCES
-    global TASK_TYPE
-    TASK_TYPE = CONFIG.constants.TASK_TYPE
-    global DONE_FLAGS
-    DONE_FLAGS = CONFIG.constants.DONE_FLAGS
-    global NUM_WORKER_PROCS
-    NUM_WORKER_PROCS = CONFIG.constants.NUM_WORKER_PROCS
-    global TASK_KILL_TIMEOUT_MINUTE
-    TASK_KILL_TIMEOUT_MINUTE = CONFIG.constants.TASK_KILL_TIMEOUT_MINUTE
-
-    global CNAME
-    CNAME = CONFIG.configparser.get("SITE", "instance_name")
-    global JTM_HOST_NAME
-    JTM_HOST_NAME = CONFIG.configparser.get("SITE", "jtm_host_name")
-    global JTM_INNER_REQUEST_Q
-    JTM_INNER_REQUEST_Q = CONFIG.configparser.get("JTM", "jtm_inner_request_q")
-    global CTR
-    CTR = CONFIG.configparser.getfloat("JTM", "clone_time_rate")
     global JTM_INNER_MAIN_EXCH
     JTM_INNER_MAIN_EXCH = CONFIG.configparser.get("JTM", "jtm_inner_main_exch")
-    global JTM_CLIENT_HB_EXCH
-    JTM_CLIENT_HB_EXCH = CONFIG.configparser.get("JTM", "jtm_client_hb_exch")
-    global JTM_WORKER_HB_EXCH
-    JTM_WORKER_HB_EXCH = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
-    global CLIENT_HB_Q_POSTFIX
-    CLIENT_HB_Q_POSTFIX = CONFIG.configparser.get("JTM", "client_hb_q_postfix")
-    global WORKER_HB_Q_POSTFIX
-    WORKER_HB_Q_POSTFIX = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
-    global JTM_TASK_KILL_EXCH
-    JTM_TASK_KILL_EXCH = CONFIG.configparser.get("JTM", "jtm_task_kill_exch")
-    global JTM_TASK_KILL_Q
-    JTM_TASK_KILL_Q = CONFIG.configparser.get("JTM", "jtm_task_kill_q")
-    global JTM_WORKER_POISON_EXCH
-    JTM_WORKER_POISON_EXCH = CONFIG.configparser.get("JTM", "jtm_worker_poison_exch")
-    global JTM_WORKER_POISON_Q
-    JTM_WORKER_POISON_Q = CONFIG.configparser.get("JTM", "jtm_worker_poison_q")
-    global NUM_PROCS_CHECK_INTERVAL
-    NUM_PROCS_CHECK_INTERVAL = CONFIG.configparser.getfloat("JTM", "num_procs_check_interval")
-    global ENV_ACTIVATION
-    ENV_ACTIVATION = CONFIG.configparser.get("JTM", "env_activation")
-    WORKER_CONFIG_FILE = CONFIG.configparser.get("JTM", "worker_config_file")
 
-    RMQ_HOST = CONFIG.configparser.get("RMQ", "host")
-    RMQ_PORT = CONFIG.configparser.get("RMQ", "port")
-    USER_NAME = CONFIG.configparser.get("SITE", "user_name")
-    PRODUCTION = False
+    prod_mod = False
     if CONFIG.configparser.get("JTM", "run_mode") == "prod":
-        PRODUCTION = True
-    JOBTIME = CONFIG.configparser.get("SLURM", "jobtime")
-    CONSTRAINT = CONFIG.configparser.get("SLURM", "constraint")
-    CHARGE_ACCNT = CONFIG.configparser.get("SLURM", "charge_accnt")
-    QOS = CONFIG.configparser.get("SLURM", "qos")
-    PARTITION = CONFIG.configparser.get("SLURM", "partition")
-    MEMPERCPU = CONFIG.configparser.get("SLURM", "mempercpu")
-    MEMPERNODE = CONFIG.configparser.get("SLURM", "mempernode")
-    NWORKERS = CONFIG.configparser.getint("JTM", "num_workers_per_node")
-    NCPUS = CONFIG.configparser.getint("SLURM", "ncpus")
-
-    global FILE_CHECK_INTERVAL
-    FILE_CHECK_INTERVAL = CONFIG.configparser.getfloat("JTM", "file_check_interval")
-    global FILE_CHECKING_MAX_TRIAL
-    FILE_CHECKING_MAX_TRIAL = CONFIG.configparser.getint("JTM", "file_checking_max_trial")
-    global FILE_CHECK_INT_INC
-    FILE_CHECK_INT_INC = CONFIG.configparser.getfloat("JTM", "file_check_int_inc")
+        prod_mod = True
 
     # Job dir setting
     job_script_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "job")
@@ -869,7 +803,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         log_dir_name = custom_log_dir
     make_dir(log_dir_name)
 
-    print("JTM Worker, version: {}".format(VERSION))
+    print("JTM Worker, version: {}".format(CONFIG.constants.VERSION))
 
     # Set uniq worker id if worker id is provided in the params
     if worker_id_param:
@@ -881,25 +815,21 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     if DEBUG:
         log_level = "debug"
 
-    setup_custom_logger(log_level, log_dir_name,
-                        1, 1,
-                        worker_id=UNIQ_WORKER_ID)
+    setup_custom_logger(log_level, log_dir_name, 1, 1, worker_id=UNIQ_WORKER_ID)
+    hearbeat_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_send_interval")
 
     logger.info("\n*****************\nDebug mode is %s\n*****************"
                 % ("ON" if DEBUG else "OFF"))
-
-    hearbeat_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_send_interval")
-
     logger.info("Set jtm log file location to %s", log_dir_name)
     logger.info("Set jtm job file location to %s", job_script_dir_name)
-    logger.info("RabbitMQ broker: %s", RMQ_HOST)
-    logger.info("RabbitMQ port: %s", RMQ_PORT)
+    logger.info("RabbitMQ broker: %s", CONFIG.configparser.get("RMQ", "host"))
+    logger.info("RabbitMQ port: %s", CONFIG.configparser.get("RMQ", "port"))
     logger.info("Pika version: %s", pika.__version__)
-    logger.info("JTM user name: %s", USER_NAME)
+    logger.info("JTM user name: %s", CONFIG.configparser.get("SITE", "user_name"))
     logger.info("Unique worker ID: %s", UNIQ_WORKER_ID)
     logger.info("\n*****************\nRun mode is %s\n*****************"
-                % ("PROD" if PRODUCTION else "DEV"))
-    logger.info("env activation: %s", ENV_ACTIVATION)
+                % ("PROD" if prod_mod else "DEV"))
+    logger.info("env activation: %s", CONFIG.configparser.get("JTM", "env_activation"))
     logger.info("JTM config file: %s" % (CONFIG.config_file))
 
     # Slurm config
@@ -908,13 +838,17 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         num_nodes_to_request = num_nodes_to_request_param
 
     # 11.13.2018 decided to remove all default values from argparse
-    num_workers_per_node = num_workers_per_node_param if num_workers_per_node_param else NWORKERS
+    num_workers_per_node = num_workers_per_node_param \
+        if num_workers_per_node_param else CONFIG.configparser.getint("JTM", "num_workers_per_node")
     assert num_workers_per_node > 0
-    mem_per_cpu_to_request = mem_per_cpu_to_request_param if mem_per_cpu_to_request_param else MEMPERCPU
-    mem_per_node_to_request = mem_per_node_to_request_param if mem_per_node_to_request_param else MEMPERNODE
+    mem_per_cpu_to_request = mem_per_cpu_to_request_param \
+        if mem_per_cpu_to_request_param else CONFIG.configparser.get("SLURM", "mempercpu")
+    mem_per_node_to_request = mem_per_node_to_request_param \
+        if mem_per_node_to_request_param else CONFIG.configparser.get("SLURM", "mempernode")
     assert mem_per_cpu_to_request
     assert mem_per_node_to_request
-    num_cpus_to_request = num_cores_to_request_param if num_cores_to_request_param else NCPUS
+    num_cpus_to_request = num_cores_to_request_param \
+        if num_cores_to_request_param else CONFIG.configparser.getint("SLURM", "ncpus")
     assert num_cpus_to_request
 
     # Set CPU affinity for limiting the number of cores to use
@@ -987,11 +921,14 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
             logger.exception(e)
             sys.exit(1)
 
-    job_time_to_request = job_time_to_request_param if job_time_to_request_param else JOBTIME
-
-    constraint = constraint_param if constraint_param else CONSTRAINT
-    charging_account = charging_account_param if charging_account_param else CHARGE_ACCNT
-    qos = qos_param if qos_param else QOS
+    job_time_to_request = job_time_to_request_param \
+        if job_time_to_request_param else CONFIG.configparser.get("SLURM", "jobtime")
+    constraint = constraint_param \
+        if constraint_param else CONFIG.configparser.get("SLURM", "constraint")
+    charging_account = charging_account_param \
+        if charging_account_param else CONFIG.configparser.get("SLURM", "charge_accnt")
+    qos = qos_param \
+        if qos_param else CONFIG.configparser.get("SLURM", "qos")
 
     global THIS_WORKER_TYPE
     THIS_WORKER_TYPE = worker_type_param
@@ -1007,9 +944,11 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         tp_name = pool_name_param
 
     assert pool_name_param is not None, "User pool name is not set"
-    inner_task_request_queue = JTM_INNER_REQUEST_Q + "." + pool_name_param
+    inner_task_request_queue = CONFIG.configparser.get("JTM", "jtm_inner_request_q") + "." + pool_name_param
 
-    worker_clone_time_rate = worker_clone_time_rate_param if worker_clone_time_rate_param else CTR
+    worker_clone_time_rate = worker_clone_time_rate_param \
+        if worker_clone_time_rate_param else CONFIG.configparser.getfloat("JTM", "clone_time_rate")
+
     if THIS_WORKER_TYPE in ("static", "dynamic"):
         assert cluster_name_param != "" and \
                cluster_name_param != "local", "Static or dynamic worker needs a cluster setting (-cl)."
@@ -1022,9 +961,10 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         logger.critical("--mem-per-cpu in Cori shouldn't be larger than 1GB. User '--mem' instead.")
         sys.exit(1)
 
-    logger.info("RabbitMQ broker: %s", RMQ_HOST)
     logger.info("Task queue name: %s", inner_task_request_queue)
     logger.info("Worker type: %s", THIS_WORKER_TYPE)
+
+    env_act = CONFIG.configparser.get("JTM", "env_activation")
 
     if slurm_job_id == 0 and THIS_WORKER_TYPE in ["static", "dynamic"]:
         batch_job_script_file = os.path.join(job_script_dir_name, "jtm_%s_worker_%s.job" %
@@ -1033,8 +973,8 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         batch_job_misc_params = ""
 
         worker_config = CONFIG.config_file if CONFIG else ""
-        if WORKER_CONFIG_FILE:
-            worker_config = WORKER_CONFIG_FILE
+        if CONFIG.configparser.get("JTM", "worker_config_file"):
+            worker_config = CONFIG.configparser.get("JTM", "worker_config_file")
 
         if cluster_name in ("cori", "lawrencium", "jgi_cloud", "jaws_lbl_gov", "lbl", "jgi_cluster"):
 
@@ -1195,7 +1135,7 @@ wait
                                                      clone_time_rate=worker_clone_time_rate,
                                                      task_queue=tq_param,
                                                      num_workers_per_node=num_workers_per_node,
-                                                     env_activation_cmd=ENV_ACTIVATION,
+                                                     env_activation_cmd=env_act,
                                                      other_params=batch_job_misc_params,
                                                      constraint=constraint,
                                                      mem=mem_per_node_to_request,
@@ -1215,21 +1155,19 @@ wait
                     tp_param = ""
                     if pool_name_param:
                         tp_param = "-p " + pool_name_param
+
                     part_param = ""
                     if cluster_name == "lawrencium":
-                        part_param = PARTITION
-                    else:
-                        part_param = PARTITION
+                        part_param = CONFIG.configparser.get("SLURM", "partition")
+
                     qos_param = ""
                     if cluster_name == "lawrencium":
-                        qos_param = QOS
-                    else:
-                        qos_param = QOS
+                        qos_param = CONFIG.configparser.get("SLURM", "qos")
+
                     charge_param = ""
                     if cluster_name == "lawrencium":
-                        charge_param = CHARGE_ACCNT
-                    else:
-                        charge_param = CHARGE_ACCNT
+                        charge_param = CONFIG.configparser.get("SLURM", "charge_accnt")
+
                     nnode_param = 1
                     if num_nodes_to_request_param:
                         nnode_param = num_nodes_to_request
@@ -1275,7 +1213,7 @@ wait
                                                  mem_per_node_setting=mnode_param,
                                                  worker_id=UNIQ_WORKER_ID,
                                                  job_dir=job_script_dir_name,
-                                                 env_activation_cmd=ENV_ACTIVATION,
+                                                 env_activation_cmd=env_act,
                                                  num_workers_per_node=num_workers_per_node,
                                                  mem=mem_per_node_to_request,
                                                  lbl_cluster_name=cluster_name,
@@ -1358,7 +1296,7 @@ wait
         sys.exit(1)
 
     logger.info("Start sending my heartbeat to the client in every %d sec to %s"
-                % (hearbeat_interval, WORKER_HB_Q_POSTFIX))
+                % (hearbeat_interval, CONFIG.configparser.get("JTM", "worker_hb_q_postfix")))
 
     # Checking the total number of child processes
     try:
@@ -1382,7 +1320,6 @@ wait
 
     # NEW
     # Ref) https://github.com/pika/pika/blob/1.0.1/examples/basic_consumer_threaded.py
-    #      https://stackoverflow.com/questions/51752890/how-to-disable-heartbeats-with-pika-and-rabbitmq
     #      https://github.com/pika/pika/blob/master/examples/basic_consumer_threaded.py
     threads = []
     on_message_callback = functools.partial(on_task_request,
