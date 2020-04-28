@@ -73,7 +73,6 @@ def wfcopy(in_dir, out_dir, flattenShardDir=False):
         "stdout.background",
         "stderr.background",
         "script.background",
-        "script.submit",
     ]
 
     log_dir = os.path.join(out_dir, "log")
@@ -123,17 +122,11 @@ def wfcopy(in_dir, out_dir, flattenShardDir=False):
                 outname = "%s-%s" % (taskname, shardname) if shardname else taskname
 
                 if fname == "stdout":
-                    rsync(
-                        fullname, os.path.join(log_dir, "%s.stdout" % outname),
-                    )
+                    rsync(fullname, os.path.join(log_dir, f"{outname}.stdout"))
                 if fname == "stderr":
-                    rsync(
-                        fullname, os.path.join(log_dir, "%s.stderr" % outname),
-                    )
+                    rsync(fullname, os.path.join(log_dir, f"{outname}.stderr"))
                 if fname == "script":
-                    rsync(
-                        fullname, os.path.join(log_dir, "%s.script" % outname),
-                    )
+                    rsync(fullname, os.path.join(log_dir, f"{outname}.script"))
                 if fname not in cromwellFilesToSkip:
                     rsync(fullname, task_dir)
                 if fname == "rc":
@@ -141,3 +134,19 @@ def wfcopy(in_dir, out_dir, flattenShardDir=False):
                         exitcode = fh.readlines()[0].strip()
                     with open(rcfile, "a") as fh:
                         fh.write("%s\t%s\n" % (exitcode, outname))
+    fix_perms(out_dir)
+
+
+def fix_perms(path: str) -> None:
+    """Recursively chmod.
+
+    :param path: Root dir
+    :type dirname: str
+    :return:
+    """
+    os.chmod(path, 0o0775)
+    for dirpath, dirnames, filenames in os.walk(path):
+        for dname in dirnames:
+            os.chmod(os.path.join(dirpath, dname), 0o0775)
+        for fname in filenames:
+            os.chmod(os.path.join(dirpath, fname), 0o0664)
