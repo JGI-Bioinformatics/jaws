@@ -36,16 +36,16 @@ def get_cpu_load(pid: int) -> float:
             ps_stdout_str = ps_stdout_str.strip().split('\n')[1]
         cpu_load = float(ps_stdout_str.strip())
     except IndexError as e:
-        eprint(e)
+        logger.error(e)
         cpu_load = 0.0
     except ValueError as e:
-        eprint(e)
+        logger.error(e)
         cpu_load = 0.0
     except subprocess.CalledProcessError as e:
-        eprint("get_cpu_load(): %s" % e)
+        logger.error("get_cpu_load(): %s" % e)
         raise
     except Exception as ex:
-        eprint("get_cpu_load(): %s" % ex)
+        logger.error("get_cpu_load(): %s" % ex)
         raise
 
     return cpu_load
