@@ -73,7 +73,6 @@ def wfcopy(in_dir, out_dir, flattenShardDir=False):
         "stdout.background",
         "stderr.background",
         "script.background",
-        "script.submit",
     ]
 
     log_dir = os.path.join(out_dir, "log")
