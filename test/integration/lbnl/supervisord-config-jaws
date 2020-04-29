@@ -43,20 +43,6 @@ startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-central-rest]
-command={{shimpath}}/jaws-central-rest-dev
-numprocs=1
-startsecs=3
-startretries=3
-autorestart=unexpected
-
-[program:jaws-central-auth]
-command={{shimpath}}/jaws-central-auth-dev
-numprocs=1
-startsecs=3
-startretries=3
-autorestart=unexpected
-
 [group:jaws-dev]
-programs=jaws-site-daemon,jaws-site-server,jaws-central-auth,jaws-central-rest
+programs=jaws-site-daemon,jaws-site-server
 priority=999

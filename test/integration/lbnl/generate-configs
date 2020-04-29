@@ -6,8 +6,6 @@ readonly configdir=${1:-/tmp/}
 
 [[ -z $JAWS_SITE_LBNL_DB_PW ]]     && { printf "Missing JAWS_SITE_LBNL_DB_PW variable.\n"; exit 1; }
 [[ -z $JAWS_SITE_LBNL_RMQ_PW ]]    && { printf "Missing JAWS_SITE_LBNL_RMQ_PW variable.\n"; exit 1; }
-[[ -z $JAWS_CENTRAL_LBNL_DB_PW ]]  && { printf "Missing JAWS_CENTRAL_LBNL_DB_PW variable.\n"; exit 1; }
-[[ -z $JAWS_CENTRAL_LBNL_RMQ_PW ]] && { printf "Missing JAWS_CENTRAL_LBNL_RMQ_PW variable.\n"; exit 1; }
 [[ -z $JAWS_JTM_LBNL_DB_PW ]]      && { printf "Missing JAWS_JTM_LBNL_DB_PW variable.\n"; exit 1; }
 [[ -z $JAWS_JTM_LBNL_RMQ_PW ]]     && { printf "Missing JAWS_JTM_LBNL_RMQ_PW variable.\n"; exit 1; }
 [[ -z $JAWS_CROMWELL_LBNL_DB_PW ]] && { printf "Missing JAWS_CROMWELL_LBNL_DB_PW variable.\n"; exit 1; }
@@ -41,51 +39,6 @@ results_subdirectory = global/cscratch1/sd/jaws/dev/results
 [CROMWELL]
 workflows_url = http://localhost:50010/api/workflows/v1
 engine_status_url = http://localhost:50010/engine/v1/status
-EOM
-
-cat << EOM > $configdir/jaws-central.conf
-[DB]
-dialect = mysql+mysqlconnector
-host = jaws-db.lbl.gov
-port = 3306
-user = jaws_dev
-password = $JAWS_CENTRAL_LBNL_DB_PW
-db = jaws_dev
-[GLOBUS]
-client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-[SITE:LBNL]
-amqp_user = jaws_rpc
-amqp_password = $JAWS_CENTRAL_LBNL_RMQ_PW
-amqp_host = rmq.lbl.gov
-amqp_vhost = lbnl_dev
-amqp_queue = jaws_rpc
-globus_endpoint = b445e71a-4933-11ea-9714-021304b0cca7
-globus_basepath = /global/scratch/jaws
-staging_subdir = dev/staging
-max_ram_gb = 1024
-[SITE:NERSC]
-amqp_user = jaws_rpc
-amqp_password = $JAWS_CENTRAL_LBNL_RMQ_PW
-amqp_host = rmq.lbl.gov
-amqp_vhost = nersc_dev
-amqp_queue = jaws_rpc
-globus_endpoint = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
-globus_basepath = /
-staging_subdir = /global/cscratch1/sd/jaws_jtm/dev/staging
-max_ram_gb = 2048
-EOM
-
-cat << EOM > $configdir/jaws-client.conf
-[JAWS]
-site_id = NERSC
-name = jaws-dev
-url = http://cori20.nersc.gov:5000/api/v2
-womtool_jar = /global/cfs/projectdirs/jaws/cromwell/womtool.jar
-staging_subdir = global/cscratch1/sd/jaws/dev/staging
-[GLOBUS]
-client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
-basedir = /
 EOM
 
 cat << EOM > $configdir/jaws-jtm.conf
