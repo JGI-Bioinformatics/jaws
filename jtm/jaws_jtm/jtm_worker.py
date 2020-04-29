@@ -35,9 +35,10 @@ import resource
 import psutil
 import functools
 import signal
+from amqpstorm import Message
 
 from jaws_jtm.common import setup_custom_logger, logger
-from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
+from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB, RmqConnectionAmqpstorm
 from jaws_jtm.lib.resourceusage import get_cpu_load, \
     get_runtime, get_pid_tree, get_virtual_memory_usage, \
     get_resident_memory_usage, get_total_mem_usage_per_node, \
@@ -272,221 +273,205 @@ def check_output(out_files, out_file_check_wait_time=3,
 
 
 # -------------------------------------------------------------------------------
-def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
-                           num_cores,
-                           job_time, clone_time_rate, task_queue_name, pool_name,
-                           nwpn):
+def send_hb_to_client_proc_amqpstorm(interval, slurm_job_id, mem_per_node, mem_per_core,
+                                     num_cores, job_time, pool_name, nwpn):
     """
     Send heartbeats to the client
+
     :param interval: time interval to send heartbeats to the client
     :param slurm_job_id: SLURM job id
     :param mem_per_node: memory request per node
     :param mem_per_core: memory request per core
     :param num_cores: number of cores
     :param job_time: wallclocktime
-    :param clone_time_rate: clone time rate
-    :param task_queue_name: task queue name
     :param pool_name: pool name
     :param nwpn: number of workers per node
     :return:
     """
-    # Remote broker (mq.nersc.gov)
-    # rmq_conn = RmqConnection()
-    # with heartbeat_interval=0
-    # ref) http://stackoverflow.com/questions/14572020/handling-long-running-tasks-in-pika-rabbitmq,
-    # http://stackoverflow.com/questions/34721178/pika-blockingconnection-rabbitmq-connection-closed
-    rmq_conn = RmqConnectionHB(config=CONFIG)
-    conn = rmq_conn.open()
-    ch = conn.channel()
     host_name = socket.gethostname()
     exch_name = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
     worker_hb_queue = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
-
-    ch.exchange_declare(exchange=exch_name,
-                        exchange_type="direct",
-                        passive=False,
-                        durable=False,
-                        auto_delete=False)
-
-    task_id = 0
-    proc_id_list_merged = []
-    hbmsg = CONFIG.constants.HB_MSG
+    today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    num_workers_on_node = get_num_workers_on_node(CONFIG)
+    try:
+        ip_address = socket.gethostbyname(host_name)
+    except Exception:
+        ip_address = None
+    ncore_param = mp.cpu_count()
+    if CONFIG.constants.WORKER_TYPE[THIS_WORKER_TYPE] > 0:
+        ncore_param = num_cores
+    hb_msg = CONFIG.constants.HB_MSG
     w_type = CONFIG.constants.WORKER_TYPE
 
-    while True:
-        try:
-            # Todo: make it optional to send the resource info on hb message
-            #
-            # To check out-of-mem
-            # 1. On genepool node
-            #    Need to get ram.c and v_mem.c, and compare them with sum(mem usages
-            #    from all processes) to check out-of-mem
-            # 2. On Mendel node
-            #    Use "free" call for getting mem usage (%) for the node
-            #    If >90% used, kill a process (selection strategy is needed)
-            #
-            # NOTE: must cope with the fast mem consumption at the begining of the process
-            if USER_PROC_PROC_ID.value == 0:
-                child_pid = PARENT_PROCESS_ID
-            else:
-                child_pid = int(USER_PROC_PROC_ID.value)
+    # Expiration set to 6000ms
+    def publish_message(channel, body, queue, expiration="6000"):
+        # Create the message with a expiration (time to live).
+        message = Message.create(channel, body,
+                                 properties={"expiration": expiration})
+        # Publish the message to a queue.
+        message.publish(queue)
 
-            # Collect pids from process tree
-            root_pid_num = get_pid_tree(PARENT_PROCESS_ID)
-
-            if PARENT_PROCESS_ID != child_pid:
-                if child_pid == -9:  # if it's terminated by "kill"
-                    child_pid = PARENT_PROCESS_ID
-                pid_list_child = get_pid_tree(child_pid)
-                if len(pid_list_child) > 0:
-                    proc_id_list_merged = root_pid_num + pid_list_child[1:]
-                else:
-                    # NOTE: be careful on this resetting! Might lose child pid
-                    # USER_PROC_PROC_ID.value = 0
-                    proc_id_list_merged = root_pid_num
-            else:
-                proc_id_list_merged = root_pid_num
-
-            vmem_usage_list = []
-            rmem_usage_list = []
-
-            try:
-                vmem_usage_list.extend([get_virtual_memory_usage(pid, 0.0, False) for pid in proc_id_list_merged])
-            except ValueError:
-                logger.exception("ValueError: Failed to collect VM memory usage.")
-            except UnboundLocalError:
-                logger.exception("UnboundLocalError: No entry in process id list.")
-
-            try:
-                rmem_usage_list.extend([get_resident_memory_usage(pid, 0.0, False) for pid in proc_id_list_merged])
-            except ValueError:
-                logger.exception("ValueError: Failed to collect RES memory usage.")
-            except UnboundLocalError:
-                logger.exception("UnboundLocalError: No entry in process id list.")
-
-            # Collect cpu_usages for all pids in the tree and get max()
-            try:
-                cpu_load_list = [get_cpu_load(pid) for pid in proc_id_list_merged]
-            except Exception as e:
-                logger.exception("get_cpu_load() exception: {}".format(e))
-                raise
-
-            max_cpu_load = max(cpu_load_list) if len(cpu_load_list) > 0 else 0.0
-
-            # Collect mem_usages for all pids in the tree and get sum()
-            rmem_usage = "%.1f" % sum(rmem_usage_list)
-            vmem_usage = "%.1f" % sum(vmem_usage_list)
-
-            # TODO
-            # Compare mem_per_node with rmem_usage or vmem_usage
-            # if mem usage >= mem_per_node, terminate the task (=: margin)
-            # using
-
-            # Only get the run time of child_pid
-            if sys.platform.lower() == "darwin":
-                # Todo: Add a method to get etime on Mac OS
-                proc_run_time = ""
-            else:
-                proc_run_time = get_runtime(child_pid)
-
-            if max_cpu_load == "":
-                max_cpu_load = 0.0
-
-            if proc_run_time == "":
-                proc_run_time = 0
-
-            # Get % mem used per node
-            # This is for node-based scheduling
-            perc_used_mem = "%.1f" % get_total_mem_usage_per_node()
-            num_workers_on_node = get_num_workers_on_node(CONFIG)
-
-            # Check if there is any task id in the ipc pipe
-            if PIPE_TASK_ID_RECV.poll():
-                task_id = PIPE_TASK_ID_RECV.recv()
-
-            today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
+        with conn.channel() as ch:
+            ch.exchange.declare(exchange=exch_name,
+                                exchange_type='direct',
+                                durable=False,
+                                auto_delete=False)
+            task_id = 0
+            proc_id_list_merged = list()
+            vmem_usage_list = list()
+            rmem_usage_list = list()
+            cpu_load_list = list()
             end_date_time = None
 
-            try:
-                # Note: this only works with SLURM. For other HPCs/Clouds, methods to get the
-                #  remaining life are needed! ==> resolved!
+            while True:
+                # NOTE: must cope with the fast mem consumption at the begining of the process
+                if USER_PROC_PROC_ID.value == 0:
+                    child_pid = PARENT_PROCESS_ID
+                else:
+                    child_pid = int(USER_PROC_PROC_ID.value)
+
+                # Collect pids from process tree
+                try:
+                    root_pid_num = get_pid_tree(PARENT_PROCESS_ID)
+                    if PARENT_PROCESS_ID != child_pid:
+                        if child_pid == -9:  # if it's terminated by "kill"
+                            child_pid = PARENT_PROCESS_ID
+                        pid_list_child = get_pid_tree(child_pid)
+                        if len(pid_list_child) > 0:
+                            proc_id_list_merged = root_pid_num + pid_list_child[1:]
+                        else:
+                            # NOTE: be careful on this resetting! Might lose child pid
+                            # USER_PROC_PROC_ID.value = 0
+                            proc_id_list_merged = root_pid_num
+                    else:
+                        proc_id_list_merged = root_pid_num
+                except Exception as e:
+                    logger.warning("get_pid_tree error: {}".format(e))
+
+                # Collect vmem usage from process tree
+                for pid in proc_id_list_merged:
+                    try:
+                        vmem = get_virtual_memory_usage(pid, 0.0, False)
+                    except ValueError:
+                        logger.warning("ValueError: Failed to collect VM memory usage.")
+                        pass
+                    except UnboundLocalError:
+                        logger.warning("UnboundLocalError: No entry in process id list.")
+                        pass
+                    else:
+                        vmem_usage_list.append(vmem)
+
+                # Collect rss mem usage from process tree
+                for pid in proc_id_list_merged:
+                    try:
+                        rmem = get_resident_memory_usage(pid, 0.0, False)
+                    except ValueError:
+                        logger.warning("ValueError: Failed to collect RES memory usage.")
+                        pass
+                    except UnboundLocalError:
+                        logger.warning("UnboundLocalError: No entry in process id list.")
+                        pass
+                    else:
+                        rmem_usage_list.append(rmem)
+
+                # Collect mem_usages for all pids in the tree and get sum()
+                rmem_usage = "%.1f" % sum(rmem_usage_list) if len(rmem_usage_list) > 0 else 0.0
+                vmem_usage = "%.1f" % sum(vmem_usage_list) if len(vmem_usage_list) > 0 else 0.0
+
+                # Collect cpu_usages for all pids in the tree and get max()
+                for pid in proc_id_list_merged:
+                    try:
+                        cload = get_cpu_load(pid)
+                    except Exception as e:
+                        logger.warning("get_cpu_load() exception: {}".format(e))
+                        pass
+                    else:
+                        cpu_load_list.append(cload)
+
+                max_cpu_load = max(cpu_load_list) if len(cpu_load_list) > 0 else 0.0
+
+                # Only get the run time of child_pid
+                if sys.platform.lower() == "darwin":
+                    # Todo: Add a method to get etime on Mac OS
+                    proc_run_time = ""
+                else:
+                    proc_run_time = get_runtime(child_pid)
+
+                if max_cpu_load == "":
+                    max_cpu_load = 0.0
+
+                if proc_run_time == "":
+                    proc_run_time = 0
+
+                # Get % mem used per node
+                # This is for node-based scheduling
+                try:
+                    perc_used_mem = "%.1f" % get_total_mem_usage_per_node()
+                except Exception as e:
+                    logger.warning("get_total_mem_usage_per_node() exception: {}".format(e))
+                    perc_used_mem = 0.0
+                    pass
+
+                # Check if there is any task id in the ipc pipe
+                if PIPE_TASK_ID_RECV.poll():
+                    task_id = PIPE_TASK_ID_RECV.recv()
+
                 if slurm_job_id:
-                    # NEW
-                    # jobtime2 = datetime.datetime.strptime(job_time, '%H:%M:%S')
-                    # end_date_time = WORKER_START_TIME + timedelta(seconds=jobtime2.second+jobtime2.minute*60+
-                    # jobtime2.hour*3600)
-                    # 24:00:00 --> seconds
-                    job_runtime_in_sec = int(job_time.split(':')[0]) * 3600 + \
-                                         int(job_time.split(':')[1]) * 60 + \
-                                         int(job_time.split(':')[2])
-                    end_date_time = WORKER_START_TIME + datetime.timedelta(seconds=int(job_runtime_in_sec))
-                    delta = end_date_time - datetime.datetime.now()
-                    WORKER_LIFE_LEFT_IN_MINUTE.value = int(divmod(delta.total_seconds(), 60)[0])
-            except Exception as e:
-                logger.critical("Something wrong in computing remaining wall clock time: %s", e)
-                raise
+                    temp = WORKER_LIFE_LEFT_IN_MINUTE.value
+                    try:
+                        # jobtime2 = datetime.datetime.strptime(job_time, '%H:%M:%S')
+                        # end_date_time = WORKER_START_TIME + timedelta(seconds=jobtime2.second+jobtime2.minute*60+
+                        # jobtime2.hour*3600)
+                        # 24:00:00 --> seconds
+                        job_runtime_in_sec = int(job_time.split(':')[0]) * 3600 + \
+                                             int(job_time.split(':')[1]) * 60 + \
+                                             int(job_time.split(':')[2])
+                        end_date_time = WORKER_START_TIME + datetime.timedelta(seconds=int(job_runtime_in_sec))
+                        delta = end_date_time - datetime.datetime.now()
+                        WORKER_LIFE_LEFT_IN_MINUTE.value = int(divmod(delta.total_seconds(), 60)[0])
+                    except Exception as e:
+                        logger.warning("Something wrong in computing remaining wall clock time: %s", e)
+                        WORKER_LIFE_LEFT_IN_MINUTE.value = temp
+                        pass
 
-            # Get the total number of tasks in the task queue for this pool
-            hb_queue_len = ch.queue_declare(queue=task_queue_name,
-                                            durable=True,
-                                            exclusive=False,
-                                            auto_delete=True).method.message_count
+                msg_dict_to_send = {hb_msg["child_pid"]: child_pid,
+                                    hb_msg["clone_time_rate"]: 0.0,  # OBSOLETE
+                                    hb_msg["cpu_load"]: max_cpu_load,
+                                    hb_msg["end_date"]: today,  # Note: for dynamic worker endDate update
+                                    hb_msg["host_name"]: host_name,
+                                    hb_msg["ip_address"]: ip_address,
+                                    hb_msg["job_time"]: job_time if w_type[THIS_WORKER_TYPE] > 0 else None,
+                                    hb_msg["jtm_host_name"]: CONFIG.configparser.get("SITE", "jtm_host_name"),
+                                    hb_msg["life_left"]: WORKER_LIFE_LEFT_IN_MINUTE.value,
+                                    hb_msg["mem_per_core"]: mem_per_core if w_type[THIS_WORKER_TYPE] > 0 else "",
+                                    hb_msg["mem_per_node"]: mem_per_node if w_type[THIS_WORKER_TYPE] > 0 else "",
+                                    hb_msg["num_cores"]: ncore_param,
+                                    hb_msg["num_tasks"]: 0,
+                                    hb_msg["num_workers_on_node"]: num_workers_on_node,
+                                    hb_msg["perc_mem_used"]: perc_used_mem,
+                                    hb_msg["pool_name"]: pool_name,
+                                    hb_msg["ret_msg"]: "hb",
+                                    hb_msg["rmem_usage"]: rmem_usage,
+                                    hb_msg["root_pid"]: PARENT_PROCESS_ID,
+                                    hb_msg["run_time"]: proc_run_time,
+                                    hb_msg["slurm_jobid"]: slurm_job_id,
+                                    hb_msg["task_id"]: task_id,
+                                    hb_msg["vmem_usage"]: vmem_usage,
+                                    hb_msg["worker_id"]: UNIQ_WORKER_ID,
+                                    hb_msg["worker_type"]: w_type[THIS_WORKER_TYPE],
+                                    hb_msg["nwpn"]: nwpn}
 
-            # To decrease the hb message size, changed to int key value
-            try:
-                ip_address = socket.gethostbyname(host_name)
-            except Exception:
-                ip_address = None
+                msg_zipped_to_send = zdumps(json.dumps(msg_dict_to_send))
 
-            ncore_param = mp.cpu_count()
-            if CONFIG.constants.WORKER_TYPE[THIS_WORKER_TYPE] > 0:
-                ncore_param = num_cores
+                try:
+                    publish_message(ch, msg_zipped_to_send,
+                                    worker_hb_queue,
+                                    CONFIG.configparser.get("JTM", "worker_s_hb_expiration"))
+                except Exception as e:
+                    logger.exception("Failed to send hb to manager: {}".format(e))
 
-            msg_dict_to_send = {hbmsg["child_pid"]: child_pid,
-                                hbmsg["clone_time_rate"]: clone_time_rate,
-                                hbmsg["cpu_load"]: max_cpu_load,
-                                hbmsg["end_date"]: today,  # Note: for dynamic worker endDate update
-                                hbmsg["host_name"]: host_name,
-                                hbmsg["ip_address"]: ip_address,
-                                hbmsg["job_time"]: job_time if w_type[THIS_WORKER_TYPE] > 0 else None,
-                                hbmsg["jtm_host_name"]: CONFIG.configparser.get("SITE", "jtm_host_name"),
-                                hbmsg["life_left"]: WORKER_LIFE_LEFT_IN_MINUTE.value,
-                                hbmsg["mem_per_core"]: mem_per_core if w_type[THIS_WORKER_TYPE] > 0 else "",
-                                hbmsg["mem_per_node"]: mem_per_node if w_type[THIS_WORKER_TYPE] > 0 else "",
-                                hbmsg["num_cores"]: ncore_param,
-                                hbmsg["num_tasks"]: hb_queue_len,
-                                hbmsg["num_workers_on_node"]: num_workers_on_node,
-                                hbmsg["perc_mem_used"]: perc_used_mem,
-                                hbmsg["pool_name"]: pool_name,
-                                hbmsg["ret_msg"]: "hb",
-                                hbmsg["rmem_usage"]: rmem_usage,
-                                hbmsg["root_pid"]: PARENT_PROCESS_ID,
-                                hbmsg["run_time"]: proc_run_time,
-                                hbmsg["slurm_jobid"]: slurm_job_id,
-                                hbmsg["task_id"]: task_id,
-                                hbmsg["vmem_usage"]: vmem_usage,
-                                hbmsg["worker_id"]: UNIQ_WORKER_ID,
-                                hbmsg["worker_type"]: w_type[THIS_WORKER_TYPE],
-                                hbmsg["nwpn"]: nwpn}
-
-            msg_zipped_to_send = zdumps(json.dumps(msg_dict_to_send))
-
-            ch.basic_publish(exchange=exch_name,
-                             routing_key=worker_hb_queue,
-                             body=msg_zipped_to_send)
-        except Exception as e:
-            logger.critical("Something wrong with send_hb_to_client(): %s", e)
-            ch.close()
-            conn.close()
-            raise
-
-        # Todo: Need to start with shorted interval like (0.5-1 sec) for about 30 sec
-        #  from the beginning and then use the user specified interval
-        conn.sleep(interval)
-
-    # unreachable
-    ch.close()
-    conn.close()
+                time.sleep(interval)
 
 
 # -------------------------------------------------------------------------------
@@ -902,7 +887,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                 # Option 2
                 raise MemoryError
 
-            MEM_LIMIT_PER_WORKER_BYTES = int(mem_per_node_to_request_byte /
+            mem_limit_per_worker_bytes = int(mem_per_node_to_request_byte /
                                              num_workers_per_node)
         except Exception as e:
             logger.exception("Failed to compute the memory limit: %s", mem_per_node_to_request)
@@ -911,9 +896,9 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
 
         try:
             soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-            resource.setrlimit(resource.RLIMIT_AS, (MEM_LIMIT_PER_WORKER_BYTES, hard))
+            resource.setrlimit(resource.RLIMIT_AS, (mem_limit_per_worker_bytes, hard))
             logger.info("Set the memory usage upper limit (MBytes): %d"
-                        % (MEM_LIMIT_PER_WORKER_BYTES / 1024.0 / 1024.0))
+                        % (mem_limit_per_worker_bytes / 1024.0 / 1024.0))
         except Exception as e:
             logger.exception("Failed to set the memory usage limit: %s", mem_per_node_to_request)
             logger.exception(e)
@@ -1259,19 +1244,17 @@ wait
 
     # Start send_hb_to_client_proc proc
     try:
-        recv_hb_from_client_proc_hdl = mp.Process(target=send_hb_to_client_proc,
-                                                  args=(hearbeat_interval,
-                                                        slurm_job_id,
-                                                        mem_per_node_to_request,
-                                                        mem_per_cpu_to_request,
-                                                        num_cpus_to_request,
-                                                        job_time_to_request,
-                                                        worker_clone_time_rate,
-                                                        inner_task_request_queue,
-                                                        tp_name,
-                                                        num_workers_per_node))
-        recv_hb_from_client_proc_hdl.start()
-        pid_list.append(recv_hb_from_client_proc_hdl)
+        send_hb_to_client_proc_amqpstorm_hdl = mp.Process(target=send_hb_to_client_proc_amqpstorm,
+                                                          args=(hearbeat_interval,
+                                                                slurm_job_id,
+                                                                mem_per_node_to_request,
+                                                                mem_per_cpu_to_request,
+                                                                num_cpus_to_request,
+                                                                job_time_to_request,
+                                                                tp_name,
+                                                                num_workers_per_node))
+        send_hb_to_client_proc_amqpstorm_hdl.start()
+        pid_list.append(send_hb_to_client_proc_amqpstorm_hdl)
     except Exception as e:
         logger.exception("send_hb_to_client_proc: {}".format(e))
         proc_clean(pid_list)
@@ -1313,8 +1296,8 @@ wait
     try:
         ch.start_consuming()
     except KeyboardInterrupt:
-        proc_clean()
-        conn_clean()
+        proc_clean(pid_list)
+        conn_clean(conn, ch)
 
     # Wait for all to complete
     # Note: prefetch_count=1 ==> #thread = 1

@@ -133,8 +133,12 @@ clone_time_rate = 0.2
 # number of workers per node
 num_workers_per_node = 1
 log_dir = \${SITE:scratch}/jtm
+# config file location of worker
+worker_config_file = /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
 env_activation = source /global/cfs/projectdirs/jaws/jtm-dev/bin/activate
 pool_name = small
+# worker's hb expiration
+worker_s_hb_expiration = 60000
 # Worker setting
 # worker->client heartbeat sending interval in worker
 worker_hb_send_interval = 2.0
@@ -162,8 +166,6 @@ num_result_recv_threads = 1
 client_hb_send_interval = 3.0
 # live worker checking count limit
 worker_hb_check_max_count = 0
-# config file location of worker
-worker_config_file = /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
 # worker->client heartbeat receiving interval
 client_hb_recv_interval = 6.0
 # max number of trial for checking
