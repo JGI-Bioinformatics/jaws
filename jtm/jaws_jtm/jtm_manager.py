@@ -88,7 +88,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     b_is_worker_found = False  # is any alive worker
     max_worker_check_count = 0  # max number of checking workers
     interval = CONFIG.configparser.getfloat("JTM", "client_hb_recv_interval")
-    hbmsg = CONFIG.constants.HB_MSG
+    hb_msg = CONFIG.constants.HB_MSG
 
     while True:
         worker_ids_dict = {}
@@ -115,7 +115,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
             msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
 
             # worker id is used to collect unique root_proc_id (= num of workers)
-            a_worker_id = msg_unzipped[hbmsg["worker_id"]]
+            a_worker_id = msg_unzipped[hb_msg["worker_id"]]
             worker_ids_dict[a_worker_id] = msg_unzipped
 
             # NOTE: Workers send it"s hb interval to the client in the msg packet.
@@ -127,27 +127,27 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                 method_frame, header_frame, body = ch.basic_get(queue=hb_queue_name, auto_ack=True)
                 msg_unzipped = json.loads(zloads(body))
                 msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
-                a_worker_id = msg_unzipped[hbmsg["worker_id"]]
+                a_worker_id = msg_unzipped[hb_msg["worker_id"]]
                 worker_ids_dict[a_worker_id] = msg_unzipped
 
             for k, v in worker_ids_dict.items():
-                task_id = v[hbmsg["task_id"]]
-                root_proc_id = v[hbmsg["root_pid"]]
-                child_proc_id = v[hbmsg["child_pid"]]
-                a_worker_id = v[hbmsg["worker_id"]]
-                slurm_job_id = v[hbmsg["slurm_jobid"]]
-                worker_type = v[hbmsg["worker_type"]]
-                end_datetime = v[hbmsg["end_date"]]
-                life_left = v[hbmsg["life_left"]]
-                mem_per_node = v[hbmsg["mem_per_node"]]
-                mem_per_core = v[hbmsg["mem_per_core"]]
-                num_cores = v[hbmsg["num_cores"]]
-                job_time = v[hbmsg["job_time"]]
-                clone_time = v[hbmsg["clone_time_rate"]]
-                host_name = v[hbmsg["host_name"]]
-                jtm_host_name = v[hbmsg["jtm_host_name"]]
-                ip_addr = v[hbmsg["ip_address"]]
-                pool_name = v[hbmsg["pool_name"]]
+                task_id = v[hb_msg["task_id"]]
+                root_proc_id = v[hb_msg["root_pid"]]
+                child_proc_id = v[hb_msg["child_pid"]]
+                a_worker_id = v[hb_msg["worker_id"]]
+                slurm_job_id = v[hb_msg["slurm_jobid"]]
+                worker_type = v[hb_msg["worker_type"]]
+                end_datetime = v[hb_msg["end_date"]]
+                life_left = v[hb_msg["life_left"]]
+                mem_per_node = v[hb_msg["mem_per_node"]]
+                mem_per_core = v[hb_msg["mem_per_core"]]
+                num_cores = v[hb_msg["num_cores"]]
+                job_time = v[hb_msg["job_time"]]
+                clone_time = v[hb_msg["clone_time_rate"]]
+                host_name = v[hb_msg["host_name"]]
+                jtm_host_name = v[hb_msg["jtm_host_name"]]
+                ip_addr = v[hb_msg["ip_address"]]
+                pool_name = v[hb_msg["pool_name"]]
 
                 if b_resource_log:
                     logger.resource(v)
@@ -257,7 +257,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
             # Collect worker_ids from hb
             alive_worker_id_list = []
             for k, v in worker_ids_dict.items():
-                alive_worker_id_list.append(v[hbmsg["worker_id"]])
+                alive_worker_id_list.append(v[hb_msg["worker_id"]])
 
             # Collect worker_id which are still set as alive from workers table
             success = False
@@ -1384,8 +1384,7 @@ def task_kill_proc():
         db = DbSqlMysql(config=CONFIG)
         # Get a list of task ids where canceled -> requested but status != terminated
         tids = [int(i) for i in db.selectAs1Col(JTM_SQL["select_tids_runs_by_cancelled_and_wid2"])]
-        logger.debug("tid to kill: {}".format(tids))
-        logger.debug("task id list to kill: {}".format(tids))
+        # logger.debug("task id list to kill: {}".format(tids))
         db.close()
 
         for tid in tids:
@@ -1616,12 +1615,12 @@ def manager(ctx: object, custom_log_dir_name: str, b_resource_usage_log_on: bool
     # Start heartbeat receiving proc
     worker_hb_queue_name = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
     try:
-        rect_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc,
+        recv_hb_from_worker_proc_hdl = mp.Process(target=recv_hb_from_worker_proc,
                                                   args=(worker_hb_queue_name,
                                                         log_dir_name,
                                                         b_resource_usage_log_on))
-        rect_hb_from_worker_proc_hdl.start()
-        plist.append(rect_hb_from_worker_proc_hdl)
+        recv_hb_from_worker_proc_hdl.start()
+        plist.append(recv_hb_from_worker_proc_hdl)
     except Exception as e:
         logger.exception("recv_hb_from_worker_proc: {}".format(e))
         proc_clean(plist)
