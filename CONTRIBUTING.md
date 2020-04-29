@@ -12,6 +12,39 @@ JAWS uses a rough approximation of the [Git Flow branching model](http://nvie.co
 JAWS uses Gitlab CI for Continuous Integration testing. This means that every time you submit a pull request, a series of tests will be run. Your PR will not be accepted until it passes all of these tests. While you can certainly wait for the results of these tests after submitting a PR, we recommend that you run them locally to speed up the review process.
 
 
+## Reporting Issues
+On Gitlab, there are two templates for reporting issues: Bug and Feature. These templates should always be used when reporting an issue. 
+
+It is required that when opening a Bug issue the poster be sure to include a clear and concise description of the bug, a reproducer, the environment
+that the bug appears in (eg, OS, conda environment, python version, etc), and any error messages involved.  
+
+When describing the bug, please describe it in a fashion that can be understood by anyone. Do not mention names of developers, or use vague descriptions like, "command A doesn't work". What instead should be written
+is the behavior of the bug, error messages, and what you expect the actual behavior to be.  
+
+When opening a feature, please have a clear description of the problem you wish to solve. A feature request should have a good reason for it to be implemented in JAWS, since it takes a lot of developer time to design and properly implement.  
+
+It is great to document your line of thinking in the feature request. Think about what problems that your feature can solve, or the many use cases. If a feature is a one off or only a specific kind of user will be using it then, it will
+likely not be a good feature to have. A good feature should be used by all kinds of users.  
+
+## Merge Requests
+We allow merge requests (MRs) to be opened while being only work in progress (WIP). In fact, we encourage it since it would be good to share your line of thinking with the developers and get feedback so you don't get stuck implementing something
+that will need to be changed later.  
+
+When opening a MR, please include a reference to the issue you are trying to solve in the description. Also in the description, describe the implementation details of your MR and why you chose your design. Documenting your thoughts down into the
+description is a great way to get others to understand your implementation choices.  
+
+### When to Merge
+In order for a MR to be ready for a merge it must first complete the following checklist:  
+- have the necessary changes documented  
+- contain new tests, if it is a feature  
+- pass unit tests   
+- have approval from at least one reviewer  
+
+It is important that MRs pass the pipeline first before they are reviewed, and then at least one developer (preferably two) should take a look at the code. 
+New features should come with new tests. Merge requests without tests or documentation should not be merged in. In cases where a hotfix is needed, or a single
+line of code is changed an exception can be made. 
+
+
 ### Tests
 
 #### Flake8 Tests
