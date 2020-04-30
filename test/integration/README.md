@@ -95,3 +95,12 @@ an account running the services (eg. jaws-usr) and another one executing user co
 
 The jtm-usr needs to be able to access Slurm, to submit jobs, monitor their status, etc.
 The jaws-usr needs to be able to access Globus, to transfer files.
+
+### Compute Node Requirements
+
+
+TODO:
+
+- Container Runtime (Shifter, Singularity)
+- Python3 interpreter
+
