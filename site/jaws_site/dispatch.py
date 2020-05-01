@@ -230,7 +230,7 @@ def run_logs(params):
 def _find_failure_logs(run_dir):
     max_lines = 1000
     separator = "\n\n" + "-" * 20 + "\n\n"
-    target_files = ["rc", "stdout", "stderr", "stdout.submit", "stderr.submit"]
+    target_files = ["rc", "stdout", "stderr", "stdout.submit", "stderr.submit", "script"]
     output = ""
     for root_dir, subdirs, files in os.walk(run_dir):
         if not root_dir.endswith("/execution"):
