@@ -24,9 +24,9 @@ task alignment {
     }
 
     runtime {
-        docker: "jfroula/aligner-bbmap:1.1.3"
+        docker: "jfroula/aligner-bbmap:2.0.1"
         poolname: "muysmall"
-        shared: 1
+        shared: 0
         node: 1
         nwpn: 1
         mem: "5G"
@@ -46,9 +46,9 @@ task samtools {
     }
 
     runtime {
-        docker: "jfroula/aligner-bbmap:1.1.3"
+        docker: "jfroula/aligner-bbmap:2.0.1"
         poolname: "muysmall"
-        shared: 1
+        shared: 0
         node: 1
         nwpn: 1
         mem: "5G"
