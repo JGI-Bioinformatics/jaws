@@ -44,7 +44,7 @@ test-central: test-requirements
 .PHONY: test-client
 test-client: test-requirements
 	$Q flake8 client
-	$Q cd client && pytest
+	$Q cd client && python -m pytest tests/
 
 .PHONY: test-jtm
 test-jtm: test-requirements

@@ -19,6 +19,10 @@ class Singleton(type):
             cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
 
+    def _destructor(cls):
+        if cls in cls._instances:
+            del cls._instances[cls]
+
 
 class ConfigurationError(Exception):
     def __init__(self, message):
