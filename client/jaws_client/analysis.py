@@ -186,8 +186,8 @@ def cancel(run_id):
 
 @run.command()
 @click.argument("run_id")
-def delete(run_id: int) -> None:
-    """Delete the output of a run or task to avoid caching.
+def uncache(run_id: int) -> None:
+    """Prevent the results of a run from being reused by the cache.
 
     :param run_id: JAWS run ID
     :type run_id: int
