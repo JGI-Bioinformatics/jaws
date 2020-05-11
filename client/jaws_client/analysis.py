@@ -72,6 +72,8 @@ def history(days: int) -> None:
     :param days: Time window to search, in days.
     :type days: int, optional
     """
+    if days < 1:
+        raise ValueError(f"--days must be a positive integer")
     url = f'{config.conf.get("JAWS", "url")}/search/{days}'
     r = _get(url)
     result = r.json()
