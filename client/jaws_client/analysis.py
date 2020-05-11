@@ -73,7 +73,7 @@ def history(days: int) -> None:
     :type days: int, optional
     """
     if days < 1:
-        raise ValueError(f"--days must be a positive integer")
+        raise SystemExit("User error: --days must be a positive integer")
     url = f'{config.conf.get("JAWS", "url")}/search/{days}'
     r = _get(url)
     result = r.json()
@@ -315,8 +315,6 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     manifest_file.write_to(staged_manifest)
 
     data = {
-        "wdl_file": wdl_file,
-        "input_file": infile,
         "site_id": site,
         "submission_id": submission_id,
         "input_site_id": config.conf.get("JAWS", "site_id"),

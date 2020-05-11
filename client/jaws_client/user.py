@@ -10,7 +10,7 @@ class User:
         """Load user's access token from file"""
         self.access_token = config.conf.get("USER", "token")
         if not self.access_token:
-            raise SystemExit(f"User access token required; an contact admin to get yours.")
+            raise SystemExit("User access token required; an contact admin to get yours.")
 
     def header(self) -> str:
         """Return HTTP OAuth2 header containing the authentication token"""

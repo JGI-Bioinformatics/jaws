@@ -39,7 +39,7 @@ class User(db.Model):
         super(User, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return "<User %r>" % self.id
+        return f"<User {self.id}>"
 
 
 class Workflow(db.Model):
@@ -71,7 +71,7 @@ class Workflow(db.Model):
         super(Workflow, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return "<Workflow %r>" % (self.name, self.version)
+        return f"<Workflow {self.name}:{self.version}>"
 
 
 class Run(db.Model):
@@ -90,8 +90,6 @@ class Run(db.Model):
         default=same_as("date_submitted"),
         onupdate=datetime.datetime.utcnow,
     )
-    wdl_file = db.Column(db.String(128), nullable=False)
-    input_file = db.Column(db.String(128), nullable=False)
     input_site_id = db.Column(db.String(8), nullable=False)
     input_endpoint = db.Column(db.String(36), nullable=False)
     upload_task_id = db.Column(db.String(36), nullable=True)
@@ -103,4 +101,4 @@ class Run(db.Model):
         super(Run, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return "<Run %r>" % (self.id, self.cromwell_id)
+        return f"<Run {self.id}>"

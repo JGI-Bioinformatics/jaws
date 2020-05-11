@@ -99,12 +99,12 @@ class DbSql(object):
     def dbapi(self):
         return self.dbmod
 
-    def ddlIgnoreErr(self, *l, **kw):
+    def ddlIgnoreErr(self, *args, **kw):
         curs = self.cursor()
         try:
-            curs.execute(*l, **kw)
+            curs.execute(*args, **kw)
         except Exception as msg:
-            logger.debug((l, kw))
+            logger.debug((args, kw))
             logger.debug(msg)
         curs.close()
 

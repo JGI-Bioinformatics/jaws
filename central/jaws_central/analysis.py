@@ -86,8 +86,6 @@ def user_queue(user):
                 "submission_id": run.submission_id,
                 "cromwell_id": run.cromwell_id,
                 "status": run.status,
-                "wdl_file": run.wdl_file,
-                "input_file": run.input_file,
                 "site_id": run.site_id,
                 "submitted": run.submitted,
                 "updated": run.updated,
@@ -131,8 +129,6 @@ def user_history(user, delta_days=10):
                 "submission_id": run.submission_id,
                 "cromwell_id": run.cromwell_id,
                 "status": run.status,
-                "wdl_file": run.wdl_file,
-                "input_file": run.input_file,
                 "site_id": run.site_id,
                 "submitted": run.submitted,
                 "updated": run.updated,
@@ -187,8 +183,6 @@ def submit_run(user):
     :return: run_id, upload_task_id
     :rtype: dict
     """
-    wdl_file = request.form.get("wdl_file", None)
-    input_file = request.form.get("input_file", None)
     site_id = request.form.get("site_id", None).upper()
     submission_id = request.form.get("submission_id")
     input_site_id = request.form.get("input_site_id", None).upper()
@@ -206,8 +200,6 @@ def submit_run(user):
     # INSERT INTO RDB TO GET RUN ID
     run = Run(
         user_id=user,
-        wdl_file=wdl_file,
-        input_file=input_file,
         site_id=site_id,
         submission_id=submission_id,
         input_site_id=input_site_id,
@@ -285,8 +277,6 @@ def submit_run(user):
         "submission_id": submission_id,
         "status": run.status,
         "upload_task_id": upload_task_id,
-        "wdl_file": wdl_file,
-        "input_file": input_file,
         "site_id": site_id,
         "output_endpoint": output_endpoint,
         "output_dir": output_dir,

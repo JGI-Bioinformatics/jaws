@@ -29,28 +29,32 @@ def test_create_destination_json(configuration, dap_seq_example):
     root_dir = dap_seq_example
     staging_dir = os.path.join(root_dir, "jaws_central", "staging")
 
-    expected = {"jgi_dap_leo.adapters": f"{staging_dir}/global/projectb/sandbox/gaag/bbtools/data/adapters.fa",
-    "jgi_dap_leo.genome_fasta": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417.fasta", # noqa
-    "jgi_dap_leo.bt2index_dir": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417_bt2index", # noqa
-    "jgi_dap_leo.bt2index_name": "PsimiaeWCS417",
-    "jgi_dap_leo.effgsize": 6169071,
-    "jgi_dap_leo.genes_gff": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417.gff",  # noqa
-    "jgi_dap_leo.bgmodel": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417.bgmodel",  # noqa
-    "jgi_dap_leo.outdir": ".",
-    "jgi_dap_leo.expt_raw_fastqs": [f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TATCAGC-TATCAGC.fastq.gz"], # noqa
-    "jgi_dap_leo.ctl_raw_fastqs": [],
-    "jgi_dap_leo.library_names_map": {
-        f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TATCAGC-TATCAGC.fastq.gz": "CTTZN",
-        f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.GGTTGAT-GGTTGAT.fastq.gz": "CTUGZ",
-        f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TTGCTGG-TTGCTGG.fastq.gz": "CTUHA"
-    },
-    "jgi_dap_leo.sample_names_map": {
-        f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TATCAGC-TATCAGC.fastq.gz": "TF4",
-        f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.GGTTGAT-GGTTGAT.fastq.gz": "negCtl2",
-        f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TTGCTGG-TTGCTGG.fastq.gz": "negCtl1"
-    },
-    "jgi_dap_leo.expt_bam": f"{staging_dir}/global/projectb/scratch/jaws/jfroula/leo_dap/CTTZN_TF4.bam",
-    "jgi_dap_leo.expt_bai": f"{staging_dir}/global/projectb/scratch/jaws/jfroula/leo_dap/CTTZN_TF4.bam"}
+    expected = {
+        "jgi_dap_leo.adapters": f"{staging_dir}/global/projectb/sandbox/gaag/bbtools/data/adapters.fa",
+        "jgi_dap_leo.genome_fasta": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417.fasta",  # noqa
+        "jgi_dap_leo.bt2index_dir": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417_bt2index",  # noqa
+        "jgi_dap_leo.bt2index_name": "PsimiaeWCS417",
+        "jgi_dap_leo.effgsize": 6169071,
+        "jgi_dap_leo.genes_gff": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417.gff",  # noqa
+        "jgi_dap_leo.bgmodel": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417.bgmodel",  # noqa
+        "jgi_dap_leo.outdir": ".",
+        "jgi_dap_leo.expt_raw_fastqs": [
+            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TATCAGC-TATCAGC.fastq.gz"
+        ],  # noqa
+        "jgi_dap_leo.ctl_raw_fastqs": [],
+        "jgi_dap_leo.library_names_map": {
+            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TATCAGC-TATCAGC.fastq.gz": "CTTZN",  # noqa
+            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.GGTTGAT-GGTTGAT.fastq.gz": "CTUGZ",  # noqa
+            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TTGCTGG-TTGCTGG.fastq.gz": "CTUHA",  # noqa
+        },
+        "jgi_dap_leo.sample_names_map": {
+            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TATCAGC-TATCAGC.fastq.gz": "TF4",
+            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.GGTTGAT-GGTTGAT.fastq.gz": "negCtl2",  # noqa
+            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TTGCTGG-TTGCTGG.fastq.gz": "negCtl1",  # noqa
+        },
+        "jgi_dap_leo.expt_bam": f"{staging_dir}/global/projectb/scratch/jaws/jfroula/leo_dap/CTTZN_TF4.bam",
+        "jgi_dap_leo.expt_bai": f"{staging_dir}/global/projectb/scratch/jaws/jfroula/leo_dap/CTTZN_TF4.bam",
+    }
 
     json_filepath = os.path.join(root_dir, "test.json")
     uuid = "12345"
@@ -71,21 +75,27 @@ def test_src_json_inputs(configuration, inputs_json):
         assert expect in inputs.src_file_inputs
 
 
-@pytest.mark.skipif(shutil.which("womtool") is None, reason="WOMTool needs to be installed.")
+@pytest.mark.skipif(
+    shutil.which("womtool") is None, reason="WOMTool needs to be installed."
+)
 def test_wdl_validation(configuration, simple_wdl_example):
     wdl = jaws_client.workflow.WdlFile(os.path.join(simple_wdl_example, "align.wdl"))
     wdl.validate()
 
 
-@pytest.mark.skipif(shutil.which("womtool") is None, reason="WOMTool needs to be installed.")
+@pytest.mark.skipif(
+    shutil.which("womtool") is None, reason="WOMTool needs to be installed."
+)
 def test_wdl_subworkflows(configuration, subworkflows_example):
     basedir = subworkflows_example
     wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"))
     sub1 = os.path.join(basedir, "sub1.wdl")
     sub2 = os.path.join(basedir, "sub2.wdl")
 
-    subworkflows = [jaws_client.workflow.WdlFile(sub1),
-                    jaws_client.workflow.WdlFile(sub2)]
+    subworkflows = [
+        jaws_client.workflow.WdlFile(sub1),
+        jaws_client.workflow.WdlFile(sub2),
+    ]
 
     assert len(wdl.subworkflows) == 2
 
@@ -93,19 +103,27 @@ def test_wdl_subworkflows(configuration, subworkflows_example):
         assert expected in wdl.subworkflows
 
 
-@pytest.mark.skipif(shutil.which("womtool") is None, reason="WOMTool needs to be installed")
+@pytest.mark.skipif(
+    shutil.which("womtool") is None, reason="WOMTool needs to be installed"
+)
 def test_calculate_wdl_max_ram_gb(configuration, dap_seq_example):
     wdl = jaws_client.workflow.WdlFile(os.path.join(dap_seq_example, "test.wdl"))
     assert 5 == wdl.max_ram_gb
 
 
-@pytest.mark.skipif(shutil.which("womtool") is None, reason="WOMTool needs to be installed.")
-def test_calculate_wdl_max_ram_gb_with_subworkflows(configuration, subworkflows_example):
+@pytest.mark.skipif(
+    shutil.which("womtool") is None, reason="WOMTool needs to be installed."
+)
+def test_calculate_wdl_max_ram_gb_with_subworkflows(
+    configuration, subworkflows_example
+):
     wdl = jaws_client.workflow.WdlFile(os.path.join(subworkflows_example, "main.wdl"))
     assert 0 == wdl.max_ram_gb
 
 
-@pytest.mark.skipif(shutil.which("womtool") is None, reason="WOMTool needs to be installed.")
+@pytest.mark.skipif(
+    shutil.which("womtool") is None, reason="WOMTool needs to be installed."
+)
 def test_appropriate_staging_dir_for_all_wdls(configuration, subworkflows_example):
     basedir = subworkflows_example
     staging = os.path.join(basedir, "staging")
@@ -142,12 +160,16 @@ def test_move_input_files_to_destination(configuration, sample_workflow):
     jaws_client.workflow.move_input_files(inputs_json, os.path.join(staging, "NERSC"))
 
 
-@pytest.mark.skipif(shutil.which("womtool") is None, reason="WOMTool needs to be installed.")
+@pytest.mark.skipif(
+    shutil.which("womtool") is None, reason="WOMTool needs to be installed."
+)
 def test_zipping_up_of_subworkflow_files(configuration, subworkflows_example):
     basedir = subworkflows_example
     staging = os.path.join(basedir, "staging")
     wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"))
-    staged_wdl, zip_file = jaws_client.workflow.compress_wdls(wdl, compressed_path=staging)
+    staged_wdl, zip_file = jaws_client.workflow.compress_wdls(
+        wdl, compressed_path=staging
+    )
     assert os.path.exists(staged_wdl)
     assert os.path.exists(zip_file)
 

@@ -168,7 +168,7 @@ def update_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     except catalog.CatalogWorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
     except catalog.CatalogAuthenticationError:
-        abort(401, f"Access denied; only the owner may update a workflow")
+        abort(401, "Access denied; only the owner may update a workflow")
     except catalog.CatalogDatabaseError as e:
         abort(500, f"Catalog error: {e}")
     return {"result": "OK"}, 200
@@ -202,7 +202,7 @@ def update_doc(user: str, name: str, version: str) -> Tuple[dict, int]:
     except catalog.CatalogWorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
     except catalog.CatalogAuthenticationError:
-        abort(401, f"Access denied; only the owner may update a workflow")
+        abort(401, "Access denied; only the owner may update a workflow")
     except catalog.CatalogDatabaseError as e:
         abort(500, f"Catalog error: {e}")
     return {"result": "OK"}, 200
