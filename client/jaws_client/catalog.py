@@ -150,10 +150,9 @@ def release(name: str, version: str) -> None:
     :return:
     """
     current_user = user.User()
-    data = {"release": True}
-    url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
+    url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}/release'
     try:
-        r = requests.put(url, data=data, headers=current_user.header())
+        r = requests.put(url, headers=current_user.header())
     except requests.ConnectionError:
         raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
