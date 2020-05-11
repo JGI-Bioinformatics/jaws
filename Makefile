@@ -40,6 +40,7 @@ test-site: test-requirements
 .PHONY: test-central
 test-central: test-requirements
 	$Q flake8 central
+	$Q cd central && python -m pytest tests/
 
 .PHONY: test-client
 test-client: test-requirements

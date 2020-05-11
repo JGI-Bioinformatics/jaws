@@ -264,13 +264,16 @@ def submit_run(user):
             tdata.add_item(source_path, dest_path, recursive=False)
     try:
         transfer_result = transfer_client.submit_transfer(tdata)
-    except globus_sdk.GlobusAPIError as e:
+    except globus_sdk.GlobusAPIError as error:
         run.status = "upload failed"
         db.session.commit()
         logger.exception(
             f"Error submitting Globus transfer for user {user}", exc_info=True
         )
-        abort(500, f"Globus error: {e}")
+        abort(
+            409,
+            f"Globus error: {error}\nGlobus endpoints can be reactivated at https://app.globus.org/endpoints",
+        )
     upload_task_id = transfer_result["task_id"]
 
     # UPDATE RUN WITH UPLOAD TASK ID AND RETURN RESULTS
@@ -429,19 +432,65 @@ def cancel_run(user, run_id):
     run = _get_run(run_id)
     if run.user_id != user:
         abort(401, "Access denied")
-    if run.status == "submitted" or run.status == "running":
-        # if running, instruct Cromwell to cancel
-        params = {"cromwell_id": run.cromwell_id}
-        _rpc_call(user, run_id, "cancel_run", params)  # will abort if fail
+    # the run state will be changed to "canceled" regardless of result of any other actions below
+    status = run.status
     run.status = "canceled"
     db.session.commit()
+    logger.info(f"{user} cancelled run {run_id} in {run.status} state")
+    if status == "submitted" or status == "running":
+        # if running, instruct Cromwell to cancel
+        params = {"cromwell_id": run.cromwell_id, "user": user}
+        _rpc_call(user, run_id, "cancel_run", params)  # will abort if fail
+    elif status == "uploading":
+        _cancel_transfer(user, run.upload_task_id, run_id)  # will abort if fail
+    elif status == "downloading":
+        _cancel_transfer(user, run.download_task_id, run_id)
     result = {"cancel": "OK"}
     return result, 201
 
 
+def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
+    """Cancel a Globus transfer.
+
+    :param user: user id
+    :type user: str
+    :param transfer_task_id: Globus transfer task id
+    :type transfer_task_id: str
+    :return: None; aborts on error.
+    """
+    logger.info(f"{user} cancelled Globus transfer {transfer_task_id} for run {run_id}")
+    try:
+        current_user = db.session.query(User).get(user)
+    except SQLAlchemyError as e:
+        logger.error(e)
+        abort(500, f"Db error; {e}")
+    transfer_rt = current_user.transfer_refresh_token
+    client_id = config.conf.get("GLOBUS", "client_id")
+    try:
+        client = globus_sdk.NativeAppAuthClient(client_id)
+        authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
+        transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
+    except globus_sdk.GlobusAPIError:
+        logger.exception(
+            f"Error getting transfer client for user {user}", exc_info=True
+        )
+        abort(500, "Unable to get Globus transfer client")
+    try:
+        transfer_response = transfer_client.cancel_task(transfer_task_id)
+        logger.info(
+            f"User {user} cancel upload {transfer_task_id} for run {run_id}: {transfer_response}"
+        )
+    except globus_sdk.GlobusAPIError as e:
+        logger.exception(
+            f"Failed to cancel {user}'s Globus transfer, {transfer_task_id}: {transfer_response}",
+            exc_info=True,
+        )
+        abort(500, f"Globus error: {e}")
+
+
 def delete_run(user, run_id):
     """
-    Delete a run's output.
+    Prevent a run's output from being reused by Cromwell's caching system by renaming the execution folder.
 
     :param user: current user's ID
     :type user: str
