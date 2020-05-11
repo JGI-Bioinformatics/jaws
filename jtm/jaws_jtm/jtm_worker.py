@@ -9,8 +9,8 @@ jtm worker
 
 
 Example scenario
-1. jtm_submit sends a msg to "jgi_microservice" with "jtm_task_request_queue" tag.
-2. jtm listens to "jtm_task_request_queue" which is bound to "jgi_microservice"
+1. jtm_submit sends a msg to "jgi_main_exchange" with "jtm_task_request_queue" tag.
+2. jtm listens to "jtm_task_request_queue" which is bound to "jgi_main_exchange"
 3. when a task is ready, jtm takes it and sends it to one of the workers
    (to jgi_jtm_inner_main_exchange)
 4. workers listen to jgi_jtm_inner_request_queue which is bound to "jgi_jtm_inner_main_exchange"
@@ -20,42 +20,37 @@ Example scenario
    tables
 
 """
-import os
-import sys
-import multiprocessing as mp
-import shortuuid
 import datetime
 import json
-import threading
-import subprocess
-import socket
-import time
-import pika
+import multiprocessing as mp
+import os
 import resource
-import psutil
-import functools
 import signal
-from amqpstorm import Message
+import socket
+import subprocess
+import sys
+import time
+import amqpstorm
+import psutil
+import shortuuid
 
-from jaws_jtm.common import setup_custom_logger, logger
-from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB, RmqConnectionAmqpstorm
-from jaws_jtm.lib.resourceusage import get_cpu_load, \
-    get_runtime, get_pid_tree, get_virtual_memory_usage, \
-    get_resident_memory_usage, get_total_mem_usage_per_node, \
-    get_num_workers_on_node, get_free_memory
-from jaws_jtm.lib.run import make_dir, run_sh_command
+from jaws_jtm.common import logger, setup_custom_logger
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-
-
-# This ipc pipe is to send task_id (by do_work())to send_hb_to_client_proc()
-# when a task is requested
-PIPE_TASK_ID_SEND, PIPE_TASK_ID_RECV = mp.Pipe()
-DEBUG = False
-
+from jaws_jtm.lib.rabbitmqconnection import (JtmAmqpstormBase,
+                                             RmqConnectionAmqpstorm)
+from jaws_jtm.lib.resourceusage import (get_cpu_load, get_free_memory,
+                                        get_pid_tree,
+                                        get_resident_memory_usage, get_runtime,
+                                        get_total_mem_usage_per_node,
+                                        get_virtual_memory_usage)
+from jaws_jtm.lib.run import make_dir, run_sh_command
 
 # -------------------------------------------------------------------------------
 # Globals
 # -------------------------------------------------------------------------------
+# This ipc pipe is to send task_id (by do_work())to send_hb_to_client_proc()
+# when a task is requested
+PIPE_TASK_ID_SEND, PIPE_TASK_ID_RECV = mp.Pipe()
 # To share user task proc id
 USER_PROC_PROC_ID = mp.Value("i", 0)
 # To share this worker life left
@@ -66,15 +61,205 @@ PARENT_PROCESS_ID = os.getpid()  # parent process id
 THIS_WORKER_TYPE = None
 
 
+class TaskTerminator(JtmAmqpstormBase):
+    """
+    Process task cancellation
+
+    """
+    def start(self):
+        """Start the OnWorkerResult.
+        :return:
+        """
+        if not self.connection:
+            self.create_connection()
+        while True:
+            try:
+                channel = self.connection.channel()
+                channel.exchange.declare(exchange=self.jtm_task_kill_exch,
+                                         exchange_type="fanout",
+                                         durable=True,
+                                         auto_delete=False)
+                channel.queue.declare(queue=self.jtm_task_kill_q,
+                                      durable=True,
+                                      exclusive=False,
+                                      auto_delete=True)
+                channel.queue.bind(exchange=self.jtm_task_kill_exch,
+                                   queue=self.jtm_task_kill_q,
+                                   routing_key=UNIQ_WORKER_ID)
+                channel.basic.consume(self.process_kill,
+                                      self.jtm_task_kill_q,
+                                      no_ack=False)
+                channel.basic.qos(prefetch_count=1)
+                channel.start_consuming()
+                if not channel.consumer_tags:
+                    channel.close()
+            except amqpstorm.AMQPError as why:
+                logger.exception(why)
+                self.create_connection()
+            except KeyboardInterrupt:
+                self.connection.close()
+                break
+
+    def process_kill(self, message):
+        """
+        Callback for processing user task
+
+        :param message:
+        :return:
+        """
+        msg_unzipped = json.loads(zloads(message.body))
+        logger.debug("Received task termination command: %r" % msg_unzipped)
+
+        if msg_unzipped["worker_id"] == UNIQ_WORKER_ID:
+            if msg_unzipped["child_pid"] > 0:
+                logger.info("Process termination request received.")
+
+                # This -9 is to notify run_user_task() that it's killed by user requests
+                # Also send_hb_to_client() will check this for adjust childpid and parentpid
+                # Note: this should done first to signal run_user_task() that the process is killed.
+                USER_PROC_PROC_ID.value = -9
+
+                # kill if there is child's children
+                for i in get_pid_tree(msg_unzipped["child_pid"]):
+                    kill_cmd = "kill -9 %d" % i
+                    logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
+                    _, _, ec = run_sh_command(kill_cmd, log=logger)
+                    if ec == 0:
+                        logger.info("Successfully terminate a user task process.")
+                    else:
+                        logger.warning("User process not found. Ignore the termination command, %s"
+                                       % (kill_cmd))
+
+                # Kill the main child process
+                # Note: can consider to use "pkill -9 -P ppid" to kill the family
+                kill_cmd = "kill -9 %d" % msg_unzipped["child_pid"]
+                logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
+                _, _, ec = run_sh_command(kill_cmd, log=logger)
+                if ec == 0:
+                    logger.info("Successfully terminate a user task process.")
+                else:
+                    logger.warning("User process not found. Failed to execute the command, %s" % (kill_cmd))
+            else:
+                logger.warning("No valid child process id to terminate.")
+
+            message.ack()
+
+        else:
+            # If UNIQ_WORKER_ID is not for me, reject and requeue it
+            logger.info("Send NACK to the broker")
+            message.nack(requeue=True)
+
+
+class TaskRunner(JtmAmqpstormBase):
+    """
+    Process user task
+
+    """
+    def start(self, req_q):
+        """Start the OnWorkerResult.
+        :return:
+        """
+        if not self.connection:
+            self.create_connection()
+        while True:
+            try:
+                channel = self.connection.channel()
+                channel.exchange.declare(exchange=self.jtm_inner_main_exch,
+                                         exchange_type='direct',
+                                         durable=True,
+                                         auto_delete=False)
+                channel.queue.declare(queue=req_q,
+                                      durable=True,
+                                      exclusive=False,
+                                      auto_delete=True)
+                channel.queue.bind(exchange=self.jtm_inner_main_exch,
+                                   queue=req_q,
+                                   routing_key=req_q)
+                channel.basic.consume(self.process_task,
+                                      req_q,
+                                      no_ack=False)
+                channel.basic.qos(prefetch_count=1)
+                channel.start_consuming()
+                if not channel.consumer_tags:
+                    channel.close()
+            except amqpstorm.AMQPError as why:
+                logger.exception(why)
+                self.create_connection()
+            except KeyboardInterrupt:
+                self.connection.close()
+                break
+
+    def process_task(self, message):
+        """
+        Callback for processing user task
+
+        :param message:
+        :return:
+        """
+        msg_unzipped = json.loads(zloads(message.body))
+        task_id = msg_unzipped["task_id"]
+
+        # Send taskid to send_hb_to_client_proc() so that the task_id can be shown in the hb messages
+        PIPE_TASK_ID_SEND.send(task_id)
+
+        logger.info("Received a task, %r" % (msg_unzipped,))
+        logger.debug("Return queue = %s", message.reply_to)
+
+        result_dict = {}
+
+        run_user_task(msg_unzipped, result_dict)
+
+        json_data = json.dumps(result_dict)
+        logger.debug("Reply msg with result: %s" % str(json_data))
+        logger.debug(json_data)
+        response = zdumps(json_data)
+        logger.debug("Send ACK to the manager")
+
+        logger.debug("Send result to the manager")
+        try:
+            with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
+                with conn.channel() as ch:
+                    ch.exchange.declare(exchange=self.jtm_inner_main_exch,
+                                        exchange_type='direct',
+                                        durable=True,
+                                        auto_delete=False)
+                    ch.queue.declare(queue=self.inner_result_queue_name,
+                                     durable=True,
+                                     exclusive=False,
+                                     auto_delete=True)
+                    ch.queue.bind(exchange=self.jtm_inner_main_exch,
+                                  queue=self.inner_result_queue_name,
+                                  routing_key=self.inner_result_queue_name)
+                    properties = {
+                        'correlation_id': message.correlation_id,
+                        'reply_to': message.reply_to
+                    }
+                    response = amqpstorm.Message.create(ch, response, properties)
+                    response.publish(self.inner_result_queue_name)
+        except Exception as detail:
+            logger.exception("Exception: Failed to send a request to %s", self.inner_result_queue_name)
+            logger.exception("Detail: %s", str(detail))
+            raise OSError(2, 'Failed to send a request to a worker')
+
+        message.ack()
+
+        # Send taskid=0 to send_hb_to_client_thread() b/c the requested task is completed
+        PIPE_TASK_ID_SEND.send(0)
+
+        # Reset child pid
+        USER_PROC_PROC_ID.value = 0
+
+
 # -------------------------------------------------------------------------------
-def run_user_task(msg_unzipped, return_msg, ch):
+def run_user_task(msg_unzipped, return_msg):
     """
     Run a user command in msg_zipped_to_send
+
     :param msg_unzipped: uncompressed msg from client
     :param return_msg: msg to return
     :return:
     """
-    # Uncompress msg to get a taska
+    # Uncompress msg to get a task
     logger.info(msg_unzipped)
     task_id = msg_unzipped["task_id"]
     user_task_cmd = msg_unzipped["user_cmd"]
@@ -98,20 +283,22 @@ def run_user_task(msg_unzipped, return_msg, ch):
     done_f = CONFIG.constants.DONE_FLAGS
 
     if THIS_WORKER_TYPE != "manual":
-        # wait until WORKER_LIFE_LEFT_IN_MINUTE is updated
+        # Wait until WORKER_LIFE_LEFT_IN_MINUTE is updated by worker's HB
         if WORKER_LIFE_LEFT_IN_MINUTE.value <= 0:
             while True:
                 logger.debug("worker life: %d", WORKER_LIFE_LEFT_IN_MINUTE.value)
                 if WORKER_LIFE_LEFT_IN_MINUTE.value > 0:
                     break
-                ch._connection.process_data_events(time_limit=1.0)
+                time.sleep(1)
 
         # ex) WORKER_LIFE_LEFT_IN_MINUTE = 20min and TASK_KILL_TIMEOUT_MINUTE = 10min
         # timeout will be set as 10min
         # TASK_KILL_TIMEOUT_MINUTE is a extra housekeeping time after explicitly
         # terminate a task.
+        tkill_time = CONFIG.configparser.getint("JTM", "task_kill_timeout_minute")
+        assert tkill_time
         logger.debug("worker life: %d", WORKER_LIFE_LEFT_IN_MINUTE.value)
-        time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - CONFIG.constants.TASK_KILL_TIMEOUT_MINUTE)
+        time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - tkill_time)
         logger.info("Timeout in minute: %d", time_out_in_minute)
 
     proc_return_code = -1
@@ -224,6 +411,7 @@ def check_output(out_files, out_file_check_wait_time=3,
                  max_trial=3, out_file_check_wait_time_increase=1.5):
     """
     Check 1) existence, 2) size>0 for each file in out_files
+
     :param out_files: list of absolute paths to the output files to check
     :param out_file_check_wait_time: sleep time between output file checking before retiral
     :param max_trial: max trial for checking
@@ -273,8 +461,8 @@ def check_output(out_files, out_file_check_wait_time=3,
 
 
 # -------------------------------------------------------------------------------
-def send_hb_to_client_proc_amqpstorm(interval, slurm_job_id, mem_per_node, mem_per_core,
-                                     num_cores, job_time, pool_name, nwpn):
+def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
+                           num_cores, job_time, pool_name, nwpn, show_resource_log):
     """
     Send heartbeats to the client
 
@@ -292,7 +480,6 @@ def send_hb_to_client_proc_amqpstorm(interval, slurm_job_id, mem_per_node, mem_p
     exch_name = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
     worker_hb_queue = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
     today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    num_workers_on_node = get_num_workers_on_node(CONFIG)
     try:
         ip_address = socket.gethostbyname(host_name)
     except Exception:
@@ -306,8 +493,9 @@ def send_hb_to_client_proc_amqpstorm(interval, slurm_job_id, mem_per_node, mem_p
     # Expiration set to 6000ms
     def publish_message(channel, body, queue, expiration="6000"):
         # Create the message with a expiration (time to live).
-        message = Message.create(channel, body,
-                                 properties={"expiration": expiration})
+        # default 6000ms.
+        message = amqpstorm.Message.create(channel, body,
+                                           properties={"expiration": expiration})
         # Publish the message to a queue.
         message.publish(queue)
 
@@ -420,10 +608,7 @@ def send_hb_to_client_proc_amqpstorm(interval, slurm_job_id, mem_per_node, mem_p
                 if slurm_job_id:
                     temp = WORKER_LIFE_LEFT_IN_MINUTE.value
                     try:
-                        # jobtime2 = datetime.datetime.strptime(job_time, '%H:%M:%S')
-                        # end_date_time = WORKER_START_TIME + timedelta(seconds=jobtime2.second+jobtime2.minute*60+
-                        # jobtime2.hour*3600)
-                        # 24:00:00 --> seconds
+                        # hh:mm:ss --> seconds
                         job_runtime_in_sec = int(job_time.split(':')[0]) * 3600 + \
                                              int(job_time.split(':')[1]) * 60 + \
                                              int(job_time.split(':')[2])
@@ -438,7 +623,7 @@ def send_hb_to_client_proc_amqpstorm(interval, slurm_job_id, mem_per_node, mem_p
                 msg_dict_to_send = {hb_msg["child_pid"]: child_pid,
                                     hb_msg["clone_time_rate"]: 0.0,  # OBSOLETE
                                     hb_msg["cpu_load"]: max_cpu_load,
-                                    hb_msg["end_date"]: today,  # Note: for dynamic worker endDate update
+                                    hb_msg["end_date"]: today,
                                     hb_msg["host_name"]: host_name,
                                     hb_msg["ip_address"]: ip_address,
                                     hb_msg["job_time"]: job_time if w_type[THIS_WORKER_TYPE] > 0 else None,
@@ -448,7 +633,7 @@ def send_hb_to_client_proc_amqpstorm(interval, slurm_job_id, mem_per_node, mem_p
                                     hb_msg["mem_per_node"]: mem_per_node if w_type[THIS_WORKER_TYPE] > 0 else "",
                                     hb_msg["num_cores"]: ncore_param,
                                     hb_msg["num_tasks"]: 0,
-                                    hb_msg["num_workers_on_node"]: num_workers_on_node,
+                                    hb_msg["num_workers_on_node"]: 1,  # not used
                                     hb_msg["perc_mem_used"]: perc_used_mem,
                                     hb_msg["pool_name"]: pool_name,
                                     hb_msg["ret_msg"]: "hb",
@@ -460,10 +645,13 @@ def send_hb_to_client_proc_amqpstorm(interval, slurm_job_id, mem_per_node, mem_p
                                     hb_msg["vmem_usage"]: vmem_usage,
                                     hb_msg["worker_id"]: UNIQ_WORKER_ID,
                                     hb_msg["worker_type"]: w_type[THIS_WORKER_TYPE],
-                                    hb_msg["nwpn"]: nwpn}
+                                    hb_msg["nwpn"]: nwpn  # not used
+                                    }
 
                 msg_zipped_to_send = zdumps(json.dumps(msg_dict_to_send))
 
+                if show_resource_log:
+                    logger.info(msg_dict_to_send)
                 try:
                     publish_message(ch, msg_zipped_to_send,
                                     worker_hb_queue,
@@ -475,258 +663,7 @@ def send_hb_to_client_proc_amqpstorm(interval, slurm_job_id, mem_per_node, mem_p
 
 
 # -------------------------------------------------------------------------------
-def recv_task_kill_request_proc():
-    """
-    Wait for task termination request from JTM
-
-    :param exch_name:
-    :param queue_name:
-    :return:
-    """
-
-    rmq_conn = RmqConnectionHB(config=CONFIG)
-    conn = rmq_conn.open()
-    ch = conn.channel()
-    exch_name = CONFIG.configparser.get("JTM", "jtm_task_kill_exch")
-    queue_name = CONFIG.configparser.get("JTM", "jtm_task_kill_q")
-    routing_key = UNIQ_WORKER_ID
-
-    ch.exchange_declare(exchange=exch_name,
-                        exchange_type="fanout",
-                        durable=True,
-                        auto_delete=False)
-    ch.queue_declare(queue=queue_name,
-                     durable=True,
-                     exclusive=False,
-                     auto_delete=True)
-    ch.queue_bind(exchange=exch_name,
-                  queue=queue_name,
-                  routing_key=routing_key)
-
-    def on_kill(ch, method, props, body):
-        msg_unzipped = json.loads(zloads(body))
-        logger.debug("Received task termination command: %r" % msg_unzipped)
-
-        if msg_unzipped["worker_id"] == UNIQ_WORKER_ID:
-            if msg_unzipped["child_pid"] > 0:
-                logger.info("Process termination request received.")
-
-                # This -9 is to notify run_user_task() that it's killed by user requests
-                # Also send_hb_to_client() will check this for adjust childpid and parentpid
-                # Note: this should done first to signal run_user_task() that the process is killed.
-                USER_PROC_PROC_ID.value = -9
-
-                # kill if there is child's children
-                for i in get_pid_tree(msg_unzipped["child_pid"]):
-                    kill_cmd = "kill -9 %d" % i
-                    logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
-                    _, _, ec = run_sh_command(kill_cmd, log=logger)
-                    if ec == 0:
-                        logger.info("Successfully terminate a user task process.")
-                    else:
-                        logger.warning("User process not found. Ignore the termination command, %s"
-                                       % (kill_cmd))
-                        # Todo: Failed to terminate a user process for some reason. How to deal
-                        #  with this case?
-                        # ch.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
-
-                # Kill the main child process
-                # Note: can consider to use "pkill -9 -P ppid" to kill the family
-                kill_cmd = "kill -9 %d" % msg_unzipped["child_pid"]
-                logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
-                _, _, ec = run_sh_command(kill_cmd, log=logger)
-                if ec == 0:
-                    logger.info("Successfully terminate a user task process.")
-                else:
-                    logger.warning("User process not found. Failed to execute the command, %s" % (kill_cmd))
-
-            else:
-                logger.warning("No valid child process id to terminate.")
-
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-
-        else:
-            # If UNIQ_WORKER_ID is not for me, reject and requeue it
-            logger.info("NACK sent to the broker")
-            ch.basic_reject(delivery_tag=method.delivery_tag,
-                            requeue=True)
-
-    # Waiting for a task kill
-    ch.basic_qos(prefetch_count=1)
-    ch.basic_consume(queue=queue_name,
-                     on_message_callback=on_kill,
-                     auto_ack=False)
-
-    try:
-        ch.start_consuming()
-    except KeyboardInterrupt:
-        ch.stop_consuming()
-        raise
-
-
-# -------------------------------------------------------------------------------
-def check_processes(pid_list):
-    """
-    Checking if the total number of processes from the worker is NUM_WORKER_PROCS
-    if not, terminate the all the proc ids
-
-    """
-    while True:
-        logger.debug("Total Number of processes of the worker = %d" % (len(pid_list)+2))
-        if len(pid_list) != CONFIG.constants.NUM_WORKER_PROCS - 2:
-            raise OSError(2, 'Number of processes is wrong')
-        time.sleep(CONFIG.configparser.getfloat("JTM", "num_procs_check_interval"))
-
-
-# -------------------------------------------------------------------------------
-def ack_message(ch, reply_to, correlation_id, delivery_tag, response):
-    """
-    :param ch:
-    :param delivery_tag:
-    :return:
-    """
-    # Note that `ch` must be the same pika channel instance via which
-    #  the message being ACKed was retrieved (AMQP protocol constraint).
-    if ch.is_open:
-        logger.debug("Send ACK to the manager")
-        ch.basic_ack(delivery_tag)
-        logger.debug("Send result to the manager")
-        ch.queue_declare(queue=reply_to,
-                         durable=True,
-                         exclusive=False,
-                         auto_delete=True)
-        ch.basic_publish(exchange=JTM_INNER_MAIN_EXCH,
-                         routing_key=reply_to,
-                         properties=pika.BasicProperties(
-                              delivery_mode=2,
-                              correlation_id=correlation_id),
-                         body=response)
-    else:
-        # Channel is already closed, so we can't ACK this message;
-        # log and/or do something that makes sense for your app in this case.
-        logger.info("Sending ACK failed. Try to send 'failed' to the manager")
-        ###########################################################
-        # Note: This per-message & per-worker connection might
-        # affect the broker performance.
-        ###########################################################
-        rmq_conn3 = RmqConnectionHB(config=CONFIG)
-        conn3 = rmq_conn3.open()
-        ch3 = conn3.channel()
-        lost_connection_response = {}
-        lost_connection_response["done_flag"] = str(CONFIG.constants.DONE_FLAGS["failed with lost connection"])
-        lost_connection_response["ret_msg"] = "Stream connection lost"
-        json_data = json.dumps(lost_connection_response)
-        response = zdumps(json_data)
-        ch3.queue_declare(queue=reply_to,
-                          durable=True,
-                          exclusive=False,
-                          auto_delete=True)
-        ch3.basic_publish(exchange=JTM_INNER_MAIN_EXCH,
-                          routing_key=reply_to,
-                          properties=pika.BasicProperties(
-                             delivery_mode=2,
-                             correlation_id=correlation_id),
-                          body=response)
-        ch3.basic_reject(delivery_tag=delivery_tag, requeue=True)
-        ch3.close()
-        conn3.close()
-        raise OSError(2, 'Connection lost')
-
-
-# -------------------------------------------------------------------------------
-def run_task(conn, ch, delivery_tag, reply_to, correlation_id, body):
-    """
-    A callback function whenever a message is received.
-
-    :param conn:
-    :param ch:
-    :param delivery_tag:
-    :param reply_to:
-    :param correlation_id:
-    :param body:
-    :return:
-    """
-    msg_unzipped = json.loads(zloads(body))
-    task_id = msg_unzipped["task_id"]
-
-    # Send taskid to send_hb_to_client_proc() so that the task_id can be shown in the hb messages
-    PIPE_TASK_ID_SEND.send(task_id)
-
-    # If client sends "terminate worker"
-    if task_id == -9:
-        logger.info("Received TERM signal. Terminate myself.")
-        #
-        # Ref) http://gavinroy.com/deeper-down-the-rabbit-hole-of-message-redeli
-        # Return back the message (the TERM message) in the queue
-        # so that the other workers can get it.
-        logger.info("NACK sent to the broker")
-        ch.basic_reject(delivery_tag=delivery_tag, requeue=True)
-        raise OSError(2, 'Worker termination request')
-
-    logger.info("Received a task, %r" % (msg_unzipped,))
-    logger.debug("Return queue = %s", reply_to)
-
-    result_dict = {}
-
-    # OLD
-    run_user_task(msg_unzipped, result_dict, ch)
-
-    json_data = json.dumps(result_dict)
-    logger.debug("Reply msg with result: %s" % str(json_data))
-    logger.debug(json_data)
-    response = zdumps(json_data)
-
-    try:
-        # Note: After sending ack, the message will be deleted from RabbitMQ
-        #  If this worker crashes while running a user command, this task will
-        #  be sent to other workers available
-
-        # NEW
-        cb = functools.partial(ack_message,
-                               ch,
-                               reply_to,
-                               correlation_id,
-                               delivery_tag,
-                               response)
-        conn.add_callback_threadsafe(cb)
-    except Exception as e:
-        logger.critical("Something wrong in run_task.add_callback_threadsafe(): %s", e)
-        raise
-
-    # Send taskid=0 to send_hb_to_client_proc() b/c the requested task is completed
-    PIPE_TASK_ID_SEND.send(0)
-
-    # Reset child pid
-    USER_PROC_PROC_ID.value = 0
-
-
-# -------------------------------------------------------------------------------
-def on_task_request(ch, method_frame, _header_frame, body, args):
-    """
-    Threaded way to consume request from manager
-    :param ch:
-    :param method_frame:
-    :param _header_frame:
-    :param body:
-    :param args:
-    :return:
-    """
-    (conn, thrds) = args
-    delivery_tag = method_frame.delivery_tag
-    reply_to = _header_frame.reply_to
-    correlation_id = _header_frame.correlation_id
-    t = threading.Thread(target=run_task,
-                         args=(conn, ch,
-                               delivery_tag,
-                               reply_to,
-                               correlation_id,
-                               body))
-    t.start()
-    thrds.append(t)
-
-
-# -------------------------------------------------------------------------------
-def proc_clean(pid_list):
+def proc_clean_exit(pid_list):
     """
 
     :param pid_list: process handle list
@@ -739,19 +676,6 @@ def proc_clean(pid_list):
 
 
 # -------------------------------------------------------------------------------
-def conn_clean(conn, ch):
-    """
-
-    :param conn:
-    :param ch:
-    :return:
-    """
-    ch.stop_consuming()
-    ch.close()
-    conn.close()
-
-
-# -------------------------------------------------------------------------------
 def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
            custom_job_log_dir_name: str, pool_name_param: str, dry_run: bool,
            slurm_job_id_param: int, worker_type_param: str, cluster_name_param: str,
@@ -760,7 +684,34 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
            num_nodes_to_request_param: int, num_cores_to_request_param: int,
            constraint_param: str, mem_per_node_to_request_param: str,
            mem_per_cpu_to_request_param: str,
-           qos_param: str, partition_param: str, job_time_to_request_param: str) -> int:
+           qos_param: str, partition_param: str, job_time_to_request_param: str,
+           show_resource_log: bool) -> int:
+    """
+
+    :param ctx:
+    :param heartbeat_interval_param:
+    :param custom_log_dir:
+    :param custom_job_log_dir_name:
+    :param pool_name_param:
+    :param dry_run:
+    :param slurm_job_id_param:
+    :param worker_type_param:
+    :param cluster_name_param:
+    :param worker_clone_time_rate_param:
+    :param num_workers_per_node_param:
+    :param worker_id_param:
+    :param charging_account_param:
+    :param num_nodes_to_request_param:
+    :param num_cores_to_request_param:
+    :param constraint_param:
+    :param mem_per_node_to_request_param:
+    :param mem_per_cpu_to_request_param:
+    :param qos_param:
+    :param partition_param:
+    :param job_time_to_request_param:
+    :param show_resource_log:
+    :return:
+    """
 
     global CONFIG
     CONFIG = ctx.obj['config']
@@ -810,7 +761,6 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     logger.info("Set jtm job file location to %s", job_script_dir_name)
     logger.info("RabbitMQ broker: %s", CONFIG.configparser.get("RMQ", "host"))
     logger.info("RabbitMQ port: %s", CONFIG.configparser.get("RMQ", "port"))
-    logger.info("Pika version: %s", pika.__version__)
     logger.info("JTM user name: %s", CONFIG.configparser.get("SITE", "user_name"))
     logger.info("Unique worker ID: %s", UNIQ_WORKER_ID)
     logger.info("\n*****************\nRun mode is %s\n*****************"
@@ -1210,101 +1160,54 @@ wait
         elif cluster_name == "aws":
             pass
 
-    rmq_conn = RmqConnectionHB(config=CONFIG)
-    conn = rmq_conn.open()
-    ch = conn.channel()
-    ch.exchange_declare(exchange=JTM_INNER_MAIN_EXCH,
-                        exchange_type="direct",
-                        passive=False,
-                        durable=True,
-                        auto_delete=False)
-    ch.queue_declare(queue=inner_task_request_queue,
-                     durable=True,
-                     exclusive=False,
-                     auto_delete=True)
-    ch.queue_bind(exchange=JTM_INNER_MAIN_EXCH,
-                  queue=inner_task_request_queue,
-                  routing_key=inner_task_request_queue)
-
     logger.info("Waiting for a request...")
     logger.debug("Main pid = {}".format(PARENT_PROCESS_ID))
 
     pid_list = []
 
+    def signal_handler(signum, frame):
+        proc_clean_exit(pid_list)
+
+    signal.signal(signal.SIGTERM, signal_handler)
+
     # Start task termination proc
     try:
-        task_kill_proc_hdl = mp.Process(target=recv_task_kill_request_proc)
+        task_kill_proc_hdl = mp.Process(target=TaskTerminator(config=CONFIG).start)
         task_kill_proc_hdl.start()
         pid_list.append(task_kill_proc_hdl)
     except Exception as e:
         logger.exception("recv_task_kill_request_proc: {}".format(e))
-        proc_clean(pid_list)
-        conn_clean(conn, ch)
-        sys.exit(1)
+        proc_clean_exit(pid_list)
 
     # Start send_hb_to_client_proc proc
     try:
-        send_hb_to_client_proc_amqpstorm_hdl = mp.Process(target=send_hb_to_client_proc_amqpstorm,
-                                                          args=(hearbeat_interval,
-                                                                slurm_job_id,
-                                                                mem_per_node_to_request,
-                                                                mem_per_cpu_to_request,
-                                                                num_cpus_to_request,
-                                                                job_time_to_request,
-                                                                tp_name,
-                                                                num_workers_per_node))
-        send_hb_to_client_proc_amqpstorm_hdl.start()
-        pid_list.append(send_hb_to_client_proc_amqpstorm_hdl)
+        send_hb_to_client_proc_hdl = mp.Process(target=send_hb_to_client_proc,
+                                                args=(hearbeat_interval,
+                                                      slurm_job_id,
+                                                      mem_per_node_to_request,
+                                                      mem_per_cpu_to_request,
+                                                      num_cpus_to_request,
+                                                      job_time_to_request,
+                                                      tp_name,
+                                                      num_workers_per_node,
+                                                      show_resource_log))
+        send_hb_to_client_proc_hdl.start()
+        pid_list.append(send_hb_to_client_proc_hdl)
     except Exception as e:
         logger.exception("send_hb_to_client_proc: {}".format(e))
-        proc_clean(pid_list)
-        conn_clean(conn, ch)
-        sys.exit(1)
+        proc_clean_exit(pid_list)
 
     logger.info("Start sending my heartbeat to the client in every %d sec to %s"
                 % (hearbeat_interval, CONFIG.configparser.get("JTM", "worker_hb_q_postfix")))
 
-    # Checking the total number of child processes
+    # Start send_hb_to_client_proc proc
     try:
-        check_processes_hdl = mp.Process(target=check_processes,
-                                         args=(pid_list,))
-        check_processes_hdl.start()
-        pid_list.append(check_processes_hdl)
+        process_task_proc_hdl = mp.Process(target=TaskRunner(config=CONFIG).start,
+                                           args=(inner_task_request_queue,))
+        process_task_proc_hdl.start()
+        pid_list.append(process_task_proc_hdl)
     except Exception as e:
-        logger.exception("check_processes: {}".format(e))
-        proc_clean(pid_list)
-        conn_clean(conn, ch)
-        sys.exit(1)
-
-    def signal_handler(signum, frame):
-        proc_clean(pid_list)
-
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    # Waiting for request
-    ch.basic_qos(prefetch_count=1)
-
-    # NEW
-    # Ref) https://github.com/pika/pika/blob/1.0.1/examples/basic_consumer_threaded.py
-    #      https://github.com/pika/pika/blob/master/examples/basic_consumer_threaded.py
-    threads = []
-    on_message_callback = functools.partial(on_task_request,
-                                            args=(conn, threads))
-    ch.basic_consume(queue=inner_task_request_queue,
-                     on_message_callback=on_message_callback)
-
-    try:
-        ch.start_consuming()
-    except KeyboardInterrupt:
-        proc_clean(pid_list)
-        conn_clean(conn, ch)
-
-    # Wait for all to complete
-    # Note: prefetch_count=1 ==> #thread = 1
-    for thread in threads:
-        thread.join()
-
-    if conn:
-        conn.close()
+        logger.exception("process_task_proc: {}".format(e))
+        proc_clean_exit(pid_list)
 
     return 0
