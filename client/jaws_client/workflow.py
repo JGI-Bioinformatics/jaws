@@ -114,12 +114,19 @@ def values(inputs_map):
         yield from value_generator(val)
 
 
+def is_refdata(filepath):
+    return filepath.startswith("/refdata/")
+
+
 def looks_like_file_path(input):
     return "/" in input
 
 
 def accessible_file(filename):
-    return os.path.exists(filename) and os.access(filename, os.R_OK)
+    if is_refdata(filename):  # Ignores refdata since it is a special case directory
+        return True
+    else:
+        return os.path.exists(filename) and os.access(filename, os.R_OK)
 
 
 def apply_filepath_op(obj, operation):
@@ -435,7 +442,7 @@ class WorkflowInputs:
         """
         paths = set()
         for element in values(inputs_json):
-            if looks_like_file_path(element):
+            if looks_like_file_path(element) and not is_refdata(element):
                 paths.add(element)
         return paths
 
@@ -465,7 +472,7 @@ class WorkflowInputs:
     @staticmethod
     def _prepend_path(path_to_prepend):
         def func(path):
-            if looks_like_file_path(path):
+            if looks_like_file_path(path) and not is_refdata(path):
                 return f"{path_to_prepend}{path}"
             return path
         return func
