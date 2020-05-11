@@ -130,6 +130,10 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
               help="Slurm partition name")
 @click.option("-q", "--qos",
               help="Slurm quality of service")
+@click.option("-r", "--show_resource_log",
+              help="Show resource usage log from worker(s)",
+              default=False,
+              is_flag=True)
 @click.option("-t", "--job_time",
               help="Slurm Job time (hh:mm:ss)")
 @click.pass_context
@@ -137,7 +141,8 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
            pool_name: str, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
            clone_time_rate: float, num_worker_per_node: int, worker_id: str,
            charging_account: str, nnodes: int, cpus_per_task: int, constraint: str,
-           mem: str, mem_per_cpu: str, qos: str, partition: str, job_time: str) -> int:
+           mem: str, mem_per_cpu: str, qos: str, partition: str, job_time: str,
+           show_resource_log: bool) -> int:
     """
     JTM Worker Click wrapper
 
@@ -168,7 +173,7 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
                        dry_run, slurm_job_id, worker_type, cluster,
                        clone_time_rate, num_worker_per_node, worker_id,
                        charging_account, nnodes, cpus_per_task, constraint, mem,
-                       mem_per_cpu, qos, partition, job_time))
+                       mem_per_cpu, qos, partition, job_time, show_resource_log))
 
 
 @cli.command()

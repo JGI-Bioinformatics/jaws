@@ -246,7 +246,8 @@ def get_pid_tree(pid: int) -> list:
         try:
             child_pid_list.extend([p.pid for p in psutil.Process(pid).children(recursive=True)])
         except (psutil.NoSuchProcess, ProcessLookupError):
-            logger.warning("Failed to call psutil.Process(). Process id is not exist.")
+            # logger.warning("Failed to call psutil.Process(). Process id is not exist.")
+            pass
         except Exception as psutil_error:
             logger.warning(psutil_error)
 
@@ -304,31 +305,6 @@ def get_total_mem_usage_per_node() -> float:
             mem_perc = 0
 
     return mem_perc
-
-
-# -------------------------------------------------------------------------------
-def get_num_workers_on_node(config=None) -> int:
-    """
-    Get total number of workers on a given node
-    :return:
-
-    >>> get_num_workers_on_node()
-    0
-    """
-    cmd = "ps ax | grep -v grep | grep jtm-worker | wc -l"
-    ps_stdout_str = None
-
-    try:
-        ps_stdout_str, _, _ = run_sh_command(cmd, log=logger, show_stdout=False)
-    except subprocess.CalledProcessError as msg:
-        logger.exception("Failed to call %s. Exit code=%s" % (msg.cmd, msg.returncode))
-        return -1
-
-    NUM_WORKER_PROCS = 6
-    if config:
-        NUM_WORKER_PROCS = config.constants.NUM_WORKER_PROCS
-
-    return int(ps_stdout_str) / NUM_WORKER_PROCS
 
 
 # -------------------------------------------------------------------------------

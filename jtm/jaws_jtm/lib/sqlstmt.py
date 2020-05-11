@@ -103,7 +103,7 @@ JTM_SQL = {
             poolName = '%(pool_name)s',
             slurmJobId = %(slurm_jid)d
         WHERE workerId = '%(worker_id)s';""",
-    "update_runs_status_by_taskid": """
+    "update_runs_status_to_running_by_taskid": """
         UPDATE runs
         SET status = %(status_id)d,
             workerId2 = (select workerId2
@@ -112,7 +112,7 @@ JTM_SQL = {
             childPid = %(child_pid)d,
             resource = '%(resource_log)s'
         WHERE taskId = %(task_id)d
-              and status < 3;""",
+              and status in (0, 1, 2);""",
     "update_runs_status_to_pending_by_taskid": """
         UPDATE runs
         SET status = %(status_id)d,
@@ -120,7 +120,7 @@ JTM_SQL = {
                          from workers
                          where workerId='%(worker_id)s')
         WHERE taskId = %(task_id)d
-              and status < 2;""",
+              and status in (0, 1);""",
     "select_clonecnt_workers_by_workerid": """
         SELECT cloneCnt
         FROM workers
@@ -162,10 +162,6 @@ JTM_SQL = {
             workerId2 = %(wid2)d,
             endDate = '%(now)s'
         WHERE taskId = %(task_id)d;""",
-    # "select_status_runs_by_taskid": """
-    #     SELECT status
-    #     FROM runs
-    #     WHERE taskId = %(task_id)d""",
     "select_resource_runs_by_taskid": """
         SELECT resource
         FROM runs
@@ -187,15 +183,11 @@ JTM_SQL = {
     "insert_runs_tid_sid": """
         INSERT INTO runs (taskId, status)
         VALUES (%(task_id)d, %(status_id)d);""",
-    "update_runs_tid_startdate_by_tid": """
+    "update_runs_tid_to_queued_startdate_by_tid": """
         UPDATE runs
         SET status = %(status_id)d, startdate = '%(now)s'
         WHERE taskId = %(task_id)d
-              and status < 1;""",
-    "update_runs_status_to_terminated_by_tid": """
-        UPDATE runs
-        SET status = %(status_id)d, enddate = '%(now)s'
-        WHERE taskId = %(task_id)d;""",
+              and status = 0;""",
     "update_runs_status_cancelled_to_terminated_by_tid": """
         UPDATE runs
         SET status = %(status_id)d, enddate = '%(now)s', cancelled = 2
@@ -203,7 +195,8 @@ JTM_SQL = {
     "update_runs_cancelled_by_tid": """
         UPDATE runs
         SET cancelled = 1, enddate = '%(now)s'
-        WHERE taskId = %(task_id)d;""",
+        WHERE taskId = %(task_id)d
+              and cancelled = 0;""",
     "select_status_runs_by_taskid": """
         SELECT status
         FROM runs
@@ -338,21 +331,22 @@ JTM_SQL = {
         where slurmJobId = %(slurm_jid)d;""",
     "delete_from_workers_by_poolname": """
         delete from workers
-        where poolName = '%(pool_name)s';""",
+        where poolName = '%(pool_name)s'
+              or poolName like '%(pool_name_like)s';""",
     "delete_from_workers_by_slurmjid": """
         delete from workers
         where slurmJobId = %(slurm_jid)d;""",
     "update_runs_status_cancelled_by_status_workerId2_poolname": """
         update runs
-        set status = -4, cancelled = 3
-        where status in (0, 1, 2) and
+        set status = -4, cancelled = 2
+        where status in (0, 1, 2, 3) and
               workerId2 in (select workerId2
                             from workers
                             where poolName = '%(pool_name)s');""",
     "update_runs_status_cancelled_by_status_workerId2_jid": """
         update runs
-        set status = -4, cancelled = 4
-        where status in (0, 1, 2) and
+        set status = -4, cancelled = 2
+        where status in (0, 1, 2, 3) and
               workerId2 in (select workerId2
                             from workers
                             where slurmJobId = %(slurm_jid)d);"""
