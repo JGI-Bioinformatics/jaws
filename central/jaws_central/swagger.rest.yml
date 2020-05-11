@@ -324,36 +324,6 @@ paths:
         404:
           description: The specified record does not exist
 
-    put:
-      operationId: jaws_central.catalog_rest.update_doc
-      tags:
-        - workflow
-      summary: Update a workflow's documentation
-      description: Replaces the doc file for a workflow
-      parameters:
-        - name: name
-          in: path
-          description: name of the workflow
-          type: string
-          required: True
-        - name: version
-          in: path
-          description: version of the workflow
-          type: string
-          required: True
-        - name: md_file
-          in: formData
-          description: New doc file in markdown format
-          type: file
-          required: True
-      responses:
-        200:
-          description: OK
-        401:
-          description: Authorization information is missing or invalid.
-        404:
-          description: The specified record does not exist
-
   /search:
     get:
       operationId: jaws_central.analysis.user_queue
