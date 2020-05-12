@@ -36,9 +36,9 @@ def _rpc_call(user, run_id, method, params={}):
         logger.error(e)
         abort(500, f"Db error; {e}")
     if not run:
-        abort(404, "Run not found")
+        abort(404, "Run not found; please check your run_id")
     if run.user_id != user:
-        abort(401, "Access denied")
+        abort(401, "Access denied; you cannot access to another user's workflow")
     site_rpc_call = rpc_manager.manager.get_client(run.site_id)
     params["user"] = user
     params["cromwell_id"] = run.cromwell_id
@@ -169,7 +169,7 @@ def get_site(user, site_id):
     """
     result = config.conf.get_site_info(site_id)
     if result is None:
-        abort(404, "Invalid Site ID")
+        abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
     result["staging_subdir"] = f'{result["staging_subdir"]}/{user}'
     return result, 200
 
@@ -194,7 +194,7 @@ def submit_run(user):
         logger.error(
             f"Received run submission from {user} with invalid computing site ID: {site_id}"
         )
-        abort(404, f"Invalid Site ID: {site_id}")
+        abort(404, f"Unknown Site ID; {site_id} is not one of our sites")
     logger.info(f"New submission from {user} to {site_id}")
 
     # INSERT INTO RDB TO GET RUN ID
@@ -229,7 +229,7 @@ def submit_run(user):
         logger.exception(
             f"Error getting transfer client for user {user}", exc_info=True
         )
-        abort(500, "Unable to get Globus transfer client")
+        abort(500, "User Globus error; have you granted JAWS access via the 'login' command?")
     tdata = globus_sdk.TransferData(
         transfer_client,
         input_endpoint,
@@ -298,7 +298,7 @@ def _get_run(run_id):
         logger.error(error)
         abort(500, f"Db error; {error}")
     if not run:
-        abort(404, "Run not found")
+        abort(404, "Run not found; please check your run_id")
     return run
 
 
@@ -311,7 +311,7 @@ def __abort_if_pre_cromwell(run):
     :rtype: boolean
     """
     if run.status.startswith("upload") or run.status == "created":
-        abort(204, "No data because Run has not been submitted to Cromwell yet")
+        abort(204, "No data; this run hasn't begun execution yet.")
 
 
 def run_status(user, run_id):
@@ -421,7 +421,7 @@ def cancel_run(user, run_id):
     """
     run = _get_run(run_id)
     if run.user_id != user:
-        abort(401, "Access denied")
+        abort(401, "Access denied; you cannot cancel another user's runs")
     # the run state will be changed to "canceled" regardless of result of any other actions below
     status = run.status
     run.status = "canceled"
@@ -464,7 +464,7 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
         logger.exception(
             f"Error getting transfer client for user {user}", exc_info=True
         )
-        abort(500, "Unable to get Globus transfer client")
+        abort(500, "Unable to get Globus transfer client; perhaps try 'login' command")
     try:
         transfer_response = transfer_client.cancel_task(transfer_task_id)
         logger.info(
@@ -491,7 +491,7 @@ def delete_run(user, run_id):
     """
     run = _get_run(run_id)
     if run.user_id != user:
-        abort(401, "Access denied")
+        abort(401, "Access denied; this is not your run")
     params = {"cromwell_id": run.cromwell_id, "run_id": run.id}
     result = _rpc_call(user, run_id, "delete_run", params)
     run.status = "purged"
