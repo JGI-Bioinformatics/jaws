@@ -9,6 +9,7 @@ import click
 import logging
 import subprocess
 import uuid
+import shutil
 from typing import Dict
 
 from jaws_client import config, user, workflow
@@ -262,6 +263,14 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
             os.makedirs(outdir)
         except Exception as error:
             raise SystemExit(f"Invalid outdir, {outdir}: {error}")
+    try:
+        shutil.copy2(wdl_file, outdir)
+    except Exception as error:
+        raise SystemExit(f"Unable to copy wdl file to outdir: {error}")
+    try:
+        shutil.copy2(infile, outdir)
+    except Exception as error:
+        raise SystemExit(f"Unable to copy json file to outdir: {error}")
 
     submission_id = str(uuid.uuid4())
 
