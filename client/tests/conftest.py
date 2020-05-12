@@ -17,7 +17,7 @@ def configuration(tmp_path):
     contents = """
 [USER]
 token = "xasdasdasfasdasdasfas"
-staging_dir = {0}/jaws/staging
+staging_dir = {0}/globus/staging
 [JAWS]
 name = JAWS
 site_id = NERSC
@@ -26,7 +26,7 @@ womtool_jar = /usr/local/anaconda3/share/womtool-49-0/womtool.jar
 [GLOBUS]
 client_id =
 endpoint_id =
-basedir = {0}
+basedir = {0}/globus
 
 """.format(tmp_path.as_posix()) # noqa
 

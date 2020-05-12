@@ -38,6 +38,7 @@ test-client:
   <<: *only-default
   stage: unit-test
   script:
+    - export PATH=/jaws-ci/bin:$PATH
     - python3 -m venv test-venv
     - source test-venv/bin/activate
     - pip install -r client/requirements.txt
