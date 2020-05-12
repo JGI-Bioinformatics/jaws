@@ -41,7 +41,7 @@ class Configuration(metaclass=Singleton):
             "name": "JAWS",
             "site_id": "",
             "url": "http://localhost:5000",
-            "womtool": ""
+            "womtool_jar": ""
         },
         "GLOBUS": {
             "client_id": "",
@@ -70,16 +70,16 @@ class Configuration(metaclass=Singleton):
             logger.exception(f"Unable to load config from {config_file}: {error}")
             raise
 
-        womtool_path = self.config["JAWS"]["womtool"]
+        womtool_path = self.config["JAWS"]["womtool_jar"]
         if womtool_path:
             if not os.path.isfile(womtool_path):
                 raise FileNotFoundError(f"womtool jar does not exist: {womtool_path}")
-            self.config["JAWS"]["womtool"] = f"java -jar {self.config['JAWS']['womtool']}"
+            self.config["JAWS"]["womtool_jar"] = f"java -jar {self.config['JAWS']['womtool_jar']}"
         else:
             womtool_path = shutil.which("womtool")
             if not womtool_path:
                 raise FileNotFoundError("womtool not found in path or config file")
-            self.config["JAWS"]["womtool"] = womtool_path
+            self.config["JAWS"]["womtool_jar"] = womtool_path
 
         global conf
         conf = self

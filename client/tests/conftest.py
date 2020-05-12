@@ -22,7 +22,7 @@ staging_dir = {0}/globus/staging
 name = JAWS
 site_id = NERSC
 url = http://localhost:5000
-womtool_jar = /usr/local/anaconda3/share/womtool-49-0/womtool.jar
+womtool_jar = 
 [GLOBUS]
 client_id =
 endpoint_id =
