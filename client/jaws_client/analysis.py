@@ -243,14 +243,14 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     logger = logging.getLogger(__package__)
 
     globus_basedir = config.Configuration().get("GLOBUS", "basedir")
-    staging_dir = config.Configuration().get("USER", "staging_dir")
+    staging_subdir = config.Configuration().get("USER", "staging_dir")
 
-    if not staging_dir.startswith(globus_basedir):
+    if not staging_subdir.startswith(globus_basedir):
         raise SystemExit(
             f"Staging dir must be under endpoint's basedir: {globus_basedir}"
         )
-    if not os.path.isdir(staging_dir):
-        os.makedirs(staging_dir)
+    if not os.path.isdir(staging_subdir):
+        os.makedirs(staging_subdir)
     local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
 
     if out_endpoint is None:
@@ -285,7 +285,7 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
 
     # PREPARE RUN
     jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_staging_subdir)
-    local_staging_endpoint = workflow.join_path(globus_basedir, staging_dir)
+    local_staging_endpoint = workflow.join_path(globus_basedir, staging_subdir)
 
     wdl = workflow.WdlFile(wdl_file, submission_id)
     inputs_json = workflow.WorkflowInputs(infile, submission_id)
@@ -311,7 +311,7 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     modified_json.write_to(staged_json)
 
     manifest_file.add(compressed_wdl, zip_file, staged_json, *moved_files)
-    staged_manifest = workflow.join_path(staging_dir, f"{submission_id}.tsv")
+    staged_manifest = workflow.join_path(staging_subdir, f"{submission_id}.tsv")
     manifest_file.write_to(staged_manifest)
 
     data = {

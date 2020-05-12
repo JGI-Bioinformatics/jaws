@@ -10,7 +10,6 @@ import json
 import subprocess
 import re
 import zipfile
-import uuid
 import logging
 import pathlib
 
@@ -69,7 +68,8 @@ def womtool(*args):
     :param args: WOMTool arguments
     :return: stdout and stderr of WOMTool completed process
     """
-    womtool_args = ["java", "-jar", config.conf.get("JAWS", "womtool_jar")]
+    assert shutil.which("womtool")
+    womtool_args = ["womtool"]
     womtool_args.extend(list(args))
     proc = subprocess.run(womtool_args, capture_output=True, text=True)
     return proc.stdout, proc.stderr
@@ -190,7 +190,7 @@ class WdlFile:
     keep track of any resource requirements (max_memory) required. It will also know its compressed file location.
     """
 
-    def __init__(self, wdl_file_location, contents=None, submission_id=None):
+    def __init__(self, wdl_file_location, submission_id, contents=None):
         """
         Constructor for the WDL file.
 
@@ -202,7 +202,7 @@ class WdlFile:
         self.logger = logging.getLogger(__package__)
         self.file_location = os.path.abspath(wdl_file_location)
         self.name = self._get_wdl_name(wdl_file_location)
-        self.submission_id = str(uuid.uuid4()) if submission_id is None else submission_id
+        self.submission_id = submission_id
         self.contents = contents if contents is not None else open(wdl_file_location, "r").read()
 
         self._subworkflows = None
@@ -302,7 +302,7 @@ class WdlFile:
 
     def sanitized_wdl(self):
         contents = self._remove_invalid_backends()
-        return WdlFile(self.file_location, contents=contents, submission_id=self.submission_id)
+        return WdlFile(self.file_location, self.submission_id, contents=contents)
 
     def write_to(self, destination):
         with open(destination, "w") as new_wdl:
@@ -386,7 +386,6 @@ class WorkflowInputs:
         self.basedir = os.path.dirname(inputs_loc)
         self.inputs_json = json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
         self._src_file_inputs = None
-        self._destination_json = None
 
     @property
     def src_file_inputs(self):
@@ -427,7 +426,7 @@ class WorkflowInputs:
                 if not accessible_file(filepath):
                     missing.append(filepath)
         if missing:
-            raise WorkflowError("Subworkflows not found: " + ", ".join(missing))
+            raise WorkflowError("File(s) not accessible: " + ", ".join(missing))
 
     @staticmethod
     def gather_paths(inputs_json):

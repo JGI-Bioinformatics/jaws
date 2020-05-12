@@ -79,7 +79,7 @@ def test_src_json_inputs(configuration, inputs_json):
     shutil.which("womtool") is None, reason="WOMTool needs to be installed."
 )
 def test_wdl_validation(configuration, simple_wdl_example):
-    wdl = jaws_client.workflow.WdlFile(os.path.join(simple_wdl_example, "align.wdl"))
+    wdl = jaws_client.workflow.WdlFile(os.path.join(simple_wdl_example, "align.wdl"), "1234")
     wdl.validate()
 
 
@@ -88,13 +88,13 @@ def test_wdl_validation(configuration, simple_wdl_example):
 )
 def test_wdl_subworkflows(configuration, subworkflows_example):
     basedir = subworkflows_example
-    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"))
+    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"), "1234")
     sub1 = os.path.join(basedir, "sub1.wdl")
     sub2 = os.path.join(basedir, "sub2.wdl")
 
     subworkflows = [
-        jaws_client.workflow.WdlFile(sub1),
-        jaws_client.workflow.WdlFile(sub2),
+        jaws_client.workflow.WdlFile(sub1, "1234"),
+        jaws_client.workflow.WdlFile(sub2, "1234"),
     ]
 
     assert len(wdl.subworkflows) == 2
@@ -107,7 +107,7 @@ def test_wdl_subworkflows(configuration, subworkflows_example):
     shutil.which("womtool") is None, reason="WOMTool needs to be installed"
 )
 def test_calculate_wdl_max_ram_gb(configuration, dap_seq_example):
-    wdl = jaws_client.workflow.WdlFile(os.path.join(dap_seq_example, "test.wdl"))
+    wdl = jaws_client.workflow.WdlFile(os.path.join(dap_seq_example, "test.wdl"), "1234")
     assert 5 == wdl.max_ram_gb
 
 
@@ -117,7 +117,7 @@ def test_calculate_wdl_max_ram_gb(configuration, dap_seq_example):
 def test_calculate_wdl_max_ram_gb_with_subworkflows(
     configuration, subworkflows_example
 ):
-    wdl = jaws_client.workflow.WdlFile(os.path.join(subworkflows_example, "main.wdl"))
+    wdl = jaws_client.workflow.WdlFile(os.path.join(subworkflows_example, "main.wdl"), "1234")
     assert 0 == wdl.max_ram_gb
 
 
@@ -129,7 +129,7 @@ def test_appropriate_staging_dir_for_all_wdls(configuration, subworkflows_exampl
     staging = os.path.join(basedir, "staging")
     os.mkdir(staging)
 
-    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"))
+    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"), "1234")
 
     new_wdl_path = os.path.join(staging, wdl.name)
     wdl.write_to(new_wdl_path)
@@ -147,7 +147,7 @@ def test_appropriate_staging_dir_for_all_wdls(configuration, subworkflows_exampl
 
 
 def test_remove_invalid_backend(wdl_with_invalid_backend):
-    wdl = jaws_client.workflow.WdlFile(wdl_with_invalid_backend)
+    wdl = jaws_client.workflow.WdlFile(wdl_with_invalid_backend, "1234")
     wdl_with_backend_removed = wdl.sanitized_wdl()
     for line in wdl_with_backend_removed.contents:
         assert "backend" not in line
@@ -166,7 +166,7 @@ def test_move_input_files_to_destination(configuration, sample_workflow):
 def test_zipping_up_of_subworkflow_files(configuration, subworkflows_example):
     basedir = subworkflows_example
     staging = os.path.join(basedir, "staging")
-    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"))
+    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"), "1234")
     staged_wdl, zip_file = jaws_client.workflow.compress_wdls(
         wdl, compressed_path=staging
     )
@@ -195,3 +195,15 @@ def test_manifest_file(staged_files):
         assert expected_src_file == actual_src_file
         assert expected_moved_file == actual_moved_file
         assert expected_inode_type == actual_inode_type
+
+
+@pytest.mark.skipif(
+    shutil.which("womtool") is None, reason="WOMTool needs to be installed."
+)
+def test_same_submission_id_in_workflow_files(subworkflows_example):
+    submission_id = "1234567890"
+    wdl_file = os.path.join(subworkflows_example, "main.wdl")
+    wdl = jaws_client.workflow.WdlFile(wdl_file, submission_id)
+    zip_path = os.path.join(subworkflows_example, "zip_directory")
+    zip_wdl, _ = jaws_client.workflow.compress_wdls(wdl, compressed_path=zip_path)
+    assert os.path.basename(zip_wdl).strip(".wdl") == submission_id
