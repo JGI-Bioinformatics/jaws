@@ -5,7 +5,7 @@ Configuration singleton, loads values from provided INI infile.
 import logging
 import os
 import configparser
-
+import shutil
 
 conf = None
 
@@ -69,6 +69,18 @@ class Configuration(metaclass=Singleton):
         except Exception as error:
             logger.exception(f"Unable to load config from {config_file}: {error}")
             raise
+
+        womtool_path = self.config["JAWS"]["womtool"]
+        if womtool_path:
+            if not os.path.isfile(womtool_path):
+                raise FileNotFoundError(f"womtool jar does not exist: {womtool_path}")
+            self.config["JAWS"]["womtool"] = f"java -jar {self.config['JAWS']['womtool']}"
+        else:
+            womtool_path = shutil.which("womtool")
+            if not womtool_path:
+                raise FileNotFoundError("womtool not found in path or config file")
+            self.config["JAWS"]["womtool"] = womtool_path
+
         global conf
         conf = self
 

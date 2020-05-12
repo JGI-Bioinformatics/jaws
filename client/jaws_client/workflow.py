@@ -68,10 +68,9 @@ def womtool(*args):
     :param args: WOMTool arguments
     :return: stdout and stderr of WOMTool completed process
     """
-    assert shutil.which("womtool")
-    womtool_args = ["womtool"]
-    womtool_args.extend(list(args))
-    proc = subprocess.run(womtool_args, capture_output=True, text=True)
+    womtool_cmd = config.conf.get("JAWS", "womtool").split()
+    womtool_cmd.extend(list(args))
+    proc = subprocess.run(womtool_cmd, capture_output=True, text=True)
     return proc.stdout, proc.stderr
 
 
