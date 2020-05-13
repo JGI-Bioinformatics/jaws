@@ -1,0 +1,388 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+readonly configdir=${1:-/tmp/}
+
+[[ -z $JAWS_SITE_PNNL_DB_PW ]]     && { printf "Missing JAWS_SITE_PNNL_DB_PW variable.\n"; exit 1; }
+[[ -z $JAWS_SITE_PNNL_RMQ_PW ]]    && { printf "Missing JAWS_SITE_PNNL_RMQ_PW variable.\n"; exit 1; }
+[[ -z $JAWS_JTM_PNNL_DB_PW ]]      && { printf "Missing JAWS_JTM_PNNL_DB_PW variable.\n"; exit 1; }
+[[ -z $JAWS_JTM_PNNL_RMQ_PW ]]     && { printf "Missing JAWS_JTM_PNNL_RMQ_PW variable.\n"; exit 1; }
+[[ -z $JAWS_CROMWELL_PNNL_DB_PW ]] && { printf "Missing JAWS_CROMWELL_PNNL_DB_PW variable.\n"; exit 1; }
+
+
+cat << EOM > $configdir/jaws-site.conf
+[DB]
+dialect = mysql+mysqlconnector
+host = jaws-db.lbl.gov
+port = 3306
+user = jgi
+password = $JAWS_SITE_PNNL_DB_PW
+db = site
+[AMQP]
+user = jaws_rpc
+password = $JAWS_SITE_PNNL_RMQ_PW
+host = rmq.lbl.gov
+vhost = nersc_dev
+queue = jaws_rpc
+[RPC]
+num_threads = 5
+max_retries = 3
+[GLOBUS]
+client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
+endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
+root_dir = /
+[SITE]
+id = NERSC
+staging_subdirectory = global/cscratch1/sd/jaws_jtm/dev/staging
+results_subdirectory = global/cscratch1/sd/jaws/dev/results
+[CROMWELL]
+workflows_url = http://localhost:50010/api/workflows/v1
+engine_status_url = http://localhost:50010/engine/v1/status
+EOM
+
+cat << EOM > $configdir/jaws-jtm.conf
+[SITE]
+jtm_host_name = cori
+user_name = jtm_dev
+instance_name = \${jtm_host_name}.\${user_name}
+scratch = /global/cscratch1/sd/jaws_jtm/
+debug = 0
+[RMQ]
+host = rmq.nersc.gov
+vhost = jgi
+user = sulsj
+password = $JAWS_JTM_PNNL_RMQ_PW
+port = 5672
+#host = rmq.lbl.gov
+#vhost = jaws
+#user = jaws
+#password = $JAWS_JTM_LBL_RMQ_PW
+#port = 5672
+[MYSQL]
+host = db.mysql.dev-cattle.stable.spin.nersc.org
+port = 60005
+user = jgi
+password = $JAWS_JTM_PNNL_DB_PW
+db = jtm
+[SLURM]
+# number of nodes for the pool
+nnodes = 1
+# num cores for small task
+ncpus = 1
+# default wall clock time
+jobtime = 00:30:00
+mempercpu = 1gb
+mempernode = 5gb
+partition = lr3
+qos = genepool
+charge_accnt = fungalp
+constraint = haswell
+[JTM]
+cluster = \${SITE:jtm_host_name}
+run_mode = dev
+# static worker self cloning time rate. not used.s
+clone_time_rate = 0.2
+# number of workers per node
+num_workers_per_node = 1
+log_dir = \${SITE:scratch}/jtm
+env_activation = source /global/cfs/projectdirs/jaws/jtm-dev/bin/activate
+pool_name = small
+# Worker setting
+# worker->client heartbeat sending interval in worker
+worker_hb_send_interval = 2.0
+# timeout for waiting the client's heartbeat; 0=no timeout
+worker_timeout = 0
+# zombie worker checking interval
+worker_kill_interval = 300.0
+# number of procs checking interval
+num_procs_check_interval = 60.0
+# manager's interval to check if there is task to terminate
+task_kill_interval = 5.0
+# client->worker heartbeat receiving interval in worker NOT USED!!
+worker_hb_recv_interval = 6.0
+# tasks status update interval
+task_stat_update_interval = 0.5
+# to ensure updating runs table
+runs_info_update_wait = 0.5
+# to ensure live worker info is updated in workers' table
+worker_info_update_wait = 0.5
+# interval to check the result from jtm
+result_receive_interval = 0.1
+# num threads to recv results from workers
+num_result_recv_threads = 1
+# client->worker heartbeat sending interval
+client_hb_send_interval = 3.0
+# live worker checking count limit
+worker_hb_check_max_count = 0
+# config file location of worker
+worker_config_file = /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
+# worker->client heartbeat receiving interval
+client_hb_recv_interval = 6.0
+# max number of trial for checking
+file_checking_max_trial = 3
+# sleep time between output file checking before retrial
+file_check_interval = 3.0
+# increase amount of wait time for file checking
+file_check_int_inc = 1.5
+# jtm_* CLI command timeout in secs.
+jtminterface_max_trial = 300
+# worker lifeleft for task timeout
+task_kill_timeout_minute = 3
+jtm_inner_request_q = _jtm_inner_request_queue.\${SITE:instance_name}
+jtm_inner_result_q = _jtm_inner_result_queue.\${SITE:instance_name}
+jtm_task_kill_q = _jtm_task_kill.\${SITE:instance_name}
+jtm_worker_poison_q = _jtm_worker_poison.\${SITE:instance_name}
+jtm_task_result_q = _jtm_task_result_queue.\${SITE:instance_name}
+jtm_task_request_q = _jtm_task_request_queue.\${SITE:instance_name}
+worker_hb_q_postfix = _jtm_worker_hb_queue.\${SITE:instance_name}
+client_hb_q_postfix = _jtm_client_hb_queue.\${SITE:instance_name}
+jgi_jtm_main_exch = jgi_jtm_main_exch_\${JTM:run_mode}_\${SITE:instance_name}
+jtm_client_hb_exch = jgi_jtm_client_hb_exch_\${JTM:run_mode}_\${SITE:instance_name}
+jtm_inner_main_exch = jgi_jtm_inner_main_exch_\${JTM:run_mode}_\${SITE:instance_name}
+jtm_worker_hb_exch = jgi_jtm_worker_hb_exch_\${JTM:run_mode}_\${SITE:instance_name}
+jtm_task_kill_exch = jgi_jtm_task_kill_exch_\${JTM:run_mode}_\${SITE:instance_name}
+jtm_worker_poison_exch = jgi_jtm_poison_exch_\${JTM:run_mode}_\${SITE:instance_name}
+EOM
+
+
+cat << EOM > $configdir/cromwell.conf
+include required(classpath("application"))
+webservice
+{
+  port = 50010
+}
+system
+{
+  abort-jobs-on-terminate = true
+  graceful-server-shutdown = true
+  workflow-restart = false
+  max-concurrent-workflows = 100000
+  max-workflow-launch-count = 100000
+  new-workflow-poll-rate = 1
+  number-of-workflow-log-copy-workers = 20
+  number-of-cache-read-workers = 50
+}
+workflow-options
+{
+  workflow-log-dir: "/tmp/jaws-dev/logs/cromwell-workflow-logs"
+  workflow-log-temporary: false
+  workflow-failure-mode: "ContinueWhilePossible"
+  default
+  {
+    workflow-type: WDL
+    workflow-type-version: "draft-2"
+  }
+}
+call-caching
+{
+  enabled = true
+  invalidate-bad-cache-result = true
+}
+# this is required for shifter to find image from its registry.
+docker {
+    hash-lookup {
+        enabled = false
+    }
+}
+backend
+{
+  default = "JTM"
+  providers
+  {
+    Local
+    {
+      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+      config
+      {
+        concurrent-job-limit = 7
+        run-in-background = true
+        temporary-directory = "\`mktemp -d \\"/global/cscratch1/sd/jaws_jtm/dev/cromwell-tmp\\"/tmp.XXXXXX\`"
+        # The list of possible runtime custom attributes.
+        runtime-attributes = """
+          String? docker
+        """
+        # Submit string when there is no "docker" runtime attribute.
+        submit = "/usr/bin/env bash \${script}"
+        # Submit string when there is a "docker" runtime attribute.
+        submit-docker = """
+            LOOKUP=\$(shifterimg lookup \${docker})
+            if [[ ! \$LOOKUP ]]; then
+                shifterimg pull \${docker}
+            fi
+                  shifter --image=\${docker} \
+                    -V /global/dna/shared/rqc/ref_databases:/refdata \
+                    \${job_shell} \${script}
+              """
+        dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
+        filesystems
+        {
+          local
+          {
+            localization: [ "soft-link", "copy" ]
+            caching {
+              duplication-strategy: [ "soft-link", "file" ]
+              hashing-strategy: "file"
+            }
+          }
+        }
+        default-runtime-attributes
+        {
+          failOnStderr: false
+          continueOnReturnCode: 0
+        }
+      }
+    }
+    JTM
+    {
+      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+      config {
+        runtime-attributes = """
+        String? docker
+        String time = "00:30:00"
+        Int cpu = 1
+        String mem = "5G"
+        String cluster = "cori"
+        String poolname = "small"
+        String constraint = "haswell"
+        String qos = "genepool_special"
+        String account = "fungalp"
+        Int node = 1
+        Int nwpn = 1
+        Int shared = 0
+        """
+        submit = """jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+          submit \
+          -cmd '/bin/bash \${script}' \
+          -cl \${cluster} \
+          -t \${time} \
+          -c \${cpu} \
+          -m \${mem} \
+          -p \${poolname} \
+          -C \${constraint} \
+          -N \${node} \
+          -nwpn \${nwpn} \
+          -jid \${job_name} \
+          --qos \${qos} \
+          -A \${account} \
+          --shared \${shared}"""
+        kill = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+                kill -tid \${job_id}"
+        check-alive = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+                       isalive -tid \${job_id}"
+        job-id-regex = "JTM task ID (\\\d+)"
+        submit-docker = """
+            LOOKUP=\$(shifterimg lookup \${docker})
+            if [[ ! \$LOOKUP ]]; then
+                shifterimg pull \${docker}
+            fi
+            jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+              submit \
+              -cmd '/global/cfs/projectdirs/jaws/cromwell/shifter_exec.sh \${docker} \${job_shell} \${script}' \
+                    -cl \${cluster} \
+                    -t \${time} \
+                    -c \${cpu} \
+                    -m \${mem} \
+                    -p \${poolname} \
+                    -C \${constraint} \
+              -N \${node} \
+              -nwpn \${nwpn} \
+              -jid \${job_name} \
+              --qos \${qos} \
+              -A \${account} \
+              --shared \${shared}
+        """
+        # Root directory where Cromwell writes job results in the container. This value
+        # can be used to specify where the execution folder is mounted in the container.
+        # it is used for the construction of the docker_cwd string in the submit-docker
+        # value above AND in the generation of the "script" file.
+        dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
+      }
+    }
+     slurm
+    {
+      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+      config
+      {
+        concurrent-job-limit = 7
+        run-in-background = true
+        # The list of possible runtime custom attributes.
+        runtime-attributes = """
+                String? docker
+                            String qos = "debug"
+                            String constraint = "haswell"
+                            String account = "m342"
+                            String mem = "5G"
+                            String time = "00:10:00"
+                            Int cpu = 4
+        """
+        # Submit string when there is no "docker" runtime attribute.
+        submit = """
+            sbatch \
+              --wait \
+              -t \${time} \${"-c " + cpu} \
+              --mem=\${mem} \
+              --qos=\${qos} \
+              -C \${constraint} \
+              -A \${account} \
+              --wrap "/bin/bash \${script}"
+                    """
+        # Submit string when there is a "docker" runtime attribute.
+        submit-docker = """
+            # Submit the script to SLURM
+            sbatch \
+              --wait \
+              -J \${job_name} \
+              -D \${cwd} \
+              -o \${cwd}/stdout \
+              -e \${cwd}/stderr \
+              -t \${time} \
+              \${"-c " + cpu} \
+              --mem=\${mem} \
+                    --qos=\${qos} -C \${constraint} -A \${account} \
+              --wrap "shifter \
+              --image=\${docker} \
+              --volume=/global/dna/shared/rqc/ref_databases:/refdata \${job_shell} \${script}"
+        """
+        # Root directory where Cromwell writes job results in the container. This value
+        # can be used to specify where the execution folder is mounted in the container.
+        # it is used for the construction of the docker_cwd string in the submit-docker
+        # value above AND in the generation of the "script" file.
+        dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
+        kill = "scancel \${job_id}"
+        check-alive = "squeue -j \${job_id}"
+        job-id-regex = "Submitted batch job (\\\d+).*"
+        filesystems
+        {
+          local
+          {
+            localization: [ "soft-link", "copy" ]
+            caching {
+              duplication-strategy: [ "hard-link", "soft-link", "copy" ]
+              hashing-strategy: "file"
+            }
+          }
+        }
+        default-runtime-attributes
+        {
+          failOnStderr: false
+          continueOnReturnCode: 0
+        }
+      } # config
+    } # local
+  }
+}
+database
+{
+  profile = "slick.jdbc.MySQLProfile$"
+  db
+  {
+    driver = "com.mysql.cj.jdbc.Driver"
+    url = "jdbc:mysql://db.mysql.dev-cattle.stable.spin.nersc.org:60005/cromwell?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true"
+    user = "jgi"
+    password = "$JAWS_CROMWELL_PNNL_DB_PW"
+    connectionTimeout = 5000
+  }
+  insert-batch-size = 2000
+}
+EOM

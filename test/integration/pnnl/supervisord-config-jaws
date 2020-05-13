@@ -1,0 +1,48 @@
+[inet_http_server]
+port=0.0.0.0:64101
+username=jaws
+password={{password}}
+
+[supervisord]
+logfile={{installpath}}/jaws-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile={{installpath}}/jaws-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jaws
+directory={{installpath}}
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=http://cori20.nersc.gov:64101
+username=jaws
+password={{password}}
+prompt=supervisor-jaws
+
+;----- Program Section
+
+[program:jaws-site-daemon]
+command={{shimpath}}/jaws-site-daemon-dev
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-site-server]
+command={{shimpath}}/jaws-site-server-dev
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[group:jaws-dev]
+programs=jaws-site-daemon,jaws-site-server
+priority=999
