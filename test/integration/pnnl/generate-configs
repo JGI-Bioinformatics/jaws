@@ -14,7 +14,7 @@ readonly configdir=${1:-/tmp/}
 cat << EOM > $configdir/jaws-site.conf
 [DB]
 dialect = mysql+mysqlconnector
-host = jaws-db.lbl.gov
+host = localhost
 port = 3306
 user = jgi
 password = $JAWS_SITE_PNNL_DB_PW
@@ -60,8 +60,8 @@ port = 5672
 #password = $JAWS_JTM_LBL_RMQ_PW
 #port = 5672
 [MYSQL]
-host = db.mysql.dev-cattle.stable.spin.nersc.org
-port = 60005
+host = localhost
+port = 3306
 user = jgi
 password = $JAWS_JTM_PNNL_DB_PW
 db = jtm
@@ -378,7 +378,7 @@ database
   db
   {
     driver = "com.mysql.cj.jdbc.Driver"
-    url = "jdbc:mysql://db.mysql.dev-cattle.stable.spin.nersc.org:60005/cromwell?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true"
+    url = "jdbc:mysql://localhost:3306/cromwell?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true"
     user = "jgi"
     password = "$JAWS_CROMWELL_PNNL_DB_PW"
     connectionTimeout = 5000
