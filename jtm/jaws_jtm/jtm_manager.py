@@ -740,7 +740,6 @@ def process_task_request(msg):
 
             # Run sbatch from jtm worker command
             so, _, ec = run_sh_command(sbatch_cmd_str, log=logger)
-            assert ec == 0, "Failed to run sbatch commands: %s" % sbatch_cmd_str
 
             # Print batch job script for logging
             run_sh_command(sbatch_cmd_str + " --dry_run", log=logger)

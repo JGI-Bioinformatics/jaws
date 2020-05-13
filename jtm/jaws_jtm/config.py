@@ -12,7 +12,7 @@ DEFAULT_CONFIG_FILE = 'jtm.ini'
 # CONSTANTS
 # -------------------------------------------------------------------------------------------
 class JtmConstants():
-    VERSION = "6.1.0"
+    VERSION = "6.1.1"
 
     # Supported cluster
     COMPUTE_RESOURCES = ["cori",  # cori @ NERSC
