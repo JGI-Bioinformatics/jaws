@@ -15,29 +15,29 @@ HISTORY = [
         "2020-04-03T22:19:45Z",
         "upload failed",
         "c49043b3-4ec7-4874-b09d-c0ca54a74870",
-        "null"
+        "null",
     ],
     [
         "34",
         "2020-04-03T22:27:00Z",
         "upload failed",
         "64864a67-04d3-47c9-8cf0-4cb6e0ab020a",
-        "null"
+        "null",
     ],
     [
         "35",
         "2020-04-04T16:55:35Z",
         "failed",
         "65f2f4df-2a6c-4881-a3b0-3141107ac668",
-        "1aba54ac-7695-11ea-9615-0afc9e7dd773"
+        "1aba54ac-7695-11ea-9615-0afc9e7dd773",
     ],
     [
         "36",
         "2020-04-04T17:56:52Z",
         "running",
         "bafa20aa-59b3-4d33-9f4c-fb30696e324f",
-        "aa791756-769d-11ea-af53-0201714f6eab"
-    ]
+        "aa791756-769d-11ea-af53-0201714f6eab",
+    ],
 ]
 
 
@@ -55,14 +55,14 @@ WORKFLOW_METADATA = {
                     "allowResultReuse": "true",
                     "effectiveCallCachingMode": "ReadAndWriteCache",
                     "hit": "false",
-                    "result": "Cache Miss"
+                    "result": "Cache Miss",
                 },
-                "callRoot": "/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e/call-alignment", # noqa
-                "commandLine": "shifterimg pull jfroula/bbtools:1.2.1 && \\\nshifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e/call-alignment/inputs/-1159340168/5min_reads.fq ref=/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e/call-alignment/inputs/-1159340168/5min_ref.fasta out=test.sam", # noqa
+                "callRoot": "/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e/call-alignment",  # noqa
+                "commandLine": "shifterimg pull jfroula/bbtools:1.2.1 && \\\nshifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e/call-alignment/inputs/-1159340168/5min_reads.fq ref=/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e/call-alignment/inputs/-1159340168/5min_ref.fasta out=test.sam",  # noqa
                 "executionStatus": "Running",
                 "inputs": {
                     "fasta": "/global/dna/shared/data/jfroula/JAWS/data/5min_ref.fasta",
-                    "fastq": "/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq"
+                    "fastq": "/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq",
                 },
                 "jobId": "778690",
                 "runtimeAttributes": {
@@ -79,35 +79,35 @@ WORKFLOW_METADATA = {
                     "poolname": "small",
                     "qos": "genepool",
                     "shared": "1",
-                    "time": "00:00:00"
+                    "time": "00:00:00",
                 },
                 "shardIndex": -1,
                 "start": "2020-04-03T20:32:52.938Z",
-                "stderr": "/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e/call-alignment/execution/stderr", # noqa
-                "stdout": "/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e/call-alignment/execution/stdout"  # noqa
+                "stderr": "/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e/call-alignment/execution/stderr",  # noqa
+                "stdout": "/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e/call-alignment/execution/stdout",  # noqa
             }
         ]
     },
     "id": "f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e",
     "inputs": {
         "bbtools.reads": "/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq",
-        "bbtools.ref": "/global/dna/shared/data/jfroula/JAWS/data/5min_ref.fasta"
+        "bbtools.ref": "/global/dna/shared/data/jfroula/JAWS/data/5min_ref.fasta",
     },
     "labels": {
         "cromwell-workflow-id": "cromwell-f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e",
-        "username": "mamelara"
+        "username": "mamelara",
     },
     "outputs": {},
     "start": "2020-04-03T20:32:50.080Z",
     "status": "Running",
     "submission": "2020-04-03T20:32:49.265Z",
     "submittedFiles": {
-        "inputs": "{\"bbtools.reads\":\"/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq\",\"bbtools.ref\":\"/global/dna/shared/data/jfroula/JAWS/data/5min_ref.fasta\"}", # noqa
-        "labels": "{\"username\": \"mamelara\"}",
+        "inputs": '{"bbtools.reads":"/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq","bbtools.ref":"/global/dna/shared/data/jfroula/JAWS/data/5min_ref.fasta"}',  # noqa
+        "labels": '{"username": "mamelara"}',
         "options": "{\n\n}",
         "root": "",
-        "workflow": "workflow bbtools { File reads\n    File ref\n\n    call alignment {\n       input: fastq=reads,\n              fasta=ref\n    }\n    call samtools {\n       input: sam=alignment.sam\n   }\n}\n\ntask alignment {\n    File fastq\n    File fasta\n\n    command <<<\n        shifterimg pull jfroula/bbtools:1.2.1 && \\\n        shifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=${fastq} ref=${fasta} out=test.sam\n    >>>\n    output {\n       File sam = \"test.sam\"\n    }\n}\n\ntask samtools {\n    File sam\n\n    command {\n       shifter --image=jfroula/bbtools:1.2.1 samtools view -b -F0x4 ${sam} | shifter --image=jfroula/bbtools:1.2.1 samtools sort - > test.sorted.bam\n    }\n    output {\n       File bam = \"test.sorted.bam\"\n    }\n\t#runtime {\n\t#  docker: \"jfroula/bbtools:1.2.1\"\n\t#}\n}\n", # noqa
-        "workflowUrl": ""
+        "workflow": 'workflow bbtools { File reads\n    File ref\n\n    call alignment {\n       input: fastq=reads,\n              fasta=ref\n    }\n    call samtools {\n       input: sam=alignment.sam\n   }\n}\n\ntask alignment {\n    File fastq\n    File fasta\n\n    command <<<\n        shifterimg pull jfroula/bbtools:1.2.1 && \\\n        shifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=${fastq} ref=${fasta} out=test.sam\n    >>>\n    output {\n       File sam = "test.sam"\n    }\n}\n\ntask samtools {\n    File sam\n\n    command {\n       shifter --image=jfroula/bbtools:1.2.1 samtools view -b -F0x4 ${sam} | shifter --image=jfroula/bbtools:1.2.1 samtools sort - > test.sorted.bam\n    }\n    output {\n       File bam = "test.sorted.bam"\n    }\n\t#runtime {\n\t#  docker: "jfroula/bbtools:1.2.1"\n\t#}\n}\n',  # noqa
+        "workflowUrl": "",
     },
     "workflowName": "bbtools",
     "workflowProcessingEvents": [
@@ -115,10 +115,10 @@ WORKFLOW_METADATA = {
             "cromwellId": "cromid-22ffeb7",
             "cromwellVersion": "45.1",
             "description": "PickedUp",
-            "timestamp": "2020-04-03T20:32:50.048Z"
+            "timestamp": "2020-04-03T20:32:50.048Z",
         }
     ],
-    "workflowRoot": "/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e"
+    "workflowRoot": "/tmp/jaws-dev/cromwell/cromwell-executions/bbtools/f256dc24-971f-4ba2-9e1f-6f7a53ec3e9e",
 }
 
 
@@ -128,22 +128,22 @@ LOGS = {
         "call.ps": [
             {
                 "stderr": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-ps/stderr6126967977036995110.tmp",
-                "stdout": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-ps/stdout6128485235785447571.tmp"
+                "stdout": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-ps/stdout6128485235785447571.tmp",
             }
         ],
         "call.cgrep": [
             {
-                "stderr": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-cgrep/stderr6126967977036995110.tmp", # noqa
-                "stdout": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-cgrep/stdout6128485235785447571.tmp" # noqa
+                "stderr": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-cgrep/stderr6126967977036995110.tmp",  # noqa
+                "stdout": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-cgrep/stdout6128485235785447571.tmp",  # noqa
             }
         ],
         "call.wc": [
             {
                 "stderr": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-wc/stderr6126967977036995110.tmp",
-                "stdout": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-wc/stdout6128485235785447571.tmp"
+                "stdout": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-wc/stdout6128485235785447571.tmp",
             }
-        ]
-    }
+        ],
+    },
 }
 
 SUBMISSION = {
@@ -153,7 +153,7 @@ SUBMISSION = {
     "site_id": "NERSC",
     "status": "uploading",
     "submission_id": "65f2f4df-2a6c-4881-a3b0-3141107ac668",
-    "upload_task_id": "1aba54ac-7695-11ea-9615-0afc9e7dd773"
+    "upload_task_id": "1aba54ac-7695-11ea-9615-0afc9e7dd773",
 }
 
 
@@ -163,13 +163,14 @@ QUEUE = [
         "2020-04-04T16:55:35Z",
         "running",
         "65f2f4df-2a6c-4881-a3b0-3141107ac668",
-        "1aba54ac-7695-11ea-9615-0afc9e7dd773"
+        "1aba54ac-7695-11ea-9615-0afc9e7dd773",
     ]
 ]
 
+TASK_STATUS = [["bbtools.alignment", "Running", "2020-04-03T20:32:52.938Z", ""]]
+
 
 class MockUser:
-
     def __init__(self):
         pass
 
@@ -178,7 +179,6 @@ class MockUser:
 
 
 class MockResult:
-
     def __init__(self, response, status_code):
         self.response = response
         self.status_code = status_code
@@ -198,23 +198,28 @@ def mock_user(monkeypatch):
 
 def test_cli_queue(mock_user, monkeypatch, configuration):
     def get_queue(url, headers=None):
-        body = {"results": [
-            ["36", "2020-04-04T17:56:52Z", "running",
-             "bafa20aa-59b3-4d33-9f4c-fb30696e324f",
-             "aa791756-769d-11ea-af53-0201714f6eab"]
-        ]}
+        body = {
+            "results": [
+                [
+                    "36",
+                    "2020-04-04T17:56:52Z",
+                    "running",
+                    "bafa20aa-59b3-4d33-9f4c-fb30696e324f",
+                    "aa791756-769d-11ea-af53-0201714f6eab",
+                ]
+            ]
+        }
         return MockResult(body, 200)
 
-    monkeypatch.setattr(requests, 'get', get_queue)
+    monkeypatch.setattr(requests, "get", get_queue)
 
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ['queue'])
+    result = runner.invoke(run, ["queue"])
     assert result.exit_code == 0
     assert "running" in result.output
 
 
 def test_cli_history(mock_user, monkeypatch, configuration):
-
     def get_history(url, headers=None):
         body = HISTORY
         return MockResult({"history": body}, 200)
@@ -229,7 +234,6 @@ def test_cli_history(mock_user, monkeypatch, configuration):
 
 
 def test_cli_status(mock_user, monkeypatch, configuration):
-
     def mock_status_get(url, headers={}):
         """
         Returns a list of attributes from a run ordered as the following:
@@ -246,14 +250,13 @@ def test_cli_status(mock_user, monkeypatch, configuration):
 
 
 def test_cli_tasks(monkeypatch, mock_user, configuration):
-
     def get_tasks(url, headers=None):
-        return MockResult(WORKFLOW_METADATA, 201)
+        return MockResult(TASK_STATUS, 200)
 
     monkeypatch.setattr(requests, "get", get_tasks)
     runner = click.testing.CliRunner()
     result = runner.invoke(run, ["tasks", "36"])
-    assert "actualWorkflowLanguage" in result.output
+    assert "Running" in result.output
 
 
 def test_cli_metadata(monkeypatch, mock_user, configuration):
@@ -267,17 +270,18 @@ def test_cli_metadata(monkeypatch, mock_user, configuration):
 
 
 def test_cli_log(monkeypatch, mock_user, configuration):
-
     def get_logs(url, headers=None):
         return MockResult(LOGS, 200)
 
     monkeypatch.setattr(requests, "get", get_logs)
     runner = click.testing.CliRunner()
     result = runner.invoke(run, ["logs", "36"])
-    assert 'call.ps' in result.output
+    assert "call.ps" in result.output
 
 
-@pytest.mark.skipif(shutil.which("womtool") is None, reason="WOMTool needs to be installed.")
+@pytest.mark.skipif(
+    shutil.which("womtool") is None, reason="WOMTool needs to be installed."
+)
 def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     root = sample_workflow
 
