@@ -42,7 +42,8 @@ def _get(url):
     except requests.exceptions.RequestException as err:
         raise SystemExit("Unable to communicate with JAWS server", err)
     if r.status_code != 200:
-        raise SystemExit(r.text)
+        result = r.json()
+        raise SystemExit(result["detail"])
     return r
 
 
@@ -182,7 +183,8 @@ def cancel(run_id):
     except requests.exceptions.RequestException:
         raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 201:
-        raise SystemExit(r.text)
+        result = r.json()
+        raise SystemExit(result["detail"])
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
@@ -203,20 +205,26 @@ def uncache(run_id: int) -> None:
     except requests.exceptions.RequestException:
         raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 200:
-        raise SystemExit(r.text)
+        result = r.json()
+        raise SystemExit(result["detail"])
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
 
 
-@run.command()
-def list_sites() -> None:
-    """List available Sites"""
+def _list_sites() -> None:
+    """List available Sites."""
     url = f'{config.conf.get("JAWS", "url")}/site'
     r = _get(url)
     result = r.json()
     print("Available Sites:")
     for a_site_id in result:
         print(f"  - {a_site_id}")
+
+
+@run.command()
+def list_sites() -> None:
+    """List available Sites"""
+    _list_sites()
 
 
 @run.command()
@@ -282,10 +290,11 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
         raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code == 404:
         print(f"{compute_site_id} is not a valid Site ID.")
-        list_sites()
+        _list_sites()
         raise SystemExit("Please try again with a valid Site ID")
     elif r.status_code != requests.codes.ok:
-        raise SystemExit(r.text)
+        result = r.json()
+        raise SystemExit(result["detail"])
 
     result = r.json()
     compute_basedir = result["globus_basepath"]
@@ -340,7 +349,8 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     except requests.exceptions.RequestException:
         raise SystemExit("Unable to communicate with JAWS server")
     if r.status_code != 201:
-        raise SystemExit(r.text)
+        result = r.json()
+        raise SystemExit(result["detail"])
     result = r.json()
     if "run_id" not in result:
         raise SystemExit(f"Invalid response from JAWS: {result}")

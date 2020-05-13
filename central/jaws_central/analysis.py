@@ -259,13 +259,31 @@ def submit_run(user):
     except globus_sdk.GlobusAPIError as error:
         run.status = "upload failed"
         db.session.commit()
+        logger.info(f"{user} submission {run.id} failed due to Globus {error.code}")
+        if error.code == "NoCredException":
+            abort(
+                error.http_status,
+                error.message
+                + " -- Your access to the Globus endpoint has expired.  "
+                + "To reactivate, log-in to https://globus.org, go to Endpoints (left), "
+                + "search for the endpoint by name (if not shown), click on the endpoint, "
+                + "and use the button on the right to activate your credentials.",
+            )
+        else:
+            logger.exception(
+                f"{user} submission {run.id} failed for GlobusAPIError", exc_info=True
+            )
+            abort(error.http_status, error.message)
+    except globus_sdk.NetworkError as error:
+        logger.info(
+            f"{user} submission {run.id} failed due to NetworkError", exc_info=True
+        )
+        abort(503, f"Network Error: {error}")
+    except globus_sdk.GlobusError as error:
         logger.exception(
-            f"Error submitting Globus transfer for user {user}", exc_info=True
+            f"{user} submission {run.id} failed for unknown error", exc_info=True
         )
-        abort(
-            409,
-            f"Globus error: {error}\nGlobus endpoints can be reactivated at https://app.globus.org/endpoints",
-        )
+        abort(500, f"Unexpected error: {error}")
     upload_task_id = transfer_result["task_id"]
 
     # UPDATE RUN WITH UPLOAD TASK ID AND RETURN RESULTS
