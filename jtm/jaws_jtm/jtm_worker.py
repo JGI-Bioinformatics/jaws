@@ -1154,7 +1154,6 @@ wait
 
             sbatch_cmd = "sbatch --parsable %s" % (batch_job_script_file)
             _, _, ec = run_sh_command(sbatch_cmd, log=logger)
-            assert ec == 0, "Failed to run 'jtm worker' to sbatch dynamic worker."
             return ec
 
         elif cluster_name == "aws":
