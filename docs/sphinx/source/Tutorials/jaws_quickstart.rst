@@ -118,10 +118,12 @@ Run WDL in JAWS
 
     # clone the example code
     git clone https://gitlab.com/jfroula/jaws-quickstart-example.git
-    
+
+    cd jaws-quickstart-example
+
     # run jaws run submit <workflow> <inputs> <full path to outdir> <site: [nersc|lbnl]>
     jaws run submit align.wdl inputs.json out nersc
-    
+
     # you should see something like this
     2020-04-16 13:04:18,434 - INFO - workflow - Validating WDL, align.wdl
     2020-04-16 13:04:20,357 - INFO - workflow - Validating inputs file, inputs.json
@@ -166,6 +168,6 @@ For debugging
 .. code-block:: bash
 
     # This command should show you the contents of the stderr, stdout, and 
-	# script files created by your task commands
+    # script files created by your task commands
     jaws run errors 80
 
