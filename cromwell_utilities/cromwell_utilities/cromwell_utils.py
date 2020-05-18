@@ -12,9 +12,8 @@ import json
 import requests
 import click
 import uuid
-import re
-import subprocess
-import pathlib
+
+from jaws_site import wfcopy as wfc
 
 if "USER" not in os.environ:
     sys.exit("USER env var not defined")
@@ -29,23 +28,19 @@ if not CROMWELL_URL.startswith("http"):
 WORKFLOWS_URL = f"{CROMWELL_URL}/api/workflows/v1"
 
 
-@click.group()
-def cromwell():
-    """Cromwell REST server CLI"""
-    pass
-
-
-def _get(url, data={}):
-    """GET from URL, print result, exit on error."""
-    try:
-        r = requests.get(url, data)
-    except requests.exceptions.RequestException as e:
-        raise e(f"Unable to GET from {url}: {e}")
-    if r.status_code == 200:
-        print(json.dumps(r.json(), indent=4, sort_keys=True))
-        return r.json()
-    else:
-        sys.exit(r.text)
+def _prepare_labels_file(outfile, username, infile=None):
+    """Given a username and optional dict, create a JSON file."""
+    assert outfile
+    assert username
+    labels = {}
+    if infile is not None:
+        with open(infile, "r") as f:
+            data = json.load(f)
+            for key in data:
+                labels[key] = data[key]
+    labels["username"] = username
+    with open(outfile, "w") as f:
+        json.dump(labels, f)
 
 
 def _post(url, data={}, files={}, tmpfiles=[]):
@@ -61,6 +56,25 @@ def _post(url, data={}, files={}, tmpfiles=[]):
         return r.json()
     else:
         sys.exit(r.text)
+
+
+def _get(url, data={}):
+    """GET from URL, print result, exit on error."""
+    try:
+        r = requests.get(url, data)
+    except requests.exceptions.RequestException as e:
+        raise e(f"Unable to GET from {url}: {e}")
+    if r.status_code == 200:
+        print(json.dumps(r.json(), indent=4, sort_keys=True))
+        return r.json()
+    else:
+        sys.exit(r.text)
+
+
+@click.group()
+def cromwell():
+    """Cromwell REST server CLI"""
+    pass
 
 
 @cromwell.command()
@@ -204,140 +218,12 @@ def submit(wdl_file, json_file, username, labels, zip_file):
     _post(WORKFLOWS_URL, files=files, tmpfiles=[tmp_labels_file])
 
 
-def _prepare_labels_file(outfile, username, infile=None):
-    """Given a username and optional dict, create a JSON file."""
-    assert outfile
-    assert username
-    labels = {}
-    if infile is not None:
-        with open(infile, "r") as f:
-            data = json.load(f)
-            for key in data:
-                labels[key] = data[key]
-    labels["username"] = username
-    with open(outfile, "w") as f:
-        json.dump(labels, f)
-
-
 @cromwell.command()
 @click.argument("src", nargs=1)
 @click.argument("dest", nargs=1)
-@click.option("--flatten", is_flag=True)
+@click.option("-f", "--flatten", is_flag=True)
 def wfcopy(src, dest, flatten):
     """Reformat and copy cromwell run output"""
     src = os.path.abspath(src)
     dest = os.path.abspath(dest)
-    shardname = None
-    subwfname = None
-    taskname = None
-    cromwellFilesToSkip = [
-        "stdout.background",
-        "stderr.background",
-        "script.background",
-        "script.submit",
-    ]
-
-    logdir = os.path.join(dest, "log")
-    if not os.path.exists(dest):
-        os.makedirs(dest)
-    if not os.path.exists(logdir):
-        os.makedirs(logdir)
-
-    rcfile = os.path.join(logdir, "workflow.rc")
-    if os.path.exists(rcfile):
-        os.remove(rcfile)
-    with open(rcfile, "w") as fh:
-        fh.write("#ExitCode\tTask\n")
-
-    for rootDir, subdirs, files in os.walk(src):
-        shardname = None
-        parentDir = str(pathlib.Path(rootDir).parent)
-
-        # look for call-* in directory name. If found, assign taskname.
-        if os.path.basename(rootDir).startswith("call-") and rootDir == os.path.join(
-            src, os.path.basename(rootDir)
-        ):
-            taskname = re.sub(r"^call-", "", os.path.basename(rootDir))
-
-        # look for shard directory. If found, assign shardname.
-        if os.path.basename(parentDir).startswith("shard-"):
-            shardname = os.path.basename(parentDir)
-            subwfname = getSubflowDirname(parentDir)
-            if subwfname:
-                shardname = "%s-%s" % (subwfname, shardname)
-
-        # look for execution directory. If found, copy files to destination.
-        if rootDir.endswith("execution"):
-            if not flatten and shardname:
-                taskDir = os.path.join(dest, "%s/%s" % (taskname, shardname))
-            else:
-                taskDir = os.path.join(dest, taskname)
-
-            if not os.path.exists(taskDir):
-                os.makedirs(taskDir)
-
-            for dname in subdirs:
-                rsync(os.path.join(rootDir, dname), taskDir)
-
-            for fname in files:
-                fullname = os.path.join(rootDir, fname)
-                outname = "%s-%s" % (taskname, shardname) if shardname else taskname
-
-                if fname == "stdout":
-                    rsync(fullname, os.path.join(logdir, "%s.stdout" % outname))
-                if fname == "stderr":
-                    rsync(fullname, os.path.join(logdir, "%s.stderr" % outname))
-                if fname == "script":
-                    rsync(fullname, os.path.join(logdir, "%s.script" % outname))
-                if fname not in cromwellFilesToSkip:
-                    rsync(fullname, taskDir)
-                if fname == "rc":
-                    with open(fullname, "r") as fh:
-                        exitcode = fh.readlines()[0].strip()
-                    with open(rcfile, "a") as fh:
-                        fh.write("%s\t%s\n" % (exitcode, outname))
-
-
-def rsync(src, dest):
-    """ Copy source to destination using rsync
-
-    :param src: Source path
-    :type src: str
-    :param dest" Destination path
-    :type dest: str
-    """
-    cmd = "rsync -a %s %s" % (src, dest)
-    process = subprocess.Popen(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    stdout, stderr = process.communicate()
-    if process.returncode:
-        sys.stderr.write(stderr.strip())
-        sys.exit(process.returncode)
-
-
-def getSubflowDirname(dirname):
-    """
-    Detect if input directory is a subworkflow (contains more than one 'call-' in the name).
-    Ex: dirname=*/call-runMainBlast/blast.runblastplus/4a1eeaa3-79e7-42f0-9154-e5fb0636e0d8/
-        call-runblastplus/shard-0  returns: runblastplus
-    Ex: dirname=*/call-runMainBlast/blast.runblastplus/4a1eeaa3-79e7-42f0-9154-e5fb0636e0d8/
-        call-runblastplus/execution  returns: runblastplus
-    Ex: dirname=*/call-runMainBlast/execution  returns: None
-    Ex: dirname=.../call-runMainBlast/shard-0  returns: None
-
-    :param dirname: Path to subworkflow directory
-    :type dirname: str
-    :return: Subworkflow name if contains shards, None otherwise
-    :rtype: str, None
-    """
-    subwfname = None
-    if dirname.count("call-") > 1:
-        rx = re.search(r"([^\/]+)\/shard-", dirname)
-        subwfname = rx.group(1) if rx else os.path.basename(dirname)
-        subwfname = subwfname.replace("call-", "", 1)
-    return subwfname
-
-
-if __name__ == "__main__":
-    cromwell()
+    wfc.wfcopy(src, dest, flatten_shard_dir=flatten)
