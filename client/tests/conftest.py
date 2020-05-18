@@ -640,3 +640,19 @@ def staged_files(tmp_path):
     inputs_json.write_text("This is a JSON file")
 
     return staging.as_posix(), destination_dir.as_posix()
+
+
+@pytest.fixture()
+def refdata_inputs(tmp_path):
+    inputs = tmp_path / "inputs.json"
+    text_file = tmp_path / "file1.txt"
+    text_file.write_text("This is a file.")
+
+    contents = """{{
+    "file1": "{0}",
+	"runblastplus_sub.ncbi_nt": "/refdata/"
+}} 
+""".format(text_file)# noqa
+
+    inputs.write_text(contents)
+    return tmp_path.as_posix()

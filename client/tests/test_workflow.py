@@ -27,7 +27,7 @@ def dict_comparison(expected_dict, actual_dict):
 def test_create_destination_json(configuration, dap_seq_example):
 
     root_dir = dap_seq_example
-    staging_dir = os.path.join(root_dir, "jaws_central", "staging")
+    staging_dir = os.path.join(root_dir, "jaws_central", "NERSC", "staging")
 
     expected = {
         "jgi_dap_leo.adapters": f"{staging_dir}/global/projectb/sandbox/gaag/bbtools/data/adapters.fa",
@@ -207,3 +207,26 @@ def test_same_submission_id_in_workflow_files(subworkflows_example):
     zip_path = os.path.join(subworkflows_example, "zip_directory")
     zip_wdl, _ = jaws_client.workflow.compress_wdls(wdl, compressed_path=zip_path)
     assert os.path.basename(zip_wdl).strip(".wdl") == submission_id
+
+
+def test_refdata_not_translated(refdata_inputs):
+    inputs_json = os.path.join(refdata_inputs, "inputs.json")
+    text_file = os.path.join(refdata_inputs, "file1.txt")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
+    modified_json = inputs.prepend_paths_to_json("NERSC/staging")
+    expected = {"file1": "NERSC/staging" + text_file,
+                "runblastplus_sub.ncbi_nt": "/refdata/"}
+    dict_comparison(modified_json.inputs_json, expected)
+
+
+def test_refdata_not_in_src_input_files(refdata_inputs):
+    inputs_json = os.path.join(refdata_inputs, "inputs.json")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
+    print(inputs.inputs_json)
+    assert "/refdata/" not in inputs.src_file_inputs
+
+
+def test_refdata_in_inputs_json(refdata_inputs):
+    inputs_json = os.path.join(refdata_inputs, "inputs.json")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "12312")
+    inputs.validate()
