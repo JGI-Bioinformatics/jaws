@@ -187,17 +187,21 @@ Examples
    jaws run queue                                      
    
    # view history of your jobs for last 7 days 
-   jaws run history 
+   jaws run history --days 7
 
 
 **Clear cache**
+
+.. note::
+	Caching is turned off in jaws v2.0
+	
 
 Use this when you want to re-run one or more of your tasks in your workflow (i.e. don't use cached results).
 For example, if you change something in a script but the WDL doesn't change, you will use cached results (which will not reflect changes in your script).
 
 ::
 
-   jaws run delete 121
+   jaws run uncache 121
 
    # now re-submit the wdl to jaws and it will start from scratch.
    jaws run submit metagenome_assembly.wdl inputs.json out nersc

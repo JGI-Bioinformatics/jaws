@@ -30,67 +30,84 @@ Currently JAWS can be run at
     When running a JAWS job, you will always start it on Cori. You can specify as a command argument which site you want [nersc|lbnl].
 
 
-To use JAWS, you'll have to have an account at NERSC.  
-If you do not have a NERSC account yet, please get one by writing to consult@nersc.gov .  
+To begin, you should do these three things 
 
-Also, you need to have two tokens to access JAWS. You should only have to do this once.  
+1) get an account at NERSC.  
 
-You'll need:  
+   - If you do not have a NERSC account yet, please get one by writing to consult@nersc.gov .  
 
-1) a token for globus. You get this from running :bash:`jaws login` (see below). Get an account at globus.org first.  
+2) get an account at globus.org
 
-2) a token for JAWS to perform functons in your name. You'll get this token by emailing a JAWS admin (jlfroula@lbl.gov or eskirton@lbl.gov) and then add it to the file "~/jaws.conf" (see below).
+3) get a JAWS token from one of the JAWS admins (jlfroula@lbl.gov or eskirton@lbl.gov)
+
 
 On Cori, do the following
 
 .. code-block:: bash
 
-    # Do this once
-        rm ~/.jaws-dev.ini  # delete old if exists
-        cp /global/cfs/projectdirs/jaws/jaws-dev/jaws.conf ~
-        chmod 600 ~/jaws.conf
+    rm ~/.jaws-dev.ini  # delete old if exists
+    cp /global/cfs/projectdirs/jaws/jaws-dev/jaws.conf ~
+    chmod 600 ~/jaws.conf
 
-        Edit ~/jaws.conf and define the [USER] variables:
-            token : Get a token from a JAWS admin and save it here  
-            staging_dir : Set to a jaws subdir in your scratch dir, e.g. /global/cscratch1/sd/YOURUID/jaws
+    Edit ~/jaws.conf and add values for the [USER] variables:
+      token : This should be the token you got from the JAWS admin
+      staging_dir : Set to a JAWS subdir in your scratch dir, e.g. /global/cscratch1/sd/YOURUID/jaws
 
-        copy the virtual environment that has the jaws commands in it  
-        ln -s /global/cfs/projectdirs/jaws/jaws-dev/ ~
+    # Set up the virtual environment
+    # You will use an existing one. This gives you access to all the jaws commands.
+    ln -s /global/cfs/projectdirs/jaws/jaws-dev/ ~
 
-    # Do this each time you want to use JAWS
-        source ~/jaws-dev/bin/activate
-        (use "deactivate" to get out of the environment)
+    source ~/jaws-dev/bin/activate
+    (use "deactivate" to get out of the environment)
 
-    # get the jaws-auth token. After running this command, follow directions to get a token from globus.
+    # Get the jaws-auth token. 
+    # After running this command, follow directions to get a token from globus.
     jaws login
 
 
-****************************
-Set up Globus (do this once)
-****************************
+*************
+Set up Globus 
+*************
+
 You need to set up globus so your files can be transfered between different filesystems (even if you are running everything on cori).  
 
 Setting up globus endpoints
 
 .. code-block:: bash
 
-    1. open globus and create an account if you don't already have one globus.org
-    2. once you are logged in, you need to add an endpoint (the institution should have an endpoint already; its where data will be transfered to and from).  
-      a. Click on ENDPOINTS in the menu on the left. Note, you should be in the Recently Used tab which is default.  
-      b. Search for NERSC DTN   
-      c. click on the arrow > at the right of NERSC DTN which is the endpoint details (if you curser over it)   
-      d. on the right of the screen, click on Activation (or Extend Activation) You will have to re-activate every 11 days. Follow the directions to authenticate using NERSC credentials.  
-    
+    1. open globus.org (you should have created an account already for the previous steps to work).
+
+    2. once you are logged in, you need to add an endpoint (institutions that JAWS
+       uses have endpoints already; its where data will be transfered to and from).
+
+      a. Click on "ENDPOINTS" in the menu on the left. Note, you should be in the
+         "Recently Used" tab which is default.
+
+      b. Search for NERSC DTN
+
+      c. Click on the arrow > at the right of NERSC DTN which is the endpoint details 
+         (if you curser over it)
+
+      d. On the right of the screen, click on "Activation" (or "Extend Activation")
+         Follow the directions to authenticate using NERSC credentials!!
+         You will have to re-activate every 11 days.
+
 
 Setting up globus linked accounts 
 
 .. code-block:: bash
 
-    You can link accounts like your NERSC and LBL account. Linking the NERSC account is required for globus to know that its ok to upload and download your data when you are using jaws and thus logged in as NERSC credentials. 
-    1. click on ACCOUNT in the left menu.  You should be in the Identities tab. 
-    2. click on Link Another Identity
-    3. search for NERSC and click continue....follow the authentication steps.  
-       a. You should see <yourusername>@nersc.gov.   
+    You can link accounts like your NERSC and LBL account. 
+    Linking the NERSC account is required for globus to know that its ok to upload 
+    and download your data when you are using jaws and thus logged in as NERSC credentials. 
+
+    1. Click on "ACCOUNT" in the left menu.  You should be in the "Identities" tab. 
+
+    2. Click on "Link Another Identity"
+
+    3. Search for NERSC and click continue....follow the authentication steps.  
+
+       a. You should see <yourusername>@nersc.gov listed.   
 
 
 ***************
@@ -100,13 +117,13 @@ Run WDL in JAWS
 .. code-block:: bash
 
     # clone the example code
-    git clone https://code.jgi.doe.gov/advanced-analysis/jaws.git
-    
-    cd jaws/examples/create_wdl_tutorial
-    
+    git clone https://gitlab.com/jfroula/jaws-quickstart-example.git
+
+    cd jaws-quickstart-example
+
     # run jaws run submit <workflow> <inputs> <full path to outdir> <site: [nersc|lbnl]>
     jaws run submit align.wdl inputs.json out nersc
-    
+
     # you should see something like this
     2020-04-16 13:04:18,434 - INFO - workflow - Validating WDL, align.wdl
     2020-04-16 13:04:20,357 - INFO - workflow - Validating inputs file, inputs.json
@@ -143,14 +160,14 @@ From the output above, we see that the run_id was 80.
 ***********
 Output
 ***********
-All output files should be in "out" in this case.
+All output files and logs should be in "out" in this case.
 
-For debugging, check JAWS run directory.
-----------------------------------------
+For debugging
+-------------
 
 .. code-block:: bash
 
-    # look for "workflowRoot" near bottom of metadata output. 
-    # This is the path to where cromwell results reside.
-    jaws run metadata 80
+    # This command should show you the contents of the stderr, stdout, and 
+    # script files created by your task commands
+    jaws run errors 80
 
