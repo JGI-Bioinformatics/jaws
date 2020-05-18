@@ -33,6 +33,8 @@ This command should output something like this:
      "bbtools.ref": "File"
    }
 
+NOTE: File paths may be absolute or relative paths, but must begin with either a `/` or a `.` (e.g. `/tmp/x` or `./x` but not `x`).
+
 To see more, go to the official wdl docs site for `inputs.json <https://software.broadinstitute.org/wdl/documentation/inputs>`_
 There are some examples in this repo `jaws-example-wdl <https://gitlab.com/jfroula/jaws-example-wdl>`_, but you'll need to search through the different example folders to find `inputs.json` files. 
 

@@ -628,9 +628,9 @@ def inputs_json(tmp_path):
 
 @pytest.fixture()
 def staged_files(tmp_path):
-    staging = tmp_path / "staging"
+    staging_dir = tmp_path / "staging"
 
-    destination_dir = tmp_path / "jaws_central" / "staging"
+    destination_dir = tmp_path / "jaws_site" / "staging" / "src_site"
     destination_dir.mkdir(parents=True)
 
     wdl_file = tmp_path / "example.wdl"
@@ -639,7 +639,7 @@ def staged_files(tmp_path):
     wdl_file.write_text("This is a WDL file")
     inputs_json.write_text("This is a JSON file")
 
-    return staging.as_posix(), destination_dir.as_posix()
+    return staging_dir.as_posix(), destination_dir.as_posix()
 
 
 @pytest.fixture()
@@ -650,9 +650,9 @@ def refdata_inputs(tmp_path):
 
     contents = """{{
     "file1": "{0}",
-	"runblastplus_sub.ncbi_nt": "/refdata/"
-}} 
-""".format(text_file)# noqa
+      "runblastplus_sub.ncbi_nt": "/refdata/"
+}}
+""".format(text_file) # noqa
 
     inputs.write_text(contents)
     return tmp_path.as_posix()

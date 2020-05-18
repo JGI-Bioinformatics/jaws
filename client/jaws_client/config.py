@@ -74,12 +74,12 @@ class Configuration(metaclass=Singleton):
         if womtool_path:
             if not os.path.isfile(womtool_path):
                 raise FileNotFoundError(f"womtool jar does not exist: {womtool_path}")
-            self.config["JAWS"]["womtool_jar"] = f"java -jar {self.config['JAWS']['womtool_jar']}"
+            self.config["JAWS"]["womtool"] = f"java -jar {self.config['JAWS']['womtool_jar']}"
         else:
             womtool_path = shutil.which("womtool")
             if not womtool_path:
                 raise FileNotFoundError("womtool not found in path or config file")
-            self.config["JAWS"]["womtool_jar"] = womtool_path
+            self.config["JAWS"]["womtool"] = womtool_path
 
         global conf
         conf = self
