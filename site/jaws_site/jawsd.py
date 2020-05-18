@@ -236,7 +236,7 @@ class Daemon:
             return
         orig_dir = r.json()["workflowRoot"]
         nice_dir = os.path.join(self.results_dir, str(run.id))
-        wfcopy.wfcopy(orig_dir, nice_dir, flattenShardDir=False)
+        wfcopy.wfcopy(orig_dir, nice_dir)
         run.status = "ready"
         self.logger.info(f"Run {run.id}: ready")
         self.session.commit()

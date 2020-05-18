@@ -9,47 +9,68 @@ cromwell_outputs = [
     "call-runBlastNoshard/blast.runblastplus/4a1/call-runBlast/execution/refseq.bacteria.parsed",
     "call-runBlastNoshard/blast.runblastplus/4a1/call-runBlast/runblastplus2/blast.runblastplus2/4b2/call-runBlast2/shard-0/execution/refseq.fungi.parsed", # noqa
     "call-runBlastNoshard/blast.runblastplus/4a1/call-runBlast/runblastplus2/blast.runblastplus2/4b2/call-runBlast2/shard-1/execution/refseq.archaea.parsed", # noqa
+    "call-runBlastNoshard/blast.runblastplus/4a1/call-runBlast/runblastplus2/blast.runblastplus2/4b2/call-runBlast3/execution/refseq.bacteria.parsed", # noqa
+    "call-runBlastNoshard/blast.runblastplus/4a1/call-runBlast/runblastplus2/blast.runblastplus2/4b2/call-runBlast4/execution/refseq.meta.parsed", # noqa
+    "call-bbmap_shard_wf/align.bbmap_shard_wf/2b/call-merge_bams/execution/merged.sorted.bam",  # noqa
+    "call-bbmap_shard_wf/align.bbmap_shard_wf/2b/call-alignment/shard-0/execution/sample1.sam",  # noqa
+    "call-bbmap_shard_wf/align.bbmap_shard_wf/2b/call-alignment/shard-1/execution/sample2.sam",  # noqa
     "call-runBlastShard/shard-0/execution/refseq.bacteria.parsed",
     "call-runBlastShard/shard-1/execution/refseq.mito.parsed",
     "call-runSpades/execution/scaffolds.fasta",
 ]
 
+
 # Cromwell files created in each task directory
 cromwell_files = [
     "script",
-    "script.background",
     "script.submit",
     "stdout",
-    "stdout.background",
     "stderr",
-    "stderr.background",
     "rc",
 ]
 
 # Folders and files created by wfcopy
 wfcopy_outputs = [
-    "runBlastNoshard/refseq.bacteria.parsed",
-    "runBlastNoshard/runBlast2-shard-0/refseq.fungi.parsed",
-    "runBlastNoshard/runBlast2-shard-1/refseq.archaea.parsed",
+    "runBlastNoshard/runBlast/refseq.bacteria.parsed",
+    "runBlastNoshard/runBlast2/shard-0/refseq.fungi.parsed",
+    "runBlastNoshard/runBlast2/shard-1/refseq.archaea.parsed",
+    "runBlastNoshard/runBlast3/refseq.bacteria.parsed",
+    "runBlastNoshard/runBlast4/refseq.meta.parsed",
     "runBlastShard/shard-0/refseq.bacteria.parsed",
     "runBlastShard/shard-1/refseq.mito.parsed",
+    "bbmap_shard_wf/alignment/shard-0/sample1.sam",
+    "bbmap_shard_wf/alignment/shard-1/sample2.sam",
+    "bbmap_shard_wf/merge_bams/merged.sorted.bam",
     "runSpades/scaffolds.fasta",
-    "log/runBlastNoshard-runBlast2-shard-0.script",
-    "log/runBlastNoshard-runBlast2-shard-0.stderr",
-    "log/runBlastNoshard-runBlast2-shard-0.stdout",
-    "log/runBlastNoshard-runBlast2-shard-1.script",
-    "log/runBlastNoshard-runBlast2-shard-1.stderr",
-    "log/runBlastNoshard-runBlast2-shard-1.stdout",
-    "log/runBlastNoshard.script",
-    "log/runBlastNoshard.stderr",
-    "log/runBlastNoshard.stdout",
-    "log/runBlastShard-shard-0.script",
-    "log/runBlastShard-shard-0.stderr",
-    "log/runBlastShard-shard-0.stdout",
-    "log/runBlastShard-shard-1.script",
-    "log/runBlastShard-shard-1.stderr",
-    "log/runBlastShard-shard-1.stdout",
+    "log/runBlastNoshard.runBlast.script",
+    "log/runBlastNoshard.runBlast.script.submit",
+    "log/runBlastNoshard.runBlast.stdout",
+    "log/runBlastNoshard.runBlast.stderr",
+    "log/runBlastNoshard.runBlast2.shard-0.script",
+    "log/runBlastNoshard.runBlast2.shard-0.script.submit",
+    "log/runBlastNoshard.runBlast2.shard-0.stderr",
+    "log/runBlastNoshard.runBlast2.shard-0.stdout",
+    "log/runBlastNoshard.runBlast2.shard-1.script",
+    "log/runBlastNoshard.runBlast2.shard-1.script.submit",
+    "log/runBlastNoshard.runBlast2.shard-1.stderr",
+    "log/runBlastNoshard.runBlast2.shard-1.stdout",
+    "log/runBlastNoshard.runBlast3.script",
+    "log/runBlastNoshard.runBlast3.script.submit",
+    "log/runBlastNoshard.runBlast3.stdout",
+    "log/runBlastNoshard.runBlast3.stderr",
+    "log/runBlastNoshard.runBlast4.script",
+    "log/runBlastNoshard.runBlast4.script.submit",
+    "log/runBlastNoshard.runBlast4.stdout",
+    "log/runBlastNoshard.runBlast4.stderr",
+    "log/runBlastShard.shard-0.script",
+    "log/runBlastShard.shard-0.script.submit",
+    "log/runBlastShard.shard-0.stderr",
+    "log/runBlastShard.shard-0.stdout",
+    "log/runBlastShard.shard-1.script",
+    "log/runBlastShard.shard-1.stderr",
+    "log/runBlastShard.shard-1.stdout",
     "log/runSpades.script",
+    "log/runSpades.script.submit",
     "log/runSpades.stderr",
     "log/runSpades.stdout",
     "log/workflow.rc",
@@ -57,46 +78,56 @@ wfcopy_outputs = [
 
 # Folders and files created by wfcopy with flatten option
 wfcopy_flatten_outputs = [
-    "runBlastNoshard/refseq.bacteria.parsed",
-    "runBlastNoshard/refseq.fungi.parsed",
-    "runBlastNoshard/refseq.archaea.parsed",
+    "runBlastNoshard/runBlast/refseq.bacteria.parsed",
+    "runBlastNoshard/runBlast2/refseq.fungi.parsed",
+    "runBlastNoshard/runBlast2/refseq.archaea.parsed",
+    "runBlastNoshard/runBlast3/refseq.bacteria.parsed",
+    "runBlastNoshard/runBlast4/refseq.meta.parsed",
     "runBlastShard/refseq.bacteria.parsed",
     "runBlastShard/refseq.mito.parsed",
+    "bbmap_shard_wf/merge_bams/merged.sorted.bam",
+    "bbmap_shard_wf/alignment/sample1.sam",
+    "bbmap_shard_wf/alignment/sample2.sam",
     "runSpades/scaffolds.fasta",
-    "log/runBlastNoshard-runBlast2-shard-0.script",
-    "log/runBlastNoshard-runBlast2-shard-0.stderr",
-    "log/runBlastNoshard-runBlast2-shard-0.stdout",
-    "log/runBlastNoshard-runBlast2-shard-1.script",
-    "log/runBlastNoshard-runBlast2-shard-1.stderr",
-    "log/runBlastNoshard-runBlast2-shard-1.stdout",
-    "log/runBlastNoshard.script",
-    "log/runBlastNoshard.stderr",
-    "log/runBlastNoshard.stdout",
-    "log/runBlastShard-shard-0.script",
-    "log/runBlastShard-shard-0.stderr",
-    "log/runBlastShard-shard-0.stdout",
-    "log/runBlastShard-shard-1.script",
-    "log/runBlastShard-shard-1.stderr",
-    "log/runBlastShard-shard-1.stdout",
+    "log/runBlastNoshard.runBlast.script",
+    "log/runBlastNoshard.runBlast.script.submit",
+    "log/runBlastNoshard.runBlast.stdout",
+    "log/runBlastNoshard.runBlast.stderr",
+    "log/runBlastNoshard.runBlast2.script",
+    "log/runBlastNoshard.runBlast2.script.submit",
+    "log/runBlastNoshard.runBlast2.stderr",
+    "log/runBlastNoshard.runBlast2.stdout",
+    "log/runBlastNoshard.runBlast2.script",
+    "log/runBlastNoshard.runBlast2.script.submit",
+    "log/runBlastNoshard.runBlast2.stderr",
+    "log/runBlastNoshard.runBlast2.stdout",
+    "log/runBlastNoshard.runBlast3.script",
+    "log/runBlastNoshard.runBlast3.script.submit",
+    "log/runBlastNoshard.runBlast3.stdout",
+    "log/runBlastNoshard.runBlast3.stderr",
+    "log/runBlastNoshard.runBlast4.script",
+    "log/runBlastNoshard.runBlast4.script.submit",
+    "log/runBlastNoshard.runBlast4.stdout",
+    "log/runBlastNoshard.runBlast4.stderr",
+    "log/runBlastShard.script",
+    "log/runBlastShard.script.submit",
+    "log/runBlastShard.stderr",
+    "log/runBlastShard.stdout",
+    "log/runBlastShard.script",
+    "log/runBlastShard.stderr",
+    "log/runBlastShard.stdout",
     "log/runSpades.script",
+    "log/runSpades.script.submit",
     "log/runSpades.stderr",
     "log/runSpades.stdout",
     "log/workflow.rc",
-]
-
-# Cromwell files created in each task within the wfcopy dir
-wfcopy_cromwell_files = [
-    "script",
-    "stdout",
-    "stderr",
-    "rc",
 ]
 
 cromwell_root_dir = tempfile.mkdtemp(prefix="cromwell_")
 wfcopy_root_dir = tempfile.mkdtemp(prefix="wfcopy_")
 
 
-def setup():
+def setup_function():
     print("setup ...")
     for filename in cromwell_outputs:
         fullname = os.path.join(cromwell_root_dir, filename)
@@ -119,20 +150,12 @@ def setup():
         print(fullname)
 
 
-def teardown():
+def teardown_function():
     print("teardown ...")
     print("remove %s" % cromwell_root_dir)
     print("remove %s" % wfcopy_root_dir)
     shutil.rmtree(cromwell_root_dir)
     shutil.rmtree(wfcopy_root_dir)
-
-
-def setup_function(setup):
-    pass
-
-
-def teardown_function(teardown):
-    pass
 
 
 def test_wfcopy():
@@ -143,33 +166,17 @@ def test_wfcopy():
     # look for task files
     for filename in wfcopy_outputs:
         fullname = os.path.join(wfcopy_root_dir, filename)
-        filepath = os.path.dirname(fullname)
         print(fullname)
         assert os.path.isfile(fullname)
 
-        # look for cromwell script files
-        if not filename.startswith("log"):
-            for cromwell_file in wfcopy_cromwell_files:
-                srcfile = os.path.join(filepath, cromwell_file)
-                print(srcfile)
-                assert os.path.isfile(srcfile)
-
 
 def test_wfcopy_flatten():
-    print("testing ...")
+    print("testing with flatten_shard_dir ...")
     # Transform cromwell dir to wfcopy format
-    wfcopy.wfcopy(cromwell_root_dir, wfcopy_root_dir, flattenShardDir=True)
+    wfcopy.wfcopy(cromwell_root_dir, wfcopy_root_dir, flatten_shard_dir=True)
 
     # look for task files
     for filename in wfcopy_flatten_outputs:
         fullname = os.path.join(wfcopy_root_dir, filename)
-        filepath = os.path.dirname(fullname)
         print(fullname)
         assert os.path.isfile(fullname)
-
-        # look for cromwell script files
-        if not filename.startswith("log"):
-            for cromwell_file in wfcopy_cromwell_files:
-                srcfile = os.path.join(filepath, cromwell_file)
-                print(srcfile)
-                assert os.path.isfile(srcfile)
