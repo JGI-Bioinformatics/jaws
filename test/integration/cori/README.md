@@ -34,9 +34,12 @@ user workloads: one for JAWS and one for JTM/Cromwell.
 
 To see this in action see .gitlab-ci.yml .
 
-Start the supervisors. Only necessary once, after startup of the machine hosting the services:
+Start the supervisors. Only necessary once, after startup of the machine hosting the services: 
 
-    /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jaws.conf
+    collabsu jaws
+    /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jaws.conf 
+    logout
+    collabsu jaws_jtm
     /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jtm.conf
 
 Check the status of JAWS services:
@@ -53,9 +56,9 @@ Start the JAWS services:
 After a maintenance, it is very likely that the runner will need to be restarted
 in order to accomplish this use the following steps:
 
-`collabsu jaws`  
-`cd $CFS/m342/jaws_runner/usr/bin`  
-`nohup ./gitlab-runner run &`  
+    collabsu jaws
+    cd $CFS/m342/jaws_runner/usr/bin
+    nohup ./gitlab-runner run &
 
 You can then check the UI on gitlab to see if the runner is up and working.
 
@@ -70,12 +73,11 @@ using a user systemd.
 
 There is already a script present that starts up the services located here:  
 
-
-`/global/home/groups-sw/lr_jgicloud/dev/jtm-service-dev.sh`  
-`/global/home/groups-sw/lr_jgicloud/prod/jtm-service-prod.sh`  
+    /global/home/groups-sw/lr_jgicloud/dev/jtm-service-dev.sh
+    /global/home/groups-sw/lr_jgicloud/prod/jtm-service-prod.sh
 
 To run the service you will want to run the following command:  
 
-`systemctl start jawsdev`  
+    systemctl start jawsdev
 
 The above wil start the dev version of the runner. 
