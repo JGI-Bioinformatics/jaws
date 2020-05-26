@@ -21,6 +21,9 @@ This is an example of how you can set up the environment to start running a pipe
 Set up JAWS Environment 
 *******************************
 
+
+`(see video about settting up the JAWS environment) <https://youtu.be/r3ZStgyA0tk>`_
+
 Currently JAWS can be run at 
 
   * Cori(NERSC)

@@ -20,7 +20,8 @@ computational workflows. Its purpose is to improve the re-usability and robustne
    :caption: Intro
 
    Why use JAWS <Intro/why_jaws>
-   How JAWS Works<Intro/how_jaws>
+   What is JAWS <Intro/how_jaws>
+   JAWS Video Library<Intro/videos>
    FAQ <Intro/faq>
    Contact Us <Intro/contact_us>
 
