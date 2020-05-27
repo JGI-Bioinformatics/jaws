@@ -22,7 +22,7 @@ Set up JAWS Environment
 *******************************
 
 
-`(see video about settting up the JAWS environment) <https://youtu.be/r3ZStgyA0tk>`_
+`(see video about settting up the JAWS environment) <https://youtu.be/7qXpMNdQjdw>`_
 
 Currently JAWS can be run at 
 
