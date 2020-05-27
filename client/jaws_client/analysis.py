@@ -7,7 +7,6 @@ import json
 import requests
 import click
 import logging
-import subprocess
 import uuid
 import shutil
 from typing import Dict
@@ -42,8 +41,14 @@ def _get(url):
     except requests.exceptions.RequestException as err:
         raise SystemExit("Unable to communicate with JAWS server", err)
     if r.status_code != 200:
-        result = r.json()
-        raise SystemExit(result["detail"])
+        try:
+            result = r.json()
+        except Exception:
+            raise SystemExit(r.text)
+        if "detail" in result:
+            raise SystemExit(result["detail"])
+        else:
+            raise SystemExit(result)
     return r
 
 
@@ -182,10 +187,12 @@ def cancel(run_id):
         r = requests.put(url, headers=current_user.header())
     except requests.exceptions.RequestException:
         raise SystemExit("Unable to communicate with JAWS server")
-    if r.status_code != 201:
-        result = r.json()
-        raise SystemExit(result["detail"])
     result = r.json()
+    if r.status_code != 201:
+        if "detail" in result:
+            raise SystemExit(result["detail"])
+        else:
+            raise SystemExit(r.text)
     print(json.dumps(result, indent=4, sort_keys=True))
 
 
@@ -204,10 +211,12 @@ def uncache(run_id: int) -> None:
         r = requests.delete(url, headers=current_user.header())
     except requests.exceptions.RequestException:
         raise SystemExit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        result = r.json()
-        raise SystemExit(result["detail"])
     result = r.json()
+    if r.status_code != 200:
+        if "detail" in result:
+            raise SystemExit(result["detail"])
+        else:
+            raise SystemExit(r.text)
     print(json.dumps(result, indent=4, sort_keys=True))
 
 
@@ -245,32 +254,35 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     :param site: JAWS Site ID at which to run
     :type site: str
     """
-    outdir = os.path.abspath(outdir)
-
-    compute_site_id = site.upper()
     current_user = user.User()
     logger = logging.getLogger(__package__)
 
-    globus_basedir = config.Configuration().get("GLOBUS", "basedir")
+    # STAGING DIR
     staging_subdir = config.Configuration().get("USER", "staging_dir")
-
+    globus_basedir = config.Configuration().get("GLOBUS", "basedir")
     if not staging_subdir.startswith(globus_basedir):
         raise SystemExit(
-            f"Staging dir must be under endpoint's basedir: {globus_basedir}"
+            f"Configuration error: Staging dir must be under endpoint's basedir: {globus_basedir}"
         )
     if not os.path.isdir(staging_subdir):
         os.makedirs(staging_subdir)
-    local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
 
+    # GLOBUS
+    local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
     if out_endpoint is None:
         out_endpoint = local_endpoint_id
+
+    # OUTDIR
+    outdir = os.path.abspath(outdir)
     if out_endpoint == local_endpoint_id and not outdir.startswith(globus_basedir):
         raise SystemExit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
     if not os.path.isdir(outdir):
         try:
             os.makedirs(outdir)
         except Exception as error:
-            raise SystemExit(f"Invalid outdir, {outdir}: {error}")
+            raise SystemExit(f"Unable to make outdir, {outdir}: {error}")
+
+    # CONFIRM OUTDIR WRITABLE BY COPYING WDL, INPUT FILES
     try:
         shutil.copy2(wdl_file, outdir)
     except Exception as error:
@@ -280,10 +292,9 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     except Exception as error:
         raise SystemExit(f"Unable to copy json file to outdir: {error}")
 
-    submission_id = str(uuid.uuid4())
-
+    # GET SITE INFO
+    compute_site_id = site.upper()
     url = f'{config.conf.get("JAWS", "url")}/site/{compute_site_id}'
-
     try:
         r = requests.get(url, headers=current_user.header())
     except requests.exceptions.RequestException:
@@ -295,18 +306,18 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     elif r.status_code != requests.codes.ok:
         result = r.json()
         raise SystemExit(result["detail"])
-
     result = r.json()
     compute_basedir = result["globus_basepath"]
     compute_staging_subdir = result["staging_subdir"]
     compute_max_ram_gb = int(result["max_ram_gb"])
 
-    # PREPARE RUN
-    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_staging_subdir)
-    local_staging_endpoint = workflow.join_path(globus_basedir, staging_subdir)
-
+    # VALIDATE WORKFLOW
+    submission_id = str(uuid.uuid4())
     wdl = workflow.WdlFile(wdl_file, submission_id)
     inputs_json = workflow.WorkflowInputs(infile, submission_id)
+
+    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_staging_subdir)
+    local_staging_endpoint = workflow.join_path(globus_basedir, staging_subdir)
     manifest_file = workflow.Manifest(local_staging_endpoint, jaws_site_staging_dir)
 
     wdl.validate()
@@ -321,19 +332,21 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     site_id = config.conf.get("JAWS", "site_id")
     site_subdir = workflow.join_path(local_staging_endpoint, site_id)
 
-    compressed_wdl, zip_file = workflow.compress_wdls(wdl, local_staging_endpoint)
+    sanitized_wdl, zip_file = workflow.compress_wdls(wdl, local_staging_endpoint)
     moved_files = workflow.move_input_files(inputs_json, site_subdir)
 
     staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
-    modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_dir)
+    jaws_site_staging_site_subdir = workflow.join_path(jaws_site_staging_dir, site_id)
+    modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
     modified_json.write_to(staged_json)
 
-    manifest_file.add(compressed_wdl, zip_file, staged_json, *moved_files)
+    manifest_file.add(sanitized_wdl, zip_file, staged_json, *moved_files)
     staged_manifest = workflow.join_path(staging_subdir, f"{submission_id}.tsv")
     manifest_file.write_to(staged_manifest)
 
+    # SUBMIT RUN TO CENTRAL
     data = {
-        "site_id": site,
+        "site_id": compute_site_id,
         "submission_id": submission_id,
         "input_site_id": config.conf.get("JAWS", "site_id"),
         "input_endpoint": config.conf.get("GLOBUS", "endpoint_id"),
@@ -342,22 +355,23 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     }
     files = {"manifest": open(staged_manifest, "r")}
     url = f'{config.conf.get("JAWS", "url")}/run'
-    logger.debug("Submitting run to %s:\n%s" % (url, data))
-    current_user = user.User()
+    logger.debug(f"Submitting run: {data}")
     try:
         r = requests.post(url, data=data, files=files, headers=current_user.header())
     except requests.exceptions.RequestException:
         raise SystemExit("Unable to communicate with JAWS server")
-    if r.status_code != 201:
-        result = r.json()
-        raise SystemExit(result["detail"])
     result = r.json()
+    if r.status_code != 201:
+        raise SystemExit(result["detail"])
     if "run_id" not in result:
-        raise SystemExit(f"Invalid response from JAWS: {result}")
+        raise SystemExit(f"Run submission failed: {result}")
     run_id = result["run_id"]
+    logger.info(f"Submitted run {run_id}: {data}")
+
+    # WRITE RUN INFO TO OUTDIR
     logfile = os.path.join(outdir, f"jaws.run_{run_id}.log")
     with open(logfile, "w") as fh:
-        fh.write(r.text+"\n")
+        fh.write(r.text + "\n")
     print(r.text)
 
 
@@ -372,11 +386,25 @@ def inputs(wdl_file: str) -> None:
     """
     if not os.path.isfile(wdl_file):
         raise IOError(f"File not found: {wdl_file}")
-    proc = subprocess.run(
-        ["java", "-jar", config.conf.get("JAWS", "womtool_jar"), "inputs", wdl_file, ],
-        capture_output=True,
-        text=True,
-    )
-    if proc.stderr:
-        raise SystemExit(proc.stderr)
-    print(proc.stdout.strip())
+    stdout, stderr = workflow.womtool("inputs", wdl_file)
+    if stderr:
+        raise SystemExit(stderr)
+    print(stdout.strip())
+
+
+@run.command()
+@click.argument("wdl_file", nargs=1)
+def validate(wdl_file: str) -> None:
+    """Validate a WDL using Cromwell's WOMTool.
+
+    :param wdl_file: Path to workflow specification (WDL) file
+    :type wdl_file: str
+    :return:
+    """
+    if not os.path.isfile(wdl_file):
+        raise IOError(f"File not found: {wdl_file}")
+    stdout, stderr = workflow.womtool("inputs", wdl_file)
+    if stderr:
+        raise SystemExit(stderr)
+    else:
+        print("Workflow is OK")

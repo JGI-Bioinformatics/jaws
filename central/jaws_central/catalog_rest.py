@@ -25,7 +25,7 @@ def list_wdls(user: str) -> Tuple[dict, int]:
         result = catalog.list_wdls()
         return result, 200
     except catalog.CatalogDatabaseError as e:
-        abort(500, f"Catalog error: {e}")
+        abort(500, e)
 
 
 def get_versions(user: str, name: str) -> Tuple[dict, int]:
@@ -165,12 +165,14 @@ def update_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
 
     try:
         catalog.update_wdl(user, name, version, new_wdl)
-    except catalog.CatalogWorkflowNotFoundError:
-        abort(404, f"Workflow not found: {name}:{version}")
-    except catalog.CatalogAuthenticationError:
-        abort(401, "Access denied; only the owner may update a workflow")
-    except catalog.CatalogDatabaseError as e:
-        abort(500, f"Catalog error: {e}")
+    except catalog.CatalogWorkflowNotFoundError as error:
+        abort(404, error)
+    except catalog.CatalogAuthenticationError as error:
+        abort(401, error)
+    except catalog.CatalogWorkflowImmutableError as error:
+        abort(400, error)
+    except catalog.CatalogDatabaseError as error:
+        abort(500, error)
     return {"result": "OK"}, 200
 
 
@@ -242,6 +244,8 @@ def add_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
 
     try:
         catalog.add_wdl(user, name, version, new_wdl, new_doc)
+    except catalog.CatalogInvalidInputError as e:
+        abort(400, e)
     except catalog.CatalogDatabaseError as e:
         abort(500, f"Catalog error: {e}")
     return {"result": "OK", "name": name, "version": version}, 201

@@ -49,9 +49,16 @@ def list_wdls() -> Tuple[dict, int]:
     except SQLAlchemyError as e:
         logger.error(e)
         raise CatalogDatabaseError(e)
-    result = [("NAME", "VERSION", "OWNER", "CREATED", "UPDATED")]
+    result = []
     for row in query:
-        result.append([row.name, row.version, row.user_id, row.created, row.updated])
+        is_released = "yes" if row.is_released else "no"
+        result.append({
+            "name": row.name,
+            "version": row.version,
+            "owner": row.user_id,
+            "created": row.created,
+            "last_updated": row.updated,
+            "production_release": is_released})
     return result
 
 
@@ -73,9 +80,18 @@ def get_versions(name: str) -> Tuple[dict, int]:
     except SQLAlchemyError as e:
         logger.error(e)
         raise CatalogDatabaseError(e)
-    result = [("NAME", "VERSION", "OWNER", "CREATED", "UPDATED")]
+    result = {}
     for row in query:
-        result.append([row.name, row.version, row.user_id, row.created, row.updated])
+        is_released = "yes" if row.is_released else "no"
+        full_name = f"{row.name}:{row.version}"
+        result[full_name] = {
+            "name": row.name,
+            "version": row.version,
+            "owner": row.user_id,
+            "created": row.created,
+            "last_updated": row.updated,
+            "production_release": is_released,
+        }
     return result
 
 
@@ -234,11 +250,11 @@ def update_wdl(user: str, name: str, version: str, new_wdl: str) -> Tuple[dict, 
         logger.error(e)
         raise CatalogDatabaseError(e)
     if workflow is None:
-        raise CatalogWorkflowNotFoundError("Workflow not found")
+        raise CatalogWorkflowNotFoundError("Workflow not found, check the name/version")
     if workflow.user_id != user:
-        raise CatalogAuthenticationError("User is not owner")
+        raise CatalogAuthenticationError("You are not the owner of this workflow")
     if workflow.is_released is True:
-        raise CatalogWorkflowImmutableError("Workflow is immutable")
+        raise CatalogWorkflowImmutableError("The WDL of a 'released' workflow cannot be updated, only deleted")
     try:
         workflow.wdl = new_wdl
         db.session.commit()
@@ -286,7 +302,6 @@ def update_doc(user: str, name: str, version: str, new_doc: str) -> Tuple[dict, 
     except SQLAlchemyError as e:
         logger.error(e)
         raise CatalogDatabaseError(e)
-    return {"result": "OK"}, 200
 
 
 def add_wdl(
@@ -321,9 +336,9 @@ def add_wdl(
         logger.error(e)
         raise CatalogDatabaseError(e)
     if workflow is not None:
-        update_wdl(user, name, version, new_wdl)
-        update_doc(user, name, version, new_doc)
-        return
+        raise CatalogInvalidInputError(
+            "A workflow with that name:version already exists"
+        )
     now = datetime.now()
     workflow = Workflow(
         name=name,

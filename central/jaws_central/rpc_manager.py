@@ -47,7 +47,7 @@ class JawsRpc(metaclass=Singleton):
         :return: list of JAWS-Site IDs (str)
         :rtype: list
         """
-        return self.clients.keys()
+        return list(self.clients.keys())
 
     def get_client(self, site_id: str) -> rpc_client:
         """Get RPC client object of a Site.

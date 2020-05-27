@@ -456,7 +456,7 @@ def cromwell_run_dir(tmp_path):
     non_zero_dirs = ["call-asm_1", "call-circularizeAssembly", "call-filterHighGc"]
 
     # These dirs will have nonzero stderr.submit files (submission errors)
-    submission_error_dirs = ["call-doHmmSearch"]
+    submission_error_dirs = ["call-asm_1", "call-filterHighGc", "call-doHmmSearch"]
 
     for d in subdirs:
         dir_path = tmp_path / d / "execution"
@@ -472,15 +472,10 @@ def cromwell_run_dir(tmp_path):
         if d in non_zero_dirs:
             rc_file.write_text("127")
             stderr.write_text(f"This is standard error. This {d} had an error")
-            stderr_sub.write_text(f"This is submit stderr from {d}")
+            if d in submission_error_dirs:
+                stderr_sub.write_text(f"This is submit stderr from {d}")
         else:
             rc_file.write_text("0")
-            stderr.write_text(f"This is standard error. This {d} had no errors")
-            stderr_sub.write_text("")
-        if d in submission_error_dirs:
-            stderr.write_text(f"This is standard error. This {d} had an error")
-            stderr_sub.write_text(f"This is submit stderr from {d}")
-        else:
             stderr.write_text(f"This is standard error. This {d} had no errors")
             stderr_sub.write_text("")
     return tmp_path.as_posix()

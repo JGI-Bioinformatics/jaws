@@ -7,7 +7,9 @@ from http.client import responses
 import logging
 import os
 import shutil
+import collections
 from jaws_site import config
+from jaws_site import wfcopy
 
 
 def dispatch(method, params):
@@ -228,40 +230,39 @@ def run_logs(params):
 
 
 def _find_failure_logs(run_dir):
+    out_json = collections.defaultdict(dict)
+    stderr_files = collections.defaultdict(dict)
     max_lines = 1000
-    separator = "\n\n" + "-" * 20 + "\n\n"
-    target_files = ["rc", "stdout", "stderr", "stdout.submit", "stderr.submit", "script"]
-    output = ""
-    for root_dir, subdirs, files in os.walk(run_dir):
-        if not root_dir.endswith("/execution"):
-            continue
-        output += f"TASK: {root_dir}\n"
+    target_files = ['stderr', 'stderr.submit']
 
-        rc_file = os.path.join(root_dir, "rc")
-        stderr_submit_file = os.path.join(root_dir, "stderr.submit")
-        if os.path.isfile(rc_file):
-            # TASK RAN, CHECK RC
-            rc = None
-            with open(rc_file, "r") as fh:
-                rc = fh.readline().strip()
-            if rc == 0:
-                continue
-        else:
-            # TASK DID NOT RUN, CHECK SUBMISSION LOG
-            if not os.path.isfile(stderr_submit_file) or os.path.getsize(stderr_submit_file) == 0:
-                continue
-        # TASK HAS ERROR
-        for fname in files:
-            if fname not in target_files:
-                continue
-            full_filepath = os.path.join(root_dir, fname)
-            lines, is_truncated = __tail(full_filepath, max_lines)
+    # get cromwell files for each task, store rc code and target file paths in stderr_files dict
+    for taskname, filename in wfcopy.get_files(run_dir, delimiter='.'):
+        basename = os.path.basename(filename)
+        if basename == 'rc':
+            with open(filename) as fh:
+                rc = int(fh.read().strip())
+            stderr_files[taskname][basename] = rc
+        if basename in target_files:
+            stderr_files[taskname][basename] = filename
+
+    # for each task, parse target files for msgs, store in out_json.
+    for taskname in stderr_files:
+        if not stderr_files[taskname]['rc']:
+            continue
+
+        del stderr_files[taskname]['rc']
+        for stderr_type in stderr_files[taskname]:
+            filename = stderr_files[taskname][stderr_type]
+            lines, is_truncated = __tail(filename, max_lines)
+            output = ''
             if is_truncated:
-                output += f"\n[{fname}] showing only last {max_lines} lines\n" + "\n".join(lines)
+                output += "showing only last {max_lines} lines\n"
+                output += '\n'.join(lines)
             else:
-                output += f"\n[{fname}]\n" + "\n".join(lines)
-        output += separator
-    return output
+                output = '\n'.join(lines)
+            out_json[taskname][stderr_type] = output
+
+    return dict(out_json)
 
 
 def failure_logs(params):
@@ -278,8 +279,8 @@ def failure_logs(params):
         return failure(r.status_code)
 
     run_dir = r.json()["workflowRoot"]
-    output = _find_failure_logs(run_dir)
-    return success(output)
+    out_json = _find_failure_logs(run_dir)
+    return success(out_json)
 
 
 def __tail(filename, max_lines=1000):

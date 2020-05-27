@@ -27,7 +27,7 @@ def dict_comparison(expected_dict, actual_dict):
 def test_create_destination_json(configuration, dap_seq_example):
 
     root_dir = dap_seq_example
-    staging_dir = os.path.join(root_dir, "jaws_central", "staging")
+    staging_dir = os.path.join(root_dir, "jaws_central", "NERSC", "staging")
 
     expected = {
         "jgi_dap_leo.adapters": f"{staging_dir}/global/projectb/sandbox/gaag/bbtools/data/adapters.fa",
@@ -79,7 +79,9 @@ def test_src_json_inputs(configuration, inputs_json):
     shutil.which("womtool") is None, reason="WOMTool needs to be installed."
 )
 def test_wdl_validation(configuration, simple_wdl_example):
-    wdl = jaws_client.workflow.WdlFile(os.path.join(simple_wdl_example, "align.wdl"), "1234")
+    wdl = jaws_client.workflow.WdlFile(
+        os.path.join(simple_wdl_example, "align.wdl"), "1234"
+    )
     wdl.validate()
 
 
@@ -107,7 +109,9 @@ def test_wdl_subworkflows(configuration, subworkflows_example):
     shutil.which("womtool") is None, reason="WOMTool needs to be installed"
 )
 def test_calculate_wdl_max_ram_gb(configuration, dap_seq_example):
-    wdl = jaws_client.workflow.WdlFile(os.path.join(dap_seq_example, "test.wdl"), "1234")
+    wdl = jaws_client.workflow.WdlFile(
+        os.path.join(dap_seq_example, "test.wdl"), "1234"
+    )
     assert 5 == wdl.max_ram_gb
 
 
@@ -117,7 +121,9 @@ def test_calculate_wdl_max_ram_gb(configuration, dap_seq_example):
 def test_calculate_wdl_max_ram_gb_with_subworkflows(
     configuration, subworkflows_example
 ):
-    wdl = jaws_client.workflow.WdlFile(os.path.join(subworkflows_example, "main.wdl"), "1234")
+    wdl = jaws_client.workflow.WdlFile(
+        os.path.join(subworkflows_example, "main.wdl"), "1234"
+    )
     assert 0 == wdl.max_ram_gb
 
 
@@ -155,9 +161,11 @@ def test_remove_invalid_backend(wdl_with_invalid_backend):
 
 def test_move_input_files_to_destination(configuration, sample_workflow):
     inputs = os.path.join(sample_workflow, "workflow", "sample.json")
-    staging = os.path.join(sample_workflow, "staging")
+    staging_dir = os.path.join(sample_workflow, "staging")
     inputs_json = jaws_client.workflow.WorkflowInputs(inputs, uuid.uuid4())
-    jaws_client.workflow.move_input_files(inputs_json, os.path.join(staging, "NERSC"))
+    jaws_client.workflow.move_input_files(
+        inputs_json, os.path.join(staging_dir, "NERSC")
+    )
 
 
 @pytest.mark.skipif(
@@ -165,13 +173,27 @@ def test_move_input_files_to_destination(configuration, sample_workflow):
 )
 def test_zipping_up_of_subworkflow_files(configuration, subworkflows_example):
     basedir = subworkflows_example
-    staging = os.path.join(basedir, "staging")
+    staging_dir = os.path.join(basedir, "staging")
     wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"), "1234")
     staged_wdl, zip_file = jaws_client.workflow.compress_wdls(
-        wdl, compressed_path=staging
+        wdl, staging_dir=staging_dir
     )
     assert os.path.exists(staged_wdl)
     assert os.path.exists(zip_file)
+
+
+def test_no_zip_file_in_manifest_if_no_subworkflows(simple_wdl_example):
+    basedir = simple_wdl_example
+    staging_dir = os.path.join(basedir, "staging")
+    compute_dir = os.path.join(basedir, "compute")
+
+    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "align.wdl"), "1234")
+    staged_wdl, zip_file = jaws_client.workflow.compress_wdls(wdl, basedir)
+    manifest_file = jaws_client.workflow.Manifest(staging_dir, compute_dir)
+    manifest_file.add(staged_wdl, zip_file)
+
+    for infiles in manifest_file.manifest:
+        assert ".zip" not in infiles[0]  # tuple where first entry is the filename
 
 
 def test_manifest_file(staged_files):
@@ -205,5 +227,28 @@ def test_same_submission_id_in_workflow_files(subworkflows_example):
     wdl_file = os.path.join(subworkflows_example, "main.wdl")
     wdl = jaws_client.workflow.WdlFile(wdl_file, submission_id)
     zip_path = os.path.join(subworkflows_example, "zip_directory")
-    zip_wdl, _ = jaws_client.workflow.compress_wdls(wdl, compressed_path=zip_path)
+    zip_wdl, _ = jaws_client.workflow.compress_wdls(wdl, staging_dir=zip_path)
     assert os.path.basename(zip_wdl).strip(".wdl") == submission_id
+
+
+def test_refdata_not_translated(refdata_inputs):
+    inputs_json = os.path.join(refdata_inputs, "inputs.json")
+    text_file = os.path.join(refdata_inputs, "file1.txt")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
+    modified_json = inputs.prepend_paths_to_json("NERSC/staging")
+    expected = {"file1": "NERSC/staging" + text_file,
+                "runblastplus_sub.ncbi_nt": "/refdata/"}
+    dict_comparison(modified_json.inputs_json, expected)
+
+
+def test_refdata_not_in_src_input_files(refdata_inputs):
+    inputs_json = os.path.join(refdata_inputs, "inputs.json")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
+    print(inputs.inputs_json)
+    assert "/refdata/" not in inputs.src_file_inputs
+
+
+def test_refdata_in_inputs_json(refdata_inputs):
+    inputs_json = os.path.join(refdata_inputs, "inputs.json")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "12312")
+    inputs.validate()

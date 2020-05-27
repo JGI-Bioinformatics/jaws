@@ -35,7 +35,9 @@ def rsync(src, dest):
     )
     stdout, stderr = process.communicate()
     if process.returncode:
-        raise IOError(f"Failed to rsync {src} to {dest}: " + stderr.decode("utf-8").strip())
+        raise IOError(
+            f"Failed to rsync {src} to {dest}: " + stderr.decode("utf-8").strip()
+        )
 
 
 def convert_to_gb(mem, prefix):
@@ -48,10 +50,12 @@ def convert_to_gb(mem, prefix):
     :type prefix str
     :return: memory in gigabytes
     """
-    conversion_table = {"g": lambda x: x,
-                        "k": lambda x: x / 1048576,
-                        "m": lambda x: x / 1024,
-                        "t": lambda x: x * 1024}
+    conversion_table = {
+        "g": lambda x: x,
+        "k": lambda x: x / 1048576,
+        "m": lambda x: x / 1024,
+        "t": lambda x: x * 1024,
+    }
     convert = conversion_table.get(prefix, lambda x: x / 1073741824)
     gb_mem = convert(mem)
     gb_mem = int(gb_mem + 0.99)
@@ -68,7 +72,7 @@ def womtool(*args):
     :param args: WOMTool arguments
     :return: stdout and stderr of WOMTool completed process
     """
-    womtool_cmd = config.conf.get("JAWS", "womtool_jar").split()
+    womtool_cmd = config.conf.get("JAWS", "womtool").split()
     womtool_cmd.extend(list(args))
     proc = subprocess.run(womtool_cmd, capture_output=True, text=True)
     return proc.stdout, proc.stderr
@@ -113,12 +117,19 @@ def values(inputs_map):
         yield from value_generator(val)
 
 
+def is_refdata(filepath):
+    return filepath.startswith("/refdata/")
+
+
 def looks_like_file_path(input):
     return "/" in input
 
 
 def accessible_file(filename):
-    return os.path.exists(filename) and os.access(filename, os.R_OK)
+    if is_refdata(filename):  # Ignores refdata since it is a special case directory
+        return True
+    else:
+        return os.path.exists(filename) and os.access(filename, os.R_OK)
 
 
 def apply_filepath_op(obj, operation):
@@ -136,31 +147,48 @@ def apply_filepath_op(obj, operation):
     elif isinstance(obj, list):
         return [apply_filepath_op(i, operation) for i in obj]
     elif isinstance(obj, dict):
-        return {apply_filepath_op(k, operation): apply_filepath_op(obj[k], operation) for k in obj}
+        return {
+            apply_filepath_op(k, operation): apply_filepath_op(obj[k], operation)
+            for k in obj
+        }
     else:
-        raise ValueError(f'cannot add prefix to object of type {type(obj)}')
+        raise ValueError(f"cannot add prefix to object of type {type(obj)}")
 
 
-def compress_wdls(main_wdl, compressed_path="."):
+def compress_wdls(main_wdl, staging_dir="."):
     """
     Create a new staging WDL and compress any subworkflow files into a ZIP file.
 
     The WDL is named based off of the submission ID and moved to a staging location that is specified in a
     configuration file. Then any subworkflow WDLs that are associated with that WDL are moved to a zip file and
     compressed.
+    If there are no subworkflows, the zipfile is not produced..
 
     :param main_wdl: a WDL file
-    :param compressed_path: path where files will be compressed to. Default is current directory.
-    :return: path to the compressed file
+    :param staging_dir: path where files will be compressed to. Default is current directory.
+    :return: paths to the main wdl and the compressed file (latter may be None)
     """
-    compressed_file_format = ".zip"
-    compression_dir = pathlib.Path(os.path.join(compressed_path, main_wdl.submission_id))
-    compression_dir.mkdir(parents=True, exist_ok=True)
-    compressed_file = join_path(compressed_path, main_wdl.submission_id + compressed_file_format)
+    if not os.path.isdir(staging_dir):
+        os.makedirs(staging_dir)
 
+    # WRITE SANITIZED MAIN WDL
     modified_wdl = main_wdl.sanitized_wdl()
-    staged_wdl_filename = join_path(compressed_path, f"{main_wdl.submission_id}.wdl")
+    staged_wdl_filename = join_path(staging_dir, f"{main_wdl.submission_id}.wdl")
     modified_wdl.write_to(staged_wdl_filename)
+
+    # IF NO SUBWORKFLOWS, DONE
+    if not len(main_wdl.subworkflows):
+        return staged_wdl_filename, None
+
+    # ZIP SUBWORKFLOWS
+    compressed_file_format = ".zip"
+    compression_dir = pathlib.Path(
+        os.path.join(staging_dir, main_wdl.submission_id)
+    )
+    compression_dir.mkdir(parents=True, exist_ok=True)
+    compressed_file = join_path(
+        staging_dir, main_wdl.submission_id + compressed_file_format
+    )
 
     for subworkflow in main_wdl.subworkflows:
         modified_sub = subworkflow.sanitized_wdl()
@@ -202,7 +230,9 @@ class WdlFile:
         self.file_location = os.path.abspath(wdl_file_location)
         self.name = self._get_wdl_name(wdl_file_location)
         self.submission_id = submission_id
-        self.contents = contents if contents is not None else open(wdl_file_location, "r").read()
+        self.contents = (
+            contents if contents is not None else open(wdl_file_location, "r").read()
+        )
 
         self._subworkflows = None
         self._max_ram_gb = None
@@ -270,7 +300,9 @@ class WdlFile:
         max_ram = 0
         with open(self.file_location, "r") as f:
             for line in f:
-                m = re.match(r"^\s+(mem|memory)\s*[:=]\s*\"?(\d+\.?\d*)([kKmMgGtT])\"?", line)
+                m = re.match(
+                    r"^\s+(mem|memory)\s*[:=]\s*\"?(\d+\.?\d*)([kKmMgGtT])\"?", line
+                )
                 if m:
                     mem = int(m.group(2))
                     prefix = m.group(3).lower()
@@ -383,7 +415,9 @@ class WorkflowInputs:
         self.submission_id = submission_id
         self.inputs_location = os.path.abspath(inputs_loc)
         self.basedir = os.path.dirname(inputs_loc)
-        self.inputs_json = json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+        self.inputs_json = (
+            json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+        )
         self._src_file_inputs = None
 
     @property
@@ -408,8 +442,12 @@ class WorkflowInputs:
         """
         destination_json = {}
         for k in self.inputs_json:
-            destination_json[k] = apply_filepath_op(self.inputs_json[k], self._prepend_path(staging_dir))
-        return WorkflowInputs(self.inputs_location, self.submission_id, inputs_json=destination_json)
+            destination_json[k] = apply_filepath_op(
+                self.inputs_json[k], self._prepend_path(staging_dir)
+            )
+        return WorkflowInputs(
+            self.inputs_location, self.submission_id, inputs_json=destination_json
+        )
 
     def validate(self):
         """
@@ -434,7 +472,7 @@ class WorkflowInputs:
         """
         paths = set()
         for element in values(inputs_json):
-            if looks_like_file_path(element):
+            if looks_like_file_path(element) and not is_refdata(element):
                 paths.add(element)
         return paths
 
@@ -458,15 +496,18 @@ class WorkflowInputs:
         """
         abspath_json = {}  # converted json with absolute paths
         for key in inputs_json:
-            abspath_json[key] = apply_filepath_op(inputs_json[key], self._relative_to_absolute_paths)
+            abspath_json[key] = apply_filepath_op(
+                inputs_json[key], self._relative_to_absolute_paths
+            )
         return abspath_json
 
     @staticmethod
     def _prepend_path(path_to_prepend):
         def func(path):
-            if looks_like_file_path(path):
+            if looks_like_file_path(path) and not is_refdata(path):
                 return f"{path_to_prepend}{path}"
             return path
+
         return func
 
     def write_to(self, json_location):
@@ -488,6 +529,7 @@ class Manifest:
 
     It is a TSV (tab-separate value) file.
     """
+
     def __init__(self, staging_dir, dest_dir):
         self.logger = logging.getLogger(__package__)
         self.staging_dir = staging_dir
@@ -503,6 +545,8 @@ class Manifest:
         :return:
         """
         for filepath in args:
+            if filepath is None:
+                continue  # zip file may be none
             inode_type = "D" if os.path.isdir(filepath) else "F"
             src_rel_path = os.path.relpath(filepath, self.staging_dir)
             dest_rel_path = f"{self.dest_dir}/{src_rel_path}"
