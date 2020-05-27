@@ -8,12 +8,20 @@ SHIMDIR="$INSTALLDIR/shims/"
 cat <<EOM > $SHIMDIR/jaws-central-auth-dev
 #!/usr/bin/env bash
 
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
 source $INSTALLDIR/central/bin/activate
 exec jaws-central --log $INSTALLDIR/logs/central-auth.log --config $INSTALLDIR/configs/jaws-central.conf auth
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-central-rest-dev
 #!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
 
 source $INSTALLDIR/central/bin/activate
 exec jaws-central --log $INSTALLDIR/logs/central-rest.log --config $INSTALLDIR/configs/jaws-central.conf rest
@@ -22,6 +30,10 @@ EOM
 cat <<EOM > $SHIMDIR/jaws-site-daemon-dev
 #!/usr/bin/env bash
 
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
 source $INSTALLDIR/site/bin/activate
 exec jaws-site --log $INSTALLDIR/logs/site-daemon.log --config $INSTALLDIR/configs/jaws-site.conf daemon
 EOM
@@ -29,12 +41,20 @@ EOM
 cat <<EOM > $SHIMDIR/jaws-site-server-dev
 #!/usr/bin/env bash
 
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
 source $INSTALLDIR/site/bin/activate
 exec jaws-site --log $INSTALLDIR/logs/site-server.log --config $INSTALLDIR/configs/jaws-site.conf server
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-jtm-dev
 #!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
 
 source $INSTALLDIR/jtm/bin/activate
 export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
@@ -48,6 +68,10 @@ EOM
 
 cat <<EOM > $SHIMDIR/jaws-cromwell-dev
 #!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
 
 # cromwell needs jtm to be in path
 source $INSTALLDIR/jtm/bin/activate

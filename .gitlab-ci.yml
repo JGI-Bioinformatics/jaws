@@ -88,10 +88,10 @@ deploy-jaws-cori:
     - chgrp jaws_jtm /tmp/jaws-dev/shims && chmod 770 /tmp/jaws-dev/shims
     - ./test/integration/cori/generate-configs /tmp/jaws-dev/configs/
     - chmod 660 /tmp/jaws-dev/configs/*
+    - ./test/integration/cori/deploy-supervisord /tmp/jaws-supervisord/ /tmp/jaws-dev/shims/
     - chgrp jaws_jtm /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-dev/configs/jaws-jtm.conf
     - chgrp jaws_jtm /tmp/jaws-dev/configs/cromwell.conf && chmod 660 /tmp/jaws-dev/configs/cromwell.conf
     - chgrp jaws_jtm /tmp/jaws-supervisord/supervisord-jtm.conf && chmod 660 /tmp/jaws-supervisord/supervisord-jtm.conf
-    - ./test/integration/cori/deploy-supervisord /tmp/jaws-supervisord/ /tmp/jaws-dev/shims/
     - chgrp jaws_jtm /tmp/jaws-supervisord/ && chgrp -R jaws_jtm /tmp/jaws-supervisord/{bin,venv}
     - ./test/integration/cori/generate-shims /tmp/jaws-dev/
     - chgrp jaws_jtm /tmp/jaws-dev/shims/jaws-jtm-dev && chmod 770 /tmp/jaws-dev/shims/jaws-jtm-dev

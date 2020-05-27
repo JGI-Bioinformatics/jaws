@@ -268,6 +268,9 @@ def test_cli_metadata(monkeypatch, mock_user, configuration):
     result = runner.invoke(run, ["metadata", "36"])
     assert "workflowName" in result.output
 
+    def get_tasks(url, headers=None):
+        return MockResult(WORKFLOW_METADATA, 201)
+
 
 def test_cli_log(monkeypatch, mock_user, configuration):
     def get_logs(url, headers=None):

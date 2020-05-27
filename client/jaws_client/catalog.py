@@ -17,10 +17,7 @@ def wdl() -> None:
 
 @wdl.command()
 def list() -> None:
-    """List available workflows in the Catalog.
-
-    :return:
-    """
+    """List available workflows in the Catalog."""
     current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/wdl'
     try:
@@ -36,12 +33,7 @@ def list() -> None:
 @wdl.command()
 @click.argument("name")
 def versions(name: str) -> None:
-    """List available versions of specified workflow.
-
-    :param name: The name of the workflow
-    :type name: str
-    :return:
-    """
+    """List available versions of specified workflow."""
     current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}'
     try:
@@ -58,14 +50,7 @@ def versions(name: str) -> None:
 @click.argument("name")
 @click.argument("version")
 def about(name: str, version: str) -> None:
-    """Return README document for a workflow.
-
-    :param name: The name of the workflow
-    :type name: str
-    :param version: The version of the workflow
-    :type version: str
-    :return:
-    """
+    """Return README document for a workflow."""
     current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}/doc'
     try:
@@ -86,14 +71,7 @@ def about(name: str, version: str) -> None:
 @click.argument("name")
 @click.argument("version")
 def get(name: str, version: str) -> None:
-    """Get workflow specification (WDL) for a workflow.
-
-    :param name: The name of the workflow
-    :type name: str
-    :param version: The version of the workflow
-    :type version: str
-    :return:
-    """
+    """Get workflow specification (WDL) for a workflow."""
     current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     try:
@@ -112,18 +90,7 @@ def get(name: str, version: str) -> None:
 @click.argument("wdl_file")
 @click.argument("md_file")
 def add(name: str, version: str, wdl_file: str, md_file: str) -> None:
-    """Add a new workflow to the catalog.
-
-    :param name: The name of the workflow
-    :type name: str
-    :param version: The version of the workflow
-    :type version: str
-    :param wdl_file: Path to the workflow specification (WDL) file
-    :type wdl_file: str
-    :param md_file: Path to the README file in markdown format
-    :type md_file: str
-    :return:
-    """
+    """Add a new workflow to the catalog."""
     current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     files = {"wdl_file": open(wdl_file, "r"), "md_file": open(md_file, "r")}
@@ -141,14 +108,7 @@ def add(name: str, version: str, wdl_file: str, md_file: str) -> None:
 @click.argument("name")
 @click.argument("version")
 def release(name: str, version: str) -> None:
-    """ Mark a version as released, which makes it's WDL immutable.
-
-    :param name: The name of the workflow
-    :type name: str
-    :param version: The version of the workflow
-    :type version: str
-    :return:
-    """
+    """ Mark a version as released, which makes it's WDL immutable."""
     current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}/release'
     try:
@@ -166,16 +126,7 @@ def release(name: str, version: str) -> None:
 @click.argument("version")
 @click.argument("wdl_file")
 def update_wdl(name: str, version: str, wdl_file: str) -> None:
-    """Update a workflow's WDL in the catalog.
-
-    :param name: The name of the workflow
-    :type name: str
-    :param version: The version of the workflow
-    :type version: str
-    :param wdl_file: Path to the workflow specification (WDL) file
-    :type wdl_file: str
-    :return:
-    """
+    """Update a workflow's WDL in the catalog."""
     current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     files = {"wdl_file": open(wdl_file, "r")}
@@ -194,16 +145,7 @@ def update_wdl(name: str, version: str, wdl_file: str) -> None:
 @click.argument("version")
 @click.argument("md_file")
 def update_doc(name: str, version: str, md_file: str) -> None:
-    """Update a workflow's README in the catalog.
-
-    :param name: The name of the workflow
-    :type name: str
-    :param version: The version of the workflow
-    :type version: str
-    :param md_file: Path to the README file in markdown format
-    :type md_file: str
-    :return:
-    """
+    """Update a workflow's README in the catalog."""
     current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}/doc'
     files = {"md_file": open(md_file, "r")}
@@ -221,14 +163,7 @@ def update_doc(name: str, version: str, md_file: str) -> None:
 @click.argument("name")
 @click.argument("version")
 def delete(name: str, version: str) -> None:
-    """Remove a workflow from the catalog.
-
-    :param name: The name of the workflow
-    :type name: str
-    :param version: The version of the workflow
-    :type version: str
-    :return:
-    """
+    """Remove a workflow from the catalog."""
     current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     try:

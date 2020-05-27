@@ -52,11 +52,12 @@ def auth(port: int) -> None:
     connex = connexion.FlaskApp(__name__, specification_dir=basedir)
     connex.add_api("swagger.auth.yml")
 
-    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s/%s" % (
+    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
         config.conf.get("DB", "dialect"),
         config.conf.get("DB", "user"),
         quote_plus(config.conf.get("DB", "password")),
         config.conf.get("DB", "host"),
+        config.conf.get("DB", "port"),
         config.conf.get("DB", "db"),
     )
     connex.app.config["SQLALCHEMY_ECHO"] = False
@@ -80,11 +81,12 @@ def rest(port: int) -> None:
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")
 
-    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s/%s" % (
+    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
         config.conf.get("DB", "dialect"),
         config.conf.get("DB", "user"),
         quote_plus(config.conf.get("DB", "password")),
         config.conf.get("DB", "host"),
+        config.conf.get("DB", "port"),
         config.conf.get("DB", "db"),
     )
     connex.app.config["SQLALCHEMY_ECHO"] = False
@@ -110,11 +112,12 @@ def create_tables() -> None:
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")
 
-    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s/%s" % (
+    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
         config.conf.get("DB", "dialect"),
         config.conf.get("DB", "user"),
         quote_plus(config.conf.get("DB", "password")),
         config.conf.get("DB", "host"),
+        config.conf.get("DB", "port"),
         config.conf.get("DB", "db"),
     )
     connex.app.config["SQLALCHEMY_ECHO"] = False
@@ -150,11 +153,12 @@ def add_user(
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")
 
-    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s/%s" % (
+    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
         config.conf.get("DB", "dialect"),
         config.conf.get("DB", "user"),
         quote_plus(config.conf.get("DB", "password")),
         config.conf.get("DB", "host"),
+        config.conf.get("DB", "port"),
         config.conf.get("DB", "db"),
     )
     connex.app.config["SQLALCHEMY_ECHO"] = False

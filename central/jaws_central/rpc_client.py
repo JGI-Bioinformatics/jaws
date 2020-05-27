@@ -6,7 +6,6 @@ Sites may use either the same or different AMPQ servers, as specified in their c
 
 import threading
 import amqpstorm
-from amqpstorm import Message
 import json
 from time import sleep
 import urllib.parse
@@ -60,7 +59,7 @@ class RPC_Client(object):
          to RPC requests.
         """
         thread = threading.Thread(target=self._process_data_events)
-        thread.setDaemon(True)
+        thread.daemon = True
         thread.start()
 
     def _process_data_events(self):
@@ -81,14 +80,14 @@ class RPC_Client(object):
         :param params: Any associated parameters to accompany the request (varies by method).
         :type params: dict
         :return: the ID of the RPC request (correlation ID)
-        :rtype: int
+        :rtype: str
         """
         # Construct JSON-RPC2 payload string
         query = {"jsonrpc": "2.0", "method": method, "params": params}
         payload = json.dumps(query)
 
         # Create the Message object.
-        message = Message.create(self.channel, payload)
+        message = amqpstorm.Message.create(self.channel, payload)
         message.reply_to = self.callback_queue
 
         # Create an entry in our local dictionary, using the automatically
@@ -105,7 +104,7 @@ class RPC_Client(object):
         """Return the JSON-RPC2 response if ready, None otherwise.
 
         :param corr_id: Correlation (RPC request) ID
-        :type corr_id: int
+        :type corr_id: str
         :returns: JSON-RPC2 compliant response from RPC server
         :rtype: dict or list
         """

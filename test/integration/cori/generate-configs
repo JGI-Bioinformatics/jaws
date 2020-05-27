@@ -427,7 +427,7 @@ database
   db
   {
     driver = "com.mysql.cj.jdbc.Driver"
-    url = "jdbc:mysql://db.mysql.dev-cattle.stable.spin.nersc.org:60005/cromwell?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true"
+    url = "jdbc:mysql://db.mysql.dev-cattle.stable.spin.nersc.org:60005/cromwell?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
     user = "cromwell"
     password = "$JAWS_CROMWELL_CORI_DB_PW"
     connectionTimeout = 5000
