@@ -37,9 +37,11 @@ To begin, you should do these three things
 
 1) get an account at NERSC.  
 
-   - If you do not have a NERSC account yet, please get one by writing to consult@nersc.gov .  
+	- If you do not have a NERSC account yet, please get one by writing to consult@nersc.gov .  
 
 2) get an account at globus.org
+
+	- `for help logging in <https://docs.globus.org/how-to/get-started>`_
 
 3) get a JAWS token from one of the JAWS admins (jlfroula@lbl.gov or eskirton@lbl.gov)
 

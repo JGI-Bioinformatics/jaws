@@ -5,7 +5,7 @@ How and What is JAWS
 .. role:: bash(code)
   :language: bash
 
-`(see video about the basics of JAWS) <https://youtu.be/KcrAn7rmrz0>`_
+`(see video about the basics of JAWS) <https://youtu.be/85lJFvGFVpE>`_
 
 JAWS is a multi-site workflow manager, using the `Cromwell <https://Cromwell.readthedocs.io/en/stable/>`_ workflow engine. The main purpose of JAWS is to make running of bioinformatics workflows easier, to foster collaboration between users of the system and to make it possible to move workloads across different resources.
 

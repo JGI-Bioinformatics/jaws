@@ -1,10 +1,7 @@
-======================================
-How to Set Configure your Inputs File
-======================================
+===========================
+How to Create a Inputs File
+===========================
 
-****************************
-Creating an inputs.json file
-****************************
 An inputs json file has the basic format:
 
 .. code-block:: bash 
@@ -33,7 +30,8 @@ This command should output something like this:
      "bbtools.ref": "File"
    }
 
-NOTE: File paths may be absolute or relative paths, but must begin with either a `/` or a `.` (e.g. `/tmp/x` or `./x` but not `x`).
+.. note::
+	File paths may be absolute or relative paths, but must begin with either a `/` or a `.` (e.g. `/tmp/x` or `./x` but not `x`).
 
 To see more, go to the official wdl docs site for `inputs.json <https://software.broadinstitute.org/wdl/documentation/inputs>`_
 There are some examples in this repo `jaws-example-wdl <https://gitlab.com/jfroula/jaws-example-wdl>`_, but you'll need to search through the different example folders to find `inputs.json` files. 
@@ -47,3 +45,4 @@ An example of how you would use the inputs file would be like this:
 .. code-block:: bash
 
    jaws run submit inputs.json my.wdl
+
