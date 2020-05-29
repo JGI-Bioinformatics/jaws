@@ -439,7 +439,14 @@ def log_file(tmp_path):
 
 
 @pytest.fixture()
+def user_dir(tmp_path):
+    fpath = tmp_path / "user_dir"
+    return fpath.as_posix()
+
+
+@pytest.fixture()
 def cromwell_run_dir(tmp_path):
+    cromwell_path = tmp_path / "cromwell-execution"
     subdirs = [
         "call-asm_1",
         "call-asm_2",
@@ -459,7 +466,7 @@ def cromwell_run_dir(tmp_path):
     submission_error_dirs = ["call-asm_1", "call-filterHighGc", "call-doHmmSearch"]
 
     for d in subdirs:
-        dir_path = tmp_path / d / "execution"
+        dir_path = cromwell_path / d / "execution"
         dir_path.mkdir(parents=True)
         rc_file = dir_path / "rc"
         stdout = dir_path / "stdout"
@@ -478,7 +485,7 @@ def cromwell_run_dir(tmp_path):
             rc_file.write_text("0")
             stderr.write_text(f"This is standard error. This {d} had no errors")
             stderr_sub.write_text("")
-    return tmp_path.as_posix()
+    return cromwell_path.as_posix()
 
 
 @pytest.fixture()
@@ -508,6 +515,9 @@ class MockSession:
     def close_all(self):
         return
 
+    def _query_user_id(self, *args, **kwargs):
+        return
+
 
 class MockDb:
     def __init__(self):
@@ -518,7 +528,7 @@ class MockDb:
 
 
 class MockRun:
-    def __init__(self, user_id, task_id, submit_id, cromwell_id, id, status):
+    def __init__(self, user_id, task_id, submit_id, cromwell_id, id, status, output_dir):
         self.user_id = user_id
         self.upload_task_id = task_id
         self.submission_id = submit_id
@@ -527,6 +537,7 @@ class MockRun:
         self.status = status
         self.output_endpoint = "."
         self.download_task_id = "123"
+        self.output_dir = output_dir
 
 
 class MockTransferClient:
@@ -541,6 +552,25 @@ class MockTransferClient:
         return self.transfer_result
 
 
+class MockTransferClientWithCopy:
+    def __init__(self, status, transfer_result={"task_id": "325"}):
+        self.status = status
+        self.transfer_result = transfer_result
+
+    def get_task(self, task_id):
+        return self.status
+
+    def submit_transfer(self, transfer_dat):
+        print(f"copying {transfer_dat.src} to {transfer_dat.dst}")
+        shutil.copytree(transfer_dat.src, transfer_dat.dst)
+        return self.transfer_result
+
+
+class MockUserQuery:
+    def __init__(self, token):
+        self.transfer_refresh_token = token
+
+
 class MockUser:
     def __init__(self):
         self.id = "jaws_user"
@@ -553,10 +583,19 @@ def query_jaws_id(jawsd, run):
 
 class MockTransferData:
     def __init__(self, *args, **kwargs):
+        pass
+
+    def add_item(self, src, dst, **kwargs):
         return
 
-    def add_item(self, src, dest, **kwargs):
-        return
+
+class MockTransferDataWithCopy:
+    def __init__(self, *args, **kwargs):
+        self.kwargs = kwargs
+
+    def add_item(self, src, dst, **kwargs):
+        self.src = src
+        self.dst = dst
 
 
 @pytest.fixture()

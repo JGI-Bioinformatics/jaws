@@ -1,5 +1,7 @@
 import pytest
 import globus_sdk
+import pathlib
+import os
 
 from jaws_site.jawsd import Daemon
 import tests.conftest
@@ -18,7 +20,7 @@ def test_check_transfer_status(statuses, monkeypatch):
     monkeypatch.setattr(Daemon, "_query_user_id", tests.conftest.query_jaws_id)
     db = tests.conftest.MockDb()
     jawsd = Daemon(db)
-    run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "submitted")
+    run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "submitted", "mydir")
 
     def mock_authorize_client(jawsd, token):
         return tests.conftest.MockTransferClient(statuses)
@@ -36,7 +38,7 @@ def test_submit_run(monkeypatch, staging_files):
 
     db = tests.conftest.MockDb()
     jawsd = Daemon(db)
-    run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "submitted")
+    run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "submitted", "mydir")
 
     monkeypatch.setattr(requests, "post", workflows_post)
 
@@ -54,13 +56,19 @@ def test_check_run_status(status, current_status, expected_run, monkeypatch):
     def workflows_get(url):
         return tests.conftest.MockResponses(status, 200)
 
+    def prepare_failed_run_output(run):
+        return
+
     db = tests.conftest.MockDb()
     jawsd = Daemon(db)
-    run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", current_status)
+    run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", current_status, "mydir")
 
     monkeypatch.setattr(requests, "get", workflows_get)
+    monkeypatch.setattr(jawsd, "prepare_failed_run_output", prepare_failed_run_output)
 
     jawsd.check_run_status(run)
+    print(f"run.status={run.status}")
+    print(f"expected_run={expected_run}")
 
     assert run.status == expected_run
 
@@ -68,6 +76,37 @@ def test_check_run_status(status, current_status, expected_run, monkeypatch):
 def test_prepare_output():
     # TODO: Need to implement test for this
     pass
+
+
+@pytest.mark.parametrize("status,current_status,expected_run", test_data)
+def test_prepare_failed_run_output(status, current_status, expected_run, monkeypatch, cromwell_run_dir, user_dir):
+
+    def workflows_get(url):
+        return tests.conftest.MockResponses({"workflowRoot": cromwell_run_dir}, 200)
+
+    def mock_authorize_client(jawd, token):
+        return tests.conftest.MockTransferClientWithCopy({"status": "running"})
+
+    def mock_user_query(jawsd, token):
+        return tests.conftest.MockUserQuery(token)
+
+    monkeypatch.setattr(requests, "get", workflows_get)
+    monkeypatch.setattr(Daemon, "_authorize_transfer_client",
+                        mock_authorize_client)
+    monkeypatch.setattr(Daemon, "_query_user_id",
+                        mock_user_query)
+    monkeypatch.setattr(globus_sdk, "TransferData",
+                        tests.conftest.MockTransferDataWithCopy)
+
+    db = tests.conftest.MockDb()
+    jawsd = Daemon(db)
+    jawsd.results_dir = pathlib.Path(cromwell_run_dir).parent
+    run = tests.conftest.MockRun("jaws", "1", "2", "3", "jaws_dir", "submitted", user_dir)
+    jawsd.prepare_failed_run_output(run)
+
+    for fname in os.listdir(cromwell_run_dir):
+        bname = os.path.basename(fname)
+        assert os.path.isdir(os.path.join(user_dir, bname))
 
 
 def test_transfer_results(mock_query_user_id, monkeypatch):
@@ -82,7 +121,7 @@ def test_transfer_results(mock_query_user_id, monkeypatch):
 
     db = tests.conftest.MockDb()
     jawsd = Daemon(db)
-    run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "running")
+    run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "running", "mydir")
 
     jawsd.transfer_results(run)
 
@@ -105,7 +144,7 @@ def test_check_if_downloads_completes(status, expected, monkeypatch,
 
     db = tests.conftest.MockDb()
     jawsd = Daemon(db)
-    run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "submitted")
+    run = tests.conftest.MockRun("jaws", "1", "2", "3", "myid", "submitted", "mydir")
 
     jawsd.check_if_download_complete(run)
 
