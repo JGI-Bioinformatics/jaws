@@ -27,6 +27,7 @@ class Daemon:
         "uploading",
         "staged",
         "succeeded",
+        "failed",
         "ready",
         "downloading",
         "submitted",
@@ -101,6 +102,8 @@ class Daemon:
                 self.submit_run(run)
             elif run.status == "succeeded":
                 self.prepare_run_output(run)
+            elif run.status == "failed":
+                self.prepare_failed_run_output(run)
             elif run.status == "ready":
                 self.transfer_results(run)
             elif run.status == "downloading":
@@ -212,6 +215,7 @@ class Daemon:
             run.status = "failed"
             self.logger.info(f"Run {run.id}: failed")
             self.session.commit()
+            self.prepare_failed_run_output(run)
         elif cromwell_status == "Succeeded":
             run.status = "succeeded"
             self.logger.info(f"Run {run.id}: succeeded")
@@ -221,6 +225,26 @@ class Daemon:
             run.status = "aborted"
             self.logger.info(f"Run {run.id}: aborted")
             self.session.commit()
+
+    def prepare_failed_run_output(self, run):
+        """
+        Prepare folder of failed run output.
+        """
+        url = "%s/%s/metadata" % (self.workflows_url, run.cromwell_id)
+        try:
+            r = requests.get(url)
+        except requests.ConnectionError:
+            self.logger.warning("Cromwell server timeout")
+            return
+        if r.status_code != requests.codes.ok:
+            return
+        orig_dir = r.json()["workflowRoot"]
+        nice_dir = os.path.join(self.results_dir, str(run.id))
+        os.symlink(orig_dir, nice_dir)
+        run.status = "ready"
+        self.logger.info(f"Run {run.id}: failed")
+        self.session.commit()
+        self.transfer_results(run)
 
     def prepare_run_output(self, run):
         """
