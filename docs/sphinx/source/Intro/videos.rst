@@ -2,19 +2,7 @@
 Video Library
 *************
 
-1) What is JAWS?
--------------
+1) `What is JAWS? <https://youtu.be/85lJFvGFVpE>`_
 
-.. raw:: html
+2) `Set Up the JAWS Environment <https://youtu.be/7qXpMNdQjdw>`_
 
-   <iframe width="300" height="250" src="https://www.youtube.com/embed/85lJFvGFVpE" frameborder="0" allowfullscreen></iframe>
-
-|
-|
-
-2) Set Up the JAWS Environment
----------------------------
-
-.. raw:: html
-
-   <iframe width="300" height="250" src="https://www.youtube.com/embed/7qXpMNdQjdw" frameborder="0" allowfullscreen></iframe>
