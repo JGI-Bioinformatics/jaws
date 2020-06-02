@@ -8,6 +8,7 @@ from flask import abort, request
 import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config, rpc_manager
+from jaws_central import jaws_constants
 from jaws_central.models import db, Run, User
 
 
@@ -349,6 +350,7 @@ def run_status(user, run_id):
         "submission_id": run.submission_id,
         "cromwell_id": run.cromwell_id,
         "status": run.status,
+        "status_detail": jaws_constants.run_status_msg.get(run.status, ''),
         "site_id": run.site_id,
         "submitted": run.submitted,
         "updated": run.updated,

@@ -108,6 +108,23 @@ class MockResponse:
         self.status_code = status_code
 
 
+class MockGetInactiveUploadRun:
+    def __init__(self, *args, **kwargs):
+        self.cromwell_id = "90b333ed-8095-474e-9ced-df86f3c99241"
+        self.download_task_id = "5445cffc-963a-11ea-8ec9-02c81b96a709"
+        self.id = 123
+        self.input_endpoint = "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
+        self.input_site_id = "NERSC"
+        self.output_dir = "/mydir/jaws-test-outdir"
+        self.output_endpoint = "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
+        self.site_id = "NERSC"
+        self.status = "upload inactive"
+        self.submission_id = "2ba6eb76-22e0-4d49-8eeb-b0c6683dfa30"
+        self.submitted = "2020-05-14T23:08:50Z"
+        self.updated = "2020-05-14T23:27:15Z"
+        self.upload_task_id = "dfbdfb7a-9637-11ea-bf90-0e6cccbb0103"
+
+
 @pytest.fixture()
 def mock_database(monkeypatch):
     monkeypatch.setattr(jaws_central.models.db, "session", MockSession)
@@ -130,3 +147,16 @@ def test_cancel_transfer(configuration, mock_database, mock_globus):
     transfer_id = "without_error"
     run_id = 99
     jaws_central.analysis._cancel_transfer(user, transfer_id, run_id)
+
+
+def test_run_status_inactive_upload(monkeypatch):
+    """ Tests returning run status with comments for a failed download status """
+    def get_failed_run(run_id):
+        return MockGetInactiveUploadRun()
+
+    monkeypatch.setattr(jaws_central.analysis, '_get_run', get_failed_run)
+
+    comments = r"Globus transfer stalled; try reactivating the endpoint. Please go to https://app.globus.org/file-manager, on the left side of the page, select ENDPOINTS, click the > icon to the right of the NERSC DTN endpoint, then click Activate."  # noqa"
+
+    out_json, status = jaws_central.analysis.run_status('user', 123)
+    assert out_json['status_detail'] == comments
