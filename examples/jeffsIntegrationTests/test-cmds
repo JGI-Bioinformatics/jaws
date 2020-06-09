@@ -1,0 +1,179 @@
+## 1
+reference_db_and_shifter
+jaws run submit test.wdl inputs.json $(pwd)/out nersc
+run_id: 33
+=> passed
+
+jaws-alignment-exmaple
+run_id: 59
+
+## 2
+reference_db_and_shifter
+jaws run status 33
+jaws run tasks 33
+jaws run queue
+
+State (eg Ready, Submitted, Uploading, Running, succeeded, Ready, Downloading, finished)
+=> finished
+Information since when run is in said state
+=> jaws run tasks
+A list of transitions between states (entered state at time, left state at time)
+=> has start & finish time
+=> seen running, done & failed
+A list of tasks with unique IDs for the run
+jaws run tasks
+=> yes
+Input data for the run (paths)
+=> yes (jaws run queue)
+Output data for the run (paths)
+=> yes (jaws run queue and jaws run status)
+WDL used for the run
+=> yes
+
+
+{
+    "cromwell_id": "28c881ba-350c-45e5-bd80-1c02272101fe",
+    "download_task_id": "4e3de586-8a37-11ea-bf84-0e6cccbb0103",
+    "id": 33,
+    "input_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+    "input_site_id": "NERSC",
+    "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/examples/referencing_db_and_shifter/out",
+    "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+    "site_id": "NERSC",
+    "status": "finished",
+    "submission_id": "6b4ce5fc-5e42-4911-bdbd-3449cea1f0a4",
+    "submitted": "2020-04-29T16:33:11Z",
+    "updated": "2020-04-29T16:35:22Z",
+    "upload_task_id": "1df6ed28-8a37-11ea-b3bb-0ae144191ee3"
+}
+
+## 3
+reference_db_and_shifter
+jaws run submit TestsWDLs/test.wdl inputs.json $(pwd)/out nersc
+jaws run errors
+stderr/stdout of the task
+=> yes (jaws run tasks)
+State (jaws run tasks)
+=> yes
+Information since when task is in said state (jaws run tasks)
+=> yes
+A list of transitions between states (entered state at time, left state at time) (jaws run tasks)
+Shell script as executed by JAWS
+=> no
+
+jaws-alignment-example
+=> jaws run tasks fails to show subworkflow tasks
+
+## 4a (bad json)
+reference_db_and_shifter
+jaws run submit test.wdl TestsWDLs/testcase4.json $(pwd)/out nersc
+# I misspelled the wdl name in the inputs.json and it failed as expected but I couldn't see the errors using
+jaws run errors 40 because of a server: 500 error
+
+## 4b (not json)
+reference_db_and_shifter
+jaws run submit test.wdl TestsWDLs/testcase4-notjson.json $(pwd)/out nersc
+# gave bad path to file
+# error could be more user friendly
+jaws_client.workflow.WorkflowError: Missing/unreadable input files: /global/cscratch1/sd/jfroula/JAWS/jaws/examples/referencing_db_and_shifter/TestsWDLs/data/sample.fastq.bz2
+
+## 5 (same as 4b)
+reference_db_and_shifter
+jaws run submit test.wdl TestsWDLs/testcase4-notjson.json $(pwd)/out nersc
+# gave bad path to file
+# error could be more user friendly
+jaws_client.workflow.WorkflowError: Missing/unreadable input files: /global/cscratch1/sd/jfroula/JAWS/jaws/examples/referencing_db_and_shifter/TestsWDLs/data/sample.fastq.bz2
+
+## 6
+reference_db_and_shifter
+jaws run submit test.wdl  inputs.json $(pwd)/out nersc
+=> pass
+jaws_client.workflow.WorkflowError: Missing/unreadable input files: /global/cscratch1/sd/jfroula/JAWS/jaws/examples/data/sample.fastq.bz2
+
+## 7
+reference_db_and_shifter
+jaws run submit TestsWDLs/testcase7.wdl inputs.json $(pwd)/out nersc
+=> pass
+ Call output not found: Call 'task1' doesn't have an output 'outfile' (line 6, col 41).
+    call task2 { input: tmpfile = task1.outfile }
+
+## 8
+reference_db_and_shifter
+jaws run submit TestsWDLs/testcase8.wdl inputs.json $(pwd)/out nersc
+=> pass
+2020-04-29 11:14:30,042 - INFO - workflow - Validating WDL, /global/cscratch1/sd/jfroula/JAWS/jaws/examples/referencing_db_and_shifter/TestsWDLs/testcase8.wdl
+jaws_client.workflow.WorkflowError: ERROR: Call output not found: Call 'task1' doesn't have an output 'outfile' (line 6, col 41).
+    call task2 { input: tmpfile = task1.outfile }
+                                        ^
+## 15
+jaws-alignment-example
+jaws run submit main.wdl inputs.json $(pwd)/out nersc
+
+### testcase 20
+#shared: Test that runtime {shared: 1} works.
+#The shared: 1 option allows jaws user to re-use pools when they run another workflow and pools are still up.  The shared: 0 option only allows tasks within a run instance to share the pool.
+#One thing to note is that if the workers removed by scancel, jtm doesn’t know it’s removed.
+#once remove-pool is added to jaws command, you can use the command to remove workers.
+
+# submit twice
+jaws run submit TestsWDLs/testcase20-shared1.wdl inputs.json $(pwd)/out nersc
+jaws run submit TestsWDLs/testcase20-shared1.wdl inputs.json $(pwd)/out nersc
+squeue -u jaws_jtm
+scontrol show job 30422017
+# make sure no new sbatch jobs get queue/created
+squeue -u jaws_jtm
+# make sure both jobs get completed
+jaws run status <id> 
+=> both finished using 1 pool
+
+# now repeat with shared=0
+jaws run submit TestsWDLs/testcase20-shared0.wdl inputs.json $(pwd)/out nersc
+=> two pools created
+
+#
+#TESTCASE-21
+#constraint: what happens if you set constraint: "knl" and run on lbnl?  NERSC options are knl and haswell. LBNL has only haswell.
+jaws run submit TestsWDLs/testcase21.wdl inputs.json $(pwd)/out nersc  # this uses constraint: "jojo" on cori
+jaws run errors <id>
+=> fails because there were no errors as expected.
+
+#TESTCASE-22
+#mem: what if this is out of bounds for the possible site resources. NERSC has limit of 450G machines.
+jaws run submit TestsWDLs/testcase22.wdl inputs.json $(pwd)/out nersc # this uses mem: "600G" on cori
+jaws run errors <id>
+=> fails because there were no errors as expected.
+
+#TESTCASE-23
+#time: what if this is out of bounds for the possible site resources. NERSC has limit of 72hrs.
+jaws run submit TestsWDLs/testcase23.wdl inputs.json $(pwd)/out nersc # this uses time: "99:99:99" on cori
+jaws run errors <id>
+=> fails because there were no errors as expected.
+
+#TESTCASE-24
+runtime defaults:
+if shared: 1
+If task1 has a runtime and task2 doesn't,  task2 should re-use task1 pool 
+=> this works
+
+jaws run submit TestsWDLs/testcase24-nwpn5.wdl inputs.json $(pwd)/out nersc
+If task1 has a runtime and task2 has a partial runtime (nwpn different),  task2 should create new pool (small) 
+=> both tasks complete using 1 pool.
+
+jaws run submit TestsWDLs/testcase24-allnew.wdl inputs.json $(pwd)/out nersc
+If task1 has a runtime and task2 has a complete runtime (w/ difference in nwpn and poolname),  task2 should create new pool.
+=> 
+
+
+#TESTCASE-25
+#node: limit 
+I set node: 1000 and 203 nodes started up.
+=> run failed with 'Failed to get a reply from the manager'
+There were still 190 sbatch jobs either in queue or running.
+
+#TESTCASE-26
+#nwpn: limit should be less than number of threads?
+I set nwpn: 1000 and
+
+#TESTCASE-27
+#subworkflows
+#

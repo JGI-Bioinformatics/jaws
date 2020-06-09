@@ -1,0 +1,47 @@
+[
+    {
+        "cromwell_id": "119a84cc-03fc-427d-a3e9-6b32eaf0ba32",
+        "download_task_id": null,
+        "id": 45,
+        "input_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+        "input_site_id": "NERSC",
+        "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws-meta-assem-brian/out",
+        "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+        "site_id": "NERSC",
+        "status": "running",
+        "submission_id": "ee4c0ddf-6d2b-498d-8513-b9faa1a75c31",
+        "submitted": "2020-05-13T21:39:25Z",
+        "updated": "2020-05-13T21:40:04Z",
+        "upload_task_id": "3798699c-9562-11ea-bf8e-0e6cccbb0103"
+    },
+    {
+        "cromwell_id": "bb30ee9d-dbe9-449b-9288-30e750c481ef",
+        "download_task_id": null,
+        "id": 46,
+        "input_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+        "input_site_id": "NERSC",
+        "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws-meta-assem-brian/out",
+        "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+        "site_id": "NERSC",
+        "status": "running",
+        "submission_id": "93a0724e-b7b9-496a-950a-b2e381579b15",
+        "submitted": "2020-05-13T21:42:35Z",
+        "updated": "2020-05-13T21:43:06Z",
+        "upload_task_id": "a8eea200-9562-11ea-bf8e-0e6cccbb0103"
+    },
+    {
+        "cromwell_id": "c5606e16-9484-4364-8880-72a613c8a53e",
+        "download_task_id": null,
+        "id": 48,
+        "input_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+        "input_site_id": "NERSC",
+        "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws-meta-assem-brian/out",
+        "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+        "site_id": "NERSC",
+        "status": "running",
+        "submission_id": "5df813a6-1144-4cb6-ab80-ed4093bacf0e",
+        "submitted": "2020-05-13T21:51:37Z",
+        "updated": "2020-05-13T21:52:13Z",
+        "upload_task_id": "ec3bdf0e-9563-11ea-8ec8-02c81b96a709"
+    }
+]
