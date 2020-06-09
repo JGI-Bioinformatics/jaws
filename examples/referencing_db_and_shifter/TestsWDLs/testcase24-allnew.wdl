@@ -1,7 +1,6 @@
 workflow runblastplus_sub {
     File reads
-    String ncbi_nt="/refdata"
-
+    String ncbi_nt
     
     call task1 { input: ncbi_nt = ncbi_nt }
     call task2 { input: tmpfile = task1.outfile }
@@ -9,7 +8,7 @@ workflow runblastplus_sub {
 
 ### ------------------------------------ ###
 task task1 {
-	String ncbi_nt
+    String ncbi_nt
 
     command {
       # how to access reference data
@@ -18,7 +17,7 @@ task task1 {
 
     runtime {   
         docker: "ubuntu:16.04"
-        poolname: "mysmall"
+        poolname: "useforalltests"
         shared: 1
         node: 1
         nwpn: 1
@@ -33,7 +32,17 @@ task task2 {
     File tmpfile
 
     command {
-		cat ${tmpfile}
+        cat ${tmpfile}
+    }
+
+    runtime {
+        docker: "ubuntu:16.04"
+        poolname: "mogadishu"
+        shared: 1
+        node: 1
+        nwpn: 5
+        mem: "5G"
+        time: "00:10:00"
     }
 
     output { String outfile = stdout() }

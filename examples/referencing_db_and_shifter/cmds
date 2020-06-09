@@ -1,0 +1,6 @@
+jaws submit fq_count.wdl fq_count.json 
+Successfully queued job 8ab4044d-de80-4ffa-a3fe-a0f30c1afb72
+(jaws) jfroula@cori09:/global/cscratch1/sd/jfroula/JAWS/jaws/examples/referencing_db_and_shifter> squeue -u jaws
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+          31373215  genepool jtm_dyna     jaws PD       0:00      1 (Priority)
+
