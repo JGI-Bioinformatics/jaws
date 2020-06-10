@@ -1,6 +1,6 @@
-# Integration Testing/Deployment on Cori
+# Integration Testing/Deployment on LBNL Lawrencium
 
-This directory contains scripts, which are used to deploy JAWS to the Cori system. Those scripts
+This directory contains scripts, which are used to deploy JAWS to the LBNL Lawrencium system. Those scripts
 are driven by the Gitlab CI/CD system, as specified in the .gitlab-ci.yml file in the root of
 this repository.
 
@@ -34,12 +34,9 @@ user workloads: one for JAWS and one for JTM/Cromwell.
 
 To see this in action see .gitlab-ci.yml .
 
-Start the supervisors. Only necessary once, after startup of the machine hosting the services: 
+Start the supervisors. Only necessary once, after startup of the machine hosting the services:
 
-    collabsu jaws
-    /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jaws.conf 
-    logout
-    collabsu jaws_jtm
+    /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jaws.conf
     /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jtm.conf
 
 Check the status of JAWS services:
@@ -52,32 +49,20 @@ Start the JAWS services:
     /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start
     /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf start
 
-## Starting the gitlab-runner on Cori20
-After a maintenance, it is very likely that the runner will need to be restarted
-in order to accomplish this use the following steps:
-
-    collabsu jaws
-    cd $CFS/m342/jaws_runner/usr/bin
-    nohup ./gitlab-runner run &
-
-You can then check the UI on gitlab to see if the runner is up and working.
-
-To do this, on the sidebar go to `Settings > CI/CD > Runners` and check if
-the green dot is next to the cori20 runner.
-
 
 ## Starting the gitlab-runner on lrc-services
 Starting the runner is a bit different on LRC. Currently, there is no way to
 impersonate a service user and start the service. Instead this must be done
-using a user systemd. 
+using a user systemd.
 
 There is already a script present that starts up the services located here:
 
-    /global/home/groups-sw/lr_jgicloud/dev/jtm-service-dev.sh
-    /global/home/groups-sw/lr_jgicloud/prod/jtm-service-prod.sh
+
+`/global/home/groups-sw/lr_jgicloud/dev/jtm-service-dev.sh`
+`/global/home/groups-sw/lr_jgicloud/prod/jtm-service-prod.sh`
 
 To run the service you will want to run the following command:
 
-    systemctl start jawsdev
+`systemctl start jawsdev`
 
-The above will start the dev version of the runner.
+The above wil start the dev version of the runner.
