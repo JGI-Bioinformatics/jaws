@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+INSTALLDIR=${1:-/tmp/jaws-dev}
+SHIMDIR="$INSTALLDIR/shims/"
+
+[[ -d $SHIMDIR ]] || mkdir $SHIMDIR
+
+cat <<EOM > $SHIMDIR/jaws-site-daemon-dev
+#!/usr/bin/env bash
+
+source $INSTALLDIR/site/bin/activate
+exec jaws-site --log $INSTALLDIR/logs/site-daemon.log --config $INSTALLDIR/configs/jaws-site.conf daemon
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-site-server-dev
+#!/usr/bin/env bash
+
+source $INSTALLDIR/site/bin/activate
+exec jaws-site --log $INSTALLDIR/logs/site-server.log --config $INSTALLDIR/configs/jaws-site.conf server
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-jtm-dev
+#!/usr/bin/env bash
+
+source $INSTALLDIR/jtm/bin/activate
+export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
+
+#HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
+cp /tmp/jaws-dev/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
+chmod 700 /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
+
+exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-cromwell-dev
+#!/usr/bin/env bash
+
+# cromwell needs jtm to be in path
+source $INSTALLDIR/jtm/bin/activate
+
+cd /global/cscratch1/sd/jaws_jtm/dev/
+exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" server
+EOM
+
+chmod +x $SHIMDIR/*
