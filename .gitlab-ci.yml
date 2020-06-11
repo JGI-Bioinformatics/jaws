@@ -13,9 +13,9 @@ variables:
 .only-default: &only-default
   only:
     - master
-    - branches
-    - merge_requests
-    - tags
+#    - branches
+#    - merge_requests
+#    - tags
 
 test-site:
   <<: *only-default
