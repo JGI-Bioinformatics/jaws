@@ -1,14 +1,17 @@
-"""
-AmpqStorm RPC Client for interacting with JAWS-Sites for analysis-run management.
-
-Sites may use either the same or different AMPQ servers, as specified in their config files.
-"""
+"""RPC_Client sends JSON-RPC2 messages to an RPC_Server."""
 
 import threading
 import amqpstorm
+from amqpstorm import Message
 import json
 from time import sleep
-import urllib.parse
+from jaws_rpc import jsonrpc_utils
+
+
+DEFAULT_PORT = 5672
+DEFAULT_WAIT_INTERVAL = 0.25
+DEFAULT_MAX_WAIT = 10
+RPC_QUEUE = "rpc"
 
 
 class RPC_Client(object):
@@ -17,36 +20,45 @@ class RPC_Client(object):
     def __init__(self, params):
         """Constructor
 
-        :param params: A dictionary containing host, user, password, vhost, queue
+        :param params: A dictionary containing configuration parameters.
         :type params: dict
         """
+        self.params = params
         self.queue = {}
         self.channel = None
         self.connection = None
         self.callback_queue = None
-        self.rpc_queue = params["amqp_queue"]
-        self.open(params)
-
-    def open(self, params):
-        """Open connection to RabbitMQ
-
-        :param params: A dictionary containing host, user, password, vhost, queue
-        :type params: dict
-        """
-        if params.get("amqp_vhost", None):
-            uri = "amqp://%s:%s@%s:5672/%s?heartbeat=60" % (
-                params["amqp_user"],
-                urllib.parse.quote_plus(params["amqp_password"]),
-                params["amqp_host"],
-                params["amqp_vhost"],
-            )
-            self.connection = amqpstorm.UriConnection(uri)
+        self.rpc_queue = RPC_QUEUE
+        self.open()
+        self.wait_interval = DEFAULT_WAIT_INTERVAL
+        if "port" not in self.params:
+            self.params["port"] = DEFAULT_PORT
+        if "rpc_wait_interval" in self.params:
+            self.wait_interval = float(self.params["rpc_wait_interval"])
         else:
+            self.wait_interval = DEFAULT_WAIT_INTERVAL
+        if "rpc_max_wait" in self.params:
+            self.max_wait = float(self.params["rpc_max_wait"])
+        else:
+            self.max_wait = DEFAULT_MAX_WAIT
+        for required_param in ["host", "user", "password"]:
+            if required_param not in self.params:
+                raise ConfigurationError(f"{required_param} required")
+
+    def open(self):
+        """Open connection to RabbitMQ"""
+        try:
             self.connection = amqpstorm.Connection(
-                params["amqp_host"], params["amqp_user"], params["amqp_password"]
+                self.params["host"],
+                self.params["user"],
+                self.params["password"],
+                int(self.params["port"]),
+                virtual_host=self.params["vhost"]
             )
+        except Exception as error:
+            raise ConnectionError(error)
         self.channel = self.connection.channel()
-        self.channel.queue.declare(params["amqp_queue"])
+        self.channel.queue.declare(RPC_QUEUE)
         result = self.channel.queue.declare(exclusive=True)
         self.callback_queue = result["queue"]
         self.channel.basic.consume(
@@ -59,7 +71,7 @@ class RPC_Client(object):
          to RPC requests.
         """
         thread = threading.Thread(target=self._process_data_events)
-        thread.daemon = True
+        thread.setDaemon(True)
         thread.start()
 
     def _process_data_events(self):
@@ -80,14 +92,19 @@ class RPC_Client(object):
         :param params: Any associated parameters to accompany the request (varies by method).
         :type params: dict
         :return: the ID of the RPC request (correlation ID)
-        :rtype: str
+        :rtype: int
         """
         # Construct JSON-RPC2 payload string
-        query = {"jsonrpc": "2.0", "method": method, "params": params}
-        payload = json.dumps(query)
+        request = {"jsonrpc": "2.0", "method": method, "params": params}
+        try:
+            jsonrpc_utils.is_valid_request(request)
+        except Exception:
+            raise
+
+        payload = json.dumps(request, default=str)
 
         # Create the Message object.
-        message = amqpstorm.Message.create(self.channel, payload)
+        message = Message.create(self.channel, payload)
         message.reply_to = self.callback_queue
 
         # Create an entry in our local dictionary, using the automatically
@@ -104,9 +121,9 @@ class RPC_Client(object):
         """Return the JSON-RPC2 response if ready, None otherwise.
 
         :param corr_id: Correlation (RPC request) ID
-        :type corr_id: str
+        :type corr_id: int
         :returns: JSON-RPC2 compliant response from RPC server
-        :rtype: dict or list
+        :rtype: dict
         """
         assert corr_id
         response_string = self.queue[corr_id]
@@ -116,14 +133,23 @@ class RPC_Client(object):
         try:
             response = json.loads(response_string)
         except Exception:
-            response = {}
-            response["error"] = {
-                "code": 500,
-                "message": "Invalid response: %s" % (response_string,),
+            raise InvalidJsonResponse()
+        try:
+            jsonrpc_utils.is_valid_response(response)
+        except Exception:
+            response = {
+                "error": 400,
+                "message": "Invalid JSON-RPC2 response",
+                "data": response_string,
             }
+
+        # Discard unused "id" field and return to user.
+        # (we use rabbitmq correlation_id instead)
+        if "id" in response and response["id"] is None:
+            del response["id"]
         return response
 
-    def request(self, method, params={}, max_wait=10):
+    def request(self, method, params={}):
         """Format and send a JSON-RPC request, wait for response, and return result (which may indicate an error).
 
         :param method: The RPC method to call; this is not validated by the rpc client.
@@ -131,22 +157,33 @@ class RPC_Client(object):
         :param params: Any associated parameters to accompany the request (varies by method).
         :type params: dict
         :returns: JSON-RPC2 compliant response from RPC server; it may indicate error.
-        :rtype: dict or list
+        :rtype: dict
         """
         # Send the request and store the requests' ID
         corr_id = self.send_request(method, params)
 
         # Wait for up to a maximum amount of time for a response.
-        wait_interval = 0.25  # seconds
         waited = 0
         response = {}
         while self.queue[corr_id] is None:
-            waited = waited + wait_interval
-            if waited > max_wait:
+            waited = waited + self.wait_interval
+            if waited > self.max_wait:
                 # timeout error
                 response["error"] = {"code": 500, "message": "Server timeout"}
                 return response
-            sleep(wait_interval)
+            sleep(self.wait_interval)
 
-        # Return the response to the user (may be error).
+        # Return the JSON-RPC2 response to the user (may be error).
         return self.get_response(corr_id)
+
+
+class InvalidJsonResponse(Exception):
+    pass
+
+
+class ConfigurationError(Exception):
+    pass
+
+
+class ConnectionError(Exception):
+    pass

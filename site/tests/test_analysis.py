@@ -1,33 +1,33 @@
 import requests
 import json
 
-from jaws_site import dispatch
+from jaws_site import analysis
 from tests.conftest import CROMWELL_ID
 
 
 def test_server_status_down(monkeypatch, server_status_down):
     monkeypatch.setattr(requests, "get", server_status_down)
-    response = dispatch.server_status({})
+    response = analysis.server_status({})
     assert 'error' in response
 
 
 def test_server_status_up(monkeypatch, server_status_up):
     monkeypatch.setattr(requests, "get", server_status_up)
-    response = dispatch.server_status({})
+    response = analysis.server_status({})
     assert 'UP' in response['result']['Cromwell']
 
 
 def test_get_metadata_from_a_run(monkeypatch, metadata_get):
     monkeypatch.setattr(requests, "get", metadata_get)
     params = {"cromwell_id": CROMWELL_ID}
-    response = dispatch.run_metadata(params)
+    response = analysis.run_metadata(params)
     assert 'result' in response
 
 
 def test_get_task_status(monkeypatch, metadata_get):
     monkeypatch.setattr(requests, "get", metadata_get)
     params = {"cromwell_id": CROMWELL_ID}
-    response = dispatch.task_status(params)
+    response = analysis.task_status(params)
     print(response['result'])
     ordering = ['sc_test.do_prepare', 'sc_test.do_scatter',
                 'sc_test.do_gather']
@@ -42,7 +42,7 @@ def test_get_task_status(monkeypatch, metadata_get):
 def test_get_task_ids(monkeypatch, metadata_get):
     monkeypatch.setattr(requests, "get", metadata_get)
     params = {"cromwell_id": CROMWELL_ID}
-    response = dispatch.task_status(params)
+    response = analysis.task_status(params)
     print(response['result'])
 
     results = response['result']
@@ -61,7 +61,7 @@ def test_get_task_ids(monkeypatch, metadata_get):
 def test_get_logs(monkeypatch, logs_get):
     monkeypatch.setattr(requests, "get", logs_get)
     params = {"cromwell_id": CROMWELL_ID}
-    response = dispatch.run_logs(params)
+    response = analysis.run_logs(params)
 
     result = response['result']
 
@@ -71,13 +71,13 @@ def test_get_logs(monkeypatch, logs_get):
 def test_cancel_run(monkeypatch, abort_post):
     monkeypatch.setattr(requests, "post", abort_post)
     params = {"cromwell_id": CROMWELL_ID}
-    response = dispatch.cancel_run(params)
+    response = analysis.cancel_run(params)
 
     assert "OK" == response['result']['cancel']
 
 
 def test_tail_files(log_file):
-    logs, is_truncated = dispatch.__tail(log_file)
+    logs, is_truncated = analysis.__tail(log_file)
     print(logs)
     assert is_truncated
     assert len(logs) == 1000
@@ -87,7 +87,7 @@ def test_tail_files(log_file):
 
 def test_find_rc_failed_files(cromwell_run_dir):
     run_dir = cromwell_run_dir
-    out_json = dispatch._find_failure_logs(run_dir)
+    out_json = analysis._find_failure_logs(run_dir)
     obs_output = json.dumps(out_json, sort_keys=True, indent=4)
     exp_output = """
 {

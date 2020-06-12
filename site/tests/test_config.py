@@ -15,15 +15,12 @@ def test_overwrite_all_default_values(config_file):
     config_path = config_file
     cfg = jaws_site.config.Configuration(config_path)
 
-    expected_amqp_sections = [
+    expected_rpc_server_sections = [
         ("host", "currenthost"),
         ("vhost", "current_vhost"),
         ("user", "daffy_duck"),
         ("password", "succotash"),
         ("queue", "rabbit_season"),
-    ]
-
-    expected_rpc_sections = [
         ("num_threads", "5"),
         ("max_retries", "3"),
     ]
@@ -53,8 +50,7 @@ def test_overwrite_all_default_values(config_file):
         ("workflows_url", "http://localhost:8000/api/workflows/v1"),
         ("engine_status_url", "http://localhost:8000/engine/v1/status")]
 
-    check_section("AMQP", expected_amqp_sections, cfg)
-    check_section("RPC", expected_rpc_sections, cfg)
+    check_section("SITE_RPC_SERVER", expected_rpc_server_sections, cfg)
     check_section("GLOBUS", expected_globus_sections, cfg)
     check_section("DB", expected_db_sections, cfg)
     check_section("SITE", expected_site_sections, cfg)
@@ -70,6 +66,6 @@ def test_config_overwrite_partial_values(partial_config):
     config_path = partial_config
     cfg = jaws_site.config.Configuration(config_path)
 
-    check_section("AMQP", [("host", "https://rmq.nersc.gov")], cfg)
-    check_section("AMQP", [("vhost", "/")], cfg)
-    check_section("RPC", [("max_retries", "10")], cfg)
+    check_section("SITE_RPC_SERVER", [("host", "https://rmq.nersc.gov")], cfg)
+    check_section("SITE_RPC_SERVER", [("vhost", "/")], cfg)
+    check_section("SITE_RPC_SERVER", [("max_retries", "10")], cfg)

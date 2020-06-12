@@ -10,7 +10,7 @@ Each computing site also has a Cromwell server instance, typically installed on 
 import os
 import click
 
-from jaws_site import database, rpc_server, jawsd, log, config
+from jaws_site import database, jawsd, log, config
 
 JAWS_LOG_ENV = "JAWS_SITE_LOG"
 JAWS_CWD_LOG = os.path.join(os.getcwd(), f"{__package__}.log")
@@ -36,9 +36,13 @@ def cli(config_file: str, log_file: str):
 
 
 @cli.command()
-def server() -> None:
+def rpc() -> None:
     """Start RPC server."""
-    app = rpc_server.RpcServer()
+    from jaws_site import analysis
+    from jaws_rpc import rpc_server
+
+    site_rpc_server_params = config.conf.get_section("SITE_RPC_SERVER")
+    app = rpc_server.RpcServer(site_rpc_server_params, analysis.operations)
     app.start_server()
 
 

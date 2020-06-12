@@ -17,12 +17,23 @@ variables:
     - merge_requests
     - tags
 
+test-rpc:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install -r rpc/requirements.txt
+    - pip install flake8
+    - pip install pytest
+    - make test-rpc
 test-site:
   <<: *only-default
   stage: unit-test
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
+    - pip install rpc/
     - pip install -r site/requirements.txt
     - pip install flake8
     - pip install pytest
@@ -33,6 +44,7 @@ test-central:
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
+    - pip install rpc/
     - pip install -r central/requirements.txt
     - pip install flake8
     - pip install pytest
@@ -69,6 +81,7 @@ package:
     name: "packages-$CI_PROJECT_NAME-$CI_PIPELINE_ID"
     expire_in: 1 hour
     paths:
+      - rpc/dist
       - site/dist
       - client/dist
       - central/dist
@@ -103,8 +116,8 @@ deploy-jaws-cori:
     - make pkg
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
     - python3 -m venv /tmp/jaws-dev/client  && . /tmp/jaws-dev/client/bin/activate  && pip install client/dist/*  && deactivate
-    - python3 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate    && pip install site/dist/*    && deactivate
-    - python3 -m venv /tmp/jaws-dev/central && . /tmp/jaws-dev/central/bin/activate && pip install central/dist/* && deactivate
+    - python3 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate && pip install rpc/dist/*    && pip install site/dist/*    && deactivate
+    - python3 -m venv /tmp/jaws-dev/central && . /tmp/jaws-dev/central/bin/activate && pip install rpc/dist/* && pip install central/dist/* && deactivate
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf reread
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start jaws-dev:*

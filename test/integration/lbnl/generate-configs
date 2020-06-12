@@ -19,13 +19,12 @@ port = 3306
 user = jaws_dev
 password = $JAWS_SITE_LBNL_DB_PW
 db = jaws_dev
-[AMQP]
+[RPC_SERVER]
 user = jaws_rpc
 password = $JAWS_SITE_LBNL_RMQ_PW
 host = rmq.lbl.gov
 vhost = nersc_dev
 queue = jaws_rpc
-[RPC]
 num_threads = 5
 max_retries = 3
 [GLOBUS]

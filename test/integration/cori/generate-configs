@@ -21,13 +21,12 @@ port = 3306
 user = jaws_dev
 password = $JAWS_SITE_CORI_DB_PW
 db = jaws_dev
-[AMQP]
+[RPC_SERVER]
 user = jaws_rpc
 password = $JAWS_SITE_CORI_RMQ_PW
 host = rmq.lbl.gov
 vhost = nersc_dev
 queue = jaws_rpc
-[RPC]
 num_threads = 5
 max_retries = 3
 [GLOBUS]
@@ -54,21 +53,21 @@ db = jaws_dev
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 [SITE:LBNL]
-amqp_user = jaws_rpc
-amqp_password = $JAWS_CENTRAL_CORI_RMQ_PW
-amqp_host = rmq.lbl.gov
-amqp_vhost = lbnl_dev
-amqp_queue = jaws_rpc
+user = jaws_rpc
+password = $JAWS_CENTRAL_CORI_RMQ_PW
+host = rmq.lbl.gov
+vhost = lbnl_dev
+queue = jaws_rpc
 globus_endpoint = b445e71a-4933-11ea-9714-021304b0cca7
 globus_basepath = /global/scratch/jaws
 staging_subdir = dev/staging
 max_ram_gb = 1024
 [SITE:NERSC]
-amqp_user = jaws_rpc
-amqp_password = $JAWS_CENTRAL_CORI_RMQ_PW
-amqp_host = rmq.lbl.gov
-amqp_vhost = nersc_dev
-amqp_queue = jaws_rpc
+user = jaws_rpc
+password = $JAWS_CENTRAL_CORI_RMQ_PW
+host = rmq.lbl.gov
+vhost = nersc_dev
+queue = jaws_rpc
 globus_endpoint = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
 globus_basepath = /
 staging_subdir = /global/cscratch1/sd/jaws_jtm/dev/staging

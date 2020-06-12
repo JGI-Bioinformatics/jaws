@@ -1,6 +1,5 @@
-from jaws_central import rpc_manager, config
+from jaws_central import rpc_index, config
 import amqpstorm
-import urllib.parse
 
 
 def status() -> dict:
@@ -10,9 +9,9 @@ def status() -> dict:
     :rtype: dict
     """
     result = {"JAWS-Central": "UP"}
-    rpcm = rpc_manager.manager
-    for site_id in rpcm.get_sites():
-        client = rpcm.get_client(site_id)
+    rpci = rpc_index.index
+    for site_id in rpci.get_sites():
+        client = rpci.get_client(site_id)
         response = client.request("server_status")
         if "error" not in response:
             result[site_id + "-Site"] = "UP"
@@ -35,22 +34,22 @@ def _rmq_server_status(params):
     :return: "UP" or "DOWN"
     :rtype: str
     """
-    if params.get("amqp_vhost", None):
-        uri = "amqp://%s:%s@%s:5672/%s?heartbeat=60" % (
-            params["amqp_user"],
-            urllib.parse.quote_plus(params["amqp_password"]),
-            params["amqp_host"],
-            params["amqp_vhost"],
-        )
+    if params.get("vhost", None):
         try:
-            connection = amqpstorm.UriConnection(uri)
-            connection.check_for_errors()
-        except amqpstorm.AMQPConnectionError:
+            with amqpstorm.Connection(
+                params["host"],
+                params["user"],
+                params["password"],
+                int(params.get("port", 5672)),
+                virtual_host=params["vhost"],
+            ) as connection:
+                connection.check_for_errors()
+        except Exception:
             return "DOWN"
     else:
         try:
             connection = amqpstorm.Connection(
-                params["amqp_host"], params["amqp_user"], params["amqp_password"]
+                params["host"], params["user"], params["password"]
             )
             connection.check_for_errors()
         except amqpstorm.AMQPConnectionError:

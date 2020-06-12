@@ -7,9 +7,10 @@ from datetime import datetime, timedelta
 from flask import abort, request
 import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_central import config, rpc_manager
+from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_central.models import db, Run, User
+from jaws_rpc import rpc_index
 
 
 logger = logging.getLogger(__package__)
@@ -40,7 +41,7 @@ def _rpc_call(user, run_id, method, params={}):
         abort(404, "Run not found; please check your run_id")
     if run.user_id != user:
         abort(401, "Access denied; you cannot access to another user's workflow")
-    site_rpc_call = rpc_manager.manager.get_client(run.site_id)
+    site_rpc_call = rpc_index.index.get_client(run.site_id)
     params["user"] = user
     params["cromwell_id"] = run.cromwell_id
     logger.info(f"User {user} RPC {method} params {params}")
