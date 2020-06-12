@@ -8,8 +8,9 @@ import logging
 import connexion
 from urllib.parse import quote_plus
 import secrets
-from jaws_central import config, log, rpc_manager
+from jaws_central import config, log
 from jaws_central.models import db
+from jaws_rpc import rpc_index
 
 
 JAWS_LOG_ENV = "JAWS_CENTRAL_LOG"
@@ -97,7 +98,7 @@ def rest(port: int) -> None:
     }
     db.init_app(connex.app)
 
-    rpc_manager.manager = rpc_manager.JawsRpc(config.conf)
+    rpc_index.index = rpc_index.JawsRpc(config.conf)
 
     connex.run(host="0.0.0.0", port=port, debug=False)
 

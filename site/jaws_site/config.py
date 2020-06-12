@@ -17,14 +17,14 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
     """Configuration singleton class"""
 
     defaults = {
-        "AMQP": {
+        "SITE_RPC_SERVER": {
             "host": "localhost",
             "vhost": "/",
             "user": "guest",  # default from docker container
             "password": "guest",  # default from docker container
             "queue": "test",
-        },
-        "RPC": {"num_threads": 5, "max_retries": 5},
+            "num_threads": 5,
+            "max_retries": 5},
         "GLOBUS": {"client_id": "", "endpoint_id": "jaws-testing", "root_dir": "/"},
         "DB": {
             "host": "localhost",
@@ -78,3 +78,16 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         :rtype: str
         """
         return self.config.get(section, key)
+
+    def get_section(self, section: str) -> dict:
+        """Get a configuration section.
+
+        :param section: name of config section
+        :type section: str
+        :return: A copy of the requested section
+        :rtype: dict
+        """
+        result = {}
+        for key, value in self.config.items(section):
+            result[key] = value
+        return result

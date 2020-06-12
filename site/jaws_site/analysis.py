@@ -12,35 +12,6 @@ from jaws_site import config
 from jaws_site import wfcopy
 
 
-def dispatch(method, params):
-    """Given a method keyword, call the appropriate function with the provided
-    parameters.
-
-    :param method: The method requested.  Abort if unrecognized.
-    :type method: str
-    :param params: Associated parameters, if any.  Varies by method.
-    :type params: dict
-    :return: Response in JSON-RPC2 format.
-    :rtype: dict
-    """
-    operations = {
-        "server_status": server_status,
-        "task_status": task_status,
-        "run_metadata": run_metadata,
-        "cancel_run": cancel_run,
-        "run_logs": run_logs,
-        "failure_logs": failure_logs,
-        "delete_run": delete_run,
-    }
-    proc = operations.get(method)
-    logger = logging.getLogger(__package__)
-    if proc:
-        logger.info(f"RPC: {method} : {params}")
-        return proc(params)
-    logger.error(f"Unknown RPC method: {method}")
-    return failure(400, "Unknown method")
-
-
 def success(result):
     """Return a JSON-RPC2 successful result message.
 
@@ -64,9 +35,7 @@ def failure(code, message=None):
     """
     if message is None:
         message = (
-            responses["status_code"]
-            if "status_code" in responses
-            else "Unknown error"
+            responses["status_code"] if "status_code" in responses else "Unknown error"
         )
     return {"jsonrpc": "2.0", "error": {"code": code, "message": message}}
 
@@ -96,7 +65,9 @@ def server_status(params):
     if Cromwell up or not.
     :rtype: dict
     """
-    response = do_request(config.conf.get("CROMWELL", "engine_status_url"), requests.get)
+    response = do_request(
+        config.conf.get("CROMWELL", "engine_status_url"), requests.get
+    )
     if response.status_code != requests.codes.ok:
         return failure(response.status_code)
     response = {"Cromwell": "UP"}
@@ -122,7 +93,7 @@ def run_metadata(params):
 
 def sort_tasks(metadata, key=None):
     result = []
-    for task_name in metadata['calls']:
+    for task_name in metadata["calls"]:
         task_info = metadata["calls"][task_name]
         job_step_info = task_info[0]
         start = job_step_info.get("start", "?")
@@ -202,7 +173,9 @@ def cancel_run(params):
     """
     if "cromwell_id" not in params:
         return failure(400, "cromwell_id not in params")
-    url = f"{config.conf.get('CROMWELL', 'workflows_url')}/{params['cromwell_id']}/abort"
+    url = (
+        f"{config.conf.get('CROMWELL', 'workflows_url')}/{params['cromwell_id']}/abort"
+    )
     r = do_request(url, requests.post)
     if r.status_code != 201:
         return failure(r.status_code)
@@ -233,12 +206,12 @@ def _find_failure_logs(run_dir):
     out_json = collections.defaultdict(dict)
     stderr_files = collections.defaultdict(dict)
     max_lines = 1000
-    target_files = ['stderr', 'stderr.submit']
+    target_files = ["stderr", "stderr.submit"]
 
     # get cromwell files for each task, store rc code and target file paths in stderr_files dict
-    for taskname, filename in wfcopy.get_files(run_dir, delimiter='.'):
+    for taskname, filename in wfcopy.get_files(run_dir, delimiter="."):
         basename = os.path.basename(filename)
-        if basename == 'rc':
+        if basename == "rc":
             with open(filename) as fh:
                 rc = int(fh.read().strip())
             stderr_files[taskname][basename] = rc
@@ -247,19 +220,19 @@ def _find_failure_logs(run_dir):
 
     # for each task, parse target files for msgs, store in out_json.
     for taskname in stderr_files:
-        if not stderr_files[taskname]['rc']:
+        if not stderr_files[taskname]["rc"]:
             continue
 
-        del stderr_files[taskname]['rc']
+        del stderr_files[taskname]["rc"]
         for stderr_type in stderr_files[taskname]:
             filename = stderr_files[taskname][stderr_type]
             lines, is_truncated = __tail(filename, max_lines)
-            output = ''
+            output = ""
             if is_truncated:
                 output += "showing only last {max_lines} lines\n"
-                output += '\n'.join(lines)
+                output += "\n".join(lines)
             else:
-                output = '\n'.join(lines)
+                output = "\n".join(lines)
             out_json[taskname][stderr_type] = output
 
     return dict(out_json)
@@ -325,13 +298,29 @@ def delete_run(params):
     if not run_dir:
         return failure(404, f"workflowRoot not found for {cromwell_id}")
     result = {}
-    logger.info(f"Delete output of run_id {run_id} : cromwell_id {cromwell_id} : {run_dir}")
+    logger.info(
+        f"Delete output of run_id {run_id} : cromwell_id {cromwell_id} : {run_dir}"
+    )
     try:
         # rmtree may take too long, resulting in server timeout error; rename instead
-        dest_dir = os.path.join(os.path.dirname(run_dir), f"{os.path.basename(run_dir)}.IGNORE")
+        dest_dir = os.path.join(
+            os.path.dirname(run_dir), f"{os.path.basename(run_dir)}.IGNORE"
+        )
         shutil.move(run_dir, dest_dir)
         result["message"] = f"Purged run {run_id} from cache"
     except Exception as error:
         logger.error(f"Failed to purge run {run_id} in {run_dir}: {error}")
         return failure(500, f"Failed to purge run {run_id} in {run_dir}: {error}")
     return success(result)
+
+
+# THIS DISPATCH TABLE IS USED BY THE RPC SERVER
+operations = {
+    "server_status": {"function": server_status},
+    "task_status": {"function": task_status, "required_params": ["cromwell_id"]},
+    "run_metadata": {"function": run_metadata, "required_params": ["cromwell_id"]},
+    "cancel_run": {"function": cancel_run, "required_params": ["cromwell_id"]},
+    "run_logs": {"function": run_logs, "required_params": ["cromwell_id"]},
+    "failure_logs": {"function": failure_logs, "required_params": ["cromwell_id"]},
+    "delete_run": {"function": delete_run, "required_params": ["cromwelL_id"]},
+}

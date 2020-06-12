@@ -6,13 +6,17 @@ Q := $(if $V,,@)
 pkg-requirements:
 	$(if $(shell which wheel),,$(error "Packaging needs Python wheel installed. Please run 'pip install wheel'"))
 
+.PHONY: pkg-rpc
+pkg-rpc: pkg-requirements
+	$Q cd rpc && python setup.py bdist_wheel
+
 .PHONY: pkg-site
 pkg-site: pkg-requirements
-	$Q cd site && python setup.py bdist_wheel
+	$Q cd rpc && python setup.py bdist_wheel && cd ../site && python setup.py bdist_wheel
 
 .PHONY: pkg-central
 pkg-central: pkg-requirements
-	$Q cd central && python setup.py bdist_wheel
+	$Q cd rpc && python setup.py bdist_wheel && cd ../central && python setup.py bdist_wheel
 
 .PHONY: pkg-client
 pkg-client: pkg-requirements
@@ -23,7 +27,7 @@ pkg-jtm: pkg-requirements
 	$Q cd jtm && python setup.py bdist_wheel
 
 .PHONY: pkg
-pkg: pkg-site pkg-central pkg-client pkg-jtm
+pkg: pkg-rpc pkg-site pkg-central pkg-client pkg-jtm
 ## Package Section END
 
 ## Test Section BEGIN
@@ -32,10 +36,15 @@ test-requirements:
 	$(if $(shell which flake8),,$(error "Testing needs flake8 installed. Please run 'pip install flake8'"))
 	$(if $(shell which pytest),,$(error "Testing needs pytest installed. Please run 'pip install pytest'"))
 
+.PHONY: test-rpc
+test-rpc: test-requirements
+	$Q flake8 rpc
+	$Q cd rpc && python -m pytest tests/
+
 .PHONY: test-site
 test-site: test-requirements
 	$Q flake8 site
-	$Q cd site && pytest
+	$Q cd site && python -m pytest tests/
 
 .PHONY: test-central
 test-central: test-requirements
@@ -52,7 +61,7 @@ test-jtm: test-requirements
 	$Q flake8 jtm
 
 .PHONY: test
-test: test-site test-central test-client test-jtm
+test: test-rpc test-site test-central test-client test-jtm
 ## Test Section END
 
 ## Doc Section BEGIN
