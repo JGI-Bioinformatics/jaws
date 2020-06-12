@@ -196,30 +196,6 @@ def cancel(run_id):
     print(json.dumps(result, indent=4, sort_keys=True))
 
 
-@run.command()
-@click.argument("run_id")
-def uncache(run_id: int) -> None:
-    """Prevent the results of a run from being reused by the cache.
-
-    :param run_id: JAWS run ID
-    :type run_id: int
-    :return:
-    """
-    current_user = user.User()
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
-    try:
-        r = requests.delete(url, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        raise SystemExit("Unable to communicate with JAWS server")
-    result = r.json()
-    if r.status_code != 200:
-        if "detail" in result:
-            raise SystemExit(result["detail"])
-        else:
-            raise SystemExit(r.text)
-    print(json.dumps(result, indent=4, sort_keys=True))
-
-
 def _list_sites() -> None:
     """List available Sites."""
     url = f'{config.conf.get("JAWS", "url")}/site'

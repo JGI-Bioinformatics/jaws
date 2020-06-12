@@ -50,7 +50,6 @@ jaws *run* options:
 .. code-block:: bash
 
    cancel <run_id>                cancel a run, prints whether aborting was successful or not
-   delete <run_id>                delete the output of a run or task to avoid caching. Use when you don't want
    errors <run_id>                view the logs for failed tasks
    history <num_days> (wf_name)   list past runs for a given number of days
    list-sites                     list available sites you can run jobs from. (i.e. cori)
@@ -188,21 +187,3 @@ Examples
    
    # view history of your jobs for last 7 days 
    jaws run history --days 7
-
-
-**Clear cache**
-
-.. note::
-	Caching is turned off in jaws v2.0
-	
-
-Use this when you want to re-run one or more of your tasks in your workflow (i.e. don't use cached results).
-For example, if you change something in a script but the WDL doesn't change, you will use cached results (which will not reflect changes in your script).
-
-::
-
-   jaws run uncache 121
-
-   # now re-submit the wdl to jaws and it will start from scratch.
-   jaws run submit metagenome_assembly.wdl inputs.json out nersc
-

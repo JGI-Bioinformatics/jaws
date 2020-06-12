@@ -497,24 +497,3 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
             exc_info=True,
         )
         abort(500, f"Globus error: {e}")
-
-
-def delete_run(user, run_id):
-    """
-    Prevent a run's output from being reused by Cromwell's caching system by renaming the execution folder.
-
-    :param user: current user's ID
-    :type user: str
-    :param run_id: unique identifier for a run
-    :type run_id: int
-    :return: OK message upon success; abort otherwise
-    :rtype: dict
-    """
-    run = _get_run(run_id)
-    if run.user_id != user:
-        abort(401, "Access denied; this is not your run")
-    params = {"cromwell_id": run.cromwell_id, "run_id": run.id}
-    result = _rpc_call(user, run_id, "delete_run", params)
-    run.status = "purged"
-    db.session.commit()
-    return result, 200
