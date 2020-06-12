@@ -6,7 +6,6 @@ import requests
 from http.client import responses
 import logging
 import os
-import shutil
 import collections
 from jaws_site import config
 from jaws_site import wfcopy
@@ -279,41 +278,6 @@ def __tail(filename, max_lines=1000):
     return lines, is_truncated
 
 
-def delete_run(params):
-    """Delete a run's output.
-
-    :param cromwell_id: The Cromwell run ID
-    :type cromwell_id: str
-    :return: Either a JSON-RPC2-compliant success or failure message,
-    :rtype: dict
-    """
-    logger = logging.getLogger(__package__)
-    if "cromwell_id" not in params:
-        return failure(400, "cromwell_id not in params")
-    cromwell_id = params["cromwell_id"]
-    run_id = params["run_id"]
-    url = f"{config.conf.get('CROMWELL', 'workflows_url')}/{cromwell_id}/metadata"
-    r = do_request(url, requests.get)
-    run_dir = r.json()["workflowRoot"]
-    if not run_dir:
-        return failure(404, f"workflowRoot not found for {cromwell_id}")
-    result = {}
-    logger.info(
-        f"Delete output of run_id {run_id} : cromwell_id {cromwell_id} : {run_dir}"
-    )
-    try:
-        # rmtree may take too long, resulting in server timeout error; rename instead
-        dest_dir = os.path.join(
-            os.path.dirname(run_dir), f"{os.path.basename(run_dir)}.IGNORE"
-        )
-        shutil.move(run_dir, dest_dir)
-        result["message"] = f"Purged run {run_id} from cache"
-    except Exception as error:
-        logger.error(f"Failed to purge run {run_id} in {run_dir}: {error}")
-        return failure(500, f"Failed to purge run {run_id} in {run_dir}: {error}")
-    return success(result)
-
-
 # THIS DISPATCH TABLE IS USED BY THE RPC SERVER
 operations = {
     "server_status": {"function": server_status},
@@ -322,5 +286,4 @@ operations = {
     "cancel_run": {"function": cancel_run, "required_params": ["cromwell_id"]},
     "run_logs": {"function": run_logs, "required_params": ["cromwell_id"]},
     "failure_logs": {"function": failure_logs, "required_params": ["cromwell_id"]},
-    "delete_run": {"function": delete_run, "required_params": ["cromwelL_id"]},
 }
