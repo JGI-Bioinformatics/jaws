@@ -36,13 +36,13 @@ startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-site-server]
-command={{shimpath}}/jaws-site-server-dev
+[program:jaws-site-rpc]
+command={{shimpath}}/jaws-site-rpc-dev
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [group:jaws-dev]
-programs=jaws-site-daemon,jaws-site-server
+programs=jaws-site-daemon,jaws-site-rpc
 priority=999

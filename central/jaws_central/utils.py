@@ -1,4 +1,5 @@
-from jaws_central import rpc_index, config
+from jaws_central import config
+from jaws_rpc import rpc_index
 import amqpstorm
 
 
@@ -9,7 +10,7 @@ def status() -> dict:
     :rtype: dict
     """
     result = {"JAWS-Central": "UP"}
-    rpci = rpc_index.index
+    rpci = rpc_index.rpc_index
     for site_id in rpci.get_sites():
         client = rpci.get_client(site_id)
         response = client.request("server_status")

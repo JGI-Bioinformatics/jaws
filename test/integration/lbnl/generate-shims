@@ -12,11 +12,11 @@ source $INSTALLDIR/site/bin/activate
 exec jaws-site --log $INSTALLDIR/logs/site-daemon.log --config $INSTALLDIR/configs/jaws-site.conf daemon
 EOM
 
-cat <<EOM > $SHIMDIR/jaws-site-server-dev
+cat <<EOM > $SHIMDIR/jaws-site-rpc-dev
 #!/usr/bin/env bash
 
 source $INSTALLDIR/site/bin/activate
-exec jaws-site --log $INSTALLDIR/logs/site-server.log --config $INSTALLDIR/configs/jaws-site.conf server
+exec jaws-site --log $INSTALLDIR/logs/site-rpc.log --config $INSTALLDIR/configs/jaws-site.conf rpc
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-jtm-dev
