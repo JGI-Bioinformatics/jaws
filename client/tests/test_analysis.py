@@ -2,6 +2,8 @@ import pytest
 import os
 import requests
 import shutil
+import json
+from datetime import datetime
 
 import click.testing
 
@@ -122,29 +124,10 @@ WORKFLOW_METADATA = {
 }
 
 
-LOGS = {
-    "id": "b3e45584-9450-4e73-9523-fc3ccf749848",
-    "logs": {
-        "call.ps": [
-            {
-                "stderr": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-ps/stderr6126967977036995110.tmp",
-                "stdout": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-ps/stdout6128485235785447571.tmp",
-            }
-        ],
-        "call.cgrep": [
-            {
-                "stderr": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-cgrep/stderr6126967977036995110.tmp",  # noqa
-                "stdout": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-cgrep/stdout6128485235785447571.tmp",  # noqa
-            }
-        ],
-        "call.wc": [
-            {
-                "stderr": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-wc/stderr6126967977036995110.tmp",
-                "stdout": "/home/user/test/b3e45584-9450-4e73-9523-fc3ccf749848/call-wc/stdout6128485235785447571.tmp",
-            }
-        ],
-    },
-}
+RUN_LOG = [
+    ["created", "uploading", "2020-06-11 10:01:14", ""],
+    ["uploading", "upload complete", "2020-06-11 10:04:23", ""],
+]
 
 SUBMISSION = {
     "output_dir": "/global/homes/m/mamelara/out",
@@ -273,13 +256,26 @@ def test_cli_metadata(monkeypatch, mock_user, configuration):
 
 
 def test_cli_log(monkeypatch, mock_user, configuration):
-    def get_logs(url, headers=None):
-        return MockResult(LOGS, 200)
+    def get_log(url, headers=None):
+        return MockResult(RUN_LOG, 200)
 
-    monkeypatch.setattr(requests, "get", get_logs)
+    valid_states = ['created', 'uploading', 'upload complete',
+                    'invalid input', 'submitted', 'submission failed',
+                    'queued', 'running', 'succeeded', 'failed', 'cancelling',
+                    'cancelled', 'ready', 'downloading', 'download failed',
+                    'download complete', 'finished']
+
+    monkeypatch.setattr(requests, "get", get_log)
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["logs", "36"])
-    assert "call.ps" in result.output
+    result = runner.invoke(run, ["log", "36"])
+    output = result.output.strip()
+    output = output.replace("'", '"')  # Convert to valid JSON hack
+    run_log = json.loads(output)
+
+    for log_entry in run_log:
+        assert log_entry[0] in valid_states
+        assert log_entry[1] in valid_states
+        assert datetime.strptime(log_entry[2], "%Y-%m-%d %H:%M:%S")
 
 
 @pytest.mark.skipif(
@@ -293,9 +289,11 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     subdir = os.path.join(root, "globus", "staging")
 
     def get_site(url, headers=None):
-        body = {"globus_basepath": "/NERSC/globus",
-                "staging_subdir": "/NERSC/globus/staging",
-                "max_ram_gb": "256"}
+        body = {
+            "globus_basepath": "/NERSC/globus",
+            "staging_subdir": "/NERSC/globus/staging",
+            "max_ram_gb": "256",
+        }
         return MockResult(body, 200)
 
     def mock_post(url, data=None, files=None, headers={}):

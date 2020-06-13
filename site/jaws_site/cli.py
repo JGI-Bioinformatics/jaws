@@ -10,7 +10,7 @@ Each computing site also has a Cromwell server instance, typically installed on 
 import os
 import click
 
-from jaws_site import database, jawsd, log, config
+from jaws_site import log, config
 
 JAWS_LOG_ENV = "JAWS_SITE_LOG"
 JAWS_CWD_LOG = os.path.join(os.getcwd(), f"{__package__}.log")
@@ -49,9 +49,10 @@ def rpc() -> None:
 @cli.command()
 def daemon() -> None:
     """Start daemon."""
-    db = database.Database(config.conf)
-    daemon = jawsd.Daemon(db)
-    daemon.start_daemon()
+    from jaws_site import daemon
+
+    jawsd = daemon.Daemon()
+    jawsd.start_daemon()
 
 
 def jaws():

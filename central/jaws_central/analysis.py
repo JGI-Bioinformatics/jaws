@@ -9,8 +9,8 @@ import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config
 from jaws_central import jaws_constants
-from jaws_central.models import db, Run, User
 from jaws_rpc import rpc_index
+from jaws_central.models import db, Run, User, Run_Log
 
 
 logger = logging.getLogger(__package__)
@@ -231,7 +231,10 @@ def submit_run(user):
         logger.exception(
             f"Error getting transfer client for user {user}", exc_info=True
         )
-        abort(500, "User Globus error; have you granted JAWS access via the 'login' command?")
+        abort(
+            500,
+            "User Globus error; have you granted JAWS access via the 'login' command?",
+        )
     tdata = globus_sdk.TransferData(
         transfer_client,
         input_endpoint,
@@ -351,7 +354,7 @@ def run_status(user, run_id):
         "submission_id": run.submission_id,
         "cromwell_id": run.cromwell_id,
         "status": run.status,
-        "status_detail": jaws_constants.run_status_msg.get(run.status, ''),
+        "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
         "site_id": run.site_id,
         "submitted": run.submitted,
         "updated": run.updated,
@@ -363,6 +366,38 @@ def run_status(user, run_id):
         "download_task_id": run.download_task_id,
     }
     return result, 200
+
+
+def run_log(user: str, run_id: int):
+    """
+    Retrieve complete log of a Run's state transitions.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a Run
+    :type run_id: int
+    :return: Table of log entries
+    :rtype: list
+    """
+    try:
+        query = (
+            db.session.query(Run_Log)
+            .filter_by(run_id=run_id)
+            .order_by(Run_Log.timestamp)
+        )
+    except SQLAlchemyError as error:
+        logger.error(error)
+        abort(500, f"Db error; {error}")
+    table = []
+    for log in query:
+        row = [
+            log.status_from,
+            log.status_to,
+            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            log.reason,
+        ]
+        table.append(row)
+    return table, 200
 
 
 def task_status(user, run_id):
@@ -413,6 +448,22 @@ def run_logs(user, run_id):
     return _rpc_call(user, run_id, "run_logs")
 
 
+def output(user, run_id):
+    """
+    Retrieve the stdout/stderr output of all Tasks.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: stdout/stderr file contents
+    :rtype: str
+    """
+    run = _get_run(run_id)
+    __abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "output", {"failed_only": False})
+
+
 def failure_logs(user, run_id):
     """
     Retrieve the logs for failed tasks.
@@ -426,7 +477,7 @@ def failure_logs(user, run_id):
     """
     run = _get_run(run_id)
     __abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "failure_logs")
+    return _rpc_call(user, run_id, "output", {"failed_only": True})
 
 
 def cancel_run(user, run_id):
