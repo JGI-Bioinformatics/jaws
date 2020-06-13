@@ -13,11 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     UniqueConstraint,
 )
-from sqlalchemy.ext.declarative import declarative_base
-
-# from sqlalchemy.orm import relationship
-
-Base = declarative_base()
+from jaws_site.database import Base
 
 
 def same_as(column_name):
@@ -73,9 +69,6 @@ class Workflow(Base):
         UniqueConstraint("name", "version", name="_workflow_name_version_uniq_cons"),
     )
 
-    # ONE:MANY RELATIONSHIP
-    # user = relationship("User", back_populates="workflows")
-
 
 class Run(Base):
     """Analysis runs are the execution of workflows on specific inputs."""
@@ -98,11 +91,17 @@ class Run(Base):
     output_dir = Column(String(256), nullable=False)
     download_task_id = Column(String(36), nullable=True)
 
-    # ONE:MANY RELATIONSHIPS
 
+class Run_Log(Base):
+    """Run state transitions log"""
 
-#    user = relationship("User", back_populates="runs")
-#    workflow = relationship("Workflow", back_populates="runs")
+    __tablename__ = "run_logs"
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
+    status_from = Column(String(32), nullable=False)
+    status_to = Column(String(32), nullable=False)
+    timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    reason = Column(String(1024), nullable=True)
 
 
 def create_all(engine):

@@ -1,59 +1,28 @@
 import logging
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-
-from jaws_site import models
-import jaws_site.utils
+from jaws_site import config
 
 
-db = None
+logger = logging.getLogger(__package__)
 
+params = config.conf.get_section("DB")
+logger.info(f"Connecting to db, {params.get('db')} @ {params.get('host')}")
+url = "%s://%s:%s@%s:%s/%s" % (
+    params.get("dialect"),
+    params.get("user"),
+    quote_plus(params.get("password").encode('utf-8')),
+    params.get("host"),
+    params.get("port"),
+    params.get("db"))
+try:
+    engine = create_engine(url, pool_size=3, pool_recycle=3600, pool_pre_ping=True)
+except Exception as error:
+    logger.exception(error)
+    raise
 
-class Database(metaclass=jaws_site.utils.Singleton):
-    """Database singleton class"""
-    engine = None
+Session = sessionmaker(bind=engine)
 
-    def __init__(self, conf):
-        """Constructor
-
-        :param conf: An initialized Configuration object
-        :type conf: obj
-        :return: Database singleton object
-        :rtype: obj
-        """
-        logger = logging.getLogger(__package__)
-        logger.debug("Initializing db connection")
-        url = "%s://%s:%s@%s/%s" % (
-            conf.get("DB", "dialect"),
-            conf.get("DB", "user"),
-            quote_plus(conf.get("DB", "password").encode('utf-8')),
-            conf.get("DB", "host"),
-            conf.get("DB", "db"))
-        try:
-            self.engine = create_engine(url, pool_size=3,
-                                        pool_recycle=3600,
-                                        pool_pre_ping=True)
-        except Exception as e:
-            raise DatabaseError(f"Unable to connect to db: {e}")
-        models.Base.metadata.create_all(self.engine)
-        global db
-        db = self
-
-    def engine(self):
-        """Return the SQLAlchemy engine object"""
-        if self.engine is None:
-            raise DatabaseError("Db not initialized; run init_db first")
-        return self.engine
-
-    def session(self):
-        """Return a new SQLAlchemy session object"""
-        if self.engine is None:
-            raise DatabaseError("Db not initialized; run init_db first")
-        Session = sessionmaker(bind=self.engine)
-        session = Session()
-        return session
-
-
-class DatabaseError(Exception):
-    pass
+Base = declarative_base()

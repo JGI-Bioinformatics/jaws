@@ -147,22 +147,41 @@ def metadata(run_id: int) -> None:
 
 @run.command()
 @click.argument("run_id")
-def logs(run_id: int) -> None:
-    """View the Cromwell logs of a run.
+def log(run_id: int) -> None:
+    """View the log of Run state transitions.
 
     :param run_id: JAWS run ID
     :type run_id: int
     :return:
     """
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/logs'
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/run_log'
     r = _get(url)
     print(r.text)
 
 
 @run.command()
 @click.argument("run_id")
+def output(run_id: int) -> None:
+    """View the stdout/stderr output of Tasks.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :return:
+    """
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/output'
+    response = _get(url)
+    if response.status_code != 200:
+        raise SystemExit(response.text)
+    result = response.json()
+    print("STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON")
+    for log_entry in result:
+        print("\t".join(log_entry))
+
+
+@run.command()
+@click.argument("run_id")
 def errors(run_id):
-    """View the logs for failed tasks.
+    """View the stdout/stderr output of failed Tasks.
 
     :param run_id: JAWS run ID
     :type run_id: int

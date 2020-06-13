@@ -384,18 +384,17 @@ class MockDb:
 
 
 class MockRun:
-    def __init__(
-        self, user_id, task_id, submit_id, cromwell_id, id, status, output_dir
-    ):
-        self.user_id = user_id
-        self.upload_task_id = task_id
-        self.submission_id = submit_id
-        self.cromwell_id = cromwell_id
-        self.id = id
-        self.status = status
-        self.output_endpoint = "."
-        self.download_task_id = "123"
-        self.output_dir = output_dir
+    """Mock Run object with useable defaults."""
+    def __init__(self, **kwargs):
+        self.user_id = kwargs.get("user_id", "jaws")
+        self.upload_task_id = kwargs.get("upload_task_id", "1")
+        self.submission_id = kwargs.get("submit_id", "2")
+        self.cromwell_id = kwargs.get("cromwell_id", "myid")
+        self.status = kwargs.get("status", "running")
+        self.id = kwargs.get("id", "99")
+        self.output_endpoint = kwargs.get("output_endpoint", "EXAMPLE_OUTPUT_ENDPOINT_ID")
+        self.output_dir = kwargs.get("output_dir", ".")
+        self.download_task_id = kwargs.get("download_task_id", "123")
 
 
 class MockTransferClient:
@@ -458,6 +457,6 @@ class MockTransferDataWithCopy:
 
 @pytest.fixture()
 def mock_query_user_id(monkeypatch):
-    from jaws_site.jawsd import Daemon
+    from jaws_site.daemon import Daemon
 
     monkeypatch.setattr(Daemon, "_query_user_id", query_jaws_id)

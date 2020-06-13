@@ -50,10 +50,11 @@ jaws *run* options:
 .. code-block:: bash
 
    cancel <run_id>                cancel a run, prints whether aborting was successful or not
-   errors <run_id>                view the logs for failed tasks
+   output <run_id>                view the stdout/stderr for all tasks
+   errors <run_id>                view the stdout/stderr for failed tasks
    history <num_days> (wf_name)   list past runs for a given number of days
    list-sites                     list available sites you can run jobs from. (i.e. cori)
-   logs                           view the Cromwell logs of a run
+   log                            view the history of Run state transitions
    metadata <run_id>              detailed information about a run
    queue                          list your unfinished runs. shows finished runs for a short time
    status <run_id>                show current status of a single run
