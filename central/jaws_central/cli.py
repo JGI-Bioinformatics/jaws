@@ -98,7 +98,7 @@ def rest(port: int) -> None:
     }
     db.init_app(connex.app)
 
-    rpc_index.index = rpc_index.JawsRpc(config.conf)
+    rpc_index.rpc_index = rpc_index.RPC_Index(config.conf)
 
     connex.run(host="0.0.0.0", port=port, debug=False)
 
