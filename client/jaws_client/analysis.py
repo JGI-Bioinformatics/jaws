@@ -10,6 +10,7 @@ import logging
 import uuid
 import shutil
 from typing import Dict
+from collections import defaultdict
 
 from jaws_client import config, user, workflow
 
@@ -116,17 +117,25 @@ def status(run_id: int) -> None:
 
 @run.command()
 @click.argument("run_id")
-def tasks(run_id: int) -> None:
-    """Show status of each task of a run.
+@click.option("--fmt", default="text", help="Output format: text|json")
+def task_status(run_id: int, fmt: str) -> None:
+    """Show the current status of each task.
 
     :param run_id: JAWS run ID
     :type run_id: int
     :return:
     """
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/tasks'
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/task_status'
     r = _get(url)
     result = r.json()
-    print(json.dumps(result, indent=4, sort_keys=True))
+    if fmt == "json":
+        print(json.dumps(result, indent=4, sort_keys=True))
+    else:
+        print(
+            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n"
+        )
+        for log_entry in result:
+            print("\t".join(log_entry))
 
 
 @run.command()
@@ -147,7 +156,8 @@ def metadata(run_id: int) -> None:
 
 @run.command()
 @click.argument("run_id")
-def log(run_id: int) -> None:
+@click.option("--fmt", default="text", help="Output format: text|json")
+def log(run_id: int, fmt: str) -> None:
     """View the log of Run state transitions.
 
     :param run_id: JAWS run ID
@@ -156,40 +166,63 @@ def log(run_id: int) -> None:
     """
     url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/run_log'
     r = _get(url)
-    print(r.text)
+    result = r.json()
+    if fmt == "json":
+        print(json.dumps(result, indent=4, sort_keys=True))
+    else:
+        print("#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n")
+        for log_entry in result:
+            print("\t".join(log_entry))
 
 
 @run.command()
 @click.argument("run_id")
-def output(run_id: int) -> None:
+@click.option("--fmt", default="text", help="Output format: text|json")
+def task_log(run_id: int, fmt: str) -> None:
+    """Get log of each Tasks' state transitions.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :return:
+    """
+    r = _get(f'{config.conf.get("JAWS", "url")}/run/{run_id}/task_log')
+    result = r.json()
+    if fmt == "json":
+        print(json.dumps(result, indent=4, sort_keys=True))
+    else:
+        tasks = defaultdict(list)
+        for log_entry in result:
+            task_name = log_entry[0]
+            tasks[task_name].append(log_entry)
+        print(
+            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
+        )
+        for task_name in tasks:
+            for log_entry in tasks[task_name]:
+                print("\t".join(log_entry))
+
+
+@run.command()
+@click.argument("run_id")
+@click.option("--failed", is_flag=True)
+def output(run_id: int, failed: bool = False) -> None:
     """View the stdout/stderr output of Tasks.
 
     :param run_id: JAWS run ID
     :type run_id: int
+    :param failed: Get output of failed tasks only
+    :type failed: bool
     :return:
     """
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/output'
-    response = _get(url)
-    if response.status_code != 200:
-        raise SystemExit(response.text)
-    result = response.json()
-    print("STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON")
-    for log_entry in result:
-        print("\t".join(log_entry))
-
-
-@run.command()
-@click.argument("run_id")
-def errors(run_id):
-    """View the stdout/stderr output of failed Tasks.
-
-    :param run_id: JAWS run ID
-    :type run_id: int
-    :return:
-    """
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/errors'
+    if failed:
+        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/failed'
+    else:
+        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/output'
     r = _get(url)
-    print(r.text)
+    if r.status_code != 200:
+        raise SystemExit(r.text)
+    result = r.json()
+    print(json.dumps(result, indent=4, sort_keys=True))
 
 
 @run.command()
@@ -200,7 +233,7 @@ def cancel(run_id):
     :param run_id: JAWS run ID to cancel.
     :type run_id: int
     """
-    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/abort'
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/cancel'
     current_user = user.User()
     try:
         r = requests.put(url, headers=current_user.header())

@@ -49,10 +49,10 @@ def _rmq_server_status(params):
             return "DOWN"
     else:
         try:
-            connection = amqpstorm.Connection(
+            with amqpstorm.Connection(
                 params["host"], params["user"], params["password"]
-            )
-            connection.check_for_errors()
-        except amqpstorm.AMQPConnectionError:
+            ) as connection:
+                connection.check_for_errors()
+        except Exception:
             return "DOWN"
     return "UP"

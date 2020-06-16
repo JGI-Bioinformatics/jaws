@@ -35,8 +35,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "dialect": "mysql+mysqlconnector",
         },
         "CROMWELL": {
-            "workflows_url": "localhost:8000/api/workflows/v2",
-            "engine_status_url": "localhost:8000/engine/v2",
+            "url": "localhost:8000",
         },
         "SITE": {
             "id": "local",

@@ -24,7 +24,7 @@ pkg-client: pkg-requirements
 
 .PHONY: pkg-jtm
 pkg-jtm: pkg-requirements
-	$Q cd jtm && python setup.py bdist_wheel
+	$Q cd rpc && python setup.py bdist_wheel && cd ../jtm && python setup.py bdist_wheel
 
 .PHONY: pkg
 pkg: pkg-rpc pkg-site pkg-central pkg-client pkg-jtm
@@ -59,6 +59,7 @@ test-client: test-requirements
 .PHONY: test-jtm
 test-jtm: test-requirements
 	$Q flake8 jtm
+	$Q cd jtm && python -m pytest tests/
 
 .PHONY: test
 test: test-rpc test-site test-central test-client test-jtm

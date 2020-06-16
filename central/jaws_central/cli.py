@@ -98,7 +98,8 @@ def rest(port: int) -> None:
     }
     db.init_app(connex.app)
 
-    rpc_index.rpc_index = rpc_index.RPC_Index(config.conf)
+    site_rpc_params = config.conf.get_all_sites_rpc_params()
+    rpc_index.rpc_index = rpc_index.RPC_Index(site_rpc_params)
 
     connex.run(host="0.0.0.0", port=port, debug=False)
 

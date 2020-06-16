@@ -47,8 +47,7 @@ def test_overwrite_all_default_values(config_file):
     ]
 
     expected_cromwell_sections = [
-        ("workflows_url", "http://localhost:8000/api/workflows/v1"),
-        ("engine_status_url", "http://localhost:8000/engine/v1/status")]
+        ("url", "http://localhost:8000")]
 
     check_section("SITE_RPC_SERVER", expected_rpc_server_sections, cfg)
     check_section("GLOBUS", expected_globus_sections, cfg)

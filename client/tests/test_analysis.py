@@ -2,8 +2,6 @@ import pytest
 import os
 import requests
 import shutil
-import json
-from datetime import datetime
 
 import click.testing
 
@@ -124,10 +122,56 @@ WORKFLOW_METADATA = {
 }
 
 
-RUN_LOG = [
-    ["created", "uploading", "2020-06-11 10:01:14", ""],
-    ["uploading", "upload complete", "2020-06-11 10:04:23", ""],
+RUN_LOG_JSON = [
+    [
+        "created",
+        "uploading",
+        "2020-06-08 06:28:36",
+        "upload_task_id=4884e9a8-a951-11ea-9a3b-0255d23c44ef",
+    ],
+    ["uploading", "upload complete", "2020-06-08 06:28:50", ""],
+    [
+        "upload complete",
+        "submitted",
+        "2020-06-08 06:29:01",
+        "cromwell_run_id=5d1ba0bd-ef40-42dd-b33b-0c4c31174b76",
+    ],
+    ["submitted", "running", "2020-06-08 06:29:11", ""],
+    ["running", "succeeded", "2020-06-08 06:29:21", ""],
+    ["succeeded", "ready", "2020-06-08 06:29:35", ""],
+    [
+        "ready",
+        "downloading",
+        "2020-06-08 06:29:47",
+        "Globus download_task_id=72a56d84-a951-11ea-bee5-0e716405a293",
+    ],
+    ["downloading", "download complete", "2020-06-08 06:30:34", ""],
+    ["download complete", "finished", "2020-06-08 06:30:44", ""]
 ]
+
+RUN_LOG_TEXT = (
+    "#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n"
+    "created\tuploading\t2020-06-08 06:28:36\tupload_task_id=4884e9a8-a951-11ea-9a3b-0255d23c44ef\n"
+    "uploading\tupload complete\t2020-06-08 06:28:50\t\n"
+    "upload complete\tsubmitted\t2020-06-08 06:29:01\tcromwell_run_id=5d1ba0bd-ef40-42dd-b33b-0c4c31174b76\n"
+    "submitted\trunning\t2020-06-08 06:29:11\t\n"
+    "running\tsucceeded\t2020-06-08 06:29:21\t\n"
+    "succeeded\tready\t2020-06-08 06:29:35\t\n"
+    "ready\tdownloading\t2020-06-08 06:29:47\tGlobus download_task_id=72a56d84-a951-11ea-bee5-0e716405a293\n"
+    "downloading\tdownload complete\t2020-06-08 06:30:34\t\n"
+    "download complete\tfinished\t2020-06-08 06:30:44\t\n"
+)
+
+TASK_LOG_JSON = [
+    ["runblastplus_sub.task1", 1, 43, "ready", "queued", "2020-06-10 13:42:44", ""],
+    ["runblastplus_sub.task2", 1, 44, "queued", "pending", "2020-06-10 13:43:36", ""]
+]
+
+TASK_LOG_TEXT = (
+    "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n"
+    "runblastplus_sub.task1\t1\t43\tready\tqueued\t2020-06-10 13:42:44\t\n"
+    "runblastplus_sub.task2\t1\t44\tqueued\tpending\t2020-06-10 13:43:36\t\n"
+)
 
 SUBMISSION = {
     "output_dir": "/global/homes/m/mamelara/out",
@@ -150,7 +194,14 @@ QUEUE = [
     ]
 ]
 
-TASK_STATUS = [["bbtools.alignment", "Running", "2020-04-03T20:32:52.938Z", ""]]
+TASK_STATUS_JSON = [
+    ["bbtools.alignment", 1, 432, "Queued", "Running", "2020-04-03 20:32:52", ""]
+]
+
+TASK_STATUS_TEXT = (
+    "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n"
+    "bbtools.alignment\t1\t432\tqueued\trunning\t2020-04-03 20:32:52\t\n"
+)
 
 
 class MockUser:
@@ -232,16 +283,6 @@ def test_cli_status(mock_user, monkeypatch, configuration):
     assert "Running" in result.output
 
 
-def test_cli_tasks(monkeypatch, mock_user, configuration):
-    def get_tasks(url, headers=None):
-        return MockResult(TASK_STATUS, 200)
-
-    monkeypatch.setattr(requests, "get", get_tasks)
-    runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["tasks", "36"])
-    assert "Running" in result.output
-
-
 def test_cli_metadata(monkeypatch, mock_user, configuration):
     def get_metadata(url, headers=None):
         return MockResult(WORKFLOW_METADATA, 200)
@@ -253,29 +294,6 @@ def test_cli_metadata(monkeypatch, mock_user, configuration):
 
     def get_tasks(url, headers=None):
         return MockResult(WORKFLOW_METADATA, 201)
-
-
-def test_cli_log(monkeypatch, mock_user, configuration):
-    def get_log(url, headers=None):
-        return MockResult(RUN_LOG, 200)
-
-    valid_states = ['created', 'uploading', 'upload complete',
-                    'invalid input', 'submitted', 'submission failed',
-                    'queued', 'running', 'succeeded', 'failed', 'cancelling',
-                    'cancelled', 'ready', 'downloading', 'download failed',
-                    'download complete', 'finished']
-
-    monkeypatch.setattr(requests, "get", get_log)
-    runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["log", "36"])
-    output = result.output.strip()
-    output = output.replace("'", '"')  # Convert to valid JSON hack
-    run_log = json.loads(output)
-
-    for log_entry in run_log:
-        assert log_entry[0] in valid_states
-        assert log_entry[1] in valid_states
-        assert datetime.strptime(log_entry[2], "%Y-%m-%d %H:%M:%S")
 
 
 @pytest.mark.skipif(

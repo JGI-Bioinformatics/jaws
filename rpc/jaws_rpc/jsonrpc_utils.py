@@ -61,17 +61,13 @@ def is_valid_response(response):
             raise InvalidResponse("cannot have error and result")
         else:
             for key in response["error"].keys():
-                if key in response_error_valid_keys:
-                    pass
-                else:
+                if key not in response_error_valid_keys:
                     raise InvalidResponse(f"invalid error key, {key}")
     elif "result" not in response:
         raise InvalidResponse("neither result or code is defined")
     else:
         for key in response.keys():
-            if key in response_valid_keys:
-                pass
-            else:
+            if key not in response_valid_keys:
                 raise InvalidResponse(f"invalid key, {key}")
     return True
 

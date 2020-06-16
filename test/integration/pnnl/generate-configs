@@ -36,8 +36,7 @@ id = CASCADE
 staging_subdirectory = dtemp/mscjgi/jaws-dev/staging
 results_subdirectory = dtemp/mscjgi/jaws-dev/results
 [CROMWELL]
-workflows_url = http://localhost:50010/api/workflows/v1
-engine_status_url = http://localhost:50010/engine/v1/status
+url = http://localhost:50010
 EOM
 
 cat << EOM > $configdir/jaws-jtm.conf

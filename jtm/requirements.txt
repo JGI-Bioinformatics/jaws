@@ -6,5 +6,4 @@ mysql-connector-python==8.0.18
 numpy
 cryptography
 Click
-flask
-flask_restful
+jaws_rpc

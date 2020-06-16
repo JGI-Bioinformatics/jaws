@@ -6,12 +6,12 @@ them to the next state.
 import schedule
 import time
 import os
-import requests
 import globus_sdk
 import logging
 from datetime import datetime
 from jaws_site.database import Session
 from jaws_site import models, wfcopy, config
+from jaws_site.cromwell import Cromwell
 
 
 logger = None  # set by Daemon init
@@ -38,7 +38,7 @@ class Daemon:
         self.staging_dir = os.path.join(
             conf.get("GLOBUS", "root_dir"), conf.get("SITE", "staging_subdirectory")
         )
-        self.workflows_url = conf.get("CROMWELL", "workflows_url")
+        self.cromwell = Cromwell(conf.get("CROMWELL", "url"))
         self.results_dir = os.path.join(
             conf.get("GLOBUS", "root_dir"), conf.get("SITE", "results_subdirectory")
         )
@@ -52,9 +52,8 @@ class Daemon:
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
-            "cancelling": self.check_run_cromwell_status,
-            "succeeded": self.prepare_succeeded_run_output,
-            "failed": self.prepare_failed_run_output,
+            "succeeded": self.prepare_run_output,
+            "failed": self.prepare_run_output,
             "ready": self.transfer_results,
             "downloading": self.check_if_download_complete,
         }
@@ -64,6 +63,7 @@ class Daemon:
         Run scheduled task(s) periodically.
         """
         schedule.every(10).seconds.do(self.check_runs)
+        schedule.every(10).seconds.do(self.update_job_status_logs)
         while True:
             schedule.run_pending()
             time.sleep(5)
@@ -132,7 +132,9 @@ class Daemon:
         if globus_status == "FAILED":
             self.update_run_status(run, "upload failed")
         elif globus_status == "INACTIVE":
-            self.update_run_status(run, "upload inactive")
+            self.update_run_status(
+                run, "upload inactive", "Your endpoint authorization has expired"
+            )
         elif globus_status == "SUCCEEDED":
             self.update_run_status(run, "upload succeeded")
 
@@ -159,93 +161,54 @@ class Daemon:
             zip_file = None
 
         # submit to Cromwell
-        files = {}
-        files["workflowInputs"] = (
-            "workflowInputs",
-            open(json_file, "r"),
-            "application/json",
-        )
-        files["workflowSource"] = (
-            "workflowSource",
-            open(wdl_file, "r"),
-            "application/json",
-        )
-        if zip_file:
-            files["workflowDependencies"] = (
-                "workflowDependencies",
-                open(zip_file, "rb"),
-                "application/zip",
+        cromwell_run_id = self.cromwell.submit(wdl_file, json_file, zip_file)
+        if cromwell_run_id:
+            run.cromwell_run_id = cromwell_run_id
+            self.update_run_status(
+                run, "submitted", f"cromwell_run_id={cromwell_run_id}"
             )
-        try:
-            r = requests.post(self.workflows_url, files=files)
-        except requests.ConnectionError:
-            logger.info("Cromwell server timeout")
-            # don't update state; keep trying
-            return
-        except Exception as err:
-            logger.error(f"Unknown error while submitting {run.id} to Cromwell: {err}")
-            # don't update state; keep trying
-            return
-        if r.status_code == 201:
-            run.cromwell_id = r.json()["id"]
-            self.update_run_status(run, "submitted", "cromwell_id={run.cromwell_id}")
         else:
-            logger.warning(f"Run submission {run.id} failed")
-            self.update_run_status(run, "submission failed")
+            run.update_run_status(run, "submission failed")
 
     def check_run_cromwell_status(self, run):
         """
         Check Cromwell for the status of one Run.
         """
         try:
-            r = requests.get(f"{self.workflows_url}/{run.cromwell_id}/status")
-        except requests.ConnectionError:
-            logger.warning("Cromwell server timeout")
-            return
-        if r.status_code != requests.codes.ok:
-            return
-
-        cromwell_status = r.json()["status"]
+            cromwell_status = self.cromwell.get_status(run.cromwell_run_id)
+        except Exception:
+            return  # try again next time
         if cromwell_status == "Running":
             if run.status == "submitted":
                 self.update_run_status(run, "running")
         elif cromwell_status == "Failed":
-            self.update_run_status(run, "failed")
+            if run.status == "running":
+                self.update_run_status(run, "failed")
         elif cromwell_status == "Succeeded":
-            self.update_run_status(run, "succeeded")
-        elif cromwell_status == "Aborted" and run.status == "cancelling":
-            self.update_run_status(run, "cancelled")
+            if run.status == "running":
+                self.update_run_status(run, "succeeded")
+        elif cromwell_status == "Aborted":
+            if run.status == "running":
+                self.update_run_status(run, "cancelled")
 
-    def prepare_failed_run_output(self, run):
-        """
-        Prepare folder of failed run output.
-        """
-        try:
-            r = requests.get(f"{self.workflows_url}/{run.cromwell_id}/metadata")
-        except requests.ConnectionError:
-            logger.warning("Cromwell server timeout")
-            return
-        if r.status_code != requests.codes.ok:
-            return
-        orig_dir = r.json()["workflowRoot"]
-        nice_dir = os.path.join(self.results_dir, str(run.id))
-        os.symlink(orig_dir, nice_dir)
-        self.update_run_status(run, "ready")
-
-    def prepare_succeeded_run_output(self, run):
+    def prepare_run_output(self, run, metadata=None):
         """
         Prepare folder of Run output.
         """
-        try:
-            r = requests.get(f"{self.workflows_url}/{run.cromwell_id}/metadata")
-        except requests.ConnectionError:
-            logger.warning("Cromwell server timeout")
-            return
-        if r.status_code != requests.codes.ok:
-            return
-        orig_dir = r.json()["workflowRoot"]
+        if metadata is None:
+            try:
+                metadata = self.cromwell.get_metadata(run.cromwell_run_id)
+            except Exception:
+                return
+            if metadata is None:
+                return
+        logger.info(f"Run {run.id}: Prepare output of successful run")
+        orig_dir = metadata.get("workflowRoot")
         nice_dir = os.path.join(self.results_dir, str(run.id))
-        wfcopy.wfcopy(orig_dir, nice_dir)
+        if run.status == "succeeded":
+            wfcopy.wfcopy(orig_dir, nice_dir)
+        else:  # failed
+            os.symlink(orig_dir, nice_dir)
         self.update_run_status(run, "ready")
 
     def transfer_results(self, run):
@@ -335,3 +298,63 @@ class Daemon:
             logger.exception(
                 f"Failed to create run_log object for Run {run.id} : {new_status}, {reason}: {error}"
             )
+
+    def update_job_status_logs(self):
+        """JTM job status logs are missing some fields; fill them in now."""
+
+        # select incomplete job log entries from database
+        last_cromwell_run_id = (
+            None  # there are often many job log entries for the same run;
+        )
+        last_metadata = None  # no need to get from cromwell repeatedly
+        self.session = Session()
+        query = (
+            self.session.query(models.Job_Log)
+            .filter_by(task_name=None)
+            .order_by(models.Job_Log.cromwell_id)
+        )
+        for log in query:
+            run_id = log.run_id
+            cromwell_run_id = log.cromwell_run_id
+            cromwell_job_id = log.cromwell_job_id
+
+            # SELECT run_id FROM RDB
+            run = (
+                self.session.query(models.Run)
+                .filter_by(cromwell_run_id=cromwell_run_id)
+                .one_or_none()
+            )
+            if not run:
+                logger.error(f"cromwell workflow run not found: {cromwell_run_id}")
+                continue
+
+            # update log entry with run_id
+            logger.debug(f"Cromwell run {cromwell_job_id} => JAWS run {run.id}")
+            log.run_id = run.id
+
+            # TRY TO GET task_name AND attempt FROM CROMWELL METADATA
+            logger.debug(f"Run {run_id}: Get job info for job {cromwell_job_id}")
+            if cromwell_run_id == last_cromwell_run_id:
+                # another update for same run, reuse previously initialized object
+                metadata = last_metadata
+            else:
+                # get from cromwell
+                try:
+                    metadata = last_metadata = self.cromwell.get_metadata(
+                        cromwell_run_id
+                    )
+                    last_cromwell_run_id = cromwell_run_id
+                except Exception as error:
+                    logger.error(
+                        f"Error getting metadata for {cromwell_run_id}: {error}"
+                    )
+                    continue
+            job_info = metadata.get_job_info(cromwell_job_id)
+            if job_info is None:
+                logger.error(
+                    f"job_id {cromwell_job_id} not found in {cromwell_run_id}: {job_info}"
+                )
+                continue
+            log.attempt = job_info["attempt"]
+            log.task_name = job_info["task_name"]
+            self.session.commit()

@@ -132,14 +132,14 @@ class RPC_Client(object):
         response = {}
         try:
             response = json.loads(response_string)
-        except Exception:
-            raise InvalidJsonResponse()
+        except Exception as error:
+            raise InvalidJsonResponse(error)
         try:
             jsonrpc_utils.is_valid_response(response)
-        except Exception:
+        except Exception as error:
             response = {
                 "error": 400,
-                "message": "Invalid JSON-RPC2 response",
+                "message": error,
                 "data": response_string,
             }
 

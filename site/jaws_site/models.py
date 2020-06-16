@@ -49,6 +49,7 @@ class Workflow(Base):
     """A workflow in the Catalog is comprised of WDL and MD files.
     Once marked as "released", a workflow cannot be changed or deleted, only deprecated.
     """
+
     __tablename__ = "workflows"
     id = Column(Integer, primary_key=True)
     name = Column(String(32), nullable=False)
@@ -98,6 +99,22 @@ class Run_Log(Base):
     __tablename__ = "run_logs"
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
+    status_from = Column(String(32), nullable=False)
+    status_to = Column(String(32), nullable=False)
+    timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    reason = Column(String(1024), nullable=True)
+
+
+class Job_Log(Base):
+    """Job state transitions are recorded only until sent to Central"""
+
+    __tablename__ = "job_logs"
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
+    cromwell_run_id = Column(String(36), nullable=False)
+    cromwell_job_id = Column(Integer, nullable=True)
+    task_name = Column(String(128), nullable=True)
+    attempt = Column(Integer, nullable=True)
     status_from = Column(String(32), nullable=False)
     status_to = Column(String(32), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)

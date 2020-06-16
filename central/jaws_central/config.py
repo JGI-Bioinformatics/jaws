@@ -117,3 +117,49 @@ class Configuration(metaclass=Singleton):
             "max_ram_gb": s["max_ram_gb"],
         }
         return result
+
+    def get_section(self, section: str) -> dict:
+        """Get a configuration section.
+
+        :param section: name of config section
+        :type section: str
+        :return: A copy of the requested section
+        :rtype: dict
+        """
+        result = {}
+        for key, value in self.config.items(section):
+            result[key] = value
+        return result
+
+    def get_site_rpc_params(self, site_id: str) -> Dict[str, str]:
+        """Returns AMQP connection info for the site.
+
+        :param site_id: The ID of the JAWS-Site
+        :type site_id: str
+        :return: Site parameters required to submit a run, if exists, None otherwise.
+        :rtype: dict
+        """
+        site_id = site_id.upper()
+        if site_id not in self.sites:
+            return None
+        section = f"SITE:{site_id}"
+        s = self.config[section]
+        params = {
+            "host": s["host"],
+            "port": s["port"],
+            "user": s["user"],
+            "password": s["password"],
+            "vhost": s["vhost"]
+        }
+        return params
+
+    def get_all_sites_rpc_params(self) -> Dict[str, Dict]:
+        """Returns public info about requested Site.
+
+        :return: Dict of site_id to dict of AMQP connection parameters.
+        :rtype: dict
+        """
+        sites = {}
+        for site_id in self.sites:
+            sites[site_id] = self.get_site_rpc_params(site_id)
+        return sites

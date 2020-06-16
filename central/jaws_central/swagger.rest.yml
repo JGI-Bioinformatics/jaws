@@ -425,7 +425,28 @@ paths:
         404:
           description: The specified record does not exist
 
-  /run/{run_id}/abort:
+  /run/{run_id}/task_status:
+    get:
+      operationId: jaws_central.analysis.task_status
+      tags:
+        - run
+      summary: Retrieve a summary of a run's tasks
+      description: Return Cromwell status for each task
+      parameters:
+        - name: run_id
+          in: path
+          description: run_id of the run to retrieve
+          type: integer
+          required: True
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+        404:
+          description: The specified record does not exist
+
+  /run/{run_id}/cancel:
     put:
       operationId: jaws_central.analysis.cancel_run
       tags:
@@ -487,13 +508,13 @@ paths:
         404:
           description: The specified record does not exist
 
-  /run/{run_id}/tasks:
+  /run/{run_id}/task_log:
     get:
-      operationId: jaws_central.analysis.task_status
+      operationId: jaws_central.analysis.task_log
       tags:
         - run
-      summary: Retrieve a summary of a run's tasks
-      description: Return Cromwell status for each task
+      summary: Retrieve the task logs of a specified run
+      description: Return log of all Tasks' state transitions
       parameters:
         - name: run_id
           in: path
@@ -531,13 +552,13 @@ paths:
         404:
           description: The specified record does not exist
 
-  /run/{run_id}/errors:
+  /run/{run_id}/failed:
     get:
-      operationId: jaws_central.analysis.failure_logs
+      operationId: jaws_central.analysis.failed_output
       tags:
         - run
-      summary: Retrieve the logs for failed tasks
-      description: Return stdout/stderr/submit logs for failed tasks
+      summary: Retrieve the output for failed tasks
+      description: Return stdout/stderr/submit output for failed tasks
       parameters:
         - name: run_id
           in: path
