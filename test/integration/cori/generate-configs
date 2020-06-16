@@ -38,8 +38,7 @@ id = NERSC
 staging_subdirectory = global/cscratch1/sd/jaws_jtm/dev/staging
 results_subdirectory = global/cscratch1/sd/jaws/dev/results
 [CROMWELL]
-workflows_url = http://localhost:50010/api/workflows/v1
-engine_status_url = http://localhost:50010/engine/v1/status
+url = http://localhost:50010
 EOM
 
 cat << EOM > $configdir/jaws-central.conf
@@ -105,6 +104,12 @@ port = 5672
 #user = jaws
 #password = $JAWS_JTM_LBL_RMQ_PW
 #port = 5672
+[SITE_RPC_CLIENT]
+host = rmq.lbl.gov
+vhost = jaws_nersc_dev
+user = jtm_nersc_dev
+password = $JAWS_JTM_CORI_RMQ_PW
+port = 5672
 [MYSQL]
 host = db.mysql.dev-cattle.stable.spin.nersc.org
 port = 60005
@@ -127,6 +132,8 @@ constraint = haswell
 [JTM]
 cluster = \${SITE:jtm_host_name}
 run_mode = dev
+# if STANDALONE == 1, do not sending task status to JAWS Site
+standalone = 0
 # static worker self cloning time rate. not used.s
 clone_time_rate = 0.2
 # number of workers per node

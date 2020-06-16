@@ -37,6 +37,7 @@ from jaws_jtm.lib.rabbitmqconnection import RmqConnectionAmqpstorm, JtmAmqpstorm
 from jaws_jtm.lib.dbutils import DbSqlMysql
 from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command
 from jaws_jtm.lib.msgcompress import zdumps, zloads
+from jaws_rpc import rpc_client
 
 
 # --------------------------------------------------------------------------------------------------
@@ -130,6 +131,24 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                 else:
                     logger.critical("Unknown return code {}".format(done_flag))
                     raise OSError(2)
+
+            db = DbSqlMysql(config=self.config)
+            if not STANDALONE:
+                status_now = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
+                                             % dict(task_id=task_id),
+                                             debug=False)
+                if status_now in (self.task_status["ready"],
+                                  self.task_status["queued"],
+                                  self.task_status["pending"],
+                                  self.task_status["running"]):
+                    send_update_task_status_msg(task_id, status_now, done_flag,
+                                                fail_code=done_flag if done_flag < 0 else None)
+            db.execute(JTM_SQL["update_tasks_doneflag_by_taskid"]
+                       % dict(task_id=task_id,
+                              done_flag=done_flag),
+                       debug=DEBUG)
+            db.commit()
+            db.close()
 
             time.sleep(CONFIG.configparser.getfloat("JTM", "result_receive_interval"))
 
@@ -297,6 +316,82 @@ class JtmCommandRunner(JtmAmqpstormBase):
 
 
 # --------------------------------------------------------------------------------------------------
+def extract_cromwell_run_id(task_id: int) -> str:
+    """
+    Extract Cromwell run id from "script" of a task
+
+    :param task_id:
+    :return: Cromwell run id in UUID format
+    """
+    db = DbSqlMysql(config=CONFIG)
+    task_cmd_str = db.selectScalar(JTM_SQL["select_usercmd_tasks_by_taskid"]
+                                   % dict(task_id=task_id), debug=False)
+    db.close()
+    # NOTE: here it is assumed that the script file full path exists at the
+    # end of task_cmd_str
+    try:
+        task_script_file = task_cmd_str.split()[-1]
+    except Exception as e:
+        logger.exception("Invalid user cmd: %s" % e)
+        task_script_file = None
+
+    run_id = None
+    # NOTE: here UUID format spec is assumed to comply with "8-4-4-4-12" format
+    regex = re.compile(r'[\w]{8}-[\w]{4}-[\w]{4}-[\w]{4}-[\w]{12}', re.I)
+    if os.path.isfile(task_script_file) and os.access(task_script_file, os.R_OK):
+        with open(task_script_file, "r") as script_file:
+            for line in script_file:
+                match = regex.search(line)
+                if match:
+                    run_id = match.group()
+                    break
+
+    return run_id
+
+
+# --------------------------------------------------------------------------------------------------
+def send_update_task_status_msg(task_id: int, status_from, status_to: int, fail_code=None):
+    """
+    Publish a message for pushing task status change to JAWS Site
+
+    :param task_id:
+    :param status_from: None or status code 0 ~ 4 or -2 if failed
+    :param status_to: status code 0 ~ 4 or -2 if failed
+    :param fail_code: fail code if failed -1 ~ -7
+    :return: None
+    """
+    now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    run_id = extract_cromwell_run_id(task_id)
+    reversed_task_status = dict(map(reversed, CONFIG.constants.TASK_STATUS.items()))
+    reversed_done_flags = dict(map(reversed, CONFIG.constants.DONE_FLAGS.items()))
+    try:
+        rpc_cl = rpc_client.RPC_Client({"host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
+                                        "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
+                                        "port": CONFIG.configparser.get("SITE_RPC_CLIENT", "port"),
+                                        "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
+                                        "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password")})
+    except Exception as error:
+        logger.error(f"Unable to init rpc client: {error}")
+        raise
+
+    # send message to Site
+    data = {
+        "cromwell_run_id": run_id,
+        "cromwell_job_id": task_id,
+        "status_from": reversed_task_status[status_from] if status_from is not None else "",
+        "status_to": reversed_task_status[status_to] if status_to is not None else "",
+        "timestamp": now,
+        "reason": reversed_done_flags[fail_code] if fail_code else None
+    }
+    result = rpc_cl.request("update_job_status", data)
+    if "result" in result:
+        pass
+    else:
+        # Todo: Need to check { “error”: { “code”: <int>, “message”: <str> }}
+        pass
+
+
+# --------------------------------------------------------------------------------------------------
 def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     """
 
@@ -427,6 +522,13 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                         if task_id > 0 and root_proc_id == child_proc_id and slurm_job_id > 0:
                             logger.debug("Task %d status ==> pending" % task_id)
                             db = DbSqlMysql(config=CONFIG)
+                            if not STANDALONE:
+                                status_now = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
+                                                             % dict(task_id=task_id),
+                                                             debug=False)
+                                if status_now in (TASK_STATUS["ready"],
+                                                  TASK_STATUS["queued"]):
+                                    send_update_task_status_msg(task_id, status_now, TASK_STATUS["pending"])
                             db.execute(JTM_SQL["update_runs_status_to_pending_by_taskid"]
                                        % dict(status_id=TASK_STATUS["pending"],
                                               task_id=task_id,
@@ -456,9 +558,14 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                             try:
                                 # Update tasks table with "running" status == 2 if status is still 0 or 1
                                 db = DbSqlMysql(config=CONFIG)
-
-                                # Update runs table for a task
-                                # Todo: really need to store full path to the log?
+                                if not STANDALONE:
+                                    status_now = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
+                                                                 % dict(task_id=task_id),
+                                                                 debug=False)
+                                    if status_now in (TASK_STATUS["ready"],
+                                                      TASK_STATUS["queued"],
+                                                      TASK_STATUS["pending"]):
+                                        send_update_task_status_msg(task_id, status_now, TASK_STATUS["running"])
                                 db.execute(JTM_SQL["update_runs_status_to_running_by_taskid"]
                                            % dict(status_id=TASK_STATUS["running"],
                                                   task_id=task_id,
@@ -834,6 +941,8 @@ def process_task_request(msg):
         # if it successfully updates runs table and gets a task id
         if last_tasK_id != -1:
             db = DbSqlMysql(config=CONFIG)
+            if not STANDALONE:
+                send_update_task_status_msg(last_tasK_id, None, TASK_STATUS["ready"])
             task_status_int = int(db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
                                                   % dict(task_id=last_tasK_id)))
             b_already_canceled = int(db.selectScalar(JTM_SQL["select_cancelled_runs_by_taskid"]
@@ -905,6 +1014,12 @@ def process_task_request(msg):
                 try:
                     logger.debug("Task %d status ==> queued" % last_tasK_id)
                     db = DbSqlMysql(config=CONFIG)
+                    if not STANDALONE:
+                        status_now = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
+                                                     % dict(task_id=last_tasK_id),
+                                                     debug=False)
+                        if status_now == TASK_STATUS["ready"]:
+                            send_update_task_status_msg(last_tasK_id, status_now, TASK_STATUS["queued"])
                     db.execute(JTM_SQL["update_runs_tid_to_queued_startdate_by_tid"]
                                % dict(status_id=TASK_STATUS["queued"],
                                       now=time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -1369,6 +1484,14 @@ def manager(ctx: object, custom_log_dir_name: str, b_resource_usage_log_on: bool
     global TASK_STATUS
     TASK_STATUS = CONFIG.constants.TASK_STATUS
     jtm_task_request_q = CONFIG.configparser.get("JTM", "jtm_task_request_q")
+
+    # if STANDALONE == 1, send_update_task_status_msg(), which sends task status change
+    # RMQ message to JAWS Site, won't be called
+    global STANDALONE
+    try:
+        STANDALONE = CONFIG.configparser.getboolean("JTM", "standalone")
+    except Exception:
+        STANDALONE = False
 
     # Log dir setting
     log_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "log")

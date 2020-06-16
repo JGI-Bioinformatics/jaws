@@ -1,5 +1,6 @@
 import pytest
 import globus_sdk
+from datetime import datetime
 
 import jaws_central.analysis
 import jaws_central.models
@@ -120,8 +121,8 @@ class MockGetInactiveUploadRun:
         self.site_id = "NERSC"
         self.status = "upload inactive"
         self.submission_id = "2ba6eb76-22e0-4d49-8eeb-b0c6683dfa30"
-        self.submitted = "2020-05-14T23:08:50Z"
-        self.updated = "2020-05-14T23:27:15Z"
+        self.submitted = datetime.strptime("2020-05-14 23:08:50", "%Y-%m-%d %H:%M:%S")
+        self.updated = datetime.strptime("2020-05-14 23:27:15", "%Y-%m-%d %H:%M:%S")
         self.upload_task_id = "dfbdfb7a-9637-11ea-bf90-0e6cccbb0103"
 
 
@@ -151,7 +152,7 @@ def test_cancel_transfer(configuration, mock_database, mock_globus):
 
 def test_run_status_inactive_upload(monkeypatch):
     """ Tests returning run status with comments for a failed download status """
-    def get_failed_run(run_id):
+    def get_failed_run(user_id, run_id):
         return MockGetInactiveUploadRun()
 
     monkeypatch.setattr(jaws_central.analysis, '_get_run', get_failed_run)

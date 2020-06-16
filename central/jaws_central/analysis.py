@@ -7,13 +7,37 @@ from datetime import datetime, timedelta
 from flask import abort, request
 import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
+import collections
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
-from jaws_central.models import db, Run, User, Run_Log
+from jaws_central.models import db, Run, User, Run_Log, Job_Log
 
 
 logger = logging.getLogger(__package__)
+
+run_active_states = [
+    "created",
+    "uploading",
+    "upload inactivte",
+    "upload complete",
+    "submitted",
+    "queued",
+    "running",
+    "succeeded",
+    "post-processing",
+    "ready",
+    "downloading",
+]
+
+run_pre_cromwell_states = [
+    "created",
+    "uploading",
+    "upload inactivte",
+    "upload complete",
+    "upload stalled",
+    "upload failed",
+]
 
 
 def _rpc_call(user, run_id, method, params={}):
@@ -43,6 +67,7 @@ def _rpc_call(user, run_id, method, params={}):
         abort(401, "Access denied; you cannot access to another user's workflow")
     site_rpc_call = rpc_index.index.get_client(run.site_id)
     params["user"] = user
+    params["run_id"] = run_id
     params["cromwell_id"] = run.cromwell_id
     logger.info(f"User {user} RPC {method} params {params}")
     result = site_rpc_call.request(method, params)
@@ -63,18 +88,7 @@ def user_queue(user):
         queue = (
             db.session.query(Run)
             .filter_by(user_id=user)
-            .filter(
-                Run.status.in_(
-                    [
-                        "created",
-                        "uploading",
-                        "queued",
-                        "running",
-                        "post-processing",
-                        "downloading",
-                    ]
-                )
-            )
+            .filter(Run.status.in_(run_active_states))
             .all()
         )
     except SQLAlchemyError as error:
@@ -88,9 +102,10 @@ def user_queue(user):
                 "submission_id": run.submission_id,
                 "cromwell_id": run.cromwell_id,
                 "status": run.status,
+                "status_detail": jaws_constants.run_states.get(run.status, ""),
                 "site_id": run.site_id,
-                "submitted": run.submitted,
-                "updated": run.updated,
+                "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+                "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
                 "input_site_id": run.input_site_id,
                 "input_endpoint": run.input_endpoint,
                 "upload_task_id": run.upload_task_id,
@@ -131,9 +146,10 @@ def user_history(user, delta_days=10):
                 "submission_id": run.submission_id,
                 "cromwell_id": run.cromwell_id,
                 "status": run.status,
+                "status_detail": jaws_constants.run_states.get(run.status, ""),
                 "site_id": run.site_id,
-                "submitted": run.submitted,
-                "updated": run.updated,
+                "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+                "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
                 "input_site_id": run.input_site_id,
                 "input_endpoint": run.input_endpoint,
                 "upload_task_id": run.upload_task_id,
@@ -199,7 +215,7 @@ def submit_run(user):
         abort(404, f"Unknown Site ID; {site_id} is not one of our sites")
     logger.info(f"New submission from {user} to {site_id}")
 
-    # INSERT INTO RDB TO GET RUN ID
+    # insert into RDb to get a Run ID
     run = Run(
         user_id=user,
         site_id=site_id,
@@ -213,21 +229,28 @@ def submit_run(user):
     db.session.add(run)
     db.session.commit()
 
+    # add log entry
+    log = Run_Log(
+        run_id=run.id, status_from=None, status_to=run.status, timestamp=run.updated
+    )
+    db.session.add(log)
+    db.session.commit()
+
     # SUBMIT GLOBUS TRANSFER
     try:
         current_user = db.session.query(User).get(user)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, f"Db error; {e}")
+    except SQLAlchemyError as error:
+        logger.error(error)
+        _update_run_status(run, "error", error)
+        abort(500, f"Db error; {error}")
     transfer_rt = current_user.transfer_refresh_token
     client_id = config.conf.get("GLOBUS", "client_id")
     try:
         client = globus_sdk.NativeAppAuthClient(client_id)
         authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
         transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
-    except globus_sdk.GlobusAPIError:
-        run.status = "upload failed"
-        db.session.commit()
+    except globus_sdk.GlobusAPIError as error:
+        _update_run_status(run, "upload failed", error)
         logger.exception(
             f"Error getting transfer client for user {user}", exc_info=True
         )
@@ -262,8 +285,7 @@ def submit_run(user):
     try:
         transfer_result = transfer_client.submit_transfer(tdata)
     except globus_sdk.GlobusAPIError as error:
-        run.status = "upload failed"
-        db.session.commit()
+        _update_run_status(run, "upload failed", error)
         logger.info(f"{user} submission {run.id} failed due to Globus {error.code}")
         if error.code == "NoCredException":
             abort(
@@ -280,21 +302,35 @@ def submit_run(user):
             )
             abort(error.http_status, error.message)
     except globus_sdk.NetworkError as error:
+        _update_run_status(run, "upload failed", error)
         logger.info(
             f"{user} submission {run.id} failed due to NetworkError", exc_info=True
         )
         abort(503, f"Network Error: {error}")
     except globus_sdk.GlobusError as error:
+        _update_run_status(run, "upload failed", error)
         logger.exception(
             f"{user} submission {run.id} failed for unknown error", exc_info=True
         )
         abort(500, f"Unexpected error: {error}")
     upload_task_id = transfer_result["task_id"]
 
-    # UPDATE RUN WITH UPLOAD TASK ID AND RETURN RESULTS
+    # add upload task id to record
     run.upload_task_id = upload_task_id
     run.status = "uploading"
     db.session.commit()
+
+    # add another log entry
+    log = Run_Log(
+        run_id=run.id,
+        status_from="created",
+        status_to=run.status,
+        timestamp=run.updated,
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    # return info to user
     result = {
         "run_id": run.id,
         "submission_id": submission_id,
@@ -307,8 +343,24 @@ def submit_run(user):
     return result, 201
 
 
-def _get_run(run_id):
-    """Return a Run object if found, else abort.
+def _update_run_status(run, new_status, reason=None):
+    """Update run table and insert run_logs entry."""
+    status_from = run.status
+    run.status = new_status
+    db.session.commit()
+    log = Run_Log(
+        run_id=run.id,
+        status_from=status_from,
+        status_to=run.status,
+        timestamp=run.updated,
+        reason=reason,
+    )
+    db.session.add(log)
+    db.session.commit()
+
+
+def _get_run(user, run_id):
+    """Return a Run object if found and accessible by current user, else abort.
 
     :param run_id: Run primary key
     :type run_id: str
@@ -322,10 +374,12 @@ def _get_run(run_id):
         abort(500, f"Db error; {error}")
     if not run:
         abort(404, "Run not found; please check your run_id")
+    if run.user_id != user:
+        abort(401, "Access denied; you are not the owner of that Run.")
     return run
 
 
-def __abort_if_pre_cromwell(run):
+def _abort_if_pre_cromwell(run):
     """Returns if run was submitted to Cromwell, aborts otherwise.
 
     :param run: SQLAlchemy Model Run object
@@ -333,8 +387,10 @@ def __abort_if_pre_cromwell(run):
     :return: True if pre-cromwell submission; false otherwise.
     :rtype: boolean
     """
-    if run.status.startswith("upload") or run.status == "created":
-        abort(204, "No data; this run hasn't begun execution yet.")
+    if run.status in run_pre_cromwell_states:
+        abort(
+            404, "No data available as the Run hasn't been submitted to Cromwell yet."
+        )
 
 
 def run_status(user, run_id):
@@ -348,7 +404,7 @@ def run_status(user, run_id):
     :return: The status of the run, if found; abort otherwise
     :rtype: dict
     """
-    run = _get_run(run_id)
+    run = _get_run(user, run_id)
     result = {
         "id": run.id,
         "submission_id": run.submission_id,
@@ -356,8 +412,8 @@ def run_status(user, run_id):
         "status": run.status,
         "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
         "site_id": run.site_id,
-        "submitted": run.submitted,
-        "updated": run.updated,
+        "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+        "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
         "input_site_id": run.input_site_id,
         "input_endpoint": run.input_endpoint,
         "upload_task_id": run.upload_task_id,
@@ -366,6 +422,51 @@ def run_status(user, run_id):
         "download_task_id": run.download_task_id,
     }
     return result, 200
+
+
+def task_status(user, run_id):
+    """
+    Retrieve the current status of each Task in a Run.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: The status of each task in a run.
+    :rtype: dict
+    """
+    run = _get_run(user, run_id)
+    if not run:
+        abort(404, f"Run {run_id} does not exist")
+
+    # get job log entries, sorted by timestamp,
+    # save in dict in which only the latest entry is kept
+    try:
+        query = (
+            db.session.query(Job_Log)
+            .filter_by(run_id=run_id)
+            .order_by(Job_Log.timestamp)
+        )
+    except SQLAlchemyError as error:
+        logger.exception(f"Error selecting from job_log: {error}")
+        abort(500, f"Db error; {error}")
+    tasks = collections.OrderedDict()
+    for log in query:
+        task_name = log.task_name
+        reason = log.reason
+        if reason is None:
+            reason = ""
+        tasks[task_name] = [
+            log.task_name,
+            log.attempt,
+            log.cromwell_job_id,
+            log.status_from,
+            log.status_to,
+            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            reason,
+        ]
+        tasks.move_to_end(task_name)
+    return list(tasks.values()), 200
 
 
 def run_log(user: str, run_id: int):
@@ -400,20 +501,40 @@ def run_log(user: str, run_id: int):
     return table, 200
 
 
-def task_status(user, run_id):
+def task_log(user, run_id):
     """
-    Retrieve run status with task-level detail.
+    Retrieve log of all task state transitions.
 
     :param user: current user's ID
     :type user: str
     :param run_id: unique identifier for a run
     :type run_id: int
-    :return: The status of each task in a run, if found; abort otherwise
+    :return: The complete log of all task state transitions.
     :rtype: dict
     """
-    run = _get_run(run_id)
-    __abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "task_status")
+    logger.debug(f"User {user} get task-log for run {run_id}")
+    try:
+        query = (
+            db.session.query(Job_Log)
+            .filter_by(run_id=run_id)
+            .order_by(Job_Log.timestamp)
+        )
+    except SQLAlchemyError as error:
+        logger.exception(f"Error selecting from job_log: {error}")
+        abort(500, f"Db error; {error}")
+    table = []
+    for log in query:
+        row = [
+            log.task_name,
+            log.attempt,
+            log.cromwell_job_id,
+            log.status_from,
+            log.status_to,
+            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            log.reason,
+        ]
+        table.append(row)
+    return table, 200
 
 
 def run_metadata(user, run_id):
@@ -427,8 +548,8 @@ def run_metadata(user, run_id):
     :return: Cromwell metadata for the run, if found; abort otherwise
     :rtype: dict
     """
-    run = _get_run(run_id)
-    __abort_if_pre_cromwell(run)
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
     return _rpc_call(user, run_id, "run_metadata")
 
 
@@ -443,8 +564,8 @@ def run_logs(user, run_id):
     :return: Cromwell metadata for the run, if found; abort otherwise
     :rtype: dict
     """
-    run = _get_run(run_id)
-    __abort_if_pre_cromwell(run)
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
     return _rpc_call(user, run_id, "run_logs")
 
 
@@ -459,12 +580,12 @@ def output(user, run_id):
     :return: stdout/stderr file contents
     :rtype: str
     """
-    run = _get_run(run_id)
-    __abort_if_pre_cromwell(run)
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
     return _rpc_call(user, run_id, "output", {"failed_only": False})
 
 
-def failure_logs(user, run_id):
+def failed(user, run_id):
     """
     Retrieve the logs for failed tasks.
 
@@ -475,8 +596,8 @@ def failure_logs(user, run_id):
     :return: Cromwell stdout/stderr/submit files for failed tasks.
     :rtype: str
     """
-    run = _get_run(run_id)
-    __abort_if_pre_cromwell(run)
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
     return _rpc_call(user, run_id, "output", {"failed_only": True})
 
 
@@ -491,24 +612,57 @@ def cancel_run(user, run_id):
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    run = _get_run(run_id)
-    if run.user_id != user:
-        abort(401, "Access denied; you cannot cancel another user's runs")
-    # the run state will be changed to "canceled" regardless of result of any other actions below
+    run = _get_run(user, run_id)
     status = run.status
-    run.status = "canceled"
-    db.session.commit()
-    logger.info(f"{user} cancelled run {run_id} in {run.status} state")
-    if status == "submitted" or status == "running":
-        # if running, instruct Cromwell to cancel
-        params = {"cromwell_id": run.cromwell_id, "user": user}
-        _rpc_call(user, run_id, "cancel_run", params)  # will abort if fail
-    elif status == "uploading":
-        _cancel_transfer(user, run.upload_task_id, run_id)  # will abort if fail
+    if status == "created":
+        _cancel_run(run)
+    elif status.startswith("upload"):
+        _cancel_run(run)
+        _cancel_transfer(user, run.upload_task_id, run_id)
+    elif status in [
+        "submitted",
+        "queued",
+        "running",
+        "succeeded",
+        "post-processing",
+        "ready",
+    ]:
+        _cancel_run(run)
+        _site_cancel_run(user, run_id)
+    elif status == "cancelled":
+        abort(400, "That Run had already been cancelled")
+    elif status == "failed":
+        abort(400, "That Run had already failed")
     elif status == "downloading":
+        _cancel_run(run)
         _cancel_transfer(user, run.download_task_id, run_id)
+    elif status == "finished":
+        abort(400, "That Run had already finished")
+    elif status == "finished":
+        abort(400, f"Run {run_id} already finished")
     result = {"cancel": "OK"}
     return result, 201
+
+
+def _cancel_run(run, reason="Cancelled by user"):
+    """Update database record."""
+    status_from = run.status
+    run.status = "cancelled"
+    db.session.commit()
+    log = Run_Log(
+        run_id=run.id,
+        status_from=status_from,
+        status_to=run.status,
+        timestamp=run.updated,
+        reason=reason,
+    )
+    db.session.add(log)
+    db.session.commit()
+
+
+def _site_cancel_run(user, run):
+    """Send cancel instruction to Site."""
+    _rpc_call(user, run.id, "cancel")
 
 
 def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
@@ -520,7 +674,7 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
     :type transfer_task_id: str
     :return: None; aborts on error.
     """
-    logger.info(f"{user} cancelled Globus transfer {transfer_task_id} for run {run_id}")
+    logger.info(f"Cancel Globus transfer {transfer_task_id} for run {run_id}")
     try:
         current_user = db.session.query(User).get(user)
     except SQLAlchemyError as e:

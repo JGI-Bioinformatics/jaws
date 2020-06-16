@@ -36,7 +36,7 @@ class User(db.Model):
     transfer_refresh_token = db.Column(db.String(256), nullable=True)
 
     def __init__(self, *args, **kwargs):
-        super(User, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return f"<User {self.id}>"
@@ -68,7 +68,7 @@ class Workflow(db.Model):
     )
 
     def __init__(self, *args, **kwargs):
-        super(Workflow, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return f"<Workflow {self.name}:{self.version}>"
@@ -98,7 +98,7 @@ class Run(db.Model):
     download_task_id = db.Column(db.String(36), nullable=True)
 
     def __init__(self, *args, **kwargs):
-        super(Run, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return f"<Run {self.id}>"
@@ -116,7 +116,29 @@ class Run_Log(db.Model):
     reason = db.Column(db.String(1024), nullable=True)
 
     def __init__(self, *args, **kwargs):
-        super(Run_Log, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return f"<Run_Log {self.id}>"
+
+
+class Job_Log(db.Model):
+    """A Run has many Tasks."""
+
+    __tablename__ = "job_logs"
+    id = db.Column(db.Integer, primary_key=True)
+    run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), nullable=False)
+    cromwell_run_id = db.Column(db.String(36), nullable=False)
+    cromwell_job_id = db.Column(db.Integer, nullable=True)
+    task_name = db.Column(db.String(128), nullable=True)
+    attempt = db.Column(db.Integer, nullable=True)
+    status_from = db.Column(db.String(32), nullable=False)
+    status_to = db.Column(db.String(32), nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    reason = db.Column(db.String(1024), nullable=True)
+
+    def __init__(self, *args, **kwargs):
+        super(Job_Log, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return f"<Job_Log {self.id}>"

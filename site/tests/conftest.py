@@ -33,8 +33,7 @@ password = hunting
 db = hunting_sites
 
 [CROMWELL]
-workflows_url = http://localhost:8000/api/workflows/v1
-engine_status_url = http://localhost:8000/engine/v1/status
+url = http://localhost:8000
 
 [SITE]
 id = eagle
@@ -56,8 +55,7 @@ password = xqweasdasa
 max_retries = 10
 
 [CROMWELL]
-workflows_url = http://localhost:8000/api/workflows/v1
-engine_status_url = http://localhost:8000/engine/v1/status
+url = http://localhost:8000
     """
     cfg.write_text(content)
     return cfg.as_posix()
@@ -75,6 +73,14 @@ class MockResponses:
         return self.json_data
 
     def publish(self, reply_to):
+        return
+
+    def ok(self):
+        return False if self.status_code >= 400 else True
+
+    def raise_for_status(self):
+        if not self.ok:
+            raise
         return
 
 
@@ -257,30 +263,6 @@ def server_status_get():
         return MockResponses({"id": CROMWELL_ID, "status": "Submitted"}, 200)
 
     return get
-
-
-@pytest.fixture
-def metadata_get():
-    def get(url):
-        return MockResponses(METADATA, 200)
-
-    return get
-
-
-@pytest.fixture()
-def logs_get():
-    def get(url):
-        return MockResponses(LOGS, 200)
-
-    return get
-
-
-@pytest.fixture()
-def abort_post():
-    def post(url):
-        return MockResponses({"id": CROMWELL_ID, "status": "Aborting"}, 201)
-
-    return post
 
 
 @pytest.fixture()

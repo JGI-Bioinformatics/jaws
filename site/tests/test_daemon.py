@@ -69,45 +69,6 @@ def test_submit_run(monkeypatch, staging_files):
     jawsd.submit_run(run)
 
 
-test_data = [
-    ({"status": "Running"}, "submitted", "running"),
-    ({"status": "Failed"}, "running", "failed"),
-    ({"status": "Aborted"}, "cancelling", "cancelled"),
-]
-
-
-@pytest.mark.parametrize("status,current_status,expected_status", test_data)
-def test_check_run_cromwell_status(
-    status, current_status, expected_status, monkeypatch
-):
-    def workflows_get(url):
-        return tests.conftest.MockResponses(status, 200)
-
-    def prepare_succeeded_run_output(run):
-        return
-
-    def prepare_failed_run_output(run):
-        return
-
-    jawsd = Daemon()
-    run = tests.conftest.MockRun(status=current_status)
-
-    monkeypatch.setattr(requests, "get", workflows_get)
-    monkeypatch.setattr(
-        jawsd, "prepare_succeeded_run_output", prepare_succeeded_run_output
-    )
-    monkeypatch.setattr(jawsd, "prepare_failed_run_output", prepare_failed_run_output)
-    monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
-
-    print(f"from run.status={run.status}")
-    jawsd.check_run_cromwell_status(run)
-    print(f"Cromwell status={status['status']}")
-    print(f"to run.status={run.status}")
-    print(f"expected_status={expected_status}")
-
-    assert run.status == expected_status
-
-
 def test_transfer_results(mock_query_user_id, monkeypatch):
     def mock_authorize_client(jawd, token):
         return tests.conftest.MockTransferClient({"status": "running"})
