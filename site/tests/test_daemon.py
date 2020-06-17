@@ -44,7 +44,6 @@ def test_check_if_upload_complete(statuses, monkeypatch):
     statuses since the 'SUCCEEDED' status calls another method we want to
     test later and separately.
     """
-    monkeypatch.setattr(Daemon, "_query_user_id", tests.conftest.query_jaws_id)
     jawsd = Daemon()
     run = tests.conftest.MockRun(status="uploading")
 
@@ -69,7 +68,7 @@ def test_submit_run(monkeypatch, staging_files):
     jawsd.submit_run(run)
 
 
-def test_transfer_results(mock_query_user_id, monkeypatch):
+def test_transfer_results(monkeypatch):
     def mock_authorize_client(jawd, token):
         return tests.conftest.MockTransferClient({"status": "running"})
 
@@ -90,7 +89,7 @@ def test_transfer_results(mock_query_user_id, monkeypatch):
     "status,expected",
     [({"status": "SUCCEEDED"}, "finished"), ({"status": "FAILED"}, "download failed")],
 )
-def test_check_if_download_complete(status, expected, monkeypatch, mock_query_user_id):
+def test_check_if_download_complete(status, expected, monkeypatch):
     def mock_authorize_client(jawd, token):
         return tests.conftest.MockTransferClient(status)
 

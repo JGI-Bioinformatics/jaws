@@ -27,6 +27,17 @@ source $INSTALLDIR/central/bin/activate
 exec jaws-central --log $INSTALLDIR/logs/central-rest.log --config $INSTALLDIR/configs/jaws-central.conf rest
 EOM
 
+cat <<EOM > $SHIMDIR/jaws-central-rpc-dev
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALLDIR/central/bin/activate
+exec jaws-central --log $INSTALLDIR/logs/central-rpc.log --config $INSTALLDIR/configs/jaws-central.conf rpc
+EOM
+
 cat <<EOM > $SHIMDIR/jaws-site-daemon-dev
 #!/usr/bin/env bash
 

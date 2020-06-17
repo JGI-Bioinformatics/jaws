@@ -3,7 +3,7 @@ import globus_sdk
 from datetime import datetime
 
 import jaws_central.analysis
-import jaws_central.models
+import jaws_central.models_fsa
 import jaws_central.config
 
 
@@ -128,7 +128,7 @@ class MockGetInactiveUploadRun:
 
 @pytest.fixture()
 def mock_database(monkeypatch):
-    monkeypatch.setattr(jaws_central.models.db, "session", MockSession)
+    monkeypatch.setattr(jaws_central.models_fsa.db, "session", MockSession)
 
 
 @pytest.fixture()

@@ -197,10 +197,6 @@ JTM_SQL = {
         SET cancelled = 1, enddate = '%(now)s'
         WHERE taskId = %(task_id)d
               and cancelled = 0;""",
-    "select_usercmd_tasks_by_taskid": """
-        SELECT userCmd
-        FROM tasks
-        WHERE taskId = %(task_id)d;""",
     "select_status_runs_by_taskid": """
         SELECT status
         FROM runs

@@ -10,8 +10,10 @@ import globus_sdk
 import logging
 from datetime import datetime
 from jaws_site.database import Session
-from jaws_site import models, wfcopy, config
+from jaws_site.models import Run, Run_Log, Job_Log
+from jaws_site import wfcopy, config
 from jaws_site.cromwell import Cromwell
+from jaws_rpc import rpc_client
 
 
 logger = None  # set by Daemon init
@@ -57,27 +59,35 @@ class Daemon:
             "ready": self.transfer_results,
             "downloading": self.check_if_download_complete,
         }
+        self.rpc_client = None
+
+    def init_rpc_client(self):
+        """Init RPC client for call Central functions"""
+        try:
+            self.rpc_client = rpc_client.RPC_Client(
+                config.conf.get_section("CENTRAL_RPC_CLIENT")
+            )
+        except Exception as error:
+            logger.error(f"Unable to init central rpc client: {error}")
+            raise
 
     def start_daemon(self):
         """
         Run scheduled task(s) periodically.
         """
         schedule.every(10).seconds.do(self.check_runs)
-        schedule.every(10).seconds.do(self.update_job_status_logs)
+        schedule.every(10).seconds.do(self.process_logs)
         while True:
             schedule.run_pending()
             time.sleep(5)
 
     def _query_by_site(self):
         return (
-            self.session.query(models.Run)
+            self.session.query(Run)
             .filter_by(site_id=self.site_id)
-            .filter(models.Run.status.in_(self.operations.keys()))
+            .filter(Run.status.in_(self.operations.keys()))
             .all()
         )
-
-    def _query_user_id(self, run):
-        return self.session.query(models.User).get(run.user_id)
 
     def _authorize_transfer_client(self, token):
         client_id = config.conf.get("GLOBUS", "client_id")
@@ -110,8 +120,7 @@ class Daemon:
         """
         Query Globus transfer service for transfer task status.
         """
-        user = self._query_user_id(run)
-        transfer_rt = user.transfer_refresh_token
+        transfer_rt = run.transfer_refresh_token
         try:
             transfer_client = self._authorize_transfer_client(transfer_rt)
             task = transfer_client.get_task(task_id)
@@ -215,9 +224,8 @@ class Daemon:
         """
         Send run output via Globus
         """
-        user = self._query_user_id(run)
         nice_dir = os.path.join(self.results_dir, str(run.id))
-        transfer_rt = user.transfer_refresh_token
+        transfer_rt = run.transfer_refresh_token
         try:
             transfer_client = self._authorize_transfer_client(transfer_rt)
         except globus_sdk.GlobusAPIError:
@@ -285,7 +293,7 @@ class Daemon:
 
         # record log state transition in "run_logs"
         try:
-            log_entry = models.Run_Log(
+            log_entry = Run_Log(
                 run_id=run.id,
                 status_from=status_from,
                 status_to=new_status,
@@ -299,6 +307,23 @@ class Daemon:
                 f"Failed to create run_log object for Run {run.id} : {new_status}, {reason}: {error}"
             )
 
+        # notify Central
+        log_msg = {
+            "run_id": run.id,
+            "status": new_status,
+            "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        response = self.rpc_client.request("update_run_status", log_msg)
+        if "error" in response:
+            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
+            # failure to notify Central doesn't block state transition
+
+    def process_logs(self):
+        """Periodically process logs"""
+        self.send_run_status_logs()
+        self.update_job_status_logs()
+        self.send_job_status_logs()
+
     def update_job_status_logs(self):
         """JTM job status logs are missing some fields; fill them in now."""
 
@@ -309,9 +334,9 @@ class Daemon:
         last_metadata = None  # no need to get from cromwell repeatedly
         self.session = Session()
         query = (
-            self.session.query(models.Job_Log)
+            self.session.query(Job_Log)
             .filter_by(task_name=None)
-            .order_by(models.Job_Log.cromwell_id)
+            .order_by(Job_Log.cromwell_id)
         )
         for log in query:
             run_id = log.run_id
@@ -320,7 +345,7 @@ class Daemon:
 
             # SELECT run_id FROM RDB
             run = (
-                self.session.query(models.Run)
+                self.session.query(Run)
                 .filter_by(cromwell_run_id=cromwell_run_id)
                 .one_or_none()
             )
@@ -357,4 +382,87 @@ class Daemon:
                 continue
             log.attempt = job_info["attempt"]
             log.task_name = job_info["task_name"]
+            self.session.commit()
+
+    def send_run_status_logs(self):
+        """Batch and send run logs to Central"""
+        if not self.rpc_client:
+            return
+        logger.debug("Checking for new run status logs")
+
+        # get updates from datbase
+        logs = []
+        self.session = Session()
+        query = self.session.query(Run_Log)
+        for log in query:
+            timestamp = log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            log_entry = {
+                "run_id": log.run_id,
+                "status_from": log.status_from,
+                "status_to": log.status_to,
+                "timestamp": timestamp,
+                "reason": log.reason,
+            }
+            logs.append(log_entry)
+
+        # notify Central
+        response = self.rpc_client.request("update_run_logs", logs)
+        if "error" in response:
+            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
+            self.session.rollback()
+        else:
+            query.delete(synchronize_session=False)
+            self.session.commit()
+
+    def send_job_status_logs(self):
+        """Batch and send job logs to Central"""
+        if not self.rpc_client:
+            return
+        logger.info("Checking for new job status log entries")
+
+        # get updates from datbase
+        logs = []
+        self.session = Session()
+        query = self.session.query(Job_Log)
+        for log in query:
+            run_id = log.run_id
+            cromwell_run_id = log.cromwell_run_id
+            cromwell_job_id = log.cromwell_job_id
+            timestamp = log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            item = {
+                "run_id": log.run_id,
+                "cromwell_job_id": log.cromwell_job_id,
+                "status_from": log.status_from,
+                "status_to": log.status_to,
+                "timestamp": timestamp,
+                "reason": log.reason,
+            }
+
+            # TRY TO GET task_name AND attempt FROM CROMWELL METADATA
+            logger.debug(f"Run {run_id}: Get job info for job {cromwell_job_id}")
+            try:
+                metadata = self.cromwell.get_metadata(cromwell_run_id)
+            except Exception as error:
+                logger.error(f"Error getting metadata for {cromwell_run_id}: {error}")
+                continue
+            job_info = metadata.get_job_info(cromwell_job_id)
+            if job_info is None:
+                logger.error(f"job_id {cromwell_job_id} not found in {cromwell_run_id}: {job_info}")
+                continue
+            item["attempt"] = job_info["attempt"]
+            item["task_name"] = job_info["task_name"]
+
+            # append new log entry
+            logs.append(item)
+        num_rows = len(logs)
+        if num_rows == 0:
+            return
+
+        # send message to Central
+        data = {"logs": logs, "site": self.site_id}
+        logger.info(f"Sending {num_rows} job status updates to Central")
+        result = self.rpc_client.request("update_job_logs", data)
+        if "result" in result:
+            # delete logs from database
+            query.delete(synchronize_session=False)
             self.session.commit()

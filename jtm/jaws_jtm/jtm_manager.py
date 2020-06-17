@@ -329,12 +329,7 @@ def extract_cromwell_run_id(task_id: int) -> str:
     db.close()
     # NOTE: here it is assumed that the script file full path exists at the
     # end of task_cmd_str
-    try:
-        task_script_file = task_cmd_str.split()[-1]
-    except Exception as e:
-        logger.exception("Invalid user cmd: %s" % e)
-        task_script_file = None
-
+    task_script_file = task_cmd_str.split()[-1]
     run_id = None
     # NOTE: here UUID format spec is assumed to comply with "8-4-4-4-12" format
     regex = re.compile(r'[\w]{8}-[\w]{4}-[\w]{4}-[\w]{4}-[\w]{12}', re.I)
@@ -1488,10 +1483,7 @@ def manager(ctx: object, custom_log_dir_name: str, b_resource_usage_log_on: bool
     # if STANDALONE == 1, send_update_task_status_msg(), which sends task status change
     # RMQ message to JAWS Site, won't be called
     global STANDALONE
-    try:
-        STANDALONE = CONFIG.configparser.getboolean("JTM", "standalone")
-    except Exception:
-        STANDALONE = False
+    STANDALONE = CONFIG.configparser.getboolean("JTM", "standalone")
 
     # Log dir setting
     log_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "log")

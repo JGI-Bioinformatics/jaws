@@ -39,7 +39,7 @@ cat <<EOM > $SHIMDIR/jaws-cromwell-dev
 source $INSTALLDIR/jtm/bin/activate
 
 cd /global/cscratch1/sd/jaws_jtm/dev/
-exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" server
+exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" rpc
 EOM
 
 chmod +x $SHIMDIR/*

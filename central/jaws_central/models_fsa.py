@@ -1,4 +1,4 @@
-"""Database object and persistent object models."""
+"""Flask-SQLAlchemy db and models, used by Connexion/Flask servers."""
 
 import datetime
 from flask_sqlalchemy import SQLAlchemy
@@ -129,16 +129,16 @@ class Job_Log(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), nullable=False)
     cromwell_run_id = db.Column(db.String(36), nullable=False)
-    cromwell_job_id = db.Column(db.Integer, nullable=True)
-    task_name = db.Column(db.String(128), nullable=True)
-    attempt = db.Column(db.Integer, nullable=True)
+    cromwell_job_id = db.Column(db.Integer, nullable=False)
+    task_name = db.Column(db.String(128), nullable=False)
+    attempt = db.Column(db.Integer, nullable=False)
     status_from = db.Column(db.String(32), nullable=False)
     status_to = db.Column(db.String(32), nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    timestamp = db.Column(db.DateTime, nullable=False)
     reason = db.Column(db.String(1024), nullable=True)
 
     def __init__(self, *args, **kwargs):
-        super(Job_Log, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return f"<Job_Log {self.id}>"

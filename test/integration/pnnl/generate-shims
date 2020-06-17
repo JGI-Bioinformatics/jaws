@@ -55,7 +55,7 @@ export PYTHONIOENCODING=utf-8
 source $INSTALLDIR/jtm/bin/activate
 
 cd /dtemp/mscjgi/jaws-dev/jtm
-exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" server
+exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" rpc
 EOM
 
 chmod +x $SHIMDIR/*

@@ -8,9 +8,10 @@ import logging
 import os
 import collections
 from datetime import datetime
-from jaws_site import config, wfcopy, models
+from jaws_site import config, wfcopy
 from jaws_site.cromwell import Cromwell
 from jaws_site.database import Session
+from jaws_site.models import Run, Job_Log
 
 
 MAX_LINES_PER_OUTFILE = 5000
@@ -113,6 +114,16 @@ def cancel_run(params):
         cromwell.abort(cromwell_id)
     except requests.exceptions.HTTPError as error:
         logger.exception(f"Error aborting cromwell {cromwell_id}: {error}")
+
+    # delete run from database because Site only keeps active Run records in db
+    try:
+        session = Session()
+        run = session.query(Run).get(run_id)
+        session.delete(run)
+        session.commit()
+    except Exception as error:
+        logger.exception(f"Error deleting Run {run_id}: {error}")
+
     return _success()
 
 
@@ -203,6 +214,36 @@ def __tail(filename, max_lines=1000):
     return lines, is_truncated
 
 
+def submit(params):
+    """Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes."""
+    user_id = params["user_id"]
+    run_id = params["run_id"]
+    logger.info(f"{user_id} - Run {run_id} - Submit new run")
+    try:
+        run = Run(
+            id=run_id,  # pk used by Central
+            user_id=user_id,
+            email=params["email"],
+            transfer_refresh_token=params["transfer_refresh_token"],
+            submission_id=params["submission_id"],
+            upload_task_id=params["upload_task_id"],
+            output_endpoint=params["output_endpoint"],
+            output_dir=params["output_dir"],
+            status="uploading",
+        )
+    except Exception as error:
+        logger.error(f"Invalid submit run input; {error}: {params}")
+        return _failure(400, "Invalid input; {error}")
+    session = Session()
+    try:
+        session.add(run)
+        session.commit()
+    except Exception as error:
+        logger.error(f"Failed to insert new Run record: {error}")
+        return _failure(500, f"Failed to insert new Run record: {error}")
+    return _success()
+
+
 def update_job_status(params):
     """JTM shall post changes in job status."""
     cromwell_run_id = params["cromwell_run_id"]  # Cromwell's run/workflow UUID
@@ -221,7 +262,7 @@ def update_job_status(params):
     # CREATE NEW job_log ENTRY
     session = Session()
     try:
-        job_log = models.Job_Log(
+        job_log = Job_Log(
             cromwell_run_id=cromwell_run_id,
             cromwell_job_id=cromwell_job_id,
             status_from=status_from,
@@ -244,6 +285,19 @@ def update_job_status(params):
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
+    "submit": {
+        "function": submit,
+        "required_params": [
+            "user_id",
+            "run_id",
+            "email",
+            "transfer_refresh_token",
+            "submission_id",
+            "upload_task_id",
+            "output_endpoint",
+            "output_dir",
+        ],
+    },
     "run_metadata": {"function": run_metadata, "required_params": ["cromwell_id"]},
     "cancel_run": {"function": cancel_run, "required_params": ["cromwell_id"]},
     "output": {"function": output, "required_params": ["cromwell_id"]},

@@ -377,6 +377,8 @@ class MockRun:
         self.output_endpoint = kwargs.get("output_endpoint", "EXAMPLE_OUTPUT_ENDPOINT_ID")
         self.output_dir = kwargs.get("output_dir", ".")
         self.download_task_id = kwargs.get("download_task_id", "123")
+        self.transfer_refresh_token = "EXAMPLE_GLOBUS_TRANSFER_TOKEN"
+        self.email = "jaws@vog.gov"
 
 
 class MockTransferClient:
