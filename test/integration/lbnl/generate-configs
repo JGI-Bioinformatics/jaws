@@ -16,17 +16,21 @@ cat << EOM > $configdir/jaws-site.conf
 dialect = mysql+mysqlconnector
 host = jaws-db.lbl.gov
 port = 3306
-user = jaws_dev
+user = jaws_lbnl
 password = $JAWS_SITE_LBNL_DB_PW
-db = jaws_dev
+db = jaws_lbnl_dev
 [RPC_SERVER]
-user = jaws_rpc
+user = jaws_lbnl
 password = $JAWS_SITE_LBNL_RMQ_PW
 host = rmq.lbl.gov
-vhost = nersc_dev
-queue = jaws_rpc
+vhost = jaws_lbnl_dev
 num_threads = 5
 max_retries = 3
+[CENTRAL_RPC_CLIENT]
+user = jaws_lbnl
+password = $JAWS_SITE_LBNL_RMQ_PW
+host = rmq.lbl.gov
+vhost = jaws_central_dev
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec

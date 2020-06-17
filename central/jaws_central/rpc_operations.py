@@ -1,0 +1,177 @@
+"""
+RPC operations by which Sites update Run and Job status.
+"""
+
+import logging
+from datetime import datetime
+from http.client import responses
+from jaws_central.database import Session
+from jaws_central.models_sa import Run, Run_Log, Job_Log
+
+
+logger = logging.getLogger(__package__)
+
+
+# HELPER FUNCTIONS:
+# these are used by RPC operations to format JSON-RPC2 responses
+
+
+def _success(result=None):
+    """Return a JSON-RPC2 successful result message.
+
+    :param result: The result returned by a successful RPC call.
+    :type result: str|int|dict|list
+    :return: JSON-RPC2 formatted response
+    :rtype: str
+    """
+    return {"jsonrpc": "2.0", "result": result}
+
+
+def _failure(code, message=None):
+    """Return a JSON-RPC2 error message.
+
+    :param code: The error code returned by the RPC call
+    :type code: int
+    :param message: The error message returned by the RPC call
+    :type message: str, optional
+    :return: JSON-RPC2 formatted response
+    :rtype: dict
+    """
+    if message is None:
+        message = (
+            responses["status_code"] if "status_code" in responses else "Unknown error"
+        )
+    return {"jsonrpc": "2.0", "error": {"code": code, "message": message}}
+
+
+# RPC OPERATIONS:
+
+
+def update_run_status(params):
+    """
+    Receive a run status update and save in RDb.
+
+    :param params: one status update
+    :type params: dict
+    :return: valid JSON-RPC2 response
+    :rtype: dict
+    """
+    logger.debug("Update run status")
+
+    run_id = int(params["run_id"])
+    status = params["status"]
+    timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
+    logger.info(f"Run {run_id}: {status}")
+
+    # update Run
+    session = Session()
+    run = session.query(Run).get(run_id)
+    run.status = status
+    run.updated = timestamp
+    if status == "submitted":
+        run.cromwell_run_id = params["cromwell_run_id"]
+        logger.info(f"Run {run_id} {status}: {run.cromwell_run_id}")
+    elif status == "downloading":
+        run.download_task_id = params["download_task_id"]
+        logger.info(f"Run {run_id} {status}: {run.download_task_id}")
+    try:
+        session.commit()
+    except Exception as error:
+        return _failure(500, f"Error inserting log: {error}")
+    return _success()
+
+
+def update_run_logs(params):
+    """
+    Receive a set of run status updates and save in RDb.
+    Either all updates are saved or none.
+
+    :param params: one or more status updates
+    :type params: dict
+    :return: valid JSON-RPC2 response
+    :rtype: dict
+    """
+    logger.debug("Update run status")
+    logs = params["logs"]
+    new_logs = []
+    for log_entry in logs:
+        reason = log_entry.get("reason", None)
+        timestamp = datetime.strptime(log_entry["timestamp"], "%Y-%m-%d %H:%M:%S")
+        try:
+            log = Run_Log(
+                run_id=int(log_entry["run_id"]),
+                status_from=log_entry["status_from"],
+                status_to=log_entry["status_to"],
+                timestamp=timestamp,
+                reason=reason
+            )
+        except Exception as error:
+            logger.error(f"Invalid run log entry: {params} - {error}")
+            continue
+        new_logs.append(log)
+    session = Session()
+    try:
+        session.add_all(new_logs)
+    except Exception as error:
+        logger.exception(f"Failed to insert run log entries into db: {error}")
+        return _failure(500, f"Db insert failed: {error}")
+    session.commit()
+    return _success()
+
+
+def update_job_logs(params):
+    """
+    Receive a set of job status updates and save in RDb.
+    Either all updates are saved or none.
+
+    :param params: one or more status updates
+    :type params: dict
+    :return: valid JSON-RPC2 response
+    :rtype: dict
+    """
+    logger.debug("Update job status")
+    logs = params["logs"]
+    new_logs = []
+    for log_entry in logs:
+        reason = log_entry.get("reason", None)
+        timestamp = datetime.strptime(log_entry["timestamp"], "%Y-%m-%d %H:%M:%S")
+        try:
+            log = Job_Log(
+                run_id=int(log_entry["run_id"]),
+                task_name=log_entry["task_name"],
+                attempt=int(log_entry["attempt"]),
+                cromwell_job_id=int(log_entry["cromwell_job_id"]),
+                status_from=log_entry["status_from"],
+                status_to=log_entry["status_to"],
+                timestamp=timestamp,
+                reason=reason
+            )
+        except Exception as error:
+            logger.error(f"Invalid job log entry: {params} - {error}")
+            continue
+        new_logs.append(log)
+    session = Session()
+    try:
+        session.add_all(new_logs)
+    except Exception as error:
+        logger.exception(f"Failed to insert job log entries into db: {error}")
+        return _failure(500, f"Db insert failed: {error}")
+    session.commit()
+    return _success()
+
+
+# all RPC operations are defined in this dispatch table
+operations = {
+    "update_run_status": {
+        "function": update_run_status,
+        "required_parameters": ["run_id", "status", "timestamp"]
+    },
+    "update_run_logs": {
+        "function": update_run_logs,
+        "required_parameters": ["logs"],
+    },
+    "update_job_logs": {
+        "function": update_job_logs,
+        "required_parameters": ["logs"],
+    },
+}

@@ -2,8 +2,8 @@ import logging
 import globus_sdk
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_central import models, config
-from jaws_central.models import db
+from jaws_central import config
+from jaws_central.models_fsa import db, User
 
 logger = logging.getLogger(__package__)
 
@@ -21,7 +21,7 @@ def get_tokeninfo() -> dict:
 
     try:
         user = (
-            db.session.query(models.User).filter(models.User.jaws_token == access_token).one_or_none()
+            db.session.query(User).filter(User.jaws_token == access_token).one_or_none()
         )
     except SQLAlchemyError as e:
         abort(500, f"Db error: {e}")
@@ -54,7 +54,7 @@ def save_globus_tokens(
 
     # CHECK IF REGISTERED JAWS USER
     try:
-        user_rec = db.session.query(models.User).get(user)
+        user_rec = db.session.query(User).get(user)
     except SQLAlchemyError as e:
         abort(500, f"Db error: {e}")
     if user_rec is None:

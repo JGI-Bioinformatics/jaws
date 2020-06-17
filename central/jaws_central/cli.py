@@ -9,8 +9,8 @@ import connexion
 from urllib.parse import quote_plus
 import secrets
 from jaws_central import config, log
-from jaws_central.models import db
-from jaws_rpc import rpc_index
+from jaws_central.models_fsa import db
+from jaws_rpc import rpc_index, rpc_server
 
 
 JAWS_LOG_ENV = "JAWS_CENTRAL_LOG"
@@ -105,6 +105,15 @@ def rest(port: int) -> None:
 
 
 @cli.command()
+def rpc() -> None:
+    """Start JAWS-Central RPC server."""
+    from jaws_central import rpc_operations
+    rpc_params = config.conf.get_section("RPC_SERVER")
+    app = rpc_server.RpcServer(rpc_params, rpc_operations.operations)
+    app.start_server()
+
+
+@cli.command()
 def create_tables() -> None:
     """Create all database tables"""
     logger = logging.getLogger(__package__)
@@ -173,7 +182,7 @@ def add_user(
 
     with connex.app.app_context():
         # CHECK IF UID EXISTS
-        from jaws_central.models import User
+        from jaws_central.models_fsa import User
         user = db.session.query(User).get(uid)
         if user is not None:
             msg = f"Cannot add user {uid}; user.id already taken."

@@ -6,7 +6,7 @@ from datetime import datetime
 import logging
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Tuple
-from jaws_central.models import db, Workflow
+from jaws_central.models_fsa import db, Workflow
 
 logger = logging.getLogger(__package__)
 

@@ -20,13 +20,17 @@ user = jgi
 password = $JAWS_SITE_PNNL_DB_PW
 db = site
 [RPC_SERVER]
-user = jaws_rpc
+user = jaws_pnnl
 password = $JAWS_SITE_CORI_RMQ_PW
 host = rmq.lbl.gov
-vhost = nersc_dev
-queue = jaws_rpc
+vhost = jaws_pnnl_dev
 num_threads = 5
 max_retries = 3
+[CENTRAL_RPC_CLIENT]
+user = jaws_pnnl
+password = $JAWS_SITE_CORI_RMQ_PW
+host = rmq.lbl.gov
+vhost = jaws_central_dev
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec

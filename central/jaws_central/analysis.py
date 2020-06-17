@@ -11,7 +11,7 @@ import collections
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
-from jaws_central.models import db, Run, User, Run_Log, Job_Log
+from jaws_central.models_fsa import db, Run, User, Run_Log, Job_Log
 
 
 logger = logging.getLogger(__package__)
@@ -212,10 +212,10 @@ def submit_run(user):
         logger.error(
             f"Received run submission from {user} with invalid computing site ID: {site_id}"
         )
-        abort(404, f"Unknown Site ID; {site_id} is not one of our sites")
+        abort(404, f'Unknown Site ID, "{site_id}"; try the "list-sites" command')
     logger.info(f"New submission from {user} to {site_id}")
 
-    # insert into RDb to get a Run ID
+    # INSERT INTO RDB TO GET RUN ID
     run = Run(
         user_id=user,
         site_id=site_id,
@@ -226,37 +226,34 @@ def submit_run(user):
         output_dir=output_dir,
         status="created",
     )
-    db.session.add(run)
-    db.session.commit()
-
-    # add log entry
-    log = Run_Log(
-        run_id=run.id, status_from=None, status_to=run.status, timestamp=run.updated
-    )
-    db.session.add(log)
+    try:
+        db.session.add(run)
+    except Exception as error:
+        logger.exception(f"Error inserting Run: {error}")
+        abort(500, f"Error inserting Run into db: {error}")
     db.session.commit()
 
     # SUBMIT GLOBUS TRANSFER
     try:
         current_user = db.session.query(User).get(user)
-    except SQLAlchemyError as error:
-        logger.error(error)
-        _update_run_status(run, "error", error)
-        abort(500, f"Db error; {error}")
+    except SQLAlchemyError as e:
+        logger.error(e)
+        abort(500, f"Db error; {e}")
     transfer_rt = current_user.transfer_refresh_token
-    client_id = config.conf.get("GLOBUS", "client_id")
+    client_id = config.conf.get("JAWS_CENTRAL", "globus_client_id")
     try:
         client = globus_sdk.NativeAppAuthClient(client_id)
         authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
         transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
-    except globus_sdk.GlobusAPIError as error:
-        _update_run_status(run, "upload failed", error)
+    except globus_sdk.GlobusAPIError:
+        run.status = "upload failed"
+        db.session.commit()
         logger.exception(
             f"Error getting transfer client for user {user}", exc_info=True
         )
         abort(
-            500,
-            "User Globus error; have you granted JAWS access via the 'login' command?",
+            401,
+            "Globus access denied; have you granted JAWS access via the 'login' command?",
         )
     tdata = globus_sdk.TransferData(
         transfer_client,
@@ -276,7 +273,7 @@ def submit_run(user):
     manifest = manifest_file.read().splitlines()
     for line in manifest:
         line = line.decode("UTF-8")
-        [source_path, dest_path, inode_type] = line.split("\t")
+        source_path, dest_path, inode_type = line.split("\t")
         logger.debug(f"add transfer: {source_path} -> {dest_path}")
         if inode_type == "D":
             tdata.add_item(source_path, dest_path, recursive=True)
@@ -285,11 +282,12 @@ def submit_run(user):
     try:
         transfer_result = transfer_client.submit_transfer(tdata)
     except globus_sdk.GlobusAPIError as error:
-        _update_run_status(run, "upload failed", error)
+        run.status = "upload failed"
+        db.session.commit()
         logger.info(f"{user} submission {run.id} failed due to Globus {error.code}")
         if error.code == "NoCredException":
             abort(
-                error.http_status,
+                401,
                 error.message
                 + " -- Your access to the Globus endpoint has expired.  "
                 + "To reactivate, log-in to https://globus.org, go to Endpoints (left), "
@@ -300,37 +298,54 @@ def submit_run(user):
             logger.exception(
                 f"{user} submission {run.id} failed for GlobusAPIError", exc_info=True
             )
-            abort(error.http_status, error.message)
+            abort(error.code, error.message)
     except globus_sdk.NetworkError as error:
-        _update_run_status(run, "upload failed", error)
         logger.info(
             f"{user} submission {run.id} failed due to NetworkError", exc_info=True
         )
-        abort(503, f"Network Error: {error}")
+        abort(500, f"Network Error: {error}")
     except globus_sdk.GlobusError as error:
-        _update_run_status(run, "upload failed", error)
         logger.exception(
             f"{user} submission {run.id} failed for unknown error", exc_info=True
         )
         abort(500, f"Unexpected error: {error}")
     upload_task_id = transfer_result["task_id"]
 
-    # add upload task id to record
+    # UPDATE RUN WITH UPLOAD TASK ID AND ADD LOG ENTRY
     run.upload_task_id = upload_task_id
-    run.status = "uploading"
-    db.session.commit()
-
-    # add another log entry
+    old_status = run.status
+    new_status = run.status = "uploading"
     log = Run_Log(
         run_id=run.id,
-        status_from="created",
-        status_to=run.status,
+        status_to=new_status,
+        status_from=old_status,
         timestamp=run.updated,
+        reason=f"upload_task_id={upload_task_id}",
     )
-    db.session.add(log)
+    try:
+        db.session.add(log)
+    except Exception as error:
+        logger.exception(f"Error inserting run log for Run {run.id}: {error}")
     db.session.commit()
 
-    # return info to user
+    # SEND TO SITE
+    params = {
+        "run_id": run.id,
+        "user_id": user,
+        "email": current_user.email,
+        "transfer_refresh_token": current_user.transfer_refresh_token,
+        "submission_id": submission_id,
+        "upload_task_id": upload_task_id,
+        "output_endpoint": output_endpoint,
+        "output_dir": output_dir,
+    }
+    site_rpc_call = rpc_index.rpc_index.get_client(run.site_id)
+    logger.info(f"User {user} RPC submit params {params}")
+    result = site_rpc_call.request("submit", params)
+    if "error" in result:
+        abort(result["error"]["code"], result["error"]["message"])
+
+    # DONE
     result = {
         "run_id": run.id,
         "submission_id": submission_id,
@@ -628,7 +643,7 @@ def cancel_run(user, run_id):
         "ready",
     ]:
         _cancel_run(run)
-        _site_cancel_run(user, run_id)
+        __site_cancel_run(user, run_id)
     elif status == "cancelled":
         abort(400, "That Run had already been cancelled")
     elif status == "failed":
@@ -660,7 +675,7 @@ def _cancel_run(run, reason="Cancelled by user"):
     db.session.commit()
 
 
-def _site_cancel_run(user, run):
+def __site_cancel_run(user, run):
     """Send cancel instruction to Site."""
     _rpc_call(user, run.id, "cancel")
 
