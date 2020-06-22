@@ -38,6 +38,15 @@ class Configuration(metaclass=Singleton):
             "db": "jaws",
         },
         "GLOBUS": {"client_id": ""},
+        "RPC_SERVER": {
+            "host": "localhost",
+            "port": "5672",
+            "user": "jaws_rmq_user",
+            "password": "jaws_rmq_pass",
+            "vhost": "jaws_central",
+            "max_threads": 5,
+            "max_retries": 3
+        }
     }
 
     config = None
