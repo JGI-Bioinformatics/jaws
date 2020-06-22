@@ -355,11 +355,13 @@ class Daemon:
         # select incomplete job log entries from database
         last_cromwell_run_id = None  # cache last
         last_metadata = None  # no need to get from cromwell repeatedly
+
         try:
             query = self.session.query(Job_Log).filter_by(task_name=None)
         except Exception as error:
             logger.exception(f"Unable to select job_logs: {error}")
             return
+
         for log in query:
             run_id = log.run_id
             cromwell_run_id = log.cromwell_run_id
