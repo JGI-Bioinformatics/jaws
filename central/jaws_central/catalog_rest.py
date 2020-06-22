@@ -20,12 +20,13 @@ def list_wdls(user: str) -> Tuple[dict, int]:
     :return: Table of workflows
     :rtype: list
     """
-    logger.debug("List workflows")
+    logger.info(f"User {user}: List workflows")
     try:
         result = catalog.list_wdls()
         return result, 200
-    except catalog.CatalogDatabaseError as e:
-        abort(500, e)
+    except catalog.CatalogDatabaseError as error:
+        logger.exception("Failed to retrieve catalog list: {error}")
+        abort(500, error)
 
 
 def get_versions(user: str, name: str) -> Tuple[dict, int]:
@@ -38,13 +39,14 @@ def get_versions(user: str, name: str) -> Tuple[dict, int]:
     :return: Table of all version of a workflow
     :rtype: list
     """
-    logger.debug(f"Get version of workflow {name}")
+    logger.info(f"User {user}: Get version of workflow {name}")
     try:
         result = catalog.get_versions(name)
     except catalog.CatalogWorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}")
-    except catalog.CatalogDatabaseError as e:
-        abort(500, f"Catalog error: {e}")
+    except catalog.CatalogDatabaseError as error:
+        logger.exception(f"Failed to get workflow versions: {error}")
+        abort(500, f"Catalog error: {error}")
     return result, 200
 
 
@@ -60,13 +62,14 @@ def get_doc(user: str, name: str, version: str) -> Tuple[str, int]:
     :return: The workflow's README document in markdown format
     :rtype: str
     """
-    logger.debug(f"Get README of {name}:{version}")
+    logger.info(f"User {user}: Get README of {name}:{version}")
     try:
         doc = catalog.get_doc(name, version)
     except catalog.CatalogWorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
-    except catalog.CatalogDatabaseError as e:
-        abort(500, f"Catalog error: {e}")
+    except catalog.CatalogDatabaseError as error:
+        logger.exception(f"Failed to get workflow doc: {error}")
+        abort(500, f"Catalog error: {error}")
     return markdown.markdown(doc), 200
 
 
@@ -82,13 +85,14 @@ def get_wdl(user: str, name: str, version: str) -> Tuple[str, int]:
     :return: The workflow's specification document in WDL format
     :rtype: str
     """
-    logger.debug(f"Get WDL of {name}:{version}")
+    logger.info(f"User {user}: Get WDL of {name}:{version}")
     try:
         wdl = catalog.get_wdl(name, version)
     except catalog.CatalogWorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
-    except catalog.CatalogDatabaseError as e:
-        abort(500, f"Catalog error: {e}")
+    except catalog.CatalogDatabaseError as error:
+        logger.exception(f"Failed to get workflow WDL: {error}")
+        abort(500, f"Catalog error: {error}")
     return wdl, 200
 
 
@@ -104,15 +108,16 @@ def release_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    logger.debug(f"Release workflow, {name}:{version}")
+    logger.info(f"User {user}: Release workflow, {name}:{version}")
     try:
         catalog.release_wdl(user, name, version)
     except catalog.CatalogWorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
     except catalog.CatalogAuthenticationError:
         abort(401, "Access denied; only the owner may release a workflow.")
-    except catalog.CatalogDatabaseError as e:
-        abort(500, f"Catalog error: {e}")
+    except catalog.CatalogDatabaseError as error:
+        logger.exception(f"Failed to release workflow: {error}")
+        abort(500, f"Catalog error: {error}")
     return {"result": "OK"}, 200
 
 
@@ -128,15 +133,17 @@ def del_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    logger.debug(f"Delete workflow, {name}:{version}")
+    logger.info(f"User {user}: Delete workflow, {name}:{version}")
     try:
         catalog.del_wdl(user, name, version)
     except catalog.CatalogWorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
     except catalog.CatalogAuthenticationError:
+        logger.info(f"Not allowing user {user} to delete workflow {name}:{version}")
         abort(401, "Access denied; only the owner may delete a workflow.")
-    except catalog.CatalogDatabaseError as e:
-        abort(500, f"Catalog error: {e}")
+    except catalog.CatalogDatabaseError as error:
+        logger.exception(f"Failed to delete workflow: {error}")
+        abort(500, f"Catalog error: {error}")
     return {"result": "OK"}, 200
 
 
@@ -154,7 +161,7 @@ def update_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    logger.debug(f"Update WDL of {name}:{version}")
+    logger.info(f"User {user}: Update WDL of {name}:{version}")
 
     if "wdl_file" not in request.files or not request.files["wdl_file"]:
         abort(400, "Bad request: New WDL not provided")
@@ -172,6 +179,7 @@ def update_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     except catalog.CatalogWorkflowImmutableError as error:
         abort(400, error)
     except catalog.CatalogDatabaseError as error:
+        logger.exception(f"Error updating WDL: {error}")
         abort(500, error)
     return {"result": "OK"}, 200
 
@@ -190,7 +198,7 @@ def update_doc(user: str, name: str, version: str) -> Tuple[dict, int]:
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    logger.debug(f"Update README of {name}:{version}")
+    logger.info(f"User {user}: Update README of {name}:{version}")
 
     if "md_file" not in request.files or not request.files["md_file"]:
         abort(400, "Bad request: New MD not provided")
@@ -205,8 +213,9 @@ def update_doc(user: str, name: str, version: str) -> Tuple[dict, int]:
         abort(404, f"Workflow not found: {name}:{version}")
     except catalog.CatalogAuthenticationError:
         abort(401, "Access denied; only the owner may update a workflow")
-    except catalog.CatalogDatabaseError as e:
-        abort(500, f"Catalog error: {e}")
+    except catalog.CatalogDatabaseError as error:
+        logger.exception(f"Error updating doc: {error}")
+        abort(500, f"Catalog error: {error}")
     return {"result": "OK"}, 200
 
 
@@ -226,7 +235,7 @@ def add_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    logger.debug(f"Add new workflow, {name}:{version}")
+    logger.info(f"User {user}: Add new workflow, {name}:{version}")
 
     if "wdl_file" not in request.files or not request.files["wdl_file"]:
         abort(400, "Bad request: New WDL not provided")
@@ -244,8 +253,9 @@ def add_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
 
     try:
         catalog.add_wdl(user, name, version, new_wdl, new_doc)
-    except catalog.CatalogInvalidInputError as e:
-        abort(400, e)
-    except catalog.CatalogDatabaseError as e:
-        abort(500, f"Catalog error: {e}")
+    except catalog.CatalogInvalidInputError as error:
+        abort(400, error)
+    except catalog.CatalogDatabaseError as error:
+        logger.exception(f"Error inserting workflow: {error}")
+        abort(500, f"Catalog error: {error}")
     return {"result": "OK", "name": name, "version": version}, 201

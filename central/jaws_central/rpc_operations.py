@@ -56,12 +56,10 @@ def update_run_status(params):
     :return: valid JSON-RPC2 response
     :rtype: dict
     """
-    logger.debug("Update run status")
-
     run_id = int(params["run_id"])
     status = params["status"]
     timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
-    logger.info(f"Run {run_id}: {status}")
+    logger.info(f"Run {run_id}: now {status}")
 
     # update Run
     session = Session()
@@ -77,6 +75,7 @@ def update_run_status(params):
     try:
         session.commit()
     except Exception as error:
+        logger.exception(f"Failed to update run status: {error}")
         return _failure(500, f"Error inserting log: {error}")
     return _success()
 
@@ -91,7 +90,7 @@ def update_run_logs(params):
     :return: valid JSON-RPC2 response
     :rtype: dict
     """
-    logger.debug("Update run status")
+    logger.debug("Update run logs")
     logs = params["logs"]
     new_logs = []
     for log_entry in logs:
@@ -106,7 +105,7 @@ def update_run_logs(params):
                 reason=reason
             )
         except Exception as error:
-            logger.error(f"Invalid run log entry: {params} - {error}")
+            logger.exception(f"Invalid run log entry, {params}: {error}")
             continue
         new_logs.append(log)
     session = Session()
@@ -129,7 +128,7 @@ def update_job_logs(params):
     :return: valid JSON-RPC2 response
     :rtype: dict
     """
-    logger.debug("Update job status")
+    logger.debug("Update job logs")
     logs = params["logs"]
     new_logs = []
     for log_entry in logs:
@@ -147,7 +146,7 @@ def update_job_logs(params):
                 reason=reason
             )
         except Exception as error:
-            logger.error(f"Invalid job log entry: {params} - {error}")
+            logger.exception(f"Invalid job log entry, {params}: {error}")
             continue
         new_logs.append(log)
     session = Session()

@@ -62,10 +62,11 @@ def server_status(params):
     if Cromwell up or not.
     :rtype: dict
     """
-    logger.debug("Check server status")
+    logger.info("Check server status")
     try:
         status = cromwell.status()
     except requests.exceptions.HTTPError as error:
+        logger.error(f"Failed to get server status: {error}")
         return _failure(error.response.status_code)
     return _success(status)
 
@@ -81,6 +82,7 @@ def run_metadata(params):
     user_id = params["user_id"]
     run_id = params["run_id"]
     cromwell_id = params["cromwell_run_id"]
+    logger.info(f"User {user_id}: Get metadata for Run {run_id}")
     if cromwell_id is None:
         return _success(
             f"Run {run_id} hasn't been submitted to Cromwell, so has no metadata."
@@ -92,7 +94,7 @@ def run_metadata(params):
         logger.error(f"Get metadata for {params['run_id']} failued: {error}")
         return _failure(error.response.status_code)
     except Exception as error:
-        logger.error(f"Get metadata for {params['run_id']} failued: {error}")
+        logger.exception(f"Get metadata for {params['run_id']} failued: {error}")
         return _failure(f"Unable to retrieve metadata: {error}")
     return _success(metadata.data)
 
@@ -133,6 +135,7 @@ def output(params):
     """
     user_id = params["user_id"]
     run_id = params["run_id"]
+    logger.info(f"User {user_id}: Get output of Run {run_id}")
     cromwell_id = params["cromwell_run_id"]
     if cromwell_id is None:
         return _success(
@@ -148,6 +151,7 @@ def output(params):
     try:
         metadata = cromwell.get_metadata(params["cromwell_run_id"])
     except requests.exceptions.HTTPError as error:
+        logger.error(f"Failed to get output for Run {run_id}: {error}")
         return _failure(error.response.status_code)
     workflowRoot = metadata.get("workflowRoot")
     logger.debug(f"Find outfiles under {workflowRoot}")
@@ -218,7 +222,7 @@ def submit(params):
     """Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes."""
     user_id = params["user_id"]
     run_id = params["run_id"]
-    logger.info(f"{user_id} - Run {run_id} - Submit new run")
+    logger.info(f"User {user_id}: Submit new Run {run_id}")
     try:
         run = Run(
             id=run_id,  # pk used by Central
@@ -232,14 +236,14 @@ def submit(params):
             status="uploading",
         )
     except Exception as error:
-        logger.error(f"Invalid submit run input; {error}: {params}")
+        logger.exception(f"Invalid submit run input; {error}: {params}")
         return _failure(400, "Invalid input; {error}")
     session = Session()
     try:
         session.add(run)
         session.commit()
     except Exception as error:
-        logger.error(f"Failed to insert new Run record: {error}")
+        logger.exception(f"Failed to insert new Run record: {error}")
         return _failure(500, f"Failed to insert new Run record: {error}")
     return _success()
 
@@ -258,6 +262,7 @@ def update_job_status(params):
     reason = None
     if "reason" in params:
         reason = params["reason"]
+    logger.debug(f"Cromwell run:job {cromwell_run_id}:{cromwell_job_id} now {status_to}")
 
     # CREATE NEW job_log ENTRY
     session = Session()
@@ -271,12 +276,12 @@ def update_job_status(params):
             reason=reason,
         )
     except Exception as error:
-        logger.error(f"Failed to create job_log object for {params}: {error}")
+        logger.exception(f"Failed to create job_log object for {params}: {error}")
         return _failure(500, f"Failed to create job_log object for {params}: {error}")
     try:
         session.add(job_log)
     except Exception as error:
-        logger.error(f"Failed to insert job_log: {job_log}: {error}")
+        logger.exception(f"Failed to insert job_log: {job_log}: {error}")
         return _failure(500, f"Failed to insert job_log: {job_log}: {error}")
     session.commit()
     return _success()
