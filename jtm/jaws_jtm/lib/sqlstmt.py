@@ -192,15 +192,15 @@ JTM_SQL = {
         UPDATE runs
         SET status = %(status_id)d, enddate = '%(now)s', cancelled = 2
         WHERE taskId = %(task_id)d;""",
-    "update_runs_status_by_taskid": """
-        UPDATE runs
-        SET status = %(status_id)d, enddate = '%(now)s'
-        WHERE taskId = %(task_id)d;""",
     "update_runs_cancelled_by_tid": """
         UPDATE runs
         SET cancelled = 1, enddate = '%(now)s'
         WHERE taskId = %(task_id)d
               and cancelled = 0;""",
+    "select_usercmd_tasks_by_taskid": """
+        SELECT userCmd
+        FROM tasks
+        WHERE taskId = %(task_id)d;""",
     "select_status_runs_by_taskid": """
         SELECT status
         FROM runs
