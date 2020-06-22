@@ -648,6 +648,7 @@ def cancel_run(user, run_id):
     elif status.startswith("upload"):
         _cancel_run(run)
         _cancel_transfer(user, run.upload_task_id, run_id)
+        _rpc_call(user, run_id, "cancel_run")
     elif status in [
         "submitted",
         "queued",
