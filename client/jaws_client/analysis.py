@@ -132,9 +132,11 @@ def task_status(run_id: int, fmt: str) -> None:
         print(json.dumps(result, indent=4, sort_keys=True))
     else:
         print(
-            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n"
+            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
         for log_entry in result:
+            log_entry[1] = str(log_entry[1])
+            log_entry[2] = str(log_entry[2])
             print("\t".join(log_entry))
 
 
@@ -170,7 +172,7 @@ def log(run_id: int, fmt: str) -> None:
     if fmt == "json":
         print(json.dumps(result, indent=4, sort_keys=True))
     else:
-        print("#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n")
+        print("#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON")
         for log_entry in result:
             print("\t".join(log_entry))
 
@@ -199,6 +201,8 @@ def task_log(run_id: int, fmt: str) -> None:
         )
         for task_name in tasks:
             for log_entry in tasks[task_name]:
+                log_entry[1] = str(log_entry[1])
+                log_entry[2] = str(log_entry[2])
                 print("\t".join(log_entry))
 
 
