@@ -257,7 +257,6 @@ def update_job_status(params):
     logger.debug(f"Cromwell run:job {cromwell_run_id}:{cromwell_job_id} now {status_to}")
 
     # CREATE NEW job_log ENTRY
-    session = Session()
     try:
         job_log = Job_Log(
             cromwell_run_id=cromwell_run_id,
@@ -271,6 +270,7 @@ def update_job_status(params):
         logger.exception(f"Failed to create job_log object for {params}: {error}")
         return _failure(500, f"Failed to create job_log object for {params}: {error}")
     try:
+        logger.debug(f"Job update: {cromwell_run_id}:{cromwell_job_id} now {status_to}")
         session = Session()
         session.add(job_log)
         session.commit()
