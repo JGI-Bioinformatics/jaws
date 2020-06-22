@@ -19,7 +19,7 @@ port = 3306
 user = jgi
 password = $JAWS_SITE_PNNL_DB_PW
 db = site
-[RPC_SERVER]
+[SITE_RPC_SERVER]
 user = jaws_pnnl
 password = $JAWS_SITE_CORI_RMQ_PW
 host = rmq.lbl.gov

@@ -19,12 +19,19 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
     defaults = {
         "SITE_RPC_SERVER": {
             "host": "localhost",
-            "vhost": "/",
+            "port": "5672",
+            "vhost": "site",
             "user": "guest",  # default from docker container
             "password": "guest",  # default from docker container
-            "queue": "test",
             "num_threads": 5,
             "max_retries": 5},
+        "CENTRAL_RPC_CLIENT": {
+            "host": "localhost",
+            "port": "5672",
+            "vhost": "jaws_central",
+            "user": "",
+            "password": "",
+        },
         "GLOBUS": {"client_id": "", "endpoint_id": "jaws-testing", "root_dir": "/"},
         "DB": {
             "host": "localhost",

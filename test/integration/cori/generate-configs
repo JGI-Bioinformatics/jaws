@@ -21,7 +21,7 @@ port = 3306
 user = jaws_nersc_dev
 password = $JAWS_SITE_CORI_DB_PW
 db = jaws_nersc_dev
-[RPC_SERVER]
+[SITE_RPC_SERVER]
 user = jaws_nersc
 password = $JAWS_SITE_CORI_RMQ_PW
 host = rmq.lbl.gov

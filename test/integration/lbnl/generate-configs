@@ -19,7 +19,7 @@ port = 3306
 user = jaws_lbnl
 password = $JAWS_SITE_LBNL_DB_PW
 db = jaws_lbnl_dev
-[RPC_SERVER]
+[SITE_RPC_SERVER]
 user = jaws_lbnl
 password = $JAWS_SITE_LBNL_RMQ_PW
 host = rmq.lbl.gov
