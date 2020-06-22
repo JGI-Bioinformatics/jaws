@@ -56,7 +56,7 @@ class Workflow(db.Model):
     updated = db.Column(
         db.DateTime,
         nullable=False,
-        default=same_as("date_created"),
+        default=same_as("created"),
         onupdate=datetime.datetime.utcnow,
     )
     is_released = db.Column(db.Boolean, default=False, nullable=False)
@@ -87,7 +87,7 @@ class Run(db.Model):
     submitted = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = db.Column(
         db.DateTime,
-        default=same_as("date_submitted"),
+        default=same_as("submitted"),
         onupdate=datetime.datetime.utcnow,
     )
     input_site_id = db.Column(db.String(8), nullable=False)
