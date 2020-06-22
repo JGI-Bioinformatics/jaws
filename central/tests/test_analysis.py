@@ -77,28 +77,24 @@ class MockGlobusTransferClient:
 
 
 class MockUser:
-
     @property
     def transfer_refresh_token(self):
         return "abcdefghijklmnopqrstuvwxyz"
 
 
 class MockQuery:
-
     @staticmethod
     def get(user):
         return MockUser()
 
 
 class MockSession:
-
     @staticmethod
     def query(user):
         return MockQuery()
 
 
 class MockDb:
-
     @property
     def session(self):
         return MockSession()
@@ -111,7 +107,7 @@ class MockResponse:
 
 class MockGetInactiveUploadRun:
     def __init__(self, *args, **kwargs):
-        self.cromwell_id = "90b333ed-8095-474e-9ced-df86f3c99241"
+        self.cromwell_run_id = "90b333ed-8095-474e-9ced-df86f3c99241"
         self.download_task_id = "5445cffc-963a-11ea-8ec9-02c81b96a709"
         self.id = 123
         self.input_endpoint = "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
@@ -134,7 +130,9 @@ def mock_database(monkeypatch):
 @pytest.fixture()
 def mock_globus(monkeypatch):
     monkeypatch.setattr(globus_sdk, "NativeAppAuthClient", MockNativeAppAuthClient)
-    monkeypatch.setattr(globus_sdk, "RefreshTokenAuthorizer", MockRefreshTokenAuthorizer)
+    monkeypatch.setattr(
+        globus_sdk, "RefreshTokenAuthorizer", MockRefreshTokenAuthorizer
+    )
     monkeypatch.setattr(globus_sdk, "TransferClient", MockGlobusTransferClient)
 
 
@@ -152,12 +150,59 @@ def test_cancel_transfer(configuration, mock_database, mock_globus):
 
 def test_run_status_inactive_upload(monkeypatch):
     """ Tests returning run status with comments for a failed download status """
+
     def get_failed_run(user_id, run_id):
         return MockGetInactiveUploadRun()
 
-    monkeypatch.setattr(jaws_central.analysis, '_get_run', get_failed_run)
+    monkeypatch.setattr(jaws_central.analysis, "_get_run", get_failed_run)
 
     comments = r"Globus transfer stalled; try reactivating the endpoint. Please go to https://app.globus.org/file-manager, on the left side of the page, select ENDPOINTS, click the > icon to the right of the NERSC DTN endpoint, then click Activate."  # noqa"
 
-    out_json, status = jaws_central.analysis.run_status('user', 123)
-    assert out_json['status_detail'] == comments
+    out_json, status = jaws_central.analysis.run_status("user", 123)
+    assert out_json["status_detail"] == comments
+
+
+def test_output(monkeypatch):
+    """Test output RPC call"""
+
+    def mock_get_run(user_id, run_id):
+        return {}
+
+    def mock_abort_if_pre_cromwell(run):
+        return
+
+    def mock_rpc_call(user_id, run_id, method, params):
+        assert isinstance(user_id, str)
+        assert isinstance(run_id, int)
+        assert method == "output"
+        assert params["failed_only"] is False
+
+    monkeypatch.setattr(jaws_central.analysis, "_get_run", mock_get_run)
+    monkeypatch.setattr(
+        jaws_central.analysis, "_abort_if_pre_cromwell", mock_abort_if_pre_cromwell
+    )
+    monkeypatch.setattr(jaws_central.analysis, "_rpc_call", mock_rpc_call)
+    jaws_central.analysis.output("user", 123)
+
+
+def test_failed_output(monkeypatch):
+    """Test output RPC call"""
+
+    def mock_get_run(user_id, run_id):
+        return {}
+
+    def mock_abort_if_pre_cromwell(run):
+        return
+
+    def mock_rpc_call(user_id, run_id, method, params):
+        assert isinstance(user_id, str)
+        assert isinstance(run_id, int)
+        assert method == "output"
+        assert params["failed_only"] is True
+
+    monkeypatch.setattr(jaws_central.analysis, "_get_run", mock_get_run)
+    monkeypatch.setattr(
+        jaws_central.analysis, "_abort_if_pre_cromwell", mock_abort_if_pre_cromwell
+    )
+    monkeypatch.setattr(jaws_central.analysis, "_rpc_call", mock_rpc_call)
+    jaws_central.analysis.failed_output("user", 123)

@@ -80,7 +80,7 @@ class Run(db.Model):
     __tablename__ = "runs"
     id = db.Column(db.Integer, primary_key=True)
     submission_id = db.Column(db.String(36), nullable=False)
-    cromwell_id = db.Column(db.String(36), nullable=True)
+    cromwell_run_id = db.Column(db.String(36), nullable=True)
     status = db.Column(db.String(16), nullable=False)
     user_id = db.Column(db.String(16), db.ForeignKey("users.id"), nullable=False)
     site_id = db.Column(db.String(8), nullable=False)
@@ -128,7 +128,6 @@ class Job_Log(db.Model):
     __tablename__ = "job_logs"
     id = db.Column(db.Integer, primary_key=True)
     run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), nullable=False)
-    cromwell_run_id = db.Column(db.String(36), nullable=False)
     cromwell_job_id = db.Column(db.Integer, nullable=False)
     task_name = db.Column(db.String(128), nullable=False)
     attempt = db.Column(db.Integer, nullable=False)

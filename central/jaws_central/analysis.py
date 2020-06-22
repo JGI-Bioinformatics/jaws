@@ -68,7 +68,7 @@ def _rpc_call(user, run_id, method, params={}):
     site_rpc_call = rpc_index.index.get_client(run.site_id)
     params["user"] = user
     params["run_id"] = run_id
-    params["cromwell_id"] = run.cromwell_id
+    params["cromwell_run_id"] = run.cromwell_run_id
     logger.info(f"User {user} RPC {method} params {params}")
     result = site_rpc_call.request(method, params)
     if "error" in result:
@@ -101,7 +101,7 @@ def user_queue(user):
             {
                 "id": run.id,
                 "submission_id": run.submission_id,
-                "cromwell_id": run.cromwell_id,
+                "cromwell_run_id": run.cromwell_run_id,
                 "status": run.status,
                 "status_detail": jaws_constants.run_states.get(run.status, ""),
                 "site_id": run.site_id,
@@ -146,7 +146,7 @@ def user_history(user, delta_days=10):
             {
                 "id": run.id,
                 "submission_id": run.submission_id,
-                "cromwell_id": run.cromwell_id,
+                "cromwell_run_id": run.cromwell_run_id,
                 "status": run.status,
                 "status_detail": jaws_constants.run_states.get(run.status, ""),
                 "site_id": run.site_id,
@@ -431,7 +431,7 @@ def run_status(user, run_id):
     result = {
         "id": run.id,
         "submission_id": run.submission_id,
-        "cromwell_id": run.cromwell_id,
+        "cromwell_run_id": run.cromwell_run_id,
         "status": run.status,
         "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
         "site_id": run.site_id,
@@ -612,7 +612,7 @@ def output(user, run_id):
     return _rpc_call(user, run_id, "output", {"failed_only": False})
 
 
-def failed(user, run_id):
+def failed_output(user, run_id):
     """
     Retrieve the logs for failed tasks.
 
@@ -657,7 +657,7 @@ def cancel_run(user, run_id):
         "ready",
     ]:
         _cancel_run(run)
-        __site_cancel_run(user, run_id)
+        _site_cancel_run(user, run_id)
     elif status == "cancelled":
         abort(400, "That Run had already been cancelled")
     elif status == "failed":
@@ -689,7 +689,7 @@ def _cancel_run(run, reason="Cancelled by user"):
     db.session.commit()
 
 
-def __site_cancel_run(user, run):
+def _site_cancel_run(user, run):
     """Send cancel instruction to Site."""
     _rpc_call(user, run.id, "cancel")
 

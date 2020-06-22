@@ -25,7 +25,7 @@ logger = logging.getLogger(__package__)
 # HELPER FUNCTIONS FOR FORMATTING JSON-RPC2 RESPONSES:
 
 
-def _success(result):
+def _success(result={}):
     """Return a JSON-RPC2 successful result message.
 
     :param result: The result returned by a successful RPC call.
@@ -66,7 +66,7 @@ def server_status(params):
     try:
         status = cromwell.status()
     except requests.exceptions.HTTPError as error:
-        logger.error(f"Failed to get server status: {error}")
+        logger.exception(f"Failed to get server status: {error}")
         return _failure(error.response.status_code)
     return _success(status)
 
@@ -74,16 +74,16 @@ def server_status(params):
 def run_metadata(params):
     """Retrieve the metadata of a run.
 
-    :param cromwell_id: Cromwell run ID
+    :param cromwell_run_id: Cromwell run ID
     :type params: dict
     :return: The Cromwell metadata for the specified run.
     :rtype: dict
     """
     user_id = params["user_id"]
     run_id = params["run_id"]
-    cromwell_id = params["cromwell_run_id"]
+    cromwell_run_id = params["cromwell_run_id"]
     logger.info(f"User {user_id}: Get metadata for Run {run_id}")
-    if cromwell_id is None:
+    if cromwell_run_id is None:
         return _success(
             f"Run {run_id} hasn't been submitted to Cromwell, so has no metadata."
         )
@@ -91,7 +91,7 @@ def run_metadata(params):
     try:
         metadata = cromwell.get_metadata(params["cromwell_run_id"])
     except requests.exceptions.HTTPError as error:
-        logger.error(f"Get metadata for {params['run_id']} failued: {error}")
+        logger.exception(f"Get metadata for {params['run_id']} failued: {error}")
         return _failure(error.response.status_code)
     except Exception as error:
         logger.exception(f"Get metadata for {params['run_id']} failued: {error}")
@@ -99,23 +99,23 @@ def run_metadata(params):
     return _success(metadata.data)
 
 
-def cancel_run(params):
+def cancel(params):
     """Cancel a run.
 
-    :param cromwell_id: The Cromwell run ID
-    :type cromwell_id: str
+    :param cromwell_run_id: The Cromwell run ID
+    :type cromwell_run_id: str
     :return: Either a JSON-RPC2-compliant success or failure message,
     if the run could be cancelled or not.
     :rtype: dict
     """
     user_id = params["user_id"]
     run_id = params["run_id"]
-    cromwell_id = params["cromwell_run_id"]
+    cromwell_run_id = params["cromwell_run_id"]
     logger.info(f"User {user_id}: Cancel run {run_id}")
     try:
-        cromwell.abort(cromwell_id)
+        cromwell.abort(cromwell_run_id)
     except requests.exceptions.HTTPError as error:
-        logger.exception(f"Error aborting cromwell {cromwell_id}: {error}")
+        logger.exception(f"Error aborting cromwell {cromwell_run_id}: {error}")
 
     # delete run from database because Site only keeps active Run records in db
     try:
@@ -136,24 +136,20 @@ def output(params):
     user_id = params["user_id"]
     run_id = params["run_id"]
     logger.info(f"User {user_id}: Get output of Run {run_id}")
-    cromwell_id = params["cromwell_run_id"]
-    if cromwell_id is None:
-        return _success(
-            f"Run {run_id} hasn't been submitted to Cromwell, so has no output yet."
-        )
     failed_only = False
     if "failed" in params and params["failed"].upper() == "TRUE":
         failed_only = True
-    if failed_only:
-        logger.info(f"{user_id} - Run {run_id} - Get outfiles, failed tasks")
+        logger.info(f"User {user_id}: Get output of failed tasks for Run {run_id}")
     else:
-        logger.info(f"{user_id} - Run {run_id} - Get outfiles, all tasks")
+        logger.info(f"User {user_id}: Get output of all tasks for Run {run_id}")
     try:
         metadata = cromwell.get_metadata(params["cromwell_run_id"])
     except requests.exceptions.HTTPError as error:
-        logger.error(f"Failed to get output for Run {run_id}: {error}")
+        logger.exception(f"Failed to get output for Run {run_id}: {error}")
         return _failure(error.response.status_code)
     workflowRoot = metadata.get("workflowRoot")
+    if not workflowRoot:
+        return _failure(404, "The run has no output yet")
     logger.debug(f"Find outfiles under {workflowRoot}")
     out_json = _find_outfiles(workflowRoot, failed_only)
     return _success(out_json)
@@ -179,11 +175,11 @@ def _find_outfiles(run_dir, failed_only=False):
 
     # for each task, parse target files for msgs, store in out_json.
     for taskname in files:
-        if failed_only and not rcs[taskname]["rc"]:
+        if failed_only and "rc" in rcs[taskname] and rcs[taskname]["rc"] == 0:
             continue
         for file_type in files[taskname]:
             filename = files[taskname][file_type]
-            lines, is_truncated = __tail(filename, MAX_LINES_PER_OUTFILE)
+            lines, is_truncated = _tail(filename, MAX_LINES_PER_OUTFILE)
             output = ""
             if is_truncated:
                 output += "NOTE: showing only last {MAX_LINES_PER_OUTFILE} lines\n"
@@ -195,7 +191,7 @@ def _find_outfiles(run_dir, failed_only=False):
     return dict(out_json)
 
 
-def __tail(filename, max_lines=1000):
+def _tail(filename, max_lines=1000):
     """Return the last `max_lines` lines of a file.
 
     :param filename: path to file
@@ -303,9 +299,9 @@ operations = {
             "output_dir",
         ],
     },
-    "run_metadata": {"function": run_metadata, "required_params": ["cromwell_id"]},
-    "cancel_run": {"function": cancel_run, "required_params": ["cromwell_id"]},
-    "output": {"function": output, "required_params": ["cromwell_id"]},
+    "run_metadata": {"function": run_metadata, "required_params": ["user_id", "cromwell_run_id"]},
+    "cancel": {"function": cancel, "required_params": ["user_id", "cromwell_run_id"]},
+    "output": {"function": output, "required_params": ["user_id", "cromwell_run_id"]},
     "update_job_status": {"function": update_job_status, "required_params": [
         "cromwell_run_id", "cromwell_job_id", "status_from", "status_to", "timestamp"]}
 }
