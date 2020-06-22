@@ -63,7 +63,7 @@ class Workflow(Base):
     updated = Column(
         DateTime,
         nullable=False,
-        default=same_as("date_created"),
+        default=same_as("created"),
         onupdate=datetime.datetime.utcnow,
     )
     is_released = Column(Boolean, default=False, nullable=False)
@@ -93,7 +93,7 @@ class Run(Base):
     site_id = Column(String(8), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = Column(
-        DateTime, default=same_as("date_submitted"), onupdate=datetime.datetime.utcnow,
+        DateTime, default=same_as("submitted"), onupdate=datetime.datetime.utcnow,
     )
     input_site_id = Column(String(8), nullable=False)
     input_endpoint = Column(String(36), nullable=False)

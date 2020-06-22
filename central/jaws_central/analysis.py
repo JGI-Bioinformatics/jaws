@@ -19,7 +19,7 @@ logger = logging.getLogger(__package__)
 run_active_states = [
     "created",
     "uploading",
-    "upload inactivte",
+    "upload inactive",
     "upload complete",
     "submitted",
     "queued",
@@ -65,8 +65,8 @@ def _rpc_call(user, run_id, method, params={}):
         abort(404, "Run not found; please check your run_id")
     if run.user_id != user:
         abort(401, "Access denied; you cannot access to another user's workflow")
-    site_rpc_call = rpc_index.index.get_client(run.site_id)
-    params["user"] = user
+    site_rpc_call = rpc_index.rpc_index.get_client(run.site_id)
+    params["user_id"] = user
     params["run_id"] = run_id
     params["cromwell_run_id"] = run.cromwell_run_id
     logger.info(f"User {user} RPC {method} params {params}")
@@ -103,7 +103,7 @@ def user_queue(user):
                 "submission_id": run.submission_id,
                 "cromwell_run_id": run.cromwell_run_id,
                 "status": run.status,
-                "status_detail": jaws_constants.run_states.get(run.status, ""),
+                "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
                 "site_id": run.site_id,
                 "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
                 "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
@@ -148,7 +148,7 @@ def user_history(user, delta_days=10):
                 "submission_id": run.submission_id,
                 "cromwell_run_id": run.cromwell_run_id,
                 "status": run.status,
-                "status_detail": jaws_constants.run_states.get(run.status, ""),
+                "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
                 "site_id": run.site_id,
                 "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
                 "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
@@ -245,7 +245,7 @@ def submit_run(user):
         logger.error(e)
         abort(500, f"Db error; {e}")
     transfer_rt = current_user.transfer_refresh_token
-    client_id = config.conf.get("JAWS_CENTRAL", "globus_client_id")
+    client_id = config.conf.get("GLOBUS", "client_id")
     try:
         client = globus_sdk.NativeAppAuthClient(client_id)
         authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
@@ -477,9 +477,7 @@ def task_status(user, run_id):
     tasks = collections.OrderedDict()
     for log in query:
         task_name = log.task_name
-        reason = log.reason
-        if reason is None:
-            reason = ""
+        reason = log.reason if log.reason else ""
         tasks[task_name] = [
             log.task_name,
             log.attempt,
@@ -487,7 +485,7 @@ def task_status(user, run_id):
             log.status_from,
             log.status_to,
             log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason,
+            reason
         ]
         tasks.move_to_end(task_name)
     return list(tasks.values()), 200
@@ -516,11 +514,12 @@ def run_log(user: str, run_id: int):
         abort(500, f"Db error; {error}")
     table = []
     for log in query:
+        reason = log.reason if log.reason else ""
         row = [
             log.status_from,
             log.status_to,
             log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            log.reason,
+            reason
         ]
         table.append(row)
     return table, 200
@@ -549,6 +548,7 @@ def task_log(user, run_id):
         abort(500, f"Db error; {error}")
     table = []
     for log in query:
+        reason = log.reason if log.reason else ""
         row = [
             log.task_name,
             log.attempt,
@@ -556,7 +556,7 @@ def task_log(user, run_id):
             log.status_from,
             log.status_to,
             log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            log.reason,
+            reason
         ]
         table.append(row)
     return table, 200
@@ -657,7 +657,7 @@ def cancel_run(user, run_id):
         "ready",
     ]:
         _cancel_run(run)
-        _site_cancel_run(user, run_id)
+        _rpc_call(user, run_id, "cancel_run")
     elif status == "cancelled":
         abort(400, "That Run had already been cancelled")
     elif status == "failed":
@@ -667,8 +667,6 @@ def cancel_run(user, run_id):
         _cancel_transfer(user, run.download_task_id, run_id)
     elif status == "finished":
         abort(400, "That Run had already finished")
-    elif status == "finished":
-        abort(400, f"Run {run_id} already finished")
     result = {"cancel": "OK"}
     return result, 201
 
@@ -677,7 +675,10 @@ def _cancel_run(run, reason="Cancelled by user"):
     """Update database record."""
     status_from = run.status
     run.status = "cancelled"
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as error:
+        logger.exception(f"Error while updating run to 'cancelled': {error}")
     log = Run_Log(
         run_id=run.id,
         status_from=status_from,
@@ -685,13 +686,11 @@ def _cancel_run(run, reason="Cancelled by user"):
         timestamp=run.updated,
         reason=reason,
     )
-    db.session.add(log)
-    db.session.commit()
-
-
-def _site_cancel_run(user, run):
-    """Send cancel instruction to Site."""
-    _rpc_call(user, run.id, "cancel")
+    try:
+        db.session.add(log)
+        db.session.commit()
+    except Exception as error:
+        logger.error(f"Error while adding run log entry to cancel run {run.id}: {error}")
 
 
 def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
