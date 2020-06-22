@@ -12,12 +12,17 @@ def config_file(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
     content = """[SITE_RPC_SERVER]
 host = currenthost
-vhost = current_vhost
+vhost = site_vhost
 user = daffy_duck
 password = succotash
-queue = rabbit_season
 num_threads = 5
 max_retries = 3
+
+[CENTRAL_RPC_CLIENT]
+host = currenthost
+vhost = central_vhost
+user = daffy_duck
+password = succotash
 
 [GLOBUS]
 client_id = foghorn_leghorn

@@ -17,12 +17,18 @@ def test_overwrite_all_default_values(config_file):
 
     expected_rpc_server_sections = [
         ("host", "currenthost"),
-        ("vhost", "current_vhost"),
+        ("vhost", "site_vhost"),
         ("user", "daffy_duck"),
         ("password", "succotash"),
-        ("queue", "rabbit_season"),
         ("num_threads", "5"),
         ("max_retries", "3"),
+    ]
+
+    expected_rpc_client_sections = [
+        ("host", "currenthost"),
+        ("vhost", "central_vhost"),
+        ("user", "daffy_duck"),
+        ("password", "succotash"),
     ]
 
     expected_globus_sections = [
@@ -50,6 +56,7 @@ def test_overwrite_all_default_values(config_file):
         ("url", "http://localhost:8000")]
 
     check_section("SITE_RPC_SERVER", expected_rpc_server_sections, cfg)
+    check_section("CENTRAL_RPC_CLIENT", expected_rpc_client_sections, cfg)
     check_section("GLOBUS", expected_globus_sections, cfg)
     check_section("DB", expected_db_sections, cfg)
     check_section("SITE", expected_site_sections, cfg)
@@ -66,5 +73,5 @@ def test_config_overwrite_partial_values(partial_config):
     cfg = jaws_site.config.Configuration(config_path)
 
     check_section("SITE_RPC_SERVER", [("host", "https://rmq.nersc.gov")], cfg)
-    check_section("SITE_RPC_SERVER", [("vhost", "/")], cfg)
+    check_section("SITE_RPC_SERVER", [("vhost", "site")], cfg)
     check_section("SITE_RPC_SERVER", [("max_retries", "10")], cfg)
