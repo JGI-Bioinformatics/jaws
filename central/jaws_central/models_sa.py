@@ -133,9 +133,9 @@ class Job_Log(Base):
     __tablename__ = "job_logs"
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
-    cromwell_job_id = Column(Integer, nullable=False)
     task_name = Column(String(128), nullable=False)
     attempt = Column(Integer, nullable=False)
+    cromwell_job_id = Column(Integer, nullable=False)
     status_from = Column(String(32), nullable=False)
     status_to = Column(String(32), nullable=False)
     timestamp = Column(DateTime, nullable=False)

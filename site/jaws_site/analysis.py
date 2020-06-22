@@ -250,10 +250,6 @@ def update_job_status(params):
     cromwell_job_id = params["cromwell_job_id"]  # JTM's task_id
     status_from = params["status_from"]
     status_to = params["status_to"]
-    if status_from is None:
-        status_from = "None"
-    if status_to is None:
-        status_to = "None"
     timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
     reason = None
     if "reason" in params:
@@ -275,11 +271,13 @@ def update_job_status(params):
         logger.exception(f"Failed to create job_log object for {params}: {error}")
         return _failure(500, f"Failed to create job_log object for {params}: {error}")
     try:
+        session = Session()
         session.add(job_log)
+        session.commit()
+        session.cose()
     except Exception as error:
         logger.exception(f"Failed to insert job_log: {job_log}: {error}")
         return _failure(500, f"Failed to insert job_log: {job_log}: {error}")
-    session.commit()
     return _success()
 
 

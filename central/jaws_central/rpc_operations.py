@@ -16,7 +16,7 @@ logger = logging.getLogger(__package__)
 # these are used by RPC operations to format JSON-RPC2 responses
 
 
-def _success(result=None):
+def _success(result={}):
     """Return a JSON-RPC2 successful result message.
 
     :param result: The result returned by a successful RPC call.
@@ -90,31 +90,29 @@ def update_run_logs(params):
     :return: valid JSON-RPC2 response
     :rtype: dict
     """
-    logger.debug("Update run logs")
     logs = params["logs"]
-    new_logs = []
+    site_id = params["site_id"]
+    num_logs = len(logs)
+    logger.debug(f"Site {site_id} sent {num_logs} run logs")
+    session = Session()
     for log_entry in logs:
-        reason = log_entry.get("reason", None)
-        timestamp = datetime.strptime(log_entry["timestamp"], "%Y-%m-%d %H:%M:%S")
         try:
             log = Run_Log(
-                run_id=int(log_entry["run_id"]),
-                status_from=log_entry["status_from"],
-                status_to=log_entry["status_to"],
-                timestamp=timestamp,
-                reason=reason
+                run_id=int(log_entry[0]),
+                status_from=log_entry[1],
+                status_to=log_entry[2],
+                timestamp=datetime.strptime(log_entry[3], "%Y-%m-%d %H:%M:%S"),
+                reason=log_entry[4],
             )
+            session.add(log)
         except Exception as error:
-            logger.exception(f"Invalid run log entry, {params}: {error}")
-            continue
-        new_logs.append(log)
-    session = Session()
+            logger.exception(f"Invalid run log, {log_entry}: {error}")
+            return _failure(400, f"Invalid run log, {log_entry}: {error}")
     try:
-        session.add_all(new_logs)
+        session.commit()
     except Exception as error:
         logger.exception(f"Failed to insert run log entries into db: {error}")
         return _failure(500, f"Db insert failed: {error}")
-    session.commit()
     return _success()
 
 
@@ -128,34 +126,32 @@ def update_job_logs(params):
     :return: valid JSON-RPC2 response
     :rtype: dict
     """
-    logger.debug("Update job logs")
     logs = params["logs"]
-    new_logs = []
+    site_id = params["site_id"]
+    num_logs = len(logs)
+    logger.debug(f"Site {site_id} send {num_logs} job logs")
+    session = Session()
     for log_entry in logs:
-        reason = log_entry.get("reason", None)
-        timestamp = datetime.strptime(log_entry["timestamp"], "%Y-%m-%d %H:%M:%S")
         try:
             log = Job_Log(
-                run_id=int(log_entry["run_id"]),
-                task_name=log_entry["task_name"],
-                attempt=int(log_entry["attempt"]),
-                cromwell_job_id=int(log_entry["cromwell_job_id"]),
-                status_from=log_entry["status_from"],
-                status_to=log_entry["status_to"],
-                timestamp=timestamp,
-                reason=reason
+                run_id=int(log_entry[0]),
+                task_name=log_entry[1],
+                attempt=int(log_entry[2]),
+                cromwell_job_id=int(log_entry[3]),
+                status_from=log_entry[4],
+                status_to=log_entry[5],
+                timestamp=datetime.strptime(log_entry[6], "%Y-%m-%d %H:%M:%S"),
+                reason=log_entry[6],
             )
+            session.add(log)
         except Exception as error:
-            logger.exception(f"Invalid job log entry, {params}: {error}")
-            continue
-        new_logs.append(log)
-    session = Session()
+            logger.exception(f"Invalid job log, {log_entry}: {error}")
+            return _failure(f"Invalid job log, {log_entry}: {error}")
     try:
-        session.add_all(new_logs)
+        session.commit()
     except Exception as error:
         logger.exception(f"Failed to insert job log entries into db: {error}")
         return _failure(500, f"Db insert failed: {error}")
-    session.commit()
     return _success()
 
 
@@ -163,14 +159,14 @@ def update_job_logs(params):
 operations = {
     "update_run_status": {
         "function": update_run_status,
-        "required_parameters": ["run_id", "status", "timestamp"]
+        "required_parameters": ["run_id", "status", "timestamp"],
     },
     "update_run_logs": {
         "function": update_run_logs,
-        "required_parameters": ["logs"],
+        "required_parameters": ["logs", "site_id"],
     },
     "update_job_logs": {
         "function": update_job_logs,
-        "required_parameters": ["logs"],
+        "required_parameters": ["logs", "site_id"],
     },
 }

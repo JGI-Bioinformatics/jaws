@@ -57,6 +57,8 @@ class Daemon:
             "ready": self.transfer_results,
             "downloading": self.check_if_download_complete,
         }
+        self.terminal_states = ["cancelled", "finished"]
+        self.session = None
         self.rpc_client = None
 
     def init_rpc_client(self):
@@ -73,19 +75,10 @@ class Daemon:
         """
         Run scheduled task(s) periodically.
         """
-        schedule.every(10).seconds.do(self.check_runs)
-        schedule.every(10).seconds.do(self.process_logs)
+        schedule.every(10).seconds.do(self.main_loop)
         while True:
             schedule.run_pending()
             time.sleep(5)
-
-    def _query_by_site(self):
-        return (
-            self.session.query(Run)
-            .filter_by(site_id=self.site_id)
-            .filter(Run.status.in_(self.operations.keys()))
-            .all()
-        )
 
     def _authorize_transfer_client(self, token):
         client_id = config.conf.get("GLOBUS", "client_id")
@@ -93,26 +86,36 @@ class Daemon:
         authorizer = globus_sdk.RefreshTokenAuthorizer(token, client)
         return globus_sdk.TransferClient(authorizer=authorizer)
 
-    def check_runs(self):
+    def main_loop(self):
         """
         Check for runs in particular states.
         """
+        if self.rpc_client is None:
+            self._init_rpc_client()
         self.session = Session()
         try:
-            query = self._query_by_site()
-        except Exception:
-            logger.warning(
-                "Failed to query db for runs in watched states", exc_info=True
+            query = (
+                self.session.query(Run)
+                .filter(Run.status.in_(self.operations.keys()))
+                .all()
             )
+        except Exception as error:
+            logger.warning(f"Failed to select runs from db: {error}", exc_info=True)
             return  # sqlalchemy should reconnect
         num_runs = len(query)
         if num_runs:
-            logger.info(f"Checking on {num_runs} active runs")
+            logger.info(f"There are {num_runs} active runs")
         for run in query:
+            logger.debug(f"Run {run.id}: {run.status}")
             proc = self.operations.get(run.status, None)
             if proc:
                 proc(run)
-        self.session.close_all()
+
+        # process logs
+        self.send_run_status_logs()
+        self.update_job_status_logs()
+        self.send_job_status_logs()
+        self.session.close()
 
     def _get_globus_transfer_status(self, run, task_id):
         """
@@ -186,19 +189,25 @@ class Daemon:
         logger.debug(f"Run {run.id}: Check Cromwell status")
         try:
             cromwell_status = self.cromwell.get_status(run.cromwell_run_id)
-        except Exception:
+        except Exception as error:
+            logger.error(f"Unable to check Cromwell status of Run {run.id}: {error}")
             return  # try again next time
+        logger.debug(f"Run {run.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
             if run.status == "submitted":
-                self.update_run_status(run, "running")
+                self.update_run_status(run, "queued")
         elif cromwell_status == "Failed":
+            if run.status == "queued":
+                self.update_run_status(run, "running")
             if run.status == "running":
                 self.update_run_status(run, "failed")
         elif cromwell_status == "Succeeded":
+            if run.status == "queued":
+                self.update_run_status(run, "running")
             if run.status == "running":
                 self.update_run_status(run, "succeeded")
         elif cromwell_status == "Aborted":
-            if run.status == "running":
+            if run.status == "queued" or run.status == "running":
                 self.update_run_status(run, "cancelled")
 
     def prepare_run_output(self, run, metadata=None):
@@ -276,7 +285,9 @@ class Daemon:
         try:
             globus_status = self._get_globus_transfer_status(run, run.download_task_id)
         except Exception as error:
-            logger.exception(f"Failed to check download {run.download_task_id}: {error}")
+            logger.exception(
+                f"Failed to check download {run.download_task_id}: {error}"
+            )
             return
         if globus_status == "SUCCEEDED":
             self.update_run_status(run, "finished")
@@ -292,9 +303,12 @@ class Daemon:
         timestamp = datetime.utcnow()
 
         # update current status in "runs" table
-        run.status = new_status
-        run.updated = timestamp
-        self.session.commit()
+        try:
+            run.status = new_status
+            run.updated = timestamp
+            self.session.commit()
+        except Exception as error:
+            logger.exception(f"Unable to update Run {run.id}: {error}")
 
         # record log state transition in "run_logs"
         try:
@@ -316,33 +330,38 @@ class Daemon:
         log_msg = {
             "run_id": run.id,
             "status": new_status,
-            "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         }
+        if new_status == "submitted":
+            log_msg["cromwell_run_id"] = run.cromwell_run_id
+        elif new_status == "downloading":
+            log_msg["download_task_id"] = run.download_task_id
         response = self.rpc_client.request("update_run_status", log_msg)
         if "error" in response:
             logger.info(f"RPC update_run_status failed: {response['error']['message']}")
             # failure to notify Central doesn't block state transition
+        elif "result" in response:
+            logger.debug("Central notified of change of run state")
 
-    def process_logs(self):
-        """Periodically process logs"""
-        self.send_run_status_logs()
-        self.update_job_status_logs()
-        self.send_job_status_logs()
+        # delete finished runs from db
+        if new_status in self.terminal_states:
+            Run.query.filter_by(id=run.id).delete()
+            self.session.commit()
 
     def update_job_status_logs(self):
         """JTM job status logs are missing some fields; fill them in now."""
         logger.debug("Update job status logs")
 
         # select incomplete job log entries from database
-        last_cromwell_run_id = (
-            None  # there are often many job log entries for the same run;
-        )
+        last_cromwell_run_id = None  # cache last
         last_metadata = None  # no need to get from cromwell repeatedly
-        self.session = Session()
-        query = (
-            self.session.query(Job_Log)
-            .filter_by(task_name=None)
-        )
+
+        try:
+            query = self.session.query(Job_Log).filter_by(task_name=None)
+        except Exception as error:
+            logger.exception(f"Unable to select job_logs: {error}")
+            return
+
         for log in query:
             run_id = log.run_id
             cromwell_run_id = log.cromwell_run_id
@@ -355,8 +374,13 @@ class Daemon:
                 .one_or_none()
             )
             if not run:
-                logger.error(f"cromwell workflow run not found: {cromwell_run_id}")
+                # JTM may send first job status update before cromwell_run_id is recorded
+                logger.debug(f"cromwell workflow run not found: {cromwell_run_id}")
                 continue
+
+            # update run state if first job to run
+            if log.status_to == "running" and run.status == "queued":
+                self.update_run_status(run, "running")
 
             # update log entry with run_id
             logger.debug(f"Cromwell run {cromwell_job_id} => JAWS run {run.id}")
@@ -391,59 +415,66 @@ class Daemon:
 
     def send_run_status_logs(self):
         """Batch and send run logs to Central"""
-        if not self.rpc_client:
-            return
-        logger.debug("Checking for new run status logs")
+        logger.debug("Send run log updates to Central")
 
         # get updates from datbase
+        try:
+            query = self.session.query(Run_Log)
+        except Exception as error:
+            logger.exception(f"Unable to select from run_logs: {error}")
+            return
+
         logs = []
-        self.session = Session()
-        query = self.session.query(Run_Log)
         for log in query:
-            timestamp = log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-            log_entry = {
-                "run_id": log.run_id,
-                "status_from": log.status_from,
-                "status_to": log.status_to,
-                "timestamp": timestamp,
-                "reason": log.reason,
-            }
+            log_entry = [
+                log.run_id,
+                log.status_from,
+                log.status_to,
+                log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                log.reason,
+            ]
             logs.append(log_entry)
 
+        num_rows = len(logs)
+        if num_rows == 0:
+            return
+
         # notify Central
-        response = self.rpc_client.request("update_run_logs", logs)
+        logger.debug(f"RPC update_run_logs: {num_rows} items")
+        data = {"logs": logs, "site_id": self.site_id}
+        try:
+            response = self.rpc_client.request("update_run_logs", data)
+        except Exception as error:
+            logger.exception(f"RPC update_run_logs error: {error}")
+            return
         if "error" in response:
             logger.info(f"RPC update_run_status failed: {response['error']['message']}")
-            self.session.rollback()
-        else:
+            return
+        try:
             query.delete(synchronize_session=False)
             self.session.commit()
+        except Exception as error:
+            logger.exception(f"Error deleting rows from run_logs: {error}")
 
     def send_job_status_logs(self):
         """Batch and send job logs to Central"""
-        if not self.rpc_client:
-            return
         logger.info("Checking for new job status log entries")
 
         # get updates from datbase
+        try:
+            query = self.session.query(Job_Log).filter(Job_Log.run_id.isnot(None))
+        except Exception as error:
+            logger.error(f"Unable to select job_logs: {error}")
+            return
+
+        # prepare message
         logs = []
-        self.session = Session()
-        query = self.session.query(Job_Log)
         for log in query:
             run_id = log.run_id
             cromwell_run_id = log.cromwell_run_id
             cromwell_job_id = log.cromwell_job_id
-            timestamp = log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-            item = {
-                "run_id": log.run_id,
-                "cromwell_job_id": log.cromwell_job_id,
-                "status_from": log.status_from,
-                "status_to": log.status_to,
-                "timestamp": timestamp,
-                "reason": log.reason,
-            }
 
-            # TRY TO GET task_name AND attempt FROM CROMWELL METADATA
+            # get task_name and attempt from cromwell metadata
             logger.debug(f"Run {run_id}: Get job info for job {cromwell_job_id}")
             try:
                 metadata = self.cromwell.get_metadata(cromwell_run_id)
@@ -452,22 +483,43 @@ class Daemon:
                 continue
             job_info = metadata.get_job_info(cromwell_job_id)
             if job_info is None:
-                logger.error(f"job_id {cromwell_job_id} not found in {cromwell_run_id}: {job_info}")
+                logger.error(
+                    f"job_id {cromwell_job_id} not found in {cromwell_run_id}: {job_info}"
+                )
                 continue
-            item["attempt"] = job_info["attempt"]
-            item["task_name"] = job_info["task_name"]
 
             # append new log entry
-            logs.append(item)
+            log_entry = [
+                log.run_id,
+                job_info["task_name"],
+                int(job_info["attempt"]),
+                log.cromwell_job_id,
+                log.status_from,
+                log.status_to,
+                log.cromwell_job_id,
+                log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                log.reason,
+            ]
+            logs.append(log_entry)
+
         num_rows = len(logs)
         if num_rows == 0:
             return
 
         # send message to Central
-        data = {"logs": logs, "site": self.site_id}
         logger.info(f"Sending {num_rows} job status updates to Central")
-        result = self.rpc_client.request("update_job_logs", data)
-        if "result" in result:
-            # delete logs from database
+        data = {"logs": logs, "site": self.site_id}
+        try:
+            response = self.rpc_client.request("update_job_logs", data)
+        except Exception as error:
+            logger.exception(f"RPC update_job_logs error: {error}")
+            return
+        if "error" in response:
+            logger.error(f"RPC update_job_logs failed: {response['error']['message']}")
+            return
+        # delete logs from database
+        try:
             query.delete(synchronize_session=False)
             self.session.commit()
+        except Exception as error:
+            logger.error(f"Failed to delete job logs: {error}")
