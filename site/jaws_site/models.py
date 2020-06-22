@@ -19,7 +19,7 @@ class Run(Base):
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)
     submission_id = Column(String(36), nullable=False)
-    cromwell_id = Column(String(36), nullable=True)
+    cromwell_run_id = Column(String(36), nullable=True)
     status = Column(String(16), nullable=False)
     user_id = Column(String(16), nullable=False)
     site_id = Column(String(8), nullable=False)
@@ -51,7 +51,6 @@ class Job_Log(Base):
     __tablename__ = "job_logs"
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
-    cromwell_run_id = Column(String(36), nullable=False)
     cromwell_job_id = Column(Integer, nullable=True)
     task_name = Column(String(128), nullable=True)
     attempt = Column(Integer, nullable=True)

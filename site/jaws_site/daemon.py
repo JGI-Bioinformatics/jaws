@@ -342,7 +342,6 @@ class Daemon:
         query = (
             self.session.query(Job_Log)
             .filter_by(task_name=None)
-            .order_by(Job_Log.cromwell_id)
         )
         for log in query:
             run_id = log.run_id

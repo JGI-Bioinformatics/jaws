@@ -371,7 +371,7 @@ class MockRun:
         self.user_id = kwargs.get("user_id", "jaws")
         self.upload_task_id = kwargs.get("upload_task_id", "1")
         self.submission_id = kwargs.get("submit_id", "2")
-        self.cromwell_id = kwargs.get("cromwell_id", "myid")
+        self.cromwell_run_id = kwargs.get("cromwell_run_id", "myid")
         self.status = kwargs.get("status", "running")
         self.id = kwargs.get("id", "99")
         self.output_endpoint = kwargs.get("output_endpoint", "EXAMPLE_OUTPUT_ENDPOINT_ID")

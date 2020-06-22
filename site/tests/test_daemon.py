@@ -77,7 +77,7 @@ def test_transfer_results(monkeypatch):
     monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
 
     jawsd = Daemon()
-    run = tests.conftest.MockRun(status="running", cromwell_id="EXAMPLE_CROMWELL_ID")
+    run = tests.conftest.MockRun(status="running", cromwell_run_id="EXAMPLE_CROMWELL_ID")
 
     jawsd.transfer_results(run)
 
