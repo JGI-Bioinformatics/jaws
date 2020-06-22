@@ -61,6 +61,7 @@ class Job_Log(Base):
     reason = Column(String(1024), nullable=True)
 
 
-def create_all(engine):
+def create_all(engine, session):
     """Create all tables if not exist"""
     Base.metadata.create_all(engine)
+    session.commit()
