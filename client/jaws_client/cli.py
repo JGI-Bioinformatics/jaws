@@ -19,11 +19,21 @@ JAWS_USER_CONFIG = os.path.expanduser("~/jaws.conf")
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option("--config", "config_file", default=None, help="Config INI file")
 @click.option("--log", "log_file", default=None, help="Log file")
-def cli(config_file: str, log_file: str):
-    """JGI Analysis Workflows Service."""
+@click.option("--log-level", "log_level", default="INFO", help="Logging level")
+def cli(config_file: str, log_file: str, log_level: str):
+    """JGI Analysis Workflows Service.
+
+    :param config_file: filename of configuration file
+    :type config_file: str
+    :param log_file: filename of log file
+    :type log_file: str
+    :param log_level: logging level
+    :type log_level: str
+    :return:
+    """
     if log_file is None:
         log_file = os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_USER_LOG
-    logger = log.setup_logger(__package__, log_file)
+    logger = log.setup_logger(__package__, log_file, log_level)
     if config_file is None:
         config_file = os.environ[JAWS_CONFIG_ENV] if JAWS_CONFIG_ENV in os.environ else JAWS_USER_CONFIG
     conf = config.Configuration(config_file)

@@ -119,9 +119,8 @@ class Metadata:
         if data:
             self.data = data
         else:
-            logger.debug(f"Getting metadata for {workflow_id} from {workflows_url}")
+            logger.debug(f"Get metadata for {workflow_id}")
             self._get_data()
-        logger.debug(f"Parsing tasks and subworkflows for {workflow_id}")
         self._init_tasks()
 
     def _get_data(self):
@@ -153,7 +152,7 @@ class Metadata:
                 self.tasks.append(task)
                 for job_id in task.jobs:
                     job_info = task.jobs[job_id]
-                    logger.debug(f"Workflow {self.workflow_id}: Add job {job_id} = {job_info}")
+                    logger.debug(f"Workflow {self.workflow_id}: job {job_id} = {job_info}")
                     self.jobs[job_id] = job_info
 
     def get(self, param, default=None):
@@ -165,6 +164,8 @@ class Metadata:
 
     def get_job_info(self, job_id):
         """Get task name and attempt if found, otherwise None."""
+        logger = logging.getLogger(__package__)
+        logger.debug(f"Get info for job {job_id}")
         job_id = int(job_id)
         if job_id in self.jobs:
             return self.jobs[job_id]
@@ -223,6 +224,7 @@ class Cromwell:
         """
         Submit a run to Cromwell.
         """
+        logger = logging.getLogger(__package__)
         files = {}
         try:
             files["workflowInputs"] = (
@@ -231,6 +233,7 @@ class Cromwell:
                 "application/json",
             )
         except Exception as error:
+            logger.exception(f"Unable to open file, {json_file}: {error}")
             raise IOError(f"Unable to open file, {json_file}: {error}")
         try:
             files["workflowSource"] = (
@@ -239,6 +242,7 @@ class Cromwell:
                 "application/json",
             )
         except Exception as error:
+            logger.exception(f"Unable to open file, {wdl_file}: {error}")
             raise IOError(f"Unable to open file, {wdl_file}: {error}")
         if zip_file:
             try:
@@ -252,6 +256,7 @@ class Cromwell:
         try:
             response = requests.post(self.workflows_url, files=files)
         except Exception as error:
+            logger.exception(f"Error submitting new run: {error}")
             raise error
         response.raise_for_status()
         run_id = response.json()["id"]

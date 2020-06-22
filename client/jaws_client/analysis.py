@@ -282,8 +282,9 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     :param site: JAWS Site ID at which to run
     :type site: str
     """
-    current_user = user.User()
     logger = logging.getLogger(__package__)
+
+    current_user = user.User()
 
     # STAGING DIR
     staging_subdir = config.Configuration().get("USER", "staging_dir")

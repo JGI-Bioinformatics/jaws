@@ -1,14 +1,25 @@
 import logging
 
 
-def setup_logger(name: str, log_file="jaws_central.log") -> logging:
+def setup_logger(name: str, log_file=None, log_level="INFO") -> logging:
     """Configure the logging singleton object for the package.
 
     :param log_file: Path to the log file
     :type log_file: str
+    :param log_level: Level at which to output logs
+    :type log_level: str
     :return: logging object which is a singleton
     :rtype: obj
     """
+    valid_log_levels = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+    if log_level not in valid_log_levels:
+        raise ValueError(
+            f"Invalid log level: {log_level}; valid levels are {valid_log_levels}"
+        )
+
+    if log_file is None:
+        log_file = f"{name}.log"
+
     formatter = logging.Formatter(
         fmt="%(asctime)s - %(levelname)s - %(module)s - %(message)s"
     )
@@ -20,7 +31,7 @@ def setup_logger(name: str, log_file="jaws_central.log") -> logging:
     handler_file.setFormatter(formatter)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(log_level)
     logger.addHandler(handler_stderr)
     logger.addHandler(handler_file)
     return logger

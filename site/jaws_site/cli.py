@@ -21,13 +21,23 @@ JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option("--config", "config_file", default=None, help="Config INI file")
 @click.option("--log", "log_file", default=None, help="Log file")
-def cli(config_file: str, log_file: str):
-    """JAWS-Site."""
+@click.option("--log-level", "log_level", default="INFO", help="Logging level")
+def cli(config_file: str, log_file: str, log_level: str):
+    """JAWS-Site.
+
+    :param config_file: filename of configuration file
+    :type config_file: str
+    :param log_file: filename of log file
+    :type log_file: str
+    :param log_level: logging level
+    :type log_level: str
+    :return:
+    """
     # Initialize logging and configuration singletons;
     # as they are singletons, the Click context object is not needed.
     if log_file is None:
         log_file = os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
-    logger = log.setup_logger(__package__, log_file)
+    logger = log.setup_logger(__package__, log_file, log_level)
     if config_file is None:
         config_file = os.environ[JAWS_CONFIG_ENV] if JAWS_CONFIG_ENV in os.environ else JAWS_CWD_CONFIG
     conf = config.Configuration(config_file)

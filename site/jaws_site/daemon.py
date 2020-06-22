@@ -16,7 +16,7 @@ from jaws_site.cromwell import Cromwell
 from jaws_rpc import rpc_client
 
 
-logger = None  # set by Daemon init
+logger = logging.getLogger(__package__)
 
 
 class DataError(Exception):
@@ -33,8 +33,6 @@ class Daemon:
         Init obj
         """
         conf = config.conf
-        global logger
-        logger = logging.getLogger(__package__)
         logger.info("Initializing daemon")
         self.site_id = conf.get("SITE", "id")
         self.staging_dir = os.path.join(
@@ -68,7 +66,7 @@ class Daemon:
                 config.conf.get_section("CENTRAL_RPC_CLIENT")
             )
         except Exception as error:
-            logger.error(f"Unable to init central rpc client: {error}")
+            logger.exception(f"Unable to init central rpc client: {error}")
             raise
 
     def start_daemon(self):
@@ -109,7 +107,7 @@ class Daemon:
             return  # sqlalchemy should reconnect
         num_runs = len(query)
         if num_runs:
-            logger.debug(f"Checking on {num_runs} active runs")
+            logger.info(f"Checking on {num_runs} active runs")
         for run in query:
             proc = self.operations.get(run.status, None)
             if proc:
@@ -134,9 +132,11 @@ class Daemon:
         """
         Check on the status of one uploading run.
         """
+        logger.debug(f"Run {run.id}: Check upload status")
         try:
             globus_status = self._get_globus_transfer_status(run, run.upload_task_id)
-        except Exception:
+        except Exception as error:
+            logger.exception(f"Failed to check upload {run.upload_task_id}: {error}")
             return
         if globus_status == "FAILED":
             self.update_run_status(run, "upload failed")
@@ -151,7 +151,7 @@ class Daemon:
         """
         Submit a run to Cromwell.
         """
-        logger.info(f"Run {run.id}: Submit to Cromwell")
+        logger.debug(f"Run {run.id}: Submit to Cromwell")
 
         # Validate input
         file_path = os.path.join(self.staging_dir, run.user_id, run.submission_id)
@@ -183,6 +183,7 @@ class Daemon:
         """
         Check Cromwell for the status of one Run.
         """
+        logger.debug(f"Run {run.id}: Check Cromwell status")
         try:
             cromwell_status = self.cromwell.get_status(run.cromwell_run_id)
         except Exception:
@@ -204,6 +205,7 @@ class Daemon:
         """
         Prepare folder of Run output.
         """
+        logger.debug(f"Run {run.id}: Prepare output")
         if metadata is None:
             try:
                 metadata = self.cromwell.get_metadata(run.cromwell_run_id)
@@ -224,6 +226,7 @@ class Daemon:
         """
         Send run output via Globus
         """
+        logger.debug(f"Run {run.id}: Download output")
         nice_dir = os.path.join(self.results_dir, str(run.id))
         transfer_rt = run.transfer_refresh_token
         try:
@@ -269,9 +272,11 @@ class Daemon:
         """
         If download is complete, change state.
         """
+        logger.debug(f"Run {run.id}: Check download status")
         try:
             globus_status = self._get_globus_transfer_status(run, run.download_task_id)
-        except Exception:
+        except Exception as error:
+            logger.exception(f"Failed to check download {run.download_task_id}: {error}")
             return
         if globus_status == "SUCCEEDED":
             self.update_run_status(run, "finished")
@@ -326,6 +331,7 @@ class Daemon:
 
     def update_job_status_logs(self):
         """JTM job status logs are missing some fields; fill them in now."""
+        logger.debug("Update job status logs")
 
         # select incomplete job log entries from database
         last_cromwell_run_id = (
@@ -370,7 +376,7 @@ class Daemon:
                     )
                     last_cromwell_run_id = cromwell_run_id
                 except Exception as error:
-                    logger.error(
+                    logger.exception(
                         f"Error getting metadata for {cromwell_run_id}: {error}"
                     )
                     continue

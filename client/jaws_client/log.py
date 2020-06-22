@@ -2,16 +2,24 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 
-def setup_logger(name: str, log_file=None) -> logging:
+def setup_logger(name: str, log_file=None, log_level="INFO") -> logging:
     """Configure logger.
 
     :param name: Name of the logger (e.g. __package__)
     :type name: str
     :param log_file: Path to write log file
     :type log_file: str
+    :param log_level: Level at which to output logs
+    :type log_level: str
     :return: logging object
     :rtype: obj
     """
+    valid_log_levels = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+    if log_level not in valid_log_levels:
+        raise ValueError(
+            f"Invalid log level: {log_level}; valid levels are {valid_log_levels}"
+        )
+
     if log_file is None:
         log_file = f"{name}.log"
     formatter = logging.Formatter(
@@ -25,7 +33,7 @@ def setup_logger(name: str, log_file=None) -> logging:
     handler_file.setFormatter(formatter)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(log_level)
     logger.addHandler(handler_stderr)
     logger.addHandler(handler_file)
 
