@@ -178,7 +178,7 @@ workflow-options
 }
 call-caching
 {
-  enabled = true
+  enabled = false
   invalidate-bad-cache-result = true
 }
 # this is required for shifter to find image from its registry.
