@@ -61,7 +61,7 @@ class Daemon:
         self.session = None
         self.rpc_client = None
 
-    def init_rpc_client(self):
+    def _init_rpc_client(self):
         """Init RPC client for call Central functions"""
         try:
             self.rpc_client = rpc_client.RPC_Client(
@@ -345,7 +345,7 @@ class Daemon:
 
         # delete finished runs from db
         if new_status in self.terminal_states:
-            Run.query.filter_by(id=run.id).delete()
+            self.session.delete(run)
             self.session.commit()
 
     def update_job_status_logs(self):
@@ -496,7 +496,6 @@ class Daemon:
                 log.cromwell_job_id,
                 log.status_from,
                 log.status_to,
-                log.cromwell_job_id,
                 log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
                 log.reason,
             ]
@@ -508,7 +507,7 @@ class Daemon:
 
         # send message to Central
         logger.info(f"Sending {num_rows} job status updates to Central")
-        data = {"logs": logs, "site": self.site_id}
+        data = {"logs": logs, "site_id": self.site_id}
         try:
             response = self.rpc_client.request("update_job_logs", data)
         except Exception as error:

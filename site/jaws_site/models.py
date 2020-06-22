@@ -22,7 +22,6 @@ class Run(Base):
     cromwell_run_id = Column(String(36), nullable=True)
     status = Column(String(16), nullable=False)
     user_id = Column(String(16), nullable=False)
-    site_id = Column(String(8), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     upload_task_id = Column(String(36), nullable=False)
