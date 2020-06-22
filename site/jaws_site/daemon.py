@@ -381,11 +381,10 @@ class Daemon:
                 self.update_run_status(run, "running")
 
             # update log entry with run_id
-            logger.debug(f"Cromwell run {cromwell_job_id} => JAWS run {run.id}")
             log.run_id = run.id
 
             # TRY TO GET task_name AND attempt FROM CROMWELL METADATA
-            logger.debug(f"Run {run_id}: Get job info for job {cromwell_job_id}")
+            logger.debug(f"Run {run_id}: Get job info for job {cromwell_job_id}: {log.status_to}")
             if cromwell_run_id == last_cromwell_run_id:
                 # another update for same run, reuse previously initialized object
                 metadata = last_metadata
@@ -410,6 +409,9 @@ class Daemon:
             log.attempt = job_info["attempt"]
             log.task_name = job_info["task_name"]
             self.session.commit()
+            logger.debug(
+                f"Run {run.id}: Task {log.task_name}, Job {log.cromwell_job_id} now {log.status_to}"
+            )
 
     def send_run_status_logs(self):
         """Batch and send run logs to Central"""
@@ -456,7 +458,7 @@ class Daemon:
 
     def send_job_status_logs(self):
         """Batch and send job logs to Central"""
-        logger.info("Checking for new job status log entries")
+        logger.debug("Checking for new job status log entries")
 
         # get updates from datbase
         try:
