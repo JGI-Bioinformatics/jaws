@@ -128,9 +128,9 @@ class Job_Log(db.Model):
     __tablename__ = "job_logs"
     id = db.Column(db.Integer, primary_key=True)
     run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), nullable=False)
-    cromwell_job_id = db.Column(db.Integer, nullable=False)
     task_name = db.Column(db.String(128), nullable=False)
     attempt = db.Column(db.Integer, nullable=False)
+    cromwell_job_id = db.Column(db.Integer, nullable=False)
     status_from = db.Column(db.String(32), nullable=False)
     status_to = db.Column(db.String(32), nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False)
