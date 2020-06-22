@@ -65,6 +65,15 @@ def daemon() -> None:
     jawsd.start_daemon()
 
 
+@cli.command()
+def create_tables() -> None:
+    """Create database tables."""
+    from jaws_site.database import engine, Session
+    from jaws_site import models
+    session = Session()
+    models.create_all(engine, session)
+
+
 def jaws():
     """Entrypoint for jaws-site app."""
     cli()
