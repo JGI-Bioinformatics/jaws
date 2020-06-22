@@ -99,7 +99,7 @@ def run_metadata(params):
     return _success(metadata.data)
 
 
-def cancel(params):
+def cancel_run(params):
     """Cancel a run.
 
     :param cromwell_run_id: The Cromwell run ID
@@ -274,7 +274,7 @@ def update_job_status(params):
         session = Session()
         session.add(job_log)
         session.commit()
-        session.cose()
+        session.close()
     except Exception as error:
         logger.exception(f"Failed to insert job_log: {job_log}: {error}")
         return _failure(500, f"Failed to insert job_log: {job_log}: {error}")
@@ -298,7 +298,7 @@ operations = {
         ],
     },
     "run_metadata": {"function": run_metadata, "required_params": ["user_id", "cromwell_run_id"]},
-    "cancel": {"function": cancel, "required_params": ["user_id", "cromwell_run_id"]},
+    "cancel_run": {"function": cancel_run, "required_params": ["user_id", "cromwell_run_id"]},
     "output": {"function": output, "required_params": ["user_id", "cromwell_run_id"]},
     "update_job_status": {"function": update_job_status, "required_params": [
         "cromwell_run_id", "cromwell_job_id", "status_from", "status_to", "timestamp"]}
