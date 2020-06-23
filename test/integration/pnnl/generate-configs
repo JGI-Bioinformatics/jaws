@@ -20,10 +20,10 @@ user = jgi
 password = $JAWS_SITE_PNNL_DB_PW
 db = site
 [SITE_RPC_SERVER]
-user = jaws_pnnl
-password = $JAWS_SITE_PNNL_RMQ_PW
-host = rmq.lbl.gov
-vhost = jaws_pnnl_dev
+user = jaws
+password = $JAWS_JTM_PNNL_RMQ_PW
+host = localhost
+vhost = jaws
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
@@ -51,6 +51,12 @@ instance_name = \${jtm_host_name}.\${user_name}
 scratch = /dtemp/mscjgi/jaws-dev/jtm/
 debug = 0
 [RMQ]
+host = localhost
+vhost = jaws
+user = jaws
+password = $JAWS_JTM_PNNL_RMQ_PW
+port = 5672
+[SITE_RPC_CLIENT]
 host = localhost
 vhost = jaws
 user = jaws

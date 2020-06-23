@@ -122,7 +122,6 @@ deploy-jaws-cori:
     - python3 -m venv /tmp/jaws-dev/central && . /tmp/jaws-dev/central/bin/activate && pip install rpc/dist/* && pip install central/dist/* && deactivate
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf reread
-    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf reload
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start jaws-dev:*
     - python3 -m venv /tmp/jaws-dev/jtm     && . /tmp/jaws-dev/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-dev/jtm || true
     - cp /global/cfs/projectdirs/jaws/cromwell/cromwell.jar /tmp/jaws-dev/cromwell.jar && chgrp jaws_jtm /tmp/jaws-dev/cromwell.jar
@@ -163,7 +162,7 @@ deploy-jaws-lbnl:
     - module load python
     - make pkg
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
-    - python3 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate    && pip install site/dist/*    && deactivate
+    - python3 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate && pip install rpc/dist/*    && pip install site/dist/*    && deactivate
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf reread
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start jaws-dev:*
@@ -212,8 +211,8 @@ deploy-jaws-cascade:
     ## stop jaws and install new versions
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
     - python3.6 -m venv /tmp/jaws-dev/client  && . /tmp/jaws-dev/client/bin/activate  && pip install --upgrade pip && pip install client/dist/*  && deactivate
-    - python3.6 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate    && pip install --upgrade pip && pip install site/dist/*    && deactivate
-    - python3.6 -m venv /tmp/jaws-dev/central && . /tmp/jaws-dev/central/bin/activate && pip install --upgrade pip && pip install central/dist/* && deactivate
+    - python3.6 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate    && pip install --upgrade pip && pip install rpc/dist/* && pip install site/dist/*    && deactivate
+    - python3.6 -m venv /tmp/jaws-dev/central && . /tmp/jaws-dev/central/bin/activate && pip install --upgrade pip && pip install rpc/dist/* && pip install central/dist/* && deactivate
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf reread
     ## start jaws
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start jaws-dev:*
