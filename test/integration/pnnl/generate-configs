@@ -45,7 +45,7 @@ EOM
 
 cat << EOM > $configdir/jaws-jtm.conf
 [SITE]
-jtm_host_name = cori
+jtm_host_name = pnnl
 user_name = jtm_dev
 instance_name = \${jtm_host_name}.\${user_name}
 scratch = /dtemp/mscjgi/jaws-dev/jtm/
