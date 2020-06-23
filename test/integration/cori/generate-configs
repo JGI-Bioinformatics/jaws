@@ -52,7 +52,7 @@ host = jaws-db.lbl.gov
 port = 3306
 user = jaws_central
 password = $JAWS_CENTRAL_CORI_DB_PW
-db = jaws_dev
+db = jaws_central_dev
 [RPC_SERVER]
 user = jaws_central
 password = $JAWS_CENTRAL_CORI_RMQ_PW
@@ -118,7 +118,7 @@ port = 5672
 [SITE_RPC_CLIENT]
 host = rmq.lbl.gov
 vhost = jaws_nersc_dev
-user = jtm_nersc_dev
+user = jtm_nersc
 password = $JAWS_JTM_CORI_RMQ_PW
 port = 5672
 [MYSQL]
