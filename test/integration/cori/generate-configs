@@ -63,7 +63,7 @@ max_retries = 3
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 [SITE:LBNL]
-user = jaws_lbnl
+user = jaws_central
 password = $JAWS_CENTRAL_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
@@ -73,7 +73,7 @@ globus_basepath = /global/scratch/jaws
 staging_subdir = dev/staging
 max_ram_gb = 1024
 [SITE:NERSC]
-user = jaws_nersc
+user = jaws_central
 password = $JAWS_CENTRAL_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
