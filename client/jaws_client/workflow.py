@@ -415,9 +415,12 @@ class WorkflowInputs:
         self.submission_id = submission_id
         self.inputs_location = os.path.abspath(inputs_loc)
         self.basedir = os.path.dirname(inputs_loc)
-        self.inputs_json = (
-            json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
-        )
+        try:
+            self.inputs_json = (
+                json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+            )
+        except Exception as error:
+            raise WorkflowError(error)
         self._src_file_inputs = None
 
     @property
