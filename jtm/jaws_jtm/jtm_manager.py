@@ -1263,7 +1263,7 @@ def process_task_kill(task_id):
 
         if not STANDALONE:
             send_update_task_status_msg(task_id, status_now, TASK_STATUS["failed"],
-                                        fail_code=CONFIG.constants.DONE_FLAGS["terminated"])
+                                        fail_code=TASK_STATUS["terminated"])
 
     if task_status:
         if task_status in (TASK_STATUS["ready"], TASK_STATUS["queued"]):
@@ -1490,7 +1490,7 @@ def task_kill_proc():
 
                 if not STANDALONE:
                     send_update_task_status_msg(tid, None, TASK_STATUS["failed"],
-                                                fail_code=CONFIG.constants.DONE_FLAGS["terminated"])
+                                                fail_code=TASK_STATUS["terminated"])
 
             except IndexError as e:
                 logger.exception("Failed to call send_task_kill_request(): {}".format(e))
