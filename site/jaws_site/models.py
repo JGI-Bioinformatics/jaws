@@ -14,7 +14,11 @@ from jaws_site.database import Base
 
 
 class Run(Base):
-    """Analysis runs are the execution of workflows on specific inputs."""
+    """
+    Analysis runs are the execution of workflows on specific inputs.
+    Only the active runs are stored; finished/failed runs are deleted.
+    Run info is permanently recorded in Central's "runs" table instead.
+    """
 
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)
@@ -33,7 +37,10 @@ class Run(Base):
 
 
 class Run_Log(Base):
-    """Run state transitions log"""
+    """
+    Run state transitions log.
+    Log entries are stored here only until they have been sent to Central via RPC.
+    """
 
     __tablename__ = "run_logs"
     id = Column(Integer, primary_key=True)
@@ -45,7 +52,14 @@ class Run_Log(Base):
 
 
 class Job_Log(Base):
-    """Job state transitions are recorded only until sent to Central"""
+    """
+    Log state transitions log.
+    Log entries are stored here only until they have been sent to Central via RPC.
+    Initially, records are inserted when a state transition log is received from JTM;
+    however JTM doesn't know the run_id, task_name, or attempt so they are NULL.
+    The Daemon process will fill in those fields by querying the db and cromwell
+    before the logs are sent to Central.
+    """
 
     __tablename__ = "job_logs"
     id = Column(Integer, primary_key=True)

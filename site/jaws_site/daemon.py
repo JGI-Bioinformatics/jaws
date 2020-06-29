@@ -102,7 +102,9 @@ class Daemon:
                 .all()
             )
         except Exception as error:
-            logger.warning(f"Failed to select runs from db: {error}", exc_info=True)
+            logger.warning(
+                f"Failed to select active runs from db: {error}", exc_info=True
+            )
             return  # sqlalchemy should reconnect
         num_runs = len(query)
         if num_runs:
@@ -117,6 +119,20 @@ class Daemon:
         self.send_run_status_logs()
         self.update_job_status_logs()
         self.send_job_status_logs()
+
+        # purge runs in terminal states
+        try:
+            query = (
+                self.session.query(Run)
+                .filter(Run.status.in_(self.terminal_states))
+                .all()
+            )
+        except Exception as error:
+            logger.warning(
+                f"Failed to select done runs from db: {error}", exc_info=True
+            )
+        for run in query:
+            self.purge_run(run)
         self.session.close()
 
     def _get_globus_transfer_status(self, run, task_id):
@@ -365,11 +381,6 @@ class Daemon:
         elif "result" in response:
             logger.debug("Central notified of change of run state")
 
-        # delete finished runs from db
-        if new_status in self.terminal_states:
-            self.session.delete(run)
-            self.session.commit()
-
     def update_job_status_logs(self):
         """JTM job status logs are missing some fields; fill them in now."""
         logger.debug("Update job status logs")
@@ -406,7 +417,9 @@ class Daemon:
             log.run_id = run.id
 
             # TRY TO GET task_name AND attempt FROM CROMWELL METADATA
-            logger.debug(f"Run {run_id}: Get job info for job {cromwell_job_id}: {log.status_to}")
+            logger.debug(
+                f"Run {run_id}: Get job info for job {cromwell_job_id}: {log.status_to}"
+            )
             if cromwell_run_id == last_cromwell_run_id:
                 # another update for same run, reuse previously initialized object
                 metadata = last_metadata
@@ -544,3 +557,35 @@ class Daemon:
             self.session.commit()
         except Exception as error:
             logger.error(f"Failed to delete job logs: {error}")
+
+    def purge_run(self, run):
+        """Runs in terminal states (e.g. finished, failed) should be delete from the runs table
+        only after their associated logs have been sent to Central via RPC."""
+
+        # check for unsent run_logs
+        try:
+            query = self.session.query(Run_Log).filter_by(run_id=run.id).all()
+        except Exception as error:
+            logger.warning(f"Failed to select run_logs from db: {error}", exc_info=True)
+            return
+        if query:
+            # there are unsent run_logs
+            return
+
+        # check for unsent job_logs
+        try:
+            query = (
+                self.session.query(Job_Log)
+                .filter_by(cromwell_run_id=run.cromwell_run_id)
+                .all()
+            )
+        except Exception as error:
+            logger.warning(f"Failed to select job_logs from db: {error}", exc_info=True)
+            return
+        if query:
+            # there are unsent job_logs
+            return
+
+        # delete run
+        self.session.delete(run)
+        self.session.commit()
