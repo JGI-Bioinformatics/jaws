@@ -347,7 +347,10 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     # VALIDATE WORKFLOW
     submission_id = str(uuid.uuid4())
     wdl = workflow.WdlFile(wdl_file, submission_id)
-    inputs_json = workflow.WorkflowInputs(infile, submission_id)
+    try:
+        inputs_json = workflow.WorkflowInputs(infile, submission_id)
+    except Exception as error:
+        raise SystemExit(f"Your file, {infile}, is not a valid JSON file: {error}")
 
     jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_staging_subdir)
     local_staging_endpoint = workflow.join_path(globus_basedir, staging_subdir)
