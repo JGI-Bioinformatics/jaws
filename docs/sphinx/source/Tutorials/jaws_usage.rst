@@ -77,6 +77,9 @@ jaws *wdl* options:
   update-wdl  update a workflow WDL in the catalog
   versions    list available versions of a workflow
  
+ 
+Note: The WDL of 'released' workflows cannot be changed.
+
 
 jaws *status*:
 ----------------------
