@@ -6,9 +6,11 @@ them to the next state.
 import schedule
 import time
 import os
+import shutil
 import globus_sdk
 import logging
 from datetime import datetime
+import subprocess
 from jaws_site.database import Session
 from jaws_site.models import Run, Run_Log, Job_Log
 from jaws_site import wfcopy, config
@@ -223,12 +225,32 @@ class Daemon:
             if metadata is None:
                 return
         logger.info(f"Run {run.id}: Prepare output of successful run")
-        orig_dir = metadata.get("workflowRoot")
-        nice_dir = os.path.join(self.results_dir, str(run.id))
+        src_dir = metadata.get("workflowRoot")  # Cromwell output
+        dest_dir = os.path.join(self.results_dir, str(run.id))  # output to return to user
+        if os.path.exists(dest_dir):
+            shutil.rmtree(dest_dir)
         if run.status == "succeeded":
-            wfcopy.wfcopy(orig_dir, nice_dir)
+            wfcopy.wfcopy(src_dir, dest_dir)
         else:  # failed
-            os.symlink(orig_dir, nice_dir)
+            # copy to results dir
+            try:
+                process = subprocess.Popen(
+                    f"rsync -a {src_dir} {dest_dir}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+                stdout, stderr = process.communicate()
+                if process.returncode:
+                    logger.error(f"Failed to rsync {src_dir} to {dest_dir}: " + stderr.strip())
+                    return
+            except Exception as error:
+                logger.exception(f"Rsync failed: {error}")
+                return
+            # fix permissions
+            os.chmod(dest_dir, 0o0775)
+            for dirpath, dirnames, filenames in os.walk(dest_dir):
+                for dname in dirnames:
+                    os.chmod(os.path.join(dirpath, dname), 0o0775)
+                for fname in filenames:
+                    os.chmod(os.path.join(dirpath, fname), 0o0664)
         self.update_run_status(run, "ready")
 
     def transfer_results(self, run):
