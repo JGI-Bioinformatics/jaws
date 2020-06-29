@@ -161,11 +161,12 @@ def teardown_function():
 def test_wfcopy():
     print("testing ...")
     # Transform cromwell dir to wfcopy format
-    wfcopy.wfcopy(cromwell_root_dir, wfcopy_root_dir)
+    dest_dir = os.path.join(wfcopy_root_dir, "wfcopy_output")
+    wfcopy.wfcopy(cromwell_root_dir, dest_dir)
 
     # look for task files
     for filename in wfcopy_outputs:
-        fullname = os.path.join(wfcopy_root_dir, filename)
+        fullname = os.path.join(dest_dir, filename)
         print(fullname)
         assert os.path.isfile(fullname)
 
@@ -173,10 +174,11 @@ def test_wfcopy():
 def test_wfcopy_flatten():
     print("testing with flatten_shard_dir ...")
     # Transform cromwell dir to wfcopy format
-    wfcopy.wfcopy(cromwell_root_dir, wfcopy_root_dir, flatten_shard_dir=True)
+    dest_dir = os.path.join(wfcopy_root_dir, "wfcopy_output")
+    wfcopy.wfcopy(cromwell_root_dir, dest_dir, flatten_shard_dir=True)
 
     # look for task files
     for filename in wfcopy_flatten_outputs:
-        fullname = os.path.join(wfcopy_root_dir, filename)
+        fullname = os.path.join(dest_dir, filename)
         print(fullname)
         assert os.path.isfile(fullname)

@@ -13,6 +13,10 @@ import logging
 logger = logging.getLogger(__package__)
 
 
+class OutputFolderExists(Exception):
+    pass
+
+
 def _rsync(src: str, dest: str) -> None:
     """ Copy source to destination using rsync.
 
@@ -131,6 +135,8 @@ def wfcopy(srcdir, dstdir, flatten_shard_dir=False):
     :param flatten_shard_dir: If True, shard output will be output to one dir, otherwise keep multiple subdirs.
     :type flatten_shard_dir: bool
     """
+    if os.path.exists(dstdir):
+        raise OutputFolderExists(dstdir)
 
     # these are cromwell files to store in output path's log dir.
     target_log_files = [
