@@ -163,14 +163,32 @@ RUN_LOG_TEXT = (
 )
 
 TASK_LOG_JSON = [
-    ["runblastplus_sub.task1", 1, 43, "ready", "queued", "2020-06-10 13:42:44", ""],
-    ["runblastplus_sub.task2", 1, 44, "queued", "pending", "2020-06-10 13:43:36", ""]
+    [
+        "runblastplus_sub.task1",
+        1,
+        43,
+        "ready",
+        "queued",
+        "2020-06-10 13:42:44",
+        "",
+        "The job was received by JTM-manager and sent to JTM-worker"
+    ],
+    [
+        "runblastplus_sub.task2",
+        1,
+        44,
+        "queued",
+        "pending",
+        "2020-06-10 13:43:36",
+        "",
+        "The job was receive by JTM-worker and is awaiting resources"
+    ]
 ]
 
 TASK_LOG_TEXT = (
-    "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n"
-    "runblastplus_sub.task1\t1\t43\tready\tqueued\t2020-06-10 13:42:44\t\n"
-    "runblastplus_sub.task2\t1\t44\tqueued\tpending\t2020-06-10 13:43:36\t\n"
+    "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\tSTATUS_DETAIL\n"
+    "runblastplus_sub.task1\t1\t43\tready\tqueued\t2020-06-10 13:42:44\t\tThe job was received by JTM-manager and sent to JTM-worker\n"  # noqa
+    "runblastplus_sub.task2\t1\t44\tqueued\tpending\t2020-06-10 13:43:36\t\tThe job was receive by JTM-worker and is awaiting resources\n"  # noqa
 )
 
 SUBMISSION = {

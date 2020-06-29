@@ -132,7 +132,7 @@ def task_status(run_id: int, fmt: str) -> None:
         print(json.dumps(result, indent=4, sort_keys=True))
     else:
         print(
-            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
+            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\tSTATUS_DETAIL"
         )
         for log_entry in result:
             log_entry[1] = str(log_entry[1])

@@ -485,7 +485,8 @@ def task_status(user, run_id):
             log.status_from,
             log.status_to,
             log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason
+            reason,
+            jaws_constants.task_status_msg.get(log.status_to, "")
         ]
         tasks.move_to_end(task_name)
     return list(tasks.values()), 200
