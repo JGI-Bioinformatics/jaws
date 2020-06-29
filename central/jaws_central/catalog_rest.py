@@ -26,7 +26,7 @@ def list_wdls(user: str) -> Tuple[dict, int]:
         return result, 200
     except catalog.CatalogDatabaseError as error:
         logger.exception("Failed to retrieve catalog list: {error}")
-        abort(500, error)
+        abort(500, f"Unexpected error: {error}")
 
 
 def get_versions(user: str, name: str) -> Tuple[dict, int]:
@@ -173,14 +173,14 @@ def update_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     try:
         catalog.update_wdl(user, name, version, new_wdl)
     except catalog.CatalogWorkflowNotFoundError as error:
-        abort(404, error)
+        abort(404, f"Workflow not found: {error}")
     except catalog.CatalogAuthenticationError as error:
-        abort(401, error)
+        abort(401, f"Access denied: {error}")
     except catalog.CatalogWorkflowImmutableError as error:
-        abort(400, error)
+        abort(400, f"Action not allowed: {error}")
     except catalog.CatalogDatabaseError as error:
         logger.exception(f"Error updating WDL: {error}")
-        abort(500, error)
+        abort(500, f"Unexpected catalog error: {error}")
     return {"result": "OK"}, 200
 
 
@@ -254,7 +254,7 @@ def add_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     try:
         catalog.add_wdl(user, name, version, new_wdl, new_doc)
     except catalog.CatalogInvalidInputError as error:
-        abort(400, error)
+        abort(400, f"Add workflow failed due to invalid input: {error}")
     except catalog.CatalogDatabaseError as error:
         logger.exception(f"Error inserting workflow: {error}")
         abort(500, f"Catalog error: {error}")

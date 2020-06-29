@@ -294,8 +294,6 @@ def update_doc(user: str, name: str, version: str, new_doc: str) -> Tuple[dict, 
         raise CatalogWorkflowNotFoundError("Workflow not found")
     if workflow.user_id != user:
         raise CatalogAuthenticationError("User is not owner")
-    if workflow.is_released is True:
-        raise CatalogWorkflowImmutableError("Workflow is immutable")
     try:
         workflow.doc = new_doc
         db.session.commit()
