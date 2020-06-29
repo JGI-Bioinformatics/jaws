@@ -171,7 +171,7 @@ def test_output(monkeypatch):
     def mock_abort_if_pre_cromwell(run):
         return
 
-    def mock_rpc_call(user_id, run_id, method, params):
+    def mock_rpc_call(user_id, run_id, method, params={}):
         assert isinstance(user_id, str)
         assert isinstance(run_id, int)
         assert method == "output"
@@ -194,7 +194,7 @@ def test_failed_output(monkeypatch):
     def mock_abort_if_pre_cromwell(run):
         return
 
-    def mock_rpc_call(user_id, run_id, method, params):
+    def mock_rpc_call(user_id, run_id, method, params={}):
         assert isinstance(user_id, str)
         assert isinstance(run_id, int)
         assert method == "output"
@@ -206,3 +206,24 @@ def test_failed_output(monkeypatch):
     )
     monkeypatch.setattr(jaws_central.analysis, "_rpc_call", mock_rpc_call)
     jaws_central.analysis.failed_output("user", 123)
+
+
+def test_run_metadata(monkeypatch):
+
+    def mock_get_run(user_id, run_id):
+        return {}
+
+    def mock_abort_if_pre_cromwell(run):
+        return
+
+    def mock_rpc_call(user_id, run_id, method, params={}):
+        assert isinstance(user_id, str)
+        assert isinstance(run_id, int)
+        assert method == "run_metadata"
+
+    monkeypatch.setattr(jaws_central.analysis, "_get_run", mock_get_run)
+    monkeypatch.setattr(
+        jaws_central.analysis, "_abort_if_pre_cromwell", mock_abort_if_pre_cromwell
+    )
+    monkeypatch.setattr(jaws_central.analysis, "_rpc_call", mock_rpc_call)
+    jaws_central.analysis.run_metadata("test_user", 123)
