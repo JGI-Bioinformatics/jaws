@@ -246,8 +246,16 @@ class Daemon:
         if os.path.exists(dest_dir):
             shutil.rmtree(dest_dir)
         if run.status == "succeeded":
-            wfcopy.wfcopy(src_dir, dest_dir)
+            logger.debug(f"Run {run.id}: wfcopy successful output")
+            try:
+                wfcopy.wfcopy(src_dir, dest_dir)
+            except wfcopy.OutputFolderExists as error:
+                logger.exception(f"Run {run.id}: wfcopy outdir already exists: {error}")
+            except Exception as error:
+                logger.exception(f"Run {run.id}: wfcopy failed: {error}")
+                self.update_run_status(run, "failed", "wfcopy failed: {error}")
         else:  # failed
+            logger.debug(f"Run {run.id}: rsync failed output")
             # copy to results dir
             try:
                 process = subprocess.Popen(
