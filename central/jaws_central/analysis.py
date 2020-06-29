@@ -64,7 +64,13 @@ def _rpc_call(user, run_id, method, params={}):
     if not run:
         abort(404, "Run not found; please check your run_id")
     if run.user_id != user:
-        abort(401, "Access denied; you cannot access to another user's workflow")
+        try:
+            current_user = db.session.query(User).get(user)
+        except SQLAlchemyError as error:
+            logger.error(error)
+            abort(500, f"Db error; {error}")
+        if not current_user.is_admin:
+            abort(401, "Access denied; you cannot access to another user's workflow")
     site_rpc_call = rpc_index.rpc_index.get_client(run.site_id)
     params["user_id"] = user
     params["run_id"] = run_id
@@ -397,7 +403,13 @@ def _get_run(user, run_id):
     if not run:
         abort(404, "Run not found; please check your run_id")
     if run.user_id != user:
-        abort(401, "Access denied; you are not the owner of that Run.")
+        try:
+            current_user = db.session.query(User).get(user)
+        except SQLAlchemyError as error:
+            logger.error(error)
+            abort(500, f"Db error; {error}")
+        if not current_user.is_admin:
+            abort(401, "Access denied; you are not the owner of that Run.")
     return run
 
 
