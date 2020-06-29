@@ -271,6 +271,15 @@ class WdlFile:
             self._subworkflows = self._filter_subworkflows(stdout)
         return self._subworkflows
 
+    @staticmethod
+    def _check_missing_subworkflow_msg(stderr):
+        missing = set()
+        m = re.search("Failed to import workflow (.+).:", stderr)
+        if m:
+            for sub in m.groups():
+                missing.add(sub)
+            raise WdlError("Subworkflows not found: " + ", ".join(missing))
+
     def validate(self):
         """
         Validates using WOMTool the WDL file. Any syntax errors from WDL will be raised in a WdlError
@@ -278,14 +287,9 @@ class WdlFile:
         """
         self.logger.info(f"Validating WDL, {self.file_location}")
         _, stderr = womtool("validate", "-l", self.file_location)
-        missing = set()
-        for line in stderr.splitlines():
-            m = re.match("Failed to import workflow (.+).:", line)
-            if m:
-                for sub in m.groups():
-                    missing.add(sub)
-        if missing:
-            raise WdlError("Subworkflows not found: " + ", ".join(missing))
+        if stderr:
+            self._check_missing_subworkflow_msg(stderr)
+            raise WdlError(stderr)
 
     @staticmethod
     def _get_wdl_name(file_location):
@@ -576,4 +580,4 @@ class WorkflowError(Exception):
 
 class WdlError(Exception):
     def __init__(self, message):
-        super().__int__(message)
+        super().__init__(message)

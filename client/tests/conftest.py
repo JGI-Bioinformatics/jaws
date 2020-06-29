@@ -656,3 +656,99 @@ def refdata_inputs(tmp_path):
 
     inputs.write_text(contents)
     return tmp_path.as_posix()
+
+
+@pytest.fixture()
+def incorrect_wdl(tmp_path):
+    wdl = tmp_path / "main.wdl"
+    contents = """workflow bbtools {
+    ;File reads
+    File ref
+
+    call alignment {
+       input: fastq=reads,
+              fasta=ref
+    }
+    call samtools {
+       input: sam=alignment.sam
+   }
+}
+
+task alignment {
+    File fastq
+    File fasta
+
+    command {
+        bbmap.sh in=${fastq} ref=${fasta} out=test.sam
+    }
+    output {
+       File sam = "test.sam"
+    }
+}
+
+task samtools {
+    File sam
+
+    command {
+       samtools view -b -F0x4 ${sam} | samtools sort - > test.sorted.bam
+    }
+    output {
+       File bam = "test.sorted.bam"
+    }
+} 
+""" # noqa
+    wdl.write_text(contents)
+    return wdl
+
+
+@pytest.fixture()
+def no_subworkflows_present(tmp_path):
+    """
+    Fixture where only the main.wdl is present
+    but not the specified workflow
+    """
+    wdl = tmp_path / "main.wdl"
+    contents = """import "alignment.wdl" as align
+
+workflow main_wdl { 
+    File fastq
+    File reference
+
+    # this task calls the sub-workflow named bbmap_shard_wf which 
+    # is the alignment.wdl.  
+    # It's output is "merged_bam_file"
+    call align.bbmap_shard_wf { 
+           input: reads = fastq,
+                  reference = reference
+    }
+    call bam_stats {
+           input: merged_bam = bbmap_shard_wf.merged_bam_file
+    }
+}
+
+task bam_stats {
+    String merged_bam
+
+    command {
+        reformat.sh in=${merged_bam} out=stdout.fq | \
+        bbstats.sh in=stdin.fq out=stats
+    }
+
+    output {
+        File alignment_stats = "stats"
+    }
+
+    runtime {
+        docker: "jfroula/aligner-bbmap:1.1.9"
+        poolname: "extrasmall"
+        shared: 1
+        node: 1
+        nwpn: 1
+        mem: "5G"
+        time: "00:10:00"
+    }
+}
+
+""" # noqa
+    wdl.write_text(contents)
+    return wdl

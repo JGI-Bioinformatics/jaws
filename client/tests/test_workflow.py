@@ -88,6 +88,24 @@ def test_wdl_validation(configuration, simple_wdl_example):
 @pytest.mark.skipif(
     shutil.which("womtool") is None, reason="WOMTool needs to be installed."
 )
+def test_wdl_validation_with_no_subworkflows(configuration, no_subworkflows_present):
+    wdl = jaws_client.workflow.WdlFile(no_subworkflows_present, "1234")
+    with pytest.raises(jaws_client.workflow.WdlError):
+        wdl.validate()
+
+
+@pytest.mark.skipif(
+    shutil.which('womtool') is None, reason="WOMTool needs to be installed"
+)
+def test_bad_syntax_wdl(configuration, incorrect_wdl):
+    wdl = jaws_client.workflow.WdlFile(incorrect_wdl, "1234")
+    with pytest.raises(jaws_client.workflow.WdlError):
+        wdl.validate()
+
+
+@pytest.mark.skipif(
+    shutil.which("womtool") is None, reason="WOMTool needs to be installed."
+)
 def test_wdl_subworkflows(configuration, subworkflows_example):
     basedir = subworkflows_example
     wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"), "1234")
