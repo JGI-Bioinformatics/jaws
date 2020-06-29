@@ -19,3 +19,17 @@ run_status_msg = {
     "download inactive": "Globus transfer stalled; try reactivating the endpoint. Please go to https://app.globus.org/file-manager, on the left side of the page, select ENDPOINTS, click the > icon to the right of the NERSC DTN endpoint, then click Activate.",  # noqa",
     "finished": "The run output has been returned to the user.",
 }
+
+task_status_msg = {
+    "ready": "The job has been prepared by Cromwell and submitted to JTM",
+    "queued": "The job was received by JTM-manager and sent to JTM-worker",
+    "pending": "The job was receive by JTM-worker and is awaiting resources",
+    "running": "The job is currently executing",
+    "success": "The job completed successfully",
+    "failed": "The job has failed",
+    "outofresource": "The job exceeeded the reserved RAM; increase the amount in the WDL and rerun",
+    "terminated": "The run was terminated",
+    "invalidtask": "The task definition in the message from jtm_submit is not valid",
+    "timeout": "The worker timed out",
+    "lostconnection": "The manager lost connection with the worker",
+}
