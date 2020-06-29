@@ -648,7 +648,9 @@ def cancel_run(user, run_id):
     elif status.startswith("upload"):
         _cancel_run(run)
         _cancel_transfer(user, run.upload_task_id, run_id)
-        _rpc_call(user, run_id, "cancel_run")
+        result = _rpc_call(user, run_id, "cancel_run")
+        if "error" in result:
+            abort(result["error"]["code"], result["error"]["message"])
     elif status in [
         "submitted",
         "queued",
@@ -659,6 +661,8 @@ def cancel_run(user, run_id):
     ]:
         _cancel_run(run)
         _rpc_call(user, run_id, "cancel_run")
+        if "error" in result:
+            abort(result["error"]["code"], result["error"]["message"])
     elif status == "cancelled":
         abort(400, "That Run had already been cancelled")
     elif status == "failed":
@@ -666,6 +670,9 @@ def cancel_run(user, run_id):
     elif status == "downloading":
         _cancel_run(run)
         _cancel_transfer(user, run.download_task_id, run_id)
+        _rpc_call(user, run_id, "cancel_run")
+        if "error" in result:
+            abort(result["error"]["code"], result["error"]["message"])
     elif status == "finished":
         abort(400, "That Run had already finished")
     result = {"cancel": "OK"}
