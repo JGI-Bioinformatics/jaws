@@ -15,9 +15,10 @@ def test_overwrite_all_default_values(config_file):
     config_path = config_file
     cfg = jaws_site.config.Configuration(config_path)
 
-    expected_jtm_rpc_server_sections = [
+    expected_local_rpc_server_sections = [
         ("host", "localhost"),
         ("vhost", "site_vhost"),
+        ("queue", "site_rpc"),
         ("user", "jaws"),
         ("password", "passw0rd1"),
         ("num_threads", "5"),
@@ -26,8 +27,8 @@ def test_overwrite_all_default_values(config_file):
 
     expected_central_rpc_server_sections = [
         ("host", "currenthost"),
-        ("vhost", "eagle"),
-        ("user", "daffy_duck"),
+        ("vhost", "jaws"),
+        ("user", "jaws_eagle"),
         ("password", "succotash"),
         ("num_threads", "5"),
         ("max_retries", "3"),
@@ -35,8 +36,9 @@ def test_overwrite_all_default_values(config_file):
 
     expected_rpc_client_sections = [
         ("host", "currenthost"),
-        ("vhost", "central_vhost"),
-        ("user", "daffy_duck"),
+        ("vhost", "jaws"),
+        ("queue", "central_rpc"),
+        ("user", "jaws_eagle"),
         ("password", "succotash"),
     ]
 
@@ -64,7 +66,7 @@ def test_overwrite_all_default_values(config_file):
     expected_cromwell_sections = [
         ("url", "http://localhost:8000")]
 
-    check_section("JTM_RPC_SERVER", expected_jtm_rpc_server_sections, cfg)
+    check_section("LOCAL_RPC_SERVER", expected_local_rpc_server_sections, cfg)
     check_section("CENTRAL_RPC_SERVER", expected_central_rpc_server_sections, cfg)
     check_section("CENTRAL_RPC_CLIENT", expected_rpc_client_sections, cfg)
     check_section("GLOBUS", expected_globus_sections, cfg)

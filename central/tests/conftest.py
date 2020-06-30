@@ -20,22 +20,24 @@ db = jaws
 client_id = ZZZZ
 
 [SITE:LBNL]
-host = rmq.foo.com
+host = rmq.jaws.gov
 user = jaws
 password = passw0rd2
-vhost =
-queue = jaws_rpc
+vhost = jaws
+queue = lbnl_rpc
+port = 5672
 globus_endpoint = XXXX
 globus_basepath = "/global/scratch/jaws"
 staging_subdir = "staging"
 max_ram_gb = 1024
 
 [SITE:NERSC]
-host = rmq.bar.com
+host = rmq.jaws.gov
 user = jaws
-password = passw0rd3
-vhost =
-queue = jaws_rpc
+password = passw0rd2
+vhost = jaws
+queue = nersc_rpc
+port = 5672
 globus_endpoint = YYYY
 globus_basepath = "/"
 staging_subdir = "/global/scratch/jaws/staging"
@@ -64,11 +66,11 @@ client_id = ZZZZ
 
 
 rpc_client_dict = {
-    "host": "rmq.foo.com",
+    "host": "rmq.jaws.gov",
     "user": "jaws",
     "password": "passw0rd2",
-    "vhost": "",
-    "queue": "jaws_rpc",
+    "vhost": "jaws",
+    "queue": "lbnl_rpc",
     "globus_endpoint": "XXXX",
     "globus_basepath": '"/global/scratch/jaws"',
     "staging_subdir": "staging",

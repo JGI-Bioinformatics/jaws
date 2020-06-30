@@ -8,7 +8,6 @@ import json
 import amqpstorm
 
 
-RPC_QUEUE = "rpc"
 DEFAULT_PORT = 5672
 
 
@@ -211,15 +210,14 @@ class RpcServer(object):
         self.params = params
         self.num_threads = int(params.get("num_threads", 5))
         self.max_retries = int(params.get("max_retries", 3))
-        self.rpc_queue = RPC_QUEUE
         if "port" not in self.params:
             self.params["port"] = DEFAULT_PORT
         self.logger.info(
-            f"Connecting to host:{params['host']}, vhost:{params['vhost']}, queue:{RPC_QUEUE}"
+            f"Connecting to host:{params['host']}, vhost:{params['vhost']}, queue:{params['queue']}"
         )
         self.operations = operations
         self.consumers = [
-            Consumer(self.rpc_queue, self.operations) for _ in range(self.num_threads)
+            Consumer(params["queue"], self.operations) for _ in range(self.num_threads)
         ]
         self.stopped = threading.Event()
         self.connection = self.create_connection()
@@ -247,7 +245,7 @@ class RpcServer(object):
         :return: index where we activate consumers
         """
         for _ in range(num):
-            consumer = Consumer(self.rpc_queue, self.operations)
+            consumer = Consumer(self.params["queue"], self.operations)
             self.start_consumer(consumer)
             self.consumers.append(consumer)
 

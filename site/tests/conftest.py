@@ -10,9 +10,10 @@ import shutil
 @pytest.fixture
 def config_file(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
-    content = """[JTM_RPC_SERVER]
+    content = """[LOCAL_RPC_SERVER]
 host = localhost
 vhost = site_vhost
+queue = site_rpc
 user = jaws
 password = passw0rd1
 num_threads = 5
@@ -20,16 +21,18 @@ max_retries = 3
 
 [CENTRAL_RPC_SERVER]
 host = currenthost
-vhost = eagle
-user = daffy_duck
+vhost = jaws
+queue = eagle
+user = jaws_eagle
 password = succotash
 num_threads = 5
 max_retries = 3
 
 [CENTRAL_RPC_CLIENT]
 host = currenthost
-vhost = central_vhost
-user = daffy_duck
+vhost = jaws
+queue = central_rpc
+user = jaws_eagle
 password = succotash
 
 [GLOBUS]

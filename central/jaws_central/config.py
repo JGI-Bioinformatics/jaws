@@ -43,7 +43,8 @@ class Configuration(metaclass=Singleton):
             "port": "5672",
             "user": "jaws_rmq_user",
             "password": "jaws_rmq_pass",
-            "vhost": "jaws_central",
+            "vhost": "jaws",
+            "queue": "central_rpc",
             "max_threads": 5,
             "max_retries": 3
         }

@@ -19,25 +19,31 @@ port = 3306
 user = jgi
 password = $JAWS_SITE_PNNL_DB_PW
 db = site
-[JTM_RPC_SERVER]
+[LOCAL_RPC_SERVER]
 user = jaws
 password = $JAWS_JTM_PNNL_RMQ_PW
 host = localhost
+port = 5672
 vhost = jaws
+queue = site_rpc
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_SERVER]
-user = jaws
+user = jaws_pnnl
 password = $JAWS_SITE_PNNL_RMQ_PW
 host = rmq.lbl.gov
-vhost = jaws_pnnl_central_dev
+port = 5672
+vhost = jaws_dev
+queue = pnnl_rpc
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
 user = jaws_pnnl
 password = $JAWS_SITE_PNNL_RMQ_PW
 host = rmq.lbl.gov
-vhost = jaws_central_dev
+port = 5672
+vhost = jaws_dev
+queue = central_rpc
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
@@ -58,17 +64,18 @@ instance_name = \${jtm_host_name}.\${user_name}
 scratch = /dtemp/mscjgi/jaws-dev/jtm/
 debug = 0
 [RMQ]
-host = localhost
-vhost = jaws
 user = jaws
 password = $JAWS_JTM_PNNL_RMQ_PW
+host = localhost
 port = 5672
+vhost = jaws
 [SITE_RPC_CLIENT]
-host = localhost
-vhost = jaws
 user = jaws
 password = $JAWS_JTM_PNNL_RMQ_PW
+host = localhost
 port = 5672
+vhost = jaws
+queue = site_rpc
 [MYSQL]
 host = localhost
 port = 3306

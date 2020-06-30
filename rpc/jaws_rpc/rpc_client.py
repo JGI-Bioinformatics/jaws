@@ -11,7 +11,6 @@ from jaws_rpc import jsonrpc_utils
 DEFAULT_PORT = 5672
 DEFAULT_WAIT_INTERVAL = 0.25
 DEFAULT_MAX_WAIT = 10
-RPC_QUEUE = "rpc"
 MESSAGE_TTL = "10"  # expires in seconds
 
 
@@ -29,7 +28,6 @@ class RPC_Client(object):
         self.channel = None
         self.connection = None
         self.callback_queue = None
-        self.rpc_queue = RPC_QUEUE
         self.open()
         self.wait_interval = DEFAULT_WAIT_INTERVAL
         if "port" not in self.params:
@@ -59,7 +57,7 @@ class RPC_Client(object):
         except Exception as error:
             raise ConnectionError(error)
         self.channel = self.connection.channel()
-        self.channel.queue.declare(RPC_QUEUE)
+        self.channel.queue.declare(self.params["queue"])
         result = self.channel.queue.declare(exclusive=True)
         self.callback_queue = result["queue"]
         self.channel.basic.consume(
@@ -113,7 +111,7 @@ class RPC_Client(object):
         self.queue[message.correlation_id] = None
 
         # Publish the RPC request.
-        message.publish(routing_key=self.rpc_queue)
+        message.publish(routing_key=self.params["queue"])
 
         # Return the Unique ID used to identify the request.
         return message.correlation_id

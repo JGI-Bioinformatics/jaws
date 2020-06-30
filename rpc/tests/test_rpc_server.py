@@ -5,6 +5,7 @@ test_config = {
     "user": "blightyear",
     "password": "woody1",
     "vhost": "test",
+    "queue": "test_rpc",
     "max_retries": "3",
     "num_threads": "5",
 }
