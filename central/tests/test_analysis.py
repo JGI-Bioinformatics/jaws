@@ -22,22 +22,22 @@ db = jaws
 client_id = ZZZZ
 
 [SITE:LBNL]
-amqp_host = rmq.foo.com
+amqp_host = rmq.jaws.gov
 amqp_user = jaws
 amqp_password = passw0rd2
-amqp_vhost =
-amqp_queue = jaws_rpc
+amqp_vhost = jaws
+amqp_queue = lbnl_rpc
 globus_endpoint = XXXX
 globus_basepath = "/global/scratch/jaws"
 staging_subdir = "staging"
 max_ram_gb = 1024
 
 [SITE:NERSC]
-amqp_host = rmq.bar.com
+amqp_host = rmq.jaws.gov
 amqp_user = jaws
-amqp_password = passw0rd3
-amqp_vhost =
-amqp_queue = jaws_rpc
+amqp_password = passw0rd2
+amqp_vhost = jaws
+amqp_queue = nersc_rpc
 globus_endpoint = YYYY
 globus_basepath = "/"
 staging_subdir = "/global/scratch/jaws/staging"

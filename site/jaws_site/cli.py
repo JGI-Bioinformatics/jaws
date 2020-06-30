@@ -62,7 +62,7 @@ def jtm_rpc() -> None:
     from jaws_site import rpc_operations
     from jaws_rpc import rpc_server
 
-    jtm_rpc_server_params = config.conf.get_section("JTM_RPC_SERVER")
+    jtm_rpc_server_params = config.conf.get_section("LOCAL_RPC_SERVER")
     app = rpc_server.RpcServer(jtm_rpc_server_params, rpc_operations.operations)
     app.start_server()
 
