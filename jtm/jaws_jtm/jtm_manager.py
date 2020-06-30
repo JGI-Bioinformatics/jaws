@@ -136,14 +136,15 @@ class WorkerResultReceiver(JtmAmqpstormBase):
             if not STANDALONE:
                 status_now = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
                                              % dict(task_id=task_id), debug=False)
-                logger.debug(f"status change msg: {status_now} => succeed/failed")
-                logger.debug(f"status now = {status_now}")
+                logger.debug(f"status change msg {task_id}: {status_now} => succeed/failed")
+                logger.debug(f"status now {task_id} = {status_now}")
                 if status_now in (self.task_status["ready"],
                                   self.task_status["queued"],
                                   self.task_status["pending"],
                                   self.task_status["running"]):
                     ret_status = 4 if task_status_int > 0 else -2
                     if status_now == self.task_status["ready"]:
+                        logger.debug("process result -->")
                         send_update_task_status_msg(task_id, TASK_STATUS["ready"], TASK_STATUS["queued"])
                         db.execute(JTM_SQL["update_runs_status_by_taskid"]
                                    % dict(status_id=TASK_STATUS["queued"],
@@ -151,6 +152,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                                           now=time.strftime("%Y-%m-%d %H:%M:%S")),
                                    debug=DEBUG)
                         db.commit()
+                        logger.debug("process result -->")
                         send_update_task_status_msg(task_id, TASK_STATUS["queued"], TASK_STATUS["pending"])
                         db.execute(JTM_SQL["update_runs_status_by_taskid"]
                                    % dict(status_id=TASK_STATUS["pending"],
@@ -158,6 +160,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                                           now=time.strftime("%Y-%m-%d %H:%M:%S")),
                                    debug=DEBUG)
                         db.commit()
+                        logger.debug("process result -->")
                         send_update_task_status_msg(task_id, TASK_STATUS["pending"], TASK_STATUS["running"])
                         db.execute(JTM_SQL["update_runs_status_by_taskid"]
                                    % dict(status_id=TASK_STATUS["running"],
@@ -166,6 +169,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                                    debug=DEBUG)
                         db.commit()
                     elif status_now == self.task_status["queued"]:
+                        logger.debug("process result -->")
                         send_update_task_status_msg(task_id, TASK_STATUS["queued"], TASK_STATUS["pending"])
                         db.execute(JTM_SQL["update_runs_status_by_taskid"]
                                    % dict(status_id=TASK_STATUS["pending"],
@@ -173,6 +177,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                                           now=time.strftime("%Y-%m-%d %H:%M:%S")),
                                    debug=DEBUG)
                         db.commit()
+                        logger.debug("process result -->")
                         send_update_task_status_msg(task_id, TASK_STATUS["pending"], TASK_STATUS["running"])
                         db.execute(JTM_SQL["update_runs_status_by_taskid"]
                                    % dict(status_id=TASK_STATUS["running"],
@@ -181,6 +186,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                                    debug=DEBUG)
                         db.commit()
                     elif status_now == self.task_status["pending"]:
+                        logger.debug("process result -->")
                         send_update_task_status_msg(task_id, TASK_STATUS["pending"], TASK_STATUS["running"])
                         db.execute(JTM_SQL["update_runs_status_by_taskid"]
                                    % dict(status_id=TASK_STATUS["running"],
@@ -189,6 +195,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                                    debug=DEBUG)
                         db.commit()
 
+                    logger.debug("process result -->")
                     send_update_task_status_msg(task_id, TASK_STATUS["running"], ret_status,
                                                 fail_code=done_flag if done_flag < 0 else None)
 
@@ -570,22 +577,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
 
                         # handle "pending"
                         if task_id > 0 and root_proc_id == child_proc_id and slurm_job_id > 0:
-                            logger.debug("Task %d status ==> pending" % task_id)
-                            db = DbSqlMysql(config=CONFIG)
-                            if not STANDALONE:
-                                status_now = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
-                                                             % dict(task_id=task_id),
-                                                             debug=False)
-                                logger.debug(f"status change msg: {status_now} => pending")
-                                if status_now == TASK_STATUS["queued"]:
-                                    send_update_task_status_msg(task_id, status_now, TASK_STATUS["pending"])
-                            db.execute(JTM_SQL["update_runs_status_to_pending_by_taskid"]
-                                       % dict(status_id=TASK_STATUS["pending"],
-                                              task_id=task_id,
-                                              worker_id=a_worker_id),
-                                       debug=DEBUG)
-                            db.commit()
-                            db.close()
+                            pass
                         elif task_id > 0 and root_proc_id != child_proc_id:  # if user process processing started
                             logger.debug("Task %d status ==> running" % task_id)
                             datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -613,9 +605,11 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                                                  % dict(task_id=task_id),
                                                                  debug=False)
 
-                                    logger.debug(f"status change msg: {status_now} => running")
+                                    logger.debug("recv worker hb -->")
+                                    logger.debug(f"status change msg {task_id}: {status_now} => running")
                                     if status_now == TASK_STATUS["pending"]:
                                         send_update_task_status_msg(task_id, status_now, TASK_STATUS["running"])
+
                                 db.execute(JTM_SQL["update_runs_status_to_running_by_taskid"]
                                            % dict(status_id=TASK_STATUS["running"],
                                                   task_id=task_id,
@@ -751,7 +745,7 @@ def process_task_request(msg):
             inner_task_request_queue = jtm_inner_request_q + ".small"
 
     # Deal with custom pool of workers
-    last_tasK_id = -1
+    last_task_id = -1
     b_failed_to_request_worker = False
     w_int = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
 
@@ -942,11 +936,11 @@ def process_task_request(msg):
             else:
                 logger.critical("Failed to execute the command, %s" % (sbatch_cmd_str))
                 b_failed_to_request_worker = True
-                last_tasK_id = TASK_STATUS["invalidtask"]
+                last_task_id = TASK_STATUS["invalidtask"]
                 break
 
     if not b_failed_to_request_worker:
-        last_tasK_id = -1
+        last_task_id = -1
 
         # Fixme: mysql connection.py IndexError: bytearray index out of range
         # note: seems like mysql pool connection error
@@ -960,9 +954,9 @@ def process_task_request(msg):
                            % (user_task_cmd, output_file, "0", 0,
                               CONFIG.constants.TASK_TYPE[task_type]))
                 db.commit()
-                last_tasK_id = db.selectScalar(JTM_SQL["select_last_insert_id"])
+                last_task_id = db.selectScalar(JTM_SQL["select_last_insert_id"])
                 db.close()
-                logger.debug("last_tasK_id = %d" % last_tasK_id)
+                logger.debug("last_task_id = %d" % last_task_id)
             except Exception as e:
                 logger.critical(e)
                 logger.critical("Failed to insert tasks table for new user task.")
@@ -974,10 +968,10 @@ def process_task_request(msg):
         while success is not True:
             success = True
             try:
-                logger.debug("Task %d status ==> ready" % last_tasK_id)
+                logger.debug("Task %d status ==> ready" % last_task_id)
                 db = DbSqlMysql(config=CONFIG)
                 db.execute(JTM_SQL["insert_runs_tid_sid"]
-                           % dict(task_id=last_tasK_id,
+                           % dict(task_id=last_task_id,
                                   status_id=TASK_STATUS["ready"]))
                 db.commit()
                 db.close()
@@ -989,15 +983,17 @@ def process_task_request(msg):
                 time.sleep(1.0)
 
         # if it successfully updates runs table and gets a task id
-        if last_tasK_id != -1:
+        if last_task_id != -1:
             db = DbSqlMysql(config=CONFIG)
             if not STANDALONE:
-                send_update_task_status_msg(last_tasK_id, None, TASK_STATUS["ready"])
-                logger.debug("status change msg: '' => ready")
+                logger.debug("process task request -->")
+                logger.debug(f"status change msg {last_task_id}: '' => ready")
+                send_update_task_status_msg(last_task_id, TASK_STATUS["created"], TASK_STATUS["ready"])
+
             task_status_int = int(db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
-                                                  % dict(task_id=last_tasK_id)))
+                                                  % dict(task_id=last_task_id)))
             b_already_canceled = int(db.selectScalar(JTM_SQL["select_cancelled_runs_by_taskid"]
-                                                     % dict(task_id=last_tasK_id)))
+                                                     % dict(task_id=last_task_id)))
             db.close()
             logger.debug(f"current task status = {task_status_int}")
 
@@ -1008,17 +1004,19 @@ def process_task_request(msg):
                 if task_status_int != TASK_STATUS["terminated"]:
                     db = DbSqlMysql(config=CONFIG)
                     db.execute(JTM_SQL["update_tasks_doneflag_by_taskid"]
-                               % dict(task_id=last_tasK_id,
+                               % dict(task_id=last_task_id,
                                       done_flag=TASK_STATUS["terminated"]))
                     db.commit()
                     db.close()
                     if not STANDALONE:
-                        send_update_task_status_msg(last_tasK_id, task_status_int, TASK_STATUS["failed"],
-                                                    fail_code=CONFIG.constants.DONE_FLAGS["terminated"])
+                        logger.debug("process task request -->")
+                        logger.debug(f"status change msg {last_task_id}: {task_status_int} => terminated")
+                        send_update_task_status_msg(last_task_id, task_status_int, TASK_STATUS["failed"],
+                                                    fail_code=TASK_STATUS["terminated"])
             else:
                 # Prepare msg to jtm-worker
                 msg_to_send_dict = {}
-                msg_to_send_dict["task_id"] = last_tasK_id
+                msg_to_send_dict["task_id"] = last_task_id
                 msg_to_send_dict["user_cmd"] = user_task_cmd
                 msg_to_send_dict["output_files"] = output_file
                 msg_to_send_dict["done_flag"] = 0
@@ -1061,29 +1059,34 @@ def process_task_request(msg):
                     raise OSError(2, 'Failed to send a request to a worker')
 
                 # Just a little gap b/w ready and queued
-                time.sleep(CONFIG.configparser.getfloat("JTM", "task_stat_update_interval"))
+                # time.sleep(CONFIG.configparser.getfloat("JTM", "task_stat_update_interval"))
 
                 # This TASK_STATUS["queued"] means it's queued to jtm task queue
                 # TASK_STATUS["pending"] means node requested to slurm
                 # TASK_STATUS["running"] means task processing started
                 try:
-                    logger.debug("Task %d status ==> queued" % last_tasK_id)
+                    logger.debug("Task %d status ==> queued" % last_task_id)
                     db = DbSqlMysql(config=CONFIG)
                     if not STANDALONE:
                         status_now = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
-                                                     % dict(task_id=last_tasK_id),
+                                                     % dict(task_id=last_task_id),
                                                      debug=False)
-                        logger.debug(f"status change msg: {status_now} => queued")
-                        if status_now == TASK_STATUS["ready"]:
-                            send_update_task_status_msg(last_tasK_id, status_now, TASK_STATUS["queued"])
-                    db.execute(JTM_SQL["update_runs_tid_to_queued_startdate_by_tid"]
-                               % dict(status_id=TASK_STATUS["queued"],
-                                      now=time.strftime("%Y-%m-%d %H:%M:%S"),
-                                      task_id=last_tasK_id),
-                               debug=False)
-                    db.commit()
+                        logger.debug("process task request -->")
+                        logger.debug(f"status change msg {last_task_id}: {status_now} => queued")
+                        if status_now in (TASK_STATUS["ready"], TASK_STATUS["success"]) or status_now < 0:
+                            send_update_task_status_msg(last_task_id, status_now, TASK_STATUS["queued"])
+
+                    # Note: only when the previous status == ready
+                    if status_now == TASK_STATUS["ready"]:
+                        db.execute(JTM_SQL["update_runs_status_by_taskid"]
+                                   % dict(status_id=TASK_STATUS["queued"],
+                                          now=time.strftime("%Y-%m-%d %H:%M:%S"),
+                                          task_id=last_task_id),
+                                   debug=False)
+                        db.commit()
+
                     status_now = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
-                                                 % dict(task_id=last_tasK_id),
+                                                 % dict(task_id=last_task_id),
                                                  debug=False)
                     logger.debug(f"current task status = {status_now}")
                     db.close()
@@ -1098,25 +1101,29 @@ def process_task_request(msg):
             db = DbSqlMysql(config=CONFIG)
             if not STANDALONE:
                 status_now = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
-                                             % dict(task_id=last_tasK_id),
+                                             % dict(task_id=last_task_id),
                                              debug=False)
-                logger.debug(f"status change msg: {status_now} => pending")
-                if status_now == TASK_STATUS["queued"]:
-                    send_update_task_status_msg(last_tasK_id, status_now, TASK_STATUS["pending"])
+                logger.debug("process task request -->")
+                logger.debug(f"status change msg {last_task_id}: {status_now} => pending")
+                if status_now in (TASK_STATUS["queued"],  TASK_STATUS["success"]) or status_now < 0:
+                    send_update_task_status_msg(last_task_id, status_now, TASK_STATUS["pending"])
 
-            db.execute(JTM_SQL["update_runs_status_by_taskid"]
-                       % dict(status_id=TASK_STATUS["pending"],
-                              now=time.strftime("%Y-%m-%d %H:%M:%S"),
-                              task_id=last_tasK_id),
-                       debug=False)
-            db.commit()
+            # Note: only when the previous status == queued
+            if status_now == TASK_STATUS["queued"]:
+                db.execute(JTM_SQL["update_runs_status_by_taskid"]
+                           % dict(status_id=TASK_STATUS["pending"],
+                                  now=time.strftime("%Y-%m-%d %H:%M:%S"),
+                                  task_id=last_task_id),
+                           debug=False)
+                db.commit()
+
             status_now = db.selectScalar(JTM_SQL["select_status_runs_by_taskid"]
-                                         % dict(task_id=last_tasK_id),
+                                         % dict(task_id=last_task_id),
                                          debug=False)
             logger.debug(f"current task status = {status_now}")
             db.close()
 
-        return last_tasK_id
+        return last_task_id
 
 
 # -------------------------------------------------------------------------------
@@ -1262,6 +1269,8 @@ def process_task_kill(task_id):
         # because worker id and pid is not known yet
 
         if not STANDALONE:
+            logger.debug("task kill -->")
+            logger.debug(f"status change msg {task_id}: {status_now} => terminated")
             send_update_task_status_msg(task_id, status_now, TASK_STATUS["failed"],
                                         fail_code=TASK_STATUS["terminated"])
 
@@ -1489,6 +1498,8 @@ def task_kill_proc():
                 db.close()
 
                 if not STANDALONE:
+                    logger.debug("task kill proc -->")
+                    logger.debug(f"status change msg {tid}: '' => terminated")
                     send_update_task_status_msg(tid, None, TASK_STATUS["failed"],
                                                 fail_code=TASK_STATUS["terminated"])
 

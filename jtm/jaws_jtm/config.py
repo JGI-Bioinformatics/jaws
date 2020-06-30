@@ -12,7 +12,7 @@ DEFAULT_CONFIG_FILE = 'jtm.ini'
 # CONSTANTS
 # -------------------------------------------------------------------------------------------
 class JtmConstants():
-    VERSION = "6.1.4"
+    VERSION = "6.1.5"
 
     # Supported cluster
     COMPUTE_RESOURCES = ["cori",  # cori @ NERSC
@@ -32,7 +32,8 @@ class JtmConstants():
                  "remove_pool": 100
                  }
 
-    TASK_STATUS = {"ready": 0,
+    TASK_STATUS = {"created": 5,
+                   "ready": 0,
                    "queued": 1,
                    "pending": 2,
                    "running": 3,
