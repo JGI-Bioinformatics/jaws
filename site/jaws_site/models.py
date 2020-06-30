@@ -43,10 +43,9 @@ class Run_Log(Base):
     """
 
     __tablename__ = "run_logs"
-    id = Column(Integer, primary_key=True)
-    run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
-    status_from = Column(String(32), nullable=False)
-    status_to = Column(String(32), nullable=False)
+    run_id = Column(Integer, ForeignKey("runs.id"), primary_key=True)
+    status_from = Column(String(32), primary_key=True)
+    status_to = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=True)
 
@@ -62,14 +61,13 @@ class Job_Log(Base):
     """
 
     __tablename__ = "job_logs"
-    id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("runs.id"), nullable=True)
     cromwell_run_id = Column(String(36), nullable=False)
-    cromwell_job_id = Column(Integer, nullable=True)
+    cromwell_job_id = Column(Integer, primary_key=True)
     task_name = Column(String(128), nullable=True)
     attempt = Column(Integer, nullable=True)
-    status_from = Column(String(32), nullable=False)
-    status_to = Column(String(32), nullable=False)
+    status_from = Column(String(32), primary_key=True)
+    status_to = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=True)
 

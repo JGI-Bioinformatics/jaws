@@ -55,6 +55,7 @@ def _failure(code, message=None):
 
 # RPC OPERATIONS:
 
+
 def server_status(params):
     """Return the current status of the Cromwell server.
 
@@ -254,7 +255,30 @@ def update_job_status(params):
     reason = None
     if "reason" in params:
         reason = params["reason"]
-    logger.debug(f"Cromwell run:job {cromwell_run_id}:{cromwell_job_id} now {status_to}")
+    logger.debug(
+        f"Cromwell run:job {cromwell_run_id}:{cromwell_job_id} now {status_to}"
+    )
+
+    # CHECK IF ALREADY EXISTS
+    try:
+        session = Session()
+        job_log = (
+            session.query(Job_Log)
+            .filter_by(
+                cromwell_job_id=cromwell_job_id,
+                status_from=status_from,
+                status_to=status_to,
+            )
+            .one_or_none()
+        )
+    except Exception as error:
+        logger.exception(f"Failed to query job_log table: {error}")
+        session.close()
+        return _failure(500, f"Failed to query job_log table: {error}")
+    if job_log:
+        # this is a duplicate message, ack and don't save
+        session.close()
+        return _success()
 
     # CREATE NEW job_log ENTRY
     try:
@@ -268,10 +292,10 @@ def update_job_status(params):
         )
     except Exception as error:
         logger.exception(f"Failed to create job_log object for {params}: {error}")
+        session.close()
         return _failure(500, f"Failed to create job_log object for {params}: {error}")
     try:
         logger.debug(f"Job update: {cromwell_run_id}:{cromwell_job_id} now {status_to}")
-        session = Session()
         session.add(job_log)
         session.commit()
         session.close()
@@ -297,9 +321,23 @@ operations = {
             "output_dir",
         ],
     },
-    "run_metadata": {"function": run_metadata, "required_params": ["user_id", "cromwell_run_id"]},
-    "cancel_run": {"function": cancel_run, "required_params": ["user_id", "cromwell_run_id"]},
+    "run_metadata": {
+        "function": run_metadata,
+        "required_params": ["user_id", "cromwell_run_id"],
+    },
+    "cancel_run": {
+        "function": cancel_run,
+        "required_params": ["user_id", "cromwell_run_id"],
+    },
     "output": {"function": output, "required_params": ["user_id", "cromwell_run_id"]},
-    "update_job_status": {"function": update_job_status, "required_params": [
-        "cromwell_run_id", "cromwell_job_id", "status_from", "status_to", "timestamp"]}
+    "update_job_status": {
+        "function": update_job_status,
+        "required_params": [
+            "cromwell_run_id",
+            "cromwell_job_id",
+            "status_from",
+            "status_to",
+            "timestamp",
+        ],
+    },
 }
