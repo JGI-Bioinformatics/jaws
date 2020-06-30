@@ -64,6 +64,10 @@ def update_run_status(params):
     # update Run
     session = Session()
     run = session.query(Run).get(run_id)
+    if run.status == status:
+        # ignore redundant state change (duplicate message)
+        session.close()
+        return _success()
     run.status = status
     run.updated = timestamp
     if status == "submitted":
@@ -96,13 +100,36 @@ def update_run_logs(params):
     logger.debug(f"Site {site_id} sent {num_logs} run logs")
     session = Session()
     for log_entry in logs:
+        # INIT VARS
+        run_id = int(log_entry[0])
+        status_from = log_entry[1]
+        status_to = log_entry[2]
+        timestamp = datetime.strptime(log_entry[3], "%Y-%m-%d %H:%M:%S")
+        reason = log_entry[4]
+
+        # CHECK IF ALREADY EXISTS
+        try:
+            log = (
+                session.query(Run_Log)
+                .filter_by(run_id=run_id, status_from=status_from, status_to=status_to)
+                .one_or_none()
+            )
+        except Exception as error:
+            logger.exception(f"Failed to query run_log table: {error}")
+            session.close()
+            return _failure(500, f"Failed to query run_log table: {error}")
+        if log:
+            # ignore redunant state transition (duplicate message)
+            continue
+
+        # INSERT LOG
         try:
             log = Run_Log(
-                run_id=int(log_entry[0]),
-                status_from=log_entry[1],
-                status_to=log_entry[2],
-                timestamp=datetime.strptime(log_entry[3], "%Y-%m-%d %H:%M:%S"),
-                reason=log_entry[4],
+                run_id=run_id,
+                status_from=status_from,
+                status_to=status_to,
+                timestamp=timestamp,
+                reason=reason,
             )
             session.add(log)
         except Exception as error:
@@ -132,16 +159,46 @@ def update_job_logs(params):
     logger.debug(f"Site {site_id} send {num_logs} job logs")
     session = Session()
     for log_entry in logs:
+        # INIT VARS
+        run_id = int(log_entry[0])
+        task_name = log_entry[1]
+        attempt = int(log_entry[2])
+        cromwell_job_id = int(log_entry[3])
+        status_from = log_entry[4]
+        status_to = log_entry[5]
+        timestamp = datetime.strptime(log_entry[6], "%Y-%m-%d %H:%M:%S")
+        reason = log_entry[6]
+
+        # CHECK IF ALREADY EXISTS
+        try:
+            log = (
+                session.query(Job_Log)
+                .filter_by(
+                    cromwell_job_id=cromwell_job_id,
+                    status_from=status_from,
+                    status_to=status_to,
+                )
+                .one_or_none()
+            )
+        except Exception as error:
+            logger.exception(f"Failed to query job_log table: {error}")
+            session.close()
+            return _failure(500, f"Failed to query job_log table: {error}")
+        if log:
+            # ignore redunant state transition (duplicate message)
+            continue
+
+        # INSERT LOG
         try:
             log = Job_Log(
-                run_id=int(log_entry[0]),
-                task_name=log_entry[1],
-                attempt=int(log_entry[2]),
-                cromwell_job_id=int(log_entry[3]),
-                status_from=log_entry[4],
-                status_to=log_entry[5],
-                timestamp=datetime.strptime(log_entry[6], "%Y-%m-%d %H:%M:%S"),
-                reason=log_entry[6],
+                run_id=run_id,
+                task_name=task_name,
+                attempt=attempt,
+                cromwell_job_id=cromwell_job_id,
+                status_from=status_from,
+                status_to=status_to,
+                timestamp=timestamp,
+                reason=reason,
             )
             session.add(log)
         except Exception as error:

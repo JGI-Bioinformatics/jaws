@@ -12,6 +12,7 @@ DEFAULT_PORT = 5672
 DEFAULT_WAIT_INTERVAL = 0.25
 DEFAULT_MAX_WAIT = 10
 RPC_QUEUE = "rpc"
+MESSAGE_TTL = "10"  # expires in seconds
 
 
 class RPC_Client(object):
@@ -104,7 +105,7 @@ class RPC_Client(object):
         payload = json.dumps(request, default=str)
 
         # Create the Message object.
-        message = Message.create(self.channel, payload)
+        message = Message.create(self.channel, payload, properties={"expiration": MESSAGE_TTL})
         message.reply_to = self.callback_queue
 
         # Create an entry in our local dictionary, using the automatically

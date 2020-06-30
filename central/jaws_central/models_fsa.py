@@ -86,9 +86,7 @@ class Run(db.Model):
     site_id = db.Column(db.String(8), nullable=False)
     submitted = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = db.Column(
-        db.DateTime,
-        default=same_as("submitted"),
-        onupdate=datetime.datetime.utcnow,
+        db.DateTime, default=same_as("submitted"), onupdate=datetime.datetime.utcnow,
     )
     input_site_id = db.Column(db.String(8), nullable=False)
     input_endpoint = db.Column(db.String(36), nullable=False)
@@ -108,10 +106,9 @@ class Run_Log(db.Model):
     """Run state transitions log"""
 
     __tablename__ = "run_logs"
-    id = db.Column(db.Integer, primary_key=True)
-    run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), nullable=False)
-    status_from = db.Column(db.String(32), nullable=False)
-    status_to = db.Column(db.String(32), nullable=False)
+    run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), primary_key=True)
+    status_from = db.Column(db.String(32), primary_key=True)
+    status_to = db.Column(db.String(32), primary_key=True)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     reason = db.Column(db.String(1024), nullable=True)
 
@@ -119,20 +116,19 @@ class Run_Log(db.Model):
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
-        return f"<Run_Log {self.id}>"
+        return f"<Run_Log {self.run_id}:{self.status_from}:{self.status_to}>"
 
 
 class Job_Log(db.Model):
     """A Run has many Tasks."""
 
     __tablename__ = "job_logs"
-    id = db.Column(db.Integer, primary_key=True)
     run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), nullable=False)
     task_name = db.Column(db.String(128), nullable=False)
     attempt = db.Column(db.Integer, nullable=False)
-    cromwell_job_id = db.Column(db.Integer, nullable=False)
-    status_from = db.Column(db.String(32), nullable=False)
-    status_to = db.Column(db.String(32), nullable=False)
+    cromwell_job_id = db.Column(db.Integer, primary_key=True)
+    status_from = db.Column(db.String(32), primary_key=True)
+    status_to = db.Column(db.String(32), primary_key=True)
     timestamp = db.Column(db.DateTime, nullable=False)
     reason = db.Column(db.String(1024), nullable=True)
 
@@ -140,4 +136,4 @@ class Job_Log(db.Model):
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
-        return f"<Job_Log {self.id}>"
+        return f"<Job_Log {self.cromwell_job_id}:{self.status_from}:{self.status_to}>"
