@@ -1,5 +1,5 @@
 """
-RPC functions.  Most of these simply wrap the localhost Cromwell REST functions.
+RPC functions for Central.  Most of these simply wrap the localhost Cromwell REST functions.
 """
 
 import requests
@@ -7,11 +7,10 @@ from http.client import responses
 import logging
 import os
 import collections
-from datetime import datetime
 from jaws_site import config, wfcopy
 from jaws_site.cromwell import Cromwell
 from jaws_site.database import Session
-from jaws_site.models import Run, Job_Log
+from jaws_site.models import Run
 
 
 MAX_LINES_PER_OUTFILE = 5000
@@ -245,66 +244,6 @@ def submit(params):
     return _success()
 
 
-def update_job_status(params):
-    """JTM shall post changes in job status."""
-    cromwell_run_id = params["cromwell_run_id"]  # Cromwell's run/workflow UUID
-    cromwell_job_id = params["cromwell_job_id"]  # JTM's task_id
-    status_from = params["status_from"]
-    status_to = params["status_to"]
-    timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
-    reason = None
-    if "reason" in params:
-        reason = params["reason"]
-    logger.debug(
-        f"Cromwell run:job {cromwell_run_id}:{cromwell_job_id} now {status_to}"
-    )
-
-    # CHECK IF ALREADY EXISTS
-    try:
-        session = Session()
-        job_log = (
-            session.query(Job_Log)
-            .filter_by(
-                cromwell_job_id=cromwell_job_id,
-                status_from=status_from,
-                status_to=status_to,
-            )
-            .one_or_none()
-        )
-    except Exception as error:
-        logger.exception(f"Failed to query job_log table: {error}")
-        session.close()
-        return _failure(500, f"Failed to query job_log table: {error}")
-    if job_log:
-        # this is a duplicate message, ack and don't save
-        session.close()
-        return _success()
-
-    # CREATE NEW job_log ENTRY
-    try:
-        job_log = Job_Log(
-            cromwell_run_id=cromwell_run_id,
-            cromwell_job_id=cromwell_job_id,
-            status_from=status_from,
-            status_to=status_to,
-            timestamp=timestamp,
-            reason=reason,
-        )
-    except Exception as error:
-        logger.exception(f"Failed to create job_log object for {params}: {error}")
-        session.close()
-        return _failure(500, f"Failed to create job_log object for {params}: {error}")
-    try:
-        logger.debug(f"Job update: {cromwell_run_id}:{cromwell_job_id} now {status_to}")
-        session.add(job_log)
-        session.commit()
-        session.close()
-    except Exception as error:
-        logger.exception(f"Failed to insert job_log: {job_log}: {error}")
-        return _failure(500, f"Failed to insert job_log: {job_log}: {error}")
-    return _success()
-
-
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -330,14 +269,4 @@ operations = {
         "required_params": ["user_id", "cromwell_run_id"],
     },
     "output": {"function": output, "required_params": ["user_id", "cromwell_run_id"]},
-    "update_job_status": {
-        "function": update_job_status,
-        "required_params": [
-            "cromwell_run_id",
-            "cromwell_job_id",
-            "status_from",
-            "status_to",
-            "timestamp",
-        ],
-    },
 }

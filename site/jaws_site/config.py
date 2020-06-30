@@ -17,7 +17,15 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
     """Configuration singleton class"""
 
     defaults = {
-        "SITE_RPC_SERVER": {
+        "JTM_RPC_SERVER": {
+            "host": "localhost",
+            "port": "5672",
+            "vhost": "site",
+            "user": "guest",  # default from docker container
+            "password": "guest",  # default from docker container
+            "num_threads": 5,
+            "max_retries": 5},
+        "CENTRAL_RPC_SERVER": {
             "host": "localhost",
             "port": "5672",
             "vhost": "site",

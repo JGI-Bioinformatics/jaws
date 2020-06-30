@@ -37,8 +37,16 @@ startretries=3
 autorestart=unexpected
 redirect_stderr=true
 
-[program:jaws-site-rpc]
-command={{shimpath}}/jaws-site-rpc-dev
+[program:jaws-site-jtm-rpc]
+command={{shimpath}}/jaws-site-jtm-rpc-dev
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+redirect_stderr=true
+
+[program:jaws-site-central-rpc]
+command={{shimpath}}/jaws-site-central-rpc-dev
 numprocs=1
 startsecs=3
 startretries=3
@@ -46,5 +54,5 @@ autorestart=unexpected
 redirect_stderr=true
 
 [group:jaws-dev]
-programs=jaws-site-daemon,jaws-site-rpc
+programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
 priority=999

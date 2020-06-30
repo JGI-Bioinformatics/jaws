@@ -21,11 +21,18 @@ port = 3306
 user = jaws_nersc
 password = $JAWS_SITE_CORI_DB_PW
 db = jaws_nersc_dev
-[SITE_RPC_SERVER]
+[JTM_RPC_SERVER]
 user = jaws_nersc
 password = $JAWS_SITE_CORI_RMQ_PW
 host = rmq.lbl.gov
-vhost = jaws_nersc_dev
+vhost = jaws_nersc_jtm_dev
+num_threads = 5
+max_retries = 3
+[CENTRAL_RPC_SERVER]
+user = jaws_nersc
+password = $JAWS_SITE_CORI_RMQ_PW
+host = rmq.lbl.gov
+vhost = jaws_nersc_central_dev
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
@@ -117,7 +124,7 @@ port = 5672
 #port = 5672
 [SITE_RPC_CLIENT]
 host = rmq.lbl.gov
-vhost = jaws_nersc_dev
+vhost = jaws_nersc_jtm_dev
 user = jtm_nersc
 password = $JAWS_JTM_CORI_RMQ_PW
 port = 5672

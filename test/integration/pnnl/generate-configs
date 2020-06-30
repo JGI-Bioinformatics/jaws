@@ -19,11 +19,18 @@ port = 3306
 user = jgi
 password = $JAWS_SITE_PNNL_DB_PW
 db = site
-[SITE_RPC_SERVER]
+[JTM_RPC_SERVER]
 user = jaws
 password = $JAWS_JTM_PNNL_RMQ_PW
 host = localhost
 vhost = jaws
+num_threads = 5
+max_retries = 3
+[CENTRAL_RPC_SERVER]
+user = jaws
+password = $JAWS_SITE_PNNL_RMQ_PW
+host = rmq.lbl.gov
+vhost = jaws_pnnl_central_dev
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]

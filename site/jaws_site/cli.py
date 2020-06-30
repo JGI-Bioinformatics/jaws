@@ -46,21 +46,24 @@ def cli(config_file: str, log_file: str, log_level: str):
 
 
 @cli.command()
-def rpc() -> None:
-    """Start RPC server."""
-
-    # create tables if not exists
-    from jaws_site.database import engine, Session
-    from jaws_site import models
-    session = Session()
-    models.create_all(engine, session)
-
-    # start RPC server
+def central_rpc() -> None:
+    """Start RPC server for Central."""
     from jaws_site import analysis
     from jaws_rpc import rpc_server
 
-    site_rpc_server_params = config.conf.get_section("SITE_RPC_SERVER")
-    app = rpc_server.RpcServer(site_rpc_server_params, analysis.operations)
+    central_rpc_server_params = config.conf.get_section("CENTRAL_RPC_SERVER")
+    app = rpc_server.RpcServer(central_rpc_server_params, analysis.operations)
+    app.start_server()
+
+
+@cli.command()
+def jtm_rpc() -> None:
+    """Start RPC server for JTM."""
+    from jaws_site import rpc_operations
+    from jaws_rpc import rpc_server
+
+    jtm_rpc_server_params = config.conf.get_section("JTM_RPC_SERVER")
+    app = rpc_server.RpcServer(jtm_rpc_server_params, rpc_operations.operations)
     app.start_server()
 
 
