@@ -159,7 +159,8 @@ class Configuration(metaclass=Singleton):
             "port": s["port"],
             "user": s["user"],
             "password": s["password"],
-            "vhost": s["vhost"]
+            "vhost": s["vhost"],
+            "queue": s["queue"]
         }
         return params
 
