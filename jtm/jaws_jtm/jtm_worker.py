@@ -205,9 +205,7 @@ class TaskRunner(JtmAmqpstormBase):
         logger.info("Received a task, %r" % (msg_unzipped,))
         logger.debug("Return queue = %s", message.reply_to)
 
-        result_dict = {}
-
-        run_user_task(msg_unzipped, result_dict)
+        result_dict = run_user_task(msg_unzipped)
 
         json_data = json.dumps(result_dict)
         logger.debug("Reply msg with result: %s" % str(json_data))
@@ -251,7 +249,7 @@ class TaskRunner(JtmAmqpstormBase):
 
 
 # -------------------------------------------------------------------------------
-def run_user_task(msg_unzipped, return_msg):
+def run_user_task(msg_unzipped):
     """
     Run a user command in msg_zipped_to_send
 
@@ -259,6 +257,8 @@ def run_user_task(msg_unzipped, return_msg):
     :param return_msg: msg to return
     :return:
     """
+    return_msg = {}
+
     # Uncompress msg to get a task
     logger.info(msg_unzipped)
     task_id = msg_unzipped["task_id"]
@@ -281,15 +281,23 @@ def run_user_task(msg_unzipped, return_msg):
     p = None
     time_out_in_minute = 0
     done_f = CONFIG.constants.DONE_FLAGS
+    w_int = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
 
     if THIS_WORKER_TYPE != "manual":
         # Wait until WORKER_LIFE_LEFT_IN_MINUTE is updated by worker's HB
+        limit = 0
         if WORKER_LIFE_LEFT_IN_MINUTE.value <= 0:
             while True:
                 logger.debug("worker life: %d", WORKER_LIFE_LEFT_IN_MINUTE.value)
                 if WORKER_LIFE_LEFT_IN_MINUTE.value > 0:
                     break
+                if limit == w_int * 3:
+                    logger.info("Worker timeout.")
+                    return_msg["done_flag"] = str(done_f["failed with timeout"])
+                    return_msg["ret_msg"] = "User task timeout"
+                    return return_msg
                 time.sleep(1)
+                limit += 1
 
         # ex) WORKER_LIFE_LEFT_IN_MINUTE = 20min and TASK_KILL_TIMEOUT_MINUTE = 10min
         # timeout will be set as 10min
@@ -300,6 +308,12 @@ def run_user_task(msg_unzipped, return_msg):
         logger.debug("worker life: %d", WORKER_LIFE_LEFT_IN_MINUTE.value)
         time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - tkill_time)
         logger.info("Timeout in minute: %d", time_out_in_minute)
+
+        if time_out_in_minute <= tkill_time:
+            logger.info("Not enough time to run the task, {}.".format(task_id))
+            return_msg["done_flag"] = str(done_f["failed with timeout"])
+            return_msg["ret_msg"] = "User task timeout"
+            return return_msg
 
     proc_return_code = -1
 
@@ -404,6 +418,8 @@ def run_user_task(msg_unzipped, return_msg):
             return_msg["ret_msg"] = stdout_str
 
     logger.info("Reply msg prepared with result: %s" % str(return_msg))
+
+    return return_msg
 
 
 # -------------------------------------------------------------------------------
