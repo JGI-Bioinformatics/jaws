@@ -48,6 +48,14 @@ def cli(config_file: str, log_file: str, log_level: str):
 @cli.command()
 def rpc() -> None:
     """Start RPC server."""
+
+    # create tables if not exists
+    from jaws_site.database import engine, Session
+    from jaws_site import models
+    session = Session()
+    models.create_all(engine, session)
+
+    # start RPC server
     from jaws_site import analysis
     from jaws_rpc import rpc_server
 
@@ -59,19 +67,17 @@ def rpc() -> None:
 @cli.command()
 def daemon() -> None:
     """Start daemon."""
-    from jaws_site import daemon
 
-    jawsd = daemon.Daemon()
-    jawsd.start_daemon()
-
-
-@cli.command()
-def create_tables() -> None:
-    """Create database tables."""
+    # create tables if not exists
     from jaws_site.database import engine, Session
     from jaws_site import models
     session = Session()
     models.create_all(engine, session)
+
+    # start daemon process
+    from jaws_site import daemon
+    jawsd = daemon.Daemon()
+    jawsd.start_daemon()
 
 
 def jaws():
