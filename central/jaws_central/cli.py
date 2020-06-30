@@ -72,6 +72,16 @@ def auth(port: int) -> None:
     }
     db.init_app(connex.app)
 
+    # create tables if not exists
+    with connex.app.app_context():
+        try:
+            db.create_all()
+            db.session.commit()
+        except Exception as e:
+            logger.exception(f"Failed to create tables: {e}")
+            raise
+
+    # start OAuth server
     connex.run(host="0.0.0.0", port=port, debug=False)
 
 
@@ -101,9 +111,20 @@ def rest(port: int) -> None:
     }
     db.init_app(connex.app)
 
+    # create tables if not exists
+    with connex.app.app_context():
+        try:
+            db.create_all()
+            db.session.commit()
+        except Exception as e:
+            logger.exception(f"Failed to create tables: {e}")
+            raise
+
+    # init RPC clients
     site_rpc_params = config.conf.get_all_sites_rpc_params()
     rpc_index.rpc_index = rpc_index.RPC_Index(site_rpc_params)
 
+    # start REST server
     connex.run(host="0.0.0.0", port=port, debug=False)
 
 
@@ -114,42 +135,6 @@ def rpc() -> None:
     rpc_params = config.conf.get_section("RPC_SERVER")
     app = rpc_server.RpcServer(rpc_params, rpc_operations.operations)
     app.start_server()
-
-
-@cli.command()
-def create_tables() -> None:
-    """Create all database tables"""
-    logger = logging.getLogger(__package__)
-    logger.debug("Creating RDb tables")
-
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
-    connex.add_api("swagger.rest.yml")
-
-    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
-        config.conf.get("DB", "dialect"),
-        config.conf.get("DB", "user"),
-        quote_plus(config.conf.get("DB", "password")),
-        config.conf.get("DB", "host"),
-        config.conf.get("DB", "port"),
-        config.conf.get("DB", "db"),
-    )
-    connex.app.config["SQLALCHEMY_ECHO"] = False
-    connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_pre_ping": True,
-        "pool_recycle": 300,
-    }
-    db.init_app(connex.app)
-
-    with connex.app.app_context():
-        logger.info("Creating all db tables")
-        try:
-            db.create_all()
-            db.session.commit()
-        except Exception as e:
-            logger.exception(f"Failed to create tables: {e}")
-            raise
 
 
 @cli.command()
