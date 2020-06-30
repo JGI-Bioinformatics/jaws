@@ -19,11 +19,18 @@ port = 3306
 user = jaws_lbnl
 password = $JAWS_SITE_LBNL_DB_PW
 db = jaws_lbnl_dev
-[SITE_RPC_SERVER]
+[JTM_RPC_SERVER]
 user = jaws_lbnl
 password = $JAWS_SITE_LBNL_RMQ_PW
 host = rmq.lbl.gov
-vhost = jaws_lbnl_dev
+vhost = jaws_lbnl_jtm_dev
+num_threads = 5
+max_retries = 3
+[CENTRAL_RPC_SERVER]
+user = jaws_lbnl
+password = $JAWS_SITE_LBNL_RMQ_PW
+host = rmq.lbl.gov
+vhost = jaws_lbnl_central_dev
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
@@ -61,6 +68,12 @@ port = 5672
 #user = jaws
 #password = $JAWS_JTM_LBL_RMQ_PW
 #port = 5672
+[SITE_RPC_CLIENT]
+host = rmq.lbl.gov
+vhost = jaws_lbnl_jtm_dev
+user = jtm_lbnl
+password = $JAWS_JTM_LBNL_RMQ_PW
+port = 5672
 [MYSQL]
 host = db.mysql.dev-cattle.stable.spin.nersc.org
 port = 60005

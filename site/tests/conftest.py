@@ -10,9 +10,17 @@ import shutil
 @pytest.fixture
 def config_file(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
-    content = """[SITE_RPC_SERVER]
-host = currenthost
+    content = """[JTM_RPC_SERVER]
+host = localhost
 vhost = site_vhost
+user = jaws
+password = passw0rd1
+num_threads = 5
+max_retries = 3
+
+[CENTRAL_RPC_SERVER]
+host = currenthost
+vhost = eagle
 user = daffy_duck
 password = succotash
 num_threads = 5
@@ -53,7 +61,7 @@ results_subdirectory = results
 @pytest.fixture()
 def partial_config(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
-    content = """[SITE_RPC_SERVER]
+    content = """[CENTRAL_RPC_SERVER]
 host = https://rmq.nersc.gov
 user = bugs_bunney
 password = xqweasdasa
