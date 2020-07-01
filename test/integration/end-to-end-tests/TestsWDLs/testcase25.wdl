@@ -17,9 +17,9 @@ task task1 {
 
     runtime {   
         docker: "ubuntu:16.04"
-        poolname: "referece_db_pool"
-        shared: 0
-        node: 1
+        poolname: "useforalltests"
+        shared: 1
+        node: 1000
         nwpn: 1
         mem: "5G"
         time: "00:10:00"

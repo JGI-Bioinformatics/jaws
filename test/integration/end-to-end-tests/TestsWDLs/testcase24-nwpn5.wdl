@@ -17,8 +17,8 @@ task task1 {
 
     runtime {   
         docker: "ubuntu:16.04"
-        poolname: "referece_db_pool"
-        shared: 0
+        poolname: "useforalltests"
+        shared: 1
         node: 1
         nwpn: 1
         mem: "5G"
@@ -34,6 +34,11 @@ task task2 {
     command {
 		cat ${tmpfile}
     }
+
+	runtime {
+	  poolname: "mogadishu"
+	  nwpn: 5
+	}
 
     output { String outfile = stdout() }
 }

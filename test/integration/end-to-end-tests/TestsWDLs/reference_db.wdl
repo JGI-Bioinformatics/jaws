@@ -1,6 +1,7 @@
 workflow runblastplus_sub {
     File reads
-    String ncbi_nt
+    String ncbi_nt="/refdata"
+
     
     call task1 { input: ncbi_nt = ncbi_nt }
     call task2 { input: tmpfile = task1.outfile }
@@ -17,12 +18,12 @@ task task1 {
 
     runtime {   
         docker: "ubuntu:16.04"
-        poolname: "referece_db_pool"
-        shared: 0
+        poolname: "mysmall"
+        shared: 1
         node: 1
         nwpn: 1
         mem: "5G"
-        time: "00:10:00"
+        time: "01:10:00"
     }
 
     output { File outfile = "tmp.txt" }
