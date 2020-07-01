@@ -11,7 +11,7 @@ from jaws_rpc import jsonrpc_utils
 DEFAULT_PORT = 5672
 DEFAULT_WAIT_INTERVAL = 0.25
 DEFAULT_MAX_WAIT = 10
-MESSAGE_TTL = "10"  # expires in seconds
+DEFAULT_MESSAGE_TTL = None  # expires in sec, if defined
 
 
 class RPC_Client(object):
@@ -40,6 +40,10 @@ class RPC_Client(object):
             self.max_wait = float(self.params["rpc_max_wait"])
         else:
             self.max_wait = DEFAULT_MAX_WAIT
+        if "message_ttl" in self.params:
+            self.message_ttl = int(self.params["message_ttl"])
+        else:
+            self.message_ttl = DEFAULT_MESSAGE_TTL
         for required_param in ["host", "user", "password"]:
             if required_param not in self.params:
                 raise ConfigurationError(f"{required_param} required")
@@ -103,7 +107,10 @@ class RPC_Client(object):
         payload = json.dumps(request, default=str)
 
         # Create the Message object.
-        message = Message.create(self.channel, payload, properties={"expiration": MESSAGE_TTL})
+        properties = {}
+        if self.message_ttl:
+            properties["expiration"] = self.message_ttl
+        message = Message.create(self.channel, payload, properties=properties)
         message.reply_to = self.callback_queue
 
         # Create an entry in our local dictionary, using the automatically
