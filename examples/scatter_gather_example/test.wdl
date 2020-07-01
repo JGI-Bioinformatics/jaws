@@ -24,7 +24,7 @@ task stepA {
     time: "00:10:00"
     mem: "5G"
     poolname: "smallworkerpoolforscattergather"
-    shared: 1
+    shared: 0
     node: 1
     nwpn: 1           
   }

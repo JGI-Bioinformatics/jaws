@@ -18,7 +18,7 @@ task task1 {
     runtime {   
         docker: "ubuntu:16.04"
         poolname: "mysmall"
-        shared: 1
+        shared: 0
         node: 1
         nwpn: 1
         mem: "5G"
