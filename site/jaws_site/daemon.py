@@ -274,7 +274,9 @@ class Daemon:
                 for dname in dirnames:
                     os.chmod(os.path.join(dirpath, dname), 0o0775)
                 for fname in filenames:
-                    os.chmod(os.path.join(dirpath, fname), 0o0664)
+                    path = os.path.join(dirpath, fname)
+                    if os.path.isfile(path):
+                        os.chmod(path, 0o0664)
         self.update_run_status(run, "ready")
 
     def transfer_results(self, run):
