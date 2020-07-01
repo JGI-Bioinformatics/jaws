@@ -17,7 +17,7 @@ task task1 {
 
     runtime {   
         docker: "ubuntu:16.04"
-        poolname: "referece_db_pool"
+        poolname: "testcase20"
         shared: 0
         node: 1
         nwpn: 1

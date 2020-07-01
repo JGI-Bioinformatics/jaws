@@ -17,8 +17,9 @@ task task1 {
 
     runtime {   
         docker: "ubuntu:16.04"
-        poolname: "referece_db_pool"
-        shared: 0
+        poolname: "useforalltests"
+		contraint: "jojo"
+        shared: 1
         node: 1
         nwpn: 1
         mem: "5G"
