@@ -71,12 +71,15 @@ def _rpc_call(user, run_id, method, params={}):
             abort(500, f"Db error; {error}")
         if not current_user.is_admin:
             abort(401, "Access denied; you cannot access to another user's workflow")
-    site_rpc_call = rpc_index.rpc_index.get_client(run.site_id)
+    a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
     params["user_id"] = user
     params["run_id"] = run_id
     params["cromwell_run_id"] = run.cromwell_run_id
     logger.info(f"User {user} RPC {method} params {params}")
-    result = site_rpc_call.request(method, params)
+    try:
+        result = a_site_rpc_client.request(method, params)
+    except Exception as error:
+        logger.exception(f"RPC {method} failed: {error}")
     if "error" in result:
         abort(result["error"]["code"], result["error"]["message"])
     return result["result"], 200
@@ -350,11 +353,19 @@ def submit_run(user):
         "output_endpoint": output_endpoint,
         "output_dir": output_dir,
     }
-    site_rpc_call = rpc_index.rpc_index.get_client(run.site_id)
+    a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
     logger.debug(f"User {user}: submit run: {params}")
-    result = site_rpc_call.request("submit", params)
+    try:
+        result = a_site_rpc_client.request("submit", params)
+    except Exception as error:
+        reason = f"RPC submit failed: {error}"
+        logger.exception(reason)
+        _submission_failed(user, run, reason)
+        abort(500, reason)
     if "error" in result:
-        logger.error(f"Error sending new run to {site_id}: {result['error']['message']}")
+        reason = f"Error sending new run to {site_id}: {result['error']['message']}"
+        logger.error(reason)
+        _submission_failed(user, run, reason)
         abort(result["error"]["code"], result["error"]["message"])
 
     # DONE
@@ -369,6 +380,12 @@ def submit_run(user):
     }
     logger.info(f"User {user}: New run: {result}")
     return result, 201
+
+
+def _submission_failed(user, run, reason):
+    """Cancel upload and update run status"""
+    _cancel_transfer(user, run.upload_task_id, run.id)
+    _update_run_status(run, "submission failed", reason)
 
 
 def _update_run_status(run, new_status, reason=None):
