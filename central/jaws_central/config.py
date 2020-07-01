@@ -160,12 +160,12 @@ class Configuration(metaclass=Singleton):
         s = self.config[section]
         params = {
             "host": s["host"],
-            "port": s.get("port", DEFAULT_AMQP_PORT),
+            "port": int(s.get("port", DEFAULT_AMQP_PORT)),
             "user": s["user"],
             "password": s["password"],
             "vhost": s["vhost"],
             "queue": s["queue"],
-            "message_ttl": s.get("message_ttl", DEFAULT_RPC_MESSAGE_TTL)
+            "message_ttl": int(s.get("message_ttl", DEFAULT_RPC_MESSAGE_TTL))
         }
         return params
 

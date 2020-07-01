@@ -7,6 +7,7 @@ from typing import List
 from jaws_rpc import rpc_client
 
 
+logger = logging.getLogger(__package__)
 rpc_index = None
 
 
@@ -38,7 +39,6 @@ class RPC_Index(metaclass=Singleton):
         :return: RPC_Index object
         :rtype: obj
         """
-        logger = logging.getLogger(__package__)
         for site_id in params:
             logger.info(f"Initializing RPC client for {site_id}: {params}")
             self.clients[site_id] = rpc_client.RPC_Client(params[site_id])

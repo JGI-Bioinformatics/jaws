@@ -9,6 +9,8 @@ import amqpstorm
 
 
 DEFAULT_PORT = 5672
+DEFAULT_NUM_THREADS = 5
+DEFAULT_MAX_RETRIES = 3
 
 
 class InvalidRequest(Exception):
@@ -207,11 +209,14 @@ class Consumer(object):
 class RpcServer(object):
     def __init__(self, params, operations) -> None:
         self.logger = logging.getLogger(__package__)
-        self.params = params
-        self.num_threads = int(params.get("num_threads", 5))
-        self.max_retries = int(params.get("max_retries", 3))
-        if "port" not in self.params:
-            self.params["port"] = DEFAULT_PORT
+        self.params = {}
+        for required_param in ["host", "vhost", "user", "password", "queue"]:
+            if required_param not in params:
+                raise ConfigurationError(f"{required_param} required")
+            self.params[required_param] = params[required_param]
+        self.num_threads = int(params.get("num_threads", DEFAULT_NUM_THREADS))
+        self.max_retries = int(params.get("max_retries", DEFAULT_MAX_RETRIES))
+        self.params["port"] = int(params.get("port", DEFAULT_PORT))
         self.logger.info(
             f"Connecting to host:{params['host']}, vhost:{params['vhost']}, queue:{params['queue']}"
         )
@@ -331,4 +336,8 @@ class ExceededRetries(Exception):
 
 
 class InvalidJsonRpcResponse(Exception):
+    pass
+
+
+class ConfigurationError(Exception):
     pass

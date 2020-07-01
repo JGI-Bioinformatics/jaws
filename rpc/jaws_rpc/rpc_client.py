@@ -4,6 +4,7 @@ import threading
 import amqpstorm
 from amqpstorm import Message
 import json
+import logging
 from time import sleep
 from jaws_rpc import jsonrpc_utils
 
@@ -11,7 +12,10 @@ from jaws_rpc import jsonrpc_utils
 DEFAULT_PORT = 5672
 DEFAULT_WAIT_INTERVAL = 0.25
 DEFAULT_MAX_WAIT = 10
-DEFAULT_MESSAGE_TTL = None  # expires in sec, if defined
+DEFAULT_MESSAGE_TTL = 0  # expires in seconds or 0=doesn't expire
+
+
+logger = logging.getLogger(__package__)
 
 
 class RPC_Client(object):
@@ -23,33 +27,24 @@ class RPC_Client(object):
         :param params: A dictionary containing configuration parameters.
         :type params: dict
         """
-        self.params = params
+        self.params = {}
+        for required_param in ["host", "vhost", "user", "password", "queue"]:
+            if required_param not in params:
+                raise ConfigurationError(f"{required_param} required")
+            self.params[required_param] = params[required_param]
+        self.params["port"] = int(params.get("port", DEFAULT_PORT))
+        self.wait_interval = float(params.get("rpc_wait_interval", DEFAULT_WAIT_INTERVAL))
+        self.max_wait = int(params.get("rpc_max_wait", DEFAULT_MAX_WAIT))
+        self.message_ttl = int(params.get("rpc_message_ttl", DEFAULT_MESSAGE_TTL))
         self.queue = {}
         self.channel = None
         self.connection = None
         self.callback_queue = None
         self.open()
-        self.wait_interval = DEFAULT_WAIT_INTERVAL
-        if "port" not in self.params:
-            self.params["port"] = DEFAULT_PORT
-        if "rpc_wait_interval" in self.params:
-            self.wait_interval = float(self.params["rpc_wait_interval"])
-        else:
-            self.wait_interval = DEFAULT_WAIT_INTERVAL
-        if "rpc_max_wait" in self.params:
-            self.max_wait = float(self.params["rpc_max_wait"])
-        else:
-            self.max_wait = DEFAULT_MAX_WAIT
-        if "message_ttl" in self.params:
-            self.message_ttl = int(self.params["message_ttl"])
-        else:
-            self.message_ttl = DEFAULT_MESSAGE_TTL
-        for required_param in ["host", "user", "password"]:
-            if required_param not in self.params:
-                raise ConfigurationError(f"{required_param} required")
 
     def open(self):
         """Open connection to RabbitMQ"""
+        logger.debug(f"Open connection to {self.params['host']}:{self.params['queue']}")
         try:
             self.connection = amqpstorm.Connection(
                 self.params["host"],
@@ -118,7 +113,11 @@ class RPC_Client(object):
         self.queue[message.correlation_id] = None
 
         # Publish the RPC request.
-        message.publish(routing_key=self.params["queue"])
+        logger.debug(f"Publishing message {message.correlation_id} to {self.params['queue']}")
+        try:
+            message.publish(routing_key=self.params["queue"])
+        except Exception as error:
+            raise error
 
         # Return the Unique ID used to identify the request.
         return message.correlation_id
