@@ -16,11 +16,11 @@ readonly configdir=${1:-/tmp/}
 cat << EOM > $configdir/jaws-site.conf
 [DB]
 dialect = mysql+mysqlconnector
-host = jaws-db.lbl.gov
-port = 3306
-user = jaws_nersc
+host = db.mysql.dev-cattle.stable.spin.nersc.org
+port = 60005
+user = jaws
 password = $JAWS_SITE_CORI_DB_PW
-db = jaws_nersc_dev
+db = jaws_dev
 [LOCAL_RPC_SERVER]
 user = sulsj
 password = $JAWS_JTM_CORI_RMQ_PW
