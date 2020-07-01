@@ -275,7 +275,7 @@ class Daemon:
                     os.chmod(os.path.join(dirpath, dname), 0o0775)
                 for fname in filenames:
                     path = os.path.join(dirpath, fname)
-                    if os.path.isfile(path):
+                    if not os.path.islink(path):
                         os.chmod(path, 0o0664)
         self.update_run_status(run, "ready")
 
