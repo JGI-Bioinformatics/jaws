@@ -4,6 +4,10 @@ import configparser
 from typing import Dict
 
 
+DEFAULT_AMQP_PORT = 5672
+DEFAULT_RPC_MESSAGE_TTL = 5
+
+
 conf = None
 
 
@@ -156,11 +160,12 @@ class Configuration(metaclass=Singleton):
         s = self.config[section]
         params = {
             "host": s["host"],
-            "port": s["port"],
+            "port": s.get("port", DEFAULT_AMQP_PORT),
             "user": s["user"],
             "password": s["password"],
             "vhost": s["vhost"],
-            "queue": s["queue"]
+            "queue": s["queue"],
+            "message_ttl": s.get("message_ttl", DEFAULT_RPC_MESSAGE_TTL)
         }
         return params
 
