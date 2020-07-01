@@ -425,6 +425,7 @@ def send_update_task_status_msg(task_id: int, status_from, status_to: int, fail_
                                         "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
                                         "port": CONFIG.configparser.get("SITE_RPC_CLIENT", "port"),
                                         "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
+                                        "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
                                         "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password")})
     except Exception as error:
         logger.error(f"Unable to init rpc client: {error}")
