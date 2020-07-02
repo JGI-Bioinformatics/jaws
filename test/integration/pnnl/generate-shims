@@ -13,7 +13,7 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
 source $INSTALLDIR/site/bin/activate
-exec jaws-site --log $INSTALLDIR/logs/site-daemon.log --config $INSTALLDIR/configs/jaws-site.conf daemon
+exec jaws-site --log $INSTALLDIR/logs/site-daemon.log --config $INSTALLDIR/configs/jaws-site.conf --log-level DEBUG daemon
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-site-central-rpc-dev
@@ -24,7 +24,7 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
 source $INSTALLDIR/site/bin/activate
-exec jaws-site --log $INSTALLDIR/logs/site-central-rpc.log --config $INSTALLDIR/configs/jaws-site.conf central-rpc
+exec jaws-site --log $INSTALLDIR/logs/site-central-rpc.log --config $INSTALLDIR/configs/jaws-site.conf --log-level DEBUG central-rpc
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-site-jtm-rpc-dev
@@ -35,7 +35,7 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
 source $INSTALLDIR/site/bin/activate
-exec jaws-site --log $INSTALLDIR/logs/site-jtm-rpc.log --config $INSTALLDIR/configs/jaws-site.conf jtm-rpc
+exec jaws-site --log $INSTALLDIR/logs/site-jtm-rpc.log --config $INSTALLDIR/configs/jaws-site.conf --log-level DEBUG jtm-rpc
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-jtm-dev
