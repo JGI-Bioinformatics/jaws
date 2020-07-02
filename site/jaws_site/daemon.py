@@ -244,7 +244,10 @@ class Daemon:
         src_dir = metadata.get("workflowRoot")  # Cromwell output
         dest_dir = os.path.join(self.results_dir, str(run.id))  # output to return to user
         if os.path.exists(dest_dir):
-            shutil.rmtree(dest_dir)
+            try:
+                shutil.rmtree(dest_dir)
+            except Exception as error:
+                logger.exception(f"Failed to purge preexisting results dir for run {run.id}: {error}")
         if run.status == "succeeded":
             logger.debug(f"Run {run.id}: wfcopy successful output")
             try:
@@ -595,6 +598,15 @@ class Daemon:
         if query:
             # there are unsent job_logs
             return
+
+        # purge tmpfiles
+        tmp_dir = os.path.join(self.results_dir, str(run.id))
+        if os.path.exists(tmp_dir):
+            try:
+                shutil.rmtree(tmp_dir)
+            except Exception as error:
+                logger.exception(f"Failed to purge results dir for run {run.id}: {error}")
+                return  # try again later
 
         # delete run
         self.session.delete(run)
