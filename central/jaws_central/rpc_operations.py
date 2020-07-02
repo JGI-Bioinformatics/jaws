@@ -120,6 +120,7 @@ def update_run_logs(params):
             return _failure(500, f"Failed to query run_log table: {error}")
         if log:
             # ignore redunant state transition (duplicate message)
+            logger.debug(f"Duplicate run_log: {run_id}:{status_from}:{status_to}")
             continue
 
         # INSERT LOG
@@ -186,6 +187,7 @@ def update_job_logs(params):
             return _failure(500, f"Failed to query job_log table: {error}")
         if log:
             # ignore redunant state transition (duplicate message)
+            logger.debug(f"Duplicate job_log: {cromwell_job_id}:{status_from}:{status_to}")
             continue
 
         # INSERT LOG
