@@ -254,7 +254,7 @@ backend
     {
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
       config {
-        exit-code-timeout-seconds = 300
+        exit-code-timeout-seconds = 60
         runtime-attributes = """
         String? docker
         String time = "00:30:00"
