@@ -33,7 +33,7 @@ class User(Base):
     """Registered user"""
 
     __tablename__ = "users"
-    id = Column(String(16), primary_key=True)
+    id = Column(String(32), primary_key=True)
     email = Column(String(64), nullable=False)
     name = Column(String(64), nullable=True)
     is_admin = Column(Boolean, nullable=False, default=False)
@@ -58,7 +58,7 @@ class Workflow(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(32), nullable=False)
     version = Column(String(16), nullable=False, default="latest")
-    user_id = Column(String(16), ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(32), ForeignKey("users.id"), nullable=False)
     created = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = Column(
         DateTime,
@@ -88,9 +88,9 @@ class Run(Base):
     id = Column(Integer, primary_key=True)
     submission_id = Column(String(36), nullable=False)
     cromwell_run_id = Column(String(36), nullable=True)
-    result = Column(String(16), nullable=True)
-    status = Column(String(16), nullable=False)
-    user_id = Column(String(16), ForeignKey("users.id"), nullable=False)
+    result = Column(String(32), nullable=True)
+    status = Column(String(32), nullable=False)
+    user_id = Column(String(32), ForeignKey("users.id"), nullable=False)
     site_id = Column(String(8), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = Column(
