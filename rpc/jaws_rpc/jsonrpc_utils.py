@@ -42,11 +42,7 @@ def is_valid_response(response):
     :return: True
     :rtype: bool
     """
-    if response is None:
-        raise InvalidResponse("response is undefined")
-    elif type(response) is not dict:
-        raise InvalidResponse("response is not a dict")
-    elif "jsonrpc" not in response:
+    if "jsonrpc" not in response:
         raise InvalidResponse("jsonrpc is undefined")
     elif response["jsonrpc"] != "2.0":
         raise InvalidResponse("jsonrpc is not 2.0")

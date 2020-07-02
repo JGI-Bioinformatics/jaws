@@ -682,37 +682,40 @@ def cancel_run(user, run_id):
         _cancel_transfer(user, run.upload_task_id, run_id)
         result = _rpc_call(user, run_id, "cancel_run")
         if "error" in result:
+            logger.error(f"Run {run.id}: RPC cancel_run error: {result['error']['message']}")
             abort(result["error"]["code"], result["error"]["message"])
     elif status in [
         "submitted",
         "queued",
         "running",
         "succeeded",
+        "failed",
         "post-processing",
         "ready",
     ]:
         _cancel_run(run)
-        _rpc_call(user, run_id, "cancel_run")
+        result = _rpc_call(user, run_id, "cancel_run")
         if "error" in result:
+            logger.error(f"Run {run.id}: RPC cancel_run error: {result['error']['message']}")
             abort(result["error"]["code"], result["error"]["message"])
     elif status == "cancelled":
         abort(400, "That Run had already been cancelled")
-    elif status == "failed":
-        abort(400, "That Run had already failed")
     elif status == "downloading":
         _cancel_run(run)
         _cancel_transfer(user, run.download_task_id, run_id)
-        _rpc_call(user, run_id, "cancel_run")
+        result = _rpc_call(user, run_id, "cancel_run")
         if "error" in result:
+            logger.error(f"Run {run.id}: RPC cancel_run error: {result['error']['message']}")
             abort(result["error"]["code"], result["error"]["message"])
     elif status == "download complete":
-        abort(400, "That Run had already finished")
+        abort(400, "Too late to cancel; output already returned to user")
     result = {"cancel": "OK"}
     return result, 201
 
 
 def _cancel_run(run, reason="Cancelled by user"):
     """Update database record."""
+    logger.debug(f"Run {run.id}: updating runs table to cancelled")
     status_from = run.status
     run.status = "cancelled"
     run.result = "cancelled"
@@ -743,7 +746,7 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
     :type transfer_task_id: str
     :return: None; aborts on error.
     """
-    logger.debug(f"Cancel Globus transfer {transfer_task_id} for run {run_id}")
+    logger.debug(f"Run {run_id}: Cancel transfer {transfer_task_id}")
     try:
         current_user = db.session.query(User).get(user)
     except SQLAlchemyError as e:
