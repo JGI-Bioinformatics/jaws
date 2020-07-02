@@ -110,23 +110,31 @@ def cancel_run(params):
     """
     user_id = params["user_id"]
     run_id = params["run_id"]
-    cromwell_run_id = params["cromwell_run_id"]
     logger.info(f"User {user_id}: Cancel run {run_id}")
-    try:
-        cromwell.abort(cromwell_run_id)
-    except requests.exceptions.HTTPError as error:
-        logger.exception(f"Error aborting cromwell {cromwell_run_id}: {error}")
 
     # delete run from database because Site only keeps active Run records in db
     try:
         session = Session()
         run = session.query(Run).get(run_id)
+        cromwell_run_id = run.cromwell_run_id
+        status = run.status
         session.delete(run)
         session.commit()
     except Exception as error:
         logger.exception(f"Error deleting Run {run_id}: {error}")
+        return _failure(500, error)
 
-    return _success()
+    # tell Cromwell to cancel the run if it has been submitted to Cromwell already
+    if cromwell_run_id and status in ["submitted", "queued", "running"]:
+        try:
+            cromwell.abort(cromwell_run_id)
+        except requests.exceptions.HTTPError as error:
+            logger.exception(f"Error aborting cromwell {cromwell_run_id}: {error}")
+            return _failure(500, error)
+        except Exception as error:
+            logger.exception(f"Unknown error aborting cromwell {cromwell_run_id}: {error}")
+            return _failure(500, error)
+        return _success()
 
 
 def output(params):
