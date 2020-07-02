@@ -9,7 +9,7 @@ import os
 import shutil
 import globus_sdk
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import subprocess
 from jaws_site.database import Session
 from jaws_site.models import Run, Run_Log, Job_Log
@@ -120,11 +120,14 @@ class Daemon:
         self.update_job_status_logs()
         self.send_job_status_logs()
 
-        # purge runs in terminal states
+        # purge runs in terminal states that are at least 24hrs old
+        # to ensure all job logs have been received/processed from JTM
+        back24hrs = datetime.now() - timedelta(hours=24)
         try:
             query = (
                 self.session.query(Run)
                 .filter(Run.status.in_(self.terminal_states))
+                .filter(Run.updated > back24hrs)
                 .all()
             )
         except Exception as error:
