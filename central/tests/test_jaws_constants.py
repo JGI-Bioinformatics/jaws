@@ -7,7 +7,7 @@ def test_run_status_msg():
         "uploading",
         "upload failed",
         "upload inactive",
-        "staged",
+        "upload complete",
         "invalid input",
         "submitted",
         "submission failed",
@@ -21,7 +21,7 @@ def test_run_status_msg():
         "downloading",
         "download failed",
         "download inactive",
-        "finished"
+        "download complete"
     ]
 
     for status in valid_run_states:

@@ -81,6 +81,7 @@ class Run(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     submission_id = db.Column(db.String(36), nullable=False)
     cromwell_run_id = db.Column(db.String(36), nullable=True)
+    result = db.Column(db.String(16), nullable=True)
     status = db.Column(db.String(16), nullable=False)
     user_id = db.Column(db.String(16), db.ForeignKey("users.id"), nullable=False)
     site_id = db.Column(db.String(8), nullable=False)
