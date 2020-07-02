@@ -88,6 +88,7 @@ class Run(Base):
     id = Column(Integer, primary_key=True)
     submission_id = Column(String(36), nullable=False)
     cromwell_run_id = Column(String(36), nullable=True)
+    result = Column(String(16), nullable=True)
     status = Column(String(16), nullable=False)
     user_id = Column(String(16), ForeignKey("users.id"), nullable=False)
     site_id = Column(String(8), nullable=False)

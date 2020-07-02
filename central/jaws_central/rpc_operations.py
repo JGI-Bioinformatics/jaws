@@ -76,6 +76,10 @@ def update_run_status(params):
     elif status == "downloading":
         run.download_task_id = params["download_task_id"]
         logger.info(f"Run {run_id} {status}: {run.download_task_id}")
+    elif status == "succeeded":
+        run.result = "succeeded"
+    elif status == "failed":
+        run.result = "failed"
     try:
         session.commit()
     except Exception as error:

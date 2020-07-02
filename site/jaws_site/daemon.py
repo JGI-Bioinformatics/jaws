@@ -50,7 +50,7 @@ class Daemon:
         self.operations = {
             "uploading": self.check_if_upload_complete,
             "upload succeeded": self.submit_run,
-            "staged": self.submit_run,
+            "upload complete": self.submit_run,
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
@@ -59,7 +59,7 @@ class Daemon:
             "ready": self.transfer_results,
             "downloading": self.check_if_download_complete,
         }
-        self.terminal_states = ["cancelled", "finished"]
+        self.terminal_states = ["cancelled", "download complete"]
         self.session = None
         self.rpc_client = None
 
@@ -341,7 +341,7 @@ class Daemon:
             )
             return
         if globus_status == "SUCCEEDED":
-            self.update_run_status(run, "finished")
+            self.update_run_status(run, "download complete")
         elif globus_status == "FAILED":
             self.update_run_status(run, "download failed")
 
@@ -572,7 +572,7 @@ class Daemon:
             logger.error(f"Failed to delete job logs: {error}")
 
     def purge_run(self, run):
-        """Runs in terminal states (e.g. finished, failed) should be delete from the runs table
+        """Runs in terminal states (e.g. download complete, failed) should be delete from the runs table
         only after their associated logs have been sent to Central via RPC."""
 
         # check for unsent run_logs

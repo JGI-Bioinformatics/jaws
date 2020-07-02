@@ -156,6 +156,7 @@ def user_history(user, delta_days=10):
                 "id": run.id,
                 "submission_id": run.submission_id,
                 "cromwell_run_id": run.cromwell_run_id,
+                "result": run.result,
                 "status": run.status,
                 "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
                 "site_id": run.site_id,
@@ -461,6 +462,7 @@ def run_status(user, run_id):
         "id": run.id,
         "submission_id": run.submission_id,
         "cromwell_run_id": run.cromwell_run_id,
+        "result": run.result,
         "status": run.status,
         "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
         "site_id": run.site_id,
@@ -703,7 +705,7 @@ def cancel_run(user, run_id):
         _rpc_call(user, run_id, "cancel_run")
         if "error" in result:
             abort(result["error"]["code"], result["error"]["message"])
-    elif status == "finished":
+    elif status == "download complete":
         abort(400, "That Run had already finished")
     result = {"cancel": "OK"}
     return result, 201
@@ -713,6 +715,7 @@ def _cancel_run(run, reason="Cancelled by user"):
     """Update database record."""
     status_from = run.status
     run.status = "cancelled"
+    run.result = "cancelled"
     try:
         db.session.commit()
     except Exception as error:

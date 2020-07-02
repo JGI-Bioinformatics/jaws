@@ -116,6 +116,7 @@ class MockGetInactiveUploadRun:
         self.output_endpoint = "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
         self.site_id = "NERSC"
         self.status = "upload inactive"
+        self.result = None
         self.submission_id = "2ba6eb76-22e0-4d49-8eeb-b0c6683dfa30"
         self.submitted = datetime.strptime("2020-05-14 23:08:50", "%Y-%m-%d %H:%M:%S")
         self.updated = datetime.strptime("2020-05-14 23:27:15", "%Y-%m-%d %H:%M:%S")

@@ -87,7 +87,7 @@ def test_transfer_results(monkeypatch):
 
 @pytest.mark.parametrize(
     "status,expected",
-    [({"status": "SUCCEEDED"}, "finished"), ({"status": "FAILED"}, "download failed")],
+    [({"status": "SUCCEEDED"}, "download complete"), ({"status": "FAILED"}, "download failed")],
 )
 def test_check_if_download_complete(status, expected, monkeypatch):
     def mock_authorize_client(jawd, token):

@@ -52,14 +52,15 @@ jaws *run* options:
    cancel <run_id>                cancel a run, prints whether aborting was successful or not
    output <run_id>                view the stdout/stderr for all tasks
    errors <run_id>                view the stdout/stderr for failed tasks
-   history <num_days> (wf_name)   list past runs for a given number of days
-   list-sites                     list available sites you can run jobs from. (i.e. cori)
+   history <num_days>             list past runs for a given number of days including results
+   list-sites                     list available sites you can run jobs from
    log                            view the history of Run state transitions
    metadata <run_id>              detailed information about a run
-   queue                          list your unfinished runs. shows finished runs for a short time
-   status <run_id>                show current status of a single run
+   queue                          list your unfinished runs
+   status <run_id>                show current status of a single run including result (succeeded/failed)
    submit <wdl> <inputs>          submit a run for execution
-   tasks <run_id>                 show status of each task of a run
+   task-status <run_id>           show current status of each task of a run
+   task-log                       view the history of tasks' state transitions
 
    
 jaws *wdl* options:
