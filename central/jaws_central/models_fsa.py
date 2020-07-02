@@ -26,7 +26,7 @@ class User(db.Model):
     """Registered user"""
 
     __tablename__ = "users"
-    id = db.Column(db.String(16), primary_key=True)
+    id = db.Column(db.String(32), primary_key=True)
     email = db.Column(db.String(64), nullable=False)
     name = db.Column(db.String(64), nullable=True)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
@@ -51,7 +51,7 @@ class Workflow(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(32), nullable=False)
     version = db.Column(db.String(16), nullable=False, default="latest")
-    user_id = db.Column(db.String(16), db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = db.Column(
         db.DateTime,
@@ -81,9 +81,9 @@ class Run(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     submission_id = db.Column(db.String(36), nullable=False)
     cromwell_run_id = db.Column(db.String(36), nullable=True)
-    result = db.Column(db.String(16), nullable=True)
-    status = db.Column(db.String(16), nullable=False)
-    user_id = db.Column(db.String(16), db.ForeignKey("users.id"), nullable=False)
+    result = db.Column(db.String(32), nullable=True)
+    status = db.Column(db.String(32), nullable=False)
+    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
     site_id = db.Column(db.String(8), nullable=False)
     submitted = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = db.Column(
