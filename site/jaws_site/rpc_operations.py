@@ -59,7 +59,9 @@ def update_job_status(params):
     reason = None
     if "reason" in params:
         reason = params["reason"]
-    logger.debug(f"Cromwell run:job {cromwell_run_id}:{cromwell_job_id} now {status_to}")
+        logger.info(f"Job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}:{reason}")
+    else:
+        logger.info(f"Job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}")
 
     # CREATE NEW job_log ENTRY
     try:
