@@ -42,6 +42,16 @@ class RPC_Client(object):
         self.callback_queue = None
         self.open()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self):
+        """Close connection to RabbitMQ"""
+        if self.channel:
+            self.channel.close()
+        if self.connection:
+            self.connection.close()
+
     def open(self):
         """Open connection to RabbitMQ"""
         logger.debug(f"Open connection to {self.params['host']}:{self.params['queue']}")
