@@ -172,7 +172,7 @@ def update_job_logs(params):
         status_from = log_entry[4]
         status_to = log_entry[5]
         timestamp = datetime.strptime(log_entry[6], "%Y-%m-%d %H:%M:%S")
-        reason = log_entry[6]
+        reason = log_entry[7]
 
         # CHECK IF ALREADY EXISTS
         try:
