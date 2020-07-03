@@ -673,44 +673,28 @@ def cancel_run(user, run_id):
     :rtype: dict
     """
     logger.info(f"User {user}: Cancel Run {run_id}")
+
+    # get run record
     run = _get_run(user, run_id)
     status = run.status
-    if status == "created":
-        _cancel_run(run)
-    elif status.startswith("upload"):
-        _cancel_run(run)
-        _cancel_transfer(user, run.upload_task_id, run_id)
-        result = _rpc_call(user, run_id, "cancel_run")
-        if "error" in result:
-            logger.error(f"Run {run.id}: RPC cancel_run error: {result['error']['message']}")
-            abort(result["error"]["code"], result["error"]["message"])
-    elif status in [
-        "submitted",
-        "queued",
-        "running",
-        "succeeded",
-        "failed",
-        "post-processing",
-        "ready",
-    ]:
-        _cancel_run(run)
-        result = _rpc_call(user, run_id, "cancel_run")
-        if "error" in result:
-            logger.error(f"Run {run.id}: RPC cancel_run error: {result['error']['message']}")
-            abort(result["error"]["code"], result["error"]["message"])
-    elif status == "cancelled":
+
+    # check if run can be cancelled
+    if status == "cancelled":
         abort(400, "That Run had already been cancelled")
-    elif status == "downloading":
-        _cancel_run(run)
-        _cancel_transfer(user, run.download_task_id, run_id)
-        result = _rpc_call(user, run_id, "cancel_run")
-        if "error" in result:
-            logger.error(f"Run {run.id}: RPC cancel_run error: {result['error']['message']}")
-            abort(result["error"]["code"], result["error"]["message"])
     elif status == "download complete":
-        abort(400, "Too late to cancel; output already returned to user")
-    result = {"cancel": "OK"}
-    return result, 201
+        abort(400, "It's too late to cancel; run is finished.")
+
+    # mark as cancelled
+    _cancel_run(run)
+
+    # cancel active transfers
+    if status.startswith("upload"):
+        _cancel_transfer(user, run.upload_task_id, run_id)
+    elif status.startswith("download"):
+        _cancel_transfer(user, run.download_task_id, run_id)
+
+    # tell Site to cancel
+    return _rpc_call(user, run_id, "cancel_run")
 
 
 def _cancel_run(run, reason="Cancelled by user"):
