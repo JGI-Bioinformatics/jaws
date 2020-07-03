@@ -105,36 +105,49 @@ def cancel_run(params):
     :param cromwell_run_id: The Cromwell run ID
     :type cromwell_run_id: str
     :return: Either a JSON-RPC2-compliant success or failure message,
-    if the run could be cancelled or not.
     :rtype: dict
     """
     user_id = params["user_id"]
     run_id = params["run_id"]
     logger.info(f"User {user_id}: Cancel run {run_id}")
 
-    # delete run from database because Site only keeps active Run records in db
+    # check if run in active runs tables
     try:
         session = Session()
         run = session.query(Run).get(run_id)
-        cromwell_run_id = run.cromwell_run_id
-        status = run.status
+    except Exception as error:
+        logger.exception(f"Error selecting on runs table: {error}")
+    if not run:
+        logger.debug(f"Run {run_id} not found")
+        return _success()
+
+    cromwell_run_id = run.cromwell_run_id
+    status = run.status
+
+    # delete run from database because Site only keeps active Run records in db
+    try:
         session.delete(run)
         session.commit()
     except Exception as error:
         logger.exception(f"Error deleting Run {run_id}: {error}")
         return _failure(500, error)
+    logger.debug(f"Run {run_id} deleted")
 
     # tell Cromwell to cancel the run if it has been submitted to Cromwell already
     if cromwell_run_id and status in ["submitted", "queued", "running"]:
+        logger.debug(f"Run {run_id} is {status}: Instructing Cromwell to cancel")
         try:
             cromwell.abort(cromwell_run_id)
         except requests.exceptions.HTTPError as error:
             logger.exception(f"Error aborting cromwell {cromwell_run_id}: {error}")
             return _failure(500, error)
         except Exception as error:
-            logger.exception(f"Unknown error aborting cromwell {cromwell_run_id}: {error}")
+            logger.exception(
+                f"Unknown error aborting cromwell {cromwell_run_id}: {error}"
+            )
             return _failure(500, error)
-        return _success()
+    result = {"cancel": "OK"}
+    return _success(result)
 
 
 def output(params):
