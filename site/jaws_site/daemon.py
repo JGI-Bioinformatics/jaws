@@ -405,14 +405,14 @@ class Daemon:
         last_cromwell_run_id = None  # cache last
         last_metadata = None  # no need to get from cromwell repeatedly
         try:
-            query = self.session.query(Job_Log).filter_by(task_name=None)
+            query = self.session.query(Job_Log).filter_by(task_name=None).order_by(Job_Log.timestamp)
         except Exception as error:
             logger.exception(f"Unable to select job_logs: {error}")
             return
         for log in query:
-            run_id = log.run_id
             cromwell_run_id = log.cromwell_run_id
             cromwell_job_id = log.cromwell_job_id
+            logger.debug(f"Job {cromwell_job_id} now {log.status_to}")
 
             # SELECT run_id FROM RDB
             run = (
@@ -422,7 +422,7 @@ class Daemon:
             )
             if not run:
                 # JTM may send first job status update before cromwell_run_id is recorded
-                logger.debug(f"cromwell workflow run not found: {cromwell_run_id}")
+                logger.debug(f"Job {cromwell_job_id}: {cromwell_run_id} not found in db")
                 continue
 
             # update run state if first job to run
@@ -430,12 +430,11 @@ class Daemon:
                 self.update_run_status(run, "running")
 
             # update log entry with run_id
+            logger.debug(f"Job {cromwell_job_id} => Run {run.id}")
             log.run_id = run.id
 
             # TRY TO GET task_name AND attempt FROM CROMWELL METADATA
-            logger.debug(
-                f"Run {run_id}: Get job info for job {cromwell_job_id}: {log.status_to}"
-            )
+            logger.debug(f"Job {cromwell_job_id}: Get job metadata")
             if cromwell_run_id == last_cromwell_run_id:
                 # another update for same run, reuse previously initialized object
                 metadata = last_metadata
@@ -461,7 +460,7 @@ class Daemon:
             log.task_name = job_info["task_name"]
             self.session.commit()
             logger.debug(
-                f"Run {run.id}: Task {log.task_name}, Job {log.cromwell_job_id} now {log.status_to}"
+                f"Job {log.cromwell_job_id} => {log.task_name}"
             )
 
     def send_run_status_logs(self):
@@ -551,13 +550,14 @@ class Daemon:
                 log.reason,
             ]
             logs.append(log_entry)
+            logger.debug(f"Send Job {log.cromwell_job_id} : Run {log.run_id} : {log.status_to}")
 
         num_rows = len(logs)
         if num_rows == 0:
             return
 
         # send message to Central
-        logger.info(f"Sending {num_rows} job status updates to Central")
+        logger.info(f"Sending {num_rows} job logs")
         data = {"logs": logs, "site_id": self.site_id}
         try:
             response = self.rpc_client.request("update_job_logs", data)
@@ -568,6 +568,7 @@ class Daemon:
             logger.error(f"RPC update_job_logs failed: {response['error']['message']}")
             return
         # delete logs from database
+        logger.debug("Job logs received; purging from db")
         try:
             query.delete(synchronize_session=False)
             self.session.commit()

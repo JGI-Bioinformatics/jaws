@@ -161,7 +161,7 @@ def update_job_logs(params):
     logs = params["logs"]
     site_id = params["site_id"]
     num_logs = len(logs)
-    logger.debug(f"Site {site_id} send {num_logs} job logs")
+    logger.debug(f"Site {site_id} sent {num_logs} job logs")
     session = Session()
     for log_entry in logs:
         # INIT VARS
@@ -173,6 +173,7 @@ def update_job_logs(params):
         status_to = log_entry[5]
         timestamp = datetime.strptime(log_entry[6], "%Y-%m-%d %H:%M:%S")
         reason = log_entry[7]
+        logger.debug(f"Run {run_id}:Job {cromwell_job_id} now {status_to}")
 
         # CHECK IF ALREADY EXISTS
         try:
@@ -191,10 +192,11 @@ def update_job_logs(params):
             return _failure(500, f"Failed to query job_log table: {error}")
         if log:
             # ignore redunant state transition (duplicate message)
-            logger.debug(f"Duplicate job_log: {cromwell_job_id}:{status_from}:{status_to}")
+            logger.debug(f"Duplicate job_log: {run_id}:{cromwell_job_id}:{status_from}:{status_to}")
             continue
 
         # INSERT LOG
+        logger.debug(f"Insert log job {cromwell_job_id}")
         try:
             log = Job_Log(
                 run_id=run_id,
@@ -210,6 +212,7 @@ def update_job_logs(params):
         except Exception as error:
             logger.exception(f"Invalid job log, {log_entry}: {error}")
             return _failure(f"Invalid job log, {log_entry}: {error}")
+    # insert all or none
     try:
         session.commit()
     except Exception as error:
