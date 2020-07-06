@@ -84,7 +84,9 @@ def update_run_status(params):
         session.commit()
     except Exception as error:
         logger.exception(f"Failed to update run status: {error}")
+        session.close()
         return _failure(500, f"Error inserting log: {error}")
+    session.close()
     return _success()
 
 
@@ -139,12 +141,14 @@ def update_run_logs(params):
             session.add(log)
         except Exception as error:
             logger.exception(f"Invalid run log, {log_entry}: {error}")
-            return _failure(400, f"Invalid run log, {log_entry}: {error}")
+            continue
     try:
         session.commit()
     except Exception as error:
+        session.close()
         logger.exception(f"Failed to insert run log entries into db: {error}")
         return _failure(500, f"Db insert failed: {error}")
+    session.close()
     return _success()
 
 
@@ -173,7 +177,6 @@ def update_job_logs(params):
         status_to = log_entry[5]
         timestamp = datetime.strptime(log_entry[6], "%Y-%m-%d %H:%M:%S")
         reason = log_entry[7]
-        logger.debug(f"Run {run_id}:Job {cromwell_job_id} now {status_to}")
 
         # CHECK IF ALREADY EXISTS
         try:
@@ -187,16 +190,15 @@ def update_job_logs(params):
                 .one_or_none()
             )
         except Exception as error:
-            logger.exception(f"Failed to query job_log table: {error}")
             session.close()
-            return _failure(500, f"Failed to query job_log table: {error}")
+            logger.exception(f"Failed to query job_log table: {error}")
+            return
         if log:
             # ignore redunant state transition (duplicate message)
             logger.debug(f"Duplicate job_log: {run_id}:{cromwell_job_id}:{status_from}:{status_to}")
             continue
 
         # INSERT LOG
-        logger.debug(f"Insert log job {cromwell_job_id}")
         try:
             log = Job_Log(
                 run_id=run_id,
@@ -211,13 +213,15 @@ def update_job_logs(params):
             session.add(log)
         except Exception as error:
             logger.exception(f"Invalid job log, {log_entry}: {error}")
-            return _failure(f"Invalid job log, {log_entry}: {error}")
+            continue
     # insert all or none
     try:
         session.commit()
     except Exception as error:
+        session.close()
         logger.exception(f"Failed to insert job log entries into db: {error}")
         return _failure(500, f"Db insert failed: {error}")
+    session.close()
     return _success()
 
 
