@@ -7,6 +7,7 @@ from http.client import responses
 import logging
 import os
 import collections
+import sqlalchemy.exc
 from jaws_site import config, wfcopy
 from jaws_site.cromwell import Cromwell
 from jaws_site.database import Session
@@ -115,6 +116,8 @@ def cancel_run(params):
     try:
         session = Session()
         run = session.query(Run).get(run_id)
+    except sqlalchemy.exc.IntegrityError as error:
+        logger.exception(f"Run not found: {run_id}: {error}")
     except Exception as error:
         logger.exception(f"Error selecting on runs table: {error}")
     if not run:
