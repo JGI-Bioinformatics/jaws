@@ -49,7 +49,6 @@ class Daemon:
         self.session = None
         self.operations = {
             "uploading": self.check_if_upload_complete,
-            "upload succeeded": self.submit_run,
             "upload complete": self.submit_run,
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
@@ -153,7 +152,7 @@ class Daemon:
                 run, "upload inactive", "Your endpoint authorization has expired"
             )
         elif globus_status == "SUCCEEDED":
-            self.update_run_status(run, "upload succeeded")
+            self.update_run_status(run, "upload complete")
 
     def submit_run(self, run):
         """
