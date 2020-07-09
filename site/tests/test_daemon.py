@@ -16,7 +16,7 @@ def mock_update_run_status(self, run, new_status, reason=None):
     "status",
     [
         "uploading",
-        "upload succeeded",
+        "upload complete",
         "submitted",
         "queued",
         "running",

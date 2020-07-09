@@ -25,9 +25,8 @@ run_active_states = [
     "queued",
     "running",
     "succeeded",
-    "post-processing",
     "ready",
-    "downloading",
+    "downloading"
 ]
 
 run_pre_cromwell_states = [
