@@ -76,5 +76,5 @@ doc-requirements:
 .PHONY: docs
 docs: doc-requirements
 	$Q cd docs/sphinx && make html
-	$Q echo "open docs/build/html/index.html"
+	$Q echo "open docs/sphinx/build/html/index.html"
 ## Doc Section END
