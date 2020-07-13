@@ -51,5 +51,5 @@ startretries=3
 autorestart=unexpected
 
 [group:jaws-dev]
-programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rp
+programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
 priority=999
