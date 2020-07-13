@@ -212,7 +212,6 @@ deploy-jaws-cascade:
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
     - python3.6 -m venv /tmp/jaws-dev/client  && . /tmp/jaws-dev/client/bin/activate  && pip install --upgrade pip && pip install client/dist/*  && deactivate
     - python3.6 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate    && pip install --upgrade pip && pip install rpc/dist/* && pip install site/dist/*    && deactivate
-    - python3.6 -m venv /tmp/jaws-dev/central && . /tmp/jaws-dev/central/bin/activate && pip install --upgrade pip && pip install rpc/dist/* && pip install central/dist/* && deactivate
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf reread
     ## start jaws
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start jaws-dev:*
@@ -221,11 +220,7 @@ deploy-jaws-cascade:
     - wget -q -O /tmp/jaws-dev/cromwell.jar https://github.com/broadinstitute/cromwell/releases/download/47/cromwell-47.jar && chgrp svc-jtm-user /tmp/jaws-dev/cromwell.jar
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf stop jaws-dev:*
     - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf reread
-    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf start jaws-dev:* || true
-    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf tail -10000 jaws-dev:jaws-jtm
-    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf tail -10000 jaws-dev:jaws-jtm stderr
-    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf tail -10000 jaws-dev:jaws-cromwell
-    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf tail -10000 jaws-dev:jaws-cromwell stderr
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf start jaws-dev:*
     ## start jtm
     - mkdir -p /dtemp/mscjgi/jaws-dev/jtm || true
     - python3.6 -m venv /dtemp/mscjgi/jaws-dev/jtm && . /dtemp/mscjgi/jaws-dev/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /dtemp/mscjgi/jaws-dev/jtm || true
