@@ -234,8 +234,27 @@ backend
         Int shared = 1
         String? docker
         """
+        submit = """jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+          submit \
+          -cmd '/bin/bash \${script}' \
+          -cl \${cluster} \
+          -t \${time} \
+          -c \${cpu} \
+          -m \${mem} \
+          -p \${poolname} \
+          -C \${constraint} \
+          -N \${node} \
+          -nwpn \${nwpn} \
+          -jid \${job_name} \
+          --qos \${qos} \
+          -A \${account} \
+          --shared \${shared}"""
 
-        submit = "jtm-submit -cr '/bin/bash ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared} --qos ${qos} --account ${account}"
+        kill = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+                kill -tid \${job_id}"
+        check-alive = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+                       isalive -tid \${job_id}"
+        job-id-regex = "JTM task ID (\\\d+)"
 
         submit-docker = """
           ## Build the Docker image into a singularity image, using the head node
@@ -256,10 +275,6 @@ backend
           # pull temp image layers so we don't get the 'out of memory' error.
           jtm-submit -cr '/global/home/groups-sw/lr_jgicloud/cromwell/singularity_exec.sh ${cwd} ${docker_cwd} ${docker} ${job_shell} ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared} --qos ${qos} --account ${account}
         """
-
-        kill = "jtm-kill ${job_id}"
-        check-alive = "jtm-isalive ${job_id}"
-        job-id-regex = "JTM task ID (\\d+)"
 
         root = "/global/scratch/jaws/dev/cromwell-executions"
         dockerRoot = "/cromwell-executions"
