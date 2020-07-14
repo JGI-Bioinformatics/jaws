@@ -274,49 +274,6 @@ backend
   default = "JTM"
   providers
   {
-    Local
-    {
-      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
-      config
-      {
-        concurrent-job-limit = 7
-        run-in-background = true
-        temporary-directory = "\`mktemp -d \\"/global/cscratch1/sd/jaws_jtm/dev/cromwell-tmp\\"/tmp.XXXXXX\`"
-        # The list of possible runtime custom attributes.
-        runtime-attributes = """
-          String? docker
-        """
-        # Submit string when there is no "docker" runtime attribute.
-        submit = "/usr/bin/env bash \${script}"
-        # Submit string when there is a "docker" runtime attribute.
-        submit-docker = """
-            LOOKUP=\$(shifterimg lookup \${docker})
-            if [[ ! \$LOOKUP ]]; then
-                shifterimg pull \${docker}
-            fi
-                  shifter --image=\${docker} \
-                    -V /global/dna/shared/rqc/ref_databases:/refdata \
-                    \${job_shell} \${script}
-              """
-        dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
-        filesystems
-        {
-          local
-          {
-            localization: [ "soft-link", "copy" ]
-            caching {
-              duplication-strategy: [ "soft-link", "file" ]
-              hashing-strategy: "file"
-            }
-          }
-        }
-        default-runtime-attributes
-        {
-          failOnStderr: false
-          continueOnReturnCode: 0
-        }
-      }
-    }
     JTM
     {
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
@@ -384,78 +341,7 @@ backend
         dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
       }
     }
-     slurm
-    {
-      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
-      config
-      {
-        concurrent-job-limit = 7
-        run-in-background = true
-        # The list of possible runtime custom attributes.
-        runtime-attributes = """
-                String? docker
-                            String qos = "debug"
-                            String constraint = "haswell"
-                            String account = "m342"
-                            String mem = "5G"
-                            String time = "00:10:00"
-                            Int cpu = 4
-        """
-        # Submit string when there is no "docker" runtime attribute.
-        submit = """
-            sbatch \
-              --wait \
-              -t \${time} \${"-c " + cpu} \
-              --mem=\${mem} \
-              --qos=\${qos} \
-              -C \${constraint} \
-              -A \${account} \
-              --wrap "/bin/bash \${script}"
-                    """
-        # Submit string when there is a "docker" runtime attribute.
-        submit-docker = """
-            # Submit the script to SLURM
-            sbatch \
-              --wait \
-              -J \${job_name} \
-              -D \${cwd} \
-              -o \${cwd}/stdout \
-              -e \${cwd}/stderr \
-              -t \${time} \
-              \${"-c " + cpu} \
-              --mem=\${mem} \
-                    --qos=\${qos} -C \${constraint} -A \${account} \
-              --wrap "shifter \
-              --image=\${docker} \
-              --volume=/global/dna/shared/rqc/ref_databases:/refdata \${job_shell} \${script}"
-        """
-        # Root directory where Cromwell writes job results in the container. This value
-        # can be used to specify where the execution folder is mounted in the container.
-        # it is used for the construction of the docker_cwd string in the submit-docker
-        # value above AND in the generation of the "script" file.
-        dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
-        kill = "scancel \${job_id}"
-        check-alive = "squeue -j \${job_id}"
-        job-id-regex = "Submitted batch job (\\\d+).*"
-        filesystems
-        {
-          local
-          {
-            localization: [ "soft-link", "copy" ]
-            caching {
-              duplication-strategy: [ "hard-link", "soft-link", "copy" ]
-              hashing-strategy: "file"
-            }
-          }
-        }
-        default-runtime-attributes
-        {
-          failOnStderr: false
-          continueOnReturnCode: 0
-        }
-      } # config
-    } # local
-  }
+  } 
 }
 database
 {
