@@ -260,7 +260,7 @@ def run_user_task(msg_unzipped):
     return_msg = {}
 
     # Uncompress msg to get a task
-    logger.info(msg_unzipped)
+    logger.info(f"User task to run: {msg_unzipped}")
     task_id = msg_unzipped["task_id"]
     user_task_cmd = msg_unzipped["user_cmd"]
     out_files = msg_unzipped["output_files"]
@@ -358,7 +358,10 @@ def run_user_task(msg_unzipped):
         else:
             p.wait()
             p.poll()
-            proc_return_code = p.returncode
+            if stdout_str.find("not found") != -1:
+                proc_return_code = 2  # set it as command-not-found error
+            else:
+                proc_return_code = p.returncode
     else:
         logger.error("subprocess call failed")
 
