@@ -77,11 +77,11 @@ port = 5672
 vhost = jtm_dev
 queue = site_rpc
 [MYSQL]
-host = db.mysql.dev-cattle.stable.spin.nersc.org
-port = 60005
-user = ssul
+host = jaws-db.lbl.gov
+port = 3306
+user = jtm
 password = $JAWS_JTM_LBNL_DB_PW
-db = jtm
+db = jtm_lbnl_dev
 [SLURM]
 # number of nodes for the pool
 nnodes = 1
