@@ -103,7 +103,7 @@ clone_time_rate = 0.2
 # number of workers per node
 num_workers_per_node = 1
 log_dir = \${SITE:scratch}/jtm
-env_activation = source /global/home/groups-sw/lr_jgicloud/jtm-dev/venv/bin/activate
+env_activation = source /global/home/groups-sw/lr_jgicloud/jtm-dev/bin/activate
 pool_name = small
 # Worker setting
 # worker->client heartbeat sending interval in worker
@@ -217,7 +217,7 @@ backend
     JTM
     {
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
-       
+
       config {
         runtime-attributes = """
         String time = "00:00:00"
@@ -251,8 +251,8 @@ backend
           #    exit 1
           #fi
 
-          # singularity_exec.sh is required to circumvent an issue with special characters in the singularity 
-          # command AND it sets some environmental variables to let singularity know where 
+          # singularity_exec.sh is required to circumvent an issue with special characters in the singularity
+          # command AND it sets some environmental variables to let singularity know where
           # pull temp image layers so we don't get the 'out of memory' error.
           jtm-submit -cr '/global/home/groups-sw/lr_jgicloud/cromwell/singularity_exec.sh ${cwd} ${docker_cwd} ${docker} ${job_shell} ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared} --qos ${qos} --account ${account}
         """
