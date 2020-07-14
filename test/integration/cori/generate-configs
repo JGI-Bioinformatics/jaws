@@ -137,9 +137,9 @@ queue = site_rpc
 [MYSQL]
 host = db.mysql.dev-cattle.stable.spin.nersc.org
 port = 60005
-user = ssul
+user = jtm
 password = $JAWS_JTM_CORI_DB_PW
-db = jtm
+db = jtm_nersc_dev
 [SLURM]
 # number of nodes for the pool
 nnodes = 1
