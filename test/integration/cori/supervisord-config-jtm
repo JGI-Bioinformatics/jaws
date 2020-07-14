@@ -23,7 +23,7 @@ directory={{installpath}}
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
-serverurl=http://cori20.nersc.gov:64102
+serverurl=http://lrc-services.lbl.gov:64102
 username=jaws
 password={{password}}
 prompt=supervisor-jtm
