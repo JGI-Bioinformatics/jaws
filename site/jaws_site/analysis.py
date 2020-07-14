@@ -126,15 +126,13 @@ def cancel_run(params):
 
     cromwell_run_id = run.cromwell_run_id
     status = run.status
-
-    # delete run from database because Site only keeps active Run records in db
+    run.status = "cancelled"
     try:
-        session.delete(run)
         session.commit()
     except Exception as error:
-        logger.exception(f"Error deleting Run {run_id}: {error}")
+        logger.exception(f"Error updating Run {run_id}: {error}")
         return _failure(500, error)
-    logger.debug(f"Run {run_id} deleted")
+    logger.debug(f"Run {run_id} cancelled")
 
     # tell Cromwell to cancel the run if it has been submitted to Cromwell already
     if cromwell_run_id and status in ["submitted", "queued", "running"]:
