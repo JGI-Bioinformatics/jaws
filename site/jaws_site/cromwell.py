@@ -49,8 +49,11 @@ class Task:
                 self.subworkflows[workflow_id] = metadata
                 # copy subworkflows' jobs
                 for job_id in metadata.jobs:
-                    logger.debug(f"Task {self.name} subworkflow job {job_id}")
-                    self.jobs[job_id] = metadata.jobs[job_id]
+                    logger.debug(f"Sub {self.name}, task {metadata.jobs[job_id]['task_name']}: job {job_id}")
+                    self.jobs[job_id] = {
+                        "task_name": f"{self.name}.{metadata.jobs[job_id]['task_name']}",
+                        "attempt": metadata.jobs[job_id]["attempt"]
+                    }
             elif "jobId" in call:
                 job_id = int(call["jobId"])
                 logger.debug(f"Task {self.name}: job {job_id}")
