@@ -86,7 +86,7 @@ vhost = jaws_dev
 queue = lbnl_rpc
 globus_endpoint = b445e71a-4933-11ea-9714-021304b0cca7
 globus_basepath = /global/scratch/jaws
-staging_subdir = dev/staging
+staging_subdir = jtm/dev/staging
 max_ram_gb = 1024
 [SITE:NERSC]
 user = jaws_central

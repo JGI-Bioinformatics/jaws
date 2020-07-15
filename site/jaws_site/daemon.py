@@ -167,11 +167,11 @@ class Daemon:
         zip_file = file_path + ".zip"  # might not exist
         if not os.path.exists(json_file):
             logger.warning(f"Missing inputs JSON for run {run.id}: {json_file}")
-            self.update_run_status(run, "invalid input", "Missing inputs JSON file")
+            self.update_run_status(run, "missing input", "Missing inputs JSON file")
             return
         if not os.path.exists(wdl_file):
             logger.warning(f"Missing WDL for run {run.id}: {wdl_file}")
-            self.update_run_status(run, "invalid input", "Missing WDL file")
+            self.update_run_status(run, "missing input", "Missing WDL file")
             return
         if not os.path.exists(zip_file):
             zip_file = None

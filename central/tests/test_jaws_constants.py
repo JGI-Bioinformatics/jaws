@@ -8,7 +8,7 @@ def test_run_status_msg():
         "upload failed",
         "upload inactive",
         "upload complete",
-        "invalid input",
+        "missing input",
         "submitted",
         "submission failed",
         "queued",
