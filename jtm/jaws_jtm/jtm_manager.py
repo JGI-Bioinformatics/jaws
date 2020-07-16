@@ -519,9 +519,7 @@ def extract_cromwell_run_id(task_id: int) -> str:
 
 
 # --------------------------------------------------------------------------------------------------
-def send_update_task_status_msg(
-    task_id: int, status_from, status_to: int, fail_code=None
-):
+def send_update_task_status_msg(task_id: int, status_from, status_to: int, fail_code=None):
     """
     Publish a message for pushing task status change to JAWS Site
 
@@ -538,9 +536,7 @@ def send_update_task_status_msg(
     data = {
         "cromwell_run_id": run_id,  # this is not the JAWS run_id
         "cromwell_job_id": task_id,
-        "status_from": reversed_task_status[status_from]
-        if status_from is not None
-        else "",
+        "status_from": reversed_task_status[status_from] if status_from is not None else "",
         "status_to": reversed_task_status[status_to] if status_to is not None else "",
         "timestamp": now,
         "reason": reversed_done_flags[fail_code] if fail_code else None,
@@ -914,9 +910,7 @@ def process_task_request(msg):
 
     user_task_cmd = msg["command"]
     task_type = msg["task_type"]
-    output_file = (
-        msg["output_files"] if "output_files" in msg else ""
-    )  # comma separated list ex) "a.out,b.out,c.out"
+    output_file = msg["output_files"] if "output_files" in msg else ""  # comma separated list ex) "a.out,b.out,c.out"
     output_dir = msg["output_dir"] if "output_dir" in msg else ""
     stdout_file = msg["stdout"] if "stdout" in msg else ""
     stderr_file = msg["stderr"] if "stderr" in msg else ""
@@ -1018,9 +1012,7 @@ def process_task_request(msg):
             JTM_SQL["select_distinct_jid_workers_by_poolname"]
             % dict(pool_name=inner_task_request_queue, hbinterval=w_int * 3)
         )
-        logger.debug(
-            "slurm job id for {}: {}".format(inner_task_request_queue, slurm_jid_list)
-        )
+        logger.debug("slurm job id for {}: {}".format(inner_task_request_queue, slurm_jid_list))
         db.close()
 
         for jid in slurm_jid_list:
@@ -1044,9 +1036,7 @@ def process_task_request(msg):
 
         # This is the actual number of workers = jid * nwpn
         num_live_worker_in_pool = num_slurm_jid_in_pool * num_workers_per_node
-        num_worker_to_add = int(
-            ceil(float(pool_size - num_live_worker_in_pool) / num_workers_per_node)
-        )
+        num_worker_to_add = int(ceil(float(pool_size - num_live_worker_in_pool) / num_workers_per_node))
 
         logger.debug(
             "num_worker_to_add={} pool_size={} "
@@ -1184,7 +1174,7 @@ def process_task_request(msg):
                 logger.critical("Failed to insert tasks table for new user task.")
                 logger.debug("Retry to insert tasks table for a user task.")
                 success = False
-                time.sleep(1.0)
+                time.sleep(0.5)
 
         success = False
         while success is not True:
@@ -1203,14 +1193,14 @@ def process_task_request(msg):
                 logger.critical("Failed to insert runs table for a new run.")
                 logger.debug("Retry to insert runs table for a new run.")
                 success = False
-                time.sleep(1.0)
+                time.sleep(0.5)
 
         # if it successfully updates runs table and gets a task id
         if last_task_id != -1:
             db = DbSqlMysql(config=CONFIG)
             if not STANDALONE:
                 logger.debug("process task request -->")
-                logger.debug(f"status change msg {last_task_id}: '' => ready")
+                logger.debug(f"status change msg {last_task_id}: 'created' => ready")
                 send_update_task_status_msg(
                     last_task_id, TASK_STATUS["created"], TASK_STATUS["ready"]
                 )
@@ -1265,10 +1255,7 @@ def process_task_request(msg):
                 msg_to_send_dict["output_dir"] = output_dir
                 msg_to_send_dict["stdout"] = stdout_file
                 msg_to_send_dict["stderr"] = stderr_file
-                logger.info(
-                    "Total number of workers (alive + requested): %d",
-                    NUM_TOTAL_WORKERS.value,
-                )
+                logger.info("Total number of workers (alive + requested): %d", NUM_TOTAL_WORKERS.value)
 
                 # Create and send request message to workers
                 msg_zipped = zdumps(json.dumps(msg_to_send_dict))
@@ -1276,6 +1263,7 @@ def process_task_request(msg):
                 exch_name = CONFIG.configparser.get("JTM", "jtm_inner_main_exch")
                 reply_q = CONFIG.configparser.get("JTM", "jtm_inner_result_q")
                 logger.info("Send a task to {}".format(inner_task_request_queue))
+                status_now = None
 
                 try:
                     with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
@@ -1306,10 +1294,7 @@ def process_task_request(msg):
                             )
                             response.publish(inner_task_request_queue)
                 except Exception as detail:
-                    logger.exception(
-                        "Exception: Failed to send a request to %s",
-                        inner_task_request_queue,
-                    )
+                    logger.exception("Exception: Failed to send a request to %s", inner_task_request_queue)
                     logger.exception("Detail: %s", str(detail))
                     raise OSError(2, "Failed to send a request to a worker")
 
@@ -1329,13 +1314,8 @@ def process_task_request(msg):
                             debug=False,
                         )
                         logger.debug("process task request -->")
-                        logger.debug(
-                            f"status change msg {last_task_id}: {status_now} => queued"
-                        )
-                        if (
-                            status_now in (TASK_STATUS["ready"], TASK_STATUS["success"])
-                            or status_now < 0
-                        ):
+                        logger.debug(f"status change msg {last_task_id}: {status_now} => queued")
+                        if status_now in (TASK_STATUS["ready"], TASK_STATUS["success"]) or status_now < 0:
                             send_update_task_status_msg(
                                 last_task_id, status_now, TASK_STATUS["queued"]
                             )
@@ -1362,9 +1342,7 @@ def process_task_request(msg):
                     db.close()
                 except Exception as e:
                     logger.critical(e)
-                    logger.critical(
-                        "Failed to update runs table for status and startdate."
-                    )
+                    logger.critical("Failed to update runs table for status and startdate.")
                     # Todo: properly update runs for the failure
                     # Todo: set the task status --> failed
                     raise
@@ -1378,13 +1356,8 @@ def process_task_request(msg):
                     debug=False,
                 )
                 logger.debug("process task request -->")
-                logger.debug(
-                    f"status change msg {last_task_id}: {status_now} => pending"
-                )
-                if (
-                    status_now in (TASK_STATUS["queued"], TASK_STATUS["success"])
-                    or status_now < 0
-                ):
+                logger.debug(f"status change msg {last_task_id}: {status_now} => pending")
+                if status_now in (TASK_STATUS["queued"], TASK_STATUS["success"]) or status_now < 0:
                     send_update_task_status_msg(
                         last_task_id, status_now, TASK_STATUS["pending"]
                     )

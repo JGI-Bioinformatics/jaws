@@ -167,9 +167,9 @@ log_dir = \${SITE:scratch}/jtm
 worker_config_file = /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
 env_activation = source /global/cfs/projectdirs/jaws/jtm-dev/bin/activate
 pool_name = small
-# worker's hb expiration
-worker_s_hb_expiration = 60000
 # Worker setting
+# worker's hb expiration (ms)
+worker_s_hb_expiration = 60000
 # worker->client heartbeat sending interval in worker
 worker_hb_send_interval = 2.0
 # timeout for waiting the client's heartbeat; 0=no timeout
@@ -205,7 +205,7 @@ file_check_interval = 3.0
 # increase amount of wait time for file checking
 file_check_int_inc = 1.5
 # jtm_* CLI command timeout in secs.
-jtminterface_max_trial = 300
+jtminterface_max_trial = 3600
 # worker lifeleft for task timeout
 task_kill_timeout_minute = 3
 jtm_inner_request_q = _jtm_inner_request_queue.\${SITE:instance_name}
@@ -341,7 +341,7 @@ backend
         dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
       }
     }
-  } 
+  }
 }
 database
 {
