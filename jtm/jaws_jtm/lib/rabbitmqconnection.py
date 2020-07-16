@@ -77,12 +77,17 @@ class JtmAmqpstormBase(object):
         properties = {
             'correlation_id': message.correlation_id
         }
-        response = amqpstorm.Message.create(message.channel,
-                                            zdumps(str(reply_msg)),
-                                            properties)
-        response.publish(message.reply_to)
-        logger.debug("Send reply back: {}, {}".format(mode, reply_msg))
-        message.ack()
+        try:
+            response = amqpstorm.Message.create(message.channel,
+                                                zdumps(str(reply_msg)),
+                                                properties)
+            response.publish(message.reply_to)
+            message.ack()
+        except amqpstorm.AMQPError as why:
+            logger.exception(why)
+            raise
+        else:
+            logger.info("Send reply back: {}, {}".format(mode, reply_msg))
 
 
 class RmqConnectionHB(object):
@@ -116,7 +121,6 @@ class RmqConnectionHB(object):
                                                heartbeat=5,  # for functools method
                                                )
             self.__connection = pika.BlockingConnection(params)
-
         else:
             print("Already connected.")
 

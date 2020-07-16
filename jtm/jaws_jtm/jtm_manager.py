@@ -428,26 +428,20 @@ class JtmCommandRunner(JtmAmqpstormBase):
         while True:
             try:
                 channel = self.connection.channel()
-                channel.exchange.declare(
-                    exchange=self.jgi_jtm_main_exch,
-                    exchange_type="direct",
-                    durable=True,
-                    auto_delete=False,
-                )
-                channel.queue.declare(
-                    queue=self.jtm_task_request_q,
-                    durable=True,
-                    exclusive=False,
-                    auto_delete=True,
-                )
-                channel.queue.bind(
-                    exchange=self.jgi_jtm_main_exch,
-                    queue=self.jtm_task_request_q,
-                    routing_key=self.jtm_task_request_q,
-                )
-                channel.basic.consume(
-                    self.process_jtm_command, self.jtm_task_request_q, no_ack=False
-                )
+                channel.exchange.declare(exchange=self.jgi_jtm_main_exch,
+                                         exchange_type="direct",
+                                         durable=True,
+                                         auto_delete=False)
+                channel.queue.declare(queue=self.jtm_task_request_q,
+                                      durable=True,
+                                      exclusive=False,
+                                      auto_delete=True)
+                channel.queue.bind(exchange=self.jgi_jtm_main_exch,
+                                   queue=self.jtm_task_request_q,
+                                   routing_key=self.jtm_task_request_q)
+                channel.basic.consume(self.process_jtm_command,
+                                      self.jtm_task_request_q,
+                                      no_ack=False)
                 channel.basic.qos(prefetch_count=1)
                 channel.start_consuming()
                 if not channel.consumer_tags:
@@ -473,25 +467,17 @@ class JtmCommandRunner(JtmAmqpstormBase):
         if task_type == "task":
             self.send_reply(message, "task", process_task_request(msg_unzipped))
         elif task_type == "status":
-            self.send_reply(
-                message, "status", process_task_status(int(msg_unzipped["task_id"]))
-            )
+            self.send_reply(message, "status", process_task_status(int(msg_unzipped["task_id"])))
         elif task_type == "resource":
-            self.send_reply(
-                message, "resource", process_resource_log(int(msg_unzipped["task_id"]))
-            )
+            self.send_reply(message, "resource", process_resource_log(int(msg_unzipped["task_id"])))
         elif task_type == "kill":
-            self.send_reply(
-                message, "kill", process_task_kill(int(msg_unzipped["task_id"]))
-            )
+            self.send_reply(message, "kill", process_task_kill(int(msg_unzipped["task_id"])))
         elif task_type == "check_manager":
             self.send_reply(message, "check_manager", 88)
         elif task_type == "check_worker":
             self.send_reply(message, "check_worker", process_check_worker(msg_unzipped))
         elif task_type == "remove_pool":
-            self.send_reply(
-                message, "remove_pool", process_remove_pool(msg_unzipped["task_pool"])
-            )
+            self.send_reply(message, "remove_pool", process_remove_pool(msg_unzipped["task_pool"]))
         else:
             logger.critical("Task type not found: {}".format(task_type))
             self.send_reply(message, "Undefined task type", -1)
@@ -563,22 +549,20 @@ def send_update_task_status_msg(
 
     # send message to Site
     try:
-        with rpc_client.RPC_Client(
-            {
-                "host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
-                "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
-                "port": CONFIG.configparser.get("SITE_RPC_CLIENT", "port"),
-                "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
-                "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
-                "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password"),
-            }
-        ) as rpc_cl:
+        with rpc_client.RPC_Client({"host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
+                                    "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
+                                    "port": CONFIG.configparser.get("SITE_RPC_CLIENT", "port"),
+                                    "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
+                                    "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
+                                    "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password")}
+                                   ) as rpc_cl:
             response = rpc_cl.request("update_job_status", data)
     except Exception as error:
         logger.error(f"RPC call failed: {error}")
         raise
 
     if "result" in response:
+        logger.debug(f"status change message sent successfully: {data}")
         pass
     else:
         logger.error(f"Status update failed: {response['error']['message']}")
@@ -1127,7 +1111,6 @@ def process_task_request(msg):
                 ec = 1  # make it fail
 
             if ec == 0:  # if sbatch by jtm-worker done successfully
-                logger.debug("Insert into workers table.")
                 for serial_worker_num in range(num_workers_per_node):
                     # Insert into workers for new worker id
                     try:
@@ -1446,7 +1429,9 @@ def process_task_status(task_id):
     db.close()
 
     if ret is not None:
-        logger.debug("Task status from runs table: status, cancelled = {}".format(ret))
+        logger.debug("Task status from runs table: status, cancelled = {}, "
+                     "Task id = {}"
+                     "".format(ret, task_id))
         if ret[1] == 1:  # cancellation requested
             task_status_int = TASK_STATUS["terminated"]
         else:
@@ -2046,6 +2031,7 @@ def manager(
         proc_clean_exit(plist)
 
     signal.signal(signal.SIGTERM, signal_handler)
+    logger.debug(f"main_proc pid = {os.getpid()}")
 
     # Start heartbeat receiving proc
     worker_hb_queue_name = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
@@ -2056,17 +2042,17 @@ def manager(
         )
         recv_hb_from_worker_proc_hdl.start()
         plist.append(recv_hb_from_worker_proc_hdl)
+        logger.debug(f"recv_hb_from_worker_proc pid = {recv_hb_from_worker_proc_hdl.pid}")
     except Exception as e:
         logger.exception("recv_hb_from_worker_proc: {}".format(e))
         proc_clean_exit(plist)
-
-    logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)
 
     # Start cancelled task cleanup proc
     try:
         task_kill_proc_hdl = mp.Process(target=task_kill_proc)
         task_kill_proc_hdl.start()
         plist.append(task_kill_proc_hdl)
+        logger.debug(f"task_kill_proc pid = {task_kill_proc_hdl.pid}")
     except Exception as e:
         logger.exception("task_kill_proc: {}".format(e))
         proc_clean_exit(plist)
@@ -2076,6 +2062,7 @@ def manager(
         worker_cleanup_proc_hdl = mp.Process(target=slurm_worker_cleanup_proc)
         worker_cleanup_proc_hdl.start()
         plist.append(worker_cleanup_proc_hdl)
+        logger.debug(f"worker_cleanup_proc pid = {worker_cleanup_proc_hdl.pid}")
     except Exception as e:
         logger.exception("slurm_worker_cleanup_proc: {}".format(e))
         proc_clean_exit(plist)
@@ -2087,11 +2074,10 @@ def manager(
         )
         recv_result_from_worker_proc_hdl.start()
         plist.append(recv_result_from_worker_proc_hdl)
+        logger.debug(f"recv_result_from_worker_proc pid = {recv_result_from_worker_proc_hdl.pid}")
     except Exception as e:
         logger.exception("WorkerResultReceiver: {}".format(e))
         proc_clean_exit(plist)
-
-    logger.info("Waiting for a task request from %s", jtm_task_request_q)
 
     # Start JtmCommandRunner
     try:
@@ -2100,8 +2086,12 @@ def manager(
         )
         process_jtminterface_command_proc_hdl.start()
         plist.append(process_jtminterface_command_proc_hdl)
+        logger.debug(f"process_jtminterface_command_proc pid = {process_jtminterface_command_proc_hdl.pid}")
     except Exception as e:
         logger.exception("JtmCommandRunner: {}".format(e))
         proc_clean_exit(plist)
+
+    logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)
+    logger.info("Waiting for a task request from %s", jtm_task_request_q)
 
     return 0
