@@ -117,9 +117,7 @@ class RmqConnectionHB(object):
             params = pika.ConnectionParameters(credentials=creds,
                                                host=RMQ_HOST,
                                                virtual_host=RMQ_VHOST,
-                                               port=RMQ_PORT,
-                                               heartbeat=5,  # for functools method
-                                               )
+                                               port=RMQ_PORT)
             self.__connection = pika.BlockingConnection(params)
         else:
             print("Already connected.")
