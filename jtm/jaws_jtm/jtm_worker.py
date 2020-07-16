@@ -358,7 +358,7 @@ def run_user_task(msg_unzipped):
         else:
             p.wait()
             p.poll()
-            if stdout_str.find("not found") != -1:
+            if stdout_str.find("command not found") != -1:
                 proc_return_code = 2  # set it as command-not-found error
             else:
                 proc_return_code = p.returncode
