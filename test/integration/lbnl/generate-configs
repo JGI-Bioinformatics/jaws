@@ -183,6 +183,11 @@ system
   new-workflow-poll-rate = 1
   number-of-workflow-log-copy-workers = 20
   number-of-cache-read-workers = 50
+  job-rate-control
+  {
+    jobs = 1
+    per = 1 second
+  }
 }
 
 workflow-options
@@ -221,6 +226,7 @@ backend
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
 
       config {
+        exit-code-timeout-seconds = 60
         runtime-attributes = """
         String time = "00:00:00"
         Int cpu = 1
