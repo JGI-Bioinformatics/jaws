@@ -1014,10 +1014,10 @@ def process_task_request(msg):
             JTM_SQL["select_distinct_jid_workers_by_poolname"]
             % dict(pool_name=inner_task_request_queue, hbinterval=w_int * 3)
         )
-        logger.debug(
-            "slurm job id for {}: {}".format(inner_task_request_queue, slurm_jid_list)
-        )
         db.close()
+
+        slurm_jid_list = [i[0] for i in slurm_jid_list]
+        logger.debug("slurm job id for {}: {}".format(inner_task_request_queue, slurm_jid_list))
 
         for jid in slurm_jid_list:
             cmd = "squeue -j %d" % jid
