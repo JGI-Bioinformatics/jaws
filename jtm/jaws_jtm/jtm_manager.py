@@ -101,11 +101,10 @@ class WorkerResultReceiver(JtmAmqpstormBase):
         """
         msg_unzipped = json.loads(zloads(message.body))
         logger.info("New result: {}".format(msg_unzipped))
-        assert "task_id" in msg_unzipped
+        assert "task_id" in msg_unzipped, "task ID not found from the result package"
         task_id = int(msg_unzipped["task_id"])
-        done_flag = (
-            int(msg_unzipped["done_flag"]) if "done_flag" in msg_unzipped else -2
-        )
+        assert task_id >= 0, "Found invalid task ID"
+        done_flag = int(msg_unzipped["done_flag"]) if "done_flag" in msg_unzipped else -2
         ret_msg = msg_unzipped["ret_msg"] if "ret_msg" in msg_unzipped else ""
         a_worker_id = msg_unzipped["worker_id"] if "worker_id" in msg_unzipped else ""
         host_name = msg_unzipped["host_name"] if "host_name" in msg_unzipped else ""
@@ -160,7 +159,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                 ):
                     ret_status = 4 if task_status_int > 0 else -2
                     if status_now == self.task_status["ready"]:
-                        logger.debug("process result -->")
+                        logger.debug("process result --> ready to queued")
                         send_update_task_status_msg(
                             task_id, TASK_STATUS["ready"], TASK_STATUS["queued"]
                         )
@@ -174,7 +173,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                             debug=DEBUG,
                         )
                         db.commit()
-                        logger.debug("process result -->")
+                        logger.debug("process result --> queued to pending")
                         send_update_task_status_msg(
                             task_id, TASK_STATUS["queued"], TASK_STATUS["pending"]
                         )
@@ -188,7 +187,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                             debug=DEBUG,
                         )
                         db.commit()
-                        logger.debug("process result -->")
+                        logger.debug("process result --> pending to running")
                         send_update_task_status_msg(
                             task_id, TASK_STATUS["pending"], TASK_STATUS["running"]
                         )
@@ -203,7 +202,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         )
                         db.commit()
                     elif status_now == self.task_status["queued"]:
-                        logger.debug("process result -->")
+                        logger.debug("process result --> queued to pending")
                         send_update_task_status_msg(
                             task_id, TASK_STATUS["queued"], TASK_STATUS["pending"]
                         )
@@ -217,7 +216,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                             debug=DEBUG,
                         )
                         db.commit()
-                        logger.debug("process result -->")
+                        logger.debug("process result --> pending to running")
                         send_update_task_status_msg(
                             task_id, TASK_STATUS["pending"], TASK_STATUS["running"]
                         )
@@ -232,7 +231,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         )
                         db.commit()
                     elif status_now == self.task_status["pending"]:
-                        logger.debug("process result -->")
+                        logger.debug("process result --> pending to running")
                         send_update_task_status_msg(
                             task_id, TASK_STATUS["pending"], TASK_STATUS["running"]
                         )
@@ -247,7 +246,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         )
                         db.commit()
 
-                    logger.debug("process result -->")
+                    logger.debug("process result --> running to succeeded/failed")
                     send_update_task_status_msg(
                         task_id,
                         TASK_STATUS["running"],
@@ -278,23 +277,33 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                 a_worker_id_to_check = int(rows[0][0])
             except Exception:
                 a_worker_id_to_check = 0
+            logger.debug(f"WorkerId2 from workerid = {a_worker_id_to_check}, {a_worker_id}")
 
             # Just in case
+            # If a worker has already been terminated, this worker might be deleted already.
+            # Let's try only (wait_count * "worker_info_update_wait") seconds.
+            wait_count = 0
             while a_worker_id_to_check == 0:
+                wait_count += 1
                 db = DbSqlMysql(config=CONFIG)
                 rows = db.selectAll(
                     JTM_SQL["select_workerid2_workers_by_wid"]
                     % dict(worker_id=a_worker_id)
                 )
                 db.close()
+
                 try:
                     a_worker_id_to_check = int(rows[0][0])
                 except Exception:
                     a_worker_id_to_check = 0
 
-                time.sleep(
-                    CONFIG.configparser.getfloat("JTM", "worker_info_update_wait")
-                )
+                logger.debug(f"Try to get the real worker ID for {a_worker_id}")
+
+                # Wait 20 times with 0.5 sec sleep
+                time.sleep(CONFIG.configparser.getfloat("JTM", "worker_info_update_wait"))
+                if wait_count == 20:
+                    a_worker_id_to_check = 0
+                    break
 
             success = False
             while success is not True:
@@ -309,7 +318,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                             now=time.strftime("%Y-%m-%d %H:%M:%S"),
                             task_id=task_id,
                         ),
-                        debug=False,
+                        debug=DEBUG,
                     )
                     db.commit()
                     db.close()
@@ -325,9 +334,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                     )
                     logger.debug("Retry to update runs table for status and workerid2.")
                     success = False
-                    time.sleep(
-                        CONFIG.configparser.getfloat("JTM", "runs_info_update_wait")
-                    )
+                    time.sleep(CONFIG.configparser.getfloat("JTM", "runs_info_update_wait"))
 
             # Print report
             if done_flag == self.done_flag["success"]:  # 1
@@ -337,9 +344,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                     a_worker_id,
                     host_name,
                 )
-            elif (
-                done_flag == self.done_flag["success with correct output file(s)"]
-            ):  # 2
+            elif done_flag == self.done_flag["success with correct output file(s)"]:  # 2
                 logger.info(
                     "Task %s --> Success with valid output(s) on worker/host, %s/%s",
                     task_id,
@@ -378,10 +383,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                     a_worker_id,
                     host_name,
                 )
-            elif (
-                done_flag
-                == self.done_flag["failed with input file or command not found"]
-            ):  # -5
+            elif done_flag == self.done_flag["failed with input file or command not found"]:  # -5
                 logger.info(
                     "Task %s --> Failed with input file or command not found. stdout = %s, worker/host: %s/%s",
                     task_id,
@@ -761,11 +763,10 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                         debug=False,
                                     )
 
-                                    logger.debug("recv worker hb -->")
-                                    logger.debug(
-                                        f"status change msg {task_id}: {status_now} => running"
-                                    )
                                     if status_now == TASK_STATUS["pending"]:
+                                        logger.debug(
+                                            f"status change msg {task_id}: {status_now} => running"
+                                        )
                                         send_update_task_status_msg(
                                             task_id, status_now, TASK_STATUS["running"]
                                         )
@@ -1206,7 +1207,7 @@ def process_task_request(msg):
             db = DbSqlMysql(config=CONFIG)
             if not STANDALONE:
                 logger.debug("process task request -->")
-                logger.debug(f"status change msg {last_task_id}: '' => ready")
+                logger.debug(f"status change msg {last_task_id}: created => ready")
                 send_update_task_status_msg(
                     last_task_id, TASK_STATUS["created"], TASK_STATUS["ready"]
                 )
