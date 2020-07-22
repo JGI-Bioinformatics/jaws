@@ -303,7 +303,7 @@ def submit_run(user):
                 401,
                 error.message
                 + " -- Your access to the Globus endpoint has expired.  "
-                + "To reactivate, log-in to https://globus.org, go to Endpoints (left), "
+                + "To reactivate, log-in to https://app.globus.org, go to Endpoints (left), "
                 + "search for the endpoint by name (if not shown), click on the endpoint, "
                 + "and use the button on the right to activate your credentials.",
             )
@@ -455,8 +455,8 @@ def run_status(user, run_id):
     :return: The status of the run, if found; abort otherwise
     :rtype: dict
     """
-    logger.info(f"User {user}: Get status of Run {run_id}")
     run = _get_run(user, run_id)
+    logger.info(f"User {user}: Get status of Run {run.id}")
     result = {
         "id": run.id,
         "submission_id": run.submission_id,
@@ -488,8 +488,8 @@ def task_status(user, run_id):
     :return: The status of each task in a run.
     :rtype: dict
     """
-    logger.info(f"User {user}: Get task-status of Run {run_id}")
     run = _get_run(user, run_id)
+    logger.info(f"User {user}: Get task-status of Run {run.id}")
     if not run:
         abort(404, f"Run {run_id} does not exist")
 
@@ -533,7 +533,8 @@ def run_log(user: str, run_id: int):
     :return: Table of log entries
     :rtype: list
     """
-    logger.info(f"User {user}: Get log of Run {run_id}")
+    run = _get_run(user, run_id)
+    logger.info(f"User {user}: Get log of Run {run.id}")
     try:
         query = (
             db.session.query(Run_Log)
@@ -567,7 +568,8 @@ def task_log(user, run_id):
     :return: The complete log of all task state transitions.
     :rtype: dict
     """
-    logger.info(f"User {user}: Get task-log of Run {run_id}")
+    run = _get_run(user, run_id)
+    logger.info(f"User {user}: Get task-log of Run {run.id}")
     try:
         query = (
             db.session.query(Job_Log)
@@ -608,22 +610,6 @@ def run_metadata(user, run_id):
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
     return _rpc_call(user, run_id, "run_metadata")
-
-
-def run_logs(user, run_id):
-    """
-    Retrieve the logs of a run.
-
-    :param user: current user's ID
-    :type user: str
-    :param run_id: unique identifier for a run
-    :type run_id: int
-    :return: Cromwell metadata for the run, if found; abort otherwise
-    :rtype: dict
-    """
-    run = _get_run(user, run_id)
-    _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "run_logs")
 
 
 def output(user, run_id):
