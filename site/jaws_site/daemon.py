@@ -246,7 +246,7 @@ class Daemon:
                 logger.exception(f"Run {run.id}: wfcopy outdir already exists: {error}")
             except Exception as error:
                 logger.exception(f"Run {run.id}: wfcopy failed: {error}")
-                self.update_run_status(run, "failed", "wfcopy failed: {error}")
+                self.update_run_status(run, "failed", f"wfcopy failed: {error}")
         else:  # failed
             logger.debug(f"Run {run.id}: rsync failed output")
             # copy to results dir
