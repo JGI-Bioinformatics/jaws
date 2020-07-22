@@ -201,10 +201,7 @@ class Daemon:
             if run.status == "submitted":
                 self.update_run_status(run, "queued")
         elif cromwell_status == "Failed":
-            if run.status == "queued":
-                self.update_run_status(run, "running")
-            if run.status == "running":
-                self.update_run_status(run, "failed")
+            self.update_run_status(run, "failed")
         elif cromwell_status == "Succeeded":
             if run.status == "queued":
                 self.update_run_status(run, "running")
