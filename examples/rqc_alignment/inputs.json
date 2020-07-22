@@ -1,0 +1,5 @@
+{
+    "rqc_alignment.input_fastq": "/global/cfs/cdirs/jaws/test/tutorial_test_data/RQC_alignment/12946.2.299994.ACAGCAAC-GTTGCTGT.filter-RNA.fastq.gz",
+    "rqc_alignment.genome_reference": "/global/cfs/cdirs/jaws/test/tutorial_test_data/RQC_alignment/AT353670.20200715.main.contigs.fa",
+    "rqc_alignment.transcriptome_reference": "/global/cfs/cdirs/jaws/test/tutorial_test_data/RQC_alignment/Bdistachyon_314_v3.1.transcript.fa"
+}
