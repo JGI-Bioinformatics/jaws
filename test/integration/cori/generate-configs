@@ -172,7 +172,7 @@ pool_name = small
 worker_s_hb_expiration = 60000
 # worker->client heartbeat sending interval in worker
 worker_hb_send_interval = 2.0
-# timeout for waiting the client's heartbeat; 0=no timeout
+# timeout for waiting the client's heartbeat; 0=no timeout. OBSOLETE
 worker_timeout = 0
 # zombie worker checking interval
 worker_kill_interval = 300.0
@@ -180,9 +180,9 @@ worker_kill_interval = 300.0
 num_procs_check_interval = 60.0
 # manager's interval to check if there is task to terminate
 task_kill_interval = 5.0
-# client->worker heartbeat receiving interval in worker NOT USED!!
-worker_hb_recv_interval = 6.0
-# tasks status update interval
+# client->worker heartbeat receiving interval in worker.
+worker_hb_recv_interval = 5.0
+# tasks status update interval. OBSOLETE
 task_stat_update_interval = 0.5
 # to ensure updating runs table
 runs_info_update_wait = 0.5

@@ -554,13 +554,22 @@ def send_update_task_status_msg(task_id: int, status_from, status_to: int, fail_
                                     "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
                                     "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password")}
                                    ) as rpc_cl:
+            wait_count = 0
             response = rpc_cl.request("update_job_status", data)
+            while "error" in response and response["error"]["message"] == "Server timeout":
+                wait_count += 1
+                if wait_count == 60:  # try for 1min
+                    logger.error("RPC reply timeout!")
+                    break
+                logger.debug("RPC reply delay. Wait for a result from JAWS Site RPC server.")
+                time.sleep(1.0)
+                response = rpc_cl.request("update_job_status", data)
     except Exception as error:
         logger.error(f"RPC call failed: {error}")
         raise
 
     if "result" in response:
-        logger.debug(f"status change message sent successfully: {data}")
+        logger.debug(f"Status change message sent successfully: {data}")
         pass
     else:
         logger.error(f"Status update failed: {response['error']['message']}")
