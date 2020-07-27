@@ -223,8 +223,8 @@ class Daemon:
                 return
             if metadata is None:
                 return
-        logger.info(f"Run {run.id}: Prepare output of successful run")
-        src_dir = metadata.get("workflowRoot")  # Cromwell output
+        logger.info(f"Run {run.id}: Prepare output")
+        src_dir = str(metadata.get("workflowRoot"), encoding='utf-8', errors='ignore')
         dest_dir = os.path.join(
             self.results_dir, str(run.id)
         )  # output to return to user
@@ -261,7 +261,7 @@ class Daemon:
                     )
                     return
             except Exception as error:
-                logger.exception(f"Rsync failed: {error}")
+                logger.exception(f"Rsync failed for {src_dir} to {dest_dir}: {error}")
                 return
             # fix permissions
             os.chmod(dest_dir, 0o0775)
