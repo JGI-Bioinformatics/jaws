@@ -224,7 +224,7 @@ class Daemon:
             if metadata is None:
                 return
         logger.info(f"Run {run.id}: Prepare output")
-        src_dir = str(metadata.get("workflowRoot"), encoding='utf-8', errors='ignore')
+        src_dir = metadata.get("workflowRoot")
         dest_dir = os.path.join(
             self.results_dir, str(run.id)
         )  # output to return to user
@@ -244,6 +244,10 @@ class Daemon:
             except Exception as error:
                 logger.exception(f"Run {run.id}: wfcopy failed: {error}")
                 self.update_run_status(run, "failed", f"wfcopy failed: {error}")
+                return
+        elif src_dir is None:
+            logger.debug(f"Run {run.id}: has no workflowRoot dir")
+            self.update_run_status(run, "download complete", "No outfiles to return")
         else:  # failed
             logger.debug(f"Run {run.id}: rsync failed output")
             # copy to results dir
@@ -256,11 +260,13 @@ class Daemon:
                 )
                 stdout, stderr = process.communicate()
                 if process.returncode:
+                    self.update_run_status(run, "download complete", "Rsync failed")
                     logger.error(
                         f"Failed to rsync {src_dir} to {dest_dir}: " + stderr.strip()
                     )
                     return
             except Exception as error:
+                self.update_run_status(run, "download complete", "Rsync failed")
                 logger.exception(f"Rsync failed for {src_dir} to {dest_dir}: {error}")
                 return
             # fix permissions
