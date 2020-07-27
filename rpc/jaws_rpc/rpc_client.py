@@ -12,7 +12,7 @@ from jaws_rpc import jsonrpc_utils
 DEFAULT_PORT = 5672
 DEFAULT_WAIT_INTERVAL = 0.25
 DEFAULT_MAX_WAIT = 10
-DEFAULT_MESSAGE_TTL = 0  # expires in seconds or 0=doesn't expire
+DEFAULT_MESSAGE_TTL = 10  # expires in seconds or 0=doesn't expire
 
 
 logger = logging.getLogger(__package__)
@@ -36,6 +36,8 @@ class RPC_Client(object):
         self.wait_interval = float(params.get("rpc_wait_interval", DEFAULT_WAIT_INTERVAL))
         self.max_wait = int(params.get("rpc_max_wait", DEFAULT_MAX_WAIT))
         self.message_ttl = int(params.get("rpc_message_ttl", DEFAULT_MESSAGE_TTL))
+        if self.message_ttl > self.max_wait:
+            raise ConfigurationError("rpc_message_ttl must be <= rpc_max_wait")
         self.queue = {}
         self.channel = None
         self.connection = None
