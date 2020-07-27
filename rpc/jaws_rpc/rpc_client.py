@@ -116,7 +116,7 @@ class RPC_Client(object):
         # Create the Message object.
         properties = {}
         if self.message_ttl:
-            properties["expiration"] = self.message_ttl
+            properties["expiration"] = str(self.message_ttl)
         message = Message.create(self.channel, payload, properties=properties)
         message.reply_to = self.callback_queue
 
