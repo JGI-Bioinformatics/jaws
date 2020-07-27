@@ -4,6 +4,7 @@ RPC functions for JTM.
 
 from http.client import responses
 import logging
+import sqlalchemy.exc
 from datetime import datetime
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
@@ -63,28 +64,7 @@ def update_job_status(params):
     else:
         logger.info(f"Job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}")
 
-    # CHECK IF ALREADY EXISTS
-    try:
-        session = Session()
-        log = (
-            session.query(Job_Log)
-            .filter_by(
-                cromwell_job_id=cromwell_job_id,
-                status_from=status_from,
-                status_to=status_to,
-            )
-            .one_or_none()
-        )
-    except Exception as error:
-        logger.exception(f"Failed to query job_log table: {error}")
-        session.close()
-        return _failure(500, f"Failed to query job_log table: {error}")
-    if log:
-        # ignore redunant state transition (duplicate message)
-        logger.debug(f"Duplicate job_log: {cromwell_job_id}:{status_from}:{status_to}")
-        return _success()
-
-    # CREATE NEW job_log ENTRY
+    # DEFINE ROW
     try:
         job_log = Job_Log(
             cromwell_run_id=cromwell_run_id,
@@ -97,14 +77,19 @@ def update_job_status(params):
     except Exception as error:
         logger.exception(f"Failed to create job_log object for {params}: {error}")
         return _failure(500, f"Failed to create job_log object for {params}: {error}")
-    try:
-        logger.debug(f"Job update: {cromwell_run_id}:{cromwell_job_id} now {status_to}")
-        session.add(job_log)
-        session.commit()
-        session.close()
-    except Exception as error:
-        logger.exception(f"Failed to insert job_log: {job_log}: {error}")
-        return _failure(500, f"Failed to insert job_log: {job_log}: {error}")
+
+    # INSERT OR IGNORE
+    session = Session()
+    with session.begin():
+        try:
+            logger.debug(f"Job update: {cromwell_run_id}:{cromwell_job_id} now {status_to}")
+            session.add(job_log)
+        except sqlalchemy.exc.IntegrityError as error:
+            # JTM sometimes sends duplicate messages; ignore
+            logger.warning(f"Duplicate job status: {cromwell_run_id}:{cromwell_job_id}:{status_to}: {error}")
+        except Exception as error:
+            logger.exception(f"Failed to insert job_log: {job_log}: {error}")
+            return _failure(500, f"Failed to insert job_log: {job_log}: {error}")
     return _success()
 
 
