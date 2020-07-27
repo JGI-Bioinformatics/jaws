@@ -473,7 +473,6 @@ class Daemon:
                 self.session.query(Job_Log)
                 .filter_by(task_name=None)
                 .filter(Job_Log.timestamp > back1min)
-                .all()
             )
         except Exception as error:
             logger.exception(f"Unable to select orphaned job_logs: {error}")
