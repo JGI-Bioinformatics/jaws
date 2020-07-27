@@ -10,7 +10,7 @@ run_status_msg = {
     "queued": "At least one task has requested resources but no tasks have started running yet",
     "running": "The run is being executed; you can check `task-status` for more detail",
     "succeeded": "The run has completed successfully and is waiting for the output to be prepared",
-    "failed": "The run has failed; see: `output --failed` for more detail",
+    "failed": "The run has failed; see: `output --failed` and `metadata` for more detail",
     "aborting": "Your run is in the process of being canceled",
     "aborted": "The run was cancelled",
     "ready": "The run has completed, the outfiles organized, and ready to be downloaded.",
