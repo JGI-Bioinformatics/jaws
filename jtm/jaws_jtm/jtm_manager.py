@@ -556,12 +556,13 @@ def send_update_task_status_msg(task_id: int, status_from, status_to: int, fail_
                                    ) as rpc_cl:
             wait_count = 0
             response = rpc_cl.request("update_job_status", data)
+            logger.debug(f"Return msg from JAWS Site: {response}")
             while "error" in response and response["error"]["message"] == "Server timeout":
                 wait_count += 1
                 if wait_count == 60:  # try for 1min
                     logger.error("RPC reply timeout!")
                     break
-                logger.debug("RPC reply delay. Wait for a result from JAWS Site RPC server.")
+                logger.debug(f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}")
                 time.sleep(1.0)
                 response = rpc_cl.request("update_job_status", data)
     except Exception as error:
