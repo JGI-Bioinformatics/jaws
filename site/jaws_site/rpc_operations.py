@@ -79,12 +79,11 @@ def update_job_status(params):
         return _failure(500, f"Failed to create job_log object for {params}: {error}")
 
     # INSERT OR IGNORE
-    logger.debug(f"Begin transaction to insert job status log for {cromwell_job_id}")  # ECCE
     session = Session()
     try:
-        logger.debug(f"Job update: {cromwell_run_id}:{cromwell_job_id} now {status_to}")
         session.add(job_log)
         session.commit()
+        logger.debug(f"Job update: {cromwell_run_id}:{cromwell_job_id} now {status_to}")
     except sqlalchemy.exc.IntegrityError as error:
         # JTM sometimes sends duplicate messages; ignore
         session.rollback()
