@@ -461,18 +461,18 @@ class Daemon:
             self.session.commit()
 
         # Purge job status logs that cannot be found in Cromwell metadata.
-        # Cromwell metadata should always be updated within 1 minute;
+        # Cromwell metadata should always be updated within minutes;
         # if the job_id cannot be found after that, it never will.
         # This can happen due to "jtm submit timeout error", in which
         # Cromwell doesn't receive the job_id after submission but
         # JTM continues to run the job and send updates to Site.
         # Such log messages must be purged.
-        back1min = datetime.now() - timedelta(minutes=1)
+        back1day = datetime.now() - timedelta(hours=24)
         try:
             query = (
                 self.session.query(Job_Log)
                 .filter_by(task_name=None)
-                .filter(Job_Log.timestamp > back1min)
+                .filter(Job_Log.timestamp > back1day)
             )
         except Exception as error:
             logger.exception(f"Unable to select orphaned job_logs: {error}")
