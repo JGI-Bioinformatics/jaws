@@ -2,7 +2,7 @@ import logging
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from jaws_site import config
 
 
@@ -23,6 +23,7 @@ except Exception as error:
     logger.exception(error)
     raise
 
-Session = sessionmaker(bind=engine)
+Session = scoped_session(sessionmaker(bind=engine))
+Session.configure(bind=engine)
 
 Base = declarative_base()
