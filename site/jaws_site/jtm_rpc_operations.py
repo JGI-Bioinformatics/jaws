@@ -60,9 +60,10 @@ def update_job_status(params):
     reason = None
     if "reason" in params:
         reason = params["reason"]
-        logger.info(f"Job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}:{reason}")
+    if reason is not None:
+        logger.info(f"Received job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}:{reason}")
     else:
-        logger.info(f"Job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}")
+        logger.info(f"Received job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}")
 
     # DEFINE ROW
     try:
@@ -83,16 +84,16 @@ def update_job_status(params):
     try:
         session.add(job_log)
         session.commit()
-        logger.debug(f"Job update: {cromwell_run_id}:{cromwell_job_id} now {status_to}")
-    except sqlalchemy.exc.IntegrityError as error:
+        logger.debug(f"Job {cromwell_job_id} status saved")
+    except sqlalchemy.exc.IntegrityError:
         # JTM sometimes sends duplicate messages; ignore
         session.rollback()
-        logger.warning(f"Duplicate job status: {cromwell_run_id}:{cromwell_job_id}:{status_to}: {error}")
+        logger.warning(f"Job {cromwell_job_id} status is duplicate; ignored")
     except Exception as error:
         session.rollback()
         session.close()
-        logger.exception(f"Failed to insert job_log: {job_log}: {error}")
-        return _failure(500, f"Failed to insert job_log: {job_log}: {error}")
+        logger.exception(f"Job {cromwell_job_id} status not saved: {error}")
+        return _failure(500, f"Failed to insert job {cromwell_job_id} log: {error}")
     session.close()
     return _success()
 
