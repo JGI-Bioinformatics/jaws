@@ -1,10 +1,10 @@
 import json
 
-from jaws_site import analysis
+from jaws_site import central_rpc_operations
 
 
 def testtail_files(log_file):
-    logs, is_truncated = analysis._tail(log_file)
+    logs, is_truncated = central_rpc_operations._tail(log_file)
     print(logs)
     assert is_truncated
     assert len(logs) == 1000
@@ -15,7 +15,7 @@ def testtail_files(log_file):
 def test_find_rc_failed_files(cromwell_run_dir):
     run_dir = cromwell_run_dir
     print(f"run_dir={run_dir}")
-    out_json = analysis._find_outfiles(run_dir, failed_only=True)
+    out_json = central_rpc_operations._find_outfiles(run_dir, failed_only=True)
     obs_output = json.dumps(out_json, sort_keys=True, indent=4)
     exp_output = """
 {
@@ -41,7 +41,7 @@ def test_find_rc_failed_files(cromwell_run_dir):
 def test_find_rc_all_files(cromwell_run_dir):
     run_dir = cromwell_run_dir
     print(f"run_dir={run_dir}")
-    out_json = analysis._find_outfiles(run_dir, failed_only=False)
+    out_json = central_rpc_operations._find_outfiles(run_dir, failed_only=False)
     obs_output = json.dumps(out_json, sort_keys=True, indent=4)
     exp_output = """
 {

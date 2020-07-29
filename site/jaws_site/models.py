@@ -40,7 +40,6 @@ class Run(Base):
 class Run_Log(Base):
     """
     Run state transitions log.
-    Log entries are stored here only until they have been sent to Central via RPC.
     """
 
     __tablename__ = "run_logs"
@@ -49,12 +48,12 @@ class Run_Log(Base):
     status_to = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=True)
+    sent = Column(Boolean, default=False, nullable=False)
 
 
 class Job_Log(Base):
     """
     Log state transitions log.
-    Log entries are stored here only until they have been sent to Central via RPC.
     Initially, records are inserted when a state transition log is received from JTM;
     however JTM doesn't know the run_id, task_name, or attempt so they are NULL.
     The Daemon process will fill in those fields by querying the db and cromwell
@@ -71,7 +70,7 @@ class Job_Log(Base):
     status_to = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=True)
-    done = Column(Boolean, default=False, nullable=False)
+    sent = Column(Boolean, default=False, nullable=False)
 
 
 def create_all(engine, session):

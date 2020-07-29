@@ -9,7 +9,7 @@ import os
 import shutil
 import globus_sdk
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 import subprocess
 from jaws_site.database import Session
 from jaws_site.models import Run, Run_Log, Job_Log
@@ -77,7 +77,6 @@ class Daemon:
         Run scheduled task(s) periodically.
         """
         schedule.every(10).seconds.do(self.main_loop)
-        schedule.every(1).day.do(self.purge_finished)
         while True:
             schedule.run_pending()
             time.sleep(5)
@@ -340,8 +339,24 @@ class Daemon:
             return
         if globus_status == "SUCCEEDED":
             self.update_run_status(run, "download complete")
+            self.purge_run_tmpfiles(run)
         elif globus_status == "FAILED":
             self.update_run_status(run, "download failed")
+            self.purge_run_tmpfiles(run)
+
+    def purge_run_tmpfiles(self, run):
+        """
+        After the download is complete, the tmpfiles should be purged.
+        """
+        logger.debug(f"Run {run.id}: purge tmpfiles")
+        tmp_dir = os.path.join(self.results_dir, str(run.id))
+        if os.path.exists(tmp_dir):
+            try:
+                shutil.rmtree(tmp_dir)
+            except Exception as error:
+                logger.exception(
+                    f"Failed to purge results dir for run {run.id}: {error}"
+                )
 
     def update_run_status(self, run, new_status, reason=None):
         """
@@ -389,8 +404,6 @@ class Daemon:
         if "error" in response:
             logger.info(f"RPC update_run_status failed: {response['error']['message']}")
             # failure to notify Central doesn't block state transition
-        elif "result" in response:
-            logger.debug("Central successfully notified of change of run state")
 
     def update_job_status_logs(self):
         """JTM job status logs are missing some fields; fill them in now."""
@@ -403,6 +416,7 @@ class Daemon:
             query = (
                 self.session.query(Job_Log)
                 .filter_by(task_name=None)
+                .filter_by(sent=False)
                 .order_by(Job_Log.cromwell_run_id)
             )
         except Exception as error:
@@ -452,33 +466,23 @@ class Daemon:
                     continue
             job_info = metadata.get_job_info(cromwell_job_id)
             if job_info is None:
-                logger.error(
-                    f"job_id {cromwell_job_id} not found in {cromwell_run_id}: {job_info}"
-                )
+                status = metadata.get("status")
+                if status in ("Failed", "Succeeded", "Aborted"):
+                    logger.error(
+                        f"job_id {cromwell_job_id} not found in inactive run, {cromwell_run_id}"
+                    )
+                    # If the Run is done and the job_id cannot be found, it's an orphan job
+                    # (Cromwell never received the job_id from JTM), so mark as "sent"
+                    log.sent = True
+                else:
+                    # The Cromwell metadata could be a bit outdated; try again next time
+                    logger.error(
+                        f"job_id {cromwell_job_id} not found in active run, {cromwell_run_id}"
+                    )
                 continue
             log.attempt = job_info["attempt"]
             log.task_name = job_info["task_name"]
             self.session.commit()
-
-        # Purge job status logs that cannot be found in Cromwell metadata.
-        # Cromwell metadata should always be updated within minutes;
-        # if the job_id cannot be found after that, it never will.
-        # This can happen due to "jtm submit timeout error", in which
-        # Cromwell doesn't receive the job_id after submission but
-        # JTM continues to run the job and send updates to Site.
-        # Such log messages must be purged.
-        back1day = datetime.now() - timedelta(hours=24)
-        try:
-            query = (
-                self.session.query(Job_Log)
-                .filter_by(task_name=None)
-                .filter(Job_Log.timestamp > back1day)
-            )
-        except Exception as error:
-            logger.exception(f"Unable to select orphaned job_logs: {error}")
-            return
-        query.delete(synchronize_session=False)
-        self.session.commit()
 
     def send_run_status_logs(self):
         """Batch and send run logs to Central"""
@@ -486,11 +490,16 @@ class Daemon:
 
         # get updates from datbase
         try:
-            query = self.session.query(Run_Log)
+            query = self.session.query(Run_Log).filter(Run_Log.sent.is_(False)).all()
         except Exception as error:
             logger.exception(f"Unable to select from run_logs: {error}")
             return
+        num_logs = len(query)
+        if not num_logs:
+            return
+        logger.debug(f"Sending {num_logs} run logs")
 
+        # prepare table
         logs = []
         for log in query:
             log_entry = [
@@ -501,26 +510,24 @@ class Daemon:
                 log.reason,
             ]
             logs.append(log_entry)
-        num_logs = len(logs)
-        if not num_logs:
-            return
+            log.sent = True
 
         # notify Central
-        logger.debug(f"RPC update_run_logs: {num_logs} items")
         data = {"logs": logs, "site_id": self.site_id}
         try:
             response = self.rpc_client.request("update_run_logs", data)
         except Exception as error:
             logger.exception(f"RPC update_run_logs error: {error}")
+            self.session.rollback()
             return
         if "error" in response:
             logger.info(f"RPC update_run_status failed: {response['error']['message']}")
+            self.session.rollback()
             return
         try:
-            query.delete(synchronize_session=False)
             self.session.commit()
         except Exception as error:
-            logger.exception(f"Error deleting rows from run_logs: {error}")
+            logger.exception(f"Error updating run_logs as sent: {error}")
 
     def send_job_status_logs(self):
         """Batch and send job logs to Central"""
@@ -533,12 +540,16 @@ class Daemon:
                 .filter(Job_Log.run_id.isnot(None))
                 .filter(Job_Log.task_name.isnot(None))
                 .filter(Job_Log.attempt.isnot(None))
-                .filter(Job_Log.done.is_(False))
-                .limit(20)
+                .filter(Job_Log.sent.is_(False))
+                .all()
             )
         except Exception as error:
             logger.error(f"Unable to select job_logs: {error}")
             return
+        num_logs = len(query)
+        if not num_logs:
+            return
+        logger.info(f"Sending {num_logs} job logs")
 
         # prepare table
         logs = []
@@ -554,104 +565,21 @@ class Daemon:
                 log.reason,
             ]
             logs.append(log_entry)
-            log.done = True
-        num_logs = len(logs)
-        if not num_logs:
-            return
+            log.sent = True
 
         # send message to Central
-        logger.info(f"Sending {num_logs} job logs")
         data = {"logs": logs, "site_id": self.site_id}
         try:
             response = self.rpc_client.request("update_job_logs", data)
         except Exception as error:
             logger.exception(f"RPC update_job_logs error: {error}")
+            self.session.rollback()
             return
         if "error" in response:
             logger.error(f"RPC update_job_logs failed: {response['error']['message']}")
+            self.session.rollback()
             return
-
-        # mark logs as Done if sent
         try:
             self.session.commit()
         except Exception as error:
-            logger.error(f"Failed to update job logs as done: {error}")
-        logger.debug("Job logs successfully sent to Central")
-
-    def purge_finished(self):
-        self.purge_logs()
-        self.purge_finished_runs()
-
-    def purge_logs(self):
-        """Delete done logs from db"""
-        session = Session()
-        try:
-            query = session.query(Job_Log).filter(Job_Log.done._is(True))
-        except Exception as error:
-            logger.error(f"Unable to select done job_logs: {error}")
-            return
-        query.delete(synchronize_session=False)
-        session.commit()
-        session.close()
-
-    def purge_finished_runs(self):
-        """Finished runs are kept for 24hrs before purging tmpfiles and deleting from db"""
-        session = Session()
-        back24hrs = datetime.now() - timedelta(hours=24)
-        try:
-            query = (
-                session.query(Run)
-                .filter(Run.status.in_(self.terminal_states))
-                .filter(Run.updated > back24hrs)
-                .all()
-            )
-        except Exception as error:
-            logger.warning(
-                f"Failed to select done runs from db: {error}", exc_info=True
-            )
-        for run in query:
-            self.purge_run(run)
-
-    def purge_run(self, run):
-        """Runs in terminal states (e.g. download complete, failed) should be delete from the runs table
-        only after their associated logs have been sent to Central via RPC."""
-
-        # check for unsent run_logs
-        try:
-            query = self.session.query(Run_Log).filter_by(run_id=run.id).all()
-        except Exception as error:
-            logger.warning(f"Failed to select run_logs from db: {error}", exc_info=True)
-            return
-        if query:
-            # there are unsent run_logs
-            return
-
-        # check for unsent job_logs
-        try:
-            query = (
-                self.session.query(Job_Log)
-                .filter_by(cromwell_run_id=run.cromwell_run_id)
-                .all()
-            )
-        except Exception as error:
-            logger.warning(f"Failed to select job_logs from db: {error}", exc_info=True)
-            return
-        if query:
-            # there are unsent job_logs
-            return
-
-        # purge tmpfiles
-        logger.debug(f"Run {run.id}: purge")
-        tmp_dir = os.path.join(self.results_dir, str(run.id))
-        if os.path.exists(tmp_dir):
-            try:
-                shutil.rmtree(tmp_dir)
-            except Exception as error:
-                logger.exception(
-                    f"Failed to purge results dir for run {run.id}: {error}"
-                )
-                return  # try again later
-
-        # delete run
-        self.session.delete(run)
-        self.session.commit()
+            logger.error(f"Failed to update job logs as sent: {error}")
