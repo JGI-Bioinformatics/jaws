@@ -51,6 +51,11 @@ class Configuration(metaclass=Singleton):
             "queue": "central_rpc",
             "max_threads": 5,
             "max_retries": 3
+        },
+        "HTTP": {
+            "oauth_url": "localhost",
+            "oauth_port": "3000",
+            "rest_port": "5000"
         }
     }
 

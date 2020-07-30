@@ -47,8 +47,7 @@ def cli(config_file: str, log_file: str, log_level: str) -> None:
 
 
 @cli.command()
-@click.option("--port", default=3000, help="Port (default=3000)")
-def auth(port: int) -> None:
+def auth() -> None:
     """Start JAWS OAuth server"""
     logger = logging.getLogger(__package__)
     logger.debug("Initializing OAuth server")
@@ -81,16 +80,23 @@ def auth(port: int) -> None:
             logger.exception(f"Failed to create tables: {e}")
             raise
 
+    # define port
+    port = int(config.conf.get("HTTP", "oauth_port"))  # defaults to 3000
+
     # start OAuth server
     connex.run(host="0.0.0.0", port=port, debug=False)
 
 
 @cli.command()
-@click.option("--port", default=5000, help="Port (default=5000)")
-def rest(port: int) -> None:
+def rest() -> None:
     """Start JAWS REST server."""
     logger = logging.getLogger(__package__)
     logger.debug("Starting jaws-central REST server")
+    oauth_url = config.conf.get("HTTP", "oauth_url")
+    oauth_port = config.conf.get("HTTP", "oauth_port")
+    if not oauth_url.startswith("http"):
+        oauth_url = f"http://{oauth_url}"
+    os.environ["TOKENINFO_URL"] = f"{oauth_url}:{oauth_port}/tokeninfo"
     basedir = os.path.abspath(os.path.dirname(__file__))
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")
@@ -123,6 +129,9 @@ def rest(port: int) -> None:
     # init RPC clients
     site_rpc_params = config.conf.get_all_sites_rpc_params()
     rpc_index.rpc_index = rpc_index.RPC_Index(site_rpc_params)
+
+    # define port
+    port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
 
     # start REST server
     connex.run(host="0.0.0.0", port=port, debug=False)

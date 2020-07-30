@@ -15,7 +15,6 @@ securityDefinitions:
     type: oauth2
     flow: implicit
     authorizationUrl: http://localhost:3000/login
-    x-tokenInfoUrl: http://localhost:3000/tokeninfo
     scopes:
       uid: Registered user with unique ID
 
