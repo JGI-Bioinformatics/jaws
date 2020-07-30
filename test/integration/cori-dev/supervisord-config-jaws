@@ -12,7 +12,7 @@ pidfile={{installpath}}/jaws-pidfile
 nodaemon=false
 minfds=1024
 minprocs=200
-identifier=supervisor-jaws
+identifier=supervisor-jaws-dev
 directory={{installpath}}
 
 ; The rpcinterface:supervisor section must remain in the config file for
@@ -25,7 +25,7 @@ supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 serverurl=http://cori20.nersc.gov:64101
 username=jaws
 password={{password}}
-prompt=supervisor-jaws
+prompt=supervisor-jaws-dev
 
 ;----- Program Section
 

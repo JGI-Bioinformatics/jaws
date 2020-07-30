@@ -16,8 +16,8 @@ readonly configdir=${1:-/tmp/}
 cat << EOM > $configdir/jaws-site.conf
 [DB]
 dialect = mysql+mysqlconnector
-host = db.mysql.dev-cattle.stable.spin.nersc.org
-port = 60005
+host = db.mysql.prod-cattle.stable.spin.nersc.org
+port = 60006
 user = jaws
 password = $JAWS_SITE_CORI_DB_PW
 db = jaws_dev
@@ -55,7 +55,7 @@ id = NERSC
 staging_subdirectory = global/cscratch1/sd/jaws_jtm/dev/staging
 results_subdirectory = global/cscratch1/sd/jaws/dev/results
 [CROMWELL]
-url = http://localhost:50010
+url = http://localhost:50101
 EOM
 
 cat << EOM > $configdir/jaws-central.conf
@@ -77,6 +77,9 @@ num_threads = 5
 max_retries = 3
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
+[HTTP]
+auth_port = 3001
+rest_port = 5001
 [SITE:LBNL]
 user = jaws_central
 password = $JAWS_CENTRAL_CORI_RMQ_PW
@@ -105,7 +108,7 @@ cat << EOM > $configdir/jaws-client.conf
 [JAWS]
 site_id = NERSC
 name = jaws-dev
-url = http://cori20.nersc.gov:5000/api/v2
+url = http://cori20.nersc.gov:5001/api/v2
 womtool_jar = /global/cfs/projectdirs/jaws/cromwell/womtool.jar
 staging_subdir = global/cscratch1/sd/jaws/dev/staging
 [GLOBUS]
@@ -135,8 +138,8 @@ port = 5672
 vhost = jgi
 queue = site_rpc
 [MYSQL]
-host = db.mysql.dev-cattle.stable.spin.nersc.org
-port = 60005
+host = db.mysql.prod-cattle.stable.spin.nersc.org
+port = 60006
 user = jtm
 password = $JAWS_JTM_CORI_DB_PW
 db = jtm_nersc_dev
@@ -229,7 +232,7 @@ cat << EOM > $configdir/cromwell.conf
 include required(classpath("application"))
 webservice
 {
-  port = 50010
+  port = 50101
 }
 system
 {
@@ -349,7 +352,7 @@ database
   db
   {
     driver = "com.mysql.cj.jdbc.Driver"
-    url = "jdbc:mysql://db.mysql.dev-cattle.stable.spin.nersc.org:60005/cromwell?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
+    url = "jdbc:mysql://db.mysql.prod-cattle.stable.spin.nersc.org:60006/cromwell_dev?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
     user = "cromwell"
     password = "$JAWS_CROMWELL_CORI_DB_PW"
     connectionTimeout = 5000

@@ -29,3 +29,14 @@ actions are starting and stopping a service. Access is controlled by a unique ke
 Every system needs two instances of supervisord, for privilege seperation between services and
 user workloads: one for JAWS and one for JTM/Cromwell.
 
+## Ports
+
+### Cori (server: cori20.nersc.gov)
+
+    Service          | dev   | staging | prod
+    -----------------+-------+---------+------
+    central-auth     | 3001  | 3002    | 3003
+    central-rest     | 5001  | 5002    | 5003
+    cromwell         | 50101 | 50102   | 50103
+    supervisord-jaws | 64101 | 64102   | 64103
+    supervisord-jtm  | 64111 | 64112   | 64113
