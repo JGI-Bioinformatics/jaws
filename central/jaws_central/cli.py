@@ -81,7 +81,7 @@ def auth() -> None:
             raise
 
     # define port
-    port = int(config.conf.get("HTTP", "oauth_port"))  # defaults to 3000
+    port = int(config.conf.get("HTTP", "auth_port"))  # defaults to 3000
 
     # start OAuth server
     connex.run(host="0.0.0.0", port=port, debug=False)
@@ -92,11 +92,11 @@ def rest() -> None:
     """Start JAWS REST server."""
     logger = logging.getLogger(__package__)
     logger.debug("Starting jaws-central REST server")
-    oauth_url = config.conf.get("HTTP", "oauth_url")
-    oauth_port = config.conf.get("HTTP", "oauth_port")
-    if not oauth_url.startswith("http"):
-        oauth_url = f"http://{oauth_url}"
-    os.environ["TOKENINFO_URL"] = f"{oauth_url}:{oauth_port}/tokeninfo"
+    auth_url = config.conf.get("HTTP", "auth_url")
+    auth_port = config.conf.get("HTTP", "auth_port")
+    if not auth_url.startswith("http"):
+        auth_url = f"http://{auth_url}"
+    os.environ["TOKENINFO_URL"] = f"{auth_url}:{auth_port}/tokeninfo"
     basedir = os.path.abspath(os.path.dirname(__file__))
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")

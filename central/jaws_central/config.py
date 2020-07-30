@@ -53,8 +53,8 @@ class Configuration(metaclass=Singleton):
             "max_retries": 3
         },
         "HTTP": {
-            "oauth_url": "localhost",
-            "oauth_port": "3000",
+            "auth_url": "localhost",
+            "auth_port": "3000",
             "rest_port": "5000"
         }
     }

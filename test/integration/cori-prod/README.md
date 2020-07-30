@@ -7,20 +7,20 @@ To see this in action see .gitlab-ci.yml .
 Start the supervisors. Only necessary once, after startup of the machine hosting the services: 
 
     collabsu jaws
-    /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jaws.conf 
+    /tmp/jaws-supervisord-prod/bin/supervisord -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf 
     logout
     collabsu jaws_jtm
-    /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jtm.conf
+    /tmp/jaws-supervisord-prod/bin/supervisord -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf
 
 Check the status of JAWS services:
 
-    /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf status
-    /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf status
+    /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf status
+    /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf status
 
 Start the JAWS services:
 
-    /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start
-    /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf start
+    /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf start
+    /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf start
 
 ## Starting the gitlab-runner on Cori20
 After a maintenance, it is very likely that the runner will need to be restarted
