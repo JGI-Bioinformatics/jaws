@@ -45,8 +45,7 @@ On Cori, do the following
 
 .. code-block:: bash
 
-    rm ~/.jaws-dev.ini  # delete old if exists
-    cp /global/cfs/projectdirs/jaws/jaws-dev/jaws.conf ~
+    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws.conf ~
     chmod 600 ~/jaws.conf
 
     Edit ~/jaws.conf and add values for the [USER] variables:
@@ -55,9 +54,9 @@ On Cori, do the following
 
     # Set up the virtual environment
     # You will use an existing one. This gives you access to all the jaws commands.
-    ln -s /global/cfs/projectdirs/jaws/jaws-dev/ ~
+    ln -s /global/cfs/projectdirs/jaws/jaws-prod/ ~
 
-    source ~/jaws-dev/bin/activate
+    source ~/jaws-prod/bin/activate
     (use "deactivate" to get out of the environment)
 
     # Get the jaws-auth token. 
