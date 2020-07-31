@@ -9,7 +9,6 @@ readonly configdir=${1:-/tmp/}
 [[ -z $JAWS_CENTRAL_CORI_DB_PW ]]  && { printf "Missing JAWS_CENTRAL_CORI_DB_PW variable.\n"; exit 1; }
 [[ -z $JAWS_CENTRAL_CORI_RMQ_PW ]] && { printf "Missing JAWS_CENTRAL_CORI_RMQ_PW variable.\n"; exit 1; }
 [[ -z $JAWS_JTM_CORI_DB_PW ]]      && { printf "Missing JAWS_JTM_CORI_DB_PW variable.\n"; exit 1; }
-[[ -z $JAWS_JTM_CORI_RMQ_PW ]]     && { printf "Missing JAWS_JTM_CORI_RMQ_PW variable.\n"; exit 1; }
 [[ -z $JAWS_CROMWELL_CORI_DB_PW ]] && { printf "Missing JAWS_CROMWELL_CORI_DB_PW variable.\n"; exit 1; }
 
 
@@ -22,9 +21,9 @@ user = jaws
 password = $JAWS_SITE_CORI_DB_PW
 db = jaws_dev
 [LOCAL_RPC_SERVER]
-user = jaws
-password = $JAWS_JTM_CORI_RMQ_PW
-host = db.jaws-test-services.dev-cattle.stable.spin.nersc.org
+user = jaws_nersc
+password = $JAWS_SITE_CORI_RMQ_PW
+host = rmq.lbl.gov
 port = 5672
 vhost = jaws_dev
 queue = site_rpc
@@ -125,15 +124,15 @@ instance_name = \${jtm_host_name}.\${user_name}
 scratch = /global/cscratch1/sd/jaws_jtm/
 debug = 1
 [RMQ]
-user = jaws
-password = $JAWS_JTM_CORI_RMQ_PW
-host = db.jaws-test-services.dev-cattle.stable.spin.nersc.org
+user = jaws_nersc
+password = $JAWS_SITE_CORI_RMQ_PW
+host = rmq.lbl.gov
 port = 5672
 vhost = jaws_dev
 [SITE_RPC_CLIENT]
-user = jaws
-password = $JAWS_JTM_CORI_RMQ_PW
-host = db.jaws-test-services.dev-cattle.stable.spin.nersc.org
+user = jaws_nersc
+password = $JAWS_SITE_CORI_RMQ_PW
+host = rmq.lbl.gov
 port = 5672
 vhost = jaws_dev
 queue = site_rpc
