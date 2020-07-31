@@ -22,11 +22,11 @@ user = jaws
 password = $JAWS_SITE_CORI_DB_PW
 db = jaws_prod
 [LOCAL_RPC_SERVER]
-user = sulsj
+user = jaws
 password = $JAWS_JTM_CORI_RMQ_PW
-host = rmq.nersc.gov
+host = db.jaws-test-services.dev-cattle.stable.spin.nersc.org
 port = 5672
-vhost = jgi
+vhost = jaws_prod
 queue = site_rpc
 num_threads = 5
 max_retries = 3
@@ -125,17 +125,17 @@ instance_name = \${jtm_host_name}.\${user_name}
 scratch = /global/cscratch1/sd/jaws_jtm/
 debug = 0
 [RMQ]
-user = sulsj
+user = jaws
 password = $JAWS_JTM_CORI_RMQ_PW
-host = rmq.nersc.gov
+host = db.jaws-test-services.dev-cattle.stable.spin.nersc.org
 port = 5672
-vhost = jgi
+vhost = jaws_prod
 [SITE_RPC_CLIENT]
-user = sulsj
+user = jaws
 password = $JAWS_JTM_CORI_RMQ_PW
-host = rmq.nersc.gov
+host = db.jaws-test-services.dev-cattle.stable.spin.nersc.org
 port = 5672
-vhost = jgi
+vhost = jaws_prod
 queue = site_rpc
 [MYSQL]
 host = db.mysql.prod-cattle.stable.spin.nersc.org
