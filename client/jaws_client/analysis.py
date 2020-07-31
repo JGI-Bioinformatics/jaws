@@ -2,453 +2,445 @@
 JAWS Analysis/Run management functions; these interact via REST with the JAWS Central server.
 """
 
-import sys
 import os
-import pwd
-import grp
-import shutil
 import json
-import getpass
 import requests
-#import base64
-#import html2text
-import csv
-import time
-import shutil
-import subprocess
-from zipfile import ZipFile
-import tarfile
 import click
+import logging
 import uuid
-import globus_sdk
-from jaws_client import user, catalog, workflow
+import shutil
+from typing import Dict
+from collections import defaultdict
 
-DEBUG = False
-if "JAWS_DEBUG" in os.environ: DEBUG = True
+from jaws_client import config, user, workflow
 
-# JAWS CONFIG
-JAWS_URL = os.environ["JAWS_URL"]
-jaws_workflows = JAWS_URL + "/wdl"
-jaws_runs = JAWS_URL + "/run"
-GLOBUS_ENDPOINT = os.environ["GLOBUS_ENDPOINT"]
-GLOBUS_BASEDIR = os.environ["GLOBUS_BASEDIR"]
-JAWS_STAGING_SUBDIR = os.environ["JAWS_STAGING_SUBDIR"]
-JAWS_SITE = os.environ["JAWS_SITE"]
 
-@click.group(context_settings={'help_option_names':['-h','--help']})
-def run():
-    """
-    Run management.
-    """
-    pass
+class AnalysisError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
 
-@run.command()
-def queue():
-    """
-    List your unfinished runs.
-    """
-    current_user = user.User()
-    try:
-        r = requests.get(jaws_runs, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        sys.exit(r.text)
-    result = r.json()
-    print(json.dumps(result, indent=4, sort_keys=True))
 
-@run.command()
-@click.option('--days', default=1)
-def history(days, name=None):
-    """
-    List your past runs.
-    """
-    data = {
-        "delta_days" : days
-    }
-    url = JAWS_URL + "/search"
-    current_user = user.User()
-    try:
-        r = requests.post(url, data=data, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        sys.exit(r.text)
-    result = r.json()
-    print(json.dumps(result, indent=4, sort_keys=True))
-#    runs = []
-#    if name:
-#        for a_run in result['results']:
-#            if 'name' in a_run and a_run['name'] == name:
-#                runs.append(a_run)
-#    else:
-#        runs = result['results']
-#    print(json.dumps(runs, indent=4, sort_keys=True))
+def _get(url):
+    """REST GET.  Adds current user token to header.  Dies on error.
 
-def _run_status(run_id):
+    :param url: URL
+    :type url: str
+    :return: requests object
+    :rtype: requests
     """
-    Return the status of a run in JSON format.
-    """
-    url = "%s/%s" % (jaws_runs, run_id)
     current_user = user.User()
     try:
         r = requests.get(url, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
+    except requests.exceptions.Timeout as err:
+        raise SystemExit("Unable to communicate with JAWS server (timeout)", err)
+    except requests.exceptions.TooManyRedirects as err:
+        raise SystemExit(
+            "Unable to communicate with JAWS server (too many redirects; bad url?)", err
+        )
+    except requests.exceptions.HTTPError as err:
+        raise SystemExit("Unable to communicate with JAWS server (http error)", err)
+    except requests.exceptions.RequestException as err:
+        raise SystemExit("Unable to communicate with JAWS server", err)
     if r.status_code != 200:
-        sys.exit(r.text)
+        try:
+            result = r.json()
+        except Exception:
+            raise SystemExit(r.text)
+        if "detail" in result:
+            raise SystemExit(result["detail"])
+        else:
+            raise SystemExit(result)
+    return r
+
+
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+def run():
+    """JAWS Run-Workflows Commands"""
+    pass
+
+
+@run.command()
+def queue() -> None:
+    """List user's unfinished runs.
+
+    :return: List of user's current runs in JSON format
+    :rtype: str
+    """
+    url = f'{config.conf.get("JAWS", "url")}/search'
+    r = _get(url)
+    result = r.json()
+    print(json.dumps(result, indent=4, sort_keys=True))
+
+
+@run.command()
+@click.option("--days", default=1)
+def history(days: int) -> None:
+    """Print a list of the user's past runs.
+
+    :param days: Time window to search, in days.
+    :type days: int, optional
+    """
+    if days < 1:
+        raise SystemExit("User error: --days must be a positive integer")
+    url = f'{config.conf.get("JAWS", "url")}/search/{days}'
+    r = _get(url)
+    result = r.json()
+    print(json.dumps(result, indent=4, sort_keys=True))
+
+
+def _run_status(run_id: int) -> Dict[str, str]:
+    """Return the status of a run in JSON format.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :return: Status of the run, in JSON string.
+    :rtype: str
+    """
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}'
+    r = _get(url)
     result = r.json()
     return result
 
+
 @run.command()
-@click.argument('run_id')
-def status(run_id):
-    """
-    Show current status of a run.
+@click.argument("run_id")
+def status(run_id: int) -> None:
+    """Print the current status of a run.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :return:
     """
     result = _run_status(run_id)
     print(json.dumps(result, indent=4, sort_keys=True))
 
-@run.command()
-@click.argument('run_id')
-def tasks(run_id):
-    """
-    Show status of each task of a run.
-    """
-    metadata = _run_metadata(run_id)
-    status = metadata["status"]
-    print("status: " + status)
-
-    # failures
-    if "failures" in metadata:
-        print("failures:")
-        for failure in metadata["failures"]:
-            print("\t" + failure["message"])
-
-    # call summary
-    print("calls:")
-    calls = metadata['calls']
-    result = []
-    for task_name in calls.keys():
-        task = calls[task_name]
-        for attempt in task:
-            status = attempt['executionStatus']
-            shard = attempt['shardIndex']
-            result.append((task_name, shard, status))
-            if shard > -1:
-                print(task_name + "[" + str(shard) + "]\t" + status)
-            else:
-                print("\t".join((task_name, status)))
-            if status == "Failed":
-                for failure in attempt["failures"]:
-                    print("\t" + failure["message"])
 
 @run.command()
-@click.argument('run_id')
-def wait(run_id):
-    """
-    Wait until run is complete; check return code.
-    """
-    while True:
-        result = _run_status(run_id)
-        if result['status'] == 'Succeeded':
-            sys.exit(0)
-        elif result['status'] == 'Failed' or result['status'] == 'Aborted':
-            sys.exit(1)
-        time.sleep(60)
+@click.argument("run_id")
+@click.option("--fmt", default="text", help="Output format: text|json")
+def task_status(run_id: int, fmt: str) -> None:
+    """Show the current status of each task.
 
-def _run_metadata(run_id):
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :return:
     """
-    Return the metadata of a run.
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/task_status'
+    r = _get(url)
+    result = r.json()
+    if fmt == "json":
+        print(json.dumps(result, indent=4, sort_keys=True))
+    else:
+        print(
+            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\tSTATUS_DETAIL"
+        )
+        for log_entry in result:
+            log_entry[1] = str(log_entry[1])
+            log_entry[2] = str(log_entry[2])
+            print("\t".join(log_entry))
+
+
+@run.command()
+@click.argument("run_id")
+def metadata(run_id: int) -> None:
     """
-    url = "%s/%s/metadata" % (jaws_runs, run_id)
+    Print the detailed metadata for a run.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :return:
+    """
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/metadata'
+    r = _get(url)
+    result = r.json()
+    print(json.dumps(result, indent=4, sort_keys=True))
+
+
+@run.command()
+@click.argument("run_id")
+@click.option("--fmt", default="text", help="Output format: text|json")
+def log(run_id: int, fmt: str) -> None:
+    """View the log of Run state transitions.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :return:
+    """
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/run_log'
+    r = _get(url)
+    result = r.json()
+    if fmt == "json":
+        print(json.dumps(result, indent=4, sort_keys=True))
+    else:
+        print("#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON")
+        for log_entry in result:
+            print("\t".join(log_entry))
+
+
+@run.command()
+@click.argument("run_id")
+@click.option("--fmt", default="text", help="Output format: text|json")
+def task_log(run_id: int, fmt: str) -> None:
+    """Get log of each Tasks' state transitions.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :return:
+    """
+    r = _get(f'{config.conf.get("JAWS", "url")}/run/{run_id}/task_log')
+    result = r.json()
+    if fmt == "json":
+        print(json.dumps(result, indent=4, sort_keys=True))
+    else:
+        tasks = defaultdict(list)
+        for log_entry in result:
+            task_name = log_entry[0]
+            tasks[task_name].append(log_entry)
+        print(
+            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
+        )
+        for task_name in tasks:
+            for log_entry in tasks[task_name]:
+                log_entry[1] = str(log_entry[1])
+                log_entry[2] = str(log_entry[2])
+                print("\t".join(log_entry))
+
+
+@run.command()
+@click.argument("run_id")
+@click.option("--failed", is_flag=True)
+def output(run_id: int, failed: bool = False) -> None:
+    """View the stdout/stderr output of Tasks.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :param failed: Get output of failed tasks only
+    :type failed: bool
+    :return:
+    """
+    if failed:
+        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/failed'
+    else:
+        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/output'
+    r = _get(url)
+    if r.status_code != 200:
+        raise SystemExit(r.text)
+    result = r.json()
+    print(json.dumps(result, indent=4, sort_keys=True))
+
+
+@run.command()
+@click.argument("run_id")
+def cancel(run_id):
+    """Cancel a run; prints whether aborting was successful or not.
+
+    :param run_id: JAWS run ID to cancel.
+    :type run_id: int
+    """
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/cancel'
     current_user = user.User()
+    try:
+        r = requests.put(url, headers=current_user.header())
+    except requests.exceptions.RequestException:
+        raise SystemExit("Unable to communicate with JAWS server")
+    result = r.json()
+    if r.status_code != 201:
+        if "detail" in result:
+            raise SystemExit(result["detail"])
+        else:
+            raise SystemExit(r.text)
+    print(json.dumps(result, indent=4, sort_keys=True))
+
+
+def _list_sites() -> None:
+    """List available Sites."""
+    url = f'{config.conf.get("JAWS", "url")}/site'
+    r = _get(url)
+    result = r.json()
+    print("Available Sites:")
+    for a_site_id in result:
+        print(f"  - {a_site_id}")
+
+
+@run.command()
+def list_sites() -> None:
+    """List available Sites"""
+    _list_sites()
+
+
+@run.command()
+@click.argument("wdl_file", nargs=1)
+@click.argument("infile", nargs=1)
+@click.argument("outdir", nargs=1)
+@click.argument("site", nargs=1)
+@click.option("--out_endpoint", default=None, help="Globus endpoint to send output")
+def submit(wdl_file, infile, outdir, site, out_endpoint):
+    """Submit a run for execution at a JAWS-Site.
+
+    :param wdl_file: Path to workflow specification (WDL) file
+    :type wdl_file: str
+    :param infile: Path to inputs (JSON) file
+    :type infile: str
+    :param outdir: Path to output directory; doesn't have to exist
+    :type outdir: str
+    :param site: JAWS Site ID at which to run
+    :type site: str
+    """
+    logger = logging.getLogger(__package__)
+
+    current_user = user.User()
+
+    # STAGING DIR
+    staging_subdir = config.Configuration().get("USER", "staging_dir")
+    globus_basedir = config.Configuration().get("GLOBUS", "basedir")
+    if not staging_subdir.startswith(globus_basedir):
+        raise SystemExit(
+            f"Configuration error: Staging dir must be under endpoint's basedir: {globus_basedir}"
+        )
+    if not os.path.isdir(staging_subdir):
+        os.makedirs(staging_subdir)
+
+    # GLOBUS
+    local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
+    if out_endpoint is None:
+        out_endpoint = local_endpoint_id
+
+    # OUTDIR
+    outdir = os.path.abspath(outdir)
+    if out_endpoint == local_endpoint_id and not outdir.startswith(globus_basedir):
+        raise SystemExit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
+    if not os.path.isdir(outdir):
+        try:
+            os.makedirs(outdir)
+        except Exception as error:
+            raise SystemExit(f"Unable to make outdir, {outdir}: {error}")
+
+    # CONFIRM OUTDIR WRITABLE BY COPYING WDL, INPUT FILES
+    try:
+        shutil.copy2(wdl_file, outdir)
+    except Exception as error:
+        raise SystemExit(f"Unable to copy wdl file to outdir: {error}")
+    try:
+        shutil.copy2(infile, outdir)
+    except Exception as error:
+        raise SystemExit(f"Unable to copy json file to outdir: {error}")
+
+    # GET SITE INFO
+    compute_site_id = site.upper()
+    url = f'{config.conf.get("JAWS", "url")}/site/{compute_site_id}'
     try:
         r = requests.get(url, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        sys.exit(r.text)
+    except requests.exceptions.RequestException:
+        raise SystemExit("Unable to communicate with JAWS server")
+    if r.status_code == 404:
+        print(f"{compute_site_id} is not a valid Site ID.")
+        _list_sites()
+        raise SystemExit("Please try again with a valid Site ID")
+    elif r.status_code != requests.codes.ok:
+        result = r.json()
+        raise SystemExit(result["detail"])
     result = r.json()
-    return result
+    compute_basedir = result["globus_basepath"]
+    compute_staging_subdir = result["staging_subdir"]
+    compute_max_ram_gb = int(result["max_ram_gb"])
 
-@run.command()
-@click.argument('run_id')
-def metadata(run_id):
-    """
-    Return the detailed metadata for a run.
-    """
-    result = _run_metadata(run_id)
-    print(json.dumps(result, indent=4, sort_keys=True))
-
-#@run.command()
-#@click.argument('run_id')
-#def log(run_id):
-#    """
-#    Return the log of a run.
-#    """
-#    current_user = user.User()
-#    try:
-#        r = requests.get(jaws_runs + '/' + run_id + '/log', headers=current_user.header())
-#    except:
-#        sys.exit("Unable to communicate with JAWS server")
-#    if r.status_code != 200:
-#        sys.exit(r.text)
-#    print(r.text)
-
-@run.command()
-@click.argument('run_id')
-def cancel(run_id):
-    """
-    Cancel a run.
-    """
-    url = "%s/%s" % (jaws_runs, run_id)
-    current_user = user.User()
+    # VALIDATE WORKFLOW
+    submission_id = str(uuid.uuid4())
+    wdl = workflow.WdlFile(wdl_file, submission_id)
     try:
-        r = requests.delete(url, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code == 200:
-        print('run ' + run_id + " was canceled")
-    else:
-        sys.exit(r.text)
+        inputs_json = workflow.WorkflowInputs(infile, submission_id)
+    except Exception as error:
+        raise SystemExit(f"Your file, {infile}, is not a valid JSON file: {error}")
 
-#@run.command()
-#@click.option('--days', default=0)
-#def search(days=0, status=[]):
-#    """
-#    Search for a run by label.
-#    """
-#    global jaws_runs
-#    data = {}
-#    if days > 0:
-#        data['delta_days'] = days
-#    if status is not None and len(status) > 0:
-#        data['status'] = status
-##        for label in labels:
-##                (key,value)=label.split(":")
-##                data[key]=value
-#    current_user = user.User()
-#    try:
-#        r = requests.post(jaws_runs + "/query", data=data, headers=current_user.header())
-#    except:
-#        sys.exit("Unable to communicate with JAWS server")
-#    if r.status_code != 200:
-#        sys.exit(r.text)
-#    result = r.json()
-#    print(json.dumps(result, indent=4, sort_keys=True))
+    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_staging_subdir)
+    local_staging_endpoint = workflow.join_path(globus_basedir, staging_subdir)
+    manifest_file = workflow.Manifest(local_staging_endpoint, jaws_site_staging_dir)
 
-@run.command()
-@click.argument('run_id')
-@click.option('--task', default=None)
-def delete(run_id, task):
-    """
-    Delete the output of a run or task to avoid caching.
-    """
-    url = None
-    if task is not None:
-        url = "%s/%s" % (jaws_runs, run_id)
-    else:
-        url = "%s/%s/%s" % (jaws_runs, run_id, task_name)
-    current_user = user.User()
-    try:
-        r = requests.delete(url, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
-    result = r.json()
-    if r.status_code != 200:
-        sys.exit(r.text)
-    print(json.dumps(result, indent=4, sort_keys=True))
+    wdl.validate()
+    inputs_json.validate()
 
-def _validate_workflow_name(workflow_full_name):
-    """
-    Set version to "latest" if not defined
-    """
-    if ":" not in args.workflow_full_name:
-        workflow_full_name = workflow_full_name + ":latest"
-    return workflow_full_name
+    max_ram_gb = wdl.max_ram_gb
+    if max_ram_gb > compute_max_ram_gb:
+        raise AnalysisError(
+            f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
+        )
 
-def _labels_string_to_dict(labels_string):
-    """
-    Converts string to dictionary
-    """
-    labels_dict = {}
-    labels = labels_string.split(',')
-    for label in labels:
-        if label.count(':') != 1:
-            sys.exit("Invalid label: " + label + "; labels must be in \"key:value\" format")
-        (key, value)=label.split(":")
-        labels_dict[key] = value
-    return labels_dict
+    site_id = config.conf.get("JAWS", "site_id")
+    site_subdir = workflow.join_path(local_staging_endpoint, site_id)
 
-#@run.command()
-#@click.argument('submission_id')
-#def block(submission_id):
-#    """
-#    Block until run is complete.
-#    """
-#    success = {
-#        'Succeeded' : None
-#    }
-#    failure = {
-#        'Failed' : None,
-#        'Aborted' : None
-#    }
-#    while True:
-#        result = _run_status(submission_id)
-#        if result['status'] in success:
-#            sys.exit(0)
-#        elif result['status'] in failure:
-#            sys.exit(1)
-#        time.sleep(30)
+    sanitized_wdl, zip_file = workflow.compress_wdls(wdl, local_staging_endpoint)
+    moved_files = workflow.move_input_files(inputs_json, site_subdir)
 
-         
-# TODO add option for labels (JSON file?  kvargs?)
-@run.command()
-@click.argument('wdl_file', nargs=1)
-@click.argument('infile', nargs=1)
-@click.option('--outdir', default=None, help="Output dir")
-@click.option('--site', default=None, help="Computing site")
-#@click.option('--block', default=False, help="Block until complete")
-def submit(wdl_file, infile, outdir, site): #, block):
-    """
-    Submit a run for execution.
-    """
-    current_user = user.User()
+    staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
+    jaws_site_staging_site_subdir = workflow.join_path(jaws_site_staging_dir, site_id)
+    modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
+    modified_json.write_to(staged_json)
 
-    # DEFINE OUTPUT DIR AND VERIFY IT'S ACCESSIBLE VIA GLOBUS
-    if not outdir:
-        if current_user.config["PATHS"]["default_outdir"]:
-            outdir = current_user.config["PATHS"]["default_outdir"]
-        else:
-            sys.exit("--outdir required as no default specified in your config file\nYou may set your \"default_outdir\" by editing %s" % (current_user.config_file,))
-    if not GLOBUS_BASEDIR: sys.exit("ERROR: \$GLOBUS_BASEDIR env var not defined")
-    if not outdir.startswith(GLOBUS_BASEDIR): sys.exit("Invalid outdir, %s; Globus can only write under %s" % (outdir, GLOBUS_BASEDIR))
+    manifest_file.add(sanitized_wdl, zip_file, staged_json, *moved_files)
+    staged_manifest = workflow.join_path(staging_subdir, f"{submission_id}.tsv")
+    manifest_file.write_to(staged_manifest)
 
-    # CREATE UNIQUE STAGING ID
-    submission_uuid = str(uuid.uuid4())
-
-    # VALIDATE RUN
-    run = workflow.Workflow(wdl_file, infile)
-    if not run.validate(): sys.exit("Failed validation; aborting")
-
-    # PREPARE RUN
-    staging_dir = os.path.join(GLOBUS_BASEDIR, JAWS_STAGING_SUBDIR)
-    if not os.path.isdir(staging_dir): os.makedirs(staging_dir)
-    run.prepare_wdls(staging_dir, submission_uuid)
-    run.prepare_inputs(GLOBUS_BASEDIR, JAWS_STAGING_SUBDIR, JAWS_SITE, submission_uuid)
-
-    # GET COMPUTE SITE INFO (E.G. GLOBUS ENDPOINT PARAMS)
-    if not site: site = pick_site(run)
-    dest = site_info(site)
-    dest_dir = os.path.join(dest["basepath"], dest["staging_subdir"])
-
-    # GLOBUS TRANSFER
-    transfer_client = current_user.transfer_client()
-    tdata = globus_sdk.TransferData(
-        transfer_client,
-        GLOBUS_ENDPOINT,
-        dest["endpoint"],
-        label=submission_uuid,
-        sync_level="checksum",
-        verify_checksum=True,
-        preserve_timestamp=True,
-        notify_on_succeeded=False,
-        notify_on_failed=True,
-        notify_on_inactive=True,
-        skip_activation_check=False )
-    for source_file, dest_file in run.manifest:
-        abs_dest_file = os.path.join(dest_dir, dest_file)
-        # NOTE: recursive=False means folders will not be transferred;
-        # TODO: change this is WDL supports folders in the future.
-        tdata.add_item(source_file, abs_dest_file, recursive=False)
-    transfer_result = transfer_client.submit_transfer(tdata)
-    transfer_task_id = transfer_result["task_id"]
-    print("Staging files; Globus task_id = %s" % (transfer_task_id,))
-
-    # SUBMIT RUN
-    # NOTE THAT THE FILE TRANSFER IS NOT COMPLETE YET
+    # SUBMIT RUN TO CENTRAL
     data = {
-        "submission_uuid" : submission_uuid,
-        "globus_endpoint" : GLOBUS_ENDPOINT,
-        "outdir" : outdir,
-        "globus_transfer_task_id" : transfer_task_id
+        "site_id": compute_site_id,
+        "submission_id": submission_id,
+        "input_site_id": config.conf.get("JAWS", "site_id"),
+        "input_endpoint": config.conf.get("GLOBUS", "endpoint_id"),
+        "output_endpoint": out_endpoint,
+        "output_dir": outdir,
     }
+    files = {"manifest": open(staged_manifest, "r")}
+    url = f'{config.conf.get("JAWS", "url")}/run'
+    logger.debug(f"Submitting run: {data}")
     try:
-        r = requests.post(jaws_runs, data=data, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
-    if r.status_code != requests.codes.ok:
-        sys.exit(r.text)
+        r = requests.post(url, data=data, files=files, headers=current_user.header())
+    except requests.exceptions.RequestException:
+        raise SystemExit("Unable to communicate with JAWS server")
     result = r.json()
+    if r.status_code != 201:
+        raise SystemExit(result["detail"])
+    if "run_id" not in result:
+        raise SystemExit(f"Run submission failed: {result}")
     run_id = result["run_id"]
-    print("Successfully queued run %s" % (run_id,))
+    logger.info(f"Submitted run {run_id}: {data}")
 
-    # OPTIONALLY WAIT UNTIL RUN IS COMPLETE
-    #if block is True: block(submission_id)
-
-
-def pick_site(run):
-    """
-    Ask Central to pick a computing Site based upon run attributes (e.g. RAM required, size of input data) and sites' availability.
-    """
-    print("Resources: RAM = %s MB; XFER = %s GB" % (run.max_ram_mb, run.transfer_gb))
-    data = {
-        "max_ram_mb" : run.max_ram_mb,
-        "transfer_gb" : run.transfer_gb
-    }
-    url = "%s/run/pick_site" % (JAWS_URL,)
-    current_user = user.User()
-    try:
-        r = requests.post(url, data=data, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
-    result = r.json()
-    if r.status_code != 200: sys.exit(r.text)
-    site = result["site"]
-    return site
-
-
-def get_site_info(site):
-    """
-    Get computing Site Globus endpoint parameters.
-    """
-    url = "%s/run/site_info" % (JAWS_URL,)
-    current_user = user.User()
-    try:
-        r = requests.post(url, headers=current_user.header())
-    except:
-        sys.exit("Unable to communicate with JAWS server")
-    result = r.json()
-    if r.status_code != 200: sys.exit(r.text)
-    return result
+    # WRITE RUN INFO TO OUTDIR
+    logfile = os.path.join(outdir, f"jaws.run_{run_id}.log")
+    with open(logfile, "w") as fh:
+        fh.write(r.text + "\n")
+    print(r.text)
 
 
 @run.command()
-def convert(batch_input_file, outfile=None):
-    """
-    Covert table of inputs to JSON format for submitting a batch of runs.
-    """
-    # read inputs table
-    data = open(batch_input_file, "r")
-    runs = csv.DictReader(data, delimiter="\t", quotechar="\"")
-    batch = []
-    line_num = 0
-    for row in runs:
-        # populate dictionary
-        inputs = {}
-        line_num = line_num + 1
-        for key in runs.fieldnames:
-            # validate table
-            if not row[key]:
-                sys.exit("Input table missing value for " + key + " in row " + str(line_num))
-            inputs[key] = row[key]
-        batch.append(inputs)
+@click.argument("wdl_file", nargs=1)
+def inputs(wdl_file: str) -> None:
+    """Generate inputs template (JSON) from workflow (WDL) file.
 
-    # output
-    if outfile:
-        with open(batch_output_file, 'w') as outfile:
-                json.dump(batch, outfile, indent=4, sort_keys=True)
-        outfile.close()
+    :param wdl_file: Path to workflow specification (WDL) file
+    :type wdl_file: str
+    :return:
+    """
+    if not os.path.isfile(wdl_file):
+        raise IOError(f"File not found: {wdl_file}")
+    stdout, stderr = workflow.womtool("inputs", wdl_file)
+    if stderr:
+        raise SystemExit(stderr)
+    print(stdout.strip())
+
+
+@run.command()
+@click.argument("wdl_file", nargs=1)
+def validate(wdl_file: str) -> None:
+    """Validate a WDL using Cromwell's WOMTool.
+
+    :param wdl_file: Path to workflow specification (WDL) file
+    :type wdl_file: str
+    :return:
+    """
+    if not os.path.isfile(wdl_file):
+        raise IOError(f"File not found: {wdl_file}")
+    stdout, stderr = workflow.womtool("inputs", wdl_file)
+    if stderr:
+        raise SystemExit(stderr)
     else:
-        print(json.dumps(batch, indent=4, sort_keys=True))
+        print("Workflow is OK")

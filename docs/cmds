@@ -1,7 +1,0 @@
-# build
-make html
-# and quick view
-open build/html/index.html
-make clean
-
-# update git repo

@@ -1,154 +1,357 @@
 """
-JAWS Workflows Catalog API
+Workflows Catalog REST endpoints.
 """
 
-import sys
-import os
-import json
-import time
 from datetime import datetime
-from flask import make_response, abort, Flask, request, redirect, url_for
-#from flask import current_app
-import markdown
-#from models import User, UserSchema, Workflow, WorkflowSchema
-import models
-from config import db
+import logging
+from sqlalchemy.exc import SQLAlchemyError
+from typing import Tuple
+from jaws_central.models_fsa import db, Workflow
 
-user_schema = models.UserSchema()
-users_schema = models.UserSchema(many=True)
-workflow_schema = models.WorkflowSchema()
-workflows_schema = models.WorkflowSchema(many=True)
+logger = logging.getLogger(__package__)
 
-def list_wdls(user, release_filter=None):
-    """
-    Retrieve workflows from database.
-    """
-    workflows = models.Workflow.query.all() if release_filter is None else models.Workflow.query.filter_by(is_released=True).all()
-    result = workflows_schema.dump(workflows)
-    return { "workflows" : result }
 
-def get_versions(user, name):
-    """
-    Returns a list of all (non-deprecated) versions of a particular workflow.
-    """
-    workflows = models.Workflow.query.filter_by(name=name, is_deprecated=False).all()
-    result = workflows_schema.dump(workflows)
-    return { "workflows" : result }
+class CatalogDatabaseError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
 
-def get_doc(user, name, version):
-    """
-    Returns a workflow's README (stored in md format) as HTML.
-    """
-    workflow = models.Workflow.query.filter_by(name=name, version=version).one_or_none()
-    if workflow is None:
-        return {"message": "Workflow could not be found."}, 400
-    return markdown.markdown(workflow.doc)
 
-def get_wdl(user, name, version):
-    """
-    Returns a workflow's WDL
-    """
-    workflow = models.Workflow.query.filter_by(name=name, version=version).one_or_none()
-    if workflow is None:
-        return {"message": "Workflow could not be found."}, 400
-    return workflow.wdl
+class CatalogAuthenticationError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
 
-def release_wdl(user, name, version):
-    """
-    Release a workflow (i.e. into production), which makes it's WDL immutable.
-    """
-    workflow = models.Workflow.query.filter_by(name=name, version=version).one_or_none()
-    if workflow is None: abort(404, "Workflow not found")
-    if workflow.uid != user: abort(401, "Access denied")
-    if workflow.is_released is True: abort(400, "Workflow already released")
-    workflow.is_released = True
-    db.session.commit()
-    return { "result" : "OK" }, 200
 
-def del_wdl(user, name, version):
+class CatalogWorkflowNotFoundError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class CatalogWorkflowImmutableError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class CatalogInvalidInputError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+def list_wdls() -> Tuple[dict, int]:
+    """Retrieve workflows from database.
+
+    :return: Table of workflows
+    :rtype: list
     """
-    If a workflow has been released, it is marked as deprecated, otherwise it is purged from the db.
+    logger.debug("List workflows")
+    try:
+        query = db.session.query(Workflow).filter(Workflow.is_deprecated == 0).all()
+        # query = db.session.query(Workflow).all()
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+    result = []
+    for row in query:
+        is_released = "yes" if row.is_released else "no"
+        result.append({
+            "name": row.name,
+            "version": row.version,
+            "owner": row.user_id,
+            "created": row.created,
+            "last_updated": row.updated,
+            "production_release": is_released})
+    return result
+
+
+def get_versions(name: str) -> Tuple[dict, int]:
+    """Returns a list of all (non-deprecated) versions of a particular workflow.
+
+    :param name: Name of the workflow
+    :param str:
+    :return: Table of all version of a workflow
+    :rtype: list
     """
-    workflow = models.Workflow.query.filter_by(name=name, version=version).one_or_none()
-    if workflow is None: abort(404, "Workflow not found")
-    if workflow.uid != user: abort(401, "Access denied")
-    if workflow.is_released is True:
-        workflow.is_deprecated = True
+    logger.debug(f"Get version of workflow {name}")
+    try:
+        query = (
+            db.session.query(Workflow)
+            .filter(Workflow.name == name, Workflow.is_deprecated == 0)
+            .all()
+        )
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+    result = {}
+    for row in query:
+        is_released = "yes" if row.is_released else "no"
+        full_name = f"{row.name}:{row.version}"
+        result[full_name] = {
+            "name": row.name,
+            "version": row.version,
+            "owner": row.user_id,
+            "created": row.created,
+            "last_updated": row.updated,
+            "production_release": is_released,
+        }
+    return result
+
+
+def get_doc(name: str, version: str) -> Tuple[str, int]:
+    """Returns a workflow's README (stored in md format) as HTML.
+
+    :param name: Name of a workflow
+    :type name: str
+    :param version: Version of a workflow
+    :type version: str
+    :return: The workflow's README document in markdown format
+    :rtype: str
+    """
+    logger.debug(f"Get README of {name}")
+    try:
+        workflow = (
+            db.session.query(Workflow)
+            .filter_by(name=name, version=version)
+            .one_or_none()
+        )
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+    if workflow:
+        return workflow.doc
     else:
-        db.session.delete(workflow)
-    db.session.commit()
-    return { "result" : "OK" }, 200
+        raise CatalogWorkflowNotFoundError("Workflow not found")
 
-def update_wdl(user, name, version):
+
+def get_wdl(name: str, version: str) -> Tuple[str, int]:
+    """Returns a workflow's WDL
+
+    :param name: Name of a workflow
+    :type name: str
+    :param version: Version of a workflow
+    :type version: str
+    :return: The workflow's specification document in WDL format
+    :rtype: str
     """
-    Update the WDL file for a workflow.  This cannot be updated after release.
+    logger.debug("Get WDL of {name}")
+    try:
+        workflow = (
+            db.session.query(Workflow)
+            .filter_by(name=name, version=version)
+            .one_or_none()
+        )
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+    if workflow:
+        return workflow.wdl
+    else:
+        raise CatalogWorkflowNotFoundError("Workflow not found")
+
+
+def release_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
+    """Tag a workflow as "released", which makes it's WDL immutable.
+
+    :param user: Current user's ID
+    :type user: str
+    :param name: Name of a workflow
+    :type name: str
+    :param version: Version of a workflow
+    :type version: str
+    :return:
     """
-    workflow = models.Workflow.query.filter_by(name=name, version=version).one_or_none()
-    if workflow is None: abort(404, "Workflow not found")
-    if workflow.uid != user: abort(401, "Access denied")
-    if workflow.is_released is True: abort(400, "Released workflows cannot be updated")
+    logger.debug(f"Release workflow, {name}:{version}")
+    try:
+        workflow = (
+            db.session.query(Workflow)
+            .filter_by(name=name, version=version)
+            .one_or_none()
+        )
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+    if workflow is None:
+        raise CatalogWorkflowNotFoundError("Workflow not found")
+    if workflow.user_id != user:
+        raise CatalogAuthenticationError("User is not owner")
+    workflow.is_released = True
+    try:
+        db.session.commit()
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
 
-    wdl_file = request.files['wdl_file']
-    if not wdl_file: abort(400, "Bad request: WDL not provided")
-    wdl = wdl_file.read()
-    if not wdl: abort(400, "Bad request: WDL is empty")
 
-    workflow.wdl = wdl
-    db.session.commit()
-    return { "result" : "OK" }, 200
+def del_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
+    """Delete a workflow.  If it was "released", then tags as "deprecated", rather than being purged from db.
 
-def update_doc(user, name, version):
+    :param user: Current user's ID
+    :type user: str
+    :param name: Name of a workflow
+    :type name: str
+    :param version: Version of a workflow
+    :type version: str
+    :return:
     """
-    Update the doc file for a workflow.  This can be updated even after release.
-    """
-    workflow = models.Workflow.query.filter_by(name=name, version=version).one_or_none()
-    if workflow is None: abort(404, "Workflow not found")
-    if workflow.uid != user: abort(401, "Access denied")
-    if workflow.is_released is True: abort(400, "Released workflows cannot be updated")
+    logger.debug(f"Delete workflow, {name}:{version}")
+    try:
+        workflow = (
+            db.session.query(Workflow)
+            .filter_by(name=name, version=version)
+            .one_or_none()
+        )
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+    if workflow is None:
+        raise CatalogWorkflowNotFoundError("Workflow not found")
+    if workflow.user_id != user:
+        raise CatalogAuthenticationError("User is not owner")
+    if workflow.is_released:
+        try:
+            workflow.is_deprecated = True
+            db.session.commit()
+        except SQLAlchemyError as e:
+            logger.error(e)
+            raise CatalogDatabaseError(e)
+    else:
+        try:
+            db.session.delete(workflow)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            logger.error(e)
+            raise CatalogDatabaseError(e)
 
-    md_file = request.files['md_file']
-    if not md_file: abort(400, "Bad request: MD not provided")
-    doc = md_file.read()
-    if not doc: abort(400, "Bad request: MD is empty")
 
-    workflow.doc = doc
-    db.session.commit()
-    return { "result" : "OK" }, 200
+def update_wdl(user: str, name: str, version: str, new_wdl: str) -> Tuple[dict, int]:
+    """Update the WDL file for a workflow.  This cannot be updated after release.
 
-def add_wdl(user, name, version):
+    :param user: Current user's ID
+    :type user: str
+    :param name: Name of a workflow
+    :type name: str
+    :param version: Version of a workflow
+    :type version: str
+    :param new_wdl: new WDL document
+    :type new_wdl: str
+    :return: True if successful; False if not found
+    :rtype: bool
     """
-    Add a new workflow to the catalog
-    """
-    # validate input
+    logger.debug(f"Update WDL of {name}:{version}")
+    if not name and version and new_wdl:
+        raise CatalogInvalidInputError("Missing required field")
     name = name.lower().replace(" ", "_").replace(":", "__")
     version = version.lower().replace(" ", "_").replace(":", "__")
-    workflow = models.Workflow.query.filter_by(name=name, version=version).one_or_none()
-    if workflow is not None: abort(405, "Workflow already exists")
-    wdl_file = request.files['wdl_file']
-    if not wdl_file: abort(400, "Bad request: no WDL provided")
-    wdl = wdl_file.read()
-    if not wdl: abort(400, "Bad request: WDL is empty")
-    md_file = request.files['md_file']
-    if not md_file: abort(400, "Bad request: no README provided")
-    doc = md_file.read()
-    if not doc: abort(400, "Bad request: README is empty")
+    try:
+        workflow = (
+            db.session.query(Workflow)
+            .filter_by(name=name, version=version)
+            .one_or_none()
+        )
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+    if workflow is None:
+        raise CatalogWorkflowNotFoundError("Workflow not found, check the name/version")
+    if workflow.user_id != user:
+        raise CatalogAuthenticationError("You are not the owner of this workflow")
+    if workflow.is_released is True:
+        raise CatalogWorkflowImmutableError("The WDL of a 'released' workflow cannot be updated, only deleted")
+    try:
+        workflow.wdl = new_wdl
+        db.session.commit()
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+
+
+def update_doc(user: str, name: str, version: str, new_doc: str) -> Tuple[dict, int]:
+    """Update the doc file for a workflow.  This can be updated even after release.
+
+    :param user: Current user's ID
+    :type user: str
+    :param name: Name of a workflow
+    :type name: str
+    :param version: Version of a workflow
+    :type version: str
+    :param new_doc: New README in Markdown format
+    :type new_doc: str
+    :return:
+    """
+    logger.debug(f"Update README of {name}:{version}")
+    if not name and version and new_doc:
+        raise CatalogInvalidInputError("Missing required field")
+    name = name.lower().replace(" ", "_").replace(":", "__")
+    version = version.lower().replace(" ", "_").replace(":", "__")
+    try:
+        workflow = (
+            db.session.query(Workflow)
+            .filter_by(name=name, version=version)
+            .one_or_none()
+        )
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+    if workflow is None:
+        raise CatalogWorkflowNotFoundError("Workflow not found")
+    if workflow.user_id != user:
+        raise CatalogAuthenticationError("User is not owner")
+    try:
+        workflow.doc = new_doc
+        db.session.commit()
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+
+
+def add_wdl(
+    user: str, name: str, version: str, new_wdl: str, new_doc: str
+) -> Tuple[dict, int]:
+    """Add a new workflow to the catalog
+
+    :param user: Current user's ID
+    :type user: str
+    :param name: Name of a workflow
+    :type name: str
+    :param version: Version of a workflow
+    :type version: str
+    :param wdl_file: new WDL document, from formData
+    :type wdl_file: file
+    :param md_file: new README document, from formData
+    :type md_file: file
+    :return:
+    """
+    if not name and version and new_doc:
+        raise CatalogInvalidInputError("Missing required field")
+    name = name.lower().replace(" ", "_").replace(":", "__")
+    version = version.lower().replace(" ", "_").replace(":", "__")
+    logger.debug(f"Add new workflow, {name}:{version}")
+    try:
+        workflow = (
+            db.session.query(Workflow)
+            .filter_by(name=name, version=version)
+            .one_or_none()
+        )
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)
+    if workflow is not None:
+        raise CatalogInvalidInputError(
+            "A workflow with that name:version already exists"
+        )
     now = datetime.now()
-
-    # check if exists
-    workflow = models.Workflow.query.filter_by(name=name, version=version).one_or_none()
-    if workflow is not None: abort(400, "Workflow with that name:version already exists")
-
-    # create new record
-    workflow = models.Workflow(
+    workflow = Workflow(
         name=name,
         version=version,
-        uid=user,
-        date_created=now,
+        user_id=user,
+        created=now,
+        updated=now,
         is_released=False,
         is_deprecated=False,
-        wdl=wdl,
-        doc=doc 
-    ) 
-    db.session.add(workflow)
-    db.session.commit()
-    return { "result" : "OK" }, 201
+        wdl=new_wdl,
+        doc=new_doc,
+    )
+    try:
+        db.session.add(workflow)
+        db.session.commit()
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise CatalogDatabaseError(e)

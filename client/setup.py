@@ -7,7 +7,7 @@ setup(name='jaws_client',
       url='https://gitlab.com/jgi-dsi/aa/jaws/client',
       author='Edward Kirton',
       packages=['jaws_client'],
-      install_requires=[ line.strip() for line in open("requirements.txt") ],
+      install_requires=[line.strip() for line in open("requirements.txt")],
       entry_points={
         'console_scripts': [
             'jaws = jaws_client.cli:jaws',

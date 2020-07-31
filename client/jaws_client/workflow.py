@@ -1,433 +1,583 @@
 """
-Class for WDL (WOCON) and inputs (JSON).
+Contains the WDLFile, WorkflowInputs, and Manifest file that constitute a user's workflow. A user
+will simply specify the location of their WDL and provided inputs JSON file. A manifest file will record what
+needs to be transferred over to Globus.
 """
 
-import sys
 import os
 import shutil
 import json
 import subprocess
-from subprocess import Popen, PIPE, STDOUT
 import re
 import zipfile
+import logging
+import pathlib
 
-DEBUG = False
-if "JAWS_DEBUG" in os.environ: DEBUG = True
+from jaws_client import config
 
-if "WOMTOOL" not in os.environ: sys.exit("\$WOMTOOL env var not defined")
-WOMTOOL = os.environ["WOMTOOL"]
 
-class Workflow:
+def join_path(*args):
+    return os.path.join(*args)
 
-    wdl_file = None
-    json_file = None
-    zip_file = None
-    subworkflows = None
-    inputs_file = None
-    inputs_dict = None
-    max_ram_mb = 0
 
-    def __init__(self, wdl_file, inputs_file):
-        if not os.path.exists(wdl_file): sys.exit("wdl_file not found: %s" % (wdl_file,))
-        if not os.path.exists(inputs_file): sys.exit("inputs_file not found: %s" % (inputs_file,))
-        self.wdl_file = wdl_file
-        self.inputs_file = inputs_file
+def rsync(src, dest):
+    """Copy source to destination using rsync.
+
+    :param src: Source path
+    :type src: str
+    :param dest: Destination path
+    :type dest: str
+    :return: None
+    """
+    cmd = f"rsync -rLptq {src} {dest}"
+    process = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = process.communicate()
+    if process.returncode:
+        raise IOError(
+            f"Failed to rsync {src} to {dest}: " + stderr.decode("utf-8").strip()
+        )
+
+
+def convert_to_gb(mem, prefix):
+    """
+    Convert units to gigabytes
+
+    :param mem: amount of memory
+    :type mem: int
+    :param prefix: units prefix
+    :type prefix str
+    :return: memory in gigabytes
+    """
+    conversion_table = {
+        "g": lambda x: x,
+        "k": lambda x: x / 1048576,
+        "m": lambda x: x / 1024,
+        "t": lambda x: x * 1024,
+    }
+    convert = conversion_table.get(prefix, lambda x: x / 1073741824)
+    gb_mem = convert(mem)
+    gb_mem = int(gb_mem + 0.99)
+    return gb_mem
+
+
+def womtool(*args):
+    """
+    Call WOMTool
+
+    WOMTool is a Broad Institute tool used for validating WDLs. More information can be found here:
+    https://cromwell.readthedocs.io/en/stable/WOMtool/
+
+    :param args: WOMTool arguments
+    :return: stdout and stderr of WOMTool completed process
+    """
+    womtool_cmd = config.conf.get("JAWS", "womtool").split()
+    womtool_cmd.extend(list(args))
+    proc = subprocess.run(womtool_cmd, capture_output=True, text=True)
+    return proc.stdout, proc.stderr
+
+
+def value_generator(val):
+    """
+    Helper function that recurses through the values of a dictionary
+
+    :param val:  dictionary value
+    :return:
+    """
+    if isinstance(val, str):
+        yield val
+    elif isinstance(val, dict):
+        for k, v in val.items():
+            yield k
+            yield from value_generator(v)
+    elif isinstance(val, list):
+        for k in val:
+            yield from value_generator(k)
+
+
+def values(inputs_map):
+    """
+    Generates the appropriate keys depending on the object we
+    are iterating over.
+
+    The keys are going to be the name of the resource, and the values
+    are going to be that actual resource. For example,
+
+    {"jgi_sample.fasta": "/path/to/file"}
+
+    the key is the wdl resource name, and the value is what we want to iterate over.
+    This can be a string, list, dictionary, or list of lists, etc.
+
+
+    :param inputs_map: a JSON dictionary
+    :return: yields the values of a dictionary
+    """
+    for val in inputs_map.values():
+        yield from value_generator(val)
+
+
+def is_refdata(filepath):
+    return filepath.startswith("/refdata/")
+
+
+def looks_like_file_path(input):
+    return "/" in input
+
+
+def accessible_file(filename):
+    if is_refdata(filename):  # Ignores refdata since it is a special case directory
+        return True
+    else:
+        return os.path.exists(filename) and os.access(filename, os.R_OK)
+
+
+def apply_filepath_op(obj, operation):
+    """
+    Traverses the values of a dictionary and performs an operation on the value.
+
+    :param obj: a python data structure (eg. list, dict, set, etc)
+    :param operation: an operation to perform on the values of a python data structure
+    :return: output of the operation applied
+    """
+    if isinstance(obj, str):
+        return operation(obj)
+    if isinstance(obj, int):
+        return obj
+    elif isinstance(obj, list):
+        return [apply_filepath_op(i, operation) for i in obj]
+    elif isinstance(obj, dict):
+        return {
+            apply_filepath_op(k, operation): apply_filepath_op(obj[k], operation)
+            for k in obj
+        }
+    else:
+        raise ValueError(f"cannot add prefix to object of type {type(obj)}")
+
+
+def compress_wdls(main_wdl, staging_dir="."):
+    """
+    Create a new staging WDL and compress any subworkflow files into a ZIP file.
+
+    The WDL is named based off of the submission ID and moved to a staging location that is specified in a
+    configuration file. Then any subworkflow WDLs that are associated with that WDL are moved to a zip file and
+    compressed.
+    If there are no subworkflows, the zipfile is not produced..
+
+    :param main_wdl: a WDL file
+    :param staging_dir: path where files will be compressed to. Default is current directory.
+    :return: paths to the main wdl and the compressed file (latter may be None)
+    """
+    if not os.path.isdir(staging_dir):
+        os.makedirs(staging_dir)
+
+    # WRITE SANITIZED MAIN WDL
+    modified_wdl = main_wdl.sanitized_wdl()
+    staged_wdl_filename = join_path(staging_dir, f"{main_wdl.submission_id}.wdl")
+    modified_wdl.write_to(staged_wdl_filename)
+
+    # IF NO SUBWORKFLOWS, DONE
+    if not len(main_wdl.subworkflows):
+        return staged_wdl_filename, None
+
+    # ZIP SUBWORKFLOWS
+    compressed_file_format = ".zip"
+    compression_dir = pathlib.Path(
+        os.path.join(staging_dir, main_wdl.submission_id)
+    )
+    compression_dir.mkdir(parents=True, exist_ok=True)
+    compressed_file = join_path(
+        staging_dir, main_wdl.submission_id + compressed_file_format
+    )
+
+    for subworkflow in main_wdl.subworkflows:
+        modified_sub = subworkflow.sanitized_wdl()
+        new_subwf_path = join_path(compression_dir, subworkflow.name)
+        modified_sub.write_to(new_subwf_path)
+
+    try:
+        os.remove(compressed_file)
+    except FileNotFoundError:
+        pass
+
+    with zipfile.ZipFile(compressed_file, "w") as z:
+        for sub_wdl in main_wdl.subworkflows:
+            staged_sub_wdl = join_path(compression_dir, sub_wdl.name)
+            z.write(staged_sub_wdl, arcname=sub_wdl.name)
+
+    shutil.rmtree(compression_dir)
+    return staged_wdl_filename, compressed_file
+
+
+class WdlFile:
+    """
+    A WDL object that can be queried for subworkflows, memory requirements and can also validate itself.
+
+    The user submits a WDL file that describes their workflow. This class will validate the WDL file, and also
+    keep track of any resource requirements (max_memory) required. It will also know its compressed file location.
+    """
+
+    def __init__(self, wdl_file_location, submission_id, contents=None):
+        """
+        Constructor for the WDL file.
+
+        :param wdl_file_location:  location where the WDL file exists
+        :param staging_subdir_path:  the directory where WDLs and cromwell files are all staged
+        :param submission_id:  a uuid.uuid4() generated string
+        """
+
+        self.logger = logging.getLogger(__package__)
+        self.file_location = os.path.abspath(wdl_file_location)
+        self.name = self._get_wdl_name(wdl_file_location)
+        self.submission_id = submission_id
+        self.contents = (
+            contents if contents is not None else open(wdl_file_location, "r").read()
+        )
+
+        self._subworkflows = None
+        self._max_ram_gb = None
+
+    def _filter_subworkflows(self, output):
+        """
+        Filters the output of WOMTool inputs -l so that it can parse through and grab the paths to the sub-workflows.
+
+        It will collect the sub-workflows to a set of WdlFiles. The parent globus_basedir, staging_dir and path
+        to the ZIP file are passed down to the sub workflows.
+
+        :param output: stdout from WOMTool validation
+        :return: set of WdlFile sub-workflows
+        """
+        out = output.splitlines()
+        filtered_out_lines = ["Success!", "List of Workflow dependencies is:", "None"]
+        subworkflows = set()
+        for sub in out:
+            if sub not in filtered_out_lines:
+                subworkflows.add(WdlFile(sub, self.submission_id))
+        return subworkflows
+
+    @property
+    def subworkflows(self):
+        """
+        Property that lazily evaluates the subworkflows of a WDL file.
+
+        Since we are calling an external subprocess that adds a lot of overhead, the self._subworkflows instance
+        variable is only set when this property method is called to avoid adding that overhead when the WDL file
+        object is constructed.
+
+        :return: set of WdlFiles
+        """
+        if self._subworkflows is None:
+            stdout, stderr = womtool("validate", "-l", self.file_location)
+            self._subworkflows = self._filter_subworkflows(stdout)
+        return self._subworkflows
+
+    @staticmethod
+    def _check_missing_subworkflow_msg(stderr):
+        missing = set()
+        m = re.search("Failed to import workflow (.+).:", stderr)
+        if m:
+            for sub in m.groups():
+                missing.add(sub)
+            raise WdlError("Subworkflows not found: " + ", ".join(missing))
 
     def validate(self):
         """
-        Perform all tests.  Returns True upon success; False otherwise.
+        Validates using WOMTool the WDL file. Any syntax errors from WDL will be raised in a WdlError
+        :return:
         """
-        if not self.validate_workflow(): return False
-        if not self.validate_inputs(): return False
-        return True
+        self.logger.info(f"Validating WDL, {self.file_location}")
+        _, stderr = womtool("validate", "-l", self.file_location)
+        if stderr:
+            self._check_missing_subworkflow_msg(stderr)
+            raise WdlError(stderr)
 
+    @staticmethod
+    def _get_wdl_name(file_location):
+        return os.path.basename(file_location)
 
-    #########################
-    ## WORKFLOW (WDL) METHODS
-    ## including subworkflows
-
-    def validate_workflow(self):
+    def _calculate_max_ram_gb(self):
         """
-        Validate main WDL file and identify any subworkflows.  Returns True on success, False otherwise.
-        """
-        # VALIDATE MAIN WDL
-        if DEBUG: print("Validating workflow")
-        proc = subprocess.run(["java", "-jar", WOMTOOL, "validate", "-l", self.wdl_file], capture_output=True, text=True)
-        subworkflows = set(proc.stdout.splitlines())
-        if "Success!" in subworkflows: subworkflows.remove("Success!")
-        if "List of Workflow dependencies is:" in subworkflows: subworkflows.remove("List of Workflow dependencies is:")
-        if "None" in subworkflows: subworkflows.remove("None")
-        self.subworkflows = subworkflows
+        Helper method for calculating the maximum memory in a WDL.
 
-        # ANY MISSING SUBWORKFLOWS?
-        missing = set()
-        for line in proc.stderr.splitlines():
-            m = re.match("Failed to import workflow (.+).:", line)
-            if m:
-                for sub in m.groups(): missing.add(sub)
+        :return: maximum memory specified in a WDL.
+        """
+        max_ram = 0
+        with open(self.file_location, "r") as f:
+            for line in f:
+                m = re.match(
+                    r"^\s+(mem|memory)\s*[:=]\s*\"?(\d+\.?\d*)([kKmMgGtT])\"?", line
+                )
+                if m:
+                    mem = int(m.group(2))
+                    prefix = m.group(3).lower()
+                    mem = convert_to_gb(mem, prefix)
+                    if mem > max_ram:
+                        max_ram = mem
+        return max_ram
+
+    @property
+    def max_ram_gb(self):
+        """
+        Lazily evaluates the maximum memory specified in a WDL and its imported WDL files.
+
+        The evaluation is lazy because it also has to call WOMTool to grab the subworkflows and thus
+        can be an expensive operation.
+
+        :return: maximum RAM in GB, rounded up to the nearest GB.
+        :rtype: int
+        """
+        if self._max_ram_gb is None:
+            mem = self._calculate_max_ram_gb()
+            for subworkflow_file in self.subworkflows:
+                mem += subworkflow_file.max_ram_gb
+            self._max_ram_gb = mem
+
+        self.logger.info(f"Maximum RAM requested is {self._max_ram_gb}Gb")
+        return self._max_ram_gb
+
+    def sanitized_wdl(self):
+        contents = self._remove_invalid_backends()
+        return WdlFile(self.file_location, self.submission_id, contents=contents)
+
+    def write_to(self, destination):
+        with open(destination, "w") as new_wdl:
+            new_wdl.write(self.contents)
+
+    def _remove_invalid_backends(self):
+        """
+        Removes the backend keyword in a WDL file.
+
+        This sanitizes the WDL so that any declared backends are taken off. The reason for this is because we
+        are ONLY using JGI Task Manager (JTM) as the backend and want to prevent any WDL from using a different
+        backend.
+
+        :param wdl: the path to a WDL file
+        :return: the contents of the file without backend keyword
+        """
+        contents = ""
+        with open(self.file_location, "r") as fo:
+            for line in fo:
+                m = re.match(r"^\s*backend", line)
+                if not m:
+                    contents += line
+        return contents
+
+    def __eq__(self, other):
+        return self.file_location == other.file_location
+
+    def __hash__(self):
+        return hash(self.file_location)
+
+    def __repr__(self):
+        return repr(self.file_location)
+
+
+def move_input_files(workflow_inputs, destination):
+    """
+    Moves the input files defined in a JSON file to a destination.
+
+    It will make any directories that are needed in the staging path, and then either symlink them
+    if they are a globus path or use rsync to move the files.
+
+    :param workflow_inputs: JSON file where inputs are specified.
+    :param destination: path to where to moved the input files
+    :return: list of the moved_files
+    """
+    moved_files = []
+    globus_basedir = config.Configuration().get("GLOBUS", "basedir")
+
+    for original_path in workflow_inputs.src_file_inputs:
+        staged_path = pathlib.Path(f"{destination}{original_path}")
+        moved_files.append(staged_path.as_posix())
+        if os.path.isdir(original_path):
+            staged_path.mkdir(mode=0o0700, parents=True, exist_ok=True)
+        else:
+            dirname = pathlib.Path(os.path.dirname(staged_path))
+            dirname.mkdir(mode=0o0700, parents=True, exist_ok=True)
+
+        # globus paths are accessible via symlink
+        if original_path.startswith(globus_basedir):
+            if not os.path.exists(staged_path):
+                os.symlink(original_path, staged_path.as_posix())
+        else:
+            rsync(original_path, staged_path.as_posix())
+    return moved_files
+
+
+class WorkflowInputs:
+    """
+    Represents a JSON file where the input files of a WDL are specified.
+
+    The user will submit the WDL, and JSON files to specify the workflow to JAWS. The inputs JSON
+    will store the location of the input files. These input files are then pre-pended with the staging directory
+    where JAWS Central will know where to pick them up.
+
+    """
+
+    def __init__(self, inputs_loc, submission_id, inputs_json=None):
+
+        self.submission_id = submission_id
+        self.inputs_location = os.path.abspath(inputs_loc)
+        self.basedir = os.path.dirname(inputs_loc)
+        try:
+            self.inputs_json = (
+                json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+            )
+        except Exception as error:
+            raise WorkflowError(error)
+        self._src_file_inputs = None
+
+    @property
+    def src_file_inputs(self):
+        """
+        Gathers all the input files specified in the JSON file into a set of files.
+
+        This allows for easy traversal of all the input files rather than have to recurse down the dictionary
+        and attempt to determine whether an element is a file or a keyword.
+
+        :return: set of file paths
+        """
+        if self._src_file_inputs is None:
+            self._src_file_inputs = self.gather_paths(self.inputs_json)
+        return self._src_file_inputs
+
+    def prepend_paths_to_json(self, staging_dir):
+        """
+        Modifies the JSON file to include the adjusted paths to the JAWS Central staging area.
+
+        :return: contents of the modified JSON file.
+        """
+        destination_json = {}
+        for k in self.inputs_json:
+            destination_json[k] = apply_filepath_op(
+                self.inputs_json[k], self._prepend_path(staging_dir)
+            )
+        return WorkflowInputs(
+            self.inputs_location, self.submission_id, inputs_json=destination_json
+        )
+
+    def validate(self):
+        """
+        Validates all of the input files in the JSON.
+
+        A valid file is considered one that exists and that can be read. If a file has the wrong permissions,
+        or is not at the specified location, a WorkflowError is raised to alert the user.
+        :return:
+        """
+        missing = []
+        for filepath in values(self.inputs_json):
+            if looks_like_file_path(filepath):
+                if not accessible_file(filepath):
+                    missing.append(filepath)
         if missing:
-            for sub in missing: sys.stderr.write("Subworkflow file not found: %s\n" % (sub,))
-            return False
-        return True
+            raise WorkflowError("File(s) not accessible: " + ", ".join(missing))
 
-    def _identify_file_parameters(self):
+    @staticmethod
+    def gather_paths(inputs_json):
         """
-        Validate the WDL using Cromwell's womtool and define the set of parameters of "File" type as self.file_items.  Used by load_inputs_json()
+        Helper method that aggregates all the paths in a JSON file
         """
-        if DEBUG: print("Identifying \"File\" parameters")
-        items = {}
-        proc = subprocess.Popen(["java", "-jar", WOMTOOL, "inputs", self.wdl_file], stdout=subprocess.PIPE)
-        stdout = proc.communicate()[0].decode('utf8')
-        wom_output = json.loads(stdout)
-        for key in wom_output.keys():
-            value = wom_output[key]
-            if value.startswith('File'):
-                items[key] = 'File'
-            elif value == 'Array[File]':
-                items[key] = 'List'
-            elif value == 'Map[File, File]':
-                items[key] = 'File:File'
-            elif value.startswith('Map[File,'):
-                items[key] = 'File:Other'
-            elif value.startswith('Map[') and value.endswith(', File]'):
-                items[key] = 'Other:File'
-        self.file_items = items
-        if not items: print("[WARNING] No input files specified")
-        return self.file_items
+        paths = set()
+        for element in values(inputs_json):
+            if looks_like_file_path(element) and not is_refdata(element):
+                paths.add(element)
+        return paths
 
-
-    def _filter_wdl(self, infile, outfile):
+    def _relative_to_absolute_paths(self, element):
         """
-        Removes any "backend" tags in the WDL file.  Also updates the self.max_ram_mb value.  Returns True on success; False otherwise.
-        We disallow "backend" tags in the WDL since they override the server defaults and may overload the local server.  Note that this tag must be entirely contained within a single line as the WDL is not fully parsed with python and the java womtool doesn't have this feature.  This tag is currently only required when running on AWS.
-        We determine the maximum amount of requested memory (in gigabytes) across all WDLs (i.e. including subworkflows) to ensure the cluster has nodes capable of running the workflow (otherwise the job shall never be run by the scheduler).
+        Helper method that converts any relative paths in a JSON into absolute paths.
+        It is applied to each value.
         """
-        assert(infile)
-        assert(outfile)
+        if looks_like_file_path(element):
+            new_path = element
+            if not os.path.isabs(element):
+                new_path = join_path(self.basedir, element)
+                new_path = os.path.abspath(new_path)
+                return new_path
+        else:
+            return element
 
-        # READ WDL
-        if DEBUG: print("Reading WDL: %s" % (infile,))
-        lines = None
-        try:
-            with open(infile, 'r') as f:
-                lines = f.readlines()
-        except:
-            sys.stderr.write("Error reading WDL file: %s" % (infile,))
-            return False
-        new_wdl = ""
-        for line in lines:
-            # DETERMINE MAX REQUESTED RAM
-            m = re.match(r"^\s+memory\s*[:=]\s*\"?(\d+\.?\d*)([kKmMgG])\"?", line)
-            if m:
-                mem = m.group(1)
-                prefix = m.group(2)
-                prefix = prefix.lower()
-                if prefix == "k":
-                    mem = int(mem / 1024)
-                elif prefix == "m":
-                    mem = int(mem)
-                elif prefix == "g":
-                    mem = int(mem / 1024)
-                else:
-                    mem = int(mem / 1048576)
-                if mem > self.max_ram_mb: self.max_ram_mb = mem
-            # FILTER "backend" TAGS
-            m = re.match(r"^\s*backend", line)
-            if not m:
-                new_wdl = new_wdl + line
-
-        # WRITE (FILTERED) WDL
-        if DEBUG: print("Writing WDL: %s" % (outfile,))
-        try:
-            with open(outfile, 'w') as f:
-                f.write(new_wdl)
-        except:
-            sys.stderr.write("Error writing WDL file: %s" % (outfile,))
-        return True
-
-
-    def prepare_wdls(self, staging_dir, submission_id):
+    def _convert_abspath_in_json(self, inputs_json):
         """
-        Copy and filter WDLs (including subworkflows) to new directory. This changes the wdl paths in the object.
+        Traverses and applies self._relative_to_absolute_paths to the values of a JSON dict.
         """
-        # MAIN WDL
-        assert(self.wdl_file)
-        assert(staging_dir)
-        assert(submission_id)
-        main_wdl_file = os.path.join(staging_dir, "%s.wdl" % (submission_id,))
-        self._filter_wdl(self.wdl_file, main_wdl_file)
-        self.wdl_file = main_wdl_file
+        abspath_json = {}  # converted json with absolute paths
+        for key in inputs_json:
+            abspath_json[key] = apply_filepath_op(
+                inputs_json[key], self._relative_to_absolute_paths
+            )
+        return abspath_json
 
-        # PREPARE SUBWORKFLOWS
-        if self.subworkflows:
-            # CREATE FOLDER FOR (FILTERED) SUBWORKFLOWS
-            dest = os.path.join(staging_dir, submission_id)
-            os.mkdir(dest, 0o0777)
-            self.zip_file = os.path.join(staging_dir, "%s.zip" % (submission_id,))
-            new_subworkflows = set()
-            for sub_wdl_src in self.subworkflows:
-                sub_name = os.path.basename(sub_wdl_src)
-                sub_wdl_dest = os.path.join(dest, sub_name)
-                self._filter_wdl(sub_wdl_src, sub_wdl_dest)
-                new_subworkflows.add(sub_wdl_dest)
-            self.subworkflows = new_subworkflows 
-            if not self.zip_subworkflows(): return False
-            shutil.rmtree(dest)
-        return True
+    @staticmethod
+    def _prepend_path(path_to_prepend):
+        def func(path):
+            if looks_like_file_path(path) and not is_refdata(path):
+                return f"{path_to_prepend}{path}"
+            return path
 
-    def zip_subworkflows(self):
+        return func
+
+    def write_to(self, json_location):
         """
-        Create a zip file of the subworkflows, as required by Cromwell.
+        Writes the modified JSON file to the specified location.
+
+        A modified file is one that includes the JAWS central staging path prepended to all the input file paths.
+
+        :param json_location: location to write the new JSON file
+        :return:
         """
-        if not self.subworkflows: return True
-        assert(self.zip_file)
-        if os.path.exists(self.zip_file): os.remove(self.zip_file)
-        print("Zipping subworkflows to %s" % (self.zip_file,))
-        try:
-            with zipfile.ZipFile(self.zip_file, 'w') as z:
-                for sub_wdl in self.subworkflows:
-                    z.write(sub_wdl, arcname=os.path.basename(sub_wdl))
-        except:
-            sys.stderr.write("Error writing subworkflows zipfile: %s" % (self.zip_file,))
-            if os.path.exists(self.zip_file): os.remove(self.zip_file)
-            return False
-        return True
+        with open(json_location, "w") as json_inputs:
+            json.dump(self.inputs_json, json_inputs, indent=4)
 
 
-    ########################
-    ## INPUTS (JSON) METHODS
+class Manifest:
+    """
+    A Manifest file includes all the files and their inode types that are transferred over via Globus.
 
-    def validate_inputs(self):
+    It is a TSV (tab-separate value) file.
+    """
+
+    def __init__(self, staging_dir, dest_dir):
+        self.logger = logging.getLogger(__package__)
+        self.staging_dir = staging_dir
+        self.dest_dir = dest_dir
+        self.manifest = []
+
+    def add(self, *args):
         """
-        Load inputs json file, converts all paths to absolute, and verifies they exist.
-        This method populates:
-            self.inputs_dict  (parameter key => value)
-            self.source_files (set of absolute paths)
-        Returns True if successful; False otherwise.  Does not write any outfile.
+        Adds the specified filepath to the manifest TSV. It will include the source path, the destination path
+        and its inode type (file or directory).
+
+        :param filepath: path of the file to add to TSV
+        :return:
         """
-        if DEBUG: print("Validating inputs JSON file")
-        try:
-            with open(self.inputs_file, 'r') as f:
-                self.inputs_dict = json.load(f)
-        except:
-            if DEBUG: sys.stderr.write("Unable to load inputs json\n")
-            return False
+        for filepath in args:
+            if filepath is None:
+                continue  # zip file may be none
+            inode_type = "D" if os.path.isdir(filepath) else "F"
+            src_rel_path = os.path.relpath(filepath, self.staging_dir)
+            dest_rel_path = f"{self.dest_dir}/{src_rel_path}"
+            self.manifest.append([filepath, dest_rel_path, inode_type])
 
-        # CONVERT RELATIVE PATHS TO ABSOLUTE PATHS
-        source_files = set() 
-        if not self._identify_file_parameters():
-            # no "File" parameters
-            self.source_files = source_files
-            return True
-        items = self.file_items
-        if DEBUG: print("Making all paths absolute")
-        inputs_dict = self.inputs_dict
-        has_rel_paths = False
-        json_dirname = os.path.dirname(self.inputs_file)
-        for key in inputs_dict.keys():
-            value = inputs_dict[key]
-            if key in items:
-                t = items[key]
-                if t == 'File':
-                    fo = value
-                    if not os.path.isabs(fo):
-                        has_rel_paths = True
-                        fo = os.path.join(json_dirname, fo)
-                    fa = os.path.abspath(fo)
-                    source_files.add(fa)
-                    inputs_dict[key] = fa
-                elif t == 'List':
-                    new_value = []
-                    for fo in value:
-                        if not os.path.isabs(fo):
-                            has_rel_paths = True
-                            fo = os.path.join(json_dirname, fo)
-                        fa = os.path.abspath(fo)
-                        source_files.add(fa)
-                        new_value.append(fa)
-                    inputs_dict[key] = new_value
-                elif t == 'File:File':
-                    new_value = {}
-                    for fo1 in value:
-                        if not os.path.isabs(fo1):
-                            has_rel_paths = True
-                            fo1 = os.path.join(json_dirname, fo1)
-                        fa1 = os.path.abspath(fo1)
-                        source_files.add(fa1)
-                        fo2 = value[fo1]
-                        if not os.path.isabs(fo2):
-                            has_rel_paths = True
-                            fo2 = os.path.join(json_dirname, fo2)
-                        fa2 = os.path.abspath(fo2)
-                        source_files.add(fa2)
-                        new_value[fa1]=fa2
-                    inputs_dict[key] = new_value
-                elif t == 'File:Other':
-                    new_value = {}
-                    for fo in value:
-                        if not os.path.isabs(fo):
-                            has_rel_paths = True
-                            fo = os.path.join(json_dirname, fo)
-                        fa = os.path.abspath(fo)
-                        source_files.add(fa)
-                        new_value[fa] = value[fo]
-                    inputs_dict[key] = new_value
-                elif t == 'Other:File':
-                    new_value = {}
-                    for o in value:
-                        fo = value[o]
-                        if not os.path.isabs(fo):
-                            has_rel_paths = True
-                            fo = os.path.join(json_dirname, fo)
-                        fa = os.path.abspath(fo)
-                        source_files.add(fa)
-                        new_value[o] = fa
-                    inputs_dict[key] = new_value
-        self.source_files = source_files
-        return self._validate_infiles()
-        
-
-    def _validate_infiles(self):
+    def write_to(self, write_location):
         """
-        Verify that all infiles exist, are readable, and are files rather than folders.
-        All files are checked, even if there are errors (doesn't quit on first error).
-        Returns True if OK, False otherwise.
+        Writes the TSV file to a specified location.
+
+        :param write_location: a file path
+        :return:
         """
-        is_okay = True
-        if DEBUG: print("Validating input files")
-        if len(self.source_files) == 0:
-            if DEBUG: print("[WARNING] Workflow doesn't have any input files")
-        for a_file in self.source_files: # abs paths
-            if not os.path.exists(a_file):
-                sys.stderr.write("[ERROR] File not found: %s\n" % (a_file,))
-                is_okay = False
-            elif not os.access(a_file, os.R_OK):
-                sys.stderr.write("[ERROR] File not readable: %s\n" % (a_file,))
-                is_okay = False
-            elif os.path.isdir(a_file):
-                sys.stderr.write("[WARNING] Is a dir, not a file: %s\n" % (a_file,))
-            #elif DEBUG: print("\t%s" % (a_file,))
-        return is_okay
+        self.logger.info(f"Writing file manifest to {write_location}")
+        self.logger.debug(f"Writing manifest file: {write_location}")
+        with open(write_location, "w") as f:
+            for src, dest, inode_type in self.manifest:
+                f.write(f"{src}\t{dest}\t{inode_type}\n")
 
 
-    def write_inputs_json(self):
-        """
-        Write inputs JSON to specified outfile (e.g. after manipulating paths).
-        Returns True on success; False otherwise.
-        """
-        assert(self.json_file)
-        if DEBUG: print("Writing inputs JSON: %s" % (self.json_file,))
-        if self.inputs_dict is None:
-            if DEBUG: sys.stderr.write("\t[ERROR] Inputs not defined\n")
-            return False
-        try:
-            with open(self.json_file, 'w') as f:
-                json.dump(self.inputs_dict, f, indent=4)
-        except:
-            sys.stderr.write("[ERROR] Failed to write inputs JSON file\n")
-            return False
-        return True
+class WorkflowError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
 
 
-    def _update_input_paths(self, infiles):
-        """
-        Update self.input_dict using mapping information provided in infiles dictionary (source => dest).
-        """
-        items = self.file_items
-        if DEBUG: print("Updating paths in inputs JSON")
-        inputs_dict = self.inputs_dict
-        for key in inputs_dict.keys():
-            value = inputs_dict[key]
-            if key in items:
-                t = items[key]
-                if t == 'File':
-                    source = value
-                    if source in infiles:
-                        inputs_dict[key] = infiles[source]
-                elif t == 'List':
-                    new_value = []
-                    for source in value:
-                        new_value.append(infiles[source])
-                    inputs_dict[key] = new_value
-                elif t == 'File:File':
-                    new_value = {}
-                    for source1 in value:
-                        dest1 =infiles[source1]
-                        source2 = value[source1]
-                        dest2 = infiles[source2]
-                        new_value[dest1]=dest2
-                    inputs_dict[key] = new_value
-                elif t == 'File:Other':
-                    new_value = {}
-                    for source in value:
-                        dest = infiles[source]
-                        new_value[dest] = value[source]
-                    inputs_dict[key] = new_value
-                elif t == 'Other:File':
-                    new_value = {}
-                    for o in value:
-                        source = value[o]
-                        dest = infiles[source]
-                        new_value[o] = dest
-                    inputs_dict[key] = new_value
-
-
-    def prepare_inputs(self, globus_basedir, staging_subdir, site_name, submission_id):
-        """
-        Copy or symlink (depending on path) all infiles to the staging directory so they may be transferred via Globus.
-        Also calculates total gigabytes to be transferred and generates the file manifest for sending via Globus.
-        """
-        # VALIDATE FOLDERS
-        staging_dir = os.path.join(globus_basedir, staging_subdir)
-        data_dir = os.path.join(staging_dir, site_name)
-        if not os.path.isdir(data_dir): os.makedirs(data_dir, 0o0777)
-        if not os.path.isdir(staging_dir): os.makedirs(staging_dir, 0o0777)
-
-        # COPY OR SYMLINK FILES
-        if DEBUG: print("Staging infiles")
-        infiles = {} # source => dest
-        new_source_files = set()
-        transfer_mb = 0
-        manifest = [] # files to xfer
-        for source in self.source_files:
-            new_source = source
-# DEPRECATED
-#            # MIRRORED REFERENCE DATA FOLDERS NO LONGER NEEDED -- CACHING ALL FILES NOW
-#            if local_ref_dir and remote_ref_dir and source.startswith(local_ref_dir):
-#                new_source = source.replace(local_ref_dir, remote_ref_dir, 1)
-#                if DEBUG: print("\t%s" % (source,))
-# /DEPRECATED
-            dest = "%s/%s" % (data_dir, source) # os.path.join won't work because "source" is an abs path
-            if DEBUG: print("\t%s" % (source,))
-            dirname = os.path.dirname(dest)
-            if not os.path.isdir(dirname): os.makedirs(dirname, 0o0777)
-            if source.startswith(globus_basedir):
-                if not os.path.exists(dest): os.symlink(source, dest)
-            else:
-                if not os.path.exists(dest) or int(os.path.getmtime(source)) != int(os.path.getmtime(dest)):
-                    shutil.copy2(source, dest, follow_symlinks=True)
-            new_source = "./%s%s" % (site_name, source)
-            remote_dest = "%s%s" % (site_name, source)
-            transfer_mb = transfer_mb + int(os.path.getsize(os.path.realpath(source))/1048576 + 0.5)
-            manifest.append([dest, remote_dest])
-            infiles[source] = new_source # mapping dict for updating inputs JSON
-            new_source_files.add(new_source) # add to set of infiles
-        self.source_files = new_source_files
-        self.transfer_gb = int(transfer_mb/1024 + 0.5)
-        self.manifest = manifest
-
-        # CHANGE INFILE PATHS TO NEW LOCATION
-        self._update_input_paths(infiles)
-
-        # WRITE JSON INPUTS FILE
-        self.json_file = os.path.join(staging_dir, "%s.json" % (submission_id,))
-        if not self.write_inputs_json(): sys.exit("FAILED to write new inputs json")
-
-        # ADD WORKFLOW FILES TO MANIFEST
-        wdl_basename = os.path.basename(self.wdl_file)
-        self.manifest.append([self.wdl_file, wdl_basename])
-        if self.zip_file:
-            zip_basename = os.path.basename(self.zip_file)
-            self.manifest.append([self.zip_file, zip_basename])
-        json_basename = os.path.basename(self.json_file)
-        self.manifest.append([self.json_file, json_basename])
+class WdlError(Exception):
+    def __init__(self, message):
+        super().__init__(message)

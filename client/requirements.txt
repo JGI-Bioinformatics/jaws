@@ -10,9 +10,12 @@ globus-cli==1.11.0
 globus-sdk==1.8.0
 idna==2.8
 jmespath==0.9.4
+nested-dict==1.61
 pycparser==2.19
 PyJWT==1.7.1
+pyOpenSSL==19.1.0
 pyparsing==2.4.5
+PySocks==1.7.1
 requests==2.22.0
 six==1.13.0
 soupsieve==1.9.5

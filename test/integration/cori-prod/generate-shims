@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+
+INSTALLDIR=${1:-/tmp/jaws-prod}
+SHIMDIR="$INSTALLDIR/shims/"
+CROMWELL_DIR=/global/cfs/projectdirs/jaws/cromwell
+
+[[ -d $SHIMDIR ]] || mkdir $SHIMDIR
+
+cat <<EOM > $SHIMDIR/jaws-central-auth-prod
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALLDIR/central/bin/activate
+exec jaws-central --log $INSTALLDIR/logs/central-auth.log --config $INSTALLDIR/configs/jaws-central.conf --log-level INFO auth
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-central-rest-prod
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALLDIR/central/bin/activate
+exec jaws-central --log $INSTALLDIR/logs/central-rest.log --config $INSTALLDIR/configs/jaws-central.conf --log-level INFO rest
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-central-rpc-prod
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALLDIR/central/bin/activate
+exec jaws-central --log $INSTALLDIR/logs/central-rpc.log --config $INSTALLDIR/configs/jaws-central.conf --log-level INFO rpc
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-site-daemon-prod
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALLDIR/site/bin/activate
+exec jaws-site --log $INSTALLDIR/logs/site-daemon.log --config $INSTALLDIR/configs/jaws-site.conf --log-level INFO daemon
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-site-central-rpc-prod
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALLDIR/site/bin/activate
+exec jaws-site --log $INSTALLDIR/logs/site-central-rpc.log --config $INSTALLDIR/configs/jaws-site.conf --log-level INFO central-rpc
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-site-jtm-rpc-prod
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALLDIR/site/bin/activate
+exec jaws-site --log $INSTALLDIR/logs/site-jtm-rpc.log --config $INSTALLDIR/configs/jaws-site.conf --log-level INFO jtm-rpc
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-jtm-prod
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALLDIR/jtm/bin/activate
+export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
+
+#HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
+cp /tmp/jaws-prod/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-prod/jaws-jtm.conf
+chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-prod/jaws-jtm.conf
+chmod 640 /global/cfs/projectdirs/jaws/jtm-prod/jaws-jtm.conf
+
+exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf -ld $INSTALLDIR/logs/jtm
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-cromwell-prod
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+# cromwell needs jtm to be in path
+source $INSTALLDIR/jtm/bin/activate
+
+cd /global/cscratch1/sd/jaws_jtm/prod/
+exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" server
+EOM
+
+cat <<EOM > $CROMWELL_DIR/shifter_exec.sh
+#!/bin/bash
+shifter --image=$1 -V /global/dna/shared/rqc/ref_databases:/refdata $2 $3
+EOM
+
+chmod +x $SHIMDIR/*

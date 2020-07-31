@@ -1,0 +1,275 @@
+stages:
+  - unit-test
+  - package
+  - deploy-jaws
+  - integration-test
+  - .post
+
+variables:
+  GIT_STRATEGY: clone
+
+# this needs to be commented out in the jobs definitions, for the jobs to
+# run in any case and not only when pushing a merge request.
+.only-default: &only-default
+  only:
+    - master
+    - branches
+    - merge_requests
+    - tags
+
+test-rpc:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install -r rpc/requirements.txt
+    - pip install flake8
+    - pip install pytest
+    - make test-rpc
+test-site:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install rpc/
+    - pip install -r site/requirements.txt
+    - pip install flake8
+    - pip install pytest
+    - make test-site
+test-central:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install rpc/
+    - pip install -r central/requirements.txt
+    - pip install flake8
+    - pip install pytest
+    - make test-central
+test-client:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - export PATH=/jaws-ci/bin:$PATH
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install -r client/requirements.txt
+    - pip install flake8
+    - pip install pytest
+    - make test-client
+test-jtm:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install rpc/
+    - pip install -r jtm/requirements.txt
+    - pip install flake8
+    - pip install pytest
+    - make test-jtm
+package:
+  <<: *only-default
+  stage: package
+  script:
+    - python3 -m venv pkg-venv
+    - source pkg-venv/bin/activate
+    - pip install wheel
+    - make pkg
+  artifacts:
+    name: "packages-$CI_PROJECT_NAME-$CI_PIPELINE_ID"
+    expire_in: 1 hour
+    paths:
+      - rpc/dist
+      - site/dist
+      - client/dist
+      - central/dist
+      - jtm/dist
+
+## integration tests - only run on merge request
+deploy-jaws-cori-dev:
+  stage: deploy-jaws
+  tags:
+    - cori
+  script:
+    ## configs first, to be able to talk to supervisord
+    - test -d /tmp/jaws-dev/ || mkdir /tmp/jaws-dev/
+    - test -d /tmp/jaws-dev/configs || mkdir /tmp/jaws-dev/configs
+    - test -d /tmp/jaws-dev/logs || mkdir /tmp/jaws-dev/logs && test -d /tmp/jaws-dev/logs/jtm || mkdir /tmp/jaws-dev/logs/jtm && chgrp jaws_jtm /tmp/jaws-dev/logs/jtm && chmod 770 /tmp/jaws-dev/logs/jtm
+    - chgrp jaws_jtm /tmp/jaws-dev/ && chmod 770 /tmp/jaws-dev/
+    - chgrp jaws_jtm /tmp/jaws-dev/configs && chmod 770 /tmp/jaws-dev/configs
+    - chgrp jaws_jtm /tmp/jaws-dev/logs && chmod 770 /tmp/jaws-dev/logs
+    - chgrp jaws_jtm /tmp/jaws-dev/logs/jtm && chmod 770 /tmp/jaws-dev/logs/jtm
+    - chgrp jaws_jtm /tmp/jaws-dev/shims && chmod 770 /tmp/jaws-dev/shims
+    - ./test/integration/cori-dev/generate-configs /tmp/jaws-dev/configs/
+    - chmod 660 /tmp/jaws-dev/configs/*
+    - ./test/integration/cori-dev/deploy-supervisord /tmp/jaws-supervisord-dev/ /tmp/jaws-dev/shims/
+    - chgrp jaws_jtm /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-dev/configs/jaws-jtm.conf
+    - chgrp jaws_jtm /tmp/jaws-dev/configs/cromwell.conf && chmod 660 /tmp/jaws-dev/configs/cromwell.conf
+    - chgrp jaws_jtm /tmp/jaws-supervisord-dev/supervisord-jtm.conf && chmod 660 /tmp/jaws-supervisord-dev/supervisord-jtm.conf
+    - chgrp jaws_jtm /tmp/jaws-supervisord-dev/ && chgrp -R jaws_jtm /tmp/jaws-supervisord-dev/{bin,venv}
+    - ./test/integration/cori-dev/generate-shims /tmp/jaws-dev/
+    - chgrp jaws_jtm /tmp/jaws-dev/shims/jaws-jtm-dev && chmod 770 /tmp/jaws-dev/shims/jaws-jtm-dev
+    - chgrp jaws_jtm /tmp/jaws-dev/shims/jaws-cromwell-dev && chmod 770 /tmp/jaws-dev/shims/jaws-cromwell-dev
+    - module load python
+    - make pkg
+    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf stop jaws-dev:*
+    - python3 -m venv /tmp/jaws-dev/client  && . /tmp/jaws-dev/client/bin/activate  && pip install client/dist/*  && deactivate
+    - python3 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate && pip install rpc/dist/*    && pip install site/dist/*    && deactivate
+    - python3 -m venv /tmp/jaws-dev/central && . /tmp/jaws-dev/central/bin/activate && pip install rpc/dist/* && pip install central/dist/* && deactivate
+    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf stop jaws-dev:*
+    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf reread
+    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start jaws-dev:*
+    - python3 -m venv /tmp/jaws-dev/jtm     && . /tmp/jaws-dev/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-dev/jtm || true
+    - cp /global/cfs/projectdirs/jaws/cromwell/cromwell.jar /tmp/jaws-dev/cromwell.jar && chgrp jaws_jtm /tmp/jaws-dev/cromwell.jar
+    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf stop jaws-dev:*
+    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf reread
+    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf start jaws-dev:*
+    - python3 -m venv /global/cfs/projectdirs/jaws/jtm-dev && . /global/cfs/projectdirs/jaws/jtm-dev/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/cfs/projectdirs/jaws/jtm-dev || true
+    - chgrp jaws_jtm /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-dev/configs/jaws-jtm.conf
+    # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
+    # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-manager shim created by generate-shims. this is a hack.
+    # - cp -a /tmp/jaws-dev/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
+  only:
+  - dev
+deploy-jaws-cori-prod:
+  stage: deploy-jaws
+  tags:
+    - cori
+  script:
+    ## configs first, to be able to talk to supervisord
+    - test -d /tmp/jaws-prod/ || mkdir /tmp/jaws-prod/
+    - test -d /tmp/jaws-prod/configs || mkdir /tmp/jaws-prod/configs
+    - test -d /tmp/jaws-prod/logs || mkdir /tmp/jaws-prod/logs && test -d /tmp/jaws-prod/logs/jtm || mkdir /tmp/jaws-prod/logs/jtm && chgrp jaws_jtm /tmp/jaws-prod/logs/jtm && chmod 770 /tmp/jaws-prod/logs/jtm
+    - chgrp jaws_jtm /tmp/jaws-prod/ && chmod 770 /tmp/jaws-prod/
+    - chgrp jaws_jtm /tmp/jaws-prod/configs && chmod 770 /tmp/jaws-prod/configs
+    - chgrp jaws_jtm /tmp/jaws-prod/logs && chmod 770 /tmp/jaws-prod/logs
+    - chgrp jaws_jtm /tmp/jaws-prod/logs/jtm && chmod 770 /tmp/jaws-prod/logs/jtm
+    - chgrp jaws_jtm /tmp/jaws-prod/shims && chmod 770 /tmp/jaws-prod/shims
+    - ./test/integration/cori-prod/generate-configs /tmp/jaws-prod/configs/
+    - chmod 660 /tmp/jaws-prod/configs/*
+    - ./test/integration/cori-prod/deploy-supervisord /tmp/jaws-supervisord-prod/ /tmp/jaws-prod/shims/
+    - chgrp jaws_jtm /tmp/jaws-prod/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-prod/configs/jaws-jtm.conf
+    - chgrp jaws_jtm /tmp/jaws-prod/configs/cromwell.conf && chmod 660 /tmp/jaws-prod/configs/cromwell.conf
+    - chgrp jaws_jtm /tmp/jaws-supervisord-prod/supervisord-jtm.conf && chmod 660 /tmp/jaws-supervisord-prod/supervisord-jtm.conf
+    - chgrp jaws_jtm /tmp/jaws-supervisord-prod/ && chgrp -R jaws_jtm /tmp/jaws-supervisord-prod/{bin,venv}
+    - ./test/integration/cori-prod/generate-shims /tmp/jaws-prod/
+    - chgrp jaws_jtm /tmp/jaws-prod/shims/jaws-jtm-prod && chmod 770 /tmp/jaws-prod/shims/jaws-jtm-prod
+    - chgrp jaws_jtm /tmp/jaws-prod/shims/jaws-cromwell-prod && chmod 770 /tmp/jaws-prod/shims/jaws-cromwell-prod
+    - module load python
+    - make pkg
+    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf stop jaws-prod:*
+    - python3 -m venv /tmp/jaws-prod/client  && . /tmp/jaws-prod/client/bin/activate  && pip install client/dist/*  && deactivate
+    - python3 -m venv /tmp/jaws-prod/site    && . /tmp/jaws-prod/site/bin/activate && pip install rpc/dist/*    && pip install site/dist/*    && deactivate
+    - python3 -m venv /tmp/jaws-prod/central && . /tmp/jaws-prod/central/bin/activate && pip install rpc/dist/* && pip install central/dist/* && deactivate
+    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf stop jaws-prod:*
+    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf reread
+    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf start jaws-prod:*
+    - python3 -m venv /tmp/jaws-prod/jtm     && . /tmp/jaws-prod/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-prod/jtm || true
+    - cp /global/cfs/projectdirs/jaws/cromwell/cromwell.jar /tmp/jaws-prod/cromwell.jar && chgrp jaws_jtm /tmp/jaws-prod/cromwell.jar
+    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf stop jaws-prod:*
+    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf reread
+    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf start jaws-prod:*
+    - python3 -m venv /global/cfs/projectdirs/jaws/jtm-prod && . /global/cfs/projectdirs/jaws/jtm-prod/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/cfs/projectdirs/jaws/jtm-prod || true
+    - chgrp jaws_jtm /tmp/jaws-prod/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-prod/configs/jaws-jtm.conf
+    # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
+    # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-manager shim created by generate-shims. this is a hack.
+    # - cp -a /tmp/jaws-prod/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-prod/jaws-jtm.conf
+  only:
+  - master
+deploy-jaws-lbnl:
+  stage: deploy-jaws
+  tags:
+    - lbnl
+  script:
+    ## configs first, to be able to talk to supervisord
+    - test -d /tmp/jaws-dev/ || mkdir /tmp/jaws-dev/
+    - test -d /tmp/jaws-dev/configs || mkdir /tmp/jaws-dev/configs
+    - test -d /tmp/jaws-dev/logs || mkdir /tmp/jaws-dev/logs && test -d /tmp/jaws-dev/logs/jtm || mkdir /tmp/jaws-dev/logs/jtm && chgrp jaws /tmp/jaws-dev/logs/jtm && chmod 770 /tmp/jaws-dev/logs/jtm
+    - chgrp jaws /tmp/jaws-dev/ && chmod 770 /tmp/jaws-dev/
+    - chgrp jaws /tmp/jaws-dev/configs && chmod 770 /tmp/jaws-dev/configs
+    - chgrp jaws /tmp/jaws-dev/logs && chmod 770 /tmp/jaws-dev/logs
+    - chgrp jaws /tmp/jaws-dev/logs/jtm && chmod 770 /tmp/jaws-dev/logs/jtm
+    - chgrp jaws /tmp/jaws-dev/shims && chmod 770 /tmp/jaws-dev/shims
+    - ./test/integration/lbnl/generate-configs /tmp/jaws-dev/configs/
+    - chmod 660 /tmp/jaws-dev/configs/*
+    - chgrp jaws /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-dev/configs/jaws-jtm.conf
+    - chgrp jaws /tmp/jaws-dev/configs/cromwell.conf && chmod 660 /tmp/jaws-dev/configs/cromwell.conf
+    - chgrp jaws /tmp/jaws-supervisord/supervisord-jtm.conf && chmod 660 /tmp/jaws-supervisord/supervisord-jtm.conf
+    - module load python
+    - ./test/integration/lbnl/deploy-supervisord /tmp/jaws-supervisord/ /tmp/jaws-dev/shims/
+    - chgrp jaws /tmp/jaws-supervisord/ && chgrp -R jaws /tmp/jaws-supervisord/{bin,venv}
+    - ./test/integration/lbnl/generate-shims /tmp/jaws-dev/
+    - chgrp jaws /tmp/jaws-dev/shims/jaws-jtm-dev && chmod 770 /tmp/jaws-dev/shims/jaws-jtm-dev
+    - chgrp jaws /tmp/jaws-dev/shims/jaws-cromwell-dev && chmod 770 /tmp/jaws-dev/shims/jaws-cromwell-dev
+    - make pkg
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
+    - python -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate && pip install rpc/dist/*    && pip install site/dist/*    && deactivate
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf reread
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start jaws-dev:*
+    - python -m venv /tmp/jaws-dev/jtm     && . /tmp/jaws-dev/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-dev/jtm || true
+    - cp /global/home/groups-sw/lr_jgicloud/cromwell/cromwell.jar /tmp/jaws-dev/cromwell.jar && chgrp jaws /tmp/jaws-dev/cromwell.jar
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf stop jaws-dev:*
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf reread
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf start jaws-dev:*
+    - python -m venv /global/home/groups-sw/lr_jgicloud/jtm-dev && . /global/home/groups-sw/lr_jgicloud/jtm-dev/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/home/groups-sw/lr_jgicloud/jtm-dev || true
+    - chgrp jaws /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-dev/configs/jaws-jtm.conf
+    # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
+    # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-manager shim created by generate-shims. this is a hack.
+    # - cp -a /tmp/jaws-dev/configs/jaws-jtm.conf /global/home/groups-sw/lr_jgicloud/jtm-dev/jaws-jtm.conf
+  only:
+  - dev
+
+deploy-jaws-cascade:
+  stage: deploy-jaws
+  tags:
+    - cascade
+  script:
+    ## configs first, to be able to talk to supervisord
+    - export LC_ALL=en_US.UTF-8
+    - export LANG=en_US.UTF-8
+    - export PYTHONIOENCODING=utf-8
+    - source /opt/rh/rh-python36/enable
+    - test -d /tmp/jaws-dev/ || mkdir /tmp/jaws-dev/
+    - test -d /tmp/jaws-dev/configs || mkdir /tmp/jaws-dev/configs
+    - test -d /tmp/jaws-dev/logs || mkdir /tmp/jaws-dev/logs && test -d /tmp/jaws-dev/logs/jtm || mkdir /tmp/jaws-dev/logs/jtm && chgrp svc-jtm-user /tmp/jaws-dev/logs/jtm && chmod 770 /tmp/jaws-dev/logs/jtm
+    - chgrp svc-jtm-user /tmp/jaws-dev/ && chmod 770 /tmp/jaws-dev/
+    - chgrp svc-jtm-user /tmp/jaws-dev/configs && chmod 770 /tmp/jaws-dev/configs
+    - chgrp svc-jtm-user /tmp/jaws-dev/logs && chmod 770 /tmp/jaws-dev/logs
+    - chgrp svc-jtm-user /tmp/jaws-dev/logs/jtm && chmod 770 /tmp/jaws-dev/logs/jtm
+    - chgrp svc-jtm-user /tmp/jaws-dev/shims && chmod 770 /tmp/jaws-dev/shims
+    - ./test/integration/pnnl/generate-configs /tmp/jaws-dev/configs/
+    - chmod 660 /tmp/jaws-dev/configs/*
+    - chgrp svc-jtm-user /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-dev/configs/jaws-jtm.conf
+    - chgrp svc-jtm-user /tmp/jaws-dev/configs/cromwell.conf && chmod 660 /tmp/jaws-dev/configs/cromwell.conf
+    - chgrp svc-jtm-user /tmp/jaws-supervisord/supervisord-jtm.conf && chmod 660 /tmp/jaws-supervisord/supervisord-jtm.conf
+    - ./test/integration/pnnl/deploy-supervisord /tmp/jaws-supervisord/ /tmp/jaws-dev/shims/
+    - chgrp svc-jtm-user /tmp/jaws-supervisord/ && chgrp -R svc-jtm-user /tmp/jaws-supervisord/{bin,venv}
+    - ./test/integration/pnnl/generate-shims /tmp/jaws-dev/
+    - chgrp svc-jtm-user /tmp/jaws-dev/shims/jaws-jtm-dev && chmod 770 /tmp/jaws-dev/shims/jaws-jtm-dev
+    - chgrp svc-jtm-user /tmp/jaws-dev/shims/jaws-cromwell-dev && chmod 770 /tmp/jaws-dev/shims/jaws-cromwell-dev
+    - make pkg
+    ## stop jaws and install new versions
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf stop jaws-dev:*
+    - python3.6 -m venv /tmp/jaws-dev/client  && . /tmp/jaws-dev/client/bin/activate  && pip install --upgrade pip && pip install client/dist/*  && deactivate
+    - python3.6 -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate    && pip install --upgrade pip && pip install rpc/dist/* && pip install site/dist/*    && deactivate
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf reread
+    ## start jaws
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start jaws-dev:*
+    ## stop jtm and cromwell and install new versions
+    - python3.6 -m venv /tmp/jaws-dev/jtm     && . /tmp/jaws-dev/jtm/bin/activate     && pip install --upgrade pip && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-dev/jtm || true
+    - wget -q -O /tmp/jaws-dev/cromwell.jar https://github.com/broadinstitute/cromwell/releases/download/47/cromwell-47.jar && chgrp svc-jtm-user /tmp/jaws-dev/cromwell.jar
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf stop jaws-dev:*
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf reread
+    - /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf start jaws-dev:*
+    ## start jtm
+    - mkdir -p /dtemp/mscjgi/jaws-dev/jtm || true
+    - python3.6 -m venv /dtemp/mscjgi/jaws-dev/jtm && . /dtemp/mscjgi/jaws-dev/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /dtemp/mscjgi/jaws-dev/jtm || true
+    - chgrp svc-jtm-user /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-dev/configs/jaws-jtm.conf
+    # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
+    # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-manager shim created by generate-shims. this is a hack.
+    # - cp -a /tmp/jaws-dev/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf

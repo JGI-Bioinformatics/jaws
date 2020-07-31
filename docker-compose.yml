@@ -1,0 +1,21 @@
+version: '3.1'
+services:
+  db:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    ports:
+      - "3306:3306"
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    hostname: "rabbit"
+    enviroment:
+      RABBITMQ_DEFAULT_USER: jaws
+      RABBITMQ_DEFAULT_PASS: jawstest
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - ./rabbitmq-isolated.conf:/etc/rabbitmq/rabbitmq.config

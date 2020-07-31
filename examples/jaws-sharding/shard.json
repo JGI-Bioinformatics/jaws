@@ -1,0 +1,4 @@
+{
+  "shard_test_wf.reads": "../data/sample.fastq.bz2",
+  "shard_test_wf.reference": "../data/sample.fasta"
+}

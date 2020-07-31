@@ -1,0 +1,6 @@
+{
+  "main_wdl.fastq": "../../../../examples/data/sample.fastq.bz2",
+  "main_wdl.reference": "../../../../examples/data/sample.fasta",
+  "main_wdl.bbmap_shard_wf.chunk_size": "100000000"
+}
+
