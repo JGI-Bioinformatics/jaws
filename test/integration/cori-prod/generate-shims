@@ -87,7 +87,7 @@ cp /tmp/jaws-prod/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-prod/ja
 chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-prod/jaws-jtm.conf
 chmod 640 /global/cfs/projectdirs/jaws/jtm-prod/jaws-jtm.conf
 
-exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf -ld $INSTALLDIR/logs/jtm
+exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-cromwell-prod

@@ -125,6 +125,7 @@ deploy-jaws-cori-dev:
     - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start jaws-dev:*
     - python3 -m venv /tmp/jaws-dev/jtm     && . /tmp/jaws-dev/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-dev/jtm || true
     - cp /global/cfs/projectdirs/jaws/cromwell/cromwell.jar /tmp/jaws-dev/cromwell.jar && chgrp jaws_jtm /tmp/jaws-dev/cromwell.jar
+    - mkdir /global/cfs/projectsdirs/jaws/jtm-dev && chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-dev && chmod 770 /global/cfs/projectdirs/jaws/jtm-dev
     - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf stop jaws-dev:*
     - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf reread
     - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf start jaws-dev:*
@@ -170,6 +171,7 @@ deploy-jaws-cori-prod:
     - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf start jaws-prod:*
     - python3 -m venv /tmp/jaws-prod/jtm     && . /tmp/jaws-prod/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-prod/jtm || true
     - cp /global/cfs/projectdirs/jaws/cromwell/cromwell.jar /tmp/jaws-prod/cromwell.jar && chgrp jaws_jtm /tmp/jaws-prod/cromwell.jar
+    - mkdir /global/cfs/projectsdirs/jaws/jtm-prod && chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-prod && chmod 770 /global/cfs/projectdirs/jaws/jtm-prod
     - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf stop jaws-prod:*
     - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf reread
     - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf start jaws-prod:*
