@@ -141,7 +141,7 @@ host = db.mysql.prod-cattle.stable.spin.nersc.org
 port = 60006
 user = jtm
 password = $JAWS_JTM_CORI_DB_PW
-db = jtm_nersc_prod
+db = jtm_prod
 [SLURM]
 # number of nodes for the pool
 nnodes = 1
