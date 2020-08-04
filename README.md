@@ -69,11 +69,30 @@ cromwell-utils
 ```
 
 ## Contributing
-* Nicole Free <nlfree@lbl.gov>
-* Jeff Froula <jlfroula@lbl.gov>  
-* Edward Kirton <eskirton@lbl.gov>  
-* Mario Melara <mamelara@lbl.gov>  
-* Georg Rath <gbrath@lbl.gov>  
-* Hugh Salamon <hsalamon@lbl.gov> 
-* Seung-Jin Sul <ssul@lbl.gov>   
-* Stephan Trong <strong@lbl.gov>  
+Developers
+* Edward Kirton
+* Seung-jin Sul
+* Stephan Trong
+
+CI/CD coordination
+* Mario Melara
+* Georg Rath
+
+Documentation and WDL authoring
+* Jeff Froula
+ 
+User support
+* Jeff Froula
+* Ed Kirton
+* Ramani Kothadia
+* Seung-Jin Sul
+
+System and integration testing
+* Jeff Froula
+* Angie Kollmer
+* Ramani Kothadia
+
+Functional design consulting, project and resource coordination
+* Kjiersten Fagnan
+* Hugh Salamon
+
