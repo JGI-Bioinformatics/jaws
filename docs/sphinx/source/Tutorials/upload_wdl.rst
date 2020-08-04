@@ -10,7 +10,7 @@ Overall Process
 ***************
 
 1) **Write a WDL of your pipeline**.
-   When you develop your WDL, you can test using any installation of cromwell.jar (and probably not JAWS).
+   When you develop your WDL, you can test using any installation of Cromwell.jar (and probably not JAWS).
 
 2) **Create a git repository that includes**
 

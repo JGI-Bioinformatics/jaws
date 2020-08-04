@@ -6,7 +6,7 @@ we didn’t want to build yet another siloed, proprietary, homebrewed solution. 
 open technologies — WDL and Cromwell — that we are using to deliver Workflows, our managed cloud bioinformatics application.
 
 
-The Workflow Description Language, or WDL (pronounced “widdle”), is a technical language developed at the Broad Institute that allows workflow developers to describe pipelines in a hardware agnostic way — separating logic from the metal on which it runs. A WDL workflow is composed of a sequence of Tasks, each having its own inputs, outputs, runtime environment, and commands. The runtime block outlines the shape of the virtual machine image in which the list of commands will run, producing outputs from inputs. Note that each WDL Task prescribes a custom runtime environment, which lends to very lean utilization of computational resources.
+The Workflow Description Language, or WDL (pronounced “widdle”), is a technical language developed at the Broad Institute that allows workflow developers to describe pipelines in a hardware agnostic way — separating logic from the metal on which it runs. A WDL workflow is composed of a sequence of tasks, each having its own inputs, outputs, runtime environment, and commands. The runtime block outlines the shape of the virtual machine image in which the list of commands will run, producing outputs from inputs. Note that each WDL task prescribes a custom runtime environment, which lends to very lean utilization of computational resources.
 
 
 Anatomy of a WDL Task

@@ -9,72 +9,58 @@ JAWS Quickstart
 Summary
 *******
 
-This is an example of how you can set up the environment to start running a pipeline in JAWS.
+The following commands assume they are to be run by JGI personell and run on NERSC's Cori cluster.
 
-.. note:: 
-    Some Definitions:
+Set up the environment to start running a pipeline in JAWS.
+-----------------------------------------------------------
 
-    * The Workflow Description Language (WDL) is developed by an open source community `openwdl.org <openwdl.org>`_. It is essentially a wrapper around the commands in your pipeline code.  
-    * Cromwell is a workflow engine that executes the commands in the WDL.
+These are the steps (in order) you'll be required to complete.
 
-*******************************
-Set up JAWS Environment 
-*******************************
+.. |check| raw:: html
 
-Currently JAWS can be run at 
+    <input checked=""  type="checkbox">
 
-  * Cori(NERSC)
-  * LBNL(Lawrencium)  
+.. |br| raw:: html
 
-.. note::
-    When running a JAWS job, you will always start it on Cori. You can specify as a command argument which site you want [nersc|lbnl].
+  <br/>
 
+|check| get a NERSC account |br|
+|check| get JAWS token |br|
+|check| get Globus account and link your NERSC account to Globus |br|
+|check| activate the JAWS virtual environment |br|
+|check| get Globus token
 
-To begin, you should do these three things 
+***********
+Begin Setup
+***********
+
+`(see video about setting up the JAWS environment) <https://youtu.be/7qXpMNdQjdw>`_
+
+Before you go further, you need to complete these three steps: 
 
 1) get an account at NERSC.  
 
-   - If you do not have a NERSC account yet, please get one by writing to consult@nersc.gov .  
+    - If you do not have a NERSC account yet, please get one by writing to consult@NERSC.gov
 
-2) get an account at globus.org
+2) get a JAWS token from JAWS admin jlfroula@lbl.gov 
 
-3) get a JAWS token from one of the JAWS admins (jlfroula@lbl.gov or eskirton@lbl.gov)
+3) get an account at globus.org
 
-
-On Cori, do the following
-
-.. code-block:: bash
-
-    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws.conf ~
-    chmod 600 ~/jaws.conf
-
-    Edit ~/jaws.conf and add values for the [USER] variables:
-      token : This should be the token you got from the JAWS admin
-      staging_dir : Set to a JAWS subdir in your scratch dir, e.g. /global/cscratch1/sd/YOURUID/jaws
-
-    # Set up the virtual environment
-    # You will use an existing one. This gives you access to all the jaws commands.
-    ln -s /global/cfs/projectdirs/jaws/jaws-prod/ ~
-
-    source ~/jaws-prod/bin/activate
-    (use "deactivate" to get out of the environment)
-
-    # Get the jaws-auth token. 
-    # After running this command, follow directions to get a token from globus.
-    jaws login
-
+    - `for help logging in <https://docs.globus.org/how-to/get-started>`_
 
 *************
 Set up Globus 
 *************
 
-You need to set up globus so your files can be transfered between different filesystems (even if you are running everything on cori).  
+You need to set up globus so your files can be transfered between different filesystems. 
 
 Setting up globus endpoints
 
 .. code-block:: bash
 
     1. open globus.org (you should have created an account already for the previous steps to work).
+
+      a. under the "Account" tab, make sure you have something like <username>@globusid.org
 
     2. once you are logged in, you need to add an endpoint (institutions that JAWS
        uses have endpoints already; its where data will be transfered to and from).
@@ -106,8 +92,49 @@ Setting up globus linked accounts
 
     3. Search for NERSC and click continue....follow the authentication steps.  
 
-       a. You should see <yourusername>@nersc.gov listed.   
+       a. You should see <yourusername>@NERSC.gov listed.   
 
+|
+
+*********************************
+Activate JAWS Virtual Environment
+*********************************
+
+.. warning:: 
+
+    The code below is for setting up the configuration for the development environment. It will be changed when there is a proper release of JAWS 2.0.
+
+Currently JAWS can be run at 
+
+  * NERSC (cori)
+  * LBNL (lawrencium)  (soon)
+
+.. note::
+    When running a JAWS job, you will always start it on Cori. You can specify as a command argument which site you want e.g. [NERSC|LBNL].
+
+Do the following
+
+.. code-block:: bash
+
+    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws.conf ~
+    chmod 600 ~/jaws.conf
+
+    Edit ~/jaws.conf and add values for the [USER] variables:
+      token : This should be the token you got from the JAWS admin
+      staging_dir : Set to a JAWS subdir in your scratch dir, e.g. /global/cscratch1/sd/YOURUID/jaws
+
+    # Set up the virtual environment
+    # You will use an existing one. This gives you access to all the jaws commands.
+    ln -s /global/cfs/projectdirs/jaws/jaws-prod/ ~
+
+    source ~/jaws-prod/bin/activate
+    (use "deactivate" to get out of the environment)
+
+    # Get the jaws-auth token. 
+    # After running this command, follow directions to get a token from globus.
+    jaws login
+
+|
 
 ***************
 Run WDL in JAWS
@@ -115,13 +142,17 @@ Run WDL in JAWS
 
 .. code-block:: bash
 
+    # activate the environment you set up above
+    source ~/jaws-prod/bin/activate
+
     # clone the example code
-    git clone https://gitlab.com/jfroula/jaws-quickstart-example.git
+    git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
 
-    cd jaws-quickstart-example
+    cd jaws-tutorial-examples/quickstart
 
-    # run jaws run submit <workflow> <inputs> <full path to outdir> <site: [nersc|lbnl]>
-    jaws run submit align.wdl inputs.json out nersc
+    # run "jaws run submit <workflow> <inputs> <full path to outdir> <site>"
+    jaws run list-sites  # you should see NERSC
+    jaws run submit align.wdl inputs.json out NERSC
 
     # you should see something like this
     2020-04-16 13:04:18,434 - INFO - workflow - Validating WDL, align.wdl
@@ -150,23 +181,45 @@ From the output above, we see that the run_id was 80.
 
 .. code-block:: bash
 
-    # make sure you remember the id of the job submission, if you didn't you can run this to see your run's id
+    # make sure you remember the id of the job submission,
+    # if you didn't you can run this to see your run's id
     jaws run queue
     
     # check jaws status
     jaws run status 80
 
+    # check status of the tasks (the last command has the most detail)
+    jaws run task-status 80
+    jaws run task-log 80
+
+
 ***********
 Output
 ***********
-All output files and logs should be in "out" in this case.
 
-For debugging
--------------
+All output files and logs should be in the output directory that you specified, "out" in this case.
+
+
+If a Job Fails
+--------------
+
+If a job fails, your output dir will contain a copy of the raw `Cromwell <https://cromwell.readthedocs.io/en/stable/>`_ execution directory. 
+
+For example, a directory like this will exist:
+
+.. figure:: /Figures/crom-exec.svg
+    :scale: 100%
+
+You will have to look at the task's stdout, stderr & script files to see what went wrong.
+
+Further Debugging Ideas
+-----------------------
 
 .. code-block:: bash
 
-    # This command should show you the contents of the stderr, stdout, and 
-    # script files created by your task commands
-    jaws run errors 80
+    # The output command should show you the contents of the stderr, stdout (same content as the stderr mentioned above).
+    jaws run output 80
 
+    # The metadata command will show you the output from the Cromwell server which may have additional debugging information.
+    # look for "causedBy"
+    jaws run metadata 80

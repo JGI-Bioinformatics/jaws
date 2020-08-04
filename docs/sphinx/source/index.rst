@@ -6,25 +6,40 @@ Documentation for JAWS
     :scale: 100%
 
 The `Joint Genome Institute <https://jgi.doe.gov>`_  has developed JAWS (JGI's Analysis Workflow Service) as a framework to run
-computational workflows. Its purpose is to improve the re-usability and robustness of workflows in an evolving high performance computing `(HPC defined) <https://www.nics.tennessee.edu/computing-resources/what-is-hpc>`_ environment.
+computational workflows. Its purpose is to improve the re-usability and robustness of workflows in a high performance computing `(HPC defined) <https://www.nics.tennessee.edu/computing-resources/what-is-hpc>`_ environment.
+
+.. topic:: In Short...
+
+   * JAWS should simplify your workflow submissions because it takes care of resource configuration and scheduling
+   * Before using JAWS, workflows need to be wrapped in an easy-to-understand `Workflow Definition Language (WDL) <https://software.broadinstitute.org/wdl/>`_
+   * JAWS presents the user with many commands and a dashboard to manage your jobs. 
 
 
-.. topic:: Intro
+.. topic:: Some Definitions
 
-   * JAWS simplifies resource configuration and scheduling
-   * Create new pipelines with easy-to-understand `Workflow Definition Language(WDL) <https://software.broadinstitute.org/wdl/>`_
+	* **WDL** => The Workflow Description Language is essentially a wrapper around the commands in your pipeline code.  
+	* **Cromwell** => workflow engine which takes a WDL and converts it to bash commands that can be run on a "backend".  
+	* **backend** => any compute resource like your computer, or a public compute cluster. In our case we use JTM as a backend.  
+	* **JTM** => customized backend that uses different compute sites (i.e. NERSC, and soon LBNL) and is responsible for reserving workers on the cluster on 
+	* **workers** => workers are "processes" that run the `Cromwell <https://cromwell.readthedocs.io/en/stable/>`_ bash commands. They can be part of a "worker pool" to process parallel tasks.  
+	* **Tasks** => each WDL or run is composed of multiple tasks. 
+	* **Run** => one JAWS submission.  
+
 
 .. toctree::
+   :hidden:
    :name: extradoc
    :maxdepth: 1
    :caption: Intro
 
    Why use JAWS <Intro/why_jaws>
-   How JAWS Works<Intro/how_jaws>
+   What is JAWS <Intro/how_jaws>
+   JAWS Video Library<Intro/videos>
    FAQ <Intro/faq>
    Contact Us <Intro/contact_us>
 
 .. toctree::
+   :hidden:
    :name: masterdoc
    :maxdepth: 2
    :caption: Run a Workflow in JAWS
@@ -34,6 +49,17 @@ computational workflows. Its purpose is to improve the re-usability and robustne
    Defining the Input Data <Tutorials/inputs_json>
 
 .. toctree::
+   :hidden:
+   :name: specsdoc
+   :maxdepth: 1
+   :caption: General Resources
+
+   Working Examples <Tutorials/example_wdls>
+   Subworkflows <Tutorials/subworkflows>
+   Current JGI Workflows </Specifications/current_workflows>
+
+.. toctree::
+   :hidden:
    :name: masterdoc
    :maxdepth: 2
    :caption: Developing your own WDLs
@@ -42,39 +68,16 @@ computational workflows. Its purpose is to improve the re-usability and robustne
    Docker Images Part I <Tutorials/create_env>
    Docker Images Part II <Tutorials/running_env>
    Write a WDL <Tutorials/building_wdls>
-   Registering a Workflow in JAWS <Tutorials/register_wdl_tmp>
-   
-.. toctree::
-   :name: specsdoc
-   :maxdepth: 1
-   :caption: Configuring Workflows
-
+   Best Practices for WDLs <Intro/best_practices>
    Runtime Options <Specifications/configuringJTM_in_wdls>
-   Configuring Backends <Specifications/configure_cromwell>
+   Registering your Workflow <Tutorials/register_wdl>
 
 .. toctree::
-   :name: specsdoc
-   :maxdepth: 1
-   :caption: Helpful Resources
-
-   Running Examples <Tutorials/example_wdls>
-   Subworkflows <Tutorials/subworkflows>
-   Best Practices (WDLs) <Intro/best_practices>
-   Current Workflows </Specifications/current_workflows>
-
-.. toctree::
+   :hidden:
    :name: legaldoc
    :maxdepth: 1
    :caption: Legal
 
    License <Legal/license>
    Contributors <Legal/contributors>
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 

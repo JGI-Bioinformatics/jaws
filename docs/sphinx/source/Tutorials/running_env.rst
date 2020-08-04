@@ -10,7 +10,7 @@ Docker images and Conda environments can both be used in WDLs; however, docker i
 Constraints when Creating your WDL for JAWS
 *******************************************
 
-1) one docker image per task - this is a general constraint that cromwell has. 
+1) one docker image per task - this is a general constraint that `Cromwell <https://cromwell.readthedocs.io/en/stable/>`_ has. 
 
 2) docker image must be registered with `docker hub <https://hub.docker.com>`_  - this is how we have set up the docker backend configuration.
 

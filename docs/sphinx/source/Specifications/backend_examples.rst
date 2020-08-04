@@ -9,13 +9,13 @@ Singularity Backend Example
 ---------------------------
 
 From file on lawrencium
-cromwell_nersc_dev.conf
+Cromwell_NERSC_dev.conf
 
 .. code-block:: bash
 
     JTM
     {
-      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+      actor-factory = "Cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
 
       config {
         runtime-attributes = """
@@ -38,7 +38,6 @@ cromwell_nersc_dev.conf
           -N ${node} \
           -nwpn ${nwpn} \
           -jid ${job_name} \
-          --shared ${shared} \
           --qos ${qos} \
           -A ${account}"
         kill = "jtm kill -tid ${job_id}"
@@ -64,7 +63,6 @@ cromwell_nersc_dev.conf
               -N ${node} \
               -nwpn ${nwpn} \
               -jid ${job_name} \
-              --shared ${shared} \
               --qos ${qos} \
               -A ${account}"
         """
@@ -73,7 +71,7 @@ cromwell_nersc_dev.conf
         # can be used to specify where the execution folder is mounted in the container.
         # it is used for the construction of the docker_cwd string in the submit-docker
         # value above AND in the generation of the "script" file.
-        dockerRoot = /<working_dir_for_cromwell>/cromwell-executions
+        dockerRoot = /<working_dir_for_Cromwell>/Cromwell-executions
     }
 
 
@@ -96,7 +94,7 @@ Shifter Backend Example
 ---------------------------
 
 From file on cori
-cromwell.conf
+Cromwell.conf
 
 .. code-block:: bash
 
@@ -109,7 +107,7 @@ cromwell.conf
 
     JTM
     {
-      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+      actor-factory = "Cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
 
       config {
         runtime-attributes = """
@@ -124,7 +122,6 @@ cromwell.conf
           String account = "fungalp"
           Int node = 1
           Int nwpn = 1
-          Int shared = 1
         """
 
         submit = "jtm submit \
@@ -138,7 +135,6 @@ cromwell.conf
           -N ${node} \
           -nwpn ${nwpn} \
           -jid ${job_name} \
-          --shared ${shared} \
           --qos ${qos} \
           -A ${account}"
         kill = "jtm kill -tid ${job_id}"
@@ -163,7 +159,6 @@ cromwell.conf
               -N ${node} \
               -nwpn ${nwpn} \
               -jid ${job_name} \
-              --shared ${shared} \
               --qos ${qos} \
               -A ${account}"
         """
@@ -172,7 +167,7 @@ cromwell.conf
         # can be used to specify where the execution folder is mounted in the container.
         # it is used for the construction of the docker_cwd string in the submit-docker
         # value above AND in the generation of the "script" file.
-        dockerRoot = <working_dir_for_cromwell>/cromwell-executions
+        dockerRoot = <working_dir_for_Cromwell>/Cromwell-executions
       }
     }
 
