@@ -929,12 +929,14 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         if CONFIG.configparser.get("JTM", "worker_config_file"):
             worker_config = CONFIG.configparser.get("JTM", "worker_config_file")
 
-        if cluster_name in ("cori", "lbl"):
+        if cluster_name in ("cori", "nersc",
+                            "lbl", "lbnl", "jgi", "lrc", "lblit", "lawrencium",
+                            "pnnl", "pnl", "emsl", "cascade"):
 
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
 
-                if cluster_name in ("cori"):
+                if cluster_name in ("cori", "nersc"):
 
                     if num_nodes_to_request_param:
                         batch_job_script_str += """
@@ -1099,7 +1101,7 @@ wait
                                                      set_jtm_config_file="--config=%s"
                                                                          % worker_config)
 
-                elif cluster_name in ("lawrencium", "lbl"):
+                elif cluster_name in ("lbl", "lbnl", "jgi", "lrc", "lblit", "lawrencium"):
 
                     if worker_id_param:
                         batch_job_misc_params += " -wi %(worker_id)s_${i}" \
