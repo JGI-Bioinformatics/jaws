@@ -1,5 +1,5 @@
 [inet_http_server]
-port=0.0.0.0:64101
+port=0.0.0.0:64103
 username=jaws
 password={{password}}
 
@@ -22,7 +22,7 @@ directory={{installpath}}
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
-serverurl=http://lrc-services.lbl.gov:64101
+serverurl=http://lrc-services.lbl.gov:64103
 username=jaws
 password={{password}}
 prompt=supervisor-jaws
@@ -30,26 +30,40 @@ prompt=supervisor-jaws
 ;----- Program Section
 
 [program:jaws-site-daemon]
-command={{shimpath}}/jaws-site-daemon-dev
+command={{shimpath}}/jaws-site-daemon-prod
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [program:jaws-site-jtm-rpc]
-command={{shimpath}}/jaws-site-jtm-rpc-dev
+command={{shimpath}}/jaws-site-jtm-rpc-prod
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [program:jaws-site-central-rpc]
-command={{shimpath}}/jaws-site-central-rpc-dev
+command={{shimpath}}/jaws-site-central-rpc-prod
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[group:jaws-dev]
-programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
+[program:jaws-jtm]
+command={{shimpath}}/jaws-jtm-prod
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-cromwell]
+command={{shimpath}}/jaws-cromwell-prod
+numprocs=1
+startsecs=10
+startretries=3
+autorestart=unexpected
+
+[group:jaws-prod]
+programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc,jaws-jtm,jaws-cromwell
 priority=999

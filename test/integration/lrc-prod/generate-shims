@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+INSTALLDIR=${1:-/tmp/jaws-prod}
+SHIMDIR="$INSTALLDIR/shims/"
+LR_JGICLOUD=/global/home/groups-sw/lr_jgicloud
+
+[[ -d $SHIMDIR ]] || mkdir $SHIMDIR
+
+cat <<EOM > $SHIMDIR/jaws-site-daemon-prod
+#!/usr/bin/env bash
+
+source $INSTALLDIR/site/bin/activate
+exec jaws-site --log $INSTALLDIR/logs/site-daemon.log --config $INSTALLDIR/configs/jaws-site.conf --log-level DEBUG daemon
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-site-central-rpc-prod
+#!/usr/bin/env bash
+
+source $INSTALLDIR/site/bin/activate
+exec jaws-site --log $INSTALLDIR/logs/site-central-rpc.log --config $INSTALLDIR/configs/jaws-site.conf --log-level DEBUG central-rpc
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-site-jtm-rpc-prod
+#!/usr/bin/env bash
+
+source $INSTALLDIR/site/bin/activate
+exec jaws-site --log $INSTALLDIR/logs/site-jtm-rpc.log --config $INSTALLDIR/configs/jaws-site.conf --log-level DEBUG jtm-rpc
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-jtm-prod
+#!/usr/bin/env bash
+
+source $INSTALLDIR/jtm/bin/activate
+export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
+
+#HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
+cp /tmp/jaws-prod/configs/jaws-jtm.conf $LR_JGICLOUD/jtm-prod/jaws-jtm.conf
+chmod 600 $LR_JGICLOUD/jtm-prod/jaws-jtm.conf
+
+exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
+EOM
+
+cat <<EOM > $SHIMDIR/jaws-cromwell-prod
+#!/usr/bin/env bash
+
+# cromwell needs jtm to be in path
+source $INSTALLDIR/jtm/bin/activate
+module load java
+
+cd /global/scratch/jaws/jtm/prod
+exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" server
+EOM
+
+cat <<EOM > $LR_JGICLOUD/cromwell/singularity_exec.sh
+#!/bin/bash
+export SINGULARITY_CACHEDIR=/global/scratch/jaws/jtm/prod/sif_files
+export SINGULARITY_PULLFOLDER=/global/scratch/jaws/jtm/prod/sif_files
+export SINGULARITY_TMPDIR=/global/scratch/jaws/jtm/prod/sif_files
+export SINGULARITY_LOCALCACHEDIR=/global/scratch/jaws/jtm/prod/sif_files
+singularity exec --bind $1:$2 --bind /global/scratch/jaws/ref_data:/refdata docker://$3 $4 $5
+exit $?
+EOM
+
+chmod +x $SHIMDIR/*

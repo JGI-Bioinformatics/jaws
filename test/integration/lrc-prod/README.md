@@ -36,33 +36,21 @@ To see this in action see .gitlab-ci.yml .
 
 Start the supervisors. Only necessary once, after startup of the machine hosting the services:
 
-    /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jaws.conf
-    /tmp/jaws-supervisord/bin/supervisord -c /tmp/jaws-supervisord/supervisord-jtm.conf
+    /tmp/jaws-supervisord-prod/bin/supervisord -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf
 
 Check the status of JAWS services:
 
-    /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf status
-    /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf status
+    /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf status
 
 Start the JAWS services:
 
-    /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jaws.conf start
-    /tmp/jaws-supervisord/bin/supervisorctl -c /tmp/jaws-supervisord/supervisord-jtm.conf start
+    /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf start
 
 
 ## Starting the gitlab-runner on lrc-services
-Starting the runner is a bit different on LRC. Currently, there is no way to
-impersonate a service user and start the service. Instead this must be done
-using a user systemd.
 
-There is already a script present that starts up the services located here:
+To run the service you will want to run the following command as the "jaws" user:
 
+`/global/home/groups-sw/lr_jgicloud/jaws_ci_runner/usr/bin/gitlab-runner "run" "--config" "/global/home/groups-sw/lr_jgicloud/jaws_ci_runner/configuration/config.toml"``
 
-`/global/home/groups-sw/lr_jgicloud/dev/jtm-service-dev.sh`
-`/global/home/groups-sw/lr_jgicloud/prod/jtm-service-prod.sh`
-
-To run the service you will want to run the following command:
-
-`systemctl start jawsdev`
-
-The above wil start the dev version of the runner.
+There is only one runner for all deployments at this Site (prod/staging/dev).

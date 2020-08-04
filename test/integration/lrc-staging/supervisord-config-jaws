@@ -4,21 +4,20 @@ username=jaws
 password={{password}}
 
 [supervisord]
-logfile={{installpath}}/jtm-log
+logfile={{installpath}}/jaws-log
 logfile_maxbytes=50MB
 logfile_backups=2
 loglevel=info
-pidfile={{installpath}}/jtm-pidfile
+pidfile={{installpath}}/jaws-pidfile
 nodaemon=false
 minfds=1024
 minprocs=200
-identifier=supervisor-jtm
+identifier=supervisor-jaws
 directory={{installpath}}
 
 ; The rpcinterface:supervisor section must remain in the config file for
 ; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
 ; added by defining them in separate [rpcinterface:x] sections.
-
 [rpcinterface:supervisor]
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
@@ -26,24 +25,45 @@ supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 serverurl=http://lrc-services.lbl.gov:64102
 username=jaws
 password={{password}}
-prompt=supervisor-jtm
+prompt=supervisor-jaws
 
 ;----- Program Section
 
+[program:jaws-site-daemon]
+command={{shimpath}}/jaws-site-daemon-staging
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-site-jtm-rpc]
+command={{shimpath}}/jaws-site-jtm-rpc-staging
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-site-central-rpc]
+command={{shimpath}}/jaws-site-central-rpc-staging
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
 [program:jaws-jtm]
-command={{shimpath}}/jaws-jtm-dev
+command={{shimpath}}/jaws-jtm-staging
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [program:jaws-cromwell]
-command={{shimpath}}/jaws-cromwell-dev
+command={{shimpath}}/jaws-cromwell-staging
 numprocs=1
 startsecs=10
 startretries=3
 autorestart=unexpected
 
-[group:jaws-dev]
-programs=jaws-jtm,jaws-cromwell
+[group:jaws-staging]
+programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc,jaws-jtm,jaws-cromwell
 priority=999
