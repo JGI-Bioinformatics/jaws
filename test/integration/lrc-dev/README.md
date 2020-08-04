@@ -1,6 +1,6 @@
-# Integration Testing/Deployment
+# Integration Testing/Deployment on LBNL Lawrencium
 
-These directories contains scripts, which are used to deploy JAWS onto different sites. Those scripts
+This directory contains scripts, which are used to deploy JAWS to the LBNL Lawrencium system. Those scripts
 are driven by the Gitlab CI/CD system, as specified in the .gitlab-ci.yml file in the root of
 this repository.
 
@@ -29,22 +29,28 @@ actions are starting and stopping a service. Access is controlled by a unique ke
 Every system needs two instances of supervisord, for privilege seperation between services and
 user workloads: one for JAWS and one for JTM/Cromwell.
 
-## Ports
 
-### Cori (server: cori20.nersc.gov)
+## Common Commands
 
-    Service          | dev   | staging | prod
-    -----------------+-------+---------+------
-    central-auth     | 3001  | 3002    | 3003
-    central-rest     | 5001  | 5002    | 5003
-    cromwell         | 50101 | 50102   | 50103
-    supervisord-jaws | 64101 | 64102   | 64103
-    supervisord-jtm  | 64111 | 64112   | 64113
+To see this in action see .gitlab-ci.yml .
 
-### LRC (server: lrc-services.lbl.gov)
+Start the supervisors. Only necessary once, after startup of the machine hosting the services:
 
-    Service          | dev   | staging | prod
-    -----------------+-------+---------+------
-    cromwell         | 50101 | 50102   | 50103
-    supervisord-jaws | 64101 | 64102   | 64103
-    supervisord-jtm  | 64111 | 64112   | 64113
+    /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf
+
+Check the status of JAWS services:
+
+    /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf status
+
+Start the JAWS services:
+
+    /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start
+
+
+## Starting the gitlab-runner on lrc-services
+
+To run the service you will want to run the following command as the "jaws" user:
+
+`/global/home/groups-sw/lr_jgicloud/jaws_ci_runner/usr/bin/gitlab-runner "run" "--config" "/global/home/groups-sw/lr_jgicloud/jaws_ci_runner/configuration/config.toml"``
+
+There is only one runner for all deployments at this Site (prod/staging/dev).

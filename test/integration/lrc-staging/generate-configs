@@ -18,13 +18,13 @@ host = jaws-db.lbl.gov
 port = 3306
 user = jaws_lbnl
 password = $JAWS_SITE_LBNL_DB_PW
-db = jaws_lbnl_dev
+db = jaws_lrc_staging
 [LOCAL_RPC_SERVER]
 user = jaws
 password = $JAWS_JTM_LBNL_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jtm_dev
+vhost = jtm_staging
 queue = site_rpc
 num_threads = 5
 max_retries = 3
@@ -33,8 +33,8 @@ user = jaws_lbnl
 password = $JAWS_SITE_LBNL_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jaws_dev
-queue = lbnl_rpc
+vhost = jaws_staging
+queue = lrc_rpc
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
@@ -42,7 +42,7 @@ user = jaws_lbnl
 password = $JAWS_SITE_LBNL_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jaws_dev
+vhost = jaws_staging
 queue = central_rpc
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
@@ -50,38 +50,38 @@ endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
 root_dir = /
 [SITE]
 id = NERSC
-staging_subdirectory = /global/scratch/jaws/jtm/dev/staging
-results_subdirectory = /global/scratch/jaws/jtm/dev/results
+staging_subdirectory = /global/scratch/jaws/jtm/staging/staging
+results_subdirectory = /global/scratch/jaws/jtm/staging/results
 [CROMWELL]
-url = http://localhost:50010
+url = http://localhost:50102
 EOM
 
 cat << EOM > $configdir/jaws-jtm.conf
 [SITE]
-jtm_host_name = lbnl
-user_name = jtm_dev
+jtm_host_name = lrc
+user_name = jtm_staging
 instance_name = \${jtm_host_name}.\${user_name}
-scratch = /global/scratch/jaws/jtm/dev
+scratch = /global/scratch/jaws/jtm/staging
 debug = 0
 [RMQ]
 user = jaws
 password = $JAWS_JTM_LBNL_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jtm_dev
+vhost = jtm_staging
 [SITE_RPC_CLIENT]
 user = jaws
 password = $JAWS_JTM_LBNL_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jtm_dev
+vhost = jtm_staging
 queue = site_rpc
 [MYSQL]
 host = jaws-db.lbl.gov
 port = 3306
 user = jtm
 password = $JAWS_JTM_LBNL_DB_PW
-db = jtm_lbnl_dev
+db = jtm_lrc_staging
 [SLURM]
 # number of nodes for the pool
 nnodes = 1
@@ -97,13 +97,13 @@ charge_accnt = fungalp
 constraint = haswell
 [JTM]
 cluster = \${SITE:jtm_host_name}
-run_mode = dev
+run_mode = staging
 # static worker self cloning time rate. not used.s
 clone_time_rate = 0.2
 # number of workers per node
 num_workers_per_node = 1
 log_dir = \${SITE:scratch}/jtm
-env_activation = source /global/home/groups-sw/lr_jgicloud/jtm-dev/bin/activate
+env_activation = source /global/home/groups-sw/lr_jgicloud/jtm-staging/bin/activate
 pool_name = small
 # Worker setting
 # worker's hb expiration (ms)
@@ -135,7 +135,7 @@ client_hb_send_interval = 3.0
 # live worker checking count limit
 worker_hb_check_max_count = 0
 # config file location of worker
-worker_config_file = /global/home/groups-sw/lr_jgicloud/jtm-dev/jaws-jtm.conf
+worker_config_file = /global/home/groups-sw/lr_jgicloud/jtm-staging/jaws-jtm.conf
 # worker->client heartbeat receiving interval
 client_hb_recv_interval = 6.0
 # max number of trial for checking
@@ -170,7 +170,7 @@ include required(classpath("application"))
 
 webservice
 {
-  port = 50010
+  port = 50102
 }
 
 system
@@ -192,7 +192,7 @@ system
 
 workflow-options
 {
-  workflow-log-dir: "/global/scratch/jaws/dev/cromwell-workflow-logs"
+  workflow-log-dir: "/global/scratch/jaws/staging/cromwell-workflow-logs"
   workflow-log-temporary: false
   workflow-failure-mode: "ContinueWhilePossible"
   default
@@ -242,7 +242,7 @@ backend
         Int shared = 1
         String? docker
         """
-        submit = """jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+        submit = """jtm --config=/tmp/jaws-staging/configs/jaws-jtm.conf \
           submit \
           -cmd '/bin/bash \${script}' \
           -cl \${cluster} \
@@ -258,16 +258,16 @@ backend
           -A \${account} \
           --shared \${shared}"""
 
-        kill = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+        kill = "jtm --config=/tmp/jaws-staging/configs/jaws-jtm.conf \
                 kill -tid \${job_id}"
-        check-alive = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+        check-alive = "jtm --config=/tmp/jaws-staging/configs/jaws-jtm.conf \
                        isalive -tid \${job_id}"
         job-id-regex = "JTM task ID (\\\d+)"
 
         submit-docker = """
           ## Build the Docker image into a singularity image, using the head node
           #DOCKER_NAME=$(sed -e 's/[^A-Za-z0-9._-]/_/g' <<< ${docker})
-          #IMAGE=/global/scratch/jaws/dev/sif_files/$DOCKER_NAME.sif
+          #IMAGE=/global/scratch/jaws/staging/sif_files/$DOCKER_NAME.sif
           #if [ ! -f $IMAGE ]; then
           #    singularity pull $IMAGE docker://${docker}
           #fi
@@ -284,7 +284,7 @@ backend
           jtm-submit -cr '/global/home/groups-sw/lr_jgicloud/cromwell/singularity_exec.sh ${cwd} ${docker_cwd} ${docker} ${job_shell} ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared} --qos ${qos} --account ${account}
         """
 
-        root = "/global/scratch/jaws/dev/cromwell-executions"
+        root = "/global/scratch/jaws/staging/cromwell-executions"
         dockerRoot = "/cromwell-executions"
       } # config
     } # JTM
@@ -297,8 +297,8 @@ database
   db
   {
     driver = "com.mysql.cj.jdbc.Driver"
-    url = "jdbc:mysql://jaws-db.lbl.gov:3306/cromwell_dev?rewriteBatchedStatements=true&autoReconnect=true"
-    user = "cromwell_dev"
+    url = "jdbc:mysql://jaws-db.lbl.gov:3306/cromwell_staging?rewriteBatchedStatements=true&autoReconnect=true"
+    user = "cromwell_staging"
     password = "7f7VG1d^rD1hS9mwW0R"
     connectionTimeout = 10000
   }
