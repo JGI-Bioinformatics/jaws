@@ -36,25 +36,35 @@ Email Contact
 Contributors
 ------------
 
-.. topic:: Developers
+Developers
 
-   * Edward Kirton 
-   * Seung-jin Sul
-   * Stephan Trong 
-   * Mario Melara
-   * Georg Rath
-   * Ramani Kothadia
+  * Edward Kirton
+  * Seung-jin Sul
+  * Stephan Trong
+
+CI/CD coordination
+
+  * Mario Melara
+  * Georg Rath
+
+Documentation and WDL authoring
+
+  * Jeff Froula
  
-.. topic:: User support, documentation and WDL expertise
+User support
 
-   * Jeff Froula
+  * Jeff Froula
+  * Ed Kirton
+  * Ramani Kothadia
+  * Seung-Jin Sul
 
-.. topic:: Design consultant
+System and integration testing
 
-   * Hugh Salamon
+  * Jeff Froula
+  * Angie Kollmer
+  * Ramani Kothadia
 
-.. topic:: Testers
+Functional design consulting, project and resource coordination
 
-   * Jeff Froula
-   * Angie Kollmer
-
+  * Kjiersten Fagnan
+  * Hugh Salamon
