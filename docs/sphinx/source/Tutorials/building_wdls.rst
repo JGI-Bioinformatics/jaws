@@ -5,7 +5,7 @@ How to build WDLs
 .. role:: bash(code)
    :language: bash
 
-Below is a step-by-step example of creating a WDL from bash code and running it in cromwell. 
+Below is a step-by-step example of creating a WDL from bash code and running it in `Cromwell <https://cromwell.readthedocs.io/en/stable/>`_. 
 
 .. note::
     To really learn WDLs you should follow the official `WDL site <https://software.broadinstitute.org/wdl/documentation/>`_.  However, to get

@@ -10,7 +10,7 @@ Below is a step-by-step tutorial showing you how to get a workflow from a bash s
 Here is a link that just talks about :doc:`building wdls </Tutorials/building_wdls>`
 
 .. note:: 
-   If you intend on adding your workflow(WDL) to JAWS, you will need permissions to https://bitbucket.com/berkeleylab/jgi-workflows so you can clone the repository and push your project. Please contact jlfroula@lbl.gov.
+   If you intend on adding your workflow (WDL) to JAWS, you will need permissions to https://bitbucket.com/berkeleylab/jgi-workflows so you can clone the repository and push your project. Please contact jlfroula@lbl.gov.
 
 
 *******
@@ -127,7 +127,7 @@ This should create a bam file (test.sorted.bam).
 4) Create docker image
 ----------------------
 
-   Next we'll describe how to create a Dockerfile and register it with hub.docker.com. (you'll have to create a repository on `hub.docker.com <hub.docker.com>`_ first).  Follow this link if you need more information on how to `building dockerfiles <https://docs.docker.com/get-started/part2/#define-a-container-with-dockerfile>`_.
+   Next we'll describe how to create a Dockerfile and register it with hub.docker.com. (You'll have to create a repository on `hub.docker.com <hub.docker.com>`_ first).  Follow this link if you need more information on how to `building dockerfiles <https://docs.docker.com/get-started/part2/#define-a-container-with-dockerfile>`_.
 
    To make the Dockerfile, you can use the same commands you used for the conda environment.  Notice that it is good practice to specify the versions for each software like I have done in the Dockerfile. There may be different versions of a conda package for different operating systems, so don't assume the versions I used will work for your operating system. Of course, you can drop the versions altogether to get the latest version.
 
@@ -181,7 +181,7 @@ When you are convinced the docker image is good, you can register it with `hub.d
 5) Test your image on cori
 --------------------------
 
-Test the docker container on cori.nersc.gov. You'll need to use shifter instead of docker to run your workflow.
+Test the docker container on cori.NERSC.gov. You'll need to use shifter instead of docker to run your workflow.
 
 example:
 
@@ -329,7 +329,7 @@ How to organize your pipeline code.
    
    In deciding how to split your workflow, consider:
 
-     a. group code that will have the same compute requirements(e.g. large memory machine).
+     a. group code that will have the same compute requirements (e.g. large memory machine).
      b. group code that can be run in parallel.
      c. does a group of code make it possible to have a simple input and output structure (e.g. one file in, one file out).
      d. does a group of code make a sub-wdl that you can re-use in other workflows (e.g. alignment or assembly).

@@ -6,7 +6,7 @@ Setting up a Testing Environment Using Conda
    :language: bash
 
 
-This page describes how to run a workflow from a `cromwell <https://cromwell.readthedocs.io/en/stable/>`_ 
+This page describes how to run a workflow from a `Cromwell <https://Cromwell.readthedocs.io/en/stable/>`_ 
 command, which is the prefered way to test and develop your WDL.
 
 Cromwell is a workflow engine that understands and runs WDLs.
@@ -70,11 +70,11 @@ Install the dependencies
     conda install -y -c bioconda bbmap==38.69
     conda install -y -c bioconda samtools==1.9
 
-Of course you can install cromwell if you wanted to test on your labtop, etc., by adding the command
+Of course you can install Cromwell if you wanted to test on your labtop, etc., by adding the command
 
 .. code-block:: bash
 
-    conda install -y -c bioconda cromwell
+    conda install -y -c bioconda Cromwell
 
 ***********************************
 Download the Example WDL repository
@@ -82,8 +82,8 @@ Download the Example WDL repository
 
 .. code-block:: bash
 
-  git clone git@gitlab.com:jfroula/jaws-example-wdl.git
-  cd jaws-example-wdl/5min_example
+  git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
+  cd jaws-tutorial-examples/5min_example
 
 ********************
 Run the WDL Workflow
@@ -92,9 +92,9 @@ Run the WDL Workflow
 .. code-block:: bash
   
   # run with your installed version
-  cromwell run align.wdl -i inputs.json
+  Cromwell run align.wdl -i inputs.json
 
 
-You should see a directory `cromwell-executions`.
-The resulting bam file from the alignment is here `cromwell-executions/bbtools/<some-long-hash>/call-samtools/execution/test.sorted.bam`
+You should see a directory `Cromwell-executions`.
+The resulting bam file from the alignment is here `Cromwell-executions/bbtools/<some-long-hash>/call-samtools/execution/test.sorted.bam`
 
