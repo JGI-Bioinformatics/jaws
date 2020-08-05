@@ -29,7 +29,7 @@ queue = site_rpc
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_SERVER]
-user = jaws_lbnl
+user = jaws_lrc
 password = $JAWS_SITE_LBNL_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
@@ -38,7 +38,7 @@ queue = lrc_rpc
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
-user = jaws_lbnl
+user = jaws_lrc
 password = $JAWS_SITE_LBNL_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
@@ -49,7 +49,7 @@ client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
 root_dir = /
 [SITE]
-id = NERSC
+id = JGI
 staging_subdirectory = /global/scratch/jaws/jtm/staging/staging
 results_subdirectory = /global/scratch/jaws/jtm/staging/results
 [CROMWELL]
