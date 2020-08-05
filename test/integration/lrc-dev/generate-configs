@@ -16,7 +16,7 @@ cat << EOM > $configdir/jaws-site.conf
 dialect = mysql+mysqlconnector
 host = jaws-db.lbl.gov
 port = 3306
-user = jaws_lbnl
+user = jaws
 password = $JAWS_SITE_LBNL_DB_PW
 db = jaws_lrc_dev
 [LOCAL_RPC_SERVER]
@@ -297,9 +297,9 @@ database
   db
   {
     driver = "com.mysql.cj.jdbc.Driver"
-    url = "jdbc:mysql://jaws-db.lbl.gov:3306/cromwell_dev?rewriteBatchedStatements=true&autoReconnect=true"
-    user = "cromwell_dev"
-    password = "7f7VG1d^rD1hS9mwW0R"
+    url = "jdbc:mysql://jaws-db.lbl.gov:3306/cromwell_dev?rewriteBatchedStatements=true&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
+    user = "cromwell"
+    password = "$JAWS_CROMWELL_LBNL_DB_PW"
     connectionTimeout = 10000
   }
   insert-batch-size = 2000
