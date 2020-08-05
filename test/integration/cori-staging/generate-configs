@@ -50,7 +50,7 @@ client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
 root_dir = /
 [SITE]
-id = NERSC
+id = CORI
 staging_subdirectory = global/cscratch1/sd/jaws_jtm/staging/staging
 results_subdirectory = global/cscratch1/sd/jaws/staging/results
 [CROMWELL]
@@ -79,18 +79,18 @@ client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 [HTTP]
 auth_port = 3002
 rest_port = 5002
-[SITE:LBNL]
+[SITE:JGI]
 user = jaws_central
 password = $JAWS_CENTRAL_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
 vhost = jaws_staging
-queue = lbnl_rpc
+queue = lrc_rpc
 globus_endpoint = b445e71a-4933-11ea-9714-021304b0cca7
 globus_basepath = /global/scratch/jaws
 staging_subdir = jtm/staging/staging
 max_ram_gb = 1024
-[SITE:NERSC]
+[SITE:CORI]
 user = jaws_central
 password = $JAWS_CENTRAL_CORI_RMQ_PW
 host = rmq.lbl.gov
