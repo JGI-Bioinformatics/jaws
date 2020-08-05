@@ -71,12 +71,10 @@ cromwell-utils
 ## Contributing
 Developers
 * Edward Kirton
-* Seung-jin Sul
-* Stephan Trong
-
-CI/CD coordination
 * Mario Melara
 * Georg Rath
+* Seung-jin Sul
+* Stephan Trong
 
 Documentation and WDL authoring
 * Jeff Froula

@@ -2,7 +2,7 @@
 Contact Us
 ==========
 
-Slack and JIRA are only available for **JGI Staff**. If these avenues are not available, you can write an email to jlfroula@lbl.gov.  
+Slack and JIRA are only available for **JGI Staff**. If these avenues are not available, you can write an email to jlfroula@lbl.gov.
 
 
 -------------------------------
@@ -39,18 +39,15 @@ Contributors
 Developers
 
   * Edward Kirton
-  * Seung-jin Sul
-  * Stephan Trong
-
-CI/CD coordination
-
   * Mario Melara
   * Georg Rath
+  * Seung-jin Sul
+  * Stephan Trong
 
 Documentation and WDL authoring
 
   * Jeff Froula
- 
+
 User support
 
   * Jeff Froula
