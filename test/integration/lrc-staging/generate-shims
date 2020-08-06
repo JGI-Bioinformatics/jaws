@@ -37,7 +37,7 @@ export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
 cp /tmp/jaws-staging/configs/jaws-jtm.conf $LR_JGICLOUD/jtm-staging/jaws-jtm.conf
 chmod 600 $LR_JGICLOUD/jtm-staging/jaws-jtm.conf
 
-exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
+exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf --debug manager -ld $INSTALLDIR/logs/jtm
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-cromwell-staging

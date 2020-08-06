@@ -87,7 +87,7 @@ cp /tmp/jaws-staging/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-stag
 chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-staging/jaws-jtm.conf
 chmod 640 /global/cfs/projectdirs/jaws/jtm-staging/jaws-jtm.conf
 
-exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf manager -ld $INSTALLDIR/logs/jtm
+exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf --debug manager -ld $INSTALLDIR/logs/jtm
 EOM
 
 cat <<EOM > $SHIMDIR/jaws-cromwell-staging
