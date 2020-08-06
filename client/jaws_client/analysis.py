@@ -354,7 +354,7 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
 
     jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_staging_subdir)
     local_staging_endpoint = workflow.join_path(globus_basedir, staging_subdir)
-    manifest_file = workflow.Manifest(local_staging_endpoint, jaws_site_staging_dir)
+    manifest_file = workflow.Manifest(local_staging_endpoint, compute_staging_subdir)
 
     wdl.validate()
     inputs_json.validate()
