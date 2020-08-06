@@ -234,7 +234,6 @@ backend
         String cluster = "jgi"
         String poolname = "small"
         #Int poolsize = 1
-        String constraint =
         String qos = "condo_jgicloud"
         String account = "lr_jgicloud"
         Int node = 1
@@ -250,7 +249,6 @@ backend
           -c \${cpu} \
           -m \${mem} \
           -p \${poolname} \
-          -C \${constraint} \
           -N \${node} \
           -nwpn \${nwpn} \
           -jid \${job_name} \
@@ -281,7 +279,7 @@ backend
           # singularity_exec.sh is required to circumvent an issue with special characters in the singularity
           # command AND it sets some environmental variables to let singularity know where
           # pull temp image layers so we don't get the 'out of memory' error.
-          jtm-submit -cr '/global/home/groups-sw/lr_jgicloud/cromwell/singularity_exec.sh ${cwd} ${docker_cwd} ${docker} ${job_shell} ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -C ${constraint} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared} --qos ${qos} --account ${account}
+          jtm-submit -cr '/global/home/groups-sw/lr_jgicloud/cromwell/singularity_exec.sh ${cwd} ${docker_cwd} ${docker} ${job_shell} ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared} --qos ${qos} --account ${account}
         """
 
         root = "/global/scratch/jaws/prod/cromwell-executions"

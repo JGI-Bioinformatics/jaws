@@ -141,10 +141,19 @@ class JtmInterface(object):
                 json_data_dict["pool"]["nwpn"] = kw["nwpn"] if 'nwpn' in kw else 1  # number of workers per node
                 json_data_dict["pool"]["node"] = kw["node"] if 'node' in kw else 1  # number of nodes
                 json_data_dict["pool"]["shared"] = int(kw["shared"])
-                json_data_dict["pool"]["constraint"] = kw["constraint"]
-                json_data_dict["pool"]["qos"] = kw["qos"]
-                json_data_dict["pool"]["partition"] = kw["partition"]
                 json_data_dict["pool"]["account"] = kw["account"]
+                if "constraint" in kw and kw["constraint"] != "":
+                    json_data_dict["pool"]["constraint"] = kw["constraint"]
+                else:
+                    json_data_dict["pool"]["constraint"] = ""
+                if "qos" in kw and kw["qos"] != "":
+                    json_data_dict["pool"]["qos"] = kw["qos"]
+                else:
+                    json_data_dict["pool"]["qos"] = ""
+                if "partition" in kw and kw["partition"] != "":
+                    json_data_dict["pool"]["partition"] = kw["partition"]
+                else:
+                    json_data_dict["pool"]["partition"] = ""
 
         # For the command like, "jtm-submit -cr 'ls' -cl cori -p test"
         if "pool" in json_data_dict and "name" in json_data_dict["pool"] and json_data_dict["pool"]["name"] is not None:

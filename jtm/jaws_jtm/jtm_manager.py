@@ -142,15 +142,15 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                     raise OSError(2)
 
             db = DbSqlMysql(config=self.config)
+            status_now = db.selectScalar(
+                JTM_SQL["select_status_runs_by_taskid"]
+                % dict(task_id=task_id),
+                debug=False,
+            )
+            logger.debug(f"status now {task_id} = {status_now}")
+
             if not STANDALONE:
-                status_now = db.selectScalar(
-                    JTM_SQL["select_status_runs_by_taskid"] % dict(task_id=task_id),
-                    debug=False,
-                )
-                logger.debug(
-                    f"status change msg {task_id}: {status_now} => succeed/failed"
-                )
-                logger.debug(f"status now {task_id} = {status_now}")
+                logger.debug(f"status change msg {task_id}: {status_now} => succeed/failed")
                 if status_now in (
                     self.task_status["ready"],
                     self.task_status["queued"],
@@ -543,7 +543,6 @@ def send_update_task_status_msg(task_id: int, status_from, status_to: int, fail_
         "timestamp": now,
         "reason": reversed_done_flags[fail_code] if fail_code else None,
     }
-    logger.debug(f"status change: {data}")
 
     # send message to Site
     try:
@@ -766,17 +765,18 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                             try:
                                 # Update tasks table with "running" status == 2 if status is still 0 or 1
                                 db = DbSqlMysql(config=CONFIG)
-                                if not STANDALONE:
-                                    status_now = db.selectScalar(
-                                        JTM_SQL["select_status_runs_by_taskid"]
-                                        % dict(task_id=task_id),
-                                        debug=False,
-                                    )
+                                status_now = db.selectScalar(
+                                    JTM_SQL["select_status_runs_by_taskid"]
+                                    % dict(task_id=task_id),
+                                    debug=False,
+                                )
+                                logger.debug(f"status now {task_id} = {status_now}")
 
+                                if not STANDALONE:
+                                    logger.debug(
+                                        f"status change msg {task_id}: {status_now} => running"
+                                    )
                                     if status_now == TASK_STATUS["pending"]:
-                                        logger.debug(
-                                            f"status change msg {task_id}: {status_now} => running"
-                                        )
                                         send_update_task_status_msg(
                                             task_id, status_now, TASK_STATUS["running"]
                                         )
@@ -1239,6 +1239,7 @@ def process_task_request(msg):
             # Note: this is just in case
             #  It is based on the assumption that a task can be cancelled between ready -> queued
             #  status change.
+            status_now = None
             if b_already_canceled == 1 or task_status_int == TASK_STATUS["terminated"]:
                 if task_status_int != TASK_STATUS["terminated"]:
                     db = DbSqlMysql(config=CONFIG)
@@ -1250,6 +1251,7 @@ def process_task_request(msg):
                     )
                     db.commit()
                     db.close()
+
                     if not STANDALONE:
                         logger.debug("process task request -->")
                         logger.debug(
@@ -1293,12 +1295,14 @@ def process_task_request(msg):
                 try:
                     logger.debug("Task %d status ==> queued" % last_task_id)
                     db = DbSqlMysql(config=CONFIG)
+                    status_now = db.selectScalar(
+                        JTM_SQL["select_status_runs_by_taskid"]
+                        % dict(task_id=last_task_id),
+                        debug=False,
+                    )
+                    logger.debug(f"status now {last_task_id} = {status_now}")
+
                     if not STANDALONE:
-                        status_now = db.selectScalar(
-                            JTM_SQL["select_status_runs_by_taskid"]
-                            % dict(task_id=last_task_id),
-                            debug=False,
-                        )
                         logger.debug("process task request -->")
                         logger.debug(
                             f"status change msg {last_task_id}: {status_now} => queued"
@@ -1329,7 +1333,7 @@ def process_task_request(msg):
                         % dict(task_id=last_task_id),
                         debug=False,
                     )
-                    logger.debug(f"current task status = {status_now}")
+                    logger.debug(f"status now {last_task_id} = {status_now}")
                     db.close()
                 except Exception as e:
                     logger.critical(e)
@@ -1342,12 +1346,14 @@ def process_task_request(msg):
 
                 # now waiting for slurm allocation
                 db = DbSqlMysql(config=CONFIG)
+                status_now = db.selectScalar(
+                    JTM_SQL["select_status_runs_by_taskid"]
+                    % dict(task_id=last_task_id),
+                    debug=False,
+                )
+                logger.debug(f"status now {last_task_id} = {status_now}")
+
                 if not STANDALONE:
-                    status_now = db.selectScalar(
-                        JTM_SQL["select_status_runs_by_taskid"]
-                        % dict(task_id=last_task_id),
-                        debug=False,
-                    )
                     logger.debug("process task request -->")
                     logger.debug(
                         f"status change msg {last_task_id}: {status_now} => pending"
@@ -1374,10 +1380,11 @@ def process_task_request(msg):
                     db.commit()
 
                 status_now = db.selectScalar(
-                    JTM_SQL["select_status_runs_by_taskid"] % dict(task_id=last_task_id),
+                    JTM_SQL["select_status_runs_by_taskid"]
+                    % dict(task_id=last_task_id),
                     debug=False,
                 )
-                logger.debug(f"current task status = {status_now}")
+                logger.debug(f"status now {last_task_id} = {status_now}")
                 db.close()
 
                 try:
@@ -1855,7 +1862,6 @@ def task_kill_proc():
                     ),
                     debug=DEBUG,
                 )
-
                 db.commit()
                 db.close()
 
