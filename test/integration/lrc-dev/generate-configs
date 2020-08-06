@@ -46,8 +46,8 @@ vhost = jaws_dev
 queue = central_rpc
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
-root_dir = /
+endpoint_id = b445e71a-4933-11ea-9714-021304b0cca7
+root_dir = /global/scratch/jaws
 [SITE]
 id = JGI
 staging_subdirectory = /global/scratch/jaws/jtm/dev/staging
