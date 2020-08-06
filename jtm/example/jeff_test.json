@@ -4,7 +4,7 @@
     "output_files": "$SCRATCH/jtm_ps_grep.out",
     "pool": {"name": "ssjtest",
              "node": 1,
-             "cluster": "jaws_lbl_gov",
+             "cluster": "jgi",
              "time": "00:10:00",
              "cpu": 64,
              "mem": "5GB",

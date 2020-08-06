@@ -58,7 +58,7 @@ EOM
 
 cat << EOM > $configdir/jaws-jtm.conf
 [SITE]
-jtm_host_name = lrc
+jtm_host_name = jgi
 user_name = jtm_staging
 instance_name = \${jtm_host_name}.\${user_name}
 scratch = /global/scratch/jaws/jtm/staging
@@ -92,9 +92,9 @@ jobtime = 00:30:00
 mempercpu = 1gb
 mempernode = 5gb
 partition = lr3
-qos = genepool
-charge_accnt = fungalp
-constraint = haswell
+qos = condo_jgicloud
+charge_accnt = lr_jgicloud
+constraint =
 [JTM]
 cluster = \${SITE:jtm_host_name}
 run_mode = staging
@@ -231,10 +231,10 @@ backend
         String time = "00:00:00"
         Int cpu = 1
         String mem = "0G"
-        String cluster = "jaws_lbl_gov"
+        String cluster = "jgi"
         String poolname = "small"
         #Int poolsize = 1
-        String constraint = "haswell"
+        String constraint =
         String qos = "condo_jgicloud"
         String account = "lr_jgicloud"
         Int node = 1
