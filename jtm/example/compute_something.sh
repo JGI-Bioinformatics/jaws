@@ -23,7 +23,7 @@ if [  "$JTM_HOST_NAME" = "cori" ]; then
     # fi
     # ENV_ACTIVATION="source /global/project/projectdirs/jaws_jtm/anaconda3/bin/activate /global/project/projectdirs/jaws_jtm/$MODE/jtm"
     ENV_ACTIVATION="source /global/cfs/projectdirs/jaws_jtm/anaconda3/bin/activate /global/cfs/projectdirs/jaws_jtm/$MODE/jtm"
-elif [  "$JTM_HOST_NAME" = "jaws_lbl_gov" ]; then
+elif [  "$JTM_HOST_NAME" = "jgi" ]; then
     # lrc-services.lbl.gov
     ENV_ACTIVATION="source /global/home/groups-sw/lr_jgicloud/anaconda3/bin/activate /global/home/groups-sw/lr_jgicloud/$MODE/jtm"
 else

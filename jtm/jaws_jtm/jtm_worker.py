@@ -1101,7 +1101,7 @@ wait
                                                      set_jtm_config_file="--config=%s"
                                                                          % worker_config)
 
-                elif cluster_name in ("lbl", "lbnl", "jgi", "lrc", "lblit", "lawrencium"):
+                elif cluster_name in ("jaws_lbl_gov", "lbl", "lbnl", "jgi", "lrc", "lblit", "lawrencium"):
 
                     if worker_id_param:
                         batch_job_misc_params += " -wi %(worker_id)s_${i}" \
