@@ -126,11 +126,11 @@ deploy-jaws-cori-dev:
     - python3 -m venv /tmp/jaws-dev/jtm     && . /tmp/jaws-dev/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-dev/jtm || true
     - cp /global/cfs/projectdirs/jaws/cromwell/cromwell.jar /tmp/jaws-dev/cromwell.jar && chgrp jaws_jtm /tmp/jaws-dev/cromwell.jar
     - mkdir /global/cfs/projectsdirs/jaws/jtm-dev && chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-dev && chmod 770 /global/cfs/projectdirs/jaws/jtm-dev
+    - python3 -m venv /global/cfs/projectdirs/jaws/jtm-dev && . /global/cfs/projectdirs/jaws/jtm-dev/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/cfs/projectdirs/jaws/jtm-dev || true
+    - chgrp jaws_jtm /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-dev/configs/jaws-jtm.conf
     - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf stop jaws-dev:*
     - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf reread
     - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf start jaws-dev:*
-    - python3 -m venv /global/cfs/projectdirs/jaws/jtm-dev && . /global/cfs/projectdirs/jaws/jtm-dev/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/cfs/projectdirs/jaws/jtm-dev || true
-    - chgrp jaws_jtm /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-dev/configs/jaws-jtm.conf
     # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
     # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-manager shim created by generate-shims. this is a hack.
     # - cp -a /tmp/jaws-dev/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
@@ -172,11 +172,11 @@ deploy-jaws-cori-staging:
     - python3 -m venv /tmp/jaws-staging/jtm     && . /tmp/jaws-staging/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-staging/jtm || true
     - cp /global/cfs/projectdirs/jaws/cromwell/cromwell.jar /tmp/jaws-staging/cromwell.jar && chgrp jaws_jtm /tmp/jaws-staging/cromwell.jar
     - mkdir /global/cfs/projectsdirs/jaws/jtm-staging && chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-staging && chmod 770 /global/cfs/projectdirs/jaws/jtm-staging
+    - python3 -m venv /global/cfs/projectdirs/jaws/jtm-staging && . /global/cfs/projectdirs/jaws/jtm-staging/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/cfs/projectdirs/jaws/jtm-staging || true
+    - chgrp jaws_jtm /tmp/jaws-staging/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-staging/configs/jaws-jtm.conf
     - /tmp/jaws-supervisord-staging/bin/supervisorctl -c /tmp/jaws-supervisord-staging/supervisord-jtm.conf stop jaws-staging:*
     - /tmp/jaws-supervisord-staging/bin/supervisorctl -c /tmp/jaws-supervisord-staging/supervisord-jtm.conf reread
     - /tmp/jaws-supervisord-staging/bin/supervisorctl -c /tmp/jaws-supervisord-staging/supervisord-jtm.conf start jaws-staging:*
-    - python3 -m venv /global/cfs/projectdirs/jaws/jtm-staging && . /global/cfs/projectdirs/jaws/jtm-staging/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/cfs/projectdirs/jaws/jtm-staging || true
-    - chgrp jaws_jtm /tmp/jaws-staging/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-staging/configs/jaws-jtm.conf
     # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
     # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-manager shim created by generate-shims. this is a hack.
     # - cp -a /tmp/jaws-staging/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-staging/jaws-jtm.conf
@@ -218,11 +218,11 @@ deploy-jaws-cori-prod:
     - python3 -m venv /tmp/jaws-prod/jtm     && . /tmp/jaws-prod/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-prod/jtm || true
     - cp /global/cfs/projectdirs/jaws/cromwell/cromwell.jar /tmp/jaws-prod/cromwell.jar && chgrp jaws_jtm /tmp/jaws-prod/cromwell.jar
     - mkdir /global/cfs/projectsdirs/jaws/jtm-prod && chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-prod && chmod 770 /global/cfs/projectdirs/jaws/jtm-prod
+    - python3 -m venv /global/cfs/projectdirs/jaws/jtm-prod && . /global/cfs/projectdirs/jaws/jtm-prod/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/cfs/projectdirs/jaws/jtm-prod || true
+    - chgrp jaws_jtm /tmp/jaws-prod/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-prod/configs/jaws-jtm.conf
     - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf stop jaws-prod:*
     - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf reread
     - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jtm.conf start jaws-prod:*
-    - python3 -m venv /global/cfs/projectdirs/jaws/jtm-prod && . /global/cfs/projectdirs/jaws/jtm-prod/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/cfs/projectdirs/jaws/jtm-prod || true
-    - chgrp jaws_jtm /tmp/jaws-prod/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-prod/configs/jaws-jtm.conf
     # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
     # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-manager shim created by generate-shims. this is a hack.
     # - cp -a /tmp/jaws-prod/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-prod/jaws-jtm.conf
@@ -256,13 +256,13 @@ deploy-jaws-lrc-dev:
     - make pkg
     - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf stop jaws-dev:*
     - python -m venv /tmp/jaws-dev/site    && . /tmp/jaws-dev/site/bin/activate && pip install rpc/dist/*    && pip install site/dist/*    && deactivate
-    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf stop jaws-dev:*
-    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf reread
-    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start jaws-dev:*
     - python -m venv /tmp/jaws-dev/jtm     && . /tmp/jaws-dev/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-dev/jtm || true
     - cp /global/home/groups-sw/lr_jgicloud/cromwell/cromwell.jar /tmp/jaws-dev/cromwell.jar && chgrp jaws /tmp/jaws-dev/cromwell.jar
     - python -m venv /global/home/groups-sw/lr_jgicloud/jtm-dev && . /global/home/groups-sw/lr_jgicloud/jtm-dev/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/home/groups-sw/lr_jgicloud/jtm-dev || true
     - chgrp jaws /tmp/jaws-dev/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-dev/configs/jaws-jtm.conf
+    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf stop jaws-dev:*
+    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf reread
+    - /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start jaws-dev:*
     # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
     # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-manager shim created by generate-shims. this is a hack.
     # - cp -a /tmp/jaws-dev/configs/jaws-jtm.conf /global/home/groups-sw/lr_jgicloud/jtm-dev/jaws-jtm.conf
@@ -296,13 +296,13 @@ deploy-jaws-lrc-staging:
     - make pkg
     - /tmp/jaws-supervisord-staging/bin/supervisorctl -c /tmp/jaws-supervisord-staging/supervisord-jaws.conf stop jaws-staging:*
     - python -m venv /tmp/jaws-staging/site    && . /tmp/jaws-staging/site/bin/activate && pip install rpc/dist/*    && pip install site/dist/*    && deactivate
-    - /tmp/jaws-supervisord-staging/bin/supervisorctl -c /tmp/jaws-supervisord-staging/supervisord-jaws.conf stop jaws-staging:*
-    - /tmp/jaws-supervisord-staging/bin/supervisorctl -c /tmp/jaws-supervisord-staging/supervisord-jaws.conf reread
-    - /tmp/jaws-supervisord-staging/bin/supervisorctl -c /tmp/jaws-supervisord-staging/supervisord-jaws.conf start jaws-staging:*
     - python -m venv /tmp/jaws-staging/jtm     && . /tmp/jaws-staging/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-staging/jtm || true
     - cp /global/home/groups-sw/lr_jgicloud/cromwell/cromwell.jar /tmp/jaws-staging/cromwell.jar && chgrp jaws /tmp/jaws-staging/cromwell.jar
     - python -m venv /global/home/groups-sw/lr_jgicloud/jtm-staging && . /global/home/groups-sw/lr_jgicloud/jtm-staging/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/home/groups-sw/lr_jgicloud/jtm-staging || true
     - chgrp jaws /tmp/jaws-staging/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-staging/configs/jaws-jtm.conf
+    - /tmp/jaws-supervisord-staging/bin/supervisorctl -c /tmp/jaws-supervisord-staging/supervisord-jaws.conf stop jaws-staging:*
+    - /tmp/jaws-supervisord-staging/bin/supervisorctl -c /tmp/jaws-supervisord-staging/supervisord-jaws.conf reread
+    - /tmp/jaws-supervisord-staging/bin/supervisorctl -c /tmp/jaws-supervisord-staging/supervisord-jaws.conf start jaws-staging:*
     # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
     # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-manager shim created by generate-shims. this is a hack.
     # - cp -a /tmp/jaws-staging/configs/jaws-jtm.conf /global/home/groups-sw/lr_jgicloud/jtm-staging/jaws-jtm.conf
@@ -336,13 +336,13 @@ deploy-jaws-lrc-prod:
     - make pkg
     - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf stop jaws-prod:*
     - python -m venv /tmp/jaws-prod/site    && . /tmp/jaws-prod/site/bin/activate && pip install rpc/dist/*    && pip install site/dist/*    && deactivate
-    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf stop jaws-prod:*
-    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf reread
-    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf start jaws-prod:*
     - python -m venv /tmp/jaws-prod/jtm     && . /tmp/jaws-prod/jtm/bin/activate && pip install rpc/dist/* && pip install jtm/dist/*     && deactivate && chmod -R g+rx,o+rx /tmp/jaws-prod/jtm || true
     - cp /global/home/groups-sw/lr_jgicloud/cromwell/cromwell.jar /tmp/jaws-prod/cromwell.jar && chgrp jaws /tmp/jaws-prod/cromwell.jar
     - python -m venv /global/home/groups-sw/lr_jgicloud/jtm-prod && . /global/home/groups-sw/lr_jgicloud/jtm-prod/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate && chmod -R g+rx,o+rx /global/home/groups-sw/lr_jgicloud/jtm-prod || true
     - chgrp jaws /tmp/jaws-prod/configs/jaws-jtm.conf && chmod 660 /tmp/jaws-prod/configs/jaws-jtm.conf
+    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf stop jaws-prod:*
+    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf reread
+    - /tmp/jaws-supervisord-prod/bin/supervisorctl -c /tmp/jaws-supervisord-prod/supervisord-jaws.conf start jaws-prod:*
     # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
     # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-manager shim created by generate-shims. this is a hack.
     # - cp -a /tmp/jaws-prod/configs/jaws-jtm.conf /global/home/groups-sw/lr_jgicloud/jtm-prod/jaws-jtm.conf
