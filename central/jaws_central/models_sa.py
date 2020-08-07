@@ -131,7 +131,7 @@ class Job_Log(Base):
     """A Run has many Tasks."""
 
     __tablename__ = "job_logs"
-    run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
+    run_id = Column(Integer, ForeignKey("runs.id"), primary_key=True)
     task_name = Column(String(128), nullable=False)
     attempt = Column(Integer, nullable=False)
     cromwell_job_id = Column(Integer, primary_key=True)

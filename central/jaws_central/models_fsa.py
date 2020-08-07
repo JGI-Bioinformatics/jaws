@@ -124,7 +124,7 @@ class Job_Log(db.Model):
     """A Run has many Tasks."""
 
     __tablename__ = "job_logs"
-    run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), nullable=False)
+    run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), primary_key=True)
     task_name = db.Column(db.String(128), nullable=False)
     attempt = db.Column(db.Integer, nullable=False)
     cromwell_job_id = db.Column(db.Integer, primary_key=True)
