@@ -3,6 +3,7 @@ RPC operations by which Sites update Run and Job status.
 """
 
 import logging
+import sqlalchemy.exc
 from datetime import datetime
 from http.client import responses
 from jaws_central.database import Session
@@ -104,7 +105,8 @@ def update_run_logs(params):
     site_id = params["site_id"]
     num_logs = len(logs)
     logger.debug(f"Site {site_id} sent {num_logs} run logs")
-    session = Session()
+    err_msg = None
+
     for log_entry in logs:
         # INIT VARS
         run_id = int(log_entry[0])
@@ -113,23 +115,7 @@ def update_run_logs(params):
         timestamp = datetime.strptime(log_entry[3], "%Y-%m-%d %H:%M:%S")
         reason = log_entry[4]
 
-        # CHECK IF ALREADY EXISTS
-        try:
-            log = (
-                session.query(Run_Log)
-                .filter_by(run_id=run_id, status_from=status_from, status_to=status_to)
-                .one_or_none()
-            )
-        except Exception as error:
-            logger.exception(f"Failed to query run_log table: {error}")
-            session.close()
-            return _failure(500, f"Failed to query run_log table: {error}")
-        if log:
-            # ignore redunant state transition (duplicate message)
-            logger.debug(f"Duplicate run_log: {run_id}:{status_from}:{status_to}")
-            continue
-
-        # INSERT LOG
+        # DEFINE ROW OBJ
         try:
             log = Run_Log(
                 run_id=run_id,
@@ -138,18 +124,29 @@ def update_run_logs(params):
                 timestamp=timestamp,
                 reason=reason,
             )
-            session.add(log)
         except Exception as error:
-            logger.exception(f"Invalid run log, {log_entry}: {error}")
+            err_msg = f"Invalid run_log: {log_entry}: {error}"
+            logger.error(err_msg)
             continue
-    try:
-        session.commit()
-    except Exception as error:
+
+        # INSERT OR IGNORE
+        session = Session()
+        try:
+            session.add(log)
+            session.commit()
+        except sqlalchemy.exc.IntegrityError:
+            session.rollback()
+            logger.warning(f"Run log {run_id}:{status_to} is duplicate; ignored")
+        except Exception as error:
+            session.rollback()
+            err_msg = f"Error inserting run_log: {error}"
+            logger.exception(err_msg)
         session.close()
-        logger.exception(f"Failed to insert run log entries into db: {error}")
-        return _failure(500, f"Db insert failed: {error}")
-    session.close()
-    return _success()
+
+    if err_msg:
+        return _failure(500, err_msg)
+    else:
+        return _success()
 
 
 def update_job_logs(params):
@@ -166,7 +163,8 @@ def update_job_logs(params):
     site_id = params["site_id"]
     num_logs = len(logs)
     logger.debug(f"Site {site_id} sent {num_logs} job logs")
-    session = Session()
+    err_msg = None
+
     for log_entry in logs:
         # INIT VARS
         run_id = int(log_entry[0])
@@ -178,27 +176,7 @@ def update_job_logs(params):
         timestamp = datetime.strptime(log_entry[6], "%Y-%m-%d %H:%M:%S")
         reason = log_entry[7]
 
-        # CHECK IF ALREADY EXISTS
-        try:
-            log = (
-                session.query(Job_Log)
-                .filter_by(
-                    cromwell_job_id=cromwell_job_id,
-                    status_from=status_from,
-                    status_to=status_to,
-                )
-                .one_or_none()
-            )
-        except Exception as error:
-            session.close()
-            logger.exception(f"Failed to query job_log table: {error}")
-            return
-        if log:
-            # ignore redunant state transition (duplicate message)
-            logger.debug(f"Duplicate job_log: {run_id}:{cromwell_job_id}:{status_from}:{status_to}")
-            continue
-
-        # INSERT LOG
+        # DEFINE ROW OBJ
         try:
             log = Job_Log(
                 run_id=run_id,
@@ -210,19 +188,29 @@ def update_job_logs(params):
                 timestamp=timestamp,
                 reason=reason,
             )
-            session.add(log)
         except Exception as error:
-            logger.exception(f"Invalid job log, {log_entry}: {error}")
+            err_msg = f"Invalid job_log: {log_entry} -- {error}"
+            logger.error(err_msg)
             continue
-    # insert all or none
-    try:
-        session.commit()
-    except Exception as error:
+
+        # INSERT OR IGNORE
+        session = Session()
+        try:
+            session.add(log)
+            session.commit()
+        except sqlalchemy.exc.IntegrityError:
+            session.rollback()
+            logger.warning(f"Run log {run_id}:{status_to} is duplicate; ignored")
+        except Exception as error:
+            session.rollback()
+            err_msg = f"Error inserting run_log: {error}"
+            logger.exception(err_msg)
         session.close()
-        logger.exception(f"Failed to insert job log entries into db: {error}")
-        return _failure(500, f"Db insert failed: {error}")
-    session.close()
-    return _success()
+
+    if err_msg:
+        return _failure(500, err_msg)
+    else:
+        return _success()
 
 
 # all RPC operations are defined in this dispatch table
