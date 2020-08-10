@@ -359,6 +359,7 @@ deploy-jaws-cascade:
     - export LANG=en_US.UTF-8
     - export PYTHONIOENCODING=utf-8
     - source /opt/rh/rh-python36/enable
+    - python -m pip install --upgrade pip
     - test -d /tmp/jaws-dev/ || mkdir /tmp/jaws-dev/
     - test -d /tmp/jaws-dev/configs || mkdir /tmp/jaws-dev/configs
     - test -d /tmp/jaws-dev/logs || mkdir /tmp/jaws-dev/logs && test -d /tmp/jaws-dev/logs/jtm || mkdir /tmp/jaws-dev/logs/jtm && chgrp svc-jtm-user /tmp/jaws-dev/logs/jtm && chmod 770 /tmp/jaws-dev/logs/jtm

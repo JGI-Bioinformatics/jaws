@@ -937,7 +937,6 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                 batch_job_script_str += "#!/bin/bash -l"
 
                 if cluster_name in ("cori", "nersc"):
-
                     if num_nodes_to_request_param:
                         batch_job_script_str += """
 #SBATCH -N %(num_nodes_to_request)d
@@ -1078,7 +1077,7 @@ do
 -C %(constraint)s \
 -m %(mem)s \
 %(other_params)s &
-    sleep 1
+sleep 0.5
 done
 wait
 """ % \
@@ -1102,7 +1101,6 @@ wait
                                                                          % worker_config)
 
                 elif cluster_name in ("jaws_lbl_gov", "lbl", "lbnl", "jgi", "lrc", "lblit", "lawrencium"):
-
                     if worker_id_param:
                         batch_job_misc_params += " -wi %(worker_id)s_${i}" \
                                                  % dict(worker_id=UNIQ_WORKER_ID)
@@ -1138,7 +1136,7 @@ do
 --num_worker_per_node %(num_workers_per_node)d \
 -m %(mem)s \
 %(other_params)s &
-    sleep 1
+sleep 0.5
 done
 wait
 """ % \
@@ -1156,6 +1154,59 @@ wait
                                                  num_workers_per_node=num_workers_per_node,
                                                  mem=mem_per_node_to_request,
                                                  lbl_cluster_name=cluster_name,
+                                                 worker_type=THIS_WORKER_TYPE,
+                                                 clone_time_rate=worker_clone_time_rate,
+                                                 task_queue=tp_param,
+                                                 other_params=batch_job_misc_params,
+                                                 export_jtm_config_file="export JTM_CONFIG_FILE=%s"
+                                                                        % worker_config,
+                                                 set_jtm_config_file="--config=%s"
+                                                                     % worker_config)
+
+                elif cluster_name in ("pnnl", "pnl", "emsl", "cascade"):
+                    if worker_id_param:
+                        batch_job_misc_params += " -wi %(worker_id)s_${i}" \
+                                                 % dict(worker_id=UNIQ_WORKER_ID)
+                    tp_param = ""
+                    if pool_name_param:
+                        tp_param = "-p " + pool_name_param
+
+                    batch_job_script_str += """
+#SBATCH --account=%(charging_account)s
+#SBATCH --nodes=%(num_nodes_to_request)d
+#SBATCH --ntasks-per-node 16
+#SBATCH --time=%(wall_time)s
+#SBATCH --job-name=%(job_name)s
+#SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
+#SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
+
+%(env_activation_cmd)s
+%(export_jtm_config_file)s
+for i in {1..%(num_workers_per_node)d}
+do
+    echo "jobid: $SLURM_JOB_ID"
+    jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
+-cl %(pnnl_cluster_name)s \
+-wt %(worker_type)s \
+-t %(wall_time)s \
+--clone_time_rate %(clone_time_rate)f %(task_queue)s \
+--num_worker_per_node %(num_workers_per_node)d \
+-m %(mem)s \
+%(other_params)s &
+sleep 0.5
+done
+wait
+""" % \
+                                            dict(debug="--debug" if DEBUG else "",
+                                                 wall_time=job_time_to_request,
+                                                 job_name=job_name,
+                                                 charging_account=charging_account,
+                                                 num_nodes_to_request=num_nodes_to_request,
+                                                 worker_id=UNIQ_WORKER_ID,
+                                                 job_dir=job_script_dir_name,
+                                                 env_activation_cmd=env_act,
+                                                 num_workers_per_node=num_workers_per_node,
+                                                 pnnl_cluster_name=cluster_name,
                                                  worker_type=THIS_WORKER_TYPE,
                                                  clone_time_rate=worker_clone_time_rate,
                                                  task_queue=tp_param,
