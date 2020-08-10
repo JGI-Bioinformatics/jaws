@@ -42,7 +42,7 @@ Before you go further, you need to complete these three steps:
 
     - If you do not have a NERSC account yet, please get one by writing to consult@NERSC.gov
 
-2) get a JAWS token from JAWS admin jlfroula@lbl.gov 
+2) get a JAWS token from JAWS admin jaws-support@lbl.gov 
 
 3) get an account at globus.org
 
@@ -52,9 +52,9 @@ Before you go further, you need to complete these three steps:
 Set up Globus 
 *************
 
-You need to set up globus so your files can be transfered between different filesystems. 
+You need to set up Globus so your files can be transfered between different filesystems. 
 
-Setting up globus endpoints
+Setting up Globus endpoints
 
 .. code-block:: bash
 
@@ -78,12 +78,12 @@ Setting up globus endpoints
          You will have to re-activate every 11 days.
 
 
-Setting up globus linked accounts 
+Setting up Globus linked accounts 
 
 .. code-block:: bash
 
     You can link accounts like your NERSC and LBL account. 
-    Linking the NERSC account is required for globus to know that its ok to upload 
+    Linking the NERSC account is required for Globus to know that its ok to upload 
     and download your data when you are using jaws and thus logged in as NERSC credentials. 
 
     1. Click on "ACCOUNT" in the left menu.  You should be in the "Identities" tab. 
@@ -94,15 +94,15 @@ Setting up globus linked accounts
 
        a. You should see <yourusername>@NERSC.gov listed.   
 
+.. warning:: 
+	You need to re-activate your Globus Endpoint every 11 days.  JAWS should give you an appropriate error if you need to do this. Go to globus.org and click on "ENDPOINTS".  If "NERSC DTN" says "inactive", you can click on the activate endpoint symbol at the right.
+
 |
 
 *********************************
 Activate JAWS Virtual Environment
 *********************************
 
-.. warning:: 
-
-    The code below is for setting up the configuration for the development environment. It will be changed when there is a proper release of JAWS 2.0.
 
 Currently JAWS can be run at 
 
@@ -131,7 +131,7 @@ Do the following
     (use "deactivate" to get out of the environment)
 
     # Get the jaws-auth token. 
-    # After running this command, follow directions to get a token from globus.
+    # After running this command, follow directions to get a token from Globus.
     jaws login
 
 |

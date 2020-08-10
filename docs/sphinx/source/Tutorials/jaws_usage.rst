@@ -22,7 +22,7 @@ JAWS commands
 
 There are four top level JAWS commands (but many sub commands):
 
-  :bash:`jaws login` do once to obtain a globus token. Just follow directions after running the command. 
+  :bash:`jaws login` do once to obtain a Globus token. Just follow directions after running the command. 
 
   :bash:`jaws run` command for job management (e.g. submission, monitoring and log-viewing). 
 
@@ -34,13 +34,13 @@ There are four top level JAWS commands (but many sub commands):
 *jaws login*:
 ----------------------
 
-You only need to run this once to get a globus token.  Follow the directions to obtain the token from globus and this will allow JAWS to transfer data around via globus in your name.
+You only need to run this once to get a Globus token.  Follow the directions to obtain the token from Globus and this will allow JAWS to transfer data around via Globus in your name.
 
 .. code-block:: bash
 
     jaws login
     
-    # This will generate a URL that you need to follow to get the globus token 
+    # This will generate a URL that you need to follow to get the Globus token 
     
 
 
@@ -190,15 +190,15 @@ When monitoring the runs, each task transitions between the following states.
 
 .. code-block:: text
 
-   uploading            # input data are being copied to scratch by globus
+   uploading            # input data are being copied to scratch by Globus
    missing input        # run was uploaded but some of the required files were missing
-   upload complete      # globus finished copying all your files to scratch
+   upload complete      # Globus finished copying all your files to scratch
    submitted            # job submitted to JTM and worker pools have been requested
    queued               # waiting for worker pools to be reserved from cluster
    running              # the run is being executed by Cromwell
    succeeded            # Cromwell completed the run but results need to be transfered
-   ready                # results are ready for globus transfer off of site scratch
-   downloading          # results are being copied by globus
+   ready                # results are ready for Globus transfer off of site scratch
+   downloading          # results are being copied by Globus
    download complete    # results have been copied to your output directory. signifies end of run
    failed               # runing error from either jaws or user's wdl
    canceled             # run was cancelled by user or JTM issue

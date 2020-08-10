@@ -2,7 +2,7 @@
 Contact Us
 ==========
 
-Slack and JIRA are only available for **JGI Staff**. If these avenues are not available, you can write an email to jlfroula@lbl.gov.
+Slack and JIRA are only available for **JGI Staff**. If these avenues are not available, you can write an email to jaws-support@lbl.gov.
 
 
 -------------------------------
@@ -23,12 +23,6 @@ Using SLACK to Ask a Question
    3. Now you can use the "Jump to ..." search box also in left
       panel near the top and type "jaws" to add the #jaws channel.
 
-
--------------
-Email Contact
--------------
-
-   If slack or JIRA fails for you, you can email user support: jlfroula@lbl.gov
 
 --------------------------
 
