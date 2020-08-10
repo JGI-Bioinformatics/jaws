@@ -49,6 +49,7 @@ queue = central_rpc
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
 root_dir = /
+default_dir = ~
 [SITE]
 id = CORI
 staging_subdirectory = global/cscratch1/sd/jaws_jtm/dev/staging

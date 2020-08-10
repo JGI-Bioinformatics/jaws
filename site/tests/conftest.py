@@ -39,6 +39,7 @@ password = succotash
 client_id = foghorn_leghorn
 endpoint_id = rooster
 root_dir = cwd
+default_dir = /
 
 [DB]
 dialect = mysql+mysqlconnector

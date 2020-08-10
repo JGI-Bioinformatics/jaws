@@ -40,7 +40,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "user": "",
             "password": "",
         },
-        "GLOBUS": {"client_id": "", "endpoint_id": "jaws-testing", "root_dir": "/"},
+        "GLOBUS": {"client_id": "", "endpoint_id": "jaws-testing", "root_dir": "/", "default_dir": "/"},
         "DB": {
             "host": "localhost",
             "port": "3306",
