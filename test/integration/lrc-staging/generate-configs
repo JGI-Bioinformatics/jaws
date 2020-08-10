@@ -280,7 +280,20 @@ backend
           # singularity_exec.sh is required to circumvent an issue with special characters in the singularity
           # command AND it sets some environmental variables to let singularity know where
           # pull temp image layers so we don't get the 'out of memory' error.
-          jtm-submit -cr '/global/home/groups-sw/lr_jgicloud/cromwell/singularity_exec.sh ${cwd} ${docker_cwd} ${docker} ${job_shell} ${script}' -cl ${cluster} -t ${time} -c ${cpu} -m ${mem} -p ${poolname} -N ${node} -nwpn ${nwpn} -jid ${job_name} --shared ${shared} --qos ${qos} --account ${account}
+          jtm --config=/tmp/jaws-staging/configs/jaws-jtm.conf \
+              submit \
+              -cmd '/global/home/groups-sw/lr_jgicloud/cromwell/singularity_exec.sh \${docker} \${job_shell} \${script}' \
+                    -cl \${cluster} \
+                    -t \${time} \
+                    -c \${cpu} \
+                    -m \${mem} \
+                    -p \${poolname} \
+                    -N \${node} \
+                    -nwpn \${nwpn} \
+                    -jid \${job_name} \
+                    --qos \${qos} \
+                    -A \${account} \
+                    --shared \${shared}
         """
 
         root = "/global/scratch/jaws/staging/cromwell-executions"
