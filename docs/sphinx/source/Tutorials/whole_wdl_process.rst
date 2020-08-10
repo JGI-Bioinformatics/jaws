@@ -10,7 +10,7 @@ Below is a step-by-step tutorial showing you how to get a workflow from a bash s
 Here is a link that just talks about :doc:`building wdls </Tutorials/building_wdls>`
 
 .. note:: 
-   If you intend on adding your workflow (WDL) to JAWS, you will need permissions to https://bitbucket.com/berkeleylab/jgi-workflows so you can clone the repository and push your project. Please contact jlfroula@lbl.gov.
+   If you intend on adding your workflow (WDL) to JAWS, you will need permissions to https://bitbucket.com/berkeleylab/jgi-workflows so you can clone the repository and push your project. Please contact jaws-support@lbl.gov.
 
 
 *******
@@ -269,7 +269,7 @@ This sample WDL is also in the repository, called v1.0.1.wdl
 --------------------------
 
 You should already have permissions to clone and push to https://bitbucket.com/berkeleylab/jgi-workflows .
-(Make your requests by sending an email to jlfroula@lbl.gov if you don't).
+(Make your requests by sending an email to jaws-support@lbl.gov if you don't).
 
 .. code-block:: bash
 
