@@ -38,6 +38,7 @@ class Daemon:
         logger.info("Initializing daemon")
         self.site_id = conf.get("SITE", "id")
         self.globus_root_dir = conf.get("GLOBUS", "root_dir")
+        self.globus_default_dir = conf.get("GLOBUS", "default_dir")
         self.staging_dir = os.path.join(
             conf.get("GLOBUS", "root_dir"), conf.get("SITE", "staging_subdirectory")
         )
@@ -285,12 +286,12 @@ class Daemon:
         Send run output via Globus
         """
         logger.debug(f"Run {run.id}: Download output")
-        nice_dir = os.path.join(self.results_dir, str(run.id))
+        abs_nice_dir = os.path.join(self.results_dir, str(run.id))
         transfer_rt = run.transfer_refresh_token
-        if not nice_dir.startswith(self.globus_root_dir):
-            logger.error(f"Results dir is not accessible via Globus: {nice_dir}")
+        if not abs_nice_dir.startswith(self.globus_root_dir):
+            logger.error(f"Results dir is not accessible via Globus: {abs_nice_dir}")
             return
-        rel_nice_dir = os.path.relpath(nice_dir, self.globus_root_dir)
+        rel_nice_dir = os.path.relpath(abs_nice_dir, self.globus_default_dir)
         try:
             transfer_client = self._authorize_transfer_client(transfer_rt)
         except globus_sdk.GlobusAPIError:
@@ -312,7 +313,10 @@ class Daemon:
                 notify_on_inactive=True,
                 skip_activation_check=True,
             )
-            tdata.add_item(rel_nice_dir, run.output_dir, recursive=True)
+            if self.globus_root_dir == "/":
+                tdata.add_item(abs_nice_dir, run.output_dir, recursive=True)
+            else:
+                tdata.add_item(rel_nice_dir, run.output_dir, recursive=True)
         except Exception:
             logger.warning(
                 f"Failed to prepare download manifest for run {run.id}", exc_info=True
