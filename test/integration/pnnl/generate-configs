@@ -67,13 +67,13 @@ debug = 0
 [RMQ]
 user = jaws
 password = $JAWS_JTM_PNNL_RMQ_PW
-host = localhost
+host = gwf1.hpcs4.emsl.pnl.gov
 port = 5672
 vhost = jaws
 [SITE_RPC_CLIENT]
 user = jaws
 password = $JAWS_JTM_PNNL_RMQ_PW
-host = localhost
+host = gwf1.hpcs4.emsl.pnl.gov
 port = 5672
 vhost = jaws
 queue = site_rpc
@@ -91,11 +91,11 @@ ncpus = 1
 # default wall clock time
 jobtime = 00:30:00
 mempercpu = 1gb
-mempernode = 5gb
-partition = lr3
-qos = genepool
-charge_accnt = fungalp
-constraint = haswell
+mempernode = 120gb
+partition =
+qos =
+charge_accnt = mscjgi
+constraint =
 [JTM]
 cluster = \${SITE:jtm_host_name}
 run_mode = dev
@@ -267,12 +267,12 @@ backend
         String? docker
         String time = "00:30:00"
         Int cpu = 1
-        String mem = "5G"
-        String cluster = "cori"
+        String mem = "120G"
+        String cluster = "cascade"
         String poolname = "small"
-        String constraint = "haswell"
-        String qos = "genepool_special"
-        String account = "fungalp"
+        String constraint = ""
+        String qos = ""
+        String account = "mscjgi"
         Int node = 1
         Int nwpn = 1
         Int shared = 0
@@ -285,11 +285,9 @@ backend
           -c \${cpu} \
           -m \${mem} \
           -p \${poolname} \
-          -C \${constraint} \
           -N \${node} \
           -nwpn \${nwpn} \
           -jid \${job_name} \
-          --qos \${qos} \
           -A \${account} \
           --shared \${shared}"""
         kill = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
@@ -310,13 +308,11 @@ backend
                     -c \${cpu} \
                     -m \${mem} \
                     -p \${poolname} \
-                    -C \${constraint} \
-              -N \${node} \
-              -nwpn \${nwpn} \
-              -jid \${job_name} \
-              --qos \${qos} \
-              -A \${account} \
-              --shared \${shared}
+                    -N \${node} \
+                    -nwpn \${nwpn} \
+                    -jid \${job_name} \
+                    -A \${account} \
+                    --shared \${shared}
         """
         # Root directory where Cromwell writes job results in the container. This value
         # can be used to specify where the execution folder is mounted in the container.
