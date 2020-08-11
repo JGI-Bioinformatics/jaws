@@ -1206,6 +1206,7 @@ wait
                                                  job_dir=job_script_dir_name,
                                                  env_activation_cmd=env_act,
                                                  num_workers_per_node=num_workers_per_node,
+                                                 mem=mem_per_node_to_request,
                                                  pnnl_cluster_name=cluster_name,
                                                  worker_type=THIS_WORKER_TYPE,
                                                  clone_time_rate=worker_clone_time_rate,
