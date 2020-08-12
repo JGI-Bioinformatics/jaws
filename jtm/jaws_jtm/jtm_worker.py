@@ -1037,12 +1037,24 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                             # ======================
                             # -t 96:00:00 -c 72 --job-name=mga-627834 --mem=240G -C skylake --qos=jgi_exvivo
                             # -A gtrqc
+                            #
+                            # SBATCH examples
+                            # 500G
+                            # module load esslurm; sbatch --qos=jgi_exvivo -C skylake -A pkasmb -N 1
+                            # -t 48:00:00 -D $PWD --wrap=''
+                            #
+                            # 250G
+                            # module load esslurm; sbatch --qos=jgi_shared --mem=250G --cpus-per-task=12
+                            # -C skylake -A pkasmb
+                            # -N 1 -t 12:00:00 -D $PWD --wrap=""
 
                             batch_job_script_str += """
+#SBATCH -N %(num_nodes_to_request)d
 #SBATCH -C skylake
 #SBATCH -A %(charging_account)s
-#SBATCH -q %(qosname)s""" % \
-                                                    dict(charging_account=charging_account, qosname=qos)
+#SBATCH -q %(qosname)s""" % dict(num_nodes_to_request=num_nodes_to_request,
+                                 charging_account=charging_account,
+                                 qosname=qos)
 
                             batch_job_misc_params += " -A %(charging_account)s -q %(qosname)s" % \
                                                      dict(charging_account=charging_account, qosname=qos)
@@ -1095,10 +1107,8 @@ wait
                                                      mem=mem_per_node_to_request,
                                                      job_name=job_name,
                                                      exclusive=excl_param,
-                                                     export_jtm_config_file="export JTM_CONFIG_FILE=%s"
-                                                                            % worker_config,
-                                                     set_jtm_config_file="--config=%s"
-                                                                         % worker_config)
+                                                     export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
+                                                     set_jtm_config_file="--config=%s" % worker_config)
 
                 elif cluster_name in ("jaws_lbl_gov", "lbl", "lbnl", "jgi", "lrc", "lblit", "lawrencium"):
                     if worker_id_param:
@@ -1158,10 +1168,8 @@ wait
                                                  clone_time_rate=worker_clone_time_rate,
                                                  task_queue=tp_param,
                                                  other_params=batch_job_misc_params,
-                                                 export_jtm_config_file="export JTM_CONFIG_FILE=%s"
-                                                                        % worker_config,
-                                                 set_jtm_config_file="--config=%s"
-                                                                     % worker_config)
+                                                 export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
+                                                 set_jtm_config_file="--config=%s" % worker_config)
 
                 elif cluster_name in ("pnnl", "pnl", "emsl", "cascade"):
                     if worker_id_param:
@@ -1212,10 +1220,8 @@ wait
                                                  clone_time_rate=worker_clone_time_rate,
                                                  task_queue=tp_param,
                                                  other_params=batch_job_misc_params,
-                                                 export_jtm_config_file="export JTM_CONFIG_FILE=%s"
-                                                                        % worker_config,
-                                                 set_jtm_config_file="--config=%s"
-                                                                     % worker_config)
+                                                 export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
+                                                 set_jtm_config_file="--config=%s" % worker_config)
 
                 jf.writelines(batch_job_script_str)
 
@@ -1226,6 +1232,9 @@ wait
                 sys.exit(0)
 
             sbatch_cmd = "sbatch --parsable %s" % (batch_job_script_file)
+            if constraint == "skylake":
+                sbatch_cmd = "module load esslurm; " + sbatch_cmd
+                logger.debug(f"skylake sbatch: {sbatch_cmd}")
             _, _, ec = run_sh_command(sbatch_cmd, log=logger)
             return ec
 
