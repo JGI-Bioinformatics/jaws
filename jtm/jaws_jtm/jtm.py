@@ -324,7 +324,7 @@ def submit(
         logger.error("            Only shared=0 is supported.")
         return 1
 
-    if cluster is None or cluster not in ("cori", "jgi", "cascade"):
+    if cluster is None or cluster not in ("cori", "jgi", "cascade", "ssul_laptop"):
         logger.error("jtm submit: invalid task or runtime definition: ")
         logger.error(
             "            Only 'cori', 'jgi', 'cascade' are supported as cluster name"

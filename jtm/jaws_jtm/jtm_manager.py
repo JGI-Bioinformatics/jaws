@@ -431,7 +431,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
 
 class JtmCommandRunner(JtmAmqpstormBase):
     """
-    Process request from JtmInterface <- JTM Client
+    Process task command request from JtmInterface <- JTM Client
 
     """
 
@@ -477,7 +477,7 @@ class JtmCommandRunner(JtmAmqpstormBase):
 
     def process_jtm_command(self, message):
         """
-        Callback for handling request from JtmInterface
+        Callback for handling task request from JtmInterface
 
         :param message:
         :return:
@@ -488,7 +488,71 @@ class JtmCommandRunner(JtmAmqpstormBase):
 
         if task_type == "task":
             self.send_reply(message, "task", process_task_request(msg_unzipped))
-        elif task_type == "status":
+        else:
+            logger.critical("Task type not found: {}".format(task_type))
+            self.send_reply(message, "Undefined task type", -1)
+
+
+class JtmNonTaskCommandRunner(JtmAmqpstormBase):
+    """
+    Process non-task command request from JtmInterface <- JTM Client
+
+    """
+
+    def start(self):
+        """Start the JtmNonTaskCommandRunner.
+        :return:
+        """
+        if not self.connection:
+            self.create_connection()
+        while True:
+            try:
+                channel = self.connection.channel()
+                channel.exchange.declare(
+                    exchange=self.jgi_jtm_main_exch,
+                    exchange_type="direct",
+                    durable=True,
+                    auto_delete=False,
+                )
+                channel.queue.declare(
+                    queue=self.jtm_status_request_q,
+                    durable=True,
+                    exclusive=False,
+                    auto_delete=True,
+                )
+                channel.queue.bind(
+                    exchange=self.jgi_jtm_main_exch,
+                    queue=self.jtm_status_request_q,
+                    routing_key=self.jtm_status_request_q,
+                )
+                channel.basic.consume(
+                    self.process_jtm_command, self.jtm_status_request_q, no_ack=False
+                )
+                channel.basic.qos(prefetch_count=1)
+                channel.start_consuming()
+                if not channel.consumer_tags:
+                    channel.close()
+            except amqpstorm.AMQPError as why:
+                logger.exception(why)
+                self.create_connection()
+            except KeyboardInterrupt:
+                self.connection.close()
+                break
+
+    def process_jtm_command(self, message):
+        """
+        Callback for handling request from JtmInterface
+
+        :param message:
+        :return:
+        """
+        msg_unzipped = json.loads(zloads(message.body))
+        logger.info("New task: {}".format(msg_unzipped))
+        task_type = msg_unzipped["task_type"]
+
+        # if task_type == "task":
+        #     self.send_reply(message, "task", process_task_request(msg_unzipped))
+        if task_type == "status":
             self.send_reply(
                 message, "status", process_task_status(int(msg_unzipped["task_id"]))
             )
@@ -2020,6 +2084,7 @@ def manager(
     global TASK_STATUS
     TASK_STATUS = CONFIG.constants.TASK_STATUS
     jtm_task_request_q = CONFIG.configparser.get("JTM", "jtm_task_request_q")
+    jtm_status_request_q = CONFIG.configparser.get("JTM", "jtm_status_request_q")
 
     # if STANDALONE == 1, send_update_task_status_msg(), which sends task status change
     # RMQ message to JAWS Site, won't be called
@@ -2058,6 +2123,7 @@ def manager(
     logger.info("JTM config file: %s", CONFIG.config_file)
     logger.info("RabbitMQ broker: %s", CONFIG.configparser.get("RMQ", "host"))
     logger.info("Default task queue name: %s", jtm_task_request_q)
+    logger.info("Default non-task queue name: %s", jtm_status_request_q)
     logger.info(
         "Default result queue name: %s",
         CONFIG.configparser.get("JTM", "jtm_task_result_q"),
@@ -2151,6 +2217,20 @@ def manager(
         )
     except Exception as e:
         logger.exception("JtmCommandRunner: {}".format(e))
+        proc_clean_exit(plist)
+
+    # Start JtmNonTaskCommandRunner
+    try:
+        process_jtminterface_nontaskcommand_proc_hdl = mp.Process(
+            target=JtmNonTaskCommandRunner(config=CONFIG).start
+        )
+        process_jtminterface_nontaskcommand_proc_hdl.start()
+        plist.append(process_jtminterface_nontaskcommand_proc_hdl)
+        logger.debug(
+            f"process_jtminterface_nontaskcommand_proc pid = {process_jtminterface_nontaskcommand_proc_hdl.pid}"
+        )
+    except Exception as e:
+        logger.exception("JtmNonTaskCommandRunner: {}".format(e))
         proc_clean_exit(plist)
 
     logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)
