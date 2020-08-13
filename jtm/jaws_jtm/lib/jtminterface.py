@@ -38,6 +38,9 @@ class JtmInterface(object):
         self.jtm_task_request_q = self.config.configparser.get(
             "JTM", "jtm_task_request_q"
         )
+        self.jtm_status_request_q = self.config.configparser.get(
+            "JTM", "jtm_status_request_q"
+        )
         self.jtminterface_max_trial = self.config.configparser.getint(
             "JTM", "jtminterface_max_trial"
         )
@@ -297,7 +300,7 @@ class JtmInterface(object):
 
     def call_aux(self, **kw):
         """
-        Handles AUX functions for CLI
+        Handles non-task command functions for CLI
         :param kw:
         :return:
         """
