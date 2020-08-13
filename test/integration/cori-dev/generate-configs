@@ -3,7 +3,7 @@
 set -eo pipefail
 
 readonly configdir=${1:-/tmp/}
-readonly clientconfigdir=${2:-/global/cfs/projectdirs/jaws/jaws-dev}
+readonly clientconfigdir=${2:-/tmp/}
 
 [[ -z $JAWS_SITE_CORI_DB_PW ]]     && { printf "Missing JAWS_SITE_CORI_DB_PW variable.\n"; exit 1; }
 [[ -z $JAWS_SITE_CORI_RMQ_PW ]]    && { printf "Missing JAWS_SITE_CORI_RMQ_PW variable.\n"; exit 1; }
