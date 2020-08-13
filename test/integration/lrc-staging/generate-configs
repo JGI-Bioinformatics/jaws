@@ -229,9 +229,9 @@ backend
       config {
         exit-code-timeout-seconds = 60
         runtime-attributes = """
-        String time = "00:00:00"
+        String time = "00:30:00"
         Int cpu = 1
-        String mem = "0G"
+        String mem = "5G"
         String cluster = "jgi"
         String poolname = "small"
         #Int poolsize = 1
@@ -239,7 +239,7 @@ backend
         String account = "lr_jgicloud"
         Int node = 1
         Int nwpn = 1
-        Int shared = 1
+        Int shared = 0
         String? docker
         """
         submit = """jtm --config=/tmp/jaws-staging/configs/jaws-jtm.conf \

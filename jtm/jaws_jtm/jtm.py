@@ -5,6 +5,7 @@ import click
 import socket
 import json
 import csv
+import time
 
 from jaws_jtm.config import JtmConfig
 from jaws_jtm.jtm_manager import manager as jtmmanager
@@ -255,6 +256,28 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
     """
     if ctx.obj['debug']:
         click.echo("Debug mode")
+
+    if shared is None or shared == 1:
+        logger.error("jtm submit: invalid task or runtime definition. ")
+        logger.error("            Only shared=0 is supported.")
+        return 1
+
+    if cluster is None or cluster not in ("cori", "jgi", "cascade"):
+        logger.error("jtm submit: invalid task or runtime definition: ")
+        logger.error("            Only 'cori', 'jgi', 'cascade' are supported as cluster name")
+        return 1
+
+    def is_time_format(input: str):
+        try:
+            time.strptime(input, '%H:%M:%S')
+            return True
+        except ValueError:
+            return False
+
+    if time is None or not is_time_format(job_time):
+        logger.error("jtm submit: invalid task or runtime definition: ")
+        logger.error(f"            The job time is not in an expected format (%H:%M:%S): {job_time}")
+        return 1
 
     add_info = pool_name
     ret = int(JtmInterface('task', ctx, info_tag=add_info).call(task_file=task_file,
