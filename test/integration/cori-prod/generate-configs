@@ -3,6 +3,7 @@
 set -eo pipefail
 
 readonly configdir=${1:-/tmp/}
+readonly clientconfigdir=${2:-/global/cfs/projectdirs/jaws/jaws-prod}
 
 [[ -z $JAWS_SITE_CORI_DB_PW ]]     && { printf "Missing JAWS_SITE_CORI_DB_PW variable.\n"; exit 1; }
 [[ -z $JAWS_SITE_CORI_RMQ_PW ]]    && { printf "Missing JAWS_SITE_CORI_RMQ_PW variable.\n"; exit 1; }
@@ -104,12 +105,18 @@ staging_subdir = /global/cscratch1/sd/jaws_jtm/prod/staging
 max_ram_gb = 2048
 EOM
 
-cat << EOM > $configdir/jaws-client.conf
+cat << EOM > $clientconfigdir/jaws-user.conf
+[USER]
+token =
+staging_dir =
+EOM
+
+cat << EOM > $clientconfigdir/jaws-client.conf
 [JAWS]
 site_id = NERSC
 name = jaws-prod
 url = http://cori20.nersc.gov:5003/api/v2
-womtool_jar = /global/cfs/projectdirs/jaws/cromwell/womtool.jar
+womtool_jar = /global/cfs/projectdirs/jaws/cromwell/womtool-47.jar
 staging_subdir = global/cscratch1/sd/jaws/prod/staging
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
