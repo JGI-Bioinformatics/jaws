@@ -71,31 +71,46 @@ def _fix_perms(path: str) -> None:
         for dname in dirnames:
             os.chmod(os.path.join(dirpath, dname), 0o0775)
         for fname in filenames:
-            os.chmod(os.path.join(dirpath, fname), 0o0664)
+            fullpath = os.path.join(dirpath, fname)
+
+            # if file is a symlink and points to an absolute path, remove it from the dest dir, because the abs path
+            # to the src dir will no longer exists. If the symlink is relative but points to a non-existent file or dir,
+            # remove it.
+            if pathlib.Path(fullpath).is_symlink():
+                symlinkpath = os.path.join(os.path.dirname(fullpath), os.readlink(fullpath))
+                readlinkpath = os.readlink(fullpath)
+                # if symbolic link points to an absolute path, remove it.
+                if os.path.isabs(readlinkpath):
+                    os.remove(fullpath)
+                # if symbolic link is a relative path but points to a non-existent file, remove it.
+                elif not os.path.exists(symlinkpath):
+                    os.remove(fullpath)
+            else:
+                os.chmod(fullpath, 0o0664)
 
 
-def get_files(srcdir: str, delimiter: str = "/", flatten_shard_dir: bool = False) -> tuple:
+def get_files(src_dir: str, delimiter: str = "/", flatten_shard_dir: bool = False) -> tuple:
     """ Generator to traverse through a cromwell run directory. For each file in the cromwell task execution directory,
     return a tuple where the first element is the renamed task name and the second element is a file or directory
     within the cromwell task execution directory.
 
-    :param srcdir: The base directory of the Cromwell run output.
-    :type srcdir: str
+    :param src_dir: The base directory of the Cromwell run output.
+    :type src_dir: str
     :param delimiter: the delimiter character used to concatenate the names of the cromwell task and subworkflow dirs.
     :type delimiter: str
     :param flatten_shard_dir: If True, shard output will be output to one dir, otherwise keep multiple subdirs.
     :type flatten_shard_dir: bool
     """
 
-    for root_dir, subdirs, files in os.walk(srcdir):
-        subtaskdir = None
+    for root_dir, subdirs, files in os.walk(src_dir):
+        subtask_dir = None
         parent_dir = str(pathlib.Path(root_dir).parent)
 
-        # if directory name starts with call-*, assign taskdir.
+        # if directory name starts with call-*, assign task_dir.
         if os.path.basename(root_dir).startswith("call-") and root_dir == os.path.join(
-            srcdir, os.path.basename(root_dir)
+            src_dir, os.path.basename(root_dir)
         ):
-            taskdir = re.sub(r"^call-", "", os.path.basename(root_dir))
+            task_dir = os.path.basename(root_dir).replace('call-', '', 1)
 
         subwfname = _get_subworkflow_name(parent_dir)
 
@@ -103,33 +118,33 @@ def get_files(srcdir: str, delimiter: str = "/", flatten_shard_dir: bool = False
         if subwfname:
             # if subworkflow is a shard dir and flatten_shard_dir is False, append shard dir name to subworkflow name.
             if not flatten_shard_dir and os.path.basename(parent_dir).startswith("shard-"):
-                subtaskdir = f"{subwfname}{delimiter}{os.path.basename(parent_dir)}"
+                subtask_dir = f"{subwfname}{delimiter}{os.path.basename(parent_dir)}"
             else:
-                subtaskdir = subwfname
+                subtask_dir = subwfname
 
         # if not subworkflow but is a shard dir and flatten_shard_dir=False, assign directory name with shard name.
         elif os.path.basename(parent_dir).startswith("shard-") and not flatten_shard_dir:
-            subtaskdir = os.path.basename(parent_dir)
+            subtask_dir = os.path.basename(parent_dir)
 
         # if directory is 'execution', return task name and cromwell files within the dir.
         if os.path.basename(root_dir) == "execution":
-            if subtaskdir:
-                this_task = f"{taskdir}{delimiter}{subtaskdir}"
+            if subtask_dir:
+                this_task = f"{task_dir}{delimiter}{subtask_dir}"
             else:
-                this_task = taskdir
+                this_task = task_dir
             for fname in files:
                 yield this_task, os.path.join(os.path.abspath(root_dir), fname)
             for dname in subdirs:
                 yield this_task, os.path.join(os.path.abspath(root_dir), dname)
 
 
-def wfcopy(srcdir, dstdir, flatten_shard_dir=False):
+def wfcopy(src_dir, dstdir, flatten_shard_dir=False):
     """ Given a cromwell run directory, copies all files and directories within the task execution dir to
     a renamed task directory in the new destination. The renamed directory is a flattened representation of the
     cromwell tasks including subworkflows and shard directories.
 
-    :param srcdir: The base directory of the Cromwell run output.
-    :type srcdir: str
+    :param src_dir: The base directory of the Cromwell run output.
+    :type src_dir: str
     :param dstdir: The destination directory of the reformatted output.
     :type dstdir: str
     :param flatten_shard_dir: If True, shard output will be output to one dir, otherwise keep multiple subdirs.
@@ -163,7 +178,7 @@ def wfcopy(srcdir, dstdir, flatten_shard_dir=False):
 
     # get all files/dirs from the cromwell execution directory along with the wfcopy formatted task name.
     for taskname, filename in get_files(
-        srcdir, delimiter=taskname_delimiter, flatten_shard_dir=flatten_shard_dir
+        src_dir, delimiter=taskname_delimiter, flatten_shard_dir=flatten_shard_dir
     ):
         dst_taskdir = os.path.join(dstdir, taskname)
         basename = os.path.basename(filename)
