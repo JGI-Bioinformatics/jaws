@@ -17,6 +17,7 @@ cromwell_outputs = [
     "call-runBlastShard/shard-0/execution/refseq.bacteria.parsed",
     "call-runBlastShard/shard-1/execution/refseq.mito.parsed",
     "call-runSpades/execution/scaffolds.fasta",
+    "call-runSpades/execution/contigs.fasta",
 ]
 
 
@@ -42,6 +43,7 @@ wfcopy_outputs = [
     "bbmap_shard_wf/alignment/shard-1/sample2.sam",
     "bbmap_shard_wf/merge_bams/merged.sorted.bam",
     "runSpades/scaffolds.fasta",
+    "runSpades/contigs.fasta",
     "log/runBlastNoshard.runBlast.script",
     "log/runBlastNoshard.runBlast.script.submit",
     "log/runBlastNoshard.runBlast.stdout",
@@ -89,6 +91,7 @@ wfcopy_flatten_outputs = [
     "bbmap_shard_wf/alignment/sample1.sam",
     "bbmap_shard_wf/alignment/sample2.sam",
     "runSpades/scaffolds.fasta",
+    "runSpades/contigs.fasta",
     "log/runBlastNoshard.runBlast.script",
     "log/runBlastNoshard.runBlast.script.submit",
     "log/runBlastNoshard.runBlast.stdout",
@@ -127,8 +130,9 @@ cromwell_root_dir = tempfile.mkdtemp(prefix="cromwell_")
 wfcopy_root_dir = tempfile.mkdtemp(prefix="wfcopy_")
 
 
-def setup_function():
+def setup_module():
     print("setup ...")
+    print(f"cromwell_root_dir={cromwell_root_dir}")
     for filename in cromwell_outputs:
         fullname = os.path.join(cromwell_root_dir, filename)
         filepath = os.path.dirname(fullname)
@@ -146,20 +150,37 @@ def setup_function():
             fullname = os.path.join(filepath, srcfile)
             with open(fullname, "w") as fh:
                 fh.write("test")
-            print(fullname)
-        print(fullname)
+
+    # add absolute symlinks for testing
+    abs_crfile = os.path.join(cromwell_root_dir, "call-runSpades/execution/scaffolds.fasta")
+    abs_symlink = os.path.join(cromwell_root_dir, "call-runSpades/execution/scaffolds_hardln.fasta")
+    os.symlink(abs_crfile, abs_symlink)
+
+    # add relative symlinks for testing
+    cwd = os.getcwd()
+    os.chdir(os.path.join(cromwell_root_dir, "call-runSpades/execution"))
+    rel_srcfile = os.path.join("./contigs.fasta")
+    rel_symlink = "./contigs_softln.fasta"
+    os.symlink(rel_srcfile, rel_symlink)
+    os.chdir(cwd)
+
+
+def teardown_module():
+    print("teardown ...")
+    print("remove %s" % cromwell_root_dir)
+    shutil.rmtree(cromwell_root_dir)
 
 
 def teardown_function():
     print("teardown ...")
-    print("remove %s" % cromwell_root_dir)
     print("remove %s" % wfcopy_root_dir)
-    shutil.rmtree(cromwell_root_dir)
     shutil.rmtree(wfcopy_root_dir)
 
 
 def test_wfcopy():
     print("testing ...")
+    print(f"wfcopy_root_dir={wfcopy_root_dir}")
+
     # Transform cromwell dir to wfcopy format
     dest_dir = os.path.join(wfcopy_root_dir, "wfcopy_output")
     wfcopy.wfcopy(cromwell_root_dir, dest_dir)
@@ -167,12 +188,17 @@ def test_wfcopy():
     # look for task files
     for filename in wfcopy_outputs:
         fullname = os.path.join(dest_dir, filename)
-        print(fullname)
         assert os.path.isfile(fullname)
+
+    # check symlink files
+    assert os.path.islink(os.path.join(dest_dir, "runSpades/contigs_softln.fasta"))
+    assert not os.path.islink(os.path.join(dest_dir, "runSpades/scaffolds_softln.fasta"))
 
 
 def test_wfcopy_flatten():
     print("testing with flatten_shard_dir ...")
+    print(f"wfcopy_root_dir={wfcopy_root_dir}")
+
     # Transform cromwell dir to wfcopy format
     dest_dir = os.path.join(wfcopy_root_dir, "wfcopy_output")
     wfcopy.wfcopy(cromwell_root_dir, dest_dir, flatten_shard_dir=True)
@@ -180,5 +206,8 @@ def test_wfcopy_flatten():
     # look for task files
     for filename in wfcopy_flatten_outputs:
         fullname = os.path.join(dest_dir, filename)
-        print(fullname)
         assert os.path.isfile(fullname)
+
+    # check symlink files
+    assert os.path.islink(os.path.join(dest_dir, "runSpades/contigs_softln.fasta"))
+    assert not os.path.islink(os.path.join(dest_dir, "runSpades/scaffolds_softln.fasta"))
