@@ -44,8 +44,9 @@ class RmqConnectionAmqpstorm(object):
 
 
 class JtmAmqpstormBase(object):
-    def __init__(self, config, max_retries=None):
+    def __init__(self, config, ppid=None, max_retries=None):
         self.config = config
+        self.ppid = ppid
         self.max_retries = max_retries
         self.connection = None
         self.jgi_jtm_main_exch = config.configparser.get("JTM", "jgi_jtm_main_exch")

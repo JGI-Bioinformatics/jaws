@@ -19,6 +19,7 @@ Example of task processing scenario
    takes and updates tables
 
 """
+import sys
 import multiprocessing as mp
 import time
 import json
@@ -30,6 +31,7 @@ import os
 import signal
 import re
 import amqpstorm
+import psutil
 
 from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.lib.sqlstmt import JTM_SQL
@@ -88,9 +90,15 @@ class WorkerResultReceiver(JtmAmqpstormBase):
             except amqpstorm.AMQPError as why:
                 logger.exception(why)
                 self.create_connection()
+            except Exception as e:
+                logger.exception(e)
             except KeyboardInterrupt:
                 self.connection.close()
                 break
+            finally:
+                if self.connection:
+                    self.connection.close()
+                kill_child_proc(self.ppid)
 
     def process_result(self, message):
         """
@@ -471,9 +479,15 @@ class JtmCommandRunner(JtmAmqpstormBase):
             except amqpstorm.AMQPError as why:
                 logger.exception(why)
                 self.create_connection()
+            except Exception as e:
+                logger.exception(e)
             except KeyboardInterrupt:
                 self.connection.close()
                 break
+            finally:
+                if self.connection:
+                    self.connection.close()
+                kill_child_proc(self.ppid)
 
     def process_jtm_command(self, message):
         """
@@ -535,9 +549,15 @@ class JtmNonTaskCommandRunner(JtmAmqpstormBase):
             except amqpstorm.AMQPError as why:
                 logger.exception(why)
                 self.create_connection()
+            except Exception as e:
+                logger.exception(e)
             except KeyboardInterrupt:
                 self.connection.close()
                 break
+            finally:
+                if self.connection:
+                    self.connection.close()
+                kill_child_proc(self.ppid)
 
     def process_jtm_command(self, message):
         """
@@ -679,7 +699,7 @@ def send_update_task_status_msg(
 
 
 # --------------------------------------------------------------------------------------------------
-def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
+def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log, ppid):
     """
 
     :param hb_queue_name:
@@ -691,317 +711,321 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     jtm_worker_hb_exch = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
     interval = CONFIG.configparser.getfloat("JTM", "client_hb_recv_interval")
 
-    with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
-        with conn.channel() as ch:
-            ch.queue.declare(
-                queue=hb_queue_name, durable=False, exclusive=False, auto_delete=True
-            )
-            ch.exchange.declare(
-                exchange=jtm_worker_hb_exch,
-                exchange_type="direct",
-                durable=False,
-                auto_delete=False,
-            )
-            ch.queue.bind(
-                exchange=jtm_worker_hb_exch,
-                queue=hb_queue_name,
-                routing_key=hb_queue_name,
-            )
+    try:
+        with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
+            with conn.channel() as ch:
+                ch.queue.declare(
+                    queue=hb_queue_name, durable=False, exclusive=False, auto_delete=True
+                )
+                ch.exchange.declare(
+                    exchange=jtm_worker_hb_exch,
+                    exchange_type="direct",
+                    durable=False,
+                    auto_delete=False,
+                )
+                ch.queue.bind(
+                    exchange=jtm_worker_hb_exch,
+                    queue=hb_queue_name,
+                    routing_key=hb_queue_name,
+                )
 
-            b_is_msg_cleared = False  # all stacked messages are processed or not
-            b_is_worker_found = False  # is any alive worker
-            max_worker_check_count = 0  # max number of checking workers
+                b_is_msg_cleared = False  # all stacked messages are processed or not
+                b_is_worker_found = False  # is any alive worker
+                max_worker_check_count = 0  # max number of checking workers
 
-            while True:
-                worker_ids_dict = {}
-                ch.basic.qos(100)
-                message = ch.basic.get(queue=hb_queue_name, no_ack=True)
-                if message and not b_is_msg_cleared:
-                    cnt = message.method["message_count"]
-                    for i in range(cnt):
-                        _ = ch.basic.get(queue=hb_queue_name, no_ack=True)
-                    b_is_msg_cleared = True
+                while True:
+                    worker_ids_dict = {}
+                    ch.basic.qos(100)
+                    message = ch.basic.get(queue=hb_queue_name, no_ack=True)
+                    if message and not b_is_msg_cleared:
+                        cnt = message.method["message_count"]
+                        for i in range(cnt):
+                            _ = ch.basic.get(queue=hb_queue_name, no_ack=True)
+                        b_is_msg_cleared = True
 
-                elif message and b_is_msg_cleared:
-                    cnt = message.method["message_count"]
-                    msg_unzipped = json.loads(zloads(message.body))
-                    msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
-                    a_worker_id = msg_unzipped[hb_msg["worker_id"]]
-                    worker_ids_dict[a_worker_id] = msg_unzipped
+                    elif message and b_is_msg_cleared:
+                        cnt = message.method["message_count"]
+                        msg_unzipped = json.loads(zloads(message.body))
+                        msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
+                        a_worker_id = msg_unzipped[hb_msg["worker_id"]]
+                        worker_ids_dict[a_worker_id] = msg_unzipped
 
-                    for i in range(cnt):
-                        message = ch.basic.get(queue=hb_queue_name, no_ack=True)
-                        if message:
-                            msg_unzipped = json.loads(zloads(message.body))
-                            msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
-                            a_worker_id = msg_unzipped[hb_msg["worker_id"]]
-                            worker_ids_dict[a_worker_id] = msg_unzipped
+                        for i in range(cnt):
+                            message = ch.basic.get(queue=hb_queue_name, no_ack=True)
+                            if message:
+                                msg_unzipped = json.loads(zloads(message.body))
+                                msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
+                                a_worker_id = msg_unzipped[hb_msg["worker_id"]]
+                                worker_ids_dict[a_worker_id] = msg_unzipped
 
-                    for k, v in worker_ids_dict.items():
-                        task_id = v[hb_msg["task_id"]]
-                        root_proc_id = v[hb_msg["root_pid"]]
-                        child_proc_id = v[hb_msg["child_pid"]]
-                        a_worker_id = v[hb_msg["worker_id"]]
-                        slurm_job_id = v[hb_msg["slurm_jobid"]]
-                        worker_type = v[hb_msg["worker_type"]]
-                        end_datetime = v[hb_msg["end_date"]]
-                        life_left = v[hb_msg["life_left"]]
-                        mem_per_node = v[hb_msg["mem_per_node"]]
-                        mem_per_core = v[hb_msg["mem_per_core"]]
-                        num_cores = v[hb_msg["num_cores"]]
-                        job_time = v[hb_msg["job_time"]]
-                        clone_time = v[hb_msg["clone_time_rate"]]
-                        host_name = v[hb_msg["host_name"]]
-                        jtm_host_name = v[hb_msg["jtm_host_name"]]
-                        ip_addr = v[hb_msg["ip_address"]]
-                        pool_name = v[hb_msg["pool_name"]]
+                        for k, v in worker_ids_dict.items():
+                            task_id = v[hb_msg["task_id"]]
+                            root_proc_id = v[hb_msg["root_pid"]]
+                            child_proc_id = v[hb_msg["child_pid"]]
+                            a_worker_id = v[hb_msg["worker_id"]]
+                            slurm_job_id = v[hb_msg["slurm_jobid"]]
+                            worker_type = v[hb_msg["worker_type"]]
+                            end_datetime = v[hb_msg["end_date"]]
+                            life_left = v[hb_msg["life_left"]]
+                            mem_per_node = v[hb_msg["mem_per_node"]]
+                            mem_per_core = v[hb_msg["mem_per_core"]]
+                            num_cores = v[hb_msg["num_cores"]]
+                            job_time = v[hb_msg["job_time"]]
+                            clone_time = v[hb_msg["clone_time_rate"]]
+                            host_name = v[hb_msg["host_name"]]
+                            jtm_host_name = v[hb_msg["jtm_host_name"]]
+                            ip_addr = v[hb_msg["ip_address"]]
+                            pool_name = v[hb_msg["pool_name"]]
 
-                        if b_resource_log:
-                            logger.resource(v)
-                        if pool_name:
-                            queue_name = (
-                                CONFIG.configparser.get("JTM", "jtm_inner_request_q")
-                                + "."
-                                + pool_name
-                            )
-                        else:
-                            queue_name = ""
+                            if b_resource_log:
+                                logger.resource(v)
+                            if pool_name:
+                                queue_name = (
+                                    CONFIG.configparser.get("JTM", "jtm_inner_request_q")
+                                    + "."
+                                    + pool_name
+                                )
+                            else:
+                                queue_name = ""
 
+                            success = False
+
+                            # Todo: still need to do "while" for checking db connection?
+                            while success is not True:
+                                success = True
+                                try:
+                                    db = DbSqlMysql(config=CONFIG)
+                                    bExists = db.selectScalar(
+                                        JTM_SQL["select_exists_workers_by_workerid"]
+                                        % dict(worker_id=a_worker_id)
+                                    )
+
+                                    if not bExists:
+                                        # Todo: remove num_worker_on_the_node insertion
+                                        db.execute(
+                                            JTM_SQL["insert_workers_workerid_slurmjobid"]
+                                            % dict(
+                                                worker_id=a_worker_id,
+                                                slurm_jid=slurm_job_id,
+                                                worker_type=worker_type,
+                                                nwpn=1,
+                                            )
+                                        )
+                                    else:
+                                        # Todo: stress test needed! Test if nworkers > 1000
+                                        # Todo: can only update end_datetime and life_left after 1st insert
+                                        db.execute(
+                                            JTM_SQL[
+                                                "update_workers_enddate_lifeleft_by_workerid"
+                                            ]
+                                            % dict(
+                                                worker_id=a_worker_id,
+                                                now=end_datetime,
+                                                life_left=life_left,
+                                                mpn=mem_per_node if worker_type != 0 else 0,
+                                                mpc=mem_per_core if worker_type != 0 else 0,
+                                                num_cores=num_cores
+                                                if worker_type != 0
+                                                else 0,
+                                                job_time=job_time,
+                                                clone_rate=clone_time
+                                                if worker_type != 0
+                                                else 0,
+                                                host_name=host_name,
+                                                jtm_host_name=jtm_host_name,
+                                                ipaddr=ip_addr,
+                                                pool_name=queue_name,
+                                                slurm_jid=slurm_job_id,
+                                            )
+                                        )
+
+                                    db.commit()
+                                    db.close()
+                                except Exception as e:
+                                    logger.critical(e)
+                                    logger.critical(
+                                        "Failed to update workers table for enddate and lifeleft."
+                                    )
+                                    logger.debug(
+                                        "Retry to update workers table for enddate and lifeleft."
+                                    )
+                                    success = False
+                                    conn.sleep(1)
+
+                            # handle "pending"
+                            if (
+                                task_id > 0
+                                and root_proc_id == child_proc_id
+                                and slurm_job_id > 0
+                            ):
+                                pass
+                            elif (
+                                task_id > 0 and root_proc_id != child_proc_id
+                            ):  # if user process processing started
+                                logger.debug("Task %d status ==> running" % task_id)
+                                datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
+                                if log_dest_dir:
+                                    log_dir_name = os.path.join(log_dest_dir, "resource")
+                                else:
+                                    log_dir_name = "%s/resource" % (os.getcwd())
+
+                                padded_dir_str = pad_string_path(
+                                    task_id, depth=3
+                                )  # task id 226 --> 00/00/02
+                                make_dir(os.path.join(log_dir_name, padded_dir_str))
+                                resource_log_fname = "%s/%s/jtm_resource_%d_%s.log" % (
+                                    log_dir_name,
+                                    padded_dir_str,
+                                    task_id,
+                                    datetime_str,
+                                )
+
+                                with open(resource_log_fname, "a") as rf:
+                                    rf.write(",".join([str(i) for i in v.values()]))
+                                    rf.write("\n")
+
+                                os.chmod(resource_log_fname, 0o777)
+
+                                try:
+                                    # Update tasks table with "running" status == 2 if status is still 0 or 1
+                                    db = DbSqlMysql(config=CONFIG)
+                                    status_now = db.selectScalar(
+                                        JTM_SQL["select_status_runs_by_taskid"]
+                                        % dict(task_id=task_id),
+                                        debug=False,
+                                    )
+                                    logger.debug(f"status now {task_id} = {status_now}")
+
+                                    if not STANDALONE:
+                                        logger.debug(
+                                            f"status change msg {task_id}: {status_now} => running"
+                                        )
+                                        if status_now == TASK_STATUS["pending"]:
+                                            send_update_task_status_msg(
+                                                task_id, status_now, TASK_STATUS["running"]
+                                            )
+
+                                    db.execute(
+                                        JTM_SQL["update_runs_status_to_running_by_taskid"]
+                                        % dict(
+                                            status_id=TASK_STATUS["running"],
+                                            task_id=task_id,
+                                            worker_id=a_worker_id,
+                                            child_pid=child_proc_id,
+                                            resource_log=resource_log_fname,
+                                        ),
+                                        debug=False,
+                                    )
+                                    db.commit()
+                                    db.close()
+                                except Exception as e:
+                                    logger.critical(e)
+                                    logger.critical(
+                                        "Failed to update runs table for status."
+                                    )
+                                    ch.close()
+                                    conn.close()
+                                    raise
+
+                        # Collect worker_ids from hb
+                        alive_worker_id_list = []
+                        for k, v in worker_ids_dict.items():
+                            alive_worker_id_list.append(v[hb_msg["worker_id"]])
+
+                        # Collect worker_id which are still set as alive from workers table
                         success = False
-
-                        # Todo: still need to do "while" for checking db connection?
                         while success is not True:
                             success = True
                             try:
                                 db = DbSqlMysql(config=CONFIG)
-                                bExists = db.selectScalar(
-                                    JTM_SQL["select_exists_workers_by_workerid"]
-                                    % dict(worker_id=a_worker_id)
+                                live_worker_id_list = db.selectAll(
+                                    JTM_SQL[
+                                        "select_workerid_workers_by_lifeleft_jtmhostname"
+                                    ]
+                                    % dict(jtm_host_name=jtm_host_name),
+                                    debug=False,
                                 )
+                                live_worker_id_list = [i[0] for i in live_worker_id_list]
 
-                                if not bExists:
-                                    # Todo: remove num_worker_on_the_node insertion
-                                    db.execute(
-                                        JTM_SQL["insert_workers_workerid_slurmjobid"]
-                                        % dict(
-                                            worker_id=a_worker_id,
-                                            slurm_jid=slurm_job_id,
-                                            worker_type=worker_type,
-                                            nwpn=1,
+                                # Check & update workers table
+                                # Set life_left as -1 for dead workers
+                                for w in live_worker_id_list:
+                                    if w not in alive_worker_id_list:
+                                        # Update lifeleft --> -1
+                                        db.execute(
+                                            JTM_SQL["update_workers_lifeleft_by_workerid"]
+                                            % dict(worker_id=w, jtm_host_name=jtm_host_name)
                                         )
-                                    )
-                                else:
-                                    # Todo: stress test needed! Test if nworkers > 1000
-                                    # Todo: can only update end_datetime and life_left after 1st insert
-                                    db.execute(
-                                        JTM_SQL[
-                                            "update_workers_enddate_lifeleft_by_workerid"
-                                        ]
-                                        % dict(
-                                            worker_id=a_worker_id,
-                                            now=end_datetime,
-                                            life_left=life_left,
-                                            mpn=mem_per_node if worker_type != 0 else 0,
-                                            mpc=mem_per_core if worker_type != 0 else 0,
-                                            num_cores=num_cores
-                                            if worker_type != 0
-                                            else 0,
-                                            job_time=job_time,
-                                            clone_rate=clone_time
-                                            if worker_type != 0
-                                            else 0,
-                                            host_name=host_name,
-                                            jtm_host_name=jtm_host_name,
-                                            ipaddr=ip_addr,
-                                            pool_name=queue_name,
-                                            slurm_jid=slurm_job_id,
-                                        )
-                                    )
-
                                 db.commit()
                                 db.close()
                             except Exception as e:
                                 logger.critical(e)
                                 logger.critical(
-                                    "Failed to update workers table for enddate and lifeleft."
+                                    "Failed to update workers table for lifeleft."
                                 )
-                                logger.debug(
-                                    "Retry to update workers table for enddate and lifeleft."
-                                )
+                                logger.debug("Retry to update workers table for lifeleft.")
                                 success = False
                                 conn.sleep(1)
 
-                        # handle "pending"
-                        if (
-                            task_id > 0
-                            and root_proc_id == child_proc_id
-                            and slurm_job_id > 0
-                        ):
-                            pass
-                        elif (
-                            task_id > 0 and root_proc_id != child_proc_id
-                        ):  # if user process processing started
-                            logger.debug("Task %d status ==> running" % task_id)
-                            datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
-                            if log_dest_dir:
-                                log_dir_name = os.path.join(log_dest_dir, "resource")
-                            else:
-                                log_dir_name = "%s/resource" % (os.getcwd())
-
-                            padded_dir_str = pad_string_path(
-                                task_id, depth=3
-                            )  # task id 226 --> 00/00/02
-                            make_dir(os.path.join(log_dir_name, padded_dir_str))
-                            resource_log_fname = "%s/%s/jtm_resource_%d_%s.log" % (
-                                log_dir_name,
-                                padded_dir_str,
-                                task_id,
-                                datetime_str,
+                        db = DbSqlMysql(config=CONFIG)
+                        alive_total_num_workers = db.selectScalar(
+                            JTM_SQL["select_sum_nwpn_workers_by_lifeleftt_jtmhostname"]
+                            % dict(jtm_host_name=jtm_host_name),
+                            debug=False,
+                        )
+                        db.close()
+                        NUM_TOTAL_WORKERS.value = (
+                            int(alive_total_num_workers) if alive_total_num_workers else 0
+                        )
+                        logger.debug(
+                            "# workers: in hb=%d, in table=%d, alive+requested=NUM_TOTAL_WORKERS=%d"
+                            % (
+                                len(alive_worker_id_list),
+                                len(live_worker_id_list),
+                                NUM_TOTAL_WORKERS.value,
                             )
+                        )
 
-                            with open(resource_log_fname, "a") as rf:
-                                rf.write(",".join([str(i) for i in v.values()]))
-                                rf.write("\n")
+                        if NUM_TOTAL_WORKERS.value > 0:
+                            b_is_worker_found = True
+                            max_worker_check_count = 0  # reinitialize
 
-                            os.chmod(resource_log_fname, 0o777)
+                    elif not message and b_is_msg_cleared and b_is_worker_found:
+                        # If we are here, unfortunately, we lost all the workers that we've been using.
+                        max_worker_check_count += 1
+                        NUM_TOTAL_WORKERS.value = 0
+                        logger.info("Waiting for worker(s)...")
+                        hb_check = CONFIG.configparser.getint(
+                            "JTM", "worker_hb_check_max_count"
+                        )
+                        if (
+                            hb_check != 0 and max_worker_check_count > hb_check
+                        ):  # hit the max checking limit
+                            # Close connection and kill parent and itself
+                            ch.close()
+                            conn.close()
+                            raise OSError(2, "Worker not found")
 
+                        # If there no workers alive after 5 checks, set life_left to -1 for all
+                        if max_worker_check_count == 3:
                             try:
-                                # Update tasks table with "running" status == 2 if status is still 0 or 1
                                 db = DbSqlMysql(config=CONFIG)
-                                status_now = db.selectScalar(
-                                    JTM_SQL["select_status_runs_by_taskid"]
-                                    % dict(task_id=task_id),
-                                    debug=False,
-                                )
-                                logger.debug(f"status now {task_id} = {status_now}")
-
-                                if not STANDALONE:
-                                    logger.debug(
-                                        f"status change msg {task_id}: {status_now} => running"
-                                    )
-                                    if status_now == TASK_STATUS["pending"]:
-                                        send_update_task_status_msg(
-                                            task_id, status_now, TASK_STATUS["running"]
-                                        )
-
-                                db.execute(
-                                    JTM_SQL["update_runs_status_to_running_by_taskid"]
-                                    % dict(
-                                        status_id=TASK_STATUS["running"],
-                                        task_id=task_id,
-                                        worker_id=a_worker_id,
-                                        child_pid=child_proc_id,
-                                        resource_log=resource_log_fname,
-                                    ),
-                                    debug=False,
-                                )
+                                db.execute(JTM_SQL["update_workers_lifeleft_for_last"])
                                 db.commit()
                                 db.close()
                             except Exception as e:
                                 logger.critical(e)
                                 logger.critical(
-                                    "Failed to update runs table for status."
+                                    "Failed to update workers table for lifeleft."
                                 )
                                 ch.close()
                                 conn.close()
                                 raise
 
-                    # Collect worker_ids from hb
-                    alive_worker_id_list = []
-                    for k, v in worker_ids_dict.items():
-                        alive_worker_id_list.append(v[hb_msg["worker_id"]])
-
-                    # Collect worker_id which are still set as alive from workers table
-                    success = False
-                    while success is not True:
-                        success = True
-                        try:
-                            db = DbSqlMysql(config=CONFIG)
-                            live_worker_id_list = db.selectAll(
-                                JTM_SQL[
-                                    "select_workerid_workers_by_lifeleft_jtmhostname"
-                                ]
-                                % dict(jtm_host_name=jtm_host_name),
-                                debug=False,
-                            )
-                            live_worker_id_list = [i[0] for i in live_worker_id_list]
-
-                            # Check & update workers table
-                            # Set life_left as -1 for dead workers
-                            for w in live_worker_id_list:
-                                if w not in alive_worker_id_list:
-                                    # Update lifeleft --> -1
-                                    db.execute(
-                                        JTM_SQL["update_workers_lifeleft_by_workerid"]
-                                        % dict(worker_id=w, jtm_host_name=jtm_host_name)
-                                    )
-                            db.commit()
-                            db.close()
-                        except Exception as e:
-                            logger.critical(e)
-                            logger.critical(
-                                "Failed to update workers table for lifeleft."
-                            )
-                            logger.debug("Retry to update workers table for lifeleft.")
-                            success = False
-                            conn.sleep(1)
-
-                    db = DbSqlMysql(config=CONFIG)
-                    alive_total_num_workers = db.selectScalar(
-                        JTM_SQL["select_sum_nwpn_workers_by_lifeleftt_jtmhostname"]
-                        % dict(jtm_host_name=jtm_host_name),
-                        debug=False,
-                    )
-                    db.close()
-                    NUM_TOTAL_WORKERS.value = (
-                        int(alive_total_num_workers) if alive_total_num_workers else 0
-                    )
-                    logger.debug(
-                        "# workers: in hb=%d, in table=%d, alive+requested=NUM_TOTAL_WORKERS=%d"
-                        % (
-                            len(alive_worker_id_list),
-                            len(live_worker_id_list),
-                            NUM_TOTAL_WORKERS.value,
-                        )
-                    )
-
-                    if NUM_TOTAL_WORKERS.value > 0:
-                        b_is_worker_found = True
-                        max_worker_check_count = 0  # reinitialize
-
-                elif not message and b_is_msg_cleared and b_is_worker_found:
-                    # If we are here, unfortunately, we lost all the workers that we've been using.
-                    max_worker_check_count += 1
-                    NUM_TOTAL_WORKERS.value = 0
-                    logger.info("Waiting for worker(s)...")
-                    hb_check = CONFIG.configparser.getint(
-                        "JTM", "worker_hb_check_max_count"
-                    )
-                    if (
-                        hb_check != 0 and max_worker_check_count > hb_check
-                    ):  # hit the max checking limit
-                        # Close connection and kill parent and itself
-                        ch.close()
-                        conn.close()
-                        raise OSError(2, "Worker not found")
-
-                    # If there no workers alive after 5 checks, set life_left to -1 for all
-                    if max_worker_check_count == 3:
-                        try:
-                            db = DbSqlMysql(config=CONFIG)
-                            db.execute(JTM_SQL["update_workers_lifeleft_for_last"])
-                            db.commit()
-                            db.close()
-                        except Exception as e:
-                            logger.critical(e)
-                            logger.critical(
-                                "Failed to update workers table for lifeleft."
-                            )
-                            ch.close()
-                            conn.close()
-                            raise
-
-                time.sleep(interval)
+                    time.sleep(interval)
+    except Exception as e:
+        logger.exception(e)
+        kill_child_proc(ppid)
 
 
 # -------------------------------------------------------------------------------
@@ -1911,7 +1935,7 @@ def process_remove_pool(task_pool_name):
 
 
 # -------------------------------------------------------------------------------
-def task_kill_proc():
+def task_kill_proc(ppid):
     """
     Check "runs" table if any row with canceled request (canceled=1).
     Check if canceled=1 and wid!=None and status!=-4(which means it's in running status)
@@ -1995,13 +2019,13 @@ def task_kill_proc():
                 logger.exception(
                     "Something goes wrong in task_kill_proc(): {}".format(e)
                 )
-                raise
+                kill_child_proc(ppid)
 
         time.sleep(CONFIG.configparser.getfloat("JTM", "task_kill_interval"))
 
 
 # -------------------------------------------------------------------------------
-def slurm_worker_cleanup_proc():
+def slurm_worker_cleanup_proc(ppid):
     """
     Try to find invalid slurm job
     If any, update workers table
@@ -2019,32 +2043,36 @@ def slurm_worker_cleanup_proc():
         if len(slurm_job_id) > 0:
             logger.info("Worker checking for %s" % str(slurm_job_id))
         for j in slurm_job_id:
-            # Note: slurm dependent code!
-            cmd = "squeue -j %d" % j
-            so, _, _ = run_sh_command(cmd, log=logger, show_stdout=False)
-            if not re.search(r"\bPD\b", so) and not re.search(r"\bR\b", so):
-                logger.info("Found dead worker(s) from %s, %s" % (str(j), so))
-                logger.debug(
-                    "slurm_worker_cleanup_proc ****************************** "
-                )
-                db = DbSqlMysql(config=CONFIG)
-                # Note: update status from runs where workerId2 = (select workerId2 from workers)
-                db.execute(
-                    JTM_SQL["update_runs_status_cancelled_by_status_workerId2_jid"]
-                    % dict(slurm_jid=j,),
-                    debug=DEBUG,
-                )
-                # Delete workers
-                db.execute(
-                    JTM_SQL["delete_from_workers_by_slurmjid"] % dict(slurm_jid=j,),
-                    debug=DEBUG,
-                )
-                db.commit()
-                db.close()
-            else:
-                logger.debug("Job id {} is alive.".format(j))
+            try:
+                # Note: slurm dependent code!
+                cmd = "squeue -j %d" % j
+                so, _, _ = run_sh_command(cmd, log=logger, show_stdout=False)
+                if not re.search(r"\bPD\b", so) and not re.search(r"\bR\b", so):
+                    logger.info("Found dead worker(s) from %s, %s" % (str(j), so))
+                    logger.debug(
+                        "slurm_worker_cleanup_proc ****************************** "
+                    )
+                    db = DbSqlMysql(config=CONFIG)
+                    # Note: update status from runs where workerId2 = (select workerId2 from workers)
+                    db.execute(
+                        JTM_SQL["update_runs_status_cancelled_by_status_workerId2_jid"]
+                        % dict(slurm_jid=j,),
+                        debug=DEBUG,
+                    )
+                    # Delete workers
+                    db.execute(
+                        JTM_SQL["delete_from_workers_by_slurmjid"] % dict(slurm_jid=j,),
+                        debug=DEBUG,
+                    )
+                    db.commit()
+                    db.close()
+                else:
+                    logger.debug("Job id {} is alive.".format(j))
 
-            time.sleep(1)
+                time.sleep(1)
+            except Exception as e:
+                logger.exception(e)
+                kill_child_proc(ppid)
 
         time.sleep(CONFIG.configparser.getfloat("JTM", "worker_kill_interval"))
 
@@ -2060,6 +2088,18 @@ def proc_clean_exit(plist):
         if p is not None and p.is_alive():
             p.terminate()
     os._exit(1)
+
+
+# -------------------------------------------------------------------------------
+def kill_child_proc(ppid):
+    for process in psutil.process_iter():
+        _ppid = process.ppid()
+        if _ppid == ppid:
+            _pid = process.pid
+            if sys.platform == 'win32':
+                process.terminate()
+            else:
+                os.system('kill -9 {0}'.format(_pid))
 
 
 # -------------------------------------------------------------------------------
@@ -2153,14 +2193,15 @@ def manager(
         proc_clean_exit(plist)
 
     signal.signal(signal.SIGTERM, signal_handler)
-    logger.debug(f"main_proc pid = {os.getpid()}")
+    ppid = os.getpid()
+    logger.debug(f"main_proc pid = {ppid}")
 
     # Start heartbeat receiving proc
     worker_hb_queue_name = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
     try:
         recv_hb_from_worker_proc_hdl = mp.Process(
             target=recv_hb_from_worker_proc,
-            args=(worker_hb_queue_name, log_dir_name, b_resource_usage_log_on),
+            args=(worker_hb_queue_name, log_dir_name, b_resource_usage_log_on, ppid,),
         )
         recv_hb_from_worker_proc_hdl.start()
         plist.append(recv_hb_from_worker_proc_hdl)
@@ -2173,7 +2214,9 @@ def manager(
 
     # Start cancelled task cleanup proc
     try:
-        task_kill_proc_hdl = mp.Process(target=task_kill_proc)
+        task_kill_proc_hdl = mp.Process(target=task_kill_proc,
+                                        args=(ppid,),
+                                        )
         task_kill_proc_hdl.start()
         plist.append(task_kill_proc_hdl)
         logger.debug(f"task_kill_proc pid = {task_kill_proc_hdl.pid}")
@@ -2183,7 +2226,9 @@ def manager(
 
     # Start worker cleanup proc
     try:
-        worker_cleanup_proc_hdl = mp.Process(target=slurm_worker_cleanup_proc)
+        worker_cleanup_proc_hdl = mp.Process(target=slurm_worker_cleanup_proc,
+                                             args=(ppid,),
+                                             )
         worker_cleanup_proc_hdl.start()
         plist.append(worker_cleanup_proc_hdl)
         logger.debug(f"worker_cleanup_proc pid = {worker_cleanup_proc_hdl.pid}")
@@ -2194,7 +2239,7 @@ def manager(
     # Start result receiving proc
     try:
         recv_result_from_worker_proc_hdl = mp.Process(
-            target=WorkerResultReceiver(config=CONFIG).start
+            target=WorkerResultReceiver(config=CONFIG, ppid=ppid).start
         )
         recv_result_from_worker_proc_hdl.start()
         plist.append(recv_result_from_worker_proc_hdl)
@@ -2208,7 +2253,7 @@ def manager(
     # Start JtmCommandRunner
     try:
         process_jtminterface_command_proc_hdl = mp.Process(
-            target=JtmCommandRunner(config=CONFIG).start
+            target=JtmCommandRunner(config=CONFIG, ppid=ppid).start
         )
         process_jtminterface_command_proc_hdl.start()
         plist.append(process_jtminterface_command_proc_hdl)
@@ -2222,7 +2267,7 @@ def manager(
     # Start JtmNonTaskCommandRunner
     try:
         process_jtminterface_nontaskcommand_proc_hdl = mp.Process(
-            target=JtmNonTaskCommandRunner(config=CONFIG).start
+            target=JtmNonTaskCommandRunner(config=CONFIG, ppid=ppid).start
         )
         process_jtminterface_nontaskcommand_proc_hdl.start()
         plist.append(process_jtminterface_nontaskcommand_proc_hdl)
