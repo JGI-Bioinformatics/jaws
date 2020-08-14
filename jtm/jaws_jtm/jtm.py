@@ -7,11 +7,11 @@ import json
 import csv
 import time
 
+from jaws_jtm.common import logger
 from jaws_jtm.config import JtmConfig
 from jaws_jtm.jtm_manager import manager as jtmmanager
 from jaws_jtm.jtm_worker import worker as jtmworker
 from jaws_jtm.lib.jtminterface import JtmInterface
-from jaws_jtm.common import logger
 from jaws_jtm.lib.run import run_sh_command
 
 
@@ -561,15 +561,17 @@ def check_manager(ctx: object, cluster: str) -> int:
     :return: exit with 0 if a manager found, 1 if not
     """
     config = ctx.obj["config"]
-    ps_cmd = "ps -aef | grep -v grep | grep -v check-manager | grep jtm | grep manager "
     mode = config.configparser.get('JTM', 'run_mode')
+    ps_cmd = "ps -aef | grep -v grep | grep -v check-manager | grep jtm | grep manager "
     if mode != "test":
         ps_cmd += f"| grep jaws-{mode} "
     ps_cmd += "| wc -l"
+    logger.warning(ps_cmd)
     num_total_procs = 0
     try:
         so, _, ec = run_sh_command(ps_cmd, log=logger, show_stdout=False)
         num_total_procs = int(so.rstrip())
+        logger.warning(f"num procs = {num_total_procs}")
     except Exception as e:
         logger.exception(e)
         logger.error(ps_cmd)

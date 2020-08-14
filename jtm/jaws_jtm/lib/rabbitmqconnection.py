@@ -129,7 +129,7 @@ class RmqConnectionHB(object):
             )
             self.__connection = pika.BlockingConnection(params)
         else:
-            print("Already connected.")
+            logger.warning("Already connected.")
 
     def open(self):
         return self.__connection
