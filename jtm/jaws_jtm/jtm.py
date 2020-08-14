@@ -12,6 +12,7 @@ from jaws_jtm.jtm_manager import manager as jtmmanager
 from jaws_jtm.jtm_worker import worker as jtmworker
 from jaws_jtm.lib.jtminterface import JtmInterface
 from jaws_jtm.common import logger
+from jaws_jtm.lib.run import run_sh_command
 
 
 class Mutex(click.Option):
@@ -551,10 +552,34 @@ def check_manager(ctx: object, cluster: str) -> int:
     """
     check if a JTM manager is running on a site
 
+    if the number of total processes of JTM != 7
+    then return Non-zero
+
     :param ctx:
-    :param cluster:
+    :param cluster: site names, [cori | jgi | cascade]
+    :param run_mode:
     :return: exit with 0 if a manager found, 1 if not
     """
+    config = ctx.obj["config"]
+    ps_cmd = "ps -aef | grep -v grep | grep -v check-manager | grep jtm | grep manager "
+    mode = config.configparser.get('JTM', 'run_mode')
+    if mode != "test":
+        ps_cmd += f"| grep jaws-{mode} "
+    ps_cmd += "| wc -l"
+    num_total_procs = 0
+    try:
+        so, _, ec = run_sh_command(ps_cmd, log=logger, show_stdout=False)
+        num_total_procs = int(so.rstrip())
+    except Exception as e:
+        logger.exception(e)
+        logger.error(ps_cmd)
+        sys.exit(-1)
+    else:
+        if num_total_procs == 7:
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
     add_info = socket.gethostname().replace(".", "_")
     if cluster:
         add_info = cluster
