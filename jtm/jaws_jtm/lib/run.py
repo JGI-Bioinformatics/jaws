@@ -20,8 +20,6 @@ import re
 import time
 from threading import Timer
 
-from jaws_jtm.common import logger
-
 
 # -------------------------------------------------------------------------------
 def run(*popenargs, **kwargs):
@@ -54,7 +52,7 @@ def run(*popenargs, **kwargs):
         if stdnull:
             stdnull.close()
         if return_code != 0:
-            logger.error("Failed to call run()")
+            sys.stderr.write("run.py: Failed to call run()")
             return 1
 
     return 0
