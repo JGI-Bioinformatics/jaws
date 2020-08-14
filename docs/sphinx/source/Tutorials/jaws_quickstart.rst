@@ -104,30 +104,30 @@ Activate JAWS Virtual Environment
 *********************************
 
 
-Currently JAWS can be run at 
+Currently JAWS can run on the following resources:
 
-  * NERSC (cori)
-  * LBNL (lawrencium)  (soon)
+  * CORI (at NERSC)
+  * JGI (at LBNL)
 
 .. note::
-    When running a JAWS job, you will always start it on Cori. You can specify as a command argument which site you want e.g. [NERSC|LBNL].
+    When submitting a JAWS run, you must specify the resource to use (i.e. CORI or JGI)
 
 Do the following
 
 .. code-block:: bash
 
-    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws.conf ~
-    chmod 600 ~/jaws.conf
+    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws-user.conf ~/.jaws
+    chmod 600 ~/.jaws
 
-    Edit ~/jaws.conf and add values for the [USER] variables:
+    Edit ~/.jaws and add values for the [USER] variables:
       token : This should be the token you got from the JAWS admin
       staging_dir : Set to a JAWS subdir in your scratch dir, e.g. /global/cscratch1/sd/YOURUID/jaws
 
     # Set up the virtual environment
     # You will use an existing one. This gives you access to all the jaws commands.
-    ln -s /global/cfs/projectdirs/jaws/jaws-prod/ ~
+    ln -s /global/cfs/projectdirs/jaws/jaws-prod/jaws.sh ~/jaws
 
-    source ~/jaws-prod/bin/activate
+    source ~/jaws
     (use "deactivate" to get out of the environment)
 
     # Get the jaws-auth token. 
@@ -143,7 +143,7 @@ Run WDL in JAWS
 .. code-block:: bash
 
     # activate the environment you set up above
-    source ~/jaws-prod/bin/activate
+    source ~/jaws
 
     # clone the example code
     git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
