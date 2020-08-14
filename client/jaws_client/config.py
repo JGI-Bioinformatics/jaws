@@ -70,9 +70,9 @@ class Configuration(metaclass=Singleton):
 
         # load JAWS config
         try:
-            self.config.read(config_file)
+            self.config.read(jaws_config_file)
         except Exception as error:
-            logger.exception(f"Unable to load config from {config_file}: {error}")
+            logger.exception(f"Unable to load config from {jaws_config_file}: {error}")
             raise
         for section in self.required_jaws_params:
             if section not in self.config:
@@ -104,9 +104,9 @@ class Configuration(metaclass=Singleton):
         # load user config and copy into config obj
         user_config = configparser.ConfigParser()
         try:
-            user_config.read(config_file)
+            user_config.read(user_config_file)
         except Exception as error:
-            logger.exception(f"Unable to load config from {config_file}: {error}")
+            logger.exception(f"Unable to load config from {user_config_file}: {error}")
             raise
         for section in self.required_user_params:
             self.config[section] = {}
