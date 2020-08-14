@@ -19,7 +19,8 @@ import shlex
 import re
 import time
 from threading import Timer
-import sys
+
+from jaws_jtm.common import logger
 
 
 # -------------------------------------------------------------------------------
@@ -53,7 +54,7 @@ def run(*popenargs, **kwargs):
         if stdnull:
             stdnull.close()
         if return_code != 0:
-            eprint("Failed to call run()")
+            logger.error("Failed to call run()")
             return 1
 
     return 0
@@ -314,7 +315,3 @@ def pad_string_path(my_string, pad_length=8, depth=None):
     pad_string = pad_string + "/"
 
     return pad_string
-
-
-def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)

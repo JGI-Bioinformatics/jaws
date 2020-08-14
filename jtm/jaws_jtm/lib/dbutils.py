@@ -104,8 +104,8 @@ class DbSql(object):
         try:
             curs.execute(*args, **kw)
         except Exception as msg:
-            logger.debug((args, kw))
-            logger.debug(msg)
+            logger.exception((args, kw))
+            logger.exception(msg)
         curs.close()
 
     def ddl(self, sql, ifDialect=None, dropList=tuple(), ignoreError=False, **kw):
@@ -139,7 +139,7 @@ class DbSql(object):
 
     def execute(self, sql, ifDialect=None, debug=False, **kw):
         if debug:
-            logger.debug("SQL: {}".format(sql))
+            logger.warning("SQL: {}".format(sql))
         if self.dialectMatch(ifDialect):
             curs = self.cursor()
             watch = SqlWatch(sql, self.debug)
@@ -197,7 +197,7 @@ class DbSql(object):
         @return result of cursor.fetchall (sequence of tuples)
         """
         if debug:
-            logger.debug("SQL: {}".format(sql))
+            logger.warning("SQL: {}".format(sql))
         curs = self.execute(sql, **kw)
         ret = curs.fetchall()
         curs.close()
@@ -208,7 +208,7 @@ class DbSql(object):
         Execute sql that must return a single row with a single column and return result as scalar value.
         """
         if debug:
-            logger.debug("SQL: {}".format(sql))
+            logger.warning("SQL: {}".format(sql))
         ret = self.selectAll(sql=sql, **kw)
         assert len(ret) == 1 and len(ret[0]) == 1, "Non-scalar value obtained in 'selectScalar()'"
         ret = ret[0][0]
@@ -219,7 +219,7 @@ class DbSql(object):
         Execute sql that must return two columns with Nx1 relation and return result as dict(first->second).
         """
         if debug:
-            logger.debug("SQL: {}".format(sql))
+            logger.warning("SQL: {}".format(sql))
         ret = self.selectAll(sql=sql, **kw)
         assert len(ret) == 0 or len(ret[0]) == 2, "Result set must be two columns"
         dret = dict(ret)
@@ -231,7 +231,7 @@ class DbSql(object):
         Execute sql that must return one column and return result as 1D sequence.
         """
         if debug:
-            logger.debug("SQL: {}".format(sql))
+            logger.warning("SQL: {}".format(sql))
         ret = self.selectAll(sql=sql, **kw)
         assert len(ret) == 0 or len(ret[0]) == 1, "Result set must have one column"
         return [row[0] for row in ret]

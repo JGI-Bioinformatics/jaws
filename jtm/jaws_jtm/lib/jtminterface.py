@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # Seung-Jin Sul (ssul@lbl.gov)
 import os
-import pprint
 import shortuuid
 import json
 import uuid
@@ -245,11 +244,9 @@ class JtmInterface(object):
         )
 
         if self.debug:
-            logger.info("kw")
-            pprint.pprint(kw)
-            logger.info("json_data_dict")
-            pprint.pprint(json_data_dict)
-            logger.info(("jtmTaskRequestQ = %s" % jtmTaskRequestQ))
+            logger.warning(f"kw: {kw}")
+            logger.warning(f"json_data_dict: {json_data_dict}")
+            logger.warning(f"jtmTaskRequestQ = {jtmTaskRequestQ}")
 
         self.channel.basic_publish(
             exchange=self.jgi_jtm_main_exch,
@@ -293,8 +290,8 @@ class JtmInterface(object):
                         self.response = -88
                     break
         except Exception as e:
-            logger.error("No task id returned")
-            logger.error(e)
+            logger.exception("No task id returned")
+            logger.exception(e)
 
         return self.response
 
@@ -357,11 +354,9 @@ class JtmInterface(object):
         )
 
         if self.debug:
-            logger.info("kw")
-            pprint.pprint(kw)
-            logger.info("json_data_dict")
-            pprint.pprint(json_data_dict)
-            logger.info(("jtmStatusRequestQ = %s" % jtmStatusRequestQ))
+            logger.warning(f"kw: {kw}")
+            logger.warning(f"json_data_dict: {json_data_dict}")
+            logger.warning(f"jtmStatusRequestQ = {jtmStatusRequestQ}")
 
         self.channel.basic_publish(
             exchange=self.jgi_jtm_main_exch,
@@ -405,8 +400,8 @@ class JtmInterface(object):
                         self.response = -88
                     break
         except Exception as e:
-            logger.error("No task id returned")
-            logger.error(e)
+            logger.exception("No task id returned")
+            logger.exception(e)
 
         return self.response
 
