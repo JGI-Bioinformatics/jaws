@@ -2,8 +2,6 @@ import configparser
 import os
 import sys
 
-from jaws_jtm.common import logger
-
 DEFAULT_CONFIG_FILE = 'jtm.ini'
 
 
@@ -111,11 +109,11 @@ class JtmConfig(object):
         if 'JTM_CONFIG_FILE' in os.environ:
             found = os.environ.get('JTM_CONFIG_FILE')
         else:
-            logger.error("JTM_CONFIG_FILE is not defined. Checking current directory...")
+            sys.stderr.write("JTM_CONFIG_FILE is not defined. Checking current directory...")
             if os.path.isfile(DEFAULT_CONFIG_FILE):
                 found = DEFAULT_CONFIG_FILE
             else:
-                logger.error("JTM configuration file not found")
+                sys.stderr.write("JTM configuration file not found")
                 sys.exit(1)
 
         return found
