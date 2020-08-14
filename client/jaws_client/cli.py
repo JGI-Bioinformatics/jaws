@@ -23,7 +23,7 @@ JAWS_USER_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws-client.conf")
 @click.option("--user", "user_config_file", default=None, help="User config file")
 @click.option("--log", "log_file", default=None, help="Log file")
 @click.option("--log-level", "log_level", default="INFO", help="Logging level")
-def cli(config_file: str, log_file: str, log_level: str):
+def cli(jaws_config_file: str, user_config_file: str, log_file: str, log_level: str):
     """JGI Analysis Workflows Service.
 
     :param jaws_config_file: filename of JAWS configuration file
