@@ -13,18 +13,23 @@ from jaws_client import log, config, analysis, catalog, user
 JAWS_LOG_ENV = "JAWS_CLIENT_LOG"
 JAWS_USER_LOG = os.path.expanduser("~/jaws.log")
 JAWS_CONFIG_ENV = "JAWS_CLIENT_CONFIG"
-JAWS_USER_CONFIG = os.path.expanduser("~/jaws.conf")
+JAWS_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws-user.conf")
+JAWS_USER_CONFIG_ENV = "JAWS_USER_CONFIG"
+JAWS_USER_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws-client.conf")
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("--config", "config_file", default=None, help="Config INI file")
+@click.option("--config", "jaws_config_file", default=None, help="JAWS config file")
+@click.option("--user", "user_config_file", default=None, help="User config file")
 @click.option("--log", "log_file", default=None, help="Log file")
 @click.option("--log-level", "log_level", default="INFO", help="Logging level")
 def cli(config_file: str, log_file: str, log_level: str):
     """JGI Analysis Workflows Service.
 
-    :param config_file: filename of configuration file
-    :type config_file: str
+    :param jaws_config_file: filename of JAWS configuration file
+    :type jaws_config_file: str
+    :param user_config_file: filename of the user's configuration file
+    :type user_config_file: str
     :param log_file: filename of log file
     :type log_file: str
     :param log_level: logging level
@@ -32,13 +37,25 @@ def cli(config_file: str, log_file: str, log_level: str):
     :return:
     """
     if log_file is None:
-        log_file = os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_USER_LOG
+        log_file = (
+            os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_USER_LOG
+        )
     logger = log.setup_logger(__package__, log_file, log_level)
-    if config_file is None:
-        config_file = os.environ[JAWS_CONFIG_ENV] if JAWS_CONFIG_ENV in os.environ else JAWS_USER_CONFIG
-    conf = config.Configuration(config_file)
+    if jaws_config_file is None:
+        jaws_config_file = (
+            os.environ[JAWS_CONFIG_ENV]
+            if JAWS_CONFIG_ENV in os.environ
+            else JAWS_CONFIG_DEFAULT_FILE
+        )
+    if user_config_file is None:
+        user_config_file = (
+            os.environ[JAWS_USER_CONFIG_ENV]
+            if JAWS_USER_CONFIG_ENV in os.environ
+            else JAWS_USER_CONFIG_DEFAULT_FILE
+        )
+    conf = config.Configuration(jaws_config_file, user_config_file)
     if conf:
-        logger.debug(f"Config using {config_file}")
+        logger.debug(f"Config using {jaws_config_file}, {user_config_file}")
 
 
 @cli.command()
