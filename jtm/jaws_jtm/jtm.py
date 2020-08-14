@@ -575,9 +575,7 @@ def check_manager(ctx: object, cluster: str) -> int:
         logger.error(ps_cmd)
         sys.exit(-1)
     else:
-        if num_total_procs == 7:
-            sys.exit(0)
-        else:
+        if num_total_procs != 7:
             sys.exit(1)
 
     add_info = socket.gethostname().replace(".", "_")
