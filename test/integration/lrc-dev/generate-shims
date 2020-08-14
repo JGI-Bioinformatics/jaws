@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-INSTALLDIR=${1:-/tmp/jaws-dev}
+INSTALLDIR=${1:-/tmp/jaws-dev/}
+JTMINSTALLDIR=${2:-/tmp/jaws-dev/}
 SHIMDIR="$INSTALLDIR/shims/"
-LR_JGICLOUD=/global/home/groups-sw/lr_jgicloud
 
 [[ -d $SHIMDIR ]] || mkdir $SHIMDIR
 
@@ -34,8 +34,10 @@ source $INSTALLDIR/jtm/bin/activate
 export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
 
 #HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
-cp /tmp/jaws-dev/configs/jaws-jtm.conf $LR_JGICLOUD/jtm-dev/jaws-jtm.conf
-chmod 600 $LR_JGICLOUD/jtm-dev/jaws-jtm.conf
+mkdir $JTMINSTALLDIR
+chmod 700 $JTMINSTALLDIR
+cp $INSTALLDIR/configs/jaws-jtm.conf $JTMINSTALLDIR/jaws-jtm.conf
+chmod 600 $JTMINSTALLDIR/jaws-jtm.conf
 
 exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf --debug manager -ld $INSTALLDIR/logs/jtm
 EOM
@@ -51,7 +53,7 @@ cd /global/scratch/jaws/jtm/dev
 exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" server
 EOM
 
-cat <<EOM > $LR_JGICLOUD/cromwell/singularity_exec.sh
+cat <<EOM > $JTMINSTALLDIR/cromwell/singularity_exec.sh
 #!/bin/bash
 export SINGULARITY_CACHEDIR=/global/scratch/jaws/jtm/dev/sif_files
 export SINGULARITY_PULLFOLDER=/global/scratch/jaws/jtm/dev/sif_files

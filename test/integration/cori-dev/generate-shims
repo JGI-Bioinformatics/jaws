@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
 INSTALLDIR=${1:-/tmp/jaws-dev}
+JTM_WORKER_INSTALL_DIR=${2:-/tmp/jaws-dev}
+CLIENT_INSTALL_DIR=${3:-/tmp/jaws-dev}
+CLIENTGROUP=${4:-jawsusers}
 SHIMDIR="$INSTALLDIR/shims/"
 CROMWELL_DIR=/global/cfs/projectdirs/jaws/cromwell
 
@@ -46,6 +49,22 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
+#HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
+mkdir $CLIENT_INSTALL_DIR
+chgrp genome $CLIENT_INSTALL_DIR
+chmod 755 $CLIENT_INSTALL_DIR
+cp $INSTALLDIR/configs/jaws-user.conf $CLIENT_INSTALL_DIR/jaws-user.conf
+cp $INSTALLDIR/configs/jaws.conf $CLIENT_INSTALL_DIR/jaws.conf
+chgrp genome $CLIENT_INSTALL_DIR/jaws-user.conf
+chgrp genome $CLIENT_INSTALL_DIR/jaws.conf
+chmod 644 $CLIENT_INSTALL_DIR/jaws-user.conf
+chmod 644 $CLIENT_INSTALL_DIR/jaws.conf
+
+chmod -R a+rX $CLIENT_INSTALL_DIR
+chmod -R ug+rwX $CLIENT_INSTALL_DIR
+chgrp -R $CLIENTGROUP $CLIENT_INSTALL_DIR
+find $CLIENT_INSTALL_DIR -type d -exec /bin/chmod g+s '{}' \;
+
 source $INSTALLDIR/site/bin/activate
 exec jaws-site --log $INSTALLDIR/logs/site-daemon.log --config $INSTALLDIR/configs/jaws-site.conf --log-level DEBUG daemon
 EOM
@@ -83,9 +102,11 @@ source $INSTALLDIR/jtm/bin/activate
 export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
 
 #HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
-cp /tmp/jaws-dev/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
-chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
-chmod 640 /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
+mkdir $JTM_WORKER_INSTALL_DIR
+chgrp jaws_jtm $JTM_WORKER_INSTALL_DIR
+cp $INSTALLDIR/configs/jaws-jtm.conf $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chgrp jaws_jtm $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chmod 640 $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
 
 exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf --debug manager -ld $INSTALLDIR/logs/jtm
 EOM

@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 
 INSTALLDIR=${1:-/tmp/jaws-prod}
+JTM_WORKER_INSTALL_DIR=${2:-/tmp/jaws-prod}
+CLIENT_INSTALL_DIR=${3:-/tmp/jaws-dev}
 SHIMDIR="$INSTALLDIR/shims/"
 CROMWELL_DIR=/global/cfs/projectdirs/jaws/cromwell
+CROMWELL_BASE_DIR=/global/cscratch1/sd/jaws_jtm/prod/
 
 [[ -d $SHIMDIR ]] || mkdir $SHIMDIR
 
@@ -83,9 +86,11 @@ source $INSTALLDIR/jtm/bin/activate
 export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
 
 #HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
-cp /tmp/jaws-prod/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-prod/jaws-jtm.conf
-chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-prod/jaws-jtm.conf
-chmod 640 /global/cfs/projectdirs/jaws/jtm-prod/jaws-jtm.conf
+mkdir $JTM_WORKER_INSTALL_DIR
+chgrp jaws_jtm $JTM_WORKER_INSTALL_DIR
+cp $INSTALLDIR/configs/jaws-jtm.conf $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chgrp jaws_jtm $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chmod 640 $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
 
 exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf --debug manager -ld $INSTALLDIR/logs/jtm
 EOM
@@ -100,7 +105,7 @@ export PYTHONIOENCODING=utf-8
 # cromwell needs jtm to be in path
 source $INSTALLDIR/jtm/bin/activate
 
-cd /global/cscratch1/sd/jaws_jtm/prod/
+cd $CROMWELL_BASE_DIR
 exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" server
 EOM
 

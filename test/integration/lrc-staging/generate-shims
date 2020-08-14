@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-INSTALLDIR=${1:-/tmp/jaws-staging}
+INSTALLDIR=${1:-/tmp/jaws-staging/}
+JTMINSTALLDIR=${2:-/tmp/jaws-staging/}
 SHIMDIR="$INSTALLDIR/shims/"
-LR_JGICLOUD=/global/home/groups-sw/lr_jgicloud
 
 [[ -d $SHIMDIR ]] || mkdir $SHIMDIR
 
@@ -34,8 +34,10 @@ source $INSTALLDIR/jtm/bin/activate
 export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
 
 #HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
-cp /tmp/jaws-staging/configs/jaws-jtm.conf $LR_JGICLOUD/jtm-staging/jaws-jtm.conf
-chmod 600 $LR_JGICLOUD/jtm-staging/jaws-jtm.conf
+mkdir $LR_JGICLOUD
+chmod 700 $LR_JGICLOUD
+cp $INSTALLDIR/configs/jaws-jtm.conf $LR_JGICLOUD/jaws-jtm.conf
+chmod 600 $LR_JGICLOUD/jaws-jtm.conf
 
 exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf --debug manager -ld $INSTALLDIR/logs/jtm
 EOM

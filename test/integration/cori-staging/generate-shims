@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 INSTALLDIR=${1:-/tmp/jaws-staging}
+JTM_WORKER_INSTALL_DIR=${2:-/tmp/jaws-staging}
+CLIENT_INSTALL_DIR=${3:-/tmp/jaws-dev}
 SHIMDIR="$INSTALLDIR/shims/"
 CROMWELL_DIR=/global/cfs/projectdirs/jaws/cromwell
 
@@ -83,9 +85,11 @@ source $INSTALLDIR/jtm/bin/activate
 export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
 
 #HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
-cp /tmp/jaws-staging/configs/jaws-jtm.conf /global/cfs/projectdirs/jaws/jtm-staging/jaws-jtm.conf
-chgrp jaws_jtm /global/cfs/projectdirs/jaws/jtm-staging/jaws-jtm.conf
-chmod 640 /global/cfs/projectdirs/jaws/jtm-staging/jaws-jtm.conf
+mkdir $JTM_WORKER_INSTALL_DIR
+chgrp jaws_jtm $JTM_WORKER_INSTALL_DIR
+cp $INSTALLDIR/configs/jaws-jtm.conf $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chgrp jaws_jtm $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chmod 640 $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
 
 exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf --debug manager -ld $INSTALLDIR/logs/jtm
 EOM
