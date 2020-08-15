@@ -1,66 +1,73 @@
 #!/usr/bin/env bash
 
-INSTALLDIR=${1:-/tmp/jaws-staging/}
-JTMINSTALLDIR=${2:-/tmp/jaws-staging/}
-SHIMDIR="$INSTALLDIR/shims/"
+NAME=${1:-jaws}
+INSTALL_DIR=${2:-/tmp/jaws}
+JTM_WORKER_INSTALL_DIR=${3:-/tmp/jaws}
+JTM_SCRATCH_DIR=${4:-/scratch/jtm}
+CLIENT_INSTALL_DIR=${5:-/tmp/jaws}
+CLIENT_GROUP=${6:-jawsusers}
+REF_DATA_DIR=${7:-/scratch/jaws/ref_data}
 
-[[ -d $SHIMDIR ]] || mkdir $SHIMDIR
+SHIM_DIR="$INSTALL_DIR/shims/"
 
-cat <<EOM > $SHIMDIR/jaws-site-daemon-staging
+[[ -d $SHIM_DIR ]] || mkdir $SHIM_DIR
+
+cat <<EOM > $SHIM_DIR/jaws-site-daemon-$NAME
 #!/usr/bin/env bash
 
-source $INSTALLDIR/site/bin/activate
-exec jaws-site --log $INSTALLDIR/logs/site-daemon.log --config $INSTALLDIR/configs/jaws-site.conf --log-level DEBUG daemon
+source $INSTALL_DIR/site/bin/activate
+exec jaws-site --log $INSTALL_DIR/logs/site-daemon.log --config $INSTALL_DIR/configs/jaws-site.conf --log-level DEBUG daemon
 EOM
 
-cat <<EOM > $SHIMDIR/jaws-site-central-rpc-staging
+cat <<EOM > $SHIM_DIR/jaws-site-central-rpc-$NAME
 #!/usr/bin/env bash
 
-source $INSTALLDIR/site/bin/activate
-exec jaws-site --log $INSTALLDIR/logs/site-central-rpc.log --config $INSTALLDIR/configs/jaws-site.conf --log-level DEBUG central-rpc
+source $INSTALL_DIR/site/bin/activate
+exec jaws-site --log $INSTALL_DIR/logs/site-central-rpc.log --config $INSTALL_DIR/configs/jaws-site.conf --log-level DEBUG central-rpc
 EOM
 
-cat <<EOM > $SHIMDIR/jaws-site-jtm-rpc-staging
+cat <<EOM > $SHIM_DIR/jaws-site-jtm-rpc-$NAME
 #!/usr/bin/env bash
 
-source $INSTALLDIR/site/bin/activate
-exec jaws-site --log $INSTALLDIR/logs/site-jtm-rpc.log --config $INSTALLDIR/configs/jaws-site.conf --log-level DEBUG jtm-rpc
+source $INSTALL_DIR/site/bin/activate
+exec jaws-site --log $INSTALL_DIR/logs/site-jtm-rpc.log --config $INSTALL_DIR/configs/jaws-site.conf --log-level DEBUG jtm-rpc
 EOM
 
-cat <<EOM > $SHIMDIR/jaws-jtm-staging
+cat <<EOM > $SHIM_DIR/jaws-jtm-$NAME
 #!/usr/bin/env bash
 
-source $INSTALLDIR/jtm/bin/activate
-export JTM_CONFIG_FILE=$INSTALLDIR/configs/jaws-jtm.conf
+source $INSTALL_DIR/jtm/bin/activate
+export JTM_CONFIG_FILE=$INSTALL_DIR/configs/jaws-jtm.conf
 
 #HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
-mkdir $LR_JGICLOUD
-chmod 700 $LR_JGICLOUD
-cp $INSTALLDIR/configs/jaws-jtm.conf $LR_JGICLOUD/jaws-jtm.conf
-chmod 600 $LR_JGICLOUD/jaws-jtm.conf
+mkdir $JTM_INSTALL_DIR
+chmod 700 $JTM_INSTALL_DIR
+cp $INSTALL_DIR/configs/jaws-jtm.conf $JTM_INSTALL_DIR/jaws-jtm.conf
+chmod 600 $JTM_INSTALL_DIR/jaws-jtm.conf
 
-exec jtm --config=$INSTALLDIR/configs/jaws-jtm.conf --debug manager -ld $INSTALLDIR/logs/jtm
+exec jtm --config=$INSTALL_DIR/configs/jaws-jtm.conf --debug manager -ld $INSTALL_DIR/logs/jtm
 EOM
 
-cat <<EOM > $SHIMDIR/jaws-cromwell-staging
+cat <<EOM > $SHIM_DIR/jaws-cromwell-$NAME
 #!/usr/bin/env bash
 
 # cromwell needs jtm to be in path
-source $INSTALLDIR/jtm/bin/activate
+source $INSTALL_DIR/jtm/bin/activate
 module load java
 
-cd /global/scratch/jaws/jtm/staging
-exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" server
+# cromwell write cromwell-executions dir in cwd
+cd $JTM_SCRATCH_DIR
+exec java -Xmx5g -Dconfig.file="$INSTALL_DIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALL_DIR/cromwell.jar" server
 EOM
 
-cat <<EOM > $LR_JGICLOUD/cromwell/singularity_exec.sh
+cat <<EOM > $JTM_WORKER_INSTALL_DIR/singularity_exec.sh
 #!/bin/bash
-export SINGULARITY_CACHEDIR=/global/scratch/jaws/jtm/staging/sif_files
-export SINGULARITY_PULLFOLDER=/global/scratch/jaws/jtm/staging/sif_files
-export SINGULARITY_TMPDIR=/global/scratch/jaws/jtm/staging/sif_files
-export SINGULARITY_LOCALCACHEDIR=/global/scratch/jaws/jtm/staging/sif_files
-singularity exec --bind $1:$2 --bind /global/scratch/jaws/ref_data:/refdata docker://$3 $4 $5
+export SINGULARITY_CACHEDIR=$JTM_WORKER_INSTALL_DIR/sif_files
+export SINGULARITY_PULLFOLDER=$JTM_WORKER_INSTALL_DIR/sif_files
+export SINGULARITY_TMPDIR=$JTM_WORKER_INSTALL_DIR/sif_files
+export SINGULARITY_LOCALCACHEDIR=$JTM_WORKER_INSTALL_DIR/sif_files
+singularity exec --bind $1:$2 --bind $REF_DATA_DIR:/refdata docker://$3 $4 $5
 exit $?
 EOM
 
-chmod +x $SHIMDIR/*
+chmod +x $SHIM_DIR/*
