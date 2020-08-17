@@ -100,7 +100,7 @@ export PYTHONIOENCODING=utf-8
 # cromwell needs jtm to be in path
 source $INSTALLDIR/jtm/bin/activate
 
-cd /global/cscratch1/sd/jaws_jtm/prod/
+cd /global/cscratch1/sd/jaws_jtm/staging/
 exec java -Xmx5g -Dconfig.file="$INSTALLDIR/configs/cromwell.conf" -Djava.io.tmpdir="\$TMPDIR" -jar "$INSTALLDIR/cromwell.jar" server
 EOM
 
