@@ -1,5 +1,5 @@
 [inet_http_server]
-port=0.0.0.0:64113
+port=0.0.0.0:{{supervisor_port}}
 username=jaws
 password={{password}}
 
@@ -12,7 +12,7 @@ pidfile={{installpath}}/jtm-pidfile
 nodaemon=false
 minfds=1024
 minprocs=200
-identifier=supervisor-jtm-prod
+identifier=supervisor-jtm-{{deployment_name}}
 directory={{installpath}}
 
 ; The rpcinterface:supervisor section must remain in the config file for
@@ -23,27 +23,34 @@ directory={{installpath}}
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
-serverurl=http://cori20.nersc.gov:64113
+serverurl={{supervisor_url}}:{{supervisor_port}}
 username=jaws
 password={{password}}
-prompt=supervisor-jtm-prod
+prompt=supervisor-jtm-{{deployment_name}}
 
 ;----- Program Section
 
 [program:jaws-jtm]
-command={{shimpath}}/jaws-jtm-prod
+command={{shimpath}}/jaws-jtm-{{deployment_name}}
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [program:jaws-cromwell]
-command={{shimpath}}/jaws-cromwell-prod
+command={{shimpath}}/jaws-cromwell-{{deployment_name}}
 numprocs=1
 startsecs=10
 startretries=3
 autorestart=unexpected
 
-[group:jaws-prod]
-programs=jaws-jtm,jaws-cromwell
+[program:jaws-deploy-worker]
+command={{shimpath}}/jaws-deploy-worker-{{deployment_name}}
+numprocs=1
+startsecs=0
+startretries=0
+autorestart=false
+
+[group:jaws-{{deployment_name}}]
+programs=jaws-jtm,jaws-cromwell,jaws-deploy-worker
 priority=999
