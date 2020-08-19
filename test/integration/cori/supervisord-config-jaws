@@ -1,5 +1,5 @@
 [inet_http_server]
-port=0.0.0.0:64101
+port=0.0.0.0:{{supervisor_port}}
 username=jaws
 password={{password}}
 
@@ -12,7 +12,7 @@ pidfile={{installpath}}/jaws-pidfile
 nodaemon=false
 minfds=1024
 minprocs=200
-identifier=supervisor-jaws-dev
+identifier=supervisor-jaws-{{deployment_name}}
 directory={{installpath}}
 
 ; The rpcinterface:supervisor section must remain in the config file for
@@ -22,55 +22,62 @@ directory={{installpath}}
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
-serverurl=http://cori20.nersc.gov:64101
+serverurl={{supervisor_url}}:{{supervisor_port}}
 username=jaws
 password={{password}}
-prompt=supervisor-jaws-dev
+prompt=supervisor-jaws-{{deployment_name}}
 
 ;----- Program Section
 
 [program:jaws-site-daemon]
-command={{shimpath}}/jaws-site-daemon-dev
+command={{shimpath}}/jaws-site-daemon-{{deployment_name}}
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [program:jaws-site-jtm-rpc]
-command={{shimpath}}/jaws-site-jtm-rpc-dev
+command={{shimpath}}/jaws-site-jtm-rpc-{{deployment_name}}
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [program:jaws-site-central-rpc]
-command={{shimpath}}/jaws-site-central-rpc-dev
+command={{shimpath}}/jaws-site-central-rpc-{{deployment_name}}
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [program:jaws-central-rest]
-command={{shimpath}}/jaws-central-rest-dev
+command={{shimpath}}/jaws-central-rest-{{deployment_name}}
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [program:jaws-central-rpc]
-command={{shimpath}}/jaws-central-rpc-dev
+command={{shimpath}}/jaws-central-rpc-{{deployment_name}}
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [program:jaws-central-auth]
-command={{shimpath}}/jaws-central-auth-dev
+command={{shimpath}}/jaws-central-auth-{{deployment_name}}
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[group:jaws-dev]
-programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc,jaws-central-auth,jaws-central-rest,jaws-central-rpc
+[program:jaws-client-deploy]
+command={{shimpath}}/jaws-client-deploy-{{deployment_name}}
+numprocs=1
+startsecs=0
+startretries=0
+autorestart=false
+
+[group:jaws-{{deployment_name}}]
+programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc,jaws-central-auth,jaws-central-rest,jaws-central-rpc,jaws-client-deploy
 priority=999

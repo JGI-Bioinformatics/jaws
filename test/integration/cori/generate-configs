@@ -2,7 +2,16 @@
 
 set -eo pipefail
 
-readonly configdir=${1:-/tmp/}
+## VALIDATE ENVS
+[[ -z $DEPLOYMENT_NAME ]]          && { printf "Missing DEPLOYMENT_NAME variable.\n"; exit 1; }
+[[ -z $INSTALL_DIR ]]              && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
+[[ -z $JTM_WORKER_INSTALL_DIR ]]   && { printf "Missing JTM_WORKER_INSTALL_DIR variable.\n"; exit 1; }
+[[ -z $CLIENT_INSTALL_DIR ]]       && { printf "Missing CLIENT_INSTALL_DIR variable.\n"; exit 1; }
+[[ -z $JTM_GROUP ]]                && { printf "Missing JTM_GROUP variable.\n"; exit 1; }
+[[ -z $CLIENT_GROUP ]]             && { printf "Missing CLIENT_GROUP variable.\n"; exit 1; }
+[[ -z $JAWS_GROUP ]]               && { printf "Missing JAWS_GROUP variable.\n"; exit 1; }
+[[ -z $REF_DATA_DIR ]]             && { printf "Missing REF_DATA_DIR variable.\n"; exit 1; }
+[[ -z $LOG_LEVEL ]]                && { printf "Missing LOG_LEVEL variable.\n"; exit 1; }
 
 [[ -z $JAWS_SITE_CORI_DB_PW ]]     && { printf "Missing JAWS_SITE_CORI_DB_PW variable.\n"; exit 1; }
 [[ -z $JAWS_SITE_CORI_RMQ_PW ]]    && { printf "Missing JAWS_SITE_CORI_RMQ_PW variable.\n"; exit 1; }
@@ -11,21 +20,32 @@ readonly configdir=${1:-/tmp/}
 [[ -z $JAWS_JTM_CORI_DB_PW ]]      && { printf "Missing JAWS_JTM_CORI_DB_PW variable.\n"; exit 1; }
 [[ -z $JAWS_CROMWELL_CORI_DB_PW ]] && { printf "Missing JAWS_CROMWELL_CORI_DB_PW variable.\n"; exit 1; }
 
+## DEFINE PATHS
+CONFIG_DIR="$INSTALL_DIR/configs"
 
-cat << EOM > $configdir/jaws-site.conf
+## CREATE DIRS
+test -d $INSTALL_DIR || mkdir $INSTALL_DIR
+test -d $CONFIG_DIR || mkdir $CONFIG_DIR
+chgrp $JTM_GROUP $INSTALL_DIR
+chgrp $JTM_GROUP $CONFIG_DIR
+chmod 770 $INSTALL_DIR
+chmod 770 $CONFIG_DIR
+
+## WRITE CONFIG FILES
+cat << EOM > $CONFIG_DIR/jaws-site.conf
 [DB]
 dialect = mysql+mysqlconnector
 host = db.mysql.prod-cattle.stable.spin.nersc.org
 port = 60006
 user = jaws
 password = $JAWS_SITE_CORI_DB_PW
-db = jaws_dev
+db = jaws_$DEPLOYMENT_NAME
 [LOCAL_RPC_SERVER]
 user = jaws_nersc
 password = $JAWS_SITE_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jaws_dev
+vhost = jaws_$DEPLOYMENT_NAME
 queue = site_rpc
 num_threads = 5
 max_retries = 3
@@ -34,7 +54,7 @@ user = jaws_nersc
 password = $JAWS_SITE_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jaws_dev
+vhost = jaws_$DEPLOYMENT_NAME
 queue = nersc_rpc
 num_threads = 5
 max_retries = 3
@@ -43,7 +63,7 @@ user = jaws_nersc
 password = $JAWS_SITE_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jaws_dev
+vhost = jaws_$DEPLOYMENT_NAME
 queue = central_rpc
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
@@ -52,75 +72,75 @@ root_dir = /
 default_dir = ~
 [SITE]
 id = CORI
-staging_subdirectory = global/cscratch1/sd/jaws_jtm/dev/staging
-results_subdirectory = global/cscratch1/sd/jaws/dev/results
+staging_subdirectory = global/cscratch1/sd/jaws_jtm/jtm-$DEPLOYMENT_NAME/staging
+results_subdirectory = global/cscratch1/sd/jaws/jaws-$DEPLOYMENT_NAME/results
 [CROMWELL]
 url = http://localhost:50101
 EOM
 
-cat << EOM > $configdir/jaws-central.conf
+cat << EOM > $CONFIG_DIR/jaws-central.conf
 [DB]
 dialect = mysql+mysqlconnector
 host = jaws-db.lbl.gov
 port = 3306
 user = jaws_central
 password = $JAWS_CENTRAL_CORI_DB_PW
-db = jaws_central_dev
+db = jaws_central_$DEPLOYMENT_NAME
 [RPC_SERVER]
 user = jaws_central
 password = $JAWS_CENTRAL_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jaws_dev
+vhost = jaws_$DEPLOYMENT_NAME
 queue = central_rpc
 num_threads = 5
 max_retries = 3
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 [HTTP]
-auth_port = 3001
-rest_port = 5001
+auth_port = $JAWS_AUTH_PORT
+rest_port = $JAWS_REST_PORT
 [SITE:JGI]
 user = jaws_central
 password = $JAWS_CENTRAL_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jaws_dev
+vhost = jaws_$DEPLOYMENT_NAME
 queue = lrc_rpc
 globus_endpoint = b445e71a-4933-11ea-9714-021304b0cca7
 globus_basepath = /global/scratch/jaws
-staging_subdir = jtm/dev/staging
+staging_subdir = jtm/jtm-$DEPLOYMENT_NAME/staging
 max_ram_gb = 1024
 [SITE:CORI]
 user = jaws_central
 password = $JAWS_CENTRAL_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jaws_dev
+vhost = jaws_$DEPLOYMENT_NAME
 queue = nersc_rpc
 globus_endpoint = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
 globus_basepath = /
-staging_subdir = /global/cscratch1/sd/jaws_jtm/dev/staging
+staging_subdir = /global/cscratch1/sd/jaws_jtm/jtm-$DEPLOYMENT_NAME/staging
 max_ram_gb = 2048
 EOM
 
-cat << EOM > $configdir/jaws-client.conf
+cat << EOM > $CONFIG_DIR/jaws-client.conf
 [JAWS]
 site_id = NERSC
-name = jaws-dev
-url = http://cori20.nersc.gov:5001/api/v2
+name = jaws-$DEPLOYMENT_NAME
+url = http://cori20.nersc.gov:$JAWS_REST_PORT/api/v2
 womtool_jar = /global/cfs/projectdirs/jaws/cromwell/womtool.jar
-staging_subdir = global/cscratch1/sd/jaws/dev/staging
+staging_subdir = global/cscratch1/sd/jaws/jaws-$DEPLOYMENT_NAME/staging
 [GLOBUS]
 client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
 endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
 basedir = /
 EOM
 
-cat << EOM > $configdir/jaws-jtm.conf
+cat << EOM > $CONFIG_DIR/jaws-jtm.conf
 [SITE]
 jtm_host_name = cori
-user_name = jtm_dev
+user_name = jtm_$DEPLOYMENT_NAME
 instance_name = \${jtm_host_name}.\${user_name}
 scratch = /global/cscratch1/sd/jaws_jtm/
 debug = 1
@@ -129,20 +149,20 @@ user = jaws_nersc
 password = $JAWS_SITE_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jaws_dev
+vhost = jaws_$DEPLOYMENT_NAME
 [SITE_RPC_CLIENT]
 user = jaws_nersc
 password = $JAWS_SITE_CORI_RMQ_PW
 host = rmq.lbl.gov
 port = 5672
-vhost = jaws_dev
+vhost = jaws_$DEPLOYMENT_NAME
 queue = site_rpc
 [MYSQL]
 host = db.mysql.prod-cattle.stable.spin.nersc.org
 port = 60006
 user = jtm
 password = $JAWS_JTM_CORI_DB_PW
-db = jtm_dev
+db = jtm_$DEPLOYMENT_NAME
 [SLURM]
 # number of nodes for the pool
 nnodes = 1
@@ -167,8 +187,8 @@ clone_time_rate = 0.2
 num_workers_per_node = 1
 log_dir = \${SITE:scratch}/jtm
 # config file location of worker
-worker_config_file = /global/cfs/projectdirs/jaws/jtm-dev/jaws-jtm.conf
-env_activation = source /global/cfs/projectdirs/jaws/jtm-dev/bin/activate
+worker_config_file = /global/cfs/projectdirs/jaws/jtm-$DEPLOYMENT_NAME/jaws-jtm.conf
+env_activation = source /global/cfs/projectdirs/jaws/jtm-$DEPLOYMENT_NAME/bin/activate
 pool_name = small
 # Worker setting
 # worker's hb expiration (ms)
@@ -228,11 +248,11 @@ jtm_worker_poison_exch = jgi_jtm_poison_exch_\${JTM:run_mode}_\${SITE:instance_n
 EOM
 
 
-cat << EOM > $configdir/cromwell.conf
+cat << EOM > $CONFIG_DIR/cromwell.conf
 include required(classpath("application"))
 webservice
 {
-  port = 50101
+  port = $CROMWELL_PORT
 }
 system
 {
@@ -252,7 +272,7 @@ system
 }
 workflow-options
 {
-  workflow-log-dir: "/tmp/jaws-dev/logs/cromwell-workflow-logs"
+  workflow-log-dir: "/tmp/jaws-$DEPLOYMENT_NAME/logs/cromwell-workflow-logs"
   workflow-log-temporary: false
   workflow-failure-mode: "ContinueWhilePossible"
   default
@@ -296,7 +316,7 @@ backend
         Int nwpn = 1
         Int shared = 0
         """
-        submit = """jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+        submit = """jtm --config=/tmp/jaws-$DEPLOYMENT_NAME/configs/jaws-jtm.conf \
           submit \
           -cmd '/bin/bash \${script}' \
           -cl \${cluster} \
@@ -311,9 +331,9 @@ backend
           --qos \${qos} \
           -A \${account} \
           --shared \${shared}"""
-        kill = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+        kill = "jtm --config=/tmp/jaws-$DEPLOYMENT_NAME/configs/jaws-jtm.conf \
                 kill -tid \${job_id}"
-        check-alive = "jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+        check-alive = "jtm --config=/tmp/jaws-$DEPLOYMENT_NAME/configs/jaws-jtm.conf \
                        isalive -tid \${job_id}"
         job-id-regex = "JTM task ID (\\\d+)"
         submit-docker = """
@@ -321,7 +341,7 @@ backend
             if [[ ! \$LOOKUP ]]; then
                 shifterimg pull \${docker}
             fi
-            jtm --config=/tmp/jaws-dev/configs/jaws-jtm.conf \
+            jtm --config=/tmp/jaws-$DEPLOYMENT_NAME/configs/jaws-jtm.conf \
               submit \
               -cmd '/global/cfs/projectdirs/jaws/cromwell/shifter_exec.sh \${docker} \${job_shell} \${script}' \
                     -cl \${cluster} \
@@ -341,7 +361,7 @@ backend
         # can be used to specify where the execution folder is mounted in the container.
         # it is used for the construction of the docker_cwd string in the submit-docker
         # value above AND in the generation of the "script" file.
-        dockerRoot = /global/cscratch1/sd/jaws_jtm/dev/cromwell-executions
+        dockerRoot = /global/cscratch1/sd/jaws_jtm/jtm-$DEPLOYMENT_NAME/cromwell-executions
       }
     }
   }
@@ -352,7 +372,7 @@ database
   db
   {
     driver = "com.mysql.cj.jdbc.Driver"
-    url = "jdbc:mysql://db.mysql.prod-cattle.stable.spin.nersc.org:60006/cromwell_dev?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
+    url = "jdbc:mysql://db.mysql.prod-cattle.stable.spin.nersc.org:60006/cromwell_$DEPLOYMENT_NAME?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
     user = "cromwell"
     password = "$JAWS_CROMWELL_CORI_DB_PW"
     connectionTimeout = 5000
@@ -360,3 +380,10 @@ database
   insert-batch-size = 2000
 }
 EOM
+
+
+## SET PERMISSIONS
+chgrp $JAWS_GROUP $CONFIG_DIR/*.conf
+chgrp $JTM_GROUP $CONFIG_DIR/jaws-jtm.conf
+chgrp $JTM_GROUP $CONFIG_DIR/cromwell.conf
+chmod 660 $CONFIG_DIR/*
