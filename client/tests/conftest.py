@@ -8,6 +8,7 @@ def configuration(tmp_path):
     jaws_client.config.Configuration._destructor()
 
     config_path = tmp_path / "jaws_client.ini"
+    user_config_path = tmp_path / "jaws_user.ini"
 
     globus_basedir = tmp_path / "globus_basedir"
     staging_dir = globus_basedir / "staging"
@@ -15,9 +16,6 @@ def configuration(tmp_path):
     staging_dir.mkdir()
 
     contents = """
-[USER]
-token = "xasdasdasfasdasdasfas"
-staging_dir = {0}/globus/staging
 [JAWS]
 name = JAWS
 site_id = NERSC
@@ -29,9 +27,17 @@ endpoint_id =
 basedir = {0}/globus
 
 """.format(tmp_path.as_posix()) # noqa
-
     config_path.write_text(contents)
-    config = jaws_client.config.Configuration(config_path.as_posix())
+
+    user_contents = """
+[USER]
+token = "xasdasdasfasdasdasfas"
+staging_dir = {0}/globus/staging
+
+""".format(tmp_path.as_posix()) # noqa
+    user_config_path.write_text(user_contents)
+
+    config = jaws_client.config.Configuration(config_path.as_posix(), user_config_path.as_posix())
     return config
 
 
