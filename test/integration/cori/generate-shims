@@ -21,14 +21,18 @@ test -d $INSTALL_DIR || mkdir $INSTALL_DIR
 test -d $SHIM_DIR || mkdir $SHIM_DIR
 test -d $LOGS_DIR || mkdir $LOGS_DIR
 test -d "$LOGS_DIR/jtm" || mkdir "$LOGS_DIR/jtm"
+test -d $JTM_WORKER_INSTALL_DIR || mkdir $JTM_WORKER_INSTALL_DIR
 chgrp $JTM_GROUP $INSTALL_DIR
 chgrp $JTM_GROUP $SHIM_DIR
 chgrp $JTM_GROUP $LOGS_DIR
 chgrp $JTM_GROUP "$LOGS_DIR/jtm"
+# chgrp doesn't work with parallel fs; see .gitlab-ci.yml for more info
+#chgrp $JTM_GROUP $JTM_WORKER_INSTALL_DIR
 chmod 770 $INSTALL_DIR
 chmod 770 $SHIM_DIR
 chmod 770 $LOGS_DIR
 chmod 770 "$LOGS_DIR/jtm"
+chmod 770 $JTM_WORKER_INSTALL_DIR
 
 ## WRITE SHIM SCRIPTS
 cat <<EOM > $SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
@@ -138,6 +142,7 @@ test -d $JTM_WORKER_INSTALL_DIR || mkdir $JTM_WORKER_INSTALL_DIR
 
 cp $CONFIG_DIR/jaws-jtm.conf $JTM_WORKER_INSTALL_DIR/
 chgrp $JTM_GROUP $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chmod 770 $JTM_WORKER_INSTALL_DIR
 chmod 640 $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
 EOM
 
