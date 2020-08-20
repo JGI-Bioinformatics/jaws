@@ -36,7 +36,6 @@ python3 -m venv "$JTM_WORKER_INSTALL_DIR" && . "$JTM_WORKER_INSTALL_DIR/bin/acti
 python3 -m venv "$CLIENT_INSTALL_DIR" && . "$CLIENT_INSTALL_DIR/bin/activate" && pip install jtm/dist/* && deactivate
 
 ## PERMISSIONS
-
 function fix_perms() {
     local DIR="$1"
     local GROUP=$2
