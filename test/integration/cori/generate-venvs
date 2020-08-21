@@ -41,13 +41,13 @@ function fix_perms() {
     local GROUP=$2
     chmod -R a+rX "$DIR"
     chmod -R ug+rwX "$DIR"
-    chgrp -R $GROUP
+    chgrp -R $GROUP "$DIR"
     find "$DIR" -type d -exec chmod g+s '{}' \;
 }
 
-fix_perms("$INSTALL_DIR/site", $JAWS_GROUP)
-fix_perms("$INSTALL_DIR/central", $JAWS_GROUP)
-fix_perms("$INSTALL_DIR/jtm", $JTM_GROUP)
+fix_perms "$INSTALL_DIR/site" $JAWS_GROUP
+fix_perms "$INSTALL_DIR/central" $JAWS_GROUP
+fix_perms "$INSTALL_DIR/jtm" $JTM_GROUP
 
 ## COPY CLIENT CONFIG
 cp "$CONFIG_DIR/jaws-client.conf" "$CLIENT_INSTALL_DIR/"
