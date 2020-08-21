@@ -59,7 +59,7 @@ function fix_perms() {
     find "$DIR" -type d -exec chmod g+s '{}' \;
 }
 
-fix_perms "$SUPERVISOR_DIR"
+fix_perms "$SUPERVISOR_DIR" $JTM_GROUP
 
 envsubst < test/integration/cori/supervisord-config-jtm > $SUPERVISOR_DIR/supervisord-jtm.conf
 envsubst < test/integration/cori/supervisord-config-jaws > $SUPERVISOR_DIR/supervisord-jaws.conf
