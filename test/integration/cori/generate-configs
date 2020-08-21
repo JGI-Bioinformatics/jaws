@@ -124,6 +124,12 @@ staging_subdir = /global/cscratch1/sd/jaws_jtm/jtm-$DEPLOYMENT_NAME/staging
 max_ram_gb = 2048
 EOM
 
+cat << EOM > $CONFIG_DIR/jaws-user.conf
+[USER]
+token = 
+staging_dir = 
+EOM
+
 cat << EOM > $CONFIG_DIR/jaws-client.conf
 [JAWS]
 site_id = NERSC
