@@ -1,19 +1,19 @@
 [inet_http_server]
-port=0.0.0.0:{{supervisor_port}}
+port=0.0.0.0:$JTM_SUPERVISOR_PORT
 username=jaws
-password={{password}}
+password=$JAWS_SUPERVISORD_PW
 
 [supervisord]
-logfile={{installpath}}/jtm-log
+logfile=$SUPERVISOR_DIR/jtm-log
 logfile_maxbytes=50MB
 logfile_backups=2
 loglevel=info
-pidfile={{installpath}}/jtm-pidfile
+pidfile=$SUPERVISOR_DIR/jtm-pidfile
 nodaemon=false
 minfds=1024
 minprocs=200
-identifier=supervisor-jtm-{{deployment_name}}
-directory={{installpath}}
+identifier=supervisor-jtm-$DEPLOYMENT_NAME
+directory=$SUPERVISOR_DIR
 
 ; The rpcinterface:supervisor section must remain in the config file for
 ; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
@@ -23,34 +23,34 @@ directory={{installpath}}
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
-serverurl={{supervisor_url}}:{{supervisor_port}}
+serverurl=$SUPERVISOR_URL:$JTM_SUPERVISOR_PORT
 username=jaws
-password={{password}}
-prompt=supervisor-jtm-{{deployment_name}}
+password=$JAWS_SUPERVISORD_PW
+prompt=supervisor-jtm-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
 [program:jaws-jtm]
-command={{shimpath}}/jaws-jtm-{{deployment_name}}
+command=$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
 [program:jaws-cromwell]
-command={{shimpath}}/jaws-cromwell-{{deployment_name}}
+command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=10
 startretries=3
 autorestart=unexpected
 
 [program:jaws-deploy-worker]
-command={{shimpath}}/jaws-deploy-worker-{{deployment_name}}
+command=$SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=0
 startretries=0
 autorestart=false
 
-[group:jaws-{{deployment_name}}]
+[group:jaws-$DEPLOYMENT_NAME]
 programs=jaws-jtm,jaws-cromwell,jaws-deploy-worker
 priority=999
