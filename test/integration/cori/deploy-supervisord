@@ -61,8 +61,8 @@ function fix_perms() {
 
 fix_perms "$SUPERVISOR_DIR"
 
-sed "s|{{deployment_name}}|$DEPLOYMENT_NAME|g; s|{{supervisor_port}}|$JAWS_SUPERVISOR_PORT|g; s|{{supervisor_url}}|$SUPERVISOR_URL|g; s|{{shimpath}}|$SHIMPATH|g; s|{{installpath}}|$SUPERVISOR_DIR|g; s|{{password}}|$JAWS_SUPERVISORD_PW|g;" test/integration/cori/supervisord-config-jtm > $SUPERVISOR_DIR/supervisord-jtm.conf
-sed "s|{{deployment_name}}|$DEPLOYMENT_NAME|g; s|{{supervisor_port}}|$JTM_SUPERVISOR_PORT|g; s|{{supervisor_url}}|$SUPERVISOR_URL|g; s|{{shimpath}}|$SHIMPATH|g; s|{{installpath}}|$SUPERVISOR_DIR|g; s|{{password}}|$JAWS_SUPERVISORD_PW|g;" test/integration/cori/supervisord-config-jaws > $SUPERVISOR_DIR/supervisord-jaws.conf
+envsubst < test/integration/cori/supervisord-config-jtm > $SUPERVISOR_DIR/supervisord-jtm.conf
+envsubst < test/integration/cori/supervisord-config-jaws > $SUPERVISOR_DIR/supervisord-jaws.conf
 
 chgrp $JAWS_GROUP "$SUPERVISOR_DIR/supervisord-jaws.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
