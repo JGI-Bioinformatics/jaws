@@ -5,6 +5,8 @@ set -eo pipefail
 ## VALIDATE ENVS
 [[ -z $DEPLOYMENT_NAME ]]          && { printf "Missing DEPLOYMENT_NAME variable.\n"; exit 1; }
 [[ -z $INSTALL_DIR ]]              && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
+[[ -z $CONFIG_DIR ]]               && { printf "Missing CONFIG_DIR variable.\n"; exit 1; }
+[[ -z $SHIM_DIR ]]                 && { printf "Missing SHIM_DIR variable.\n"; exit 1; }
 [[ -z $JTM_WORKER_INSTALL_DIR ]]   && { printf "Missing JTM_WORKER_INSTALL_DIR variable.\n"; exit 1; }
 [[ -z $CLIENT_INSTALL_DIR ]]       && { printf "Missing CLIENT_INSTALL_DIR variable.\n"; exit 1; }
 [[ -z $JTM_GROUP ]]                && { printf "Missing JTM_GROUP variable.\n"; exit 1; }
@@ -19,9 +21,6 @@ set -eo pipefail
 [[ -z $JAWS_CENTRAL_CORI_RMQ_PW ]] && { printf "Missing JAWS_CENTRAL_CORI_RMQ_PW variable.\n"; exit 1; }
 [[ -z $JAWS_JTM_CORI_DB_PW ]]      && { printf "Missing JAWS_JTM_CORI_DB_PW variable.\n"; exit 1; }
 [[ -z $JAWS_CROMWELL_CORI_DB_PW ]] && { printf "Missing JAWS_CROMWELL_CORI_DB_PW variable.\n"; exit 1; }
-
-## DEFINE PATHS
-CONFIG_DIR="$INSTALL_DIR/configs"
 
 ## CREATE DIRS
 test -d $INSTALL_DIR || mkdir $INSTALL_DIR

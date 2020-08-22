@@ -3,6 +3,9 @@
 ## VALIDATE ENVS
 [[ -z $DEPLOYMENT_NAME ]]          && { printf "Missing DEPLOYMENT_NAME variable.\n"; exit 1; }
 [[ -z $INSTALL_DIR ]]              && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
+[[ -z $CONFIG_DIR ]]               && { printf "Missing CONFIG_DIR variable.\n"; exit 1; }
+[[ -z $SHIM_DIR ]]                 && { printf "Missing SHIM_DIR variable.\n"; exit 1; }
+[[ -z $LOGS_DIR ]]                 && { printf "Missing LOGS_DIR variable.\n"; exit 1; }
 [[ -z $JTM_WORKER_INSTALL_DIR ]]   && { printf "Missing JTM_WORKER_INSTALL_DIR variable.\n"; exit 1; }
 [[ -z $CLIENT_INSTALL_DIR ]]       && { printf "Missing CLIENT_INSTALL_DIR variable.\n"; exit 1; }
 [[ -z $JTM_GROUP ]]                && { printf "Missing JTM_GROUP variable.\n"; exit 1; }
@@ -10,11 +13,6 @@
 [[ -z $JAWS_GROUP ]]               && { printf "Missing JAWS_GROUP variable.\n"; exit 1; }
 [[ -z $REF_DATA_DIR ]]             && { printf "Missing REF_DATA_DIR variable.\n"; exit 1; }
 [[ -z $LOG_LEVEL ]]                && { printf "Missing LOG_LEVEL variable.\n"; exit 1; }
-
-## DEFINE PATHS
-SHIM_DIR="$INSTALL_DIR/shims/"
-LOGS_DIR="$INSTALL_DIR/logs"
-CONFIG_DIR="$INSTALL_DIR/configs"
 
 ## CREATE DIRS
 test -d $INSTALL_DIR || mkdir $INSTALL_DIR
