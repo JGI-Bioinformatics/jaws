@@ -96,6 +96,9 @@ deploy-jaws-cori-dev:
   variables:
     DEPLOYMENT_NAME: dev
     INSTALL_DIR: /tmp/jaws-dev
+    CONFIG_DIR: $INSTALL_DIR/configs
+    SHIM_DIR: $INSTALL_DIR/shims
+    LOGS_DIR: $INSTALL_DIR/logs
     JAWS_GROUP: jaws
     JTM_GROUP: jaws_jtm
     CLIENT_GROUP: genome
@@ -122,6 +125,9 @@ deploy-jaws-cori-staging:
   variables:
     DEPLOYMENT_NAME: staging
     INSTALL_DIR: /tmp/jaws-staging
+    CONFIG_DIR: $INSTALL_DIR/configs
+    SHIM_DIR: $INSTALL_DIR/shims
+    LOGS_DIR: $INSTALL_DIR/logs
     JAWS_GROUP: jaws
     JTM_GROUP: jaws_jtm
     CLIENT_GROUP: genome
@@ -148,6 +154,9 @@ deploy-jaws-cori-prod:
   variables:
     DEPLOYMENT_NAME: prod
     INSTALL_DIR: /tmp/jaws-prod
+    CONFIG_DIR: $INSTALL_DIR/configs
+    SHIM_DIR: $INSTALL_DIR/shims
+    LOGS_DIR: $INSTALL_DIR/logs
     JAWS_GROUP: jaws
     JTM_GROUP: jaws_jtm
     CLIENT_GROUP: genome

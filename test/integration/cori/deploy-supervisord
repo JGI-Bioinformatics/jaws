@@ -3,15 +3,14 @@
 ## VALIDATE ENVS
 [[ -z $DEPLOYMENT_NAME ]]         && { printf "Missing DEPLOYMENT_NAME variable.\n"; exit 1; }
 [[ -z $INSTALL_DIR ]]             && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
+[[ -z $CONFIG_DIR ]]               && { printf "Missing CONFIG_DIR variable.\n"; exit 1; }
+[[ -z $SHIM_DIR ]]                 && { printf "Missing SHIM_DIR variable.\n"; exit 1; }
 [[ -z $JTM_GROUP ]]               && { printf "Missing JTM_GROUP variable.\n"; exit 1; }
 [[ -z $JAWS_SUPERVISORD_PW ]]     && { printf "Missing JAWS_SUPERVISORD_PW variable.\n"; exit 1; }
 [[ -z $SUPERVISOR_DIR ]]          && { printf "Missing SUPERVISOR_DIR variable.\n"; exit 1; }
 [[ -z $SUPERVISOR_URL ]]          && { printf "Missing SUPERVISOR_URL variable.\n"; exit 1; }
 [[ -z $JAWS_SUPERVISOR_PORT ]]    && { printf "Missing JAWS_SUPERVISOR_PORT variable.\n"; exit 1; }
 [[ -z $JTM_SUPERVISOR_PORT ]]     && { printf "Missing JTM_SUPERVISOR_PORT variable.\n"; exit 1; }
-
-## DEFINE PATHS
-SHIM_DIR="$INSTALL_DIR/shims/"
 
 ## CREATE DIRS
 test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
