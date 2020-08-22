@@ -147,12 +147,10 @@ EOM
 cat <<EOM > $SHIM_DIR/jaws.sh
 #!/usr/bin/env bash
 
-source "$CLIENT_INSTALL_DIR/bin/activate"
+source $CLIENT_INSTALL_DIR/bin/activate
 export JAWS_CLIENT_CONFIG="$CLIENT_INSTALL_DIR/jaws-client.conf"
 export JAWS_USER_CONFIG=~/jaws.conf
 echo "Activated JAWS-$DEPLOYMENT_NAME; use 'deactivate' to exit."
-test -f "$JAWS_CLIENT_CONFIG" || echo "WARNING: $JAWS_CLIENT_CONFIG not found; contact admin"
-test -f "$JAWS_USER_CONFIG" || echo "WARNING: $JAWS_USER_CONFIG not found; see docs"
 EOM
 
 cat <<EOM > $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
