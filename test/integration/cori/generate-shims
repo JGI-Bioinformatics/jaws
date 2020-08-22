@@ -131,7 +131,7 @@ cat <<EOM > $JTM_WORKER_INSTALL_DIR/shifter_exec.sh
 shifter --image=$1 -V $REF_DATA_DIR:/refdata $2 $3
 EOM
 
-cat <<EOM > $SHIM_DIR/jtm-deploy-worker-$DEPLOYMENT_NAME
+cat <<EOM > $SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME
 #!/usr/bin/env bash
 
 # HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
@@ -174,5 +174,5 @@ EOM
 ## SET PERMISSIONS
 chgrp $JTM_GROUP $SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
 chgrp $JTM_GROUP $SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME
-chgrp $JTM_GROUP $SHIM_DIR/jtm-deploy-worker-$DEPLOYMENT_NAME
+chgrp $JTM_GROUP $SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME
 chmod +x $SHIM_DIR/*
