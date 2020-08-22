@@ -8,9 +8,6 @@
 [[ -z $CLIENT_INSTALL_DIR ]] && { printf "Missing CLIENT_INSTALL_DIR variable.\n"; exit 1; }
 [[ -z $CLIENT_GROUP ]] && { printf "Missing CLIENT_GROUP variable.\n"; exit 1; }
 
-## DEFINE PATHS
-CONFIG_DIR="$INSTALL_DIR/configs"
-
 ## CREATE DIRS
 test -d "$INSTALL_DIR" || mkdir "$INSTALL_DIR"
 test -d "$CONFIG_DIR" || mkdir "$CONFIG_DIR"
@@ -33,7 +30,7 @@ python3 -m venv "$INSTALL_DIR/site" && . "$INSTALL_DIR/site/bin/activate" && pip
 python3 -m venv "$INSTALL_DIR/central" && . "$INSTALL_DIR/central/bin/activate" && pip install rpc/dist/* && pip install central/dist/* && deactivate
 python3 -m venv "$INSTALL_DIR/jtm" && . "$INSTALL_DIR/jtm/bin/activate" && pip install rpc/dist/* && pip install jtm/dist/* && deactivate
 python3 -m venv "$JTM_WORKER_INSTALL_DIR" && . "$JTM_WORKER_INSTALL_DIR/bin/activate" && pip install rpc/dist/* && pip install jtm/dist/* && deactivate
-python3 -m venv "$CLIENT_INSTALL_DIR" && . "$CLIENT_INSTALL_DIR/bin/activate" && pip install jtm/dist/* && deactivate
+python3 -m venv "$CLIENT_INSTALL_DIR" && . "$CLIENT_INSTALL_DIR/bin/activate" && pip install client/dist/* && deactivate
 
 ## PERMISSIONS
 function fix_perms() {
