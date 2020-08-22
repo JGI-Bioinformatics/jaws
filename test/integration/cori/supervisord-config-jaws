@@ -71,13 +71,13 @@ startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-client-deploy]
-command=$SHIM_DIR/jaws-client-deploy-$DEPLOYMENT_NAME
+[program:jaws-deploy-client]
+command=$SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=0
 startretries=0
 autorestart=false
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc,jaws-central-auth,jaws-central-rest,jaws-central-rpc,jaws-client-deploy
+programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc,jaws-central-auth,jaws-central-rest,jaws-central-rpc,jaws-deploy-client
 priority=999
