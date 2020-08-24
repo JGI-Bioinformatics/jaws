@@ -33,6 +33,11 @@ class Configuration(metaclass=Singleton):
     """Configuration singleton class."""
 
     defaults = {
+        "JAWS": {
+            "name": "jaws",
+            "version": "",
+            "docs_url": ""
+        },
         "DB": {
             "dialect": "mysql+mysqlconnector",
             "host": "localhost",

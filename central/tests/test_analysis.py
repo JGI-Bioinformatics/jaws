@@ -10,7 +10,12 @@ import jaws_central.config
 @pytest.fixture
 def config_file(tmp_path):
     cfg = tmp_path / "jaws-central.ini"
-    content = """[DB]
+    content = """[JAWS]
+name = jaws-dev
+version = 2.0.1
+docs_url = https://jaws-docs.readthedocs.io/en/latest/
+
+[DB]
 dialect = mysql+mysqlconnector
 host = db.foo.com
 port = 3306

@@ -26,11 +26,21 @@ paths:
   /status:
     get:
       operationId: jaws_central.utils.status
+      summary: Status of JAWS services
       responses:
         200:
           description: OK
         500:
           description: System is down
+      security: []
+
+  /info:
+    get:
+      operationId: jaws_central.utils.info
+      summary: Information about JAWS deployment
+      responses:
+        200:
+          description: OK
       security: []
 
   /auth:
