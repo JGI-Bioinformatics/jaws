@@ -95,6 +95,8 @@ deploy-jaws-cori-dev:
     - cori
   variables:
     DEPLOYMENT_NAME: dev
+    JAWS_VERSION: 2.0.1
+    JAWS_DOCS_URL: https://jaws-docs.readthedocs.io/en/latest/
     INSTALL_DIR: /tmp/jaws-dev
     CONFIG_DIR: $INSTALL_DIR/configs
     SHIM_DIR: $INSTALL_DIR/shims
@@ -124,6 +126,8 @@ deploy-jaws-cori-staging:
     - cori
   variables:
     DEPLOYMENT_NAME: staging
+    JAWS_VERSION: 2.0.1
+    JAWS_DOCS_URL: https://jaws-docs.readthedocs.io/en/latest/
     INSTALL_DIR: /tmp/jaws-staging
     CONFIG_DIR: $INSTALL_DIR/configs
     SHIM_DIR: $INSTALL_DIR/shims
@@ -153,6 +157,8 @@ deploy-jaws-cori-prod:
     - cori
   variables:
     DEPLOYMENT_NAME: prod
+    JAWS_VERSION: 2.0.1
+    JAWS_DOCS_URL: https://jaws-docs.readthedocs.io/en/latest/
     INSTALL_DIR: /tmp/jaws-prod
     CONFIG_DIR: $INSTALL_DIR/configs
     SHIM_DIR: $INSTALL_DIR/shims

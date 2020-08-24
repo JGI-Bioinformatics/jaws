@@ -4,6 +4,8 @@ set -eo pipefail
 
 ## VALIDATE ENVS
 [[ -z $DEPLOYMENT_NAME ]]          && { printf "Missing DEPLOYMENT_NAME variable.\n"; exit 1; }
+[[ -z $JAWS_VERSION ]]             && { printf "Missing JAWS_VERSION variable.\n"; exit 1; }
+[[ -z $JAWS_DOCS_URL ]]            && { printf "Missing JAWS_DOCS_URL variable.\n"; exit 1; }
 [[ -z $INSTALL_DIR ]]              && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
 [[ -z $CONFIG_DIR ]]               && { printf "Missing CONFIG_DIR variable.\n"; exit 1; }
 [[ -z $SHIM_DIR ]]                 && { printf "Missing SHIM_DIR variable.\n"; exit 1; }
@@ -78,6 +80,10 @@ url = http://localhost:50101
 EOM
 
 cat << EOM > $CONFIG_DIR/jaws-central.conf
+[JAWS]
+name = $DEPLOYMENT_NAME
+version = $JAWS_VERSION
+docs_url = $JAWS_DOCS_URL
 [DB]
 dialect = mysql+mysqlconnector
 host = jaws-db.lbl.gov

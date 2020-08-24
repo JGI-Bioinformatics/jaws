@@ -24,18 +24,7 @@ JAWS_USER_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws-user.conf")
 @click.option("--log", "log_file", default=None, help="Log file")
 @click.option("--log-level", "log_level", default="INFO", help="Logging level")
 def cli(jaws_config_file: str, user_config_file: str, log_file: str, log_level: str):
-    """JGI Analysis Workflows Service.
-
-    :param jaws_config_file: filename of JAWS configuration file
-    :type jaws_config_file: str
-    :param user_config_file: filename of the user's configuration file
-    :type user_config_file: str
-    :param log_file: filename of log file
-    :type log_file: str
-    :param log_level: logging level
-    :type log_level: str
-    :return:
-    """
+    """JGI Analysis Workflows Service"""
     if log_file is None:
         log_file = (
             os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_USER_LOG
@@ -62,6 +51,20 @@ def cli(jaws_config_file: str, user_config_file: str, log_file: str, log_level: 
 def status() -> None:
     """Current system status."""
     url = f'{config.conf.get("JAWS", "url")}/status'
+    try:
+        r = requests.get(url)
+    except requests.exceptions.RequestException:
+        raise SystemExit("JAWS Central is DOWN")
+    if r.status_code != 200:
+        raise SystemExit(r.text)
+    result = r.json()
+    print(json.dumps(result, indent=4, sort_keys=True))
+
+
+@cli.command()
+def info() -> None:
+    """JAWS version and info."""
+    url = f'{config.conf.get("JAWS", "url")}/info'
     try:
         r = requests.get(url)
     except requests.exceptions.RequestException:
