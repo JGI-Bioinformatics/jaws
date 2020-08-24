@@ -15,7 +15,7 @@ JAWS_USER_LOG = os.path.expanduser("~/jaws.log")
 JAWS_CONFIG_ENV = "JAWS_CLIENT_CONFIG"
 JAWS_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws-client.conf")
 JAWS_USER_CONFIG_ENV = "JAWS_USER_CONFIG"
-JAWS_USER_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws-user.conf")
+JAWS_USER_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws.conf")
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})

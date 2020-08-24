@@ -48,9 +48,9 @@ fix_perms "$INSTALL_DIR/jtm" $JTM_GROUP
 
 ## COPY CLIENT CONFIG
 cp "$CONFIG_DIR/jaws-client.conf" "$CLIENT_INSTALL_DIR/"
-cp "$CONFIG_DIR/jaws-user.conf" "$CLIENT_INSTALL_DIR/"
+cp "$CONFIG_DIR/jaws.conf" "$CLIENT_INSTALL_DIR/"
 chmod 644 "$CLIENT_INSTALL_DIR/jaws-client.conf"
-chmod 644 "$CLIENT_INSTALL_DIR/jaws-user.conf"
+chmod 644 "$CLIENT_INSTALL_DIR/jaws.conf"
 
 # NB: chgrp doesn't work for parallel FS from gitlab-runner, so that's done in the jtm-worker-deploy and jaws-client-deploy scripts created by generate-shims instead
 #cp "$CONFIG_DIR/jaws-jtm.conf" "$JTM_WORKER_INSTALL_DIR/"
