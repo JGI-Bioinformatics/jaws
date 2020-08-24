@@ -137,10 +137,12 @@ cat <<EOM > $SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME
 # HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
 
 test -d $JTM_WORKER_INSTALL_DIR || mkdir $JTM_WORKER_INSTALL_DIR
+test -d $JTM_WORKER_INSTALL_DIR/staging || mkdir $JTM_WORKER_INSTALL_DIR/staging
 
 cp $CONFIG_DIR/jaws-jtm.conf $JTM_WORKER_INSTALL_DIR/
 chgrp $JTM_GROUP $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
 chmod 770 $JTM_WORKER_INSTALL_DIR
+chmod 777 $JTM_WORKER_INSTALL_DIR/staging
 chmod 640 $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
 EOM
 
@@ -160,7 +162,7 @@ cat <<EOM > $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
 
 test -d $CLIENT_INSTALL_DIR || mkdir $CLIENT_INSTALL_DIR
 cp $CONFIG_DIR/jaws-client.conf $CLIENT_INSTALL_DIR/
-cp $CONFIG_DIR/jaws-user.conf $CLIENT_INSTALL_DIR/
+cp $CONFIG_DIR/jaws.conf $CLIENT_INSTALL_DIR/
 cp $SHIM_DIR/jaws.sh $CLIENT_INSTALL_DIR/
 
 chmod -R ag+rX $CLIENT_INSTALL_DIR

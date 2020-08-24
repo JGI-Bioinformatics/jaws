@@ -129,7 +129,7 @@ staging_subdir = /global/cscratch1/sd/jaws_jtm/jtm-$DEPLOYMENT_NAME/staging
 max_ram_gb = 2048
 EOM
 
-cat << EOM > $CONFIG_DIR/jaws-user.conf
+cat << EOM > $CONFIG_DIR/jaws.conf
 [USER]
 token = 
 staging_dir = 
