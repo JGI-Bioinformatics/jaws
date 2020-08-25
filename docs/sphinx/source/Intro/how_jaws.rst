@@ -24,7 +24,7 @@ Diagram of how JAWS works
 The main takeaways here are 
 
   * All the commands are from the command line and handled by (:bash:`jaws-client`).
-  * The :bash:`jaws-central` is a server that coordinates which site (e.g. LBNL or NERSC) the pipeline is run. 
+  * The :bash:`jaws-central` is a server that coordinates which site (e.g. JGI or CORI) the pipeline is run. 
   * GLOBUS transfers all your files from your data source to the computing-site where Cromwell will actually run. 
   * Cromwell will run the pipeline at the computing-site.
   * The JTM (JGI Task Manager) (:bash:`jaws-jtm`) serves as the backend to Cromwell and handles the running of the jobs. 
@@ -37,9 +37,9 @@ The main takeaways here are
 |
 
 
-###################################################
-Details of JAWS Implementation at LBL IT and NERSC  
-###################################################
+#################################################
+Details of JAWS Implementation at LBL IT and CORI  
+#################################################
 This diagram emphasizes the differences between the two site implementations and how everything communicates.  A few redundant features were excluded due to space limitations.
 
 
