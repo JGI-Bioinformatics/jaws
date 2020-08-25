@@ -16,6 +16,8 @@ set -eo pipefail
 [[ -z $JAWS_GROUP ]]               && { printf "Missing JAWS_GROUP variable.\n"; exit 1; }
 [[ -z $REF_DATA_DIR ]]             && { printf "Missing REF_DATA_DIR variable.\n"; exit 1; }
 [[ -z $LOG_LEVEL ]]                && { printf "Missing LOG_LEVEL variable.\n"; exit 1; }
+[[ -z $STAGING_SUBDIR]]             && { printf "Missing STAGING_SUBDIR variable.\n"; exit 1; }
+[[ -z $RESULTS_SUBDIR]]             && { printf "Missing RESULTS_SUBDIR variable.\n"; exit 1; }
 
 [[ -z $JAWS_SITE_CORI_DB_PW ]]     && { printf "Missing JAWS_SITE_CORI_DB_PW variable.\n"; exit 1; }
 [[ -z $JAWS_SITE_CORI_RMQ_PW ]]    && { printf "Missing JAWS_SITE_CORI_RMQ_PW variable.\n"; exit 1; }
@@ -27,6 +29,8 @@ set -eo pipefail
 ## CREATE DIRS
 test -d $INSTALL_DIR || mkdir $INSTALL_DIR
 test -d $CONFIG_DIR || mkdir $CONFIG_DIR
+#test -d $STAGING_SUBDIR|| mkdir $STAGING_SUBDIR
+#test -d $RESULTS_SUBDIR|| mkdir $RESULTS_SUBDIR
 chgrp $JTM_GROUP $INSTALL_DIR
 chgrp $JTM_GROUP $CONFIG_DIR
 chmod 770 $INSTALL_DIR
@@ -36,45 +40,45 @@ chmod 770 $CONFIG_DIR
 cat << EOM > $CONFIG_DIR/jaws-site.conf
 [DB]
 dialect = mysql+mysqlconnector
-host = db.mysql.prod-cattle.stable.spin.nersc.org
-port = 60006
-user = jaws
-password = $JAWS_SITE_CORI_DB_PW
+host = $MYSQL_HOST_SITE
+port = $MYSQL_PORT_SITE
+user = $MYSQL_USER_SITE
+password = $MYSQL_PASS_SITE
 db = jaws_$DEPLOYMENT_NAME
 [LOCAL_RPC_SERVER]
-user = jaws_nersc
-password = $JAWS_SITE_CORI_RMQ_PW
-host = rmq.lbl.gov
-port = 5672
+user = $RMQ_USER_SITE
+password = $RMQ_PASS_SITE
+host = $RMQ_HOST_SITE
+port = $RMP_PORT_SITE
 vhost = jaws_$DEPLOYMENT_NAME
 queue = site_rpc
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_SERVER]
-user = jaws_nersc
+user = $RMQ_USER_SITE
 password = $JAWS_SITE_CORI_RMQ_PW
-host = rmq.lbl.gov
-port = 5672
+host = $RMQ_HOST_SITE
+port = $RMQ_PORT_SITE
 vhost = jaws_$DEPLOYMENT_NAME
 queue = nersc_rpc
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
-user = jaws_nersc
-password = $JAWS_SITE_CORI_RMQ_PW
-host = rmq.lbl.gov
-port = 5672
+user = $RMQ_USER_SITE
+password = $RMQ_PASS_SITE
+host = $RMQ_HOST_SITE
+port = $RMQ_PORT_SITE
 vhost = jaws_$DEPLOYMENT_NAME
 queue = central_rpc
 [GLOBUS]
-client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
+client_id = $GLOBUS_CLIENT_ID_SITE
+endpoint_id = $GLOBUS_ENDPOINT_ID_SITE
 root_dir = /
 default_dir = ~
 [SITE]
 id = CORI
-staging_subdirectory = global/cscratch1/sd/jaws_jtm/jtm-$DEPLOYMENT_NAME/staging
-results_subdirectory = global/cscratch1/sd/jaws/jaws-$DEPLOYMENT_NAME/results
+staging_subdirectory = $STAGING_DIR/jtm-$DEPLOYMENT_NAME/staging
+results_subdirectory = $RESULTS_DIR/jaws-$DEPLOYMENT_NAME/results
 [CROMWELL]
 url = http://localhost:50101
 EOM
@@ -86,66 +90,66 @@ version = $JAWS_VERSION
 docs_url = $JAWS_DOCS_URL
 [DB]
 dialect = mysql+mysqlconnector
-host = jaws-db.lbl.gov
-port = 3306
-user = jaws_central
-password = $JAWS_CENTRAL_CORI_DB_PW
+host = $MYSQL_HOST_CENTRAL
+port = $MYSQL_PORT_CENTRAL
+user = $MYSQL_USER_CENTRAL
+password = $MYSQL_PASS_CENTRAL
 db = jaws_central_$DEPLOYMENT_NAME
 [RPC_SERVER]
-user = jaws_central
+user = $RMQ_USER_CENTRAL
 password = $JAWS_CENTRAL_CORI_RMQ_PW
-host = rmq.lbl.gov
-port = 5672
+host = $RMQ_HOST_CENTRAL
+port = $RMQ_PORT_CENTRAL
 vhost = jaws_$DEPLOYMENT_NAME
 queue = central_rpc
 num_threads = 5
 max_retries = 3
 [GLOBUS]
-client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
+client_id = $GLOBUS_CENTRAL_CLIENT_ID
 [HTTP]
 auth_port = $JAWS_AUTH_PORT
 rest_port = $JAWS_REST_PORT
 [SITE:JGI]
-user = jaws_central
+user = $RMQ_USER_CENTRAL
 password = $JAWS_CENTRAL_CORI_RMQ_PW
-host = rmq.lbl.gov
-port = 5672
+host = $RMQ_HOST_CENTRAL
+port = $RMQ_PORT_CENTRAL
 vhost = jaws_$DEPLOYMENT_NAME
 queue = lrc_rpc
-globus_endpoint = b445e71a-4933-11ea-9714-021304b0cca7
-globus_basepath = /global/scratch/jaws
+globus_endpoint = $GLOBUS_CENTRAL_ENDPOINT_SITE_JGI
+globus_basepath = $GLOBUS_CENTRAL_BASEPATH_SITE_JGI
 staging_subdir = jtm/jtm-$DEPLOYMENT_NAME/staging
 max_ram_gb = 1024
 [SITE:CORI]
-user = jaws_central
+user = $RMQ_USER_CENTRAL
 password = $JAWS_CENTRAL_CORI_RMQ_PW
-host = rmq.lbl.gov
-port = 5672
+host = $RMQ_HOST_CENTRAL
+port = $RMQ_PORT_CENTRA
 vhost = jaws_$DEPLOYMENT_NAME
 queue = nersc_rpc
-globus_endpoint = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
-globus_basepath = /
+globus_endpoint = $GLOBUS_CENTRAL_ENDPOINT_SITE_CORI
+globus_basepath = $GLOBUS_CENTRAL_BASEPATH_SITE_CORI
 staging_subdir = /global/cscratch1/sd/jaws_jtm/jtm-$DEPLOYMENT_NAME/staging
 max_ram_gb = 2048
 EOM
 
 cat << EOM > $CONFIG_DIR/jaws.conf
 [USER]
-token = 
-staging_dir = 
+token =
+staging_dir =
 EOM
 
 cat << EOM > $CONFIG_DIR/jaws-client.conf
 [JAWS]
 site_id = NERSC
 name = jaws-$DEPLOYMENT_NAME
-url = http://cori20.nersc.gov:$JAWS_REST_PORT/api/v2
-womtool_jar = /global/cfs/projectdirs/jaws/cromwell/womtool.jar
+url = $SUPERVISOR_URL:$JAWS_REST_PORT/api/v2
+womtool_jar = $WOMTOOL_JAR
 staging_subdir = global/cscratch1/sd/jaws/jaws-$DEPLOYMENT_NAME/staging
 [GLOBUS]
-client_id = 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-endpoint_id = 9d6d994a-6d04-11e5-ba46-22000b92c6ec
-basedir = /
+client_id = $GLOBUS_CLIENT_ID_SITE
+endpoint_id = $GLOBUS_ENDPOINT_ID_SITE
+basedir = $GLOBUS_BASE_PATH_SITE
 EOM
 
 cat << EOM > $CONFIG_DIR/jaws-jtm.conf
