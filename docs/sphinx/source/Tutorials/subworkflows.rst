@@ -49,4 +49,4 @@ You can try running this example
     cd jaws-tutorial-examples/subworkflow
 
     # run jaws run submit <workflow> <inputs> <full path to outdir> <site>
-    jaws run submit main.wdl inputs.json out NERSC
+    jaws run submit main.wdl inputs.json out cori

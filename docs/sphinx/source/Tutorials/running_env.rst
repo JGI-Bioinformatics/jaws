@@ -25,11 +25,9 @@ The currently available resources supported by JAWS is
 +-----------------------+-------------+
 |Available Compute Site | What it Uses|
 +=======================+=============+
-|LBLs lawrencium        | singularity |
+|JGI (LBLs lawrencium)  | singularity |
 +-----------------------+-------------+
-|AWS (not yet)          | docker      |
-+-----------------------+-------------+
-|NERSC-cori             | shifter     |
+|CORI (nersc)           | shifter     |
 +-----------------------+-------------+
 
 No matter which site you are using, the WDL is identical.

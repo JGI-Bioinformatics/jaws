@@ -20,25 +20,42 @@ Table of available resources
 
 Use the following tables to help figure out how many jobs (i.e. workers) you can run per node and how many total nodes you can expect to get.
 
-On Cori, JAWS runs on a dedicated cluster called genepool
+On Cori, JAWS runs on a dedicated cluster. 
 
-+---------+-----+----------+-----+-------+--------------+
-|node type|nodes| ram (G)  |cores|threads|max time (hrs)|
-+=========+=====+==========+=====+=======+==============+
-| haswell |   16|128 (118*)|  16 |  32   |      72      |
-+---------+-----+----------+-----+-------+--------------+
-|     knl | 9489| 96 (87*) |  68 | 272   |      48      |
-+---------+-----+----------+-----+-------+--------------+
++---------+-----+----------+------------+-----+-------+--------------+
+|node type|nodes| ram (G)  | project    |cores|threads|max time (hrs)|
++=========+=====+==========+============+=====+=======+==============+
+| haswell |2,388|128 (118*)|     n.a.   | 16  |   32  |  72          |
++---------+-----+----------+------------+-----+-------+--------------+
+|     knl |9,489| 96 (87*) |     n.a.   | 68  |  272  |  48          |
++---------+-----+----------+------------+-----+-------+--------------+
+| skylake |  20 |758 (700*)| jgi_exvivo | 32  |   32  | 168          |
++---------+-----+----------+------------+-----+-------+--------------+
+| skylake |  20 |250 (230*)| jgi_shared | 32  |   32  | 168          |
++---------+-----+----------+------------+-----+-------+--------------+
 
 |
 
-On LBNL, JAWS runs on a dedicated cluster called condo_jgicloud
+At JGI, JAWS runs on a dedicated cluster called condo_jgicloud which is on partition = Lawrencium lr3.
 
-+---------+-----+----------+-----+-------+--------------+
-|node type|nodes| ram (G)  |cores|threads|max time (hrs)|
-+=========+=====+==========+=====+=======+==============+
-| haswell |  172|128 (118*)|  16 |  32   |      72?     |
-+---------+-----+----------+-----+-------+--------------+
++-----------+-----+----------+-----+-------+--------------+
+|constraint |nodes| ram (G)  |cores|threads|max time (hrs)|
++===========+=====+==========+=====+=======+==============+
+| n.a.      |  40 |256 (236*)|  32 |  64   |      72      |
++-----------+-----+----------+-----+-------+--------------+
+| n.a.      |  4  |512 (472*)|  32 |  64   |      72      |
++-----------+-----+----------+-----+-------+--------------+
+
+|
+
+
+At Pacific Northwest National Labs: `PNNL <https://www.emsl.pnnl.gov/MSC/UserGuide/compute_resources/cascade_overview.html>`_
+
++-----------+-----+----------+-----+-------+--------------+
+|constraint |nodes| ram (G)  |cores|threads|max time (hrs)|
++===========+=====+==========+=====+=======+==============+
+| n.a.      | 960 |128 (118*)|  16 |   16  | 168          |
++-----------+-----+----------+-----+-------+--------------+
 
 | * the actual number of gigabytes you should request (remember there is overhead).
 

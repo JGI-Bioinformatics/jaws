@@ -151,22 +151,22 @@ Run WDL in JAWS
     cd jaws-tutorial-examples/quickstart
 
     # run "jaws run submit <workflow> <inputs> <full path to outdir> <site>"
-    jaws run list-sites  # you should see NERSC
-    jaws run submit align.wdl inputs.json out NERSC
+    jaws run list-sites  # you should see CORI
+    jaws run submit align.wdl inputs.json out cori  # note that case doesn't matter for sites.
 
     # you should see something like this
     2020-04-16 13:04:18,434 - INFO - workflow - Validating WDL, align.wdl
     2020-04-16 13:04:20,357 - INFO - workflow - Validating inputs file, inputs.json
     2020-04-16 13:04:22,084 - INFO - workflow - Maximum RAM requested is 0Gb
     2020-04-16 13:04:22,085 - INFO - workflow - Staging WDLs to <fullpath>/JAWS-scratch
-    2020-04-16 13:04:22,088 - INFO - workflow - Staging infiles to <fullpath>/JAWS-scratch/NERSC
+    2020-04-16 13:04:22,088 - INFO - workflow - Staging infiles to <fullpath>/JAWS-scratch/CORI
     2020-04-16 13:04:22,093 - INFO - workflow - Writing file manifest to <fullpath>/JAWS-scratch/ca626c3e-ad65-44b8-a55a-4ce310d2108b.tsv
 
     {
         "output_dir": "<fullpath>/examples/create_wdl_tutorial/out",
         "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
         "run_id": 80,
-        "site_id": "NERSC",
+        "site_id": "CORI",
         "status": "uploading",
         "submission_id": "ca626c3e-ad65-44b8-a55a-4ce310d2108b",
         "upload_task_id": "77810d8e-801d-11ea-97a5-0e56c063f437"

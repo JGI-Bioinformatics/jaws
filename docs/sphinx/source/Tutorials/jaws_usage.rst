@@ -92,12 +92,12 @@ This command shows the status of the various jaws-services. Some services are si
 
     {
       "JAWS-Central": "UP",
-      "LBNL-Cromwell": "Unknown",
-      "LBNL-RMQ": "UP",
-      "LBNL-Site": "DOWN",
-      "NERSC-Cromwell": "UP",
-      "NERSC-RMQ": "UP",
-      "NERSC-Site": "UP"
+      "JGI-Cromwell": "Unknown",
+      "JGI-RMQ": "UP",
+      "JGI-Site": "DOWN",
+      "CORI-Cromwell": "UP",
+      "CORI-RMQ": "UP",
+      "CORI-Site": "UP"
     }
 
 
@@ -109,12 +109,12 @@ Examples
 
 .. code-block:: text
 
-    # find available sites and submit to NERSC
+    # find available sites and submit to CORI
     jaws run list-sites
-    jaws run submit my.wdl inputs.json out NERSC
+    jaws run submit my.wdl inputs.json out cori
 
-    # submit it to LBNL
-    jaws run submit my.wdl inputs.json out LBNL
+    # submit it to JGI
+    jaws run submit my.wdl inputs.json out jgi
 
 
 **Anyone can share a WDL. To see a list of workflows available in the catalog run**
@@ -155,7 +155,7 @@ Examples
     vi inputs.json
 
     # run as usual
-    jaws run submit my.wdl inputs.json out NERSC
+    jaws run submit my.wdl inputs.json out cori
 
 
 .. note::
@@ -169,7 +169,7 @@ Examples
   "output_dir": "<full_path>/out",
   "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
   "run_id": 121,
-  "site_id": "NERSC",
+  "site_id": "CORI",
   "status": "uploading",
   "submission_id": "7d2606b9-569f-4d50-9423-c1acb5441c6b",
   "upload_task_id": "07ffa460-88ac-11ea-b3ba-0ae144191ee3"
