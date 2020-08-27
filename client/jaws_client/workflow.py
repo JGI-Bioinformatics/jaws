@@ -389,11 +389,8 @@ def move_input_files(workflow_inputs, destination):
     for original_path in workflow_inputs.src_file_inputs:
         staged_path = pathlib.Path(f"{destination}{original_path}")
         moved_files.append(staged_path.as_posix())
-        if os.path.isdir(original_path):
-            staged_path.mkdir(mode=0o0700, parents=True, exist_ok=True)
-        else:
-            dirname = pathlib.Path(os.path.dirname(staged_path))
-            dirname.mkdir(mode=0o0700, parents=True, exist_ok=True)
+        dirname = pathlib.Path(os.path.dirname(staged_path))
+        dirname.mkdir(mode=0o0700, parents=True, exist_ok=True)
 
         # globus paths are accessible via symlink
         if original_path.startswith(globus_basedir):
