@@ -529,6 +529,24 @@ class WorkflowInputs:
         with open(json_location, "w") as json_inputs:
             json.dump(self.inputs_json, json_inputs, indent=4)
 
+    def get_size(self, path):
+        """
+        Returns the total size of all files under the path, in bytes.
+
+        :param path: Folder to calculate size of
+        :type path: string
+        :return: total size in bytes
+        :rtype: int
+        """
+        total_bytes = 0
+        for dirpath, dirnames, filenames in os.walk(path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                # skip if it is symbolic link
+                if not os.path.islink(fp):
+                    total_bytes += os.path.getsize(fp)
+        return total_bytes
+
 
 class Manifest:
     """
