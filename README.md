@@ -75,6 +75,7 @@ Developers
 * Georg Rath
 * Seung-jin Sul
 * Stephan Trong
+* Kelly Rowland
 
 Documentation and WDL authoring
 * Jeff Froula
