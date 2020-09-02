@@ -116,18 +116,19 @@ Do the following
 
 .. code-block:: bash
 
-    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws-user.conf ~/.jaws
-    chmod 600 ~/.jaws
+    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws.conf ~
+    chmod 600 ~/jaws.conf
 
-    Edit ~/.jaws and add values for the [USER] variables:
+    Edit ~/jaws.conf and add values for the [USER] variables:
       token : This should be the token you got from the JAWS admin
       staging_dir : Set to a JAWS subdir in your scratch dir, e.g. /global/cscratch1/sd/YOURUID/jaws
 
     # Set up the virtual environment
     # You will use an existing one. This gives you access to all the jaws commands.
-    ln -s /global/cfs/projectdirs/jaws/jaws-prod/jaws.sh ~/jaws
+    # By using a symlink, we can update the file without forcing you to re-copy the file.
+    ln -s /global/cfs/projectdirs/jaws/jaws-prod/jaws-prod.sh ~
 
-    source ~/jaws
+    source ~/jaws-prod.sh
     (use "deactivate" to get out of the environment)
 
     # Get the jaws-auth token. 
