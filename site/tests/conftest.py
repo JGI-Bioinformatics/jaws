@@ -54,8 +54,8 @@ url = http://localhost:8000
 
 [SITE]
 id = eagle
-staging_subdirectory = staging
-results_subdirectory = results
+uploads_subdirectory = uploads
+downloads_subdirectory = downloads
 """
 
     cfg.write_text(content)
@@ -344,7 +344,7 @@ def cromwell_run_dir(tmp_path):
 
 
 @pytest.fixture()
-def staging_files():
+def uploads_files():
     home_dir = os.path.expanduser("~")
     root_dir = os.path.join(home_dir, "1")
 

@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+
+## print list of all missing vars (instead of exiting on first undefined var)
+## exit with 1 if any vars are missing; 0 otherwise
+
+REQUIRED_VARS="
+JAWS_SITE
+DEPLOYMENT_NAME
+JAWS_VERSION
+JAWS_DOCS_URL
+JAWS_CENTRAL_HOST
+JAWS_CENTRAL_RMQ_HOST
+JAWS_CENTRAL_RMQ_PORT
+JAWS_GLOBUS_CLIENT_ID
+CROMWELL_VERSION
+"
+RESULT=0
+echo "VALIDATING REQUIRED VARS"
+for VAR in $REQUIRED_VARS; do
+  if [[ -z ${!VAR} ]]; then
+    echo "Missing env var: $VAR">&2
+    RESULT=1
+  fi
+done
+[ $RESULT -eq 0 ] || exit $RESULT
+
+
+# These are variables constructed from other variables, in order to
+# keep the number of configured variables to a minimum, and to
+# keep the variable definitions largely in one place.
+# Deployment scripts shall source this file.
+
+function set_deployment_var {
+  VAR_NAME="$1"
+  SRC_VAR_NAME="${DEPLOYMENT_NAME}_${VAR_NAME}"
+  VALUE="${!SRC_VAR_NAME}"
+  echo "... $VAR_NAME"
+  export $VAR_NAME
+  printf -v "$VAR_NAME" "%s" "$VALUE"
+}
+
+## DEPLOYMENT-SPECIFIC VARIABLES:
+echo "DEFINING DEPLOYMENT VARS"
+set_deployment_var "LOG_LEVEL"
+set_deployment_var "JAWS_SUPERVISOR_PORT"
+set_deployment_var "JTM_SUPERVISOR_PORT"
+set_deployment_var "JAWS_AUTH_PORT"
+set_deployment_var "JAWS_REST_PORT"
+set_deployment_var "CROMWELL_PORT"
+
+function set_site_var {
+  VAR_NAME="$1"
+  SRC_VAR_NAME="${JAWS_SITE}_${VAR_NAME}"
+  SITE_VAR_NAME="SITE_${VAR_NAME}"
+  VALUE="${!SRC_VAR_NAME}"
+  echo "... $SITE_VAR_NAME"
+  export $SITE_VAR_NAME
+  printf -v "$SITE_VAR_NAME" "%s" "$VALUE"
+}
+
+## SITE-SPECIFIC VARIABLES:
+echo "DEFINING SITE VARS"
+set_site_var "INSTALL_BASEDIR"
+set_site_var "GLOBUS_EP"
+set_site_var "GLOBUS_ROOT_DIR"
+set_site_var "GLOBUS_DEFAULT_DIR"
+set_site_var "RMQ_HOST"
+set_site_var "RMQ_PORT"
+set_site_var "PYTHON"
+set_site_var "PYTHON_PIP"
+set_site_var "LOAD_PYTHON"
+set_site_var "JAWS_GROUP"
+set_site_var "JTM_GROUP"
+set_site_var "CLIENT_GROUP"
+set_site_var "JAWS_SCRATCH_BASEDIR"
+set_site_var "JTM_SCRATCH_BASEDIR"
+set_site_var "JAWS_SW_BASEDIR"
+set_site_var "JTM_SW_BASEDIR"
+set_site_var "REF_DATA_DIR"
+set_site_var "SUPERVISOR_HOST"
+set_site_var "CONTAINER_TYPE"
+set_site_var "DB_HOST"
+set_site_var "DB_PORT"
+set_site_var "CLUSTER_QOS"
+set_site_var "CLUSTER_PARTITION"
+set_site_var "CLUSTER_ACCOUNT"
+set_site_var "CLUSTER_CONSTRAINT"
+set_site_var "MAX_RAM_GB"
+set_site_var "RMQ_PW"
+set_site_var "DB_PW"
+set_site_var "LOAD_JAVA"
+
+## DEFINE VARS FROM OTHER VARS
+echo "DEFINING PATHS"
+export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export CONFIG_DIR="$INSTALL_DIR/configs"
+export SHIM_DIR="$INSTALL_DIR/shims"
+export LOGS_DIR="$INSTALL_DIR/logs"
+export SUPERVISOR_DIR="$SITE_INSTALL_BASEDIR/jaws-supervisord-$DEPLOYMENT_NAME"
+export SITE_CLIENT_INSTALL_DIR="$SITE_JAWS_SW_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export SITE_CONTAINERS_DIR="$SITE_JTM_SCRATCH_BASEDIR/${SITE_CONTAINER_TYPE}_files"
+export SITE_JAWS_SCRATCH_DIR="$SITE_JAWS_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export SITE_JTM_SCRATCH_DIR="$SITE_JTM_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export SITE_JTM_WORKER_INSTALL_DIR="$SITE_JTM_SW_BASEDIR/jaws-worker-$DEPLOYMENT_NAME"
+export SITE_CROMWELL_JAR="$SITE_JAWS_SW_BASEDIR/cromwell/cromwell-$CROMWELL_VERSION.jar"
+export SITE_WOMTOOL_JAR="$SITE_JAWS_SW_BASEDIR/cromwell/womtool-$CROMWELL_VERSION.jar"
+export SITE_CROMWELL_TMPDIR="$INSTALL_DIR/cromwell-tmp"
+export SITE_UPLOADS_DIR="$SITE_JTM_SCRATCH_DIR/uploads"
+export SITE_DOWNLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/downloads"
+[[ ${SITE_GLOBUS_ROOT_DIR: -1} == "/" ]] || SITE_GLOBUS_ROOT_DIR="$SITE_GLOBUS_ROOT_DIR/"
+if [[ $SITE_GLOBUS_ROOT_DIR == "/" ]]; then
+  export SITE_UPLOADS_SUBDIR=$SITE_UPLOADS_DIR
+  export SITE_DOWNLOADS_SUBDIR=$SITE_DOWNLOADS_DIR
+else
+  export SITE_UPLOADS_SUBDIR=${SITE_UPLOADS_DIR#$SITE_GLOBUS_ROOT_DIR}
+  export SITE_DOWNLOADS_SUBDIR=${SITE_DOWNLOADS_DIR#$SITE_GLOBUS_ROOT_DIR}
+fi
+
+## CREATE DIRS
+function setup_dir {
+  local DIR="$1"
+  local GROUP="$2"
+  [[ -z $DIR ]] && echo "missing DIR" && exit 1
+  [[ -z $GROUP ]] && echo "missing GROUP" && exit 1
+  echo "...$DIR $GROUP"
+  test -d "$DIR" || mkdir -p "$DIR"
+  chgrp "$GROUP" "$DIR"
+  chmod 770 "$DIR"
+}
+echo "CREATING PATHS"
+INSTALL_DIRS="
+INSTALL_DIR
+CONFIG_DIR
+SHIM_DIR
+LOGS_DIR
+SUPERVISOR_DIR
+SITE_CONTAINERS_DIR
+SITE_JAWS_SCRATCH_DIR
+SITE_JTM_WORKER_INSTALL_DIR
+SITE_CROMWELL_TMPDIR
+"
+for DIR in $INSTALL_DIRS; do
+  setup_dir "${!DIR}" "$SITE_JTM_GROUP"
+done

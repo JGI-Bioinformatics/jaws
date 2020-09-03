@@ -15,9 +15,9 @@ class JtmConstants():
     VERSION = "7.0.2"
 
     # Supported cluster
-    COMPUTE_RESOURCES = ["cori",  # NERSC @ LBNL
-                         "jgi",  # LBL IT @ LBNL
-                         "cascade",  # EMSL @ PNNL
+    COMPUTE_RESOURCES = ["CORI",  # NERSC @ LBNL
+                         "JGI",  # LBL IT @ LBNL
+                         "CASCADE",  # EMSL @ PNNL
                          "ssul_laptop"  # for testing
                          ]
 

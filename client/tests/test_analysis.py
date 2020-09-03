@@ -327,7 +327,7 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     def get_site(url, headers=None):
         body = {
             "globus_basepath": "/NERSC/globus",
-            "staging_subdir": "/NERSC/globus/staging",
+            "uploads_subdir": "/NERSC/globus/staging",
             "max_ram_gb": "256",
         }
         return MockResult(body, 200)

@@ -1,0 +1,38 @@
+#!/bin/bash
+
+source ./test/integration/define-env
+
+## VALIDATE ENVS
+[[ -z $INSTALL_DIR ]]            && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
+[[ -z $CONFIG_DIR ]]             && { printf "Missing CONFIG_DIR variable.\n"; exit 1; }
+[[ -z $SITE_JAWS_GROUP ]]             && { printf "Missing SITE_JAWS_GROUP variable.\n"; exit 1; }
+[[ -z $SITE_JTM_GROUP ]]              && { printf "Missing SITE_JTM_GROUP variable.\n"; exit 1; }
+[[ -z $SITE_JTM_WORKER_INSTALL_DIR ]] && { printf "Missing JTM_WORKER_INSTALL_DIR variable.\n"; exit 1; }
+
+## DELETE OLD WHEELS
+rm -rf ./*/dist/*
+
+## DELETE OLD VENVS
+test -d "$INSTALL_DIR/site" && rm -rf "$INSTALL_DIR/site"
+test -d "$INSTALL_DIR/jtm" && rm -rf "$INSTALL_DIR/jtm"
+test -d "$SITE_JTM_WORKER_INSTALL_DIR" && rm -rf "$SITE_JTM_WORKER_INSTALL_DIR"
+
+## MAKE VENVS
+#[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
+module load python
+make pkg
+$SITE_PYTHON -m venv "$INSTALL_DIR/site" && . "$INSTALL_DIR/site/bin/activate" && $SITE_PYTHON_PIP install rpc/dist/* && $SITE_PYTHON_PIP install site/dist/* && deactivate
+$SITE_PYTHON -m venv "$INSTALL_DIR/jtm" && . "$INSTALL_DIR/jtm/bin/activate" && $SITE_PYTHON_PIP install rpc/dist/* && $SITE_PYTHON_PIP install jtm/dist/* && deactivate
+$SITE_PYTHON -m venv "$SITE_JTM_WORKER_INSTALL_DIR" && . "$SITE_JTM_WORKER_INSTALL_DIR/bin/activate" && $SITE_PYTHON_PIP install rpc/dist/* && $SITE_PYTHON_PIP install jtm/dist/* && deactivate
+
+## PERMISSIONS
+function fix_perms() {
+    local DIR="$1"
+    local GROUP=$2
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R $GROUP "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+fix_perms "$INSTALL_DIR/site" $SITE_JAWS_GROUP
+fix_perms "$INSTALL_DIR/jtm" $SITE_JTM_GROUP

@@ -51,8 +51,8 @@ root_dir = /
 default_dir = ~
 [SITE]
 id = CASCADE
-staging_subdirectory = dtemp/mscjgi/jaws-dev/staging
-results_subdirectory = dtemp/mscjgi/jaws-dev/results
+uploads_subdirectory = dtemp/mscjgi/jaws-dev/uploads
+downloads_subdirectory = dtemp/mscjgi/jaws-dev/downloads
 [CROMWELL]
 url = http://localhost:50010
 EOM

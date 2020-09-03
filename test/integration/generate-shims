@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+# NOTE: generate-shims should be run after generate-venvs
+
+source ./test/integration/define-env
+
+## VALIDATE ENVS
+[[ -z $DEPLOYMENT_NAME ]]              && { printf "Missing DEPLOYMENT_NAME variable.\n"; exit 1; }
+[[ -z $INSTALL_DIR ]]                  && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
+[[ -z $SITE_JTM_WORKER_INSTALL_DIR ]]  && { printf "Missing JTM_WORKER_INSTALL_DIR variable.\n"; exit 1; }
+[[ -z $SITE_JTM_SCRATCH_DIR ]]         && { printf "Missing JTM_SCRATCH_DIR variable.\n"; exit 1; }
+[[ -z $SITE_JTM_GROUP ]]               && { printf "Missing SITE_JTM_GROUP variable.\n"; exit 1; }
+[[ -z $SITE_JAWS_GROUP ]]              && { printf "Missing SITE_JAWS_GROUP variable.\n"; exit 1; }
+[[ -z $SITE_REF_DATA_DIR ]]            && { printf "Missing REF_DATA_DIR variable.\n"; exit 1; }
+[[ -z $LOG_LEVEL ]]                    && { printf "Missing LOG_LEVEL variable.\n"; exit 1; }
+[[ -z $SITE_CONTAINER_TYPE ]]          && { printf "Missing CONTAINER_TYPE variable.\n"; exit 1; }
+[[ -z $SITE_CROMWELL_TMPDIR ]]         && { printf "Missing SITE_CROMWELL_TMPDIR variable.\n"; exit 1; }
+[[ -z $SITE_LOAD_JAVA ]]               && { printf "Missing SITE_LOAD_JAVA variable.\n"; exit 1; }
+
+## CREATE DIRS
+test -d $SITE_JTM_WORKER_INSTALL_DIR || mkdir $SITE_JTM_WORKER_INSTALL_DIR
+# chgrp doesn't work with parallel fs; see .gitlab-ci.yml for more info
+#chgrp $SITE_JTM_GROUP $SITE_JTM_WORKER_INSTALL_DIR
+
+## WRITE SHIM SCRIPTS
+cat <<EOM > $SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+test -d "$SITE_JAWS_SCRATCH_DIR" || mkdir "$SITE_JAWS_SCRATCH_DIR"
+chmod 775 "$SITE_JAWS_SCRATCH_DIR"
+test -d "$SITE_DOWNLOADS_DIR" || mkdir "$SITE_DOWNLOADS_DIR"
+chmod 775 "$SITE_DOWNLOADS_DIR"
+
+source $INSTALL_DIR/site/bin/activate
+exec jaws-site --log $LOGS_DIR/site-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL daemon
+EOM
+
+cat <<EOM > "$SHIM_DIR/jaws-site-central-rpc-$DEPLOYMENT_NAME"
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALL_DIR/site/bin/activate
+exec jaws-site --log $LOGS_DIR/site-central-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL central-rpc
+EOM
+
+cat <<EOM > "$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME"
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALL_DIR/site/bin/activate
+exec jaws-site --log $LOGS_DIR/site-jtm-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level DEBUG jtm-rpc
+EOM
+
+cat <<EOM > "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALL_DIR/jtm/bin/activate
+export JTM_CONFIG_FILE=$CONFIG_DIR/jaws-jtm.conf
+
+exec jtm --config=$CONFIG_DIR/jaws-jtm.conf --debug manager -ld $LOGS_DIR
+EOM
+
+cat <<EOM > "$SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME"
+#!/usr/bin/env bash
+
+# HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
+
+test -d $SITE_JTM_WORKER_INSTALL_DIR || mkdir $SITE_JTM_WORKER_INSTALL_DIR
+test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
+test -d $SITE_UPLOADS_DIR || mkdir $SITE_UPLOADS_DIR
+
+cp $CONFIG_DIR/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/
+chgrp $SITE_JTM_GROUP $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chgrp $SITE_JTM_GROUP $SITE_UPLOADS_DIR
+chmod 770 $SITE_JTM_WORKER_INSTALL_DIR
+chmod 640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chmod 775 $SITE_JTM_SCRATCH_DIR
+chmod 777 $SITE_UPLOADS_DIR
+EOM
+
+## SET PERMISSIONS
+chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
+chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME"
+chmod +x "$SHIM_DIR"/*

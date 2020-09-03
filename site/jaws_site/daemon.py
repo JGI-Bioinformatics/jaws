@@ -39,15 +39,15 @@ class Daemon:
         self.site_id = conf.get("SITE", "id")
         self.globus_root_dir = conf.get("GLOBUS", "root_dir")
         self.globus_default_dir = conf.get("GLOBUS", "default_dir")
-        self.staging_dir = os.path.join(
-            conf.get("GLOBUS", "root_dir"), conf.get("SITE", "staging_subdirectory")
+        self.uploads_dir = os.path.join(
+            conf.get("GLOBUS", "root_dir"), conf.get("SITE", "uploads_subdirectory")
         )
         self.cromwell = Cromwell(conf.get("CROMWELL", "url"))
-        self.results_dir = os.path.join(
-            conf.get("GLOBUS", "root_dir"), conf.get("SITE", "results_subdirectory")
+        self.downloads_dir = os.path.join(
+            conf.get("GLOBUS", "root_dir"), conf.get("SITE", "downloads_subdirectory")
         )
         self.globus_endpoint = conf.get("GLOBUS", "endpoint_id")
-        self.results_subdir = conf.get("SITE", "results_subdirectory")
+        self.downloads_subdir = conf.get("SITE", "downloads_subdirectory")
         self.session = None
         self.operations = {
             "uploading": self.check_if_upload_complete,
@@ -162,7 +162,7 @@ class Daemon:
         logger.debug(f"Run {run.id}: Submit to Cromwell")
 
         # Validate input
-        file_path = os.path.join(self.staging_dir, run.user_id, run.submission_id)
+        file_path = os.path.join(self.uploads_dir, run.user_id, run.submission_id)
         wdl_file = file_path + ".wdl"
         json_file = file_path + ".json"
         zip_file = file_path + ".zip"  # might not exist
@@ -227,7 +227,7 @@ class Daemon:
         logger.info(f"Run {run.id}: Prepare output")
         src_dir = metadata.get("workflowRoot")
         dest_dir = os.path.join(
-            self.results_dir, str(run.id)
+            self.downloads_dir, str(run.id)
         )  # output to return to user
         if os.path.exists(dest_dir):
             try:
@@ -251,7 +251,7 @@ class Daemon:
             self.update_run_status(run, "download complete", "No outfiles to return")
         else:  # failed
             logger.debug(f"Run {run.id}: rsync failed output")
-            # copy to results dir
+            # copy to downloads dir
             try:
                 process = subprocess.Popen(
                     f"rsync -a {src_dir} {dest_dir}",
@@ -286,7 +286,7 @@ class Daemon:
         Send run output via Globus
         """
         logger.debug(f"Run {run.id}: Download output")
-        abs_nice_dir = os.path.join(self.results_dir, str(run.id))
+        abs_nice_dir = os.path.join(self.downloads_dir, str(run.id))
         transfer_rt = run.transfer_refresh_token
         if not abs_nice_dir.startswith(self.globus_root_dir):
             logger.error(f"Results dir is not accessible via Globus: {abs_nice_dir}")
@@ -358,13 +358,13 @@ class Daemon:
         After the download is complete, the tmpfiles should be purged.
         """
         logger.debug(f"Run {run.id}: purge tmpfiles")
-        tmp_dir = os.path.join(self.results_dir, str(run.id))
+        tmp_dir = os.path.join(self.downloads_dir, str(run.id))
         if os.path.exists(tmp_dir):
             try:
                 shutil.rmtree(tmp_dir)
             except Exception as error:
                 logger.exception(
-                    f"Failed to purge results dir for run {run.id}: {error}"
+                    f"Failed to purge downloads dir for run {run.id}: {error}"
                 )
 
     def update_run_status(self, run, new_status, reason=None):

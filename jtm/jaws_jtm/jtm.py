@@ -262,9 +262,9 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
         logger.error("            Only shared=0 is supported.")
         return 1
 
-    if cluster is None or cluster not in ("cori", "jgi", "cascade"):
+    if cluster is None or cluster not in ("CORI", "JGI", "CASCADE"):
         logger.error("jtm submit: invalid task or runtime definition: ")
-        logger.error("            Only 'cori', 'jgi', 'cascade' are supported as cluster name")
+        logger.error("            Only 'CORI', 'JGI', 'CASCADE' are supported as cluster name")
         return 1
 
     def is_time_format(input: str):

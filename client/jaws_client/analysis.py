@@ -341,7 +341,7 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
         raise SystemExit(result["detail"])
     result = r.json()
     compute_basedir = result["globus_basepath"]
-    compute_staging_subdir = result["staging_subdir"]
+    compute_uploads_subdir = result["uploads_subdir"]
     compute_max_ram_gb = int(result["max_ram_gb"])
 
     # VALIDATE WORKFLOW
@@ -352,9 +352,9 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     except Exception as error:
         raise SystemExit(f"Your file, {infile}, is not a valid JSON file: {error}")
 
-    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_staging_subdir)
+    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
     local_staging_endpoint = workflow.join_path(globus_basedir, staging_subdir)
-    manifest_file = workflow.Manifest(local_staging_endpoint, compute_staging_subdir)
+    manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
 
     wdl.validate()
     inputs_json.validate()

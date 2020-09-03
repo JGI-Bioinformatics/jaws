@@ -909,7 +909,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     slurm_job_id = slurm_job_id_param
     cluster_name = cluster_name_param
 
-    if cluster_name == "cori" and mem_per_cpu_to_request != "" and \
+    if cluster_name == "CORI" and mem_per_cpu_to_request != "" and \
             float(mem_per_cpu_to_request.replace("GB", "").replace("G", "").replace("gb", "")) > 1.0:
         logger.critical("--mem-per-cpu in Cori shouldn't be larger than 1GB. User '--mem' instead.")
         sys.exit(1)
@@ -929,14 +929,14 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         if CONFIG.configparser.get("JTM", "worker_config_file"):
             worker_config = CONFIG.configparser.get("JTM", "worker_config_file")
 
-        if cluster_name in ("cori", "nersc",
-                            "lbl", "lbnl", "jgi", "lrc", "lblit", "lawrencium",
-                            "pnnl", "pnl", "emsl", "cascade"):
+        if cluster_name in ("CORI", "nersc",
+                            "lbl", "lbnl", "JGI", "lrc", "lblit", "lawrencium",
+                            "pnnl", "pnl", "emsl", "CASCADE"):
 
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
 
-                if cluster_name in ("cori", "nersc"):
+                if cluster_name in ("CORI", "nersc"):
                     if num_nodes_to_request_param:
                         batch_job_script_str += """
 #SBATCH -N %(num_nodes_to_request)d
@@ -1081,7 +1081,7 @@ for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
     jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
--cl cori \
+-cl CORI \
 -wt %(worker_type)s \
 -t %(wall_time)s \
 --clone_time_rate %(clone_time_rate)f %(task_queue)s \

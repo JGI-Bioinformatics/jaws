@@ -33,7 +33,7 @@ queue = lbnl_rpc
 port = 5672
 globus_endpoint = XXXX
 globus_basepath = "/global/scratch/jaws"
-staging_subdir = "staging"
+uploads_subdir = "uploads"
 max_ram_gb = 1024
 
 [SITE:NERSC]
@@ -45,7 +45,7 @@ queue = nersc_rpc
 port = 5672
 globus_endpoint = YYYY
 globus_basepath = "/"
-staging_subdir = "/global/scratch/jaws/staging"
+uploads_subdir = "/global/scratch/jaws/uploads"
 max_ram_gb = 2048
 """
     cfg.write_text(content)
@@ -78,7 +78,7 @@ rpc_client_dict = {
     "queue": "lbnl_rpc",
     "globus_endpoint": "XXXX",
     "globus_basepath": '"/global/scratch/jaws"',
-    "staging_subdir": "staging",
+    "uploads_subdir": "uploads",
     "max_ram_gb": 1024,
 }
 

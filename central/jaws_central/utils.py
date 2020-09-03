@@ -34,7 +34,7 @@ def info() -> dict:
     """
     name = config.conf.get("JAWS", "name")
     version = config.conf.get("JAWS", "version")
-    docs_url = config.get.get("JAWS", "docs_url")
+    docs_url = config.conf.get("JAWS", "docs_url")
     result = {
         "name": name,
         "version": version,

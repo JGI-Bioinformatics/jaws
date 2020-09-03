@@ -194,14 +194,14 @@ def get_site(user, site_id):
     :type user: str
     :param site_id: a JAWS-Site's ID
     :type site_id: str
-    :return: globus endpoint id and staging path
+    :return: globus endpoint id and uploads path
     :rtype: dict
     """
     logger.debug(f"User {user}: Get info for site {site_id}")
     result = config.conf.get_site_info(site_id)
     if result is None:
         abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
-    result["staging_subdir"] = f'{result["staging_subdir"]}/{user}'
+    result["uploads_subdir"] = f'{result["uploads_subdir"]}/{user}'
     return result, 200
 
 

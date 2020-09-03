@@ -55,7 +55,7 @@ def test_check_if_upload_complete(statuses, monkeypatch):
     jawsd.check_if_upload_complete(run)
 
 
-def test_submit_run(monkeypatch, staging_files):
+def test_submit_run(monkeypatch, uploads_files):
     def workflows_post(url, files={}):
         return tests.conftest.MockResponses({"id": "2"}, 201)
 
