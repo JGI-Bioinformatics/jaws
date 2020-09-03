@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+source ./test/integration/define-env
+
+## WRITE CONFIG FILES
+cat << EOM > $CONFIG_DIR/jaws-site.conf
+[DB]
+dialect = mysql+mysqlconnector
+host = $SITE_DB_HOST
+port = $SITE_DB_PORT
+user = jaws
+password = $SITE_DB_PW
+db = jaws_$DEPLOYMENT_NAME
+[LOCAL_RPC_SERVER]
+user = jaws
+password = $SITE_RMQ_PW
+host = $SITE_RMQ_HOST
+port = $SITE_RMQ_PORT
+vhost = jaws_$DEPLOYMENT_NAME
+queue = SITE
+num_threads = 5
+max_retries = 3
+[CENTRAL_RPC_SERVER]
+user = jaws
+password = $JAWS_CENTRAL_RMQ_PW
+host = $JAWS_CENTRAL_RMQ_HOST
+port = $JAWS_CENTRAL_RMQ_PORT
+vhost = jaws_$DEPLOYMENT_NAME
+queue = $JAWS_SITE
+num_threads = 5
+max_retries = 3
+[CENTRAL_RPC_CLIENT]
+user = jaws
+password = $JAWS_CENTRAL_RMQ_PW
+host = $JAWS_CENTRAL_RMQ_HOST
+port = $JAWS_CENTRAL_RMQ_PORT
+vhost = jaws_$DEPLOYMENT_NAME
+queue = CENTRAL
+[GLOBUS]
+client_id = $JAWS_GLOBUS_CLIENT_ID
+endpoint_id = $SITE_GLOBUS_EP
+root_dir = $SITE_GLOBUS_ROOT_DIR
+default_dir = $SITE_GLOBUS_DEFAULT_DIR
+[SITE]
+id = $JAWS_SITE
+uploads_subdirectory = $SITE_UPLOADS_SUBDIR
+downloads_subdirectory = $SITE_DOWNLOADS_SUBDIR
+[CROMWELL]
+url = http://localhost:$CROMWELL_PORT
+EOM
+
+cat << EOM > $CONFIG_DIR/jaws-jtm.conf
+[SITE]
+jtm_host_name = $JAWS_SITE
+user_name = jtm_$DEPLOYMENT_NAME
+instance_name = \${jtm_host_name}.\${user_name}
+scratch = $SITE_JTM_SCRATCH_DIR
+debug = 1
+[RMQ]
+user = jaws
+password = $SITE_RMQ_PW
+host = $SITE_RMQ_HOST
+port = $SITE_RMQ_PORT
+vhost = jtm_$DEPLOYMENT_NAME
+[SITE_RPC_CLIENT]
+user = jaws
+password = $SITE_RMQ_PW
+host = $SITE_RMQ_HOST
+port = $SITE_RMQ_PORT
+vhost = jaws_$DEPLOYMENT_NAME
+queue = SITE
+[MYSQL]
+host = $SITE_DB_HOST
+port = $SITE_DB_PORT
+user = jaws
+password = $SITE_DB_PW
+db = jtm_$DEPLOYMENT_NAME
+[SLURM]
+# number of nodes for the pool
+nnodes = 1
+# num cores for small task
+ncpus = 1
+# default wall clock time
+jobtime = 00:30:00
+mempercpu = 1gb
+mempernode = 5gb
+partition = $SITE_CLUSTER_PARTITION
+qos = $SITE_CLUSTER_QOS
+charge_accnt = $SITE_CLUSTER_ACCOUNT
+constraint = $SITE_CLUSTER_CONSTRAINT
+[JTM]
+cluster = \${SITE:jtm_host_name}
+run_mode = dev
+# if STANDALONE == 1, do not sending task status to JAWS Site
+standalone = 0
+# static worker self cloning time rate. not used.s
+clone_time_rate = 0.2
+# number of workers per node
+num_workers_per_node = 1
+log_dir = \${SITE:scratch}/jtm
+# config file location of worker
+worker_config_file = $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+env_activation = source $SITE_JTM_WORKER_INSTALL_DIR/bin/activate
+pool_name = small
+# Worker setting
+# worker's hb expiration (ms)
+worker_s_hb_expiration = 60000
+# worker->client heartbeat sending interval in worker
+worker_hb_send_interval = 2.0
+# timeout for waiting the client's heartbeat; 0=no timeout. OBSOLETE
+worker_timeout = 0
+# zombie worker checking interval
+worker_kill_interval = 300.0
+# number of procs checking interval
+num_procs_check_interval = 60.0
+# manager's interval to check if there is task to terminate
+task_kill_interval = 5.0
+# client->worker heartbeat receiving interval in worker.
+worker_hb_recv_interval = 5.0
+# tasks status update interval. OBSOLETE
+task_stat_update_interval = 0.5
+# to ensure updating runs table
+runs_info_update_wait = 0.5
+# to ensure live worker info is updated in workers' table
+worker_info_update_wait = 0.5
+# interval to check the result from jtm
+result_receive_interval = 0.1
+# num threads to recv results from workers
+num_result_recv_threads = 1
+# client->worker heartbeat sending interval
+client_hb_send_interval = 3.0
+# live worker checking count limit
+worker_hb_check_max_count = 0
+# worker->client heartbeat receiving interval
+client_hb_recv_interval = 6.0
+# max number of trial for checking
+file_checking_max_trial = 3
+# sleep time between output file checking before retrial
+file_check_interval = 3.0
+# increase amount of wait time for file checking
+file_check_int_inc = 1.5
+# jtm_* CLI command timeout in secs.
+jtminterface_max_trial = 3600
+# worker lifeleft for task timeout
+task_kill_timeout_minute = 3
+jtm_inner_request_q = _jtm_inner_request_queue.\${SITE:instance_name}
+jtm_inner_result_q = _jtm_inner_result_queue.\${SITE:instance_name}
+jtm_task_kill_q = _jtm_task_kill.\${SITE:instance_name}
+jtm_worker_poison_q = _jtm_worker_poison.\${SITE:instance_name}
+jtm_task_result_q = _jtm_task_result_queue.\${SITE:instance_name}
+jtm_task_request_q = _jtm_task_request_queue.\${SITE:instance_name}
+worker_hb_q_postfix = _jtm_worker_hb_queue.\${SITE:instance_name}
+client_hb_q_postfix = _jtm_client_hb_queue.\${SITE:instance_name}
+jgi_jtm_main_exch = jgi_jtm_main_exch_\${JTM:run_mode}_\${SITE:instance_name}
+jtm_client_hb_exch = jgi_jtm_client_hb_exch_\${JTM:run_mode}_\${SITE:instance_name}
+jtm_inner_main_exch = jgi_jtm_inner_main_exch_\${JTM:run_mode}_\${SITE:instance_name}
+jtm_worker_hb_exch = jgi_jtm_worker_hb_exch_\${JTM:run_mode}_\${SITE:instance_name}
+jtm_task_kill_exch = jgi_jtm_task_kill_exch_\${JTM:run_mode}_\${SITE:instance_name}
+jtm_worker_poison_exch = jgi_jtm_poison_exch_\${JTM:run_mode}_\${SITE:instance_name}
+EOM
+
+
+## SET PERMISSIONS
+chgrp $SITE_JAWS_GROUP $CONFIG_DIR/*.conf
+chgrp $SITE_JTM_GROUP $CONFIG_DIR/jaws-jtm.conf
+chmod 660 $CONFIG_DIR/*

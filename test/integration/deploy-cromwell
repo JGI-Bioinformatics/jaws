@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+
+## VALIDATE AND SETUP ENV
+source ./test/integration/define-env
+
+## VALIDATE ENVS
+[[ -z $DEPLOYMENT_NAME ]]                   && { printf "Missing DEPLOYMENT_NAME variable.\n"; exit 1; }
+[[ -z $INSTALL_DIR ]]                       && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
+[[ -z $LOGS_DIR ]]                          && { printf "Missing LOGS_DIR variable.\n"; exit 1; }
+[[ -z $CONFIG_DIR ]]                        && { printf "Missing CONFIG_DIR variable.\n"; exit 1; }
+[[ -z $CROMWELL_PORT ]]                     && { printf "Missing CROMWELL_PORT variable.\n"; exit 1; }
+[[ -z $SITE_CROMWELL_JAR ]]                 && { printf "Missing SITE_CROMWELL_JAR variable.\n"; exit 1; }
+[[ -z $SITE_JTM_GROUP ]]                    && { printf "Missing SITE_JTM_GROUP variable.\n"; exit 1; }
+[[ -z $SITE_CONTAINER_TYPE ]]               && { printf "Missing CONTAINER_TYPE variable.\n"; exit 1; }
+[[ -z $SITE_JTM_SCRATCH_DIR ]]              && { printf "Missing JTM_SCRATCH_DIR variable.\n"; exit 1; }
+[[ -z $SITE_JTM_WORKER_INSTALL_DIR ]]       && { printf "Missing JTM_WORKER_INSTALL_DIR variable.\n"; exit 1; }
+#[[ -z $SITE_REF_DATA_DIR ]]                 && { printf "Missing REF_DATA_DIR variable.\n"; exit 1; }
+
+## DEFINE DIRS
+CROMWELL_TMPDIR="$INSTALL_DIR/cromwell-tmp"
+CROMWELL_WORKFLOW_LOGS_DIR="$LOGS_DIR/cromwell-workflow-logs"
+CROMWELL_EXECUTIONS_DIR="$SITE_JTM_SCRATCH_DIR/cromwell-executions"
+JTM_CONFIG_FILE="$SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf"
+
+## SETUP DIRS
+function setup_dir {
+  local DIR="$1"
+  local GROUP="$2"
+  test -d "$DIR" || mkdir "$DIR"
+  chgrp "$GROUP" "$DIR"
+  chmod 770 "$DIR"
+}
+setup_dir "$CROMWELL_TMPDIR" "$SITE_JTM_GROUP"
+setup_dir "$CROMWELL_WORKFLOW_LOGS_DIR" "$SITE_JTM_GROUP"
+setup_dir "$CROMWELL_EXECUTIONS_DIR" "$SITE_JTM_GROUP"
+
+## COPY CROMWELL JAR
+INSTALLED_CROMWELL_JAR="$INSTALL_DIR/cromwell.jar"
+cp "$SITE_CROMWELL_JAR" "$INSTALLED_CROMWELL_JAR" && \
+  chgrp "$SITE_JTM_GROUP" "$INSTALLED_CROMWELL_JAR" && \
+  chmod 640 "$INSTALLED_CROMWELL_JAR"
+
+
+
+CONTAINER_CHECK=""
+if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
+  CONTAINER_CHECK="
+            LOOKUP=\$(shifterimg lookup \${docker})
+            if [[ ! \$LOOKUP ]]; then
+                shifterimg pull \${docker}
+            fi
+"
+fi
+
+## GENERATE CONFIG
+cat << EOM > $CONFIG_DIR/cromwell.conf
+include required(classpath("application"))
+webservice
+{
+  port = $CROMWELL_PORT
+}
+system
+{
+  abort-jobs-on-terminate = true
+  graceful-server-shutdown = true
+  workflow-restart = false
+  max-concurrent-workflows = 100000
+  max-workflow-launch-count = 100000
+  new-workflow-poll-rate = 1
+  number-of-workflow-log-copy-workers = 20
+  number-of-cache-read-workers = 50
+  job-rate-control
+  {
+    jobs = 1
+    per = 1 second
+  }
+}
+workflow-options
+{
+  workflow-log-dir: "$CROMWELL_WORKFLOW_LOGS_DIR"
+  workflow-log-temporary: false
+  workflow-failure-mode: "ContinueWhilePossible"
+  default
+  {
+    workflow-type: WDL
+    workflow-type-version: "draft-2"
+  }
+}
+call-caching
+{
+  enabled = false
+  invalidate-bad-cache-result = true
+}
+# this is required for shifter to find image from its registry.
+docker {
+    hash-lookup {
+        enabled = false
+    }
+}
+backend
+{
+  default = "JTM"
+  providers
+  {
+    JTM
+    {
+      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+      config {
+        exit-code-timeout-seconds = 60
+        runtime-attributes = """
+        String? docker
+        String time = "00:30:00"
+        Int cpu = 1
+        String mem = "5G"
+        String cluster = "$JAWS_SITE"
+        String poolname = "small"
+        String constraint = "$SITE_CLUSTER_CONSTRAINT"
+        String qos = "$SITE_CLUSTER_QOS"
+        String account = "$SITE_CLUSTER_ACCOUNT"
+        Int node = 1
+        Int nwpn = 1
+        Int shared = 0
+        """
+        submit = """
+            CONSTRAINT="\${constraint}"
+            QOS="\${qos}"
+            ACCT="\${account}"
+            OPT_ARGS=""
+            [[ -n \$CONSTRAINT ]] && OPT_ARGS="\$OPT_ARGS -C \$CONSTRAINT"
+            [[ -n \$QOS ]] && OPT_ARGS="\$OPT_ARGS --qos \$QOS"
+            [[ -n \$ACCT ]] && OPT_ARGS="\$OPT_ARGS -A \$ACCT"
+            jtm --config=$JTM_CONFIG_FILE \\
+                submit \$OPT_ARGS \\
+                -cmd '/bin/bash \${script}' \\
+                -cl \${cluster} \\
+                -t \${time} \\
+                -c \${cpu} \\
+                -m \${mem} \\
+                -p \${poolname} \\
+                -N \${node} \\
+                -nwpn \${nwpn} \\
+                -jid \${job_name} \\
+                --shared \${shared}
+        """
+        kill = "jtm --config=$JTM_CONFIG_FILE kill -tid \${job_id}"
+        check-alive = "jtm --config=$JTM_CONFIG_FILE isalive -tid \${job_id}"
+        job-id-regex = "JTM task ID (\\\d+)"
+        submit-docker = """
+            $CONTAINER_CHECK
+            jtm --config=$JTM_CONFIG_FILE \\
+                submit \\
+                -cmd '$SITE_JTM_WORKER_INSTALL_DIR/${SITE_CONTAINER_TYPE}_exec.sh \${docker} \${job_shell} \${script}' \\
+                    -cl \${cluster} \\
+                    -t \${time} \\
+                    -c \${cpu} \\
+                    -m \${mem} \\
+                    -p \${poolname} \\
+                    -C \${constraint} \\
+                -N \${node} \\
+                -nwpn \${nwpn} \\
+                -jid \${job_name} \\
+                --qos \${qos} \\
+                -A \${account} \\
+                --shared \${shared}
+        """
+        # Root directory where Cromwell writes job results in the container. This value
+        # can be used to specify where the execution folder is mounted in the container.
+        # it is used for the construction of the docker_cwd string in the submit-docker
+        # value above AND in the generation of the "script" file.
+        dockerRoot = $CROMWELL_EXECUTIONS_DIR
+      }
+    }
+  }
+}
+database
+{
+  profile = "slick.jdbc.MySQLProfile$"
+  db
+  {
+    driver = "com.mysql.cj.jdbc.Driver"
+    url = "jdbc:mysql://$SITE_DB_HOST:$SITE_DB_PORT/cromwell_$DEPLOYMENT_NAME?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
+    user = "jaws"
+    password = "$SITE_DB_PW"
+    connectionTimeout = 5000
+  }
+  insert-batch-size = 2000
+}
+EOM
+
+chmod 660 "$CONFIG_DIR/cromwell.conf"
+chgrp "$SITE_JTM_GROUP" "$CONFIG_DIR/cromwell.conf"
+
+
+## GENERATE SHIM
+cat <<EOM > "$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME"
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+$SITE_LOAD_JAVA
+
+# cromwell needs jtm to be in path
+source $INSTALL_DIR/jtm/bin/activate
+
+test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
+cd $SITE_JTM_SCRATCH_DIR
+exec java -Xmx5g -Dconfig.file="$CONFIG_DIR/cromwell.conf" -Djava.io.tmpdir="$SITE_CROMWELL_TMPDIR" -jar "$INSTALL_DIR/cromwell.jar" server
+EOM
+chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME"
+chmod 770 "$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME"
+
+
+## GENRATE CONTAINER HELPER SCRIPT
+if [ $SITE_CONTAINER_TYPE = "shifter" ]; then
+cat <<EOM > "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
+#!/usr/bin/env bash
+shifter --image=$1 -V $SITE_REF_DATA_DIR:/refdata $2 $3
+EOM
+  chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
+  chmod 775 "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
+elif [ $SITE_CONTAINER_TYPE = "singularity" ]; then
+cat <<EOM > "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
+#!/bin/bash
+export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_DIR
+export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_DIR
+export SINGULARITY_TMPDIR=$SITE_CONTAINERS_DIR
+export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_DIR
+singularity exec --bind $1:$2 --bind $SITE_REF_DATA_DIR:/refdata docker://$3 $4 $5
+exit $?
+EOM
+  chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
+  chmod 775 "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
+fi

@@ -54,8 +54,8 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         },
         "SITE": {
             "id": "local",
-            "staging_subdirectory": "staging",
-            "results_subdirectory": "results",
+            "uploads_subdirectory": "uploads",
+            "downloads_subdirectory": "downloadss",
         },
     }
 

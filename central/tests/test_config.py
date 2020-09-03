@@ -32,7 +32,7 @@ def test_check_all_values(config_file):
         ("amqp_queue", "lbnl_rpc"),
         ("globus_endpoint", "XXXX"),
         ("globus_basepath", "\"/global/scratch/jaws\""),
-        ("staging_subdir", "\"staging\""),
+        ("uploads_subdir", "\"uploads\""),
         ("max_ram_gb", "1024"),
     ]
 
@@ -44,7 +44,7 @@ def test_check_all_values(config_file):
         ("amqp_queue", "nersc_rpc"),
         ("globus_endpoint", "YYYY"),
         ("globus_basepath", "\"/\""),
-        ("staging_subdir", "\"/global/scratch/jaws/staging\""),
+        ("uploads_subdir", "\"/global/scratch/jaws/uploads\""),
         ("max_ram_gb", "2048"),
     ]
 

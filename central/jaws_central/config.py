@@ -97,8 +97,8 @@ class Configuration(metaclass=Singleton):
                         f"Invalid Site ID: {site_id} (max. 8 char.)"
                     )
                 s = self.sites[site_id] = self.config[section]
-                s["staging_dir"] = os.path.join(
-                    s["globus_basepath"], s["staging_subdir"]
+                s["uploads_dir"] = os.path.join(
+                    s["globus_basepath"], s["uploads_subdir"]
                 )
 
     def get(self, section: str, key: str) -> str:
@@ -137,7 +137,7 @@ class Configuration(metaclass=Singleton):
             "site_id": site_id,
             "globus_endpoint": s["globus_endpoint"],
             "globus_basepath": s["globus_basepath"],
-            "staging_subdir": s["staging_subdir"],
+            "uploads_subdir": s["uploads_subdir"],
             "max_ram_gb": s["max_ram_gb"],
         }
         return result
