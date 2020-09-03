@@ -262,9 +262,10 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
         logger.error("            Only shared=0 is supported.")
         return 1
 
-    if cluster is None or cluster not in ("CORI", "JGI", "CASCADE"):
+    cluster = cluster.lower()
+    if cluster is None or cluster not in ("cori", "jgi", "cascade"):
         logger.error("jtm submit: invalid task or runtime definition: ")
-        logger.error("            Only 'CORI', 'JGI', 'CASCADE' are supported as cluster name")
+        logger.error("            Only 'cori', 'jgi', 'cascade' are supported as cluster name")
         return 1
 
     def is_time_format(input: str):
@@ -280,23 +281,33 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
         return 1
 
     add_info = pool_name
-    ret = int(JtmInterface('task', ctx, info_tag=add_info).call(task_file=task_file,
-                                                                task_json=command,
-                                                                task_id=0,
-                                                                jtm_host_name=cluster,
-                                                                job_time=job_time,
-                                                                node_mem=memory,
-                                                                num_core=ncpu,
-                                                                pool_name=pool_name,
-                                                                shared=shared,
-                                                                nwpn=num_worker_per_node,
-                                                                node=nnodes,
-                                                                job_id=cromwell_job_id,
-                                                                constraint=constraint,
-                                                                qos=qos,
-                                                                partition=partition,
-                                                                account=account))
+    ret = JtmInterface('task', ctx, info_tag=add_info).call(task_file=task_file,
+                                                            task_json=command,
+                                                            task_id=0,
+                                                            jtm_host_name=cluster,
+                                                            job_time=job_time,
+                                                            node_mem=memory,
+                                                            num_core=ncpu,
+                                                            pool_name=pool_name,
+                                                            shared=shared,
+                                                            nwpn=num_worker_per_node,
+                                                            node=nnodes,
+                                                            job_id=cromwell_job_id,
+                                                            constraint=constraint,
+                                                            qos=qos,
+                                                            partition=partition,
+                                                            account=account)
 
+    if ret is None:
+        logger.error("jtm submit: invalid task or runtime definition.")
+        return 1
+    else:
+        try:
+            ret = int(ret)
+        except Exception as e:
+            logger.exceptin(e)
+            logger.error(f"Unexpected return value: {ret}")
+            return 1
     if ret == -5:
         logger.error("jtm submit: invalid task or runtime definition.")
         return 1

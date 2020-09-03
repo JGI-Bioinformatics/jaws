@@ -5,7 +5,7 @@
 
 """
 
-JGI task manager
+JGI task managemr
 
 Example of task processing scenario
 1. jtm-submiit sends a msg to "jgi_main_exchange" with "jtm_task_request_queue" tag.
