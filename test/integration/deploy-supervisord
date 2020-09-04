@@ -1,7 +1,41 @@
 #!/usr/bin/env bash
 
-## VALIDATE AND SETUP ENV
-source ./test/integration/define-env
+echo "BEGIN deploy-supervisord"
+
+## VERIFY REQUIRED VARS ARE DEFINED
+# If any env are undefined, try sourcing the setup script and check again.
+# Exits if any required var is undefined.
+REQUIRED_VARS="
+SUPERVISOR_DIR
+SITE_PYTHON
+SITE_PYTHON_PIP
+SITE_JAWS_GROUP
+SITE_JTM_GROUP
+DEPLOYMENT_NAME
+SHIM_DIR
+JAWS_SUPERVISORD_PW
+JAWS_SUPERVISOR_PORT
+JTM_SUPERVISOR_PORT
+"
+RESULT=0
+for VAR in $REQUIRED_VARS; do
+  if [ -z ${!VAR+xxx} ]; then
+    echo "Missing env var, $VAR; sourcing setup script..."
+    source ./test/integration/define-env
+    RESULT=1
+    break
+  fi
+done
+if [[ $RESULT -ne 0 ]]; then
+  RESULT=0
+  for VAR in $REQUIRED_VARS; do
+    if [ -z ${!VAR+xxx} ]; then
+      echo "Missing env var: $VAR">&2
+      RESULT=1
+    fi
+  done
+fi
+[ $RESULT -eq 0 ] || exit 1
 
 ## CREATE DIRS
 test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
@@ -216,3 +250,5 @@ chgrp "$SITE_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
 chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-jtm.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jtm.conf"
+
+printf "END deploy-supervisord\n\n"
