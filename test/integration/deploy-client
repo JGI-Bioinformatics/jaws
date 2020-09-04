@@ -1,17 +1,39 @@
 #!/usr/bin/env bash
 
-# this should be run after generate-venvs because it doesn't `make pkg`
+echo "BEGIN deploy-client" 
+# NB: this should be run after generate-venvs because it doesn't `make pkg`
 
-## VALIDATE AND SETUP ENV
-source ./test/integration/define-env
+## VERIFY REQUIRED VARS ARE DEFINED
+# If any env are undefined, try sourcing the setup script and check again.
+# Exits if any required var is undefined.
+REQUIRED_VARS="
+DEPLOYMENT_NAME
+INSTALL_DIR
+LOGS_DIR
+CONFIG_DIR
+SITE_CLIENT_INSTALL_DIR
+SITE_CLIENT_GROUP
+"
+RESULT=0
+for VAR in $REQUIRED_VARS; do
+  if [ -z ${!VAR+xxx} ]; then
+    echo "Missing env var, $VAR; sourcing setup script..."
+    source ./test/integration/define-env
+    RESULT=1
+    break
+  fi
+done
+if [[ $RESULT -ne 0 ]]; then
+  RESULT=0
+  for VAR in $REQUIRED_VARS; do
+    if [ -z ${!VAR+xxx} ]; then
+      echo "Missing env var: $VAR">&2
+      RESULT=1
+    fi
+  done
+fi
+[ $RESULT -eq 0 ] || exit 1
 
-## VALIDATE ENVS
-[[ -z $DEPLOYMENT_NAME ]]                   && { printf "Missing DEPLOYMENT_NAME variable.\n"; exit 1; }
-[[ -z $INSTALL_DIR ]]                       && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
-[[ -z $LOGS_DIR ]]                          && { printf "Missing LOGS_DIR variable.\n"; exit 1; }
-[[ -z $CONFIG_DIR ]]                        && { printf "Missing CONFIG_DIR variable.\n"; exit 1; }
-[[ -z $SITE_CLIENT_INSTALL_DIR ]]           && { printf "Missing CLIENT_INSTALL_DIR variable.\n"; exit 1; }
-[[ -z $SITE_CLIENT_GROUP ]]                 && { printf "Missing SITE_CLIENT_GROUP variable.\n"; exit 1; }
 
 ## DELETE OLD VENV
 test -d "$SITE_CLIENT_INSTALL_DIR" && rm -rf "$SITE_CLIENT_INSTALL_DIR"
@@ -79,3 +101,5 @@ fix_perms "$SITE_CLIENT_GROUP" "$SITE_CLIENT_INSTALL_DIR"
 EOM
 chgrp $SITE_JAWS_GROUP $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
 chmod +x $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
+
+printf "END deploy-client\n\n" 

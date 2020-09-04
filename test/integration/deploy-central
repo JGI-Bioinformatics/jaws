@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # There is only one jaws-central deployment, while there may be several jaws-sites.
+echo "BEGIN deploy-central"
 
-## VALIDATE AND SETUP ENV
-source ./test/integration/define-env
-
-## VALIDATE ADDITIONAL VARS SPECIFIC TO CENTRAL
+## VERIFY REQUIRED VARS ARE DEFINED
+# If any env are undefined, try sourcing the setup script and check again.
+# Exits if any required var is undefined.
 REQUIRED_VARS="
 JAWS_CENTRAL_DB_HOST
 JAWS_CENTRAL_DB_PORT
@@ -16,14 +16,24 @@ CORI_RMQ_PW
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
-  if [[ -z ${!VAR} ]]; then
-    echo "Missing env var: $VAR">&2
+  if [ -z ${!VAR+xxx} ]; then
+    echo "Missing env var, $VAR; sourcing setup script..."
+    source ./test/integration/define-env
     RESULT=1
+    break
   fi
 done
-[ $RESULT -eq 0 ] || exit $RESULT
+if [[ $RESULT -ne 0 ]]; then
+  RESULT=0
+  for VAR in $REQUIRED_VARS; do
+    if [ -z ${!VAR+xxx} ]; then
+      echo "Missing env var: $VAR">&2
+      RESULT=1
+    fi
+  done
+fi
+[ $RESULT -eq 0 ] || exit 1
 
-## DEFINE ADDITIONAL VARS SPECIFIC TO CENTRAL
 
 ## DELETE OLD VENV
 test -d "$INSTALL_DIR/central" && rm -rf "$INSTALL_DIR/central"
@@ -161,3 +171,5 @@ chgrp "$SITE_JAWS_GROUP" "$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME"
 chgrp "$SITE_JAWS_GROUP" "$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
 chmod 770 "$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME"
 chmod 770 "$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
+
+printf "END deploy-central\n\n"

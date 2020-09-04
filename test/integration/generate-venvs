@@ -1,13 +1,41 @@
 #!/bin/bash
 
-source ./test/integration/define-env
+echo "BEGIN generate-venvs"
 
-## VALIDATE ENVS
-[[ -z $INSTALL_DIR ]]            && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
-[[ -z $CONFIG_DIR ]]             && { printf "Missing CONFIG_DIR variable.\n"; exit 1; }
-[[ -z $SITE_JAWS_GROUP ]]             && { printf "Missing SITE_JAWS_GROUP variable.\n"; exit 1; }
-[[ -z $SITE_JTM_GROUP ]]              && { printf "Missing SITE_JTM_GROUP variable.\n"; exit 1; }
-[[ -z $SITE_JTM_WORKER_INSTALL_DIR ]] && { printf "Missing JTM_WORKER_INSTALL_DIR variable.\n"; exit 1; }
+set -eo pipefail
+
+## VERIFY REQUIRED VARS ARE DEFINED
+# If any env are undefined, try sourcing the setup script and check again.
+# Exits if any required var is undefined.
+REQUIRED_VARS="
+INSTALL_DIR
+CONFIG_DIR
+SITE_JAWS_GROUP
+SITE_JTM_GROUP
+SITE_JTM_WORKER_INSTALL_DIR
+SITE_PYTHON
+SITE_PYTHON_PIP
+"
+RESULT=0
+for VAR in $REQUIRED_VARS; do
+  if [ -z ${!VAR+xxx} ]; then
+    echo "Missing env var, $VAR; sourcing setup script..."
+    source ./test/integration/define-env
+    RESULT=1
+    break
+  fi
+done
+if [[ $RESULT -ne 0 ]]; then
+  RESULT=0
+  for VAR in $REQUIRED_VARS; do
+    if [ -z ${!VAR+xxx} ]; then
+      echo "Missing env var: $VAR">&2
+      RESULT=1
+    fi
+  done
+fi
+[ $RESULT -eq 0 ] || exit 1
+
 
 ## DELETE OLD WHEELS
 rm -rf ./*/dist/*
@@ -21,9 +49,21 @@ test -d "$SITE_JTM_WORKER_INSTALL_DIR" && rm -rf "$SITE_JTM_WORKER_INSTALL_DIR"
 #[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
 module load python
 make pkg
-$SITE_PYTHON -m venv "$INSTALL_DIR/site" && . "$INSTALL_DIR/site/bin/activate" && $SITE_PYTHON_PIP install rpc/dist/* && $SITE_PYTHON_PIP install site/dist/* && deactivate
-$SITE_PYTHON -m venv "$INSTALL_DIR/jtm" && . "$INSTALL_DIR/jtm/bin/activate" && $SITE_PYTHON_PIP install rpc/dist/* && $SITE_PYTHON_PIP install jtm/dist/* && deactivate
-$SITE_PYTHON -m venv "$SITE_JTM_WORKER_INSTALL_DIR" && . "$SITE_JTM_WORKER_INSTALL_DIR/bin/activate" && $SITE_PYTHON_PIP install rpc/dist/* && $SITE_PYTHON_PIP install jtm/dist/* && deactivate
+$SITE_PYTHON -m venv "$INSTALL_DIR/site" && \
+  . "$INSTALL_DIR/site/bin/activate" && \
+  $SITE_PYTHON_PIP install rpc/dist/* && \
+  $SITE_PYTHON_PIP install site/dist/* && \
+  deactivate
+$SITE_PYTHON -m venv "$INSTALL_DIR/jtm" && 
+  . "$INSTALL_DIR/jtm/bin/activate" && \
+  $SITE_PYTHON_PIP install rpc/dist/* && \
+  $SITE_PYTHON_PIP install jtm/dist/* && \
+  deactivate
+$SITE_PYTHON -m venv "$SITE_JTM_WORKER_INSTALL_DIR" && \
+  . "$SITE_JTM_WORKER_INSTALL_DIR/bin/activate" && \
+  $SITE_PYTHON_PIP install rpc/dist/* && \
+  $SITE_PYTHON_PIP install jtm/dist/* && \
+  deactivate
 
 ## PERMISSIONS
 function fix_perms() {
@@ -36,3 +76,5 @@ function fix_perms() {
 }
 fix_perms "$INSTALL_DIR/site" $SITE_JAWS_GROUP
 fix_perms "$INSTALL_DIR/jtm" $SITE_JTM_GROUP
+
+printf "END generate-venvs\n\n"

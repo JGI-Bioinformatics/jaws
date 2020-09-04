@@ -1,46 +1,52 @@
 #!/usr/bin/env bash
 
-## VALIDATE AND SETUP ENV
-source ./test/integration/define-env
+echo "BEGIN deploy-cromwell"
 
-## VALIDATE ENVS
-[[ -z $DEPLOYMENT_NAME ]]                   && { printf "Missing DEPLOYMENT_NAME variable.\n"; exit 1; }
-[[ -z $INSTALL_DIR ]]                       && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
-[[ -z $LOGS_DIR ]]                          && { printf "Missing LOGS_DIR variable.\n"; exit 1; }
-[[ -z $CONFIG_DIR ]]                        && { printf "Missing CONFIG_DIR variable.\n"; exit 1; }
-[[ -z $CROMWELL_PORT ]]                     && { printf "Missing CROMWELL_PORT variable.\n"; exit 1; }
-[[ -z $SITE_CROMWELL_JAR ]]                 && { printf "Missing SITE_CROMWELL_JAR variable.\n"; exit 1; }
-[[ -z $SITE_JTM_GROUP ]]                    && { printf "Missing SITE_JTM_GROUP variable.\n"; exit 1; }
-[[ -z $SITE_CONTAINER_TYPE ]]               && { printf "Missing CONTAINER_TYPE variable.\n"; exit 1; }
-[[ -z $SITE_JTM_SCRATCH_DIR ]]              && { printf "Missing JTM_SCRATCH_DIR variable.\n"; exit 1; }
-[[ -z $SITE_JTM_WORKER_INSTALL_DIR ]]       && { printf "Missing JTM_WORKER_INSTALL_DIR variable.\n"; exit 1; }
-#[[ -z $SITE_REF_DATA_DIR ]]                 && { printf "Missing REF_DATA_DIR variable.\n"; exit 1; }
+## VERIFY REQUIRED VARS ARE DEFINED
+# If any env are undefined, try sourcing the setup script and check again.
+# Exits if any required var is undefined.
+REQUIRED_VARS="
+DEPLOYMENT_NAME
+INSTALL_DIR
+LOGS_DIR
+CONFIG_DIR
+CROMWELL_PORT
+SITE_CROMWELL_JAR
+SITE_JTM_GROUP
+SITE_CONTAINER_TYPE
+SITE_JTM_SCRATCH_DIR
+SITE_JTM_WORKER_INSTALL_DIR
+CROMWELL_TMPDIR
+CROMWELL_WORKFLOW_LOGS_DIR
+CROMWELL_EXECUTIONS_DIR
+JTM_CONFIG_FILE
+INSTALLED_CROMWELL_JAR
+"
+RESULT=0
+for VAR in $REQUIRED_VARS; do
+  if [ -z ${!VAR+xxx} ]; then
+    echo "Missing env var, $VAR; sourcing setup script..."
+    source ./test/integration/define-env
+    RESULT=1
+    break
+  fi
+done
+if [[ $RESULT -ne 0 ]]; then
+  RESULT=0
+  for VAR in $REQUIRED_VARS; do
+    if [ -z ${!VAR+xxx} ]; then
+      echo "Missing env var: $VAR">&2
+      RESULT=1
+    fi
+  done
+fi
+[ $RESULT -eq 0 ] || exit 1
 
-## DEFINE DIRS
-CROMWELL_TMPDIR="$INSTALL_DIR/cromwell-tmp"
-CROMWELL_WORKFLOW_LOGS_DIR="$LOGS_DIR/cromwell-workflow-logs"
-CROMWELL_EXECUTIONS_DIR="$SITE_JTM_SCRATCH_DIR/cromwell-executions"
-JTM_CONFIG_FILE="$SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf"
-
-## SETUP DIRS
-function setup_dir {
-  local DIR="$1"
-  local GROUP="$2"
-  test -d "$DIR" || mkdir "$DIR"
-  chgrp "$GROUP" "$DIR"
-  chmod 770 "$DIR"
-}
-setup_dir "$CROMWELL_TMPDIR" "$SITE_JTM_GROUP"
-setup_dir "$CROMWELL_WORKFLOW_LOGS_DIR" "$SITE_JTM_GROUP"
-setup_dir "$CROMWELL_EXECUTIONS_DIR" "$SITE_JTM_GROUP"
 
 ## COPY CROMWELL JAR
-INSTALLED_CROMWELL_JAR="$INSTALL_DIR/cromwell.jar"
 cp "$SITE_CROMWELL_JAR" "$INSTALLED_CROMWELL_JAR" && \
   chgrp "$SITE_JTM_GROUP" "$INSTALLED_CROMWELL_JAR" && \
   chmod 640 "$INSTALLED_CROMWELL_JAR"
-
-
 
 CONTAINER_CHECK=""
 if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
@@ -233,3 +239,5 @@ EOM
   chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
   chmod 775 "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
 fi
+
+printf "END deploy-cromwell\n\n"
