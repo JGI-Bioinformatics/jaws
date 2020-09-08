@@ -336,7 +336,12 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
 
     # VALIDATE WORKFLOW
     submission_id = str(uuid.uuid4())
-    wdl = workflow.WdlFile(wdl_file, submission_id)
+    try:
+        wdl = workflow.WdlFile(wdl_file, submission_id)
+    except workflow.WdlError as error:
+        raise SystemExit(f"There is a problem with your workflow:\n{error}")
+    except Exception as error:
+        raise SystemExit(f"Unexpected error validating workflow: {error}")
     try:
         inputs_json = workflow.WorkflowInputs(infile, submission_id)
     except Exception as error:
