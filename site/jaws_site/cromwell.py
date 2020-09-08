@@ -147,6 +147,7 @@ class Metadata:
         logger = logging.getLogger(__package__)
         self.tasks = []  # Task objects
         self.jobs = {}  # job_id => dict
+        self.subworkflows = {}  # workflow_id => metadata obj
         if "calls" in self.data:
             calls = self.data["calls"]
             for task_name in calls.keys():
@@ -157,6 +158,9 @@ class Metadata:
                     job_info = task.jobs[job_id]
                     logger.debug(f"Workflow {self.workflow_id}: job {job_id} = {job_info}")
                     self.jobs[job_id] = job_info
+                if task.is_subworkflow:
+                    for sub_id, sub_meta in task.subworkflows.items():
+                        self.subworkflows[sub_id] = sub_meta
 
     def get(self, param, default=None):
         """Get a section of the document."""
@@ -204,6 +208,20 @@ class Cromwell:
         :rtype: cromwell.Metadata
         """
         return Metadata(self.workflows_url, workflow_id, data)
+
+    def get_all_metadata_json(self, workflow_id: str):
+        """Get dict of all runs => metadata json for run and all subworkflows.
+
+        :param workflow_id: primary key used by Cromwell
+        :type workflow_id: str
+        :return: all metadata docs { workflow_id => metadata json }
+        :rtype: dict
+        """
+        result = {}
+        metadata = Metadata(self.workflows_url, workflow_id)
+        result[workflow_id] = metadata.data
+        for sub_id, sub_meta in metadata.subworkflows.items():
+            result[sub_id] = sub_meta.data
 
     def status(self):
         """Check if Cromwell is available"""

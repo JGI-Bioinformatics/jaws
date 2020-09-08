@@ -90,7 +90,7 @@ def run_metadata(params):
         )
     logger.info(f"{user_id} - Run {run_id} - Get metadata")
     try:
-        metadata = cromwell.get_metadata(params["cromwell_run_id"])
+        metadata = cromwell.get_all_metadata_json(cromwell_run_id)
     except requests.exceptions.HTTPError as error:
         logger.exception(f"Get metadata for {params['run_id']} failued: {error}")
         return _failure(error.response.status_code)
