@@ -322,7 +322,7 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
 
     wdl = os.path.join(root, "workflow", "sample.wdl")
     inputs = os.path.join(root, "workflow", "sample.json")
-    subdir = os.path.join(root, "globus", "staging")
+    subdir = os.path.join(root, "globus", "staging", "output")
 
     def get_site(url, headers=None):
         body = {
