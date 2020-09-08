@@ -186,7 +186,12 @@ def list_sites(user):
     logger.info(f"User {user}: List sites")
     result = []
     for site_id in config.conf.sites.keys():
-        result.append(site_id)
+        max_ram_gb = config.conf.get_site(site_id, 'max_ram_gb')
+        record = {
+            "site_id": site_id,
+            "max_ram_gb": max_ram_gb,
+        }
+        result.append(record)
     return result, 200
 
 

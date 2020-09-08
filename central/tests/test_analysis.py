@@ -148,6 +148,16 @@ def configuration(config_file):
     return jaws_central.config.Configuration(config_file)
 
 
+def test_list_sites(configuration):
+    user = "test_user"
+    result, code = jaws_central.analysis.list_sites(user)
+    assert isinstance(result, list)
+    for site in result:
+        assert isinstance(site, dict)
+        assert 'site_id' in site
+        assert 'max_ram_gb' in site
+
+
 def test_cancel_transfer(configuration, mock_database, mock_globus):
     user = "test_user"
     transfer_id = "without_error"
