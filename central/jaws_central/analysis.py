@@ -122,6 +122,7 @@ def user_queue(user):
                 "output_endpoint": run.output_endpoint,
                 "output_dir": run.output_dir,
                 "download_task_id": run.download_task_id,
+                "user_id": run.user_id,
             }
         )
     return result, 200
@@ -168,6 +169,7 @@ def user_history(user, delta_days=10):
                 "output_endpoint": run.output_endpoint,
                 "output_dir": run.output_dir,
                 "download_task_id": run.download_task_id,
+                "user_id": run.user_id,
             }
         )
     return result, 200
@@ -474,6 +476,7 @@ def run_status(user, run_id):
         "output_endpoint": run.output_endpoint,
         "output_dir": run.output_dir,
         "download_task_id": run.download_task_id,
+        "user_id": run.user_id,
     }
     return result, 200
 
