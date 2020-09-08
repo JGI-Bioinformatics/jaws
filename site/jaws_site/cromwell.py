@@ -276,6 +276,9 @@ class Cromwell:
                 raise IOError(f"Unable to open file, {zip_file}: {error}")
         try:
             response = requests.post(self.workflows_url, files=files)
+        except requests.exceptions.RequestException.ConnectionRefusedError as error:
+            lines = f"{error}".splitlines()
+            logger.exception(f"Error submitting new run: Cromwell unavailable: {lines[-1]}")
         except Exception as error:
             logger.exception(f"Error submitting new run: {error}")
             raise error
