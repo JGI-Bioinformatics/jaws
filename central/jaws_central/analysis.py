@@ -110,6 +110,7 @@ def user_queue(user):
                 "id": run.id,
                 "submission_id": run.submission_id,
                 "cromwell_run_id": run.cromwell_run_id,
+                "result": run.result,
                 "status": run.status,
                 "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
                 "site_id": run.site_id,
