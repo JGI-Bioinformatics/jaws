@@ -315,16 +315,6 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
         except Exception as error:
             raise SystemExit(f"Unable to make outdir, {outdir}: {error}")
 
-    # CONFIRM OUTDIR WRITABLE BY COPYING WDL, INPUT FILES
-    try:
-        shutil.copy2(wdl_file, outdir)
-    except Exception as error:
-        raise SystemExit(f"Unable to copy wdl file to outdir: {error}")
-    try:
-        shutil.copy2(infile, outdir)
-    except Exception as error:
-        raise SystemExit(f"Unable to copy json file to outdir: {error}")
-
     # GET SITE INFO
     compute_site_id = site.upper()
     url = f'{config.conf.get("JAWS", "url")}/site/{compute_site_id}'
@@ -379,6 +369,21 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     manifest_file.add(sanitized_wdl, zip_file, staged_json, *moved_files)
     staged_manifest = workflow.join_path(staging_subdir, f"{submission_id}.tsv")
     manifest_file.write_to(staged_manifest)
+
+    # CONFIRM OUTDIR WRITABLE BY COPYING WDLS, INPUT FILES
+    try:
+        shutil.copy2(sanitized_wdl, outdir)
+    except Exception as error:
+        raise SystemExit(f"Unable to copy wdl file to outdir: {error}")
+    if zip_file:
+        try:
+            shutil.copy2(zip_file, outdir)
+        except Exception as error:
+            raise SystemExit(f"Unable to copy subworkflows zip file to outdir: {error}")
+    try:
+        shutil.copy2(infile, outdir)
+    except Exception as error:
+        raise SystemExit(f"Unable to copy json file to outdir: {error}")
 
     # SUBMIT RUN TO CENTRAL
     data = {
