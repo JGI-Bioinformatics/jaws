@@ -327,10 +327,10 @@ class WdlFile:
         :rtype: int
         """
         if self._max_ram_gb is None:
-            mem = self._calculate_max_ram_gb()
+            self._max_ram_gb = self._calculate_max_ram_gb()
             for subworkflow_file in self.subworkflows:
-                mem += subworkflow_file.max_ram_gb
-            self._max_ram_gb = mem
+                if subworkflow_file.max_ram_gb > self._max_ram_gb:
+                    self._max_ram_gb = subworkflow_file.max_ram_gb
 
         self.logger.info(f"Maximum RAM requested is {self._max_ram_gb}Gb")
         return self._max_ram_gb
