@@ -219,4 +219,9 @@ chgrp $SITE_JAWS_GROUP $CONFIG_DIR/*.conf
 chgrp $SITE_JTM_GROUP $CONFIG_DIR/jaws-jtm.conf
 chmod 660 $CONFIG_DIR/*
 
+# Copy the jaws-jtm config to NFS dir since workers will be on cluster node
+cp "$CONFIG_DIR/jaws-jtm.conf" "$SITE_JTM_WORKER_INSTALL_DIR/"
+chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf"
+chmod 660 "$SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf"
+
 printf "END generate-configs\n\n"
