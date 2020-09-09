@@ -396,6 +396,7 @@ class MockRun:
         self.download_task_id = kwargs.get("download_task_id", "123")
         self.transfer_refresh_token = "EXAMPLE_GLOBUS_TRANSFER_TOKEN"
         self.email = "jaws@vog.gov"
+        self.cromwell_workflow_dir = "/global/scratch/jaws/dev/cromwell-executions/test_wdl/myid"
 
 
 class MockTransferClient:

@@ -9,6 +9,7 @@ import json
 import logging
 import globus_sdk
 from jaws_client import log, config, analysis, catalog, user
+from jaws_client import wfcopy as wfc
 
 JAWS_LOG_ENV = "JAWS_CLIENT_LOG"
 JAWS_USER_LOG = os.path.expanduser("~/jaws.log")
@@ -73,6 +74,15 @@ def info() -> None:
         raise SystemExit(r.text)
     result = r.json()
     print(json.dumps(result, indent=4, sort_keys=True))
+
+
+@cli.command()
+@click.argument("src_dir")
+@click.argument("dest_dir")
+@click.option("--flatten", is_flag=True, default=False, help="Flatten shard dirs")
+def wfcopy(src_dir: str, dest_dir: str, flatten) -> None:
+    """Simplify Cromwell output."""
+    wfc.wfcopy(src_dir, dest_dir, flatten)
 
 
 @cli.command()
