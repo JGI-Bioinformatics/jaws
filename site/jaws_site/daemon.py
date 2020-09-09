@@ -354,7 +354,13 @@ class Daemon:
         except Exception as error:
             logger.exception(f"Unable to update Run {run.id}: {error}")
 
-        # record log state transition in "run_logs"
+        # populate "reason" field
+        if new_status == "submitted":
+            reason = f"cromwell_run_id={run.cromwell_run_id}"
+        elif new_status == "downloading":
+            reason = f"download_task_id={run.download_task_id}"
+
+        # save state transition in "run_logs" table
         try:
             log_entry = Run_Log(
                 run_id=run.id,
@@ -369,21 +375,7 @@ class Daemon:
             logger.exception(
                 f"Failed to create run_log object for Run {run.id} : {new_status}, {reason}: {error}"
             )
-
-        # notify Central
-        log_msg = {
-            "run_id": run.id,
-            "status": new_status,
-            "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        if new_status == "submitted":
-            log_msg["cromwell_run_id"] = run.cromwell_run_id
-        elif new_status == "downloading":
-            log_msg["download_task_id"] = run.download_task_id
-        response = self.rpc_client.request("update_run_status", log_msg)
-        if "error" in response:
-            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
-            # failure to notify Central doesn't block state transition
+        # notifying Central of state change is handled by send_run_status_logs
 
     def update_job_status_logs(self):
         """JTM job status logs are missing some fields; fill them in now."""
@@ -465,8 +457,7 @@ class Daemon:
             self.session.commit()
 
     def send_run_status_logs(self):
-        """Batch and send run logs to Central"""
-        logger.debug("Send run log updates to Central")
+        """Send run logs to Central"""
 
         # get updates from datbase
         try:
@@ -479,35 +470,38 @@ class Daemon:
             return
         logger.debug(f"Sending {num_logs} run logs")
 
-        # prepare table
-        logs = []
+        # send logs via RPC
         for log in query:
-            log_entry = [
-                log.run_id,
-                log.status_from,
-                log.status_to,
-                log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                log.reason,
-            ]
-            logs.append(log_entry)
+            data = {
+                "site_id": self.site_id,
+                "run_id": log.run_id,
+                "status_from": log.status_from,
+                "status_to": log.status_to,
+                "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                "reason": log.reason,
+            }
+            # add special fields
+            if log.status_to == "submitted":
+                run = self.session.query(Run).get(log.run_id)
+                data["cromwell_run_id"] = run.cromwell_run_id
+            elif log.status_to == "downloading":
+                run = self.session.query(Run).get(log.run_id)
+                data["download_task_id"] = run.download_task_id
+            try:
+                response = self.rpc_client.request("update_run_logs", data)
+            except Exception as error:
+                logger.exception(f"RPC update_run_logs error: {error}")
+                return
+            if "error" in response:
+                logger.info(
+                    f"RPC update_run_status failed: {response['error']['message']}"
+                )
+                return
             log.sent = True
-
-        # notify Central
-        data = {"logs": logs, "site_id": self.site_id}
-        try:
-            response = self.rpc_client.request("update_run_logs", data)
-        except Exception as error:
-            logger.exception(f"RPC update_run_logs error: {error}")
-            self.session.rollback()
-            return
-        if "error" in response:
-            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
-            self.session.rollback()
-            return
-        try:
-            self.session.commit()
-        except Exception as error:
-            logger.exception(f"Error updating run_logs as sent: {error}")
+            try:
+                self.session.commit()
+            except Exception as error:
+                logger.exception(f"Error updating run_logs as sent: {error}")
 
     def send_job_status_logs(self):
         """Batch and send job logs to Central"""
