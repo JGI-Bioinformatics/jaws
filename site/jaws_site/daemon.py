@@ -53,9 +53,8 @@ class Daemon:
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
-            "succeeded": self.prepare_run_output,
-            "failed": self.prepare_run_output,
-            "ready": self.transfer_results,
+            "succeeded": self.transfer_results,
+            "failed": self.transfer_results,
             "downloading": self.check_if_download_complete,
         }
         self.terminal_states = ["cancelled", "download complete"]
@@ -225,30 +224,6 @@ class Daemon:
             if run.status == "queued" or run.status == "running":
                 self.update_run_status(run, "cancelled")
 
-    def prepare_run_output(self, run, metadata=None):
-        """
-        Recursively change permissions of output so that the files may be read by the user.
-        """
-        logger.debug(f"Run {run.id}: Prepare output")
-        if metadata is None:
-            try:
-                metadata = self.cromwell.get_metadata(run.cromwell_run_id)
-            except Exception:
-                return
-            if metadata is None:
-                return
-        output_dir = metadata.get("workflowRoot")
-        os.chmod(output_dir, 0o0775)
-        for dirpath, dirnames, filenames in os.walk(output_dir):
-            for dname in dirnames:
-                os.chmod(os.path.join(dirpath, dname), 0o0775)
-            for fname in filenames:
-                path = os.path.join(dirpath, fname)
-                if not os.path.islink(path):
-                    os.chmod(path, 0o0664)
-        self.update_run_status(run, "ready")
-        self.transfer_results(run, metadata)
-
     def transfer_results(self, run, metadata=None):
         """
         Send run output via Globus
@@ -331,12 +306,8 @@ class Daemon:
             return
         if globus_status == "SUCCEEDED":
             self.update_run_status(run, "download complete")
-            # change permissions back to private
-            # os.chmod(run.cromwell_workflow_dir, 0o0770)
         elif globus_status == "FAILED":
             self.update_run_status(run, "download failed")
-            # change permissions back to private
-            # os.chmod(run.cromwell_workflow_dir, 0o0770)
 
     def update_run_status(self, run, new_status, reason=None):
         """

@@ -22,7 +22,6 @@ def mock_update_run_status(self, run, new_status, reason=None):
         "running",
         "failed",
         "succeeded",
-        "ready",
         "downloading",
     ],
 )
