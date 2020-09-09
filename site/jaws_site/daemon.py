@@ -77,9 +77,10 @@ class Daemon:
         Run scheduled task(s) periodically.
         """
         schedule.every(10).seconds.do(self.main_loop)
+        schedule.every(1).seconds.do(self.send_logs)
         while True:
             schedule.run_pending()
-            time.sleep(5)
+            time.sleep(1)
 
     def _authorize_transfer_client(self, token):
         client_id = config.conf.get("GLOBUS", "client_id")
@@ -115,8 +116,15 @@ class Daemon:
                 proc(run)
 
         # process logs
-        self.send_run_status_logs()
         self.update_job_status_logs()
+        self.session.close()
+
+    def send_logs(self):
+        """
+        Send state changes to Central.
+        """
+        self.session = Session()
+        self.send_run_status_logs()
         self.send_job_status_logs()
         self.session.close()
 
@@ -513,6 +521,7 @@ class Daemon:
                 .filter(Job_Log.task_name.isnot(None))
                 .filter(Job_Log.attempt.isnot(None))
                 .filter(Job_Log.sent.is_(False))
+                .limit(100)
                 .all()
             )
         except Exception as error:
