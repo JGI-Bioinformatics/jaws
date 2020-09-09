@@ -21,6 +21,11 @@ user = jaws
 password = passw0rd1
 db = jaws
 
+[RPC_SERVER]
+user = jaws
+password = pppaass4
+vhost = jaws_test
+
 [GLOBUS]
 client_id = ZZZZ
 
@@ -62,6 +67,11 @@ port = 3305
 user = j4ws
 password = p455w0rd1
 db = jaws
+
+[RPC_SERVER]
+user = jaws
+password = pppaasss4
+vhost = jaws_test
 
 [GLOBUS]
 client_id = ZZZZ

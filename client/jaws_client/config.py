@@ -67,13 +67,13 @@ class Configuration(metaclass=Singleton):
             raise FileNotFoundError(f"{user_config_file} does not exist")
         self.config = configparser.ConfigParser()
         self.config.read_dict(self.defaults)
-
-        # load JAWS config
         try:
             self.config.read(jaws_config_file)
         except Exception as error:
             logger.exception(f"Unable to load config from {jaws_config_file}: {error}")
             raise
+
+        # validate config
         for section in self.required_jaws_params:
             if section not in self.config:
                 error_msg = f"JAWS config missing required section, {section}"

@@ -12,7 +12,7 @@ def config_file(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
     content = """[LOCAL_RPC_SERVER]
 host = localhost
-vhost = site_vhost
+vhost = jaws_test
 queue = site_rpc
 user = jaws
 password = passw0rd1
@@ -21,7 +21,7 @@ max_retries = 3
 
 [CENTRAL_RPC_SERVER]
 host = currenthost
-vhost = jaws
+vhost = jaws_test
 queue = eagle
 user = jaws_eagle
 password = succotash
@@ -30,10 +30,15 @@ max_retries = 3
 
 [CENTRAL_RPC_CLIENT]
 host = currenthost
-vhost = jaws
+vhost = jaws_test
 queue = central_rpc
 user = jaws_eagle
 password = succotash
+
+[JTM_RPC_SERVER]
+user = jaws
+password = pppaasss4
+vhost = jaws_test
 
 [GLOBUS]
 client_id = foghorn_leghorn
@@ -67,12 +72,41 @@ def partial_config(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
     content = """[CENTRAL_RPC_SERVER]
 host = https://rmq.nersc.gov
-user = bugs_bunney
+vhost = jaws_test
+user = bugs_bunny
 password = xqweasdasa
 max_retries = 10
 
+[CENTRAL_RPC_CLIENT]
+host = https://rmq.nersc.gov
+user = bugs_bunny
+password = xqweasdasa
+vhost = jaws_test
+
+[GLOBUS]
+client_id = foghorn_leghorn
+endpoint_id = rooster
+root_dir = cwd
+default_dir = /
+
+[DB]
+dialect = mysql+mysqlconnector
+host = myhost
+port = 60032
+user = elmer_fudd
+password = hunting
+db = hunting_sites
+
+[JTM_RPC_SERVER]
+vhost = jaws_test
+
 [CROMWELL]
 url = http://localhost:8000
+
+[SITE]
+id = eagle
+uploads_subdirectory = uploads
+downloads_subdirectory = downloads
     """
     cfg.write_text(content)
     return cfg.as_posix()
@@ -393,7 +427,7 @@ class MockRun:
         self.id = kwargs.get("id", "99")
         self.output_endpoint = kwargs.get("output_endpoint", "EXAMPLE_OUTPUT_ENDPOINT_ID")
         self.output_dir = kwargs.get("output_dir", ".")
-        self.download_task_id = kwargs.get("download_task_id", "123")
+        self.download_task_id = kwargs.get("download_task_id", "325")
         self.transfer_refresh_token = "EXAMPLE_GLOBUS_TRANSFER_TOKEN"
         self.email = "jaws@vog.gov"
         self.cromwell_workflow_dir = "/global/scratch/jaws/dev/cromwell-executions/test_wdl/myid"
