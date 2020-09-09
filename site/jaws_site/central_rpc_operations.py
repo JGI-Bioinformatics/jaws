@@ -5,16 +5,11 @@ RPC functions for Central.  Most of these simply wrap the localhost Cromwell RES
 import requests
 from http.client import responses
 import logging
-import os
-import collections
 import sqlalchemy.exc
-from jaws_site import config, wfcopy
+from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_site.database import Session
 from jaws_site.models import Run
-
-
-MAX_LINES_PER_OUTFILE = 5000
 
 
 # config and logging must be initialized before importing this module
@@ -90,7 +85,7 @@ def run_metadata(params):
         )
     logger.info(f"{user_id} - Run {run_id} - Get metadata")
     try:
-        metadata = cromwell.get_metadata(params["cromwell_run_id"])
+        metadata = cromwell.get_all_metadata_json(cromwell_run_id)
     except requests.exceptions.HTTPError as error:
         logger.exception(f"Get metadata for {params['run_id']} failued: {error}")
         return _failure(error.response.status_code)
@@ -151,91 +146,6 @@ def cancel_run(params):
     return _success(result)
 
 
-def output(params):
-    """
-    Get stdout, stderr file output, optionally limited to failed tasks.
-    """
-    user_id = params["user_id"]
-    run_id = params["run_id"]
-    logger.info(f"User {user_id}: Get output of Run {run_id}")
-    failed_only = False
-    if "failed" in params and params["failed"].upper() == "TRUE":
-        failed_only = True
-        logger.info(f"User {user_id}: Get output of failed tasks for Run {run_id}")
-    else:
-        logger.info(f"User {user_id}: Get output of all tasks for Run {run_id}")
-    try:
-        metadata = cromwell.get_metadata(params["cromwell_run_id"])
-    except requests.exceptions.HTTPError as error:
-        logger.exception(f"Failed to get output for Run {run_id}: {error}")
-        return _failure(error.response.status_code)
-    workflowRoot = metadata.get("workflowRoot")
-    if not workflowRoot:
-        return _failure(404, "The run has no output yet")
-    logger.debug(f"Find outfiles under {workflowRoot}")
-    out_json = _find_outfiles(workflowRoot, failed_only)
-    return _success(out_json)
-
-
-def _find_outfiles(run_dir, failed_only=False):
-    """Traverse directory structure to find target files."""
-    out_json = collections.defaultdict(dict)
-    files = collections.defaultdict(dict)
-    rcs = collections.defaultdict(dict)
-    target_files = ["stderr", "stderr.submit", "stdout"]
-
-    # get cromwell files for each task, store rc code and target file paths in files dict
-    for taskname, filename in wfcopy.get_files(run_dir, delimiter="."):
-        basename = os.path.basename(filename)
-        if basename == "rc" and failed_only:
-            # read file and save return code
-            with open(filename) as fh:
-                rc = int(fh.read().strip())
-            rcs[taskname][basename] = rc
-        if basename in target_files:
-            files[taskname][basename] = filename
-
-    # for each task, parse target files for msgs, store in out_json.
-    for taskname in files:
-        if failed_only and "rc" in rcs[taskname] and rcs[taskname]["rc"] == 0:
-            continue
-        for file_type in files[taskname]:
-            filename = files[taskname][file_type]
-            lines, is_truncated = _tail(filename, MAX_LINES_PER_OUTFILE)
-            output = ""
-            if is_truncated:
-                output += "NOTE: showing only last {MAX_LINES_PER_OUTFILE} lines\n"
-                output += "\n".join(lines)
-            else:
-                output = "\n".join(lines)
-            out_json[taskname][file_type] = output
-
-    return dict(out_json)
-
-
-def _tail(filename, max_lines=1000):
-    """Return the last `max_lines` lines of a file.
-
-    :param filename: path to file
-    :type filename: str
-    :param max_lines: Number of lines to return
-    :type max_lines: int
-    :return: last lines of the file and flag if truncated
-    :rtype: list[str], bool
-    """
-    lines = []
-    num_lines = 0
-    is_truncated = False
-    with open(filename, "r") as fh:
-        for line in fh:
-            lines.append(line)
-            num_lines += 1
-            if num_lines > max_lines:
-                del lines[0]
-                is_truncated = True
-    return lines, is_truncated
-
-
 def submit(params):
     """Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes."""
     user_id = params["user_id"]
@@ -290,5 +200,4 @@ operations = {
         "function": cancel_run,
         "required_params": ["user_id", "cromwell_run_id"],
     },
-    "output": {"function": output, "required_params": ["user_id", "cromwell_run_id"]},
 }

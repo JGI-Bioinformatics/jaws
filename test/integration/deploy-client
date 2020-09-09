@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+echo "BEGIN deploy-client" 
+# NB: this should be run after generate-venvs because it doesn't `make pkg`
+
+## VERIFY REQUIRED VARS ARE DEFINED
+# If any env are undefined, try sourcing the setup script and check again.
+# Exits if any required var is undefined.
+REQUIRED_VARS="
+DEPLOYMENT_NAME
+INSTALL_DIR
+LOGS_DIR
+CONFIG_DIR
+SITE_CLIENT_INSTALL_DIR
+SITE_CLIENT_GROUP
+"
+RESULT=0
+for VAR in $REQUIRED_VARS; do
+  if [ -z ${!VAR+xxx} ]; then
+    echo "Missing env var, $VAR; sourcing setup script..."
+    source ./test/integration/define-env
+    RESULT=1
+    break
+  fi
+done
+if [[ $RESULT -ne 0 ]]; then
+  RESULT=0
+  for VAR in $REQUIRED_VARS; do
+    if [ -z ${!VAR+xxx} ]; then
+      echo "Missing env var: $VAR">&2
+      RESULT=1
+    fi
+  done
+fi
+[ $RESULT -eq 0 ] || exit 1
+
+
+## DELETE OLD VENV
+test -d "$SITE_CLIENT_INSTALL_DIR" && rm -rf "$SITE_CLIENT_INSTALL_DIR"
+mkdir -p "$SITE_CLIENT_INSTALL_DIR"
+chmod 700 "$SITE_CLIENT_INSTALL_DIR"  # deploy-client script will fix permissions later
+
+## MAKE VENV
+#[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
+module load python
+#make pkg
+$SITE_PYTHON -m venv "$SITE_CLIENT_INSTALL_DIR" && . "$SITE_CLIENT_INSTALL_DIR/bin/activate" && $SITE_PYTHON_PIP install client/dist/* && deactivate
+
+## GENERATE CONFIGS
+cat << EOM > $CONFIG_DIR/jaws.conf
+[USER]
+token = 
+staging_dir = 
+EOM
+chgrp $SITE_CLIENT_GROUP $CONFIG_DIR/jaws.conf
+chmod 644 $CONFIG_DIR/jaws.conf
+cp "$CONFIG_DIR/jaws.conf" "$SITE_CLIENT_INSTALL_DIR"
+
+cat << EOM > $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
+[JAWS]
+site_id = $JAWS_SITE
+name = jaws-$DEPLOYMENT_NAME
+url = $JAWS_CENTRAL_HOST:$JAWS_REST_PORT/api/v2
+womtool_jar = $SITE_WOMTOOL_JAR
+uploads_subdir = $SITE_UPLOADS_SUBDIR
+[GLOBUS]
+client_id = $JAWS_GLOBUS_CLIENT_ID
+endpoint_id = $SITE_GLOBUS_EP
+basedir = $SITE_GLOBUS_ROOT_DIR
+EOM
+chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
+chmod 644 $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
+cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
+
+## GENERATE SHIMS
+cat <<EOM > $SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh
+#!/usr/bin/env bash
+
+source $SITE_CLIENT_INSTALL_DIR/bin/activate
+export JAWS_CLIENT_CONFIG="$SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.conf"
+export JAWS_USER_CONFIG=~/jaws.conf
+echo "Activated JAWS-$DEPLOYMENT_NAME; use 'deactivate' to exit."
+EOM
+chgrp $SITE_JAWS_GROUP $SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh
+chmod 755 $SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh
+cp "$SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh" "$SITE_CLIENT_INSTALL_DIR"
+
+cat <<EOM > $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
+#!/usr/bin/env bash
+
+# HACK: chgrp doesn't work when run by gitlab runner, so have supervisor do this instead.
+function fix_perms() {
+    local GROUP="\$1"
+    local DIR="\$2"
+    chmod -R a+rX "\$DIR"
+    chmod -R ug+rwX "\$DIR"
+    chgrp -R \$GROUP "\$DIR"
+    find "\$DIR" -type d -exec chmod g+s '{}' \;
+}
+fix_perms "$SITE_CLIENT_GROUP" "$SITE_CLIENT_INSTALL_DIR"
+EOM
+chgrp $SITE_JAWS_GROUP $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
+chmod +x $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
+
+printf "END deploy-client\n\n" 

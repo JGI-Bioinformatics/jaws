@@ -6,6 +6,7 @@ from typing import Dict
 
 DEFAULT_AMQP_PORT = 5672
 DEFAULT_RPC_MESSAGE_TTL = 5
+MAX_SITE_ID_LEN = 8
 
 
 conf = None
@@ -33,36 +34,32 @@ class Configuration(metaclass=Singleton):
     """Configuration singleton class."""
 
     defaults = {
-        "JAWS": {
-            "name": "jaws",
-            "version": "",
-            "docs_url": ""
-        },
-        "DB": {
-            "dialect": "mysql+mysqlconnector",
-            "host": "localhost",
-            "port": 3306,
-            "user": "jaws",
-            "password": "",
-            "db": "jaws",
-        },
-        "GLOBUS": {"client_id": ""},
+        "JAWS": {"name": "jaws", "version": "", "docs_url": ""},
+        "DB": {"dialect": "mysql+mysqlconnector", "host": "localhost", "port": 3306},
         "RPC_SERVER": {
             "host": "localhost",
             "port": "5672",
-            "user": "jaws_rmq_user",
-            "password": "jaws_rmq_pass",
-            "vhost": "jaws",
             "queue": "central_rpc",
             "max_threads": 5,
-            "max_retries": 3
+            "max_retries": 3,
         },
-        "HTTP": {
-            "auth_url": "localhost",
-            "auth_port": "3000",
-            "rest_port": "5000"
-        }
+        "HTTP": {"auth_url": "localhost", "auth_port": "3000", "rest_port": "5000"},
     }
+    required_params = {
+        "DB": ["user", "password", "db"],
+        "GLOBUS": ["client_id"],
+        "RPC_SERVER": ["user", "password", "vhost"],
+    }
+    required_site_params = [
+        "host",
+        "user",
+        "password",
+        "vhost",
+        "globus_endpoint",
+        "globus_basepath",
+        "uploads_subdir",
+        "max_ram_gb",
+    ]
 
     config = None
 
@@ -83,23 +80,48 @@ class Configuration(metaclass=Singleton):
         except Exception as error:
             logger.exception(f"Unable to load config file {config_file}: {error}")
             raise
-        global conf
-        conf = self
-        self._init_sites()
 
-    def _init_sites(self):
+        # validate config
+        for section in self.required_params:
+            if section not in self.config:
+                error_msg = (
+                    f"Config file, {config_file}, missing required section, {section}"
+                )
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            for key in self.required_params[section]:
+                if key not in self.config[section]:
+                    error_msg = f"Config file, {config_file}, missing required parameter, {section}/{key}"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+
+        # init Sites
         self.sites = {}
         for section in self.config.sections():
             if section.startswith("SITE:"):
                 site_id = section[len("SITE:"):].upper()
-                if len(site_id) > 8:
+                if len(site_id) > MAX_SITE_ID_LEN:
                     raise ConfigurationError(
-                        f"Invalid Site ID: {site_id} (max. 8 char.)"
+                        f"Invalid Site ID: {site_id} (max. {MAX_SITE_ID_LEN} char.)"
                     )
-                s = self.sites[site_id] = self.config[section]
-                s["staging_dir"] = os.path.join(
-                    s["globus_basepath"], s["staging_subdir"]
+                # validate
+                for key in self.required_site_params:
+                    if key not in self.config[section]:
+                        error_msg = f"Config file, {config_file}, missing required parameter, {section}/{key}"
+                        logger.error(error_msg)
+                        raise ValueError(error_msg)
+                # copy
+                self.sites[site_id] = {}
+                for key in self.config[section]:
+                    self.sites[site_id][key] = self.config[section][key]
+                self.sites[site_id]["uploads_dir"] = os.path.join(
+                    self.sites[site_id]["globus_basepath"],
+                    self.sites[site_id]["uploads_subdir"],
                 )
+
+        # save singleton
+        global conf
+        conf = self
 
     def get(self, section: str, key: str) -> str:
         if section not in self.config:
@@ -117,8 +139,7 @@ class Configuration(metaclass=Singleton):
         :rtype: str
         """
         site_id = site_id.upper()
-        section = f"SITE:{site_id}"
-        return self.get(section, key)
+        return self.sites[site_id].get(key)
 
     def get_site_info(self, site_id: str) -> Dict[str, str]:
         """Returns public info about requested Site.
@@ -137,7 +158,7 @@ class Configuration(metaclass=Singleton):
             "site_id": site_id,
             "globus_endpoint": s["globus_endpoint"],
             "globus_basepath": s["globus_basepath"],
-            "staging_subdir": s["staging_subdir"],
+            "uploads_subdir": s["uploads_subdir"],
             "max_ram_gb": s["max_ram_gb"],
         }
         return result
@@ -175,7 +196,7 @@ class Configuration(metaclass=Singleton):
             "password": s["password"],
             "vhost": s["vhost"],
             "queue": s["queue"],
-            "message_ttl": int(s.get("message_ttl", DEFAULT_RPC_MESSAGE_TTL))
+            "message_ttl": int(s.get("message_ttl", DEFAULT_RPC_MESSAGE_TTL)),
         }
         return params
 

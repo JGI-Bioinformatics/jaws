@@ -322,12 +322,12 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
 
     wdl = os.path.join(root, "workflow", "sample.wdl")
     inputs = os.path.join(root, "workflow", "sample.json")
-    subdir = os.path.join(root, "globus", "staging")
+    subdir = os.path.join(root, "globus", "staging", "output")
 
     def get_site(url, headers=None):
         body = {
             "globus_basepath": "/NERSC/globus",
-            "staging_subdir": "/NERSC/globus/staging",
+            "uploads_subdir": "/NERSC/globus/staging",
             "max_ram_gb": "256",
         }
         return MockResult(body, 200)

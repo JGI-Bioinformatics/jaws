@@ -57,7 +57,7 @@ METADATA = {
                     ],
                     "executionStatus": "Done",
                     "inputs": {
-                        "infile": "/global/cscratch1/sd/jaws/test/staging/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
+                        "infile": "/global/cscratch1/sd/jaws/test/uploads/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
                     },
                     "jobId": "30",
                     "outputs": {
@@ -90,7 +90,7 @@ METADATA = {
         "end": "2020-06-10T03:43:56.709Z",
         "id": "ee30d68f-39d4-4fde-85c2-afdecce2bad3",
         "inputs": {
-            "fq_count.fastq_file": "/global/cscratch1/sd/jaws/test/staging/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
+            "fq_count.fastq_file": "/global/cscratch1/sd/jaws/test/uploads/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
         },
         "labels": {
             "cromwell-workflow-id": "cromwell-ee30d68f-39d4-4fde-85c2-afdecce2bad3"
@@ -102,7 +102,7 @@ METADATA = {
         "status": "Succeeded",
         "submission": "2020-06-10T03:38:16.572Z",
         "submittedFiles": {
-            "inputs": "{\"fq_count.fastq_file\":\"/global/cscratch1/sd/jaws/test/staging/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq\"}",  # noqa
+            "inputs": "{\"fq_count.fastq_file\":\"/global/cscratch1/sd/jaws/test/uploads/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq\"}",  # noqa
             "labels": "{}",
             "options": "{\n\n}",
             "root": "",

@@ -474,6 +474,16 @@ task run_task1 {
     output {
         String status = "task1 was run successfully"
     }
+
+    runtime {
+        docker: "jfroula/aligner-bbmap:1.1.9"
+        poolname: "extrasmall"
+        shared: 1
+        node: 1
+        nwpn: 1
+        mem: "4G"
+        time: "00:10:00"
+    }
 }
 """
     sub2_contents = """
@@ -494,6 +504,16 @@ task run_task2 {
         }
     output {
         String status = "task2 was run successfully"
+    }
+
+    runtime {
+        docker: "jfroula/aligner-bbmap:1.1.9"
+        poolname: "extrasmall"
+        shared: 1
+        node: 1
+        nwpn: 1
+        mem: "6G"
+        time: "00:10:00"
     }
 }
 """

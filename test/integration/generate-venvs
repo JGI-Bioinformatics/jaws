@@ -1,0 +1,80 @@
+#!/bin/bash
+
+echo "BEGIN generate-venvs"
+
+set -eo pipefail
+
+## VERIFY REQUIRED VARS ARE DEFINED
+# If any env are undefined, try sourcing the setup script and check again.
+# Exits if any required var is undefined.
+REQUIRED_VARS="
+INSTALL_DIR
+CONFIG_DIR
+SITE_JAWS_GROUP
+SITE_JTM_GROUP
+SITE_JTM_WORKER_INSTALL_DIR
+SITE_PYTHON
+SITE_PYTHON_PIP
+"
+RESULT=0
+for VAR in $REQUIRED_VARS; do
+  if [ -z ${!VAR+xxx} ]; then
+    echo "Missing env var, $VAR; sourcing setup script..."
+    source ./test/integration/define-env
+    RESULT=1
+    break
+  fi
+done
+if [[ $RESULT -ne 0 ]]; then
+  RESULT=0
+  for VAR in $REQUIRED_VARS; do
+    if [ -z ${!VAR+xxx} ]; then
+      echo "Missing env var: $VAR">&2
+      RESULT=1
+    fi
+  done
+fi
+[ $RESULT -eq 0 ] || exit 1
+
+
+## DELETE OLD WHEELS
+rm -rf ./*/dist/*
+
+## DELETE OLD VENVS
+test -d "$INSTALL_DIR/site" && rm -rf "$INSTALL_DIR/site"
+test -d "$INSTALL_DIR/jtm" && rm -rf "$INSTALL_DIR/jtm"
+test -d "$SITE_JTM_WORKER_INSTALL_DIR" && rm -rf "$SITE_JTM_WORKER_INSTALL_DIR"
+
+## MAKE VENVS
+#[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
+module load python
+make pkg
+$SITE_PYTHON -m venv "$INSTALL_DIR/site" && \
+  . "$INSTALL_DIR/site/bin/activate" && \
+  $SITE_PYTHON_PIP install rpc/dist/* && \
+  $SITE_PYTHON_PIP install site/dist/* && \
+  deactivate
+$SITE_PYTHON -m venv "$INSTALL_DIR/jtm" && 
+  . "$INSTALL_DIR/jtm/bin/activate" && \
+  $SITE_PYTHON_PIP install rpc/dist/* && \
+  $SITE_PYTHON_PIP install jtm/dist/* && \
+  deactivate
+$SITE_PYTHON -m venv "$SITE_JTM_WORKER_INSTALL_DIR" && \
+  . "$SITE_JTM_WORKER_INSTALL_DIR/bin/activate" && \
+  $SITE_PYTHON_PIP install rpc/dist/* && \
+  $SITE_PYTHON_PIP install jtm/dist/* && \
+  deactivate
+
+## PERMISSIONS
+function fix_perms() {
+    local DIR="$1"
+    local GROUP=$2
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R $GROUP "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+fix_perms "$INSTALL_DIR/site" $SITE_JAWS_GROUP
+fix_perms "$INSTALL_DIR/jtm" $SITE_JTM_GROUP
+
+printf "END generate-venvs\n\n"

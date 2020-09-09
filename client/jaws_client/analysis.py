@@ -208,29 +208,6 @@ def task_log(run_id: int, fmt: str) -> None:
 
 @run.command()
 @click.argument("run_id")
-@click.option("--failed", is_flag=True)
-def output(run_id: int, failed: bool = False) -> None:
-    """View the stdout/stderr output of Tasks.
-
-    :param run_id: JAWS run ID
-    :type run_id: int
-    :param failed: Get output of failed tasks only
-    :type failed: bool
-    :return:
-    """
-    if failed:
-        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/failed'
-    else:
-        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/output'
-    r = _get(url)
-    if r.status_code != 200:
-        raise SystemExit(r.text)
-    result = r.json()
-    print(json.dumps(result, indent=4, sort_keys=True))
-
-
-@run.command()
-@click.argument("run_id")
 def cancel(run_id):
     """Cancel a run; prints whether aborting was successful or not.
 
@@ -315,16 +292,6 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
         except Exception as error:
             raise SystemExit(f"Unable to make outdir, {outdir}: {error}")
 
-    # CONFIRM OUTDIR WRITABLE BY COPYING WDL, INPUT FILES
-    try:
-        shutil.copy2(wdl_file, outdir)
-    except Exception as error:
-        raise SystemExit(f"Unable to copy wdl file to outdir: {error}")
-    try:
-        shutil.copy2(infile, outdir)
-    except Exception as error:
-        raise SystemExit(f"Unable to copy json file to outdir: {error}")
-
     # GET SITE INFO
     compute_site_id = site.upper()
     url = f'{config.conf.get("JAWS", "url")}/site/{compute_site_id}'
@@ -341,20 +308,25 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
         raise SystemExit(result["detail"])
     result = r.json()
     compute_basedir = result["globus_basepath"]
-    compute_staging_subdir = result["staging_subdir"]
+    compute_uploads_subdir = result["uploads_subdir"]
     compute_max_ram_gb = int(result["max_ram_gb"])
 
     # VALIDATE WORKFLOW
     submission_id = str(uuid.uuid4())
-    wdl = workflow.WdlFile(wdl_file, submission_id)
+    try:
+        wdl = workflow.WdlFile(wdl_file, submission_id)
+    except workflow.WdlError as error:
+        raise SystemExit(f"There is a problem with your workflow:\n{error}")
+    except Exception as error:
+        raise SystemExit(f"Unexpected error validating workflow: {error}")
     try:
         inputs_json = workflow.WorkflowInputs(infile, submission_id)
     except Exception as error:
         raise SystemExit(f"Your file, {infile}, is not a valid JSON file: {error}")
 
-    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_staging_subdir)
+    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
     local_staging_endpoint = workflow.join_path(globus_basedir, staging_subdir)
-    manifest_file = workflow.Manifest(local_staging_endpoint, compute_staging_subdir)
+    manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
 
     wdl.validate()
     inputs_json.validate()
@@ -379,6 +351,21 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     manifest_file.add(sanitized_wdl, zip_file, staged_json, *moved_files)
     staged_manifest = workflow.join_path(staging_subdir, f"{submission_id}.tsv")
     manifest_file.write_to(staged_manifest)
+
+    # CONFIRM OUTDIR WRITABLE BY COPYING WDLS, INPUT FILES
+    try:
+        shutil.copy2(sanitized_wdl, outdir)
+    except Exception as error:
+        raise SystemExit(f"Unable to copy wdl file to outdir: {error}")
+    if zip_file:
+        try:
+            shutil.copy2(zip_file, outdir)
+        except Exception as error:
+            raise SystemExit(f"Unable to copy subworkflows zip file to outdir: {error}")
+    try:
+        shutil.copy2(infile, outdir)
+    except Exception as error:
+        raise SystemExit(f"Unable to copy json file to outdir: {error}")
 
     # SUBMIT RUN TO CENTRAL
     data = {

@@ -17,7 +17,6 @@ def test_run_status_msg():
         "failed",
         "aborting",
         "aborted",
-        "ready",
         "downloading",
         "download failed",
         "download inactive",

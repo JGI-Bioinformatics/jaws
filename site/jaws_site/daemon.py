@@ -6,14 +6,12 @@ them to the next state.
 import schedule
 import time
 import os
-import shutil
 import globus_sdk
 import logging
 from datetime import datetime
-import subprocess
 from jaws_site.database import Session
 from jaws_site.models import Run, Run_Log, Job_Log
-from jaws_site import wfcopy, config
+from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_rpc import rpc_client
 
@@ -39,15 +37,15 @@ class Daemon:
         self.site_id = conf.get("SITE", "id")
         self.globus_root_dir = conf.get("GLOBUS", "root_dir")
         self.globus_default_dir = conf.get("GLOBUS", "default_dir")
-        self.staging_dir = os.path.join(
-            conf.get("GLOBUS", "root_dir"), conf.get("SITE", "staging_subdirectory")
+        self.uploads_dir = os.path.join(
+            conf.get("GLOBUS", "root_dir"), conf.get("SITE", "uploads_subdirectory")
         )
         self.cromwell = Cromwell(conf.get("CROMWELL", "url"))
-        self.results_dir = os.path.join(
-            conf.get("GLOBUS", "root_dir"), conf.get("SITE", "results_subdirectory")
+        self.downloads_dir = os.path.join(
+            conf.get("GLOBUS", "root_dir"), conf.get("SITE", "downloads_subdirectory")
         )
         self.globus_endpoint = conf.get("GLOBUS", "endpoint_id")
-        self.results_subdir = conf.get("SITE", "results_subdirectory")
+        self.downloads_subdir = conf.get("SITE", "downloads_subdirectory")
         self.session = None
         self.operations = {
             "uploading": self.check_if_upload_complete,
@@ -55,9 +53,8 @@ class Daemon:
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
-            "succeeded": self.prepare_run_output,
-            "failed": self.prepare_run_output,
-            "ready": self.transfer_results,
+            "succeeded": self.transfer_results,
+            "failed": self.transfer_results,
             "downloading": self.check_if_download_complete,
         }
         self.terminal_states = ["cancelled", "download complete"]
@@ -79,9 +76,10 @@ class Daemon:
         Run scheduled task(s) periodically.
         """
         schedule.every(10).seconds.do(self.main_loop)
+        schedule.every(1).seconds.do(self.send_logs)
         while True:
             schedule.run_pending()
-            time.sleep(5)
+            time.sleep(1)
 
     def _authorize_transfer_client(self, token):
         client_id = config.conf.get("GLOBUS", "client_id")
@@ -117,8 +115,15 @@ class Daemon:
                 proc(run)
 
         # process logs
-        self.send_run_status_logs()
         self.update_job_status_logs()
+        self.session.close()
+
+    def send_logs(self):
+        """
+        Send state changes to Central.
+        """
+        self.session = Session()
+        self.send_run_status_logs()
         self.send_job_status_logs()
         self.session.close()
 
@@ -162,7 +167,7 @@ class Daemon:
         logger.debug(f"Run {run.id}: Submit to Cromwell")
 
         # Validate input
-        file_path = os.path.join(self.staging_dir, run.user_id, run.submission_id)
+        file_path = os.path.join(self.uploads_dir, run.user_id, run.submission_id)
         wdl_file = file_path + ".wdl"
         json_file = file_path + ".json"
         zip_file = file_path + ".zip"  # might not exist
@@ -200,6 +205,13 @@ class Daemon:
         logger.debug(f"Run {run.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
             if run.status == "submitted":
+                try:
+                    metadata = self.cromwell.get_metadata(run.cromwell_run_id)
+                except Exception:
+                    return
+                if metadata is None:
+                    return
+                run.cromwell_workflow_dir = metadata.get("workflowRoot")
                 self.update_run_status(run, "queued")
         elif cromwell_status == "Failed":
             self.update_run_status(run, "failed")
@@ -212,86 +224,28 @@ class Daemon:
             if run.status == "queued" or run.status == "running":
                 self.update_run_status(run, "cancelled")
 
-    def prepare_run_output(self, run, metadata=None):
+    def transfer_results(self, run, metadata=None):
         """
-        Prepare folder of Run output.
+        Send run output via Globus
         """
-        logger.debug(f"Run {run.id}: Prepare output")
-        if metadata is None:
+        logger.debug(f"Run {run.id}: Download output")
+        if run.cromwell_workflow_dir is None and metadata is None:
             try:
                 metadata = self.cromwell.get_metadata(run.cromwell_run_id)
             except Exception:
                 return
             if metadata is None:
                 return
-        logger.info(f"Run {run.id}: Prepare output")
-        src_dir = metadata.get("workflowRoot")
-        dest_dir = os.path.join(
-            self.results_dir, str(run.id)
-        )  # output to return to user
-        if os.path.exists(dest_dir):
-            try:
-                shutil.rmtree(dest_dir)
-            except Exception as error:
-                logger.exception(
-                    f"Failed to purge preexisting results dir for run {run.id}: {error}"
-                )
-        if run.status == "succeeded":
-            logger.debug(f"Run {run.id}: wfcopy successful output")
-            try:
-                wfcopy.wfcopy(src_dir, dest_dir)
-            except wfcopy.OutputFolderExists as error:
-                logger.exception(f"Run {run.id}: wfcopy outdir already exists: {error}")
-            except Exception as error:
-                logger.exception(f"Run {run.id}: wfcopy failed: {error}")
-                self.update_run_status(run, "failed", f"wfcopy failed: {error}")
-                return
-        elif src_dir is None:
-            logger.debug(f"Run {run.id}: has no workflowRoot dir")
-            self.update_run_status(run, "download complete", "No outfiles to return")
-        else:  # failed
-            logger.debug(f"Run {run.id}: rsync failed output")
-            # copy to results dir
-            try:
-                process = subprocess.Popen(
-                    f"rsync -a {src_dir} {dest_dir}",
-                    shell=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-                stdout, stderr = process.communicate()
-                if process.returncode:
-                    self.update_run_status(run, "download complete", "Rsync failed")
-                    logger.error(
-                        f"Failed to rsync {src_dir} to {dest_dir}: " + stderr.strip()
-                    )
-                    return
-            except Exception as error:
-                self.update_run_status(run, "download complete", "Rsync failed")
-                logger.exception(f"Rsync failed for {src_dir} to {dest_dir}: {error}")
-                return
-            # fix permissions
-            os.chmod(dest_dir, 0o0775)
-            for dirpath, dirnames, filenames in os.walk(dest_dir):
-                for dname in dirnames:
-                    os.chmod(os.path.join(dirpath, dname), 0o0775)
-                for fname in filenames:
-                    path = os.path.join(dirpath, fname)
-                    if not os.path.islink(path):
-                        os.chmod(path, 0o0664)
-        self.update_run_status(run, "ready")
-
-    def transfer_results(self, run):
-        """
-        Send run output via Globus
-        """
-        logger.debug(f"Run {run.id}: Download output")
-        abs_nice_dir = os.path.join(self.results_dir, str(run.id))
+            run.cromwell_workflow_dir = metadata.get("workflowRoot")
         transfer_rt = run.transfer_refresh_token
-        if not abs_nice_dir.startswith(self.globus_root_dir):
-            logger.error(f"Results dir is not accessible via Globus: {abs_nice_dir}")
+        if not run.cromwell_workflow_dir.startswith(self.globus_root_dir):
+            logger.error(
+                f"Results dir is not accessible via Globus: {run.cromwell_workflow_dir}"
+            )
             return
-        rel_nice_dir = os.path.relpath(abs_nice_dir, self.globus_default_dir)
+        rel_cromwell_workflow_dir = os.path.relpath(
+            run.cromwell_workflow_dir, self.globus_default_dir
+        )
         try:
             transfer_client = self._authorize_transfer_client(transfer_rt)
         except globus_sdk.GlobusAPIError:
@@ -305,18 +259,22 @@ class Daemon:
                 self.globus_endpoint,
                 run.output_endpoint,
                 label=f"Download run {run.id}",
-                sync_level="checksum",
-                verify_checksum=True,
+                sync_level="exists",
+                verify_checksum=False,
                 preserve_timestamp=True,
                 notify_on_succeeded=False,
-                notify_on_failed=True,
-                notify_on_inactive=True,
+                notify_on_failed=False,
+                notify_on_inactive=False,
                 skip_activation_check=True,
             )
             if self.globus_root_dir == "/":
-                tdata.add_item(abs_nice_dir, run.output_dir, recursive=True)
+                tdata.add_item(
+                    run.cromwell_workflow_dir, run.output_dir, recursive=True
+                )
             else:
-                tdata.add_item(rel_nice_dir, run.output_dir, recursive=True)
+                tdata.add_item(
+                    rel_cromwell_workflow_dir, run.output_dir, recursive=True
+                )
         except Exception:
             logger.warning(
                 f"Failed to prepare download manifest for run {run.id}", exc_info=True
@@ -348,24 +306,8 @@ class Daemon:
             return
         if globus_status == "SUCCEEDED":
             self.update_run_status(run, "download complete")
-            self.purge_run_tmpfiles(run)
         elif globus_status == "FAILED":
             self.update_run_status(run, "download failed")
-            self.purge_run_tmpfiles(run)
-
-    def purge_run_tmpfiles(self, run):
-        """
-        After the download is complete, the tmpfiles should be purged.
-        """
-        logger.debug(f"Run {run.id}: purge tmpfiles")
-        tmp_dir = os.path.join(self.results_dir, str(run.id))
-        if os.path.exists(tmp_dir):
-            try:
-                shutil.rmtree(tmp_dir)
-            except Exception as error:
-                logger.exception(
-                    f"Failed to purge results dir for run {run.id}: {error}"
-                )
 
     def update_run_status(self, run, new_status, reason=None):
         """
@@ -383,7 +325,13 @@ class Daemon:
         except Exception as error:
             logger.exception(f"Unable to update Run {run.id}: {error}")
 
-        # record log state transition in "run_logs"
+        # populate "reason" field
+        if new_status == "submitted":
+            reason = f"cromwell_run_id={run.cromwell_run_id}"
+        elif new_status == "downloading":
+            reason = f"download_task_id={run.download_task_id}"
+
+        # save state transition in "run_logs" table
         try:
             log_entry = Run_Log(
                 run_id=run.id,
@@ -398,21 +346,7 @@ class Daemon:
             logger.exception(
                 f"Failed to create run_log object for Run {run.id} : {new_status}, {reason}: {error}"
             )
-
-        # notify Central
-        log_msg = {
-            "run_id": run.id,
-            "status": new_status,
-            "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        if new_status == "submitted":
-            log_msg["cromwell_run_id"] = run.cromwell_run_id
-        elif new_status == "downloading":
-            log_msg["download_task_id"] = run.download_task_id
-        response = self.rpc_client.request("update_run_status", log_msg)
-        if "error" in response:
-            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
-            # failure to notify Central doesn't block state transition
+        # notifying Central of state change is handled by send_run_status_logs
 
     def update_job_status_logs(self):
         """JTM job status logs are missing some fields; fill them in now."""
@@ -494,8 +428,7 @@ class Daemon:
             self.session.commit()
 
     def send_run_status_logs(self):
-        """Batch and send run logs to Central"""
-        logger.debug("Send run log updates to Central")
+        """Send run logs to Central"""
 
         # get updates from datbase
         try:
@@ -508,35 +441,38 @@ class Daemon:
             return
         logger.debug(f"Sending {num_logs} run logs")
 
-        # prepare table
-        logs = []
+        # send logs via RPC
         for log in query:
-            log_entry = [
-                log.run_id,
-                log.status_from,
-                log.status_to,
-                log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                log.reason,
-            ]
-            logs.append(log_entry)
+            data = {
+                "site_id": self.site_id,
+                "run_id": log.run_id,
+                "status_from": log.status_from,
+                "status_to": log.status_to,
+                "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                "reason": log.reason,
+            }
+            # add special fields
+            if log.status_to == "submitted":
+                run = self.session.query(Run).get(log.run_id)
+                data["cromwell_run_id"] = run.cromwell_run_id
+            elif log.status_to == "downloading":
+                run = self.session.query(Run).get(log.run_id)
+                data["download_task_id"] = run.download_task_id
+            try:
+                response = self.rpc_client.request("update_run_logs", data)
+            except Exception as error:
+                logger.exception(f"RPC update_run_logs error: {error}")
+                return
+            if "error" in response:
+                logger.info(
+                    f"RPC update_run_status failed: {response['error']['message']}"
+                )
+                return
             log.sent = True
-
-        # notify Central
-        data = {"logs": logs, "site_id": self.site_id}
-        try:
-            response = self.rpc_client.request("update_run_logs", data)
-        except Exception as error:
-            logger.exception(f"RPC update_run_logs error: {error}")
-            self.session.rollback()
-            return
-        if "error" in response:
-            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
-            self.session.rollback()
-            return
-        try:
-            self.session.commit()
-        except Exception as error:
-            logger.exception(f"Error updating run_logs as sent: {error}")
+            try:
+                self.session.commit()
+            except Exception as error:
+                logger.exception(f"Error updating run_logs as sent: {error}")
 
     def send_job_status_logs(self):
         """Batch and send job logs to Central"""
@@ -550,6 +486,7 @@ class Daemon:
                 .filter(Job_Log.task_name.isnot(None))
                 .filter(Job_Log.attempt.isnot(None))
                 .filter(Job_Log.sent.is_(False))
+                .limit(100)
                 .all()
             )
         except Exception as error:

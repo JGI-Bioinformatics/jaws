@@ -907,7 +907,7 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                cluster_name_param != "local", "Static or dynamic worker needs a cluster setting (-cl)."
 
     slurm_job_id = slurm_job_id_param
-    cluster_name = cluster_name_param
+    cluster_name = cluster_name_param.lower()
 
     if cluster_name == "cori" and mem_per_cpu_to_request != "" and \
             float(mem_per_cpu_to_request.replace("GB", "").replace("G", "").replace("gb", "")) > 1.0:
@@ -929,14 +929,12 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         if CONFIG.configparser.get("JTM", "worker_config_file"):
             worker_config = CONFIG.configparser.get("JTM", "worker_config_file")
 
-        if cluster_name in ("cori", "nersc",
-                            "lbl", "lbnl", "jgi", "lrc", "lblit", "lawrencium",
-                            "pnnl", "pnl", "emsl", "cascade"):
+        if cluster_name in ("cori", "jgi", "cascade"):
 
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
 
-                if cluster_name in ("cori", "nersc"):
+                if cluster_name in ("cori"):
                     if num_nodes_to_request_param:
                         batch_job_script_str += """
 #SBATCH -N %(num_nodes_to_request)d
@@ -1081,7 +1079,7 @@ for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
     jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
--cl cori \
+-cl %(nersc_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
 --clone_time_rate %(clone_time_rate)f %(task_queue)s \
@@ -1105,12 +1103,13 @@ wait
                                                      other_params=batch_job_misc_params,
                                                      constraint=constraint,
                                                      mem=mem_per_node_to_request,
+                                                     nersc_cluster_name=cluster_name,
                                                      job_name=job_name,
                                                      exclusive=excl_param,
                                                      export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
                                                      set_jtm_config_file="--config=%s" % worker_config)
 
-                elif cluster_name in ("jaws_lbl_gov", "lbl", "lbnl", "jgi", "lrc", "lblit", "lawrencium"):
+                elif cluster_name in ("jgi"):
                     if worker_id_param:
                         batch_job_misc_params += " -wi %(worker_id)s_${i}" \
                                                  % dict(worker_id=UNIQ_WORKER_ID)
@@ -1139,7 +1138,7 @@ for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
     jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
--cl %(lbl_cluster_name)s \
+-cl %(lblit_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
 --clone_time_rate %(clone_time_rate)f %(task_queue)s \
@@ -1163,7 +1162,7 @@ wait
                                                  env_activation_cmd=env_act,
                                                  num_workers_per_node=num_workers_per_node,
                                                  mem=mem_per_node_to_request,
-                                                 lbl_cluster_name=cluster_name,
+                                                 lblit_cluster_name=cluster_name,
                                                  worker_type=THIS_WORKER_TYPE,
                                                  clone_time_rate=worker_clone_time_rate,
                                                  task_queue=tp_param,
@@ -1194,7 +1193,7 @@ for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
     jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
--cl %(pnnl_cluster_name)s \
+-cl %(emsl_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
 --clone_time_rate %(clone_time_rate)f %(task_queue)s \
@@ -1215,7 +1214,7 @@ wait
                                                  env_activation_cmd=env_act,
                                                  num_workers_per_node=num_workers_per_node,
                                                  mem=mem_per_node_to_request,
-                                                 pnnl_cluster_name=cluster_name,
+                                                 emsl_cluster_name=cluster_name,
                                                  worker_type=THIS_WORKER_TYPE,
                                                  clone_time_rate=worker_clone_time_rate,
                                                  task_queue=tp_param,

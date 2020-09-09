@@ -116,7 +116,7 @@ Do the following
 
 .. code-block:: bash
 
-    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws.conf ~
+    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws-tmp.conf ~/jaws.conf
     chmod 600 ~/jaws.conf
 
     Edit ~/jaws.conf and add values for the [USER] variables:
@@ -126,9 +126,9 @@ Do the following
     # Set up the virtual environment
     # You will use an existing one. This gives you access to all the jaws commands.
     # By using a symlink, we can update the file without forcing you to re-copy the file.
-    ln -s /global/cfs/projectdirs/jaws/jaws-prod/jaws-prod.sh ~
+    ln -s /global/cfs/projectdirs/jaws/jaws-prod/jaws-tmp.sh ~
 
-    source ~/jaws-prod.sh
+    source ~/jaws-tmp.sh
     (use "deactivate" to get out of the environment)
 
     # Get the jaws-auth token. 

@@ -142,7 +142,7 @@ def test_calculate_wdl_max_ram_gb_with_subworkflows(
     wdl = jaws_client.workflow.WdlFile(
         os.path.join(subworkflows_example, "main.wdl"), "1234"
     )
-    assert 0 == wdl.max_ram_gb
+    assert 6 == wdl.max_ram_gb
 
 
 @pytest.mark.skipif(

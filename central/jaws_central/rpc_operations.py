@@ -48,38 +48,69 @@ def _failure(code, message=None):
 # RPC OPERATIONS:
 
 
-def update_run_status(params):
+def update_run_logs(params):
     """
-    Receive a run status update and save in RDb.
+    Receive a run status update from a Site, insert into run_logs table and update state in runs table.
 
-    :param params: one status update
+    :param params: one run log entry
     :type params: dict
     :return: valid JSON-RPC2 response
     :rtype: dict
     """
+    site_id = params["site_id"]
     run_id = int(params["run_id"])
-    status = params["status"]
+    status_from = params["status_from"]
+    status_to = params["status_to"]
     timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
-    logger.info(f"Run {run_id}: now {status}")
+    reason = None
+    if "reason" in params:
+        reason = params["reason"]
+    logger.info(f"Run {run_id} at Site {site_id} now {status_to}")
 
-    # update Run
+    # DEFINE ROW OBJ
+    try:
+        log = Run_Log(
+            run_id=run_id,
+            status_from=status_from,
+            status_to=status_to,
+            timestamp=timestamp,
+            reason=reason,
+        )
+    except Exception as error:
+        err_msg = f"Invalid run_log: {params}; {error}"
+        logger.error(err_msg)
+        return _failure(400, err_msg)
+
+    # INSERT OR IGNORE INTO RUN-LOGS TABLE
     session = Session()
+    try:
+        session.add(log)
+        session.commit()
+    except sqlalchemy.exc.IntegrityError:
+        session.rollback()
+        logger.warning(f"Run log {run_id}:{status_to} is duplicate; ignored")
+        return _success()
+    except Exception as error:
+        session.rollback()
+        err_msg = f"Error inserting run_log: {error}"
+        logger.exception(err_msg)
+        return _failure(500, err_msg)
+
+    # UPDATE RUNS TABLE
     run = session.query(Run).get(run_id)
-    if run.status == status:
+    if run.status == status_to:
         # ignore redundant state change (duplicate message)
         session.close()
         return _success()
-    run.status = status
+    run.status = status_to
     run.updated = timestamp
-    if status == "submitted":
+    if status_to == "submitted":
         run.cromwell_run_id = params["cromwell_run_id"]
-        logger.info(f"Run {run_id} {status}: {run.cromwell_run_id}")
-    elif status == "downloading":
+    elif status_to == "downloading":
         run.download_task_id = params["download_task_id"]
-        logger.info(f"Run {run_id} {status}: {run.download_task_id}")
-    elif status == "succeeded":
+    elif status_to == "succeeded":
         run.result = "succeeded"
-    elif status == "failed":
+    elif status_to == "failed":
         run.result = "failed"
     try:
         session.commit()
@@ -89,64 +120,6 @@ def update_run_status(params):
         return _failure(500, f"Error inserting log: {error}")
     session.close()
     return _success()
-
-
-def update_run_logs(params):
-    """
-    Receive a set of run status updates and save in RDb.
-    Either all updates are saved or none.
-
-    :param params: one or more status updates
-    :type params: dict
-    :return: valid JSON-RPC2 response
-    :rtype: dict
-    """
-    logs = params["logs"]
-    site_id = params["site_id"]
-    num_logs = len(logs)
-    logger.debug(f"Site {site_id} sent {num_logs} run logs")
-    err_msg = None
-
-    for log_entry in logs:
-        # INIT VARS
-        run_id = int(log_entry[0])
-        status_from = log_entry[1]
-        status_to = log_entry[2]
-        timestamp = datetime.strptime(log_entry[3], "%Y-%m-%d %H:%M:%S")
-        reason = log_entry[4]
-
-        # DEFINE ROW OBJ
-        try:
-            log = Run_Log(
-                run_id=run_id,
-                status_from=status_from,
-                status_to=status_to,
-                timestamp=timestamp,
-                reason=reason,
-            )
-        except Exception as error:
-            err_msg = f"Invalid run_log: {log_entry}: {error}"
-            logger.error(err_msg)
-            continue
-
-        # INSERT OR IGNORE
-        session = Session()
-        try:
-            session.add(log)
-            session.commit()
-        except sqlalchemy.exc.IntegrityError:
-            session.rollback()
-            logger.warning(f"Run log {run_id}:{status_to} is duplicate; ignored")
-        except Exception as error:
-            session.rollback()
-            err_msg = f"Error inserting run_log: {error}"
-            logger.exception(err_msg)
-        session.close()
-
-    if err_msg:
-        return _failure(500, err_msg)
-    else:
-        return _success()
 
 
 def update_job_logs(params):
@@ -215,13 +188,15 @@ def update_job_logs(params):
 
 # all RPC operations are defined in this dispatch table
 operations = {
-    "update_run_status": {
-        "function": update_run_status,
-        "required_parameters": ["run_id", "status", "timestamp"],
-    },
     "update_run_logs": {
         "function": update_run_logs,
-        "required_parameters": ["logs", "site_id"],
+        "required_parameters": [
+            "site_id",
+            "run_id",
+            "status_from",
+            "status_to",
+            "timestamp",
+        ],
     },
     "update_job_logs": {
         "function": update_job_logs,
