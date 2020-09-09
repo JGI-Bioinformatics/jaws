@@ -15,6 +15,11 @@ name = jaws-dev
 version = 2.0.1
 docs_url = https://jaws-docs.readthedocs.io/en/latest/
 
+[RPC_SERVER]
+user = jaws
+password = pppaass4
+vhost = jaws_test
+
 [DB]
 dialect = mysql+mysqlconnector
 host = db.foo.com
@@ -27,22 +32,22 @@ db = jaws
 client_id = ZZZZ
 
 [SITE:LBNL]
-amqp_host = rmq.jaws.gov
-amqp_user = jaws
-amqp_password = passw0rd2
-amqp_vhost = jaws
-amqp_queue = lbnl_rpc
+host = rmq.jaws.gov
+user = jaws
+password = passw0rd2
+vhost = jaws
+queue = lbnl_rpc
 globus_endpoint = XXXX
 globus_basepath = "/global/scratch/jaws"
 uploads_subdir = "uploads"
 max_ram_gb = 1024
 
 [SITE:NERSC]
-amqp_host = rmq.jaws.gov
-amqp_user = jaws
-amqp_password = passw0rd2
-amqp_vhost = jaws
-amqp_queue = nersc_rpc
+host = rmq.jaws.gov
+user = jaws
+password = passw0rd2
+vhost = jaws
+queue = nersc_rpc
 globus_endpoint = YYYY
 globus_basepath = "/"
 uploads_subdir = "/global/scratch/jaws/uploads"

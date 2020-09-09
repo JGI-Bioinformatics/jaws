@@ -2,8 +2,20 @@ import jaws_central.config
 
 
 def check_section(section_to_test, expected_entries, actual_config):
-    for section, expected in expected_entries:
-        assert actual_config.get(section_to_test, section) == expected
+    for key, expected in expected_entries:
+        assert actual_config.get(section_to_test, key) == expected
+
+
+def check_site(site_to_test, expected_entries, actual_config):
+    for key, expected in expected_entries:
+        assert actual_config.get_site(site_to_test, key) == expected
+
+
+def check_site_info(site_to_test, expected_entries, actual_config):
+    site_params = actual_config.get_site_info(site_to_test)
+    for key, expected in expected_entries:
+        assert key in site_params
+        assert site_params[key] == expected
 
 
 def test_check_all_values(config_file):
@@ -11,7 +23,7 @@ def test_check_all_values(config_file):
     config_path = config_file
     cfg = jaws_central.config.Configuration(config_path)
 
-    expected_db_sections = [
+    expected_db_parameters = [
         ("dialect", "mysql+mysqlconnector"),
         ("host", "db.foo.com"),
         ("port", "3306"),
@@ -20,38 +32,33 @@ def test_check_all_values(config_file):
         ("db", "jaws"),
     ]
 
-    expected_globus_sections = [
+    expected_globus_parameters = [
         ("client_id", "ZZZZ"),
     ]
 
-    expected_site_lbnl_sections = [
-        ("amqp_host", "rmq.jaws.gov"),
-        ("amqp_user", "jaws"),
-        ("amqp_password", "passw0rd2"),
-        ("amqp_vhost", "jaws"),
-        ("amqp_queue", "lbnl_rpc"),
+    expected_site_lbnl_parameters = [
+        ("host", "rmq.jaws.gov"),
+        ("user", "jaws"),
+        ("password", "passw0rd2"),
+        ("vhost", "jaws"),
         ("globus_endpoint", "XXXX"),
-        ("globus_basepath", "\"/global/scratch/jaws\""),
-        ("uploads_subdir", "\"uploads\""),
+        ("globus_basepath", '"/global/scratch/jaws"'),
+        ("uploads_subdir", '"uploads"'),
         ("max_ram_gb", "1024"),
     ]
 
-    expected_site_nersc_sections = [
-        ("amqp_host", "rmq.jaws.gov"),
-        ("amqp_user", "jaws"),
-        ("amqp_password", "passw0rd2"),
-        ("amqp_vhost", "jaws"),
-        ("amqp_queue", "nersc_rpc"),
+    expected_site_nersc_parameters = [
+        ("site_id", "NERSC"),
         ("globus_endpoint", "YYYY"),
-        ("globus_basepath", "\"/\""),
-        ("uploads_subdir", "\"/global/scratch/jaws/uploads\""),
+        ("globus_basepath", '"/"'),
+        ("uploads_subdir", '"/global/scratch/jaws/uploads"'),
         ("max_ram_gb", "2048"),
     ]
 
-    check_section("DB", expected_db_sections, cfg)
-    check_section("GLOBUS", expected_globus_sections, cfg)
-    check_section("SITE:LBNL", expected_site_lbnl_sections, cfg)
-    check_section("SITE:NERSC", expected_site_nersc_sections, cfg)
+    check_section("DB", expected_db_parameters, cfg)
+    check_section("GLOBUS", expected_globus_parameters, cfg)
+    check_site("LBNL", expected_site_lbnl_parameters, cfg)
+    check_site_info("NERSC", expected_site_nersc_parameters, cfg)
 
 
 def test_config_overwrite_partial_values(partial_config):
