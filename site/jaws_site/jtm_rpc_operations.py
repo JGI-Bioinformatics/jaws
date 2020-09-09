@@ -51,7 +51,8 @@ def _failure(code, message=None):
 # RPC OPERATIONS:
 
 def update_job_status(params):
-    """JTM shall post changes in job status."""
+    """JTM shall post changes in job state, although it is missing the JAWS run id.
+    The state change is simply saved in the db; any other actions will be performed by the daemon."""
     cromwell_run_id = params["cromwell_run_id"]  # Cromwell's run/workflow UUID
     cromwell_job_id = params["cromwell_job_id"]  # JTM's task_id
     status_from = params["status_from"]

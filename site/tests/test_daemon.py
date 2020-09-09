@@ -28,8 +28,8 @@ def mock_update_run_status(self, run, new_status, reason=None):
 )
 def test_check_operations_table(status):
     """Check one of the many possible entries in the operations table, which should return a method."""
-    jawsd = Daemon()
-    proc = jawsd.operations.get(status, None)
+    daemon = Daemon()
+    proc = daemon.operations.get(status, None)
     assert callable(proc)
 
 
@@ -44,28 +44,28 @@ def test_check_if_upload_complete(statuses, monkeypatch):
     statuses since the 'SUCCEEDED' status calls another method we want to
     test later and separately.
     """
-    jawsd = Daemon()
+    daemon = Daemon()
     run = tests.conftest.MockRun(status="uploading")
 
-    def mock_authorize_client(jawsd, token):
+    def mock_authorize_client(daemon, token):
         return tests.conftest.MockTransferClient(statuses)
 
     monkeypatch.setattr(Daemon, "_authorize_transfer_client", mock_authorize_client)
     monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
-    jawsd.check_if_upload_complete(run)
+    daemon.check_if_upload_complete(run)
 
 
 def test_submit_run(monkeypatch, uploads_files):
     def workflows_post(url, files={}):
         return tests.conftest.MockResponses({"id": "2"}, 201)
 
-    jawsd = Daemon()
+    daemon = Daemon()
     run = tests.conftest.MockRun(status="upload complete")
 
     monkeypatch.setattr(requests, "post", workflows_post)
     monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
 
-    jawsd.submit_run(run)
+    daemon.submit_run(run)
 
 
 def test_transfer_results(monkeypatch):
@@ -76,10 +76,10 @@ def test_transfer_results(monkeypatch):
     monkeypatch.setattr(globus_sdk, "TransferData", tests.conftest.MockTransferData)
     monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
 
-    jawsd = Daemon()
+    daemon = Daemon()
     run = tests.conftest.MockRun(status="running", cromwell_run_id="EXAMPLE_CROMWELL_ID")
 
-    jawsd.transfer_results(run)
+    daemon.transfer_results(run)
 
     assert run.download_task_id
     assert run.download_task_id == "325"
@@ -102,9 +102,9 @@ def test_check_if_download_complete(status, expected, monkeypatch):
         Daemon, "_get_globus_transfer_status", mock_get_globus_transfer_status
     )
 
-    jawsd = Daemon()
+    daemon = Daemon()
     run = tests.conftest.MockRun(status="downloading")
 
-    jawsd.check_if_download_complete(run)
+    daemon.check_if_download_complete(run)
 
     assert run.status == expected

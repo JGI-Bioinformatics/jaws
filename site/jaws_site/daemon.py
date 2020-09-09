@@ -6,14 +6,12 @@ them to the next state.
 import schedule
 import time
 import os
-import shutil
 import globus_sdk
 import logging
 from datetime import datetime
-import subprocess
 from jaws_site.database import Session
 from jaws_site.models import Run, Run_Log, Job_Log
-from jaws_site import wfcopy, config
+from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_rpc import rpc_client
 
@@ -200,6 +198,13 @@ class Daemon:
         logger.debug(f"Run {run.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
             if run.status == "submitted":
+                try:
+                    metadata = self.cromwell.get_metadata(run.cromwell_run_id)
+                except Exception:
+                    return
+                if metadata is None:
+                    return
+                run.cromwell_workflow_dir = metadata.get("workflowRoot")
                 self.update_run_status(run, "queued")
         elif cromwell_status == "Failed":
             self.update_run_status(run, "failed")
@@ -214,7 +219,7 @@ class Daemon:
 
     def prepare_run_output(self, run, metadata=None):
         """
-        Prepare folder of Run output.
+        Recursively change permissions of output so that the files may be read by the user.
         """
         logger.debug(f"Run {run.id}: Prepare output")
         if metadata is None:
@@ -224,74 +229,40 @@ class Daemon:
                 return
             if metadata is None:
                 return
-        logger.info(f"Run {run.id}: Prepare output")
-        src_dir = metadata.get("workflowRoot")
-        dest_dir = os.path.join(
-            self.downloads_dir, str(run.id)
-        )  # output to return to user
-        if os.path.exists(dest_dir):
-            try:
-                shutil.rmtree(dest_dir)
-            except Exception as error:
-                logger.exception(
-                    f"Failed to purge preexisting results dir for run {run.id}: {error}"
-                )
-        if run.status == "succeeded":
-            logger.debug(f"Run {run.id}: wfcopy successful output")
-            try:
-                wfcopy.wfcopy(src_dir, dest_dir)
-            except wfcopy.OutputFolderExists as error:
-                logger.exception(f"Run {run.id}: wfcopy outdir already exists: {error}")
-            except Exception as error:
-                logger.exception(f"Run {run.id}: wfcopy failed: {error}")
-                self.update_run_status(run, "failed", f"wfcopy failed: {error}")
-                return
-        elif src_dir is None:
-            logger.debug(f"Run {run.id}: has no workflowRoot dir")
-            self.update_run_status(run, "download complete", "No outfiles to return")
-        else:  # failed
-            logger.debug(f"Run {run.id}: rsync failed output")
-            # copy to downloads dir
-            try:
-                process = subprocess.Popen(
-                    f"rsync -a {src_dir} {dest_dir}",
-                    shell=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                )
-                stdout, stderr = process.communicate()
-                if process.returncode:
-                    self.update_run_status(run, "download complete", "Rsync failed")
-                    logger.error(
-                        f"Failed to rsync {src_dir} to {dest_dir}: " + stderr.strip()
-                    )
-                    return
-            except Exception as error:
-                self.update_run_status(run, "download complete", "Rsync failed")
-                logger.exception(f"Rsync failed for {src_dir} to {dest_dir}: {error}")
-                return
-            # fix permissions
-            os.chmod(dest_dir, 0o0775)
-            for dirpath, dirnames, filenames in os.walk(dest_dir):
-                for dname in dirnames:
-                    os.chmod(os.path.join(dirpath, dname), 0o0775)
-                for fname in filenames:
-                    path = os.path.join(dirpath, fname)
-                    if not os.path.islink(path):
-                        os.chmod(path, 0o0664)
+        output_dir = metadata.get("workflowRoot")
+        os.chmod(output_dir, 0o0775)
+        for dirpath, dirnames, filenames in os.walk(output_dir):
+            for dname in dirnames:
+                os.chmod(os.path.join(dirpath, dname), 0o0775)
+            for fname in filenames:
+                path = os.path.join(dirpath, fname)
+                if not os.path.islink(path):
+                    os.chmod(path, 0o0664)
         self.update_run_status(run, "ready")
+        self.transfer_results(run, metadata)
 
-    def transfer_results(self, run):
+    def transfer_results(self, run, metadata=None):
         """
         Send run output via Globus
         """
         logger.debug(f"Run {run.id}: Download output")
-        abs_nice_dir = os.path.join(self.downloads_dir, str(run.id))
+        if run.cromwell_workflow_dir is None and metadata is None:
+            try:
+                metadata = self.cromwell.get_metadata(run.cromwell_run_id)
+            except Exception:
+                return
+            if metadata is None:
+                return
+            run.cromwell_workflow_dir = metadata.get("workflowRoot")
         transfer_rt = run.transfer_refresh_token
-        if not abs_nice_dir.startswith(self.globus_root_dir):
-            logger.error(f"Results dir is not accessible via Globus: {abs_nice_dir}")
+        if not run.cromwell_workflow_dir.startswith(self.globus_root_dir):
+            logger.error(
+                f"Results dir is not accessible via Globus: {run.cromwell_workflow_dir}"
+            )
             return
-        rel_nice_dir = os.path.relpath(abs_nice_dir, self.globus_default_dir)
+        rel_cromwell_workflow_dir = os.path.relpath(
+            run.cromwell_workflow_dir, self.globus_default_dir
+        )
         try:
             transfer_client = self._authorize_transfer_client(transfer_rt)
         except globus_sdk.GlobusAPIError:
@@ -305,18 +276,22 @@ class Daemon:
                 self.globus_endpoint,
                 run.output_endpoint,
                 label=f"Download run {run.id}",
-                sync_level="checksum",
-                verify_checksum=True,
+                sync_level="exists",
+                verify_checksum=False,
                 preserve_timestamp=True,
                 notify_on_succeeded=False,
-                notify_on_failed=True,
-                notify_on_inactive=True,
+                notify_on_failed=False,
+                notify_on_inactive=False,
                 skip_activation_check=True,
             )
             if self.globus_root_dir == "/":
-                tdata.add_item(abs_nice_dir, run.output_dir, recursive=True)
+                tdata.add_item(
+                    run.cromwell_workflow_dir, run.output_dir, recursive=True
+                )
             else:
-                tdata.add_item(rel_nice_dir, run.output_dir, recursive=True)
+                tdata.add_item(
+                    rel_cromwell_workflow_dir, run.output_dir, recursive=True
+                )
         except Exception:
             logger.warning(
                 f"Failed to prepare download manifest for run {run.id}", exc_info=True
@@ -348,24 +323,12 @@ class Daemon:
             return
         if globus_status == "SUCCEEDED":
             self.update_run_status(run, "download complete")
-            self.purge_run_tmpfiles(run)
+            # change permissions back to private
+            # os.chmod(run.cromwell_workflow_dir, 0o0770)
         elif globus_status == "FAILED":
             self.update_run_status(run, "download failed")
-            self.purge_run_tmpfiles(run)
-
-    def purge_run_tmpfiles(self, run):
-        """
-        After the download is complete, the tmpfiles should be purged.
-        """
-        logger.debug(f"Run {run.id}: purge tmpfiles")
-        tmp_dir = os.path.join(self.downloads_dir, str(run.id))
-        if os.path.exists(tmp_dir):
-            try:
-                shutil.rmtree(tmp_dir)
-            except Exception as error:
-                logger.exception(
-                    f"Failed to purge downloads dir for run {run.id}: {error}"
-                )
+            # change permissions back to private
+            # os.chmod(run.cromwell_workflow_dir, 0o0770)
 
     def update_run_status(self, run, new_status, reason=None):
         """

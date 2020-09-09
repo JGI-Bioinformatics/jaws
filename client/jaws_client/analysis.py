@@ -208,29 +208,6 @@ def task_log(run_id: int, fmt: str) -> None:
 
 @run.command()
 @click.argument("run_id")
-@click.option("--failed", is_flag=True)
-def output(run_id: int, failed: bool = False) -> None:
-    """View the stdout/stderr output of Tasks.
-
-    :param run_id: JAWS run ID
-    :type run_id: int
-    :param failed: Get output of failed tasks only
-    :type failed: bool
-    :return:
-    """
-    if failed:
-        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/failed'
-    else:
-        url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/output'
-    r = _get(url)
-    if r.status_code != 200:
-        raise SystemExit(r.text)
-    result = r.json()
-    print(json.dumps(result, indent=4, sort_keys=True))
-
-
-@run.command()
-@click.argument("run_id")
 def cancel(run_id):
     """Cancel a run; prints whether aborting was successful or not.
 
