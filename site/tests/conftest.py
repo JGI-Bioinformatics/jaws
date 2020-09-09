@@ -35,11 +35,6 @@ queue = central_rpc
 user = jaws_eagle
 password = succotash
 
-[JTM_RPC_SERVER]
-user = jaws
-password = pppaasss4
-vhost = jaws_test
-
 [GLOBUS]
 client_id = foghorn_leghorn
 endpoint_id = rooster
@@ -97,7 +92,7 @@ user = elmer_fudd
 password = hunting
 db = hunting_sites
 
-[JTM_RPC_SERVER]
+[LOCAL_RPC_SERVER]
 vhost = jaws_test
 
 [CROMWELL]
