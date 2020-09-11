@@ -305,7 +305,7 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
         try:
             ret = int(ret)
         except Exception as e:
-            logger.exceptin(e)
+            logger.exception(e)
             logger.error(f"Unexpected return value: {ret}")
             return 1
     if ret == -5:
