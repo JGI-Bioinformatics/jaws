@@ -137,7 +137,7 @@ backend
             [[ -n \$ACCT ]] && OPT_ARGS="\$OPT_ARGS -A \$ACCT"
             jtm --config=$JTM_CONFIG_FILE \\
                 submit \$OPT_ARGS \\
-                -cmd '/bin/bash \${script}' \\
+                -cmd \'/bin/bash \${script}\' \\
                 -cl \${cluster} \\
                 -t \${time} \\
                 -c \${cpu} \\
@@ -153,20 +153,24 @@ backend
         job-id-regex = "JTM task ID (\\\d+)"
         submit-docker = """
             $CONTAINER_CHECK
+            CONSTRAINT="\${constraint}"
+            QOS="\${qos}"
+            ACCT="\${account}"
+            OPT_ARGS=""
+            [[ -n \$CONSTRAINT ]] && OPT_ARGS="\$OPT_ARGS -C \$CONSTRAINT"
+            [[ -n \$QOS ]] && OPT_ARGS="\$OPT_ARGS --qos \$QOS"
+            [[ -n \$ACCT ]] && OPT_ARGS="\$OPT_ARGS -A \$ACCT"
             jtm --config=$JTM_CONFIG_FILE \\
-                submit \\
-                -cmd '$SITE_JTM_WORKER_INSTALL_DIR/${SITE_CONTAINER_TYPE}_exec.sh \${docker} \${job_shell} \${script}' \\
-                    -cl \${cluster} \\
-                    -t \${time} \\
-                    -c \${cpu} \\
-                    -m \${mem} \\
-                    -p \${poolname} \\
-                    -C \${constraint} \\
+                submit \$OPT_ARGS \\
+                -cmd \'$SITE_JTM_WORKER_INSTALL_DIR/${SITE_CONTAINER_TYPE}_exec.sh \${docker} \${job_shell} \${script}\' \\
+                -cl \${cluster} \\
+                -t \${time} \\
+                -c \${cpu} \\
+                -m \${mem} \\
+                -p \${poolname} \\
                 -N \${node} \\
                 -nwpn \${nwpn} \\
                 -jid \${job_name} \\
-                --qos \${qos} \\
-                -A \${account} \\
                 --shared \${shared}
         """
         # Root directory where Cromwell writes job results in the container. This value
