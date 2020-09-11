@@ -63,7 +63,7 @@ def server_status(params):
         status = cromwell.status()
     except requests.exceptions.HTTPError as error:
         logger.exception(f"Failed to get server status: {error}")
-        return _failure(error.response.status_code)
+        return _failure(error.response.status_code, f"Failed to get server status: {error}")
     return _success(status)
 
 
@@ -85,14 +85,14 @@ def run_metadata(params):
         )
     logger.info(f"{user_id} - Run {run_id} - Get metadata")
     try:
-        metadata = cromwell.get_all_metadata_json(cromwell_run_id)
+        result = cromwell.get_all_metadata(cromwell_run_id)
     except requests.exceptions.HTTPError as error:
-        logger.exception(f"Get metadata for {params['run_id']} failued: {error}")
-        return _failure(error.response.status_code)
+        logger.exception(f"Get metadata for {params['run_id']} failed: {error}")
+        return _failure(error.response.status_code, f"Failed to get metadata: {error}")
     except Exception as error:
-        logger.exception(f"Get metadata for {params['run_id']} failued: {error}")
-        return _failure(f"Unable to retrieve metadata: {error}")
-    return _success(metadata.data)
+        logger.exception(f"Get metadata for {params['run_id']} failed: {error}")
+        return _failure(500, f"Unable to retrieve metadata: {error}")
+    return _success(result)
 
 
 def cancel_run(params):
@@ -126,7 +126,7 @@ def cancel_run(params):
         session.commit()
     except Exception as error:
         logger.exception(f"Error updating Run {run_id}: {error}")
-        return _failure(500, error)
+        return _failure(500, f"Error updating db record: {error}")
     logger.debug(f"Run {run_id} cancelled")
 
     # tell Cromwell to cancel the run if it has been submitted to Cromwell already
@@ -136,12 +136,12 @@ def cancel_run(params):
             cromwell.abort(cromwell_run_id)
         except requests.exceptions.HTTPError as error:
             logger.exception(f"Error aborting cromwell {cromwell_run_id}: {error}")
-            return _failure(500, error)
+            return _failure(500, f"Cromwell returned an error: {error}")
         except Exception as error:
             logger.exception(
                 f"Unknown error aborting cromwell {cromwell_run_id}: {error}"
             )
-            return _failure(500, error)
+            return _failure(500, f"Failed to instruct Cromwell to abort: {error}")
     result = {"cancel": "OK"}
     return _success(result)
 
@@ -165,7 +165,7 @@ def submit(params):
         )
     except Exception as error:
         logger.exception(f"Invalid submit run input; {error}: {params}")
-        return _failure(400, "Invalid input; {error}")
+        return _failure(400, f"Invalid input; {error}")
     session = Session()
     try:
         session.add(run)
