@@ -72,34 +72,15 @@ chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 chmod 644 $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
 
-## GENERATE SHIMS
-cat <<EOM > $SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh
-#!/usr/bin/env bash
-
-source $SITE_CLIENT_INSTALL_DIR/bin/activate
-export JAWS_CLIENT_CONFIG="$SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.conf"
-export JAWS_USER_CONFIG=~/jaws.conf
-echo "Activated JAWS-$DEPLOYMENT_NAME; use 'deactivate' to exit."
-EOM
-chgrp $SITE_JAWS_GROUP $SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh
-chmod 755 $SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh
-cp "$SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh" "$SITE_CLIENT_INSTALL_DIR"
-
-cat <<EOM > $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
-#!/usr/bin/env bash
-
-# HACK: chgrp doesn't work when run by gitlab runner, so have supervisor do this instead.
 function fix_perms() {
-    local GROUP="\$1"
-    local DIR="\$2"
-    chmod -R a+rX "\$DIR"
-    chmod -R ug+rwX "\$DIR"
-    chgrp -R \$GROUP "\$DIR"
-    find "\$DIR" -type d -exec chmod g+s '{}' \;
+    local GROUP="$1"
+    local DIR="$2"
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R $GROUP "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}';
 }
+
 fix_perms "$SITE_CLIENT_GROUP" "$SITE_CLIENT_INSTALL_DIR"
-EOM
-chgrp $SITE_JAWS_GROUP $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
-chmod +x $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
 
 printf "END deploy-client\n\n" 

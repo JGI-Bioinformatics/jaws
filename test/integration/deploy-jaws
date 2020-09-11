@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 echo "BEGIN deploy-jaws"
 
 source ./test/integration/define-env

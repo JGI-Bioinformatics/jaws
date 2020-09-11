@@ -1,8 +1,76 @@
-# Integration Testing/Deployment
+# Deployment
 
-These directories contains scripts, which are used to deploy JAWS onto different sites. Those scripts
-are driven by the Gitlab CI/CD system, as specified in the .gitlab-ci.yml file in the root of
-this repository.
+There are multiple scripts that handle the creation of directories, python
+virtual environments, configuration files and supervisord wrapper scripts (shims)
+for starting JAWS services. 
+
+### Environment Variables 
+In order to deploy JAWS, you will need to set some environment variables. This
+is already taken care of in the `.gitlab-ci.yml` file. The following are
+variables that must be set for the deployment to be successful:  
+
+- DEPLOYMENT_NAME: Deployment environment name dev, staging, prod  
+- JAWS_SITE: name of the deployment site ([SITE], JGI, CASCADE)  
+- DEPLOY_JAWS_CENTRAL: Whether central will be installed (1 or 0)  
+- DEPLOY_JAWS_CLIENT: Whether client will be installed (1 or 0)  
+- JAWS_SITES: All the different sites that JAWS is installed   
+- JAWS_VERSION: version of JAWS  
+- JAWS_DOCS_URL: URL where readthedocs is hosted ("https://jaws-docs.readthedocs.io/en/latest/")  
+- JAWS_CENTRAL_HOST: hostname of JAWS central server  
+- JAWS_CENTRAL_RMQ_HOST: hostname of RabbitMQ server that Central will use
+- JAWS_CENTRAL_RMQ_PORT: port for RabbitMQ server  that Central will use
+- JAWS_GLOBUS_CLIENT_ID: Globus Client app registration id  
+- CROMWELL_VERSION: version of Cromwell
+- JAWS_CENTRAL_DB_HOST: hostname for the MYSQL database 
+- JAWS_CENTRAL_DB_PORT: port for the MYSQL database 
+
+These are deployment specific. The deployment placeholder stands for either
+dev, staging or prod.  
+- [deployment]_LOG_LEVEL: Python logging level (DEBUG)  
+- [deployment]_JAWS_SUPERVISOR_PORT: Supervisord port number  
+- [deployment]_JTM_SUPERVISOR_PORT: Supervisord port number for JTM service  
+- [deployment]_JAWS_AUTH_PORT: auth service port number  
+- [deployment]_JAWS_REST_PORT: rest service port number  
+- [deployment]_CROMWELL_PORT: cromwell port number  
+
+The following changes per site and are prefixed with the site name:  
+- [SITE]_INSTALL_BASEDIR: base directory where JAWS services will be installed  
+- [SITE]_GLOBUS_EP: Globus endpoint id   
+- [SITE]_GLOBUS_ROOT_DIR: Root path where globus will upload files   
+- [SITE]_GLOBUS_DEFAULT_DIR: Default directory for globus upload  
+- [SITE]_RMQ_HOST: hostname for RabbitMQ that site will use  
+- [SITE]_RMQ_PORT: port number for RabbitMQ that site will use  
+- [SITE]_PYTHON: The name of the python executable (eg python, python3)  
+- [SITE]_PYTHON_PIP: The name of the pip executable (eg pip, pip3)  
+- [SITE]_LOAD_PYTHON: The module command for loading python. Can be "" (ie - no modules)  
+- [SITE]_JAWS_GROUP: Linux group name for JAWS  
+- [SITE]_JTM_GROUP: Linux group name for JTM  
+- [SITE]_CLIENT_GROUP: Linux group name for client. Group name is something all JGI users can use  
+- [SITE]_JAWS_SCRATCH_BASEDIR: SCRATCH directory for JAWS  
+- [SITE]_JTM_SCRATCH_BASEDIR: SCRATCH directory for JTM. Can be same as JAWS   
+- [SITE]_JAWS_SW_BASEDIR: Base directory where JAWS code is located  
+- [SITE]_JTM_SW_BASEDIR: Base directory where JTM code is located  
+- [SITE]_REF_DATA_DIR: Location of JGI ref data  
+- [SITE]_SUPERVISOR_HOST: Supervisor hostname for site  
+- [SITE]_CONTAINER_TYPE: Container type the site uses (shifter, singularity etc)  
+- [SITE]_DB_HOST: db hostname site will be using  
+- [SITE]_DB_PORT: port number for db that site will use  
+- [SITE]_CLUSTER_QOS: quality of service to use for a particular cluster  
+- [SITE]_CLUSTER_PARTITION: Slurm partition name of the cluster  
+- [SITE]_CLUSTER_ACCOUNT: Slurm cluster account to use for job submission  
+- [SITE]_CLUSTER_CONSTRAINT: Cluster node type (eg - haswell, knl, skylake) 
+- [SITE]_MAX_RAM_GB: Maximum ram for the cluster
+- [SITE]_LOAD_JAVA: Module load command for Java  
+
+
+### deploy-jaws 
+This is the main execution script that drives the deployment of JAWS. It first
+sets up the environment by calling `define-envs` which looks for different
+environment variables defined above. Before deployment it will call on  
+`supervisorctl` to stop the services. Then it will perform a fresh install of
+JAWS by generating the python virtual environments, configs and shims. It will
+then restart the services with the new configuration and python installs. I
+
 
 ## Architecture
 
@@ -39,8 +107,6 @@ user workloads: one for JAWS and one for JTM/Cromwell.
     supervisord-jaws | 64101 | 64102   | 64103
     supervisord-jtm  | 64111 | 64112   | 64113
 
-
-# Integration Testing/Deployment on Cori
 
 ## Common Commands
 
