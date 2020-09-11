@@ -48,13 +48,13 @@ def central_rpc() -> None:
 
 
 @cli.command()
-def jtm_rpc() -> None:
+def site_rpc() -> None:
     """Start RPC server for JTM."""
-    from jaws_site import jtm_rpc_operations
+    from jaws_site import site_rpc_operations
     from jaws_rpc import rpc_server
 
-    jtm_rpc_server_params = config.conf.get_section("LOCAL_RPC_SERVER")
-    app = rpc_server.RpcServer(jtm_rpc_server_params, jtm_rpc_operations.operations)
+    site_rpc_server_params = config.conf.get_section("LOCAL_RPC_SERVER")
+    app = rpc_server.RpcServer(site_rpc_server_params, site_rpc_operations.operations)
     app.start_server()
 
 
