@@ -71,7 +71,7 @@ password = $SITE_RMQ_PW
 host = $SITE_RMQ_HOST
 port = $SITE_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
-queue = SITE
+queue = SITE_$JAWS_SITE
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_SERVER]
@@ -80,7 +80,7 @@ password = $JAWS_CENTRAL_RMQ_PW
 host = $JAWS_CENTRAL_RMQ_HOST
 port = $JAWS_CENTRAL_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
-queue = $JAWS_SITE
+queue = JAWS_$JAWS_SITE
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
@@ -122,7 +122,7 @@ password = $SITE_RMQ_PW
 host = $SITE_RMQ_HOST
 port = $SITE_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
-queue = SITE
+queue = SITE_$JAWS_SITE
 [MYSQL]
 host = $SITE_DB_HOST
 port = $SITE_DB_PORT
