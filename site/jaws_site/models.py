@@ -71,7 +71,6 @@ class Job_Log(Base):
     status_to = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=True)
-    sent = Column(Boolean, default=False, nullable=False)
 
 
 def create_all(engine, session):
