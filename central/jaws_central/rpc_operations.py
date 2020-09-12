@@ -5,7 +5,6 @@ RPC operations by which Sites update Run and Job status.
 import logging
 import sqlalchemy.exc
 from datetime import datetime
-from http.client import responses
 from jaws_central.database import Session
 from jaws_central.models_sa import Run, Run_Log
 from jaws_rpc.responses import success, failure
