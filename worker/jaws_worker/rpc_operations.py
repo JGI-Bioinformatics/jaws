@@ -5,7 +5,6 @@ There must be at least two RPC server threads: one to run a task and one to rece
 executing that task (e.g. "cancel" command).
 """
 
-#import logging
 import subprocess
 import psutil
 import os
@@ -31,7 +30,7 @@ def worker_status(params):
     :rtype: dict
     """
     return success()
-     
+
 
 def worker_quit(params):
     """
@@ -42,7 +41,7 @@ def worker_quit(params):
     return success()
 
 
-def __quit:
+def __quit():
     """Wait a moment in order to return RPC response and terminate all threads."""
     sleep(2)
     pid = os.getpid()
@@ -59,13 +58,13 @@ def run_task(params):
     :rtype: dict
     """
     # init vars
-    cmd=params["cmd"].split()
-    call_root_dir=params["call_root"]
-    rc_file=os.path.join(call_root, "execution", "rc")
+    cmd = params["cmd"].split()
+    call_root_dir = params["call_root"]
+    rc_file = os.path.join(call_root, "execution", "rc")
     max_time = params["time"].split(":")  # format is "hh:mm:ss"
     for n in range(len(max_time), 3):
-        max_time.insert(0,0)  # add any missing fields
-    max_sec=max_time[0]*3600+max_time[1]*60+max_time[2]
+        max_time.insert(0, 0)  # add any missing fields
+    max_sec = max_time[0] * 3600 + max_time[1] * 60 + max_time[2]
 
     # Run the Task in the background.
     # The worker doesn't care about the Task's exit status or output.
@@ -91,22 +90,19 @@ def task_status(params):
     is_alive = True
     rc = None
     try:
-        task = psutil.Process(task_pid) 
+        task = psutil.Process(task_pid)
     except psutil.NoSuchProcess:
         # not running
         is_alive = False
         # check if rc file exists
         if os.path.isfile(rc_file):
-            with open(rc_file, 'r') as fh:
-                rc=fh.read()
+            with open(rc_file, "r") as fh:
+                rc = fh.read()
         else:
-            rc="1"
-            with open(rc_file, 'w') as fh:
+            rc = "1"
+            with open(rc_file, "w") as fh:
                 fh.write(rc)
-    result = {
-        "is_alive": is_alive,
-        "rc": rc
-    }
+    result = {"is_alive": is_alive, "rc": rc}
     return success(result)
 
 
@@ -115,20 +111,20 @@ def kill_task(params):
     Recursively kill process and write return code to file.
     Cromwell reads the rc_file to determine status.
     """
-    task_pid=params["task_id"]
-    call_root_dir=params["call_root"]
-    rc_file=os.path.join(call_root, "execution", "rc")
-    #rc_file=params["rc_file"]
-    rc=9
+    task_pid = params["task_id"]
+    call_root_dir = params["call_root"]
+    rc_file = os.path.join(call_root, "execution", "rc")
+    # rc_file=params["rc_file"]
+    rc = 9
     if "rc" in params:
-        rc=params["rc"]
+        rc = params["rc"]
 
     try:
         task = psutil.Process(task_pid)
     except psutil.NoSuchProcess:
         # not running; write rc file if it doesn't exist
         if not os.path.isfile(rc_file):
-            with open(rc_file, 'w') as fh:
+            with open(rc_file, "w") as fh:
                 fh.write(str(rc))
         return success()
 
@@ -138,7 +134,7 @@ def kill_task(params):
     task.kill()
 
     # write rc file
-    with open(rc_file, 'w') as fh:
+    with open(rc_file, "w") as fh:
         fh.write(str(rc))
     return success()
 
@@ -149,7 +145,17 @@ operations = {
     "worker_quit": {"function": worker_quit, "required_params": ["task_id"]},
     "run_task": {
         "function": run_task,
-        "required_params": ["run_id", "cromwell_run_id", "task_id", "task_name", "attempt", "script", "num_cores", "ram_gb", "minutes"]
+        "required_params": [
+            "run_id",
+            "cromwell_run_id",
+            "task_id",
+            "task_name",
+            "attempt",
+            "script",
+            "num_cores",
+            "ram_gb",
+            "minutes",
+        ],
     },
     "task_status": {"function": task_status, "required_params": ["task_id"]},
     "kill_task": {"function": kill_task, "required_params": ["task_id"]},
