@@ -2,6 +2,9 @@
 Convenience functions to prepare JSON-RPC2 compliant responses.
 """
 
+import http.client.responses as http_responses
+
+
 def success(result={}):
     """Return a JSON-RPC2 successful result message.
 
@@ -25,6 +28,8 @@ def failure(code, message=None):
     """
     if message is None:
         message = (
-            responses["status_code"] if "status_code" in responses else "Unknown error"
+            http_responses["status_code"]
+            if "status_code" in http_responses
+            else "Unknown error"
         )
     return {"jsonrpc": "2.0", "error": {"code": code, "message": message}}
