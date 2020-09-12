@@ -125,23 +125,3 @@ class Run_Log(Base):
 
     def __repr__(self):
         return f"<Run_Log {self.run_id}:{self.status_from}:{self.status_to}>"
-
-
-class Job_Log(Base):
-    """A Run has many Tasks."""
-
-    __tablename__ = "job_logs"
-    run_id = Column(Integer, ForeignKey("runs.id"), primary_key=True)
-    task_name = Column(String(128), nullable=False)
-    attempt = Column(Integer, nullable=False)
-    cromwell_job_id = Column(Integer, primary_key=True)
-    status_from = Column(String(32), primary_key=True)
-    status_to = Column(String(32), primary_key=True)
-    timestamp = Column(DateTime, nullable=False)
-    reason = Column(String(1024), nullable=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def __repr__(self):
-        return f"<Job_Log {self.cromwell_job_id}:{self.status_from}:{self.status_to}>"

@@ -6,10 +6,12 @@ import requests
 from http.client import responses
 import logging
 import sqlalchemy.exc
+from sqlalchemy.exc import SQLAlchemyError
+import collections
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_site.database import Session
-from jaws_site.models import Run
+from jaws_site.models import Run, Job_Log
 
 
 # config and logging must be initialized before importing this module
@@ -176,6 +178,68 @@ def submit(params):
     return _success()
 
 
+def get_task_log(params):
+    """Retrieve task log from database"""
+    run_id = params["run_id"]
+    try:
+        session = Session()
+        query = (
+            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp)
+        )
+    except SQLAlchemyError as error:
+        logger.exception(f"Error selecting from job_logs: {error}")
+        return _failure(500, f"Db error; {error}")
+    table = []
+    for log in query:
+        # replace None with empty string
+        reason = log.reason if log.reason else ""
+        row = [
+            log.task_name,
+            log.attempt,
+            log.cromwell_job_id,
+            log.status_from,
+            log.status_to,
+            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            reason,
+        ]
+        table.append(row)
+    return _success(table)
+
+
+def get_task_status(params):
+    """
+    Retrieve the current status of each task.
+    """
+    run_id = params["run_id"]
+    # get job log entries, sorted by timestamp,
+    try:
+        session = Session()
+        query = (
+            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp)
+        )
+    except SQLAlchemyError as error:
+        logger.exception(f"Error selecting from job_log: {error}")
+        return _failure(500, f"Db error; {error}")
+    tasks = collections.OrderedDict()
+    for log in query:
+        task_name = log.task_name
+        reason = log.reason if log.reason else ""
+        # keep only the latest log entry per task
+        tasks[task_name] = [
+            log.task_name,
+            log.attempt,
+            log.cromwell_job_id,
+            log.status_from,
+            log.status_to,
+            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            reason,
+        ]
+        # this keeps the log entries sorted by timestamp
+        tasks.move_to_end(task_name)
+    # return only the values, the key (task_name) was just used for dereplication
+    return _success(list(tasks.values()))
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -199,5 +263,13 @@ operations = {
     "cancel_run": {
         "function": cancel_run,
         "required_params": ["user_id", "cromwell_run_id"],
+    },
+    "get_task_log": {
+        "function": get_task_log,
+        "required_params": ["user_id", "run_id"],
+    },
+    "get_task_status": {
+        "function": get_task_status,
+        "required_params": ["user_id", "run_id"],
     },
 }

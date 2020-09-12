@@ -50,6 +50,7 @@ def _failure(code, message=None):
 
 # RPC OPERATIONS:
 
+
 def update_job_status(params):
     """JTM shall post changes in job state, although it is missing the JAWS run id.
     The state change is simply saved in the db; any other actions will be performed by the daemon."""
@@ -62,9 +63,13 @@ def update_job_status(params):
     if "reason" in params:
         reason = params["reason"]
     if reason is not None:
-        logger.info(f"Received job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}:{reason}")
+        logger.info(
+            f"Received job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}:{reason}"
+        )
     else:
-        logger.info(f"Received job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}")
+        logger.info(
+            f"Received job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}"
+        )
 
     # DEFINE ROW
     try:
@@ -82,25 +87,34 @@ def update_job_status(params):
 
     # INSERT OR IGNORE
     session = Session()
+    result = ""
     try:
         session.add(job_log)
         session.commit()
         logger.debug(f"Job {cromwell_job_id} status saved")
     except sqlalchemy.exc.IntegrityError:
         # JTM sometimes sends duplicate messages; ignore
-        session.rollback()
         logger.warning(f"Job {cromwell_job_id} status is duplicate; ignored")
+        result = "Ignoring duplicate log entry"
     except Exception as error:
         session.rollback()
         session.close()
         logger.exception(f"Job {cromwell_job_id} status not saved: {error}")
         return _failure(500, f"Failed to insert job {cromwell_job_id} log: {error}")
     session.close()
-    return _success()
+    return _success(result)
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
-    "update_job_status": {"function": update_job_status, "required_params": [
-        "cromwell_run_id", "cromwell_job_id", "status_from", "status_to", "timestamp"]}
+    "update_job_status": {
+        "function": update_job_status,
+        "required_params": [
+            "cromwell_run_id",
+            "cromwell_job_id",
+            "status_from",
+            "status_to",
+            "timestamp",
+        ],
+    }
 }
