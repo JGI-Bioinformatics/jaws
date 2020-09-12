@@ -611,6 +611,23 @@ def run_metadata(user, run_id):
     return _rpc_call(user, run_id, "run_metadata")
 
 
+def get_errors(user, run_id):
+    """
+    Retrieve error messages and stderr for failed tasks.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: Cromwell error messages and stderr for all failed tasks.
+    :rtype: str
+    """
+    logger.info(f"User {user}: Get errors for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "get_errors")
+
+
 def cancel_run(user, run_id):
     """
     Cancel a run.  It doesn't cancel Globus transfers, just Cromwell runs.

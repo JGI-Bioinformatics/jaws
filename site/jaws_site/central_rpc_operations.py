@@ -65,7 +65,9 @@ def server_status(params):
         status = cromwell.status()
     except requests.exceptions.HTTPError as error:
         logger.exception(f"Failed to get server status: {error}")
-        return _failure(error.response.status_code, f"Failed to get server status: {error}")
+        return _failure(
+            error.response.status_code, f"Failed to get server status: {error}"
+        )
     return _success(status)
 
 
@@ -145,6 +147,32 @@ def cancel_run(params):
             )
             return _failure(500, f"Failed to instruct Cromwell to abort: {error}")
     result = {"cancel": "OK"}
+    return _success(result)
+
+
+def get_errors(params):
+    """Retrieve error messages and stderr for failed Tasks.
+
+    :param cromwell_run_id: Cromwell run ID
+    :type params: dict
+    :return: error messages and stderr for failed Tasks
+    :rtype: dict
+    """
+    user_id = params["user_id"]
+    run_id = params["run_id"]
+    cromwell_run_id = params["cromwell_run_id"]
+    logger.info(f"User {user_id}: Get errors for Run {run_id}")
+    if cromwell_run_id is None:
+        return _success(f"Run {run_id} hasn't been submitted to Cromwell.")
+    logger.info(f"{user_id} - Run {run_id} - Get errors")
+    try:
+        result = cromwell.errors(cromwell_run_id)
+    except requests.exceptions.HTTPError as error:
+        logger.exception(f"Get errors for {params['run_id']} failed: {error}")
+        return _failure(error.response.status_code, f"Failed to get errors: {error}")
+    except Exception as error:
+        logger.exception(f"Get errors for {params['run_id']} failed: {error}")
+        return _failure(500, f"Unable to retrieve errors: {error}")
     return _success(result)
 
 
@@ -271,5 +299,9 @@ operations = {
     "get_task_status": {
         "function": get_task_status,
         "required_params": ["user_id", "run_id"],
+    },
+    "get_errors": {
+        "function": get_errors,
+        "required_params": ["user_id", "cromwell_run_id"],
     },
 }

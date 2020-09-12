@@ -27,6 +27,7 @@ elsewhere in JAWS/JTM, as clarified below:
 import requests
 import json
 import logging
+import os
 
 
 class Task:
@@ -61,9 +62,7 @@ class Task:
                 logger.debug(
                     f"Task {self.name} is a subworkflow; getting metadata {workflow_id}"
                 )
-                metadata = Metadata(
-                    self.workflows_url, workflow_id, None, cache
-                )
+                metadata = Metadata(self.workflows_url, workflow_id, None, cache)
                 # a subworkflow task has a workflow id for each attempt
                 self.subworkflows[workflow_id] = metadata
                 # copy the subworkflows' jobs into the jobs dict;
@@ -98,6 +97,93 @@ class Task:
             else:
                 index = attempt - 1
         return self.calls[index].get(key, default)
+
+    def call_root_dir(self, attempt=None):
+        return self.get("callRoot", attempt)
+
+    def execution_status(self, attempt=None):
+        return self.get("executionStatus", attempt)
+
+    def failures(self, attempt=None):
+        """
+        Return failures dict for specified attempt (last, if unspecified).
+        :param attempt: attempt number (first is 1; default is last)
+        :type attempt: int
+        :return: failures record
+        :rtype: dict
+        """
+        if attempt is None:
+            index = -1  # last attempt
+        else:
+            attempt = int(attempt)
+            if attempt == 0 or attempt > len(self.calls):
+                raise ValueError("Invalid attempt; of out range")
+            else:
+                index = attempt - 1
+        return self.calls[index]["failures"]
+
+    def error(self, attempt=None):
+        """
+        Return user friendly error message plus stderr file contents.
+        :param attempt: attempt number (first is 1; default is last)
+        :type attempt: int
+        :return: Error messages and stderr
+        :rtype: str
+        """
+        failures = self.failures(attempt)
+        msgs = []
+        for failure in failures:
+            msg = failure["message"]
+            msg = msg[0:msg.index("Check the stderr file for possible errors: ")]
+            msgs.append(msg)
+        msg = "\n".join(msgs)
+
+        # append standard error
+        stderr_file = self.stderr(attempt)
+        if os.path.isfile(stderr_file):
+            with open(stderr_file, "r") as file:
+                msg = f"{msg}\nstderr:\n" + file.read()
+        else:
+            msg = f"{msg}\n(stderr not included; file not found.)\n"
+        return msg
+
+    def stdout(self, attempt=None, src=None, dest=None):
+        """
+        Return the path to the standard output file, optionally replacing part of the path.
+        :param attempt: attempt number (first is 1; default is last)
+        :type attempt: int
+        :param src: Source root dir
+        :type src: str
+        :param dest: Destination root dir
+        :type dest: str
+        :return: Path to stdout file
+        :rtype: str
+        """
+        path = self.get("stdout", attempt)
+        if not path:
+            return None
+        if src and dest:
+            path = os.path.join(dest, os.path.relpath(src, path))
+        return path
+
+    def stderr(self, attempt=None, src=None, dest=None):
+        """
+        Return the path to the standard err file, optionally replacing part of the path.
+        :param attempt: attempt number (first is 1; default is last)
+        :type attempt: int
+        :param src: Source root dir
+        :type src: str
+        :param dest: Destination root dir
+        :type dest: str
+        :return: Path to stdout file
+        :rtype: str
+        """
+        path = self.get("stderr", attempt)
+        if not path:
+            return None
+        if src and dest:
+            path = os.path.join(dest, os.path.relpath(src, path))
+        return path
 
 
 class CromwellException(Exception):
@@ -227,6 +313,24 @@ class Metadata:
             return self.jobs[job_id]
         else:
             return None
+
+    def execution_status(self):
+        """
+        Return dict of task name to execution status, for last attempt of each task.
+        """
+        result = {}
+        for task in self.tasks:
+            result[task.name] = task.execution_status()
+        return result
+
+    def errors(self):
+        """
+        Return dict of task name to error messages, for last attempt of each task.
+        """
+        result = {}
+        for task in self.tasks:
+            result[task.name] = task.error()
+        return result
 
 
 class Cromwell:
