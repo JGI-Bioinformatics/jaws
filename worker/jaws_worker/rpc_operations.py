@@ -10,7 +10,7 @@ import signal
 from jaws_worker import config
 from jaws_worker.database import Session
 from jaws_worker.models import Jobs, Job_Log
-from jaws_rpc.response import success, failure
+from jaws_rpc.responses import success, failure
 
 
 # config and logging must be initialized before importing this module

@@ -8,44 +8,10 @@ from datetime import datetime
 from http.client import responses
 from jaws_central.database import Session
 from jaws_central.models_sa import Run, Run_Log
+from jaws_rpc.responses import success, failure
 
 
 logger = logging.getLogger(__package__)
-
-
-# HELPER FUNCTIONS:
-# these are used by RPC operations to format JSON-RPC2 responses
-
-
-def _success(result={}):
-    """Return a JSON-RPC2 successful result message.
-
-    :param result: The result returned by a successful RPC call.
-    :type result: str|int|dict|list
-    :return: JSON-RPC2 formatted response
-    :rtype: str
-    """
-    return {"jsonrpc": "2.0", "result": result}
-
-
-def _failure(code, message=None):
-    """Return a JSON-RPC2 error message.
-
-    :param code: The error code returned by the RPC call
-    :type code: int
-    :param message: The error message returned by the RPC call
-    :type message: str, optional
-    :return: JSON-RPC2 formatted response
-    :rtype: dict
-    """
-    if message is None:
-        message = (
-            responses["status_code"] if "status_code" in responses else "Unknown error"
-        )
-    return {"jsonrpc": "2.0", "error": {"code": code, "message": message}}
-
-
-# RPC OPERATIONS:
 
 
 def update_run_logs(params):
@@ -79,7 +45,7 @@ def update_run_logs(params):
     except Exception as error:
         err_msg = f"Invalid run_log: {params}; {error}"
         logger.error(err_msg)
-        return _failure(400, err_msg)
+        return failure(400, err_msg)
 
     # INSERT OR IGNORE INTO RUN-LOGS TABLE
     session = Session()
@@ -89,19 +55,19 @@ def update_run_logs(params):
     except sqlalchemy.exc.IntegrityError:
         session.rollback()
         logger.warning(f"Run log {run_id}:{status_to} is duplicate; ignored")
-        return _success()
+        return success()
     except Exception as error:
         session.rollback()
         err_msg = f"Error inserting run_log: {error}"
         logger.exception(err_msg)
-        return _failure(500, err_msg)
+        return failure(500, err_msg)
 
     # UPDATE RUNS TABLE
     run = session.query(Run).get(run_id)
     if run.status == status_to:
         # ignore redundant state change (duplicate message)
         session.close()
-        return _success()
+        return success()
     run.status = status_to
     run.updated = timestamp
     if status_to == "submitted":
@@ -117,9 +83,9 @@ def update_run_logs(params):
     except Exception as error:
         logger.exception(f"Failed to update run status: {error}")
         session.close()
-        return _failure(500, f"Error inserting log: {error}")
+        return failure(500, f"Error inserting log: {error}")
     session.close()
-    return _success()
+    return success()
 
 
 # all RPC operations are defined in this dispatch table
