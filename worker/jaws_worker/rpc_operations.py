@@ -1,8 +1,5 @@
 """
 jaws-worker RPC operations.
-
-There must be at least two RPC server threads: one to run a task and one to receive calls while
-executing that task (e.g. "cancel" command).
 """
 
 import subprocess
@@ -20,9 +17,9 @@ from jaws_rpc.response import success, failure
 logger = logging.getLogger(__package__)
 
 
-def worker_status(params):
+def health(params):
     """
-    Worker health check.  Simply returns success if alive..
+    Verify jaws-worker is running and can accept RPC calls.
 
     :param params: message from jaws-site
     :type params: dict
@@ -32,9 +29,9 @@ def worker_status(params):
     return success()
 
 
-def worker_quit(params):
+def quit(params):
     """
-    Worker should shut down.
+    Quit all processes to release hardware reservation.
     """
     quit = threading.Thread(target=__quit)
     quit.start()
@@ -42,15 +39,15 @@ def worker_quit(params):
 
 
 def __quit():
-    """Wait a moment in order to return RPC response and terminate all threads."""
+    """Wait a moment in order to allow RPC response to be returned and terminate all processes."""
     sleep(2)
     pid = os.getpid()
     os.kill(pid, signal.STOP)
 
 
-def run_task(params):
+def run(params):
     """
-    Run a task.
+    Execute the provided shell script and return the process id.
 
     :params param: message from jaws-site
     :type params: dict
@@ -80,11 +77,11 @@ def run_task(params):
     return success(result)
 
 
-def task_status(params):
+def check_alive(params):
     """
     Check if Task is running.
     If it's not running, check if 'rc' file exists.
-    If so, read rc, else write rc of 1.
+    If so, read rc, else write rc of 1 so that Cromwell can pick it up.
     """
     task_pid = params["task_id"]
     is_alive = True
@@ -106,7 +103,7 @@ def task_status(params):
     return success(result)
 
 
-def kill_task(params):
+def kill(params):
     """
     Recursively kill process and write return code to file.
     Cromwell reads the rc_file to determine status.
@@ -141,9 +138,9 @@ def kill_task(params):
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
-    "worker_status": {"function": worker_status, "required_params": []},
-    "worker_quit": {"function": worker_quit, "required_params": ["task_id"]},
-    "run_task": {
+    "health": {"function": health, "required_params": []},
+    "quit": {"function": quit, "required_params": ["task_id"]},
+    "run": {
         "function": run_task,
         "required_params": [
             "run_id",
@@ -157,6 +154,6 @@ operations = {
             "minutes",
         ],
     },
-    "task_status": {"function": task_status, "required_params": ["task_id"]},
-    "kill_task": {"function": kill_task, "required_params": ["task_id"]},
+    "check_alive": {"function": check_alive, "required_params": ["task_id"]},
+    "kill": {"function": kill, "required_params": ["task_id"]},
 }
