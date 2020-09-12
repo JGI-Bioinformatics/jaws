@@ -1,3 +1,8 @@
+"""
+The GridFactory will provide an object matching the type of grid/scheduler specified.
+The Grid object (e.g. Slurm) provides a python API to common scheduler operations, such as submit, kill job.
+"""
+
 import subprocess
 
 class Slurm(object):
