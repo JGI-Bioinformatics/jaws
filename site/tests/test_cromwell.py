@@ -1,10 +1,11 @@
 from deepdiff import DeepDiff
 from jaws_site import cromwell
 
-WORKFLOW_ID_EX1 = "ee30d68f-39d4-4fde-85c2-afdecce2bad3"
-WORKFLOW_ID_EX2_MAIN = "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"
+WORKFLOW_ID_EX1 = "ee30d68f-39d4-4fde-85c2-afdecce2bad3"  # simple successful run
+WORKFLOW_ID_EX2_MAIN = "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"  # successful run, with subworkflows
 WORKFLOW_ID_EX2_SUB1 = "7408a4f1-bc85-49ba-8d5f-c886261ab6a0"
 WORKFLOW_ID_EX2_SUB2 = "89d86efc-dd04-48aa-a65f-21fb9d0c8be3"
+WORKFLOW_ID_EX3 = "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"  # simple failed run
 
 METADATA = {
     "ee30d68f-39d4-4fde-85c2-afdecce2bad3": {  # METADATA FOR WORKFLOW_ID_EX1
@@ -741,6 +742,136 @@ METADATA = {
         "workflowName": "hello_and_goodbye_1",
         "workflowRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"  # noqa
     },
+    "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15": {  # EX3 IS A FAILED RUN
+        "actualWorkflowLanguage": "WDL",
+        "actualWorkflowLanguageVersion": "draft-2",
+        "calls": {
+            "fq_count.count_seqs": [
+                {
+                    "attempt": 1,
+                    "backend": "JTM",
+                    "callCaching": {
+                        "allowResultReuse": False,
+                        "effectiveCallCachingMode": "CallCachingOff"
+                    },
+                    "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs",  # noqa
+                    "commandLine": "wc -l /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/inputs/-113930193/tiny.fastq | perl -ne 'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, \" sequences\\n\"} else {print STDERR \"Invalid Fastq file\\n\"}' > num_seqs.txt",  # noqa
+                    "end": "2020-09-11T22:30:34.735Z",
+                    "executionEvents": [
+                        {
+                            "description": "PreparingJob",
+                            "endTime": "2020-09-11T22:30:33.918Z",
+                            "startTime": "2020-09-11T22:30:33.853Z"
+                        },
+                        {
+                            "description": "UpdatingJobStore",
+                            "endTime": "2020-09-11T22:30:34.736Z",
+                            "startTime": "2020-09-11T22:30:34.257Z"
+                        },
+                        {
+                            "description": "Pending",
+                            "endTime": "2020-09-11T22:30:33.566Z",
+                            "startTime": "2020-09-11T22:30:33.554Z"
+                        },
+                        {
+                            "description": "RunningJob",
+                            "endTime": "2020-09-11T22:30:34.257Z",
+                            "startTime": "2020-09-11T22:30:33.918Z"
+                        },
+                        {
+                            "description": "WaitingForValueStore",
+                            "endTime": "2020-09-11T22:30:33.853Z",
+                            "startTime": "2020-09-11T22:30:33.845Z"
+                        },
+                        {
+                            "description": "RequestingExecutionToken",
+                            "endTime": "2020-09-11T22:30:33.845Z",
+                            "startTime": "2020-09-11T22:30:33.566Z"
+                        }
+                    ],
+                    "executionStatus": "Failed",
+                    "failures": [
+                        {
+                            "causedBy": [],
+                            "message": "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"  # noqa
+                        }
+                    ],
+                    "inputs": {
+                        "infile": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
+                    },
+                    "retryableFailure": False,
+                    "runtimeAttributes": {
+                        "account": "fungalp",
+                        "cluster": "cori",
+                        "constraint": "haswell",
+                        "continueOnReturnCode": "0",
+                        "cpu": "1",
+                        "failOnStderr": "false",
+                        "maxRetries": "0",
+                        "mem": "10G",
+                        "node": "1",
+                        "nwpn": "1",
+                        "poolname": "test_small",
+                        "qos": "genepool_special",
+                        "shared": "0",
+                        "time": "00:10:00"
+                    },
+                    "shardIndex": -1,
+                    "start": "2020-09-11T22:30:33.535Z",
+                    "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr",  # noqa
+                    "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stdout"  # noqa
+                }
+            ]
+        },
+        "end": "2020-09-11T22:30:36.619Z",
+        "failures": [
+            {
+                "causedBy": [
+                    {
+                        "causedBy": [],
+                        "message": "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"  # noqa
+                    }
+                ],
+                "message": "Workflow failed"
+            }
+        ],
+        "id": "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15",
+        "inputs": {
+            "fq_count.fastq_file": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
+        },
+        "labels": {
+            "cromwell-workflow-id": "cromwell-dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"
+        },
+        "metadataSource": "Unarchived",
+        "outputs": {},
+        "start": "2020-09-11T22:30:30.640Z",
+        "status": "Failed",
+        "submission": "2020-09-11T22:30:29.607Z",
+        "submittedFiles": {
+            "inputs": "{\"fq_count.fastq_file\":\"/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq\"}",  # noqa
+            "labels": "{}",
+            "options": "{\n\n}",
+            "root": "",
+            "workflow": "workflow fq_count {\n    File fastq_file\n    call count_seqs { input: infile = fastq_file }\n    output {\n        File outfile = count_seqs.outfile\n    }\n}\n\ntask count_seqs {\n    File infile\n    command <<<\n        wc -l ${infile} | perl -ne 'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, \" sequences\\n\"} else {print STDERR \"Invalid Fastq file\\n\"}' > num_seqs.txt\n    >>>\n    output {\n        File outfile = \"num_seqs.txt\"\n    }\n    runtime {\n        poolname: \"test_small\"\n        node: 1\n        nwpn: 1\n        mem: \"10G\"\n        time: \"00:10:00\"\n    }\n}\n",  # noqa
+            "workflowUrl": ""
+        },
+        "workflowName": "fq_count",
+        "workflowProcessingEvents": [
+            {
+                "cromwellId": "cromid-41fef60",
+                "cromwellVersion": "52",
+                "description": "PickedUp",
+                "timestamp": "2020-09-11T22:30:30.605Z"
+            },
+            {
+                "cromwellId": "cromid-41fef60",
+                "cromwellVersion": "52",
+                "description": "Finished",
+                "timestamp": "2020-09-11T22:30:36.620Z"
+            }
+        ],
+        "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"  # noqa
+    }
 }
 
 
@@ -782,3 +913,13 @@ def test_get_all_metadata():
     assert bool(DeepDiff(result[WORKFLOW_ID_EX2_MAIN], METADATA[WORKFLOW_ID_EX2_MAIN], ignore_order=True)) is False
     assert bool(DeepDiff(result[WORKFLOW_ID_EX2_SUB1], METADATA[WORKFLOW_ID_EX2_SUB1], ignore_order=True)) is False
     assert bool(DeepDiff(result[WORKFLOW_ID_EX2_SUB2], METADATA[WORKFLOW_ID_EX2_SUB2], ignore_order=True)) is False
+
+
+def test_get_errors():
+    """Given workflow UUID, extract errors."""
+    crom = cromwell.Cromwell("localhost:8000")
+    metadata = crom.get_metadata(WORKFLOW_ID_EX3, METADATA[WORKFLOW_ID_EX3])
+    status = metadata.execution_status()
+    errors = metadata.errors()
+    assert status["fq_count.count_seqs"] == "Failed"
+    assert errors["fq_count.count_seqs"] == "Unable to start job. \n(stderr not included; file not found.)\n"
