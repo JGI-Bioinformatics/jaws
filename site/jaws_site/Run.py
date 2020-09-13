@@ -29,6 +29,24 @@ class Run:
                 self.session = Session()
             self.run = self.session.query(models.Run).get(self.run_id)
 
+    def check_status(self):
+        if self.run.status == "uploading":
+            self.check_if_upload_complete()
+        elif self.run.status == "upload complete":
+            self.submit_run()
+        elif self.run.status == "submitted":
+            self.check_run_cromwell_status()
+        elif self.run.status == "queued":
+            self.check_run_cromwell_status()
+        elif self.run.status == "running":
+            self.check_run_cromwell_status()
+        elif self.run.status == "succeeded":
+            self.transfer_results()
+        elif self.run.status == "failed":
+            self.transfer_results()
+        elif self.run.status == "downloading":
+            self.check_if_download_complete()
+
     def check_if_upload_complete(self):
         """
         Query Globus to see if transfer is complete
@@ -51,6 +69,7 @@ class Run:
             )
         elif globus_status == "SUCCEEDED":
             self.update_run_status("upload complete")
+            self.submit_run()
 
     def submit_run(self):
         """
@@ -114,11 +133,13 @@ class Run:
                 self.update_run_status("queued")
         elif cromwell_status == "Failed":
             self.update_run_status("failed")
+            self.transfer_results()
         elif cromwell_status == "Succeeded":
             if self.run.status == "queued":
                 self.update_run_status("running")
             if self.run.status == "running":
                 self.update_run_status("succeeded")
+            self.transfer_results()
         elif cromwell_status == "Aborted":
             if self.run.status == "queued" or self.run.status == "running":
                 self.update_run_status("cancelled")
@@ -210,4 +231,4 @@ class Run:
             logger.exception(
                 f"Failed to create run_log object for Run {self.run.id} : {new_status}, {reason}: {error}"
             )
-        # notifying Central of state change is handled by send_run_status_logs
+        # notifying Central of state change is handled by daemon.send_run_status_logs
