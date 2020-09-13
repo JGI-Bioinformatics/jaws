@@ -3,6 +3,7 @@ This class provides an API to a remotely running jaws-worker, via RPC.
 """
 
 import logging
+from datetime import datetime
 
 # import sqlalchemy.exc
 # from datetime import datetime
@@ -83,6 +84,16 @@ class Worker(object):
         if missing_params:
             raise ValueError(f"Missing required fields: {', '.join(missing_params)}")
 
+        # calculate max time in minutes (from string in "hh:mm:ss" format)
+        max_time = params["max_time"].split(":")
+        for n in range(len(max_time), 3):
+            max_time.insert(0, 0)  # add any missing fields
+        max_minutes = max_time[0] * 60 + max_time[1]
+
+        # use the Site's datetime since the db, scheduler, and/or cluster nodes
+        # could have wrong time (we require consistency for timedelta)
+        created_timestamp = datetime.now()
+
         # insert into db, get worker_id (which is used to name job)
         session = Session()
         try:
@@ -94,9 +105,11 @@ class Worker(object):
                 out=params["out"],
                 err=params["err"],
                 max_time=params["max_time"],
+                max_minutes=max_minutes,
                 memory_gb=params["memory_gb"],
                 status="created",
                 pid=None,
+                created_timestamp=created_timestamp,
             )
             session.add(worker)
             session.commit()
@@ -111,6 +124,14 @@ class Worker(object):
     def stop(self):
         """Stop the worker."""
         raise NotImplementedError
+
+    def minutes_remaining(self):
+        """Return the time the worker has remaining before it stops."""
+        start = self.worker.created_timestamp
+        if start is None:
+            return None
+        delta = datetime.now() - start
+        return int(delta.total_seconds() / 60)
 
     def __get_rpc_client(self):
         """
