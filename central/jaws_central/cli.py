@@ -119,7 +119,7 @@ def rest() -> None:
 
     # init RPC clients
     site_rpc_params = config.conf.get_all_sites_rpc_params()
-    rpc_index.rpc_index = rpc_index.RPC_Index(site_rpc_params)
+    rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params)
 
     # define port
     port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000

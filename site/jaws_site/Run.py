@@ -252,7 +252,7 @@ class Run:
         # send via RPC
         if self.rpc_client is None:
             try:
-                self.rpc_client = rpc_client.RPC_client(
+                self.rpc_client = rpc_client.RpcClient(
                     config.conf.get_section("CENTRAL_RPC_CLIENT")
                 )
             except Exception as error:
