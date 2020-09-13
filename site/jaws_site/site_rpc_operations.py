@@ -8,6 +8,15 @@ instructions from Cromwell via jaws-backend.
 
 from jaws_rpc.responses import success, failure
 from jaws_site.Task import Task
+from jaws_site.Worker import Worker
+
+
+def worker_begin(params):
+    """
+    Once a jaws-worker starts, it sends a message to let Site know it's active.  Update db record.
+    """
+    worker = Worker(worker_id)
+    worker.start(params["pid"], params["array_task_id"])
 
 
 def submit(params):
@@ -53,6 +62,10 @@ def check_alive(params):
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
+    "worker_begin": {
+        "function": worker_begin,
+        "required_params": ["worker_id", "array_task_id", "pid"]
+    },
     "submit": {
         "function": submit,
         "required_params": [

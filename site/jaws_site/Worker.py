@@ -50,16 +50,26 @@ class Worker(object):
         """
         Load Worker values from db.
         """
+        self.session = Session()
         try:
-            session = Session()
             worker = (
-                session.query(models.Worker).filter_by(id=self.worker_id).one_or_none()
+                self.session.query(models.Worker).filter_by(id=self.worker_id).one_or_none()
             )
         except Exception as error:
             raise WorkerDbError(f"Db unavailable: {error}")
         if not worker:
             raise WorkerNotFoundError
         self.worker = worker
+
+    def start(self, pid: int, array_task_id: int) -> None:
+        """
+        Worker has started running on a compute node.  Update record.
+        """
+        self.worker.pid = pid
+        self.worker.array_task_id = array_task_id
+        self.start_timestamp = datetime.now()
+        self.status = "idle"
+        self.session.commit()
 
     def create(self, params: dict) -> int:
         """
@@ -81,7 +91,7 @@ class Worker(object):
             raise ValueError(f"Missing required fields: {', '.join(missing_params)}")
 
         # insert into db
-        session = Session()
+        self.session = Session()
         try:
             worker = models.Worker(
                 job_id=params["job_id"],
@@ -92,8 +102,8 @@ class Worker(object):
                 array_task_id=None,  # will be added at start
                 pid=None,  # will be added at start
             )
-            session.add(worker)
-            session.commit()
+            self.session.add(worker)
+            self.session.commit()
         except Exception as error:
             logger.exception(f"Failed to insert Worker: {error}")
             raise WorkerDbError(f"Db error: {error}")
