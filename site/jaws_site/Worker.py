@@ -6,10 +6,9 @@ import logging
 
 # import sqlalchemy.exc
 # from datetime import datetime
-from jaws_site import config, models
+from jaws_site import models
 from jaws_site.database import Session
 from jaws_rpc.rpc_index import rpc_index
-from jaws_grid.GridFactory import GridFactory
 
 
 # config and logging must be initialized before importing this module
@@ -75,6 +74,7 @@ class Worker(object):
             "cpu",
             "max_time",
             "memory_gb",
+            "job_id",
         )
         missing_params = []
         for required_param in required_params:
@@ -87,6 +87,7 @@ class Worker(object):
         session = Session()
         try:
             worker = models.Worker(
+                job_id=params["job_id"],
                 script=params["script"],
                 job_name=params["job_name"],
                 cwd=params["cwd"],
@@ -95,7 +96,6 @@ class Worker(object):
                 max_time=params["max_time"],
                 memory_gb=params["memory_gb"],
                 status="created",
-                job_id=None,
                 pid=None,
             )
             session.add(worker)
@@ -104,38 +104,9 @@ class Worker(object):
             logger.exception(f"Failed to insert Worker: {error}")
             raise WorkerDbError(f"Db error: {error}")
 
-        # save in obj
+        # save
         self.worker_id = worker.id
         self.worker = worker
-
-        # submit to scheduler
-        try:
-            scheduler = GridFactory(config.conf("SITE", "scheduler"))
-        except Exception as error:
-            raise WorkerGridError(f"{error}")
-        params = {}
-        #            "script":
-        #            "job_name":
-        #            "cwd":
-        #            "out":
-        #            "err":
-        #            "qos":
-        #            "time":
-        #            "cpu":
-        #            "constraint":
-        #            "account":
-        #            "exclusive":
-        #            "memory":
-        #            "mem-per-cpu":
-        #        }
-        try:
-            self.job_id = scheduler.submit(params)
-        except Exception as error:
-            raise WorkerGridError(f"{error}")
-
-        # save in db
-        self.worker.job_id = self.job_id
-        session.commit()
 
     def stop(self):
         """Stop the worker."""
