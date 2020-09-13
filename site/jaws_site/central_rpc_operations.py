@@ -3,7 +3,6 @@ RPC functions for Central.  Most of these simply wrap the localhost Cromwell RES
 """
 
 import requests
-from http.client import responses
 import logging
 import sqlalchemy.exc
 from sqlalchemy.exc import SQLAlchemyError
