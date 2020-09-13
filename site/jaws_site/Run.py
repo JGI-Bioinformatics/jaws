@@ -21,9 +21,10 @@ cromwell = Cromwell(conf.get("CROMWELL", "url"))
 
 
 class Run:
-    def __init__(self, run_id=None, session=None):
+    def __init__(self, run_id=None, session=None, rpc_client=None):
         self.run_id = run_id
         self.session = session
+        self.rpc_client = rpc_client
         if run_id:
             if self.session is None:
                 self.session = Session()
@@ -218,17 +219,59 @@ class Run:
 
         # save state transition in "run_logs" table
         try:
-            log_entry = models.Run_Log(
+            log = models.Run_Log(
                 run_id=self.run.id,
                 status_from=status_from,
                 status_to=new_status,
                 timestamp=timestamp,
                 reason=reason,
             )
-            self.session.add(log_entry)
+            self.session.add(log)
             self.session.commit()
         except Exception as error:
             logger.exception(
                 f"Failed to create run_log object for Run {self.run.id} : {new_status}, {reason}: {error}"
             )
-        # notifying Central of state change is handled by daemon.send_run_status_logs
+
+        # prepare RPC message
+        data = {
+            "site_id": conf.get["SITE_ID"],  # ECCE
+            "run_id": log.run_id,
+            "status_from": log.status_from,
+            "status_to": log.status_to,
+            "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "reason": log.reason,
+        }
+
+        # add special fields
+        if log.status_to == "submitted":
+            data["cromwell_run_id"] = self.run.cromwell_run_id
+        elif log.status_to == "downloading":
+            data["download_task_id"] = self.run.download_task_id
+
+        # send via RPC
+        if self.rpc_client is None:
+            try:
+                self.rpc_client = rpc_client.RPC_client(
+                    config.conf.get_section("CENTRAL_RPC_CLIENT")
+                )
+            except Exception as error:
+                logger.exception(f"Unable to init central rpc client: {error}")
+                return
+        try:
+            response = rpc_client.request("update_run_logs", data)
+        except Exception as error:
+            logger.exception(f"RPC update_run_logs error: {error}")
+            return
+        if "error" in response:
+            logger.info(
+                f"RPC update_run_status failed: {response['error']['message']}"
+            )
+            return
+
+        # mark as sent
+        log.sent = True
+        try:
+            self.session.commit()
+        except Exception as error:
+            logger.exception(f"Error updating run_logs as sent: {error}")
