@@ -16,8 +16,9 @@ def submit(params):
     The job is saved in the database and the task_id is returned.
     The task_daemon is responsible for actually sending the task to a worker.
     """
+    task = Task()
     try:
-        task = Task.new(params)
+        task.new(params)
     except Exception as error:
         return failure(500, f"Failed to submit task: {error}")
     return success({"task_id": task.id})
@@ -27,7 +28,10 @@ def kill(params):
     """
     Receive an abort task command (from Cromwell).
     """
-    task = Task.get(params["task_id"])
+    try:
+        task = Task(params["task_id"])
+    except Task.TaskNotFound as error:
+        return failure(404, f"Failed to kill task: {error}")
     try:
         task.kill()
     except Exception as error:
@@ -40,15 +44,11 @@ def check_alive(params):
     Check if a Task is running.
     Unless polling is on, Cromwell only calls this after a restart.
     """
-    task = Task.get(params["task_id"])
     try:
-        status = task.status()
-    except Exception as error:
-        return failure(500, f"Failed to get task status: {error}")
-    if status in ("queued", "running"):
-        return success(True)
-    else:
-        return success(False)
+        task = Task(params["task_id"])
+    except Task.TaskNotFound as error:
+        return failure(404, f"Cannot check Task: {error}")
+    return success(task.is_alive)
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
