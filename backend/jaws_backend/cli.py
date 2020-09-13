@@ -81,7 +81,7 @@ def __rpc(operation: str, params: dict) -> None:
     """
     global conf
     try:
-        with rpc_client.RPC_Client(conf["SITE_RPC"]) as rpc:
+        with rpc_client.RpcClient(conf["SITE_RPC"]) as rpc:
             response = rpc.request(operation, params)
     except Exception as error:
         logger.error(f"RPC {operation} failed: {error}")
