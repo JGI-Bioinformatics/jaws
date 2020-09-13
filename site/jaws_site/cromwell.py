@@ -1,7 +1,7 @@
 """Cromwell class provides OO-interface to Cromwell REST server.
 
 NOTE: This class employs the verbiage employed by Cromwell, which may differ slightly from that used
-elsewhere in JAWS/JTM, as clarified below:
+elsewhere in JAWS, as clarified below:
 
 - Cromwell "workflow": the execution of a "Workflow Specification" on a particular set of input.
   - "Workflow Specification" is colloquially referred to as a "WDL file" or "widdle"
@@ -11,16 +11,13 @@ elsewhere in JAWS/JTM, as clarified below:
 
 - Cromwell "task": a specific step in a Workflow Specification
   - same in JAWS, which uses the variable "cromwell_task_name" for Cromwell's "task_name"
-  - no equivalent in JTM
   - JAWS uses Cromwell's task name, in the format: "<WDL_name>.<task_name>"
 
 - Cromwell "job": the execution of a Task
   - a Task may be atempted more than once, each with a unique "attempt" (int) and "job_id"
-  - same in JAWS, which uses "cromwell_job_id" to refer to Cromwell's "job_id";
-    while JTM calls this "task_id"
-  - for JTM a "job" is a compute reservation and is equivalent to the scheduler job,
-    so the JTM "job_id" will match that of SLURM's `squeue` or SGE's `qstat` output.
-    A single JTM job (running a JTM Worker) executes many JTM tasks (Cromwell jobs).
+  - JAWS uses "cromwell_job_id" to refer to Cromwell's "job_id" field
+  - JAWS uses "job_id" to refer to a compute-cluster node reservation (i.e. grid submission id);
+    in JAWS, the job_id is associated with a jaws-worker which will process multiple tasks.
 """
 
 

@@ -347,9 +347,9 @@ class WdlFile:
         """
         Removes the backend keyword in a WDL file.
 
-        This sanitizes the WDL so that any declared backends are taken off. The reason for this is because we
-        are ONLY using JGI Task Manager (JTM) as the backend and want to prevent any WDL from using a different
-        backend.
+        This sanitizes the WDL so that any declared backends are taken off.
+        The reason for this is because we are only using the JAWS backend;
+        "LOCAL" is disallowed and other backends won't be configured.
 
         :param wdl: the path to a WDL file
         :return: the contents of the file without backend keyword
