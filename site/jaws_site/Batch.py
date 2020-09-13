@@ -5,6 +5,7 @@ granted they have sufficient time remaining.
 """
 
 import logging
+import datetime
 from jaws_site import config
 
 # from jaws_site import models
@@ -61,6 +62,16 @@ class Batch(object):
         """
         Add one or more workers matching the specified requirements.
         """
+        # calculate max time in minutes (from string in "hh:mm:ss" format)
+        max_time = self.params["max_time"].split(":")
+        for n in range(len(max_time), 3):
+            max_time.insert(0, 0)  # add any missing fields
+        max_minutes = max_time[0] * 60 + max_time[1]
+
+        # use the Site's datetime since the db, scheduler, and/or cluster nodes
+        # could have wrong time (we require consistency for timedelta)
+        created_timestamp = datetime.now()
+
         # submit to scheduler, get worker_ids
         params = {
             "array_size": num,  # will be ignore if not applicable
@@ -94,7 +105,7 @@ class Batch(object):
         for job_id in job_ids:
             # job_id is str (e.g. "9999:1")
             worker = Worker()
-            worker.create(job_id)
+            worker.create(job_id, created_timestamp, max_minutes)
             self.workers.append(worker)
 
     def decrease_size(self, num: int) -> None:
