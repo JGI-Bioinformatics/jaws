@@ -21,11 +21,6 @@ class WorkerDbError(Exception):
         super().__init__(message)
 
 
-class WorkerGridError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-
-
 class WorkerRpcError(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -49,9 +44,9 @@ class Worker(object):
         self.worker_id = None
         if worker_id:
             self.worker_id = worker_id
-            self.__retrieve()
+            self.__load()
 
-    def __retrieve(self):
+    def __load(self):
         """
         Load Worker values from db.
         """
@@ -66,16 +61,17 @@ class Worker(object):
             raise WorkerNotFoundError
         self.worker = worker
 
-    def __start(self, params):
+    def create(self, params: dict) -> int:
         """
-        Create a new Worker, submit to scheduler, and insert into db.
+        Create a new Worker, insert into db, and return worker_id.
         """
         # validate input
         required_params = (
-            "cpu",
-            "max_time",
-            "memory_gb",
             "job_id",
+            "batch_name",
+            "cwd",
+            "max_minutes",
+            "created_timestamp",
         )
         missing_params = []
         for required_param in required_params:
@@ -84,32 +80,17 @@ class Worker(object):
         if missing_params:
             raise ValueError(f"Missing required fields: {', '.join(missing_params)}")
 
-        # calculate max time in minutes (from string in "hh:mm:ss" format)
-        max_time = params["max_time"].split(":")
-        for n in range(len(max_time), 3):
-            max_time.insert(0, 0)  # add any missing fields
-        max_minutes = max_time[0] * 60 + max_time[1]
-
-        # use the Site's datetime since the db, scheduler, and/or cluster nodes
-        # could have wrong time (we require consistency for timedelta)
-        created_timestamp = datetime.now()
-
-        # insert into db, get worker_id (which is used to name job)
+        # insert into db
         session = Session()
         try:
             worker = models.Worker(
                 job_id=params["job_id"],
-                script=params["script"],
-                job_name=params["job_name"],
-                cwd=params["cwd"],
-                out=params["out"],
-                err=params["err"],
-                max_time=params["max_time"],
-                max_minutes=max_minutes,
-                memory_gb=params["memory_gb"],
-                status="created",
-                pid=None,
-                created_timestamp=created_timestamp,
+                batch_name=params["batch_name"],
+                max_minutes=params["max_minutes"],
+                status="queued",
+                created_timestamp=params["created_timestamp"],
+                array_task_id=None,  # will be added at start
+                pid=None,  # will be added at start
             )
             session.add(worker)
             session.commit()
@@ -120,6 +101,7 @@ class Worker(object):
         # save
         self.worker_id = worker.id
         self.worker = worker
+        return self.worker_id
 
     def stop(self):
         """Stop the worker."""
@@ -163,8 +145,10 @@ class Worker(object):
         """
         Check if jaws-worker is running and reachable via RPC.
         """
-        response = self.__call("status")
-        if "error" in response:
+        try:
+            self.__call("status")
+        except Exception as error:
+            logger.debug(f"Worker RPC status failed: {error}")
             return False
         return True
 
