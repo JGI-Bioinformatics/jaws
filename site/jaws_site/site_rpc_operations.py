@@ -15,7 +15,7 @@ def worker_begin(params):
     """
     Once a jaws-worker starts, it sends a message to let Site know it's active.  Update db record.
     """
-    worker = Worker(worker_id)
+    worker = Worker(params["worker_id"])
     worker.start(params["pid"], params["array_task_id"])
 
 

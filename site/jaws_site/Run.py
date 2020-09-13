@@ -9,6 +9,7 @@ from jaws_site.database import Session
 from jaws_site import models
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
+from jaws_rpc.rpc_client import RpcClient
 
 # from jaws_rpc import rpc_client
 from jaws_site.Globus import Globus
@@ -21,7 +22,9 @@ cromwell = Cromwell(conf.get("CROMWELL", "url"))
 
 
 class Run:
-    def __init__(self, run_id=None, session=None, rpc_client=None):
+    def __init__(
+        self, run_id: int = None, session=None, rpc_client=None,
+    ):
         self.run_id = run_id
         self.session = session
         self.rpc_client = rpc_client
@@ -102,15 +105,13 @@ class Run:
         if cromwell_run_id:
             self.run.cromwell_run_id = cromwell_run_id
             self.session.commit()
-            self.update_run_status(
-                "submitted", f"cromwell_run_id={cromwell_run_id}"
-            )
+            self.update_run_status("submitted", f"cromwell_run_id={cromwell_run_id}")
         else:
             self.update_run_status("submission failed")
 
     def check_run_cromwell_status(self):
         """
-        Check Cromwell for the status of one Run.
+        Query Cromwell for current run status.
         """
         logger.debug(f"Run {self.run.id}: Check Cromwell status")
         try:
@@ -144,6 +145,13 @@ class Run:
         elif cromwell_status == "Aborted":
             if self.run.status == "queued" or self.run.status == "running":
                 self.update_run_status("cancelled")
+
+    def update_task_status(self):
+        """
+        Query Cromwell for latest metadata and update all Tasks.
+        This doesn't affect Run state.
+        """
+        # TODO
 
     def transfer_results(self):
         """
@@ -252,21 +260,19 @@ class Run:
         # send via RPC
         if self.rpc_client is None:
             try:
-                self.rpc_client = rpc_client.RpcClient(
+                self.rpc_client = RpcClient(
                     config.conf.get_section("CENTRAL_RPC_CLIENT")
                 )
             except Exception as error:
                 logger.exception(f"Unable to init central rpc client: {error}")
                 return
         try:
-            response = rpc_client.request("update_run_logs", data)
+            response = self.rpc_client.request("update_run_logs", data)
         except Exception as error:
             logger.exception(f"RPC update_run_logs error: {error}")
             return
         if "error" in response:
-            logger.info(
-                f"RPC update_run_status failed: {response['error']['message']}"
-            )
+            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
             return
 
         # mark as sent

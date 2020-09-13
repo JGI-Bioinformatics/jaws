@@ -6,9 +6,7 @@ them to the next state.
 import schedule
 import time
 import os
-import globus_sdk
 import logging
-from datetime import datetime
 from jaws_site.database import Session
 from jaws_site.models import Run, Run_Log, Job_Log
 from jaws_site import config

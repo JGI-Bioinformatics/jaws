@@ -2,11 +2,10 @@
 jaws-worker RPC operations.
 """
 
-import subprocess
 import psutil
-import os
 import os.path
-import signal
+import subprocess, signal, os, threading, errno
+from contextlib import contextmanager
 from jaws_worker import config
 from jaws_worker.database import Session
 from jaws_worker.models import Jobs, Job_Log
@@ -15,18 +14,6 @@ from jaws_rpc.responses import success, failure
 
 # config and logging must be initialized before importing this module
 logger = logging.getLogger(__package__)
-
-
-def health(params):
-    """
-    Verify jaws-worker is running and can accept RPC calls.
-
-    :param params: message from jaws-site
-    :type params: dict
-    :return: JSON-RPC2 response
-    :rtype: dict
-    """
-    return success()
 
 
 def quit(params):
@@ -58,15 +45,17 @@ def run(params):
     cmd = params["cmd"].split()
     call_root_dir = params["call_root"]
     rc_file = os.path.join(call_root, "execution", "rc")
-    max_time = params["time"].split(":")  # format is "hh:mm:ss"
+
+    # calculate maximum seconds from string in format "[hh]:[mm]:ss"
+    # TODO move this to jaws-site
+    max_time = params["time"].split(":")
     for n in range(len(max_time), 3):
-        max_time.insert(0, 0)  # add any missing fields
+        # add any missing fields (i.e. hours and/or minutes)
+        max_time.insert(0, 0)
     max_sec = max_time[0] * 3600 + max_time[1] * 60 + max_time[2]
 
-    # Run the Task in the background.
-    # The worker doesn't care about the Task's exit status or output.
-    # jaws-site will know when the Task is complete and won't send the
-    # worker another Task before then (or will instruct worker to quit).
+    # 
+
     try:
         proc = subprocess.Popen(cmd)
     except FileNotFound as error:
@@ -77,45 +66,71 @@ def run(params):
     return success(result)
 
 
-def check_alive(params):
+
+def status(params):
     """
-    Check if Task is running.
+    Check if jaws-worker is alive and able to accept RMQ messages.
+    If optional pid provided, check if the Task is running.
     If it's not running, check if 'rc' file exists.
     If so, read rc, else write rc of 1 so that Cromwell can pick it up.
     """
-    task_pid = params["task_id"]
-    is_alive = True
+    if "pid" is not in params:
+        # yes, worker is alive and responsive
+        return success()
+
+    # check on a Task
+    task_pid = params["pid"]
+    is_alive = None
     rc = None
     try:
         task = psutil.Process(task_pid)
     except psutil.NoSuchProcess:
-        # not running
+        # process is not running
         is_alive = False
+
         # check if rc file exists
         if os.path.isfile(rc_file):
+            # File exists, process exited cleanly.
+            # Read rc value from file
             with open(rc_file, "r") as fh:
                 rc = fh.read()
         else:
+            # This should not happen unless killed -9.
+            # Write rc file with failure code for Cromwell.
             rc = "1"
             with open(rc_file, "w") as fh:
                 fh.write(rc)
+    else:
+        is_alive = True
+
     result = {"is_alive": is_alive, "rc": rc}
     return success(result)
 
+def check_alive(params):
+    """
+    Simplified call for checking on a task; rpc_server verifies pid is provided.
+    :return: True if alive, False otherwise
+    :rtype: bool
+    """
+    response = status(params)
+    if "result" in response:
+        return success(response["result"]["is_alive"])
+    else:  # error
+        return response
 
 def kill(params):
     """
     Recursively kill process and write return code to file.
     Cromwell reads the rc_file to determine status.
     """
-    task_pid = params["task_id"]
+    task_pid = params["pid"]
     call_root_dir = params["call_root"]
     rc_file = os.path.join(call_root, "execution", "rc")
-    # rc_file=params["rc_file"]
-    rc = 9
+    rc = 9  # any nonzero value will do
     if "rc" in params:
         rc = params["rc"]
 
+    # check if running
     try:
         task = psutil.Process(task_pid)
     except psutil.NoSuchProcess:
@@ -123,22 +138,23 @@ def kill(params):
         if not os.path.isfile(rc_file):
             with open(rc_file, "w") as fh:
                 fh.write(str(rc))
-        return success()
+    else:
+        # recursively kill
+        for child in task.children(recursive=True):
+            child.kill()
+        task.kill()
 
-    # recursively kill
-    for child in task.children(recursive=True):
-        child.kill()
-    task.kill()
+        # write rc file, if necessary
+        if not os.path.isfile(rc_file):
+            with open(rc_file, "w") as fh:
+                fh.write(str(rc))
 
-    # write rc file
-    with open(rc_file, "w") as fh:
-        fh.write(str(rc))
     return success()
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
-    "health": {"function": health, "required_params": []},
+    "status": {"function": status}
     "quit": {"function": quit, "required_params": ["task_id"]},
     "run": {
         "function": run_task,
@@ -154,6 +170,6 @@ operations = {
             "minutes",
         ],
     },
-    "check_alive": {"function": check_alive, "required_params": ["task_id"]},
+    "check_alive": {"function": check_alive, "required_params": ["pid"]},
     "kill": {"function": kill, "required_params": ["task_id"]},
 }
