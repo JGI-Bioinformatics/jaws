@@ -6,14 +6,8 @@ This package provides the RPC operations for the Site's operations, namely recei
 instructions from Cromwell via jaws-backend.
 """
 
-# import logging
-from jaws_site import config
 from jaws_rpc.responses import success, failure
 from jaws_site.Task import Task
-
-
-# config and logging must be initialized before importing this module
-# logger = logging.getLogger(__package__)
 
 
 def submit(params):
@@ -23,7 +17,7 @@ def submit(params):
     The task_daemon is responsible for actually sending the task to a worker.
     """
     try:
-        task = Task.new(config.conf, params)
+        task = Task.new(params)
     except Exception as error:
         return failure(500, f"Failed to submit task: {error}")
     return success({"task_id": task.id})
@@ -33,7 +27,7 @@ def kill(params):
     """
     Receive an abort task command (from Cromwell).
     """
-    task = Task.get(config.conf, params["task_id"])
+    task = Task.get(params["task_id"])
     try:
         task.kill()
     except Exception as error:
@@ -46,7 +40,7 @@ def check_alive(params):
     Check if a Task is running.
     Unless polling is on, Cromwell only calls this after a restart.
     """
-    task = Task.get(config.conf, params["task_id"])
+    task = Task.get(params["task_id"])
     try:
         status = task.status()
     except Exception as error:
