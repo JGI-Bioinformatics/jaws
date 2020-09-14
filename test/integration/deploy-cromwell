@@ -115,17 +115,12 @@ backend
         exit-code-timeout-seconds = 60
         runtime-attributes = """
         String? docker
-        String time = "00:30:00"
+        String time = "08:00:00"
         Int cpu = 1
-        String mem = "5G"
-        String cluster = "${JAWS_SITE,,}"
-        String poolname = "small"
+        String memory = "8G"
         String constraint = "$SITE_CLUSTER_CONSTRAINT"
         String qos = "$SITE_CLUSTER_QOS"
         String account = "$SITE_CLUSTER_ACCOUNT"
-        Int node = 1
-        Int nwpn = 1
-        Int shared = 0
         """
         submit = """
             CONSTRAINT="\${constraint}"
@@ -138,19 +133,14 @@ backend
             jaws-worker --config=$WORKER_CONFIG_FILE \\
                 submit \$OPT_ARGS \\
                 -cmd \'/bin/bash \${script}\' \\
-                -cl \${cluster} \\
-                -t \${time} \\
-                -c \${cpu} \\
-                -m \${mem} \\
-                -p \${poolname} \\
-                -N \${node} \\
-                -nwpn \${nwpn} \\
-                -jid \${job_name} \\
-                --shared \${shared}
+                --time \${time} \\
+                --cpu \${cpu} \\
+                --memory \${memory} \\
+                --name \${job_name}
         """
-        kill = "jaws-worker --config=$WORKER_CONFIG_FILE kill -tid \${job_id}"
-        check-alive = "jaws-worker --config=$WORKER_CONFIG_FILE isalive -tid \${job_id}"
-        job-id-regex = "JAWS task ID (\\\d+)"
+        kill = "jaws-worker --config=$WORKER_CONFIG_FILE kill \${job_id}"
+        check-alive = "jaws-worker --config=$WORKER_CONFIG_FILE check-alive \${job_id}"
+        job-id-regex = "(\\\d+)"
         submit-docker = """
             $CONTAINER_CHECK
             CONSTRAINT="\${constraint}"
@@ -163,15 +153,10 @@ backend
             jaws-worker --config=$WORKER_CONFIG_FILE \\
                 submit \$OPT_ARGS \\
                 -cmd \'$SITE_WORKER_INSTALL_DIR/${SITE_CONTAINER_TYPE}_exec.sh \${docker} \${job_shell} \${script}\' \\
-                -cl \${cluster} \\
-                -t \${time} \\
-                -c \${cpu} \\
-                -m \${mem} \\
-                -p \${poolname} \\
-                -N \${node} \\
-                -nwpn \${nwpn} \\
-                -jid \${job_name} \\
-                --shared \${shared}
+                --time \${time} \\
+                --cpu \${cpu} \\
+                --memory \${memory} \\
+                --name \${job_name}
         """
         # Root directory where Cromwell writes job results in the container. This value
         # can be used to specify where the execution folder is mounted in the container.
