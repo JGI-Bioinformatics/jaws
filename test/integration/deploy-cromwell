@@ -157,6 +157,8 @@ backend
 
         submit = """
 CONSTRAINT=\${constraint}
+QOS=\${qos}
+[ -z \$QOS ] || QOS="--qos \$QOS"
 [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
@@ -169,17 +171,19 @@ submit \
 -N \${node} \
 -nwpn \${nwpn} \
 -jid \${job_name} \
---qos \${qos} \
 -A \${account} \
 --shared \${shared} \
 \$CONSTRAINT
+\$QOS
 """
 
 
         submit-docker = """
 CONSTRAINT=\${constraint}
+QOS=\${qos}
 $CONTAINER_CHECK
 [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
+[ -z \$QOS ] || QOS="--qos \$QOS"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
 -cmd '$CONTAINER_WRAPPER \${docker} \${job_shell} \${script}' \
@@ -191,9 +195,9 @@ submit \
 -N \${node} \
 -nwpn \${nwpn} \
 -jid \${job_name} \
---qos \${qos} \
 -A \${account} \
 --shared \${shared} \
+\$QOS
 \$CONSTRAINT
 """
 

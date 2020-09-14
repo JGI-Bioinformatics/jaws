@@ -76,6 +76,7 @@ source $INSTALL_DIR/site/bin/activate
 exec jaws-site --log $LOGS_DIR/site-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL daemon
 EOM
 
+## central rpc shim script
 cat <<EOM > "$SHIM_DIR/jaws-site-central-rpc-$DEPLOYMENT_NAME"
 #!/usr/bin/env bash
 
@@ -88,6 +89,7 @@ source $INSTALL_DIR/site/bin/activate
 exec jaws-site --log $LOGS_DIR/site-central-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL central-rpc
 EOM
 
+## site rpc shim script
 cat <<EOM > "$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME"
 #!/usr/bin/env bash
 
@@ -99,6 +101,7 @@ source $INSTALL_DIR/site/bin/activate
 exec jaws-site --log $LOGS_DIR/site-jtm-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level DEBUG jtm-rpc
 EOM
 
+## jtm shim script
 cat <<EOM > "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
 #!/usr/bin/env bash
 

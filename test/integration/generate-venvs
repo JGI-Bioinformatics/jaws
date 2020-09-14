@@ -46,21 +46,28 @@ test -d "$INSTALL_DIR/jtm" && rm -rf "$INSTALL_DIR/jtm"
 test -d "$SITE_JTM_WORKER_INSTALL_DIR" && rm -rf "$SITE_JTM_WORKER_INSTALL_DIR"
 
 ## MAKE VENVS
-#[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
-module load python
+[[ -n "$SITE_LOAD_PYTHON" ]] && $SITE_LOAD_PYTHON
+if [ -z "$PYTHON_PIP_UPGRADE" ]; then
+    PYTHON_PIP_UPGRADE=":"
+else
+    PYTHON_PIP_UPGRADE="pip install --upgrade pip"
+fi
 make pkg
 $SITE_PYTHON -m venv "$INSTALL_DIR/site" && \
   . "$INSTALL_DIR/site/bin/activate" && \
+  $PYTHON_PIP_UPGRADE && \
   $SITE_PYTHON_PIP install rpc/dist/* && \
   $SITE_PYTHON_PIP install site/dist/* && \
   deactivate
 $SITE_PYTHON -m venv "$INSTALL_DIR/jtm" && 
   . "$INSTALL_DIR/jtm/bin/activate" && \
+  $PYTHON_PIP_UPGRADE && \
   $SITE_PYTHON_PIP install rpc/dist/* && \
   $SITE_PYTHON_PIP install jtm/dist/* && \
   deactivate
 $SITE_PYTHON -m venv "$SITE_JTM_WORKER_INSTALL_DIR" && \
   . "$SITE_JTM_WORKER_INSTALL_DIR/bin/activate" && \
+  $PYTHON_PIP_UPGRADE && \
   $SITE_PYTHON_PIP install rpc/dist/* && \
   $SITE_PYTHON_PIP install jtm/dist/* && \
   deactivate
