@@ -4,6 +4,7 @@ jaws-worker RPC operations.
 
 import psutil
 import os.path
+import os.environ
 import subprocess, signal, os, threading, errno
 from contextlib import contextmanager
 from jaws_worker import config
@@ -11,9 +12,10 @@ from jaws_worker.database import Session
 from jaws_worker.models import Jobs, Job_Log
 from jaws_rpc.responses import success, failure
 
-
 # config and logging must be initialized before importing this module
 logger = logging.getLogger(__package__)
+
+# array_task_id = os.environ["ARRAY_TASK_ID"]
 
 
 def quit(params):
@@ -41,30 +43,13 @@ def run(params):
     :return: JSON-RPC2 response
     :rtype: dict
     """
-    # init vars
     cmd = params["cmd"].split()
-    call_root_dir = params["call_root"]
-    rc_file = os.path.join(call_root, "execution", "rc")
-
-    # calculate maximum seconds from string in format "[hh]:[mm]:ss"
-    # TODO move this to jaws-site
-    max_time = params["time"].split(":")
-    for n in range(len(max_time), 3):
-        # add any missing fields (i.e. hours and/or minutes)
-        max_time.insert(0, 0)
-    max_sec = max_time[0] * 3600 + max_time[1] * 60 + max_time[2]
-
-    # 
-
     try:
         proc = subprocess.Popen(cmd)
     except FileNotFound as error:
         return failure(404, f"FileNotFound: {error}")
-
-    # return pid
     result = {"pid": proc.pid}
     return success(result)
-
 
 
 def status(params):
@@ -74,7 +59,7 @@ def status(params):
     If it's not running, check if 'rc' file exists.
     If so, read rc, else write rc of 1 so that Cromwell can pick it up.
     """
-    if "pid" is not in params:
+    if "pid" not in params:
         # yes, worker is alive and responsive
         return success()
 
@@ -106,6 +91,7 @@ def status(params):
     result = {"is_alive": is_alive, "rc": rc}
     return success(result)
 
+
 def check_alive(params):
     """
     Simplified call for checking on a task; rpc_server verifies pid is provided.
@@ -117,6 +103,7 @@ def check_alive(params):
         return success(response["result"]["is_alive"])
     else:  # error
         return response
+
 
 def kill(params):
     """
@@ -154,22 +141,9 @@ def kill(params):
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
-    "status": {"function": status}
+    "status": {"function": status},
     "quit": {"function": quit, "required_params": ["task_id"]},
-    "run": {
-        "function": run_task,
-        "required_params": [
-            "run_id",
-            "cromwell_run_id",
-            "task_id",
-            "task_name",
-            "attempt",
-            "script",
-            "num_cores",
-            "ram_gb",
-            "minutes",
-        ],
-    },
+    "run": {"function": run, "required_params": ["cmd"],},
     "check_alive": {"function": check_alive, "required_params": ["pid"]},
-    "kill": {"function": kill, "required_params": ["task_id"]},
+    "kill": {"function": kill, "required_params": ["pid"]},
 }
