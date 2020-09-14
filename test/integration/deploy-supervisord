@@ -10,12 +10,12 @@ SUPERVISOR_DIR
 SITE_PYTHON
 SITE_PYTHON_PIP
 SITE_JAWS_GROUP
-SITE_JTM_GROUP
+SITE_CROMWELL_GROUP
 DEPLOYMENT_NAME
 SHIM_DIR
 JAWS_SUPERVISORD_PW
 JAWS_SUPERVISOR_PORT
-JTM_SUPERVISOR_PORT
+CROMWELL_SUPERVISOR_PORT
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -39,14 +39,14 @@ fi
 
 ## CREATE DIRS
 test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
-chgrp $SITE_JTM_GROUP $SUPERVISOR_DIR
+chgrp $SITE_CROMWELL_GROUP $SUPERVISOR_DIR
 chmod 770 $SUPERVISOR_DIR
 
 #$LOAD_SITE_PYTHON
 module load python
 [[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
 [[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
-chgrp -R $SITE_JTM_GROUP $SUPERVISOR_DIR/{bin,venv}
+chgrp -R $SITE_CROMWELL_GROUP $SUPERVISOR_DIR/{bin,venv}
 
 source $SUPERVISOR_DIR/venv/bin/activate
 
@@ -79,9 +79,9 @@ function fix_perms() {
     find "$DIR" -type d -exec chmod g+s '{}' \;
 }
 
-fix_perms "$SITE_JTM_GROUP" "$SUPERVISOR_DIR"
+fix_perms "$SITE_CROMWELL_GROUP" "$SUPERVISOR_DIR"
 
-JAWS_PROGRAMS="jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc"
+JAWS_PROGRAMS="jaws-site-daemon,jaws-site-local-rpc,jaws-site-central-rpc"
 SUPERVISOR_JAWS_CONF="
 [inet_http_server]
 port=0.0.0.0:$JAWS_SUPERVISOR_PORT
@@ -121,8 +121,8 @@ startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-site-jtm-rpc]
-command=$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME
+[program:jaws-site-local-rpc]
+command=$SHIM_DIR/jaws-site-local-rpc-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
@@ -185,24 +185,24 @@ priority=999
 EOM
 
 
-## JTM SUPERVISOR CONF
+## CROMWELL SUPERVISOR CONF
 
-cat << EOM > $SUPERVISOR_DIR/supervisord-jtm.conf
+cat << EOM > $SUPERVISOR_DIR/supervisord-cromwell.conf
 [inet_http_server]
-port=0.0.0.0:$JTM_SUPERVISOR_PORT
+port=0.0.0.0:$CROMWELL_SUPERVISOR_PORT
 username=jaws
 password=$JAWS_SUPERVISORD_PW
 
 [supervisord]
-logfile=$SUPERVISOR_DIR/jtm-log
+logfile=$SUPERVISOR_DIR/worker-log
 logfile_maxbytes=50MB
 logfile_backups=2
 loglevel=info
-pidfile=$SUPERVISOR_DIR/jtm-pidfile
+pidfile=$SUPERVISOR_DIR/worker-pidfile
 nodaemon=false
 minfds=1024
 minprocs=200
-identifier=supervisor-jtm-$DEPLOYMENT_NAME
+identifier=supervisor-cromwell-$DEPLOYMENT_NAME
 directory=$SUPERVISOR_DIR
 
 ; The rpcinterface:supervisor section must remain in the config file for
@@ -213,15 +213,15 @@ directory=$SUPERVISOR_DIR
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
-serverurl=$SITE_SUPERVISOR_HOST:$JTM_SUPERVISOR_PORT
+serverurl=$SITE_SUPERVISOR_HOST:$CROMWELL_SUPERVISOR_PORT
 username=jaws
 password=$JAWS_SUPERVISORD_PW
-prompt=supervisor-jtm-$DEPLOYMENT_NAME
+prompt=supervisor-cromwell-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
-[program:jaws-jtm]
-command=$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME
+[program:jaws-worker]
+command=$SHIM_DIR/jaws-worker-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
@@ -242,13 +242,13 @@ startretries=0
 autorestart=false
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-jtm,jaws-cromwell,jaws-deploy-worker
+programs=jaws-worker,jaws-cromwell,jaws-deploy-worker
 priority=999
 EOM
 
 chgrp "$SITE_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
-chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-jtm.conf"
-chmod 660 "$SUPERVISOR_DIR/supervisord-jtm.conf"
+chgrp "$SITE_CROMWELL_GROUP" "$SUPERVISOR_DIR/supervisord-cromwell.conf"
+chmod 660 "$SUPERVISOR_DIR/supervisord-cromwell.conf"
 
 printf "END deploy-supervisord\n\n"

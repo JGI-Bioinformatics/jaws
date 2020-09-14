@@ -36,7 +36,7 @@ fi
 
 # stop services
 test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
-test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf stop jaws-$DEPLOYMENT_NAME:*
+test -f $SUPERVISOR_DIR/supervisord-cromwell.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-cromwell.conf stop jaws-$DEPLOYMENT_NAME:*
 
 # install services
 ./test/integration/generate-venvs
@@ -50,10 +50,10 @@ test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorct
 ## start services
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:*
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf reread
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jaws-$DEPLOYMENT_NAME:*
-# the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
-# the gitlab-runner. no fix could by found is why that copy now happens in the jtm-worker-deploy shim created by generate-shims. this is a hack.
-#cp -a $INSTALL_DIR/configs/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf && chgrp $JTM_GROUP && chmod 640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-cromwell.conf reread
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-cromwell.conf start jaws-$DEPLOYMENT_NAME:*
+# the following statement would deploy the jaws-worker config file to the parallel fs for use by the jaws-worker. problem: doing a chgrp on gpfs does not work through
+# the gitlab-runner. no fix could by found is why that copy now happens in the jaws-worker-deploy shim created by generate-shims. this is a hack.
+#cp -a $INSTALL_DIR/configs/jaws-worker.conf $SITE_WORKER_INSTALL_DIR/jaws-worker.conf && chgrp $CROMWELL_GROUP && chmod 640 $SITE_WORKER_INSTALL_DIR/jaws-worker.conf
 
 echo "END deploy-jaws"

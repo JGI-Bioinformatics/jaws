@@ -10,9 +10,9 @@ echo "BEGIN generate-shims"
 REQUIRED_VARS="
 DEPLOYMENT_NAME
 INSTALL_DIR
-SITE_JTM_WORKER_INSTALL_DIR
-SITE_JTM_SCRATCH_DIR
-SITE_JTM_GROUP
+SITE_WORKER_INSTALL_DIR
+SITE_CROMWELL_SCRATCH_DIR
+SITE_CROMWELL_GROUP
 SITE_JAWS_GROUP
 SITE_REF_DATA_DIR
 LOG_LEVEL
@@ -69,7 +69,7 @@ source $INSTALL_DIR/site/bin/activate
 exec jaws-site --log $LOGS_DIR/site-central-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL central-rpc
 EOM
 
-cat <<EOM > "$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME"
+cat <<EOM > "$SHIM_DIR/jaws-site-local-rpc-$DEPLOYMENT_NAME"
 #!/usr/bin/env bash
 
 export LC_ALL=en_US.UTF-8
@@ -77,20 +77,20 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
 source $INSTALL_DIR/site/bin/activate
-exec jaws-site --log $LOGS_DIR/site-jtm-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level DEBUG jtm-rpc
+exec jaws-site --log $LOGS_DIR/site-local-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level DEBUG local-rpc
 EOM
 
-cat <<EOM > "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
+cat <<EOM > "$SHIM_DIR/jaws-worker-$DEPLOYMENT_NAME"
 #!/usr/bin/env bash
 
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-source $INSTALL_DIR/jtm/bin/activate
-export JTM_CONFIG_FILE=$CONFIG_DIR/jaws-jtm.conf
+source $INSTALL_DIR/worker/bin/activate
+export WORKER_CONFIG_FILE=$CONFIG_DIR/jaws-worker.conf
 
-exec jtm --config=$CONFIG_DIR/jaws-jtm.conf --debug manager -ld $LOGS_DIR
+exec jaws-worker --config=$CONFIG_DIR/jaws-worker.conf --debug manager -ld $LOGS_DIR
 EOM
 
 cat <<EOM > "$SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME"
@@ -98,22 +98,22 @@ cat <<EOM > "$SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME"
 
 # HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
 
-test -d $SITE_JTM_WORKER_INSTALL_DIR || mkdir $SITE_JTM_WORKER_INSTALL_DIR
-test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
+test -d $SITE_WORKER_INSTALL_DIR || mkdir $SITE_WORKER_INSTALL_DIR
+test -d $SITE_CROMWELL_SCRATCH_DIR || mkdir $SITE_CROMWELL_SCRATCH_DIR
 test -d $SITE_UPLOADS_DIR || mkdir $SITE_UPLOADS_DIR
 
-cp $CONFIG_DIR/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/
-chgrp $SITE_JTM_GROUP $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
-chgrp $SITE_JTM_GROUP $SITE_UPLOADS_DIR
-chmod 770 $SITE_JTM_WORKER_INSTALL_DIR
-chmod 640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
-chmod 775 $SITE_JTM_SCRATCH_DIR
+cp $CONFIG_DIR/jaws-worker.conf $SITE_WORKER_INSTALL_DIR/
+chgrp $SITE_CROMWELL_GROUP $SITE_WORKER_INSTALL_DIR/jaws-worker.conf
+chgrp $SITE_CROMWELL_GROUP $SITE_UPLOADS_DIR
+chmod 770 $SITE_WORKER_INSTALL_DIR
+chmod 640 $SITE_WORKER_INSTALL_DIR/jaws-worker.conf
+chmod 775 $SITE_CROMWELL_SCRATCH_DIR
 chmod 777 $SITE_UPLOADS_DIR
 EOM
 
 ## SET PERMISSIONS
-chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
-chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME"
+chgrp "$SITE_CROMWELL_GROUP" "$SHIM_DIR/jaws-worker-$DEPLOYMENT_NAME"
+chgrp "$SITE_CROMWELL_GROUP" "$SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME"
 chmod +x "$SHIM_DIR"/*
 
 printf "END generate-shims\n\n"

@@ -28,7 +28,7 @@ These are deployment specific. The deployment placeholder stands for either
 dev, staging or prod.  
 - [deployment]_LOG_LEVEL: Python logging level (DEBUG)  
 - [deployment]_JAWS_SUPERVISOR_PORT: Supervisord port number  
-- [deployment]_JTM_SUPERVISOR_PORT: Supervisord port number for JTM service  
+- [deployment]_CROMWELL_SUPERVISOR_PORT: Supervisord port number for Cromwell service  
 - [deployment]_JAWS_AUTH_PORT: auth service port number  
 - [deployment]_JAWS_REST_PORT: rest service port number  
 - [deployment]_CROMWELL_PORT: cromwell port number  
@@ -44,12 +44,12 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_PYTHON_PIP: The name of the pip executable (eg pip, pip3)  
 - [SITE]_LOAD_PYTHON: The module command for loading python. Can be "" (ie - no modules)  
 - [SITE]_JAWS_GROUP: Linux group name for JAWS  
-- [SITE]_JTM_GROUP: Linux group name for JTM  
+- [SITE]_CROMWELL_GROUP: Linux group name for Cromwell  
 - [SITE]_CLIENT_GROUP: Linux group name for client. Group name is something all JGI users can use  
 - [SITE]_JAWS_SCRATCH_BASEDIR: SCRATCH directory for JAWS  
-- [SITE]_JTM_SCRATCH_BASEDIR: SCRATCH directory for JTM. Can be same as JAWS   
+- [SITE]_CROMWELL_SCRATCH_BASEDIR: SCRATCH directory for Cromwell. Can be same as JAWS but not recommended.
 - [SITE]_JAWS_SW_BASEDIR: Base directory where JAWS code is located  
-- [SITE]_JTM_SW_BASEDIR: Base directory where JTM code is located  
+- [SITE]_WORKER_SW_BASEDIR: Base directory where jaws-worker code is located  
 - [SITE]_REF_DATA_DIR: Location of JGI ref data  
 - [SITE]_SUPERVISOR_HOST: Supervisor hostname for site  
 - [SITE]_CONTAINER_TYPE: Container type the site uses (shifter, singularity etc)  
@@ -95,22 +95,25 @@ actions are starting and stopping a service. Access is controlled by a unique ke
     +--------------+
 
 Every system needs two instances of supervisord, for privilege seperation between services and
-user workloads: one for JAWS and one for JTM/Cromwell.
+user workloads: one for JAWS and one for Cromwell.
 
 ## Ports
 
-    Service          | dev   | staging | prod
-    -----------------+-------+---------+------
-    central-auth     | 3001  | 3002    | 3003
-    central-rest     | 5001  | 5002    | 5003
-    cromwell         | 50101 | 50102   | 50103
-    supervisord-jaws | 64101 | 64102   | 64103
-    supervisord-jtm  | 64111 | 64112   | 64113
+    Service               | dev   | staging | prod
+    ----------------------+-------+---------+------
+    central-auth          | 3001  | 3002    | 3003
+    central-rest          | 5001  | 5002    | 5003
+    cromwell              | 50101 | 50102   | 50103
+    supervisord-jaws      | 64101 | 64102   | 64103
+    supervisord-cromwell  | 64111 | 64112   | 64113
 
 
 ## Common Commands
 
 To see this in action see .gitlab-ci.yml .
+
+Note the cromwell user is referred to as the jaws_jtm user in some places for historic reasons
+(JTM was former Cromwell backend, replaced by jaws-worker).
 
 Start the supervisors. Only necessary once, after startup of the machine hosting the services: 
 
@@ -118,20 +121,20 @@ Start the supervisors. Only necessary once, after startup of the machine hosting
     /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf 
     logout
     collabsu jaws_jtm
-    /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf
+    /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-cromwell.conf
 
 Check the status of JAWS services:
 
     /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf status
-    /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf status
+    /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-cromwell.conf status
 
 Start the JAWS services:
 
     /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start
-    /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf start
+    /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-cromwell.conf start
 
-Note: there exists two supervisord processes, one for jaws and one for jtm,  even if there are not two
-separate jaws and jtm users in use at the deployment site.
+Note: there exists two supervisord processes, one for jaws and one for cromwell and the jaws-worker,  even if
+there are not two separate jaws and cromwell users in use at the deployment site.
 
 
 ## Starting the gitlab-runner on Cori20

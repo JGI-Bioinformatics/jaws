@@ -25,19 +25,19 @@ variables:
   ## DEPLOYMENT-SPECIFIC VARIABLES:
   dev_LOG_LEVEL: "DEBUG"
   dev_JAWS_SUPERVISOR_PORT: 64101
-  dev_JTM_SUPERVISOR_PORT: 64111
+  dev_CROMWELL_SUPERVISOR_PORT: 64111
   dev_JAWS_AUTH_PORT: 3001
   dev_JAWS_REST_PORT: 5001
   dev_CROMWELL_PORT: 50101
   staging_LOG_LEVEL: "DEBUG"
   staging_JAWS_SUPERVISOR_PORT: 64102
-  staging_JTM_SUPERVISOR_PORT: 64112
+  staging_CROMWELL_SUPERVISOR_PORT: 64112
   staging_JAWS_AUTH_PORT: 3002
   staging_JAWS_REST_PORT: 5002
   staging_CROMWELL_PORT: 50102
   prod_LOG_LEVEL: "INFO"
   prod_JAWS_SUPERVISOR_PORT: 64103
-  prod_JTM_SUPERVISOR_PORT: 64113
+  prod_CROMWELL_SUPERVISOR_PORT: 64113
   prod_JAWS_AUTH_PORT: 3003
   prod_JAWS_REST_PORT: 5003
   prod_CROMWELL_PORT: 50103
@@ -53,12 +53,12 @@ variables:
   CORI_PYTHON_PIP: "pip3"
   CORI_LOAD_PYTHON: "module load python"
   CORI_JAWS_GROUP: "jaws"
-  CORI_JTM_GROUP: "jaws_jtm"
+  CORI_CROMWELL_GROUP: "jaws_jtm"
   CORI_CLIENT_GROUP: "genome"
   CORI_JAWS_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws"
-  CORI_JTM_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws_jtm"
+  CORI_CROMWELL_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws_jtm"
   CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
-  CORI_JTM_SW_BASEDIR: "/global/cfs/projectdirs/jaws_jtm"
+  CORI_WORKER_SW_BASEDIR: "/global/cfs/projectdirs/jaws_jtm"
   CORI_REF_DATA_DIR: "/global/cscratch1/sd/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
@@ -81,12 +81,12 @@ variables:
   JGI_PYTHON_PIP: "pip"
   JGI_LOAD_PYTHON: "module load python"
   JGI_JAWS_GROUP: "jaws"
-  JGI_JTM_GROUP: "jaws"
+  JGI_CROMWELL_GROUP: "jaws"
   JGI_CLIENT_GROUP: "jgi"
   JGI_JAWS_SCRATCH_BASEDIR: "/global/scratch/jaws"
-  JGI_JTM_SCRATCH_BASEDIR: "/global/scratch/jaws"
+  JGI_CROMWELL_SCRATCH_BASEDIR: "/global/scratch/jaws"
   JGI_JAWS_SW_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
-  JGI_JTM_SW_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
+  JGI_WORKER_SW_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_REF_DATA_DIR: "/global/scratch/jaws/refdata"
   JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
   JGI_CONTAINER_TYPE: "singularity"
@@ -102,9 +102,9 @@ variables:
   CASCADE_LOAD_PYTHON: "source /opt/rh/rh-python36/enable"
   CASCADE_PYTHON: "python3.6"
   CASCADE_PYTHON_PIP: "pip3"
-  CASCADE_JTM_GROUP: "svc-jtm-user"
+  CASCADE_CROMWELL_GROUP: "svc-jtm-user"
   CASCADE_JAWS_SW_BASEDIR: "/dtemp/mscjgi"
-  CASCADE_JTM_SW_BASEDIR: "/dtemp/mscjgi"
+  CASCADE_WORKER_SW_BASEDIR: "/dtemp/mscjgi"
   # TODO
 
 # this needs to be commented out in the jobs definitions, for the jobs to
@@ -159,17 +159,17 @@ test-client:
     - pip install flake8
     - pip install pytest
     - make test-client
-test-jtm:
+test-worker:
   <<: *only-default
   stage: unit-test
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
     - pip install rpc/
-    - pip install -r jtm/requirements.txt
+    - pip install -r worker/requirements.txt
     - pip install flake8
     - pip install pytest
-    - make test-jtm
+    - make test-worker-
 package:
   <<: *only-default
   stage: package
@@ -186,7 +186,7 @@ package:
       - site/dist
       - client/dist
       - central/dist
-      - jtm/dist
+      - worker/dist
 ## integration tests - only run on merge request
 deploy-jaws-cori-dev:
   stage: deploy-jaws
