@@ -2,6 +2,7 @@
 jaws-worker RPC operations.
 """
 
+import time
 import psutil
 import os.path
 import os.environ
@@ -10,7 +11,7 @@ from contextlib import contextmanager
 from jaws_worker import config
 from jaws_worker.database import Session
 from jaws_worker.models import Jobs, Job_Log
-from jaws_rpc.responses import success, failure
+from jaws_worker.responses import success, failure
 
 # config and logging must be initialized before importing this module
 logger = logging.getLogger(__package__)
@@ -21,22 +22,29 @@ logger = logging.getLogger(__package__)
 def quit(params):
     """
     Quit all processes to release hardware reservation.
+    Any subprocesses (Tasks) will also be killed.
     """
-    quit = threading.Thread(target=__quit)
+    quit = threading.Thread(target=__quit_gracefully__)
     quit.start()
     return success()
 
 
-def __quit():
+def __quit_gracefully__():
     """Wait a moment in order to allow RPC response to be returned and terminate all processes."""
-    sleep(2)
+    time.sleep(1)
     pid = os.getpid()
-    os.kill(pid, signal.STOP)
+    this = psutil.Process(pid)
+    for child in this.children(recursive=True):
+        child.kill()
+    this.kill()
 
 
 def run(params):
     """
-    Execute the provided shell script and return the process id.
+    Run the provided script in a subprocess and return it's pid.
+    Additionally, the Popen object and rc file path are returned to the RpcWorkerServer,
+    which shall maintain the thread either until the subprocess completes, or it reaches it's
+    time limit.  In the latter case, the rc file will be generated so that Cromwell can pick it up.
 
     :params param: message from jaws-site
     :type params: dict
@@ -44,12 +52,20 @@ def run(params):
     :rtype: dict
     """
     cmd = params["cmd"].split()
+    max_seconds = int(params["max_minutes"]) * 60
     try:
-        proc = subprocess.Popen(cmd)
+        proc = subprocess.Popen(cmd, timeout=max_seconds, stdout=params["stdout"], stderr=params["stderr"])
     except FileNotFound as error:
         return failure(404, f"FileNotFound: {error}")
+    except Exception as error:
+        return failure(400, f"Failed to run task: {error}")
     result = {"pid": proc.pid}
-    return success(result)
+    task = {
+        "task_id": params["task_id"],
+        "proc": proc,
+        "rc_file": params["rc_file"]
+    }
+    return success(result, task)
 
 
 def status(params):
@@ -143,7 +159,7 @@ def kill(params):
 operations = {
     "status": {"function": status},
     "quit": {"function": quit, "required_params": ["task_id"]},
-    "run": {"function": run, "required_params": ["cmd"],},
+    "run": {"function": run, "required_params": ["task_id", "cmd", "max_minutes", "stdout", "stderr", "rc_file"],},
     "check_alive": {"function": check_alive, "required_params": ["pid"]},
     "kill": {"function": kill, "required_params": ["pid"]},
 }

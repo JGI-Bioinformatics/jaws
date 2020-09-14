@@ -23,7 +23,14 @@ class InvalidResponse(Exception):
 
 class Consumer(object):
     def __init__(self, queue, operations):
-        """Initialize Consumer object
+        """Initialize Consumer object.
+        Once a Consumer receives a task to execute via RPC, it responds with the
+        pid of the subprocess before waiting for the task to finish.
+        Another Consumer will be automatically created by RpcWorkerServer to 
+        consumer RPC messages, so after the task completes the Consumer shall be
+        released.
+        If the task is killed by Popen due to timeout exception, the Consumer shall
+        write the rc_file for Cromwell.
 
         :param queue: The name of the queue from which to retrieve messages.
         :type queue: str
@@ -33,7 +40,9 @@ class Consumer(object):
         self.operations = operations
         self.logger = logging.getLogger(__package__)
         self.channel = None
-        self.active = False
+        self.active = False    # listening for RPC requests
+        self.has_task = False  # received a Task, will no longer listen for RPC requests 
+        self.running = False   # The task is running while True.
 
     def start(self, connection):
         """Start the consumer"""
@@ -104,16 +113,18 @@ class Consumer(object):
 
         # GET RESPONSE FROM DISPATCH FUNCTION
         self.logger.debug(f"RPC method {method} with {params}")
-        proc = self.operations[method]["function"]
-        response = proc(params)
-        self.__respond__(message, response)
+        operation = self.operations[method]["function"]
+        response, task = operation(params)
+        self.__respond__(message, response, task)
 
-    def __respond__(self, message, response):
+    def __respond__(self, message, response, task=None):
         """
         An RPC operation returns a response.
 
         :param message: JSON-RPC2 request
         :type message: dict
+        :param task: Optionally, may receive a task (Popen obj and rc_file path)
+        :type task: dict
         :param response: JSON-RPC2 response
         :type response: dict
         """
@@ -138,6 +149,28 @@ class Consumer(object):
         # DELIVER RESPONSE AND REMOVE REQUEST MESSAGE FROM QUEUE
         response_message.publish(message.reply_to)
         message.ack()
+
+        # PROCESS TASK, IF PROVIDED
+        if task is None:
+            return
+
+        # stop consuming RPC messages, this thread is now a worker
+        self.has_task = True
+        self.active = False  # no longer consuming RPC messages
+        self.stop()  # close channel
+        self.running = True
+
+        # wait for process to finish or run out of time
+        try:
+            task["proc"].wait()
+        except subprocess.TimeoutExpired:
+            # process reached time limit, write rc file for Cromwell
+            with open(task["rc_file"], 'w') as fh:
+                fh.write("124")  # standard linux timeout code
+
+        # done; RpcWorkerServer shall release this thread
+        self.running = False
+        
 
     def validate_request(self, message_str):
         """Verifies the request dict conforms to JSON-RPC2 spec.  Raises error if invalid.
@@ -210,7 +243,7 @@ class Consumer(object):
         return True
 
 
-class RpcServer(object):
+class RpcWorkerServer(object):
     def __init__(self, params, operations) -> None:
         self.logger = logging.getLogger(__package__)
         self.params = {}
@@ -230,6 +263,7 @@ class RpcServer(object):
         ]
         self.stopped = threading.Event()
         self.connection = self.create_connection()
+        self.workers = []  # consumers that get a task not longer handle RPC requests
 
     def start_server(self) -> None:
         """Start the RPC Server.
@@ -301,20 +335,42 @@ class RpcServer(object):
                 time.sleep(1)
         raise ExceededRetries("Reached the maximum level of retries")
 
-    def update_consumers(self, add_consumer: int = 0):
+    def update_consumers(self):
         """Update Consumers.
             - Add more if requested.
             - Make sure the consumers are healthy.
             - Remove excess consumers.
         :return:
         """
-        # Do we need to start more consumers.
-        self.increase_consumers_by(add_consumer)
+        # Remove Consumers who have a task
+        consumers = []
+        while self.consumers:
+            consumer = self.consumers.pop()
+            if consumer.has_task:
+                if consumer.running:
+                    self.workers.append(consumer)
+            else:
+                consumers.append(consumer)
+                if not consumer.active:
+                    self.start_consumer(consumer)
+        self.consumers = consumers
 
-        # Check that all our consumers are active.
-        for consumer in self.consumers:
-            if not consumer.active:
-                self.start_consumer(consumer)
+        # Add/remove consumers as necessary
+        current_num_threads = len(self.num_consumers)
+        if current_num_threads < self.num_threads:
+            self.increase_consumers_by(self.num_threads - current_num_threads)
+        elif current_num_threads > self.num_threads:
+            self.decrease_consumers_by(current_num_threads - self.num_threads)
+
+        # Remove finished workers
+        if len(self.workers):
+            workers = []
+            while self.workers:
+                consumer = self.workers.pop()
+                if not consumer.running:
+                    workers.append(consumer)
+            self.workers = workers
+
 
     def stop_consumers(self, num: int):
         """Stop a specific number of consumers.

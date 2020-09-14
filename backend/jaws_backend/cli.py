@@ -76,12 +76,14 @@ def submit(script, job_name, cwd, out, err, max_time, memory_gb) -> None:
 @cli.command()
 @click.argument("job_id")
 def kill(job_id: int) -> None:
+    """Kill a job."""
     __rpc("kill", {"job_id": job_id})
 
 
 @cli.command()
 @click.argument("job_id")
 def check_alive(job_id: int, flatten) -> None:
+    """Check if a job is alive (queued or running)."""
     __rpc("check_alive", {"job_id": job_id})
 
 

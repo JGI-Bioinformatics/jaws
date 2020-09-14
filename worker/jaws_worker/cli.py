@@ -20,7 +20,7 @@ JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
 @click.option("--log", "log_file", default=None, help="Log file")
 @click.option("--log-level", "log_level", default="INFO", help="Logging level")
 def cli(config_file: str, log_file: str, log_level: str):
-    """JAWS-Site"""
+    """JAWS Worker"""
     # Initialize logging and configuration singletons;
     # as they are singletons, the Click context object is not needed.
     if log_file is None:
@@ -37,10 +37,10 @@ def cli(config_file: str, log_file: str, log_level: str):
 def rpc_server() -> None:
     """Start jaws-worker RPC server"""
     from jaws_worker import rpc_operations
-    from jaws_rpc.rpc_server import RpcServer
+    from jaws_worker.RpcWorkerServer import RpcWorkerServer
 
-    site_rpc_params = config.conf.get_section("LOCAL_RPC_SERVER")
-    app = RpcServer(site_rpc_params, rpc_operations.operations)
+    site_rpc_params = config.conf.get_section("SITE_RPC")
+    app = RpcWorkerServer(site_rpc_params, rpc_operations.operations)
     app.start_server()
 
 def jaws():
