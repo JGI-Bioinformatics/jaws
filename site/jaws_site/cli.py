@@ -24,8 +24,6 @@ JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
 @click.option("--log-level", "log_level", default="INFO", help="Logging level")
 def cli(config_file: str, log_file: str, log_level: str):
     """JAWS-Site"""
-    # Initialize logging and configuration singletons;
-    # as they are singletons, the Click context object is not needed.
     if log_file is None:
         log_file = os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
     logger = log.setup_logger(__package__, log_file, log_level)
