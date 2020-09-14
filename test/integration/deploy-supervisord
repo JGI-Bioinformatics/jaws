@@ -220,13 +220,6 @@ prompt=supervisor-cromwell-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
-[program:jaws-worker]
-command=$SHIM_DIR/jaws-worker-$DEPLOYMENT_NAME
-numprocs=1
-startsecs=3
-startretries=3
-autorestart=unexpected
-
 [program:jaws-cromwell]
 command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
 numprocs=1
@@ -242,7 +235,7 @@ startretries=0
 autorestart=false
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-worker,jaws-cromwell,jaws-deploy-worker
+programs=jaws-cromwell,jaws-deploy-worker
 priority=999
 EOM
 

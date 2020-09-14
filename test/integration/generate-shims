@@ -80,19 +80,6 @@ source $INSTALL_DIR/site/bin/activate
 exec jaws-site --log $LOGS_DIR/site-local-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level DEBUG local-rpc
 EOM
 
-cat <<EOM > "$SHIM_DIR/jaws-worker-$DEPLOYMENT_NAME"
-#!/usr/bin/env bash
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-
-source $INSTALL_DIR/worker/bin/activate
-export WORKER_CONFIG_FILE=$CONFIG_DIR/jaws-worker.conf
-
-exec jaws-worker --config=$CONFIG_DIR/jaws-worker.conf --debug manager -ld $LOGS_DIR
-EOM
-
 cat <<EOM > "$SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME"
 #!/usr/bin/env bash
 
@@ -112,7 +99,6 @@ chmod 777 $SITE_UPLOADS_DIR
 EOM
 
 ## SET PERMISSIONS
-chgrp "$SITE_CROMWELL_GROUP" "$SHIM_DIR/jaws-worker-$DEPLOYMENT_NAME"
 chgrp "$SITE_CROMWELL_GROUP" "$SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME"
 chmod +x "$SHIM_DIR"/*
 
