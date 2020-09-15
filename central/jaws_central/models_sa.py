@@ -49,6 +49,38 @@ class User(Base):
         return f"<User {self.id}>"
 
 
+class Workflow(Base):
+    """A workflow in the Catalog is comprised of WDL and MD files.
+    Once tagged as "released", it can't be edited or deleted, only deprecated.
+    """
+
+    __tablename__ = "workflows"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(32), nullable=False)
+    version = Column(String(16), nullable=False, default="latest")
+    user_id = Column(String(32), ForeignKey("users.id"), nullable=False)
+    created = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    updated = Column(
+        DateTime,
+        nullable=False,
+        default=same_as("created"),
+        onupdate=datetime.datetime.utcnow,
+    )
+    is_released = Column(Boolean, default=False, nullable=False)
+    is_deprecated = Column(Boolean, default=False, nullable=False)
+    wdl = Column(Text, nullable=False)
+    doc = Column(Text, nullable=False)
+    __table_args__ = (
+        UniqueConstraint("name", "version", name="_workflow_name_version_uniq_cons"),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return f"<Workflow {self.name}:{self.version}>"
+
+
 class Run(Base):
     """Analysis runs are the execution of workflows on specific inputs."""
 
