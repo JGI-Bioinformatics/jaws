@@ -19,6 +19,7 @@ Example of task processing scenario
    takes and updates tables
 
 """
+import sys
 import multiprocessing as mp
 import time
 import json
@@ -30,6 +31,7 @@ import os
 import signal
 import re
 import amqpstorm
+import psutil
 
 from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.lib.sqlstmt import JTM_SQL
@@ -451,6 +453,80 @@ class JtmCommandRunner(JtmAmqpstormBase):
             except amqpstorm.AMQPError as why:
                 logger.exception(why)
                 self.create_connection()
+            except Exception as e:
+                logger.exception(e)
+                if self.connection:
+                    self.connection.close()
+                kill_child_proc(self.ppid)
+            except KeyboardInterrupt:
+                self.connection.close()
+                break
+
+    def process_jtm_command(self, message):
+        """
+        Callback for handling task request from JtmInterface
+
+        :param message:
+        :return:
+        """
+        msg_unzipped = json.loads(zloads(message.body))
+        logger.info("New task: {}".format(msg_unzipped))
+        task_type = msg_unzipped["task_type"]
+
+        if task_type == "task":
+            self.send_reply(message, "task", process_task_request(msg_unzipped))
+        else:
+            logger.critical("Task type not found: {}".format(task_type))
+            self.send_reply(message, "Undefined task type", -1)
+
+
+class JtmNonTaskCommandRunner(JtmAmqpstormBase):
+    """
+    Process non-task command request from JtmInterface <- JTM Client
+
+    """
+
+    def start(self):
+        """Start the JtmNonTaskCommandRunner.
+        :return:
+        """
+        if not self.connection:
+            self.create_connection()
+        while True:
+            try:
+                channel = self.connection.channel()
+                channel.exchange.declare(
+                    exchange=self.jgi_jtm_main_exch,
+                    exchange_type="direct",
+                    durable=True,
+                    auto_delete=False,
+                )
+                channel.queue.declare(
+                    queue=self.jtm_status_request_q,
+                    durable=True,
+                    exclusive=False,
+                    auto_delete=True,
+                )
+                channel.queue.bind(
+                    exchange=self.jgi_jtm_main_exch,
+                    queue=self.jtm_status_request_q,
+                    routing_key=self.jtm_status_request_q,
+                )
+                channel.basic.consume(
+                    self.process_jtm_command, self.jtm_status_request_q, no_ack=False
+                )
+                channel.basic.qos(prefetch_count=1)
+                channel.start_consuming()
+                if not channel.consumer_tags:
+                    channel.close()
+            except amqpstorm.AMQPError as why:
+                logger.exception(why)
+                self.create_connection()
+            except Exception as e:
+                logger.exception(e)
+                if self.connection:
+                    self.connection.close()
+                kill_child_proc(self.ppid)
             except KeyboardInterrupt:
                 self.connection.close()
                 break
@@ -466,20 +542,28 @@ class JtmCommandRunner(JtmAmqpstormBase):
         logger.info("New task: {}".format(msg_unzipped))
         task_type = msg_unzipped["task_type"]
 
-        if task_type == "task":
-            self.send_reply(message, "task", process_task_request(msg_unzipped))
-        elif task_type == "status":
-            self.send_reply(message, "status", process_task_status(int(msg_unzipped["task_id"])))
+        # if task_type == "task":
+        #     self.send_reply(message, "task", process_task_request(msg_unzipped))
+        if task_type == "status":
+            self.send_reply(
+                message, "status", process_task_status(int(msg_unzipped["task_id"]))
+            )
         elif task_type == "resource":
-            self.send_reply(message, "resource", process_resource_log(int(msg_unzipped["task_id"])))
+            self.send_reply(
+                message, "resource", process_resource_log(int(msg_unzipped["task_id"]))
+            )
         elif task_type == "kill":
-            self.send_reply(message, "kill", process_task_kill(int(msg_unzipped["task_id"])))
+            self.send_reply(
+                message, "kill", process_task_kill(int(msg_unzipped["task_id"]))
+            )
         elif task_type == "check_manager":
             self.send_reply(message, "check_manager", 88)
         elif task_type == "check_worker":
             self.send_reply(message, "check_worker", process_check_worker(msg_unzipped))
         elif task_type == "remove_pool":
-            self.send_reply(message, "remove_pool", process_remove_pool(msg_unzipped["task_pool"]))
+            self.send_reply(
+                message, "remove_pool", process_remove_pool(msg_unzipped["task_pool"])
+            )
         else:
             logger.critical("Task type not found: {}".format(task_type))
             self.send_reply(message, "Undefined task type", -1)
@@ -1812,13 +1896,16 @@ def task_kill_proc():
 
     """
     while True:
-        db = DbSqlMysql(config=CONFIG)
-        # Get a list of task ids where canceled -> requested but status != terminated
-        tids = [
-            int(i)
-            for i in db.selectAs1Col(JTM_SQL["select_tids_runs_by_cancelled_and_wid2"])
-        ]
-        db.close()
+        try:
+            db = DbSqlMysql(config=CONFIG)
+            # Get a list of task ids where canceled -> requested but status != terminated
+            tids = [
+                int(i)
+                for i in db.selectAs1Col(JTM_SQL["select_tids_runs_by_cancelled_and_wid2"])
+            ]
+            db.close()
+        except Exception as e:
+            logger.exception(f"task_kill_proc exception in db operation: {e}")
 
         for tid in tids:
             try:
@@ -1903,43 +1990,46 @@ def slurm_worker_cleanup_proc():
 
     """
     while True:
-        db = DbSqlMysql(config=CONFIG)
-        slurm_job_id = [
-            int(i)
-            for i in db.selectAs1Col(JTM_SQL["select_slurmjid_workers_by_lifeleft"])
-        ]
-        db.close()
-        if len(slurm_job_id) > 0:
-            logger.info("Worker checking for %s" % str(slurm_job_id))
-        for j in slurm_job_id:
-            # Note: slurm dependent code!
-            cmd = "squeue -j %d" % j
-            so, _, _ = run_sh_command(cmd, log=logger, show_stdout=False)
-            if not re.search(r"\bPD\b", so) and not re.search(r"\bR\b", so):
-                logger.info("Found dead worker(s) from %s, %s" % (str(j), so))
-                logger.debug(
-                    "slurm_worker_cleanup_proc ****************************** "
-                )
-                db = DbSqlMysql(config=CONFIG)
-                # Note: update status from runs where workerId2 = (select workerId2 from workers)
-                db.execute(
-                    JTM_SQL["update_runs_status_cancelled_by_status_workerId2_jid"]
-                    % dict(slurm_jid=j,),
-                    debug=DEBUG,
-                )
-                # Delete workers
-                db.execute(
-                    JTM_SQL["delete_from_workers_by_slurmjid"] % dict(slurm_jid=j,),
-                    debug=DEBUG,
-                )
-                db.commit()
-                db.close()
-            else:
-                logger.debug("Job id {} is alive.".format(j))
+        try:
+            db = DbSqlMysql(config=CONFIG)
+            slurm_job_id = [
+                int(i)
+                for i in db.selectAs1Col(JTM_SQL["select_slurmjid_workers_by_lifeleft"])
+            ]
+            db.close()
+            if len(slurm_job_id) > 0:
+                logger.info("Worker checking for %s" % str(slurm_job_id))
+            for j in slurm_job_id:
+                # Note: slurm dependent code!
+                cmd = "squeue -j %d" % j
+                so, _, _ = run_sh_command(cmd, log=logger, show_stdout=False)
+                if not re.search(r"\bPD\b", so) and not re.search(r"\bR\b", so):
+                    logger.info("Found dead worker(s) from %s, %s" % (str(j), so))
+                    logger.debug(
+                        "slurm_worker_cleanup_proc ****************************** "
+                    )
+                    db = DbSqlMysql(config=CONFIG)
+                    # Note: update status from runs where workerId2 = (select workerId2 from workers)
+                    db.execute(
+                        JTM_SQL["update_runs_status_cancelled_by_status_workerId2_jid"]
+                        % dict(slurm_jid=j,),
+                        debug=DEBUG,
+                    )
+                    # Delete workers
+                    db.execute(
+                        JTM_SQL["delete_from_workers_by_slurmjid"] % dict(slurm_jid=j,),
+                        debug=DEBUG,
+                    )
+                    db.commit()
+                    db.close()
+                else:
+                    logger.debug("Job id {} is alive.".format(j))
 
-            time.sleep(1)
+                time.sleep(1)
 
-        time.sleep(CONFIG.configparser.getfloat("JTM", "worker_kill_interval"))
+            time.sleep(CONFIG.configparser.getfloat("JTM", "worker_kill_interval"))
+        except Exception as e:
+            logger.exception(f"slurm_worker_cleanup_proc exception: {e}")
 
 
 # -------------------------------------------------------------------------------
@@ -1953,6 +2043,18 @@ def proc_clean_exit(plist):
         if p is not None and p.is_alive():
             p.terminate()
     os._exit(1)
+
+
+# -------------------------------------------------------------------------------
+def kill_child_proc(ppid):
+    for process in psutil.process_iter():
+        _ppid = process.ppid()
+        if _ppid == ppid:
+            _pid = process.pid
+            if sys.platform == 'win32':
+                process.terminate()
+            else:
+                os.system('kill -9 {0}'.format(_pid))
 
 
 # -------------------------------------------------------------------------------
@@ -2044,7 +2146,8 @@ def manager(
         proc_clean_exit(plist)
 
     signal.signal(signal.SIGTERM, signal_handler)
-    logger.debug(f"main_proc pid = {os.getpid()}")
+    ppid = os.getpid()
+    logger.debug(f"main_proc pid = {ppid}")
 
     # Start heartbeat receiving proc
     worker_hb_queue_name = CONFIG.configparser.get("JTM", "worker_hb_q_postfix")
@@ -2095,13 +2198,29 @@ def manager(
     # Start JtmCommandRunner
     try:
         process_jtminterface_command_proc_hdl = mp.Process(
-            target=JtmCommandRunner(config=CONFIG).start
+            target=JtmCommandRunner(config=CONFIG, ppid=ppid).start
         )
         process_jtminterface_command_proc_hdl.start()
         plist.append(process_jtminterface_command_proc_hdl)
-        logger.debug(f"process_jtminterface_command_proc pid = {process_jtminterface_command_proc_hdl.pid}")
+        logger.debug(
+            f"process_jtminterface_taskcommand_proc pid = {process_jtminterface_command_proc_hdl.pid}"
+        )
     except Exception as e:
         logger.exception("JtmCommandRunner: {}".format(e))
+        proc_clean_exit(plist)
+
+    # Start JtmNonTaskCommandRunner
+    try:
+        process_jtminterface_nontaskcommand_proc_hdl = mp.Process(
+            target=JtmNonTaskCommandRunner(config=CONFIG, ppid=ppid).start
+        )
+        process_jtminterface_nontaskcommand_proc_hdl.start()
+        plist.append(process_jtminterface_nontaskcommand_proc_hdl)
+        logger.debug(
+            f"process_jtminterface_nontaskcommand_proc pid = {process_jtminterface_nontaskcommand_proc_hdl.pid}"
+        )
+    except Exception as e:
+        logger.exception("JtmNonTaskCommandRunner: {}".format(e))
         proc_clean_exit(plist)
 
     logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)

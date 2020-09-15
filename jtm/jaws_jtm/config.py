@@ -12,13 +12,13 @@ DEFAULT_CONFIG_FILE = 'jtm.ini'
 # CONSTANTS
 # -------------------------------------------------------------------------------------------
 class JtmConstants():
-    VERSION = "7.0.2"
+    VERSION = "7.1.0"
 
     # Supported cluster
     COMPUTE_RESOURCES = ["CORI",  # NERSC @ LBNL
                          "JGI",  # LBL IT @ LBNL
                          "CASCADE",  # EMSL @ PNNL
-                         "ssul_laptop"  # for testing
+                         "SSul-m69"  # for testing
                          ]
 
     # task types
@@ -93,6 +93,9 @@ class JtmConstants():
               }
 
     DEFAULT_POOL_NAME = ["small", "medium", "large", "xlarge"]
+
+    # Total number of JTM manager procs
+    JTM_NUM_PROCS = 7
 
 
 class JtmConfig(object):
