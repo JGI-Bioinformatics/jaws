@@ -50,12 +50,7 @@ cp "$SITE_CROMWELL_JAR" "$INSTALLED_CROMWELL_JAR" && \
 
 CONTAINER_CHECK=""
 if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
-  CONTAINER_CHECK="
-            LOOKUP=\$(shifterimg lookup \${docker})
-            if [[ ! \$LOOKUP ]]; then
-                shifterimg pull \${docker}
-            fi
-"
+  CONTAINER_CHECK="shifterimg lookup \${docker} || shifterimg pull \${docker}"
 fi
 
 ## GENERATE CONFIG
@@ -128,51 +123,42 @@ backend
         Int shared = 0
         """
         submit = """
-            CONSTRAINT="\${constraint}"
-            QOS="\${qos}"
-            ACCT="\${account}"
-            OPT_ARGS=""
-            [[ -n \$CONSTRAINT ]] && OPT_ARGS="\$OPT_ARGS -C \$CONSTRAINT"
-            [[ -n \$QOS ]] && OPT_ARGS="\$OPT_ARGS --qos \$QOS"
-            [[ -n \$ACCT ]] && OPT_ARGS="\$OPT_ARGS -A \$ACCT"
-            jtm --config=$JTM_CONFIG_FILE \\
-                submit \$OPT_ARGS \\
-                -cmd \'/bin/bash \${script}\' \\
-                -cl \${cluster} \\
-                -t \${time} \\
-                -c \${cpu} \\
-                -m \${mem} \\
-                -p \${poolname} \\
-                -N \${node} \\
-                -nwpn \${nwpn} \\
-                -jid \${job_name} \\
-                --shared \${shared}
-        """
+CONSTRAINT="\${constraint}"
+QOS="\${qos}"
+ACCT="\${account}"
+OPT_ARGS=""
+
+[[ -n \$CONSTRAINT ]] && OPT_ARGS="\$OPT_ARGS -C \$CONSTRAINT"
+[[ -n \$QOS ]] && OPT_ARGS="\$OPT_ARGS --qos \$QOS"
+[[ -n \$ACCT ]] && OPT_ARGS="\$OPT_ARGS -A \$ACCT"
+
+echo "Using: \`which jtm\`"
+
+echo "jtm" --config="$JTM_CONFIG_FILE" submit \$OPT_ARGS -cmd '/bin/bash \${script}' -cl \${cluster} -t \${time} -c \${cpu} -m \${mem} -p \${poolname} -N \${node} -nwpn \${nwpn} -jid \${job_name} --shared \${shared}
+
+exec jtm --config="$JTM_CONFIG_FILE" submit \$OPT_ARGS -cmd '/bin/bash \${script}' -cl \${cluster} -t \${time} -c \${cpu} -m \${mem} -p \${poolname} -N \${node} -nwpn \${nwpn} -jid \${job_name} --shared \${shared}
+"""
         kill = "jtm --config=$JTM_CONFIG_FILE kill -tid \${job_id}"
         check-alive = "jtm --config=$JTM_CONFIG_FILE isalive -tid \${job_id}"
         job-id-regex = "JTM task ID (\\\d+)"
         submit-docker = """
-            $CONTAINER_CHECK
-            CONSTRAINT="\${constraint}"
-            QOS="\${qos}"
-            ACCT="\${account}"
-            OPT_ARGS=""
-            [[ -n \$CONSTRAINT ]] && OPT_ARGS="\$OPT_ARGS -C \$CONSTRAINT"
-            [[ -n \$QOS ]] && OPT_ARGS="\$OPT_ARGS --qos \$QOS"
-            [[ -n \$ACCT ]] && OPT_ARGS="\$OPT_ARGS -A \$ACCT"
-            jtm --config=$JTM_CONFIG_FILE \\
-                submit \$OPT_ARGS \\
-                -cmd \'$SITE_JTM_WORKER_INSTALL_DIR/${SITE_CONTAINER_TYPE}_exec.sh \${docker} \${job_shell} \${script}\' \\
-                -cl \${cluster} \\
-                -t \${time} \\
-                -c \${cpu} \\
-                -m \${mem} \\
-                -p \${poolname} \\
-                -N \${node} \\
-                -nwpn \${nwpn} \\
-                -jid \${job_name} \\
-                --shared \${shared}
-        """
+$CONTAINER_CHECK
+
+CONSTRAINT="\${constraint}"
+QOS="\${qos}"
+ACCT="\${account}"
+OPT_ARGS=""
+
+[[ -n \$CONSTRAINT ]] && OPT_ARGS="\$OPT_ARGS -C \$CONSTRAINT"
+[[ -n \$QOS ]] && OPT_ARGS="\$OPT_ARGS --qos \$QOS"
+[[ -n \$ACCT ]] && OPT_ARGS="\$OPT_ARGS -A \$ACCT"
+
+echo "Using: \`which jtm\`"
+
+echo "jtm" --config="$JTM_CONFIG_FILE" submit \$OPT_ARGS -cmd '$SITE_JTM_WORKER_INSTALL_DIR/${SITE_CONTAINER_TYPE}_exec.sh \${docker} \${job_shell} \${script}' -cl \${cluster} -t \${time} -c \${cpu} -m \${mem} -p \${poolname} -N \${node} -nwpn \${nwpn} -jid \${job_name} --shared \${shared}
+
+exec jtm --config="$JTM_CONFIG_FILE" submit \$OPT_ARGS -cmd '$SITE_JTM_WORKER_INSTALL_DIR/${SITE_CONTAINER_TYPE}_exec.sh \${docker} \${job_shell} \${script}' -cl \${cluster} -t \${time} -c \${cpu} -m \${mem} -p \${poolname} -N \${node} -nwpn \${nwpn} -jid \${job_name} --shared \${shared}
+"""
         # Root directory where Cromwell writes job results in the container. This value
         # can be used to specify where the execution folder is mounted in the container.
         # it is used for the construction of the docker_cwd string in the submit-docker
@@ -209,10 +195,10 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-$SITE_LOAD_JAVA
-
 # cromwell needs jtm to be in path
 source $INSTALL_DIR/jtm/bin/activate
+
+$SITE_LOAD_JAVA
 
 test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
 cd $SITE_JTM_SCRATCH_DIR
