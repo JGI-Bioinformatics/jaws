@@ -12,6 +12,7 @@ from jaws_jtm.jtm_manager import manager as jtmmanager
 from jaws_jtm.jtm_worker import worker as jtmworker
 from jaws_jtm.lib.jtminterface import JtmInterface
 from jaws_jtm.common import logger
+from jaws_jtm.lib.run import run_sh_command
 
 
 class Mutex(click.Option):
@@ -340,7 +341,7 @@ def kill(ctx: object, task_id: int) -> int:
     :param task_id:
     :return: exit with 0 if succeeded, 1 if failed
     """
-    ret = int(JtmInterface('kill', ctx, info_tag=task_id).call(task_id=task_id))
+    ret = int(JtmInterface('kill', ctx, info_tag=task_id).call_aux(task_id=task_id))
     if ret == -88:
         logger.error("jtm kill: command timeout.")
         sys.exit(-1)
@@ -375,7 +376,7 @@ def isalive(ctx: object, task_id: int) -> int:
     :param task_id:
     :return: exit with 0 if alive, 1 if not
     """
-    ret = int(JtmInterface('status', ctx, info_tag=task_id).call(task_id=task_id))
+    ret = int(JtmInterface('status', ctx, info_tag=task_id).call_aux(task_id=task_id))
     if ret == -88:
         logger.error("jtm isalive: command timeout.")
         sys.exit(-1)
@@ -410,7 +411,7 @@ def status(ctx: object, task_id: int) -> int:
     :param task_id:
     :return:
     """
-    ret = int(JtmInterface('status', ctx, info_tag=task_id).call(task_id=task_id))
+    ret = int(JtmInterface('status', ctx, info_tag=task_id).call_aux(task_id=task_id))
     if ret == -88:
         logger.error("jtm status: command timeout.")
         sys.exit(-1)
@@ -442,8 +443,8 @@ def remove_pool(ctx: object, pool_name: str, cluster: str) -> int:
     :param cluster:
     :return: exit with 0 if succeeded, 1 if failed
     """
-    ret = int(JtmInterface('remove_pool', ctx, info_tag=pool_name).call(task_pool=pool_name,
-                                                                        jtm_host_name=cluster))
+    ret = int(JtmInterface('remove_pool', ctx, info_tag=pool_name).call_aux(task_pool=pool_name,
+                                                                            jtm_host_name=cluster))
     click.echo("removed" if ret == 1 else "failed")
     sys.exit(0) if ret > 0 else sys.exit(1)
 
@@ -477,14 +478,14 @@ def check_worker(ctx: object, pool_name: str, slurm_info: bool, cluster) -> int:
 
     if slurm_info:  # todo: return slurm job id info
         ret = JtmInterface('check_worker', ctx,
-                           info_tag=add_info).call(task_pool=pool_name,
-                                                   slurm_info=slurm_info,  # todo, not used.
-                                                   jtm_host_name=cluster)
+                           info_tag=add_info).call_aux(task_pool=pool_name,
+                                                       slurm_info=slurm_info,  # todo, not used.
+                                                       jtm_host_name=cluster)
 
     else:
         ret = int(JtmInterface('check_worker', ctx,
-                               info_tag=add_info).call(task_pool=pool_name,
-                                                       jtm_host_name=cluster))
+                               info_tag=add_info).call_aux(task_pool=pool_name,
+                                                           jtm_host_name=cluster))
         click.echo(ret)
     sys.exit(0) if ret > 0 else sys.exit(1)
 
@@ -501,11 +502,34 @@ def check_manager(ctx: object, cluster: str) -> int:
     :param cluster:
     :return: exit with 0 if a manager found, 1 if not
     """
+    config = ctx.obj["config"]
+    mode = config.configparser.get('JTM', 'run_mode')
+    ps_cmd = "ps -aef | grep -v grep | grep -v check-manager | grep jtm | grep manager "
+    if mode != "test":
+        ps_cmd += f"| grep jaws-{mode} "
+    else:
+        ps_cmd += "| grep test "
+    ps_cmd += "| wc -l"
+    logger.warning(ps_cmd)
+    num_total_procs = 0
+    try:
+        so, _, ec = run_sh_command(ps_cmd, log=logger, show_stdout=False)
+        num_total_procs = int(so.rstrip())
+        logger.warning(f"num procs = {num_total_procs}")
+    except Exception as e:
+        logger.exception(e)
+        logger.error(ps_cmd)
+        sys.exit(-1)
+    else:
+        # THIS IS THE NUM OF JTM MANAGER PROCS = 7
+        if num_total_procs != config.constants.JTM_NUM_PROCS:
+            sys.exit(1)
+
     add_info = socket.gethostname().replace(".", "_")
     if cluster:
         add_info = cluster
 
-    ret = int(JtmInterface('check_manager', ctx, info_tag=add_info).call(jtm_host_name=cluster))
+    ret = int(JtmInterface('check_manager', ctx, info_tag=add_info).call_aux(jtm_host_name=cluster))
 
     if ret is None or ret == -88:
         sys.exit(-1)
@@ -528,7 +552,7 @@ def resource_log(ctx: object, task_id: int) -> int:
     :param task_id:
     :return:  JSON string
     """
-    resource_log_file = JtmInterface('resource', ctx, info_tag=task_id).call(task_id=task_id)
+    resource_log_file = JtmInterface('resource', ctx, info_tag=task_id).call_aux(task_id=task_id)
     if resource_log_file == -88:
         logger.error("jtm resource-log: command timeout.")
         sys.exit(-1)
