@@ -6,7 +6,7 @@ import os
 import click
 import markdown
 from typing import Tuple
-from jaws_central import catalog
+from jaws_catalog import catalog
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})

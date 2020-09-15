@@ -1,0 +1,288 @@
+swagger: "2.0"
+
+info:
+  title: JAWS Workflows Catalog
+  description: Definition of REST API for JAWS Workflows (WDL) Catalog
+  version: "2.0"
+consumes:
+  - application/json
+produces:
+  - application/json
+basePath: /api/v2
+
+securityDefinitions:
+  oauth2:
+    type: oauth2
+    flow: implicit
+    authorizationUrl: http://localhost:3000/login
+    scopes:
+      uid: Registered user with unique ID
+
+security:
+  - oauth2: ['user']
+
+paths:
+
+  /wdl:
+    get:
+      operationId: jaws_catalog.catalog_rest.list_wdls
+      tags:
+        - workflow
+      summary: List shared workflows
+      description: List all available workflows
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            properties:
+              id:
+                type: integer
+                description: Unique ID
+              name:
+                type: string
+                description: Workflow name
+              version:
+                type: string
+                description: Workflow version
+        401:
+          description: Authorization information is missing or invalid.
+
+  /wdl/{name}:
+    get:
+      operationId: jaws_catalog.catalog_rest.get_versions
+      tags:
+        - workflow
+      summary: Workflow versions
+      description: Returns a workflow's available versions
+      parameters:
+        - name: name
+          in: path
+          description: name of the workflow
+          type: string
+          required: True
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            properties:
+              id:
+                type: integer
+                description: Unique ID
+              name:
+                type: string
+                description: Workflow name
+              version:
+                type: string
+                description: Workflow version
+        401:
+          description: Authorization information is missing or invalid.
+        404:
+          description: The specified record does not exist
+
+  /wdl/{name}/{version}:
+    get:
+      operationId: jaws_catalog.catalog_rest.get_wdl
+      tags:
+        - workflow
+      summary: Return a workflow's WDL file
+      description: Returns the workflow specification in WDL or CWL format
+      parameters:
+        - name: name
+          in: path
+          description: name of the workflow
+          type: string
+          required: True
+        - name: version
+          in: path
+          description: version of the workflow
+          type: string
+          required: True
+      produces:
+        - text/plain; charset=utf-8
+      responses:
+        200:
+          description: OK
+          schema:
+            type: file
+        401:
+          description: Authorization information is missing or invalid.
+        404:
+          description: The specified record does not exist
+
+    post:
+      operationId: jaws_catalog.catalog_rest.add_wdl
+      consumes:
+        - multipart/form-data
+      tags:
+        - workflow
+      summary: Add a workflow WDL
+      description: Upload WDL
+      parameters:
+        - name: wdl_file
+          in: formData
+          type: file
+          required: True
+          description: WDL file
+        - name: md_file
+          in: formData
+          type: file
+          required: True
+          description: Documentation file in markdown format
+        - name: name
+          in: path
+          type: string
+          required: True
+          description: name of workflow
+        - name: version
+          in: path
+          type: string
+          required: True
+          description: version of workflow
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+
+    put:
+      operationId: jaws_catalog.catalog_rest.update_wdl
+      tags:
+        - workflow
+      summary: Replace a workflow's WDL
+      description: Upload WDL
+      parameters:
+        - name: name
+          in: path
+          type: string
+          required: True
+          description: name of workflow
+        - name: version
+          in: path
+          type: string
+          required: True
+          description: version of workflow
+        - name: wdl_file
+          in: formData
+          type: file
+          required: False
+          description: new WDL file
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+        404:
+          description: The specified workflow does not exist.
+
+    delete:
+      operationId: jaws_catalog.catalog_rest.del_wdl
+      tags:
+        - workflow
+      summary: Delete a workflow
+      description: Delete a specific version of a workflow
+      parameters:
+        - name: name
+          in: path
+          type: string
+          required: True
+          description: name of workflow
+        - name: version
+          in: path
+          type: string
+          required: True
+          description: version of workflow
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+        404:
+          description: The specified workflow does not exist.
+
+  /wdl/{name}/{version}/doc:
+    get:
+      operationId: jaws_catalog.catalog_rest.get_doc
+      tags:
+        - workflow
+      summary: Return information about a workflow
+      description: Returns the workflow's description
+      parameters:
+        - name: name
+          in: path
+          description: name of the workflow
+          type: string
+          required: True
+        - name: version
+          in: path
+          description: version of the workflow
+          type: string
+          required: True
+      produces:
+        - text/html
+      responses:
+        200:
+          description: OK
+          schema:
+            type: file
+        401:
+          description: Authorization information is missing or invalid.
+        404:
+          description: The specified record does not exist
+
+    put:
+      operationId: jaws_catalog.catalog_rest.update_doc
+      tags:
+        - workflow
+      summary: Update a workflow's documentation
+      description: Replaces the doc file for a workflow
+      parameters:
+        - name: name
+          in: path
+          description: name of the workflow
+          type: string
+          required: True
+        - name: version
+          in: path
+          description: version of the workflow
+          type: string
+          required: True
+        - name: md_file
+          in: formData
+          description: New doc file in markdown format
+          type: file
+          required: True
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+        404:
+          description: The specified record does not exist
+
+  /wdl/{name}/{version}/release:
+    put:
+      operationId: jaws_catalog.catalog_rest.release_wdl
+      tags:
+        - workflow
+      summary: Mark a Workflow as Released
+      description: Released Workflows are immutable.
+      parameters:
+        - name: name
+          in: path
+          description: name of the workflow
+          type: string
+          required: True
+        - name: version
+          in: path
+          description: version of the workflow
+          type: string
+          required: True
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+        404:
+          description: The specified record does not exist
