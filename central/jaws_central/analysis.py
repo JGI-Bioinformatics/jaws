@@ -7,11 +7,10 @@ from datetime import datetime, timedelta
 from flask import abort, request
 import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
-import collections
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
-from jaws_central.models_fsa import db, Run, User, Run_Log, Job_Log
+from jaws_central.models_fsa import db, Run, User, Run_Log
 
 
 logger = logging.getLogger(__package__)
@@ -26,7 +25,7 @@ run_active_states = [
     "running",
     "succeeded",
     "ready",
-    "downloading"
+    "downloading",
 ]
 
 run_pre_cromwell_states = [
@@ -186,7 +185,7 @@ def list_sites(user):
     logger.info(f"User {user}: List sites")
     result = []
     for site_id in config.conf.sites.keys():
-        max_ram_gb = config.conf.get_site(site_id, 'max_ram_gb')
+        max_ram_gb = config.conf.get_site(site_id, "max_ram_gb")
         record = {
             "site_id": site_id,
             "max_ram_gb": max_ram_gb,
@@ -306,7 +305,9 @@ def submit_run(user):
         run.status = "upload failed"
         db.session.commit()
         if error.code == "NoCredException":
-            logger.warning(f"{user} submission {run.id} failed due to Globus {error.code}")
+            logger.warning(
+                f"{user} submission {run.id} failed due to Globus {error.code}"
+            )
             abort(
                 401,
                 error.message
@@ -317,17 +318,20 @@ def submit_run(user):
             )
         else:
             logger.exception(
-                f"{user} submission {run.id} failed for GlobusAPIError: {error}", exc_info=True
+                f"{user} submission {run.id} failed for GlobusAPIError: {error}",
+                exc_info=True,
             )
             abort(error.code, error.message)
     except globus_sdk.NetworkError as error:
         logger.exception(
-            f"{user} submission {run.id} failed due to NetworkError: {error}", exc_info=True
+            f"{user} submission {run.id} failed due to NetworkError: {error}",
+            exc_info=True,
         )
         abort(500, f"Network Error: {error}")
     except globus_sdk.GlobusError as error:
         logger.exception(
-            f"{user} submission {run.id} failed for unknown error: {error}", exc_info=True
+            f"{user} submission {run.id} failed for unknown error: {error}",
+            exc_info=True,
         )
         abort(500, f"Unexpected error: {error}")
     upload_task_id = transfer_result["task_id"]
@@ -497,38 +501,30 @@ def task_status(user, run_id):
     :return: The status of each task in a run.
     :rtype: dict
     """
+    logger.info(f"User {user}: Get task-status of Run {run_id}")
     run = _get_run(user, run_id)
-    logger.info(f"User {user}: Get task-status of Run {run.id}")
-    if not run:
-        abort(404, f"Run {run_id} does not exist")
-
-    # get job log entries, sorted by timestamp,
-    # save in dict in which only the latest entry is kept
+    a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
+    params = {
+        "run_id": run_id,
+        "user_id": user,
+    }
+    logger.debug(f"User {user}: get task-status {run_id}")
     try:
-        query = (
-            db.session.query(Job_Log)
-            .filter_by(run_id=run_id)
-            .order_by(Job_Log.timestamp)
-        )
-    except SQLAlchemyError as error:
-        logger.exception(f"Error selecting from job_log: {error}")
-        abort(500, f"Db error; {error}")
-    tasks = collections.OrderedDict()
-    for log in query:
-        task_name = log.task_name
-        reason = log.reason if log.reason else ""
-        tasks[task_name] = [
-            log.task_name,
-            log.attempt,
-            log.cromwell_job_id,
-            log.status_from,
-            log.status_to,
-            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason,
-            jaws_constants.task_status_msg.get(log.status_to, "")
-        ]
-        tasks.move_to_end(task_name)
-    return list(tasks.values()), 200
+        result = a_site_rpc_client.request("get_task_status", params)
+    except Exception as error:
+        error = f"RPC get_task_status failed: {error}"
+        logger.exception(error)
+        abort(500, error)
+    if "error" in result:
+        reason = f"Error retrieving task-status from {run.site_id}: {result['error']['message']}"
+        logger.error(reason)
+        abort(result["error"]["code"], result["error"]["message"])
+
+    # add explanatory text column
+    for row in result:
+        status_to = row[4]
+        row.append(jaws_constants.task_status_msg.get(status_to, ""))
+    return result, 200
 
 
 def run_log(user: str, run_id: int):
@@ -560,7 +556,7 @@ def run_log(user: str, run_id: int):
             log.status_from,
             log.status_to,
             log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason
+            reason,
         ]
         table.append(row)
     return table, 200
@@ -579,29 +575,23 @@ def task_log(user, run_id):
     """
     run = _get_run(user, run_id)
     logger.info(f"User {user}: Get task-log of Run {run.id}")
+    params = {
+        "run_id": run.id,
+        "user_id": user,
+    }
+    a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
+    logger.debug(f"User {user}: get task-log {run_id}")
     try:
-        query = (
-            db.session.query(Job_Log)
-            .filter_by(run_id=run_id)
-            .order_by(Job_Log.timestamp)
-        )
-    except SQLAlchemyError as error:
-        logger.exception(f"Error selecting from job_logs: {error}")
-        abort(500, f"Db error; {error}")
-    table = []
-    for log in query:
-        reason = log.reason if log.reason else ""
-        row = [
-            log.task_name,
-            log.attempt,
-            log.cromwell_job_id,
-            log.status_from,
-            log.status_to,
-            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason
-        ]
-        table.append(row)
-    return table, 200
+        result = a_site_rpc_client.request("get_task_log", params)
+    except Exception as error:
+        error = f"RPC get_task_log failed: {error}"
+        logger.exception(error)
+        abort(500, error)
+    if "error" in result:
+        reason = f"Error retrieving task-log from {run.site_id}: {result['error']['message']}"
+        logger.error(reason)
+        abort(result["error"]["code"], result["error"]["message"])
+    return result, 200
 
 
 def run_metadata(user, run_id):
@@ -619,6 +609,23 @@ def run_metadata(user, run_id):
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
     return _rpc_call(user, run_id, "run_metadata")
+
+
+def get_errors(user, run_id):
+    """
+    Retrieve error messages and stderr for failed tasks.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: Cromwell error messages and stderr for all failed tasks.
+    :rtype: str
+    """
+    logger.info(f"User {user}: Get errors for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "get_errors")
 
 
 def cancel_run(user, run_id):
@@ -678,7 +685,9 @@ def _cancel_run(run, reason="Cancelled by user"):
         db.session.add(log)
         db.session.commit()
     except Exception as error:
-        logger.error(f"Error while adding run log entry to cancel run {run.id}: {error}")
+        logger.error(
+            f"Error while adding run log entry to cancel run {run.id}: {error}"
+        )
 
 
 def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:

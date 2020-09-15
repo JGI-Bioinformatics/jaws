@@ -208,6 +208,29 @@ def task_log(run_id: int, fmt: str) -> None:
 
 @run.command()
 @click.argument("run_id")
+@click.option("--fmt", default="text", help="Output format: text|json")
+def errors(run_id: int, fmt: str) -> None:
+    """View error messages and stderr for failed tasks.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    """
+    url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/errors'
+    r = _get(url)
+    if r.status_code != 200:
+        raise SystemExit(r.text)
+    result = r.json()
+    if fmt == "json":
+        print(json.dumps(result, indent=4, sort_keys=True))
+    else:
+        for task_name in result:
+            print(f"{task_name}:")
+            print(result[task_name])
+            print("\n")
+
+
+@run.command()
+@click.argument("run_id")
 def cancel(run_id):
     """Cancel a run; prints whether aborting was successful or not.
 

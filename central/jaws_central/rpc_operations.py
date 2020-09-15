@@ -7,7 +7,7 @@ import sqlalchemy.exc
 from datetime import datetime
 from http.client import responses
 from jaws_central.database import Session
-from jaws_central.models_sa import Run, Run_Log, Job_Log
+from jaws_central.models_sa import Run, Run_Log
 
 
 logger = logging.getLogger(__package__)
@@ -122,70 +122,6 @@ def update_run_logs(params):
     return _success()
 
 
-def update_job_logs(params):
-    """
-    Receive a set of job status updates and save in RDb.
-    Either all updates are saved or none.
-
-    :param params: one or more status updates
-    :type params: dict
-    :return: valid JSON-RPC2 response
-    :rtype: dict
-    """
-    logs = params["logs"]
-    site_id = params["site_id"]
-    num_logs = len(logs)
-    logger.debug(f"Site {site_id} sent {num_logs} job logs")
-    err_msg = None
-
-    for log_entry in logs:
-        # INIT VARS
-        run_id = int(log_entry[0])
-        task_name = log_entry[1]
-        attempt = int(log_entry[2])
-        cromwell_job_id = int(log_entry[3])
-        status_from = log_entry[4]
-        status_to = log_entry[5]
-        timestamp = datetime.strptime(log_entry[6], "%Y-%m-%d %H:%M:%S")
-        reason = log_entry[7]
-
-        # DEFINE ROW OBJ
-        try:
-            log = Job_Log(
-                run_id=run_id,
-                task_name=task_name,
-                attempt=attempt,
-                cromwell_job_id=cromwell_job_id,
-                status_from=status_from,
-                status_to=status_to,
-                timestamp=timestamp,
-                reason=reason,
-            )
-        except Exception as error:
-            err_msg = f"Invalid job_log: {log_entry} -- {error}"
-            logger.error(err_msg)
-            continue
-
-        # INSERT OR IGNORE
-        session = Session()
-        try:
-            session.add(log)
-            session.commit()
-        except sqlalchemy.exc.IntegrityError:
-            session.rollback()
-            logger.warning(f"Run log {run_id}:{status_to} is duplicate; ignored")
-        except Exception as error:
-            session.rollback()
-            err_msg = f"Error inserting run_log: {error}"
-            logger.exception(err_msg)
-        session.close()
-
-    if err_msg:
-        return _failure(500, err_msg)
-    else:
-        return _success()
-
-
 # all RPC operations are defined in this dispatch table
 operations = {
     "update_run_logs": {
@@ -197,9 +133,5 @@ operations = {
             "status_to",
             "timestamp",
         ],
-    },
-    "update_job_logs": {
-        "function": update_job_logs,
-        "required_parameters": ["logs", "site_id"],
     },
 }

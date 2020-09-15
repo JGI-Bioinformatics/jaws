@@ -76,7 +76,7 @@ class Daemon:
         Run scheduled task(s) periodically.
         """
         schedule.every(10).seconds.do(self.main_loop)
-        schedule.every(1).seconds.do(self.send_logs)
+        schedule.every(1).seconds.do(self.send_run_status_logs)
         while True:
             schedule.run_pending()
             time.sleep(1)
@@ -116,15 +116,6 @@ class Daemon:
 
         # process logs
         self.update_job_status_logs()
-        self.session.close()
-
-    def send_logs(self):
-        """
-        Send state changes to Central.
-        """
-        self.session = Session()
-        self.send_run_status_logs()
-        self.send_job_status_logs()
         self.session.close()
 
     def _get_globus_transfer_status(self, run, task_id):
@@ -432,7 +423,8 @@ class Daemon:
 
         # get updates from datbase
         try:
-            query = self.session.query(Run_Log).filter(Run_Log.sent.is_(False)).all()
+            session = Session()
+            query = session.query(Run_Log).filter(Run_Log.sent.is_(False)).all()
         except Exception as error:
             logger.exception(f"Unable to select from run_logs: {error}")
             return
@@ -453,10 +445,10 @@ class Daemon:
             }
             # add special fields
             if log.status_to == "submitted":
-                run = self.session.query(Run).get(log.run_id)
+                run = session.query(Run).get(log.run_id)
                 data["cromwell_run_id"] = run.cromwell_run_id
             elif log.status_to == "downloading":
-                run = self.session.query(Run).get(log.run_id)
+                run = session.query(Run).get(log.run_id)
                 data["download_task_id"] = run.download_task_id
             try:
                 response = self.rpc_client.request("update_run_logs", data)
@@ -470,62 +462,7 @@ class Daemon:
                 return
             log.sent = True
             try:
-                self.session.commit()
+                session.commit()
             except Exception as error:
                 logger.exception(f"Error updating run_logs as sent: {error}")
-
-    def send_job_status_logs(self):
-        """Batch and send job logs to Central"""
-        logger.debug("Checking for complete job status log entries")
-
-        # get updates from datbase
-        try:
-            query = (
-                self.session.query(Job_Log)
-                .filter(Job_Log.run_id.isnot(None))
-                .filter(Job_Log.task_name.isnot(None))
-                .filter(Job_Log.attempt.isnot(None))
-                .filter(Job_Log.sent.is_(False))
-                .limit(100)
-                .all()
-            )
-        except Exception as error:
-            logger.error(f"Unable to select job_logs: {error}")
-            return
-        num_logs = len(query)
-        if not num_logs:
-            return
-        logger.info(f"Sending {num_logs} job logs")
-
-        # prepare table
-        logs = []
-        for log in query:
-            log_entry = [
-                log.run_id,
-                log.task_name,
-                log.attempt,
-                log.cromwell_job_id,
-                log.status_from,
-                log.status_to,
-                log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                log.reason,
-            ]
-            logs.append(log_entry)
-            log.sent = True
-
-        # send message to Central
-        data = {"logs": logs, "site_id": self.site_id}
-        try:
-            response = self.rpc_client.request("update_job_logs", data)
-        except Exception as error:
-            logger.exception(f"RPC update_job_logs error: {error}")
-            self.session.rollback()
-            return
-        if "error" in response:
-            logger.error(f"RPC update_job_logs failed: {response['error']['message']}")
-            self.session.rollback()
-            return
-        try:
-            self.session.commit()
-        except Exception as error:
-            logger.error(f"Failed to update job logs as sent: {error}")
+        session.close()
