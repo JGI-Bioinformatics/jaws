@@ -62,8 +62,8 @@ variables:
   CORI_REF_DATA_DIR: "/global/cscratch1/sd/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
-  CORI_DB_HOST: "db.mysql.prod-cattle.stable.spin.nersc.org"
-  CORI_DB_PORT: 60006
+  CORI_DB_HOST: "jaws-db.lbl.gov"
+  CORI_DB_PORT: 3306
   CORI_CLUSTER_QOS: "genepool_special"
   CORI_CLUSTER_PARTITION: ""
   CORI_CLUSTER_ACCOUNT: "fungalp"
