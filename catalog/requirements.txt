@@ -1,0 +1,16 @@
+jaws_rpc
+Click==7.0
+configparser==4.0.2
+connexion==2.4.0
+cryptography==2.8
+Flask==1.1.1
+Flask-SQLAlchemy==2.4.1
+Markdown==3.1.1
+MarkupSafe==1.1.1
+mysql-connector-python==8.0.18
+openapi-spec-validator==0.2.8
+pamqp==2.3.0
+requests==2.22.0
+soupsieve==1.9.5
+SQLAlchemy==1.3.12
+swagger-ui-bundle==0.0.6
