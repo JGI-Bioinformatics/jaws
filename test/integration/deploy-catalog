@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+
+echo "BEGIN deploy-catalog"
+
+## VERIFY REQUIRED VARS ARE DEFINED
+# If any env are undefined, try sourcing the setup script and check again.
+# Exits if any required var is undefined.
+REQUIRED_VARS="
+DEPLOYMENT_NAME
+INSTALL_DIR
+LOGS_DIR
+CONFIG_DIR
+JAWS_AUTH_PORT
+JAWS_CATALOG_PORT
+"
+RESULT=0
+for VAR in $REQUIRED_VARS; do
+  if [ -z ${!VAR+xxx} ]; then
+    echo "Missing env var, $VAR; sourcing setup script..."
+    source ./test/integration/define-env
+    RESULT=1
+    break
+  fi
+done
+if [[ $RESULT -ne 0 ]]; then
+  RESULT=0
+  for VAR in $REQUIRED_VARS; do
+    if [ -z ${!VAR+xxx} ]; then
+      echo "Missing env var: $VAR">&2
+      RESULT=1
+    fi
+  done
+fi
+[ $RESULT -eq 0 ] || exit 1
+
+
+## DELETE OLD VENV
+test -d "$INSTALL_DIR/catalog" && rm -rf "$INSTALL_DIR/catalog"
+
+## MAKE VENV
+#$LOAD_SITE_PYTHON
+module load python
+make pkg
+$SITE_PYTHON -m venv "$INSTALL_DIR/catalog" && \
+  . "$INSTALL_DIR/catalog/bin/activate" && \
+  $SITE_PYTHON_PIP install rpc/dist/* && \
+  $SITE_PYTHON_PIP install catalog/dist/* && \
+  deactivate
+
+## FIX PERMISSIONS
+function fix_perms() {
+    local GROUP="$1"
+    local DIR="$2"
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R "$GROUP" "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+fix_perms "$SITE_JAWS_GROUP" "$INSTALL_DIR/catalog"
+
+
+## GENERATE CONFIG
+cat << EOM > $CONFIG_DIR/jaws-catalog.conf
+[DB]
+dialect = mysql+mysqlconnector
+host = $JAWS_CATALOG_DB_HOST
+port = $JAWS_CATALOG_DB_PORT
+user = jaws
+password = $JAWS_CATALOG_DB_PW
+db = jaws_catalog_$DEPLOYMENT_NAME
+[HTTP]
+auth_port = $JAWS_AUTH_PORT
+rest_port = $JAWS_CATALOG_PORT
+EOM
+
+chgrp "$SITE_JAWS_GROUP" "$CONFIG_DIR/jaws-catalog.conf"
+chmod 660 "$CONFIG_DIR/jaws-catalog.conf"
+
+
+## GENERATE SHIMS
+cat <<EOM > $SHIM_DIR/jaws-catalog-$DEPLOYMENT_NAME
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALL_DIR/catalog/bin/activate
+exec jaws-catalog --log $LOGS_DIR/catalog.log --config $CONFIG_DIR/jaws-catalog.conf --log-level $LOG_LEVEL rest
+EOM
+
+cat <<EOM > $SHIM_DIR/jaws-catalog-rpc-$DEPLOYMENT_NAME
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALL_DIR/catalog/bin/activate
+exec jaws-catalog --log $LOGS_DIR/catalog-rpc.log --config $CONFIG_DIR/jaws-catalog.conf --log-level $LOG_LEVEL rpc
+EOM
+
+chgrp "$SITE_JAWS_GROUP" "$SHIM_DIR/jaws-catalog-$DEPLOYMENT_NAME"
+chmod 770 "$SHIM_DIR/jaws-catalog-$DEPLOYMENT_NAME"
+
+printf "END deploy-catalog\n\n"
