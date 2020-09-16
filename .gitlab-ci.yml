@@ -176,6 +176,17 @@ test-site:
     - pip install flake8
     - pip install pytest
     - make test-site
+test-auth:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install rpc/
+    - pip install -r auth/requirements.txt
+    - pip install flake8
+    - pip install pytest
+    - make test-auth
 test-central:
   <<: *only-default
   stage: unit-test
@@ -225,6 +236,7 @@ package:
       - rpc/dist
       - site/dist
       - client/dist
+      - auth/dist
       - central/dist
       - jtm/dist
 
