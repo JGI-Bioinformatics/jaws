@@ -190,6 +190,17 @@ test-central:
     - pip install flake8
     - pip install pytest
     - make test-central
+test-catalog:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install rpc/
+    - pip install -r catalog/requirements.txt
+    - pip install flake8
+    - pip install pytest
+    - make test-catalog
 test-client:
   <<: *only-default
   stage: unit-test
@@ -229,6 +240,7 @@ package:
       - site/dist
       - client/dist
       - central/dist
+      - catalog/dist
       - jtm/dist
 
 ## integration tests - only run on merge request
