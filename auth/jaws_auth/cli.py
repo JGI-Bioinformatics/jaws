@@ -38,7 +38,7 @@ def cli(config_file: str, log_file: str, log_level: str) -> None:
 
 
 @cli.command()
-def auth() -> None:
+def server() -> None:
     """Start JAWS OAuth server"""
     logger = logging.getLogger(__package__)
     logger.debug("Initializing OAuth server")

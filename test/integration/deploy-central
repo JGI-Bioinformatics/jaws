@@ -197,19 +197,7 @@ chmod 660 "$CONFIG_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$CONFIG_FILE"
 
 
 ## GENERATE SHIMS
-SHIM_FILE="$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME"
-cat <<EOM > "$SHIM_FILE"
-#!/usr/bin/env bash
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-source $INSTALL_DIR/central/bin/activate
-exec jaws-central --log $LOGS_DIR/central-auth.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL auth
-EOM
-chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
-
-SHIM_FILE="$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
-cat <<EOM > "$SHIM_FILE"
+cat <<EOM > $SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME
 #!/usr/bin/env bash
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
@@ -322,10 +310,8 @@ EOM
 
 fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws-central.conf"
 
-## START SERVICES
-echo "STARTING SERVICES"
-test -f $SUPERVISOR_DIR/supervisord-jaws-central.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws-central.conf start \
-jaws-central-$DEPLOYMENT_NAME:*
+chgrp "$SITE_JAWS_GROUP" "$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
+chmod 770 "$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
 
 ## DONE
 printf "END deploy-central\n\n"
