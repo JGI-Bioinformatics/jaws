@@ -1,16 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 # Seung-Jin Sul (ssul@lbl.gov)
-import os
 import shortuuid
 import json
 import uuid
-import datetime
 import pika
 
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_jtm.lib.run import make_dir
 from jaws_jtm.common import logger
 
 
@@ -20,7 +17,10 @@ class JtmInterface(object):
     """
 
     def __init__(
-        self, task_type, ctx=None, info_tag=None,
+        self,
+        task_type,
+        ctx=None,
+        info_tag=None,
     ):
         self.config = ctx.obj["config"]
         self.debug = ctx.obj["debug"]
@@ -107,9 +107,9 @@ class JtmInterface(object):
             try:
                 json_data_dict = json.loads(json_str)
             except ValueError:
-                print(json_str)
-                raise
-        else:  # jtm-status, jtm-kill, jtm-resource, jtm-check-*
+                logger.error(f"Unexpected task/command format: {json_str}")
+                return -2  # invalid task format
+        else:  # jtm-status, jtm-kill, jtm-resource, jtm-check-*, jtm-isalive
             json_data_dict = {}
 
         if "task_pool" in kw and kw["task_pool"]:
@@ -260,8 +260,8 @@ class JtmInterface(object):
         )
 
         cnt = 0
-        try:
-            while self.response is None:
+        while self.response is None:
+            try:
                 # time_limit is actually acting as interval in secs
                 # Note: suggested upper bound on processing time in seconds. The actual blocking time depends on the
                 #  granularity of the underlying ioloop. Zero means return as soon as possible.
@@ -271,33 +271,24 @@ class JtmInterface(object):
 
                 cnt += 1
                 if cnt == self.jtminterface_max_trial:
-                    make_dir(os.path.join(self.jtm_log, "jtm-submit"))
                     logger.error(
-                        "Failed to get a reply from the manager: {} {}".format(
-                            json_data_dict, self.response
-                        )
+                        "jtm submit: jtm task submit command timeout. No response from the manager."
                     )
-                    jtm_submit_log_file = os.path.join(
-                        self.jtm_log,
-                        "jtm-submit",
-                        "jtm_submit_%s"
-                        % (datetime.datetime.now().strftime("%Y-%m-%d")),
-                    )
-                    with open(jtm_submit_log_file, "a") as jslogf:
-                        jslogf.write("{} {}\n".format(json_data_dict, self.response))
-                    os.chmod(jtm_submit_log_file, 0o777)
-                    if self.response is None:  # still none?
+                    if self.response is None:  # double checking: still none?
                         self.response = -88
                     break
-        except Exception as e:
-            logger.exception("No task id returned")
-            logger.exception(e)
+            except Exception as e:
+                logger.exception("Failed to get a response from the manager.")
+                logger.exception(e)
+                self.response = -3  # failed to get task id back from the manager
+                break
 
-        return self.response
+        return self.response  # task id if everything is fine
 
     def call_aux(self, **kw):
         """
-        Handles non-task command functions for CLI
+        Handles non-task command functions for CLI:
+        isalive, kill, check-manager, check-worker, remove-pool, etc.
         :param kw:
         :return:
         """
@@ -316,9 +307,9 @@ class JtmInterface(object):
 
         # For the command like, "jtm-submit -cr 'ls' -cl cori -p test"
         if (
-                "pool" in json_data_dict
-                and "name" in json_data_dict["pool"]
-                and json_data_dict["pool"]["name"] is not None
+            "pool" in json_data_dict
+            and "name" in json_data_dict["pool"]
+            and json_data_dict["pool"]["name"] is not None
         ):
             pass
         else:
@@ -370,8 +361,8 @@ class JtmInterface(object):
         )
 
         cnt = 0
-        try:
-            while self.response is None:
+        while self.response is None:
+            try:
                 # time_limit is actually acting as interval in secs
                 # Note: suggested upper bound on processing time in seconds. The actual blocking time depends on the
                 #  granularity of the underlying ioloop. Zero means return as soon as possible.
@@ -381,27 +372,17 @@ class JtmInterface(object):
 
                 cnt += 1
                 if cnt == self.jtminterface_max_trial:
-                    make_dir(os.path.join(self.jtm_log, "jtm-submit"))
                     logger.error(
-                        "Failed to get a reply from the manager: {} {}".format(
-                            json_data_dict, self.response
-                        )
+                        "jtm submit: jtm non-task command timeout. No response from the manager."
                     )
-                    jtm_submit_log_file = os.path.join(
-                        self.jtm_log,
-                        "jtm-submit",
-                        "jtm_submit_%s"
-                        % (datetime.datetime.now().strftime("%Y-%m-%d")),
-                    )
-                    with open(jtm_submit_log_file, "a") as jslogf:
-                        jslogf.write("{} {}\n".format(json_data_dict, self.response))
-                    os.chmod(jtm_submit_log_file, 0o777)
-                    if self.response is None:  # still none?
+                    if self.response is None:  # double checking: still none?
                         self.response = -88
                     break
-        except Exception as e:
-            logger.exception("No task id returned")
-            logger.exception(e)
+            except Exception as e:
+                logger.exception("Failed to get a response from the manager.")
+                logger.exception(e)
+                self.response = -4
+                break
 
         return self.response
 
