@@ -1,0 +1,10 @@
+[JAWS]
+site_id = NERSC
+name = jaws-$DEPLOYMENT_NAME
+url = $SUPERVISOR_URL:$JAWS_REST_PORT/api/v2
+womtool_jar = $WOMTOOL_JAR
+staging_subdir = global/cscratch1/sd/jaws/jaws-$DEPLOYMENT_NAME/staging
+[GLOBUS]
+client_id = $GLOBUS_CLIENT_ID_SITE
+endpoint_id = $GLOBUS_ENDPOINT_ID_SITE
+basedir = $GLOBUS_BASE_PATH_SITE

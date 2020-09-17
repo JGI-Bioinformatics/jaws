@@ -1,0 +1,47 @@
+[JAWS]
+name = $DEPLOYMENT_NAME
+version = $JAWS_VERSION
+docs_url = $JAWS_DOCS_URL
+[DB]
+dialect = mysql+mysqlconnector
+host = $MYSQL_HOST_CENTRAL
+port = $MYSQL_PORT_CENTRAL
+user = $MYSQL_USER_CENTRAL
+password = $MYSQL_PASS_CENTRAL
+db = jaws_central_$DEPLOYMENT_NAME
+[RPC_SERVER]
+user = $RMQ_USER_CENTRAL
+password = $JAWS_CENTRAL_CORI_RMQ_PW
+host = $RMQ_HOST_CENTRAL
+port = $RMQ_PORT_CENTRAL
+vhost = jaws_$DEPLOYMENT_NAME
+queue = central_rpc
+num_threads = 5
+max_retries = 3
+[GLOBUS]
+client_id = $GLOBUS_CENTRAL_CLIENT_ID
+[HTTP]
+auth_port = $JAWS_AUTH_PORT
+rest_port = $JAWS_REST_PORT
+[SITE:JGI]
+user = $RMQ_USER_CENTRAL
+password = $JAWS_CENTRAL_CORI_RMQ_PW
+host = $RMQ_HOST_CENTRAL
+port = $RMQ_PORT_CENTRAL
+vhost = jaws_$DEPLOYMENT_NAME
+queue = lrc_rpc
+globus_endpoint = $GLOBUS_CENTRAL_ENDPOINT_SITE_JGI
+globus_basepath = $GLOBUS_CENTRAL_BASEPATH_SITE_JGI
+staging_subdir = jtm/jtm-$DEPLOYMENT_NAME/staging
+max_ram_gb = 1024
+[SITE:CORI]
+user = $RMQ_USER_CENTRAL
+password = $JAWS_CENTRAL_CORI_RMQ_PW
+host = $RMQ_HOST_CENTRAL
+port = $RMQ_PORT_CENTRA
+vhost = jaws_$DEPLOYMENT_NAME
+queue = nersc_rpc
+globus_endpoint = $GLOBUS_CENTRAL_ENDPOINT_SITE_CORI
+globus_basepath = $GLOBUS_CENTRAL_BASEPATH_SITE_CORI
+staging_subdir = /global/cscratch1/sd/jaws_jtm/jtm-$DEPLOYMENT_NAME/staging
+max_ram_gb = 2048

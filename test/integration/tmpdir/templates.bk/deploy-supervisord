@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+## VALIDATE ENVS
+#[[ -z $DEPLOYMENT_NAME ]]         && { printf "Missing DEPLOYMENT_NAME variable.\n"; exit 1; }
+#[[ -z $INSTALL_DIR ]]             && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
+#[[ -z $CONFIG_DIR ]]               && { printf "Missing CONFIG_DIR variable.\n"; exit 1; }
+#[[ -z $SHIM_DIR ]]                 && { printf "Missing SHIM_DIR variable.\n"; exit 1; }
+#[[ -z $JTM_GROUP ]]               && { printf "Missing JTM_GROUP variable.\n"; exit 1; }
+#[[ -z $JAWS_SUPERVISORD_PW ]]     && { printf "Missing JAWS_SUPERVISORD_PW variable.\n"; exit 1; }
+#[[ -z $SUPERVISOR_DIR ]]          && { printf "Missing SUPERVISOR_DIR variable.\n"; exit 1; }
+#[[ -z $SUPERVISOR_URL ]]          && { printf "Missing SUPERVISOR_URL variable.\n"; exit 1; }
+#[[ -z $JAWS_SUPERVISOR_PORT ]]    && { printf "Missing JAWS_SUPERVISOR_PORT variable.\n"; exit 1; }
+#[[ -z $JTM_SUPERVISOR_PORT ]]     && { printf "Missing JTM_SUPERVISOR_PORT variable.\n"; exit 1; }
+
+## DEFINE INSTALL VAR
+#CONFIG_DIR=$INSTALL_DIR/config
+#LOGS_DIR=$INSTALL_DIR/logs
+#JTM_WORKER_INSTALL_DIR={{site.local.jtm.worker_install_dir}}
+#CLIENT_INSTALL_DIR={{client.install_dir}
+#REF_DATA_DIR={{site.local.ref_data_dir}}
+#LOG_LEVEL="DEBUG"
+DEPLOYMENT_NAME={{deployment_name}}
+INSTALL_DIR={{site.local.install_dir}}
+SUPERVISOR_DIR=$INSTALL_DIR/jaws-supervisord-$DEPLOYMENT_NAME
+SHIM_DIR=$INSTALL_DIR/shims
+JAWS_GROUP={{site.local.group_perms.jaws}}
+JTM_GROUP={{site.local.group_perms.jtm}}
+JAWS_SUPERVISORD_PW={{site.local.supervisord.password}}
+JAWS_SUPERVISOR_PORT={{site.local.supervisord.jaws_port}}
+JTM_SUPERVISOR_PORT={{site.local.supervisord.jtm_port}}
+
+
+## CREATE DIRS
+test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
+test -d $INSTALL_DIR || mkdir $INSTALL_DIR
+test -d $SHIM_DIR || mkdir $SHIM_DIR
+chgrp $JTM_GROUP $SUPERVISOR_DIR
+chgrp $JTM_GROUP $INSTALL_DIR
+chgrp $JTM_GROUP $SHIM_DIR
+chmod 770 $SUPERVISOR_DIR
+chmod 770 $INSTALL_DIR
+chmod 770 $SHIM_DIR
+
+[[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
+[[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || python3 -m venv $SUPERVISOR_DIR/venv
+chgrp -R $JTM_GROUP $SUPERVISOR_DIR/{bin,venv}
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+function not_available() {
+  command -v $1 >/dev/null 2>&1
+}
+
+not_available "supervisord" || pip install supervisor
+
+function generate_shim() {
+prog=$1
+cat <<EOM > $SUPERVISOR_DIR/bin/$prog
+#!/usr/bin/env bash
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+$prog \$@
+EOM
+chmod +x $SUPERVISOR_DIR/bin/$prog
+}
+
+generate_shim supervisord
+generate_shim supervisorctl
+
+function fix_perms() {
+    local DIR="$1"
+    local GROUP=$2
+    chmod -R 770 "$DIR"
+    chgrp -R $GROUP "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+
+fix_perms "$SUPERVISOR_DIR" $JTM_GROUP
+
+envsubst < test/integration/deploy/templates/supervisord-config-jtm > $SUPERVISOR_DIR/supervisord-jtm.conf
+envsubst < test/integration/deploy/templates/supervisord-config-jaws > $SUPERVISOR_DIR/supervisord-jaws.conf
+
+chgrp $JAWS_GROUP "$SUPERVISOR_DIR/supervisord-jaws.conf"
+chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
+chgrp $JTM_GROUP "$SUPERVISOR_DIR/supervisord-jtm.conf"
+chmod 660 "$SUPERVISOR_DIR/supervisord-jtm.conf"

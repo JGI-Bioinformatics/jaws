@@ -1,0 +1,139 @@
+{
+    "install_dir": "$INSTALL_DIR",
+    "ref_data_dir": "",
+    "group_perms": {
+        "jaws": "",
+        "jtm": ""
+    },
+    "mysql": {
+        "db": "jaws_$DEPLOY_NAME",
+        "host": "",
+        "port": 0,
+        "user": "",
+        "password": "$SOME_ENV_VAR"
+    },
+    "rmq": {
+        "local": {
+            "host": "",
+            "port": 0,
+            "vhost": "jaws_$DEPLOY_NAME",
+            "queue": "",
+            "user": "",
+            "password": "$SOME_ENV_VAR"
+        },
+        "central": {
+            "server": {
+                "host": "",
+                "port": 0,
+                "vhost": "jaws_$DEPLOY_NAME",
+                "queue": "",
+                "user": "",
+                "password": "$SOME_ENV_VAR"
+            },
+            "client": {
+                "host": "",
+                "port": 0,
+                "vhost": "jaws_$DEPLOY_NAME",
+                "queue": "",
+                "user": "",
+                "password": "$SOME_ENV_VAR"
+            }
+        }
+    },
+    "globus": {
+        "client_id": "",
+        "endoint_id": "",
+        "staging_subdir": "",
+        "results_subdir": ""
+    },
+    "cromwell": {
+        "config_file": "",
+        "root": "",
+        "docker_root": "",
+        "workflow_log_dir": "",
+        "jar_file": "",
+        "url": "",
+        "dev": {
+            "port": 0,
+            "mysql": {
+                "url": "",
+                "user": "",
+                "password": "$SOME_ENV_VAR"
+            }
+        },
+        "staging": {
+            "port": 0,
+            "mysql": {
+                "url": "",
+                "user": "",
+                "password": "$SOME_ENV_VAR"
+            }
+        },
+        "prod": {
+            "port": 0,
+            "mysql": {
+                "url": "",
+                "user": "",
+                "password": "$SOME_ENV_VAR"
+            }
+        },
+        "deploy_name": {
+            "port": 0,
+            "mysql": {
+                "url": "",
+                "user": "",
+                "password": ""
+            }
+        }
+    },
+    "jtm": {
+        "host_name": "",
+        "user_name": "jtm_$DEPLOY_NAME",
+        "scratch": "",
+        "worker_config_file": "",
+        "worker_install_dir": "",
+        "env_activation": "",
+        "config_file": "",
+        "mysql": {
+            "db": "jtm_$DEPLOY_NAME",
+            "host": "",
+            "port": 0,
+            "user": "",
+            "password": ""
+        }
+    },
+    "supervisord": {
+        "dev": {
+            "url": "",
+            "username": "",
+            "password": "$SOME_ENV_VAR",
+            "jaws_port": 0,
+            "jtm_port": 0,
+            "install_dir": ""
+        },
+        "staging": {
+            "url": "",
+            "username": "",
+            "password": "$SOME_ENV_VAR",
+            "jaws_port": 0,
+            "jtm_port": 0,
+            "install_dir": ""
+        },
+        "prod": {
+            "url": "",
+            "username": "",
+            "password": "",
+            "jaws_port": 0,
+            "jtm_port": 0,
+            "install_dir": ""
+        },
+        "deploy_name": {
+            "url": "",
+            "username": "",
+            "password": "",
+            "jaws_port": 0,
+            "jtm_port": 0,
+            "install_dir": ""
+        }
+    }
+}

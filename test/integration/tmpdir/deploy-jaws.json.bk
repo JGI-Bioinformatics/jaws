@@ -1,0 +1,285 @@
+{
+    "deployment_name": "$DEPLOYMENT_NAME",
+    "version": "$JAWS_VERSION",
+    "docs_url": "https://jaws-docs.readthedocs.io/en/latest/",
+    "install_dir": "$INSTALL_DIR",
+    "central": {
+        "mysql": {
+            "db": "jaws_central_$DEPLOYMENT_NAME",
+            "host": "jaws-db.lbl.gov",
+            "port": 3306,
+            "user": "jaws_central",
+            "password": "$JAWS_CENTRAL_DB_PW"
+        },
+        "rmq": {
+            "host": "rmq.lbl.gov",
+            "port": 5672,
+            "vhost": "jaws_$DEPLOYMENT_NAME",
+            "queue": "central_rpc",
+            "user": "aws_central",
+            "password": "$JAWS_CENTRAL_RMQ_PW"
+        },
+        "globus": {
+            "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3"
+        },
+        "ports": {
+            "dev": {
+                "auth_port": 3001,
+                "rest_port": 5001
+            },
+            "staging": {
+                "auth_port": 3002,
+                "rest_port": 5002
+            },
+            "prod": {
+                "auth_port": 3003,
+                "rest_port": 5003
+            },
+            "local": {
+                "auth_port": 0,
+                "rest_port": 0
+            }
+        }
+    },
+    "client": {
+        "site_id": "NERSC",
+        "install_dir": "/global/cfs/projectdirs/jaws/jaws-dev",
+        "group_perms": "genome",
+        "name": "jaws-$DEPLOYMENT_NAME",
+        "rest_url": "http://cori20.nersc.gov",
+        "womtool_jar": "/global/cfs/projectdirs/jaws/cromwell/womtool.jar",
+        "staging_subdir": "global/cscratch1/sd/jaws/jaws-${DEPLOYMENT_NAME}/staging",
+        "group_permission": "genome",
+        "globus": {
+            "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3",
+            "endpoint_id": "9d6d994a-6d04-11e5-ba46-22000b92c6eca",
+            "basedir": "/"
+        }
+    },
+    "site": {
+        "cori": {
+            "install_dir": "$INSTALL_DIR",
+            "ref_data_dir": "/global/cfs/projectdirs/jaws/refdata",
+            "group_perms": {
+                "jaws": "jaws",
+                "jtm": "jaws_jtm"
+            },
+            "mysql": {
+                "db": "jaws_$DEPLOYMENT_NAME",
+                "host": "db.mysql.prod-cattle.stable.spin.nersc.org",
+                "port": 60006,
+                "user": "jaws",
+                "password": "$JAWS_SITE_CORI_DB_PW"
+            },
+            "rmq": {
+                "local": {
+                    "host": "rmq.lbl.gov",
+                    "port": 5672,
+                    "vhost": "jaws_$DEPLOYMENT_NAME",
+                    "queue": "site_rpc",
+                    "user": "jaws_nersc",
+                    "password": "$JAWS_SITE_CORI_RMQ_PW"
+                },
+                "central": {
+                    "server": {
+                        "host": "rmq.lbl.gov",
+                        "port": 5672,
+                        "vhost": "jaws_$DEPLOYMENT_NAME",
+                        "queue": "nersc_rpc",
+                        "user": "jaws_nersc",
+                        "password": "$JAWS_SITE_CORI_RMQ_PW"
+                    },
+                    "client": {
+                        "host": "rmq.lbl.gov",
+                        "port": "5672",
+                        "vhost": "jaws_$DEPLOYMENT_NAME",
+                        "queue": "central_rpc",
+                        "user": "jaws_nersc",
+                        "password": "$JAWS_SITE_CORI_RMQ_PW"
+                    }
+                }
+            },
+            "globus": {
+                "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3",
+                "endoint_id": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+                "staging_subdir": "global/cscratch1/sd/jaws_jtm/jtm-${DEPLOYMENT_NAME}/staging",
+                "results_subdir": "global/cscratch1/sd/jaws/jaws-${DEPLOYMENT_NAME}/results"
+            },
+            "cromwell": {
+                "config_file": "cromwell-cori.conf",
+                "root": "",
+                "docker_root": "/global/cscratch1/sd/jaws_jtm/jtm-${DEPLOYMENT_NAME}/cromwell-executions",
+                "workflow_log_dir": "/tmp/jaws-${DEPLOYMENT_NAME}/logs/cromwell-workflow-logs",
+                "jar_file": "/global/cfs/projectdirs/jaws/cromwell/cromwell-52.jar",
+                "url": "http://localhost",
+                "dev": {
+                    "port": 50101,
+                    "mysql": {
+                        "url": "jdbc:mysql://db.mysql.prod-cattle.stable.spin.nersc.org:60006/cromwell_${DEPLOYMENT_NAME}?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
+                        "user": "cromwell",
+                        "password": "$JAWS_CROMWELL_CORI_DB_PW"
+                    }
+                },
+                "staging": {
+                    "port": 50102,
+                    "mysql": {
+                        "url": "jdbc:mysql://db.mysql.prod-cattle.stable.spin.nersc.org:60006/cromwell_${DEPLOYMENT_NAME}?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
+                        "user": "cromwell",
+                        "password": "$JAWS_CROMWELL_CORI_DB_PW"
+                    }
+                },
+                "prod": {
+                    "port": 50103,
+                    "mysql": {
+                        "url": "jdbc:mysql://db.mysql.prod-cattle.stable.spin.nersc.org:60006/cromwell_${DEPLOYMENT_NAME}?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
+                        "user": "cromwell",
+                        "password": "$JAWS_CROMWELL_CORI_DB_PW"
+                    }
+                }
+            },
+            "jtm": {
+                "host_name": "cori",
+                "user_name": "jtm_$DEPLOYMENT_NAME",
+                "scratch": "/global/cscratch1/sd/jaws_jtm/",
+                "worker_config_file": "/global/cfs/projectdirs/jaws/jtm-${DEPLOYMENT_NAME}/jaws-jtm.conf",
+                "worker_install_dir": "/global/cfs/projectdirs/jaws_jtm/jtm-$DEPLOYMENT_NAME",
+                "env_activation": "source /global/cfs/projectdirs/jaws/jtm-${DEPLOYMENT_NAME}/bin/activate",
+                "config": "/tmp/jaws-${DEPLOYMENT_NAME}/configs/jaws-jtm.conf",
+                "mysql": {
+                    "db": "jtm_$DEPLOYMENT_NAME",
+                    "host": "db.mysql.prod-cattle.stable.spin.nersc.org",
+                    "port": 60006,
+                    "user": "jtm",
+                    "password": "$JAWS_JTM_CORI_DB_PW"
+                }
+            },
+            "supervisord": {
+                "dev": {
+                    "url": "http://cori20.nersc.gov",
+                    "username": "jaws",
+                    "password": "$JAWS_SUPERVISORD_PW",
+                    "jaws_port": 64101,
+                    "jtm_port": 64111,
+                    "install_dir": "/tmp/jaws-supervisord-$DEPLOYMENT_NAME"
+                }
+            }
+        },
+        "jgi": {
+            "cromwell": {
+                "config_file": "cromwell-jgi.conf",
+                "url": "http://localhost:50101",
+                "port": "$CROMWELL_PORT",
+                "root": "/global/scratch/jaws/dev/cromwell-executions",
+                "docker_root": "/cromwell-executions",
+                "workflow_log_dir": "/global/scratch/jaws/dev/cromwell-workflow-logs",
+                "mysql": {
+                    "url": "jdbc:mysql://jaws-db.lbl.gov:3306/cromwell_dev?rewriteBatchedStatements=true&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
+                    "user": "cromwell",
+                    "password": "$JAWS_CROMWELL_LBNL_DB_PW"
+                }
+            },
+            "supervisord": {
+                "dev": {
+                    "url": "http://lrc-services.lbl.gov",
+                    "jaws_port": 64101,
+                    "jtm_port": 64111
+                }
+            }
+        },
+        "local": {
+            "install_dir": "",
+            "ref_data_dir": "",
+            "group_perms": {
+                "jaws": "",
+                "jtm": ""
+            },
+            "mysql": {
+                "db": "",
+                "host": "",
+                "port":  "",
+                "user":  "",
+                "password":  ""
+            },
+            "rmq": {
+                "local": {
+                    "host": "",
+                    "port": "",
+                    "vhost": "",
+                    "queue": "",
+                    "user": "",
+                    "password": ""
+                },
+                "central": {
+                    "server": {
+                        "host": "",
+                        "port": "",
+                        "vhost": "",
+                        "queue": "",
+                        "user": "",
+                        "password": ""
+                    },
+                    "client": {
+                        "host": "",
+                        "port": "",
+                        "vhost": "",
+                        "queue": "",
+                        "user": "",
+                        "password": ""
+                    }
+                },
+                "globus": {
+                    "client_id": "",
+                    "endpoint_id": "",
+                    "staging_subdir": "",
+                    "results_subdir": ""
+                }
+            },
+            "cromwell": {
+                "backend": "",
+                "url": "",
+                "port": "",
+                "root": "",
+                "workflow_log_dir": "",
+                "docker_root": "",
+                "mysql": {
+                    "url": "",
+                    "user": "",
+                    "password": ""
+                }
+            },
+            "jtm": {
+                "worker_install_dir": "",
+                "host_name": "",
+                "user_name": "",
+                "scratch": "",
+                "worker_config_file": "",
+                "env_activation": "",
+                "config": "",
+                "mysql": {
+                    "db": "",
+                    "host": "",
+                    "port": "",
+                    "user": "",
+                    "password": ""
+                }
+            },
+            // "passwords": {
+            //     "central_db": "$JAWS_CENTRAL_DB_PWD",   *
+            //     "cromwell_db": "$JAWS_CROMWELL_DB_PWD",
+            //     "jaws_jtm_db": "$JAWS_JTM_DB_PWD",
+            //     "jaws_site_db": "$JAWS_SITE_DB_PWD",
+            //     "central_rmq": "$JAWS_CENTRAL_RMQ_PWD",  *
+            //     "cromwell_rmq": "$JAWS_CROMWELL_RMQ_PWD",
+            //     "jaws_jtm_rmq": "$JAWS_JTM_RMQ_PWD",
+            //     "jaws_site_rmq": "$JAWS_SITE_RMQ_PWD",
+            //     "supervisord": "$JAWS_SUPERVISORD_PWD"
+            // },
+            "supervisord": {
+                "jaws_port": "$JAWS_SUPERVISORD_PORT",
+                "jtm_port": "$JTM_SUPERVISORD_PORT",
+                "username": "",
+                "password": "$JAWS_SUPERVISORD_PWD"
+            }
+        }
+    }
+}

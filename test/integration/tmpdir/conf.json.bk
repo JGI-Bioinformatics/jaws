@@ -1,0 +1,200 @@
+{
+    "DEPLOY_NAME": "$DEPLOY_NAME",
+    "version": "$JAWS_VERSION",
+    "docs_url": "https://jaws-docs.readthedocs.io/en/latest/",
+    "install_dir": "$INSTALL_DIR",
+    "central": {
+        "mysql": {
+            "db": "jaws_central_$DEPLOY_NAME",
+            "host": "jaws-db.lbl.gov",
+            "port": 3306,
+            "user": "jaws_central",
+            "password": "$JAWS_CENTRAL_DB_PW"
+        },
+        "rmq": {
+            "host": "rmq.lbl.gov",
+            "port": 5672,
+            "vhost": "jaws_$DEPLOY_NAME",
+            "queue": "central_rpc",
+            "user": "aws_central",
+            "password": "$JAWS_CENTRAL_RMQ_PW"
+        },
+        "globus": {
+            "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3"
+        },
+        "ports": {
+            "dev": {
+                "auth_port": 3001,
+                "rest_port": 5001
+            },
+            "staging": {
+                "auth_port": 3002,
+                "rest_port": 5002
+            },
+            "prod": {
+                "auth_port": 3003,
+                "rest_port": 5003
+            },
+            "local": {
+                "auth_port": 0,
+                "rest_port": 0
+            }
+        }
+    },
+    "client": {
+        "site_id": "NERSC",
+        "install_dir": "/global/cfs/projectdirs/jaws/jaws-dev",
+        "group_perms": "genome",
+        "name": "jaws-$DEPLOY_NAME",
+        "rest_url": "http://cori20.nersc.gov",
+        "womtool_jar": "/global/cfs/projectdirs/jaws/cromwell/womtool.jar",
+        "staging_subdir": "global/cscratch1/sd/jaws/jaws-${DEPLOY_NAME}/staging",
+        "group_permission": "genome",
+        "globus": {
+            "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3",
+            "endpoint_id": "9d6d994a-6d04-11e5-ba46-22000b92c6eca",
+            "basedir": "/"
+        }
+    },
+    "site": {
+        "local": {
+            "install_dir": "",
+            "ref_data_dir": "",
+            "group_perms": {
+                "jaws": "",
+                "jtm": ""
+            },
+            "mysql": {
+                "db": "",
+                "host": "",
+                "port": 0,
+                "user": "",
+                "password": ""
+            },
+            "rmq": {
+                "local": {
+                    "host": "",
+                    "port": 0,
+                    "vhost": "",
+                    "queue": "",
+                    "user": "",
+                    "password": ""
+                },
+                "central": {
+                    "server": {
+                        "host": "",
+                        "port": 0,
+                        "vhost": "",
+                        "queue": "",
+                        "user": "",
+                        "password": ""
+                    },
+                    "client": {
+                        "host": "",
+                        "port": 0,
+                        "vhost": "",
+                        "queue": "",
+                        "user": "",
+                        "password": ""
+                    }
+                }
+            },
+            "globus": {
+                "client_id": "",
+                "endoint_id": "",
+                "staging_subdir": "",
+                "results_subdir": ""
+            },
+            "cromwell": {
+                "config_file": "",
+                "root": "",
+                "docker_root": "",
+                "workflow_log_dir": "",
+                "jar_file": "",
+                "url": "",
+                "dev": {
+                    "port": 0,
+                    "mysql": {
+                        "url": "",
+                        "user": "",
+                        "password": ""
+                    }
+                },
+                "staging": {
+                    "port": 0,
+                    "mysql": {
+                        "url": "",
+                        "user": "",
+                        "password": ""
+                    }
+                },
+                "prod": {
+                    "port": 0,
+                    "mysql": {
+                        "url": "",
+                        "user": "",
+                        "password": ""
+                    }
+                },
+                "deploy_name": {
+                    "port": 0,
+                    "mysql": {
+                        "url": "",
+                        "user": "",
+                        "password": ""
+                    }
+                }
+            },
+            "jtm": {
+                "host_name": "",
+                "user_name": "",
+                "scratch": "",
+                "worker_config_file": "",
+                "worker_install_dir": "",
+                "env_activation": "",
+                "config_file": "",
+                "mysql": {
+                    "db": "",
+                    "host": "",
+                    "port": 0,
+                    "user": "",
+                    "password": ""
+                }
+            },
+            "supervisord": {
+                "dev": {
+                    "url": "",
+                    "username": "",
+                    "password": "",
+                    "jaws_port": 0,
+                    "jtm_port": 0,
+                    "install_dir": ""
+                },
+                "staging": {
+                    "url": "",
+                    "username": "",
+                    "password": "",
+                    "jaws_port": 0,
+                    "jtm_port": 0,
+                    "install_dir": ""
+                },
+                "prod": {
+                    "url": "",
+                    "username": "",
+                    "password": "",
+                    "jaws_port": 0,
+                    "jtm_port": 0,
+                    "install_dir": ""
+                },
+                "deploy_name": {
+                    "url": "",
+                    "username": "",
+                    "password": "",
+                    "jaws_port": 0,
+                    "jtm_port": 0,
+                    "install_dir": ""
+                }
+            }
+        }
+    }
+}
