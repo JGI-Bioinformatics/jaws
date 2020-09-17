@@ -22,26 +22,6 @@ def same_as(column_name: str):
     return default_function
 
 
-class User(db.Model):
-    """Registered user"""
-
-    __tablename__ = "users"
-    id = db.Column(db.String(32), primary_key=True)
-    email = db.Column(db.String(64), nullable=False)
-    name = db.Column(db.String(64), nullable=True)
-    is_admin = db.Column(db.Boolean, nullable=False, default=False)
-    jaws_token = db.Column(db.String(256), nullable=False)
-    globus_id = db.Column(db.String(36), nullable=True)
-    auth_refresh_token = db.Column(db.String(256), nullable=True)
-    transfer_refresh_token = db.Column(db.String(256), nullable=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def __repr__(self):
-        return f"<User {self.id}>"
-
-
 class Workflow(db.Model):
     """A workflow in the Catalog is comprised of WDL and MD files.
     Once tagged as "released", it can't be edited or deleted, only deprecated.
