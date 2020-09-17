@@ -1,0 +1,296 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import stat
+import argparse
+import shutil
+import subprocess
+import json
+import jinja2
+import collections
+import pathlib
+import getpass
+import pprint
+
+ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+def get_args():
+    '''
+    Parse command line arguments.
+    '''
+    prog_desc = '''
+    '''
+    parser = argparse.ArgumentParser(description=prog_desc, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-c', '--config', dest='config_file', help='deploy-jaws json config file')
+    parser.add_argument('site_name', help='site name (e.g., cori, jgi)')
+    parser.add_argument('deploy_name', help='deployment environment (e.g., dev, staging, prod)')
+    parser.add_argument('install_dir', help='installation directory')
+
+    return parser.parse_args()
+
+
+def run_command(cmd):
+    print(cmd)
+    process = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = process.communicate()
+    exitcode = process.returncode
+
+    return stdout.decode('utf-8').strip(), stderr.decode('utf-8').strip(), exitcode
+
+
+def get_config_json_data(config_json):
+    with open(config_json) as json_file:
+        jsondata = json.load(json_file)
+    return jsondata
+
+
+def substitute_jinja_vars(config_data, input_file, output_file):
+    print(f"Reading {input_file} ...")
+    with open(input_file) as fh:
+        tp = jinja2.Template(fh.read())
+
+    print(f"Writing {output_file} ...")
+    with open(output_file, 'w') as fh:
+        fh.write(tp.render(config_data))
+
+
+def write_deployment_files(files, output_dir, json_data):
+    for output_file, template_file in files.items():
+        template_file = os.path.join(ROOT_DIR, template_file)
+        output_file = os.path.join(output_dir, output_file)
+        substitute_jinja_vars(json_data, template_file, output_file)
+
+
+def change_file_perms(path, mode='755') -> None:
+    """Recursively chmod.
+
+    :param path: Root dir
+    :type dirname: str
+    :return:
+    """
+    mode = int(f"0o{mode}", 0)
+    os.chmod(path, mode)
+
+    # If input is a file, then return
+    if os.path.isfile(path):
+        return
+
+    # If input is a path, then change permissions for all sub dirs and files.
+    for dirpath, dirnames, filenames in os.walk(path):
+        for dname in dirnames:
+            os.chmod(os.path.join(dirpath, dname), mode)
+        for fname in filenames:
+            fullpath = os.path.join(dirpath, fname)
+
+            # if file is a symlink and points to an absolute path, remove it from the dest dir, because the abs path
+            # to the src dir will no longer exists. If the symlink is relative but points to a non-existent file or dir,
+            # remove it.
+            if pathlib.Path(fullpath).is_symlink():
+                symlinkpath = os.path.join(os.path.dirname(fullpath), os.readlink(fullpath))
+                readlinkpath = os.readlink(fullpath)
+                # if symbolic link points to an absolute path, remove it.
+                if os.path.isabs(readlinkpath):
+                    os.remove(fullpath)
+                # if symbolic link is a relative path but points to a non-existent file, remove it.
+                elif not os.path.exists(symlinkpath):
+                    os.remove(fullpath)
+            else:
+                os.chmod(fullpath, mode)
+
+
+def create_deploy_config_files(install_dir, config_dir, deploy_dir, site_name, deploy_name, main_config_json_file):
+
+    #
+    # Construct json data for deploy.json file in deployment dir.
+    #
+
+    sites_data = {}
+    deployment_files = []
+
+    # Create deployment config dir.
+    deploy_config_dir = os.path.join(install_dir, "config")
+    if not os.path.exists(deploy_config_dir):
+        os.mkdir(deploy_config_dir)
+
+    # Get json data from input config file.
+    print(f"Getting json data from {main_config_json_file} and constructing data for deployment ...")
+    config_data = get_config_json_data(main_config_json_file)
+
+    if not 'config_files' in config_data:
+        raise KeyError(f"Missing config_files section in {main_config_json_file}")
+
+    if not 'site_templates' in config_data:
+        raise KeyError(f"Missing site_templates section in {main_config_json_file}")
+
+    jaws_config_files = config_data['config_files']
+    site_template_files = config_data['site_templates']
+
+    # Note: jaws_config_files dict defined in deploy.json has the format:
+    # key=name of deployment config file, value=name of template config file in the
+    # templates dir.
+
+    # For each site, get site configs from templates dir and substitute jinja vars
+    # from input json config file. Write output to deployment dir.
+    for site, site_template_json_file in site_template_files.items():
+        site_template_json_file = os.path.join(ROOT_DIR, site_template_json_file)
+        if os.path.isfile(site_template_json_file):
+            site_output_json_file = os.path.join(deploy_dir, f"site-{site}.json")
+            print(f"  Adding {site_template_json_file}")
+
+            # Read json file for given site, substitute jinja vars.
+            with open(site_template_json_file) as fh:
+                tp = jinja2.Template(fh.read())
+            site_config_data = json.loads(tp.render(config_data))
+            sites_data[site] = site_config_data['site']['local']
+
+            # Add deployment files to jaws_config_files list if this is the input site
+            if site == site_name:
+                deployment_files = site_config_data['deployment_files']
+
+    # Add site data to json data as a sub structure called sites.local.
+    # If input site name is not 'local', replace sites.local json structure with what's
+    # defined for the input site name.
+    site_local = sites_data[site_name]
+    site_local['cromwell']['deploy_name'] = site_local['cromwell'][deploy_name]
+    site_local['cromwell']['deploy_name'] = site_local['cromwell'][deploy_name]
+    site_local['supervisord']['deploy_name'] = site_local['supervisord'][deploy_name]
+    sites_data['local'] = site_local
+
+    # If input site name is 'local', meaning local dev env, set the group permissions to the current user name.
+    if site_name == 'local':
+        uname = getpass.getuser()
+        sites_data['local']['group_perms'] = {
+            'jaws': uname,
+            'jtm': uname
+        }
+
+    # Add central ports for given deployment name to generic 'deploy_name' structure
+    config_data['central']['ports']['deploy_name'] = config_data['central']['ports'][deploy_name]
+    config_data['site'] = sites_data
+
+    # Add cromwell config file defined in site json file to jaws configs.
+    jaws_config_files['cromwell.conf'] = deployment_files['cromwell.conf']
+    del deployment_files['cromwell.conf']
+
+    # Write json file to deployment dir - for user reference only.
+    with open(main_config_json_file, 'w') as fh:
+        fh.write(json.dumps(config_data, indent=4))
+
+    # For each jaws/jtm config file defined in jaws_config_files, substitute jinja vars in file and write
+    # to deployment dir.
+    print("Creating jaws config files ...")
+    write_deployment_files(jaws_config_files, config_dir, config_data)
+
+    print(f"Updating file permissions for {config_dir}...")
+    change_file_perms(config_dir, '755')
+
+    print("Creating deployment scripts ...")
+    write_deployment_files(deployment_files, deploy_dir, config_data)
+
+    print(f"Updating file permissions {deploy_dir}...")
+    change_file_perms(deploy_dir, '755')
+
+
+def create_run_script(config_json_file, input_file, output_file):
+    config_data = get_config_json_data(config_json_file)
+    substitute_jinja_vars(input_file, output_file)
+
+
+def substitute_env_vars_in_json_file(input_file, output_file):
+    '''
+    Substitute environment vars defined in config json files and copy to the
+    deployment location.
+
+    Returns:
+    file name and path of main json config
+    list containing namedtuple of site json config and site name.
+    '''
+
+    # Substitute env vars in main json config and store in deploy dir
+    print(f"Substituting environment variables in {input_file} ...")
+    cmd = f"envsubst < {input_file} > {output_file}"
+    stdout, stderr, exitcode = run_command(cmd)
+
+    if exitcode or not os.path.isfile(output_file):
+        raise FileNotFoundError(f"Cannot find {output_file} file: {stderr}")
+
+
+def check_env_vars():
+    env_vars = [
+        "JAWS_SITE_CORI_DB_PW",
+        "JAWS_SITE_CORI_RMQ_PW",
+        "JAWS_CROMWELL_CORI_DB_PW",
+        "JAWS_JTM_CORI_DB_PW",
+        "JAWS_SUPERVISORD_PW",
+        "JAWS_CENTRAL_DB_PW",
+        "JAWS_CENTRAL_RMQ_PW"
+    ]
+    retval = True
+
+    for env_var in env_vars:
+        sys.stdout.write(f"Checking for env_var ${env_var} ... ")
+        if os.environ.get(env_var, None) is None:
+            sys.stdout.write("missing\n")
+            retval = False
+        else:
+            sys.stdout.write("found\n")
+
+    return retval
+
+
+def main():
+    arg_parser = get_args()
+
+    install_dir = os.path.abspath(arg_parser.install_dir)
+    site_name = arg_parser.site_name
+    deploy_name = arg_parser.deploy_name
+    deploy_dir = os.path.join(install_dir, "deploy")
+    config_dir = os.path.join(install_dir, "config")
+
+    if arg_parser.config_file:
+        input_config_json_file = arg_parser.config_file
+    else:
+        input_config_json_file = os.path.join(ROOT_DIR, "templates", "deploy.json")
+
+    if not os.path.isfile(input_config_json_file):
+        raise FileNotFoundError(f"Cannot find {input_config_json_file} file.")
+
+    if not check_env_vars():
+        raise ValueError("Required environment variables not set. Exiting.")
+
+    # Get json data from input config json file.
+    input_config_data = get_config_json_data(input_config_json_file)
+    if not 'site_templates' in input_config_data:
+        raise KeyError(f"Missing site_templates key in {input_config_json_file}")
+
+    if not os.path.exists(install_dir):
+        os.mkdir(install_dir)
+    if not os.path.exists(deploy_dir):
+        os.mkdir(deploy_dir)
+
+    # Substitute environment vars in template config json files and store in deployment location.
+    deploy_config_json_file = os.path.join(deploy_dir, "deploy.json")
+
+    # Set env variable in order to substitute this value into the input json config file.
+    os.environ["DEPLOY_NAME"] = deploy_name
+    os.environ["INSTALL_DIR"] = install_dir
+
+    substitute_env_vars_in_json_file(input_config_json_file, deploy_config_json_file)
+
+    # Create deployment jaws config files in deployment location.
+    create_deploy_config_files(install_dir, config_dir, deploy_dir, site_name, deploy_name, deploy_config_json_file)
+
+    # Create shell script to setup and launch supervisorctl
+    print(f"\nCreate run script ...")
+    deploy_config_data = get_config_json_data(deploy_config_json_file)
+    input_run_script = os.path.join(ROOT_DIR, "templates", "run_jaws")
+    output_run_script = os.path.join(deploy_dir, "run_jaws")
+    substitute_jinja_vars(deploy_config_data, input_run_script, output_run_script)
+    change_file_perms(output_run_script, "700")
+
+
+if __name__ == '__main__':
+    main()
