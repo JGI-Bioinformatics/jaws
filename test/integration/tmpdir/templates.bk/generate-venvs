@@ -1,0 +1,70 @@
+#!/bin/bash
+
+## VALIDATE ENVS
+#[[ -z {{site.local.install_dir}}]] && { printf "Missing INSTALL_DIR variable.\n"; exit 1; }
+#[[ -z {{}}]] && { printf "Missing JAWS_GROUP variable.\n"; exit 1; }
+#[[ -z $JTM_GROUP ]] && { printf "Missing JTM_GROUP variable.\n"; exit 1; }
+#[[ -z $JTM_WORKER_INSTALL_DIR ]] && { printf "Missing JTM_WORKER_INSTALL_DIR variable.\n"; exit 1; }
+#[[ -z $CLIENT_INSTALL_DIR ]] && { printf "Missing CLIENT_INSTALL_DIR variable.\n"; exit 1; }
+#[[ -z $CLIENT_GROUP ]] && { printf "Missing CLIENT_GROUP variable.\n"; exit 1; }
+
+## DEFINE INSTALL VARS
+INSTALL_DIR={{site.local.install_dir}}
+CONFIG_DIR=$INSTALL_DIR/config
+DEPLOY_DIR=$INSTALL_DIR/deploy
+SITE_DIR=$INSTALL_DIR/site
+CENTRAL_DIR=$INSTALL_DIR/central
+JTM_DIR=$INSTALL_DIR/jtm
+JTM_WORKER_INSTALL_DIR={{site.local.jtm.worker_install_dir}}
+CLIENT_INSTALL_DIR={{client.install_dir}}
+JAWS_GROUP={{site.local.group_perms.jaws}}
+JTM_GROUP={{site.local.group_perms.jtm}}
+
+## CREATE DIRS
+test -d $INSTALL_DIR || mkdir $INSTALL_DIR
+test -d $CONFIG_DIR" || mkdir $CONFIG_DIR
+chgrp {{site.local.group_perms.jtm}} $INSTALL_DIR
+chgrp {{site.local.group_perms.jtm $CONFIG_DIR
+chmod 770 $INSTALL_DIR
+chmod 770 $CONFIG_DIR
+
+## DELETE OLD VENVS
+test -d $SITE_DIR && rm -rf $SITE_DIR
+test -d $CENTRAL_DIR && rm -rf $CENTRAL_DIR
+test -d $JTM_DIR && rm -rf $JTM_DIR
+test -d $JTM_WORKER_INSTALL_DIR && rm -rf $JTM_WORKER_INSTALL_DIR
+test -d $CLIENT_INSTALL_DIR && rm -rf $CLIENT_INSTALL_DIR
+
+## MAKE VENVS
+#module load python
+#make pkg
+#python3 -m venv $DEPLOY_DIR && . $DEPLOY_DIR/bin/activate && pip install jinja2 && pip install requests && deactivate
+python3 -m venv $SITE_DIR && . $SITE_DIR/bin/activate && pip install rpc/dist/* && pip install site/dist/* && deactivate
+python3 -m venv $CENTRAL_DIR && . $CENTRAL_DIR/bin/activate && pip install rpc/dist/* && pip install central/dist/* && deactivate
+python3 -m venv $JTM_DIR && . $JTM_DIR/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate
+python3 -m venv $JTM_WORKER_INSTALL_DIR && . $JTM_WORKER_INSTALL_DIR/bin/activate && pip install rpc/dist/* && pip install jtm/dist/* && deactivate
+python3 -m venv $CLIENT_INSTALL_DIR && . $CLIENT_INSTALL_DIR/bin/activate" && pip install client/dist/* && deactivate
+
+## PERMISSIONS
+function fix_perms() {
+    local DIR="$1"
+    local GROUP=$2
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R $GROUP "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+
+fix_perms $SITE_DIR $JAWS_GROUP
+fix_perms $CENTRAL_DIR $JAWS_GROUP
+fix_perms $JTM_DIR $JTM_GROUP
+
+## COPY CLIENT CONFIG
+#cp "{{site.local.install_dir}}/config/jaws-client.conf" "$CLIENT_INSTALL_DIR/"
+#cp "{{site.local.install_dir}}/config/jaws.conf" "$CLIENT_INSTALL_DIR/"
+#chmod 644 "$CLIENT_INSTALL_DIR/jaws-client.conf"
+#chmod 644 "$CLIENT_INSTALL_DIR/jaws.conf"
+
+# NB: chgrp doesn't work for parallel FS from gitlab-runner, so that's done in the jtm-worker-deploy and jaws-client-deploy scripts created by generate-shims instead
+#cp "$CONFIG_DIR/jaws-jtm.conf" "$JTM_WORKER_INSTALL_DIR/"
+#chmod 600 "$JTM_WORKER_INSTALL_DIR/jaws-jtm.conf"

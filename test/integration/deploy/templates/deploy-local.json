@@ -1,0 +1,82 @@
+{
+    "deploy_name": "$DEPLOY_NAME",
+    "version": "$JAWS_VERSION",
+    "docs_url": "https://jaws-docs.readthedocs.io/en/latest/",
+    "install_dir": "$INSTALL_DIR",
+    "src_dir": "$SRC_DIR",
+    "passwords": {
+        "jaws_site_cori_db": "$JAWS_SITE_CORI_DB_PW",
+        "jaws_site_cori_rmq": "$JAWS_SITE_CORI_RMQ_PW",
+        "jaws_cromwell_cori_db": "$JAWS_CROMWELL_CORI_DB_PW",
+        "jaws_jtm_cori_db": "$JAWS_JTM_CORI_DB_PW",
+        "jaws_supervisord_cori": "$JAWS_SUPERVISORD_PW"
+    },
+    "site_templates": {
+        "cori": "templates/site-cori.json",
+        "jgi": "templates/site-jgi.json",
+        "local": "templates/site-local.json"
+    },
+    "config_files": {
+        "jaws-central.conf": "templates/jaws-central.conf",
+        "jaws-client.conf": "templates/jaws-client.conf",
+        "jaws-site.conf": "templates/jaws-site.conf",
+        "jaws-jtm.conf": "templates/jaws-jtm.conf"
+    },
+    "central": {
+        "mysql": {
+            "db": "jaws_central_dev",
+            "host": "jaws-db.lbl.gov",
+            "port": 3306,
+            "user": "jaws",
+            "password": "$JAWS_CENTRAL_DB_PW"
+        },
+        "rmq": {
+            "host": "rmq.lbl.gov",
+            "port": 5672,
+            "vhost": "jaws_dev",
+            "queue": "CENTRAL",
+            "user": "jaws",
+            "password": "$JAWS_CENTRAL_RMQ_PW"
+        },
+        "globus": {
+            "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3"
+        },
+        "ports": {
+            "dev": {
+                "auth_port": 3001,
+                "rest_port": 5001
+            },
+            "staging": {
+                "auth_port": 3002,
+                "rest_port": 5002
+            },
+            "prod": {
+                "auth_port": 3003,
+                "rest_port": 5003
+            },
+            "local-dev": {
+                "auth_port": 3004,
+                "rest_port": 5004
+            },
+            "deploy_name": {
+                "auth_port": 0,
+                "rest_port": 0
+            }
+        }
+    },
+    "client": {
+        "site_id": "CORI",
+        "install_dir": "$INSTALL_DIR/jaws-${DEPLOY_NAME}",
+        "group_perms": "genome",
+        "name": "jaws-${DEPLOY_NAME}",
+        "rest_url": "http://cori20.nersc.gov",
+        "womtool_jar": "/global/cfs/projectdirs/jaws/cromwell/womtool.jar",
+        "staging_subdir": "global/cscratch1/sd/jaws/jaws-dev/staging",
+        "group_permission": "genome",
+        "globus": {
+            "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3",
+            "endpoint_id": "9d6d994a-6d04-11e5-ba46-22000b92c6eca",
+            "basedir": "/"
+        }
+    }
+}

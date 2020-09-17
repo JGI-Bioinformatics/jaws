@@ -1,0 +1,14 @@
+[inet_http_server]
+port=0.0.0.0:{{site.local.deploy_name.supervisord.jaws_port}}
+username={{site.local.supervisord.username}}
+password={{site.local.supervisord.password}}
+
+[supervisord]
+logfile={{site.local.supervisord.deploy_name.install_dir}}/jaws-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile={{site.local.supervisord.deploy_name.install_dir}}/jaws-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200

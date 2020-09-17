@@ -1,0 +1,43 @@
+[DB]
+dialect = mysql+mysqlconnector
+host = $MYSQL_HOST_SITE
+port = $MYSQL_PORT_SITE
+user = $MYSQL_USER_SITE
+password = $MYSQL_PASS_SITE
+db = jaws_$DEPLOYMENT_NAME
+[LOCAL_RPC_SERVER]
+user = $RMQ_USER_SITE
+password = $RMQ_PASS_SITE
+host = $RMQ_HOST_SITE
+port = $RMP_PORT_SITE
+vhost = jaws_$DEPLOYMENT_NAME
+queue = site_rpc
+num_threads = 5
+max_retries = 3
+[CENTRAL_RPC_SERVER]
+user = $RMQ_USER_SITE
+password = $JAWS_SITE_CORI_RMQ_PW
+host = $RMQ_HOST_SITE
+port = $RMQ_PORT_SITE
+vhost = jaws_$DEPLOYMENT_NAME
+queue = nersc_rpc
+num_threads = 5
+max_retries = 3
+[CENTRAL_RPC_CLIENT]
+user = $RMQ_USER_SITE
+password = $RMQ_PASS_SITE
+host = $RMQ_HOST_SITE
+port = $RMQ_PORT_SITE
+vhost = jaws_$DEPLOYMENT_NAME
+queue = central_rpc
+[GLOBUS]
+client_id = $GLOBUS_CLIENT_ID_SITE
+endpoint_id = $GLOBUS_ENDPOINT_ID_SITE
+root_dir = /
+default_dir = ~
+[SITE]
+id = CORI
+staging_subdirectory = $STAGING_DIR/jtm-$DEPLOYMENT_NAME/staging
+results_subdirectory = $RESULTS_DIR/jaws-$DEPLOYMENT_NAME/results
+[CROMWELL]
+url = http://localhost:50101

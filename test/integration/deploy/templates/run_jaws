@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -eo pipefail
+
+echo "BEGIN deploy-jaws"
+
+DEPLOYMENT_NAME={{deploy_name}}
+SUPERVISOR_DIR={{site.local.supervisord.deploy_name.install_dir}}
+SITE_CROMWELL_JAR={{site.local.cromwell.jar_file}}
+INSTALLED_CROMWELL_JAR={{install_dir}}/cromwell.jar
+
+# stop services
+test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
+test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf stop jaws-$DEPLOYMENT_NAME:*
+
+# COPY CROMWELL JAR
+cp "$SITE_CROMWELL_JAR" "$INSTALLED_CROMWELL_JAR" && \
+  chgrp "$SITE_JTM_GROUP" "$INSTALLED_CROMWELL_JAR" && \
+  chmod 640 "$INSTALLED_CROMWELL_JAR"
+
+# install services
+source {{install_dir}}/deploy/venv/bin/activate
+{{install_dir}}/deploy/generate-venvs
+{{install_dir}}/deploy/generate-shims
+{{install_dir}}/deploy/deploy-supervisord
+
+# start services
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws:*
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf reread
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jaws:*
+# the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
+# the gitlab-runner. no fix could by found is why that copy now happens in the jtm-worker-deploy shim created by generate-shims. this is a hack.
+#cp -a $INSTALL_DIR/configs/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf && chgrp $JTM_GROUP && chmod 640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+
+echo "END deploy-jaws"
+
