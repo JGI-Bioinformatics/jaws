@@ -19,8 +19,12 @@ class Mutex(click.Option):
     def __init__(self, *args, **kwargs):
         self.not_required_if: list = kwargs.pop("not_required_if")
         assert self.not_required_if, "'not_required_if' parameter required"
-        kwargs["help"] = (kwargs.get("help", "") + "Option is mutually exclusive with " +
-                          ", ".join(self.not_required_if) + ".").strip()
+        kwargs["help"] = (
+            kwargs.get("help", "")
+            + "Option is mutually exclusive with "
+            + ", ".join(self.not_required_if)
+            + "."
+        ).strip()
         super(Mutex, self).__init__(*args, **kwargs)
 
     def handle_parse_result(self, ctx, opts, args):
@@ -28,10 +32,13 @@ class Mutex(click.Option):
         for mutex_opt in self.not_required_if:
             if mutex_opt in opts:
                 if current_opt:
-                    raise click.UsageError("Illegal usage: '" +
-                                           str(self.name) +
-                                           "' is mutually exclusive with " +
-                                           str(mutex_opt) + ".")
+                    raise click.UsageError(
+                        "Illegal usage: '"
+                        + str(self.name)
+                        + "' is mutually exclusive with "
+                        + str(mutex_opt)
+                        + "."
+                    )
                 else:
                     self.prompt = None
         return super(Mutex, self).handle_parse_result(ctx, opts, args)
@@ -39,9 +46,7 @@ class Mutex(click.Option):
 
 @click.group()
 @click.option("--debug", is_flag=True, default=False)
-@click.option("--config", "config_file",
-              default=None,
-              help="Config INI file")
+@click.option("--config", "config_file", default=None, help="Config INI file")
 @click.pass_context
 def cli(ctx: object, debug: bool, config_file: str):
     # click.echo("Debug mode is %s" % ("on" if debug else "off"))
@@ -49,21 +54,18 @@ def cli(ctx: object, debug: bool, config_file: str):
         config = JtmConfig(config_file=config_file)
     else:
         config = JtmConfig()
-    ctx.obj = {
-        'config_file': config_file,
-        'config': config,
-        'debug': debug
-    }
+    ctx.obj = {"config_file": config_file, "config": config, "debug": debug}
 
 
 @cli.command()
-@click.option("-ld", "--log_dir",
-              help="Custom log directory",
-              required=False)
-@click.option("-r", "--show_resource_log",
-              help="Show resource usage log from worker(s)",
-              default=False,
-              is_flag=True)
+@click.option("-ld", "--log_dir", help="Custom log directory", required=False)
+@click.option(
+    "-r",
+    "--show_resource_log",
+    help="Show resource usage log from worker(s)",
+    default=False,
+    is_flag=True,
+)
 @click.pass_context
 def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
     """
@@ -78,73 +80,93 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
 
 
 @cli.command()
-@click.option("-hb", "--heartbeat_interval",
-              help="Heartbeat interval in second (default=10).",
-              type=int)
-@click.option("-jd", "--job_script_dir_name",
-              help="Slurm batch job file path.")
-@click.option("-ld", "--log_dir",
-              help="Custom log directory",
-              required=False)
-@click.option("-p", "--pool_name",
-              help="Set user-defined pool name. This should be same with task's 'pool' name.",
-              required=True)
-@click.option("-dr", "--dry_run",
-              help="Dry run. To print batch job script on screen",
-              default=False,
-              is_flag=True)
-@click.option("-j", "--slurm_job_id",
-              help="Slurm job ID",
-              type=int,
-              default=0)
-@click.option("-wt", "--worker_type",
-              help="Worker type = [manual | dynamic]",
-              default="manual",
-              type=click.Choice(["manual", "dynamic"], case_sensitive=False))
-@click.option("-cl", "--cluster",
-              help="Cluster name")
-@click.option("-ctr", "--clone_time_rate",
-              help="Cloning time rate (OBSOLETE)",
-              type=float)
-@click.option("-nwpn", "--num_worker_per_node",
-              help="Set number of workers per a node",
-              required=False,
-              type=int,
-              default=1)
-@click.option("-wi", "--worker_id",
-              help="Unique worker ID")
-@click.option("-A", "--charging_account",
-              help="Slurm charging account.")
-@click.option("-N", "--nnodes",
-              help="Slurm number of nodes",
-              type=int)
-@click.option("-c", "--cpus_per_task",
-              help="Slurm number of cpus",
-              type=int)
-@click.option("-C", "--constraint",
-              help="Slurm constraint (default: haswell)",
-              required=False)
-@click.option("-m", "--mem",
-              help="Slurm real memory required per node")
-@click.option("-mc", "--mem_per_cpu",
-              help="Slurm minimum memory required per allocated CPU")
-@click.option("-P", "--partition",
-              help="Slurm partition name")
-@click.option("-q", "--qos",
-              help="Slurm quality of service")
-@click.option("-r", "--show_resource_log",
-              help="Show resource usage log from worker(s)",
-              default=False,
-              is_flag=True)
-@click.option("-t", "--job_time",
-              help="Slurm Job time (hh:mm:ss)")
+@click.option(
+    "-hb",
+    "--heartbeat_interval",
+    help="Heartbeat interval in second (default=10).",
+    type=int,
+)
+@click.option("-jd", "--job_script_dir_name", help="Slurm batch job file path.")
+@click.option("-ld", "--log_dir", help="Custom log directory", required=False)
+@click.option(
+    "-p",
+    "--pool_name",
+    help="Set user-defined pool name. This should be same with task's 'pool' name.",
+    required=True,
+)
+@click.option(
+    "-dr",
+    "--dry_run",
+    help="Dry run. To print batch job script on screen",
+    default=False,
+    is_flag=True,
+)
+@click.option("-j", "--slurm_job_id", help="Slurm job ID", type=int, default=0)
+@click.option(
+    "-wt",
+    "--worker_type",
+    help="Worker type = [manual | dynamic]",
+    default="manual",
+    type=click.Choice(["manual", "dynamic"], case_sensitive=False),
+)
+@click.option("-cl", "--cluster", help="Cluster name")
+@click.option(
+    "-ctr", "--clone_time_rate", help="Cloning time rate (OBSOLETE)", type=float
+)
+@click.option(
+    "-nwpn",
+    "--num_worker_per_node",
+    help="Set number of workers per a node",
+    required=False,
+    type=int,
+    default=1,
+)
+@click.option("-wi", "--worker_id", help="Unique worker ID")
+@click.option("-A", "--charging_account", help="Slurm charging account.")
+@click.option("-N", "--nnodes", help="Slurm number of nodes", type=int)
+@click.option("-c", "--cpus_per_task", help="Slurm number of cpus", type=int)
+@click.option(
+    "-C", "--constraint", help="Slurm constraint (default: haswell)", required=False
+)
+@click.option("-m", "--mem", help="Slurm real memory required per node")
+@click.option(
+    "-mc", "--mem_per_cpu", help="Slurm minimum memory required per allocated CPU"
+)
+@click.option("-P", "--partition", help="Slurm partition name")
+@click.option("-q", "--qos", help="Slurm quality of service")
+@click.option(
+    "-r",
+    "--show_resource_log",
+    help="Show resource usage log from worker(s)",
+    default=False,
+    is_flag=True,
+)
+@click.option("-t", "--job_time", help="Slurm Job time (hh:mm:ss)")
 @click.pass_context
-def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_name: str,
-           pool_name: str, dry_run: bool, slurm_job_id: int, worker_type: str, cluster: str,
-           clone_time_rate: float, num_worker_per_node: int, worker_id: str,
-           charging_account: str, nnodes: int, cpus_per_task: int, constraint: str,
-           mem: str, mem_per_cpu: str, qos: str, partition: str, job_time: str,
-           show_resource_log: bool) -> int:
+def worker(
+    ctx: object,
+    heartbeat_interval: int,
+    log_dir: str,
+    job_script_dir_name: str,
+    pool_name: str,
+    dry_run: bool,
+    slurm_job_id: int,
+    worker_type: str,
+    cluster: str,
+    clone_time_rate: float,
+    num_worker_per_node: int,
+    worker_id: str,
+    charging_account: str,
+    nnodes: int,
+    cpus_per_task: int,
+    constraint: str,
+    mem: str,
+    mem_per_cpu: str,
+    qos: str,
+    partition: str,
+    job_time: str,
+    show_resource_log: bool,
+) -> int:
     """
     JTM Worker Click wrapper
 
@@ -171,63 +193,107 @@ def worker(ctx: object, heartbeat_interval: int, log_dir: str, job_script_dir_na
     :param job_time: wallclocktime
     :return:
     """
-    sys.exit(jtmworker(ctx, heartbeat_interval, log_dir, job_script_dir_name, pool_name,
-                       dry_run, slurm_job_id, worker_type, cluster,
-                       clone_time_rate, num_worker_per_node, worker_id,
-                       charging_account, nnodes, cpus_per_task, constraint, mem,
-                       mem_per_cpu, qos, partition, job_time, show_resource_log))
+    sys.exit(
+        jtmworker(
+            ctx,
+            heartbeat_interval,
+            log_dir,
+            job_script_dir_name,
+            pool_name,
+            dry_run,
+            slurm_job_id,
+            worker_type,
+            cluster,
+            clone_time_rate,
+            num_worker_per_node,
+            worker_id,
+            charging_account,
+            nnodes,
+            cpus_per_task,
+            constraint,
+            mem,
+            mem_per_cpu,
+            qos,
+            partition,
+            job_time,
+            show_resource_log,
+        )
+    )
 
 
 @cli.command()
-@click.option("-cl", "--cluster",
-              help="Cluster (site) name to run task")
-@click.option("-cmd", "--command",
-              help="User task command",
-              cls=Mutex,
-              not_required_if=['task_file'])
-@click.option("-f", "--task_file",
-              help="User task in a json file",
-              cls=Mutex,
-              not_required_if=['command'])
-@click.option("-A", "--account",
-              help="Slurm charging account name",)
-@click.option("-c", "--ncpu",
-              help="Slurm number of cores",
-              type=int)
-@click.option("-C", "--constraint",
-              help="Set the architecture for SLURM request")
-@click.option("-jid", "--cromwell_job_id",
-              help="Unique Cromwell job id with step name",
-              required=False)
-@click.option("-m", "--memory",
-              help="Slurm memory request per node")
-@click.option("-N", "--nnodes",
-              help="Slurm number of nodes for the pool. Default=1.",
-              type=int,
-              default=1)
-@click.option("-nwpn", "--num_worker_per_node",
-              help="Number of worker per node. Default=1",
-              required=False,
-              type=int,
-              default=1)
-@click.option("-p", "--pool_name",
-              help="User pool name",
-              required=True)
-@click.option("-P", "--partition",
-              help="Slurm partition name")
-@click.option("-q", "--qos",
-              help="Set the QOS for SLURM request")
-@click.option("-s", "--shared",
-              help="Shared/non-shared worker",
-              type=int,
-              default=1)
-@click.option("-t", "--job_time",
-              help="Job time (hh:mm:ss)",)
+@click.option("-cl", "--cluster", help="Cluster (site) name to run task")
+@click.option(
+    "-cmd",
+    "--command",
+    help="User task command",
+    cls=Mutex,
+    not_required_if=["task_file"],
+)
+@click.option(
+    "-f",
+    "--task_file",
+    help="User task in a json file",
+    cls=Mutex,
+    not_required_if=["command"],
+)
+@click.option(
+    "-A",
+    "--account",
+    help="Slurm charging account name",
+)
+@click.option("-c", "--ncpu", help="Slurm number of cores", type=int)
+@click.option("-C", "--constraint", help="Set the architecture for SLURM request")
+@click.option(
+    "-jid",
+    "--cromwell_job_id",
+    help="Unique Cromwell job id with step name",
+    required=False,
+)
+@click.option("-m", "--memory", help="Slurm memory request per node")
+@click.option(
+    "-N",
+    "--nnodes",
+    help="Slurm number of nodes for the pool. Default=1.",
+    type=int,
+    default=1,
+)
+@click.option(
+    "-nwpn",
+    "--num_worker_per_node",
+    help="Number of worker per node. Default=1",
+    required=False,
+    type=int,
+    default=1,
+)
+@click.option("-p", "--pool_name", help="User pool name", required=True)
+@click.option("-P", "--partition", help="Slurm partition name")
+@click.option("-q", "--qos", help="Set the QOS for SLURM request")
+@click.option("-s", "--shared", help="Shared/non-shared worker", type=int, default=1)
+@click.option(
+    "-t",
+    "--job_time",
+    help="Job time (hh:mm:ss)",
+)
 @click.pass_context
-def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: str, account: str,
-           ncpu: int, constraint: str,
-           num_worker_per_node: int, cromwell_job_id: str, memory: str, nnodes: int,
-           qos: str, partition: str, shared: int, job_time: str) -> int:
+def submit(
+    ctx: object,
+    task_file: str,
+    cluster: str,
+    command: str,
+    pool_name: str,
+    account: str,
+    ncpu: int,
+    constraint: str,
+    num_worker_per_node: int,
+    cromwell_job_id: str,
+    memory: str,
+    nnodes: int,
+    qos: str,
+    partition: str,
+    shared: int,
+    job_time: str,
+) -> int:
     """
     JtmInterface returns 'task_id' if successfully queued
     jtm submit exits with code 0 if successfully submitted
@@ -255,76 +321,95 @@ def submit(ctx: object, task_file: str, cluster: str, command: str, pool_name: s
     :param job_time:
     :return: exit with 0 if succeeded, 1 if failed
     """
-    if ctx.obj['debug']:
+    ret_code = 0
+    if ctx.obj["debug"]:
         click.echo("Debug mode")
 
     if shared is None or shared == 1:
         logger.error("jtm submit: invalid task or runtime definition. ")
         logger.error("            Only shared=0 is supported.")
-        return 1
+        ret_code = 1
 
     cluster = cluster.lower()
     if cluster is None or cluster not in ("cori", "jgi", "cascade"):
         logger.error("jtm submit: invalid task or runtime definition: ")
-        logger.error("            Only 'cori', 'jgi', 'cascade' are supported as cluster name")
-        return 1
+        logger.error(
+            "            Only 'cori', 'jgi', 'cascade' are supported as cluster name"
+        )
+        ret_code = 1
 
     def is_time_format(input: str):
         try:
-            time.strptime(input, '%H:%M:%S')
+            time.strptime(input, "%H:%M:%S")
             return True
         except ValueError:
             return False
 
     if time is None or not is_time_format(job_time):
         logger.error("jtm submit: invalid task or runtime definition: ")
-        logger.error(f"            The job time is not in an expected format (%H:%M:%S): {job_time}")
-        return 1
+        logger.error(
+            f"            The job time is not in an expected format (%H:%M:%S): {job_time}"
+        )
+        ret_code = 1
 
     add_info = pool_name
-    ret = JtmInterface('task', ctx, info_tag=add_info).call(task_file=task_file,
-                                                            task_json=command,
-                                                            task_id=0,
-                                                            jtm_host_name=cluster,
-                                                            job_time=job_time,
-                                                            node_mem=memory,
-                                                            num_core=ncpu,
-                                                            pool_name=pool_name,
-                                                            shared=shared,
-                                                            nwpn=num_worker_per_node,
-                                                            node=nnodes,
-                                                            job_id=cromwell_job_id,
-                                                            constraint=constraint,
-                                                            qos=qos,
-                                                            partition=partition,
-                                                            account=account)
+    ret = JtmInterface("task", ctx, info_tag=add_info).call(
+        task_file=task_file,
+        task_json=command,
+        task_id=0,
+        jtm_host_name=cluster,
+        job_time=job_time,
+        node_mem=memory,
+        num_core=ncpu,
+        pool_name=pool_name,
+        shared=shared,
+        nwpn=num_worker_per_node,
+        node=nnodes,
+        job_id=cromwell_job_id,
+        constraint=constraint,
+        qos=qos,
+        partition=partition,
+        account=account,
+    )
 
     if ret is None:
         logger.error("jtm submit: invalid task or runtime definition.")
-        return 1
+        ret_code = 1
     else:
         try:
+            # ret is str type so convert it
             ret = int(ret)
-        except Exception as e:
-            logger.exception(e)
-            logger.error(f"Unexpected return value: {ret}")
-            return 1
-    if ret == -5:
-        logger.error("jtm submit: invalid task or runtime definition.")
-        return 1
-    elif ret == -88:
-        logger.error("jtm submit: command timeout.")
-        return -1
+        except TypeError as e:
+            logger.exception(f"Unexpected return value from the manager: {ret} {e}")
+            sys.exit(1)
 
+    if ret == -2:
+        logger.error("jtm submit: invalid task.")
+        ret_code = 1
+    elif ret == -3:
+        logger.error(
+            "jtm submit: failed to submit a task. No task ID returned from the manager."
+        )
+        ret_code = 1
+    elif ret == -4:
+        logger.error(
+            "jtm non-task command: failed to get a response from the manager for non-task commands"
+        )
+        ret_code = 1
+    elif ret == -5:
+        logger.error("jtm submit: invalid task or runtime definition.")
+        ret_code = 1
+    elif ret == -88:
+        logger.error("jtm submit: jtm command timeout.")
+        ret_code = -1
+
+    # IMPORTANT: this line will regexed by Cromwell to extract a valid task ID
     click.echo("JTM task ID %d" % ret)
-    return 0 if ret != 0 else 1
+    sys.exit(ret_code)
 
 
 @cli.command()
-@click.option("-tid", "--task_id",
-              help="JTM task ID",
-              type=int,
-              required=True)
+@click.option("-tid", "--task_id", help="JTM task ID", type=int, required=True)
 @click.pass_context
 def kill(ctx: object, task_id: int) -> int:
     """
@@ -341,7 +426,12 @@ def kill(ctx: object, task_id: int) -> int:
     :param task_id:
     :return: exit with 0 if succeeded, 1 if failed
     """
-    ret = int(JtmInterface('kill', ctx, info_tag=task_id).call_aux(task_id=task_id))
+    try:
+        ret = int(JtmInterface("kill", ctx, info_tag=task_id).call_aux(task_id=task_id))
+    except TypeError as e:
+        logger.exception(f"jtm kill: Unexpected return value from the manager: {ret} {e}")
+        sys.exit(1)
+
     if ret == -88:
         logger.error("jtm kill: command timeout.")
         sys.exit(-1)
@@ -352,10 +442,7 @@ def kill(ctx: object, task_id: int) -> int:
 
 
 @cli.command()
-@click.option("-tid", "--task_id",
-              help="JTM task ID",
-              type=int,
-              required=True)
+@click.option("-tid", "--task_id", help="JTM task ID", type=int, required=True)
 @click.pass_context
 def isalive(ctx: object, task_id: int) -> int:
     """
@@ -376,7 +463,12 @@ def isalive(ctx: object, task_id: int) -> int:
     :param task_id:
     :return: exit with 0 if alive, 1 if not
     """
-    ret = int(JtmInterface('status', ctx, info_tag=task_id).call_aux(task_id=task_id))
+    try:
+        ret = int(JtmInterface("status", ctx, info_tag=task_id).call_aux(task_id=task_id))
+    except TypeError as e:
+        logger.exception(f"jtm isalive: Unexpected return value from the manager: {ret} {e}")
+        sys.exit(1)
+
     if ret == -88:
         logger.error("jtm isalive: command timeout.")
         sys.exit(-1)
@@ -389,10 +481,7 @@ def isalive(ctx: object, task_id: int) -> int:
 
 
 @cli.command()
-@click.option("-tid", "--task_id",
-              help="JTM task ID",
-              type=int,
-              required=True)
+@click.option("-tid", "--task_id", help="JTM task ID", type=int, required=True)
 @click.pass_context
 def status(ctx: object, task_id: int) -> int:
     """
@@ -411,21 +500,25 @@ def status(ctx: object, task_id: int) -> int:
     :param task_id:
     :return:
     """
-    ret = int(JtmInterface('status', ctx, info_tag=task_id).call_aux(task_id=task_id))
+    try:
+        ret = int(JtmInterface("status", ctx, info_tag=task_id).call_aux(task_id=task_id))
+    except TypeError as e:
+        logger.exception(f"jtm status: Unexpected return value from the manager: {ret} {e}")
+        sys.exit(1)
+
     if ret == -88:
         logger.error("jtm status: command timeout.")
         sys.exit(-1)
-    reversed_task_status = dict(map(reversed, ctx.obj['config'].constants.TASK_STATUS.items()))
+    reversed_task_status = dict(
+        map(reversed, ctx.obj["config"].constants.TASK_STATUS.items())
+    )
     click.echo(reversed_task_status[ret])
     sys.exit(0) if ret in [0, 1, 2, 3] else sys.exit(1)
 
 
 @cli.command()
-@click.option("-p", "--pool_name",
-              help="User worker pool name",
-              required=True)
-@click.option("-cl", "--cluster",
-              help="Cluster (site) name to run task")
+@click.option("-p", "--pool_name", help="User worker pool name", required=True)
+@click.option("-cl", "--cluster", help="Cluster (site) name to run task")
 @click.pass_context
 def remove_pool(ctx: object, pool_name: str, cluster: str) -> int:
     """
@@ -443,22 +536,30 @@ def remove_pool(ctx: object, pool_name: str, cluster: str) -> int:
     :param cluster:
     :return: exit with 0 if succeeded, 1 if failed
     """
-    ret = int(JtmInterface('remove_pool', ctx, info_tag=pool_name).call_aux(task_pool=pool_name,
-                                                                            jtm_host_name=cluster))
+    try:
+        ret = int(
+            JtmInterface("remove_pool", ctx, info_tag=pool_name).call_aux(
+                task_pool=pool_name, jtm_host_name=cluster
+            )
+        )
+    except TypeError as e:
+        logger.exception(f"jtm remove_pool: Unexpected return value from the manager: {ret} {e}")
+        sys.exit(1)
+
     click.echo("removed" if ret == 1 else "failed")
     sys.exit(0) if ret > 0 else sys.exit(1)
 
 
 @cli.command()
-@click.option("-p", "--pool_name",
-              help="User worker pool name",
-              required=True)
-@click.option("-s", "--slurm_info",
-              help="Show SLURM Job Id information",
-              default=False,
-              show_default=True)
-@click.option("-cl", "--cluster",
-              help="Cluster (site) name to run task")
+@click.option("-p", "--pool_name", help="User worker pool name", required=True)
+@click.option(
+    "-s",
+    "--slurm_info",
+    help="Show SLURM Job Id information",
+    default=False,
+    show_default=True,
+)
+@click.option("-cl", "--cluster", help="Cluster (site) name to run task")
 @click.pass_context
 def check_worker(ctx: object, pool_name: str, slurm_info: bool, cluster) -> int:
     """
@@ -477,22 +578,29 @@ def check_worker(ctx: object, pool_name: str, slurm_info: bool, cluster) -> int:
         add_info = cluster
 
     if slurm_info:  # todo: return slurm job id info
-        ret = JtmInterface('check_worker', ctx,
-                           info_tag=add_info).call_aux(task_pool=pool_name,
-                                                       slurm_info=slurm_info,  # todo, not used.
-                                                       jtm_host_name=cluster)
+        ret = JtmInterface("check_worker", ctx, info_tag=add_info).call_aux(
+            task_pool=pool_name,
+            slurm_info=slurm_info,  # todo, not used.
+            jtm_host_name=cluster,
+        )
 
     else:
-        ret = int(JtmInterface('check_worker', ctx,
-                               info_tag=add_info).call_aux(task_pool=pool_name,
-                                                           jtm_host_name=cluster))
+        try:
+            ret = int(
+                JtmInterface("check_worker", ctx, info_tag=add_info).call_aux(
+                    task_pool=pool_name, jtm_host_name=cluster
+                )
+            )
+        except TypeError as e:
+            logger.exception(f"jtm check_worker: Unexpected return value from the manager: {ret} {e}")
+            sys.exit(1)
+
         click.echo(ret)
     sys.exit(0) if ret > 0 else sys.exit(1)
 
 
 @cli.command()
-@click.option("-cl", "--cluster",
-              help="Cluster (site) name to run task")
+@click.option("-cl", "--cluster", help="Cluster (site) name to run task")
 @click.pass_context
 def check_manager(ctx: object, cluster: str) -> int:
     """
@@ -503,19 +611,21 @@ def check_manager(ctx: object, cluster: str) -> int:
     :return: exit with 0 if a manager found, 1 if not
     """
     config = ctx.obj["config"]
-    mode = config.configparser.get('JTM', 'run_mode')
+    mode = config.configparser.get("JTM", "run_mode")
     ps_cmd = "ps -aef | grep -v grep | grep -v check-manager | grep jtm | grep manager "
     if mode != "test":
         ps_cmd += f"| grep jaws-{mode} "
     else:
         ps_cmd += "| grep test "
     ps_cmd += "| wc -l"
-    logger.warning(ps_cmd)
     num_total_procs = 0
     try:
         so, _, ec = run_sh_command(ps_cmd, log=logger, show_stdout=False)
         num_total_procs = int(so.rstrip())
-        logger.warning(f"num procs = {num_total_procs}")
+    except TypeError as te:
+        logger.exception(te)
+        logger.error(so)
+        sys.exit(-2)
     except Exception as e:
         logger.exception(e)
         logger.error(ps_cmd)
@@ -528,8 +638,15 @@ def check_manager(ctx: object, cluster: str) -> int:
     add_info = socket.gethostname().replace(".", "_")
     if cluster:
         add_info = cluster
-
-    ret = int(JtmInterface('check_manager', ctx, info_tag=add_info).call_aux(jtm_host_name=cluster))
+    try:
+        ret = int(
+            JtmInterface("check_manager", ctx, info_tag=add_info).call_aux(
+                jtm_host_name=cluster
+            )
+        )
+    except TypeError as e:
+        logger.exception(f"jtm check_manager: Unexpected return value from the manager: {ret} {e}")
+        sys.exit(1)
 
     if ret is None or ret == -88:
         sys.exit(-1)
@@ -538,10 +655,7 @@ def check_manager(ctx: object, cluster: str) -> int:
 
 
 @cli.command()
-@click.option("-tid", "--task_id",
-              help="JTM task ID",
-              type=int,
-              required=True)
+@click.option("-tid", "--task_id", help="JTM task ID", type=int, required=True)
 @click.pass_context
 def resource_log(ctx: object, task_id: int) -> int:
     """
@@ -552,43 +666,54 @@ def resource_log(ctx: object, task_id: int) -> int:
     :param task_id:
     :return:  JSON string
     """
-    resource_log_file = JtmInterface('resource', ctx, info_tag=task_id).call_aux(task_id=task_id)
-    if resource_log_file == -88:
+    resource_log_file = JtmInterface("resource", ctx, info_tag=task_id).call_aux(
+        task_id=task_id
+    )
+    if type(resource_log_file) == 'int' and resource_log_file == -88:
         logger.error("jtm resource-log: command timeout.")
         sys.exit(-1)
-    # print resource_log_file
+    elif resource_log_file is None or resource_log_file == "None":
+        logger.error("jtm resource-log: invalid resource log file name")
+        sys.exit(-1)
+
     # http://www.andymboyle.com/2011/11/02/quick-csv-to-json-parser-in-python/
     if os.path.isfile(resource_log_file):
-        f = open(resource_log_file, 'rU')
-        reader = csv.DictReader(f, fieldnames=(
-            "child_pid",  # 1
-            "clone_time_rate",  # 2
-            "cpu_load",  # 3
-            "end_date",  # 4
-            "host_name",  # 5
-            "ip_address",  # 6
-            "job_time",  # 7
-            "life_left",  # 8
-            "mem_per_core",  # 9
-            "mem_per_node",  # 10
-            "num_cores",  # 11
-            "num_tasks",  # 12
-            "num_workers_on_node",  # 13
-            "perc_mem_used",  # 14
-            "pool_name",  # 15
-            "ret_msg",  # 16
-            "rmem_usage",  # 17
-            "root_pid",  # 18
-            "run_time",  # 19
-            "slurm_jobid",  # 20
-            "task_id",  # 21
-            "vmem_usage",  # 22
-            "worker_id",  # 23
-            "worker_type",  # 24
-            "jtm_host_name",  # 25
-            "nwpn"  # 26
-        ))
-        click.echo("""{ "task_id": %d, "resource_log": %s }""" % (task_id, json.dumps([row for row in reader])))
+        f = open(resource_log_file, "rU")
+        reader = csv.DictReader(
+            f,
+            fieldnames=(
+                "child_pid",  # 1
+                "clone_time_rate",  # 2
+                "cpu_load",  # 3
+                "end_date",  # 4
+                "host_name",  # 5
+                "ip_address",  # 6
+                "job_time",  # 7
+                "life_left",  # 8
+                "mem_per_core",  # 9
+                "mem_per_node",  # 10
+                "num_cores",  # 11
+                "num_tasks",  # 12
+                "num_workers_on_node",  # 13
+                "perc_mem_used",  # 14
+                "pool_name",  # 15
+                "ret_msg",  # 16
+                "rmem_usage",  # 17
+                "root_pid",  # 18
+                "run_time",  # 19
+                "slurm_jobid",  # 20
+                "task_id",  # 21
+                "vmem_usage",  # 22
+                "worker_id",  # 23
+                "worker_type",  # 24
+                "jtm_host_name",  # 25
+                "nwpn",  # 26
+            ),
+        )
+        click.echo(
+            """{ "task_id": %d, "resource_log": %s }"""
+            % (task_id, json.dumps([row for row in reader]))
+        )
     else:
         logger.error("Resource file, %s, not found." % (resource_log_file))
         resource_log_file = None
