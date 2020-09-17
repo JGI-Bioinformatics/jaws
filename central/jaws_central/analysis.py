@@ -63,11 +63,11 @@ def _rpc_call(user, run_id, method, params={}):
         abort(404, "Run not found; please check your run_id")
     if run.user_id != user:
         try:
-            current_user = db.session.query(User).get(user)
-        except SQLAlchemyError as error:
+            current_user = __get_current_user(user)
+        except Exception as error:
             logger.error(error)
-            abort(500, f"Db error; {error}")
-        if not current_user.is_admin:
+            abort(500, f"{error}")
+        if not current_user["is_admin"]:
             abort(401, "Access denied; you cannot access to another user's workflow")
     a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
     params["user_id"] = user
@@ -75,12 +75,31 @@ def _rpc_call(user, run_id, method, params={}):
     params["cromwell_run_id"] = run.cromwell_run_id
     logger.info(f"User {user} RPC {method} params {params}")
     try:
-        result = a_site_rpc_client.request(method, params)
+        response = a_site_rpc_client.request(method, params)
     except Exception as error:
         logger.exception(f"RPC {method} failed: {error}")
-    if "error" in result:
-        abort(result["error"]["code"], result["error"]["message"])
-    return result["result"], 200
+    if "error" in response:
+        abort(response["error"]["code"], response["error"]["message"])
+    return response["result"], 200
+
+
+def __get_current_user(user):
+    """
+    Retrieve the current user's information from jaws-user service.
+    :param user: Current user's user_id
+    :type user: str
+    :return: User record
+    :rtype: dict
+    """
+    jaws_user_svc = rpc_client.rpc_client(config.conf.get_section("USER_RPC"))
+    try:
+        response = jaws_user_svc.request("get_user", {"user_id": user})
+    except Exception as error:
+        logger.exception(f"jaws-user get_user failed: {response['error']['message']}")
+    if "error" in response:
+        abort(response["error"]["code"], response["error"]["message"])
+    return response["result"]
+    
 
 
 def user_queue(user):
@@ -263,11 +282,11 @@ def submit_run(user):
 
     # SUBMIT GLOBUS TRANSFER
     try:
-        current_user = db.session.query(User).get(user)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, f"Db error; {e}")
-    transfer_rt = current_user.transfer_refresh_token
+        current_user = __get_current_user(user)
+    except Exception as error:
+        logger.error(error)
+        abort(500, f"{error}")
+    transfer_rt = current_user["transfer_refresh_token"]
     client_id = config.conf.get("GLOBUS", "client_id")
     try:
         client = globus_sdk.NativeAppAuthClient(client_id)
@@ -371,8 +390,8 @@ def submit_run(user):
     params = {
         "run_id": run.id,
         "user_id": user,
-        "email": current_user.email,
-        "transfer_refresh_token": current_user.transfer_refresh_token,
+        "email": current_user["email"].
+        "transfer_refresh_token": current_user["transfer_refresh_token"].
         "submission_id": submission_id,
         "upload_task_id": upload_task_id,
         "output_endpoint": output_endpoint,
@@ -454,11 +473,11 @@ def _get_run(user, run_id):
         abort(404, "Run not found; please check your run_id")
     if run.user_id != user:
         try:
-            current_user = db.session.query(User).get(user)
-        except SQLAlchemyError as error:
+            current_user = __get_current_user(user)
+        except Exception as error:
             logger.error(error)
-            abort(500, f"Db error; {error}")
-        if not current_user.is_admin:
+            abort(500, f"{error}")
+        if not current_user["is_admin"]:
             abort(401, "Access denied; you are not the owner of that Run.")
     return run
 
@@ -689,11 +708,11 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
     """
     logger.debug(f"Run {run_id}: Cancel transfer {transfer_task_id}")
     try:
-        current_user = db.session.query(User).get(user)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, f"Db error; {e}")
-    transfer_rt = current_user.transfer_refresh_token
+        current_user = __get_current_user(user)
+    except Exception as e:
+        logger.error(error)
+        abort(500, f"{error}")
+    transfer_rt = current_user["transfer_refresh_token"]
     client_id = config.conf.get("GLOBUS", "client_id")
     try:
         client = globus_sdk.NativeAppAuthClient(client_id)
