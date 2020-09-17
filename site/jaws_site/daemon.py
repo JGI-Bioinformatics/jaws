@@ -119,11 +119,13 @@ class Daemon:
         self.update_job_status_logs()
         self.session.close()
 
+
     def _get_globus_transfer_status(self, run, task_id):
         """
         Query Globus transfer service for transfer task status.
         """
-        transfer_rt = run.transfer_refresh_token
+        user = __get_user(run.user_id)
+        transfer_rt = user["transfer_refresh_token"]
         try:
             transfer_client = self._authorize_transfer_client(transfer_rt)
             task = transfer_client.get_task(task_id)
@@ -586,3 +588,21 @@ class Daemon:
                 session.rollback()
                 logger.exception(f"Error updating run_logs as sent: {error}")
         session.close()
+
+
+def __get_user(user):
+    """
+    Retrieve a user's information from jaws-user service.
+    :param user: The user's user_id
+    :type user: str
+    :return: User record
+    :rtype: dict
+    """
+    jaws_user_svc = rpc_client.rpc_client(config.conf.get_section("USER_RPC"))
+    try:
+        response = jaws_user_svc.request("get_user", {"user_id": user})
+    except Exception as error:
+        logger.exception(f"jaws-user get_user failed: {response['error']['message']}")
+    if "error" in response:
+        abort(response["error"]["code"], response["error"]["message"])
+    return response["result"]

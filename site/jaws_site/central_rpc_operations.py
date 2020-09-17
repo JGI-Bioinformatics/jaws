@@ -6,7 +6,8 @@ import logging
 import sqlalchemy.exc
 from sqlalchemy.exc import SQLAlchemyError
 import collections
-from jaws_site import config, jaws_constants
+from jaws_rpc.responses import success, failure
+from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_site.database import Session
 from jaws_site.models import Run, Job_Log
@@ -135,7 +136,6 @@ def submit(params):
             id=run_id,  # pk used by Central
             user_id=user_id,
             email=params["email"],
-            transfer_refresh_token=params["transfer_refresh_token"],
             submission_id=params["submission_id"],
             upload_task_id=params["upload_task_id"],
             output_endpoint=params["output_endpoint"],
@@ -236,7 +236,6 @@ operations = {
             "user_id",
             "run_id",
             "email",
-            "transfer_refresh_token",
             "submission_id",
             "upload_task_id",
             "output_endpoint",
