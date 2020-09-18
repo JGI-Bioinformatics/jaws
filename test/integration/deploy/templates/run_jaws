@@ -22,7 +22,9 @@ cp "$SITE_CROMWELL_JAR" "$INSTALLED_CROMWELL_JAR" && \
 source {{install_dir}}/deploy/venv/bin/activate
 {{install_dir}}/deploy/generate-venvs
 {{install_dir}}/deploy/generate-shims
-{{install_dir}}/deploy/deploy-supervisord
+{{install_dir}}/deploy/generate-supervisord
+
+exit
 
 # start services
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread

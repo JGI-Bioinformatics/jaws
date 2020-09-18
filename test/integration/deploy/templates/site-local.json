@@ -3,9 +3,9 @@
         "cromwell.conf": "templates/cromwell-cori.conf",
         "generate-shims": "templates/generate-shims",
         "generate-venvs": "templates/generate-venvs",
+        "generate-supervisord": "templates/generate-supervisord",
         "supervisord-config-jaws": "templates/supervisord-config-jaws",
-        "supervisord-config-jtm": "templates/supervisord-config-jtm",
-        "deploy-supervisord": "templates/deploy-supervisord"
+        "supervisord-config-jtm": "templates/supervisord-config-jtm"
     },
     "site": {
         "local": {

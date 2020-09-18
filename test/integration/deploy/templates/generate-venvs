@@ -27,29 +27,35 @@ test -d $CLIENT_INSTALL_DIR && rm -rf $CLIENT_INSTALL_DIR
 
 ## MAKE VENVS
 #module load python
+cd $SRC_DIR
 make pkg
 python3 -m venv $SITE_DIR && \
   . $SITE_DIR/bin/activate && \
+  pip install --upgrade pip && \
   pip install $SRC_DIR/rpc/dist/* && \
   pip install $SRC_DIR/site/dist/* && \
   deactivate
 python3 -m venv $CENTRAL_DIR && \
   . $CENTRAL_DIR/bin/activate && \
+  pip install --upgrade pip && \
   pip install $SRC_DIR/rpc/dist/* && \
   pip install $SRC_DIR/central/dist/* && \
   deactivate
 python3 -m venv $JTM_DIR && \
   . $JTM_DIR/bin/activate && \
+  pip install --upgrade pip && \
   pip install rpc/dist/* && \
   pip install $SRC_DIR/jtm/dist/* && \
   deactivate
 python3 -m venv $JTM_WORKER_INSTALL_DIR && \
   . $JTM_WORKER_INSTALL_DIR/bin/activate && \
+  pip install --upgrade pip && \
   pip install $SRC_DIR/rpc/dist/* && \
   pip install $SRC_DIR/jtm/dist/* && \
   deactivate
 python3 -m venv $CLIENT_INSTALL_DIR && \
   . $CLIENT_INSTALL_DIR/bin/activate && \
+  pip install --upgrade pip && \
   pip install $SRC_DIR/client/dist/* && \
   deactivate
 
