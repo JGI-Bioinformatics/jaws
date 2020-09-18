@@ -124,11 +124,11 @@
                     "install_dir": "/tmp/jaws-supervisord-{{deploy_name}}"
                 },
                 "local-dev": {
-                    "url": "http://cori20.nersc.gov",
+                    "url": "http://127.0.0.1",
                     "username": "jaws",
                     "password": "{{passwords.jaws_supervisord_cori}}",
                     "jaws_port": 64104,
-                    "jtm_port": 641134,
+                    "jtm_port": 64114,
                     "install_dir": "{{install_dir}}/jaws-supervisord-{{deploy_name}}"
                 },
                 "deploy_name": {
