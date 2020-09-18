@@ -61,9 +61,6 @@ function fix_perms() {
 
 fix_perms "$SUPERVISOR_DIR" $JTM_GROUP
 
-#envsubst < test/integration/deploy/templates/supervisord-config-jtm > $SUPERVISOR_DIR/supervisord-jtm.conf
-#envsubst < test/integration/deploy/templates/supervisord-config-jaws > $SUPERVISOR_DIR/supervisord-jaws.conf
-
 cp $DEPLOY_DIR/supervisord-config-jaws $SUPERVISOR_DIR/supervisord-jaws.conf
 cp $DEPLOY_DIR/supervisord-config-jtm $SUPERVISOR_DIR/supervisord-jtm.conf
 
