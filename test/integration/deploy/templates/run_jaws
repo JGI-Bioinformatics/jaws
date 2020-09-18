@@ -24,8 +24,6 @@ source {{install_dir}}/deploy/venv/bin/activate
 {{install_dir}}/deploy/generate-shims
 {{install_dir}}/deploy/generate-supervisord
 
-exit
-
 # start services
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws:*
