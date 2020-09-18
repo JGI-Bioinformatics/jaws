@@ -24,7 +24,7 @@ supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 [supervisorctl]
 serverurl={{site.local.supervisord.deploy_name.url}}:{{site.local.supervisord.deploy_name.jaws_port}}
 username=jaws
-password={{site.local.supervisord.password}}
+password={{site.local.supervisord.deploy_name.password}}
 prompt=supervisor-jaws
 
 ;----- Program Section
