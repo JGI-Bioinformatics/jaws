@@ -277,6 +277,7 @@ def main():
     # Set env variable in order to substitute this value into the input json config file.
     os.environ["DEPLOY_NAME"] = deploy_name
     os.environ["INSTALL_DIR"] = install_dir
+    os.environ["SRC_DIR"] = os.path.abspath(os.path.join(ROOT_DIR, "../../.."))
 
     substitute_env_vars_in_json_file(input_config_json_file, deploy_config_json_file)
 
