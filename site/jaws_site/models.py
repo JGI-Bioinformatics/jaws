@@ -3,14 +3,7 @@ SQLAlchemy models for persistent data structures.
 """
 
 from datetime import datetime
-from sqlalchemy import (
-    Column,
-    DateTime,
-    String,
-    Integer,
-    Boolean,
-    ForeignKey
-)
+from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey
 from jaws_site.database import Base
 
 
@@ -57,8 +50,8 @@ class Job_Log(Base):
     Log state transitions log.
     Initially, records are inserted when a state transition log is received from JTM;
     however JTM doesn't know the run_id, task_name, or attempt so they are NULL.
-    The Daemon process will fill in those fields by querying the db and cromwell
-    before the logs are sent to Central.
+    The Daemon process will fill in those fields by querying the db and cromwell;
+    until then, they will not be found by selecting run_id.
     """
 
     __tablename__ = "job_logs"
