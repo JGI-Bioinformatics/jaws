@@ -9,6 +9,40 @@ Full [documentation](https://jaws-docs.readthedocs.io) for running and installin
 See docs/install_Cli_and_Site.md  
 See docs/startingServices.md  
 
+
+### Requirements
+
+An AMQP service (e.g. RabbitMQ) and relational database (e.g. MySQL) are required.  Central and each Site may have their own.  Services don't cross-talk to other databases.
+
+#### RabbitMQ
+
+Requires one user "jaws" that is used for all deployments (e.g. dev/staging/prod).  Deployments are given separate namespaces by defining distinct vhosts:
+
+  - jaws_(DEPLOYMENT_NAME)
+  - jtm_(DEPLOYMENT_NAME)
+
+e.g jaws_dev, jtm_dev, jaws_staging, jtm_staging, jaws_prod, jtm_prod
+
+Queues are automatically defined by the deployment scripts and don't need to be created in the RMQ admin pages.  Only the user and vhosts needs to be created outside of the JAWS CI/CD.
+
+
+#### MySQL
+
+Requires one user "jaws" that is used for all deployments (e.g. dev/staging/prod).  There are separate databases for each service/deployment:
+
+  - cromwell_(SITE_NAME)_(DEPLOYMENT_NAME)
+  - jaws_(SITE_NAME)_(DEPLOYMENT_NAME)
+  - jtm_(SITE_NAME)_(DEPLOYMENT_NAME)
+
+e.g. jaws_cori_dev, cromwell_cori_dev, jtm_cori_dev, ...
+
+Additional, jaws-central requires:
+
+  - jaws_central_(DEPLOYMENT_NAME)
+
+e.g. jaws_central_dev, jaws_central_staging, jaws_central_prod
+
+
 ### Installing all services 
 You can install using two modes, developer mode and build mode:
 you need to know when to you develop vs build.  

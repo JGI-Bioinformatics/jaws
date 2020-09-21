@@ -136,19 +136,6 @@ startretries=3
 autorestart=unexpected
 "
 
-if [[ -n $DEPLOY_JAWS_CLIENT ]]; then
-  SUPERVISOR_JAWS_CONF="$SUPERVISOR_JAWS_CONF
-
-[program:jaws-deploy-client]
-command=$SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
-numprocs=1
-startsecs=0
-startretries=0
-autorestart=false
-"
-  JAWS_PROGRAMS="$JAWS_PROGRAMS,jaws-deploy-client"
-fi
-
 if [[ -n "$DEPLOY_JAWS_CENTRAL" ]]; then
   SUPERVISOR_JAWS_CONF="$SUPERVISOR_JAWS_CONF
 
@@ -234,15 +221,8 @@ startsecs=10
 startretries=3
 autorestart=unexpected
 
-[program:jaws-deploy-worker]
-command=$SHIM_DIR/jaws-deploy-worker-$DEPLOYMENT_NAME
-numprocs=1
-startsecs=0
-startretries=0
-autorestart=false
-
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-jtm,jaws-cromwell,jaws-deploy-worker
+programs=jaws-jtm,jaws-cromwell
 priority=999
 EOM
 

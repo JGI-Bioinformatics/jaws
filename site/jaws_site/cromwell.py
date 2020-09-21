@@ -74,14 +74,23 @@ class Task:
                     self.jobs[job_id] = {
                         "task_name": f"{self.name}.{metadata.jobs[job_id]['task_name']}",
                         "attempt": int(metadata.jobs[job_id]["attempt"]),
+                        "call_root": None
                     }
+                    if "callRoot" in metadata.jobs[job_id]:
+                        # callRoot is not defined for subworkflow tasks
+                        self.jobs[job_id]["call_root"] = metadata.jobs[job_id]["callRoot"]
+
             elif "jobId" in call:
                 job_id = int(call["jobId"])
                 logger.debug(f"Task {self.name}: job {job_id}")
                 self.jobs[job_id] = {
                     "task_name": self.name,
                     "attempt": int(call["attempt"]),
+                    "call_root": None
                 }
+                if "callRoot" in call:
+                    # callRoot is not defined for subworkflow tasks
+                    self.jobs[job_id]["call_root"] = call["callRoot"]
 
     def is_subworkflow(self):
         return bool(self.subworkflows)

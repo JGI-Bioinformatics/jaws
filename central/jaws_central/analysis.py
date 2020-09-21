@@ -573,25 +573,10 @@ def task_log(user, run_id):
     :return: The complete log of all task state transitions.
     :rtype: dict
     """
+    logger.info(f"User {user}: Get task-log for Run {run_id}")
     run = _get_run(user, run_id)
-    logger.info(f"User {user}: Get task-log of Run {run.id}")
-    params = {
-        "run_id": run.id,
-        "user_id": user,
-    }
-    a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
-    logger.debug(f"User {user}: get task-log {run_id}")
-    try:
-        result = a_site_rpc_client.request("get_task_log", params)
-    except Exception as error:
-        error = f"RPC get_task_log failed: {error}"
-        logger.exception(error)
-        abort(500, error)
-    if "error" in result:
-        reason = f"Error retrieving task-log from {run.site_id}: {result['error']['message']}"
-        logger.error(reason)
-        abort(result["error"]["code"], result["error"]["message"])
-    return result, 200
+    _abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "get_task_log")
 
 
 def run_metadata(user, run_id):

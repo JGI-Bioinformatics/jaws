@@ -204,6 +204,7 @@ class Daemon:
                     return
                 run.cromwell_workflow_dir = metadata.get("workflowRoot")
                 self.update_run_status(run, "queued")
+            self.update_run_status(run, "running")
         elif cromwell_status == "Failed":
             self.update_run_status(run, "failed")
         elif cromwell_status == "Succeeded":
@@ -215,41 +216,40 @@ class Daemon:
             if run.status == "queued" or run.status == "running":
                 self.update_run_status(run, "cancelled")
 
-    def transfer_results(self, run, metadata=None):
+    def __transfer_folder(self, label, transfer_rt, src_dir, dest_endpoint, dest_dir):
         """
-        Send run output via Globus
+        Recursively transfer folder via Globus
+        :param label: Label to attach to transfer (e.g. "Run 99")
+        :type label: str
+        :param transfer_rt: User's Globus transfer refresh token
+        :type transfer_rt: str
+        :param src_dir: Folder to transfer
+        :type src_dir: str
+        :param dest_endpoint: Globus endpoint for destination
+        :type dest_endpoint: str
+        :param dest_dir: Destination path
+        :type dest_dir: str
+        :return: Globus transfer task id
+        :rtype: str
         """
-        logger.debug(f"Run {run.id}: Download output")
-        if run.cromwell_workflow_dir is None and metadata is None:
-            try:
-                metadata = self.cromwell.get_metadata(run.cromwell_run_id)
-            except Exception:
-                return
-            if metadata is None:
-                return
-            run.cromwell_workflow_dir = metadata.get("workflowRoot")
-        transfer_rt = run.transfer_refresh_token
-        if not run.cromwell_workflow_dir.startswith(self.globus_root_dir):
-            logger.error(
-                f"Results dir is not accessible via Globus: {run.cromwell_workflow_dir}"
-            )
-            return
-        rel_cromwell_workflow_dir = os.path.relpath(
-            run.cromwell_workflow_dir, self.globus_default_dir
-        )
+        logger.debug(f"Globus xfer {label}")
+        if not src_dir.startswith(self.globus_root_dir):
+            logger.error(f"Dir is not accessible via Globus: {src_dir}")
+            return None
+        rel_src_dir = os.path.relpath(src_dir, self.globus_default_dir)
         try:
             transfer_client = self._authorize_transfer_client(transfer_rt)
         except globus_sdk.GlobusAPIError:
             logger.warning(
-                f"Failed to get Globus transfer client for run {run.id}", exc_info=True
+                f"Failed to get Globus transfer client to xfer {label}", exc_info=True
             )
-            return
+            return None
         try:
             tdata = globus_sdk.TransferData(
                 transfer_client,
                 self.globus_endpoint,
-                run.output_endpoint,
-                label=f"Download run {run.id}",
+                dest_endpoint,
+                label=label,
                 sync_level="exists",
                 verify_checksum=False,
                 preserve_timestamp=True,
@@ -259,29 +259,56 @@ class Daemon:
                 skip_activation_check=True,
             )
             if self.globus_root_dir == "/":
-                tdata.add_item(
-                    run.cromwell_workflow_dir, run.output_dir, recursive=True
-                )
+                tdata.add_item(src_dir, dest_dir, recursive=True)
             else:
-                tdata.add_item(
-                    rel_cromwell_workflow_dir, run.output_dir, recursive=True
-                )
+                tdata.add_item(rel_src_dir, dest_dir, recursive=True)
         except Exception:
             logger.warning(
-                f"Failed to prepare download manifest for run {run.id}", exc_info=True
+                f"Failed to prepare download manifest for {label}", exc_info=True
             )
         try:
             transfer_result = transfer_client.submit_transfer(tdata)
         except globus_sdk.GlobusAPIError:
             logger.warning(
-                f"Failed to download results with Globus for run {run.id}",
-                exc_info=True,
+                f"Failed to download results with Globus for {label}", exc_info=True,
             )
-            return
-        run.download_task_id = transfer_result["task_id"]
-        self.update_run_status(
-            run, "downloading", f"download_task_id={run.download_task_id}"
+            return None
+        return transfer_result["task_id"]
+
+    def transfer_results(self, run, metadata=None):
+        """
+        Send run output via Globus
+        """
+        logger.debug(f"Run {run.id}: Download output")
+        if run.cromwell_workflow_dir is None:
+            if not metadata:
+                try:
+                    metadata = self.cromwell.get_metadata(run.cromwell_run_id)
+                except Exception:
+                    return
+            if metadata is None:
+                return
+            outdir = metadata.get("workflowRoot")
+            if outdir:
+                run.cromwell_workflow_dir = outdir
+                self.session.commit()
+            else:
+                return
+        transfer_rt = run.transfer_refresh_token
+        transfer_task_id = self.__transfer_folder(
+            f"Run {run.id}",
+            transfer_rt,
+            run.cromwell_workflow_dir,
+            run.output_endpoint,
+            run.output_dir,
         )
+        if transfer_task_id:
+            run.download_task_id = transfer_task_id
+            self.update_run_status(
+                run, "downloading", f"download_task_id={run.download_task_id}"
+            )
+            self.session.commit()
+        # else ignore error; was logged; will try again later
 
     def check_if_download_complete(self, run):
         """
@@ -340,7 +367,10 @@ class Daemon:
         # notifying Central of state change is handled by send_run_status_logs
 
     def update_job_status_logs(self):
-        """JTM job status logs are missing some fields; fill them in now."""
+        """
+        JTM job status logs are missing some fields: run_id, task_name, attempt.
+        Fill them in now by querying Cromwell metadata.
+        """
         logger.debug("Update job status logs")
 
         # select incomplete job log entries from database
@@ -350,7 +380,6 @@ class Daemon:
             query = (
                 self.session.query(Job_Log)
                 .filter_by(task_name=None)
-                .filter_by(sent=False)
                 .order_by(Job_Log.cromwell_run_id)
             )
         except Exception as error:
@@ -358,6 +387,7 @@ class Daemon:
             return
 
         if not query:
+            # nothing to do
             return
 
         for log in query:
@@ -366,7 +396,7 @@ class Daemon:
             cromwell_job_id = log.cromwell_job_id
             logger.debug(f"Job {cromwell_job_id} now {log.status_to}")
 
-            # SELECT run_id FROM RDB
+            # Lookup run_id given cromwell_run_id
             if not run_id:
                 run = (
                     self.session.query(Run)
@@ -381,6 +411,8 @@ class Daemon:
                 # update run state if first job to run
                 if log.status_to == "running" and run.status == "queued":
                     self.update_run_status(run, "running")
+
+                self.session.commit()
 
             # TRY TO GET task_name AND attempt FROM CROMWELL METADATA
             if cromwell_run_id == last_cromwell_run_id:
@@ -406,8 +438,11 @@ class Daemon:
                         f"job_id {cromwell_job_id} not found in inactive run, {cromwell_run_id}"
                     )
                     # If the Run is done and the job_id cannot be found, it's an orphan job
-                    # (Cromwell never received the job_id from JTM), so mark as "sent"
-                    log.sent = True
+                    # (Cromwell never received the job_id from JTM), so set run_id to 0
+                    # to mark it as such and so it won't be picked up in the next round.
+                    log.run_id = 0
+                    self.session.commit()
+                    continue
                 else:
                     # The Cromwell metadata could be a bit outdated; try again next time
                     logger.error(
@@ -416,7 +451,25 @@ class Daemon:
                 continue
             log.attempt = job_info["attempt"]
             log.task_name = job_info["task_name"]
+            task_dir = job_info[
+                "call_root"
+            ]  # not saved in db but may be used below for xfer
             self.session.commit()
+
+            # if Task complete, then transfer output
+            if log.status_to in ["success", "failed"] and task_dir:
+                # get Run record
+                run = self.session.query(Run).get(log.run_id)
+
+                # recursively transfer task dir
+                transfer_task_id = self.__transfer_dir(
+                    log.task_name,
+                    run.transfer_refresh_token,
+                    task_dir,
+                    run.output_endpoint,
+                    run.output_dir,
+                )
+                log.info(f"Xfer {log.task_name}: {transfer_task_id}")
 
     def send_run_status_logs(self):
         """Send run logs to Central"""
@@ -432,6 +485,9 @@ class Daemon:
         if not num_logs:
             return
         logger.debug(f"Sending {num_logs} run logs")
+
+        if self.rpc_client is None:
+            self._init_rpc_client()
 
         # send logs via RPC
         for log in query:

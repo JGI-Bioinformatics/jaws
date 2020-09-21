@@ -155,6 +155,7 @@ test-client:
   <<: *only-default
   stage: unit-test
   script:
+      # some unit tests for client require 'womtool' to be in the PATH
     - export PATH=/jaws-ci/bin:$PATH
     - python3 -m venv test-venv
     - source test-venv/bin/activate
