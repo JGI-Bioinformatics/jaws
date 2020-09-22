@@ -503,28 +503,8 @@ def task_status(user, run_id):
     """
     logger.info(f"User {user}: Get task-status of Run {run_id}")
     run = _get_run(user, run_id)
-    a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
-    params = {
-        "run_id": run_id,
-        "user_id": user,
-    }
-    logger.debug(f"User {user}: get task-status {run_id}")
-    try:
-        result = a_site_rpc_client.request("get_task_status", params)
-    except Exception as error:
-        error = f"RPC get_task_status failed: {error}"
-        logger.exception(error)
-        abort(500, error)
-    if "error" in result:
-        reason = f"Error retrieving task-status from {run.site_id}: {result['error']['message']}"
-        logger.error(reason)
-        abort(result["error"]["code"], result["error"]["message"])
-
-    # add explanatory text column
-    for row in result:
-        status_to = row[4]
-        row.append(jaws_constants.task_status_msg.get(status_to, ""))
-    return result, 200
+    _abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "get_task_status")
 
 
 def run_log(user: str, run_id: int):
