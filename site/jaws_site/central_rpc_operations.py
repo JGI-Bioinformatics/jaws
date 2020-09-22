@@ -166,7 +166,8 @@ def get_errors(params):
         return _success(f"Run {run_id} hasn't been submitted to Cromwell.")
     logger.info(f"{user_id} - Run {run_id} - Get errors")
     try:
-        result = cromwell.errors(cromwell_run_id)
+        metadata = cromwell.get_metadata(cromwell_run_id)
+        result = metadata.errors()
     except requests.exceptions.HTTPError as error:
         logger.exception(f"Get errors for {params['run_id']} failed: {error}")
         return _failure(error.response.status_code, f"Failed to get errors: {error}")
