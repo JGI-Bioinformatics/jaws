@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+## DEFINE INSTALL VARS
+DEPLOYMENT_NAME={{deploy_name}}
+INSTALL_DIR={{site.local.install_dir}}
+JAWS_SCRATCH_DIR={{site.local.scratch_dir}}
+JTM_SCRATCH_DIR={{site.local.jtm.scratch_dir}}
+UPLOAD_DIR=$JAWS_SCRATCH_DIR/uploads
+CONFIG_DIR=$INSTALL_DIR/config
+SHIM_DIR=$INSTALL_DIR/shims
+LOGS_DIR=$INSTALL_DIR/logs
+JTM_WORKER_INSTALL_DIR={{site.local.jtm.worker_install_dir}}
+CLIENT_INSTALL_DIR={{client.install_dir}}
+JAWS_GROUP={{site.local.group_perms.jaws}}
+JTM_GROUP={{site.local.group_perms.jtm}}
+REF_DATA_DIR={{site.local.ref_data_dir}}
+LOG_LEVEL="DEBUG"
+
+## MAKE DIR IF NOT EXIST
+test -d "$SHIM_DIR" && rm -rf "$SHIM_DIR"
+mkdir "$SHIM_DIR"
+test -d "$LOGS_DIR" || mkdir "$LOGS_DIR"
+
+## WRITE SHIM SCRIPTS
+cat <<EOM > "$SHIM_DIR/jaws-site-daemon"
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+test -d "$JAWS_SCRATCH_DIR" || mkdir "$JAWS_SCRATCH_DIR"
+chmod 775 "$JAWS_SCRATCH_DIR"
+test -d "$DOWNLOAD_DIR" || mkdir "$DOWNLOAD_DIR"
+chmod 775 "$DOWNLOAD_DIR"
+
+source $INSTALL_DIR/site/bin/activate
+exec jaws-site --log $LOGS_DIR/site-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL daemon
+EOM
+
+cat <<EOM > "$SHIM_DIR/jaws-site-central-rpc"
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALL_DIR/site/bin/activate
+exec jaws-site --log $LOGS_DIR/site-central-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL central-rpc
+EOM
+
+cat <<EOM > "$SHIM_DIR/jaws-site-jtm-rpc"
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALL_DIR/site/bin/activate
+exec jaws-site --log $LOGS_DIR/site-jtm-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level DEBUG jtm-rpc
+EOM
+
+cat <<EOM > "$SHIM_DIR/jaws-jtm"
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $INSTALL_DIR/jtm/bin/activate
+export JTM_CONFIG_FILE=$CONFIG_DIR/jaws-jtm.conf
+
+exec jtm --config=$CONFIG_DIR/jaws-jtm.conf --debug manager -ld $LOGS_DIR
+EOM
+
+cat <<EOM > "$SHIM_DIR/jaws-deploy-worker"
+#!/usr/bin/env bash
+
+# HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
+
+test -d $JTM_WORKER_INSTALL_DIR || mkdir $JTM_WORKER_INSTALL_DIR
+test -d $JTM_SCRATCH_DIR || mkdir $JTM_SCRATCH_DIR
+test -d $UPLOAD_DIR || mkdir $UPLOAD_DIR
+
+cp $CONFIG_DIR/jaws-jtm.conf $JTM_WORKER_INSTALL_DIR/
+chgrp $JTM_GROUP $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chgrp $JTM_GROUP $UPLOAD_DIR
+chmod 770 $JTM_WORKER_INSTALL_DIR
+chmod 640 $JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+chmod 775 $JTM_SCRATCH_DIR
+chmod 777 $UPLOAD_DIR
+EOM
+
+## SET PERMISSIONS
+chgrp "$JTM_GROUP" "$SHIM_DIR/jaws-jtm"
+chgrp "$JTM_GROUP" "$SHIM_DIR/jaws-deploy-worker"
+chgrp "$JTM_GROUP" "$LOG_DIR"
+chmod +x "$SHIM_DIR"/*

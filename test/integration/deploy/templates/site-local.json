@@ -9,7 +9,6 @@
     },
     "site": {
         "local": {
-            "deploy_client": 1,
             "install_dir": "{{install_dir}}",
             "scratch_dir": "{{install_dir}}/scratch-{{deploy_name}}",
             "name": "LOCAL",
