@@ -43,7 +43,10 @@ def run_command(cmd):
 
 def get_config_json_data(config_json):
     with open(config_json) as json_file:
-        jsondata = json.load(json_file)
+        try:
+            jsondata = json.load(json_file)
+        except ValueError as err:
+            raise ValueError(f"Unable to read json file {json_file}: {err}")
     return jsondata
 
 
@@ -141,9 +144,17 @@ def create_deploy_config_files(install_dir, config_dir, deploy_dir, site_name, d
             print(f"  Adding {site_template_json_file}")
 
             # Read json file for given site, substitute jinja vars.
-            with open(site_template_json_file) as fh:
-                tp = jinja2.Template(fh.read())
-            site_config_data = json.loads(tp.render(config_data))
+            try:
+                with open(site_template_json_file) as fh:
+                    tp = jinja2.Template(fh.read())
+            except IOError as err:
+                raise IOError(f"Failed to read {site_template_json_file}: {err}")
+
+            try:
+                site_config_data = json.loads(tp.render(config_data))
+            except ValueError as err:
+                raise ValueError(f"Unable to read json file {site_template_json_file}: {err}")
+
             sites_data[site] = site_config_data['site']['local']
 
             # Add deployment files to jaws_config_files list if this is the input site
@@ -287,8 +298,8 @@ def main():
     # Create shell script to setup and launch supervisorctl
     print(f"\nCreate run script ...")
     deploy_config_data = get_config_json_data(deploy_config_json_file)
-    input_run_script = os.path.join(ROOT_DIR, "templates", "run_jaws")
-    output_run_script = os.path.join(deploy_dir, "run_jaws")
+    input_run_script = os.path.join(ROOT_DIR, "templates", "run-jaws")
+    output_run_script = os.path.join(deploy_dir, "run-jaws")
     substitute_jinja_vars(deploy_config_data, input_run_script, output_run_script)
     change_file_perms(output_run_script, "700")
 

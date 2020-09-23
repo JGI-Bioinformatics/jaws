@@ -1,13 +1,34 @@
 #!/bin/bash
 
-set -eo pipefail
+set -e
 
-echo "BEGIN deploy-jaws"
+printf "BEGIN run-jaws\n\n"
 
-DEPLOYMENT_NAME={{deploy_name}}
+DEPLOYMENT_NAME="{{deploy_name}}"
 SUPERVISOR_DIR={{site.local.supervisord.deploy_name.install_dir}}
 SITE_CROMWELL_JAR={{site.local.cromwell.jar_file}}
 INSTALLED_CROMWELL_JAR={{install_dir}}/cromwell.jar
+JTM_GROUP="{{site.local.group_perms.jtm}}"
+
+# function to start supervisord if no process is running.
+function start_supervisord() {
+    local config_file=$1
+    pid=$(ps aux | \
+          grep supervisord | \
+          grep $SUPERVISOR_DIR | \
+          grep $config_file |  \
+          grep -v grep | \
+          awk '{print $2}'
+    )
+    if [[ -z "$pid" ]]; then
+        cmd="$SUPERVISOR_DIR/bin/supervisord -c $SUPERVISOR_DIR/$config_file"
+        echo "Launching supervisord ..."
+        echo $cmd
+        eval $cmd
+    else
+        echo "Found supervisord process already running: $pid in $SUPERVISOR_DIR for $config_file"
+    fi
+}
 
 # stop services
 test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
@@ -15,7 +36,7 @@ test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorct
 
 # COPY CROMWELL JAR
 cp "$SITE_CROMWELL_JAR" "$INSTALLED_CROMWELL_JAR" && \
-  chgrp "$SITE_JTM_GROUP" "$INSTALLED_CROMWELL_JAR" && \
+  chgrp "$JTM_GROUP" "$INSTALLED_CROMWELL_JAR" && \
   chmod 640 "$INSTALLED_CROMWELL_JAR"
 
 # install services
@@ -25,13 +46,19 @@ source {{install_dir}}/deploy/venv/bin/activate
 {{install_dir}}/deploy/generate-supervisord
 
 # start services
+# ??? is starting supervisord here a good idea for local-dev ???
+if [[ "$DEPLOYMENT_NAME" = "local-dev" ]]; then
+    start_supervisord "supervisord-jaws.conf"
+    start_supervisord "supervisord-jtm.conf"
+fi
+
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws:*
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:*
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf reread
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jaws:*
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jaws-$DEPLOYMENT_NAME:*
 # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
 # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-worker-deploy shim created by generate-shims. this is a hack.
 #cp -a $INSTALL_DIR/configs/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf && chgrp $JTM_GROUP && chmod 640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
 
-echo "END deploy-jaws"
+printf "END run-jaws\n\n"
 

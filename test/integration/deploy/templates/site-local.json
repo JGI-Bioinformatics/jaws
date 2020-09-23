@@ -9,13 +9,19 @@
     },
     "site": {
         "local": {
+            "deploy_client": 1,
             "install_dir": "{{install_dir}}",
             "scratch_dir": "{{install_dir}}/scratch-{{deploy_name}}",
             "name": "LOCAL",
             "ref_data_dir": "/global/cfs/projectdirs/jaws/refdata",
             "group_perms": {
                 "jaws": "jaws",
-                "jtm": "jaws_jtm"
+                "jtm": "jaws_jtm",
+                "client": "genome"
+            },
+            "deploy": {
+                "client": 1,
+                "central": 1
             },
             "mysql": {
                 "db": "jaws_dev",

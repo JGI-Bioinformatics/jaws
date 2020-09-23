@@ -3,9 +3,9 @@
         "cromwell.conf": "templates/cromwell-cori.conf",
         "generate-shims": "templates/generate-shims",
         "generate-venvs": "templates/generate-venvs",
+        "deploy-supervisord": "templates/generate-supervisord",
         "supervisord-config-jaws": "templates/supervisord-config-jaws",
-        "supervisord-config-jtm": "templates/supervisord-config-jtm",
-        "deploy-supervisord": "templates/deploy-supervisord"
+        "supervisord-config-jtm": "templates/supervisord-config-jtm"
     },
     "site": {
         "local": {
@@ -15,7 +15,12 @@
             "ref_data_dir": "/global/cfs/projectdirs/jaws/refdata",
             "group_perms": {
                 "jaws": "jaws",
-                "jtm": "jaws_jtm"
+                "jtm": "jaws_jtm",
+                "client": "genome"
+            },
+            "deploy": {
+                "client": 1,
+                "central": 1
             },
             "mysql": {
                 "db": "jaws_{{deploy_name}}",

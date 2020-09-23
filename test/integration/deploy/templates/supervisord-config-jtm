@@ -51,6 +51,6 @@ startsecs=0
 startretries=0
 autorestart=false
 
-[group:jaws]
+[group:jaws-{{deploy_name}}]
 programs=jaws-jtm,jaws-cromwell,jaws-deploy-worker
 priority=999

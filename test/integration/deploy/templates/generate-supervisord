@@ -1,29 +1,27 @@
 #!/usr/bin/env bash
 
 ## DEFINE INSTALL VAR
+DEPLOYMENT_NAME="{{deploy_name}}"
+DEPLOY_JAWS_CENTRAL={{site.local.deploy.central}}
 INSTALL_DIR={{site.local.install_dir}}
-JAWS_GROUP={{site.local.group_perms.jaws}}
-JTM_GROUP={{site.local.group_perms.jtm}}
-JAWS_SUPERVISORD_PW={{site.local.supervisord.deploy_name.password}}
-JAWS_SUPERVISOR_PORT={{site.local.supervisord.deploy_name.jaws_port}}
-JTM_SUPERVISOR_PORT={{site.local.supervisord.deploy_name.jtm_port}}
+JAWS_GROUP="{{site.local.group_perms.jaws}}"
+JTM_GROUP="{{site.local.group_perms.jtm}}"
+JAWS_SUPERVISORD_PW="{{site.local.supervisord.deploy_name.password}}"
+SUPERVISOR_HOST="{{site.local.supervisord.deploy_name.url}}"
+JAWS_SUPERVISOR_PORT="{{site.local.supervisord.deploy_name.jaws_port}}"
+JTM_SUPERVISOR_PORT="{{site.local.supervisord.deploy_name.jtm_port}}"
 SUPERVISOR_DIR={{site.local.supervisord.deploy_name.install_dir}}
 SHIM_DIR=$INSTALL_DIR/shims
 DEPLOY_DIR=$INSTALL_DIR/deploy
 
+printf "START generate-supervisord\n\n"
 
 ## CREATE DIRS
 test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
-test -d $INSTALL_DIR || mkdir $INSTALL_DIR
-test -d $SHIM_DIR || mkdir $SHIM_DIR
 chgrp $JTM_GROUP $SUPERVISOR_DIR
-chgrp $JTM_GROUP $INSTALL_DIR
-chgrp $JTM_GROUP $SHIM_DIR
-chgrp $JTM_GROUP $LOG_DIR
 chmod 770 $SUPERVISOR_DIR
-chmod 770 $INSTALL_DIR
-chmod 770 $SHIM_DIR
 
+#$LOAD_SITE_PYTHON
 [[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
 [[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || python3 -m venv $SUPERVISOR_DIR/venv
 chgrp -R $JTM_GROUP $SUPERVISOR_DIR/{bin,venv}
@@ -52,19 +50,163 @@ generate_shim supervisord
 generate_shim supervisorctl
 
 function fix_perms() {
-    local DIR="$1"
-    local GROUP=$2
+    local GROUP="$1"
+    local DIR="$2"
     chmod -R 770 "$DIR"
-    chgrp -R $GROUP "$DIR"
+    chgrp -R "$GROUP" "$DIR"
     find "$DIR" -type d -exec chmod g+s '{}' \;
 }
 
-fix_perms "$SUPERVISOR_DIR" $JTM_GROUP
+fix_perms "$JTM_GROUP" "$SUPERVISOR_DIR"
 
-cp $DEPLOY_DIR/supervisord-config-jaws $SUPERVISOR_DIR/supervisord-jaws.conf
-cp $DEPLOY_DIR/supervisord-config-jtm $SUPERVISOR_DIR/supervisord-jtm.conf
+JAWS_PROGRAMS="jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc"
+SUPERVISOR_JAWS_CONF="
+[inet_http_server]
+port=0.0.0.0:$JAWS_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
 
-chgrp $JAWS_GROUP "$SUPERVISOR_DIR/supervisord-jaws.conf"
+[supervisord]
+logfile=$SUPERVISOR_DIR/jaws-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile=$SUPERVISOR_DIR/jaws-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jaws-$DEPLOYMENT_NAME
+directory=$SUPERVISOR_DIR
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=$SUPERVISOR_HOST:$JAWS_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+prompt=supervisor-jaws-$DEPLOYMENT_NAME
+
+;----- Program Section
+
+[program:jaws-site-daemon]
+command=$SHIM_DIR/jaws-site-daemon
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-site-jtm-rpc]
+command=$SHIM_DIR/jaws-site-jtm-rpc
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-site-central-rpc]
+command=$SHIM_DIR/jaws-site-central-rpc
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+"
+
+if [[ -n "$DEPLOY_JAWS_CENTRAL" ]]; then
+  SUPERVISOR_JAWS_CONF="$SUPERVISOR_JAWS_CONF
+
+[program:jaws-central-rest]
+command=$SHIM_DIR/jaws-central-rest
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-central-rpc]
+command=$SHIM_DIR/jaws-central-rpc
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-central-auth]
+command=$SHIM_DIR/jaws-central-auth
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+"
+  JAWS_PROGRAMS="$JAWS_PROGRAMS,jaws-central-auth,jaws-central-rest,jaws-central-rpc"
+fi
+
+cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
+$SUPERVISOR_JAWS_CONF
+
+[group:jaws-$DEPLOYMENT_NAME]
+programs=$JAWS_PROGRAMS
+priority=999
+EOM
+
+
+## JTM SUPERVISOR CONF
+
+cat << EOM > $SUPERVISOR_DIR/supervisord-jtm.conf
+[inet_http_server]
+port=0.0.0.0:$JTM_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+
+[supervisord]
+logfile=$SUPERVISOR_DIR/jtm-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile=$SUPERVISOR_DIR/jtm-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jtm-$DEPLOYMENT_NAME
+directory=$SUPERVISOR_DIR
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=$SITE_SUPERVISOR_HOST:$JTM_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+prompt=supervisor-jtm-$DEPLOYMENT_NAME
+
+;----- Program Section
+
+[program:jaws-jtm]
+command=$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-cromwell]
+command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=10
+startretries=3
+autorestart=unexpected
+
+[group:jaws-$DEPLOYMENT_NAME]
+programs=jaws-jtm,jaws-cromwell
+priority=999
+EOM
+
+chgrp "$SITE_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
-chgrp $JTM_GROUP "$SUPERVISOR_DIR/supervisord-jtm.conf"
+chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-jtm.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jtm.conf"
+
+printf "END generate-supervisord\n\n"

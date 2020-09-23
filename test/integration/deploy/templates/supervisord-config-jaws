@@ -78,6 +78,6 @@ startsecs=0
 startretries=0
 autorestart=false
 
-[group:jaws]
+[group:jaws-{{deploy_name}}]
 programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc,jaws-central-auth,jaws-central-rest,jaws-central-rpc,jaws-deploy-client
 priority=999

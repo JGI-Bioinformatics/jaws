@@ -1,12 +1,26 @@
 {
+    "deployment_files": {
+        "cromwell.conf": "templates/cromwell-jgi.conf",
+        "generate-shims": "templates/generate-shims",
+        "generate-venvs": "templates/generate-venvs",
+        "deploy-supervisord": "templates/generate-supervisord",
+        "supervisord-config-jaws": "templates/supervisord-config-jaws",
+        "supervisord-config-jtm": "templates/supervisord-config-jtm"
+    },
     "site": {
         "local": {
+            "deploy_client": 1,
             "install_dir": "$INSTALL_DIR",
             "name": "JGI",
             "ref_data_dir": "/global/scratch/jaws/refdata",
             "group_perms": {
                 "jaws": "jaws",
-                "jtm": "jaws"
+                "jtm": "jaws",
+                "client": "genome"
+            },
+            "deploy": {
+                "client": 0,
+                "central": 0
             },
             "mysql": {
                 "db": "jaws_$DEPLOY_NAME",
