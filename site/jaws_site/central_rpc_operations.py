@@ -218,13 +218,22 @@ def get_task_log(params):
     except SQLAlchemyError as error:
         logger.exception(f"Error selecting from job_logs: {error}")
         return _failure(500, f"Db error; {error}")
+    except Exception as error:
+        logger.exception(f"Error selecting from job_logs: {error}")
+        return _failure(500, f"Db error; {error}")
     table = []
     for log in query:
         # replace None with empty string
         reason = log.reason if log.reason else ""
+        task_name = log.task_name
+        if task_name is None:
+            task_name = "<updating>"
+        attempt = log.attempt
+        if attempt is None:
+            attempt = 1
         row = [
-            log.task_name,
-            log.attempt,
+            task_name,
+            attempt,
             log.cromwell_job_id,
             log.status_from,
             log.status_to,

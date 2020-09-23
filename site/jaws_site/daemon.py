@@ -8,6 +8,7 @@ import time
 import os
 import globus_sdk
 import logging
+import re
 from datetime import datetime
 from jaws_site.database import Session
 from jaws_site.models import Run, Run_Log, Job_Log
@@ -188,33 +189,48 @@ class Daemon:
         Check Cromwell for the status of one Run.
         """
         logger.debug(f"Run {run.id}: Check Cromwell status")
-        try:
-            cromwell_status = self.cromwell.get_status(run.cromwell_run_id)
-        except Exception as error:
-            logger.error(f"Unable to check Cromwell status of Run {run.id}: {error}")
-            return  # try again next time
+        cromwell_status = None
+        if run.cromwell_workflow_dir:
+            # all we need is status
+            try:
+                cromwell_status = self.cromwell.get_status(run.cromwell_run_id)
+            except Exception as error:
+                logger.error(
+                    f"Unable to check Cromwell status of Run {run.id}: {error}"
+                )
+                return  # try again next time
+        else:
+            # get complete metadata
+            try:
+                metadata = self.cromwell.get_metadata(run.cromwell_run_id)
+            except Exception:
+                return  # try again next time
+            if metadata is None:
+                return
+            run.cromwell_workflow_dir = metadata.get("workflowRoot")
+            self.session.commit()
+            cromwell_status = metadata.get("status")
+
+        # check if state has changed; allowed states and transitions for a successful run are:
+        # submitted -> queued -> running -> succeeded (with no skipping of states allowed)
+        # Additionally, any state can transition directly to cancelled or failed.
         logger.debug(f"Run {run.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
+            # no skips allowed, so there may be more than one transition
             if run.status == "submitted":
-                try:
-                    metadata = self.cromwell.get_metadata(run.cromwell_run_id)
-                except Exception:
-                    return
-                if metadata is None:
-                    return
-                run.cromwell_workflow_dir = metadata.get("workflowRoot")
                 self.update_run_status(run, "queued")
-            self.update_run_status(run, "running")
         elif cromwell_status == "Failed":
             self.update_run_status(run, "failed")
         elif cromwell_status == "Succeeded":
+            # no skips allowed, so there may be more than one transition
+            if run.status == "submitted":
+                self.update_run_status(run, "queued")
             if run.status == "queued":
                 self.update_run_status(run, "running")
             if run.status == "running":
                 self.update_run_status(run, "succeeded")
         elif cromwell_status == "Aborted":
-            if run.status == "queued" or run.status == "running":
-                self.update_run_status(run, "cancelled")
+            self.update_run_status(run, "cancelled")
 
     def __transfer_folder(self, label, transfer_rt, src_dir, dest_endpoint, dest_dir):
         """
@@ -270,7 +286,8 @@ class Daemon:
             transfer_result = transfer_client.submit_transfer(tdata)
         except globus_sdk.GlobusAPIError:
             logger.warning(
-                f"Failed to download results with Globus for {label}", exc_info=True,
+                f"Failed to download results with Globus for {label}",
+                exc_info=True,
             )
             return None
         return transfer_result["task_id"]
@@ -293,6 +310,8 @@ class Daemon:
                 run.cromwell_workflow_dir = outdir
                 self.session.commit()
             else:
+                # This run failed before a folder was created; nothing to xfer
+                self.update_run_status(run, "download complete", "No run folder was created")
                 return
         transfer_rt = run.transfer_refresh_token
         transfer_task_id = self.__transfer_folder(
@@ -362,7 +381,7 @@ class Daemon:
             self.session.commit()
         except Exception as error:
             logger.exception(
-                f"Failed to create run_log object for Run {run.id} : {new_status}, {reason}: {error}"
+                f"Failed to insert log for Run {run.id} : {new_status}, {reason}: {error}"
             )
         # notifying Central of state change is handled by send_run_status_logs
 
@@ -438,14 +457,14 @@ class Daemon:
                         f"job_id {cromwell_job_id} not found in inactive run, {cromwell_run_id}"
                     )
                     # If the Run is done and the job_id cannot be found, it's an orphan job
-                    # (Cromwell never received the job_id from JTM), so set run_id to 0
+                    # (Cromwell never received the job_id from JTM), so set task_name to "ORPHAN"
                     # to mark it as such and so it won't be picked up in the next round.
-                    log.run_id = 0
+                    log.task_name = "ORPHAN"
                     self.session.commit()
                     continue
                 else:
                     # The Cromwell metadata could be a bit outdated; try again next time
-                    logger.error(
+                    logger.debug(
                         f"job_id {cromwell_job_id} not found in active run, {cromwell_run_id}"
                     )
                 continue
@@ -458,18 +477,36 @@ class Daemon:
 
             # if Task complete, then transfer output
             if log.status_to in ["success", "failed"] and task_dir:
+                logger.debug(
+                    f"Transfer Run {log.run_id}, Task {log.task_name}:{log.attempt}"
+                )
+
                 # get Run record
                 run = self.session.query(Run).get(log.run_id)
 
+                # set task output dir
+                task_output_dir = os.path.normpath(
+                    os.path.join(
+                        run.output_dir,
+                        os.path.relpath(task_dir, run.cromwell_workflow_dir),
+                    )
+                )
+
+                # set label
+                short_task_name = log.task_name.split('.')
+                short_task_name = short_task_name[1].split(':')
+                label = f"Run {log.run_id} Task {short_task_name[0]}"
+                label = re.sub('[^0-9a-zA-Z_]+', ' ', label)
+
                 # recursively transfer task dir
-                transfer_task_id = self.__transfer_dir(
-                    log.task_name,
+                transfer_task_id = self.__transfer_folder(
+                    label,
                     run.transfer_refresh_token,
                     task_dir,
                     run.output_endpoint,
-                    run.output_dir,
+                    task_output_dir,
                 )
-                log.info(f"Xfer {log.task_name}: {transfer_task_id}")
+                log.debug(f"Xfer {log.task_name}: {transfer_task_id}")
 
     def send_run_status_logs(self):
         """Send run logs to Central"""
