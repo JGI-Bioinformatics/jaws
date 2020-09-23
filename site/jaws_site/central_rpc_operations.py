@@ -8,7 +8,7 @@ import logging
 import sqlalchemy.exc
 from sqlalchemy.exc import SQLAlchemyError
 import collections
-from jaws_site import config
+from jaws_site import config, jaws_constants
 from jaws_site.cromwell import Cromwell
 from jaws_site.database import Session
 from jaws_site.models import Run, Job_Log
@@ -265,8 +265,15 @@ def get_task_status(params):
         ]
         # this keeps the log entries sorted by timestamp
         tasks.move_to_end(task_name)
+
     # return only the values, the key (task_name) was just used for dereplication
-    return _success(list(tasks.values()))
+    result = list(tasks.values())
+
+    # add explanatory text column
+    for row in result:
+        status_to = row[4]
+        row.append(jaws_constants.task_status_msg.get(status_to, ""))
+    return _success(result)
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
