@@ -64,14 +64,14 @@ host = $SITE_DB_HOST
 port = $SITE_DB_PORT
 user = jaws
 password = $SITE_DB_PW
-db = jaws_$DEPLOYMENT_NAME
+db = jaws_${JAWS_SITE,,}_$DEPLOYMENT_NAME
 [LOCAL_RPC_SERVER]
 user = jaws
 password = $SITE_RMQ_PW
 host = $SITE_RMQ_HOST
 port = $SITE_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
-queue = SITE
+queue = SITE_$JAWS_SITE
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_SERVER]
@@ -80,7 +80,7 @@ password = $JAWS_CENTRAL_RMQ_PW
 host = $JAWS_CENTRAL_RMQ_HOST
 port = $JAWS_CENTRAL_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
-queue = $JAWS_SITE
+queue = JAWS_$JAWS_SITE
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
@@ -122,13 +122,13 @@ password = $SITE_RMQ_PW
 host = $SITE_RMQ_HOST
 port = $SITE_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
-queue = SITE
+queue = SITE_$JAWS_SITE
 [MYSQL]
 host = $SITE_DB_HOST
 port = $SITE_DB_PORT
 user = jaws
 password = $SITE_DB_PW
-db = jtm_$DEPLOYMENT_NAME
+db = jtm_${JAWS_SITE,,}_$DEPLOYMENT_NAME
 [SLURM]
 # number of nodes for the pool
 nnodes = 1
@@ -203,6 +203,8 @@ jtm_task_kill_q = _jtm_task_kill.\${SITE:instance_name}
 jtm_worker_poison_q = _jtm_worker_poison.\${SITE:instance_name}
 jtm_task_result_q = _jtm_task_result_queue.\${SITE:instance_name}
 jtm_task_request_q = _jtm_task_request_queue.\${SITE:instance_name}
+jtm_status_result_q = _jtm_status_result_queue.\${SITE:instance_name}
+jtm_status_request_q = _jtm_status_request_queue.\${SITE:instance_name}
 worker_hb_q_postfix = _jtm_worker_hb_queue.\${SITE:instance_name}
 client_hb_q_postfix = _jtm_client_hb_queue.\${SITE:instance_name}
 jgi_jtm_main_exch = jgi_jtm_main_exch_\${JTM:run_mode}_\${SITE:instance_name}
@@ -218,5 +220,10 @@ EOM
 chgrp $SITE_JAWS_GROUP $CONFIG_DIR/*.conf
 chgrp $SITE_JTM_GROUP $CONFIG_DIR/jaws-jtm.conf
 chmod 660 $CONFIG_DIR/*
+
+# Copy the jaws-jtm config to NFS dir since workers will be on cluster node
+cp "$CONFIG_DIR/jaws-jtm.conf" "$SITE_JTM_WORKER_INSTALL_DIR/"
+chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf"
+chmod 660 "$SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf"
 
 printf "END generate-configs\n\n"

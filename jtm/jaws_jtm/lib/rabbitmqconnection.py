@@ -23,11 +23,15 @@ class RmqConnectionAmqpstorm(object):
         RMQ_PORT = self.config.configparser.getint("RMQ", "port")
         RMQ_PASS = self.config.configparser.get("RMQ", "password")
         RMQ_VHOST = self.config.configparser.get("RMQ", "vhost")
-        self.__connection = amqpstorm.Connection(RMQ_HOST, RMQ_USER, RMQ_PASS,
-                                                 port=RMQ_PORT,
-                                                 virtual_host=RMQ_VHOST,
-                                                 heartbeat=120,
-                                                 timeout=180,)
+        self.__connection = amqpstorm.Connection(
+            RMQ_HOST,
+            RMQ_USER,
+            RMQ_PASS,
+            port=RMQ_PORT,
+            virtual_host=RMQ_VHOST,
+            heartbeat=120,
+            timeout=180,
+        )
 
     def open(self):
         return self.__connection
@@ -40,16 +44,25 @@ class RmqConnectionAmqpstorm(object):
 
 
 class JtmAmqpstormBase(object):
-    def __init__(self, config, max_retries=None):
+    def __init__(self, config, ppid=None, max_retries=None):
         self.config = config
+        self.ppid = ppid
         self.max_retries = max_retries
         self.connection = None
         self.jgi_jtm_main_exch = config.configparser.get("JTM", "jgi_jtm_main_exch")
         self.jtm_task_request_q = config.configparser.get("JTM", "jtm_task_request_q")
         self.jtm_task_result_q = config.configparser.get("JTM", "jtm_task_result_q")
+        self.jtm_status_request_q = config.configparser.get(
+            "JTM", "jtm_status_request_q"
+        )
+        self.jtm_status_result_q = config.configparser.get("JTM", "jtm_status_result_q")
         self.jtm_inner_main_exch = config.configparser.get("JTM", "jtm_inner_main_exch")
-        self.inner_result_queue_name = config.configparser.get("JTM", "jtm_inner_result_q")
-        self.inner_request_queue_name = config.configparser.get("JTM", "jtm_inner_request_q")
+        self.inner_result_queue_name = config.configparser.get(
+            "JTM", "jtm_inner_result_q"
+        )
+        self.inner_request_queue_name = config.configparser.get(
+            "JTM", "jtm_inner_request_q"
+        )
         self.jtm_task_kill_exch = config.configparser.get("JTM", "jtm_task_kill_exch")
         self.jtm_task_kill_q = config.configparser.get("JTM", "jtm_task_kill_q")
         self.task_status = config.constants.TASK_STATUS
@@ -74,13 +87,11 @@ class JtmAmqpstormBase(object):
                 break
 
     def send_reply(self, message, mode, reply_msg):
-        properties = {
-            'correlation_id': message.correlation_id
-        }
+        properties = {"correlation_id": message.correlation_id}
         try:
-            response = amqpstorm.Message.create(message.channel,
-                                                zdumps(str(reply_msg)),
-                                                properties)
+            response = amqpstorm.Message.create(
+                message.channel, zdumps(str(reply_msg)), properties
+            )
             response.publish(message.reply_to)
             message.ack()
         except amqpstorm.AMQPError as why:
@@ -101,6 +112,7 @@ class RmqConnectionHB(object):
     # ref) https://github.com/pika/pika/blob/master/examples/basic_consumer_threaded.py
     # for functool and threading method to prevent connection lost
     """
+
     __connection = None
 
     def __init__(self, config=None):
@@ -114,10 +126,9 @@ class RmqConnectionHB(object):
                 RMQ_VHOST = self.config.configparser.get("RMQ", "vhost")
 
             creds = pika.PlainCredentials(RMQ_USER, RMQ_PASS)
-            params = pika.ConnectionParameters(credentials=creds,
-                                               host=RMQ_HOST,
-                                               virtual_host=RMQ_VHOST,
-                                               port=RMQ_PORT)
+            params = pika.ConnectionParameters(
+                credentials=creds, host=RMQ_HOST, virtual_host=RMQ_VHOST, port=RMQ_PORT
+            )
             self.__connection = pika.BlockingConnection(params)
         else:
             print("Already connected.")

@@ -10,7 +10,7 @@ variables:
 
   ## GLOBAL INSTALL VARIABLES:
   JAWS_SITES: "CORI JGI"  # TODO CASCADE
-  JAWS_VERSION: "2.0.1"
+  JAWS_VERSION: "2.1"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://cori20.nersc.gov"
   JAWS_CENTRAL_RMQ_HOST: "rmq.lbl.gov"
@@ -62,8 +62,8 @@ variables:
   CORI_REF_DATA_DIR: "/global/cscratch1/sd/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
-  CORI_DB_HOST: "db.mysql.prod-cattle.stable.spin.nersc.org"
-  CORI_DB_PORT: 60006
+  CORI_DB_HOST: "jaws-db.lbl.gov"
+  CORI_DB_PORT: 3306
   CORI_CLUSTER_QOS: "genepool_special"
   CORI_CLUSTER_PARTITION: ""
   CORI_CLUSTER_ACCOUNT: "fungalp"
@@ -110,6 +110,9 @@ variables:
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
 .only-default: &only-default
+  tags:
+    - aws
+    - jaws
   only:
     - master
     - branches
@@ -152,6 +155,7 @@ test-client:
   <<: *only-default
   stage: unit-test
   script:
+      # some unit tests for client require 'womtool' to be in the PATH
     - export PATH=/jaws-ci/bin:$PATH
     - python3 -m venv test-venv
     - source test-venv/bin/activate
@@ -180,7 +184,7 @@ package:
     - make pkg
   artifacts:
     name: "packages-$CI_PROJECT_NAME-$CI_PIPELINE_ID"
-    expire_in: 1 hour
+    expire_in: 6 hour
     paths:
       - rpc/dist
       - site/dist
@@ -197,6 +201,8 @@ deploy-jaws-cori-dev:
     JAWS_SITE: "CORI"
     DEPLOY_JAWS_CENTRAL: 1
     DEPLOY_JAWS_CLIENT: 1
+  environment:
+    name: "cori/dev"
   script:
     - ./test/integration/deploy-jaws
   only:
@@ -210,6 +216,8 @@ deploy-jaws-cori-staging:
     JAWS_SITE: "CORI"
     DEPLOY_JAWS_CENTRAL: 1
     DEPLOY_JAWS_CLIENT: 1
+  environment:
+    name: "cori/staging"
   script:
     - ./test/integration/deploy-jaws
   only:
@@ -223,6 +231,8 @@ deploy-jaws-cori-prod:
     JAWS_SITE: "CORI"
     DEPLOY_JAWS_CENTRAL: 1
     DEPLOY_JAWS_CLIENT: 1
+  environment:
+    name: "cori/production"
   script:
     - ./test/integration/deploy-jaws
   only:
@@ -235,6 +245,8 @@ deploy-jaws-jgi-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
+  environment:
+    name: "jgi/dev"
   script:
     - ./test/integration/deploy-jaws
   only:
@@ -246,6 +258,8 @@ deploy-jaws-jgi-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
+  environment:
+    name: "jgi/staging"
   script:
     - ./test/integration/deploy-jaws
   only:
@@ -257,6 +271,8 @@ deploy-jaws-jgi-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
+  environment:
+    name: "jgi/production"
   script:
     - ./test/integration/deploy-jaws
   only:

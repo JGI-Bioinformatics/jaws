@@ -34,27 +34,56 @@ if [[ $RESULT -ne 0 ]]; then
 fi
 [ $RESULT -eq 0 ] || exit 1
 
+function fix_perms() {
+    local GROUP="$1"
+    local DIR="$2"
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R $GROUP "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
 
 ## DELETE OLD VENV
 test -d "$SITE_CLIENT_INSTALL_DIR" && rm -rf "$SITE_CLIENT_INSTALL_DIR"
 mkdir -p "$SITE_CLIENT_INSTALL_DIR"
-chmod 700 "$SITE_CLIENT_INSTALL_DIR"  # deploy-client script will fix permissions later
+chmod 755 "$SITE_CLIENT_INSTALL_DIR"
 
 ## MAKE VENV
 #[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
 module load python
-#make pkg
-$SITE_PYTHON -m venv "$SITE_CLIENT_INSTALL_DIR" && . "$SITE_CLIENT_INSTALL_DIR/bin/activate" && $SITE_PYTHON_PIP install client/dist/* && deactivate
+CLIENT_DIST_DIR="client/dist"
+make pkg-client
+fix_perms "$SITE_CLIENT_GROUP" "$CLIENT_DIST_DIR"
+mv "$CLIENT_DIST_DIR" "$SITE_CLIENT_INSTALL_DIR"
+echo "Make venv in $SITE_CLIENT_INSTALL_DIR"
+$SITE_PYTHON -m venv "$SITE_CLIENT_INSTALL_DIR" && \
+  . "$SITE_CLIENT_INSTALL_DIR/bin/activate" && \
+  $SITE_PYTHON_PIP install $SITE_CLIENT_INSTALL_DIR/dist/* && \
+  deactivate
+
+cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.sh
+# source this file to activate jaws-$DEPLOYMENT_NAME
+
+source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
+
+export JAWS_CLIENT_CONFIG=$SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.conf
+export JAWS_USER_CONFIG=~/jaws.conf
+
+echo "jaws-$DEPLOYMENT_NAME activated; see \"jaws --help\" for more."
+EOM
+chmod 644 $CONFIG_DIR/jaws.conf
+chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
+cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
 
 ## GENERATE CONFIGS
-cat << EOM > $CONFIG_DIR/jaws.conf
+cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws.conf
 [USER]
 token = 
 staging_dir = 
 EOM
-chgrp $SITE_CLIENT_GROUP $CONFIG_DIR/jaws.conf
 chmod 644 $CONFIG_DIR/jaws.conf
-cp "$CONFIG_DIR/jaws.conf" "$SITE_CLIENT_INSTALL_DIR"
+chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
+cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
 
 cat << EOM > $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 [JAWS]
@@ -72,34 +101,7 @@ chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 chmod 644 $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
 
-## GENERATE SHIMS
-cat <<EOM > $SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh
-#!/usr/bin/env bash
-
-source $SITE_CLIENT_INSTALL_DIR/bin/activate
-export JAWS_CLIENT_CONFIG="$SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.conf"
-export JAWS_USER_CONFIG=~/jaws.conf
-echo "Activated JAWS-$DEPLOYMENT_NAME; use 'deactivate' to exit."
-EOM
-chgrp $SITE_JAWS_GROUP $SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh
-chmod 755 $SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh
-cp "$SHIM_DIR/jaws-$DEPLOYMENT_NAME.sh" "$SITE_CLIENT_INSTALL_DIR"
-
-cat <<EOM > $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
-#!/usr/bin/env bash
-
-# HACK: chgrp doesn't work when run by gitlab runner, so have supervisor do this instead.
-function fix_perms() {
-    local GROUP="\$1"
-    local DIR="\$2"
-    chmod -R a+rX "\$DIR"
-    chmod -R ug+rwX "\$DIR"
-    chgrp -R \$GROUP "\$DIR"
-    find "\$DIR" -type d -exec chmod g+s '{}' \;
-}
-fix_perms "$SITE_CLIENT_GROUP" "$SITE_CLIENT_INSTALL_DIR"
-EOM
-chgrp $SITE_JAWS_GROUP $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
-chmod +x $SHIM_DIR/jaws-deploy-client-$DEPLOYMENT_NAME
-
+# at this point, jaws-client is not usable due to permissions, but changing group and permissions via the gitlab-runner
+# does not work for parallel-FS for some reason.  The solution is to add such commands to one of the shims so that the
+# command are run by the jaws user via supervisord.  This is a hack.  See: jaws-central-daemon shim for more.
 printf "END deploy-client\n\n" 

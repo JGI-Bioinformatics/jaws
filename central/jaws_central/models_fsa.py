@@ -118,23 +118,3 @@ class Run_Log(db.Model):
 
     def __repr__(self):
         return f"<Run_Log {self.run_id}:{self.status_from}:{self.status_to}>"
-
-
-class Job_Log(db.Model):
-    """A Run has many Tasks."""
-
-    __tablename__ = "job_logs"
-    run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), primary_key=True)
-    task_name = db.Column(db.String(128), nullable=False)
-    attempt = db.Column(db.Integer, nullable=False)
-    cromwell_job_id = db.Column(db.Integer, primary_key=True)
-    status_from = db.Column(db.String(32), primary_key=True)
-    status_to = db.Column(db.String(32), primary_key=True)
-    timestamp = db.Column(db.DateTime, nullable=False)
-    reason = db.Column(db.String(1024), nullable=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def __repr__(self):
-        return f"<Job_Log {self.cromwell_job_id}:{self.status_from}:{self.status_to}>"
