@@ -71,7 +71,7 @@ paths:
 
   /wdl:
     get:
-      operationId: jaws_central.catalog_rest.list_wdls
+      operationId: jaws_central.rest.list_wdls
       tags:
         - workflow
       summary: List shared workflows
@@ -96,7 +96,7 @@ paths:
 
   /wdl/{name}:
     get:
-      operationId: jaws_central.catalog_rest.get_versions
+      operationId: jaws_central.rest.get_versions
       tags:
         - workflow
       summary: Workflow versions
@@ -129,7 +129,7 @@ paths:
 
   /wdl/{name}/{version}:
     get:
-      operationId: jaws_central.catalog_rest.get_wdl
+      operationId: jaws_central.rest.get_wdl
       tags:
         - workflow
       summary: Return a workflow's WDL file
@@ -158,7 +158,7 @@ paths:
           description: The specified record does not exist
 
     post:
-      operationId: jaws_central.catalog_rest.add_wdl
+      operationId: jaws_central.rest.add_wdl
       consumes:
         - multipart/form-data
       tags:
@@ -193,7 +193,7 @@ paths:
           description: Authorization information is missing or invalid.
 
     put:
-      operationId: jaws_central.catalog_rest.update_wdl
+      operationId: jaws_central.rest.update_wdl
       tags:
         - workflow
       summary: Replace a workflow's WDL
@@ -223,7 +223,7 @@ paths:
           description: The specified workflow does not exist.
 
     delete:
-      operationId: jaws_central.catalog_rest.del_wdl
+      operationId: jaws_central.rest.del_wdl
       tags:
         - workflow
       summary: Delete a workflow
@@ -249,7 +249,7 @@ paths:
 
   /wdl/{name}/{version}/doc:
     get:
-      operationId: jaws_central.catalog_rest.get_doc
+      operationId: jaws_central.rest.get_doc
       tags:
         - workflow
       summary: Return information about a workflow
@@ -278,7 +278,7 @@ paths:
           description: The specified record does not exist
 
     put:
-      operationId: jaws_central.catalog_rest.update_doc
+      operationId: jaws_central.rest.update_doc
       tags:
         - workflow
       summary: Update a workflow's documentation
@@ -309,7 +309,7 @@ paths:
 
   /wdl/{name}/{version}/release:
     put:
-      operationId: jaws_central.catalog_rest.release_wdl
+      operationId: jaws_central.rest.release_wdl
       tags:
         - workflow
       summary: Mark a Workflow as Released
