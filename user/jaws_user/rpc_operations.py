@@ -80,7 +80,7 @@ def transfer_refresh_token(params):
         return success(response["result"]["transfer_refresh_token"])
 
 
-def save_globus_tokens(user_id, auth_refresh_token, transfer_refresh_token):
+def update_user(user_id, auth_refresh_token, transfer_refresh_token):
     """Save a user's Globus tokens.  Only the refresh tokens are required with the RefreshTokenAuthorizer
     and the refresh tokens never expire.
 
@@ -92,31 +92,33 @@ def save_globus_tokens(user_id, auth_refresh_token, transfer_refresh_token):
     :type transfer_refresh_token: str
     :return:
     """
-    conf = config.conf
+    # GET USER INFO FROM GLOBUS
+    client = globus_sdk.NativeAppAuthClient(config.conf.get("GLOBUS", "client_id"))
+    authorizer = globus_sdk.RefreshTokenAuthorizer(auth_refresh_token, client)
+    auth_client = globus_sdk.AuthClient(authorizer=authorizer)
+    user_info = auth_client.oauth2_userinfo()
+    globus_id = user_info["sub"]
+    name = user_info["name"]
+    email = user_info["email"]
 
-    # CHECK IF REGISTERED JAWS USER
+    # INSERT OR UPDATE
     try:
         user_rec = db.session.query(User).get(user_id)
     except SQLAlchemyError as e:
         return (500, f"Db error: {e}")
     if user_rec is None:
-        logger.error(f"No match for user {user_id}")
-        return failure(401, "User db record not found")
-
-    # UPDATE USER RECORD; ADD MISSING FIELDS IF NOT DEFINED
-    if user_rec.globus_id is None:
-        client = globus_sdk.NativeAppAuthClient(conf.get("GLOBUS", "client_id"))
-        authorizer = globus_sdk.RefreshTokenAuthorizer(auth_refresh_token, client)
-        auth_client = globus_sdk.AuthClient(authorizer=authorizer)
-        user_info = auth_client.oauth2_userinfo()
-        globus_id = user_info["sub"]
-        name = user_info["name"]
-        logger.debug(f"Defining name of user {user_id} as '{name}'")
+        # insert new
+        new_user = User(
+            name=name,
+            globus_id=globus_id,
+            auth_refresh_token=auth_refresh_token,
+            transfer_refresh_token=transfer_refresh_token,
+        )
+        session.add(new_user)
+    else:
+        # update existing
         user_rec.name = name
         user_rec.globus_id = globus_id
-        user_rec.auth_refresh_token = auth_refresh_token
-        user_rec.transfer_refresh_token = transfer_refresh_token
-    else:
         user_rec.auth_refresh_token = auth_refresh_token
         user_rec.transfer_refresh_token = transfer_refresh_token
     session.commit()
@@ -135,8 +137,8 @@ operations = {
             "timestamp",
         ],
     },
-    "save_globus_tokens": {
-        "function": save_globus_tokens,
+    "update_user": {
+        "function": update_user,
         "required_parameters": [
             "user_id",
             "auth_refresh_token",
