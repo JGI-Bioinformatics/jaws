@@ -124,7 +124,7 @@ def add_user(
         # GENERATE TOKEN AND INSERT RECORD
         token = secrets.token_urlsafe()
         try:
-            new_user = User(id=uid, jaws_token=token, is_admin=admin)
+            new_user = User(id=uid, access_token=token, is_admin=admin)
             db.session.add(new_user)
             db.session.commit()
             logger.info(f"Added new user {uid} (is_admin={admin})")

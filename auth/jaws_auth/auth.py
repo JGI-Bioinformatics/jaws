@@ -29,4 +29,6 @@ def get_tokeninfo() -> dict:
     else:
         logger.debug(f"User {user.id} token OK")
         scopes = ["user"]
+        if user.is_admin:
+            scopes.append("admin")
         return {"uid": user.id, "scope": scopes}
