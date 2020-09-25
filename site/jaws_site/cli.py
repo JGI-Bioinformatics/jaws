@@ -37,24 +37,13 @@ def cli(config_file: str, log_file: str, log_level: str):
 
 
 @cli.command()
-def central_rpc() -> None:
+def rpc() -> None:
     """Start RPC server for Central."""
-    from jaws_site import central_rpc_operations
+    from jaws_site import rpc_operations
     from jaws_rpc import rpc_server
 
-    central_rpc_server_params = config.conf.get_section("CENTRAL_RPC_SERVER")
-    app = rpc_server.RpcServer(central_rpc_server_params, central_rpc_operations.operations)
-    app.start_server()
-
-
-@cli.command()
-def jtm_rpc() -> None:
-    """Start RPC server for JTM."""
-    from jaws_site import jtm_rpc_operations
-    from jaws_rpc import rpc_server
-
-    jtm_rpc_server_params = config.conf.get_section("LOCAL_RPC_SERVER")
-    app = rpc_server.RpcServer(jtm_rpc_server_params, jtm_rpc_operations.operations)
+    rpc_server_params = config.conf.get_section("RPC")
+    app = rpc_server.RpcServer(rpc_server_params, rpc_operations.operations)
     app.start_server()
 
 

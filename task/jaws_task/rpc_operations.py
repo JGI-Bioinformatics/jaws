@@ -1,9 +1,11 @@
 """
-RPC functions for JTM.
+jaws-task RPC operations
 """
 
 import logging
 import sqlalchemy.exc
+from sqlalchemy.exc import SQLAlchemyError
+import collections
 from datetime import datetime
 import os
 import re
@@ -18,6 +20,85 @@ from jaws_rpc.responses import success, failure
 # config and logging must be initialized before importing this module
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 logger = logging.getLogger(__package__)
+
+
+def get_task_log(params):
+    """Retrieve task log from database"""
+    run_id = params["run_id"]
+    try:
+        session = Session()
+        query = (
+            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp)
+        )
+    except SQLAlchemyError as error:
+        logger.exception(f"Error selecting from job_logs: {error}")
+        return failure(500, f"Db error; {error}")
+    except Exception as error:
+        logger.exception(f"Error selecting from job_logs: {error}")
+        return failure(500, f"Db error; {error}")
+    table = []
+    for log in query:
+        # replace None with empty string
+        reason = log.reason if log.reason else ""
+        task_name = log.task_name
+        if task_name is None:
+            task_name = "<updating>"
+        attempt = log.attempt
+        if attempt is None:
+            attempt = 1
+        row = [
+            task_name,
+            attempt,
+            log.cromwell_job_id,
+            log.status_from,
+            log.status_to,
+            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            reason,
+        ]
+        table.append(row)
+    return success(table)
+
+
+def get_task_status(params):
+    """
+    Retrieve the current status of each task.
+    """
+    run_id = params["run_id"]
+    # get job log entries, sorted by timestamp,
+    try:
+        session = Session()
+        query = (
+            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp)
+        )
+    except SQLAlchemyError as error:
+        logger.exception(f"Error selecting from job_log: {error}")
+        return failure(500, f"Db error; {error}")
+    tasks = collections.OrderedDict()
+    for log in query:
+        task_name = log.task_name
+        reason = log.reason if log.reason else ""
+        # keep only the latest log entry per task
+        tasks[task_name] = [
+            log.task_name,
+            log.attempt,
+            log.cromwell_job_id,
+            log.status_from,
+            log.status_to,
+            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            reason,
+        ]
+        # this keeps the log entries sorted by timestamp
+        tasks.move_to_end(task_name)
+
+    # return only the values, the key (task_name) was just used for dereplication
+    result = list(tasks.values())
+
+    # add explanatory text column
+    for row in result:
+        status_to = row[4]
+        row.append(jaws_constants.task_status_msg.get(status_to, ""))
+    return success(result)
+
 
 
 def update_job_status(params):
@@ -274,5 +355,13 @@ operations = {
             "status_to",
             "timestamp",
         ],
-    }
+    },
+    "get_task_log": {
+        "function": get_task_log,
+        "required_params": ["user_id", "run_id"],
+    },
+    "get_task_status": {
+        "function": get_task_status,
+        "required_params": ["user_id", "run_id"],
+    },
 }
