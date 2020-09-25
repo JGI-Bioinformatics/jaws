@@ -9,7 +9,7 @@ import connexion
 from urllib.parse import quote_plus
 import secrets
 from sqlalchemy.pool import QueuePool
-from jaws_central import config, log
+from jaws_auth import config, log
 from jaws_auth.models import db
 
 
@@ -76,12 +76,12 @@ def server() -> None:
             raise
 
     # define port
-    port = int(config.conf.get("HTTP", "auth_port"))  # defaults to 3000
+    port = int(config.conf.get("AUTH", "port"))  # defaults to 3000
 
     # start OAuth server
     connex.run(host="0.0.0.0", port=port, debug=False)
 
 
 def jaws():
-    """Entrypoint for jaws-server app."""
+    """Entrypoint for jaws-auth app."""
     cli()
