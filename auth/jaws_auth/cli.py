@@ -82,6 +82,58 @@ def server() -> None:
     connex.run(host="0.0.0.0", port=port, debug=False)
 
 
+@cli.command()
+@click.argument("uid")
+@click.option("--admin", is_flag=True, default=False, help="Grant admin privileges")
+def add_user(
+    uid: str, admin: bool = False
+) -> None:
+    """Add user and generate OAuth2 token."""
+    logger = logging.getLogger(__package__)
+    logger.debug(f"Adding new user, {uid}")
+
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    connex = connexion.FlaskApp(__name__, specification_dir=basedir)
+    connex.add_api("swagger.yml")
+
+    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
+        config.conf.get("DB", "dialect"),
+        config.conf.get("DB", "user"),
+        quote_plus(config.conf.get("DB", "password")),
+        config.conf.get("DB", "host"),
+        config.conf.get("DB", "port"),
+        config.conf.get("DB", "db"),
+    )
+    connex.app.config["SQLALCHEMY_ECHO"] = False
+    connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
+    db.init_app(connex.app)
+
+    with connex.app.app_context():
+        # CHECK IF UID EXISTS
+        from jaws_auth.models import User
+        user = db.session.query(User).get(uid)
+        if user is not None:
+            msg = f"Cannot add user {uid}; user.id already taken."
+            logger.debug(msg)
+            raise ValueError(msg)
+
+        # GENERATE TOKEN AND INSERT RECORD
+        token = secrets.token_urlsafe()
+        try:
+            new_user = User(id=uid, jaws_token=token, is_admin=admin)
+            db.session.add(new_user)
+            db.session.commit()
+            logger.info(f"Added new user {uid} (is_admin={admin})")
+            print(f"User's access token:\n{token}")
+        except Exception as e:
+            logger.exception(f"Failed to add user: {e}")
+            raise e
+
+
 def jaws():
     """Entrypoint for jaws-auth app."""
     cli()

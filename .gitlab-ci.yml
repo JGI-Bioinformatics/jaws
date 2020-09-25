@@ -182,7 +182,6 @@ test-auth:
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
     - pip install -r auth/requirements.txt
     - pip install flake8
     - pip install pytest
