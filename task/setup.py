@@ -1,0 +1,17 @@
+from setuptools import setup
+import os
+
+setup(
+    name="jaws_task",
+    version=os.popen("git describe --dirty=-dev --always --tags --abbrev=6")
+    .read()
+    .strip()
+    .replace("-", "+", 1),
+    description="JAWS Task Service",
+    url="https://gitlab.com/jgi-dsi/aa/jaws/task",
+    author="The JAWS Team",
+    packages=["jaws_task"],
+    install_requires=[line.strip() for line in open("requirements.txt")],
+    entry_points={"console_scripts": ["jaws-task = jaws_task.cli:jaws", ]},
+    zip_safe=False,
+)
