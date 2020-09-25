@@ -1,0 +1,10 @@
+Click==7.0
+clickclick==1.2.2
+configparser==4.0.2
+connexion==2.4.0
+Flask==1.1.1
+Flask-SQLAlchemy==2.4.1
+mysql-connector-python==8.0.18
+openapi-spec-validator==0.2.8
+SQLAlchemy==1.3.12
+swagger-ui-bundle==0.0.6
