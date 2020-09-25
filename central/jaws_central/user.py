@@ -1,6 +1,6 @@
 import logging
 import globus_sdk
-from flask import abort, request
+from flask import abort
 from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config
 from jaws_central.models_fsa import db, User
