@@ -10,7 +10,6 @@ from urllib.parse import quote_plus
 import secrets
 from jaws_catalog import config, log
 from jaws_catalog.models import db
-from jaws_rpc import rpc_index, rpc_server
 
 
 JAWS_LOG_ENV = "JAWS_CATALOG_LOG"
@@ -38,8 +37,8 @@ def cli(config_file: str, log_file: str, log_level: str) -> None:
 
 
 @cli.command()
-def rest() -> None:
-    """Start JAWS REST server."""
+def server() -> None:
+    """Start JAWS Catalog REST server."""
     logger = logging.getLogger(__package__)
     logger.debug("Starting jaws-catalog REST server")
     auth_url = config.conf.get("HTTP", "auth_url")
@@ -75,10 +74,6 @@ def rest() -> None:
         except Exception as e:
             logger.exception(f"Failed to create tables: {e}")
             raise
-
-    # init RPC clients
-    site_rpc_params = config.conf.get_all_sites_rpc_params()
-    rpc_index.rpc_index = rpc_index.RPC_Index(site_rpc_params)
 
     # define port
     port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
