@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""JAWS Central CLI"""
+"""JAWS Catalog CLI"""
 
 import os
 import click
