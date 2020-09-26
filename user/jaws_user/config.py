@@ -40,11 +40,11 @@ class Configuration(metaclass=Singleton):
             "max_threads": 5,
             "max_retries": 3,
         },
-        "HTTP": {"auth_url": "localhost", "auth_port": "3000"},
     }
     required_params = {
         "DB": ["user", "password", "db"],
         "RPC": ["user", "password", "vhost"],
+        "GLOBUS": ["client_id"],
     }
 
     config = None
