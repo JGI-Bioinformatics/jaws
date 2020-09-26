@@ -13,6 +13,8 @@ from jaws_rpc import rpc_index
 from jaws_central.models_fsa import db, Run, User, Run_Log
 
 
+## global vars
+
 logger = logging.getLogger(__package__)
 
 run_active_states = [
@@ -38,49 +40,7 @@ run_pre_cromwell_states = [
 ]
 
 
-def _rpc_call(user, run_id, method, params={}):
-    """This is not a Flask endpoint, but a helper used by several endpoints.
-    It checks a user's permission to access a run, perform the specified RPC function,
-    and returns result if OK, aborts if error.
-
-    :param user: current user's id
-    :type user: str
-    :param run_id: unique identifier for a run
-    :type run_id: int
-    :param method: the method to execute remotely
-    :type method: string
-    :param params: parameters for the remote method, depends on method
-    :type params: dict
-    :return: response in JSON-RPC2 format
-    :rtype: dict or list
-    """
-    try:
-        run = db.session.query(Run).get(run_id)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, f"Db error; {e}")
-    if not run:
-        abort(404, "Run not found; please check your run_id")
-    if run.user_id != user:
-        try:
-            current_user = db.session.query(User).get(user)
-        except SQLAlchemyError as error:
-            logger.error(error)
-            abort(500, f"Db error; {error}")
-        if not current_user.is_admin:
-            abort(401, "Access denied; you cannot access to another user's workflow")
-    a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
-    params["user_id"] = user
-    params["run_id"] = run_id
-    params["cromwell_run_id"] = run.cromwell_run_id
-    logger.info(f"User {user} RPC {method} params {params}")
-    try:
-        result = a_site_rpc_client.request(method, params)
-    except Exception as error:
-        logger.exception(f"RPC {method} failed: {error}")
-    if "error" in result:
-        abort(result["error"]["code"], result["error"]["message"])
-    return result["result"], 200
+## functions served by jaws-central alone (no other services involved)
 
 
 def user_queue(user):
@@ -210,6 +170,54 @@ def get_site(user, site_id):
         abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
     result["uploads_subdir"] = f'{result["uploads_subdir"]}/{user}'
     return result, 200
+
+
+## jaws-site RPC procedures
+
+
+def __run_rpc__(user, run_id, method, params={}):
+    """This is not a Flask endpoint, but a helper used by several endpoints.
+    It checks a user's permission to access a run, perform the specified RPC function,
+    and returns result if OK, aborts if error.
+
+    :param user: current user's id
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :param method: the method to execute remotely
+    :type method: string
+    :param params: parameters for the remote method, depends on method
+    :type params: dict
+    :return: response in JSON-RPC2 format
+    :rtype: dict or list
+    """
+    try:
+        run = db.session.query(Run).get(run_id)
+    except SQLAlchemyError as e:
+        logger.error(e)
+        abort(500, f"Db error; {e}")
+    if not run:
+        abort(404, "Run not found; please check your run_id")
+    if run.user_id != user:
+        try:
+            current_user = db.session.query(User).get(user)
+        except SQLAlchemyError as error:
+            logger.error(error)
+            abort(500, f"Db error; {error}")
+        if not current_user.is_admin:
+            abort(401, "Access denied; you cannot access to another user's workflow")
+    a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
+    params["user_id"] = user
+    params["run_id"] = run_id
+    params["cromwell_run_id"] = run.cromwell_run_id
+    logger.info(f"User {user} RPC {method} params {params}")
+    try:
+        result = a_site_rpc_client.request(method, params)
+    except Exception as error:
+        logger.exception(f"RPC {method} failed: {error}")
+    if "error" in result:
+        abort(result["error"]["code"], result["error"]["message"])
+    return result["result"], 200
 
 
 def submit_run(user):
@@ -511,23 +519,6 @@ def run_status(user, run_id):
     return result, 200
 
 
-def task_status(user, run_id):
-    """
-    Retrieve the current status of each Task in a Run.
-
-    :param user: current user's ID
-    :type user: str
-    :param run_id: unique identifier for a run
-    :type run_id: int
-    :return: The status of each task in a run.
-    :rtype: dict
-    """
-    logger.info(f"User {user}: Get task-status of Run {run_id}")
-    run = _get_run(user, run_id)
-    _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "get_task_status")
-
-
 def run_log(user: str, run_id: int):
     """
     Retrieve complete log of a Run's state transitions.
@@ -563,23 +554,6 @@ def run_log(user: str, run_id: int):
     return table, 200
 
 
-def task_log(user, run_id):
-    """
-    Retrieve log of all task state transitions.
-
-    :param user: current user's ID
-    :type user: str
-    :param run_id: unique identifier for a run
-    :type run_id: int
-    :return: The complete log of all task state transitions.
-    :rtype: dict
-    """
-    logger.info(f"User {user}: Get task-log for Run {run_id}")
-    run = _get_run(user, run_id)
-    _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "get_task_log")
-
-
 def run_metadata(user, run_id):
     """
     Retrieve the metadata of a run.
@@ -594,7 +568,7 @@ def run_metadata(user, run_id):
     logger.info(f"User {user}: Get metadata for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "run_metadata")
+    return __run_rpc__(user, run_id, "run_metadata")
 
 
 def get_errors(user, run_id):
@@ -611,7 +585,7 @@ def get_errors(user, run_id):
     logger.info(f"User {user}: Get errors for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "get_errors")
+    return __run_rpc__(user, run_id, "get_errors")
 
 
 def cancel_run(user, run_id):
@@ -647,7 +621,7 @@ def cancel_run(user, run_id):
         _cancel_transfer(user, run.download_task_id, run_id)
 
     # tell Site to cancel
-    return _rpc_call(user, run_id, "cancel_run")
+    return __run_rpc__(user, run_id, "cancel_run")
 
 
 def _cancel_run(run, reason="Cancelled by user"):
@@ -715,3 +689,96 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
             exc_info=True,
         )
         abort(500, f"Globus error: {error}")
+
+
+## calls to jaws-task service
+
+
+def __task_rpc__(user, run_id, procedure, params={}):
+    """Perform a JSON-RPC2 call to the appropraite jaws-task service (there is one per computing facility).
+    It checks a user's permission to access a run, perform the specified RPC function,
+    and returns result if OK, aborts if error.
+
+    :param user: current user's id
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :param procedure: the procedure to execute remotely
+    :type procedure: string
+    :param params: parameters for the remote procedure, depends on procedure
+    :type params: dict
+    :return: response in JSON-RPC2 format
+    :rtype: dict or list
+    """
+    # get run info from db
+    try:
+        run = db.session.query(Run).get(run_id)
+    except SQLAlchemyError as e:
+        logger.error(e)
+        abort(500, f"Db error; {e}")
+    if not run:
+        abort(404, "Run not found; please check your run_id")
+
+    # validate user access
+    if run.user_id != user:
+        try:
+            current_user = db.session.query(User).get(user)
+        except SQLAlchemyError as error:
+            logger.error(error)
+            abort(500, f"Db error; {error}")
+        if not current_user.is_admin:
+            abort(401, "Access denied; you cannot access to another user's workflow")
+
+    # prepare rpc request
+    params["user_id"] = user
+    params["run_id"] = run_id
+    logger.info(f"User {user} RPC {procedure} params {params}")
+
+    # get rpc client for appropriate jaws-task service
+    # send rpc message to jaws-task
+    a_jaws_task_rpc_config = config.conf.get_task_rpc_params(run.site_id)
+    try:
+        with RPC_Client(a_jaws_task_rpc_config) as rpc_cl:
+            response = rpc_cl.request(procedure, params)
+    except Exception as error:
+        logger.exception(f"RPC {procedure} failed: {error}")
+        abort(500, "jaws-task service is busy; try again in a moment")
+
+    # return appropriate result
+    if "error" in result:
+        abort(result["error"]["code"], result["error"]["message"])
+    return result["result"], 200
+
+
+def task_status(user, run_id):
+    """
+    Retrieve the current status of each Task in a Run.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: The status of each task in a run.
+    :rtype: dict
+    """
+    logger.info(f"User {user}: Get task-status of Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    return __task_rpc__(user, run_id, "get_task_status")
+
+
+def task_log(user, run_id):
+    """
+    Retrieve log of all task state transitions.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: The complete log of all task state transitions.
+    :rtype: dict
+    """
+    logger.info(f"User {user}: Get task-log for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    return __task_rpc__(user, run_id, "get_task_log")

@@ -176,8 +176,8 @@ class Configuration(metaclass=Singleton):
             result[key] = value
         return result
 
-    def get_site_rpc_params(self, site_id: str) -> Dict[str, str]:
-        """Returns AMQP connection info for the site.
+    def __get_site_rpc_params(self, site_id: str) -> Dict[str, str]:
+        """Returns AMQP connection info for the site, except for queue.
 
         :param site_id: The ID of the JAWS-Site
         :type site_id: str
@@ -195,9 +195,36 @@ class Configuration(metaclass=Singleton):
             "user": s["user"],
             "password": s["password"],
             "vhost": s["vhost"],
-            "queue": s["queue"],
             "message_ttl": int(s.get("message_ttl", DEFAULT_RPC_MESSAGE_TTL)),
         }
+        return params
+
+    def get_site_rpc_params(self, site_id: str) -> Dict[str, str]:
+        """Returns AMQP connection info for the site.
+
+        :param site_id: The ID of the JAWS-Site
+        :type site_id: str
+        :return: Site parameters required to submit a run, if exists, None otherwise.
+        :rtype: dict
+        """
+        site_id = site_id.upper()
+        params = self.__get_site_rpc_params(site_id)
+        if params:
+            params["queue"] = f"JAWS_{site_id}"
+        return params
+
+    def get_task_rpc_params(self, site_id: str) -> Dict[str, str]:
+        """Returns AMQP connection info for the site.
+
+        :param site_id: The ID of the JAWS Site
+        :type site_id: str
+        :return: Site parameters required to submit a run, if exists, None otherwise.
+        :rtype: dict
+        """
+        site_id = site_id.upper()
+        params = self.__get_site_rpc_params(site_id)
+        if params:
+            params["queue"] = f"JAWS_{site_id}_task"
         return params
 
     def get_all_sites_rpc_params(self) -> Dict[str, Dict]:
