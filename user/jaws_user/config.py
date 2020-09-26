@@ -1,7 +1,6 @@
 import logging
 import os
 import configparser
-from typing import Dict
 
 
 DEFAULT_AMQP_PORT = 5672
