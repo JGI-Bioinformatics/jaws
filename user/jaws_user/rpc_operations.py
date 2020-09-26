@@ -3,8 +3,6 @@ RPC operations for jaws-user service
 """
 
 import logging
-import sqlalchemy.exc
-from datetime import datetime
 import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
 from jaws_rpc.responses import success, failure
@@ -48,41 +46,9 @@ def get_user(params):
     return success(result)
 
 
-def is_admin(params):
-    """
-    Check if a user has administrator access.
-
-    :param params: contains "user_id"
-    :type params: dict
-    :return: JSON-RPC2 response with boolean result
-    :rtype: dict
-    """
-    response = get_user(params)
-    if "error" in response:
-        return response
-    else:
-        return success(response["result"]["is_admin"])
-
-
-def transfer_refresh_token(params):
-    """
-    Retrieve a user's Globus transfer refresh token.
-
-    :param params: contains "user_id"
-    :type params: dict
-    :return: JSON-RPC2 response with str result
-    :rtype: dict
-    """
-    response = get_user(params)
-    if "error" in response:
-        return response
-    else:
-        return success(response["result"]["transfer_refresh_token"])
-
-
 def update_user(user_id, auth_refresh_token, transfer_refresh_token):
     """Save a user's Globus tokens.  Only the refresh tokens are required with the RefreshTokenAuthorizer
-    and the refresh tokens never expire.
+    and the refresh tokens never expire.  This is used when new users grant the jaws app globus access.
 
     :param user_id: user ID
     :type user_id: str
@@ -102,14 +68,16 @@ def update_user(user_id, auth_refresh_token, transfer_refresh_token):
     email = user_info["email"]
 
     # INSERT OR UPDATE
+    session = Session()
     try:
-        user_rec = db.session.query(User).get(user_id)
+        user_rec = session.query(User).get(user_id)
     except SQLAlchemyError as e:
         return (500, f"Db error: {e}")
     if user_rec is None:
         # insert new
         new_user = User(
             name=name,
+            email=email,
             globus_id=globus_id,
             auth_refresh_token=auth_refresh_token,
             transfer_refresh_token=transfer_refresh_token,
@@ -125,18 +93,9 @@ def update_user(user_id, auth_refresh_token, transfer_refresh_token):
     return success()
 
 
-## all RPC operations are defined in this dispatch table
+# this dispatch table is used by jaws_rpc.rpc_server
 operations = {
-    "update_run_logs": {
-        "function": update_run_logs,
-        "required_parameters": [
-            "site_id",
-            "run_id",
-            "status_from",
-            "status_to",
-            "timestamp",
-        ],
-    },
+    "get_user": {"function": get_user, "required_parameters": ["user_id"]},
     "update_user": {
         "function": update_user,
         "required_parameters": [
