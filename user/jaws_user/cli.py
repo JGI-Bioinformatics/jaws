@@ -1,17 +1,11 @@
 #!/usr/bin/env python3
 
-"""JAWS-User CLI"""
+"""JAWS-User Service"""
 
 import os
 import click
-import logging
-import connexion
-from urllib.parse import quote_plus
-import secrets
 from jaws_user import config, log
-from jaws_user.database import Session
-from jaws_user.models import User
-from jaws_rpc import rpc_index, rpc_server
+from jaws_rpc.rpc_server import RpcServer
 
 
 JAWS_LOG_ENV = "JAWS_USER_LOG"
@@ -50,40 +44,8 @@ def server() -> None:
     from jaws_user import rpc_operations
 
     rpc_params = config.conf.get_section("RPC_SERVER")
-    app = rpc_server.RpcServer(rpc_params, rpc_operations.operations)
+    app = RpcServer(rpc_params, rpc_operations.operations)
     app.start_server()
-
-
-# @cli.command()
-# @click.argument("uid")
-# @click.argument("email")
-# @click.option("--admin", is_flag=True, default=False, help="Grant admin privileges")
-# def add_user(
-#    uid: str, email: str, admin: bool = False
-# ) -> None:
-#    """Add user and generate OAuth2 token."""
-#    logger = logging.getLogger(__package__)
-#    logger.debug(f"Adding new user, {uid}")
-#
-#    # CHECK IF UID EXISTS
-#    session = Session()
-#    user = session.query(User).get(uid)
-#    if user is not None:
-#        msg = f"Cannot add user {uid}; user.id already taken."
-#        logger.debug(msg)
-#        raise ValueError(msg)
-#
-#    # GENERATE TOKEN AND INSERT RECORD
-#    token = secrets.token_urlsafe()
-#    try:
-#        new_user = User(id=uid, jaws_token=token, email=email, is_admin=admin)
-#        db.session.add(new_user)
-#        db.session.commit()
-#        logger.info(f"Added new user {uid} ({email})")
-#        print(f"User's access token:\n{token}")
-#    except Exception as e:
-#        logger.exception(f"Failed to add user: {e}")
-#        raise e
 
 
 def jaws():
