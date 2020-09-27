@@ -1,7 +1,10 @@
 """Sqlalchemy ORM models for jaws-user database"""
 
 from sqlalchemy import Column, String, Boolean
-from jaws_user.database import Base
+from sqlalchemy.ext.declarative import declarative_base
+from jaws_user.database import engine
+
+Base = declarative_base()
 
 
 class User(Base):
@@ -21,3 +24,6 @@ class User(Base):
 
     def __repr__(self):
         return f"<User {self.id}>"
+
+
+Base.metadata.create_all(engine)
