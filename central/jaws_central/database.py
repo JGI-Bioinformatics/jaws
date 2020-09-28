@@ -18,7 +18,7 @@ url = "%s://%s:%s@%s:%s/%s" % (
     params.get("port"),
     params.get("db"))
 try:
-    engine = create_engine(url, pool_size=3, pool_recycle=3600, pool_pre_ping=True)
+    engine = create_engine(url, pool_size=5, max_overflow=10, pool_recycle=3600, pool_timeout=30, pool_pre_ping=True)
 except Exception as error:
     logger.exception(error)
     raise

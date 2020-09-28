@@ -45,10 +45,9 @@ def list_wdls() -> Tuple[dict, int]:
     logger.debug("List workflows")
     try:
         query = db.session.query(Workflow).filter(Workflow.is_deprecated == 0).all()
-        # query = db.session.query(Workflow).all()
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise CatalogDatabaseError(error)
     result = []
     for row in query:
         is_released = "yes" if row.is_released else "no"
@@ -77,9 +76,9 @@ def get_versions(name: str) -> Tuple[dict, int]:
             .filter(Workflow.name == name, Workflow.is_deprecated == 0)
             .all()
         )
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise CatalogDatabaseError(error)
     result = {}
     for row in query:
         is_released = "yes" if row.is_released else "no"
@@ -112,9 +111,9 @@ def get_doc(name: str, version: str) -> Tuple[str, int]:
             .filter_by(name=name, version=version)
             .one_or_none()
         )
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise CatalogDatabaseError(error)
     if workflow:
         return workflow.doc
     else:
@@ -138,9 +137,9 @@ def get_wdl(name: str, version: str) -> Tuple[str, int]:
             .filter_by(name=name, version=version)
             .one_or_none()
         )
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise CatalogDatabaseError(error)
     if workflow:
         return workflow.wdl
     else:
@@ -165,9 +164,9 @@ def release_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
             .filter_by(name=name, version=version)
             .one_or_none()
         )
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise CatalogDatabaseError(error)
     if workflow is None:
         raise CatalogWorkflowNotFoundError("Workflow not found")
     if workflow.user_id != user:
@@ -175,9 +174,10 @@ def release_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     workflow.is_released = True
     try:
         db.session.commit()
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        db.session.rollback()
+        logger.error(error)
+        raise CatalogDatabaseError(error)
 
 
 def del_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
@@ -198,9 +198,9 @@ def del_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
             .filter_by(name=name, version=version)
             .one_or_none()
         )
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise CatalogDatabaseError(error)
     if workflow is None:
         raise CatalogWorkflowNotFoundError("Workflow not found")
     if workflow.user_id != user:
@@ -209,16 +209,18 @@ def del_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
         try:
             workflow.is_deprecated = True
             db.session.commit()
-        except SQLAlchemyError as e:
-            logger.error(e)
-            raise CatalogDatabaseError(e)
+        except SQLAlchemyError as error:
+            db.session.rollback()
+            logger.error(error)
+            raise CatalogDatabaseError(error)
     else:
         try:
             db.session.delete(workflow)
             db.session.commit()
-        except SQLAlchemyError as e:
-            logger.error(e)
-            raise CatalogDatabaseError(e)
+        except SQLAlchemyError as error:
+            db.session.rollback()
+            logger.error(error)
+            raise CatalogDatabaseError(error)
 
 
 def update_wdl(user: str, name: str, version: str, new_wdl: str) -> Tuple[dict, int]:
@@ -246,9 +248,9 @@ def update_wdl(user: str, name: str, version: str, new_wdl: str) -> Tuple[dict, 
             .filter_by(name=name, version=version)
             .one_or_none()
         )
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise CatalogDatabaseError(error)
     if workflow is None:
         raise CatalogWorkflowNotFoundError("Workflow not found, check the name/version")
     if workflow.user_id != user:
@@ -258,9 +260,10 @@ def update_wdl(user: str, name: str, version: str, new_wdl: str) -> Tuple[dict, 
     try:
         workflow.wdl = new_wdl
         db.session.commit()
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        db.session.rollback()
+        logger.error(error)
+        raise CatalogDatabaseError(error)
 
 
 def update_doc(user: str, name: str, version: str, new_doc: str) -> Tuple[dict, int]:
@@ -287,9 +290,9 @@ def update_doc(user: str, name: str, version: str, new_doc: str) -> Tuple[dict, 
             .filter_by(name=name, version=version)
             .one_or_none()
         )
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise CatalogDatabaseError(error)
     if workflow is None:
         raise CatalogWorkflowNotFoundError("Workflow not found")
     if workflow.user_id != user:
@@ -297,9 +300,10 @@ def update_doc(user: str, name: str, version: str, new_doc: str) -> Tuple[dict, 
     try:
         workflow.doc = new_doc
         db.session.commit()
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        db.session.rollback()
+        logger.error(error)
+        raise CatalogDatabaseError(error)
 
 
 def add_wdl(
@@ -330,9 +334,9 @@ def add_wdl(
             .filter_by(name=name, version=version)
             .one_or_none()
         )
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise CatalogDatabaseError(error)
     if workflow is not None:
         raise CatalogInvalidInputError(
             "A workflow with that name:version already exists"
@@ -352,6 +356,7 @@ def add_wdl(
     try:
         db.session.add(workflow)
         db.session.commit()
-    except SQLAlchemyError as e:
-        logger.error(e)
-        raise CatalogDatabaseError(e)
+    except SQLAlchemyError as error:
+        db.session.rollback()
+        logger.error(error)
+        raise CatalogDatabaseError(error)

@@ -115,6 +115,7 @@ def update_run_logs(params):
     try:
         session.commit()
     except Exception as error:
+        session.rollback()
         logger.exception(f"Failed to update run status: {error}")
         session.close()
         return _failure(500, f"Error inserting log: {error}")

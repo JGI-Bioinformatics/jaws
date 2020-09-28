@@ -94,6 +94,7 @@ def update_job_status(params):
         logger.debug(f"Job {cromwell_job_id} status saved")
     except sqlalchemy.exc.IntegrityError:
         # JTM sometimes sends duplicate messages; ignore
+        session.rollback()
         logger.warning(f"Job {cromwell_job_id} status is duplicate; ignored")
         result = "Ignoring duplicate log entry"
     except Exception as error:

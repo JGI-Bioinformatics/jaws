@@ -129,6 +129,7 @@ def cancel_run(params):
     try:
         session.commit()
     except Exception as error:
+        session.rollback()
         logger.exception(f"Error updating Run {run_id}: {error}")
         return _failure(500, f"Error updating db record: {error}")
     logger.debug(f"Run {run_id} cancelled")
@@ -202,6 +203,7 @@ def submit(params):
         session.add(run)
         session.commit()
     except Exception as error:
+        session.rollback()
         logger.exception(f"Failed to insert new Run record: {error}")
         return _failure(500, f"Failed to insert new Run record: {error}")
     return _success()
