@@ -117,7 +117,7 @@ def add_user(
         from jaws_auth.models import User
         user = db.session.query(User).get(uid)
         if user is not None:
-            msg = f"Cannot add user {uid}; user.id already taken."
+            msg = f"User {uid} already exists: {user.access_token}"
             logger.debug(msg)
             raise ValueError(msg)
 
