@@ -249,9 +249,16 @@ def submit_run(user):
     try:
         db.session.add(run)
     except Exception as error:
+        db.session.rollback()
         logger.exception(f"Error inserting Run: {error}")
         abort(500, f"Error inserting Run into db: {error}")
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        err_msg = f"Unable to insert new run in db: {error}"
+        logger.exception(err_msg)
+        abort(500, err_msg)
     logger.debug(f"User {user}: New run {run.id}")
 
     # SUBMIT GLOBUS TRANSFER
@@ -351,8 +358,14 @@ def submit_run(user):
     try:
         db.session.add(log)
     except Exception as error:
+        db.session.rollback()
         logger.exception(f"Error inserting run log for Run {run.id}: {error}")
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        err_msg = f"Error inserting run log for Run {run.id}: {error}"
+        logger.exception(err_msg)
 
     # SEND TO SITE
     params = {
@@ -404,7 +417,11 @@ def _update_run_status(run, new_status, reason=None):
     """Update run table and insert run_logs entry."""
     status_from = run.status
     run.status = new_status
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        logger.exception(f"Error updating run status in db: {error}")
     log = Run_Log(
         run_id=run.id,
         status_from=status_from,
@@ -412,8 +429,12 @@ def _update_run_status(run, new_status, reason=None):
         timestamp=run.updated,
         reason=reason,
     )
-    db.session.add(log)
-    db.session.commit()
+    try:
+        db.session.add(log)
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        logger.exception(f"Error insert run log entry: {error}")
 
 
 def _get_run(user, run_id):
@@ -638,6 +659,7 @@ def _cancel_run(run, reason="Cancelled by user"):
     try:
         db.session.commit()
     except Exception as error:
+        db.session.rollback()
         logger.exception(f"Error while updating run to 'cancelled': {error}")
     log = Run_Log(
         run_id=run.id,
@@ -650,6 +672,7 @@ def _cancel_run(run, reason="Cancelled by user"):
         db.session.add(log)
         db.session.commit()
     except Exception as error:
+        db.session.rollback()
         logger.error(
             f"Error while adding run log entry to cancel run {run.id}: {error}"
         )
