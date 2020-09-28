@@ -136,6 +136,90 @@ source ~/cromvenv/bin/activate
 cromwell-utils
 ```
 
+### docker-compose services 
+There is a `docker-compose.yml` setup for local deployments. To run the services be sure to have the db, rabbitmq services up first:
+```console
+docker-compose up -d central_db
+docker-compose up -d central_rabbitmq
+docker-compose up -d site_db
+docker-compose up -d site_rabbitmq
+```  
+
+This will bring up all the required external services. You will then want to bring up the rest of the services: 
+
+```console
+docker-compose up -d
+```
+
+#### local development cycle 
+If you want to develop jaws locally, you will need to re-build the images to make sure your current code is uploaded. 
+The Dockerfiles copy the source code into the container, and then create all of the configuration scripts. Supervisord
+is instaled in the containers and will start and run the services.  
+
+There is a `./build.sh` script used to help create the docker images.
+
+```console
+
+$ ./build.sh
+Usage: ./build.sh <jaws_service> <version>
+```
+
+The version tag can be customized and is used to simply tag your version of the docker images. Note that if you update
+the version tag you will need to also update the docker-compose.yml. 
+
+Example:  
+
+```console
+$ ./build.sh central 2.0
+Sending build context to Docker daemon  189.4kB
+Step 1/15 : FROM python:3.8-buster
+ ---> 28a4c88cdbbf
+Step 2/15 : RUN pip install wheel
+ ---> Using cache
+ ---> 7528d629c501
+Step 3/15 : RUN pip install supervisor
+ ---> Using cache
+ ---> 39fb4b3d2e65
+Step 4/15 : COPY rpc/ rpc/
+ ---> Using cache
+ ---> a814ea36fe3e
+Step 5/15 : COPY docker-entrypoint.sh bin/
+ ---> Using cache
+ ---> 35828b47773d
+Step 6/15 : RUN cd rpc/ && python setup.py bdist_wheel && pip install dist/*
+ ---> Using cache
+ ---> 9a62f1e6ca82
+Step 7/15 : WORKDIR central/
+ ---> Using cache
+ ---> ceb7a9f4a08a
+Step 8/15 : COPY jaws_central/ jaws_central/
+ ---> Using cache
+ ---> a939e24c8572
+Step 9/15 : COPY requirements.txt .
+ ---> Using cache
+ ---> 8d5f1cae6d94
+Step 10/15 : COPY setup.py .
+ ---> Using cache
+ ---> 0632054b56bc
+Step 11/15 : COPY MANIFEST.in .
+ ---> Using cache
+ ---> 6f4e0cfc2d8a
+Step 12/15 : COPY tests/ tests/
+ ---> Using cache
+ ---> 38ead4b5cb8b
+Step 13/15 : RUN python setup.py bdist_wheel && pip install dist/*
+ ---> Using cache
+ ---> 354b34be6cbb
+Step 14/15 : ENTRYPOINT ["docker-entrypoint.sh"]
+ ---> Using cache
+ ---> 6daae6b070a2
+Step 15/15 : CMD ["supervisord -n"]
+ ---> Using cache
+ ---> 808fa3c83056
+Successfully built 808fa3c83056
+Successfully tagged jaws_central:2.0
+```  
+
 ## Contributing
 Developers
 * Edward Kirton
