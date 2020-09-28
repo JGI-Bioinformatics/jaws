@@ -141,5 +141,4 @@ database
 }
 EOM
 
-cat -n /etc/cromwell.conf
 /bin/bash -c "java $JAVA_OPTS -jar /app/cromwell.jar $1"
