@@ -24,6 +24,9 @@ services:
       - central_rabbitmq
     networks:
       - central-tier
+    ports:
+      - "5000:5000"
+      - "3000:3000"
   central_db:
     image: mysql
     restart: always
@@ -36,6 +39,8 @@ services:
       - 3306
     networks:
       - central-tier
+    volumes:
+      - ./mysql/init:/docker-entrypoint-initdb.d/
   central_rabbitmq:
     image: rabbitmq:3-management
     environment:
@@ -48,38 +53,38 @@ services:
       - 5673
     networks:
       - central-tier
+    ports:
+      - "15673:15672"
   site_db:
     image: mysql
     restart: always
     environment:
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_USER: jaws
       MYSQL_PASSWORD: jawstest
-      MYSQL_DATABASE: jaws_sitea_dev
-      MYSQL_DATABASE: jaws_cromwell_dev
-      MYSQL_ROOT_PASSWORD: jawstest
+    volumes:
+      - ./mysql/init:/docker-entrypoint-initdb.d/
     expose:
       - 3306
     networks:
       - central-tier
   site_rabbitmq:
-    image: rabbitmq:3-management
-    environment:
-      RABBITMQ_DEFAULT_VHOST: jaws_dev
-      RABBITMQ_DEFAULT_USER: jaws
-      RABBITMQ_DEFAULT_PASS: jawstest
+    image: jaws_rabbitmq:2.0
     expose:
       - 15672
       - 5672
       - 5673
     networks:
       - central-tier
+    ports:
+      - "15672:15672"
   site:
     image: jaws_site:2.0
     environment:
       DB_HOST: site_db
       DB_PORT: 3306
       DB_PW: jawstest
-      JAWS_SITE: sitea
+      JAWS_SITE: local
       RMQ_PW: jawstest
       RMQ_HOST: site_rabbitmq
       RMQ_PORT: 5672
@@ -108,12 +113,35 @@ services:
       SITE_DB_HOST: site_db
       SITE_DB_PORT: 3306
       SITE_DB_PW: jawstest
-      JAWS_SITE: sitea
+      JAWS_SITE: local
       DEPLOYMENT_NAME: dev
       JAVA_OPTS: -Xmx5g -Dconfig.file=/etc/cromwell.conf -Djava.io.tmpdir=/tmp/     
       CROMWELL_EXECUTIONS_DIR: /tmp/cromwell-executions
     depends_on:
       - site_db
+    networks:
+      - central-tier
+  jtm:
+    image: jaws_jtm:2.0
+    hostname: ernie
+    tty: true
+    environment:
+      JAWS_SITE: local
+      DEPLOYMENT_NAME: dev
+      SITE_JTM_SCRATCH_DIR: /tmp/scratch
+      SITE_RMQ_PW: jawstest
+      SITE_RMQ_HOST: site_rabbitmq
+      SITE_RMQ_PORT: 5672
+      SITE_DB_HOST: site_db
+      SITE_DB_PORT: 3306
+      SITE_DB_PW: jawstest
+      SITE_CLUSTER_PARTITION: ""
+      SITE_CLUSTER_QOS: ""
+      SITE_CLUSTER_CONSTRAINT: ""
+      SITE_JTM_WORKER_INSTALL_DIR: /jtm/jaws_jtm_worker
+    depends_on:
+      - site_db
+      - site_rabbitmq
     networks:
       - central-tier
 
