@@ -225,6 +225,9 @@ jtm_task_kill_exch = jgi_jtm_task_kill_exch_\${JTM:run_mode}_\${SITE:instance_na
 jtm_worker_poison_exch = jgi_jtm_poison_exch_\${JTM:run_mode}_\${SITE:instance_name}
 EOM
 
+
+# This was taken from https://github.com/giovtorres/docker-centos7-slurm/blob/master/docker-entrypoint.sh
+# to avoid overwriting the original docker-entrypoint.sh which had logic to start Slurm. 
 if [ ! -f "/var/lib/mysql/ibdata1" ]; then
     echo "- Initializing database"
     /usr/bin/mysql_install_db --force &> /dev/null
