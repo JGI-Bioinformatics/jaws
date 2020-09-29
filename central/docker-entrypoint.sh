@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 
 CONF=""
+
+CONF="$CONF
+[SITE:LOCAL]
+user = jaws
+password = $JAWS_CENTRAL_RMQ_PW
+host = $JAWS_CENTRAL_RMQ_HOST
+port = $JAWS_CENTRAL_RMQ_PORT
+vhost = jaws_$DEPLOYMENT_NAME
+queue = JAWS_LOCAL
+globus_endpoint = /
+globus_basepath = /
+uploads_subdir = /uploads
+max_ram_gb = 100G
+"
 cat << EOM > /etc/jaws-central.conf
 [JAWS]
 name = $DEPLOYMENT_NAME
@@ -29,6 +43,7 @@ auth_port = $JAWS_AUTH_PORT
 rest_port = $JAWS_REST_PORT
 $CONF
 EOM
+
 
 SUPERVISOR_JAWS_CONF=""
 cat << EOM > /etc/supervisord.conf
