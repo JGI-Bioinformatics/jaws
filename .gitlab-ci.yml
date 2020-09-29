@@ -245,6 +245,8 @@ deploy-jaws-jgi-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
+    DEPLOY_JAWS_CENTRAL: 0
+    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/dev"
   script:
@@ -258,6 +260,8 @@ deploy-jaws-jgi-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
+    DEPLOY_JAWS_CENTRAL: 0
+    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/staging"
   script:
@@ -271,6 +275,8 @@ deploy-jaws-jgi-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
+    DEPLOY_JAWS_CENTRAL: 0
+    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/production"
   script:
