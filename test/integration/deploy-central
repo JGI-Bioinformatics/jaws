@@ -167,7 +167,7 @@ startretries=3
 autorestart=unexpected
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-central-auth,jaws-central-rest,jaws-central-rpc"
+programs=jaws-central-auth,jaws-central-rest,jaws-central-rpc
 priority=999
 EOM
 
