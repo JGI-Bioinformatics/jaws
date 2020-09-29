@@ -38,14 +38,19 @@ fi
 test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
 test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf stop jaws-$DEPLOYMENT_NAME:*
 
+
 # install services
-./test/integration/generate-venvs
-./test/integration/generate-configs
-./test/integration/generate-shims
-./test/integration/deploy-cromwell
+if [[ -n "$JAWS_SITE" ]]; then
+    # install site-related services only if $JAWS_SITE is defined
+    ./test/integration/generate-venvs
+    ./test/integration/generate-configs
+    ./test/integration/generate-shims
+    ./test/integration/deploy-cromwell
+fi
 [[ -n "$DEPLOY_JAWS_CENTRAL" ]] && [[ "$DEPLOY_JAWS_CENTRAL" -eq 1 ]] && ./test/integration/deploy-central
 [[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && ./test/integration/deploy-client
 ./test/integration/deploy-supervisord
+
 
 ## start services
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
