@@ -211,7 +211,57 @@ package:
       - client/dist
       - central/dist
       - jtm/dist
+
 ## integration tests - only run on merge request
+
+deploy-jaws-central-dev:
+  stage: deploy-jaws
+  tags:
+    - central
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: ""
+    DEPLOY_JAWS_CENTRAL: 1
+    DEPLOY_JAWS_CLIENT: 0
+  environment:
+    name: "central/dev"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+  - dev
+deploy-jaws-central-staging:
+  stage: deploy-jaws
+  tags:
+    - central
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: ""
+    DEPLOY_JAWS_CENTRAL: 1
+    DEPLOY_JAWS_CLIENT: 0
+  environment:
+    name: "central/staging"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+  - staging
+deploy-jaws-central-prod:
+  stage: deploy-jaws
+  tags:
+    - central
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: ""
+    DEPLOY_JAWS_CENTRAL: 1
+    DEPLOY_JAWS_CLIENT: 0
+  environment:
+    name: "central/production"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+  - master
+
+## jaws-sites:
+
 deploy-jaws-cori-dev:
   stage: deploy-jaws
   tags:
@@ -219,7 +269,7 @@ deploy-jaws-cori-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CENTRAL: 1
+    DEPLOY_JAWS_CENTRAL: 0
     DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/dev"
@@ -234,7 +284,7 @@ deploy-jaws-cori-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CENTRAL: 1
+    DEPLOY_JAWS_CENTRAL: 0
     DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/staging"
@@ -249,7 +299,7 @@ deploy-jaws-cori-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CENTRAL: 1
+    DEPLOY_JAWS_CENTRAL: 0
     DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/production"
