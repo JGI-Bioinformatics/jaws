@@ -3,6 +3,15 @@
 # There is only one jaws-central deployment, while there may be several jaws-sites.
 echo "BEGIN deploy-central"
 
+function fix_perms() {
+    local GROUP="$1"
+    local DIR="$2"
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R "$GROUP" "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+
 ## VERIFY REQUIRED VARS ARE DEFINED
 # If any env are undefined, try sourcing the setup script and check again.
 # Exits if any required var is undefined.
@@ -13,6 +22,9 @@ JAWS_CENTRAL_DB_PW
 JAWS_CENTRAL_RMQ_PW
 JGI_RMQ_PW
 CORI_RMQ_PW
+CENTRAL_SUPERVISOR_HOST
+CENTRAL_SUPERVISORD_PW
+CENTRAL_JAWS_GROUP
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -34,6 +46,29 @@ if [[ $RESULT -ne 0 ]]; then
 fi
 [ $RESULT -eq 0 ] || exit 1
 
+## DEPLOYMENT-SPECIFIC VARIABLES
+echo "DEFINING DEPLOYMENT VARS"
+function set_deployment_var {
+  VAR_NAME="$1"
+  SRC_VAR_NAME="${DEPLOYMENT_NAME}_${VAR_NAME}"
+  if [ -z ${!SRC_VAR_NAME+xxx} ]; then
+    echo "Missing env var: $SRC_VAR_NAME">&2
+    exit 1
+  fi
+  VALUE="${!SRC_VAR_NAME}"
+  echo "... $VAR_NAME"
+  export $VAR_NAME
+  printf -v "$VAR_NAME" "%s" "$VALUE"
+}
+DEPLOYMENT_VARS="
+LOG_LEVEL
+JAWS_SUPERVISOR_PORT
+JAWS_AUTH_PORT
+JAWS_REST_PORT"
+for DEPLOYMENT_VAR in $DEPLOYMENT_VARS; do
+  set_deployment_var $DEPLOYMENT_VAR
+done
+
 # DEFINE PATHS
 echo "DEFINING PATHS"
 export INSTALL_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
@@ -41,6 +76,103 @@ export CONFIG_DIR="$INSTALL_DIR/configs"
 export SHIM_DIR="$INSTALL_DIR/shims"
 export LOGS_DIR="$INSTALL_DIR/logs"
 export SUPERVISOR_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-supervisord-$DEPLOYMENT_NAME"
+
+#### SUPERVISORD
+
+## CREATE DIRS
+test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
+chgrp $CENTRAL_JAWS_GROUP $SUPERVISOR_DIR
+chmod 770 $SUPERVISOR_DIR
+
+[[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
+[[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
+chgrp -R $CENTRAL_JAWS_GROUP $SUPERVISOR_DIR/{bin,venv}
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+function not_available() {
+  command -v $1 >/dev/null 2>&1
+}
+
+not_available "supervisord" || $SITE_PYTHON_PIP install supervisor
+
+function generate_shim() {
+prog=$1
+cat <<EOM > $SUPERVISOR_DIR/bin/$prog
+#!/usr/bin/env bash
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+$prog \$@
+EOM
+chmod +x $SUPERVISOR_DIR/bin/$prog
+}
+
+generate_shim supervisord
+generate_shim supervisorctl
+
+fix_perms "$SITE_JTM_GROUP" "$SUPERVISOR_DIR"
+
+cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
+[inet_http_server]
+port=0.0.0.0:$JAWS_SUPERVISOR_PORT
+username=jaws
+password=$CENTRAL_SUPERVISORD_PW
+
+[supervisord]
+logfile=$SUPERVISOR_DIR/jaws-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile=$SUPERVISOR_DIR/jaws-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jaws-$DEPLOYMENT_NAME
+directory=$SUPERVISOR_DIR
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=$CENTRAL_SUPERVISOR_HOST:$JAWS_SUPERVISOR_PORT
+username=jaws
+password=$CENTRAL_SUPERVISORD_PW
+prompt=supervisor-jaws-$DEPLOYMENT_NAME
+
+;----- Program Section
+
+[program:jaws-central-rest]
+command=$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-central-rpc]
+command=$SHIM_DIR/jaws-central-rpc-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-central-auth]
+command=$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[group:jaws-$DEPLOYMENT_NAME]
+programs=jaws-central-auth,jaws-central-rest,jaws-central-rpc"
+priority=999
+EOM
+
+chgrp "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
+chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
 
 ## DELETE OLD VENV
 test -d "$INSTALL_DIR/central" && rm -rf "$INSTALL_DIR/central"
@@ -54,14 +186,6 @@ $CENTRAL_PYTHON -m venv "$INSTALL_DIR/central" && \
   deactivate
 
 ## FIX PERMISSIONS
-function fix_perms() {
-    local GROUP="$1"
-    local DIR="$2"
-    chmod -R a+rX "$DIR"
-    chmod -R ug+rwX "$DIR"
-    chgrp -R "$GROUP" "$DIR"
-    find "$DIR" -type d -exec chmod g+s '{}' \;
-}
 fix_perms "$CENTRAL_JAWS_GROUP" "$INSTALL_DIR/central"
 
 ## GENERATE CONFIG
