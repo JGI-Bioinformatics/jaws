@@ -34,18 +34,23 @@ if [[ $RESULT -ne 0 ]]; then
 fi
 [ $RESULT -eq 0 ] || exit 1
 
+# DEFINE PATHS
+echo "DEFINING PATHS"
+export INSTALL_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export CONFIG_DIR="$INSTALL_DIR/configs"
+export SHIM_DIR="$INSTALL_DIR/shims"
+export LOGS_DIR="$INSTALL_DIR/logs"
+export SUPERVISOR_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-supervisord-$DEPLOYMENT_NAME"
 
 ## DELETE OLD VENV
 test -d "$INSTALL_DIR/central" && rm -rf "$INSTALL_DIR/central"
 
 ## MAKE VENV
-#$LOAD_SITE_PYTHON
-module load python
 make pkg
-$SITE_PYTHON -m venv "$INSTALL_DIR/central" && \
+$CENTRAL_PYTHON -m venv "$INSTALL_DIR/central" && \
   . "$INSTALL_DIR/central/bin/activate" && \
-  $SITE_PYTHON_PIP install rpc/dist/* && \
-  $SITE_PYTHON_PIP install central/dist/* && \
+  $CENTRAL_PYTHON_PIP install rpc/dist/* && \
+  $CENTRAL_PYTHON_PIP install central/dist/* && \
   deactivate
 
 ## FIX PERMISSIONS
@@ -57,7 +62,7 @@ function fix_perms() {
     chgrp -R "$GROUP" "$DIR"
     find "$DIR" -type d -exec chmod g+s '{}' \;
 }
-fix_perms "$SITE_JAWS_GROUP" "$INSTALL_DIR/central"
+fix_perms "$CENTRAL_JAWS_GROUP" "$INSTALL_DIR/central"
 
 ## GENERATE CONFIG
 CONF=""
@@ -129,7 +134,7 @@ rest_port = $JAWS_REST_PORT
 $CONF
 EOM
 
-chgrp "$SITE_JAWS_GROUP" "$CONFIG_DIR/jaws-central.conf"
+chgrp "$CENTRAL_JAWS_GROUP" "$CONFIG_DIR/jaws-central.conf"
 chmod 660 "$CONFIG_DIR/jaws-central.conf"
 
 
@@ -167,8 +172,8 @@ source $INSTALL_DIR/central/bin/activate
 exec jaws-central --log $LOGS_DIR/central-rpc.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL rpc
 EOM
 
-chgrp "$SITE_JAWS_GROUP" "$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME"
-chgrp "$SITE_JAWS_GROUP" "$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
+chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME"
+chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
 chmod 770 "$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME"
 chmod 770 "$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
 
