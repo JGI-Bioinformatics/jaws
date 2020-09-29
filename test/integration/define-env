@@ -10,7 +10,6 @@
 ## print list of all missing vars (instead of exiting on first undefined var)
 ## exit with 1 if any vars are missing; 0 otherwise
 REQUIRED_VARS="
-JAWS_SITE
 DEPLOYMENT_NAME
 JAWS_VERSION
 JAWS_DOCS_URL
