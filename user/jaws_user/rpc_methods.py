@@ -22,7 +22,7 @@ def get_user(params):
     logger.debug(f"Get user {user_id}")
     try:
         user = api.get_user(user_id)
-    except Exception as error:
+    except api.DatabaseError as error:
         return failure(500, f"User service error: {error}")
     if user is None:
         err = f"User {user_id} not found"
@@ -46,7 +46,7 @@ def update_user(user_id, auth_refresh_token, transfer_refresh_token):
     """
     try:
         api.update_user(user_id, auth_refresh_token, transfer_refresh_token)
-    except Exception as error:
+    except api.DatabaseError as error:
         return failure(500, f"User service error: {error}")
     return success()
 
