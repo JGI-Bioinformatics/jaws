@@ -25,7 +25,7 @@ class Configuration(metaclass=Singleton):
             "num_threads": 5,
             "max_retries": 5,
         },
-        "DB": {"host": "localhost", "port": "3306", "dialect": "mysql+mysqlconnector",},
+        "DB": {"host": "localhost", "port": "3306", "dialect": "mysql+mysqlconnector"},
     }
     required_params = {
         "RPC": ["host", "vhost", "user", "password"],

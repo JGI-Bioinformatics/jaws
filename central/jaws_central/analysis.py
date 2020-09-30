@@ -10,10 +10,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
+from jaws_rpc.rpc_client import RpcClient
 from jaws_central.models_fsa import db, Run, User, Run_Log
 
 
-## global vars
+# global vars
 
 logger = logging.getLogger(__package__)
 
@@ -40,7 +41,7 @@ run_pre_cromwell_states = [
 ]
 
 
-## functions served by jaws-central alone (no other services involved)
+# functions served by jaws-central alone (no other services involved)
 
 
 def user_queue(user):
@@ -172,7 +173,7 @@ def get_site(user, site_id):
     return result, 200
 
 
-## jaws-site RPC procedures
+# jaws-site RPC procedures
 
 
 def __run_rpc__(user, run_id, method, params={}):
@@ -691,7 +692,7 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
         abort(500, f"Globus error: {error}")
 
 
-## calls to jaws-task service
+# calls to jaws-task service
 
 
 def __task_rpc__(user, run_id, procedure, params={}):
@@ -738,16 +739,16 @@ def __task_rpc__(user, run_id, procedure, params={}):
     # send rpc message to jaws-task
     a_jaws_task_rpc_config = config.conf.get_task_rpc_params(run.site_id)
     try:
-        with RPC_Client(a_jaws_task_rpc_config) as rpc_cl:
+        with RpcClient(a_jaws_task_rpc_config) as rpc_cl:
             response = rpc_cl.request(procedure, params)
     except Exception as error:
         logger.exception(f"RPC {procedure} failed: {error}")
         abort(500, "jaws-task service is busy; try again in a moment")
 
     # return appropriate result
-    if "error" in result:
-        abort(result["error"]["code"], result["error"]["message"])
-    return result["result"], 200
+    if "error" in response:
+        abort(response["error"]["code"], response["error"]["message"])
+    return response["result"], 200
 
 
 def task_status(user, run_id):

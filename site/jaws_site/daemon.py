@@ -4,8 +4,10 @@ them to the next state.
 """
 
 import logging
+import schedule
+import time
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_site import config, run, db
+from jaws_site import run, db
 
 
 logger = logging.getLogger(__package__)
@@ -23,7 +25,7 @@ active_run_states = [
     "running",
     "succeeded",
     "failed",
-    "downloading"
+    "downloading",
 ]
 
 
@@ -66,7 +68,7 @@ class Daemon:
 
         # init Run objects and have them check and update their status
         for row in active_runs:
-            run = run.Run(row.id, session)
-            run.check_status()
+            active_run = run.Run(row.id, session)
+            active_run.check_status()
 
         session.close()

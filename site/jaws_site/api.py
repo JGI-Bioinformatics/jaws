@@ -3,10 +3,15 @@ JAWS Analysis Service API
 """
 
 import logging
+import os
+import requests
+from datetime import datetime
 import sqlalchemy.exc
-# from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
+import globus_sdk
 from jaws_site import config, db
 from jaws_site.cromwell import Cromwell
+from jaws_rpc.rpc_client import RpcClient
 
 
 # config and logging must be initialized before importing this module
@@ -16,10 +21,13 @@ logger = logging.getLogger(__package__)
 
 class DatabaseError(Exception):
     """Generic exception when Cromwell does not return metadata."""
+
     pass
 
-class RunNotFoundError(Exception):
+
+class RunNotFound(Exception):
     pass
+
 
 class CromwellError(Exception):
     pass
@@ -32,6 +40,7 @@ class Run:
     A run's persistent data is stored in a relational database.
     If the Run does not already exist, the parameters to initialize it are required.
     """
+
     client_id = config.conf.get("GLOBUS", "client_id")
 
     def __init__(self, run_id: int, session=None, params=None):
@@ -48,14 +57,13 @@ class Run:
             # retrieve existing Run from db or raise exception
             self.__load_run__()
 
-
     def __add_run__(self, params):
         """
         Save new run submission in database.
         New runs are always initialized in the "uploading" state.
         """
         user_id = params["user_id"]
-        logger.info(f"User {user_id}: Add Run {run_id}")
+        logger.info(f"User {user_id}: Add Run {self.run_id}")
         try:
             run = db.Run(
                 id=self.run_id,
@@ -72,12 +80,11 @@ class Run:
         try:
             self.session.add(run)
             self.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(f"Failed to insert new Run record: {error}")
             raise DatabaseError(f"Error saving new run: {error}")
         self.data = run
-
 
     def __load_run__(self):
         """
@@ -86,16 +93,15 @@ class Run:
         try:
             run = self.session.query(db.Run).get(self.run_id)
         except sqlalchemy.exc.IntegrityError as error:
-            logger.exception(f"Run not found: {run_id}: {error}")
+            logger.exception(f"Run not found: {self.run_id}: {error}")
             raise RunNotFound(f"{error}")
-        except Exception as error:
+        except SQLAlchemyError as error:
             logger.exception(f"Error selecting on runs table: {error}")
             raise DatabaseError(f"{error}")
         if not run:
-            logger.debug(f"Run {run_id} not found")
+            logger.debug(f"Run {self.run_id} not found")
             raise RunNotFound(f"No such record")
         self.data = run
-
 
     def get_status(self):
         """
@@ -104,23 +110,20 @@ class Run:
         # TODO EXTRACT FROM RUN LOG INSTEAD AND SIMPLIFY UPDATE_RUN_LOGS METHOD
         return self.data.status
 
-
     def get_log(self):
         """
         Get complete Run Log.
         """
         try:
-            logs = self.session.query(db.Run_Log)
-                .filter_by("run_id"=self.run_id)
-                .all()
+            logs = self.session.query(db.Run_Log).filter_by(run_id=self.run_id).all()
         except sqlalchemy.exc.IntegrityError as error:
-            logger.exception(f"Run Logs not found for Run {run_id}: {error}")
+            logger.exception(f"Run Logs not found for Run {self.run_id}: {error}")
             raise RunNotFound(f"{error}")
-        except Exception as error:
+        except SQLAlchemyError as error:
             logger.exception(f"Error selecting on run_logs table: {error}")
             raise DatabaseError(f"{error}")
         if not logs:
-            logger.debug(f"Run {run_id} not found in logs")
+            logger.debug(f"Run {self.run_id} not found in logs")
             raise RunNotFound(f"No such record")
         return logs
 
@@ -132,7 +135,7 @@ class Run:
         :return: The Cromwell metadata for the specified run (may be None)
         :rtype: dict
         """
-        logger.info(f"Get metadata for Run {run_id}")
+        logger.info(f"Get metadata for Run {self.run_id}")
         if self.data.cromwell_run_id is None:
             return None
 
@@ -143,52 +146,53 @@ class Run:
             raise CromwellError(f"{error}")
         return result
 
-
     def cancel(self):
         """Cancel a run.
 
         :param run_id: JAWS Run ID
         :type run_id: int
         """
-        logger.info(f"Cancel run {run_id}")
+        logger.info(f"Cancel run {self.run_id}")
 
         status = self.data.status
         self.data.status = "cancelled"
         try:
             self.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
-            logger.exception(f"Error updating Run {run_id}: {error}")
+            logger.exception(f"Error updating Run {self.run_id}: {error}")
             raise DatabaseError(f"{error}")
 
         # tell Cromwell to cancel the run if it has been submitted to Cromwell already
         if self.data.cromwell_run_id and status in ["submitted", "queued", "running"]:
-            logger.debug(f"Run {run_id} is {status}: Instructing Cromwell to cancel")
+            logger.debug(f"Run {self.run_id} is {status}: Instructing Cromwell to cancel")
             try:
                 cromwell.abort(self.data.cromwell_run_id)
             except requests.exceptions.HTTPError as error:
-                logger.exception(f"Error aborting cromwell {self.data.cromwell_run_id}: {error}")
-                raise CromwellError(f"The run was cancelled but Cromwell returned an error: {error}")
-
+                logger.exception(
+                    f"Error aborting cromwell {self.data.cromwell_run_id}: {error}"
+                )
+                raise CromwellError(
+                    f"The run was cancelled but Cromwell returned an error: {error}"
+                )
 
     def get_errors(self):
         """Retrieve error messages and stderr for failed Tasks.
         :return: error messages and stderr for failed Tasks
         :rtype: dict
         """
-        logger.info(f"Get errors for Run {run_id}")
+        logger.info(f"Get errors for Run {self.run_id}")
         if self.data.cromwell_run_id is None:
             return None
         try:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             result = metadata.errors()
         except requests.exceptions.HTTPError as error:
-            logger.exception(f"Get errors for {params['run_id']} failed: {error}")
+            logger.exception(f"Get errors for {self.run_id} failed: {error}")
             raise CromwellError(f"{error}")
         return result
 
-
-    def get_user_service_client(self);
+    def get_user_service_client(self):
         if not self.user_service:
             self.user_service = RpcClient(config.conf.user_service_params())
         return self.user_service
@@ -232,7 +236,9 @@ class Run:
         try:
             globus_status = self._get_globus_transfer_status(upload_task_id)
         except Exception as error:
-            logger.exception(f"Failed to check upload {self.data.upload_task_id}: {error}")
+            logger.exception(
+                f"Failed to check upload {self.data.upload_task_id}: {error}"
+            )
             return
         if globus_status == "FAILED":
             self.update_run_status("upload failed")
@@ -250,7 +256,9 @@ class Run:
         logger.debug(f"Run {self.run_id}: Submit to Cromwell")
 
         # Validate input
-        file_path = os.path.join(self.uploads_dir, self.data.user_id, self.data.submission_id)
+        file_path = os.path.join(
+            self.uploads_dir, self.data.user_id, self.data.submission_id
+        )
         wdl_file = file_path + ".wdl"
         json_file = file_path + ".json"
         zip_file = file_path + ".zip"  # might not exist
@@ -269,7 +277,9 @@ class Run:
         cromwell_run_id = cromwell.submit(wdl_file, json_file, zip_file)
         if cromwell_run_id:
             self.data.cromwell_run_id = cromwell_run_id
-            self.update_run_status("submitted", f"cromwell_run_id={self.data.cromwell_run_id}")
+            self.update_run_status(
+                "submitted", f"cromwell_run_id={self.data.cromwell_run_id}"
+            )
         else:
             self.update_run_status("submission failed")
 
@@ -411,7 +421,9 @@ class Run:
         )
         if transfer_task_id:
             self.data.download_task_id = transfer_task_id
-            self.update_run_status("downloading", f"download_task_id={self.data.download_task_id}")
+            self.update_run_status(
+                "downloading", f"download_task_id={self.data.download_task_id}"
+            )
             self.session.commit()
         # else ignore error; was logged; will try again later
 
@@ -421,7 +433,9 @@ class Run:
         """
         logger.debug(f"Run {self.run_id}: Check download status")
         try:
-            globus_status = self._get_globus_transfer_status(run, self.data.download_task_id)
+            globus_status = self._get_globus_transfer_status(
+                run, self.data.download_task_id
+            )
         except Exception as error:
             logger.exception(
                 f"Failed to check download {self.data.download_task_id}: {error}"
@@ -456,7 +470,7 @@ class Run:
 
         # save state transition in "run_logs" table
         try:
-            log_entry = Run_Log(
+            log_entry = db.Run_Log(
                 run_id=self.run_id,
                 status_from=status_from,
                 status_to=new_status,
@@ -470,4 +484,3 @@ class Run:
                 f"Failed to insert log for Run {self.run_id} : {new_status}, {reason}: {error}"
             )
         # notifying Central of state change is handled by send_run_status_logs
-

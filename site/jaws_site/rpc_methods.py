@@ -5,6 +5,7 @@ RPC functions for Central.  Most of these simply wrap the localhost Cromwell RES
 import requests
 import logging
 import sqlalchemy.exc
+
 # from sqlalchemy.exc import SQLAlchemyError
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
@@ -225,16 +226,25 @@ rpc_methods = {
             "output_dir",
         ],
     },
-    "get_status": {"method": get_status, "required_params": ["run_id"]},
-    "get_log": {"method": get_log, "required_params": ["run_id"]},
-    "get_statuses": {"method": get_statuses, "required_params": ["run_ids"]},
+    "get_status": {
+        "method": get_status,
+        "required_params": ["run_id"]
+    },
+    "get_log": {
+        "method": get_log,
+        "required_params": ["run_id"]
+    },
+    "get_statuses": {
+        "method": get_statuses,
+        "required_params": ["run_ids"]
+    },
     "get_metadata": {
         "method": get_metadata,
         "required_params": ["user_id", "cromwell_run_id"],
     },
     "cancel": {
         "method": cancel,
-        "required_params": ["user_id", "cromwell_run_id"],
+        "required_params": ["user_id", "cromwell_run_id"]
     },
     "get_errors": {
         "method": get_errors,
