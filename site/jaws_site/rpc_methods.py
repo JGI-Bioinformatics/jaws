@@ -8,8 +8,7 @@ import sqlalchemy.exc
 # from sqlalchemy.exc import SQLAlchemyError
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
-from jaws_site.database import Session
-from jaws_site.models import Run
+from jaws_site.db import Session, Run
 from jaws_rpc.responses import success, failure
 
 
@@ -175,10 +174,10 @@ def submit(params):
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
-operations = {
-    "server_status": {"function": server_status},
+rpc_methods = {
+    "server_status": {"method": server_status},
     "submit": {
-        "function": submit,
+        "method": submit,
         "required_params": [
             "user_id",
             "run_id",
@@ -191,15 +190,15 @@ operations = {
         ],
     },
     "run_metadata": {
-        "function": run_metadata,
+        "method": run_metadata,
         "required_params": ["user_id", "cromwell_run_id"],
     },
     "cancel_run": {
-        "function": cancel_run,
+        "method": cancel_run,
         "required_params": ["user_id", "cromwell_run_id"],
     },
     "get_errors": {
-        "function": get_errors,
+        "method": get_errors,
         "required_params": ["user_id", "cromwell_run_id"],
     },
 }
