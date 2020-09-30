@@ -34,10 +34,9 @@ def cli(config_file: str, log_file: str, log_level: str):
         logger.info(f"Config using {config_file}")
 
     # create tables if not exists
-    from jaws_task.database import engine, Session
-    from jaws_task import models
-    session = Session()
-    models.create_all(engine, session)
+    from jaws_task import db
+    session = db.Session()
+    db.create_all(db.engine, session)
 
 @cli.command()
 def server() -> None:

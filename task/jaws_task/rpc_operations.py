@@ -12,8 +12,7 @@ import re
 import globus_sdk
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
-from jaws_site.database import Session
-from jaws_site.models import Job_Log
+from jaws_site.db import Session, Job_Log
 from jaws_rpc.responses import success, failure
 
 
