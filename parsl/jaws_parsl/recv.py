@@ -61,8 +61,7 @@ def on_message_callback(ch, method, properties, body):
     logger.debug("Done")
 
 
-#@bash_app(executors=['cori'])
-@bash_app(executors=['jgi'])
+@bash_app(executors=['cori'])
 def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME):
     cmd = 'bash ' + script
     return cmd
