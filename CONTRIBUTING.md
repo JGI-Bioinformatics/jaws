@@ -26,12 +26,42 @@ When opening a feature, please have a clear description of the problem you wish 
 It is great to document your line of thinking in the feature request. Think about what problems that your feature can solve, or the many use cases. If a feature is a one off or only a specific kind of user will be using it then, it will
 likely not be a good feature to have. A good feature should be used by all kinds of users.  
 
+
+## Git Commits
+Don't submit a pull request with a lot of small commits with no relevant information about what the change is doing
+
+Do reference Github issues with commit syntax (e.g Closes #1, Fixes #2, Implements #4, Issue #5). Doing so will link the commits in the Github issue interface. Please note, that syntax keywords (except Issue) will automatcally close the issue when the changes are merged into the main branch. The Issue keyword this merely references the issue.
+
+Don't reference more that one Github issue in a commit.
+
+Do use as few commits in a single pull request as possible.  One is ideal for a single PR.  Git squash and amend are your friends here.  It OK perform these operations on feature branches. See Developer Branching Best Practices for more detail.
+
 ## Merge Requests
 We allow merge requests (MRs) to be opened while being only work in progress (WIP). In fact, we encourage it since it would be good to share your line of thinking with the developers and get feedback so you don't get stuck implementing something
 that will need to be changed later.  
 
 When opening a MR, please include a reference to the issue you are trying to solve in the description. Also in the description, describe the implementation details of your MR and why you chose your design. Documenting your thoughts down into the
 description is a great way to get others to understand your implementation choices.  
+
+
+### Reviewing  
+
+If you are requested as a MR reviewer, try to get back to the requestor with a time frame of when you will have your review complete.
+
+Review the MR and make sure you **understand** what it is you are reviewing.
+Prepare prompt and accurate feedback to the submitter (request changes where appropriate)
+Check out the changed code and run any test suites against it
+Report any problems to the contributor and request any changes
+If you find you need to make a lot of comments in the MR, set up a face-to-face meeting with the submitter to go over your concerns.
+
+Specifically
+
+Make sure the git commits reference the same issue referenced in the MR
+Make sure the MR reference a Gitlab issue
+Do you know how to test the change?
+Do you understand the change? If not, ask for clarification.
+Approve the changes when the PR has no more issues that need resolution
+
 
 ### When to Merge
 In order for a MR to be ready for a merge it must first complete the following checklist:  
@@ -44,10 +74,12 @@ It is important that MRs pass the pipeline first before they are reviewed, and t
 New features should come with new tests. Merge requests without tests or documentation should not be merged in. In cases where a hotfix is needed, or a single
 line of code is changed an exception can be made. 
 
+Delete the feature branch once it is completed (can be done with a checkbox when merging)
 
-### Tests
 
-#### Flake8 Tests
+## Tests
+
+### Flake8 Tests
 
 JAWS uses Flake8 to test for PEP 8 conformance. PEP 8 is a series of style guides for Python that provide suggestions for everything from variable naming to indentation. Your PR needs to comply with PEP 8 in order to be accepted.
 
@@ -65,7 +97,7 @@ make test-central
 Most of the error messages are straightforward, but if you don’t understand what they mean, please ask questions about them when you submit your PR.
 
 
-#### Unit Tests
+### Unit Tests
 
 Unit tests ensure that core features are working as expected. If you make changes to JAWS, you should run the unit tests to make sure you didn’t break anything.
 
@@ -136,3 +168,13 @@ You may have to repeat this process multiple times until all conflicts are resol
 git push --force origin <descriptive_branch_name>
 ```
 
+
+## Etiquette
+
+Be responsive
+Immediately respond with acknowledgment and whether you have the bandwidth to review
+For pull request submitters, if no response, send external email with link to pull request.
+Reviewer should start review within a day or give time frame of when they can complete their review
+
+## References
+Johnson, Mark. "What is a Pull Request" OSSWatch Briefing Notes. Nov 8, 2013. http://oss-watch.ac.uk/resources/pullrequest.
