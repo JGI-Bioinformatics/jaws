@@ -1,12 +1,12 @@
 """
-Workflows Catalog REST endpoints.
+Workflows Catalog API.
 """
 
 from datetime import datetime
 import logging
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Tuple
-from jaws_catalog.models import db, Workflow
+from jaws_catalog.db import db, Workflow
 
 logger = logging.getLogger(__package__)
 

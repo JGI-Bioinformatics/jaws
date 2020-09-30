@@ -9,7 +9,7 @@ import connexion
 from urllib.parse import quote_plus
 import secrets
 from jaws_catalog import config, log
-from jaws_catalog.models import db
+from jaws_catalog.db import db
 
 
 JAWS_LOG_ENV = "JAWS_CATALOG_LOG"
