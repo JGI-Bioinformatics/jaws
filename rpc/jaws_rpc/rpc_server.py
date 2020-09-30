@@ -22,7 +22,7 @@ class InvalidResponse(Exception):
 
 
 class Consumer(object):
-    def __init__(self, queue, operations):
+    def __init__(self, queue, methods):
         """Initialize Consumer object
 
         :param queue: The name of the queue from which to retrieve messages.
@@ -30,7 +30,7 @@ class Consumer(object):
         :return:
         """
         self.queue = queue
-        self.operations = operations
+        self.methods = methods
         self.logger = logging.getLogger(__package__)
         self.channel = None
         self.active = False
@@ -82,15 +82,15 @@ class Consumer(object):
         params = request["params"] if "params" in request else {}
 
         # VALIDATE METHOD AND PARAMS
-        if method not in self.operations:
+        if method not in self.methods:
             self.logger.error(f"Unknown JSON-RPC2 method: {method}")
             response = {
                 "jsonrpc": "2.0",
                 "error": {"code": 400, "message": f"Unknown RPC method: {method}"},
             }
             return self.__respond__(message, response)
-        if "required_params" in self.operations:
-            for required_param in self.operations["required_params"]:
+        if "required_params" in self.methods:
+            for required_param in self.methods["required_params"]:
                 if required_param not in params:
                     self.logger.error(f"Method {method} missing {required_param}")
                     response = {
@@ -104,7 +104,7 @@ class Consumer(object):
 
         # GET RESPONSE FROM DISPATCH FUNCTION
         self.logger.debug(f"RPC method {method} with {params}")
-        proc = self.operations[method]["function"]
+        proc = self.methods[method]["function"]
         response = proc(params)
         self.__respond__(message, response)
 
@@ -203,7 +203,7 @@ class Consumer(object):
 
 
 class RpcServer(object):
-    def __init__(self, params, operations) -> None:
+    def __init__(self, params, methods) -> None:
         self.logger = logging.getLogger(__package__)
         self.params = {}
         for required_param in ["host", "vhost", "user", "password", "queue"]:
@@ -216,9 +216,9 @@ class RpcServer(object):
         self.logger.info(
             f"Connecting to host:{params['host']}, vhost:{params['vhost']}, queue:{params['queue']}"
         )
-        self.operations = operations
+        self.methods = methods
         self.consumers = [
-            Consumer(params["queue"], self.operations) for _ in range(self.num_threads)
+            Consumer(params["queue"], self.methods) for _ in range(self.num_threads)
         ]
         self.stopped = threading.Event()
         self.connection = self.create_connection()
@@ -246,7 +246,7 @@ class RpcServer(object):
         :return: index where we activate consumers
         """
         for _ in range(num):
-            consumer = Consumer(self.params["queue"], self.operations)
+            consumer = Consumer(self.params["queue"], self.methods)
             self.start_consumer(consumer)
             self.consumers.append(consumer)
 
