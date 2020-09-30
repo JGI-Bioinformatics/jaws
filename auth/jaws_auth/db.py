@@ -1,6 +1,5 @@
 """Flask-SQLAlchemy db and models, used by Connexion/Flask server."""
 
-import datetime
 from flask_sqlalchemy import SQLAlchemy
 
 
@@ -15,7 +14,6 @@ class User(db.Model):
     access_token = db.Column(db.String(256), nullable=False)
     is_admin = db.Column(db.Boolean(), nullable=False)
     # NOTE: defaults for Boolean columns fail due to type error
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
