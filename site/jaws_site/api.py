@@ -1,5 +1,7 @@
 """
 JAWS Analysis Service API
+
+This service stores persistent Run information in a db and interacts with Cromwell.
 """
 
 import logging
@@ -17,6 +19,26 @@ from jaws_rpc.rpc_client import RpcClient
 # config and logging must be initialized before importing this module
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 logger = logging.getLogger(__package__)
+
+
+class Server():
+
+    def server_status(params):
+        """Return the current status of the Cromwell server.
+
+        :return: Either a success- or failure-formatted JSON-RPC2 response,
+        if Cromwell up or not.
+        :rtype: dict
+        """
+        logger.info("Check server status")
+        try:
+            status = cromwell.status()
+        except requests.exceptions.HTTPError as error:
+            logger.exception(f"Failed to get server status: {error}")
+            return failure(
+                error.response.status_code, f"Failed to get server status: {error}"
+            )
+        return success(status)
 
 
 class DatabaseError(Exception):
@@ -138,7 +160,6 @@ class Run:
         logger.info(f"Get metadata for Run {self.run_id}")
         if self.data.cromwell_run_id is None:
             return None
-
         try:
             result = cromwell.get_all_metadata(self.data.cromwell_run_id)
         except requests.exceptions.HTTPError as error:
