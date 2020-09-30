@@ -6,7 +6,7 @@ from flask import abort, request
 import markdown
 import logging
 from typing import Tuple
-from jaws_catalog import catalog
+from jaws_catalog import api as catalog
 
 
 logger = logging.getLogger(__package__)
