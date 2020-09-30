@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Create Default RabbitMQ setup
-( sleep 6; \
+( sleep 10; \
 # Create user
 rabbitmqctl add_user jaws jawstest; \
 # Set user rights
