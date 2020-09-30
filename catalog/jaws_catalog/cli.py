@@ -7,7 +7,6 @@ import click
 import logging
 import connexion
 from urllib.parse import quote_plus
-import secrets
 from jaws_catalog import config, log
 from jaws_catalog.db import db
 

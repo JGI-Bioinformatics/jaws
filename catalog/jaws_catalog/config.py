@@ -28,7 +28,7 @@ class Configuration(metaclass=Singleton):
     """Configuration singleton class."""
 
     defaults = {
-        "CATALOG": {"port": "6000"}
+        "CATALOG": {"port": "6000"},
         "DB": {"dialect": "mysql+mysqlconnector", "host": "localhost", "port": 3306},
     }
     required_params = {
