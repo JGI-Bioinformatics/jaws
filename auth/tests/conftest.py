@@ -35,3 +35,34 @@ db = jaws
 """
     cfg.write_text(content)
     return cfg.as_posix()
+
+
+class MockDb:
+    def __init__(self):
+        return
+
+    def session(self):
+        return MockSession()
+
+
+class MockSession:
+    def __init__(self):
+        return
+
+    def commit(self):
+        return
+
+    def close_all(self):
+        return
+
+    def _query_user_id(self, *args, **kwargs):
+        return
+
+
+class MockUser:
+    """Mock User object with useable defaults."""
+
+    def __init__(self, **kwargs):
+        self.id = kwargs.get("user_id", "Donald Duck")
+        self.access_token = kwargs.get("access_token", "FFEEDDCCBBAA")
+        self.is_admin = kwargs.get("is_admin", False)
