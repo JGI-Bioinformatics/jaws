@@ -7,8 +7,7 @@ import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
 from jaws_rpc.responses import success, failure
 from jaws_user import config
-from jaws_user.database import Session
-from jaws_user.models import User
+from jaws_user.db import Session, User
 
 logger = logging.getLogger(__package__)
 
