@@ -7,7 +7,7 @@ JAWS Task Service
 import os
 import click
 from jaws_task import log, config
-from jaws_task.rpc_operations import operations
+from jaws_task.rpc_methods import rpc_methods
 from jaws_rpc import rpc_server
 
 JAWS_LOG_ENV = "JAWS_TASK_LOG"
@@ -43,7 +43,7 @@ def server() -> None:
     """Start RPC server."""
 
     rpc_server_params = config.conf.get_section("RPC_SERVER")
-    app = rpc_server.RpcServer(rpc_server_params, operations)
+    app = rpc_server.RpcServer(rpc_server_params, rpc_methods)
     app.start_server()
 
 

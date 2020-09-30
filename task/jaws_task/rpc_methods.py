@@ -344,7 +344,7 @@ def update_job_status_logs(self):
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
-operations = {
+rpc_methods = {
     "update_job_status": {
         "function": update_job_status,
         "required_params": [
