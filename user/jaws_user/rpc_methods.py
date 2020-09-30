@@ -93,10 +93,10 @@ def update_user(user_id, auth_refresh_token, transfer_refresh_token):
 
 
 # this dispatch table is used by jaws_rpc.rpc_server
-operations = {
-    "get_user": {"function": get_user, "required_parameters": ["user_id"]},
+rpc_methods = {
+    "get_user": {"method": get_user, "required_parameters": ["user_id"]},
     "update_user": {
-        "function": update_user,
+        "method": update_user,
         "required_parameters": [
             "user_id",
             "auth_refresh_token",
