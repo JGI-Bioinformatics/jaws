@@ -5,9 +5,8 @@ JAWS Analysis Service API
 import logging
 import sqlalchemy.exc
 # from sqlalchemy.exc import SQLAlchemyError
-from jaws_site import config
+from jaws_site import config, db
 from jaws_site.cromwell import Cromwell
-from jaws_site.db import Session, Run
 
 
 # config and logging must be initialized before importing this module
@@ -41,7 +40,7 @@ class Run:
         if session:
             self.session = session
         else:
-            self.session = Session()
+            self.session = db.Session()
         if params:
             # this is a new Run; insert into database.
             self.__add_run__(params)
@@ -97,6 +96,33 @@ class Run:
             raise RunNotFound(f"No such record")
         self.data = run
 
+
+    def get_status(self):
+        """
+        Return the current status of the Run.
+        """
+        # TODO EXTRACT FROM RUN LOG INSTEAD AND SIMPLIFY UPDATE_RUN_LOGS METHOD
+        return self.data.status
+
+
+    def get_log(self):
+        """
+        Get complete Run Log.
+        """
+        try:
+            logs = self.session.query(db.Run_Log)
+                .filter_by("run_id"=self.run_id)
+                .all()
+        except sqlalchemy.exc.IntegrityError as error:
+            logger.exception(f"Run Logs not found for Run {run_id}: {error}")
+            raise RunNotFound(f"{error}")
+        except Exception as error:
+            logger.exception(f"Error selecting on run_logs table: {error}")
+            raise DatabaseError(f"{error}")
+        if not logs:
+            logger.debug(f"Run {run_id} not found in logs")
+            raise RunNotFound(f"No such record")
+        return logs
 
     def get_metadata(self):
         """Retrieve the metadata of a run.

@@ -35,7 +35,43 @@ def server_status(params):
     return success(status)
 
 
-def run_metadata(params):
+def get_status(params):
+    """
+    Get the current status of a Run.
+    """
+    try:
+        run = Run(params["run_id"])
+    except Exception as error:
+        return failure(f"Unable to retrieve status at this time: {error}")
+    return success(run.get_status())
+
+
+def get_log(params):
+    """
+    Get the complete logs for a Run.
+    """
+    try:
+        run = Run(params["run_id"])
+    except Exception as error:
+        return failure(f"Unable to retrieve status at this time: {error}")
+    return success(run.get_log())
+
+
+def get_statuses(params):
+    """
+    Get the current status for several Runs.
+    """
+    result = {}
+    for run_id in params["run_ids"]:
+        try:
+            run = Run(run_id)
+        except Exception as error:
+            return failure(f"Unable to retrieve status at this time: {error}")
+        result[run_id] = run.get_status()
+    return success(result)
+
+
+def get_metadata(params):
     """Retrieve the metadata of a run.
 
     :param cromwell_run_id: Cromwell run ID
@@ -63,7 +99,7 @@ def run_metadata(params):
     return success(result)
 
 
-def cancel_run(params):
+def cancel(params):
     """Cancel a run.
 
     :param cromwell_run_id: The Cromwell run ID
@@ -189,12 +225,15 @@ rpc_methods = {
             "output_dir",
         ],
     },
-    "run_metadata": {
-        "method": run_metadata,
+    "get_status": {"method": get_status, "required_params": ["run_id"]},
+    "get_log": {"method": get_log, "required_params": ["run_id"]},
+    "get_statuses": {"method": get_statuses, "required_params": ["run_ids"]},
+    "get_metadata": {
+        "method": get_metadata,
         "required_params": ["user_id", "cromwell_run_id"],
     },
-    "cancel_run": {
-        "method": cancel_run,
+    "cancel": {
+        "method": cancel,
         "required_params": ["user_id", "cromwell_run_id"],
     },
     "get_errors": {
