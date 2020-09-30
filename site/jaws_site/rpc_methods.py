@@ -1,9 +1,9 @@
 """
-RPC functions for Central.  Most of these simply wrap the localhost Cromwell REST functions.
+JAWS Run Service RPC methods.
 """
 
 import logging
-from jaws_site.api import Run, Server
+from jaws_site.api import Run, Server, RunNotFoundError, DatabaseError, CromwellError
 from jaws_rpc.responses import success, failure
 
 
@@ -19,11 +19,11 @@ def server_status(params):
     :rtype: dict
     """
     logger.info("Check server status")
-    server = Server()
-    if server.status():
-        return success()
-    else:
-        return failure()
+    try:
+        server = Server()
+    except CromwellError as error:
+        return failure(500, f"Cromwell offline: {error}")
+    return success()
 
 
 def get_status(params):
@@ -32,8 +32,10 @@ def get_status(params):
     """
     try:
         run = Run(params["run_id"])
-    except Exception as error:
-        return failure(f"Unable to retrieve status at this time: {error}")
+    except RunNotFoundError as error:
+        return failure(404, f"Run not found: {error}")
+    except DatabaseError as error:
+        return failure(500, f"Run db offline: {error}")
     return success(run.get_status())
 
 
@@ -43,8 +45,10 @@ def get_log(params):
     """
     try:
         run = Run(params["run_id"])
-    except Exception as error:
-        return failure(f"Unable to retrieve status at this time: {error}")
+    except RunNotFoundError as error:
+        return failure(404, f"Run not found: {error}")
+    except DatabaseError as error:
+        return failure(500, f"Run db offline: {error}")
     return success(run.get_log())
 
 
@@ -56,8 +60,10 @@ def get_statuses(params):
     for run_id in params["run_ids"]:
         try:
             run = Run(run_id)
-        except Exception as error:
-            return failure(f"Unable to retrieve status at this time: {error}")
+        except RunNotFoundError as error:
+            return failure(404, f"Run not found: {error}")
+        except DatabaseError as error:
+            return failure(500, f"Run db offline: {error}")
         result[run_id] = run.get_status()
     return success(result)
 
@@ -72,12 +78,14 @@ def get_metadata(params):
     """
     try:
         run = Run(params["run_id"])
-    except Exception as error:
-        return failure(f"Unable to retrieve status at this time: {error}")
+    except RunNotFoundError as error:
+        return failure(404, f"Run not found: {error}")
+    except DatabaseError as error:
+        return failure(500, f"Run db offline: {error}")
     try:
         result = run.get_metadata()
-    except Exception as error:
-        return failure(500, f"{error}")
+    except CromwellError as error:
+        return failure(500, f"Cromwell error: {error}")
     return success(result)
 
 
@@ -91,12 +99,14 @@ def cancel(params):
     """
     try:
         run = Run(params["run_id"])
-    except Exception as error:
-        return failure(f"Unable to retrieve status at this time: {error}")
+    except RunNotFoundError as error:
+        return failure(404, f"Run not found: {error}")
+    except DatabaseError as error:
+        return failure(500, f"Run db offline: {error}")
     try:
         result = run.cancel()
-    except Exception as error:
-        return failure(500, f"{error}")
+    except CromwellError as error:
+        return failure(500, f"Cromwell error: {error}")
     return success(result)
 
 
@@ -110,12 +120,16 @@ def get_errors(params):
     """
     try:
         run = Run(params["run_id"])
-    except Exception as error:
-        return failure(f"Unable to retrieve status at this time: {error}")
+    except RunNotFoundError as error:
+        return failure(404, f"Run not found: {error}")
+    except DatabaseError as error:
+        return failure(500, f"Run db offline: {error}")
     try:
         result = run.get_errors()
-    except Exception as error:
-        return failure(500, f"{error}")
+    except CromwellError as error:
+        return failure(500, f"Cromwell error: {error}")
+    except IOError as error:
+        return failure(500, f"IO error: {error}")
     return success(result)
 
 
@@ -125,17 +139,19 @@ def submit(params):
     """
     try:
         run = Run(params["run_id"], params)
-    except Exception as error:
-        return failure(500, f"Unable to retrieve status at this time: {error}")
-    result = run.get_status()
-    return success(result)
+    except RunNotFoundError as error:
+        return failure(404, f"Run not found: {error}")
+    except DatabaseError as error:
+        return failure(500, f"Run db offline: {error}")
+    if not run:
+        # this doesn't happen, here so flake8 doesn't complain
+        return failure(500, "Run object not initialized")
+    return success()
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 rpc_methods = {
-    "server_status": {
-        "method": server_status
-    },
+    "server_status": {"method": server_status},
     "submit": {
         "method": submit,
         "required_params": [
@@ -149,28 +165,10 @@ rpc_methods = {
             "output_dir",
         ],
     },
-    "get_status": {
-        "method": get_status,
-        "required_params": ["run_id"]
-    },
-    "get_log": {
-        "method": get_log,
-        "required_params": ["run_id"]
-    },
-    "get_statuses": {
-        "method": get_statuses,
-        "required_params": ["run_ids"]
-    },
-    "get_metadata": {
-        "method": get_metadata,
-        "required_params": ["user_id", "cromwell_run_id"],
-    },
-    "cancel": {
-        "method": cancel,
-        "required_params": ["user_id", "cromwell_run_id"]
-    },
-    "get_errors": {
-        "method": get_errors,
-        "required_params": ["user_id", "cromwell_run_id"],
-    },
+    "get_status": {"method": get_status, "required_params": ["run_id"]},
+    "get_log": {"method": get_log, "required_params": ["run_id"]},
+    "get_statuses": {"method": get_statuses, "required_params": ["run_ids"]},
+    "get_metadata": {"method": get_metadata, "required_params": ["run_id"],},
+    "cancel": {"method": cancel, "required_params": ["run_id"]},
+    "get_errors": {"method": get_errors, "required_params": ["run_id"],},
 }

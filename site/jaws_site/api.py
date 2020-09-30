@@ -47,7 +47,7 @@ class DatabaseError(Exception):
     pass
 
 
-class RunNotFound(Exception):
+class RunNotFoundError(Exception):
     pass
 
 
@@ -116,13 +116,13 @@ class Run:
             run = self.session.query(db.Run).get(self.run_id)
         except sqlalchemy.exc.IntegrityError as error:
             logger.exception(f"Run not found: {self.run_id}: {error}")
-            raise RunNotFound(f"{error}")
+            raise RunNotFoundError(f"{error}")
         except SQLAlchemyError as error:
             logger.exception(f"Error selecting on runs table: {error}")
             raise DatabaseError(f"{error}")
         if not run:
             logger.debug(f"Run {self.run_id} not found")
-            raise RunNotFound(f"No such record")
+            raise RunNotFoundError(f"No such record")
         self.data = run
 
     def get_status(self):
@@ -140,13 +140,13 @@ class Run:
             logs = self.session.query(db.Run_Log).filter_by(run_id=self.run_id).all()
         except sqlalchemy.exc.IntegrityError as error:
             logger.exception(f"Run Logs not found for Run {self.run_id}: {error}")
-            raise RunNotFound(f"{error}")
+            raise RunNotFoundError(f"{error}")
         except SQLAlchemyError as error:
             logger.exception(f"Error selecting on run_logs table: {error}")
             raise DatabaseError(f"{error}")
         if not logs:
             logger.debug(f"Run {self.run_id} not found in logs")
-            raise RunNotFound(f"No such record")
+            raise RunNotFoundError(f"No such record")
         return logs
 
     def get_metadata(self):
