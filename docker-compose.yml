@@ -17,21 +17,21 @@ services:
       JAWS_CENTRAL_RMQ_HOST: central_rabbitmq
       JAWS_CENTRAL_RMQ_PORT: 5672
       JAWS_GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-      JAWS_AUTH_PORT: 3001
-      JAWS_REST_PORT: 5001
+      JAWS_AUTH_PORT: 3000
+      JAWS_REST_PORT: 5000
     depends_on:
       - central_db
       - central_rabbitmq
     networks:
       - central-tier
     expose:
-      - 3001
-      - 5001
+      - 3000
+      - 5000
     ports:
-      - "5001:5001"
-      - "3001:3001"
+      - "5000:5000"
+      - "3000:3000"
   central_db:
-    image: mysql
+    image: jaws_mysql:2.0
     restart: always
     environment:
       MYSQL_USER: jaws
@@ -42,10 +42,10 @@ services:
       - 3306
     networks:
       - central-tier
-    volumes:
-      - ./mysql/init:/docker-entrypoint-initdb.d/
     ports:
       - "3306:3306"
+    volumes:
+      - ./mysql/init:/docker-entrypoint-initdb.d/
   central_rabbitmq:
     image: rabbitmq:3-management
     environment:
@@ -60,10 +60,10 @@ services:
       - central-tier
     ports:
       - "15672:15672"
-      - "5673:5672"
-      - "5674:5673"
+      - "5672:5672"
+      - "5673:5673"
   site_db:
-    image: mysql
+    image: jaws_mysql:2.0
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -88,14 +88,14 @@ services:
     ports:
       - "15673:15672"
       - "5675:5672"
-      - "5676:5673"
+      - "5674:5673"
   site:
     image: jaws_site:2.0
     environment:
       DB_HOST: site_db
       DB_PORT: 3306
       DB_PW: jawstest
-      JAWS_SITE: local
+      JAWS_SITE: LOCAL
       RMQ_PW: jawstest
       RMQ_HOST: site_rabbitmq
       RMQ_PORT: 5672
@@ -124,7 +124,7 @@ services:
       SITE_DB_HOST: site_db
       SITE_DB_PORT: 3306
       SITE_DB_PW: jawstest
-      JAWS_SITE: local
+      JAWS_SITE: LOCAL
       DEPLOYMENT_NAME: dev
       JAVA_OPTS: -Xmx5g -Dconfig.file=/etc/cromwell.conf -Djava.io.tmpdir=/tmp/     
       CROMWELL_EXECUTIONS_DIR: /tmp/cromwell-executions
@@ -139,7 +139,7 @@ services:
     hostname: ernie
     tty: true
     environment:
-      JAWS_SITE: local
+      JAWS_SITE: LOCAL
       DEPLOYMENT_NAME: dev
       SITE_JTM_SCRATCH_DIR: /tmp/scratch
       SITE_RMQ_PW: jawstest
