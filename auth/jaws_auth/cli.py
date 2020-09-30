@@ -10,7 +10,7 @@ from urllib.parse import quote_plus
 import secrets
 from sqlalchemy.pool import QueuePool
 from jaws_auth import config, log
-from jaws_auth.models import db
+from jaws_auth.db import db
 
 
 JAWS_LOG_ENV = "JAWS_AUTH_LOG"
@@ -114,7 +114,7 @@ def add_user(
 
     with connex.app.app_context():
         # CHECK IF UID EXISTS
-        from jaws_auth.models import User
+        from jaws_auth.db import User
         user = db.session.query(User).get(uid)
         if user is not None:
             msg = f"User {uid} already exists: {user.access_token}"
