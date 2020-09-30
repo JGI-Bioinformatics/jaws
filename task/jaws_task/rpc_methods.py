@@ -346,7 +346,7 @@ def update_job_status_logs(self):
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 rpc_methods = {
     "update_job_status": {
-        "function": update_job_status,
+        "method": update_job_status,
         "required_params": [
             "cromwell_run_id",
             "cromwell_job_id",
@@ -356,11 +356,11 @@ rpc_methods = {
         ],
     },
     "get_task_log": {
-        "function": get_task_log,
+        "method": get_task_log,
         "required_params": ["user_id", "run_id"],
     },
     "get_task_status": {
-        "function": get_task_status,
+        "method": get_task_status,
         "required_params": ["user_id", "run_id"],
     },
 }
