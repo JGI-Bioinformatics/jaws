@@ -3,19 +3,10 @@
 # There is only one jaws-central deployment, while there may be several jaws-sites.
 echo "BEGIN deploy-central"
 
-function fix_perms() {
-    local GROUP="$1"
-    local DIR="$2"
-    chmod -R a+rX "$DIR"
-    chmod -R ug+rwX "$DIR"
-    chgrp -R "$GROUP" "$DIR"
-    find "$DIR" -type d -exec chmod g+s '{}' \;
-}
-
-## VERIFY REQUIRED VARS ARE DEFINED
-# If any env are undefined, try sourcing the setup script and check again.
-# Exits if any required var is undefined.
+# Check env and report all missing vars
+echo "CHECKING FOR REQUIRED ENV VARS"
 REQUIRED_VARS="
+DEPLOYMENT_NAME
 JAWS_CENTRAL_DB_HOST
 JAWS_CENTRAL_DB_PORT
 JAWS_CENTRAL_DB_PW
@@ -25,16 +16,9 @@ CORI_RMQ_PW
 CENTRAL_SUPERVISOR_HOST
 CENTRAL_SUPERVISORD_PW
 CENTRAL_JAWS_GROUP
+CENTRAL_JAWS_GROUP
 "
 RESULT=0
-for VAR in $REQUIRED_VARS; do
-  if [ -z ${!VAR+xxx} ]; then
-    echo "Missing env var, $VAR; sourcing setup script..."
-    source ./test/integration/define-env
-    RESULT=1
-    break
-  fi
-done
 if [[ $RESULT -ne 0 ]]; then
   RESULT=0
   for VAR in $REQUIRED_VARS; do
@@ -46,7 +30,7 @@ if [[ $RESULT -ne 0 ]]; then
 fi
 [ $RESULT -eq 0 ] || exit 1
 
-## DEPLOYMENT-SPECIFIC VARIABLES
+# These vars are deployment-specific (e.g. dev/staging/prod)
 echo "DEFINING DEPLOYMENT VARS"
 function set_deployment_var {
   VAR_NAME="$1"
@@ -77,13 +61,42 @@ export SHIM_DIR="$INSTALL_DIR/shims"
 export LOGS_DIR="$INSTALL_DIR/logs"
 export SUPERVISOR_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-supervisord-$DEPLOYMENT_NAME"
 
+## CREATE DIRS AND SET GROUP AND PERMISSIONS
+function setup_dir {
+  local DIR="$1"
+  local GROUP="$2"
+  local PERMS="$3"
+  [[ -z $DIR ]] && echo "missing DIR" && exit 1
+  [[ -z $GROUP ]] && echo "missing GROUP" && exit 1
+  echo "... $DIR"
+  test -d "$DIR" || mkdir -p "$DIR"
+  chgrp "$GROUP" "$DIR"
+  chmod "$PERMS" "$DIR"
+}
+echo "CREATING PATHS"
+INSTALL_DIRS="
+INSTALL_DIR
+CONFIG_DIR
+SHIM_DIR
+LOGS_DIR
+SUPERVISOR_DIR
+"
+for DIR in $INSTALL_DIRS; do
+  setup_dir "${!DIR}" "$CENTRAL_JAWS_GROUP" 770
+done
+
+
+function fix_perms() {
+    local GROUP="$1"
+    local DIR="$2"
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R "$GROUP" "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+
 #### SUPERVISORD
-
-## CREATE DIRS
-test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
-chgrp $CENTRAL_JAWS_GROUP $SUPERVISOR_DIR
-chmod 770 $SUPERVISOR_DIR
-
+echo "DEPLOY SUPERVISORD"
 [[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
 [[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
 chgrp -R $CENTRAL_JAWS_GROUP $SUPERVISOR_DIR/{bin,venv}
@@ -111,7 +124,7 @@ chmod +x $SUPERVISOR_DIR/bin/$prog
 generate_shim supervisord
 generate_shim supervisorctl
 
-fix_perms "$SITE_JTM_GROUP" "$SUPERVISOR_DIR"
+fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR"
 
 cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
 [inet_http_server]
@@ -171,24 +184,23 @@ programs=jaws-central-auth,jaws-central-rest,jaws-central-rpc
 priority=999
 EOM
 
-chgrp "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
-chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
+fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
 
-## DELETE OLD VENV
+
+## DELETE OLD VENV AND INSTALL jaws-central
+echo "BUILDING jaws-central"
 test -d "$INSTALL_DIR/central" && rm -rf "$INSTALL_DIR/central"
-
-## MAKE VENV
 make pkg
 $CENTRAL_PYTHON -m venv "$INSTALL_DIR/central" && \
   . "$INSTALL_DIR/central/bin/activate" && \
   $CENTRAL_PYTHON_PIP install rpc/dist/* && \
   $CENTRAL_PYTHON_PIP install central/dist/* && \
   deactivate
-
-## FIX PERMISSIONS
 fix_perms "$CENTRAL_JAWS_GROUP" "$INSTALL_DIR/central"
 
+
 ## GENERATE CONFIG
+echo "GENERATE jaws-central CONFIG"
 CONF=""
 
 function set_site_var {
