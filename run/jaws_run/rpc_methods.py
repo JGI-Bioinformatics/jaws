@@ -12,11 +12,8 @@ logger = logging.getLogger(__package__)
 
 
 def server_status(params):
-    """Return the current status of the Cromwell server.
-
-    :return: Either a success- or failure-formatted JSON-RPC2 response,
-    if Cromwell up or not.
-    :rtype: dict
+    """
+    Return the current status of the Cromwell server.
     """
     logger.info("Check server status")
     try:
@@ -29,6 +26,9 @@ def server_status(params):
 def get_status(params):
     """
     Get the current status of a Run.
+
+    Required parameters: run_id
+    Returns: Current run status (string)
     """
     try:
         run = Run(params["run_id"])
@@ -41,7 +41,10 @@ def get_status(params):
 
 def get_log(params):
     """
-    Get the complete logs for a Run.
+    Get a log of a state transitions of a Run.
+
+    Required parameters: run_id
+    Returns: Table of state transitions.
     """
     try:
         run = Run(params["run_id"])
@@ -54,7 +57,10 @@ def get_log(params):
 
 def get_statuses(params):
     """
-    Get the current status for several Runs.
+    Get the current status for a list of Runs.
+
+    Required parameters: List of run_ids
+    Returns: Dict of run_id and it's current status
     """
     result = {}
     for run_id in params["run_ids"]:
@@ -69,12 +75,11 @@ def get_statuses(params):
 
 
 def get_metadata(params):
-    """Retrieve the metadata of a run.
+    """
+    Retrieve the metadata of a run; available only if the Run has begun execution.
 
-    :param run_id: Run ID
-    :type params: dict
-    :return: The Cromwell metadata for the specified run.
-    :rtype: dict
+    Required parameters: run_id
+    Returns: JSON document; None if Run hasn't started execution yet
     """
     try:
         run = Run(params["run_id"])
@@ -90,12 +95,11 @@ def get_metadata(params):
 
 
 def cancel(params):
-    """Cancel a run.
+    """
+    Cancel a run.
 
-    :param cromwell_run_id: The Cromwell run ID
-    :type cromwell_run_id: str
-    :return: Either a JSON-RPC2-compliant success or failure message,
-    :rtype: dict
+    Required parameters: run_id
+    Returns: None
     """
     try:
         run = Run(params["run_id"])
@@ -111,12 +115,11 @@ def cancel(params):
 
 
 def get_errors(params):
-    """Retrieve error messages and stderr for failed Tasks.
+    """
+    Retrieve error messages and stderr for failed Tasks.
 
-    :param cromwell_run_id: Cromwell run ID
-    :type params: dict
-    :return: error messages and stderr for failed Tasks
-    :rtype: dict
+    Required parameters: run_id
+    Retruns: dict of failed tasks and their error messages and stderr
     """
     try:
         run = Run(params["run_id"])
@@ -135,7 +138,10 @@ def get_errors(params):
 
 def submit(params):
     """
-    Submit new run
+    Submit new run for execution.
+
+    Required parameters: run_id, user_id, submission_id, output_endpoint, output_dir
+    Returns: None
     """
     try:
         run = Run(params["run_id"], params)

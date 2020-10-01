@@ -12,7 +12,12 @@ logger = logging.getLogger(__package__)
 
 
 def get_task_log(params):
-    """Retrieve task log"""
+    """
+    Retrieve log of all tasks' state transitions.
+    
+    Required parameters: run_id
+    Returns: Table of task state transitions
+    """
     run_id = params["run_id"]
     try:
         result = api.get_task_log(run_id)
@@ -23,7 +28,11 @@ def get_task_log(params):
 
 def get_task_status(params):
     """
-    Retrieve the current status of each task.
+    Retrieve the current status of each Task of a Run.
+    Tasks which haven't been scheduled yet are not shown.
+
+    Required parameters: run_id
+    Returns: Current status for each active and completed task.
     """
     run_id = params["run_id"]
     try:
@@ -35,9 +44,13 @@ def get_task_status(params):
 
 def update_job_status(params):
     """
-    A JTM worker shall post changes in job state, although it is missing the JAWS run id.
-    The state change is simply saved in the db; any other actions will be performed by the daemon.
+    Receive a notification from the backend of a state transition.
+
+    Required parameters: cromwell_run_id, cromwell_job_id, status_from, status_to, timetamp
+    Optional parameters: reason
     """
+    # A JTM worker shall post changes in job state, although it is missing the JAWS run id.
+    # The state change is simply saved in the db; any other actions will be performed by the daemon.
     cromwell_run_id = params["cromwell_run_id"]  # Cromwell's run/workflow UUID
     cromwell_job_id = params["cromwell_job_id"]  # JTM's task_id
     status_from = params["status_from"]
