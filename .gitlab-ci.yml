@@ -165,17 +165,28 @@ test-rpc:
     - pip install flake8
     - pip install pytest
     - make test-rpc
-test-site:
+test-run:
   <<: *only-default
   stage: unit-test
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
     - pip install rpc/
-    - pip install -r site/requirements.txt
+    - pip install -r run/requirements.txt
     - pip install flake8
     - pip install pytest
-    - make test-site
+    - make test-run
+test-task:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip install rpc/
+    - pip install -r task/requirements.txt
+    - pip install flake8
+    - pip install pytest
+    - make test-task
 test-central:
   <<: *only-default
   stage: unit-test
@@ -223,7 +234,8 @@ package:
     expire_in: 6 hour
     paths:
       - rpc/dist
-      - site/dist
+      - run/dist
+      - task/dist
       - client/dist
       - central/dist
       - jtm/dist
