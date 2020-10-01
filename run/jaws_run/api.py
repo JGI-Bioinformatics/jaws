@@ -11,8 +11,8 @@ from datetime import datetime
 import sqlalchemy.exc
 from sqlalchemy.exc import SQLAlchemyError
 import globus_sdk
-from jaws_site import config, db
-from jaws_site.cromwell import Cromwell
+from jaws_run import config, db
+from jaws_run.cromwell import Cromwell
 from jaws_rpc.rpc_client import RpcClient
 
 

@@ -9,7 +9,7 @@ import shutil
 
 @pytest.fixture
 def config_file(tmp_path):
-    cfg = tmp_path / "jaws-site.ini"
+    cfg = tmp_path / "jaws-run.ini"
     content = """[LOCAL_RPC_SERVER]
 host = localhost
 vhost = jaws_test
@@ -64,7 +64,7 @@ downloads_subdirectory = downloads
 
 @pytest.fixture()
 def partial_config(tmp_path):
-    cfg = tmp_path / "jaws-site.ini"
+    cfg = tmp_path / "jaws-run.ini"
     content = """[CENTRAL_RPC_SERVER]
 host = https://rmq.nersc.gov
 vhost = jaws_test
@@ -488,6 +488,6 @@ class MockTransferDataWithCopy:
 
 @pytest.fixture()
 def mock_query_user_id(monkeypatch):
-    from jaws_site.daemon import Daemon
+    from jaws_run.daemon import Daemon
 
     monkeypatch.setattr(Daemon, "_query_user_id", query_jaws_id)

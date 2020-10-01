@@ -3,7 +3,7 @@ JAWS Run Service RPC methods.
 """
 
 import logging
-from jaws_site.api import Run, Server, RunNotFoundError, DatabaseError, CromwellError
+from jaws_run.api import Run, Server, RunNotFoundError, DatabaseError, CromwellError
 from jaws_rpc.responses import success, failure
 
 

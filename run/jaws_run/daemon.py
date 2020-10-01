@@ -7,7 +7,7 @@ import logging
 import schedule
 import time
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_site import run, db
+from jaws_run import run, db
 
 
 logger = logging.getLogger(__package__)

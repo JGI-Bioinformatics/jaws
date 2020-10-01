@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey
-from jaws_site import config
+from jaws_run import config
 
 
 logger = logging.getLogger(__package__)

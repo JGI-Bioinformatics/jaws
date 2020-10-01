@@ -1,7 +1,7 @@
 import pytest
 import globus_sdk
 
-from jaws_site.daemon import Daemon
+from jaws_run.daemon import Daemon
 import tests.conftest
 import requests
 
