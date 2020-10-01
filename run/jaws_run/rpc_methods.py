@@ -76,10 +76,10 @@ def get_statuses(params):
 
 def get_metadata(params):
     """
-    Retrieve the metadata of a run; available only if the Run has begun execution.
+    Retrieve the Cromwell metadata of a run and all it's subworkflows.
 
     Required parameters: run_id
-    Returns: JSON document; None if Run hasn't started execution yet
+    Returns: dict of cromwell_run_id and Cromwell metadata JSON.
     """
     try:
         run = Run(params["run_id"])
