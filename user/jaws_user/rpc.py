@@ -4,7 +4,7 @@ JAWS User Service RPC methods
 
 import logging
 from jaws_rpc.responses import success, failure
-from jaws_user import api
+from jaws_user.api import User, DatabaseError, UserNotFoundError
 
 logger = logging.getLogger(__package__)
 
@@ -17,36 +17,41 @@ def get_user(params):
     Returns: dict of user information
     """
     user_id = params["user_id"]
-    logger.debug(f"Get user {user_id}")
     try:
-        user = api.get_user(user_id)
-    except api.DatabaseError as error:
+        user = User(user_id)
+    except UserNotFoundError:
+        logger.error(f"User not found: {user_id}")
+        return failure(404, f"User not found: {user_id}")
+    except DatabaseError as error:
         return failure(500, f"User service error: {error}")
-    if user is None:
-        err = f"User {user_id} not found"
-        logger.error(err)
-        return failure(404, err)
     return success(user)
 
 
-def update_user(user_id, auth_refresh_token, transfer_refresh_token):
+def update_user(params):
     """
-    Add a new user or update a user's Globus tokens (upsert).
+    Update user data.
 
     Required parameters: user_id, auth_refresh_token, transfer_refresh_token
     Return: None
     """
-    # Only the refresh tokens are required with the RefreshTokenAuthorizer and the refresh tokens never expire.
+    user_id = params["user_id"]
+    auth_refresh_token = params["auth_refresh_token"]
+    transfer_refresh_token = params["transfer_refresh_token"]
     try:
         api.update_user(user_id, auth_refresh_token, transfer_refresh_token)
-    except api.DatabaseError as error:
+    except UserNotFoundError:
+        return failure(404, f"User not found: {user_id}") 
+    except DatabaseError as error:
         return failure(500, f"User service error: {error}")
     return success()
 
 
 # this dispatch table is used by jaws_rpc.rpc_server
 rpc_methods = {
-    "get_user": {"method": get_user, "required_parameters": ["user_id"]},
+    "get_user": {
+        "method": get_user,
+        "required_parameters": ["user_id"]
+    },
     "update_user": {
         "method": update_user,
         "required_parameters": [
