@@ -6,6 +6,7 @@ import os
 import click
 from jaws_user import config, log
 from jaws_rpc.rpc_server import RpcServer
+from jaws_user.rpc import rpc_methods
 
 
 JAWS_LOG_ENV = "JAWS_USER_LOG"
@@ -41,8 +42,6 @@ def cli(config_file: str, log_file: str, log_level: str) -> None:
 @cli.command()
 def server() -> None:
     """Start JAWS-User RPC server."""
-    from jaws_user.rpc_methods import rpc_methods
-
     rpc_params = config.conf.get_section("RPC_SERVER")
     app = RpcServer(rpc_params, rpc_methods)
     app.start_server()
