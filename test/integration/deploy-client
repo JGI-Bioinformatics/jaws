@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 echo "BEGIN deploy-client" 
-# NB: this should be run after generate-venvs because it doesn't `make pkg`
 
 ## VERIFY REQUIRED VARS ARE DEFINED
 # If any env are undefined, try sourcing the setup script and check again.
@@ -43,12 +42,12 @@ function fix_perms() {
     find "$DIR" -type d -exec chmod g+s '{}' \;
 }
 
-## DELETE OLD VENV
+
+## MAKE VENV
+# delete old venv
 test -d "$SITE_CLIENT_INSTALL_DIR" && rm -rf "$SITE_CLIENT_INSTALL_DIR"
 mkdir -p "$SITE_CLIENT_INSTALL_DIR"
 chmod 755 "$SITE_CLIENT_INSTALL_DIR"
-
-## MAKE VENV
 #[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
 module load python
 CLIENT_DIST_DIR="client/dist"
@@ -61,6 +60,8 @@ $SITE_PYTHON -m venv "$SITE_CLIENT_INSTALL_DIR" && \
   $SITE_PYTHON_PIP install $SITE_CLIENT_INSTALL_DIR/dist/* && \
   deactivate
 
+
+## CREATE SOURCE FILE USERS USE TO SETUP ENV
 cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.sh
 # source this file to activate jaws-$DEPLOYMENT_NAME
 
@@ -74,6 +75,7 @@ EOM
 chmod 644 $CONFIG_DIR/jaws.conf
 chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
+
 
 ## GENERATE CONFIGS
 cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws.conf
@@ -101,7 +103,10 @@ chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 chmod 644 $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
 
+
+## NOTE:
 # at this point, jaws-client is not usable due to permissions, but changing group and permissions via the gitlab-runner
 # does not work for parallel-FS for some reason.  The solution is to add such commands to one of the shims so that the
 # command are run by the jaws user via supervisord.  This is a hack.  See: jaws-central-daemon shim for more.
+
 printf "END deploy-client\n\n" 

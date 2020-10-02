@@ -83,7 +83,7 @@ variables:
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
   JGI_PYTHON: "python"
-  JGI_PYTHON_PIP: "pip"
+  JGI_PYTHON_PIP: "pip3"
   JGI_LOAD_PYTHON: "module load python"
   JGI_JAWS_GROUP: "jaws"
   JGI_JTM_GROUP: "jaws"
@@ -130,9 +130,9 @@ test-rpc:
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install -r rpc/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip3 install -r rpc/requirements.txt
+    - pip3 install flake8
+    - pip3 install pytest
     - make test-rpc
 test-site:
   <<: *only-default
@@ -140,10 +140,10 @@ test-site:
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r site/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip3 install rpc/
+    - pip3 install -r site/requirements.txt
+    - pip3 install flake8
+    - pip3 install pytest
     - make test-site
 test-central:
   <<: *only-default
@@ -151,10 +151,10 @@ test-central:
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r central/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip3 install rpc/
+    - pip3 install -r central/requirements.txt
+    - pip3 install flake8
+    - pip3 install pytest
     - make test-central
 test-client:
   <<: *only-default
@@ -164,9 +164,9 @@ test-client:
     - export PATH=/jaws-ci/bin:$PATH
     - python3 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install -r client/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip3 install -r client/requirements.txt
+    - pip3 install flake8
+    - pip3 install pytest
     - make test-client
 test-jtm:
   <<: *only-default
@@ -174,10 +174,10 @@ test-jtm:
   script:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r jtm/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip3 install rpc/
+    - pip3 install -r jtm/requirements.txt
+    - pip3 install flake8
+    - pip3 install pytest
     - make test-jtm
 package:
   <<: *only-default
@@ -185,7 +185,7 @@ package:
   script:
     - python3 -m venv pkg-venv
     - source pkg-venv/bin/activate
-    - pip install wheel
+    - pip3 install wheel
     - make pkg
   artifacts:
     name: "packages-$CI_PROJECT_NAME-$CI_PIPELINE_ID"
