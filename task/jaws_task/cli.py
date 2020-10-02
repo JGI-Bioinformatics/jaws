@@ -7,7 +7,7 @@ JAWS Task Service
 import os
 import click
 from jaws_task import log, config
-from jaws_task.rpc_methods import rpc_methods
+from jaws_task.rpc import rpc_methods
 from jaws_rpc import rpc_server
 
 JAWS_LOG_ENV = "JAWS_TASK_LOG"

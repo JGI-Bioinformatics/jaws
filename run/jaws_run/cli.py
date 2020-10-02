@@ -37,7 +37,7 @@ def cli(config_file: str, log_file: str, log_level: str):
 def rpc() -> None:
     """Start RPC server for Central."""
     from jaws_rpc import rpc_server
-    from jaws_run.rpc_methods import rpc_methods
+    from jaws_run.rpc import rpc_methods
 
     rpc_server_params = config.conf.get_section("RPC")
     app = rpc_server.RpcServer(rpc_server_params, rpc_methods)

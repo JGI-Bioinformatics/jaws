@@ -11,6 +11,26 @@ from jaws_rpc.responses import success, failure
 logger = logging.getLogger(__package__)
 
 
+def submit(params):
+    """
+    Submit a task for execution.
+    """
+    pass
+
+
+def status(params):
+    """
+    Check the status of a task.
+    """
+    pass
+
+def cancel(params):
+    """
+    Abort the execution of a task.
+    """
+    pass
+
+
 def get_task_log(params):
     """
     Retrieve log of all tasks' state transitions.
@@ -42,17 +62,16 @@ def get_task_status(params):
     return success(result)
 
 
-def update_job_status(params):
+def update_task_status(params):
     """
-    Receive a notification from the backend of a state transition.
+    Receive a notification from the backend of a task's change in state.
 
     Required parameters: cromwell_run_id, cromwell_job_id, status_from, status_to, timetamp
-    Optional parameters: reason
+    Optional parameters: reason (i.e. error message)
     """
-    # A JTM worker shall post changes in job state, although it is missing the JAWS run id.
-    # The state change is simply saved in the db; any other actions will be performed by the daemon.
-    cromwell_run_id = params["cromwell_run_id"]  # Cromwell's run/workflow UUID
-    cromwell_job_id = params["cromwell_job_id"]  # JTM's task_id
+    # A JTM worker shall post changes in job state, but is missing run_id, task_name, and attempt fields.
+    cromwell_run_id = params["cromwell_run_id"]
+    cromwell_job_id = params["cromwell_job_id"]
     status_from = params["status_from"]
     status_to = params["status_to"]
     timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
@@ -68,8 +87,8 @@ def update_job_status(params):
 
 # RPC Server dispatch table:
 rpc_methods = {
-    "update_job_status": {
-        "method": update_job_status,
+    "update_task_status": {
+        "method": update_task_status,
         "required_params": [
             "cromwell_run_id",
             "cromwell_job_id",
