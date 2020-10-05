@@ -10,7 +10,7 @@ How to Run a WDL in JAWS
    See `Quickstart Example <jaws_quickstart.html>`_ for full setup instructions.
 
 
-Once your environment is set up, you can submit a run
+to submit a workflow:
 
 :bash:`jaws run submit <wdl> <inputs json> <out dir> <site>` 
 
@@ -40,7 +40,7 @@ You only need to run this once to get a Globus token.  Follow the directions to 
 
     jaws login
     
-    # This will generate a URL that you need to follow to get the Globus token 
+    # This will generate a URL that you need to follow to get the Globus token. Then save the token according to directions. 
     
 
 

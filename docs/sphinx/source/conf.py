@@ -54,10 +54,9 @@ confluence_server_url = 'https://docs.jgi.doe.gov/'
 confluence_server_user = 'jlfroula'
 confluence_server_pass = 'xxxxxxxxxxxxxxxxx'
 confluence_parent_page= 'JAWS Docs'
-#confluence_server_pass = 'gjnnXnOwrqQe2aNQgnya3F94'
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['ntemplates']
+templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
