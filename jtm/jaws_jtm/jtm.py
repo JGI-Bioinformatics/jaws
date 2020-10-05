@@ -381,7 +381,7 @@ def submit(
             ret = int(ret)
         except TypeError as e:
             logger.exception(f"Unexpected return value from the manager: {ret} {e}")
-            sys.exit(1)
+            sys.exit(-1)
 
     if ret == -2:
         logger.error("jtm submit: invalid task.")
