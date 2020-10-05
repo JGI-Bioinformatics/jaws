@@ -2092,18 +2092,27 @@ def slurm_worker_cleanup_proc():
 # -------------------------------------------------------------------------------
 def proc_clean_exit(plist):
     """
+    Kill all parent + child processes and clean them all
+    WHEN one of child processes is abnormally crashed.
+    And, when new deployment, supervisord will send SIGTERM to
+    the JTM manager.
 
     :param plist: process handle list
     :return:
     """
-    try:
-        for p in plist:
+    for p in plist:
+        try:
             if p is not None and p.is_alive():
                 p.terminate()
-        os._exit(1)
-    except Exception as e:
-        logger.exception(f"Failed to terminate a child process: {e}")
-        raise
+        except AssertionError:
+            # is_alive() raises AssertionError
+            # if assert self._parent_pid != os.getpid()
+            logger.warning("Skipping is_alive() checking for the parent process.")
+        except Exception as e:
+            # print log and just pass
+            logger.exception(f"Failed to terminate a child process: {e}")
+
+    os._exit(1)
 
 
 # -------------------------------------------------------------------------------
