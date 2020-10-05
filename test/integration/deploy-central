@@ -107,98 +107,6 @@ jaws-$DEPLOYMENT_NAME:jaws-central-rest \
 jaws-$DEPLOYMENT_NAME:jaws-central-rpc
 
 
-#### SUPERVISORD
-#echo "DEPLOY SUPERVISORD"
-#[[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
-#[[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
-#chgrp -R $CENTRAL_JAWS_GROUP $SUPERVISOR_DIR/{bin,venv}
-#
-#source $SUPERVISOR_DIR/venv/bin/activate
-#
-#function not_available() {
-#  command -v $1 >/dev/null 2>&1
-#}
-#
-#not_available "supervisord" || $SITE_PYTHON_PIP install supervisor
-#
-#function generate_shim() {
-#prog=$1
-#cat <<EOM > $SUPERVISOR_DIR/bin/$prog
-##!/usr/bin/env bash
-#
-#source $SUPERVISOR_DIR/venv/bin/activate
-#
-#$prog \$@
-#EOM
-#chmod +x $SUPERVISOR_DIR/bin/$prog
-#}
-#
-#generate_shim supervisord
-#generate_shim supervisorctl
-#
-#fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR"
-#
-#cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
-#[inet_http_server]
-#port=0.0.0.0:$JAWS_SUPERVISOR_PORT
-#username=jaws
-#password=$CENTRAL_SUPERVISORD_PW
-#
-#[supervisord]
-#logfile=$SUPERVISOR_DIR/jaws-log
-#logfile_maxbytes=50MB
-#logfile_backups=2
-#loglevel=info
-#pidfile=$SUPERVISOR_DIR/jaws-pidfile
-#nodaemon=false
-#minfds=1024
-#minprocs=200
-#identifier=supervisor-jaws-$DEPLOYMENT_NAME
-#directory=$SUPERVISOR_DIR
-#
-#; The rpcinterface:supervisor section must remain in the config file for
-#; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
-#; added by defining them in separate [rpcinterface:x] sections.
-#[rpcinterface:supervisor]
-#supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
-#
-#[supervisorctl]
-#serverurl=$CENTRAL_SUPERVISOR_HOST:$JAWS_SUPERVISOR_PORT
-#username=jaws
-#password=$CENTRAL_SUPERVISORD_PW
-#prompt=supervisor-jaws-$DEPLOYMENT_NAME
-#
-#;----- Program Section
-#
-#[program:jaws-central-rest]
-#command=$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME
-#numprocs=1
-#startsecs=3
-#startretries=3
-#autorestart=unexpected
-#
-#[program:jaws-central-rpc]
-#command=$SHIM_DIR/jaws-central-rpc-$DEPLOYMENT_NAME
-#numprocs=1
-#startsecs=3
-#startretries=3
-#autorestart=unexpected
-#
-#[program:jaws-central-auth]
-#command=$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
-#numprocs=1
-#startsecs=3
-#startretries=3
-#autorestart=unexpected
-#
-#[group:jaws-$DEPLOYMENT_NAME]
-#programs=jaws-central-auth,jaws-central-rest,jaws-central-rpc
-#priority=999
-#EOM
-#
-#fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
-
-
 ## DELETE OLD VERSION
 echo "BUILDING jaws-central"
 test -d "$INSTALL_DIR/central" && rm -rf "$INSTALL_DIR/central"
@@ -210,6 +118,7 @@ source "$INSTALL_DIR/central/bin/activate"
 pip install --upgrade pip
 pip install wheel pytest flake8
 make pkg-central
+#rm -rf rpc/dist/* central/dist/*
 pip install rpc/dist/* && pip install central/dist/*
 deactivate
 fix_perms "$CENTRAL_JAWS_GROUP" "$INSTALL_DIR/central"
@@ -321,6 +230,105 @@ source $INSTALL_DIR/central/bin/activate
 exec jaws-central --log $LOGS_DIR/central-rpc.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL rpc
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
+
+
+### SUPERVISORD
+echo "DEPLOY SUPERVISORD"
+[[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
+[[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
+chgrp -R $CENTRAL_JAWS_GROUP $SUPERVISOR_DIR/{bin,venv}
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+function not_available() {
+  command -v $1 >/dev/null 2>&1
+}
+
+not_available "supervisord" || $SITE_PYTHON_PIP install supervisor
+
+function generate_shim() {
+prog=$1
+cat <<EOM > $SUPERVISOR_DIR/bin/$prog
+#!/usr/bin/env bash
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+$prog \$@
+EOM
+chmod +x $SUPERVISOR_DIR/bin/$prog
+}
+
+generate_shim supervisord
+generate_shim supervisorctl
+
+fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR"
+
+cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
+[inet_http_server]
+port=0.0.0.0:$JAWS_SUPERVISOR_PORT
+username=jaws
+password=$CENTRAL_SUPERVISORD_PW
+
+[supervisord]
+logfile=$SUPERVISOR_DIR/jaws-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile=$SUPERVISOR_DIR/jaws-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jaws-$DEPLOYMENT_NAME
+directory=$SUPERVISOR_DIR
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=$CENTRAL_SUPERVISOR_HOST:$JAWS_SUPERVISOR_PORT
+username=jaws
+password=$CENTRAL_SUPERVISORD_PW
+prompt=supervisor-jaws-$DEPLOYMENT_NAME
+
+;----- Program Section
+
+[program:jaws-central-rest]
+command=$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-central-rpc]
+command=$SHIM_DIR/jaws-central-rpc-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-central-auth]
+command=$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[group:jaws-$DEPLOYMENT_NAME]
+programs=jaws-central-auth,jaws-central-rest,jaws-central-rpc
+priority=999
+EOM
+
+fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
+
+## START SERVICES
+echo "STARTING SERVICES"
+test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start \
+jaws-$DEPLOYMENT_NAME:jaws-central-auth \
+jaws-$DEPLOYMENT_NAME:jaws-central-rest \
+jaws-$DEPLOYMENT_NAME:jaws-central-rpc
 
 
 ## DONE
