@@ -117,8 +117,9 @@ python3 -m venv "$INSTALL_DIR/central"
 source "$INSTALL_DIR/central/bin/activate"
 pip install --upgrade pip
 pip install wheel pytest flake8
+test -d rpc/dist && rm -rf rpc/dist
+test -d central/dist && rm -rf central/dist
 make pkg-central
-#rm -rf rpc/dist/* central/dist/*
 pip install rpc/dist/* && pip install central/dist/*
 deactivate
 fix_perms "$CENTRAL_JAWS_GROUP" "$INSTALL_DIR/central"
