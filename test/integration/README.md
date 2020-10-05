@@ -114,21 +114,42 @@ To see this in action see .gitlab-ci.yml .
 
 Start the supervisors. Only necessary once, after startup of the machine hosting the services: 
 
-    collabsu jaws
-    /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf 
-    logout
-    collabsu jaws_jtm
-    /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf
+    $ <command> <jaws_user>
+    $ /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf 
+
+    $ logout
+
+    $ <command> <jtm_user>
+    $ /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf
+
+The following users map to the following sites:  
+
+CORI:
+    - command: collabsu 
+    - user: jaws | jaws_jtm
+
+LRC:
+    - command: sudo -u <user> -i
+    - user: jaws | ja
+
+CASCADE:
+    - command: sudo -u <user> -i
+    - user: svc-jtm-manager | svc-jtm-user
+
+
+Note for cascade you will need to ssh to the host `gwf1.emsl.pnl.gov` before you attempt to change
+into the user. 
+
 
 Check the status of JAWS services:
 
-    /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf status
-    /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf status
+    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf status
+    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf status
 
 Start the JAWS services:
 
-    /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start
-    /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf start
+    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start
+    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf start
 
 Note: there exists two supervisord processes, one for jaws and one for jtm,  even if there are not two
 separate jaws and jtm users in use at the deployment site.
@@ -139,9 +160,9 @@ separate jaws and jtm users in use at the deployment site.
 After a maintenance, it is very likely that the runner will need to be restarted
 in order to accomplish this use the following steps:
 
-    collabsu jaws
-    cd $CFS/m342/jaws_runner/usr/bin
-    nohup ./gitlab-runner run &
+    $ collabsu jaws
+    $ cd $CFS/m342/jaws_runner/usr/bin
+    $ nohup ./gitlab-runner run &
 
 You can then check the UI on gitlab to see if the runner is up and working.
 
@@ -151,3 +172,8 @@ the green dot is next to the cori20 runner.
 ## Starting the gitlab-runner on LRC
 
 `/global/home/groups-sw/lr_jgicloud/jaws_ci_runner/usr/bin/gitlab-runner "run" "--config" "/global/home/groups-sw/lr_jgicloud/jaws_ci_runner/configuration/config.toml"``
+
+## Starting the gitlab-runner on CASCADE 
+
+Currently the gitlab runner is being managed by EMSL. To contact them, join the #emsl-jgi-coordination channel on the JGI slack. 
+
