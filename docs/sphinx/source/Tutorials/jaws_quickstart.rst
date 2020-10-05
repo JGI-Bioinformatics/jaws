@@ -116,7 +116,7 @@ Do the following
 
 .. code-block:: bash
 
-    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws-tmp.conf ~/jaws.conf
+    cp /global/cfs/projectdirs/jaws/jaws-prod/jaws.conf ~/jaws.conf
     chmod 600 ~/jaws.conf
 
     Edit ~/jaws.conf and add values for the [USER] variables:
@@ -125,10 +125,10 @@ Do the following
 
     # Set up the virtual environment
     # You will use an existing one. This gives you access to all the jaws commands.
-    # By using a symlink, we can update the file without forcing you to re-copy the file.
-    ln -s /global/cfs/projectdirs/jaws/jaws-prod/jaws-tmp.sh ~
+    # By using a symlink, we can update the file without requiring you to re-copy the file.
+    ln -s /global/cfs/projectdirs/jaws/jaws-prod/jaws.sh ~
 
-    source ~/jaws-tmp.sh
+    source ~/jaws.sh
     (use "deactivate" to get out of the environment)
 
     # Get the jaws-auth token. 
@@ -198,20 +198,25 @@ From the output above, we see that the run_id was 80.
 Output
 ***********
 
-All output files and logs should be in the output directory that you specified, "out" in this case.
-
-
-If a Job Fails
---------------
-
-If a job fails, your output dir will contain a copy of the raw `Cromwell <https://cromwell.readthedocs.io/en/stable/>`_ execution directory. 
-
-For example, a directory like this will exist:
+Cromwell will create a directory structure that looks like this: (different from what you'll see):
 
 .. figure:: /Figures/crom-exec.svg
     :scale: 100%
 
-You will have to look at the task's stdout, stderr & script files to see what went wrong.
+Each task of your workflow gets run inside the :bash:`execution` directory so it is here that you can find any output files including the stderr, stdout & script file. Cromwell is run on scratch and when it is finished, everything below the "cromwell generated hash" is copied to your specified output directory. 
+
+	
+So for our theoretical submission
+
+.. code-block:: bash
+
+    jaws run submit align.wdl inputs.json out cori  
+
+We should see an output folder that looks like this:
+
+.. figure:: /Figures/crom-exec-jaws.svg
+    :scale: 100%
+
 
 Further Debugging Ideas
 -----------------------

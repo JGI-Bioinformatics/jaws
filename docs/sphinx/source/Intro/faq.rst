@@ -5,12 +5,92 @@ FAQs
 ##################
 JAWS command line
 ##################
-
-.. topic:: Does Cromwell offer checkpointing?
-
-   sort of; Cromwell has call caching instead which accomplishes the same thing. When a task completes successfully, it's results are capable of being reused if the same task and inputs are run again.
-
+    
+Does Cromwell offer checkpointing?
+    sort of; Cromwell has call caching instead which accomplishes the same thing. When a task completes successfully, it's results are capable of being reused if the same task and inputs are run again.
+    
+|
 
 #############
 Building WDLs
 #############
+
+How do I use Arrays and Maps in my WDL. 
+    Specifically, how do I dereference the contents of the array or map so I can use them in my commands?
+    This example was copied from github:gist `scottfrazer/style_guide.md <https://gist.github.com/scottfrazer/aa4ab1945a6a4c331211>`_.  Also, you can see more about the functions used here on the official Broad Institute's `WDL spec.md <https://github.com/openwdl/wdl/blob/main/versions/1.0/SPEC.md>`_.
+    
+    WDL allows compound types like Array[String] or Map[String, Int] or Array[Array[String]]. There are two ways to get these data types into a form that the command can use:
+    
+    1. Serialization by concatenation (only for Array)
+    2. Serialization by write-to-file
+
+    Use WDL functions for common transformations
+    
+    
+    .. code-block:: bash
+
+        task example {
+          Array[String] array
+          Map[String, File] map
+          Array[Array[Int]] matrix
+          
+          command {
+            echo ${sep=',' array}
+            cat ${write_lines(array)}
+            python script.py --map=${write_map(map)}
+            python process.py ${write_tsv(matrix)}
+          }
+        }
+        
+        workflow test {
+          call example
+        }
+        {
+          "test.example.array": ["a", "b", "c"],
+          "test.example.map": {
+            "key0": "/path/to/file0",
+            "key1": "/path/to/file1",
+            "key2": "/path/to/file2",
+          },
+          "test.example.matrix": [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8]
+          ]
+        }
+
+        Produces this command:
+        
+        echo a,b,c
+        cat /tmp/array.txt
+        python script.py --map=<cromwell-execution/path>/map_<hash_id>.txt
+        python process.py <cromwell-execution/path>/matrix_<hash_id>.txt
+
+        array.txt would contain
+        a
+        b
+        c
+
+        map.txt would contain
+        key0  /path/to/file0
+        key1  /path/to/file1
+        key2  /path/to/file2
+
+        matrix.txt would contain
+        0 1 2
+        3 4 5
+        6 7 8
+
+        use read_* functions go to from files output by your command into WDL values
+
+        task example {
+          command {
+            echo 'first' > file
+            echo 'second' >> file
+            echo 'third' >> file
+          }
+          output {
+            Array[String] out = read_lines("file")
+          }
+        }
+    

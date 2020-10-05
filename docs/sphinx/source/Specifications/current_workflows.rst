@@ -2,8 +2,7 @@
 Current JGI Workflows 
 #####################
 
-.. warning::
-    The links only point to the workflow's README but in the future should point to a pipeline's status 
+The official catalog of JGI workflows is located in the `JGI WDL Catalog <https://code.jgi.doe.gov/advanced-analysis/jgi-wdl-catalog>`_.  The README.md should help you find the repositories of the below completed workflows.
 
 ------------------------------------------
 
