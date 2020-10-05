@@ -60,7 +60,7 @@ function set_deployment_var {
 }
 DEPLOYMENT_VARS="
 LOG_LEVEL
-JAWS_SUPERVISOR_PORT
+JAWS_CENTRAL_SUPERVISOR_PORT
 JAWS_AUTH_PORT
 JAWS_REST_PORT"
 for DEPLOYMENT_VAR in $DEPLOYMENT_VARS; do
@@ -101,10 +101,10 @@ done
 
 ## STOP SERVICE
 echo "STOPPING SERVICES"
-test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop \
-jaws-$DEPLOYMENT_NAME:jaws-central-auth \
-jaws-$DEPLOYMENT_NAME:jaws-central-rest \
-jaws-$DEPLOYMENT_NAME:jaws-central-rpc
+test -f $SUPERVISOR_DIR/supervisord-jaws-central.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws-central.conf stop \
+jaws-central-$DEPLOYMENT_NAME:auth \
+jaws-central-$DEPLOYMENT_NAME:rest \
+jaws-central-$DEPLOYMENT_NAME:rpc
 
 
 ## DELETE OLD VERSION
@@ -264,9 +264,9 @@ generate_shim supervisorctl
 
 fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR"
 
-cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
+cat << EOM > $SUPERVISOR_DIR/supervisord-jaws-central.conf
 [inet_http_server]
-port=0.0.0.0:$JAWS_SUPERVISOR_PORT
+port=0.0.0.0:$JAWS_CENTRAL_SUPERVISOR_PORT
 username=jaws
 password=$CENTRAL_SUPERVISORD_PW
 
@@ -279,7 +279,7 @@ pidfile=$SUPERVISOR_DIR/jaws-pidfile
 nodaemon=false
 minfds=1024
 minprocs=200
-identifier=supervisor-jaws-$DEPLOYMENT_NAME
+identifier=supervisord-jaws-central-$DEPLOYMENT_NAME
 directory=$SUPERVISOR_DIR
 
 ; The rpcinterface:supervisor section must remain in the config file for
@@ -289,47 +289,47 @@ directory=$SUPERVISOR_DIR
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
-serverurl=$CENTRAL_SUPERVISOR_HOST:$JAWS_SUPERVISOR_PORT
+serverurl=$CENTRAL_SUPERVISOR_HOST:$JAWS_CENTRAL_SUPERVISOR_PORT
 username=jaws
 password=$CENTRAL_SUPERVISORD_PW
-prompt=supervisor-jaws-$DEPLOYMENT_NAME
+prompt=supervisord-jaws-central-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
-[program:jaws-central-rest]
+[program:rest]
 command=$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-central-rpc]
+[program:rpc]
 command=$SHIM_DIR/jaws-central-rpc-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-central-auth]
+[program:auth]
 command=$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-central-auth,jaws-central-rest,jaws-central-rpc
+[group:jaws-central-$DEPLOYMENT_NAME]
+programs=auth,rest,rpc
 priority=999
 EOM
 
-fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
+fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws-central.conf"
 
 ## START SERVICES
 echo "STARTING SERVICES"
-test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start \
-jaws-$DEPLOYMENT_NAME:jaws-central-auth \
-jaws-$DEPLOYMENT_NAME:jaws-central-rest \
-jaws-$DEPLOYMENT_NAME:jaws-central-rpc
+test -f $SUPERVISOR_DIR/supervisord-jaws-central.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws-central.conf start \
+jaws-central-$DEPLOYMENT_NAME:auth \
+jaws-central-$DEPLOYMENT_NAME:rest \
+jaws-central-$DEPLOYMENT_NAME:rpc
 
 
 ## DONE
