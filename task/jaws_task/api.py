@@ -1,5 +1,5 @@
 """
-JAWS Task Service API
+Classes associated with the JAWS Task Service.
 """
 
 import logging
@@ -38,6 +38,50 @@ task_status_msg = {
 class DatabaseError(Exception):
     pass
 
+
+
+## TODO CREATE TASK CLASS
+class Task():
+
+    def __init__(self, task_id, params=None):
+        self.task_id = task_id
+
+        # if new task, init new and save in db
+        if params:
+            self.save_task(params)
+
+    def save_task():
+        """
+        Submit a task for execution.
+        """
+        # insert row into database
+        pass  # TODO
+
+    def status():
+        """
+        Get the status of a task.
+        """
+        # retrieve status from database
+        pass  # TODO
+
+    def cancel():
+        """
+        Abort the execution of a task.
+        """
+        # update row in database and get worker_id
+        pass  # TODO
+
+        # get rpc_client for worker
+        pass  # TODO
+
+        # send cancel instruction to jaws-worker via RPC
+        pass # TODO
+
+
+class TaskLog():
+
+    def __init__(self):
+        pass
 
 def get_task_log(run_id):
     """Retrieve task log from database"""
@@ -146,6 +190,10 @@ def update_job_status(cromwell_run_id, cromwell_job_id, status_from, status_to, 
         raise DatabaseError(f"{error}")
     session.close()
 
+    # if task is complete, transfer task output via Globus
+    if status_to == "success":
+        # TODO
+        self.__transfer_folder(label, src_dir, dest_endpoint, dest_dir)
 
 def __authorize_transfer_client(self, token):
     client_id = config.conf.get("GLOBUS", "client_id")
@@ -171,12 +219,9 @@ def __transfer_folder(self, label, transfer_rt, src_dir, dest_endpoint, dest_dir
     :rtype: str
     """
     logger.debug(f"Globus xfer {label}")
-    if not src_dir.startswith(self.globus_root_dir):
-        logger.error(f"Dir is not accessible via Globus: {src_dir}")
-        return None
     rel_src_dir = os.path.relpath(src_dir, self.globus_default_dir)
     try:
-        transfer_client = self._authorize_transfer_client(transfer_rt)
+        transfer_client = self.__authorize_transfer_client(transfer_rt)
     except globus_sdk.GlobusAPIError:
         logger.warning(
             f"Failed to get Globus transfer client to xfer {label}", exc_info=True
@@ -334,3 +379,227 @@ def update_job_status_logs(self):
                 task_output_dir,
             )
             log.debug(f"Xfer {log.task_name}: {transfer_task_id}")
+
+
+class PriorityQueue():
+    """
+    A collection of tasks, retrievable by priority.
+    Each worker pool has it's own priority queue.
+    Every task in the queue is executable by any worker in the pool
+    with sufficient time left to live.
+    """
+
+    def __init__(self, pool_id):
+        pass
+
+    def size(self):
+        """
+        Return the number of elements in the queue.
+        """
+        pass
+
+    def add(self, task, run_id, factor):
+        """
+        Add a task to the queue with the parameters necessary to calculate it's priority.
+        """
+        pass
+
+    def pop(self, worker_id, num_cpu, max_memory_gb, max_minutes, constraint=None):
+        """
+        Get the highest priority task which matches filter criteria, or None.
+        """
+        # TODO DON'T FORGET TO CAST RUN_ID AS FLOAT WHEN CALCULATING PRIORITY
+        # SELECT MIN(CAST(run_id AS float) * factor)
+        # may have to use two queries if using ORM
+        pass
+
+    def queue(self):
+        """
+        Get queued tasks, ordered by priority.
+        """
+        result = []
+        return result
+
+#    def stats(self):
+#        """
+#        Return number of tasks, total minutes requested, and maximum minutes requested.
+#        """
+#        num_tasks = 0
+#        total_minutes = 0
+#        max_minutes = 0
+#        for task in self.tasks:
+#            num_tasks = num_tasks + 1
+#            total_minutes = total_minutes + task.max_minutes
+#            if task.max_minutes > max_minutes:
+#                max_minutes = task.max_minutes
+#        return num_tasks, total_minutes, max_minutes
+
+
+class WorkerPool():
+    """
+    A collection of workers and a priority queue.
+    """
+
+    def __init__(self, num_cpu, max_memory_gb, max_minutes, constraint=None):
+        self.num_cpu = num_cpu
+        self.max_memory_gb = max_memory_gb
+        self.max_minutes = max_minutes
+        self.constraint = constraint
+        self.queue = PriorityQueue()
+        self.workers = {}
+        self.num_workers = 0
+
+    def size(self):
+        """
+        Return the number of workers in the pool.
+        """
+        return self.num_workers
+
+#    def stats(self):
+#        """
+#        Return number of workers, total minutes remaining, and maximum minutes remaining.
+#        """
+#        num_workers = 0
+#        total_minutes = 0
+#        max_minutes = 0
+#        for worker in self.workers:
+#            num_workers = num_workers + 1
+#            total_minutes = total_minutes + worker.max_minutes
+#            worker_max_minutes = worker.max_minutes()
+#            if worker_max_minutes > max_minutes:
+#                max_minutes = worker_max_minutes
+#        return num_workers, total_minutes, max_minutes
+
+    def evaluate(self):
+        """
+        Compare current queue to total workers.
+        """
+        queue = self.queue.queue()
+        workers = self.workers()
+        # run simulation to determine if worker pool size should be changed
+        
+         
+
+    def increase(self, num_workers, max_minutes=480):
+        """
+        Increase the size of the worker pool by the specified amount.
+        """
+        pass
+
+    def decrease(self, num_workers)
+        """
+        Decrease the size of the worker pool by the specified amount.
+        """
+        if num > self.num_workers:
+            num = self.num_workers
+        pass  # TODO
+
+
+# TODO: This is just a db table to track active queues/worker pools
+class Workforce():
+    """
+    A collection of Worker Pools.
+    """
+
+    def __init__(self):
+        pass
+
+    def add_task(self, task):
+        """
+        Add a task to the appropriate worker pool and return it.
+        """
+        pool = self.match(task)
+        pool.add(task)
+        return pool
+
+    def filter(self, task):
+        """
+        Returns all worker pools which can run the task, sorted from smallest to largest.
+        """
+
+    def match(self, task):
+        """
+        Returns smallest worker pool which meets the requirements of the task.
+        If necessary, the worker pool size is updated or a new worker pool is created.
+        """
+        for pool in self.pools.sorted():  # need custom sorted()
+            if pool.match(task):
+                pool.add(task)
+                return pool
+
+        # no matching pool was found; create anew
+        pool = Pool(task)
+        self.pools[pool.pool_id] = pool
+        return pool
+
+    def add(self, num_cpu, max_memory_gb, max_minutes, constraints={}):
+        """
+        Create a new worker pool and add it to the workforce.
+        """
+        pool = WorkerPool(num_cpu, max_memory_gb, max_minutes, constraint=None)
+        constraintsList = []
+        for key in constraints:
+            constraintsList.append(f"{key}={constraints[key]}")
+        constraints_sig = ';'.join(constraintsList.sorted())
+        sig = f"{num_cpu}:{max_memory_gb}:{constraints_sig}"
+        self.pools. 
+        pass
+
+    def retrieve(self, num_cpu, max_memory_gb, max_minutes, contraint=None):
+        pass
+
+    def update(self, delta):
+        """
+        """
+        pass
+
+    def delete(self, num_cpu, max_memory_gb, constraint=None):
+        """
+        Delete matching 
+        """
+        pass
+
+
+class Daemon:
+    """
+    The daemon periodically checks priority-queue's and their worker-pools.
+    """
+
+    def __init__(self):
+        """
+        Init daemon with schedule
+        """
+        schedule.every(10).seconds.do(self.compare_queue_and_pool)
+
+    def start_daemon(self):
+        """
+        Start the scheduled loop.
+        """
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+
+    def compare_queue_and_pool(self):
+        """
+        Check on current status of active runs.  This is run as a new thread.
+        """
+        # since this is a new thread, must get new session
+        session = db.Session()
+
+        # get list of active runs
+        try:
+            active_queues = (
+                db.session.query(db.Queue)
+                .filter(db.Queue.status=="active")  # TODO
+                .all()
+            )
+        except SQLAlchemyError as error:
+            logger.exception(f"Error selecting active queuess: {error}")
+            raise DatabaseError(f"{error}")
+
+        # init Queue objects and have them check their own worker-pools
+        for row in active_queues:
+            queue = queue.Queue(queue.id, session)
+            queue.check_workers()
+
+        session.close()
