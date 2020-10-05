@@ -5,31 +5,36 @@ JAWS Run Service RPC methods.
 import logging
 from jaws_run.api import (
     Run,
-    Engine,
     RunNotFoundError,
     RunAlreadyExistsError,
     DatabaseError,
     CromwellError,
     TaskServiceError,
 )
+from jaws_run.config import conf
+from jaws_run.cromwell import Cromwell
 from jaws_rpc.responses import success, failure
 
 
 # config and logging must be initialized before importing this module
 logger = logging.getLogger(__package__)
+cromwell = Cromwell(conf.get("CROMWELL", "url"))
 
 
-def engine_status(params):
+def get_cromwell_status(params):
     """
     Return the current status of the Cromwell service.
+
+    :param params: None
+    :type params: dict
+    :return: JSON-RPC2 successful response with no content
+    :rtype: dict
     """
-    logger.info("Check server status")
+    logger.debug("Check Cromwell status")
     try:
-        engine = Engine()
-    except CromwellError as error:
-        return failure(500, f"Cromwell offline: {error}")
-    if engine:
-        pass  # dummy statement for flake8
+        _ = cromwell.status()
+    except Exception:
+        return failure(500, "Cromwell offline")
     return success()
 
 
@@ -37,8 +42,10 @@ def get_status(params):
     """
     Get the current status of a Run.
 
-    Required parameters: run_id
-    Returns: Current run status (string)
+    :param params: run_id
+    :type params: dict
+    :return: JSON-RPC2 response, successful result is current status
+    :rtype: dict
     """
     run_id = params["run_id"]
     try:
@@ -60,8 +67,10 @@ def get_statuses(params):
     """
     Get the current status for a list of Runs.
 
-    Required parameters: List of run_ids
-    Returns: Dict of run_id and it's current status
+    :param params: List of run_ids
+    :type params: dict
+    :return: JSON-RPC2 response with result of run_id:status
+    :rtype: dict
     """
     results = {}
     for run_id in params["run_ids"]:
@@ -85,8 +94,10 @@ def get_log(params):
     """
     Get a log of a state transitions of a Run.
 
-    Required parameters: run_id
-    Returns: Table of state transitions.
+    :param params: run_id
+    :type params: dict
+    :return: JSON-RPC2 response with table of Run state transitions.
+    :rtype: dict
     """
     run_id = params["run_id"]
     try:
@@ -108,8 +119,10 @@ def get_metadata(params):
     """
     Retrieve the Cromwell metadata of a run and all it's subworkflows.
 
-    Required parameters: run_id
-    Returns: dict of cromwell_run_id and Cromwell metadata JSON.
+    :param params: run_id
+    :type params: dict
+    :return: JSON-RPC2 response with dict of cromwell_run_id:Cromwell metadata JSON.
+    :rtype: dict
     """
     run_id = params["run_id"]
     try:
@@ -131,8 +144,10 @@ def cancel(params):
     """
     Cancel a run.
 
-    Required parameters: run_id
-    Returns: None
+    :param params: run_id
+    :type params: dict
+    :return: JSON-RPC2 response with no content
+    :rtype: dict
     """
     run_id = params["run_id"]
     try:
@@ -154,8 +169,10 @@ def get_errors(params):
     """
     Retrieve error messages and stderr for failed Tasks.
 
-    Required parameters: run_id
-    Retruns: dict of failed tasks and their error messages and stderr
+    :param params: run_id
+    :type params: dict
+    :return: JSON-RPC2 response with dict of failed tasks: err msg and stderr
+    :rtype: dict
     """
     run_id = params["run_id"]
     try:
@@ -177,8 +194,10 @@ def submit(params):
     """
     Submit new run for execution.
 
-    Required parameters: run_id, user_id, submission_id, output_endpoint, output_dir
-    Returns: None
+    :param params: run_id, user_id, submission_id, output_endpoint, output_dir
+    :type params: dict
+    :return: JSON-RPC2 response to no content
+    :rtype: dict
     """
     run_id = params["run_id"]
     try:
@@ -199,8 +218,10 @@ def get_task_log(params):
     Get log of Task state transitions for a Run.
     The tasks are retrieved from Cromwell metadata and state transitions retrieved from jaws-task.
 
-    Required parameters:
-    Returns: dict of tasks and logs
+    :param params:
+    :type params: dict
+    :return: JSON-RPC2 response with dict of tasks and logs
+    :rtype: dict
     """
     run_id = params["run_id"]
     try:
@@ -223,8 +244,10 @@ def get_task_status(params):
     Get state of each task in a Run.
     The tasks are retrieved from Cromwell metadata and current state retrieved from jaws-task.
 
-    Required parameters:
-    Returns: dict of tasks and states
+    :param params:
+    :type params: dict
+    :return: JSON-RPC2 response with result dict of task:status
+    :rtype: dict
     """
     run_id = params["run_id"]
     try:
@@ -244,7 +267,7 @@ def get_task_status(params):
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 rpc_methods = {
-    "engine_status": {"method": engine_status},
+    "get_cromwell_status": {"method": get_cromwell_status},
     "submit": {
         "method": submit,
         "required_params": [
