@@ -14,7 +14,7 @@ Example submitting a workflow:
 
 :bash:`jaws run submit <wdl> <inputs json> <out dir> <site>` 
 
-... where "run" is a command, and "submit is a sub-command. Running each command/sub-command without arguments 
+... where "run" is a command, and "submit" is a sub-command. Running each command/sub-command without arguments 
 shows the help message.
 
 
