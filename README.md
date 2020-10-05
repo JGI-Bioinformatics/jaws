@@ -13,6 +13,7 @@ See docs/startingServices.md
 ### Requirements
 
 An AMQP service (e.g. RabbitMQ) and relational database (e.g. MySQL) are required.  Central and each Site may have their own.  Services don't cross-talk to other databases.
+Flask services should be run behind a proper web server in a production environment (e.g. NGINX+gUnicorn) although the server built into Flask is suitable for development.
 
 #### RabbitMQ
 
