@@ -13,6 +13,6 @@ setup(
     packages=["jaws_central"],
     include_package_data=True,
     install_requires=[line.strip() for line in open("requirements.txt")],
-    entry_points={"console_scripts": ["jaws-central = jaws_central.cli:jaws", ]},
+    entry_points={"console_scripts": ["jaws-central = jaws_central.cli:jaws"]},
     zip_safe=False,
 )

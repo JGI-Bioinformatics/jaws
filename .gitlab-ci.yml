@@ -376,7 +376,10 @@ deploy-jaws-cascade-dev:
   environment:
     name: "cascade/dev"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-site
+    - ./test/integration/deploy-cromwell
+    - ./test/integration/deploy-jtm
+    - ./test/integration/deploy-supervisor
 deploy-jaws-cascade-staging:
   stage: deploy-jaws
   tags:
@@ -388,7 +391,10 @@ deploy-jaws-cascade-staging:
   environment:
     name: "cascade/staging"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-site
+    - ./test/integration/deploy-cromwell
+    - ./test/integration/deploy-jtm
+    - ./test/integration/deploy-supervisor
   only:
     - staging
 deploy-jaws-cascade-prod:
@@ -402,6 +408,9 @@ deploy-jaws-cascade-prod:
   environment:
     name: "cascade/prod"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-site
+    - ./test/integration/deploy-cromwell
+    - ./test/integration/deploy-jtm
+    - ./test/integration/deploy-supervisor
   only:
     - master

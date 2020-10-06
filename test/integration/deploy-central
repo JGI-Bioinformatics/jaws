@@ -66,7 +66,7 @@ for DEPLOYMENT_VAR in $DEPLOYMENT_VARS; do
   set_deployment_var $DEPLOYMENT_VAR
 done
 
-export INSTALL_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export INSTALL_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-central-$DEPLOYMENT_NAME"
 export CONFIG_DIR="$INSTALL_DIR/configs"
 export SHIM_DIR="$INSTALL_DIR/shims"
 export LOGS_DIR="$INSTALL_DIR/logs"
@@ -205,7 +205,11 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 source $INSTALL_DIR/central/bin/activate
-exec gunicorn --bind unix:auth.sock "wsgi_auth.app"
+
+export JAWS_CENTRAL_LOG=$LOGS_DIR/central-auth.log
+export JAWS_CENTRAL_CONFIG=$CONFIG_DIR/jaws-central.conf
+export JAWS_CENTRAL_LOG_LEVEL=$LOG_LEVEL
+exec gunicorn --workers 3 --bind unix:jaws-auth.sock jaws_central.wsgi_auth:connex
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
@@ -216,7 +220,11 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 source $INSTALL_DIR/central/bin/activate
-exec gunicorn --bind unix:central.sock "wsgi_central.app"
+
+export JAWS_CENTRAL_LOG=$LOGS_DIR/central-auth.log
+export JAWS_CENTRAL_CONFIG=$CONFIG_DIR/jaws-central.conf
+export JAWS_CENTRAL_LOG_LEVEL=$LOG_LEVEL
+exec gunicorn --workers 3 --bind unix:jaws-rest.sock jaws_central.wsgi_rest:connex
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
@@ -326,10 +334,7 @@ fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws-central.conf"
 ## START SERVICES
 echo "STARTING SERVICES"
 test -f $SUPERVISOR_DIR/supervisord-jaws-central.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws-central.conf start \
-jaws-central-$DEPLOYMENT_NAME:auth \
-jaws-central-$DEPLOYMENT_NAME:rest \
-jaws-central-$DEPLOYMENT_NAME:rpc
-
+jaws-central-$DEPLOYMENT_NAME:*
 
 ## DONE
 printf "END deploy-central\n\n"

@@ -7,6 +7,7 @@ from urllib.parse import quote_plus
 from jaws_central import config, log
 from jaws_central.models_fsa import db
 
+
 JAWS_LOG_ENV = "JAWS_CENTRAL_LOG"
 JAWS_LOG_LEVEL_ENV = "JAWS_CENTRAL_LOG_LEVEL"
 JAWS_CONFIG_ENV = "JAWS_CENTRAL_CONFIG"
@@ -26,11 +27,16 @@ logger = log.setup_logger(__package__, log_file, log_level)
 conf = config.Configuration(config_file)
 logger.debug(f"Config using {config_file}")
 
+auth_url = config.conf.get("HTTP", "auth_url")
+auth_port = config.conf.get("HTTP", "auth_port")
+if not auth_url.startswith("http"):
+    auth_url = f"http://{auth_url}"
+os.environ["TOKENINFO_URL"] = f"{auth_url}:{auth_port}/tokeninfo"
 basedir = os.path.abspath(os.path.dirname(__file__))
-connex = connexion.FlaskApp(__name__, specification_dir=basedir)
-connex.add_api("swagger.auth.yml")
+application = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
+application.add_api("swagger.rest.yml")
 
-connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
+application.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
     config.conf.get("DB", "dialect"),
     config.conf.get("DB", "user"),
     quote_plus(config.conf.get("DB", "password")),
@@ -38,19 +44,19 @@ connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
     config.conf.get("DB", "port"),
     config.conf.get("DB", "db"),
 )
-connex.app.config["SQLALCHEMY_ECHO"] = False
-connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+application.app.config["SQLALCHEMY_ECHO"] = False
+application.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+application.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
     "pool_recycle": 3600,
     "pool_size": 5,
     "max_overflow": 10,
-    "pool_timeout": 30,
+    "pool_timeout": 30
 }
-db.init_app(connex.app)
+db.init_app(application.app)
 
 # create tables if not exists
-with connex.app.app_context():
+with application.app.app_context():
     try:
         db.create_all()
         db.session.commit()
@@ -59,6 +65,11 @@ with connex.app.app_context():
         logger.exception(f"Failed to create tables: {error}")
         raise
 
+# init RPC clients
+site_rpc_params = config.conf.get_all_sites_rpc_params()
+rpc_index.rpc_index = rpc_index.RPC_Index(site_rpc_params)
+
+
 if __name__ == "__main__":
-    # start on default port (using sock file with gunicorn)
-    connex.run(host="0.0.0.0", debug=False)
+    # start REST server on default port (using sock file for gunicorn)
+    application.run(host="0.0.0.0", debug=False)
