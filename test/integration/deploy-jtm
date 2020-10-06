@@ -301,7 +301,7 @@ rm -rf ./jtm/dist/* ./rpc/dist/*
 test -d "$INSTALL_DIR/jtm" && rm -rf "$INSTALL_DIR/jtm"
 test -d "$SITE_JTM_WORKER_INSTALL_DIR" && rm -rf "$SITE_JTM_WORKER_INSTALL_DIR"
 #[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
-module load python
+$SITE_LOAD_PYTHON
 $SITE_PYTHON -m venv "$INSTALL_DIR/jtm"
 source "$INSTALL_DIR/jtm/bin/activate"
 pip install --upgrade pip

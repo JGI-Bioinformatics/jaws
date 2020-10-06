@@ -18,8 +18,6 @@ function fix_perms() {
 
 echo "BEGIN deploy-site"
 
-source ./test/integration/define-env
-
 ## VERIFY REQUIRED VARS ARE DEFINED
 # If any env are undefined, try sourcing the setup script and check again.
 # Exits if any required var is undefined.
@@ -56,21 +54,10 @@ SITE_UPLOADS_SUBDIR
 RESULT=0
 for VAR in $REQUIRED_VARS; do
   if [ -z ${!VAR+xxx} ]; then
-    echo "Missing env var, $VAR; sourcing setup script..."
-    source ./test/integration/define-env
+    echo "Missing env var: $VAR">&2
     RESULT=1
-    break
   fi
 done
-if [[ $RESULT -ne 0 ]]; then
-  RESULT=0
-  for VAR in $REQUIRED_VARS; do
-    if [ -z ${!VAR+xxx} ]; then
-      echo "Missing env var: $VAR">&2
-      RESULT=1
-    fi
-  done
-fi
 [ $RESULT -eq 0 ] || exit 1
 
 
@@ -197,7 +184,7 @@ chmod 770 "$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME"
 rm -rf ./site/dist/* ./rpc/dist/*
 test -d "$INSTALL_DIR/site" && rm -rf "$INSTALL_DIR/site"
 #[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
-module load python
+$SITE_LOAD_PYTHON
 make pkg-rpc
 make pkg-site
 $SITE_PYTHON -m venv "$INSTALL_DIR/site" && \
@@ -208,21 +195,104 @@ $SITE_PYTHON -m venv "$INSTALL_DIR/site" && \
 fix_perms $SITE_JAWS_GROUP "$INSTALL_DIR/site"
 
 
-#### ECCE TODO
-
-
 ## OPTIONALLY DEPLOY CLIENT
 [[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && ./test/integration/deploy-client
-./test/integration/deploy-supervisord
+
+
+## SUPERVISORD
+test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
+chgrp $SITE_JTM_GROUP $SUPERVISOR_DIR
+chmod 770 $SUPERVISOR_DIR
+#$LOAD_SITE_PYTHON
+$SITE_LOAD_PYTHON
+[[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
+[[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
+chgrp -R $SITE_JTM_GROUP $SUPERVISOR_DIR/{bin,venv}
+source $SUPERVISOR_DIR/venv/bin/activate
+
+function not_available() {
+  command -v $1 >/dev/null 2>&1
+}
+
+not_available "supervisord" || $SITE_PYTHON_PIP install supervisor
+
+function generate_shim() {
+prog=$1
+cat <<EOM > $SUPERVISOR_DIR/bin/$prog
+#!/usr/bin/env bash
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+$prog \$@
+EOM
+chmod +x $SUPERVISOR_DIR/bin/$prog
+}
+
+generate_shim supervisord
+generate_shim supervisorctl
+
+fix_perms "$SITE_JTM_GROUP" "$SUPERVISOR_DIR"
+
+cat << EOM > $SUPERVISOR_DIR/supervisord-jtm.conf
+[inet_http_server]
+port=0.0.0.0:$JTM_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+
+[supervisord]
+logfile=$SUPERVISOR_DIR/jtm-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile=$SUPERVISOR_DIR/jtm-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jtm-$DEPLOYMENT_NAME
+directory=$SUPERVISOR_DIR
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=$SITE_SUPERVISOR_HOST:$JTM_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+prompt=supervisor-jtm-$DEPLOYMENT_NAME
+
+;----- Program Section
+
+[program:jtm]
+command=$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:cromwell]
+command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=10
+startretries=3
+autorestart=unexpected
+
+[group:jtm-$DEPLOYMENT_NAME]
+programs=jtm,cromwell
+priority=999
+EOM
+chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-jtm.conf"
+chmod 660 "$SUPERVISOR_DIR/supervisord-jtm.conf"
 
 
 ## start services
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:*
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf reread
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jaws-$DEPLOYMENT_NAME:*
 # the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
 # the gitlab-runner. no fix could by found is why that copy now happens in the jtm-worker-deploy shim created by generate-shims. this is a hack.
 #cp -a $INSTALL_DIR/configs/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf && chgrp $JTM_GROUP && chmod 640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
 
-echo "END deploy-jaws"
+echo "END deploy-site-jtm"
