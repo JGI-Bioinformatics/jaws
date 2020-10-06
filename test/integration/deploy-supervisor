@@ -32,6 +32,31 @@ for VAR in $REQUIRED_VARS; do
 done
 [ $RESULT -eq 0 ] || exit 1
 
+## DEPLOYMENT-SPECIFIC VARIABLES
+echo "DEFINING DEPLOYMENT VARS"
+function set_deployment_var {
+  VAR_NAME="$1"
+  SRC_VAR_NAME="${DEPLOYMENT_NAME}_${VAR_NAME}"
+  if [ -z ${!SRC_VAR_NAME+xxx} ]; then
+    echo "Missing env var: $SRC_VAR_NAME">&2
+    exit 1
+  fi
+  VALUE="${!SRC_VAR_NAME}"
+  echo "... $VAR_NAME"
+  export $VAR_NAME
+  printf -v "$VAR_NAME" "%s" "$VALUE"
+}
+DEPLOYMENT_VARS="
+LOG_LEVEL
+JAWS_SUPERVISOR_PORT
+JTM_SUPERVISOR_PORT
+JAWS_AUTH_PORT
+JAWS_REST_PORT
+CROMWELL_PORT"
+for DEPLOYMENT_VAR in $DEPLOYMENT_VARS; do
+  set_deployment_var $DEPLOYMENT_VAR
+done
+
 echo "DEFINING SITE VARS"
 function set_site_var {
   VAR_NAME="$1"
@@ -225,12 +250,9 @@ chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
 chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-jtm.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jtm.conf"
 
-printf "END deploy-supervisord\n\n"
-
-
 ## start services
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:*
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf reread
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jaws-$DEPLOYMENT_NAME:*
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jtm-$DEPLOYMENT_NAME:*
 echo "END deploy-supervisor"
