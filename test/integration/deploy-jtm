@@ -146,7 +146,7 @@ setup_dir "$SITE_JTM_WORKER_INSTALL_DIR" "$SITE_JTM_GROUP" 770
 
 
 ## STOP SERVICE
-test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf stop jaws-$DEPLOYMENT_NAME:*
+test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf stop jtm-$DEPLOYMENT_NAME:jtm
 
 
 ## GENERATE CONFIG
@@ -300,7 +300,6 @@ chmod +x "$SHIM_DIR"/*
 rm -rf ./jtm/dist/* ./rpc/dist/*
 test -d "$INSTALL_DIR/jtm" && rm -rf "$INSTALL_DIR/jtm"
 test -d "$SITE_JTM_WORKER_INSTALL_DIR" && rm -rf "$SITE_JTM_WORKER_INSTALL_DIR"
-#[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
 $SITE_LOAD_PYTHON
 $SITE_PYTHON -m venv "$INSTALL_DIR/jtm"
 source "$INSTALL_DIR/jtm/bin/activate"
@@ -324,8 +323,10 @@ make pkg-jtm
 pip install rpc/dist/* && pip install jtm/dist/*
 deactivate
 
-
 fix_perms $SITE_JTM_GROUP "$INSTALL_DIR/jtm"
 
 
-printf "END generate-configs\n\n"
+# START SERVICE
+test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jtm-$DEPLOYMENT_NAME:jtm
+
+printf "END deploy-jtm\n\n"

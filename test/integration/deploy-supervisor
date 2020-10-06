@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
-# This script will deploy the site services; this is, those services that run each each computing site:
+# This script will deploy the supervisord for services run at each computing site as the "jaws" user:
 # - jaws-site
-# - cromwell
-# - jtm
 
 set -e
 
@@ -16,7 +14,7 @@ function fix_perms() {
     find "$DIR" -type d -exec chmod g+s '{}' \;
 }
 
-echo "BEGIN deploy-site"
+echo "BEGIN deploy-supervisor"
 
 source ./test/integration/define-env
 
@@ -73,147 +71,46 @@ if [[ $RESULT -ne 0 ]]; then
 fi
 [ $RESULT -eq 0 ] || exit 1
 
+echo "DEFINING PATHS"
+export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export CONFIG_DIR="$INSTALL_DIR/configs"
+export SHIM_DIR="$INSTALL_DIR/shims"
+export LOGS_DIR="$INSTALL_DIR/logs"
+export SUPERVISOR_DIR="$SITE_INSTALL_BASEDIR/jaws-supervisord-$DEPLOYMENT_NAME"
+
+echo "DEFINING SITE VARS"
+function set_site_var {
+  VAR_NAME="$1"
+  SRC_VAR_NAME="${JAWS_SITE}_${VAR_NAME}"
+  if [ -z ${!SRC_VAR_NAME+xxx} ]; then
+    echo "Missing env var: $SRC_VAR_NAME">&2
+    exit 1
+  fi
+  SITE_VAR_NAME="SITE_${VAR_NAME}"
+  VALUE="${!SRC_VAR_NAME}"
+  echo "... $SITE_VAR_NAME"
+  export $SITE_VAR_NAME
+  printf -v "$SITE_VAR_NAME" "%s" "$VALUE"
+}
+SITE_VARS="
+JAWS_GROUP
+JTM_GROUP
+INSTALL_BASEDIR
+PYTHON
+LOAD_PYTHON
+JAWS_SCRATCH_BASEDIR
+JTM_SCRATCH_BASEDIR
+JAWS_SW_BASEDIR
+JTM_SW_BASEDIR
+REF_DATA_DIR
+SUPERVISOR_HOST"
+for SITE_VAR in $SITE_VARS; do
+  set_site_var $SITE_VAR
+done
+
 
 ## STOP SERVICES
 test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
-
-
-
-## WRITE CONFIG FILE
-cat << EOM > $CONFIG_DIR/jaws-site.conf
-[DB]
-dialect = mysql+mysqlconnector
-host = $SITE_DB_HOST
-port = $SITE_DB_PORT
-user = jaws
-password = $SITE_DB_PW
-db = jaws_${JAWS_SITE,,}_$DEPLOYMENT_NAME
-[LOCAL_RPC_SERVER]
-user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
-vhost = jaws_$DEPLOYMENT_NAME
-queue = SITE_$JAWS_SITE
-num_threads = 5
-max_retries = 3
-[CENTRAL_RPC_SERVER]
-user = jaws
-password = $JAWS_CENTRAL_RMQ_PW
-host = $JAWS_CENTRAL_RMQ_HOST
-port = $JAWS_CENTRAL_RMQ_PORT
-vhost = jaws_$DEPLOYMENT_NAME
-queue = JAWS_$JAWS_SITE
-num_threads = 5
-max_retries = 3
-[CENTRAL_RPC_CLIENT]
-user = jaws
-password = $JAWS_CENTRAL_RMQ_PW
-host = $JAWS_CENTRAL_RMQ_HOST
-port = $JAWS_CENTRAL_RMQ_PORT
-vhost = jaws_$DEPLOYMENT_NAME
-queue = CENTRAL
-[GLOBUS]
-client_id = $JAWS_GLOBUS_CLIENT_ID
-endpoint_id = $SITE_GLOBUS_EP
-root_dir = $SITE_GLOBUS_ROOT_DIR
-default_dir = $SITE_GLOBUS_DEFAULT_DIR
-[SITE]
-id = $JAWS_SITE
-uploads_subdirectory = $SITE_UPLOADS_SUBDIR
-downloads_subdirectory = $SITE_DOWNLOADS_SUBDIR
-[CROMWELL]
-url = http://localhost:$CROMWELL_PORT
-EOM
-chgrp "$SITE_JAWS_GROUP" "$CONFIG_DIR/jaws-site.conf"
-chmod 660 "$CONFIG_DIR/jaws-site.conf"
-
-
-## WRITE SHIM SCRIPTS
-
-# If the DEPLOY-CLIENT flag is set, the deploy-client script will be run, but the files must have group and permissions set.
-# Unfortunately, chgrp/chmod don't work on the parallel-fs when executed by the gitlab-runner for some reason; the
-# solution is to have the jaws user perform these commands in one of the shims (under supervsiord), so it's executed before one
-# of the required services is executed.  This is a hack.
-FIX_PERMS_CLIENT=""
-[[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && FIX_PERMS_CLIENT="fix_perms $SITE_CLIENT_GROUP $SITE_CLIENT_INSTALL_DIR"
-
-# write shims
-cat <<EOM > $SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME
-#!/usr/bin/env bash
-
-function fix_perms() {
-    local GROUP="\$1"
-    local DIR="\$2"
-    chmod -R a+rX "\$DIR"
-    chmod -R ug+rwX "\$DIR"
-    chgrp -R "\$GROUP" "\$DIR"
-    find "\$DIR" -type d -exec chmod g+s '{}' \;
-}
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-
-test -d "$SITE_JAWS_SCRATCH_DIR" || mkdir "$SITE_JAWS_SCRATCH_DIR"
-chmod 775 "$SITE_JAWS_SCRATCH_DIR"
-test -d "$SITE_DOWNLOADS_DIR" || mkdir "$SITE_DOWNLOADS_DIR"
-chmod 775 "$SITE_DOWNLOADS_DIR"
-
-$FIX_PERMS_CLIENT
-
-source "$INSTALL_DIR/site/bin/activate"
-exec jaws-site --log "$LOGS_DIR/site-daemon.log" --config "$CONFIG_DIR/jaws-site.conf" --log-level "$LOG_LEVEL" daemon
-EOM
-chmod 770 "$SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME"
-
-cat <<EOM > "$SHIM_DIR/jaws-site-central-rpc-$DEPLOYMENT_NAME"
-#!/usr/bin/env bash
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-
-# START RPC SERVER
-source "$INSTALL_DIR/site/bin/activate"
-exec jaws-site --log "$LOGS_DIR/site-central-rpc.log" --config "$CONFIG_DIR/jaws-site.conf" --log-level "$LOG_LEVEL" central-rpc
-EOM
-chmod 770 "$SHIM_DIR/jaws-site-central-rpc-$DEPLOYMENT_NAME"
-
-cat <<EOM > "$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME"
-#!/usr/bin/env bash
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-
-source $INSTALL_DIR/site/bin/activate
-exec jaws-site --log $LOGS_DIR/site-jtm-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level DEBUG jtm-rpc
-EOM
-chmod 770 "$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME"
-
-
-## GENERATE VENVS
-rm -rf ./site/dist/* ./rpc/dist/*
-test -d "$INSTALL_DIR/site" && rm -rf "$INSTALL_DIR/site"
-#[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
-$SITE_LOAD_PYTHON
-make pkg-rpc
-make pkg-site
-$SITE_PYTHON -m venv "$INSTALL_DIR/site" && \
-  . "$INSTALL_DIR/site/bin/activate" && \
-  $SITE_PYTHON_PIP install rpc/dist/* && \
-  $SITE_PYTHON_PIP install site/dist/* && \
-  deactivate
-fix_perms $SITE_JAWS_GROUP "$INSTALL_DIR/site"
-
-
-#### ECCE TODO
-
-
-## OPTIONALLY DEPLOY CLIENT
-[[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && ./test/integration/deploy-client
-
 
 
 ## SUPERVISORD
@@ -281,21 +178,21 @@ prompt=supervisor-jaws-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
-[program:jaws-site-daemon]
+[program:site-daemon]
 command=$SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-site-jtm-rpc]
+[program:site-jtm-rpc]
 command=$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-site-central-rpc]
+[program:site-central-rpc]
 command=$SHIM_DIR/jaws-site-central-rpc-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
@@ -303,7 +200,7 @@ startretries=3
 autorestart=unexpected
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
+programs=site-daemon,site-jtm-rpc,site-central-rpc
 priority=999
 EOM
 
@@ -343,22 +240,22 @@ prompt=supervisor-jtm-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
-[program:jaws-jtm]
+[program:jtm]
 command=$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-cromwell]
+[program:cromwell]
 command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=10
 startretries=3
 autorestart=unexpected
 
-[group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-jtm,jaws-cromwell
+[group:jtm-$DEPLOYMENT_NAME]
+programs=jtm,cromwell
 priority=999
 EOM
 
@@ -370,28 +267,9 @@ chmod 660 "$SUPERVISOR_DIR/supervisord-jtm.conf"
 printf "END deploy-supervisord\n\n"
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## start services
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:*
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf reread
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jaws-$DEPLOYMENT_NAME:*
-# the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
-# the gitlab-runner. no fix could by found is why that copy now happens in the jtm-worker-deploy shim created by generate-shims. this is a hack.
-#cp -a $INSTALL_DIR/configs/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf && chgrp $JTM_GROUP && chmod 640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
-
-echo "END deploy-jaws"
+echo "END deploy-supervisor"
