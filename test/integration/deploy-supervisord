@@ -80,8 +80,8 @@ function fix_perms() {
 
 fix_perms "$SITE_JTM_GROUP" "$SUPERVISOR_DIR"
 
-
-cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
+JAWS_PROGRAMS="jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc"
+SUPERVISOR_JAWS_CONF="
 [inet_http_server]
 port=0.0.0.0:$JAWS_SUPERVISOR_PORT
 username=jaws
@@ -133,9 +133,40 @@ numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
+"
+
+if [[ -n "$DEPLOY_JAWS_CENTRAL" ]]; then
+  SUPERVISOR_JAWS_CONF="$SUPERVISOR_JAWS_CONF
+
+[program:jaws-central-rest]
+command=$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-central-rpc]
+command=$SHIM_DIR/jaws-central-rpc-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-central-auth]
+command=$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+"
+  JAWS_PROGRAMS="$JAWS_PROGRAMS,jaws-central-auth,jaws-central-rest,jaws-central-rpc"
+fi
+
+cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
+$SUPERVISOR_JAWS_CONF
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
+programs=$JAWS_PROGRAMS
 priority=999
 EOM
 
