@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
 
-# This script will deploy the site services; this is, those services that run each each computing site:
-# - jaws-site
-# - cromwell
-# - jtm
+# Deploy the jaws-site service
 
 set -e
 
 function fix_perms() {
-    local DIR="$1"
-    local GROUP=$2
+    local GROUP=$1
+    local DIR="$2"
     chmod -R a+rX "$DIR"
     chmod -R ug+rwX "$DIR"
     chgrp -R $GROUP "$DIR"
@@ -20,9 +17,7 @@ echo "BEGIN deploy-site"
 
 source ./test/integration/define-env
 
-## VERIFY REQUIRED VARS ARE DEFINED
-# If any env are undefined, try sourcing the setup script and check again.
-# Exits if any required var is undefined.
+## ENV VARS
 REQUIRED_VARS="
 CONFIG_DIR
 CROMWELL_PORT
@@ -56,26 +51,28 @@ SITE_UPLOADS_SUBDIR
 RESULT=0
 for VAR in $REQUIRED_VARS; do
   if [ -z ${!VAR+xxx} ]; then
-    echo "Missing env var, $VAR; sourcing setup script..."
-    source ./test/integration/define-env
+    echo "Missing env var: $VAR">&2
     RESULT=1
-    break
   fi
 done
-if [[ $RESULT -ne 0 ]]; then
-  RESULT=0
-  for VAR in $REQUIRED_VARS; do
-    if [ -z ${!VAR+xxx} ]; then
-      echo "Missing env var: $VAR">&2
-      RESULT=1
-    fi
-  done
-fi
 [ $RESULT -eq 0 ] || exit 1
 
 
-## STOP SERVICES
-test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
+
+
+
+
+
+
+
+
+
+
+
+
+
+## STOP SERVICE
+test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:site
 
 
 
@@ -135,6 +132,7 @@ chmod 660 "$CONFIG_DIR/jaws-site.conf"
 # Unfortunately, chgrp/chmod don't work on the parallel-fs when executed by the gitlab-runner for some reason; the
 # solution is to have the jaws user perform these commands in one of the shims (under supervsiord), so it's executed before one
 # of the required services is executed.  This is a hack.
+# TODO CHECK IF CLIENT NFS INSTALL DIR EXISTS AND FIX PERMS IF SO
 FIX_PERMS_CLIENT=""
 [[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && FIX_PERMS_CLIENT="fix_perms $SITE_CLIENT_GROUP $SITE_CLIENT_INSTALL_DIR"
 
@@ -196,8 +194,7 @@ chmod 770 "$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME"
 ## GENERATE VENVS
 rm -rf ./site/dist/* ./rpc/dist/*
 test -d "$INSTALL_DIR/site" && rm -rf "$INSTALL_DIR/site"
-#[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
-module load python
+$SITE_LOAD_PYTHON
 make pkg-rpc
 make pkg-site
 $SITE_PYTHON -m venv "$INSTALL_DIR/site" && \
@@ -208,21 +205,7 @@ $SITE_PYTHON -m venv "$INSTALL_DIR/site" && \
 fix_perms $SITE_JAWS_GROUP "$INSTALL_DIR/site"
 
 
-#### ECCE TODO
+## STOP SERVICE
+test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:site
 
-
-## OPTIONALLY DEPLOY CLIENT
-[[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && ./test/integration/deploy-client
-./test/integration/deploy-supervisord
-
-
-## start services
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:*
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf reread
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jaws-$DEPLOYMENT_NAME:*
-# the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
-# the gitlab-runner. no fix could by found is why that copy now happens in the jtm-worker-deploy shim created by generate-shims. this is a hack.
-#cp -a $INSTALL_DIR/configs/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf && chgrp $JTM_GROUP && chmod 640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
-
-echo "END deploy-jaws"
+echo "END deploy-site"

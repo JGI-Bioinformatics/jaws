@@ -206,12 +206,10 @@ deploy-jaws-central-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: ""
-    DEPLOY_JAWS_CENTRAL: 1
-    DEPLOY_JAWS_CLIENT: 0
   environment:
     name: "central/dev"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-central
   only:
   - dev
 deploy-jaws-central-staging:
@@ -221,12 +219,10 @@ deploy-jaws-central-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: ""
-    DEPLOY_JAWS_CENTRAL: 1
-    DEPLOY_JAWS_CLIENT: 0
   environment:
     name: "central/staging"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-central
   only:
   - staging
 deploy-jaws-central-prod:
@@ -236,12 +232,10 @@ deploy-jaws-central-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: ""
-    DEPLOY_JAWS_CENTRAL: 1
-    DEPLOY_JAWS_CLIENT: 0
   environment:
     name: "central/production"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-central
   only:
   - master
 
@@ -254,12 +248,14 @@ deploy-jaws-cori-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CENTRAL: 0
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/dev"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-client
+    - ./test/integration/deploy-site
+    - ./test/integration/deploy-cromwell
+    - ./test/integration/deploy-jtm
+    - ./test/integration/deploy-supervisor
   only:
   - dev
 deploy-jaws-cori-staging:
@@ -269,12 +265,14 @@ deploy-jaws-cori-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CENTRAL: 0
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/staging"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-client
+    - ./test/integration/deploy-site
+    - ./test/integration/deploy-cromwell
+    - ./test/integration/deploy-jtm
+    - ./test/integration/deploy-supervisor
   only:
   - staging
 deploy-jaws-cori-prod:
@@ -284,12 +282,14 @@ deploy-jaws-cori-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CENTRAL: 0
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/production"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-client
+    - ./test/integration/deploy-site
+    - ./test/integration/deploy-cromwell
+    - ./test/integration/deploy-jtm
+    - ./test/integration/deploy-supervisor
   only:
   - master
 
@@ -300,12 +300,14 @@ deploy-jaws-jgi-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CENTRAL: 0
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/dev"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-client
+    - ./test/integration/deploy-site
+    - ./test/integration/deploy-cromwell
+    - ./test/integration/deploy-jtm
+    - ./test/integration/deploy-supervisor
   only:
   - dev
 deploy-jaws-jgi-staging:
@@ -315,12 +317,14 @@ deploy-jaws-jgi-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CENTRAL: 0
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/staging"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-client
+    - ./test/integration/deploy-site
+    - ./test/integration/deploy-cromwell
+    - ./test/integration/deploy-jtm
+    - ./test/integration/deploy-supervisor
   only:
   - staging
 deploy-jaws-jgi-prod:
@@ -330,12 +334,14 @@ deploy-jaws-jgi-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CENTRAL: 0
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/production"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-client
+    - ./test/integration/deploy-site
+    - ./test/integration/deploy-cromwell
+    - ./test/integration/deploy-jtm
+    - ./test/integration/deploy-supervisor
   only:
   - master
 

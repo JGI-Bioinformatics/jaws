@@ -2,45 +2,153 @@
 
 echo "BEGIN deploy-cromwell"
 
-## VERIFY REQUIRED VARS ARE DEFINED
-# If any env are undefined, try sourcing the setup script and check again.
-# Exits if any required var is undefined.
+function fix_perms() {
+    local GROUP=$1
+    local DIR="$2"
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R $GROUP "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+
+## ENV VARS
 REQUIRED_VARS="
 DEPLOYMENT_NAME
-INSTALL_DIR
-LOGS_DIR
-CONFIG_DIR
-CROMWELL_PORT
-SITE_CROMWELL_JAR
-SITE_JTM_GROUP
-SITE_CONTAINER_TYPE
-SITE_JTM_SCRATCH_DIR
-SITE_JTM_WORKER_INSTALL_DIR
-CROMWELL_TMPDIR
-CROMWELL_WORKFLOW_LOGS_DIR
-CROMWELL_EXECUTIONS_DIR
-JTM_CONFIG_FILE
-INSTALLED_CROMWELL_JAR
+JAWS_VERSION
+JAWS_DOCS_URL
+JAWS_CENTRAL_HOST
+JAWS_CENTRAL_RMQ_HOST
+JAWS_CENTRAL_RMQ_PORT
+JAWS_GLOBUS_CLIENT_ID
+CROMWELL_VERSION
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
   if [ -z ${!VAR+xxx} ]; then
-    echo "Missing env var, $VAR; sourcing setup script..."
-    source ./test/integration/define-env
+    echo "Missing env var: $VAR">&2
     RESULT=1
-    break
   fi
 done
-if [[ $RESULT -ne 0 ]]; then
-  RESULT=0
-  for VAR in $REQUIRED_VARS; do
-    if [ -z ${!VAR+xxx} ]; then
-      echo "Missing env var: $VAR">&2
-      RESULT=1
-    fi
-  done
-fi
 [ $RESULT -eq 0 ] || exit 1
+
+echo "DEFINING SITE VARS"
+function set_site_var {
+  VAR_NAME="$1"
+  SRC_VAR_NAME="${JAWS_SITE}_${VAR_NAME}"
+  if [ -z ${!SRC_VAR_NAME+xxx} ]; then
+    echo "Missing env var: $SRC_VAR_NAME">&2
+    exit 1
+  fi
+  SITE_VAR_NAME="SITE_${VAR_NAME}"
+  VALUE="${!SRC_VAR_NAME}"
+  echo "... $SITE_VAR_NAME"
+  export $SITE_VAR_NAME
+  printf -v "$SITE_VAR_NAME" "%s" "$VALUE"
+}
+SITE_VARS="
+JTM_GROUP
+INSTALL_BASEDIR
+GLOBUS_EP
+GLOBUS_ROOT_DIR
+GLOBUS_DEFAULT_DIR
+RMQ_HOST
+RMQ_PORT
+PYTHON
+PYTHON_PIP
+LOAD_PYTHON
+JAWS_GROUP
+CLIENT_GROUP
+JAWS_SCRATCH_BASEDIR
+JTM_SCRATCH_BASEDIR
+JAWS_SW_BASEDIR
+JTM_SW_BASEDIR
+REF_DATA_DIR
+SUPERVISOR_HOST
+CONTAINER_TYPE
+DB_HOST
+DB_PORT
+CLUSTER_QOS
+CLUSTER_PARTITION
+CLUSTER_ACCOUNT
+CLUSTER_CONSTRAINT
+MAX_RAM_GB
+RMQ_PW
+DB_PW
+LOAD_JAVA"
+for SITE_VAR in $SITE_VARS; do
+  set_site_var $SITE_VAR
+done
+
+echo "DEFINING PATHS"
+export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export CONFIG_DIR="$INSTALL_DIR/configs"
+export SHIM_DIR="$INSTALL_DIR/shims"
+export LOGS_DIR="$INSTALL_DIR/logs"
+export SUPERVISOR_DIR="$SITE_INSTALL_BASEDIR/jaws-supervisord-$DEPLOYMENT_NAME"
+export SITE_JTM_SCRATCH_DIR="$SITE_JTM_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export SITE_JTM_WORKER_INSTALL_DIR="$SITE_JTM_SW_BASEDIR/jtm-$DEPLOYMENT_NAME"
+export SITE_CROMWELL_TMPDIR="$INSTALL_DIR/cromwell-tmp"
+export SITE_CROMWELL_JAR="$SITE_JAWS_SW_BASEDIR/cromwell/cromwell-$CROMWELL_VERSION.jar"
+export SITE_CONTAINERS_DIR="$SITE_JTM_SCRATCH_BASEDIR/${SITE_CONTAINER_TYPE}_files"
+export CROMWELL_TMPDIR="$INSTALL_DIR/cromwell-tmp"
+export CROMWELL_WORKFLOW_LOGS_DIR="$LOGS_DIR/cromwell-workflow-logs"
+export CROMWELL_EXECUTIONS_DIR="$SITE_JTM_SCRATCH_DIR/cromwell-executions"
+export JTM_CONFIG_FILE="$SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf"
+export INSTALLED_CROMWELL_JAR="$INSTALL_DIR/cromwell.jar"
+
+echo "DEFINING DEPLOYMENT VARS"
+function set_deployment_var {
+  VAR_NAME="$1"
+  SRC_VAR_NAME="${DEPLOYMENT_NAME}_${VAR_NAME}"
+  if [ -z ${!SRC_VAR_NAME+xxx} ]; then
+    echo "Missing env var: $SRC_VAR_NAME">&2
+    exit 1
+  fi
+  VALUE="${!SRC_VAR_NAME}"
+  echo "... $VAR_NAME"
+  export $VAR_NAME
+  printf -v "$VAR_NAME" "%s" "$VALUE"
+}
+DEPLOYMENT_VARS="
+LOG_LEVEL
+CROMWELL_PORT"
+for DEPLOYMENT_VAR in $DEPLOYMENT_VARS; do
+  set_deployment_var $DEPLOYMENT_VAR
+done
+
+
+## CREATE DIRS AND SET GROUP AND PERMISSIONS
+function setup_dir {
+  local DIR="$1"
+  local GROUP="$2"
+  local PERMS="$3"
+  [[ -z $DIR ]] && echo "missing DIR" && exit 1
+  [[ -z $GROUP ]] && echo "missing GROUP" && exit 1
+  echo "... $DIR"
+  test -d "$DIR" || mkdir -p "$DIR"
+  chgrp "$GROUP" "$DIR"
+  chmod "$PERMS" "$DIR"
+}
+echo "CREATING PATHS"
+INSTALL_DIRS="
+INSTALL_DIR
+CONFIG_DIR
+SHIM_DIR
+LOGS_DIR
+SUPERVISOR_DIR
+SITE_CONTAINERS_DIR
+SITE_JTM_WORKER_INSTALL_DIR
+SITE_CROMWELL_TMPDIR
+CROMWELL_TMPDIR
+CROMWELL_WORKFLOW_LOGS_DIR
+"
+for DIR in $INSTALL_DIRS; do
+  setup_dir "${!DIR}" "$SITE_JTM_GROUP" 770
+done
+
+setup_dir "$SITE_JTM_SCRATCH_DIR" "$SITE_JTM_GROUP" 775
+setup_dir "$SITE_JTM_WORKER_INSTALL_DIR" "$SITE_JTM_GROUP" 770
+setup_dir "$CROMWELL_EXECUTIONS_DIR" "$SITE_JTM_GROUP" 775
 
 
 ## COPY CROMWELL JAR

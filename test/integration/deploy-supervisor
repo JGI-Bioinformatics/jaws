@@ -1,21 +1,55 @@
 #!/usr/bin/env bash
 
-echo "BEGIN deploy-supervisord"
+# This script will deploy the supervisord for services run at each computing site as the "jaws" user:
+# - jaws-site
+
+set -e
+
+function fix_perms() {
+    local GROUP=$1
+    local DIR="$2"
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R $GROUP "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+
+echo "BEGIN deploy-supervisor"
+
+source ./test/integration/define-env
 
 ## VERIFY REQUIRED VARS ARE DEFINED
 # If any env are undefined, try sourcing the setup script and check again.
 # Exits if any required var is undefined.
 REQUIRED_VARS="
+CONFIG_DIR
+CROMWELL_PORT
+DEPLOYMENT_NAME
 SUPERVISOR_DIR
-SITE_PYTHON
-SITE_PYTHON_PIP
+JAWS_CENTRAL_RMQ_HOST
+JAWS_CENTRAL_RMQ_PORT
+JAWS_CENTRAL_RMQ_PW
+JAWS_GLOBUS_CLIENT_ID
+JAWS_SITE
+SITE_CLUSTER_ACCOUNT
+SITE_CLUSTER_CONSTRAINT
+SITE_CLUSTER_PARTITION
+SITE_CLUSTER_QOS
+SITE_DB_HOST
+SITE_DB_PORT
+SITE_DB_PW
+SITE_DOWNLOADS_SUBDIR
+SITE_GLOBUS_DEFAULT_DIR
+SITE_GLOBUS_EP
+SITE_GLOBUS_ROOT_DIR
 SITE_JAWS_GROUP
 SITE_JTM_GROUP
-DEPLOYMENT_NAME
-SHIM_DIR
-JAWS_SUPERVISORD_PW
-JAWS_SUPERVISOR_PORT
-JTM_SUPERVISOR_PORT
+SITE_JTM_SCRATCH_DIR
+SITE_JTM_WORKER_INSTALL_DIR
+SITE_RMQ_HOST
+SITE_RMQ_PORT
+SITE_RMQ_PW
+SITE_UPLOADS_SUBDIR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -37,17 +71,56 @@ if [[ $RESULT -ne 0 ]]; then
 fi
 [ $RESULT -eq 0 ] || exit 1
 
-## CREATE DIRS
+echo "DEFINING PATHS"
+export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export CONFIG_DIR="$INSTALL_DIR/configs"
+export SHIM_DIR="$INSTALL_DIR/shims"
+export LOGS_DIR="$INSTALL_DIR/logs"
+export SUPERVISOR_DIR="$SITE_INSTALL_BASEDIR/jaws-supervisord-$DEPLOYMENT_NAME"
+
+echo "DEFINING SITE VARS"
+function set_site_var {
+  VAR_NAME="$1"
+  SRC_VAR_NAME="${JAWS_SITE}_${VAR_NAME}"
+  if [ -z ${!SRC_VAR_NAME+xxx} ]; then
+    echo "Missing env var: $SRC_VAR_NAME">&2
+    exit 1
+  fi
+  SITE_VAR_NAME="SITE_${VAR_NAME}"
+  VALUE="${!SRC_VAR_NAME}"
+  echo "... $SITE_VAR_NAME"
+  export $SITE_VAR_NAME
+  printf -v "$SITE_VAR_NAME" "%s" "$VALUE"
+}
+SITE_VARS="
+JAWS_GROUP
+JTM_GROUP
+INSTALL_BASEDIR
+PYTHON
+LOAD_PYTHON
+JAWS_SCRATCH_BASEDIR
+JTM_SCRATCH_BASEDIR
+JAWS_SW_BASEDIR
+JTM_SW_BASEDIR
+REF_DATA_DIR
+SUPERVISOR_HOST"
+for SITE_VAR in $SITE_VARS; do
+  set_site_var $SITE_VAR
+done
+
+
+## STOP SERVICES
+test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
+
+
+## SUPERVISORD
 test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
 chgrp $SITE_JTM_GROUP $SUPERVISOR_DIR
 chmod 770 $SUPERVISOR_DIR
-
-#$LOAD_SITE_PYTHON
-module load python
+$SITE_LOAD_PYTHON
 [[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
 [[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
 chgrp -R $SITE_JTM_GROUP $SUPERVISOR_DIR/{bin,venv}
-
 source $SUPERVISOR_DIR/venv/bin/activate
 
 function not_available() {
@@ -70,14 +143,6 @@ chmod +x $SUPERVISOR_DIR/bin/$prog
 
 generate_shim supervisord
 generate_shim supervisorctl
-
-function fix_perms() {
-    local GROUP="$1"
-    local DIR="$2"
-    chmod -R 770 "$DIR"
-    chgrp -R "$GROUP" "$DIR"
-    find "$DIR" -type d -exec chmod g+s '{}' \;
-}
 
 fix_perms "$SITE_JTM_GROUP" "$SUPERVISOR_DIR"
 
@@ -113,21 +178,21 @@ prompt=supervisor-jaws-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
-[program:jaws-site-daemon]
+[program:site-daemon]
 command=$SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-site-jtm-rpc]
+[program:site-jtm-rpc]
 command=$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-site-central-rpc]
+[program:site-central-rpc]
 command=$SHIM_DIR/jaws-site-central-rpc-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
@@ -135,7 +200,7 @@ startretries=3
 autorestart=unexpected
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
+programs=site-daemon,site-jtm-rpc,site-central-rpc
 priority=999
 EOM
 
@@ -175,22 +240,22 @@ prompt=supervisor-jtm-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
-[program:jaws-jtm]
+[program:jtm]
 command=$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
 
-[program:jaws-cromwell]
+[program:cromwell]
 command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=10
 startretries=3
 autorestart=unexpected
 
-[group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-jtm,jaws-cromwell
+[group:jtm-$DEPLOYMENT_NAME]
+programs=jtm,cromwell
 priority=999
 EOM
 
@@ -200,3 +265,11 @@ chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-jtm.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jtm.conf"
 
 printf "END deploy-supervisord\n\n"
+
+
+## start services
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:*
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf reread
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jaws-$DEPLOYMENT_NAME:*
+echo "END deploy-supervisor"
