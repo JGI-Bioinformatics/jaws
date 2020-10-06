@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import logging
 import connexion
 from urllib.parse import quote_plus
 from jaws_central import config, log

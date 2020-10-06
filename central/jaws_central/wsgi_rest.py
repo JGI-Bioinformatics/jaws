@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import os
-import logging
 import connexion
 from urllib.parse import quote_plus
 from jaws_central import config, log
 from jaws_central.models_fsa import db
+from jaws_rpc import rpc_index
 
 
 JAWS_LOG_ENV = "JAWS_CENTRAL_LOG"
