@@ -8,8 +8,8 @@
 set -e
 
 function fix_perms() {
-    local DIR="$1"
-    local GROUP=$2
+    local GROUP=$1
+    local DIR="$2"
     chmod -R a+rX "$DIR"
     chmod -R ug+rwX "$DIR"
     chgrp -R $GROUP "$DIR"

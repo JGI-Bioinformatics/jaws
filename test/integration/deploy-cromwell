@@ -2,6 +2,15 @@
 
 echo "BEGIN deploy-cromwell"
 
+function fix_perms() {
+    local GROUP=$1
+    local DIR="$2"
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R $GROUP "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+
 ## VERIFY REQUIRED VARS ARE DEFINED
 # If any env are undefined, try sourcing the setup script and check again.
 # Exits if any required var is undefined.
