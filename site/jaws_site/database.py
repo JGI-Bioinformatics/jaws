@@ -17,7 +17,6 @@ url = "%s://%s:%s@%s:%s/%s" % (
     params.get("host"),
     params.get("port"),
     params.get("db"))
-logger.info(f"url={url}")
 try:
     engine = create_engine(url, pool_size=11, max_overflow=22, pool_recycle=3600, pool_timeout=30, pool_pre_ping=True)
 except Exception as error:
