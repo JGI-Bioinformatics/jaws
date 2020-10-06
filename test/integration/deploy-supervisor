@@ -16,67 +16,21 @@ function fix_perms() {
 
 echo "BEGIN deploy-supervisor"
 
-source ./test/integration/define-env
-
 ## VERIFY REQUIRED VARS ARE DEFINED
 # If any env are undefined, try sourcing the setup script and check again.
 # Exits if any required var is undefined.
 REQUIRED_VARS="
-CONFIG_DIR
-CROMWELL_PORT
 DEPLOYMENT_NAME
-SUPERVISOR_DIR
-JAWS_CENTRAL_RMQ_HOST
-JAWS_CENTRAL_RMQ_PORT
-JAWS_CENTRAL_RMQ_PW
-JAWS_GLOBUS_CLIENT_ID
 JAWS_SITE
-SITE_CLUSTER_ACCOUNT
-SITE_CLUSTER_CONSTRAINT
-SITE_CLUSTER_PARTITION
-SITE_CLUSTER_QOS
-SITE_DB_HOST
-SITE_DB_PORT
-SITE_DB_PW
-SITE_DOWNLOADS_SUBDIR
-SITE_GLOBUS_DEFAULT_DIR
-SITE_GLOBUS_EP
-SITE_GLOBUS_ROOT_DIR
-SITE_JAWS_GROUP
-SITE_JTM_GROUP
-SITE_JTM_SCRATCH_DIR
-SITE_JTM_WORKER_INSTALL_DIR
-SITE_RMQ_HOST
-SITE_RMQ_PORT
-SITE_RMQ_PW
-SITE_UPLOADS_SUBDIR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
   if [ -z ${!VAR+xxx} ]; then
-    echo "Missing env var, $VAR; sourcing setup script..."
-    source ./test/integration/define-env
+    echo "Missing env var: $VAR">&2
     RESULT=1
-    break
   fi
 done
-if [[ $RESULT -ne 0 ]]; then
-  RESULT=0
-  for VAR in $REQUIRED_VARS; do
-    if [ -z ${!VAR+xxx} ]; then
-      echo "Missing env var: $VAR">&2
-      RESULT=1
-    fi
-  done
-fi
 [ $RESULT -eq 0 ] || exit 1
-
-echo "DEFINING PATHS"
-export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
-export CONFIG_DIR="$INSTALL_DIR/configs"
-export SHIM_DIR="$INSTALL_DIR/shims"
-export LOGS_DIR="$INSTALL_DIR/logs"
-export SUPERVISOR_DIR="$SITE_INSTALL_BASEDIR/jaws-supervisord-$DEPLOYMENT_NAME"
 
 echo "DEFINING SITE VARS"
 function set_site_var {
@@ -107,6 +61,13 @@ SUPERVISOR_HOST"
 for SITE_VAR in $SITE_VARS; do
   set_site_var $SITE_VAR
 done
+
+echo "DEFINING PATHS"
+export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export CONFIG_DIR="$INSTALL_DIR/configs"
+export SHIM_DIR="$INSTALL_DIR/shims"
+export LOGS_DIR="$INSTALL_DIR/logs"
+export SUPERVISOR_DIR="$SITE_INSTALL_BASEDIR/jaws-supervisord-$DEPLOYMENT_NAME"
 
 
 ## STOP SERVICES
