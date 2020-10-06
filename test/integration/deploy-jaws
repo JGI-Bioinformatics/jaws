@@ -43,8 +43,7 @@ test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorct
 ./test/integration/generate-configs
 ./test/integration/generate-shims
 ./test/integration/deploy-cromwell
-[[ -n "$DEPLOY_JAWS_CENTRAL" ]] && [[ "$DEPLOY_JAWS_CENTRAL" -eq 1 ]] && ./test/integration/deploy-central
-[[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && ./test/integration/deploy-client
+[[ -n "$SITE_CLIENT_GROUP" ]] && [[ "$SITE_CLIENT_GROUP" -eq 1 ]] && ./test/integration/deploy-client
 ./test/integration/deploy-supervisord
 
 ## start services

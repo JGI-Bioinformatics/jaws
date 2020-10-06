@@ -26,21 +26,41 @@ variables:
   dev_LOG_LEVEL: "DEBUG"
   dev_JAWS_SUPERVISOR_PORT: 64101
   dev_JTM_SUPERVISOR_PORT: 64111
+  dev_CENTRAL_SUPERVISOR_PORT: 64121
   dev_JAWS_AUTH_PORT: 3001
   dev_JAWS_REST_PORT: 5001
   dev_CROMWELL_PORT: 50101
   staging_LOG_LEVEL: "DEBUG"
   staging_JAWS_SUPERVISOR_PORT: 64102
   staging_JTM_SUPERVISOR_PORT: 64112
+  staging_CENTRAL_SUPERVISOR_PORT: 64122
   staging_JAWS_AUTH_PORT: 3002
   staging_JAWS_REST_PORT: 5002
   staging_CROMWELL_PORT: 50102
   prod_LOG_LEVEL: "INFO"
   prod_JAWS_SUPERVISOR_PORT: 64103
   prod_JTM_SUPERVISOR_PORT: 64113
+  prod_CENTRAL_SUPERVISOR_PORT: 64123
   prod_JAWS_AUTH_PORT: 3003
   prod_JAWS_REST_PORT: 5003
   prod_CROMWELL_PORT: 50103
+
+  ## CENTRAL-SPECIFIC VARIABLES:
+  CENTRAL_INSTALL_BASEDIR: "/tmp"
+  CENTRAL_GLOBUS_EP: "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
+  CENTRAL_GLOBUS_ROOT_DIR: "/"
+  CENTRAL_GLOBUS_DEFAULT_DIR: "~"
+  CENTRAL_RMQ_HOST: "rmq.lbl.gov"
+  CENTRAL_RMQ_PORT: 5672
+  CENTRAL_PYTHON: "python3"
+  CENTRAL_PYTHON_PIP: "pip3"
+  CENTRAL_LOAD_PYTHON: ""
+  CENTRAL_JAWS_GROUP: "jaws"
+  CENTRAL_JAWS_SCRATCH_BASEDIR: "/tmp/jaws-tmp"
+  CENTRAL_JAWS_SW_BASEDIR: "/opt/jaws"
+  CENTRAL_SUPERVISOR_HOST: "http://jaws.lbl.gov"
+  CENTRAL_DB_HOST: "jaws-db.lbl.gov"
+  CENTRAL_DB_PORT: 3306
 
   ## SITE-SPECIFIC VARIABLES:
   CORI_INSTALL_BASEDIR: "/tmp"
@@ -211,7 +231,48 @@ package:
       - client/dist
       - central/dist
       - jtm/dist
+
 ## integration tests - only run on merge request
+deploy-jaws-central-dev:
+  stage: deploy-jaws
+  tags:
+    - cori
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CENTRAL"
+  environment:
+    name: "central/dev"
+  script:
+    - ./test/integration/deploy-central
+  only:
+  - dev
+deploy-jaws-central-staging:
+  stage: deploy-jaws
+  tags:
+    - cori
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "CENTRAL"
+  environment:
+    name: "central/staging"
+  script:
+    - ./test/integration/deploy-central
+  only:
+  - staging
+deploy-jaws-central-prod:
+  stage: deploy-jaws
+  tags:
+    - cori
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: "CENTRAL"
+  environment:
+    name: "central/production"
+  script:
+    - ./test/integration/deploy-central
+  only:
+  - master
+
 deploy-jaws-cori-dev:
   stage: deploy-jaws
   tags:
@@ -219,8 +280,6 @@ deploy-jaws-cori-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CENTRAL: 1
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/dev"
   script:
@@ -234,8 +293,6 @@ deploy-jaws-cori-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CENTRAL: 1
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/staging"
   script:
@@ -249,8 +306,6 @@ deploy-jaws-cori-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CENTRAL: 1
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/production"
   script:
@@ -265,8 +320,6 @@ deploy-jaws-jgi-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CENTRAL: 0
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/dev"
   script:
@@ -280,8 +333,6 @@ deploy-jaws-jgi-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CENTRAL: 0
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/staging"
   script:
@@ -295,8 +346,6 @@ deploy-jaws-jgi-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CENTRAL: 0
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/production"
   script:
