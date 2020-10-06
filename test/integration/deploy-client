@@ -195,25 +195,6 @@ setup_dir "$SITE_JTM_WORKER_INSTALL_DIR" "$SITE_JTM_GROUP" 770
 setup_dir "$CROMWELL_EXECUTIONS_DIR" "$SITE_JTM_GROUP" 775
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## MAKE VENV
 # delete old venv
 test -d "$SITE_CLIENT_INSTALL_DIR" && rm -rf "$SITE_CLIENT_INSTALL_DIR"
@@ -242,9 +223,10 @@ export JAWS_USER_CONFIG=~/jaws.conf
 
 echo "jaws-$DEPLOYMENT_NAME activated; see \"jaws --help\" for more."
 EOM
-chmod 644 $CONFIG_DIR/jaws.conf
-chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
-cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
+chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.sh
+chmod 775 $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.sh
+cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.sh" "$SITE_CLIENT_INSTALL_DIR"
+
 
 
 ## GENERATE CONFIGS
@@ -253,9 +235,9 @@ cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws.conf
 token = 
 staging_dir = 
 EOM
+chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws.conf
 chmod 644 $CONFIG_DIR/jaws.conf
-chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
-cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
+cp "$CONFIG_DIR/jaws.conf" "$SITE_CLIENT_INSTALL_DIR"
 
 cat << EOM > $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 [JAWS]
