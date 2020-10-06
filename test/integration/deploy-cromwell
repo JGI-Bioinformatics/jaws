@@ -72,7 +72,7 @@ export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_DIR
 export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_DIR
 export SINGULARITY_TMPDIR=$SITE_CONTAINERS_DIR
 export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_DIR
-singularity exec --bind \$1:\$2 --bind $SITE_REF_DATA_DIR:/refdata docker://\$3 \$4 \$5
+singularity exec --bind \$1:\$2 docker://\$3 \$4 \$5
 exit \$?
 EOM
   chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
@@ -186,7 +186,7 @@ $CONTAINER_CHECK
 [ -z \$QOS ] || QOS="--qos \$QOS"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
--cmd '$CONTAINER_WRAPPER \${docker} \${job_shell} \${script}' \
+-cmd '$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${docker} \${job_shell} \${script}' \
 -cl \${cluster} \
 -t \${time} \
 -c \${cpu} \
