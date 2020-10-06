@@ -209,7 +209,7 @@ source $INSTALL_DIR/central/bin/activate
 export JAWS_CENTRAL_LOG=$LOGS_DIR/central-auth.log
 export JAWS_CENTRAL_CONFIG=$CONFIG_DIR/jaws-central.conf
 export JAWS_CENTRAL_LOG_LEVEL=$LOG_LEVEL
-exec gunicorn --workers 3 --bind unix:jaws-auth.sock jaws_central.wsgi_auth:connex
+exec gunicorn --workers 3 --bind unix:$INSTALL_DIR/jaws-auth.sock jaws_central.wsgi_auth:connex
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
@@ -224,7 +224,7 @@ source $INSTALL_DIR/central/bin/activate
 export JAWS_CENTRAL_LOG=$LOGS_DIR/central-auth.log
 export JAWS_CENTRAL_CONFIG=$CONFIG_DIR/jaws-central.conf
 export JAWS_CENTRAL_LOG_LEVEL=$LOG_LEVEL
-exec gunicorn --workers 3 --bind unix:jaws-rest.sock jaws_central.wsgi_rest:connex
+exec gunicorn --workers 3 --bind unix:$INTALL_DIR/jaws-rest.sock jaws_central.wsgi_rest:connex
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
