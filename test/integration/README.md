@@ -11,7 +11,6 @@ variables that must be set for the deployment to be successful:
 
 - DEPLOYMENT_NAME: Deployment environment name dev, staging, prod  
 - JAWS_SITE: name of the deployment site ([SITE], JGI, CASCADE)  
-- DEPLOY_JAWS_CENTRAL: Whether central will be installed (1 or 0)  
 - DEPLOY_JAWS_CLIENT: Whether client will be installed (1 or 0)  
 - JAWS_SITES: All the different sites that JAWS is installed   
 - JAWS_VERSION: version of JAWS  
