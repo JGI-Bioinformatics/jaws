@@ -57,7 +57,7 @@ mv "$CLIENT_DIST_DIR" "$SITE_CLIENT_INSTALL_DIR"
 echo "Make venv in $SITE_CLIENT_INSTALL_DIR"
 $SITE_PYTHON -m venv "$SITE_CLIENT_INSTALL_DIR" && \
   . "$SITE_CLIENT_INSTALL_DIR/bin/activate" && \
-  $SITE_PYTHON_PIP install $SITE_CLIENT_INSTALL_DIR/dist/* && \
+  pip install $SITE_CLIENT_INSTALL_DIR/dist/* && \
   deactivate
 
 cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.sh

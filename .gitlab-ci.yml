@@ -12,7 +12,7 @@ variables:
   JAWS_SITES: "CORI JGI CASCADE"
   JAWS_VERSION: "2.0.1"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
-  JAWS_CENTRAL_HOST: "http://cori20.nersc.gov"
+  JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_CENTRAL_RMQ_HOST: "rmq.lbl.gov"
   JAWS_CENTRAL_RMQ_PORT: 5672
   JAWS_GLOBUS_CLIENT_ID: "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3"
@@ -53,7 +53,6 @@ variables:
   CENTRAL_RMQ_HOST: "rmq.lbl.gov"
   CENTRAL_RMQ_PORT: 5672
   CENTRAL_PYTHON: "python3"
-  CENTRAL_PYTHON_PIP: "pip3"
   CENTRAL_LOAD_PYTHON: ""
   CENTRAL_JAWS_GROUP: "jaws"
   CENTRAL_JAWS_SCRATCH_BASEDIR: "/tmp/jaws-tmp"
@@ -70,7 +69,6 @@ variables:
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
   CORI_PYTHON: "python3"
-  CORI_PYTHON_PIP: "pip3"
   CORI_LOAD_PYTHON: "module load python"
   CORI_JAWS_GROUP: "jaws"
   CORI_JTM_GROUP: "jaws_jtm"
@@ -98,7 +96,6 @@ variables:
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
   JGI_PYTHON: "python"
-  JGI_PYTHON_PIP: "pip"
   JGI_LOAD_PYTHON: "module load python"
   JGI_JAWS_GROUP: "jaws"
   JGI_JTM_GROUP: "jaws"
@@ -126,7 +123,6 @@ variables:
   CASCADE_RMQ_HOST: "localhost"
   CASCADE_RMQ_PORT: 5672
   CASCADE_PYTHON: "python3.6"
-  CASCADE_PYTHON_PIP: "pip3"
   CASCADE_LOAD_PYTHON: ". /opt/rh/rh-python36/enable"
   CASCADE_JAWS_GROUP: "svc-jtm-manager"
   CASCADE_JTM_GROUP: "svc-jtm-user"
@@ -369,7 +365,6 @@ deploy-jaws-cascade-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CASCADE"
-    PYTHON_PIP_UPGRADE: 1
   environment:
     name: "cascade/dev"
   script:
@@ -381,7 +376,6 @@ deploy-jaws-cascade-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CASCADE"
-    PYTHON_PIP_UPGRADE: 1
   environment:
     name: "cascade/staging"
   script:
@@ -395,7 +389,6 @@ deploy-jaws-cascade-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CASCADE"
-    PYTHON_PIP_UPGRADE: 1
   environment:
     name: "cascade/prod"
   script:

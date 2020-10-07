@@ -8,7 +8,6 @@ echo "BEGIN deploy-supervisord"
 REQUIRED_VARS="
 SUPERVISOR_DIR
 SITE_PYTHON
-SITE_PYTHON_PIP
 SITE_JAWS_GROUP
 SITE_JTM_GROUP
 DEPLOYMENT_NAME
@@ -53,7 +52,7 @@ function not_available() {
   command -v $1 >/dev/null 2>&1
 }
 
-not_available "supervisord" || $SITE_PYTHON_PIP install supervisor
+not_available "supervisord" || pip install supervisor
 
 function generate_shim() {
 prog=$1
