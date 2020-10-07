@@ -40,7 +40,6 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_RMQ_HOST: hostname for RabbitMQ that site will use  
 - [SITE]_RMQ_PORT: port number for RabbitMQ that site will use  
 - [SITE]_PYTHON: The name of the python executable (eg python, python3)  
-- [SITE]_PYTHON_PIP: The name of the pip executable (eg pip, pip3)  
 - [SITE]_LOAD_PYTHON: The module command for loading python. Can be "" (ie - no modules)  
 - [SITE]_JAWS_GROUP: Linux group name for JAWS  
 - [SITE]_JTM_GROUP: Linux group name for JTM  

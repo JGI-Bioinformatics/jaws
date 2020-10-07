@@ -28,7 +28,6 @@ CENTRAL_SUPERVISOR_HOST
 CENTRAL_SUPERVISORD_PW
 CENTRAL_JAWS_GROUP
 CENTRAL_PYTHON
-CENTRAL_PIP
 "
 RESULT=0
 if [[ $RESULT -ne 0 ]]; then
@@ -114,12 +113,12 @@ test -d "$INSTALL_DIR/central" && rm -rf "$INSTALL_DIR/central"
 ## MAKE NEW VERSION
 $CENTRAL_PYTHON -m venv "$INSTALL_DIR/central"
 source "$INSTALL_DIR/central/bin/activate"
-$CENTRAL_PIP install --upgrade pip
-$CENTRAL_PIP install wheel pytest flake8 gunicorn
+pip install --upgrade pip
+pip install wheel pytest flake8 gunicorn
 test -d rpc/dist && rm -rf rpc/dist
 test -d central/dist && rm -rf central/dist
 make pkg-central
-$CENTRAL_PIP install rpc/dist/* && $CENTRAL_PIP install central/dist/*
+pip install rpc/dist/* && pip install central/dist/*
 deactivate
 fix_perms "$CENTRAL_JAWS_GROUP" "$INSTALL_DIR/central"
 
@@ -216,7 +215,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 source $INSTALL_DIR/central/bin/activate
-exec jaws-central --log=$LOGS_DIR/central-auth.log --config=$CONFIG_DIR/jaws-central.conf --log-level=$LOG_LEVEL rest
+exec jaws-central --log=$LOGS_DIR/central-rest.log --config=$CONFIG_DIR/jaws-central.conf --log-level=$LOG_LEVEL rest
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
@@ -244,7 +243,7 @@ function not_available() {
   command -v $1 >/dev/null 2>&1
 }
 
-not_available "supervisord" || $CENTRAL_PIP install supervisor
+not_available "supervisord" || pip install supervisor
 
 function generate_shim() {
 prog=$1
