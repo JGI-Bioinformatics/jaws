@@ -112,14 +112,14 @@ test -d "$INSTALL_DIR/central" && rm -rf "$INSTALL_DIR/central"
 
 
 ## MAKE NEW VERSION
-python3 -m venv "$INSTALL_DIR/central"
+$CENTRAL_PYTHON -m venv "$INSTALL_DIR/central"
 source "$INSTALL_DIR/central/bin/activate"
-pip install --upgrade pip
-pip install wheel pytest flake8 gunicorn
+$CENTRAL_PIP install --upgrade pip
+$CENTRAL_PIP install wheel pytest flake8 gunicorn
 test -d rpc/dist && rm -rf rpc/dist
 test -d central/dist && rm -rf central/dist
 make pkg-central
-pip install rpc/dist/* && pip install central/dist/*
+$CENTRAL_PIP install rpc/dist/* && $CENTRAL_PIP install central/dist/*
 deactivate
 fix_perms "$CENTRAL_JAWS_GROUP" "$INSTALL_DIR/central"
 
@@ -235,7 +235,7 @@ chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 ### SUPERVISORD
 echo "DEPLOY SUPERVISORD"
 [[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
-[[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
+[[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $CENTRAL_PYTHON -m venv $SUPERVISOR_DIR/venv
 chgrp -R $CENTRAL_JAWS_GROUP $SUPERVISOR_DIR/{bin,venv}
 
 source $SUPERVISOR_DIR/venv/bin/activate
@@ -244,7 +244,7 @@ function not_available() {
   command -v $1 >/dev/null 2>&1
 }
 
-not_available "supervisord" || $SITE_PYTHON_PIP install supervisor
+not_available "supervisord" || $CENTRAL_PIP install supervisor
 
 function generate_shim() {
 prog=$1
