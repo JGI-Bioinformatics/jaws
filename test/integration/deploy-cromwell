@@ -173,7 +173,7 @@ submit \
 -jid \${job_name} \
 -A \${account} \
 --shared \${shared} \
-\$CONSTRAINT
+\$CONSTRAINT \
 \$QOS
 """
 
@@ -197,7 +197,7 @@ submit \
 -jid \${job_name} \
 -A \${account} \
 --shared \${shared} \
-\$QOS
+\$QOS \
 \$CONSTRAINT
 """
 
