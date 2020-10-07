@@ -13,6 +13,7 @@ LOGS_DIR
 CONFIG_DIR
 SITE_CLIENT_INSTALL_DIR
 SITE_CLIENT_GROUP
+SITE_LOAD_JAVA
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -67,6 +68,8 @@ source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
 
 export JAWS_CLIENT_CONFIG=$SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.conf
 export JAWS_USER_CONFIG=~/jaws.conf
+
+$SITE_LOAD_JAVA
 
 echo "jaws-$DEPLOYMENT_NAME activated; see \"jaws --help\" for more."
 EOM
