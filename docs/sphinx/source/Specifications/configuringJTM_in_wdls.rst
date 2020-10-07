@@ -23,7 +23,7 @@ Use the following tables to help figure out how many jobs (i.e. workers) you can
 On Cori, JAWS runs on a dedicated cluster. 
 
 +---------+-----+----------+------------+-----+-------+--------------+
-|node type|nodes| ram (G)  | project    |cores|threads|max time (hrs)|
+|node type|nodes| ram (G)  |     qos    |cores|threads|max time (hrs)|
 +=========+=====+==========+============+=====+=======+==============+
 | haswell |2,388|128 (118*)|     n.a.   | 16  |   32  |  72          |
 +---------+-----+----------+------------+-----+-------+--------------+
@@ -39,7 +39,7 @@ On Cori, JAWS runs on a dedicated cluster.
 At JGI, JAWS runs on a dedicated cluster called condo_jgicloud which is on partition = Lawrencium lr3.
 
 +-----------+-----+----------+-----+-------+--------------+
-|node type |nodes| ram (G)  |cores|threads|max time (hrs)|
+|node type  |nodes| ram (G)  |cores|threads|max time (hrs)|
 +===========+=====+==========+=====+=======+==============+
 | n.a.      |  40 |256 (236*)|  32 |  64   |      72      |
 +-----------+-----+----------+-----+-------+--------------+
@@ -52,7 +52,7 @@ At JGI, JAWS runs on a dedicated cluster called condo_jgicloud which is on parti
 At Pacific Northwest National Labs: `PNNL <https://www.emsl.pnnl.gov/MSC/UserGuide/compute_resources/cascade_overview.html>`_
 
 +-----------+-----+----------+-----+-------+--------------+
-|node type |nodes| ram (G)  |cores|threads|max time (hrs)|
+|node type  |nodes| ram (G)  |cores|threads|max time (hrs)|
 +===========+=====+==========+=====+=======+==============+
 | n.a.      | 960 |128 (118*)|  16 |   16  | 168          |
 +-----------+-----+----------+-----+-------+--------------+
