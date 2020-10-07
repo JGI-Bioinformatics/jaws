@@ -89,9 +89,8 @@ class JtmAmqpstormBase(object):
     def send_reply(self, message, mode, reply_msg):
         properties = {"correlation_id": message.correlation_id}
         try:
-            msg = zdumps(str(reply_msg)) if reply_msg else None
             response = amqpstorm.Message.create(
-                message.channel, msg, properties
+                message.channel, zdumps(str(reply_msg)), properties
             )
             response.publish(message.reply_to)
             message.ack()

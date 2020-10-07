@@ -1078,9 +1078,12 @@ def process_task_request(msg):
         pool_cluster = CONFIG.configparser.get("JTM", "cluster")
         pool_ncpus = CONFIG.configparser.getint("SLURM", "ncpus")
         pool_mem = CONFIG.configparser.get("SLURM", "mempernode")
+
+        # if not defined in the configuration file, the below will have empty string value
         pool_constraint = CONFIG.configparser.get("SLURM", "constraint")
         pool_charge_account = CONFIG.configparser.get("SLURM", "charge_accnt")
         pool_qos = CONFIG.configparser.get("SLURM", "qos")
+        pool_partition = CONFIG.configparser.get("SLURM", "partition")
 
         # Note: pool size = num_nodes_to_request * num_workers_per_node
         num_workers_per_node = CONFIG.configparser.getint("JTM", "num_workers_per_node")
@@ -1096,26 +1099,16 @@ def process_task_request(msg):
         # if not,
         # only one dynamic worker will be created. The worker will be terminated if there is
         # no tasks in the queue for a specified time duration
-        if "cluster" in pool_spec_json_str:
-            pool_cluster = pool_spec_json_str["cluster"]
-        if "time" in pool_spec_json_str:
-            pool_time = pool_spec_json_str["time"]
-        if "cpu" in pool_spec_json_str:
-            pool_ncpus = int(pool_spec_json_str["cpu"])
-        if "mem" in pool_spec_json_str:
-            pool_mem = pool_spec_json_str["mem"]
-        if "constraint" in pool_spec_json_str:
-            pool_constraint = pool_spec_json_str["constraint"]
-        if "qos" in pool_spec_json_str:
-            pool_qos = pool_spec_json_str["qos"]
-        if "partition" in pool_spec_json_str:
-            pool_partition = pool_spec_json_str["partition"]
-        if "account" in pool_spec_json_str:
-            pool_charge_account = pool_spec_json_str["account"]
-        if "nwpn" in pool_spec_json_str:
-            num_workers_per_node = int(pool_spec_json_str["nwpn"])
-        if "node" in pool_spec_json_str:
-            num_nodes_to_request = int(pool_spec_json_str["node"])
+        pool_cluster = pool_spec_json_str.get("cluster")
+        pool_time = pool_spec_json_str.get("time")
+        pool_ncpus = pool_spec_json_str.get("cpu")
+        pool_mem = pool_spec_json_str.get("mem")
+        pool_constraint = pool_spec_json_str.get("constraint", "")
+        pool_qos = pool_spec_json_str.get("qos", "")
+        pool_partition = pool_spec_json_str.get("partition", "")
+        pool_charge_account = pool_spec_json_str.get("account", "")
+        num_workers_per_node = pool_spec_json_str.get("nwpn", 1)
+        num_nodes_to_request = pool_spec_json_str.get("node", 1)
 
         assert len(user_task_cmd) <= 1024
         assert len(output_file) <= 1024
@@ -1203,10 +1196,9 @@ def process_task_request(msg):
                 -c {} \
                 -t {} \
                 -m {} \
-                -wi {} {} \
+                -wi {} \
                 -nwpn {} \
-                --qos {} \
-                -A {} {}""".format(
+                {} {} {} {}""".format(
                 "%s && " % env_act if env_act else "",
                 "--config=%s" % CONFIG.config_file if CONFIG else "",
                 pool_name,
@@ -1215,10 +1207,10 @@ def process_task_request(msg):
                 pool_time,
                 pool_mem,
                 uniq_worker_id,
-                "-C %s" % pool_constraint if pool_constraint else "",
                 num_workers_per_node,
-                pool_qos,
-                pool_charge_account,
+                "-C %s" % pool_constraint if pool_constraint else "",
+                "--qos %s" % pool_qos if pool_qos else "",
+                "-A %s" % pool_charge_account if pool_charge_account else "",
                 "-P %s" % pool_partition if pool_partition else "",
             )
 
