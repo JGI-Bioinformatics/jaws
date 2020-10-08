@@ -15,7 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import globus_sdk
 from jaws_run import config, db
 from jaws_run.cromwell import Cromwell
-from jaws_rpc.rpc_client import RpcClient
+from jaws_rpc.rpc_client import RpcClient, RpcError
 
 
 # config and logging must be initialized before importing this module
@@ -41,6 +41,10 @@ class CromwellError(Exception):
     pass
 
 
+class TaskServiceError(Exception):
+    pass
+
+
 class Run:
     """
     Representation of a run, which is the execution of a workflow (WDL) on a specific set of inputs (JSON) by Cromwell.
@@ -50,34 +54,37 @@ class Run:
     """
 
     client_id = config.conf.get("GLOBUS", "client_id")
-    site_id = conf.get("SITE", "id")
-    globus_root_dir = conf.get("GLOBUS", "root_dir")
-    globus_default_dir = conf.get("GLOBUS", "default_dir")
+    site_id = config.conf.get("SITE", "id")
+    globus_root_dir = config.conf.get("GLOBUS", "root_dir")
+    globus_default_dir = config.conf.get("GLOBUS", "default_dir")
     uploads_dir = os.path.join(
-        conf.get("GLOBUS", "root_dir"), conf.get("SITE", "uploads_subdirectory")
+        config.conf.get("GLOBUS", "root_dir"),
+        config.conf.get("SITE", "uploads_subdirectory"),
     )
-    cromwell = Cromwell(conf.get("CROMWELL", "url"))
+    cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
     downloads_dir = os.path.join(
-        conf.get("GLOBUS", "root_dir"), conf.get("SITE", "downloads_subdirectory")
+        config.conf.get("GLOBUS", "root_dir"),
+        config.conf.get("SITE", "downloads_subdirectory"),
     )
-    globus_endpoint = conf.get("GLOBUS", "endpoint_id")
-    downloads_subdir = conf.get("SITE", "downloads_subdirectory")
-    dispatch = {
-        "created": self.begin_upload,
-        "uploading": self.check_upload,
-        "upload complete": self.submit,
-        "submitted": self.check_cromwell_status,
-        "queued": self.check_cromwell_status,
-        "running": self.check_cromwell_status,
-        "succeeded": self.begin_download,
-        "failed": self.begin_download,
-        "downloading": self.check_download,
-    }
-    self.terminal_states = ["cancelled", "download complete"]
+    globus_endpoint = config.conf.get("GLOBUS", "endpoint_id")
+    downloads_subdir = config.conf.get("SITE", "downloads_subdirectory")
+    terminal_states = ["cancelled", "download complete"]
 
     def __init__(self, run_id: int, session=None, params=None):
         self.run_id = run_id
         self.data = None  # row in Runs table
+        self.dispatch = {
+            "created": self.begin_upload,
+            "uploading": self.check_upload,
+            "upload complete": self.submit,
+            "submitted": self.check_cromwell_status,
+            "queued": self.check_cromwell_status,
+            "running": self.check_cromwell_status,
+            "succeeded": self.begin_download,
+            "failed": self.begin_download,
+            "downloading": self.check_download,
+        }
+
         if session:
             self.session = session
         else:
@@ -248,14 +255,14 @@ class Run:
 
     def get_task_service_client(self):
         if not self.task_service:
-            self.task_service = client(config.conf.task_service_params())
+            self.task_service = RpcClient(config.conf.task_service_params())
         return self.task_service
 
     def get_task_log(self):
         """
         Retrieve log of all tasks' state transitions for a run.
 
-        :return: table of task_id, task_name, attempt, status_from, status_to, timestamp, reason 
+        :return: table of task_id, task_name, attempt, status_from, status_to, timestamp, reason
         :rtype: list
         """
         logger.info(f"Get task log for Run {self.run_id}")
@@ -285,7 +292,7 @@ class Run:
         except RpcClient.RpcError as error:
             raise RpcError(f"{error}")
         if "error" in response:
-            raise TaskServiceError(f"Task service error: {error}")
+            raise TaskServiceError(f"Task service error: {response['error']['message']}")
         logs = response["result"]
 
         # combine cromwell task metadata and task log into table
@@ -340,7 +347,7 @@ class Run:
                 # for these tasks, we shall get status from the Task service instead because
                 # it has more detail than Cromwell
                 status[task_id] = [task_id, task.name, task.attempt]
-                check_task_id[task_id] = None
+                check_task_ids[task_id] = None
 
         # get status from jaws-task service
         task_service = self.get_task_service_client()
@@ -349,20 +356,20 @@ class Run:
         except RpcClient.RpcError as error:
             raise RpcError(f"{error}")
         if "error" in response:
-            raise TaskServiceError(f"Task service error: {error}")
+            raise TaskServiceError(f"Task service error: {response['error']['message']}")
         check_status = response["result"]
 
         # combine cromwell task metadata and task log into table
         table = []
-        for task_id in task_ids.sorted():
-            task = tasks[task_id]
+        for task_id in all_task_ids.sorted():
+            task = status[task_id]
             row = status[task_id]
             if task_id in check_task_ids:
                 row.append(check_status[task_id])
             table.append(row)
         return table
 
-    ##### TODO ECCE ####
+# TODO ECCE
 
     def check_status(self):
         """
@@ -758,7 +765,7 @@ class Daemon:
         try:
             active_runs = (
                 db.session.query(db.Run)
-                .filter(db.Run.status.in_(active_run_states))
+                .filter(db.Run.status.in_(self.active_run_states))
                 .all()
             )
         except SQLAlchemyError as error:
@@ -767,7 +774,7 @@ class Daemon:
 
         # init Run objects and have them check and update their status
         for row in active_runs:
-            run = run.Run(row.id, session)
+            run = Run(row.id, session)
             run.check_status()
 
         session.close()

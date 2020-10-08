@@ -3,7 +3,10 @@ jaws-task RPC operations
 """
 
 import logging
-from jaws_site.api import Task
+from datetime import datetime
+from jaws_site import config
+from jaws_site.api import Task, TaskNotFoundError, DatabaseError
+from jaws_rpc.client import RpcClient
 from jaws_rpc.responses import success, failure
 
 
@@ -48,7 +51,7 @@ def update(params):
 def get_task_log(params):
     """
     Retrieve log of all of a Run's Tasks' state transitions.
-    
+ 
     :param params: must contain "task_ids" list
     :type param: dict
     :return: JSON-RPC2 response; successful result is table of state transitions
@@ -64,6 +67,7 @@ def get_task_log(params):
             return failure(500, f"Task service db error: {error}")
     return success(results)
 
+
 # used by jaws-run
 # TODO EITHER BY LIST OF TASK IDS OR BY CROMWELL_RUN_ID
 def get_task_status(params):
@@ -77,7 +81,9 @@ def get_task_status(params):
     """
     cromwell_run_id = params["cromwell_run_id"]
     try:
-        log = Log(cromwell_run_id)  # TODO: NEED TWO CLASSES, ONE FOR RUN_TASKS AND ONE FOR TASK_LOGS
+        log = Log(
+            cromwell_run_id
+        )  # TODO: NEED TWO CLASSES, ONE FOR RUN_TASKS AND ONE FOR TASK_LOGS
     except DatabaseError as error:
         return failure(500, f"Task service db error: {error}")
     return success(log.get_status())
@@ -158,11 +164,10 @@ def kill(params):
     return success(task.cancel())
 
 
-
 # RPC Server dispatch table:
 rpc_methods = {
     "update": {
-        "method": update_task_status,
+        "method": update,
         "required_params": [
             "cromwell_run_id",
             "cromwell_job_id",
@@ -191,12 +196,6 @@ rpc_methods = {
             "memory-gb",
         ],
     },
-    "check_alive": {
-        "method": check_alive,
-        "required_params": [ "task_id" ],
-    },
-    "kill": {
-        "method": kill,
-        "required_params": [ "task_id" ],
-    },
+    "check_alive": {"method": check_alive, "required_params": ["task_id"]},
+    "kill": {"method": kill, "required_params": ["task_id"]},
 }

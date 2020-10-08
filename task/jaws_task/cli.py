@@ -25,18 +25,26 @@ def cli(config_file: str, log_file: str, log_level: str):
     # Initialize logging and configuration singletons;
     # as they are singletons, the Click context object is not needed.
     if log_file is None:
-        log_file = os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
+        log_file = (
+            os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
+        )
     logger = log.setup_logger(__package__, log_file, log_level)
     if config_file is None:
-        config_file = os.environ[JAWS_CONFIG_ENV] if JAWS_CONFIG_ENV in os.environ else JAWS_CWD_CONFIG
+        config_file = (
+            os.environ[JAWS_CONFIG_ENV]
+            if JAWS_CONFIG_ENV in os.environ
+            else JAWS_CWD_CONFIG
+        )
     conf = config.Configuration(config_file)
     if conf:
         logger.info(f"Config using {config_file}")
 
     # create tables if not exists
     from jaws_task import db
+
     session = db.Session()
     db.create_all(db.engine, session)
+
 
 @cli.command()
 def server() -> None:

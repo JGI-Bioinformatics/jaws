@@ -39,10 +39,8 @@ class DatabaseError(Exception):
     pass
 
 
-
 ## TODO CREATE TASK CLASS
-class Task():
-
+class Task:
     def __init__(self, task_id, params=None):
         self.task_id = task_id
 
@@ -75,13 +73,13 @@ class Task():
         pass  # TODO
 
         # send cancel instruction to jaws-worker via RPC
-        pass # TODO
+        pass  # TODO
 
 
-class TaskLog():
-
+class TaskLog:
     def __init__(self):
         pass
+
 
 def get_task_log(run_id):
     """Retrieve task log from database"""
@@ -158,7 +156,9 @@ def get_task_status(run_id):
     return result
 
 
-def update_job_status(cromwell_run_id, cromwell_job_id, status_from, status_to, timestamp, reason):
+def update_job_status(
+    cromwell_run_id, cromwell_job_id, status_from, status_to, timestamp, reason
+):
     """
     A JTM worker shall post changes in job state, although it is missing the JAWS run id.
     """
@@ -194,6 +194,7 @@ def update_job_status(cromwell_run_id, cromwell_job_id, status_from, status_to, 
     if status_to == "success":
         # TODO
         self.__transfer_folder(label, src_dir, dest_endpoint, dest_dir)
+
 
 def __authorize_transfer_client(self, token):
     client_id = config.conf.get("GLOBUS", "client_id")
@@ -381,7 +382,7 @@ def update_job_status_logs(self):
             log.debug(f"Xfer {log.task_name}: {transfer_task_id}")
 
 
-class PriorityQueue():
+class PriorityQueue:
     """
     A collection of tasks, retrievable by priority.
     Each worker pool has it's own priority queue.
@@ -420,6 +421,7 @@ class PriorityQueue():
         result = []
         return result
 
+
 #    def stats(self):
 #        """
 #        Return number of tasks, total minutes requested, and maximum minutes requested.
@@ -435,7 +437,7 @@ class PriorityQueue():
 #        return num_tasks, total_minutes, max_minutes
 
 
-class WorkerPool():
+class WorkerPool:
     """
     A collection of workers and a priority queue.
     """
@@ -455,20 +457,20 @@ class WorkerPool():
         """
         return self.num_workers
 
-#    def stats(self):
-#        """
-#        Return number of workers, total minutes remaining, and maximum minutes remaining.
-#        """
-#        num_workers = 0
-#        total_minutes = 0
-#        max_minutes = 0
-#        for worker in self.workers:
-#            num_workers = num_workers + 1
-#            total_minutes = total_minutes + worker.max_minutes
-#            worker_max_minutes = worker.max_minutes()
-#            if worker_max_minutes > max_minutes:
-#                max_minutes = worker_max_minutes
-#        return num_workers, total_minutes, max_minutes
+    #    def stats(self):
+    #        """
+    #        Return number of workers, total minutes remaining, and maximum minutes remaining.
+    #        """
+    #        num_workers = 0
+    #        total_minutes = 0
+    #        max_minutes = 0
+    #        for worker in self.workers:
+    #            num_workers = num_workers + 1
+    #            total_minutes = total_minutes + worker.max_minutes
+    #            worker_max_minutes = worker.max_minutes()
+    #            if worker_max_minutes > max_minutes:
+    #                max_minutes = worker_max_minutes
+    #        return num_workers, total_minutes, max_minutes
 
     def evaluate(self):
         """
@@ -477,8 +479,6 @@ class WorkerPool():
         queue = self.queue.queue()
         workers = self.workers()
         # run simulation to determine if worker pool size should be changed
-        
-         
 
     def increase(self, num_workers, max_minutes=480):
         """
@@ -486,7 +486,7 @@ class WorkerPool():
         """
         pass
 
-    def decrease(self, num_workers)
+    def decrease(self, num_workers):
         """
         Decrease the size of the worker pool by the specified amount.
         """
@@ -496,7 +496,7 @@ class WorkerPool():
 
 
 # TODO: This is just a db table to track active queues/worker pools
-class Workforce():
+class Workforce:
     """
     A collection of Worker Pools.
     """
@@ -540,9 +540,8 @@ class Workforce():
         constraintsList = []
         for key in constraints:
             constraintsList.append(f"{key}={constraints[key]}")
-        constraints_sig = ';'.join(constraintsList.sorted())
+        constraints_sig = ";".join(constraintsList.sorted())
         sig = f"{num_cpu}:{max_memory_gb}:{constraints_sig}"
-        self.pools. 
         pass
 
     def retrieve(self, num_cpu, max_memory_gb, max_minutes, contraint=None):
@@ -590,7 +589,7 @@ class Daemon:
         try:
             active_queues = (
                 db.session.query(db.Queue)
-                .filter(db.Queue.status=="active")  # TODO
+                .filter(db.Queue.status == "active")  # TODO
                 .all()
             )
         except SQLAlchemyError as error:
