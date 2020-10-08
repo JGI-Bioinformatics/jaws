@@ -38,9 +38,10 @@ def update_user(params):
     auth_refresh_token = params["auth_refresh_token"]
     transfer_refresh_token = params["transfer_refresh_token"]
     try:
-        api.update_user(user_id, auth_refresh_token, transfer_refresh_token)
+        user = User(user_id)
+        user.update_user(user_id, auth_refresh_token, transfer_refresh_token)
     except UserNotFoundError:
-        return failure(404, f"User not found: {user_id}") 
+        return failure(404, f"User not found: {user_id}")
     except DatabaseError as error:
         return failure(500, f"User service error: {error}")
     return success()
@@ -48,10 +49,7 @@ def update_user(params):
 
 # this dispatch table is used by jaws_rpc.rpc_server
 rpc_methods = {
-    "get_user": {
-        "method": get_user,
-        "required_parameters": ["user_id"]
-    },
+    "get_user": {"method": get_user, "required_parameters": ["user_id"]},
     "update_user": {
         "method": update_user,
         "required_parameters": [

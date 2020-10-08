@@ -14,15 +14,16 @@ logger = logging.getLogger(__package__)
 class DatabaseError(Exception):
     pass
 
+
 class UserNotFoundError(Exception):
     pass
+
 
 class UserAlreadyExistsError(Exception):
     pass
 
 
-class User()
-
+class User:
     def __init__(self, user_id, params=None):
         """
         Get existing user or create new if params specified.
@@ -110,6 +111,7 @@ class User()
         except SQLAlchemyError as error:
             raise DatabaseError(f"{error}")
         user.name = name
+        user.email = email
         user.globus_id = globus_id
         user.auth_refresh_token = auth_refresh_token
         user.transfer_refresh_token = transfer_refresh_token
