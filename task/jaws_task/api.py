@@ -39,19 +39,16 @@ class DatabaseError(Exception):
     pass
 
 
-## TODO CREATE TASK CLASS
 class Task:
-    def __init__(self, task_id, params=None):
-        self.task_id = task_id
+    def __init__(self, **kwargs):
+        if "task_id" in kwargs:
+            self.task_id = task_id
+            self.load()
+            return
 
-        # if new task, init new and save in db
-        if params:
-            self.save_task(params)
-
-    def save_task():
-        """
-        Submit a task for execution.
-        """
+        # new task
+        # validate params
+        # TODO
         # insert row into database
         pass  # TODO
 
@@ -74,6 +71,22 @@ class Task:
 
         # send cancel instruction to jaws-worker via RPC
         pass  # TODO
+        worker_id = task.worker_id
+        pid = task.pid
+        if not worker_id and pid:
+            return success(False)
+
+        # request worker status
+        rpc_params = config.conf.get_worker_rpc()  # TODO
+        rpc_params["queue"] = worker_id
+        try:
+            worker = RpcClient.client(rpc_params)
+            response = worker.call("is_alive", {"task_id": task_id, "pid": pid})
+        except Exception as error:
+            raise RpcCommunicationError(f"{error}")
+        if "error" in response:
+            raise WorkerError(response["error"]["message"])
+        return success(response["result"])
 
 
 class TaskLog:
