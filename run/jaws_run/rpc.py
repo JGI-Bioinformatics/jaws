@@ -3,7 +3,8 @@ JAWS Run Service RPC methods.
 """
 
 import logging
-from jaws_run.api import (
+from jaws_run.config import conf
+from jaws_run.api.run import (
     Run,
     RunNotFoundError,
     RunAlreadyExistsError,
@@ -11,8 +12,7 @@ from jaws_run.api import (
     CromwellError,
     TaskServiceError,
 )
-from jaws_run.config import conf
-from jaws_run.cromwell import Cromwell
+from jaws_run.api.cromwell import Cromwell
 from jaws_rpc.responses import success, failure
 
 
@@ -38,9 +38,33 @@ def get_cromwell_status(params):
     return success()
 
 
-def get_status(params):
+def submit(params):
     """
-    Get the current status for a list of Runs.
+    Submit new run for execution.
+
+    :param params: run_id, user_id, submission_id, output_endpoint, output_dir
+    :type params: dict
+    :return: JSON-RPC2 response to no content
+    :rtype: dict
+    """
+    run_id = params["run_id"]
+    try:
+        _ = Run(run_id, params)
+    except RunAlreadyExistsError:
+        return failure(404, f"Run {run_id} already exists")
+    except DatabaseError as error:
+        return failure(500, f"Run db offline: {error}")
+    except ValueError as error:
+        return failure(401, f"Invalid Run parameters: {error}")
+    return success()
+
+
+# TODO THIS WAS get_status, NEED TO UPDATE jaws-central
+def get_runs(params):
+    """
+    Get the run info, including current status, for a list of Runs.
+    Runs may be specified by run_id and/or cromwell_run_id.
+    This is used by jaws-central to get info for a single run or status for a list of runs.
 
     :param params: List of run_ids
     :type params: dict
@@ -50,15 +74,10 @@ def get_status(params):
     results = {}
     for run_id in params["run_ids"]:
         try:
-            run = Run(run_id)
+            run = Run(run_id=uun_id)
+            result = run.get_status()
         except RunNotFoundError:
             return failure(404, f"Run {run_id} not found")
-        except DatabaseError as error:
-            return failure(500, f"Run db offline: {error}")
-        try:
-            result = run.get_status()
-        except DatabaseError as error:
-            return failure(500, f"Run db offline: {error}")
         except Exception as error:
             return failure(500, f"{error}")
         results.append(result)
@@ -77,14 +96,9 @@ def get_log(params):
     run_id = params["run_id"]
     try:
         run = Run(run_id)
+        result = run.get_log()
     except RunNotFoundError:
         return failure(404, f"Run {run_id} not found")
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
-    try:
-        result = run.get_log()
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
     except Exception as error:
         return failure(500, f"{error}")
     return success(result)
@@ -102,14 +116,9 @@ def get_metadata(params):
     run_id = params["run_id"]
     try:
         run = Run(run_id)
+        result = run.get_metadata()
     except RunNotFoundError:
         return failure(404, f"Run {run_id} not found")
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
-    try:
-        result = run.get_metadata()
-    except CromwellError as error:
-        return failure(500, f"Cromwell error: {error}")
     except Exception as error:
         return failure(500, f"{error}")
     return success(result)
@@ -127,16 +136,11 @@ def cancel(params):
     run_id = params["run_id"]
     try:
         run = Run(run_id)
+        run.cancel()
     except RunNotFoundError:
         return failure(404, f"Run {run_id} not found")
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
-    try:
-        run.cancel()
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
-    except CromwellError as error:
-        return failure(500, f"Cromwell error: {error}")
+    except Exception as error:
+        return failure(500, f"{error}")
     return success()
 
 
@@ -152,95 +156,31 @@ def get_errors(params):
     run_id = params["run_id"]
     try:
         run = Run(run_id)
-    except RunNotFoundError:
-        return failure(404, f"Run {run_id} not found")
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
-    try:
         result = run.get_errors()
-    except CromwellError as error:
-        return failure(500, f"Cromwell error: {error}")
-    except IOError as error:
-        return failure(500, f"IO error: {error}")
-    return success(result)
-
-
-def submit(params):
-    """
-    Submit new run for execution.
-
-    :param params: run_id, user_id, submission_id, output_endpoint, output_dir
-    :type params: dict
-    :return: JSON-RPC2 response to no content
-    :rtype: dict
-    """
-    run_id = params["run_id"]
-    try:
-        run = Run(run_id, params)
-    except RunAlreadyExistsError:
-        return failure(404, f"Run {run_id} already exists")
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
-    except ValueError as error:
-        return failure(401, f"Invalid Run parameters: {error}")
-    if run:
-        pass  # so flake8 doesn't complain
-    return success()
-
-
-def get_task_log(params):
-    """
-    Get log of Task state transitions for a Run.
-    The tasks are retrieved from Cromwell metadata and state transitions retrieved from jaws-task.
-    This procedure is useful for retrieving the task-log by run_id, as the task-service does not have run_ids.
-
-    :param params: contains "run_id"
-    :type params: dict
-    :return: JSON-RPC2 response with dict of tasks and logs
-    :rtype: dict
-    """
-    run_id = params["run_id"]
-    try:
-        run = Run(run_id)
     except RunNotFoundError:
         return failure(404, f"Run {run_id} not found")
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
-    try:
-        result = run.get_task_log()
-    except CromwellError as error:
-        return failure(500, f"Cromwell error: {error}")
-    except TaskServiceError as error:
-        return failure(500, f"Task service error: {error}")
+    except Exception as error:
+        return failure(500, f"{error}")
     return success(result)
 
 
-def get_task_status(params):
+def get_tasks(params):
     """
-    Get state of each task in a Run.
-    The tasks are retrieved from Cromwell metadata and current state retrieved from jaws-task.
-    This procedure is useful for retrieving the task-status by run_id, as the task-service does not have run_ids.
+    Get all task_ids associated with a Run.
 
-    :param params: contains "run_id"
+    :param params: must include "cromwell_run_id"
     :type params: dict
-    :return: JSON-RPC2 response with result dict of task:status
+    :return: "result" shall be list of run_ids 
     :rtype: dict
     """
-    run_id = params["run_id"]
     try:
         run = Run(run_id)
+        result = run.get_tasks()  # TODO add to API
     except RunNotFoundError:
         return failure(404, f"Run {run_id} not found")
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
-    try:
-        result = run.get_task_status()
-    except CromwellError as error:
-        return failure(500, f"Cromwell error: {error}")
-    except TaskServiceError as error:
-        return failure(500, f"Task service error: {error}")
+    except Exception as error:
+        return failure(500, f"{error}")
     return success(result)
-
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 rpc_methods = {
@@ -258,11 +198,10 @@ rpc_methods = {
             "output_dir",
         ],
     },
-    "get_status": {"method": get_status, "required_params": ["run_ids"]},
+    "get_runs": {"method": get_runs, "required_params": ["run_ids"]},
     "get_log": {"method": get_log, "required_params": ["run_id"]},
     "get_metadata": {"method": get_metadata, "required_params": ["run_id"]},
     "cancel": {"method": cancel, "required_params": ["run_id"]},
     "get_errors": {"method": get_errors, "required_params": ["run_id"]},
-    "get_task_log": {"method": get_task_log, "required_params": ["run_id"]},
-    "get_task_status": {"method": get_task_status, "required_params": ["run_id"]},
+    "get_tasks": {"method": get_tasks, "required_params": ["cromwell_run_id"]},
 }

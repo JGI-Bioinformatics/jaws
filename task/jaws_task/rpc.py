@@ -43,7 +43,8 @@ def update(params):
     return success()
 
 
-# used by jaws-run
+# TODO CHANGE TO RUN_ID
+# used by jaws-central
 def get_log(params):
     """
     Retrieve all state transitions for each requested task.
@@ -53,7 +54,20 @@ def get_log(params):
     :return: JSON-RPC2 response; successful result is dict of task to list of logs
     :rtype: dict
     """
-    task_ids = params["task_ids"]
+    run_id = params["run_id"]
+
+    # get rpc client
+    run_service = RunService()
+
+    # get all task_ids associated with the run_id from the jaws-run service
+    try:
+        task_ids = run_service.get_tasks(run_id)
+    except RpcError as error:
+        return failure(500, f"RPC failure: {error}; please try again later")
+    except RunServiceError as error:
+        return failure(500, f"Unable to retrieve task_ids at this time: {error}")
+
+    # get log by task_id
     results = {}
     for task_id in task_ids:
         try:
@@ -66,7 +80,8 @@ def get_log(params):
     return success(results)
 
 
-# used by jaws-run
+# TODO CHANGE TO RUN_ID
+# used by jaws-central
 def get_status(params):
     """
     Retrieve the current status of each requested task.
@@ -76,7 +91,20 @@ def get_status(params):
     :return: JSON-RPC2 response; successful result is dict of task_id to status (str)
     :rtype: dict
     """
-    task_ids = params["task_ids"]
+    run_id = params["run_id"]
+
+    # get rpc client
+    run_service = RunService()
+
+    # get all task_ids associated with the run_id from the jaws-run service
+    try:
+        task_ids = run_service.get_tasks(run_id)
+    except RpcError as error:
+        return failure(500, f"RPC failure: {error}; please try again later")
+    except RunServiceError as error:
+        return failure(500, f"Unable to retrieve task_ids at this time: {error}")
+
+    # get status by task_id
     results = {}
     for task_id in task_ids:
         try:
@@ -87,6 +115,40 @@ def get_status(params):
         except DatabaseError as error:
             return failure(500, f"Task service db error: {error}")
     return success(results)
+
+
+# used by jaws-run
+def any_running(params):
+    """
+    Given a list of task_ids, determine if any of them are running yet.
+    If so, the timestamp of the first task to begin execution shall be returned.
+    This is used by the jaws-run service (once the first task is "running",
+    the Run will transition from "queued" to "running" state).
+    """
+    task_ids = params["task_ids"]
+    # TODO move this logic to Run API
+    first_began = None
+    for task_id in task_ids:
+        try:
+            task = Task(task_id)
+            began = task.status()
+            if began:
+                if not first_began:
+                    first_began = began
+                elif began < first_began:
+                    first_began = began
+        except TaskNotFoundError:
+            return failure(404, f"Task not found: {task_id}")
+        except DatabaseError as error:
+            return failure(500, f"Task service db error: {error}")
+    result = {
+        "running": False,
+        "timestamp": None
+    }
+    if first_began:
+        result["running"] = True
+        result["timestamp"] = first_began  # TODO string format
+    return success(result)
 
 
 # used by cromwell-backend

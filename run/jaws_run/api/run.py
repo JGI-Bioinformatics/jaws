@@ -66,16 +66,20 @@ class Run:
     downloads_subdir = config.conf.get("SITE", "downloads_subdirectory")
     terminal_states = ["cancelled", "download complete"]
 
-    def __init__(self, run_id: int, session=None, params=None):
+    def __init__(
+        self,
+        run_id: int = None,
+        cromwell_run_id: str = None,
+        session: db.Session = None,
+        params: dict = None,
+    ):
         """
         Initialize new object.  Since python doesn't support multiple constructors,
-        either run_id is required (for an existing Run) or the required parameters
-        (for a new Run) are required.
+        either run_id or cromwell_run_id is required for an existing Run or the
+        parameters for a new Run are required.
         """
 
         # init obj vars
-        self.run_id = run_id
-        self.data = None  # row in Runs table
         self.dispatch = {
             "created": self.__begin_upload,
             "uploading": self.__check_upload,
@@ -88,15 +92,23 @@ class Run:
             "downloading": self.__check_download,
         }
 
+        # db session
         if session:
             self.session = session
         else:
             self.session = db.Session()
+
+        # is this an existing or new run?
         if params:
             # this is a new Run; insert into database.
             self.__add_run__(params)
+        elif cromwell_run_id:
+            # existing run; lookup run_id
+            self.cromwell_run_id = cromwell_run_id
+            self.__load_run_by_cromwell_id()
         else:
             # retrieve existing Run from db or raise exception
+            self.run_id = run_id
             self.__load_run__()
 
     def __add_run__(self, params):
@@ -109,6 +121,7 @@ class Run:
         try:
             run = db.Run(
                 id=self.run_id,
+                cromwell_run_id=None,
                 user_id=params["user_id"],
                 submission_id=params["submission_id"],
                 upload_task_id=params["upload_task_id"],
@@ -134,6 +147,23 @@ class Run:
         """
         try:
             run = self.session.query(db.Run).get(self.run_id)
+        except sqlalchemy.exc.IntegrityError as error:
+            logger.exception(f"Run not found: {self.run_id}: {error}")
+            raise RunNotFoundError(f"{error}")
+        except SQLAlchemyError as error:
+            logger.exception(f"Error selecting on runs table: {error}")
+            raise DatabaseError(f"{error}")
+        if not run:
+            logger.debug(f"Run {self.run_id} not found")
+            raise RunNotFoundError(f"No such record")
+        self.data = run
+
+    def __load_run_by_cromwell_id(self):
+        """
+        Select Run by cromwell_run_id (secondary key).
+        """
+        try:
+            run = self.session.query(db.Run).filter_by(cromwell_run_id=self.cromwell_run_id).one_or_none() # filter or filter_by ?
         except sqlalchemy.exc.IntegrityError as error:
             logger.exception(f"Run not found: {self.run_id}: {error}")
             raise RunNotFoundError(f"{error}")
@@ -275,7 +305,9 @@ class Run:
         except RpcClient.RpcError as error:
             raise RpcError(f"{error}")
         if "error" in response:
-            raise TaskServiceError(f"Task service error: {response['error']['message']}")
+            raise TaskServiceError(
+                f"Task service error: {response['error']['message']}"
+            )
         logs = response["result"]
 
         # combine cromwell task metadata and task log into table
@@ -339,7 +371,9 @@ class Run:
         except RpcClient.RpcError as error:
             raise RpcError(f"{error}")
         if "error" in response:
-            raise TaskServiceError(f"Task service error: {response['error']['message']}")
+            raise TaskServiceError(
+                f"Task service error: {response['error']['message']}"
+            )
         check_status = response["result"]
 
         # combine cromwell task metadata and task log into table
@@ -358,15 +392,15 @@ class Run:
         This method is called by the Daemon periodically and is the only way a Run
         transitions to a new state.
         """
-#            "created": self.__begin_upload,
-#            "uploading": self.__check_upload,
-#            "upload complete": self.__submit,
-#            "submitted": self.__check_cromwell_status,
-#            "queued": self.__check_cromwell_status,
-#            "running": self.__check_cromwell_status,
-#            "succeeded": self.__begin_download,
-#            "failed": self.__begin_download,
-#            "downloading": self.__check_download,
+        #            "created": self.__begin_upload,
+        #            "uploading": self.__check_upload,
+        #            "upload complete": self.__submit,
+        #            "submitted": self.__check_cromwell_status,
+        #            "queued": self.__check_cromwell_status,
+        #            "running": self.__check_cromwell_status,
+        #            "succeeded": self.__begin_download,
+        #            "failed": self.__begin_download,
+        #            "downloading": self.__check_download,
         if self.status in self.dispatch:
             self.dispatch.get(self.status)()
 
