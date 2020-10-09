@@ -51,7 +51,7 @@ mkdir -p "$SITE_CLIENT_INSTALL_DIR"
 chmod 755 "$SITE_CLIENT_INSTALL_DIR"
 
 ## MAKE VENV
-[[ -n "$LOAD_SITE_PYTHON" ]] && $LOAD_SITE_PYTHON
+[[ -n "$SITE_LOAD_PYTHON" ]] && $SITE_LOAD_PYTHON
 CLIENT_DIST_DIR="client/dist"
 make pkg-client
 fix_perms "$SITE_CLIENT_GROUP" "$CLIENT_DIST_DIR"
