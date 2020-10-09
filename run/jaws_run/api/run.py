@@ -7,15 +7,13 @@ This service stores persistent Run information in a db and interacts with Cromwe
 import logging
 import os
 import requests
-import schedule
-import time
 from datetime import datetime
 import sqlalchemy.exc
 from sqlalchemy.exc import SQLAlchemyError
-import globus_sdk
 from jaws_run import config, db
 from jaws_run.cromwell import Cromwell
 from jaws_rpc.rpc_client import RpcClient, RpcError
+from jaws_run.api.transfer import Transfer
 
 
 # config and logging must be initialized before importing this module
@@ -24,8 +22,6 @@ logger = logging.getLogger(__package__)
 
 
 class DatabaseError(Exception):
-    """Generic exception when Cromwell does not return metadata."""
-
     pass
 
 
@@ -48,11 +44,11 @@ class TaskServiceError(Exception):
 class Run:
     """
     Representation of a run, which is the execution of a workflow (WDL) on a specific set of inputs (JSON) by Cromwell.
-    No other object has direct access to Cromwell.
     A run's persistent data is stored in a relational database.
     If the Run does not already exist, the parameters to initialize it are required.
     """
 
+    # init class vars
     client_id = config.conf.get("GLOBUS", "client_id")
     site_id = config.conf.get("SITE", "id")
     globus_root_dir = config.conf.get("GLOBUS", "root_dir")
@@ -71,18 +67,25 @@ class Run:
     terminal_states = ["cancelled", "download complete"]
 
     def __init__(self, run_id: int, session=None, params=None):
+        """
+        Initialize new object.  Since python doesn't support multiple constructors,
+        either run_id is required (for an existing Run) or the required parameters
+        (for a new Run) are required.
+        """
+
+        # init obj vars
         self.run_id = run_id
         self.data = None  # row in Runs table
         self.dispatch = {
-            "created": self.begin_upload,
-            "uploading": self.check_upload,
-            "upload complete": self.submit,
-            "submitted": self.check_cromwell_status,
-            "queued": self.check_cromwell_status,
-            "running": self.check_cromwell_status,
-            "succeeded": self.begin_download,
-            "failed": self.begin_download,
-            "downloading": self.check_download,
+            "created": self.__begin_upload,
+            "uploading": self.__check_upload,
+            "upload complete": self.__submit,
+            "submitted": self.__check_cromwell_status,
+            "queued": self.__check_cromwell_status,
+            "running": self.__check_cromwell_status,
+            "succeeded": self.__begin_download,
+            "failed": self.__begin_download,
+            "downloading": self.__check_download,
         }
 
         if session:
@@ -141,26 +144,6 @@ class Run:
             logger.debug(f"Run {self.run_id} not found")
             raise RunNotFoundError(f"No such record")
         self.data = run
-
-    def get_upload(self):
-        """
-        Get upload Transfer object.
-        """
-        if self.data.upload_id:
-            self.upload = Transfer(self.data.upload_id, self)
-        else:
-            self.upload = None
-        return self.upload
-
-    def get_download(self):
-        """
-        Get download Transfer object.
-        """
-        if self.data.download_id:
-            self.download = Transfer(self.data.download_id, self)
-        else:
-            self.download = None
-        return self.download
 
     def get_status(self):
         """
@@ -352,7 +335,7 @@ class Run:
         # get status from jaws-task service
         task_service = self.get_task_service_client()
         try:
-            response = task_service("get_statuses", {"task_ids": check_task_ids.keys()})
+            response = task_service("get_status", {"task_ids": check_task_ids.keys()})
         except RpcClient.RpcError as error:
             raise RpcError(f"{error}")
         if "error" in response:
@@ -369,26 +352,59 @@ class Run:
             table.append(row)
         return table
 
-# TODO ECCE
-
     def check_status(self):
         """
         Check if run is ready to transition to the next state.
+        This method is called by the Daemon periodically and is the only way a Run
+        transitions to a new state.
         """
+#            "created": self.__begin_upload,
+#            "uploading": self.__check_upload,
+#            "upload complete": self.__submit,
+#            "submitted": self.__check_cromwell_status,
+#            "queued": self.__check_cromwell_status,
+#            "running": self.__check_cromwell_status,
+#            "succeeded": self.__begin_download,
+#            "failed": self.__begin_download,
+#            "downloading": self.__check_download,
         if self.status in self.dispatch:
             self.dispatch.get(self.status)()
 
-    def begin_upload(self):
+    def __begin_upload(self):
         """
+        A Run in "created" state shall transition to "uploading" upon submitting it's
+        Globus transfer manifest to the Globus transfer service.  If unsuccessful, the Run
+        transitions to "upload failed."
         """
         pass  # TODO
 
-    def check_upload(self):
+    def __get_upload(self):
+        """
+        Get upload Transfer object.
+        """
+        if self.data.upload_id:
+            self.upload = Transfer(self.data.upload_id, self)
+        else:
+            self.upload = None
+        return self.upload
+
+    def __get_download(self):
+        """
+        Get download Transfer object.
+        """
+        if self.data.download_id:
+            self.download = Transfer(self.data.download_id, self)
+        else:
+            self.download = None
+        return self.download
+
+    def __check_upload(self):
         """
         Check if Globus upload task is complete.
+        A Run in "uploading" will transition to either "upload complete" or "upload failed".
         """
         logger.debug(f"Run {self.run_id}: Check upload status")
-        upload_task_id = self.get_upload_task_id()
+        upload_task_id = self.__get_upload()
         try:
             globus_status = self._get_globus_transfer_status(upload_task_id)
         except Exception as error:
@@ -404,9 +420,11 @@ class Run:
         elif globus_status == "SUCCEEDED":
             self.__update_status__("upload complete")
 
-    def submit(self, run):
+    def __submit(self, run):
         """
         Submit the run to Cromwell.
+        A Run in "upload complete" will transition to "submitted" if accepted by Cromwell service; or
+        "submission failed" otherwise.
         """
         logger.debug(f"Run {self.run_id}: Submit to Cromwell")
 
@@ -441,9 +459,15 @@ class Run:
         else:
             self.__update_status__("submission failed")
 
-    def check_cromwell_status(self, run):
+    def __check_cromwell_status(self, run):
         """
         Check Cromwell for the status of one Run.
+        A Run in "submitted" state will transition to "queued" once Cromwell reports it as
+        "Running" because Cromwell doesn't have a queued state.
+        In order to move a Run from "queued" to "running", the jaws-task service is queried.
+        Ultimately, Cromwell will either report the status as "Succeeded" or "Failed", which
+        shall move the Run to "succeeded" or "failed" state.
+        It's also possible a Run could be cancelled, usually by the user.
         """
         logger.debug(f"Run {self.run_id}: Check Cromwell status")
         cromwell_status = None
@@ -471,6 +495,7 @@ class Run:
         # check if state has changed; allowed states and transitions for a successful run are:
         # submitted -> queued -> running -> succeeded (with no skipping of states allowed)
         # Additionally, any state can transition directly to cancelled or failed.
+        # Note: Cromwell and JAWS states are distinct and Cromwell lacks a "queued" state.
         logger.debug(f"Run {self.run_id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
             # no skips allowed, so there may be more than one transition
@@ -489,9 +514,12 @@ class Run:
         elif cromwell_status == "Aborted":
             self.__update_status__("cancelled")
 
-    def begin_download(self, run, metadata=None):
+    def __begin_download(self, run, metadata=None):
         """
-        Send run output via Globus
+        Whether or not a Run ends up in "succeeded" or "failed" state, the Cromwell output is
+        returned to the user.  The output was returned as each task completes, but we send the
+        entire output again to be sure, using the Globus transfer option not to resend existing
+        outfiles.
         """
         logger.debug(f"Run {self.run_id}: Download output")
         if self.data.cromwell_workflow_dir is None:
@@ -528,9 +556,10 @@ class Run:
         # /ECCE
         # else ignore error; was logged; will try again later
 
-    def check_download(self, run):
+    def __check_download(self, run):
         """
-        If download is complete, change state.
+        If download is complete, change state to "download complete"; if transfer failed,
+        then state becomes "download failed."
         """
         logger.debug(f"Run {self.run_id}: Check download status")
         try:
@@ -549,7 +578,8 @@ class Run:
 
     def __update_status__(self, new_status, reason=None):
         """
-        Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
+        Whenever a Run enters a new state, the transition is recorded in the run_log and
+        the runs table is updated.
         """
         logger.info(f"Run {self.run_id}: now {new_status}")
         status_from = self.data.status
@@ -585,196 +615,3 @@ class Run:
                 f"Failed to insert log for Run {self.run_id} : {new_status}, {reason}: {error}"
             )
         # notifying Central of state change is handled by send_run_status_logs
-
-
-class Transfer:
-    """
-    Class representing a Globus transfer task.
-    """
-
-    user_service_client = None  # rpc client for jaws-user service
-    transfer_client = None  # globus transfer client obj
-
-    def __init__(self, **kwargs):
-        if "transfer_id" in kwargs.items:
-            # an existing Globus transfer task
-            self.transfer_id = kwargs.get("transfer_id")
-            self.__load__()
-        else:
-            # a new Globus transfer task
-            self.submit(**kwargs)
-
-    def __load__(self):
-        pass  # TODO
-
-    def submit(self, **kwargs):
-        """
-        Submit a transfer to Globus, get transfer task id.
-        """
-        transfer_rt = self.get_transfer_refresh_token
-        transfer_task_id = self.__transfer_folder(
-            f"Run {self.run_id}",
-            transfer_rt,
-            self.data.cromwell_workflow_dir,
-            self.data.output_endpoint,
-            self.data.output_dir,
-        )
-        if transfer_task_id:
-            self.data.download_task_id = transfer_task_id
-            self.__update_status__(
-                "downloading", f"download_task_id={self.data.download_task_id}"
-            )
-            self.session.commit()
-        self.transfer_id = None  # TODO
-
-    def user_service(self):
-        if not self.user_service_client:
-            self.user_service_client = RpcClient.client(
-                config.conf.user_service_params()
-            )
-        return self.user_service_client
-
-    def transfer_client(self):
-        """
-        Get a Globus transfer client, authorized to transfer files on the user's behalf.
-        """
-        if not self.transfer_client:
-            # get Globus token from JAWS User service
-            user_id = self.get_user_id()
-            user_service = self.get_user_service()
-            response = user_service.call("get_transfer_token", {"user_id": user_id})
-            token = response["result"]
-
-            # get Globus transfer client
-            client = globus_sdk.NativeAppAuthClient(self.client_id)
-            authorizer = globus_sdk.RefreshTokenAuthorizer(token, client)
-            self.transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
-        return self.transfer_client
-
-    def status(self):
-        """
-        Query Globus transfer service for transfer task status.
-        """
-        transfer_client = self.get_transfer_client()
-        try:
-            task = transfer_client.get_task(self.transfer_id)
-            self.status = task["status"]
-        except Exception:
-            logger.exception("Failed to check Globus upload status", exc_info=True)
-            raise
-        return self.status
-
-    def __transfer_folder(self, label, transfer_rt, src_dir, dest_endpoint, dest_dir):
-        """
-        Recursively transfer folder via Globus
-        :param label: Label to attach to transfer (e.g. "Run 99")
-        :type label: str
-        :param transfer_rt: User's Globus transfer refresh token
-        :type transfer_rt: str
-        :param src_dir: Folder to transfer
-        :type src_dir: str
-        :param dest_endpoint: Globus endpoint for destination
-        :type dest_endpoint: str
-        :param dest_dir: Destination path
-        :type dest_dir: str
-        :return: Globus transfer task id
-        :rtype: str
-        """
-        logger.debug(f"Globus xfer {label}")
-        if not src_dir.startswith(self.globus_root_dir):
-            logger.error(f"Dir is not accessible via Globus: {src_dir}")
-            return None
-        rel_src_dir = os.path.relpath(src_dir, self.globus_default_dir)
-        try:
-            transfer_client = self._authorize_transfer_client(transfer_rt)
-        except globus_sdk.GlobusAPIError:
-            logger.warning(
-                f"Failed to get Globus transfer client to xfer {label}", exc_info=True
-            )
-            return None
-        try:
-            tdata = globus_sdk.TransferData(
-                transfer_client,
-                self.globus_endpoint,
-                dest_endpoint,
-                label=label,
-                sync_level="exists",
-                verify_checksum=False,
-                preserve_timestamp=True,
-                notify_on_succeeded=False,
-                notify_on_failed=False,
-                notify_on_inactive=False,
-                skip_activation_check=True,
-            )
-            if self.globus_root_dir == "/":
-                tdata.add_item(src_dir, dest_dir, recursive=True)
-            else:
-                tdata.add_item(rel_src_dir, dest_dir, recursive=True)
-        except Exception:
-            logger.warning(
-                f"Failed to prepare download manifest for {label}", exc_info=True
-            )
-        try:
-            transfer_result = transfer_client.submit_transfer(tdata)
-        except globus_sdk.GlobusAPIError:
-            logger.warning(
-                f"Failed to download results with Globus for {label}", exc_info=True,
-            )
-            return None
-        return transfer_result["task_id"]
-
-
-class Daemon:
-    """
-    The daemon periodically checks on active runs, which may usher them to the next state.
-    """
-
-    active_run_states = [
-        "uploading",
-        "upload complete",
-        "submitted",
-        "queued",
-        "running",
-        "succeeded",
-        "failed",
-        "downloading",
-    ]
-
-    def __init__(self):
-        """
-        Init daemon with schedule
-        """
-        schedule.every(10).seconds.do(self.check_active_runs)
-
-    def start_daemon(self):
-        """
-        Start the scheduled loop.
-        """
-        while True:
-            schedule.run_pending()
-            time.sleep(1)
-
-    def check_active_runs(self):
-        """
-        Check on current status of active runs.  This is run as a new thread.
-        """
-        # since this is a new thread, must get new session
-        session = db.Session()
-
-        # get list of active runs
-        try:
-            active_runs = (
-                db.session.query(db.Run)
-                .filter(db.Run.status.in_(self.active_run_states))
-                .all()
-            )
-        except SQLAlchemyError as error:
-            logger.exception(f"Error selecting active runs: {error}")
-            raise DatabaseError(f"{error}")
-
-        # init Run objects and have them check and update their status
-        for row in active_runs:
-            run = Run(row.id, session)
-            run.check_status()
-
-        session.close()

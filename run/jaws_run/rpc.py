@@ -40,31 +40,6 @@ def get_cromwell_status(params):
 
 def get_status(params):
     """
-    Get the current status of a Run.
-
-    :param params: run_id
-    :type params: dict
-    :return: JSON-RPC2 response, successful result is current status
-    :rtype: dict
-    """
-    run_id = params["run_id"]
-    try:
-        run = Run(run_id)
-    except RunNotFoundError:
-        return failure(404, f"Run {run_id} not found")
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
-    try:
-        result = run.get_status()
-    except DatabaseError as error:
-        return failure(500, f"Run db offline: {error}")
-    except Exception as error:
-        return failure(500, f"{error}")
-    return success(result)
-
-
-def get_statuses(params):
-    """
     Get the current status for a list of Runs.
 
     :param params: List of run_ids
@@ -167,7 +142,7 @@ def cancel(params):
 
 def get_errors(params):
     """
-    Retrieve error messages and stderr for failed Tasks.
+    Extract error messages from Cromwell metadata and include stderr for failed Tasks.
 
     :param params: run_id
     :type params: dict
@@ -217,8 +192,9 @@ def get_task_log(params):
     """
     Get log of Task state transitions for a Run.
     The tasks are retrieved from Cromwell metadata and state transitions retrieved from jaws-task.
+    This procedure is useful for retrieving the task-log by run_id, as the task-service does not have run_ids.
 
-    :param params:
+    :param params: contains "run_id"
     :type params: dict
     :return: JSON-RPC2 response with dict of tasks and logs
     :rtype: dict
@@ -243,8 +219,9 @@ def get_task_status(params):
     """
     Get state of each task in a Run.
     The tasks are retrieved from Cromwell metadata and current state retrieved from jaws-task.
+    This procedure is useful for retrieving the task-status by run_id, as the task-service does not have run_ids.
 
-    :param params:
+    :param params: contains "run_id"
     :type params: dict
     :return: JSON-RPC2 response with result dict of task:status
     :rtype: dict
@@ -281,8 +258,7 @@ rpc_methods = {
             "output_dir",
         ],
     },
-    "get_status": {"method": get_status, "required_params": ["run_id"]},
-    "get_statuses": {"method": get_statuses, "required_params": ["run_ids"]},
+    "get_status": {"method": get_status, "required_params": ["run_ids"]},
     "get_log": {"method": get_log, "required_params": ["run_id"]},
     "get_metadata": {"method": get_metadata, "required_params": ["run_id"]},
     "cancel": {"method": cancel, "required_params": ["run_id"]},
