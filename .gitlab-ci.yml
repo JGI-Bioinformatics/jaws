@@ -69,7 +69,7 @@ variables:
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
   CORI_PYTHON: "python3"
-  CORI_LOAD_PYTHON: "module load python"
+  CORI_LOAD_PYTHON: "module load python3/3.7-anaconda-2019.10"
   CORI_JAWS_GROUP: "jaws"
   CORI_JTM_GROUP: "jaws_jtm"
   CORI_CLIENT_GROUP: "genome"
