@@ -129,7 +129,10 @@ class Task:
                 raise ValueError("Invalid attempt; of out range")
             else:
                 index = attempt - 1
-        return self.calls[index]["failures"]
+        if "failures" in self.calls[index]:
+            return self.calls[index]["failures"]
+        else:
+            return None
 
     def error(self, attempt=None):
         """
@@ -140,6 +143,8 @@ class Task:
         :rtype: str
         """
         failures = self.failures(attempt)
+        if not failures:
+            return None
         msgs = []
         for failure in failures:
             msg = failure["message"]
@@ -337,7 +342,9 @@ class Metadata:
         """
         result = {}
         for task in self.tasks:
-            result[task.name] = task.error()
+            an_error = task.error()
+            if an_error:
+                result[task.name] = an_error
         return result
 
 
