@@ -143,17 +143,16 @@ class Task:
         msgs = []
         for failure in failures:
             msg = failure["message"]
-            msg = msg[0:msg.index("Check the stderr file for possible errors: ")]
             msgs.append(msg)
+            for cause in failure["causedBy"]:
+                msgs.append(cause["message"])
         msg = "\n".join(msgs)
 
-        # append standard error
+        # append standard error (if exists)
         stderr_file = self.stderr(attempt)
-        if os.path.isfile(stderr_file):
+        if stderr_file and os.path.isfile(stderr_file):
             with open(stderr_file, "r") as file:
                 msg = f"{msg}\nstderr:\n" + file.read()
-        else:
-            msg = f"{msg}\n(stderr not included; file not found.)\n"
         return msg
 
     def stdout(self, attempt=None, src=None, dest=None):
