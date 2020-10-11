@@ -16,14 +16,10 @@ def get_user(params):
     Required parameters: user_id
     Returns: dict of user information
     """
-    user_id = params["user_id"]
     try:
-        user = User(user_id)
-    except UserNotFoundError:
-        logger.error(f"User not found: {user_id}")
-        return failure(404, f"User not found: {user_id}")
-    except DatabaseError as error:
-        return failure(500, f"User service error: {error}")
+        user = User(params["user_id"])
+    except Exception as error:
+        return failure(error)
     return success(user)
 
 
@@ -34,16 +30,14 @@ def update_user(params):
     Required parameters: user_id, auth_refresh_token, transfer_refresh_token
     Return: None
     """
-    user_id = params["user_id"]
-    auth_refresh_token = params["auth_refresh_token"]
-    transfer_refresh_token = params["transfer_refresh_token"]
     try:
-        user = User(user_id)
-        user.update_user(user_id, auth_refresh_token, transfer_refresh_token)
-    except UserNotFoundError:
-        return failure(404, f"User not found: {user_id}")
-    except DatabaseError as error:
-        return failure(500, f"User service error: {error}")
+        user = User(params["user_id"])
+        user.update_user(
+            params["auth_refresh_token"],
+            params["transfer_refresh_token"]
+        )
+    except Exception as error:
+        return failure(error)
     return success()
 
 
