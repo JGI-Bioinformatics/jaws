@@ -109,7 +109,7 @@ def manager(ctx: object, log_dir: str, show_resource_log: bool) -> int:
     default="manual",
     type=click.Choice(["manual", "dynamic"], case_sensitive=False),
 )
-@click.option("-cl", "--cluster", help="Cluster name")
+@click.option("-cl", "--cluster", help="Site name")
 @click.option(
     "-ctr", "--clone_time_rate", help="Cloning time rate (OBSOLETE)", type=float
 )
@@ -193,6 +193,11 @@ def worker(
     :param job_time: wallclocktime
     :return:
     """
+    config = ctx.obj["config"]
+    if cluster and cluster.upper() not in config.constants.COMPUTE_RESOURCES:
+        logger.error(f"Unsupported site name specified: {cluster}")
+        sys.exit(1)
+
     sys.exit(
         jtmworker(
             ctx,
@@ -222,7 +227,7 @@ def worker(
 
 
 @cli.command()
-@click.option("-cl", "--cluster", help="Cluster (site) name to run task")
+@click.option("-cl", "--cluster", help="Site name")
 @click.option(
     "-cmd",
     "--command",
@@ -321,22 +326,23 @@ def submit(
     :param job_time:
     :return: exit with 0 if succeeded, 1 if failed
     """
+    config = ctx.obj["config"]
     ret_code = 0
     if ctx.obj["debug"]:
         click.echo("Debug mode")
 
     if shared is None or shared == 1:
         logger.error("jtm submit: invalid task or runtime definition. ")
-        logger.error("            Only shared=0 is supported.")
-        ret_code = 1
+        logger.error("Only shared=0 is supported.")
+        sys.exit(1)
 
     cluster = cluster.lower()
-    if cluster is None or cluster not in ("cori", "jgi", "cascade"):
-        logger.error("jtm submit: invalid task or runtime definition: ")
+    if cluster is None or cluster.upper() not in config.constants.COMPUTE_RESOURCES:
+        logger.error(f"Unsupported site name specified: {cluster}")
         logger.error(
-            "            Only 'cori', 'jgi', 'cascade' are supported as cluster name"
+            f"Only {config.constants.COMPUTE_RESOURCES} are supported as site name"
         )
-        ret_code = 1
+        sys.exit(1)
 
     def is_time_format(input: str):
         try:
@@ -348,9 +354,9 @@ def submit(
     if time is None or not is_time_format(job_time):
         logger.error("jtm submit: invalid task or runtime definition: ")
         logger.error(
-            f"            The job time is not in an expected format (%H:%M:%S): {job_time}"
+            f"The job time is not in an expected format (%H:%M:%S): {job_time}"
         )
-        ret_code = 1
+        sys.exit(1)
 
     add_info = pool_name
     ret = JtmInterface("task", ctx, info_tag=add_info).call(
@@ -381,7 +387,7 @@ def submit(
             ret = int(ret)
         except TypeError as e:
             logger.exception(f"Unexpected return value from the manager: {ret} {e}")
-            sys.exit(1)
+            sys.exit(-1)
 
     if ret == -2:
         logger.error("jtm submit: invalid task.")
@@ -429,7 +435,9 @@ def kill(ctx: object, task_id: int) -> int:
     try:
         ret = int(JtmInterface("kill", ctx, info_tag=task_id).call_aux(task_id=task_id))
     except TypeError as e:
-        logger.exception(f"jtm kill: Unexpected return value from the manager: {ret} {e}")
+        logger.exception(
+            f"jtm kill: Unexpected return value from the manager: {ret} {e}"
+        )
         sys.exit(1)
 
     if ret == -88:
@@ -464,9 +472,13 @@ def isalive(ctx: object, task_id: int) -> int:
     :return: exit with 0 if alive, 1 if not
     """
     try:
-        ret = int(JtmInterface("status", ctx, info_tag=task_id).call_aux(task_id=task_id))
+        ret = int(
+            JtmInterface("status", ctx, info_tag=task_id).call_aux(task_id=task_id)
+        )
     except TypeError as e:
-        logger.exception(f"jtm isalive: Unexpected return value from the manager: {ret} {e}")
+        logger.exception(
+            f"jtm isalive: Unexpected return value from the manager: {ret} {e}"
+        )
         sys.exit(1)
 
     if ret == -88:
@@ -501,9 +513,13 @@ def status(ctx: object, task_id: int) -> int:
     :return:
     """
     try:
-        ret = int(JtmInterface("status", ctx, info_tag=task_id).call_aux(task_id=task_id))
+        ret = int(
+            JtmInterface("status", ctx, info_tag=task_id).call_aux(task_id=task_id)
+        )
     except TypeError as e:
-        logger.exception(f"jtm status: Unexpected return value from the manager: {ret} {e}")
+        logger.exception(
+            f"jtm status: Unexpected return value from the manager: {ret} {e}"
+        )
         sys.exit(1)
 
     if ret == -88:
@@ -518,7 +534,7 @@ def status(ctx: object, task_id: int) -> int:
 
 @cli.command()
 @click.option("-p", "--pool_name", help="User worker pool name", required=True)
-@click.option("-cl", "--cluster", help="Cluster (site) name to run task")
+@click.option("-cl", "--cluster", help="Site name")
 @click.pass_context
 def remove_pool(ctx: object, pool_name: str, cluster: str) -> int:
     """
@@ -536,6 +552,11 @@ def remove_pool(ctx: object, pool_name: str, cluster: str) -> int:
     :param cluster:
     :return: exit with 0 if succeeded, 1 if failed
     """
+    config = ctx.obj["config"]
+    if cluster and cluster.upper() not in config.constants.COMPUTE_RESOURCES:
+        logger.error(f"Unsupported site name specified: {cluster}")
+        sys.exit(1)
+
     try:
         ret = int(
             JtmInterface("remove_pool", ctx, info_tag=pool_name).call_aux(
@@ -543,7 +564,7 @@ def remove_pool(ctx: object, pool_name: str, cluster: str) -> int:
             )
         )
     except TypeError as e:
-        logger.exception(f"jtm remove_pool: Unexpected return value from the manager: {ret} {e}")
+        logger.exception(f"Unexpected return value from the manager: {ret} {e}")
         sys.exit(1)
 
     click.echo("removed" if ret == 1 else "failed")
@@ -559,7 +580,7 @@ def remove_pool(ctx: object, pool_name: str, cluster: str) -> int:
     default=False,
     show_default=True,
 )
-@click.option("-cl", "--cluster", help="Cluster (site) name to run task")
+@click.option("-cl", "--cluster", help="Site name")
 @click.pass_context
 def check_worker(ctx: object, pool_name: str, slurm_info: bool, cluster) -> int:
     """
@@ -573,6 +594,11 @@ def check_worker(ctx: object, pool_name: str, slurm_info: bool, cluster) -> int:
     :param cluster:
     :return: number of workers in the pool specified
     """
+    config = ctx.obj["config"]
+    if cluster and cluster.upper() not in config.constants.COMPUTE_RESOURCES:
+        logger.error(f"Unsupported site name specified: {cluster}")
+        sys.exit(1)
+
     add_info = socket.gethostname().replace(".", "_")
     if cluster:
         add_info = cluster
@@ -592,7 +618,9 @@ def check_worker(ctx: object, pool_name: str, slurm_info: bool, cluster) -> int:
                 )
             )
         except TypeError as e:
-            logger.exception(f"jtm check_worker: Unexpected return value from the manager: {ret} {e}")
+            logger.exception(
+                f"jtm check_worker: Unexpected return value from the manager: {ret} {e}"
+            )
             sys.exit(1)
 
         click.echo(ret)
@@ -600,7 +628,7 @@ def check_worker(ctx: object, pool_name: str, slurm_info: bool, cluster) -> int:
 
 
 @cli.command()
-@click.option("-cl", "--cluster", help="Cluster (site) name to run task")
+@click.option("-cl", "--cluster", help="Site name")
 @click.pass_context
 def check_manager(ctx: object, cluster: str) -> int:
     """
@@ -612,6 +640,11 @@ def check_manager(ctx: object, cluster: str) -> int:
     """
     config = ctx.obj["config"]
     mode = config.configparser.get("JTM", "run_mode")
+
+    if cluster and cluster.upper() not in config.constants.COMPUTE_RESOURCES:
+        logger.error(f"Unsupported site name specified: {cluster}")
+        sys.exit(1)
+
     ps_cmd = "ps -aef | grep -v grep | grep -v check-manager | grep jtm | grep manager "
     if mode != "test":
         ps_cmd += f"| grep jaws-{mode} "
@@ -645,7 +678,9 @@ def check_manager(ctx: object, cluster: str) -> int:
             )
         )
     except TypeError as e:
-        logger.exception(f"jtm check_manager: Unexpected return value from the manager: {ret} {e}")
+        logger.exception(
+            f"jtm check_manager: Unexpected return value from the manager: {ret} {e}"
+        )
         sys.exit(1)
 
     if ret is None or ret == -88:
@@ -669,7 +704,7 @@ def resource_log(ctx: object, task_id: int) -> int:
     resource_log_file = JtmInterface("resource", ctx, info_tag=task_id).call_aux(
         task_id=task_id
     )
-    if type(resource_log_file) == 'int' and resource_log_file == -88:
+    if isinstance(resource_log_file, int) and resource_log_file == -88:
         logger.error("jtm resource-log: command timeout.")
         sys.exit(-1)
     elif resource_log_file is None or resource_log_file == "None":

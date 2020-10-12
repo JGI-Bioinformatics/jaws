@@ -8,7 +8,6 @@ echo "BEGIN deploy-supervisord"
 REQUIRED_VARS="
 SUPERVISOR_DIR
 SITE_PYTHON
-SITE_PYTHON_PIP
 SITE_JAWS_GROUP
 SITE_JTM_GROUP
 DEPLOYMENT_NAME
@@ -42,8 +41,7 @@ test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
 chgrp $SITE_JTM_GROUP $SUPERVISOR_DIR
 chmod 770 $SUPERVISOR_DIR
 
-#$LOAD_SITE_PYTHON
-module load python
+$SITE_LOAD_PYTHON
 [[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
 [[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
 chgrp -R $SITE_JTM_GROUP $SUPERVISOR_DIR/{bin,venv}
@@ -54,7 +52,7 @@ function not_available() {
   command -v $1 >/dev/null 2>&1
 }
 
-not_available "supervisord" || $SITE_PYTHON_PIP install supervisor
+not_available "supervisord" || pip install supervisor
 
 function generate_shim() {
 prog=$1
@@ -81,8 +79,7 @@ function fix_perms() {
 
 fix_perms "$SITE_JTM_GROUP" "$SUPERVISOR_DIR"
 
-JAWS_PROGRAMS="jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc"
-SUPERVISOR_JAWS_CONF="
+cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
 [inet_http_server]
 port=0.0.0.0:$JAWS_SUPERVISOR_PORT
 username=jaws
@@ -134,40 +131,9 @@ numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
-"
-
-if [[ -n "$DEPLOY_JAWS_CENTRAL" ]]; then
-  SUPERVISOR_JAWS_CONF="$SUPERVISOR_JAWS_CONF
-
-[program:jaws-central-rest]
-command=$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME
-numprocs=1
-startsecs=3
-startretries=3
-autorestart=unexpected
-
-[program:jaws-central-rpc]
-command=$SHIM_DIR/jaws-central-rpc-$DEPLOYMENT_NAME
-numprocs=1
-startsecs=3
-startretries=3
-autorestart=unexpected
-
-[program:jaws-central-auth]
-command=$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
-numprocs=1
-startsecs=3
-startretries=3
-autorestart=unexpected
-"
-  JAWS_PROGRAMS="$JAWS_PROGRAMS,jaws-central-auth,jaws-central-rest,jaws-central-rpc"
-fi
-
-cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
-$SUPERVISOR_JAWS_CONF
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=$JAWS_PROGRAMS
+programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
 priority=999
 EOM
 
