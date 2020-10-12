@@ -118,7 +118,7 @@ def values(inputs_map):
 
 
 def is_refdata(filepath):
-    return filepath.startswith("/refdata/")
+    return filepath.startswith("/refdata")
 
 
 def looks_like_file_path(input):
