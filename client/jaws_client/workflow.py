@@ -122,7 +122,7 @@ def is_refdata(filepath):
 
 
 def looks_like_file_path(input):
-    return "/" in input
+    return isinstance(input, str) and "/" in input
 
 
 def accessible_file(filename):
@@ -418,28 +418,18 @@ class WorkflowInputs:
 
         self.submission_id = submission_id
         self.inputs_location = os.path.abspath(inputs_loc)
-        self.basedir = os.path.dirname(inputs_loc)
+        self.basedir = os.path.dirname(self.inputs_location)
+
+        # either json string or file is required
         try:
             self.inputs_json = (
                 json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
             )
         except Exception as error:
             raise WorkflowError(error)
-        self._src_file_inputs = None
 
-    @property
-    def src_file_inputs(self):
-        """
-        Gathers all the input files specified in the JSON file into a set of files.
-
-        This allows for easy traversal of all the input files rather than have to recurse down the dictionary
-        and attempt to determine whether an element is a file or a keyword.
-
-        :return: set of file paths
-        """
-        if self._src_file_inputs is None:
-            self._src_file_inputs = self.gather_paths(self.inputs_json)
-        return self._src_file_inputs
+        # identify paths, change to abs in inputs_json, and collect into a set, self.src_file_inputs
+        self._init_src_file_inputs()
 
     def prepend_paths_to_json(self, staging_dir):
         """
@@ -472,41 +462,23 @@ class WorkflowInputs:
         if missing:
             raise WorkflowError("File(s) not accessible: " + ", ".join(missing))
 
-    @staticmethod
-    def gather_paths(inputs_json):
+    def _init_src_file_inputs(self):
         """
-        Helper method that aggregates all the paths in a JSON file
+        Identify all path-line elements in the inputs_json, convert them to absolute paths, and collect them in a
+        set for convenience.  The inputs_json shall be updated to include the abs paths.
         """
         paths = set()
-        for element in values(inputs_json):
-            if looks_like_file_path(element) and not is_refdata(element):
-                paths.add(element)
-        return paths
-
-    def _relative_to_absolute_paths(self, element):
-        """
-        Helper method that converts any relative paths in a JSON into absolute paths.
-        It is applied to each value.
-        """
-        if looks_like_file_path(element):
-            new_path = element
-            if not os.path.isabs(element):
-                new_path = join_path(self.basedir, element)
-                new_path = os.path.abspath(new_path)
-                return new_path
-        else:
-            return element
-
-    def _convert_abspath_in_json(self, inputs_json):
-        """
-        Traverses and applies self._relative_to_absolute_paths to the values of a JSON dict.
-        """
-        abspath_json = {}  # converted json with absolute paths
-        for key in inputs_json:
-            abspath_json[key] = apply_filepath_op(
-                inputs_json[key], self._relative_to_absolute_paths
-            )
-        return abspath_json
+        for key, value in self.inputs_json.items():
+            if looks_like_file_path(value) and not is_refdata(value):
+                # found a path-line object that is not special refdata path
+                if not os.path.isabs(value):
+                    # convert to absolute path in inputs_json;
+                    # paths are assumed to be relative to the basedir of the inputs json file itself
+                    new_path = os.path.join(self.basedir, value)
+                    value = self.inputs_json[key] = os.path.abspath(new_path)
+                # add abspath to set
+                paths.add(value)
+        self.src_file_inputs = paths
 
     @staticmethod
     def _prepend_path(path_to_prepend):

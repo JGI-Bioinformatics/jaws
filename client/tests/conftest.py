@@ -646,7 +646,7 @@ task print {
 def inputs_json(tmp_path):
     inputs = tmp_path / "inputs.json"
     contents = """{
-    "workflow1.file": "path/to/file1", "workflow2.file": "path/to/file2"
+    "workflow1.file": "/path/to/file1", "workflow2.file": "/path/to/file2"
 }"""
     inputs.write_text(contents)
     return inputs.as_posix()
