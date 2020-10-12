@@ -23,7 +23,7 @@ Use the following tables to help figure out how many jobs (i.e. workers) you can
 On Cori, JAWS runs on a dedicated cluster. 
 
 +---------+-----+----------+----------------+-----+-------+--------------+
-|node type|nodes| ram (G)  | project        |cores|threads|max time (hrs)|
+|node type|nodes| ram (G)  | qos            |cores|threads|max time (hrs)|
 +=========+=====+==========+================+=====+=======+==============+
 | haswell |2,388|128 (118*)|genepool_special| 16  |   32  |  72          |
 +---------+-----+----------+----------------+-----+-------+--------------+
