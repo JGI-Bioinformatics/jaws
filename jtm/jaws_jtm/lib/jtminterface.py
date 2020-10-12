@@ -190,16 +190,20 @@ class JtmInterface(object):
                     kw["node"] if "node" in kw else 1
                 )  # number of nodes
                 json_data_dict["pool"]["shared"] = int(kw["shared"])
-                json_data_dict["pool"]["account"] = kw["account"]
-                if "constraint" in kw and kw["constraint"] != "":
+
+                if "account" in kw and kw["account"] != "" and kw["account"] != "None":
+                    json_data_dict["pool"]["account"] = kw["account"]
+                else:
+                    json_data_dict["pool"]["account"] = ""
+                if "constraint" in kw and kw["constraint"] != "" and kw["constraint"] != "None":
                     json_data_dict["pool"]["constraint"] = kw["constraint"]
                 else:
                     json_data_dict["pool"]["constraint"] = ""
-                if "qos" in kw and kw["qos"] != "":
+                if "qos" in kw and kw["qos"] != "" and kw["qos"] != "None":
                     json_data_dict["pool"]["qos"] = kw["qos"]
                 else:
                     json_data_dict["pool"]["qos"] = ""
-                if "partition" in kw and kw["partition"] != "":
+                if "partition" in kw and kw["partition"] != "" and kw["partition"] != "None":
                     json_data_dict["pool"]["partition"] = kw["partition"]
                 else:
                     json_data_dict["pool"]["partition"] = ""
@@ -282,6 +286,10 @@ class JtmInterface(object):
                 logger.exception(e)
                 self.response = -3  # failed to get task id back from the manager
                 break
+
+        # self.response can be set as "None" when jtm manager sends back a reply with a str "None"
+        if self.response == "None":
+            self.response = None
 
         return self.response  # task id if everything is fine
 
@@ -383,6 +391,10 @@ class JtmInterface(object):
                 logger.exception(e)
                 self.response = -4
                 break
+
+        # self.response can be set as "None" when jtm manager sends back a reply with a str "None"
+        if self.response == "None":
+            self.response = None
 
         return self.response
 

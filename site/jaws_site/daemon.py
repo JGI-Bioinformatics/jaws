@@ -358,7 +358,7 @@ class Daemon:
         elif globus_status == "FAILED":
             self.update_run_status(run, "download failed")
 
-    def update_run_status(self, run, new_status, reason=None):
+    def update_run_status(self, run, new_status, reason=""):
         """
         Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
         """
