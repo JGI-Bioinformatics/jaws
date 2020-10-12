@@ -259,6 +259,16 @@ def test_refdata_not_translated(refdata_inputs):
     dict_comparison(modified_json.inputs_json, expected)
 
 
+def test_refdata_in_different_form(refdata_inputs_missing_slash):
+    inputs_json = os.path.join(refdata_inputs_missing_slash, "inputs.json")
+    text_file = os.path.join(refdata_inputs_missing_slash, "file1.txt")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
+    modified_json = inputs.prepend_paths_to_json("NERSC/staging")
+    expected = {"file1": "NERSC/staging" + text_file,
+                "runblastplus_sub.ncbi_nt": "/refdata"}
+    dict_comparison(modified_json.inputs_json, expected)
+
+
 def test_refdata_not_in_src_input_files(refdata_inputs):
     inputs_json = os.path.join(refdata_inputs, "inputs.json")
     inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
