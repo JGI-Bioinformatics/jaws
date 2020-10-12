@@ -1,28 +1,35 @@
 #!/bin/bash
 
-# There is only one jaws-central deployment, while there may be several jaws-sites.
 echo "BEGIN deploy-central"
 
-## VERIFY REQUIRED VARS ARE DEFINED
-# If any env are undefined, try sourcing the setup script and check again.
-# Exits if any required var is undefined.
+set -e
+
+function fix_perms() {
+    local GROUP=$1
+    local DIR="$2"
+    chmod -R a+rX "$DIR"
+    chmod -R ug+rwX "$DIR"
+    chgrp -R $GROUP "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+
+
+## VALIDATE ENV VARS
+echo "CHECKING FOR REQUIRED ENV VARS"
 REQUIRED_VARS="
+DEPLOYMENT_NAME
 JAWS_CENTRAL_DB_HOST
 JAWS_CENTRAL_DB_PORT
 JAWS_CENTRAL_DB_PW
 JAWS_CENTRAL_RMQ_PW
 JGI_RMQ_PW
 CORI_RMQ_PW
+CENTRAL_SUPERVISOR_HOST
+CENTRAL_SUPERVISORD_PW
+CENTRAL_JAWS_GROUP
+CENTRAL_PYTHON
 "
 RESULT=0
-for VAR in $REQUIRED_VARS; do
-  if [ -z ${!VAR+xxx} ]; then
-    echo "Missing env var, $VAR; sourcing setup script..."
-    source ./test/integration/define-env
-    RESULT=1
-    break
-  fi
-done
 if [[ $RESULT -ne 0 ]]; then
   RESULT=0
   for VAR in $REQUIRED_VARS; do
@@ -35,33 +42,90 @@ fi
 [ $RESULT -eq 0 ] || exit 1
 
 
-## DELETE OLD VENV
+## INIT VARS
+echo "DEFINING DEPLOYMENT VARS"
+function set_deployment_var {
+  VAR_NAME="$1"
+  SRC_VAR_NAME="${DEPLOYMENT_NAME}_${VAR_NAME}"
+  if [ -z ${!SRC_VAR_NAME+xxx} ]; then
+    echo "Missing env var: $SRC_VAR_NAME">&2
+    exit 1
+  fi
+  VALUE="${!SRC_VAR_NAME}"
+  echo "... $VAR_NAME"
+  export $VAR_NAME
+  printf -v "$VAR_NAME" "%s" "$VALUE"
+}
+DEPLOYMENT_VARS="
+LOG_LEVEL
+JAWS_CENTRAL_SUPERVISOR_PORT
+JAWS_AUTH_PORT
+JAWS_REST_PORT"
+for DEPLOYMENT_VAR in $DEPLOYMENT_VARS; do
+  set_deployment_var $DEPLOYMENT_VAR
+done
+
+export INSTALL_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-central-$DEPLOYMENT_NAME"
+export CONFIG_DIR="$INSTALL_DIR/configs"
+export SHIM_DIR="$INSTALL_DIR/shims"
+export LOGS_DIR="$INSTALL_DIR/logs"
+export SUPERVISOR_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-central-supervisord-$DEPLOYMENT_NAME"
+
+
+## CREATE FOLDERS
+echo "CREATING PATHS"
+function setup_dir {
+  local DIR="$1"
+  local GROUP="$2"
+  local PERMS="$3"
+  [[ -z $DIR ]] && echo "missing DIR" && exit 1
+  [[ -z $GROUP ]] && echo "missing GROUP" && exit 1
+  echo "... $DIR"
+  test -d "$DIR" || mkdir -p "$DIR"
+  chgrp "$GROUP" "$DIR"
+  chmod "$PERMS" "$DIR"
+}
+INSTALL_DIRS="
+INSTALL_DIR
+CONFIG_DIR
+SHIM_DIR
+LOGS_DIR
+SUPERVISOR_DIR
+"
+for DIR in $INSTALL_DIRS; do
+  setup_dir "${!DIR}" "$CENTRAL_JAWS_GROUP" 770
+done
+
+
+## STOP SERVICE
+echo "STOPPING SERVICES"
+test -f $SUPERVISOR_DIR/supervisord-jaws-central.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws-central.conf stop \
+jaws-central-$DEPLOYMENT_NAME:auth \
+jaws-central-$DEPLOYMENT_NAME:rest \
+jaws-central-$DEPLOYMENT_NAME:rpc
+
+
+## DELETE OLD VERSION
+echo "BUILDING jaws-central"
 test -d "$INSTALL_DIR/central" && rm -rf "$INSTALL_DIR/central"
 
-## MAKE VENV
-#$LOAD_SITE_PYTHON
-module load python
-make pkg
-$SITE_PYTHON -m venv "$INSTALL_DIR/central" && \
-  . "$INSTALL_DIR/central/bin/activate" && \
-  $SITE_PYTHON_PIP install rpc/dist/* && \
-  $SITE_PYTHON_PIP install central/dist/* && \
-  deactivate
 
-## FIX PERMISSIONS
-function fix_perms() {
-    local GROUP="$1"
-    local DIR="$2"
-    chmod -R a+rX "$DIR"
-    chmod -R ug+rwX "$DIR"
-    chgrp -R "$GROUP" "$DIR"
-    find "$DIR" -type d -exec chmod g+s '{}' \;
-}
-fix_perms "$SITE_JAWS_GROUP" "$INSTALL_DIR/central"
+## MAKE NEW VERSION
+$CENTRAL_PYTHON -m venv "$INSTALL_DIR/central"
+source "$INSTALL_DIR/central/bin/activate"
+pip install --upgrade pip
+pip install wheel pytest flake8 gunicorn
+test -d rpc/dist && rm -rf rpc/dist
+test -d central/dist && rm -rf central/dist
+make pkg-central
+pip install rpc/dist/* && pip install central/dist/*
+deactivate
+fix_perms "$CENTRAL_JAWS_GROUP" "$INSTALL_DIR/central"
+
 
 ## GENERATE CONFIG
+echo "GENERATE jaws-central CONFIG"
 CONF=""
-
 function set_site_var {
   local A_SITE="$1"
   VAR_NAME="$2"
@@ -100,7 +164,8 @@ max_ram_gb = $A_SITE_MAX_RAM_GB
 "
 done
 
-cat << EOM > $CONFIG_DIR/jaws-central.conf
+CONFIG_FILE="$CONFIG_DIR/jaws-central.conf"
+cat << EOM > "$CONFIG_FILE"
 [JAWS]
 name = $DEPLOYMENT_NAME
 version = $JAWS_VERSION
@@ -128,48 +193,139 @@ auth_port = $JAWS_AUTH_PORT
 rest_port = $JAWS_REST_PORT
 $CONF
 EOM
-
-chgrp "$SITE_JAWS_GROUP" "$CONFIG_DIR/jaws-central.conf"
-chmod 660 "$CONFIG_DIR/jaws-central.conf"
+chmod 660 "$CONFIG_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$CONFIG_FILE"
 
 
 ## GENERATE SHIMS
-cat <<EOM > $SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
+SHIM_FILE="$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME"
+cat <<EOM > "$SHIM_FILE"
 #!/usr/bin/env bash
-
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
-
 source $INSTALL_DIR/central/bin/activate
 exec jaws-central --log $LOGS_DIR/central-auth.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL auth
 EOM
+chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
-cat <<EOM > $SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME
+SHIM_FILE="$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
+cat <<EOM > "$SHIM_FILE"
 #!/usr/bin/env bash
-
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
-
 source $INSTALL_DIR/central/bin/activate
-exec jaws-central --log $LOGS_DIR/central-rest.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL rest
+exec jaws-central --log=$LOGS_DIR/central-rest.log --config=$CONFIG_DIR/jaws-central.conf --log-level=$LOG_LEVEL rest
 EOM
+chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
-cat <<EOM > $SHIM_DIR/jaws-central-rpc-$DEPLOYMENT_NAME
+SHIM_FILE="$SHIM_DIR/jaws-central-rpc-$DEPLOYMENT_NAME"
+cat <<EOM > "$SHIM_FILE"
 #!/usr/bin/env bash
-
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
-
 source $INSTALL_DIR/central/bin/activate
 exec jaws-central --log $LOGS_DIR/central-rpc.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL rpc
 EOM
+chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
-chgrp "$SITE_JAWS_GROUP" "$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME"
-chgrp "$SITE_JAWS_GROUP" "$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
-chmod 770 "$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME"
-chmod 770 "$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME"
 
+### SUPERVISORD
+echo "DEPLOY SUPERVISORD"
+[[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
+[[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $CENTRAL_PYTHON -m venv $SUPERVISOR_DIR/venv
+chgrp -R $CENTRAL_JAWS_GROUP $SUPERVISOR_DIR/{bin,venv}
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+function not_available() {
+  command -v $1 >/dev/null 2>&1
+}
+
+not_available "supervisord" || pip install supervisor
+
+function generate_shim() {
+prog=$1
+cat <<EOM > $SUPERVISOR_DIR/bin/$prog
+#!/usr/bin/env bash
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+$prog \$@
+EOM
+chmod +x $SUPERVISOR_DIR/bin/$prog
+}
+
+generate_shim supervisord
+generate_shim supervisorctl
+
+fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR"
+
+cat << EOM > $SUPERVISOR_DIR/supervisord-jaws-central.conf
+[inet_http_server]
+port=0.0.0.0:$JAWS_CENTRAL_SUPERVISOR_PORT
+username=jaws
+password=$CENTRAL_SUPERVISORD_PW
+
+[supervisord]
+logfile=$SUPERVISOR_DIR/jaws-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile=$SUPERVISOR_DIR/jaws-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisord-jaws-central-$DEPLOYMENT_NAME
+directory=$SUPERVISOR_DIR
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=$CENTRAL_SUPERVISOR_HOST:$JAWS_CENTRAL_SUPERVISOR_PORT
+username=jaws
+password=$CENTRAL_SUPERVISORD_PW
+prompt=supervisord-jaws-central-$DEPLOYMENT_NAME
+
+;----- Program Section
+
+[program:rest]
+command=$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:rpc]
+command=$SHIM_DIR/jaws-central-rpc-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:auth]
+command=$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[group:jaws-central-$DEPLOYMENT_NAME]
+programs=auth,rest,rpc
+priority=999
+EOM
+
+fix_perms "$CENTRAL_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws-central.conf"
+
+## START SERVICES
+echo "STARTING SERVICES"
+test -f $SUPERVISOR_DIR/supervisord-jaws-central.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws-central.conf start \
+jaws-central-$DEPLOYMENT_NAME:*
+
+## DONE
 printf "END deploy-central\n\n"

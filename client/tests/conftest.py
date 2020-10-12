@@ -646,7 +646,7 @@ task print {
 def inputs_json(tmp_path):
     inputs = tmp_path / "inputs.json"
     contents = """{
-    "workflow1.file": "path/to/file1", "workflow2.file": "path/to/file2"
+    "workflow1.file": "/path/to/file1", "workflow2.file": "/path/to/file2"
 }"""
     inputs.write_text(contents)
     return inputs.as_posix()
@@ -677,6 +677,22 @@ def refdata_inputs(tmp_path):
     contents = """{{
     "file1": "{0}",
       "runblastplus_sub.ncbi_nt": "/refdata/"
+}}
+""".format(text_file) # noqa
+
+    inputs.write_text(contents)
+    return tmp_path.as_posix()
+
+
+@pytest.fixture()
+def refdata_inputs_missing_slash(tmp_path):
+    inputs = tmp_path / "inputs.json"
+    text_file = tmp_path / "file1.txt"
+    text_file.write_text("This is a file.")
+
+    contents = """{{
+    "file1": "{0}",
+      "runblastplus_sub.ncbi_nt": "/refdata"
 }}
 """.format(text_file) # noqa
 

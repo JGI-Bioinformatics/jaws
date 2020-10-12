@@ -40,7 +40,7 @@ class Configuration(metaclass=Singleton):
             "host": "localhost",
             "port": "5672",
             "queue": "central_rpc",
-            "max_threads": 5,
+            "max_threads": 2,
             "max_retries": 3,
         },
         "HTTP": {"auth_url": "localhost", "auth_port": "3000", "rest_port": "5000"},

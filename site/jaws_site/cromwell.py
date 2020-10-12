@@ -129,7 +129,10 @@ class Task:
                 raise ValueError("Invalid attempt; of out range")
             else:
                 index = attempt - 1
-        return self.calls[index]["failures"]
+        if "failures" in self.calls[index]:
+            return self.calls[index]["failures"]
+        else:
+            return None
 
     def error(self, attempt=None):
         """
@@ -140,20 +143,21 @@ class Task:
         :rtype: str
         """
         failures = self.failures(attempt)
+        if not failures:
+            return None
         msgs = []
         for failure in failures:
             msg = failure["message"]
-            msg = msg[0:msg.index("Check the stderr file for possible errors: ")]
             msgs.append(msg)
+            for cause in failure["causedBy"]:
+                msgs.append(cause["message"])
         msg = "\n".join(msgs)
 
-        # append standard error
+        # append standard error (if exists)
         stderr_file = self.stderr(attempt)
-        if os.path.isfile(stderr_file):
+        if stderr_file and os.path.isfile(stderr_file):
             with open(stderr_file, "r") as file:
                 msg = f"{msg}\nstderr:\n" + file.read()
-        else:
-            msg = f"{msg}\n(stderr not included; file not found.)\n"
         return msg
 
     def stdout(self, attempt=None, src=None, dest=None):
@@ -338,7 +342,9 @@ class Metadata:
         """
         result = {}
         for task in self.tasks:
-            result[task.name] = task.error()
+            an_error = task.error()
+            if an_error:
+                result[task.name] = an_error
         return result
 
 

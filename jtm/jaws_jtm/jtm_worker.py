@@ -1087,7 +1087,9 @@ def worker(
         ), "Static or dynamic worker needs a cluster setting (-cl)."
 
     slurm_job_id = slurm_job_id_param
-    cluster_name = cluster_name_param.lower()
+    cluster_name = None
+    if cluster_name_param:
+        cluster_name = cluster_name_param.lower()
 
     if (
         cluster_name == "cori"

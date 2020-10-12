@@ -58,7 +58,10 @@ def auth() -> None:
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_pre_ping": True,
-        "pool_recycle": 300,
+        "pool_recycle": 3600,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30
     }
     db.init_app(connex.app)
 
@@ -67,8 +70,9 @@ def auth() -> None:
         try:
             db.create_all()
             db.session.commit()
-        except Exception as e:
-            logger.exception(f"Failed to create tables: {e}")
+        except Exception as error:
+            db.session.rollback()
+            logger.exception(f"Failed to create tables: {error}")
             raise
 
     # define port
@@ -104,7 +108,10 @@ def rest() -> None:
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_pre_ping": True,
-        "pool_recycle": 300,
+        "pool_recycle": 3600,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30
     }
     db.init_app(connex.app)
 
@@ -113,8 +120,9 @@ def rest() -> None:
         try:
             db.create_all()
             db.session.commit()
-        except Exception as e:
-            logger.exception(f"Failed to create tables: {e}")
+        except Exception as error:
+            db.session.rollback()
+            logger.exception(f"Failed to create tables: {error}")
             raise
 
     # init RPC clients
@@ -185,9 +193,10 @@ def add_user(
             db.session.commit()
             logger.info(f"Added new user {uid} ({email})")
             print(f"User's access token:\n{token}")
-        except Exception as e:
-            logger.exception(f"Failed to add user: {e}")
-            raise e
+        except Exception as error:
+            db.session.rollback()
+            logger.exception(f"Failed to add user: {error}")
+            raise error
 
 
 def jaws():

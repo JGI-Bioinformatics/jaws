@@ -208,7 +208,11 @@ class Daemon:
             if metadata is None:
                 return
             run.cromwell_workflow_dir = metadata.get("workflowRoot")
-            self.session.commit()
+            try:
+                self.session.commit()
+            except Exception as error:
+                self.session.rollback()
+                logger.exception(f"Error updating run: {error}")
             cromwell_status = metadata.get("status")
 
         # check if state has changed; allowed states and transitions for a successful run are:
@@ -308,7 +312,11 @@ class Daemon:
             outdir = metadata.get("workflowRoot")
             if outdir:
                 run.cromwell_workflow_dir = outdir
-                self.session.commit()
+                try:
+                    self.session.commit()
+                except Exception as error:
+                    self.session.rollback()
+                    logger.exception(f"Error updating run: {error}")
             else:
                 # This run failed before a folder was created; nothing to xfer
                 self.update_run_status(run, "download complete", "No run folder was created")
@@ -326,7 +334,11 @@ class Daemon:
             self.update_run_status(
                 run, "downloading", f"download_task_id={run.download_task_id}"
             )
-            self.session.commit()
+            try:
+                self.session.commit()
+            except Exception as error:
+                self.session.rollback()
+                logger.exception(f"Error updating run: {error}")
         # else ignore error; was logged; will try again later
 
     def check_if_download_complete(self, run):
@@ -346,7 +358,7 @@ class Daemon:
         elif globus_status == "FAILED":
             self.update_run_status(run, "download failed")
 
-    def update_run_status(self, run, new_status, reason=None):
+    def update_run_status(self, run, new_status, reason=""):
         """
         Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
         """
@@ -360,6 +372,7 @@ class Daemon:
             run.updated = timestamp
             self.session.commit()
         except Exception as error:
+            self.session.rollback()
             logger.exception(f"Unable to update Run {run.id}: {error}")
 
         # populate "reason" field
@@ -380,6 +393,7 @@ class Daemon:
             self.session.add(log_entry)
             self.session.commit()
         except Exception as error:
+            self.session.rollback()
             logger.exception(
                 f"Failed to insert log for Run {run.id} : {new_status}, {reason}: {error}"
             )
@@ -431,7 +445,11 @@ class Daemon:
                 if log.status_to == "running" and run.status == "queued":
                     self.update_run_status(run, "running")
 
-                self.session.commit()
+                try:
+                    self.session.commit()
+                except Exception as error:
+                    self.session.rollback()
+                    logger.exception(f"Error updating job log: {error}")
 
             # TRY TO GET task_name AND attempt FROM CROMWELL METADATA
             if cromwell_run_id == last_cromwell_run_id:
@@ -460,7 +478,11 @@ class Daemon:
                     # (Cromwell never received the job_id from JTM), so set task_name to "ORPHAN"
                     # to mark it as such and so it won't be picked up in the next round.
                     log.task_name = "ORPHAN"
-                    self.session.commit()
+                    try:
+                        self.session.commit()
+                    except Exception as error:
+                        self.session.rollback()
+                        logger.exception(f"Error updating job log: {error}")
                     continue
                 else:
                     # The Cromwell metadata could be a bit outdated; try again next time
@@ -473,7 +495,11 @@ class Daemon:
             task_dir = job_info[
                 "call_root"
             ]  # not saved in db but may be used below for xfer
-            self.session.commit()
+            try:
+                self.session.commit()
+            except Exception as error:
+                self.session.rollback()
+                logger.exception(f"Error updating job log: {error}")
 
             # if Task complete, then transfer output
             if log.status_to in ["success", "failed"] and task_dir:
@@ -557,5 +583,6 @@ class Daemon:
             try:
                 session.commit()
             except Exception as error:
+                session.commit()
                 logger.exception(f"Error updating run_logs as sent: {error}")
         session.close()

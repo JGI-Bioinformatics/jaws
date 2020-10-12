@@ -67,7 +67,7 @@ def test_create_destination_json(configuration, dap_seq_example):
 def test_src_json_inputs(configuration, inputs_json):
     uuid = "1234"
     inputs = jaws_client.workflow.WorkflowInputs(inputs_json, uuid)
-    expected = ["path/to/file1", "path/to/file2"]
+    expected = ["/path/to/file1", "/path/to/file2"]
 
     assert 2 == len(inputs.src_file_inputs)
 
@@ -253,9 +253,19 @@ def test_refdata_not_translated(refdata_inputs):
     inputs_json = os.path.join(refdata_inputs, "inputs.json")
     text_file = os.path.join(refdata_inputs, "file1.txt")
     inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
-    modified_json = inputs.prepend_paths_to_json("NERSC/staging")
-    expected = {"file1": "NERSC/staging" + text_file,
+    modified_json = inputs.prepend_paths_to_json("/remote/uploads/NERSC/staging")
+    expected = {"file1": "/remote/uploads/NERSC/staging" + text_file,
                 "runblastplus_sub.ncbi_nt": "/refdata/"}
+    dict_comparison(modified_json.inputs_json, expected)
+
+
+def test_refdata_in_different_form(refdata_inputs_missing_slash):
+    inputs_json = os.path.join(refdata_inputs_missing_slash, "inputs.json")
+    text_file = os.path.join(refdata_inputs_missing_slash, "file1.txt")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
+    modified_json = inputs.prepend_paths_to_json("/remote/uploads/NERSC/staging")
+    expected = {"file1": "/remote/uploads/NERSC/staging" + text_file,
+                "runblastplus_sub.ncbi_nt": "/refdata"}
     dict_comparison(modified_json.inputs_json, expected)
 
 
@@ -270,3 +280,14 @@ def test_refdata_in_inputs_json(refdata_inputs):
     inputs_json = os.path.join(refdata_inputs, "inputs.json")
     inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "12312")
     inputs.validate()
+
+
+def test_rel_path_in_input_files():
+    test_json = {
+        "fileX": "./fileX.txt",
+        "fileY": "../fileY.txt",
+        "fileZ": "/home/profx/fileZ.txt"
+    }
+    wf_inputs = jaws_client.workflow.WorkflowInputs('/home/profx/test/test.json', 'ABCDEF', test_json)
+    for path in wf_inputs.src_file_inputs:
+        assert path.startswith('/home/profx/')
