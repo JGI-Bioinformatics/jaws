@@ -59,17 +59,12 @@ def update_job_status(params):
     status_from = params["status_from"]
     status_to = params["status_to"]
     timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
-    reason = None
+    reason = ""
     if "reason" in params:
         reason = params["reason"]
-    if reason is not None:
-        logger.info(
-            f"Received job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}:{reason}"
-        )
-    else:
-        logger.info(
-            f"Received job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}"
-        )
+    logger.info(
+        f"Received job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}:{reason}"
+    )
 
     # DEFINE ROW
     try:

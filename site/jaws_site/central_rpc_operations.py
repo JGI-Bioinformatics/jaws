@@ -215,7 +215,7 @@ def get_task_log(params):
     try:
         session = Session()
         query = (
-            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp)
+            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
         )
     except SQLAlchemyError as error:
         logger.exception(f"Error selecting from job_logs: {error}")
@@ -226,7 +226,6 @@ def get_task_log(params):
     table = []
     for log in query:
         # replace None with empty string
-        reason = log.reason if log.reason else ""
         task_name = log.task_name
         if task_name is None:
             task_name = "<updating>"
@@ -240,7 +239,7 @@ def get_task_log(params):
             log.status_from,
             log.status_to,
             log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason,
+            log.reason,
         ]
         table.append(row)
     return _success(table)
@@ -255,7 +254,7 @@ def get_task_status(params):
     try:
         session = Session()
         query = (
-            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp)
+            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
         )
     except SQLAlchemyError as error:
         logger.exception(f"Error selecting from job_log: {error}")
@@ -263,7 +262,6 @@ def get_task_status(params):
     tasks = collections.OrderedDict()
     for log in query:
         task_name = log.task_name
-        reason = log.reason if log.reason else ""
         # keep only the latest log entry per task
         tasks[task_name] = [
             log.task_name,
@@ -272,7 +270,7 @@ def get_task_status(params):
             log.status_from,
             log.status_to,
             log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason,
+            log.reason,
         ]
         # this keeps the log entries sorted by timestamp
         tasks.move_to_end(task_name)
