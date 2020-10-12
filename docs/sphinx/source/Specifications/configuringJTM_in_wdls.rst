@@ -12,7 +12,7 @@ JTM Configuration options when creating WDL
 
 .. Warning::
 
-	Having multiple workers only makes sense if you are running a task in parallel via "scattering".
+    Having multiple workers only makes sense if you are running a task in parallel via "scattering".
 
 ****************************
 Table of available resources
@@ -27,7 +27,7 @@ On Cori, JAWS runs on a dedicated cluster.
 +=========+=====+==========+================+=====+=======+==============+
 | haswell |2,388|128 (118*)|genepool_special| 16  |   32  |  72          |
 +---------+-----+----------+----------------+-----+-------+--------------+
-|     knl |9,489| 96 (87*) | regular    	| 68  |  272  |  48          |
+|     knl |9,489| 96 (87*) | regular        | 68  |  272  |  48          |
 +---------+-----+----------+----------------+-----+-------+--------------+
 | skylake |  20 |758 (700*)| jgi_exvivo     | 32  |   32  | 168          |
 +---------+-----+----------+----------------+-----+-------+--------------+
