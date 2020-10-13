@@ -369,29 +369,3 @@ deploy-jaws-cascade-dev:
     name: "cascade/dev"
   script:
     - ./test/integration/deploy-jaws
-deploy-jaws-cascade-staging:
-  stage: deploy-jaws
-  tags:
-    - cascade
-  variables:
-    DEPLOYMENT_NAME: "staging"
-    JAWS_SITE: "CASCADE"
-  environment:
-    name: "cascade/staging"
-  script:
-    - ./test/integration/deploy-jaws
-  only:
-    - staging
-deploy-jaws-cascade-prod:
-  stage: deploy-jaws
-  tags:
-    - cascade
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "CASCADE"
-  environment:
-    name: "cascade/prod"
-  script:
-    - ./test/integration/deploy-jaws
-  only:
-    - master
