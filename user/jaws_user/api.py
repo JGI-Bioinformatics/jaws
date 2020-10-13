@@ -24,68 +24,67 @@ class UserAlreadyExistsError(Exception):
 
 
 class User:
-    def __init__(self, user_id, params=None):
-        """
-        Get existing user or create new if params specified.
-        """
-        self.user_id = user_id
-        if params:
-            self.__add_user(params)
+    def __init__(self, session=None):
+        self.data = None
+        if session:
+            self.session = session
         else:
-            self.__load_user(params)
+            self.session = db.session
 
-    def __add_user(self):
+    def create(self, user_id: str):
         """
         Insert new user into the db.
         """
         logger.info(f"Add user {self.user_id}")
-        session = db.Session()  # TODO parameterize
+        self.user_id = user_id
+
+        # check if user exists
         try:
-            user = session.query(db.User).get(self.user_id)
+            user = self.session.query(db.User).get(user_id)
         except SQLAlchemyError as error:
             raise DatabaseError(f"{error}")
         if user:
             raise UserAlreadyExistsError()
-        user = db.User(user_id=self.user_id)
-        session.add(user)
-        session.commit()
-        session.close()
 
-    def __load_user(self):
+        # insert
+        try:
+            self.data = db.User(user_id=self.user_id)
+            self.session.add(user)
+            self.session.commit()
+        except Exception as error:
+            self.session.rollback()
+            raise DatabaseError(f"{error}")
+
+    def load(self):
         """
         Retrieve an existing user's record from the db.
         """
         logger.debug(f"Get user {self.user_id}")
-        session = db.Session()
         try:
-            user = session.query(db.User).get(self.user_id)
+            self.data = self.session.query(db.User).get(self.user_id)
         except SQLAlchemyError as error:
-            session.rollback()
-            session.close()
+            self.session.rollback()
             raise DatabaseError(f"{error}")
-        session.close()
-        if user is None:
+        if self.data is None:
             raise UserNotFoundError()
-        self.data = user
 
-    def get_user(self):
+    def info(self):
         """
-        Return a dict of the user info; it is a copy of the data, not the ORM object.
-        This object cannot be manipulated by changing the dict.
+        Return a dict of the user info; it is a copy of the data, not the ORM object, so
+        the object cannot be manipulated by changing the dict.
         """
-        user = self.data
         result = {
-            "user_id": user.id,
-            "email": user.email,
-            "name": user.name,
-            "is_admin": user.admin,
-            "globus_id": user.globus_id,
-            "auth_refresh_token": user.auth_refresh_token,
-            "transfer_refresh_token": user.transfer_refresh_token,
+            "user_id": self.data.id,
+            "email": self.data.email,
+            "name": self.data.name,
+            "is_admin": self.data.admin,
+            "globus_id": self.data.globus_id,
+            "auth_refresh_token": self.data.auth_refresh_token,
+            "transfer_refresh_token": self.data.transfer_refresh_token,
         }
         return result
 
-    def update_user(self, auth_refresh_token, transfer_refresh_token):
+    def update(self, auth_refresh_token, transfer_refresh_token):
         """Save a user's Globus tokens.  Only the refresh tokens are required with the RefreshTokenAuthorizer
         and the refresh tokens never expire.  This is used when new users grant the jaws app globus access.
 
@@ -119,6 +118,4 @@ class User:
             session.commit()
         except Exception as error:
             session.rollback()
-            session.close()
             raise DatabaseError(f"{error}")
-        session.close()

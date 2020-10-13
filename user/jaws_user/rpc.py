@@ -4,7 +4,7 @@ JAWS User Service RPC methods
 
 import logging
 from jaws_rpc.responses import success, failure
-from jaws_user.api import User, DatabaseError, UserNotFoundError
+from jaws_user import api, db
 
 logger = logging.getLogger(__package__)
 
@@ -17,13 +17,15 @@ def get_user(params):
     Returns: dict of user information
     """
     try:
-        user = User(params["user_id"])
+        user = api.User(db.session)
+        user.load(params["user_id"])
+        result = user.info()
     except Exception as error:
         return failure(error)
-    return success(user)
+    return success(result)
 
 
-def update_user(params):
+def update(params):
     """
     Update user data.
 
@@ -31,8 +33,9 @@ def update_user(params):
     Return: None
     """
     try:
-        user = User(params["user_id"])
-        user.update_user(
+        user = api.User(db.session)
+        user.load(params["user_id"])
+        user.update(
             params["auth_refresh_token"],
             params["transfer_refresh_token"]
         )
