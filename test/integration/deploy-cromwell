@@ -66,7 +66,7 @@ if [ $SITE_CONTAINER_TYPE = "shifter" ]; then
   CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
   cat <<EOM > "$CONTAINER_WRAPPER"
 #!/usr/bin/env bash
-shifter --image=\$1 -V \$4:\$5 \$2 \$3
+shifter --image=\$1 -V \$2:\$3 \$4 \$5
 EOM
   chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
   chmod 775 "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
@@ -79,7 +79,7 @@ export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_DIR
 export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_DIR
 export SINGULARITY_TMPDIR=$SITE_CONTAINERS_DIR
 export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_DIR
-singularity exec --bind \$4:\$5 docker://\$1 \$2 \$3
+singularity exec --bind \$2:\$3 docker://\$1 \$4 \$5
 exit \$?
 EOM
   chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
@@ -193,7 +193,7 @@ $CONTAINER_CHECK
 [ -z \$QOS ] || QOS="--qos \$QOS"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
--cmd '$CONTAINER_WRAPPER \${docker} \${job_shell} \${script} $SITE_REF_DATA_DIR /refdata' \
+-cmd '$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}' \
 -cl \${cluster} \
 -t \${time} \
 -c \${cpu} \
