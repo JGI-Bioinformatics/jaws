@@ -60,7 +60,7 @@ def update_job_status(params):
     status_to = params["status_to"]
     timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
     reason = ""
-    if "reason" in params:
+    if "reason" in params and params["reason"] is not None:
         reason = params["reason"]
     logger.info(
         f"Received job status: {cromwell_run_id}:{cromwell_job_id}:{status_from}:{status_to}:{reason}"
