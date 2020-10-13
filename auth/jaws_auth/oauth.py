@@ -1,30 +1,19 @@
-import logging
 from flask import abort, request
-from jaws_auth.api import get_user
-
-logger = logging.getLogger(__package__)
+from jaws_auth import api
 
 
 def get_tokeninfo() -> dict:
     """
-    OAuth2 REST endpoint: validate token in HTTP header and return user info dictionary.
+    OAuth2: validate token in HTTP header and return user info dictionary.
     Abort on failure.
     """
-    # Extract token from header.  Discard "Bearer" keyword by splitting
+    auth_header = request.headers["Authorization"]
     try:
-        _, access_token = request.headers["Authorization"].split()
-    except Exception:
-        abort(401, "Authentication failure; invalid header")
-
-    # Get user record, if token exists
-    try:
-        user = get_user(access_token)
-    except Exception as error:
-        abort(500, f"Auth db unavailable: {error}; please try again later")
-
-    # Abort if invalid token or return uid and scopes
-    if user is None:
-        logger.info(f"Invalid token {access_token}")
+        user = api.User(auth_header)
+    except api.User.AuthInvalidHeader:
+        abort(401, "Invalid header")
+    except api.User.AuthDatabaseError as error:
+        abort(500, "Auth db unavailable; please try again later")
+    except api.User.AuthenticationError:
         abort(401, "Authentication failure")
-    else:
-        return user
+    return user.get_info()
