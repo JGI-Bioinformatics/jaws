@@ -1,5 +1,5 @@
 from flask import abort, request
-from jaws_auth import api
+from jaws_auth import api, db
 
 
 def get_tokeninfo() -> dict:
@@ -9,7 +9,7 @@ def get_tokeninfo() -> dict:
     """
     auth_header = request.headers["Authorization"]
     try:
-        user = api.User(auth_header)
+        user = api.User(auth_header, db.session)
     except api.User.AuthInvalidHeader:
         abort(401, "Invalid header")
     except api.User.AuthDatabaseError as error:
