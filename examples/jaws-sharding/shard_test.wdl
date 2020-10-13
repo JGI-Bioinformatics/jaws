@@ -52,7 +52,7 @@ task bbmap_indexing {
     File reference
 
     command {
-        shifter --image=jfroula/aligner-bbmap:1.0.0 bbmap.sh ref=${reference} 
+        shifter --image=jfroula/aligner-bbmap:2.0.1 bbmap.sh ref=${reference} 
     }
 
     output {
@@ -75,13 +75,13 @@ task alignment {
 		# we are piping a block of the fastq sequence to the aligner 
         shifter --image=jfroula/jaws-sharding:1.0.10 \
 		  shard_reader.py -i ${reads} -s $start -e $end | \
-        shifter --image=jfroula/aligner-bbmap:1.0.0 \
+        shifter --image=jfroula/aligner-bbmap:2.0.1 \
 		  bbmap.sh int in=stdin.fq path=${path_to_ref} out=${bname}.sam overwrite keepnames mappedonly threads=${threads}
 
 		# create a sorted bam file from the sam file
-		shifter --image=jfroula/aligner-bbmap:1.0.0 \
+		shifter --image=jfroula/aligner-bbmap:2.0.1 \
 		  samtools view -uS ${bname}.sam | \
-		shifter --image=jfroula/aligner-bbmap:1.0.0 \
+		shifter --image=jfroula/aligner-bbmap:2.0.1 \
 		  samtools sort - -o ${bname}.sorted.bam
     >>>
 
@@ -93,7 +93,7 @@ task merge_bams {
     Array[File] bams
 
     command {
-	  shifter --image=jfroula/aligner-bbmap:1.0.0 \
+	  shifter --image=jfroula/aligner-bbmap:2.0.1 \
 	    picard MergeSamFiles I=${sep=' I=' bams} OUTPUT=merged.sorted.bam SORT_ORDER=coordinate ASSUME_SORTED=true USE_THREADING=true
     }
 
