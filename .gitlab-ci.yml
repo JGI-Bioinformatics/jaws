@@ -10,7 +10,7 @@ variables:
 
   ## GLOBAL INSTALL VARIABLES:
   JAWS_SITES: "CORI JGI CASCADE"
-  JAWS_VERSION: "2.0.1"
+  JAWS_VERSION: "2.1"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_CENTRAL_RMQ_HOST: "rmq.lbl.gov"
