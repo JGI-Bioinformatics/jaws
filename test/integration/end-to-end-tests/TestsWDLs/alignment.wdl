@@ -82,7 +82,7 @@ task bbmap_indexing {
     }
 
     runtime {
-        docker: "jfroula/aligner-bbmap:1.1.9"
+        docker: "jfroula/aligner-bbmap:2.0.1"
 	    poolname: "extrasmall"
         shared: 0
         node: 1
@@ -122,7 +122,7 @@ task alignment {
     }
 
     runtime {
-        docker: "jfroula/aligner-bbmap:1.1.9"
+        docker: "jfroula/aligner-bbmap:2.0.1"
         poolname: "extrasmall"
         shared: 0
         node: 1
@@ -143,7 +143,7 @@ task merge_bams {
     }
 
     runtime {
-        docker: "jfroula/aligner-bbmap:1.1.9"
+        docker: "jfroula/aligner-bbmap:2.0.1"
         poolname: "extrasmall"
         shared: 0
         node: 1
