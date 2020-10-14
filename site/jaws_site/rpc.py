@@ -9,9 +9,8 @@ import sqlalchemy.exc
 from sqlalchemy.exc import SQLAlchemyError
 import collections
 from jaws_site import config, jaws_constants
-from jaws_site.cromwell import Cromwell
-from jaws_site.database import Session
-from jaws_site.models import Run, Job_Log
+from jaws_site.api.cromwell import Cromwell
+from jaws_site.db import Session, Run, Job_Log
 
 
 # config and logging must be initialized before importing this module
@@ -285,6 +284,51 @@ def get_task_status(params):
     return _success(result)
 
 
+def update_job_status(params):
+    """JTM shall post changes in tasks' state"""
+    task_id = params["cromwell_job_id"]  # TODO change to task_id
+    status_from = params["status_from"]
+    status_to = params["status_to"]
+    timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
+    reason = params.get("reason", "")
+    if reason is None:
+        reason = ""
+    logger.info(
+        f"Received job status: {task_id}:{status_from}:{status_to}:{reason}"
+    )
+
+    # DEFINE ROW
+    try:
+        task_log = Task_Log(
+            task_id=task_id,
+            status_from=status_from,
+            status_to=status_to,
+            timestamp=timestamp,
+            reason=reason,
+        )
+    except Exception as error:
+        logger.exception(f"Invalid task log, {params}: {error}")
+        return _failure(500, f"Invalid task log, {params}: {error}")
+
+    # INSERT OR IGNORE
+    session = Session()
+    try:
+        session.add(task_log)
+        session.commit()
+        logger.debug(f"Job {task_id} status saved")
+    except sqlalchemy.exc.IntegrityError:
+        # JTM sometimes sends duplicate messages; ignore
+        session.rollback()
+        logger.warning(f"Job {task_id} status is duplicate; ignored")
+    except Exception as error:
+        session.rollback()
+        session.close()
+        logger.exception(f"Task {task_id} status not saved: {error}")
+        return _failure(500, f"Failed to insert task {task_id} log: {error}")
+    session.close()
+    return _success()
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -321,4 +365,14 @@ operations = {
         "function": get_errors,
         "required_params": ["user_id", "cromwell_run_id"],
     },
+    "update_job_status": {
+        "function": update_job_status,
+        "required_params": [
+            "cromwell_run_id",
+            "cromwell_job_id",
+            "status_from",
+            "status_to",
+            "timestamp",
+        ],
+    }
 }

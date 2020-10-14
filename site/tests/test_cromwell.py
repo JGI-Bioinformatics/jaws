@@ -1,5 +1,5 @@
 from deepdiff import DeepDiff
-from jaws_site import cromwell
+from jaws_site.api import cromwell
 
 WORKFLOW_ID_EX1 = "ee30d68f-39d4-4fde-85c2-afdecce2bad3"  # simple successful run
 WORKFLOW_ID_EX2_MAIN = "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"  # successful run, with subworkflows

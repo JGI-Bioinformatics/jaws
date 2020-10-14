@@ -10,10 +10,9 @@ import globus_sdk
 import logging
 import re
 from datetime import datetime
-from jaws_site.database import Session
-from jaws_site.models import Run, Run_Log, Job_Log
+from jaws_site.db import Session, Run, Run_Log, Job_Log
 from jaws_site import config
-from jaws_site.cromwell import Cromwell
+from jaws_site.api.cromwell import Cromwell
 from jaws_rpc import rpc_client
 
 

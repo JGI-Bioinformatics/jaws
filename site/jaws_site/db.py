@@ -1,10 +1,32 @@
-"""
-SQLAlchemy models for persistent data structures.
-"""
-
+import logging
 from datetime import datetime
-from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey
-from jaws_site.database import Base
+from urllib.parse import quote_plus
+from sqlalchemy import create_engine, Column, DateTime, String, Integer, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, scoped_session
+from jaws_site import config
+
+logger = logging.getLogger(__package__)
+
+params = config.conf.get_section("DB")
+logger.info(f"Connecting to db, {params.get('db')} @ {params.get('host')}")
+url = "%s://%s:%s@%s:%s/%s" % (
+    params.get("dialect"),
+    params.get("user"),
+    quote_plus(params.get("password").encode('utf-8')),
+    params.get("host"),
+    params.get("port"),
+    params.get("db"))
+try:
+    engine = create_engine(url, pool_size=15, max_overflow=30, pool_recycle=3600, pool_timeout=30, pool_pre_ping=True)
+except Exception as error:
+    logger.exception(error)
+    raise
+
+Session = scoped_session(sessionmaker(bind=engine))
+Session.configure(bind=engine)
+
+Base = declarative_base()
 
 
 class Run(Base):
@@ -64,6 +86,22 @@ class Job_Log(Base):
     status_to = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=False, default="")
+
+
+class Task_Log(Base):
+    """
+    Task state transitions log.
+    """
+
+    __tablename__ = "task_logs"
+    id = Column(Integer, primary_key=True)
+    cromwell_run_id = Column(String(36), nullable=False)
+    task_id = Column(Integer, nullable=False)
+    status_from = Column(String(32), nullable=False)
+    status_to = Column(String(32), nullable=False)
+    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
+    reason = Column(String(1024), nullable=False, default="")
+    UniqueConstraint("task_id", "status_from")
 
 
 def create_all(engine, session):

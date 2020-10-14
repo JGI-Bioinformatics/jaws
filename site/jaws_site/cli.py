@@ -63,10 +63,9 @@ def daemon() -> None:
     """Start daemon."""
 
     # create tables if not exists
-    from jaws_site.database import engine, Session
-    from jaws_site import models
-    session = Session()
-    models.create_all(engine, session)
+    from jaws_site import db
+    session = db.Session()
+    db.create_all(db.engine, session)
 
     # start daemon process
     from jaws_site import daemon
