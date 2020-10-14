@@ -126,7 +126,7 @@ When you are convinced the docker image is good, you can register it with `hub.d
 5) Test your image on cori
 --------------------------
 
-Test the docker container on cori.NERSC.gov. You'll need to use the shifter command instead of docker to run your workflow, but the image is the same. More about `shifter at NERSC <https://docs.NERSC.gov/programming/shifter/how-to-use/>`_.
+Test the docker container on cori.NERSC.gov. You'll need to use the shifter command instead of docker to run your workflow, but the image is the same. More about `shifter at NERSC <https://docs.nersc.gov/development/shifter/how-to-use/>`_.
 
 example:
 
