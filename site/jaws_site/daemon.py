@@ -583,6 +583,6 @@ class Daemon:
             try:
                 session.commit()
             except Exception as error:
-                session.commit()
+                session.rollback()
                 logger.exception(f"Error updating run_logs as sent: {error}")
         session.close()
