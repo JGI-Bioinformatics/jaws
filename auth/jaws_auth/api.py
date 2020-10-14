@@ -1,6 +1,6 @@
 import logging
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_auth.db import db, User
+from jaws_auth import db
 
 logger = logging.getLogger(__package__)
 
@@ -17,11 +17,11 @@ class AuthenticationFailure(Exception):
     pass
 
 
-class User():
-
-    def __init__(self, auth_header: str, session: db.Session=None):
+class User:
+    def __init__(self, auth_header: str, session: db.Session = None):
         """
-        Get user from db, if token exists.
+        Get user from db, if token exists.  Abort otherwise.
+
         :param token: HTTP authorization header
         :type token: str
         :return: user record or None if user not found
@@ -43,7 +43,9 @@ class User():
         # query db
         try:
             row = (
-                session.query(User).filter(User.access_token == access_token).one_or_none()
+                self.session.query(db.User)
+                .filter(User.access_token == access_token)
+                .one_or_none()
             )
         except SQLAlchemyError as error:
             logger.exception(f"Select failed: {error}")
@@ -51,15 +53,22 @@ class User():
 
         # raise if invalid token
         if not row:
+            logger.warn(f"Invalid token {access_token}")
             raise AuthenticationFailure()
 
         self.data = row
 
     def get_info(self):
         """
-        Get dict of uid and scopes.
+        Get info about current user.
+
+        :return: uid (str) and scopes (list):
+        :rtype: dict
         """
-        user = {"uid": self.data.id, "scopes": ["user"]}
+        user_info = {
+            "uid": self.data.id,
+            "scopes": ["user"]
+        }
         if self.data.is_admin:
-            user["scopes"].append("admin")
-        return user
+            user_info["scopes"].append("admin")
+        return user_info
