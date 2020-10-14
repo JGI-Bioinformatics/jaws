@@ -8,6 +8,7 @@ import logging
 import connexion
 from urllib.parse import quote_plus
 import secrets
+from sqlalchemy.pool import QueuePool
 from jaws_central import config, log
 from jaws_central.models_fsa import db
 from jaws_rpc import rpc_index, rpc_server
@@ -57,6 +58,7 @@ def auth() -> None:
     connex.app.config["SQLALCHEMY_ECHO"] = False
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        'poolclass': QueuePool,
         "pool_pre_ping": True,
         "pool_recycle": 3600,
         "pool_size": 5,
@@ -107,6 +109,7 @@ def rest() -> None:
     connex.app.config["SQLALCHEMY_ECHO"] = False
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        'poolclass': QueuePool,
         "pool_pre_ping": True,
         "pool_recycle": 3600,
         "pool_size": 5,
