@@ -65,7 +65,7 @@ class Daemon:
     def _init_rpc_client(self):
         """Init RPC client for call Central functions"""
         try:
-            self.rpc_client = rpc_client.RPC_Client(
+            self.rpc_client = rpc_client.RpcClient(
                 config.conf.get_section("CENTRAL_RPC_CLIENT")
             )
         except Exception as error:

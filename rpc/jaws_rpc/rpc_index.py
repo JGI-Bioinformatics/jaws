@@ -1,4 +1,4 @@
-"""RPC_Index is a singleton which stores one or more RPC_Client objects.
+"""RpcIndex is a singleton which stores one or more RpcClient objects.
 It is useful if you wish to maintain a persistent shared object or
 have many RPC Servers to communicate with."""
 
@@ -21,12 +21,12 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-class RPC_IndexError(Exception):
+class RpcIndexError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
 
-class RPC_Index(metaclass=Singleton):
+class RpcIndex(metaclass=Singleton):
     """Singleton which contains dictionary of site_id => rpc_client objects"""
 
     clients = {}
@@ -36,12 +36,12 @@ class RPC_Index(metaclass=Singleton):
 
         :param params: site_id => { amqp connection parameters }
         :type: dict
-        :return: RPC_Index object
+        :return: RpcIndex object
         :rtype: obj
         """
         for site_id in params:
             logger.info(f"Initializing RPC client for {site_id}: {params}")
-            self.clients[site_id] = rpc_client.RPC_Client(params[site_id])
+            self.clients[site_id] = rpc_client.RpcClient(params[site_id])
         global rpc_index
         rpc_index = self
 
@@ -63,7 +63,7 @@ class RPC_Index(metaclass=Singleton):
         """
         site_id = site_id.upper()
         if site_id not in self.clients:
-            raise RPC_IndexError(f"Unknown Site, {site_id}")
+            raise RpcIndexError(f"Unknown Site, {site_id}")
         return self.clients[site_id]
 
     def is_valid_site(self, site_id: str) -> bool:

@@ -23,7 +23,7 @@ def configuration(config_file):
 
 
 def test_status():
-    rpci1 = rpc_index.RPC_Index({})
+    rpci1 = rpc_index.RpcIndex({})
     rpci2 = rpc_index.rpc_index
     assert rpci1 == rpci2
     sites = rpci1.get_sites()
