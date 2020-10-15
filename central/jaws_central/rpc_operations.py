@@ -51,10 +51,12 @@ def update_run_logs(params):
         session.commit()
     except sqlalchemy.exc.IntegrityError:
         session.rollback()
+        session.close()
         logger.warning(f"Run log {run_id}:{status_to} is duplicate; ignored")
         return success()
     except Exception as error:
         session.rollback()
+        session.close()
         return failure(error)
 
     # UPDATE RUNS TABLE
@@ -79,7 +81,8 @@ def update_run_logs(params):
         session.rollback()
         session.close()
         return failure(error)
-    session.close()
+    finally:
+        session.close()
     return success()
 
 
