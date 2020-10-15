@@ -2,6 +2,7 @@ Click==7.0
 clickclick==1.2.2
 configparser==4.0.2
 connexion==2.4.0
+deepdiff
 Flask==1.1.1
 Flask-SQLAlchemy==2.4.1
 mysql-connector-python==8.0.18
