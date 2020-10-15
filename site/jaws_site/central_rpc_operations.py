@@ -2,8 +2,6 @@
 RPC functions for Central.  Most of these simply wrap the localhost Cromwell REST functions.
 """
 
-import requests
-from http.client import responses
 import logging
 import sqlalchemy.exc
 from sqlalchemy.exc import SQLAlchemyError
@@ -12,45 +10,12 @@ from jaws_site import config, jaws_constants
 from jaws_site.cromwell import Cromwell
 from jaws_site.database import Session
 from jaws_site.models import Run, Job_Log
+from jaws_rpc.responses import success, failure
 
 
 # config and logging must be initialized before importing this module
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 logger = logging.getLogger(__package__)
-
-
-# HELPER FUNCTIONS FOR FORMATTING JSON-RPC2 RESPONSES:
-
-
-def _success(result={}):
-    """Return a JSON-RPC2 successful result message.
-
-    :param result: The result returned by a successful RPC call.
-    :type result: str|int|dict|list
-    :return: JSON-RPC2 formatted response
-    :rtype: str
-    """
-    return {"jsonrpc": "2.0", "result": result}
-
-
-def _failure(code, message=None):
-    """Return a JSON-RPC2 error message.
-
-    :param code: The error code returned by the RPC call
-    :type code: int
-    :param message: The error message returned by the RPC call
-    :type message: str, optional
-    :return: JSON-RPC2 formatted response
-    :rtype: dict
-    """
-    if message is None:
-        message = (
-            responses["status_code"] if "status_code" in responses else "Unknown error"
-        )
-    return {"jsonrpc": "2.0", "error": {"code": code, "message": message}}
-
-
-# RPC OPERATIONS:
 
 
 def server_status(params):
@@ -63,12 +28,9 @@ def server_status(params):
     logger.info("Check server status")
     try:
         status = cromwell.status()
-    except requests.exceptions.HTTPError as error:
-        logger.exception(f"Failed to get server status: {error}")
-        return _failure(
-            error.response.status_code, f"Failed to get server status: {error}"
-        )
-    return _success(status)
+    except Exception as error:
+        return failure(error)
+    return success(status)
 
 
 def run_metadata(params):
@@ -84,19 +46,15 @@ def run_metadata(params):
     cromwell_run_id = params["cromwell_run_id"]
     logger.info(f"User {user_id}: Get metadata for Run {run_id}")
     if cromwell_run_id is None:
-        return _success(
+        return success(
             f"Run {run_id} hasn't been submitted to Cromwell, so has no metadata."
         )
     logger.info(f"{user_id} - Run {run_id} - Get metadata")
     try:
         result = cromwell.get_all_metadata(cromwell_run_id)
-    except requests.exceptions.HTTPError as error:
-        logger.exception(f"Get metadata for {params['run_id']} failed: {error}")
-        return _failure(error.response.status_code, f"Failed to get metadata: {error}")
     except Exception as error:
-        logger.exception(f"Get metadata for {params['run_id']} failed: {error}")
-        return _failure(500, f"Unable to retrieve metadata: {error}")
-    return _success(result)
+        return failure(error)
+    return success(result)
 
 
 def cancel_run(params):
@@ -121,7 +79,7 @@ def cancel_run(params):
         logger.exception(f"Error selecting on runs table: {error}")
     if not run:
         logger.debug(f"Run {run_id} not found")
-        return _success()
+        return success()
 
     cromwell_run_id = run.cromwell_run_id
     status = run.status
@@ -130,8 +88,7 @@ def cancel_run(params):
         session.commit()
     except Exception as error:
         session.rollback()
-        logger.exception(f"Error updating Run {run_id}: {error}")
-        return _failure(500, f"Error updating db record: {error}")
+        return failure(error)
     logger.debug(f"Run {run_id} cancelled")
 
     # tell Cromwell to cancel the run if it has been submitted to Cromwell already
@@ -139,16 +96,10 @@ def cancel_run(params):
         logger.debug(f"Run {run_id} is {status}: Instructing Cromwell to cancel")
         try:
             cromwell.abort(cromwell_run_id)
-        except requests.exceptions.HTTPError as error:
-            logger.exception(f"Error aborting cromwell {cromwell_run_id}: {error}")
-            return _failure(500, f"Cromwell returned an error: {error}")
         except Exception as error:
-            logger.exception(
-                f"Unknown error aborting cromwell {cromwell_run_id}: {error}"
-            )
-            return _failure(500, f"Failed to instruct Cromwell to abort: {error}")
+            return failure(error)
     result = {"cancel": "OK"}
-    return _success(result)
+    return success(result)
 
 
 def get_errors(params):
@@ -164,18 +115,14 @@ def get_errors(params):
     cromwell_run_id = params["cromwell_run_id"]
     logger.info(f"User {user_id}: Get errors for Run {run_id}")
     if cromwell_run_id is None:
-        return _success(f"Run {run_id} hasn't been submitted to Cromwell.")
+        return success(f"Run {run_id} hasn't been submitted to Cromwell.")
     logger.info(f"{user_id} - Run {run_id} - Get errors")
     try:
         metadata = cromwell.get_metadata(cromwell_run_id)
         result = metadata.errors()
-    except requests.exceptions.HTTPError as error:
-        logger.exception(f"Get errors for {params['run_id']} failed: {error}")
-        return _failure(error.response.status_code, f"Failed to get errors: {error}")
     except Exception as error:
-        logger.exception(f"Get errors for {params['run_id']} failed: {error}")
-        return _failure(500, f"Unable to retrieve errors: {error}")
-    return _success(result)
+        return failure(error)
+    return success(result)
 
 
 def submit(params):
@@ -196,17 +143,15 @@ def submit(params):
             status="uploading",
         )
     except Exception as error:
-        logger.exception(f"Invalid submit run input; {error}: {params}")
-        return _failure(400, f"Invalid input; {error}")
+        return failure(error)
     session = Session()
     try:
         session.add(run)
         session.commit()
     except Exception as error:
         session.rollback()
-        logger.exception(f"Failed to insert new Run record: {error}")
-        return _failure(500, f"Failed to insert new Run record: {error}")
-    return _success()
+        return failure(error)
+    return success()
 
 
 def get_task_log(params):
@@ -218,11 +163,9 @@ def get_task_log(params):
             session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
         )
     except SQLAlchemyError as error:
-        logger.exception(f"Error selecting from job_logs: {error}")
-        return _failure(500, f"Db error; {error}")
+        return failure(error)
     except Exception as error:
-        logger.exception(f"Error selecting from job_logs: {error}")
-        return _failure(500, f"Db error; {error}")
+        return failure(error)
     table = []
     for log in query:
         # replace None with empty string
@@ -242,7 +185,7 @@ def get_task_log(params):
             log.reason,
         ]
         table.append(row)
-    return _success(table)
+    return success(table)
 
 
 def get_task_status(params):
@@ -256,9 +199,8 @@ def get_task_status(params):
         query = (
             session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
         )
-    except SQLAlchemyError as error:
-        logger.exception(f"Error selecting from job_log: {error}")
-        return _failure(500, f"Db error; {error}")
+    except Exception as error:
+        return failure(error)
     tasks = collections.OrderedDict()
     for log in query:
         task_name = log.task_name
@@ -282,7 +224,7 @@ def get_task_status(params):
     for row in result:
         status_to = row[4]
         row.append(jaws_constants.task_status_msg.get(status_to, ""))
-    return _success(result)
+    return success(result)
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
