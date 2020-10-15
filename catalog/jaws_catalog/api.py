@@ -6,7 +6,7 @@ from datetime import datetime
 import logging
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Tuple
-from jaws_catalog import db
+from jaws_catalog import database
 
 logger = logging.getLogger(__package__)
 
@@ -15,7 +15,7 @@ class DatabaseError(Exception):
     pass
 
 
-class AuthenticationError(Exception):
+class PermissionsError(Exception):
     pass
 
 
@@ -32,11 +32,11 @@ class InvalidInputError(Exception):
 
 
 class Catalog:
-    def __init__(self, session: db.Session = None):
+    def __init__(self, session: database.db.Session = None):
         if session:
             self.session = session
         else:
-            self.session = db.session
+            self.session = database.db.session
 
     def list_wdls(self) -> Tuple[dict, int]:
         """Retrieve workflows from database.
@@ -47,8 +47,8 @@ class Catalog:
         logger.debug("List workflows")
         try:
             query = (
-                self.session.query(db.Workflow)
-                .filter(db.Workflow.is_deprecated == 0)
+                self.session.query(database.Workflow)
+                .filter(database.Workflow.is_deprecated == 0)
                 .all()
             )
         except SQLAlchemyError as error:
@@ -81,8 +81,8 @@ class Catalog:
         logger.debug(f"Get version of workflow {name}")
         try:
             query = (
-                self.session.query(db.Workflow)
-                .filter(db.Workflow.name == name, db.Workflow.is_deprecated == 0)
+                self.session.query(database.Workflow)
+                .filter(database.Workflow.name == name, database.Workflow.is_deprecated == 0)
                 .all()
             )
         except SQLAlchemyError as error:
@@ -115,7 +115,7 @@ class Catalog:
         logger.debug(f"Get README of {name}")
         try:
             workflow = (
-                self.session.query(db.Workflow)
+                self.session.query(database.Workflow)
                 .filter_by(name=name, version=version)
                 .one_or_none()
             )
@@ -123,7 +123,7 @@ class Catalog:
             logger.error(error)
             raise DatabaseError(error)
         if not workflow:
-            raise WorkflowNotFoundError("db.Workflow not found")
+            raise WorkflowNotFoundError("database.Workflow not found")
         return workflow.doc
 
     def get_wdl(self, name: str, version: str) -> Tuple[str, int]:
@@ -139,7 +139,7 @@ class Catalog:
         logger.debug("Get WDL of {name}")
         try:
             workflow = (
-                self.session.query(db.Workflow)
+                self.session.query(database.Workflow)
                 .filter_by(name=name, version=version)
                 .one_or_none()
             )
@@ -147,7 +147,7 @@ class Catalog:
             logger.error(error)
             raise DatabaseError(error)
         if not workflow:
-            raise WorkflowNotFoundError("db.Workflow not found")
+            raise WorkflowNotFoundError("database.Workflow not found")
         return workflow.wdl
 
     def get_owner(self, name: str, version: str) -> str:
@@ -164,7 +164,7 @@ class Catalog:
         logger.debug(f"Get owner of {name}:{version}")
         try:
             workflow = (
-                self.session.query(db.Workflow)
+                self.session.query(database.Workflow)
                 .filter_by(name=name, version=version)
                 .one_or_none()
             )
@@ -172,7 +172,7 @@ class Catalog:
             logger.error(error)
             raise DatabaseError(error)
         if workflow is None:
-            raise WorkflowNotFoundError("db.Workflow not found")
+            raise WorkflowNotFoundError("database.Workflow not found")
         return workflow.user_id
 
     def release_wdl(self, user: str, name: str, version: str) -> Tuple[dict, int]:
@@ -189,7 +189,7 @@ class Catalog:
         logger.debug(f"Release workflow, {name}:{version}")
         try:
             workflow = (
-                self.session.query(db.Workflow)
+                self.session.query(database.Workflow)
                 .filter_by(name=name, version=version)
                 .one_or_none()
             )
@@ -197,9 +197,9 @@ class Catalog:
             logger.error(error)
             raise DatabaseError(error)
         if workflow is None:
-            raise WorkflowNotFoundError("db.Workflow not found")
+            raise WorkflowNotFoundError("database.Workflow not found")
         if workflow.user_id != user:
-            raise AuthenticationError("User is not owner")
+            raise PermissionsError("User is not owner")
         workflow.is_released = True
         try:
             self.session.commit()
@@ -222,7 +222,7 @@ class Catalog:
         logger.debug(f"Delete workflow, {name}:{version}")
         try:
             workflow = (
-                self.session.query(db.Workflow)
+                self.session.query(database.Workflow)
                 .filter_by(name=name, version=version)
                 .one_or_none()
             )
@@ -230,9 +230,9 @@ class Catalog:
             logger.error(error)
             raise DatabaseError(error)
         if workflow is None:
-            raise WorkflowNotFoundError("db.Workflow not found")
+            raise WorkflowNotFoundError("database.Workflow not found")
         if workflow.user_id != user:
-            raise AuthenticationError("User is not owner")
+            raise PermissionsError("User is not owner")
         if workflow.is_released:
             try:
                 workflow.is_deprecated = True
@@ -273,7 +273,7 @@ class Catalog:
         version = version.lower().replace(" ", "_").replace(":", "__")
         try:
             workflow = (
-                self.session.query(db.Workflow)
+                self.session.query(database.Workflow)
                 .filter_by(name=name, version=version)
                 .one_or_none()
             )
@@ -281,11 +281,11 @@ class Catalog:
             logger.error(error)
             raise DatabaseError(error)
         if workflow is None:
-            raise WorkflowNotFoundError("db.Workflow not found, check the name/version")
+            raise WorkflowNotFoundError("database.Workflow not found, check the name/version")
         if workflow.user_id != user:
-            raise AuthenticationError("You are not the owner of this workflow")
+            raise PermissionsError("You are not the owner of this workflow")
         if workflow.is_released is True:
-            raise db.WorkflowImmutableError(
+            raise database.WorkflowImmutableError(
                 "The WDL of a 'released' workflow cannot be updated, only deleted"
             )
         try:
@@ -318,7 +318,7 @@ class Catalog:
         version = version.lower().replace(" ", "_").replace(":", "__")
         try:
             workflow = (
-                self.session.query(db.Workflow)
+                self.session.query(database.Workflow)
                 .filter_by(name=name, version=version)
                 .one_or_none()
             )
@@ -326,9 +326,9 @@ class Catalog:
             logger.error(error)
             raise DatabaseError(error)
         if workflow is None:
-            raise WorkflowNotFoundError("db.Workflow not found")
+            raise WorkflowNotFoundError("database.Workflow not found")
         if workflow.user_id != user:
-            raise AuthenticationError("User is not owner")
+            raise PermissionsError("User is not owner")
         try:
             workflow.doc = new_doc
             self.session.commit()
@@ -361,7 +361,7 @@ class Catalog:
         logger.debug(f"Add new workflow, {name}:{version}")
         try:
             workflow = (
-                self.session.query(db.Workflow)
+                self.session.query(database.Workflow)
                 .filter_by(name=name, version=version)
                 .one_or_none()
             )
@@ -371,7 +371,7 @@ class Catalog:
         if workflow is not None:
             raise InvalidInputError("A workflow with that name:version already exists")
         now = datetime.now()
-        workflow = db.Workflow(
+        workflow = database.Workflow(
             name=name,
             version=version,
             user_id=user,

@@ -1,10 +1,8 @@
-"""Flask-SQLAlchemy db and models."""
-
 import datetime
-from flask_sqlalchemy import SQLAlchemy
+import flask_sqlalchemy
 
 
-db = SQLAlchemy()
+db = flask_sqlalchemy.SQLAlchemy()
 
 
 def same_as(column_name: str):

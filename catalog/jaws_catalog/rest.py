@@ -6,7 +6,15 @@ from flask import abort, request
 import markdown
 import logging
 from typing import Tuple
-from jaws_catalog import api, db
+from jaws_catalog.api import (
+    Catalog,
+    DatabaseError,
+    PermissionsError,
+    WorkflowNotFoundError,
+    WorkflowImmutableError,
+    InvalidInputError,
+)
+from jaws_catalog.database import db
 
 
 logger = logging.getLogger(__package__)
@@ -22,9 +30,9 @@ def list_wdls(user: str) -> Tuple[dict, int]:
     """
     logger.info(f"User {user}: List workflows")
     try:
-        catalog = api.Catalog(db.session)
+        catalog = Catalog(db.session)
         result = catalog.list_wdls()
-    except api.DatabaseError as error:
+    except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
     return result, 200
 
@@ -41,11 +49,11 @@ def get_versions(user: str, name: str) -> Tuple[dict, int]:
     """
     logger.info(f"User {user}: Get version of workflow {name}")
     try:
-        catalog = api.Catalog(db.session)
+        catalog = Catalog(db.session)
         result = catalog.get_versions(name)
-    except api.WorkflowNotFoundError:
+    except WorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}")
-    except api.DatabaseError as error:
+    except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
     return result, 200
 
@@ -64,11 +72,11 @@ def get_doc(user: str, name: str, version: str) -> Tuple[str, int]:
     """
     logger.info(f"User {user}: Get README of {name}:{version}")
     try:
-        catalog = api.Catalog(db.session)
+        catalog = Catalog(db.session)
         doc = catalog.get_doc(name, version)
-    except api.WorkflowNotFoundError:
+    except WorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
-    except api.DatabaseError as error:
+    except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
     return markdown.markdown(doc), 200
 
@@ -87,11 +95,11 @@ def get_wdl(user: str, name: str, version: str) -> Tuple[str, int]:
     """
     logger.info(f"User {user}: Get WDL of {name}:{version}")
     try:
-        catalog = api.Catalog(db.session)
+        catalog = Catalog(db.session)
         wdl = catalog.get_wdl(name, version)
-    except api.WorkflowNotFoundError:
+    except WorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
-    except api.DatabaseError as error:
+    except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
     return wdl, 200
 
@@ -110,13 +118,13 @@ def release_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     """
     logger.info(f"User {user}: Release workflow, {name}:{version}")
     try:
-        catalog = api.Catalog(db.session)
+        catalog = Catalog(db.session)
         catalog.release_wdl(user, name, version)
-    except api.WorkflowNotFoundError:
+    except WorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
-    except api.AuthenticationError:
+    except PermissionsError:
         abort(401, "Access denied; only the owner may release a workflow.")
-    except api.DatabaseError as error:
+    except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
     return {"result": "OK"}, 200
 
@@ -135,14 +143,14 @@ def del_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     """
     logger.info(f"User {user}: Delete workflow, {name}:{version}")
     try:
-        catalog = api.Catalog(db.session)
+        catalog = Catalog(db.session)
         catalog.del_wdl(user, name, version)
-    except api.WorkflowNotFoundError:
+    except WorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
-    except api.AuthenticationError:
+    except PermissionsError:
         logger.info(f"Not allowing user {user} to delete workflow {name}:{version}")
         abort(401, "Access denied; only the owner may delete a workflow.")
-    except api.DatabaseError as error:
+    except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
     return {"result": "OK"}, 200
 
@@ -163,6 +171,7 @@ def update_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     """
     logger.info(f"User {user}: Update WDL of {name}:{version}")
 
+    # get WDL file
     if "wdl_file" not in request.files or not request.files["wdl_file"]:
         abort(400, "Bad request: New WDL not provided")
     wdl_file = request.files["wdl_file"]
@@ -170,16 +179,17 @@ def update_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     if not new_wdl:
         abort(400, "Bad request: New WDL is empty")
 
+    # update entry
     try:
-        catalog = api.Catalog(db.session)
+        catalog = Catalog(db.session)
         catalog.update_wdl(user, name, version, new_wdl)
-    except api.WorkflowNotFoundError as error:
+    except WorkflowNotFoundError as error:
         abort(404, f"Workflow not found: {error}")
-    except api.AuthenticationError as error:
+    except PermissionsError as error:
         abort(401, f"Access denied: {error}")
-    except api.WorkflowImmutableError as error:
+    except WorkflowImmutableError as error:
         abort(400, f"Action not allowed: {error}")
-    except api.DatabaseError as error:
+    except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
     return {"result": "OK"}, 200
 
@@ -200,6 +210,7 @@ def update_doc(user: str, name: str, version: str) -> Tuple[dict, int]:
     """
     logger.info(f"User {user}: Update README of {name}:{version}")
 
+    # get markdown file
     if "md_file" not in request.files or not request.files["md_file"]:
         abort(400, "Bad request: New MD not provided")
     md_file = request.files["md_file"]
@@ -207,14 +218,15 @@ def update_doc(user: str, name: str, version: str) -> Tuple[dict, int]:
     if not new_doc:
         abort(400, "Bad request: New MD is empty")
 
+    # update entry
     try:
-        catalog = api.Catalog(db.session)
+        catalog = Catalog(db.session)
         catalog.update_doc(user, name, version, new_doc)
-    except api.WorkflowNotFoundError:
+    except WorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
-    except api.AuthenticationError:
+    except PermissionsError:
         abort(401, "Access denied; only the owner may update a workflow")
-    except api.DatabaseError as error:
+    except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
     return {"result": "OK"}, 200
 
@@ -237,6 +249,7 @@ def add_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     """
     logger.info(f"User {user}: Add new workflow, {name}:{version}")
 
+    # get WDL file
     if "wdl_file" not in request.files or not request.files["wdl_file"]:
         abort(400, "Bad request: New WDL not provided")
     wdl_file = request.files["wdl_file"]
@@ -244,6 +257,7 @@ def add_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     if not new_wdl:
         abort(400, "Bad request: New WDL is empty")
 
+    # get markdown file
     if "md_file" not in request.files or not request.files["md_file"]:
         abort(400, "Bad request: New MD not provided")
     md_file = request.files["md_file"]
@@ -251,11 +265,12 @@ def add_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     if not new_doc:
         abort(400, "Bad request: New MD is empty")
 
+    # save new workflow
     try:
-        catalog = api.Catalog(db.session)
+        catalog = Catalog(db.session)
         catalog.add_wdl(user, name, version, new_wdl, new_doc)
-    except api.InvalidInputError as error:
+    except InvalidInputError as error:
         abort(400, f"Add workflow failed due to invalid input: {error}")
-    except api.DatabaseError as error:
+    except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
     return {"result": "OK", "name": name, "version": version}, 201

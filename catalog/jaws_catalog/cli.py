@@ -7,8 +7,7 @@ import click
 import logging
 import connexion
 from urllib.parse import quote_plus
-from jaws_catalog import config, log
-from jaws_catalog.db import db
+from jaws_catalog import config, log, database
 
 
 JAWS_LOG_ENV = "JAWS_CATALOG_LOG"
@@ -63,13 +62,13 @@ def server() -> None:
         "pool_pre_ping": True,
         "pool_recycle": 300,
     }
-    db.init_app(connex.app)
+    database.db.init_app(connex.app)
 
     # create tables if not exists
     with connex.app.app_context():
         try:
-            db.create_all()
-            db.session.commit()
+            database.db.create_all()
+            database.db.session.commit()
         except Exception as e:
             logger.exception(f"Failed to create tables: {e}")
             raise
