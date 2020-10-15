@@ -1,10 +1,17 @@
 """
 Workflows Catalog REST endpoints.
+
+
+- The Workflows Catalog stores WDL files and accompanying markdown documentation.
+- There may be multiple versions of a workflow of the same name.
+- A workflow/version may be tagged as "released", in which case it cannot be deleted,
+  but only tagged as "deprecated".
+- Deprecated workflows do not appear in the catalog to users, but remain in the db.
+- Workflows can only be updated/deleted by their owner.
 """
 
 from flask import abort, request
 import markdown
-import logging
 from typing import Tuple
 from jaws_catalog.api import (
     Catalog,
@@ -17,9 +24,6 @@ from jaws_catalog.api import (
 from jaws_catalog.database import db
 
 
-logger = logging.getLogger(__package__)
-
-
 def list_wdls(user: str) -> Tuple[dict, int]:
     """Retrieve workflows from database.
 
@@ -28,7 +32,6 @@ def list_wdls(user: str) -> Tuple[dict, int]:
     :return: Table of workflows
     :rtype: list
     """
-    logger.info(f"User {user}: List workflows")
     try:
         catalog = Catalog(db.session)
         result = catalog.list_wdls()
@@ -47,7 +50,6 @@ def get_versions(user: str, name: str) -> Tuple[dict, int]:
     :return: Table of all version of a workflow
     :rtype: list
     """
-    logger.info(f"User {user}: Get version of workflow {name}")
     try:
         catalog = Catalog(db.session)
         result = catalog.get_versions(name)
@@ -70,7 +72,6 @@ def get_doc(user: str, name: str, version: str) -> Tuple[str, int]:
     :return: The workflow's README document in markdown format
     :rtype: str
     """
-    logger.info(f"User {user}: Get README of {name}:{version}")
     try:
         catalog = Catalog(db.session)
         doc = catalog.get_doc(name, version)
@@ -93,7 +94,6 @@ def get_wdl(user: str, name: str, version: str) -> Tuple[str, int]:
     :return: The workflow's specification document in WDL format
     :rtype: str
     """
-    logger.info(f"User {user}: Get WDL of {name}:{version}")
     try:
         catalog = Catalog(db.session)
         wdl = catalog.get_wdl(name, version)
@@ -116,7 +116,6 @@ def release_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    logger.info(f"User {user}: Release workflow, {name}:{version}")
     try:
         catalog = Catalog(db.session)
         catalog.release_wdl(user, name, version)
@@ -141,14 +140,12 @@ def del_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    logger.info(f"User {user}: Delete workflow, {name}:{version}")
     try:
         catalog = Catalog(db.session)
         catalog.del_wdl(user, name, version)
     except WorkflowNotFoundError:
         abort(404, f"Workflow not found: {name}:{version}")
     except PermissionsError:
-        logger.info(f"Not allowing user {user} to delete workflow {name}:{version}")
         abort(401, "Access denied; only the owner may delete a workflow.")
     except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
@@ -169,8 +166,6 @@ def update_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    logger.info(f"User {user}: Update WDL of {name}:{version}")
-
     # get WDL file
     if "wdl_file" not in request.files or not request.files["wdl_file"]:
         abort(400, "Bad request: New WDL not provided")
@@ -208,8 +203,6 @@ def update_doc(user: str, name: str, version: str) -> Tuple[dict, int]:
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    logger.info(f"User {user}: Update README of {name}:{version}")
-
     # get markdown file
     if "md_file" not in request.files or not request.files["md_file"]:
         abort(400, "Bad request: New MD not provided")
@@ -247,8 +240,6 @@ def add_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
     :return: OK message upon success; abort otherwise
     :rtype: dict
     """
-    logger.info(f"User {user}: Add new workflow, {name}:{version}")
-
     # get WDL file
     if "wdl_file" not in request.files or not request.files["wdl_file"]:
         abort(400, "Bad request: New WDL not provided")
@@ -273,4 +264,4 @@ def add_wdl(user: str, name: str, version: str) -> Tuple[dict, int]:
         abort(400, f"Add workflow failed due to invalid input: {error}")
     except DatabaseError as error:
         abort(500, f"Catalog db error: {error}")
-    return {"result": "OK", "name": name, "version": version}, 201
+    return {"result": "OK"}, 201
