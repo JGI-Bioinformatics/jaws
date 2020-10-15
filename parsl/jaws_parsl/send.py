@@ -4,6 +4,7 @@
 import click
 import pika
 import json
+import logging
 from jaws_parsl import config
 
 @click.command()
@@ -34,5 +35,5 @@ def send(cluster, command):
     channel.basic_publish(exchange='',
                           routing_key='hello',
                           body=json.dumps(job_info))
-    print(" [x] Sent job info to RMQ server.")
+    logging.debug(" [x] Sent job info to RMQ server.")
 

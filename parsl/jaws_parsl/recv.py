@@ -11,6 +11,9 @@ import parsl
 from parsl import bash_app, AUTO_LOGNAME
 from parsl.config import Config
 
+from jaws_parsl import config
+from jaws_rpc.rpc_client import RPC_Client
+
 logger = None
 
 G_TASK_COUNTER = 0
@@ -50,6 +53,7 @@ def on_message_callback(ch, method, properties, body):
     future = run_script(message['command'])
     task_id = future.tid
     logger.debug(f"[Task:{task_id} Launched")
+    print(f"Task id: {task_id}")
     G_UPDATES_CHANNEL.push_task_status(task_id, 'LAUNCHED')
     
     G_TASK_TABLE[task_id] = {'future' : future,
@@ -58,8 +62,80 @@ def on_message_callback(ch, method, properties, body):
     
     future.add_done_callback(partial(on_task_callback, task_id))
 
+    update_site('LAUNCHED', task_id)
+
     logger.debug("Done")
 
+
+def update_site(status, task_id):
+    now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    data = {
+        "cromwell_run_id": "",  # not needed w/Parsl backend
+        "cromwell_job_id": task_id,
+        "status_from": "",
+        "status_to": status,
+        "timestamp": now,
+    }
+
+    # send message to Site
+    rpc_params = config.conf.get_rpc_params()
+    try:
+        with RPC_Client({"user": rpc_params["user"],
+                                    "password": rpc_params["password"],
+                                    "host": rpc_params["host"],
+                                    "vhost": rpc_params["vhost"],
+                                    "port": rpc_params["port"],
+                                    "queue": rpc_params["queue"]}
+                                   ) as rpc_cl:
+            wait_count = 0
+            response = rpc_cl.request("update_job_status", data)
+            logger.debug(f"Return msg from JAWS Site: {response}")
+            while "error" in response and response["error"]["message"] == "Server timeout":
+                wait_count += 1
+                if wait_count == 60:  # try for 1min
+                    logger.error("RPC reply timeout!")
+                    break
+                logger.debug(f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}")
+                time.sleep(1.0)
+                response = rpc_cl.request("update_job_status", data)
+    except Exception as error:
+        logger.error(f"RPC call failed: {error}")
+        raise
+
+
+def test_update_site(status, task_id):
+    now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    data = {
+        "cromwell_run_id": "",  # not needed w/Parsl backend
+        "cromwell_job_id": task_id,
+        "status_from": "",
+        "status_to": status,
+        "timestamp": now,
+    }
+
+    # send message to Site
+    rpc_params = config.conf.get_rpc_params()
+    with RPC_Client({"user": rpc_params["user"],
+                                "password": rpc_params["password"],
+                                "host": rpc_params["host"],
+                                "vhost": rpc_params["vhost"],
+                                "port": rpc_params["port"],
+                                "queue": rpc_params["queue"]}
+                               ) as rpc_cl:
+            wait_count = 0
+            response = rpc_cl.request("update_job_status", data)
+            logger.debug(f"Return msg from JAWS Site: {response}")
+            while "error" in response and response["error"]["message"] == "Server timeout":
+                wait_count += 1
+                if wait_count == 60:  # try for 1min
+                    logger.error("RPC reply timeout!")
+                    break
+                logger.debug(f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}")
+                time.sleep(1.0)
+                response = rpc_cl.request("update_job_status", data)
+    # except Exception as error:
+    #     logger.error(f"RPC call failed: {error}")
+    #     raise
 
 @bash_app(executors=['cori'])
 def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME):

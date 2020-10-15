@@ -2,7 +2,6 @@ import argparse
 import logging
 import os
 import pika
-from jaws_rpc import rpc_client
 
 def start_file_logger(filename, name='task_updates', level=logging.DEBUG, format_string=None):
     """Add a stream log handler.
