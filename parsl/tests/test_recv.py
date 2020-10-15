@@ -10,3 +10,13 @@ def test_update_site(patch, monkeypatch):
     mock_log = mock.Mock()
     monkeypatch.setattr('jaws_parsl.recv.logger', mock_log)
     jaws_parsl.recv.update_site('update', 1)
+
+
+@mock.patch('jaws_parsl.recv.RPC_Client', side_effect=Exception())
+def test_update_site_fail(patch, monkeypatch):
+    mock_rpc = mock.MagicMock()
+    mock_rpc.__enter__.return_value = mock_rpc
+    mock_log = mock.Mock()
+    monkeypatch.setattr('jaws_parsl.recv.logger', mock_log)
+    with pytest.raises(Exception):
+        jaws_parsl.recv.update_site('update', 1)
