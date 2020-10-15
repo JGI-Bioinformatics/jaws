@@ -103,40 +103,6 @@ def update_site(status, task_id):
         raise
 
 
-def test_update_site(status, task_id):
-    now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    data = {
-        "cromwell_run_id": "",  # not needed w/Parsl backend
-        "cromwell_job_id": task_id,
-        "status_from": "",
-        "status_to": status,
-        "timestamp": now,
-    }
-
-    # send message to Site
-    rpc_params = config.conf.get_rpc_params()
-    with RPC_Client({"user": rpc_params["user"],
-                                "password": rpc_params["password"],
-                                "host": rpc_params["host"],
-                                "vhost": rpc_params["vhost"],
-                                "port": rpc_params["port"],
-                                "queue": rpc_params["queue"]}
-                               ) as rpc_cl:
-            wait_count = 0
-            response = rpc_cl.request("update_job_status", data)
-            logger.debug(f"Return msg from JAWS Site: {response}")
-            while "error" in response and response["error"]["message"] == "Server timeout":
-                wait_count += 1
-                if wait_count == 60:  # try for 1min
-                    logger.error("RPC reply timeout!")
-                    break
-                logger.debug(f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}")
-                time.sleep(1.0)
-                response = rpc_cl.request("update_job_status", data)
-    # except Exception as error:
-    #     logger.error(f"RPC call failed: {error}")
-    #     raise
-
 @bash_app(executors=['cori'])
 def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME):
     cmd = 'bash ' + script
