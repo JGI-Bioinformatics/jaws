@@ -25,6 +25,7 @@ def test_check_all_values(config_file):
     ]
 
     check_section("DB", expected_db_parameters, cfg)
+    check_section("AUTH", expected_auth_parameters, cfg)
 
 
 def test_config_overwrite_partial_values(partial_config):
@@ -35,7 +36,7 @@ def test_config_overwrite_partial_values(partial_config):
     config_path = partial_config
     cfg = jaws_auth.config.Configuration(config_path)
 
-    expected_db_sections = [
+    expected_db_parameters = [
         ("dialect", "mysql+mysqlconnector"),
         ("host", "db.foo.com"),
         ("port", "3305"),
@@ -43,8 +44,9 @@ def test_config_overwrite_partial_values(partial_config):
         ("password", "p455w0rd1"),
         ("db", "jaws"),
     ]
-    expected_auth_sections = [
+    expected_auth_parameters = [
         ("port", "3000")
     ]
 
-    check_section("AUTH", expected_auth_sections, cfg)
+    check_section("DB", expected_db_parameters, cfg)
+    check_section("AUTH", expected_auth_parameters, cfg)

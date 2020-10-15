@@ -70,7 +70,7 @@ class User:
             logger.warn(f"Invalid token {access_token}")
             raise AuthenticationFailure()
 
-        return row.id, row_is_admin
+        return row.id, row.is_admin
 
     def get_info(self):
         """
