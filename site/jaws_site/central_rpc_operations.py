@@ -3,7 +3,6 @@ RPC functions for Central.  Most of these simply wrap the localhost Cromwell RES
 """
 
 import logging
-import sqlalchemy.exc
 from sqlalchemy.exc import SQLAlchemyError
 import collections
 from jaws_site import config, jaws_constants
@@ -72,13 +71,14 @@ def cancel_run(params):
     # check if run in active runs tables
     try:
         session = Session()
-        run = session.query(Run).get(run_id)
-    except sqlalchemy.exc.IntegrityError as error:
-        logger.exception(f"Run not found: {run_id}: {error}")
+        run = session.query(Run).get(run_id).one_or_none()
     except Exception as error:
-        logger.exception(f"Error selecting on runs table: {error}")
+        logger.exception(f"Db unavailable; please try again later: {error}")
+        session.close()
+        return
     if not run:
         logger.debug(f"Run {run_id} not found")
+        session.close()
         return success()
 
     cromwell_run_id = run.cromwell_run_id
@@ -88,7 +88,9 @@ def cancel_run(params):
         session.commit()
     except Exception as error:
         session.rollback()
+        session.close()
         return failure(error)
+    session.close()
     logger.debug(f"Run {run_id} cancelled")
 
     # tell Cromwell to cancel the run if it has been submitted to Cromwell already
@@ -98,7 +100,7 @@ def cancel_run(params):
             cromwell.abort(cromwell_run_id)
         except Exception as error:
             return failure(error)
-    result = {"cancel": "OK"}
+    result = {"result": "OK"}
     return success(result)
 
 
@@ -150,7 +152,10 @@ def submit(params):
         session.commit()
     except Exception as error:
         session.rollback()
+        session.close()
         return failure(error)
+    finally:
+        session.close()
     return success()
 
 
@@ -163,9 +168,13 @@ def get_task_log(params):
             session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
         )
     except SQLAlchemyError as error:
+        session.close()
         return failure(error)
     except Exception as error:
+        session.close()
         return failure(error)
+    finally:
+        session.close()
     table = []
     for log in query:
         # replace None with empty string
@@ -200,7 +209,10 @@ def get_task_status(params):
             session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
         )
     except Exception as error:
+        session.close()
         return failure(error)
+    finally:
+        session.close()
     tasks = collections.OrderedDict()
     for log in query:
         task_name = log.task_name

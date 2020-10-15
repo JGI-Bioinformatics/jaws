@@ -47,7 +47,6 @@ def update_job_status(params):
 
     # INSERT OR IGNORE
     session = Session()
-    result = ""
     try:
         session.add(job_log)
         session.commit()
@@ -56,12 +55,12 @@ def update_job_status(params):
         # JTM sometimes sends duplicate messages; ignore
         session.rollback()
         logger.warning(f"Job {cromwell_job_id} status is duplicate; ignored")
-        result = "Ignoring duplicate log entry"
     except Exception as error:
         session.rollback()
         session.close()
         return failure(error)
-    session.close()
+    finally:
+        session.close()
     return success(result)
 
 
