@@ -38,3 +38,9 @@ def test_get_user(monkeypatch):
     test_session = "NA"
     with pytest.raises(Exception):
         user = api.User(test_header, test_session)
+
+    # test with invalid header
+    test_header = "AABBCCDDEEFF"
+    test_session = "NA"
+    with pytest.raises(Exception):
+        user = api.User(test_header, test_session)
