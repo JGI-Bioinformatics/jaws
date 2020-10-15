@@ -18,6 +18,10 @@ pkg-site: pkg-requirements
 pkg-central: pkg-requirements
 	$Q cd rpc && python setup.py bdist_wheel && cd ../central && python setup.py bdist_wheel
 
+.PHONY: pkg-auth
+pkg-auth: pkg-requirements
+	$Q cd auth && python setup.py bdist_wheel
+
 .PHONY: pkg-client
 pkg-client: pkg-requirements
 	$Q cd client && python setup.py bdist_wheel
@@ -51,6 +55,11 @@ test-central: test-requirements
 	$Q flake8 central
 	$Q cd central && python -m pytest tests/
 
+.PHONY: test-auth
+test-auth: test-requirements
+	$Q flake8 auth
+	$Q cd auth && python -m pytest tests/
+
 .PHONY: test-client
 test-client: test-requirements
 	$Q flake8 client
@@ -62,7 +71,7 @@ test-jtm: test-requirements
 	$Q cd jtm && python -m pytest tests/
 
 .PHONY: test
-test: test-rpc test-site test-central test-client test-jtm
+test: test-rpc test-site test-central test-auth test-client test-jtm
 ## Test Section END
 
 ## Doc Section BEGIN

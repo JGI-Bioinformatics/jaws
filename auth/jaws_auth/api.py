@@ -1,6 +1,6 @@
 import logging
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_auth import db
+from jaws_auth import database
 
 logger = logging.getLogger(__package__)
 
@@ -18,7 +18,7 @@ class AuthenticationFailure(Exception):
 
 
 class User:
-    def __init__(self, auth_header: str, session: db.Session = None):
+    def __init__(self, auth_header: str, session: database.db.Session = None):
         """
         Get user from db, if token exists.  Abort otherwise.
 
@@ -27,9 +27,11 @@ class User:
         :return: user record or None if user not found
         :rtype: dict
         """
-        if not session:
+        if session:
+            self.session = session
+        else:
             try:
-                session = db.session()
+                session = database.db.session()
             except SQLAlchemyError as error:
                 logger.exception(f"Unable to get session: {error}")
                 raise AuthDatabaseError()
@@ -42,8 +44,20 @@ class User:
 
         # query db
         try:
+            uid, is_admin = self._select_from_db(self.session, access_token)
+        except Exception:
+            raise
+        self.id = uid
+        self.is_admin = is_admin
+
+    @staticmethod
+    def _select_from_db(session, access_token: str):
+        """
+        Select row from db and return user info if exists else raise.
+        """
+        try:
             row = (
-                self.session.query(db.User)
+                session.query(database.User)
                 .filter(User.access_token == access_token)
                 .one_or_none()
             )
@@ -56,7 +70,7 @@ class User:
             logger.warn(f"Invalid token {access_token}")
             raise AuthenticationFailure()
 
-        self.data = row
+        return row.id, row_is_admin
 
     def get_info(self):
         """
@@ -66,9 +80,9 @@ class User:
         :rtype: dict
         """
         user_info = {
-            "uid": self.data.id,
+            "uid": self.id,
             "scopes": ["user"]
         }
-        if self.data.is_admin:
+        if self.is_admin:
             user_info["scopes"].append("admin")
         return user_info
