@@ -7,6 +7,8 @@ import jaws_client.config
 import jaws_client.workflow
 
 
+# flake8: noqa
+
 def recur_dict_comparison(expected_val, actual_val):
     if isinstance(actual_val, str) or isinstance(actual_val, int):
         assert actual_val == expected_val
@@ -291,3 +293,71 @@ def test_rel_path_in_input_files():
     wf_inputs = jaws_client.workflow.WorkflowInputs('/home/profx/test/test.json', 'ABCDEF', test_json)
     for path in wf_inputs.src_file_inputs:
         assert path.startswith('/home/profx/')
+
+
+def test_nested_files_are_in_src_file_inputs():
+    test_json = {
+        "jgi_dap_leo.adapters": "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/adapters.fa",
+        "jgi_dap_leo.genome_fasta": "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245.fasta",
+        "jgi_dap_leo.bt2index_file1": "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index",
+        "jgi_dap_leo.bt2index_list": [
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.1.bt2",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.2.bt2",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.3.bt2",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.4.bt2",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.rev.1.bt2",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.rev.2.bt2"
+        ],
+        "jgi_dap_leo.effgsize": 7682393,
+        "jgi_dap_leo.genes_gff": "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_filt.gff",
+        "jgi_dap_leo.bgmodel": "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245.bgmodel",
+        "jgi_dap_leo.outdir": "nersc_out",
+        "jgi_dap_leo.amplified": "10cyc",
+        "jgi_dap_leo.maxfrags": 1000011,
+        "jgi_dap_leo.find_motifs": "false",
+        "jgi_dap_leo.ctl_raw_fastqs": [],
+        "jgi_dap_leo.expt_raw_fastqs": [
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-CATTGGAC+TCAAGCAC.fastq.gz",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TACGTGAC+TCAAGCAC.fastq.gz",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TGAGGATG+TCAAGCAC.fastq.gz"
+        ],
+        "jgi_dap_leo.library_names_map": {
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-CATTGGAC+TCAAGCAC.fastq.gz": "A-CATTGGAC+TCAAGCAC",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TACGTGAC+TCAAGCAC.fastq.gz": "A-TACGTGAC+TCAAGCAC",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TGAGGATG+TCAAGCAC.fastq.gz": "A-TGAGGATG+TCAAGCAC"
+        },
+        "jgi_dap_leo.sample_names_map": {
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-CATTGGAC+TCAAGCAC.fastq.gz": "accB",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TACGTGAC+TCAAGCAC.fastq.gz": "araC",
+            "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TGAGGATG+TCAAGCAC.fastq.gz": "birA"
+        }
+    }
+    expected_file_paths = {
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/adapters.fa",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245.fasta",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.1.bt2",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.2.bt2",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.3.bt2",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.4.bt2",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.rev.1.bt2",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_bt2index/Azospirillum_brasilense_Sp245.rev.2.bt2",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_filt.gff",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245.bgmodel",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-CATTGGAC+TCAAGCAC.fastq.gz",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TACGTGAC+TCAAGCAC.fastq.gz",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TGAGGATG+TCAAGCAC.fastq.gz",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-CATTGGAC+TCAAGCAC.fastq.gz",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TACGTGAC+TCAAGCAC.fastq.gz",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TGAGGATG+TCAAGCAC.fastq.gz",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-CATTGGAC+TCAAGCAC.fastq.gz",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TACGTGAC+TCAAGCAC.fastq.gz",
+        "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/48sp01/A-TGAGGATG+TCAAGCAC.fastq.gz"
+    }
+
+    wf_inputs = jaws_client.workflow.WorkflowInputs('test.json', "ABCDEF", test_json)
+
+    assert len(wf_inputs.src_file_inputs) == len(expected_file_paths)
+
+    for src_file in wf_inputs.src_file_inputs:
+        assert src_file in expected_file_paths
