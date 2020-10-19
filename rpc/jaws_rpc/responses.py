@@ -32,7 +32,7 @@ def failure(error: Exception):
     :rtype: dict
     """
     code = 500
-    if hasattr(type(error), "code"):
+    if hasattr(error, "code"):
         code = error.code
     message = f"{error}"
     return {"jsonrpc": "2.0", "error": {"code": code, "message": message}}
