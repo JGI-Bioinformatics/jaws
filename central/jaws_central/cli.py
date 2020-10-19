@@ -142,9 +142,10 @@ def rest() -> None:
 @cli.command()
 def rpc() -> None:
     """Start JAWS-Central RPC server."""
+    from jaws_central.database import Session
     from jaws_central import rpc_operations
     rpc_params = config.conf.get_section("RPC_SERVER")
-    app = rpc_server.RpcServer(rpc_params, rpc_operations.operations)
+    app = rpc_server.RpcServer(rpc_params, rpc_operations.operations, Session)
     app.start_server()
 
 

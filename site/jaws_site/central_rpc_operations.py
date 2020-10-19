@@ -8,7 +8,6 @@ from sqlalchemy.exc import SQLAlchemyError
 import collections
 from jaws_site import config, jaws_constants
 from jaws_site.cromwell import Cromwell
-from jaws_site.database import Session
 from jaws_site.models import Run, Job_Log
 from jaws_rpc.responses import success, failure
 
@@ -18,7 +17,7 @@ cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 logger = logging.getLogger(__package__)
 
 
-def server_status(params):
+def server_status(params, session):
     """Return the current status of the Cromwell server.
 
     :return: Either a success- or failure-formatted JSON-RPC2 response,
@@ -33,7 +32,7 @@ def server_status(params):
     return success(status)
 
 
-def run_metadata(params):
+def run_metadata(params, session):
     """Retrieve the metadata of a run.
 
     :param cromwell_run_id: Cromwell run ID
@@ -57,7 +56,7 @@ def run_metadata(params):
     return success(result)
 
 
-def cancel_run(params):
+def cancel_run(params, session):
     """Cancel a run.
 
     :param cromwell_run_id: The Cromwell run ID
@@ -71,7 +70,6 @@ def cancel_run(params):
 
     # check if run in active runs tables
     try:
-        session = Session()
         run = session.query(Run).get(run_id)
     except sqlalchemy.exc.IntegrityError as error:
         logger.exception(f"Run not found: {run_id}: {error}")
@@ -102,7 +100,7 @@ def cancel_run(params):
     return success(result)
 
 
-def get_errors(params):
+def get_errors(params, session):
     """Retrieve error messages and stderr for failed Tasks.
 
     :param cromwell_run_id: Cromwell run ID
@@ -125,7 +123,7 @@ def get_errors(params):
     return success(result)
 
 
-def submit(params):
+def submit(params, session):
     """Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes."""
     user_id = params["user_id"]
     run_id = params["run_id"]
@@ -144,7 +142,6 @@ def submit(params):
         )
     except Exception as error:
         return failure(error)
-    session = Session()
     try:
         session.add(run)
         session.commit()
@@ -154,11 +151,10 @@ def submit(params):
     return success()
 
 
-def get_task_log(params):
+def get_task_log(params, session):
     """Retrieve task log from database"""
     run_id = params["run_id"]
     try:
-        session = Session()
         query = (
             session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
         )
@@ -188,14 +184,13 @@ def get_task_log(params):
     return success(table)
 
 
-def get_task_status(params):
+def get_task_status(params, session):
     """
     Retrieve the current status of each task.
     """
     run_id = params["run_id"]
     # get job log entries, sorted by timestamp,
     try:
-        session = Session()
         query = (
             session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
         )
