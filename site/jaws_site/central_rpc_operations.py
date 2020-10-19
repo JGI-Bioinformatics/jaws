@@ -204,6 +204,10 @@ def get_task_status(params):
     tasks = collections.OrderedDict()
     for log in query:
         task_name = log.task_name
+        # skip tasks without a name yet (initially logs are missing task name, which is filled in
+        # from cromwell metadata by site-daemon
+        if not task_name:
+            continue
         # keep only the latest log entry per task
         tasks[task_name] = [
             log.task_name,
