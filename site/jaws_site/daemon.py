@@ -542,10 +542,12 @@ class Daemon:
             session = Session()
             query = session.query(Run_Log).filter(Run_Log.sent.is_(False)).all()
         except Exception as error:
+            session.close()
             logger.exception(f"Unable to select from run_logs: {error}")
             return
         num_logs = len(query)
         if not num_logs:
+            session.close()
             return
         logger.debug(f"Sending {num_logs} run logs")
 
@@ -573,12 +575,12 @@ class Daemon:
                 response = self.rpc_client.request("update_run_logs", data)
             except Exception as error:
                 logger.exception(f"RPC update_run_logs error: {error}")
-                return
+                continue
             if "error" in response:
                 logger.info(
                     f"RPC update_run_status failed: {response['error']['message']}"
                 )
-                return
+                continue
             log.sent = True
             try:
                 session.commit()
