@@ -1524,7 +1524,7 @@ wait
         % (hearbeat_interval, CONFIG.configparser.get("JTM", "worker_hb_q_postfix"))
     )
 
-    # Start send_hb_to_client_proc proc
+    # Start task runner proc
     try:
         process_task_proc_hdl = mp.Process(
             target=TaskRunner(config=CONFIG).start, args=(inner_task_request_queue,)
