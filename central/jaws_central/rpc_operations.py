@@ -5,7 +5,6 @@ RPC operations by which Sites update Run and Job status.
 import logging
 import sqlalchemy.exc
 from datetime import datetime
-from jaws_central.database import Session
 from jaws_central.models_sa import Run, Run_Log
 from jaws_rpc.responses import success, failure
 
@@ -13,7 +12,7 @@ from jaws_rpc.responses import success, failure
 logger = logging.getLogger(__package__)
 
 
-def update_run_logs(params):
+def update_run_logs(params, session):
     """
     Receive a run status update from a Site, insert into run_logs table and update state in runs table.
 
@@ -45,7 +44,6 @@ def update_run_logs(params):
         return failure(error)
 
     # INSERT OR IGNORE INTO RUN-LOGS TABLE
-    session = Session()
     try:
         session.add(log)
         session.commit()
@@ -61,7 +59,6 @@ def update_run_logs(params):
     run = session.query(Run).get(run_id)
     if run.status == status_to:
         # ignore redundant state change (duplicate message)
-        session.close()
         return success()
     run.status = status_to
     run.updated = timestamp
@@ -77,9 +74,7 @@ def update_run_logs(params):
         session.commit()
     except Exception as error:
         session.rollback()
-        session.close()
         return failure(error)
-    session.close()
     return success()
 
 

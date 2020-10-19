@@ -22,7 +22,7 @@ class InvalidResponse(Exception):
 
 
 class Consumer(object):
-    def __init__(self, queue, operations):
+    def __init__(self, queue, operations, sessionmaker):
         """Initialize Consumer object
 
         :param queue: The name of the queue from which to retrieve messages.
@@ -31,6 +31,7 @@ class Consumer(object):
         """
         self.queue = queue
         self.operations = operations
+        self.sessionmaker = sessionmaker
         self.logger = logging.getLogger(__package__)
         self.channel = None
         self.active = False
@@ -105,8 +106,10 @@ class Consumer(object):
         # GET RESPONSE FROM DISPATCH FUNCTION
         self.logger.debug(f"RPC method {method} with {params}")
         proc = self.operations[method]["function"]
-        response = proc(params)
+        session = self.sessionmaker()
+        response = proc(params, session)
         self.__respond__(message, response)
+        session.close()
 
     def __respond__(self, message, response):
         try:
@@ -203,7 +206,7 @@ class Consumer(object):
 
 
 class RpcServer(object):
-    def __init__(self, params, operations) -> None:
+    def __init__(self, params, operations, sessionmaker) -> None:
         self.logger = logging.getLogger(__package__)
         self.params = {}
         for required_param in ["host", "vhost", "user", "password", "queue"]:
@@ -217,8 +220,9 @@ class RpcServer(object):
             f"Connecting to host:{params['host']}, vhost:{params['vhost']}, queue:{params['queue']}"
         )
         self.operations = operations
+        self.sessionmaker = sessionmaker
         self.consumers = [
-            Consumer(params["queue"], self.operations) for _ in range(self.num_threads)
+            Consumer(params["queue"], self.operations, self.sessionmaker) for _ in range(self.num_threads)
         ]
         self.stopped = threading.Event()
         self.connection = self.create_connection()
@@ -246,7 +250,7 @@ class RpcServer(object):
         :return: index where we activate consumers
         """
         for _ in range(num):
-            consumer = Consumer(self.params["queue"], self.operations)
+            consumer = Consumer(self.params["queue"], self.operations, self.sessionmaker)
             self.start_consumer(consumer)
             self.consumers.append(consumer)
 

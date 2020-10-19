@@ -7,7 +7,6 @@ import sqlalchemy.exc
 from datetime import datetime
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
-from jaws_site.database import Session
 from jaws_site.models import Job_Log
 from jaws_rpc.responses import success, failure
 
@@ -17,7 +16,7 @@ cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 logger = logging.getLogger(__package__)
 
 
-def update_job_status(params):
+def update_job_status(params, session):
     """JTM shall post changes in job state, although it is missing the JAWS run id.
     The state change is simply saved in the db; any other actions will be performed by the daemon."""
     cromwell_run_id = params["cromwell_run_id"]  # Cromwell's run/workflow UUID
@@ -46,7 +45,6 @@ def update_job_status(params):
         return failure(error)
 
     # INSERT OR IGNORE
-    session = Session()
     result = ""
     try:
         session.add(job_log)
@@ -59,9 +57,7 @@ def update_job_status(params):
         result = "Ignoring duplicate log entry"
     except Exception as error:
         session.rollback()
-        session.close()
         return failure(error)
-    session.close()
     return success(result)
 
 
