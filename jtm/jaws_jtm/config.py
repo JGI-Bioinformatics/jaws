@@ -12,13 +12,13 @@ DEFAULT_CONFIG_FILE = 'jtm.ini'
 # CONSTANTS
 # -------------------------------------------------------------------------------------------
 class JtmConstants():
-    VERSION = "7.1.1"
+    VERSION = "7.1.2"
 
     # Supported cluster
     COMPUTE_RESOURCES = ["CORI",  # NERSC @ LBNL
                          "JGI",  # LBL IT @ LBNL
                          "CASCADE",  # EMSL @ PNNL
-                         "SSul-m69"  # for testing
+                         "LOCAL"  # for testing
                          ]
 
     # task types

@@ -2,6 +2,8 @@ import pytest
 import jaws_client.config
 
 
+# flake8: noqa
+
 @pytest.fixture()
 def configuration(tmp_path):
 
@@ -26,7 +28,7 @@ client_id =
 endpoint_id =
 basedir = {0}/globus
 
-""".format(tmp_path.as_posix()) # noqa
+""".format(tmp_path.as_posix())
     config_path.write_text(contents)
 
     user_contents = """
@@ -34,7 +36,7 @@ basedir = {0}/globus
 token = "xasdasdasfasdasdasfas"
 staging_dir = {0}/globus/staging
 
-""".format(tmp_path.as_posix()) # noqa
+""".format(tmp_path.as_posix())
     user_config_path.write_text(user_contents)
 
     config = jaws_client.config.Configuration(config_path.as_posix(), user_config_path.as_posix())
@@ -192,7 +194,7 @@ task samtools {
         #  docker: "jfroula/bbtools:1.2.1"
         #}
 }
-""" # noqa
+"""
     inputs_content = """
 {
     "bbtools.reads": "/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq",
@@ -411,7 +413,7 @@ task findMotifs {
     "jgi_dap_leo.expt_bam": "/global/projectb/scratch/jaws/jfroula/leo_dap/CTTZN_TF4.bam",
     "jgi_dap_leo.expt_bai": "/global/projectb/scratch/jaws/jfroula/leo_dap/CTTZN_TF4.bam"
 }
-""" # noqa
+"""
     inputs.write_text(inputs_contents)
     wdl_file.write_text(wdl_contents)
     return tmp_path.as_posix()
@@ -454,7 +456,7 @@ task run_preprocess {
         echo ${preprocess_input}
         }
 }
-""" # noqa
+"""
     sub1_contents = """
     workflow sub1_workflow {
     String sub1_input
@@ -522,7 +524,7 @@ task run_task2 {
 {
     "main_wdl.flag": false
 }
-""" # noqa
+"""
 
     main.write_text(main_contents)
     sub1.write_text(sub1_contents)
@@ -646,7 +648,7 @@ task print {
 def inputs_json(tmp_path):
     inputs = tmp_path / "inputs.json"
     contents = """{
-    "workflow1.file": "path/to/file1", "workflow2.file": "path/to/file2"
+    "workflow1.file": "/path/to/file1", "workflow2.file": "/path/to/file2"
 }"""
     inputs.write_text(contents)
     return inputs.as_posix()
@@ -678,7 +680,23 @@ def refdata_inputs(tmp_path):
     "file1": "{0}",
       "runblastplus_sub.ncbi_nt": "/refdata/"
 }}
-""".format(text_file) # noqa
+""".format(text_file)
+
+    inputs.write_text(contents)
+    return tmp_path.as_posix()
+
+
+@pytest.fixture()
+def refdata_inputs_missing_slash(tmp_path):
+    inputs = tmp_path / "inputs.json"
+    text_file = tmp_path / "file1.txt"
+    text_file.write_text("This is a file.")
+
+    contents = """{{
+    "file1": "{0}",
+      "runblastplus_sub.ncbi_nt": "/refdata"
+}}
+""".format(text_file)
 
     inputs.write_text(contents)
     return tmp_path.as_posix()
@@ -722,7 +740,7 @@ task samtools {
        File bam = "test.sorted.bam"
     }
 } 
-""" # noqa
+"""
     wdl.write_text(contents)
     return wdl
 
@@ -775,6 +793,6 @@ task bam_stats {
     }
 }
 
-""" # noqa
+"""
     wdl.write_text(contents)
     return wdl
