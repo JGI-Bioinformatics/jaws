@@ -1,0 +1,74 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# INPUTS:
+# $1 = deploy_env name (e.g. prod, staging, dev, local-dev)
+# $2 = config profile file (profile.json file)
+# $3 = install_dir
+
+# NOTE for mac users:
+# if running on a mac, need to install envsubstr via gettext:
+# brew install gettext
+# brew link --force gettext
+
+developer_mode=0
+while getopts ":d" opt; do
+case "$opt" in
+    d)
+        echo "In develop mode"
+        developer_mode=1
+        ;;
+    \?)
+        echo "invalid option -$OPTARG";;
+esac
+done
+
+deploy_name=${@:$OPTIND:1}
+config_profile=${@:$OPTIND+1:1}
+install_dir=${@:$OPTIND+2:1}
+
+export SITE_NAME=$SITE_NAME
+export DEPLOY_NAME=$deploy_name
+export DEPLOY_DIR=$deploy_dir
+
+deploy_dir="$install_dir/deploy"
+supervisor_dir="$install_dir/supervisor"
+config_dir="$install_dir/config"
+shim_dir="$install_dir/shims"
+central_dir="$install_dir/central"
+client_dir="$install_dir/client"
+site_dir="$install_dir/site"
+jtm_dir="$install_dir/jtm"
+src_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+#module load python  # NEED TO MOVE THIjS TO .gitlab-ci.yml
+
+test -d $install_dir || mkdir $install_dir
+test -d $deploy_dir && rm -rf $deploy_dir
+test -d $config_dir && rm -rf $config_dir
+test -d $shim_dir && rm -rf $shim_dir
+test -d $central_dir && rm -rf $central_dir
+test -d $client_dir && rm -rf $client_dir
+test -d $site_dir && rm -rf $site_dir
+test -d $jtm_dir && rm -rf $jtm_dir
+
+mkdir "$deploy_dir"
+
+# echo "Creating python env for deployment script ..."
+python3 -m venv $deploy_dir/venv && \
+  source $deploy_dir/venv/bin/activate && \
+  pip install --upgrade pip && \
+  pip install jinja2 wheel
+
+if [[ $developer_mode == 1 ]]; then
+    cmd="$src_dir/install-mgr -d $deploy_name $config_profile $install_dir"
+else
+    cmd="$src_dir/install-mgr $deploy_name $config_profile $install_dir"
+fi
+echo
+echo "Installing and deploying JAWS ..."
+echo "$cmd"
+eval $cmd
+
+deactivate

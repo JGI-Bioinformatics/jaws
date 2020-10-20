@@ -1,0 +1,46 @@
+{
+    "cromwell": {
+        "root": "",
+        "docker_root": "/global/cscratch1/sd/jaws_jtm/jtm-{{install.meta.deploy_name}}/cromwell-executions",
+        "workflow_log_dir": "/tmp/jaws-{{install.meta.deploy_name}}/logs/cromwell-workflow-logs",
+        "ref_data_dir": "/global/cscratch1/sd/jaws/refdata ",
+        "tmp_dir": "/tmp/jaws-{{install.meta.deploy_name}}/cromwell-tmp",
+        "jar_file": "/global/cfs/projectdirs/jaws/cromwell/cromwell-52.jar",
+        "url": "http://localhost",
+        "load_java": "",
+        "container_exec": "/global/cfs/projectdirs/jaws_jtm/jtm-dev/shifter_exec.sh",
+        "deploy_name": {
+            "prod": {
+                "port": 50103,
+                "mysql": {
+                    "url": "jdbc:mysql://jaws-db.lbl.gov:3306/cromwell_cori_prod?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
+                    "user": "jaws",
+                    "password": "{{passwords.cromwell.mysql}}"
+                }
+            },
+            "staging": {
+                "port": 50102,
+                "mysql": {
+                    "url": "jdbc:mysql://jaws-db.lbl.gov:3306/cromwell_cori_staging?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
+                    "user": "jaws",
+                    "password": "{{passwords.cromwell.mysql}}"
+                }
+            },
+            "dev": {
+                "port": 50101,
+                "mysql": {
+                    "url": "jdbc:mysql://jaws-db.lbl.gov:3306/cromwell_cori_dev?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
+                    "user": "jaws",
+                    "password": "{{passwords.cromwell.mysql}}"
+                }
+            },
+            "local-dev": {
+                "port": 50104,
+                "mysql": {
+                    "url": "jdbc:mysql://jaws-db.lbl.gov:3306/cromwell_cori_dev?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
+                    "user": "jaws",
+                    "password": "{{passwords.cromwell.mysql}}"
+                }
+            }
+        }
+}

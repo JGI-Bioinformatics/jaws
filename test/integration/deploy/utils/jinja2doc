@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+"""
+Utility to substitute jinja variables in a given jinja template
+using json file. Output is printed to stdout.
+"""
+
+import os
+import sys
+import json
+import jinja2
+import pprint
+
+if len(sys.argv) != 3:
+    print("Usage: jinja2doc <jinja_template> <json_file>")
+    sys.exit()
+
+template_file = sys.argv[1]
+config_file = sys.argv[2]
+
+config_entries = {}
+template_entries = {}
+with open(config_file) as fh:
+    config_entries = json.load(fh)
+
+with open(template_file) as fh:
+    tp = jinja2.Template(fh.read())
+    template_entries = tp.render(config_entries)
+
+pprint.pprint(template_entries)

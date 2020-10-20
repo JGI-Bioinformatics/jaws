@@ -1,0 +1,75 @@
+#!/bin/bash
+
+{% set sitename = "{}".format(install.components.jaws_site.site_name) -%}
+
+set -eo pipefail
+
+install_dir={{install.meta.output_dir}}
+cromwell_jar={{cromwell.jar_file}}
+womtool_jar={{client.womtool_jar}}
+jaws_group={{site[sitename]['group_perms']['jaws']}}
+jtm_group={{site[sitename]['group_perms']['jtm']}}
+jtm_scratch_dir={{site[sitename]['jtm']['scratch_dir']}}
+cromwell_tmpdir={{cromwell.tmp_dir}}
+load_java={{cromwell.load_java}}
+installed_cromwell_jar=$install_dir/cromwell.jar
+installed_womtool_jar=$install_dir/womtool.jar
+config_dir=$install_dir/config
+shim_dir=$install_dir/shims
+log_dir=$install_dir/logs
+
+## PERMISSIONS
+function fix_perms() {
+    local dir=$1
+    local group=$2
+    chmod -R a+rX $dir
+    chmod -R ug+rwX $dir
+    [[ ! -z $group ]] && chgrp -R $group $dir
+    if [[ -d $dir ]]; then
+        find $dir -type d -exec chmod g+s '{}' \;
+    fi
+}
+
+test -d $shim_dir || mkdir $shim_dir
+
+if [[ $cromwell_jar =~ http ]]; then
+    wget $cromwell_jar -O $installed_cromwell_jar
+else
+    cp "$cromwell_jar" "$installed_cromwell_jar"
+fi
+
+# If the specified womtool jar starts with http, use wget to get the file
+if [[ $womtool_jar =~ http ]]; then
+    wget $womtool_jar -O $installed_womtool_jar
+else
+    cp $womtool_jar $installed_womtool_jar
+fi
+
+[[ ! -z $jtm_group ]] && chgrp $jtm_group $installed_cromwell_jar && chmod 640 $installed_cromwell_jar
+[[ ! -z $jtm_group ]] && chgrp $jtm_group $installed_womtool_jar && chmod 640 $installed_womtool_jar
+[[ ! -z $jtm_group ]] && chgrp $jtm_group $config_dir/cromwell.conf
+
+## GENERATE SHIM
+shim_file=$shim_dir/jaws-cromwell
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+# cromwell needs jtm to be in path
+source $install_dir/jtm/bin/activate
+
+$load_java
+
+test -d $jtm_scratch_dir || mkdir $jtm_scratch_dir
+cd $jtm_scratch_dir
+exec java -Xmx5g -Dconfig.file="$config_dir/cromwell.conf" -Djava.io.tmpdir="$cromwell_tmpdir" -jar "$installed_cromwell_jar" server
+EOM
+
+chmod 770 $shim_file
+fix_perms $jtm_group $shim_file
+
+
+
