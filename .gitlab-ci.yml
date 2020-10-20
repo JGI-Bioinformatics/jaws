@@ -68,6 +68,8 @@ variables:
   CORI_GLOBUS_DEFAULT_DIR: "~"
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
+  CORI_JTM_RMQ_HOST: "jaws-rmq.jgi.doe.gov"
+  CORI_JTM_RMQ_PORT: 60040
   CORI_PYTHON: "python3"
   CORI_LOAD_PYTHON: "module load python3/3.7-anaconda-2019.10"
   CORI_JAWS_GROUP: "jaws"
@@ -95,6 +97,8 @@ variables:
   JGI_GLOBUS_DEFAULT_DIR: "~"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
+  JGI_JTM_RMQ_HOST: "rmq.lbl.gov"
+  JGI_JTM_RMQ_PORT: 5672
   JGI_PYTHON: "python"
   JGI_LOAD_PYTHON: "module load python"
   JGI_JAWS_GROUP: "jaws"
@@ -122,6 +126,8 @@ variables:
   CASCADE_GLOBUS_DEFAULT_DIR: "/"
   CASCADE_RMQ_HOST: "localhost"
   CASCADE_RMQ_PORT: 5672
+  CASCADE_JTM_RMQ_HOST: "localhost"
+  CASCADE_JTM_RMQ_PORT: 5672
   CASCADE_PYTHON: "python3.6"
   CASCADE_LOAD_PYTHON: ". /opt/rh/rh-python36/enable"
   CASCADE_JAWS_GROUP: "svc-jtm-manager"
