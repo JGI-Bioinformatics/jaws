@@ -1,0 +1,84 @@
+[inet_http_server]
+port={{supervisor.deploy_name.inet_http_server}}:{{supervisor.deploy_name.ports.jaws}}
+username={{supervisor.deploy_name.username}}
+password={{supervisor.deploy_name.password}}
+
+[supervisord]
+logfile={{supervisor.deploy_name.install_dir}}/jaws-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile={{supervisor.deploy_name.install_dir}}/jaws-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jaws
+directory={{supervisor.deploy_name.install_dir}}
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl={{supervisor.deploy_name.supervisorctl_url}}:{{supervisor.deploy_name.ports.jaws}}
+username=jaws
+password={{supervisor.deploy_name.password}}
+prompt=supervisor-jaws
+
+;----- Program Section
+
+{%- if install.components.jaws_site.add %}
+[program:jaws-site-daemon]
+command={{install.meta.output_dir}}/shims/jaws-site-daemon
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-site-jtm-rpc]
+command={{install.meta.output_dir}}/shims/jaws-site-jtm-rpc
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-site-central-rpc]
+command={{install.meta.output_dir}}/shims/jaws-site-central-rpc
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+{% endif %}
+
+{%- if install.components.jaws_central.add %}
+[program:jaws-central-rest]
+command={{install.meta.output_dir}}/shims/jaws-central-rest
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-central-rpc]
+command={{install.meta.output_dir}}/shims/jaws-central-rpc
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-central-auth]
+command={{install.meta.output_dir}}/shims/jaws-central-auth
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+{%- endif %}
+
+[group:jaws-{{install.meta.deploy_name}}]
+programs=
+{%- if install.components.jaws_site.add -%}jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc{%- endif -%}
+{%- if install.components.jaws_central.add and install.components.jaws_site.add -%},{%- endif -%}
+{%- if install.components.jaws_central.add -%}jaws-central-rest,jaws-central-rpc,jaws-central-auth{%- endif -%}
+{{"\n"}}
+priority=999

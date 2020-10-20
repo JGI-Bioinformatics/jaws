@@ -1,0 +1,165 @@
+#!/bin/bash
+
+{% set sitename = "{}".format(install.components.jaws_site.site_name) -%}
+
+set -eo pipefail
+
+deploy_name={{install.meta.deploy_name}}
+supervisor_dir={{supervisor.deploy_name.install_dir}}
+config_dir={{install.meta.output_dir}}/config
+jtm_group={{site[sitename]['group_perms']['jtm']}}
+supervisor_jaws_config=supervisord-jaws.conf
+supervisor_jtm_config=supervisord-jtm.conf
+
+
+## PERMISSIONS
+function fix_perms() {
+    local dir=$1
+    local group=$2
+    chmod -R a+rX $dir
+    chmod -R ug+rwX $dir
+    [[ ! -z $group ]] && chgrp -R $group $dir
+    if [[ -d $dir ]]; then
+        find $dir -type d -exec chmod g+s '{}' \;
+    fi
+}
+
+## Function to get supervisord pid
+function get_supervisord_pid() {
+    local config_file=$1
+    pid=$(ps aux | \
+        grep supervisord | \
+        grep $supervisor_dir | \
+        grep $config_file |  \
+        grep -v grep | \
+        awk '{print $2}'
+    )
+    echo "$pid"
+}
+
+## Function to start supervisord
+function start_supervisord() {
+    local config_file=$1
+    pid=$(get_supervisord_pid $config_file)
+    if [[ -z $pid ]]; then
+        echo "Starting supervisord ..."
+        cmd="$supervisor_dir/bin/supervisord -c $config_file"
+        echo $cmd
+        eval $cmd
+    fi
+}
+
+
+## Function to kill supervisord
+function shutdown_supervisord() {
+    local config_file=$1
+    pid=$(get_supervisord_pid $config_file)
+    if [[ ! -z $pid ]]; then
+        echo "Existing supervisord process found (pid=$pid) ... shutting down."
+        cmd="$supervisor_dir/bin/supervisorctl -c $config_file stop all"
+        echo $cmd
+        eval $cmd
+        cmd="kill -s SIGTERM $pid"
+        echo $cmd
+        eval $cmd
+    fi
+}
+
+
+## Function to generate supervisor executables.
+function generate_shim() {
+prog=$1
+cat <<EOM > $supervisor_dir/bin/$prog
+#!/usr/bin/env bash
+
+source $supervisor_dir/venv/bin/activate
+
+$prog \$@
+EOM
+chmod +x $supervisor_dir/bin/$prog
+}
+
+
+## Determine what to install and set deploy var accordingly.
+if [[ {{install.components.jaws_central.add}} -ne 0 || \
+   {{install.components.jaws_client.add}} -ne 0 || \
+   {{install.components.jaws_site.add}} -ne 0 ]]; then
+    deploy_jaws=1
+else
+    deploy_jaws=0
+fi
+if [[ {{install.components.jaws_jtm.add}} -ne 0 || {{install.components.cromwell.add}} -ne 0 ]]; then
+    deploy_jtm=1
+else
+    deploy_jtm=0
+fi
+
+
+## Make directory if neccessary
+[[ -d $supervisor_dir ]] || mkdir $supervisor_dir
+[[ -d $supervisor_dir/bin ]] || mkdir $supervisor_dir/bin
+
+
+## Make python virtualenv if not exists and install supervisor
+[[ -f $supervisor_dir/venv/bin/activate ]] || \
+  python3 -m venv $supervisor_dir/venv && \
+  pip install supervisor
+
+
+## Create supervisor cmds
+generate_shim supervisord
+generate_shim supervisorctl
+
+
+# Shutdown supervisord if alrady running
+if [[ -f $supervisor_dir/$supervisor_jaws_config ]]; then
+    shutdown_supervisord $supervisor_dir/$supervisor_jaws_config
+    sleep 10 # wait for process to terminate
+    rm $supervisor_dir/$supervisor_jaws_config
+fi
+if [[ -f $supervisor_dir/$supervisor_jtm_config ]]; then
+    shutdown_supervisord $supervisor_dir/$supervisor_jtm_config
+    sleep 10 # wait for process to terminate
+    rm $supervisor_dir/$supervisor_jtm_config
+fi
+
+
+## Start supervisord if needed.
+if [[ $deploy_jaws == 1 ]]; then
+    cp $config_dir/$supervisor_jaws_config $supervisor_dir/$supervisor_jaws_config
+    start_supervisord $supervisor_dir/$supervisor_jaws_config
+fi
+
+if [[ $deploy_jtm == 1 ]]; then
+    cp $config_dir/$supervisor_jtm_config $supervisor_dir/$supervisor_jtm_config
+    start_supervisord $supervisor_dir/$supervisor_jtm_config
+fi
+
+
+## Start jaws processes
+if [[ $deploy_jaws == 1 ]]; then
+    pid=$(get_supervisord_pid $supervisor_dir/$supervisor_jaws_config)
+    if [[ ! -z $pid && -f $supervisor_dir/$supervisor_jaws_config ]]; then
+        cmd="$supervisor_dir/bin/supervisorctl -c $supervisor_dir/$supervisor_jaws_config reread"
+        echo $cmd && eval $cmd
+        cmd="$supervisor_dir/bin/supervisorctl -c $supervisor_dir/$supervisor_jaws_config start jaws-$deploy_name:*"
+        echo $cmd && eval $cmd
+    fi
+fi
+
+
+## Start jtm processes
+if [[ $deploy_jtm == 1 ]]; then
+    pid=$(get_supervisord_pid $supervisor_dir/$supervisor_jtm_config)
+    if [[ ! -z $pid && $supervisor_dir/$supervisor_jtm_config ]]; then
+        cmd="$supervisor_dir/bin/supervisorctl -c $supervisor_dir/$supervisor_jtm_config reread"
+        echo $cmd && eval $cmd
+        cmd="$supervisor_dir/bin/supervisorctl -c $supervisor_dir/$supervisor_jtm_config start jaws-$deploy_name:*"
+        echo $cmd && eval $cmd
+    fi
+fi
+
+
+## Set group permissions
+fix_perms $jtm_group $supervisor_dir/bin
+fix_perms $jtm_group $supervisor_dir/venv

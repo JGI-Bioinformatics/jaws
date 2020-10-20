@@ -1,0 +1,502 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import stat
+import argparse
+import shutil
+import subprocess
+import json
+import jinja2
+import collections
+import pathlib
+import getpass
+import re
+import pprint
+from collections.abc import Iterable
+
+ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+class CmdExecutionError(Exception):
+    """ Custom shell execution exception """
+    pass
+
+
+def get_args():
+    """Parse command line arguments.
+    """
+    prog_desc = '''
+    '''
+    parser = argparse.ArgumentParser(description=prog_desc, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('deploy_name', help='deployment environment (e.g., dev, staging, prod)')
+    parser.add_argument('config_file', help='deploy json config file (e.g., deploy.json)')
+    parser.add_argument('install_dir', help='installation directory')
+    parser.add_argument('-d', dest='developer_mode', action='store_true', help='developer mode')
+
+    return parser.parse_args()
+
+
+def run_command(cmd):
+    """ Execute input command, returning stdout, stderr, exitcode.
+    """
+    print(f"Running: {cmd}")
+    process = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = process.communicate()
+    exitcode = process.returncode
+
+    return stdout.decode('utf-8').strip(), stderr.decode('utf-8').strip(), exitcode
+
+
+def get_config_json_data(config_json):
+    """ Return json data for a given json file.
+    """
+    with open(config_json) as json_file:
+        try:
+            jsondata = json.load(json_file)
+        except ValueError as err:
+            raise ValueError(f"Unable to read json file {json_file}: {err}")
+    return jsondata
+
+
+def substitute_jinja_vars(config_data, input_file, output_file):
+    """ Substitute jinja variables defined in the given input file using the input json data. Write output
+    to given output file.
+    """
+    print(f"Reading {input_file} ...")
+    with open(input_file) as fh:
+        tp = jinja2.Template(fh.read())
+
+    print(f"Writing {output_file} ...")
+    with open(output_file, 'w') as fh:
+        fh.write(tp.render(config_data))
+
+
+def substitute_env_vars_in_json_file(input_file, output_file):
+    """ Substitute environment vars defined in config json files and copy to the
+    deployment location.
+
+    Returns:
+    file name and path of main json config
+    list containing namedtuple of site json config and site name.
+    """
+    # Substitute env vars in main json config and store in deploy dir
+    print(f"Substituting environment variables in {input_file} ...")
+    cmd = f"envsubst < {input_file} > {output_file}"
+    stdout, stderr, exitcode = run_command(cmd)
+
+    if exitcode or not os.path.isfile(output_file):
+        raise FileNotFoundError(f"Cannot find {output_file} file: {stderr}")
+
+
+def get_what_to_install(config_entries):
+    """ Parses the input json data for install.components.<name>.add=1 entries.
+    Return dict with key=component name, value=the value assigned to add key.
+    """
+    services = collections.OrderedDict()
+
+    # sort the services by the value in the 'add' key within config_entries.
+    for service in sorted(config_entries['install']['components'], \
+        key=lambda x: config_entries['install']['components'][x]['add']):
+        if config_entries['install']['components'][service].get('add', 0) > 0:
+            services[service] = config_entries['install']['components'][service]['add']
+
+    return services
+
+
+def write_deployment_files(config_json_file, files):
+    """ Given an input json file and a list of jinja template files, substitute jinja variables
+    using json data from input json file and write to output file.
+    Input files dict format is as follows: files[output_file] = jinja template file
+    """
+    config_entries = get_config_json_data(config_json_file)
+
+    for output_file, template_file in files.items():
+        if not template_file.startswith('/'):
+            template_file = os.path.join(ROOT_DIR, template_file)
+
+        dirname = os.path.dirname(output_file)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+            change_file_perms(dirname, 750)
+
+        if output_file.startswith('/'):
+            file_dir = os.path.dirname(output_file)
+            if not os.path.isdir(file_dir):
+                os.mkdir(file_dir)
+
+        substitute_jinja_vars(config_entries, template_file, output_file)
+        change_file_perms(output_file, 750)
+
+
+def change_file_perms(path, mode=755):
+    """ Given a path or filename, change permisson to input mode. If input is a
+    path, recursively change permissions for all sub dirs/files.
+    """
+    mode = int(f"0o{mode}", 0)
+    os.chmod(path, mode)
+
+    # if input is a file, then return
+    if os.path.isfile(path):
+        return
+
+    # if input is a path, then change permissions for all sub dirs and files.
+    for dirpath, dirnames, filenames in os.walk(path):
+        for dname in dirnames:
+            os.chmod(os.path.join(dirpath, dname), mode)
+        for fname in filenames:
+            fullpath = os.path.join(dirpath, fname)
+            os.chmod(fullpath, mode)
+
+
+def get_jinja_translated_config_data(jsonfile, config_entries):
+    """ Substitute jinja variables in the given json with values defined in the given config entries dict.
+    Returns translated json data from input json file.
+    """
+    entries = {}
+    if not jsonfile.startswith('/'):
+        jsonfile = os.path.join(ROOT_DIR, jsonfile)
+
+    try:
+        with open(jsonfile) as fh:
+            tp = jinja2.Template(fh.read())
+    except IOError as err:
+        raise IOError(f"failed to read {jsonfile}: {err}")
+
+    try:
+        entries = json.loads(tp.render(config_entries))
+    except ValueError as err:
+        raise ValueError(f"unable to read json file {jsonfile}: {err}")
+
+    return entries
+
+
+def assign_deploy_env(entries, deploy_name):
+    """ Traverse thru dict and look for deploy_name key for given deployment name in dict. if found,
+    assign deploy_name key with entries from the deployment name key.
+    example:
+    given dict, with deploy_name="dev":
+    "deploy_name": {
+        "dev": {
+            "auth": 1,
+            "rest": 2
+        }
+    }
+    returns:
+    "deploy_name": {
+        "auth": 1,
+        "rest": 2,
+    }
+    """
+    for key, val in entries.items():
+        if isinstance(val, dict):
+            if 'deploy_name' in val and isinstance(val['deploy_name'], dict) and \
+                deploy_name in val['deploy_name']:
+                val['deploy_name'] = val['deploy_name'][deploy_name]
+            assign_deploy_env(val, deploy_name)
+
+
+def add_to_deploy_config_json(config_json_file, deploy_name):
+    """ Construct deploy.json file used for translating jinja variables in config and deployment files.
+    Given the profile json file, look for all entries with install.components.<name>.add=1 and
+    check if a deploy_json_template key exists. If yes, then get json template file, substitute
+    jinja variables in template file using json data from input json file and merge with json data.
+    If deploy json template contains the key 'deploy_name' where the value is a dict containing the
+    input deployment name, collapse entries from the deployment name to the 'deploy_name' key. See
+    assign_deploy_env for more details.
+    """
+    config_entries = get_config_json_data(config_json_file)
+    site_entries = {}
+    add_site_data = 0
+
+    # add client data to config entries if client install is on.
+    for service in get_what_to_install(config_entries):
+        if 'deploy_json_template' in config_entries['install']['components'][service]:
+            jsonfile = config_entries['install']['components'][service]['deploy_json_template']
+            print(f"Setting up {service} using {jsonfile} ...")
+            service_entries = get_jinja_translated_config_data(jsonfile, config_entries)
+            update_dict(config_entries, service_entries)
+
+    # look for entries with 'deploy_name' key for given deployment name. if found,
+    # replace 'deploy_env' with entries from 'deploy_name' key for given deployment name.
+    assign_deploy_env(config_entries, deploy_name)
+
+    # write json file to deployment dir - for user reference only.
+    with open(config_json_file, 'w') as fh:
+        fh.write(json.dumps(config_entries, indent=4))
+
+
+def create_jaws_config_files(deploy_dir, deploy_name, config_json_file):
+    """ Create config files in installation dir for installed components defined in the input
+    json config file.
+    """
+    jaws_config_files = {}
+    # Get json data from input config file.
+    print(f"Getting json data from {config_json_file} and constructing data for deployment ...")
+    config_entries = get_config_json_data(config_json_file)
+
+    for service in get_what_to_install(config_entries):
+        config_template = config_entries['install']['components'][service].get('config_template', None)
+        if config_template:
+            output_config_name = config_entries['install']['components'][service]['output_config_name']
+            jaws_config_files[output_config_name] = config_template
+
+    # For each jaws/jtm config file defined in jaws_config_files, substitute jinja vars in file and write
+    # to deployment dir.
+    print("Creating jaws config files ...")
+    write_deployment_files(config_json_file, jaws_config_files)
+
+
+def create_deploy_scripts(deploy_dir, deploy_name, deploy_config_json_file):
+    # Create python virtualenv and launching scripts for each service to be installed.
+    output_scripts = []
+    config_entries = get_config_json_data(deploy_config_json_file)
+    install_these_services = get_what_to_install(config_entries)
+
+    for service in install_these_services:
+        deploy_template = config_entries['install']['components'][service].get('deploy_script', None)
+
+        # Skip if template is not defined in json config entries
+        if not deploy_template:
+            continue
+
+        print(f"Installing {service} ...")
+
+        # Create deployment file
+        deploy_template = os.path.join(ROOT_DIR, config_entries['install']['components'][service]['deploy_script'])
+        output_script = os.path.join(deploy_dir, os.path.basename(deploy_template))
+        substitute_jinja_vars(config_entries, deploy_template, output_script)
+        change_file_perms(output_script, 750)
+        output_scripts.append(output_script)
+
+    return output_scripts
+
+
+def run_deploy_scripts(cmds):
+    """ Given a list of commands, execute each, one at a time.
+    """
+    for cmd in cmds:
+        # Execute deployment file (creates python virtualenv and shim file)
+        stdout, stderr, exitcode = run_command(cmd)
+        print(stdout)
+        if exitcode:
+            raise CmdExecutionError(f"Failed to run {cmd}: {stderr}")
+
+
+def update_dict(orig_dict, new_dict):
+    """ Updates an existing dict with the new dict. If the new dict contains sub keys,
+    this will append/overwite the keys in the original dict instead of replacing the
+    sub key block with the one defined in the new dict (which is the behavior of python's update()
+    function.
+    """
+    for key, val in new_dict.items():
+        if isinstance(val, collections.Mapping):
+            tmp = update_dict(orig_dict.get(key, {}), val)
+            orig_dict[key] = tmp
+        elif isinstance(val, list):
+            orig_dict[key] = (orig_dict.get(key, []) + val)
+        else:
+            orig_dict[key] = new_dict[key]
+    return orig_dict
+
+
+def check_env_vars(config_json_file):
+    """ Get payload from input json file and traverse through structure to look for string
+    value that looks like an environment variable. If found, check if environment variable exists.
+    """
+    def traverse_keys(entries, retval=True):
+        def check_env_var(val):
+            # look for string like "$somvar" or  "${somevar}". Dashes and/or underscores in name allowed.
+            env_vars = re.findall(r"^\$\{*[\w+_-]+\}*", val)
+            if env_vars:
+                env_var = re.sub(r"[\$\{\}]", '', env_vars[0])
+                if os.environ.get(env_var, None) is None:
+                    print(f"  - missing ${env_var}.\n")
+                    return False
+                else:
+                    return True
+
+        if isinstance(entries, list):
+            for val in entries:
+                if isinstance(val, str):
+                    if val.startswith("$"):
+                        retval = check_env_var(val)
+                        if not retval:
+                            return False
+                else:
+                    retval = traverse_keys(val, retval)
+        elif isinstance(entries, dict):
+            for key, val in entries.items():
+                if isinstance(val, str):
+                    if val.startswith("$"):
+                        retval = check_env_var(val)
+                        if not retval:
+                            return False
+                else:
+                    retval = traverse_keys(val, retval)
+        return retval
+
+    print("Checking for missing environment variables ...")
+    config_entries = get_config_json_data(config_json_file)
+    return traverse_keys(config_entries)
+
+
+def check_for_valid_deploy_name(deploy_name, deploy_config_json_file):
+    """ Get json payload from input json file and traverse thru structure and look for
+    'deploy_name' key. If found and value is a dict, check that the dict contains the
+    input deployment name as a key.
+    """
+    def validate_deploy_name_keys(entries, deploy_name, retval=None):
+        if not retval:
+            retval = True
+        for key, val in entries.items():
+            if isinstance(val, dict):
+                if 'deploy_name' in val and isinstance(val['deploy_name'], dict) and \
+                    deploy_name not in val['deploy_name']:
+                    return False
+                else:
+                    retval = validate_deploy_name_keys(val, deploy_name, retval)
+        return retval
+
+    config_entries = get_config_json_data(deploy_config_json_file)
+
+    # Check if entries for deployment name is defined in deploy.json file.
+    print(f"Checking for deploy name '{deploy_name}' keys in {deploy_config_json_file} ...")
+    profile_entries =  get_jinja_translated_config_data(deploy_config_json_file, config_entries)
+    if not validate_deploy_name_keys(profile_entries, deploy_name):
+        print(f" - missing '{deploy_name}' key within deploy_name dict.")
+        return False
+
+    # Check if entries for deployment name is defined in template json files.
+    for service in get_what_to_install(config_entries):
+        json_file = config_entries['install']['components'][service].get('deploy_json_template', None)
+        if not json_file:
+            continue
+        print(f"Checking for deploy name '{deploy_name}' keys in {json_file} ...")
+        service_entries =  get_jinja_translated_config_data(json_file, config_entries)
+        if not validate_deploy_name_keys(service_entries, deploy_name):
+            print(f" - missing '{deploy_name}' key within deploy_name dict.")
+            return False
+
+    return True
+
+
+def check_input_json(config_json_file):
+    """ Check for valid keys in main input json file.
+    """
+    valid = True
+    config_entries = get_config_json_data(config_json_file)
+
+    print(f"Checking {config_json_file} for required keys ...")
+
+    if 'install' in config_entries:
+        if 'meta' in config_entries['install']:
+            for key in ['output_dir', 'src_dir', 'deploy_name', 'developer_mode']:
+                if key not in config_entries['install']['meta']:
+                    print(f"  - missing key 'install.meta.{key}'")
+                    valid = False
+        else:
+            print("  - missing key 'install.meta'")
+            valid = False
+        if 'components' in config_entries['install']:
+            for component in config_entries['install']['components']:
+                if 'add' not in config_entries['install']['components'][component]:
+                    print("  - missing key 'install.components.{component}.add'")
+                    valid = False
+        else:
+            print("  - missing key 'install.components'")
+            valid = False
+    else:
+        print("  - missing key 'install'")
+        valid = False
+
+    return valid
+
+
+def check_for_valid_json_files(config_json_file):
+
+    sys.stderr.write(f"Validating {config_json_file} file ...")
+    try:
+        config_entries = get_config_json_data(config_json_file)
+    except ValueError:
+        print(" json data not valid.")
+        return False
+
+    for service in get_what_to_install(config_entries):
+        json_file = config_entries['install']['components'][service].get('deploy_json_template', None)
+        if not json_file:
+            continue
+        if not json_file.startswith('/'):
+            json_file = os.path.join(ROOT_DIR, json_file)
+            print(f"Validating {json_file} file ...")
+            try:
+                get_config_json_data(config_json_file)
+            except ValueError:
+                print(" json data not valid.")
+                return False
+
+    return True
+
+
+def main():
+    args = get_args()
+    install_dir = os.path.abspath(args.install_dir)
+    deploy_name = args.deploy_name
+    deploy_dir = os.path.join(install_dir, "deploy")
+    input_config_json_file = args.config_file
+
+    if not os.path.isfile(input_config_json_file):
+        raise FileNotFoundError(f"Cannot find {input_config_json_file} file.")
+
+    # Validate input json config file.
+    if not check_input_json(input_config_json_file):
+        print("Required key(s) not defined.")
+        sys.exit(1)
+
+    # Set env variable in order to substitute this value into the input json config file.
+    os.environ['DEPLOY_NAME'] = deploy_name
+    os.environ['INSTALL_DIR'] = install_dir
+    os.environ['SRC_DIR'] = os.path.abspath(os.path.join(ROOT_DIR, "../../.."))
+    os.environ['DEVELOPER_MODE'] = "1" if args.developer_mode else "0"
+
+    if not check_env_vars(input_config_json_file):
+        print("Required environment variable(s) not set.")
+        sys.exit(1)
+
+    if not os.path.exists(install_dir):
+        os.mkdir(install_dir)
+    if not os.path.exists(deploy_dir):
+        os.mkdir(deploy_dir)
+
+    deploy_config_json_file = os.path.join(deploy_dir, "deploy.json")
+
+    # Substitute environment vars in template config json files and store in deployment location.
+    substitute_env_vars_in_json_file(input_config_json_file, deploy_config_json_file)
+    change_file_perms(deploy_config_json_file, 750)
+
+    # Valididate json structure for all defined json files.
+    if not check_for_valid_json_files(deploy_config_json_file):
+        print("Invalid json file found.")
+        sys.exit(1)
+
+    # Check for valid input deployment name.
+    if not check_for_valid_deploy_name(deploy_name, deploy_config_json_file):
+        print("Missing deployment name in json file.")
+        sys.exit(1)
+
+    # Get all json data from installed components and add to the deployment json file.
+    add_to_deploy_config_json(deploy_config_json_file, deploy_name)
+
+    # Create jaws config files in deployment dir.
+    create_jaws_config_files(deploy_dir, deploy_name, deploy_config_json_file)
+
+    # Create deployment files in deployment dir.
+    deploy_scripts = create_deploy_scripts(deploy_dir, deploy_name, deploy_config_json_file)
+
+    # Run deployment scripts
+    run_deploy_scripts(deploy_scripts)
+
+
+if __name__ == '__main__':
+    main()
