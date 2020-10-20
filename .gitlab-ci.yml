@@ -9,7 +9,7 @@ variables:
   GIT_STRATEGY: clone
 
   ## GLOBAL INSTALL VARIABLES:
-  JAWS_SITES: "CORI JGI CASCADE"
+  JAWS_SITES: "CORI JGI"
   JAWS_VERSION: "2.1"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
@@ -369,3 +369,5 @@ deploy-jaws-cascade-dev:
     name: "cascade/dev"
   script:
     - ./test/integration/deploy-jaws
+  only:
+    - dev
