@@ -2,7 +2,7 @@ import pytest
 import jaws_parsl.recv
 from unittest import mock
 
-@mock.patch('jaws_parsl.recv.RPC_Client',autospec=True)
+@mock.patch('jaws_parsl.recv.RpcClient',autospec=True)
 def test_update_site(patch, monkeypatch):
     mock_rpc = mock.MagicMock()
     mock_rpc.__enter__.return_value = mock_rpc
@@ -12,7 +12,7 @@ def test_update_site(patch, monkeypatch):
     jaws_parsl.recv.update_site('update', 1)
 
 
-@mock.patch('jaws_parsl.recv.RPC_Client', side_effect=Exception())
+@mock.patch('jaws_parsl.recv.RpcClient', side_effect=Exception())
 def test_update_site_fail(patch, monkeypatch):
     mock_rpc = mock.MagicMock()
     mock_rpc.__enter__.return_value = mock_rpc

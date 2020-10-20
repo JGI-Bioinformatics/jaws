@@ -12,7 +12,7 @@ from parsl import bash_app, AUTO_LOGNAME
 from parsl.config import Config
 
 from jaws_parsl import config
-from jaws_rpc.rpc_client import RPC_Client
+from jaws_rpc.rpc_client import RpcClient
 
 logger = None
 
@@ -80,7 +80,7 @@ def update_site(status, task_id):
     # send message to Site
     rpc_params = config.conf.get_rpc_params()
     try:
-        with RPC_Client({"user": rpc_params["user"],
+        with RpcClient({"user": rpc_params["user"],
                                     "password": rpc_params["password"],
                                     "host": rpc_params["host"],
                                     "vhost": rpc_params["vhost"],
