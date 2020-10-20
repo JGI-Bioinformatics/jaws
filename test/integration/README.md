@@ -112,47 +112,53 @@ user workloads: one for JAWS and one for JTM/Cromwell.
 
 To see this in action see .gitlab-ci.yml .
 
+Each instance (dev, staging, prod) will have its own supervisors. You will want to use the
+appropriate executable depending on which instance you want to work with.  
+
 Start the supervisors. Only necessary once, after startup of the machine hosting the services: 
 
     $ <command> <jaws_user>
-    $ /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf 
+    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisord -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jaws.conf 
 
     $ logout
 
     $ <command> <jtm_user>
-    $ /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf
+    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisord -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jtm.conf
 
 The following users map to the following sites:  
 
 CORI:
-    - command: collabsu 
+    - command: collabsu   
     - user: jaws | jaws_jtm
 
 LRC:
-    - command: sudo -u <user> -i
-    - user: jaws | ja
+    - command: sudo -u <user> -i  
+    - user: jaws | jaws
 
 CASCADE:
-    - command: sudo -u <user> -i
+    - command: sudo -u <user> -i  
     - user: svc-jtm-manager | svc-jtm-user
 
 
-Note for cascade you will need to ssh to the host `gwf1.emsl.pnl.gov` before you attempt to change
+Note: For cascade you will need to ssh to the host `gwf1.emsl.pnl.gov` before you attempt to change
 into the user. 
-
 
 Check the status of JAWS services:
 
-    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf status
-    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf status
+    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisorctl -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jaws.conf status
+    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisorctl -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jtm.conf status
 
 Start the JAWS services:
 
-    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start
-    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf start
+    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisorctl -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jaws.conf start
+    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisorctl -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jtm.conf start
 
 Note: there exists two supervisord processes, one for jaws and one for jtm,  even if there are not two
-separate jaws and jtm users in use at the deployment site.
+separate jaws and jtm users in use at the deployment site.  
+
+Note: For starting and checking services on `cori`, you will want to first login to
+Cori and then `ssh cori20` since the supervisor files are located in `/tmp` which is
+a local filesystem rather than a shared filesystem like $CSCRATCH and $PROJECTDIR.  
 
 
 ## Starting the gitlab-runner on Cori20
