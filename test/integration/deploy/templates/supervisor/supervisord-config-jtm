@@ -1,0 +1,57 @@
+[inet_http_server]
+port={{supervisor.deploy_name.inet_http_server}}:{{supervisor.deploy_name.ports.jtm}}
+username=jaws
+password={{supervisor.deploy_name.password}}
+
+[supervisord]
+logfile={{supervisor.deploy_name.install_dir}}/jtm-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile={{supervisor.deploy_name.install_dir}}/jtm-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jtm
+directory={{supervisor.deploy_name.install_dir}}
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl={{supervisor.deploy_name.supervisorctl_url}}:{{supervisor.deploy_name.ports.jtm}}
+username=jaws
+password={{supervisor.deploy_name.password}}
+prompt=supervisor-jtm
+
+;----- Program Section
+
+{%- if install.components.jaws_jtm.add %}
+[program:jaws-jtm]
+command={{install.meta.output_dir}}/shims/jaws-jtm
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+{% endif %}
+
+{%- if install.components.cromwell.add %}
+[program:jaws-cromwell]
+command={{install.meta.output_dir}}/shims/jaws-cromwell
+numprocs=1
+startsecs=10
+startretries=3
+autorestart=unexpected
+{% endif %}
+
+[group:jaws-{{install.meta.deploy_name}}]
+programs=
+{%- if install.components.jaws_jtm.add -%}jaws-jtm{%- endif -%}
+{%- if install.components.cromwell.add and install.components.jaws_jtm.add -%},{%- endif -%}
+{%- if install.components.cromwell.add -%}jaws-cromwell{%- endif -%}
+{{"\n"}}
+priority=999

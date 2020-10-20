@@ -1,0 +1,219 @@
+#!/bin/bash
+
+{% set sitename = "{}".format(install.components.jaws_site.site_name) -%}
+
+set -eo pipefail
+
+## DEFINE INSTALL VARS
+deploy_jaws_client={{install.components.jaws_client.deploy}}
+client_install_dir={{client.install_dir}}
+jaws_group={{site[sitename]['group_perms']['jaws']}}
+jtm_group={{site[sitename]['group_perms']['jtm']}}
+client_group={{site[sitename]['group_perms']['client']}}
+src_dir={{install.meta.src_dir}}
+install_dir={{site[sitename]['install_dir']}}
+jaws_scratch_dir={{site[sitename]['jaws']['scratch_dir']}}
+jtm_scratch_dir={{site[sitename]['jtm']['scratch_dir']}}
+jtm_worker_install_dir={{site[sitename]['jtm']['worker_install_dir']}}
+developer_mode={{developer_mode}}
+jtm_dir=$install_dir/jtm
+download_dir=$jaws_scratch_dir/downloads
+upload_dir=$jaws_scratch_dir/uploads
+site_dir=$install_dir/site
+config_dir=$install_dir/config
+shim_dir=$install_dir/shims
+log_dir=$install_dir/logs
+log_level="DEBUG"
+
+## PERMISSIONS
+function fix_perms() {
+    local dir=$1
+    local group=$2
+    chmod -R a+rX $dir
+    chmod -R ug+rwX $dir
+    [[ ! -z $group ]] && chgrp -R $group $dir
+    if [[ -d $dir ]]; then
+        find $dir -type d -exec chmod g+s '{}' \;
+    fi
+}
+
+
+## MAKE DIR IF NOT EXIST
+test -d $site_dir && rm -rf $site_dir && mkdir $site_dir
+test -d $jtm_dir && rm -rf $jtm_dir
+test -d $jtm_worker_install_dir && rm -rf $jtm_worker_install_dir
+test -d $shim_dir || mkdir $shim_dir
+test -d $log_dir || mkdir "$log_dir"
+
+
+## CREATE PYTHON VIRTUALENV
+python3 -m venv $site_dir && \
+  source $site_dir/bin/activate && \
+  pip install --upgrade pip && \
+  pip install wheel && \
+  deactivate
+python3 -m venv $jtm_dir && \
+  source $jtm_dir/bin/activate && \
+  pip install --upgrade pip && \
+  pip install wheel && \
+  deactivate
+python3 -m venv $jtm_worker_install_dir && \
+  source $jtm_worker_install_dir/bin/activate && \
+  pip install --upgrade pip && \
+  pip install wheel && \
+  deactivate
+
+
+## INSTALL JAWS FILES
+if [[ $developer_mode == 1 ]]; then
+  echo "** Installing in developer mode **"
+  source $site_dir/bin/activate && \
+    cd $src_dir/rpc && pip install -e . && \
+    cd $src_dir/site && pip install -e . && \
+    deactivate
+  source $jtm_dir/bin/activate && \
+    cd $src_dir/rpc && pip install -e . && \
+    cd $src_dir/jtm && pip install -e . && \
+    deactivate
+  source $jtm_worker_install_dir/bin/activate && \
+    cd $src_dir/rpc && pip install -e . && \
+    cd $src_dir/jtm && pip install -e . && \
+    deactivate
+else
+  [[ -d $src_dir/rpc/dist ]] && rm -f $src_dir/rpc/dist/* ]]
+  [[ -d $src_dir/site/dist ]] && rm -f $src_dir/site/dist/* ]]
+  [[ -d $src_dir/jtm/dist ]] && rm -f $src_dir/jtm/dist/* ]]
+  cd $src_dir/rpc && python setup.py bdist_wheel && \
+    cd ../site && python setup.py bdist_wheel && \
+    cd ../jtm && python setup.py bdist_wheel
+  source $site_dir/bin/activate && \
+    pip install $src_dir/rpc/dist/* && \
+    pip install $src_dir/site/dist/* && \
+    deactivate
+  source $jtm_dir/bin/activate && \
+    pip install $src_dir/rpc/dist/* && \
+    pip install $src_dir/jtm/dist/* && \
+    deactivate
+  source $jtm_worker_install_dir/bin/activate && \
+    pip install $src_dir/rpc/dist/* && \
+    pip install $src_dir/jtm/dist/* && \
+    deactivate
+fi
+
+fix_perms $site_dir $jaws_group
+
+
+##  CREATE SHIM FILES
+# If the DEPLOY-CLIENT flag is set, the deploy-client script will be run, but the files must have group and permissions set.
+# Unfortunately, chgrp/chmod don't work on the parallel-fs when executed by the gitlab-runner for some reason; the
+# solution is to have the jaws user perform these commands in one of the shims (under supervsiord), so it's executed before one
+# of the required services is executed.  This is a hack.
+fix_perms_client=""
+[[ -n "$deploy_jaws_client" ]] && \
+  [[ "$deploy_jaws_client" -eq 1 ]] && \
+  [[ ! -z $client_group ]] && \
+  fix_perms_client="fix_perms $client_group $client_install_dir"
+
+
+## CREATE jaws-site-daemon shim file
+shim_file=$shim_dir/jaws-site-daemon
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+function fix_perms() {
+    local GROUP="\$1"
+    local DIR="\$2"
+    chmod -R a+rX "\$DIR"
+    chmod -R ug+rwX "\$DIR"
+    [[ ! -z "$GROUP" ]] && chgrp -R "\$GROUP" "\$DIR"
+    find "\$DIR" -type d -exec chmod g+s '{}' \;
+}
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+test -d "$jaws_scratch_dir" || mkdir "$jaws_scratch_dir"
+chmod 775 "$jaws_scratch_dir"
+test -d "$download_dir" || mkdir "$download_dir"
+chmod 775 "$download_dir"
+
+$fix_perms_client
+
+source $install_dir/site/bin/activate
+exec jaws-site --log $log_dir/site-daemon.log --config $config_dir/jaws-site.conf --log-level $log_level daemon
+EOM
+chmod 770 $shim_file
+fix_perms $jaws_group $shim_file
+
+
+## Create jaws-site-central-rpc shim file
+shim_file=$shim_dir/jaws-site-central-rpc
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+# START RPC SERVER
+source $install_dir/site/bin/activate
+exec jaws-site --log $log_dir/site-central-rpc.log --config $config_dir/jaws-site.conf --log-level $log_level central-rpc
+EOM
+chmod 770 $shim_file
+fix_perms $jaws_group $shim_file
+
+
+## Create jaws-site-jtm-rpc shim file
+shim_file=$shim_dir/jaws-site-jtm-rpc
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $install_dir/site/bin/activate
+exec jaws-site --log $log_dir/site-jtm-rpc.log --config $config_dir/jaws-site.conf --log-level DEBUG jtm-rpc
+EOM
+chmod 770 $shim_file
+fix_perms $jaws_group $shim_file
+
+
+## Create jaws-jtm shim file
+shim_file=$shim_dir/jaws-jtm
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+
+# DEPLOY TO NFS DIR
+# HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
+
+test -d $jtm_worker_install_dir || mkdir $jtm_worker_install_dir
+test -d $jtm_scratch_dir || mkdir $jtm_scratch_dir
+test -d $upload_dir || mkdir $upload_dir
+
+cp $config_dir/jaws-jtm.conf $jtm_worker_install_dir/
+if [[ ! -z "$jtm_group" ]]; then
+    chgrp $jtm_group $jtm_worker_install_dir/jaws-jtm.conf
+    chgrp $jtm_group $upload_dir
+fi
+chmod 770 $jtm_worker_install_dir
+chmod 640 $jtm_worker_install_dir/jaws-jtm.conf
+chmod 775 $jtm_scratch_dir
+chmod 777 $upload_dir
+
+
+# RUN JTM
+
+source $install_dir/jtm/bin/activate
+export JTM_CONFIG_FILE=$config_dir/jaws-jtm.conf
+
+exec jtm --config=$config_dir/jaws-jtm.conf --debug manager -ld $log_dir
+EOM
+chmod 770 $shim_file
+fix_perms $jaws_group $shim_file

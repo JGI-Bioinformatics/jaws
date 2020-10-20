@@ -1,0 +1,113 @@
+{
+    "install": {
+        "meta": {
+            "output_dir": "$INSTALL_DIR",
+            "src_dir": "$SRC_DIR",
+            "deploy_name": "$DEPLOY_NAME",
+            "developer_mode": "$DEVELOPER_MODE"
+        },
+        "components": {
+            "jaws_central": {
+                "add": 1,
+                "deploy_script": "templates/central/deploy-jaws-central",
+                "config_template": "templates/central/jaws-central.conf",
+                "output_config_name": "$INSTALL_DIR/config/jaws-central.conf",
+                "sites": ["cori", "jgi", "local"],
+                "__comments__": "set add=1 if installing central"
+            },
+            "jaws_central_data": {
+                "add": 1,
+                "deploy_json_template": "templates/central/jaws-central-local.json",
+                "__comments__": "set add=1 if installing central and/or site"
+            },
+            "jaws_client": {
+                "add": 1,
+                "deploy_script": "templates/client/deploy-jaws-client",
+                "config_template": "templates/client/jaws-client.conf",
+                "output_config_name": "$INSTALL_DIR/config/jaws-client.conf",
+                "__comments__": "set add=1 if installing client"
+            },
+            "jaws_client_data": {
+                "add": 1,
+                "deploy_json_template": "templates/client/jaws-client-local.json",
+                "__comments__": "set add=1 if installing client and/or site"
+            },
+            "jaws_site_cori_data": {
+                "add": 1,
+                "deploy_json_template": "templates/site/jaws-site-cori.json",
+                "__comments__": "set add=1 if installing central"
+            },
+            "jaws_site_jgi_data": {
+                "add": 1,
+                "deploy_json_template": "templates/site/jaws-site-jgi.json",
+                "__comments__": "set add=1 if installing central"
+            },
+            "jaws_site_local_data": {
+                "add": 1,
+                "deploy_json_template": "templates/site/jaws-site-local.json",
+                "__comments__": "set add=1 if installing central"
+            },
+            "jaws_site": {
+                "add": 1,
+                "deploy_json_template": "templates/site/jaws-site-local.json",
+                "deploy_script": "templates/site/deploy-jaws-site",
+                "config_template": "templates/site/jaws-site.conf",
+                "output_config_name": "$INSTALL_DIR/config/jaws-site.conf",
+                "site_name": "local",
+                "__comments__": "set add=1 if installing site"
+            },
+            "jaws_jtm": {
+                "add": 1,
+                "config_template": "templates/jtm/jaws-jtm.conf",
+                "output_config_name": "$INSTALL_DIR/config/jaws-jtm.conf",
+                "__comments__": "set add=1 if installing site"
+            },
+            "cromwell": {
+                "add": 1,
+                "deploy_json_template": "templates/cromwell/cromwell-local.json",
+                "deploy_script": "templates/cromwell/deploy-cromwell",
+                "config_template": "templates/cromwell/cromwell-local.conf",
+                "output_config_name": "$INSTALL_DIR/config/cromwell.conf",
+                "__comments__": "set add=1 if installing cromwell"
+            },
+            "supervisor_jaws_data": {
+                "add": 1,
+                "config_template": "templates/supervisor/supervisord-config-jaws",
+                "output_config_name": "$INSTALL_DIR/config/supervisord-jaws.conf",
+                "__comments__": "set add=1 if installing supervisor and central and/or site"
+            },
+            "supervisor_jtm_data": {
+                "add": 1,
+                "config_template": "templates/supervisor/supervisord-config-jtm",
+                "output_config_name": "$INSTALL_DIR/config/supervisord-jtm.conf",
+                "__comments__": "set add=1 if installing supervisor and jaws_jtm and/or cromwell"
+            },
+            "supervisor": {
+                "add": 99,
+                "deploy_json_template": "templates/supervisor/supervisor.json",
+                "deploy_script": "templates/supervisor/deploy-supervisor",
+                "__comments__": "set add=1 if installing supervisor"
+            }
+        }
+    },
+    "passwords": {
+        "jaws_central": {
+            "mysql": "$JAWS_CENTRAL_DB_PW",
+            "rabbitmq": "$JAWS_CENTRAL_RMQ_PW"
+        },
+        "jaws_site": {
+            "mysql": "$JAWS_SITE_CORI_DB_PW",
+            "rabbitmq": "$JAWS_SITE_CORI_RMQ_PW"
+        },
+        "jaws_jtm": {
+            "mysql": "$JAWS_JTM_CORI_DB_PW",
+            "rabbitmq": "$JAWS_JTM_RMQ_CORI_PW"
+        },
+        "cromwell": {
+            "mysql": "$JAWS_CROMWELL_CORI_DB_PW"
+        },
+        "supervisor": "$JAWS_SUPERVISORD_PW"
+    },
+    "version": "$JAWS_VERSION",
+    "docs_url": "https://jaws-docs.readthedocs.io/en/latest/"
+}

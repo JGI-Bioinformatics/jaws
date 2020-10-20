@@ -1,0 +1,74 @@
+{
+    "site": {
+        "cori": {
+            "install_dir": "{{install.meta.output_dir}}",
+            "name": "CORI",
+            "ref_data_dir": "/global/cfs/projectdirs/jaws/refdata",
+            "group_perms": {
+                "jaws": "jaws",
+                "jtm": "jaws_jtm",
+                "client": "genome"
+            },
+            "jaws": {
+                "scratch_dir": "/global/cscratch1/sd/jaws/jaws-{{install.meta.deploy_name}}",
+                "max_ram_gb": 2048,
+                "mysql": {
+                    "db": "jaws_{{install.meta.deploy_name}}",
+                    "host": "jaws-db.lbl.gov",
+                    "port": 3306,
+                    "user": "jaws",
+                    "password": "{{passwords.jaws_site.mysql}}"
+                },
+                "rmq": {
+                    "local": {
+                        "host": "rmq.lbl.gov",
+                        "port": 5672,
+                        "vhost": "jaws_{{install.meta.deploy_name}}",
+                        "queue": "SITE",
+                        "user": "jaws",
+                        "password": "{{passwords.jaws_site.rabbitmq}}"
+                    },
+                    "central": {
+                        "host": "rmq.lbl.gov",
+                        "port": 5672,
+                        "vhost": "jaws_{{install.meta.deploy_name}}",
+                        "queue": "CORI",
+                        "user": "jaws",
+                        "password": "{{passwords.jaws_site.rabbitmq}}"
+                    }
+                }
+            },
+            "globus": {
+                "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3",
+                "endpoint_id": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+                "uploads_subdir": "global/cscratch1/sd/jaws_jtm/jtm-{{install.meta.deploy_name}}/uploads",
+                "downloads_subdir": "global/cscratch1/sd/jaws/jaws-{{install.meta.deploy_name}}/results",
+                "root_dir": "/",
+                "default_dir": "~"
+            },
+            "jtm": {
+                "host_name": "CORI",
+                "user_name": "jtm_{{install.meta.deploy_name}}",
+                "scratch_dir": "/global/cscratch1/sd/jaws_jtm/jaws-{{install.meta.deploy_name}}",
+                "worker_config_file": "/global/cfs/projectdirs/jaws/jtm-{{install.meta.deploy_name}}/jaws-jtm.conf",
+                "worker_install_dir": "/global/cfs/projectdirs/jaws_jtm/jtm-{{install.meta.deploy_name}}",
+                "env_activation": "source /global/cfs/projectdirs/jaws/jtm-{{install.meta.deploy_name}}/bin/activate",
+                "config_file": "{{install.meta.output_dir}}/configs/jaws-jtm.conf",
+                "mysql": {
+                    "db": "jtm_{{install.meta.deploy_name}}",
+                    "host": "jaws-db.lbl.gov",
+                    "port": 3306,
+                    "user": "jaws",
+                    "password": "{{passwords.jaws_jtm.mysql}}"
+                },
+                "rmq": {
+                    "host": "rmq.lbl.gov",
+                    "port": 5672,
+                    "vhost": "jtm_{{install.meta.deploy_name}}",
+                    "user": "jaws",
+                    "password": "{{passwords.jaws_jtm.rabbitmq}}"
+                }
+            }
+        }
+    }
+}
