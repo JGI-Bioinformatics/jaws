@@ -68,8 +68,8 @@ variables:
   CORI_GLOBUS_DEFAULT_DIR: "~"
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
-  CORI_JTM_RMQ_HOST: "db-rmq.jaws-services.prod-cattle.stable.spin.nersc.org"
-  CORI_JTM_RMQ_PORT: 55040
+  CORI_JTM_RMQ_HOST: "rmq.lbl.gov"
+  CORI_JTM_RMQ_PORT: 5672
   CORI_PYTHON: "python3"
   CORI_LOAD_PYTHON: "module load python3/3.7-anaconda-2019.10"
   CORI_JAWS_GROUP: "jaws"
