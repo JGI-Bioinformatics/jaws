@@ -169,7 +169,7 @@ QOS=\${qos}
 PARTITION=\${partition}
 [ -z \$QOS ] || QOS="--qos \$QOS"
 [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
-[ -z \$PARTITION ] || PARTITION="-C \$PARTITION"
+[ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
 -cmd '/bin/bash \${script}' \
@@ -195,7 +195,7 @@ QOS=\${qos}
 PARTITION=\${partition}
 [ -z \$QOS ] || QOS="--qos \$QOS"
 [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
-[ -z \$PARTITION ] || PARTITION="-C \$PARTITION"
+[ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
 -cmd '$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}' \
