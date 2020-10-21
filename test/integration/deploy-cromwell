@@ -184,7 +184,7 @@ submit \
 -A \${account} \
 --shared \${shared} \
 \$CONSTRAINT \
-\$QOS
+\$QOS \
 \$PARTITION
 """
 
@@ -210,7 +210,7 @@ submit \
 -A \${account} \
 --shared \${shared} \
 \$QOS \
-\$CONSTRAINT
+\$CONSTRAINT \
 \$PARTITION
 """
 

@@ -113,7 +113,7 @@ variables:
   JGI_CONTAINER_TYPE: "singularity"
   JGI_DB_HOST: "jaws-db.lbl.gov"
   JGI_DB_PORT: 3306
-  JGI_CLUSTER_QOS: "lr_normal"
+  JGI_CLUSTER_QOS: "condo_jgicloud"
   JGI_CLUSTER_PARTITION: "lr3,jgi"
   JGI_CLUSTER_ACCOUNT: "lr_jgicloud"
   JGI_CLUSTER_CONSTRAINT: ""
