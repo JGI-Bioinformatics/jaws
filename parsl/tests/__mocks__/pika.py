@@ -9,7 +9,7 @@ class Channel:
     def basic_publish(self, exchange, routing_key, body): pass
     def basic_ack(self): pass
 
+
 class Connection:
     def __init__(self): pass
     def channel(self): return Channel()
-

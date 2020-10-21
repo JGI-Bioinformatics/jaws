@@ -7,6 +7,7 @@ import json
 import logging
 from jaws_parsl import config
 
+
 @click.command()
 @click.option("-cl", "--cluster", help="Compute cluster name")
 @click.option("-cmd", "--command", help="Command script")
@@ -36,4 +37,3 @@ def send(cluster, command):
                           routing_key='hello',
                           body=json.dumps(job_info))
     logging.debug(" [x] Sent job info to RMQ server.")
-

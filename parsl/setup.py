@@ -16,4 +16,3 @@ setup(
     entry_points={"console_scripts": ["jaws-parsl = jaws_parsl.cli:jaws", ]},
     zip_safe=False,
 )
-

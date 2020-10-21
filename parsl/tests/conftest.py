@@ -31,4 +31,3 @@ queue = high-prio
 """
     cfg.write_text(content)
     return cfg.as_posix()
-

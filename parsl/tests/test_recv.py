@@ -2,7 +2,8 @@ import pytest
 import jaws_parsl.recv
 from unittest import mock
 
-@mock.patch('jaws_parsl.recv.RpcClient',autospec=True)
+
+@mock.patch('jaws_parsl.recv.RpcClient', autospec=True)
 def test_update_site(patch, monkeypatch):
     mock_rpc = mock.MagicMock()
     mock_rpc.__enter__.return_value = mock_rpc

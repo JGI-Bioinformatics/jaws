@@ -18,4 +18,3 @@ def test_check_rmq_values(config_file):
 
     for key, expected in expected_rmq_parameters:
         assert actual_parameters[key] == expected
-

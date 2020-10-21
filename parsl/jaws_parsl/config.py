@@ -73,4 +73,3 @@ class Configuration():
         }
         print(params)
         return params
-

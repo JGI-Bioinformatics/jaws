@@ -9,7 +9,6 @@ from functools import partial
 import pika
 import parsl
 from parsl import bash_app, AUTO_LOGNAME
-from parsl.config import Config
 
 from jaws_parsl import config
 from jaws_rpc.rpc_client import RpcClient
@@ -24,42 +23,43 @@ G_UPDATES_CHANNEL = None
 def on_task_callback(task_id, future):
     logger.debug(f"[Task:{task_id}] Received callback")
     global G_UPDATES_CHANNEL
-    
+
     try:
         result = future.result()
-    except Exception as e:    
+    except Exception as e:
         logger.exception(f"[Task:{task_id}] failed with exception : {e}")
         G_UPDATES_CHANNEL.push_task_status(task_id, 'FAILED')
     else:
         logger.info(f"[Task:{task_id}] completed successfully")
+        logger.info(f"Result: {result}")
         G_UPDATES_CHANNEL.push_task_status(task_id, 'COMPLETED')
-    
+
 
 def on_message_callback(ch, method, properties, body):
-    
+
     logger.debug("Received message script.")
     logger.debug(f" Body : {body}")
     global G_UPDATES_CHANNEL
-    
+
     try:
         message = json.loads(body)
-    except:
+    except Exception:
         logger.exception(f"Failed to decode message: {message}")
         return
 
     global G_TASK_TABLE
 
-    executor = message['cluster']    
+    # executor = message['cluster'] # todo: get machine as executor
     future = run_script(message['command'])
     task_id = future.tid
     logger.debug(f"[Task:{task_id} Launched")
     print(f"Task id: {task_id}")
     G_UPDATES_CHANNEL.push_task_status(task_id, 'LAUNCHED')
-    
-    G_TASK_TABLE[task_id] = {'future' : future,
-                             'received_at' : time.time(),
-                             'completed_at' : None}
-    
+
+    G_TASK_TABLE[task_id] = {'future': future,
+                             'received_at': time.time(),
+                             'completed_at': None}
+
     future.add_done_callback(partial(on_task_callback, task_id))
 
     update_site('LAUNCHED', task_id)
@@ -81,12 +81,12 @@ def update_site(status, task_id):
     rpc_params = config.conf.get_rpc_params()
     try:
         with RpcClient({"user": rpc_params["user"],
-                                    "password": rpc_params["password"],
-                                    "host": rpc_params["host"],
-                                    "vhost": rpc_params["vhost"],
-                                    "port": rpc_params["port"],
-                                    "queue": rpc_params["queue"]}
-                                   ) as rpc_cl:
+                        "password": rpc_params["password"],
+                        "host": rpc_params["host"],
+                        "vhost": rpc_params["vhost"],
+                        "port": rpc_params["port"],
+                        "queue": rpc_params["queue"]}
+                       ) as rpc_cl:
             wait_count = 0
             response = rpc_cl.request("update_job_status", data)
             logger.debug(f"Return msg from JAWS Site: {response}")
@@ -107,6 +107,7 @@ def update_site(status, task_id):
 def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME):
     cmd = 'bash ' + script
     return cmd
+
 
 class UpdatesChannel():
 
@@ -129,7 +130,7 @@ class UpdatesChannel():
                           'timestamp': str(datetime.datetime.now()),
                           'status': status}
         self._publish(json.dumps(status_message))
-        
+
 
 class TasksChannel():
 
@@ -144,15 +145,16 @@ class TasksChannel():
                               auto_ack=True,
                               on_message_callback=on_message_callback)
         self.channel = channel
-        
+
     def listen(self):
         logger.info(' [*] Waiting for messages. To exit press CTRL+C')
         try:
             self.channel.start_consuming()
-        except Exception as e:
-            logger.exception("Caught exception while waiting of RMQ")
+        except Exception:
+            logger.exception("Caught exception while waiting for RMQ")
             logger.info("Ignoring error and continuing")
             pass
+
 
 def start_file_logger(filename, name='parsl-rabbitmq', level=logging.DEBUG, format_string=None):
     """Add a stream log handler.
@@ -177,6 +179,7 @@ def start_file_logger(filename, name='parsl-rabbitmq', level=logging.DEBUG, form
     formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
 
 def cli():
 
@@ -203,14 +206,14 @@ def cli():
     parsl_run_dir = dfk.run_dir
 
     args = parser.parse_args()
-    
+
     if args.logfile:
         logfile_path = args.logfile
     else:
         logfile_path = f'{parsl_run_dir}/parsl-RabbitMQ.log'
 
     os.makedirs(os.path.dirname(logfile_path), exist_ok=True)
-    
+
     start_file_logger(logfile_path, level=logging.DEBUG if args.debug else logging.INFO)
     logger.info("Starting")
 
