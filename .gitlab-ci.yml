@@ -223,7 +223,7 @@ test-parsl:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
     - pip install rpc/
-    - pip install -r pytest/requirements.txt
+    - pip install -r parsl/requirements.txt
     - pip install flake8
     - pip install pytest
     - make test-parsl
