@@ -30,6 +30,8 @@ Workflows/Tasks:
 
 * grouping tasks into sub-workflows makes them more understandable, reuseable, and more easily maintained
 
+* if multiple commands are used in a "command" stanza, they should be chained using `&&` or `set -euxo pipefail` so subsequent commands are not executed after the first failure
+
 
 There are opportunities to participate in code reviews with other WDL developers; there is also a #jaws-developers slack channel (see below link).
 
