@@ -26,8 +26,12 @@ pkg-client: pkg-requirements
 pkg-jtm: pkg-requirements
 	$Q cd rpc && python setup.py bdist_wheel && cd ../jtm && python setup.py bdist_wheel
 
+.PHONY: pkg-parsl
+pkg-parsl: pkg-requirements
+	$Q cd rpc && python setup.py bdist_wheel && cd ../parsl && python setup.py bdist_wheel
+
 .PHONY: pkg
-pkg: pkg-rpc pkg-site pkg-central pkg-client pkg-jtm
+pkg: pkg-rpc pkg-site pkg-central pkg-client pkg-jtm pkg-parsl
 ## Package Section END
 
 ## Test Section BEGIN
@@ -61,8 +65,13 @@ test-jtm: test-requirements
 	$Q flake8 jtm
 	$Q cd jtm && python -m pytest tests/
 
+.PHONY: test-parsl
+test-jtm: test-requirements
+	$Q flake8 parsl
+	$Q cd parsl && python -m pytest tests/
+
 .PHONY: test
-test: test-rpc test-site test-central test-client test-jtm
+test: test-rpc test-site test-central test-client test-jtm test-parsl
 ## Test Section END
 
 ## Doc Section BEGIN
