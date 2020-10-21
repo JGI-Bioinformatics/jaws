@@ -9,7 +9,7 @@ variables:
   GIT_STRATEGY: clone
 
   ## GLOBAL INSTALL VARIABLES:
-  JAWS_SITES: "CORI JGI CASCADE"
+  JAWS_SITES: "CORI JGI"
   JAWS_VERSION: "2.1"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
@@ -68,6 +68,8 @@ variables:
   CORI_GLOBUS_DEFAULT_DIR: "~"
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
+  CORI_JTM_RMQ_HOST: "rmq.lbl.gov"
+  CORI_JTM_RMQ_PORT: 5672
   CORI_PYTHON: "python3"
   CORI_LOAD_PYTHON: "module load python3/3.7-anaconda-2019.10"
   CORI_JAWS_GROUP: "jaws"
@@ -95,6 +97,8 @@ variables:
   JGI_GLOBUS_DEFAULT_DIR: "~"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
+  JGI_JTM_RMQ_HOST: "rmq.lbl.gov"
+  JGI_JTM_RMQ_PORT: 5672
   JGI_PYTHON: "python"
   JGI_LOAD_PYTHON: "module load python"
   JGI_JAWS_GROUP: "jaws"
@@ -109,8 +113,8 @@ variables:
   JGI_CONTAINER_TYPE: "singularity"
   JGI_DB_HOST: "jaws-db.lbl.gov"
   JGI_DB_PORT: 3306
-  JGI_CLUSTER_QOS: "condo_jgicloud"
-  JGI_CLUSTER_PARTITION: "lr3"
+  JGI_CLUSTER_QOS: "lr_normal"
+  JGI_CLUSTER_PARTITION: "lr3,jgi"
   JGI_CLUSTER_ACCOUNT: "lr_jgicloud"
   JGI_CLUSTER_CONSTRAINT: ""
   JGI_MAX_RAM_GB: 1024
@@ -122,6 +126,8 @@ variables:
   CASCADE_GLOBUS_DEFAULT_DIR: "/"
   CASCADE_RMQ_HOST: "localhost"
   CASCADE_RMQ_PORT: 5672
+  CASCADE_JTM_RMQ_HOST: "localhost"
+  CASCADE_JTM_RMQ_PORT: 5672
   CASCADE_PYTHON: "python3.6"
   CASCADE_LOAD_PYTHON: ". /opt/rh/rh-python36/enable"
   CASCADE_JAWS_GROUP: "svc-jtm-manager"
@@ -380,3 +386,5 @@ deploy-jaws-cascade-dev:
     name: "cascade/dev"
   script:
     - ./test/integration/deploy-jaws
+  only:
+    - dev

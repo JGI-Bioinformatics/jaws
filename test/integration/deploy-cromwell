@@ -151,6 +151,7 @@ backend
         String constraint = "$SITE_CLUSTER_CONSTRAINT"
         String qos = "$SITE_CLUSTER_QOS"
         String account = "$SITE_CLUSTER_ACCOUNT"
+        String partition = "$SITE_CLUSTER_PARTITION"
         Int node = 1
         Int nwpn = 1
         Int shared = 0
@@ -165,8 +166,10 @@ backend
         submit = """
 CONSTRAINT=\${constraint}
 QOS=\${qos}
+PARTITION=\${partition}
 [ -z \$QOS ] || QOS="--qos \$QOS"
 [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
+[ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
 -cmd '/bin/bash \${script}' \
@@ -182,15 +185,17 @@ submit \
 --shared \${shared} \
 \$CONSTRAINT \
 \$QOS
+\$PARTITION
 """
 
 
         submit-docker = """
 CONSTRAINT=\${constraint}
 QOS=\${qos}
-$CONTAINER_CHECK
-[ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
+PARTITION=\${partition}
 [ -z \$QOS ] || QOS="--qos \$QOS"
+[ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
+[ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
 -cmd '$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}' \
@@ -206,6 +211,7 @@ submit \
 --shared \${shared} \
 \$QOS \
 \$CONSTRAINT
+\$PARTITION
 """
 
         # Root directory where Cromwell writes job results in the container. This value
