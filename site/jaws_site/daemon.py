@@ -270,7 +270,7 @@ class Daemon:
                 self.globus_endpoint,
                 dest_endpoint,
                 label=label,
-                sync_level="exists",
+                sync_level="mtime",
                 verify_checksum=False,
                 preserve_timestamp=True,
                 notify_on_succeeded=False,
