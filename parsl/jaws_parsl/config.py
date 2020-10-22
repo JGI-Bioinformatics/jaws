@@ -43,7 +43,7 @@ class Configuration():
         :return: RabbitMQ parameters.
         :rtype: dict
         """
-        section = f"RMQ"
+        section = "RMQ"
         s = self.config[section]
         params = {
             "user": s["user"],
@@ -61,7 +61,7 @@ class Configuration():
         :return: RPC parameters.
         :rtype: dict
         """
-        section = f"SITE_RPC_CLIENT"
+        section = "SITE_RPC_CLIENT"
         s = self.config[section]
         params = {
             "user": s["user"],

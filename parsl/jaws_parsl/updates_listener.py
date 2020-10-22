@@ -75,7 +75,7 @@ if __name__ == '__main__':
     if args.logfile:
         logfile_path = args.logfile
     else:
-        logfile_path = f'task_updates.log'
+        logfile_path = 'task_updates.log'
 
     start_file_logger(logfile_path, level=logging.DEBUG if args.debug else logging.INFO)
     logger.info("Starting")
