@@ -10,7 +10,11 @@ config_dir={{install.meta.output_dir}}/config
 jtm_group={{site[sitename]['group_perms']['jtm']}}
 supervisor_jaws_config=supervisord-jaws.conf
 supervisor_jtm_config=supervisord-jtm.conf
+is_local_dev_env=0
 
+if [[ $deploy_name == "local-dev" ]]; then
+    is_local_dev_env=1
+fi
 
 ## PERMISSIONS
 function fix_perms() {
@@ -38,6 +42,7 @@ function get_supervisord_pid() {
     )
     echo "$pid"
 }
+
 
 ## Function to start supervisord
 function start_supervisord() {
@@ -113,27 +118,38 @@ generate_shim supervisord
 generate_shim supervisorctl
 
 
-# Shutdown supervisord if alrady running
+## Shutdown supervisord for jaws if already running
 if [[ -f $supervisor_dir/$supervisor_jaws_config ]]; then
     shutdown_supervisord $supervisor_dir/$supervisor_jaws_config
     sleep 10 # wait for process to terminate
     rm $supervisor_dir/$supervisor_jaws_config
 fi
-if [[ -f $supervisor_dir/$supervisor_jtm_config ]]; then
-    shutdown_supervisord $supervisor_dir/$supervisor_jtm_config
-    sleep 10 # wait for process to terminate
-    rm $supervisor_dir/$supervisor_jtm_config
+
+
+## Shutdown supervisord for jtm ONLY if deployment is local-dev if already running. For other deployment envs,
+## the supervisord for jtm must be pre-launched using the jtm user.
+if [[ $is_local_dev_env == 1 && -f $supervisor_dir/$supervisor_jtm_config ]]; then
+   shutdown_supervisord $supervisor_dir/$supervisor_jtm_config
+   sleep 10 # wait for process to terminate
+   rm $supervisor_dir/$supervisor_jtm_config
 fi
 
 
-## Start supervisord if needed.
+## Start supervisord for jaws if not already running.
 if [[ $deploy_jaws == 1 ]]; then
     cp $config_dir/$supervisor_jaws_config $supervisor_dir/$supervisor_jaws_config
     start_supervisord $supervisor_dir/$supervisor_jaws_config
 fi
 
+## Copy jtm supervisor config if deploying jtm
 if [[ $deploy_jtm == 1 ]]; then
     cp $config_dir/$supervisor_jtm_config $supervisor_dir/$supervisor_jtm_config
+fi
+
+
+## Start supervisord for jtm ONLY for local-dev if not already running. For other deployment envs,
+## assume supervisord is already running.
+if [[ $is_local_dev_env && $deploy_jtm == 1 ]]; then
     start_supervisord $supervisor_dir/$supervisor_jtm_config
 fi
 
