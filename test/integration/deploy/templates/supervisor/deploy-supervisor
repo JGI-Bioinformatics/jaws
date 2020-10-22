@@ -27,7 +27,9 @@ function fix_perms() {
 ## Function to get supervisord pid
 function get_supervisord_pid() {
     local config_file=$1
+    local uname=$(whoami)
     pid=$(ps aux | \
+        grep $uname | \
         grep supervisord | \
         grep $supervisor_dir | \
         grep $config_file |  \

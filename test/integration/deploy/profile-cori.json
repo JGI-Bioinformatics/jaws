@@ -15,7 +15,7 @@
                 "sites": ["cori", "jgi", "local"],
                 "__comments__": "set add=1 if installing central"
             },
-            "jaws_central_data": {
+            "jaws_client_central_data": {
                 "add": 1,
                 "deploy_json_template": "templates/central/jaws-central-cori.json",
                 "__comments__": "set add=1 if installing central and/or site"
@@ -32,17 +32,17 @@
                 "deploy_json_template": "templates/client/jaws-client-cori.json",
                 "__comments__": "set add=1 if installing client and/or site"
             },
-            "jaws_site_cori_data": {
+            "jaws_central_site_cori_data": {
                 "add": 1,
                 "deploy_json_template": "templates/site/jaws-site-cori.json",
                 "__comments__": "set add=1 if installing central"
             },
-            "jaws_site_jgi_data": {
+            "jaws_central_site_jgi_data": {
                 "add": 1,
                 "deploy_json_template": "templates/site/jaws-site-jgi.json",
                 "__comments__": "set add=1 if installing central"
             },
-            "jaws_site_local_data": {
+            "jaws_central_site_local_data": {
                 "add": 1,
                 "deploy_json_template": "templates/site/jaws-site-local.json",
                 "__comments__": "set add=1 if installing central"
