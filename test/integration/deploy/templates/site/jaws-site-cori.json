@@ -13,7 +13,7 @@
                 "scratch_dir": "/global/cscratch1/sd/jaws/jaws-{{install.meta.deploy_name}}",
                 "max_ram_gb": 2048,
                 "mysql": {
-                    "db": "jaws_{{install.meta.deploy_name}}",
+                    "db": "jaws_cori_{{install.meta.deploy_name}}",
                     "host": "jaws-db.lbl.gov",
                     "port": 3306,
                     "user": "jaws",
@@ -24,7 +24,7 @@
                         "host": "rmq.lbl.gov",
                         "port": 5672,
                         "vhost": "jaws_{{install.meta.deploy_name}}",
-                        "queue": "SITE",
+                        "queue": "SITE_CORI",
                         "user": "jaws",
                         "password": "{{passwords.jaws_site.rabbitmq}}"
                     },
@@ -32,7 +32,7 @@
                         "host": "rmq.lbl.gov",
                         "port": 5672,
                         "vhost": "jaws_{{install.meta.deploy_name}}",
-                        "queue": "CORI",
+                        "queue": "JAWS_CORI",
                         "user": "jaws",
                         "password": "{{passwords.jaws_site.rabbitmq}}"
                     }
