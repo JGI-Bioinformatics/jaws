@@ -9,6 +9,8 @@ from jaws_client.analysis import run
 import jaws_client.user
 
 
+# flake8: noqa
+
 HISTORY = [
     [
         "33",
@@ -102,11 +104,11 @@ WORKFLOW_METADATA = {
     "status": "Running",
     "submission": "2020-04-03T20:32:49.265Z",
     "submittedFiles": {
-        "inputs": '{"bbtools.reads":"/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq","bbtools.ref":"/global/dna/shared/data/jfroula/JAWS/data/5min_ref.fasta"}',  # noqa
+        "inputs": '{"bbtools.reads":"/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq","bbtools.ref":"/global/dna/shared/data/jfroula/JAWS/data/5min_ref.fasta"}',
         "labels": '{"username": "mamelara"}',
         "options": "{\n\n}",
         "root": "",
-        "workflow": 'workflow bbtools { File reads\n    File ref\n\n    call alignment {\n       input: fastq=reads,\n              fasta=ref\n    }\n    call samtools {\n       input: sam=alignment.sam\n   }\n}\n\ntask alignment {\n    File fastq\n    File fasta\n\n    command <<<\n        shifterimg pull jfroula/bbtools:1.2.1 && \\\n        shifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=${fastq} ref=${fasta} out=test.sam\n    >>>\n    output {\n       File sam = "test.sam"\n    }\n}\n\ntask samtools {\n    File sam\n\n    command {\n       shifter --image=jfroula/bbtools:1.2.1 samtools view -b -F0x4 ${sam} | shifter --image=jfroula/bbtools:1.2.1 samtools sort - > test.sorted.bam\n    }\n    output {\n       File bam = "test.sorted.bam"\n    }\n\t#runtime {\n\t#  docker: "jfroula/bbtools:1.2.1"\n\t#}\n}\n',  # noqa
+        "workflow": 'workflow bbtools { File reads\n    File ref\n\n    call alignment {\n       input: fastq=reads,\n              fasta=ref\n    }\n    call samtools {\n       input: sam=alignment.sam\n   }\n}\n\ntask alignment {\n    File fastq\n    File fasta\n\n    command <<<\n        shifterimg pull jfroula/bbtools:1.2.1 && \\\n        shifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=${fastq} ref=${fasta} out=test.sam\n    >>>\n    output {\n       File sam = "test.sam"\n    }\n}\n\ntask samtools {\n    File sam\n\n    command {\n       shifter --image=jfroula/bbtools:1.2.1 samtools view -b -F0x4 ${sam} | shifter --image=jfroula/bbtools:1.2.1 samtools sort - > test.sorted.bam\n    }\n    output {\n       File bam = "test.sorted.bam"\n    }\n\t#runtime {\n\t#  docker: "jfroula/bbtools:1.2.1"\n\t#}\n}\n',
         "workflowUrl": "",
     },
     "workflowName": "bbtools",
@@ -187,8 +189,8 @@ TASK_LOG_JSON = [
 
 TASK_LOG_TEXT = (
     "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\tSTATUS_DETAIL\n"
-    "runblastplus_sub.task1\t1\t43\tready\tqueued\t2020-06-10 13:42:44\t\tThe job was received by JTM-manager and sent to JTM-worker\n"  # noqa
-    "runblastplus_sub.task2\t1\t44\tqueued\tpending\t2020-06-10 13:43:36\t\tThe job was receive by JTM-worker and is awaiting resources\n"  # noqa
+    "runblastplus_sub.task1\t1\t43\tready\tqueued\t2020-06-10 13:42:44\t\tThe job was received by JTM-manager and sent to JTM-worker\n"
+    "runblastplus_sub.task2\t1\t44\tqueued\tpending\t2020-06-10 13:43:36\t\tThe job was receive by JTM-worker and is awaiting resources\n"
 )
 
 SUBMISSION = {

@@ -656,7 +656,7 @@ def send_update_task_status_msg(
 
     # send message to Site
     try:
-        with rpc_client.RPC_Client(
+        with rpc_client.RpcClient(
             {
                 "host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
                 "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),

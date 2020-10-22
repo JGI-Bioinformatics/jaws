@@ -65,7 +65,7 @@ class Daemon:
     def _init_rpc_client(self):
         """Init RPC client for call Central functions"""
         try:
-            self.rpc_client = rpc_client.RPC_Client(
+            self.rpc_client = rpc_client.RpcClient(
                 config.conf.get_section("CENTRAL_RPC_CLIENT")
             )
         except Exception as error:
@@ -270,7 +270,7 @@ class Daemon:
                 self.globus_endpoint,
                 dest_endpoint,
                 label=label,
-                sync_level="exists",
+                sync_level="mtime",
                 verify_checksum=False,
                 preserve_timestamp=True,
                 notify_on_succeeded=False,
@@ -542,10 +542,12 @@ class Daemon:
             session = Session()
             query = session.query(Run_Log).filter(Run_Log.sent.is_(False)).all()
         except Exception as error:
+            session.close()
             logger.exception(f"Unable to select from run_logs: {error}")
             return
         num_logs = len(query)
         if not num_logs:
+            session.close()
             return
         logger.debug(f"Sending {num_logs} run logs")
 
@@ -573,16 +575,16 @@ class Daemon:
                 response = self.rpc_client.request("update_run_logs", data)
             except Exception as error:
                 logger.exception(f"RPC update_run_logs error: {error}")
-                return
+                continue
             if "error" in response:
                 logger.info(
                     f"RPC update_run_status failed: {response['error']['message']}"
                 )
-                return
+                continue
             log.sent = True
             try:
                 session.commit()
             except Exception as error:
-                session.commit()
+                session.rollback()
                 logger.exception(f"Error updating run_logs as sent: {error}")
         session.close()

@@ -40,10 +40,11 @@ def cli(config_file: str, log_file: str, log_level: str):
 def central_rpc() -> None:
     """Start RPC server for Central."""
     from jaws_site import central_rpc_operations
+    from jaws_site.database import Session
     from jaws_rpc import rpc_server
 
     central_rpc_server_params = config.conf.get_section("CENTRAL_RPC_SERVER")
-    app = rpc_server.RpcServer(central_rpc_server_params, central_rpc_operations.operations)
+    app = rpc_server.RpcServer(central_rpc_server_params, central_rpc_operations.operations, Session)
     app.start_server()
 
 
@@ -51,10 +52,11 @@ def central_rpc() -> None:
 def jtm_rpc() -> None:
     """Start RPC server for JTM."""
     from jaws_site import jtm_rpc_operations
+    from jaws_site.database import Session
     from jaws_rpc import rpc_server
 
     jtm_rpc_server_params = config.conf.get_section("LOCAL_RPC_SERVER")
-    app = rpc_server.RpcServer(jtm_rpc_server_params, jtm_rpc_operations.operations)
+    app = rpc_server.RpcServer(jtm_rpc_server_params, jtm_rpc_operations.operations, Session)
     app.start_server()
 
 

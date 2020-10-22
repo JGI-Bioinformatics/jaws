@@ -29,8 +29,7 @@ class RmqConnectionAmqpstorm(object):
             RMQ_PASS,
             port=RMQ_PORT,
             virtual_host=RMQ_VHOST,
-            heartbeat=120,
-            timeout=180,
+            heartbeat=10,
         )
 
     def open(self):

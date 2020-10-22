@@ -410,7 +410,7 @@ def submit(
         ret_code = -1
 
     # IMPORTANT: this line will regexed by Cromwell to extract a valid task ID
-    click.echo("JTM task ID %d" % ret)
+    click.echo("JTM task ID %s" % ret)
     sys.exit(ret_code)
 
 
