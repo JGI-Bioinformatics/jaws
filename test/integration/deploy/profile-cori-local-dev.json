@@ -8,7 +8,7 @@
         },
         "components": {
             "jaws_central": {
-                "add": 0,
+                "add": 1,
                 "deploy_script": "templates/central/deploy-jaws-central",
                 "config_template": "templates/central/jaws-central.conf",
                 "output_config_name": "$INSTALL_DIR/config/jaws-central.conf",
