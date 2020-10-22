@@ -12,7 +12,6 @@ set -eo pipefail
 # brew install gettext
 # brew link --force gettext
 
-<<<<<<< HEAD
 print_usage() {
     printf "deploy-jaws [-dh] <deploy_name> <profile json> <output_dir>\n"
     printf "\n"
@@ -26,24 +25,14 @@ while getopts "dh" opt; do
 case "$opt" in
     d)
         echo "*** In developer mode ***"
-=======
-developer_mode=0
-while getopts ":d" opt; do
-case "$opt" in
-    d)
-        echo "In develop mode"
->>>>>>> initial commit
         developer_mode=1
         ;;
     \?)
         echo "invalid option -$OPTARG";;
-<<<<<<< HEAD
     *)
         print_usage
         exit
         ;;
-=======
->>>>>>> initial commit
 esac
 done
 
