@@ -22,6 +22,11 @@ class CmdExecutionError(Exception):
     pass
 
 
+class JinjaFormatError(Exception):
+    """ Custom shell execution exception """
+    pass
+
+
 def get_args():
     """Parse command line arguments.
     """
@@ -65,12 +70,20 @@ def substitute_jinja_vars(config_data, input_file, output_file):
     to given output file.
     """
     print(f"Reading {input_file} ...")
-    with open(input_file) as fh:
-        tp = jinja2.Template(fh.read())
+    try:
+        with open(input_file) as fh:
+            tp = jinja2.Template(fh.read())
+    except IOError as err:
+        raise IOError(f"failed to read {input_file}: {err}")
+    except jinja2.exceptions.TemplateSyntaxError as err:
+        raise JinjaFormatError(f"Malformed jinja syntax in {input_file}")
 
     print(f"Writing {output_file} ...")
-    with open(output_file, 'w') as fh:
-        fh.write(tp.render(config_data))
+    try:
+        with open(output_file, 'w') as fh:
+            fh.write(tp.render(config_data))
+    except jinja2.exceptions.UndefinedError:
+        raise JinjaFormatError(f"Missing dict entry for substituting jinja vars in {input_file}")
 
 
 def substitute_env_vars_in_json_file(input_file, output_file):
@@ -163,6 +176,8 @@ def get_jinja_translated_config_data(jsonfile, config_entries):
             tp = jinja2.Template(fh.read())
     except IOError as err:
         raise IOError(f"failed to read {jsonfile}: {err}")
+    except jinja2.exceptions.TemplateSyntaxError as err:
+        raise JinjaFormatError(f"Malformed jinja template for {jsonfile}")
 
     try:
         entries = json.loads(tp.render(config_entries))
@@ -312,7 +327,7 @@ def check_env_vars(config_json_file):
             if env_vars:
                 env_var = re.sub(r"[\$\{\}]", '', env_vars[0])
                 if os.environ.get(env_var, None) is None:
-                    print(f"  - missing ${env_var}.\n")
+                    print(f"  - missing ${env_var}.")
                     return False
                 else:
                     return True
