@@ -17,7 +17,7 @@
             },
             "jaws_client_central_data": {
                 "add": 1,
-                "deploy_json_template": "templates/central/jaws-central-cori.json",
+                "deploy_json_template": "templates/central/jaws-central.json",
                 "__comments__": "set add=1 if installing central and/or site"
             },
             "jaws_client": {
