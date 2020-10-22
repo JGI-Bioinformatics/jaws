@@ -158,6 +158,7 @@ task trimAlign {
     Int memory_gb = 7
     
     runtime {
+		docker: "leobaumgart/dap_py3:2.8"
         shared: 0
         time: "10:00:00"
         mem: "115G"
@@ -179,7 +180,7 @@ task trimAlign {
         bt2index=$bt2index_dir/$bt2index_name
         echo "bt2index: $bt2index"
 
-        shifter --image=leobaumgart/dap_py3:2.8 trim_align.sh \
+        trim_align.sh \
         -i ${raw_fastq} \
         -n ${basename} \
         -a ${adapters} \
@@ -206,6 +207,7 @@ task mergeBams {
     Array[File] bams
 
     runtime {
+		docker: "leobaumgart/dap_py3:2.8"
         shared: 0
         time: "10:00:00"
         mem: "115G"
@@ -214,7 +216,7 @@ task mergeBams {
         nwpn: 16
     }
     command {
-        shifter --image=leobaumgart/dap_py3:2.8 /bin/bash -c \
+        /bin/bash -c \
         " \
         samtools merge \
         merged.bam \
@@ -241,6 +243,7 @@ task findPeaks {
     Int min_foldch = 5
 
     runtime {
+		docker: "leobaumgart/dap_py2:2.7"
         shared: 0
         time: "10:00:00"
         mem: "115G"
@@ -249,7 +252,7 @@ task findPeaks {
         nwpn: 16
     }
     command {
-        shifter --image=leobaumgart/dap_py2:2.7 find_peaks.sh \
+        find_peaks.sh \
         -i ${expt_bam} \
         ${"-c " + ctl_bam} \
         -n ${basename} \
@@ -276,6 +279,7 @@ task motifInputs {
     File genome_fasta
 
     runtime {
+		docker: "leobaumgart/dap_py3:2.8"
         shared: 0
         time: "10:00:00"
         mem: "115G"
@@ -284,7 +288,7 @@ task motifInputs {
         nwpn: 16
     }
     command {
-        shifter --image=leobaumgart/dap_py3:2.8 /bin/bash -c \
+        /bin/bash -c \
         " \
         narrowPeak_to_fasta.py \
         -narrowPeak ${peaks_narrow} \
@@ -319,6 +323,7 @@ task findMotifs {
     String basename
 
     runtime {
+		docker: "leobaumgart/dap_py2:2.7"
         shared: 0
         time: "10:00:00"
         mem: "115G"
@@ -327,7 +332,7 @@ task findMotifs {
         nwpn: 16
     }
     command {
-        shifter --image=leobaumgart/dap_py2:2.7 /global/projectb/scratch/leo/dap_analysis/scripts/find_motifs.sh \
+        /global/projectb/scratch/leo/dap_analysis/scripts/find_motifs.sh \
         -s ${summit_seqs} \
         -p ${peak_seqs} \
         -b ${bgmodel} \
@@ -351,6 +356,7 @@ task assignGenes {
     File genes_gff
 
     runtime {
+		docker: "leobaumgart/dap_py3:2.8"
         shared: 0
         time: "10:00:00"
         mem: "115G"
@@ -359,7 +365,7 @@ task assignGenes {
         nwpn: 16
     }
     command {
-        shifter --image=leobaumgart/dap_py3:2.8 assign_genes.sh \
+        assign_genes.sh \
         -p ${peaks_narrow} \
         -t ${trim} \
         -n ${basename} \
@@ -382,6 +388,7 @@ task dapStats {
     String amplified
 
     runtime {
+		docker: "leobaumgart/dap_py3:2.8"
         shared: 0
         time: "10:00:00"
         mem: "115G"
@@ -390,7 +397,7 @@ task dapStats {
         nwpn: 16
     }
     command {
-        shifter --image=leobaumgart/dap_py3:2.8 dap_stats.sh \
+        dap_stats.sh \
         -i ${expt_bam} \
         -j ${peaks_narrow} \
         -n ${basename} \
