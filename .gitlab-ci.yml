@@ -117,7 +117,7 @@ variables:
   JGI_CLUSTER_PARTITION: "lr3"
   JGI_CLUSTER_ACCOUNT: "lr_jgicloud"
   JGI_CLUSTER_CONSTRAINT: ""
-  JGI_MAX_RAM_GB: 1024
+  JGI_MAX_RAM_GB: 60
   JGI_LOAD_JAVA: "module load java"
 
   CASCADE_INSTALL_BASEDIR: "/tmp"
