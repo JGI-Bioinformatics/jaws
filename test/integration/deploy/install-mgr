@@ -2,34 +2,18 @@
 
 import os
 import sys
-import stat
 import argparse
-import shutil
 import subprocess
 import json
 import jinja2
 import collections
-import pathlib
-import getpass
 import re
-import pprint
-from collections.abc import Iterable
 
 ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-class CmdExecutionError(Exception):
-    """ Custom shell execution exception """
-    pass
-
-
-class JinjaFormatError(Exception):
-    """ Custom shell execution exception """
-    pass
-
 
 def get_args():
-    """Parse command line arguments.
-    """
+    """Parse command line arguments. """
     prog_desc = '''
     '''
     parser = argparse.ArgumentParser(description=prog_desc, formatter_class=argparse.RawTextHelpFormatter)
@@ -43,6 +27,11 @@ def get_args():
 
 def run_command(cmd):
     """ Execute input command, returning stdout, stderr, exitcode.
+
+    :param cmd: command to execute
+    :type cmd: str
+    :return: stdout, stderr, exitcode
+    :rtype: str, str, int
     """
     print(f"Running: {cmd}")
     process = subprocess.Popen(
@@ -54,36 +43,54 @@ def run_command(cmd):
     return stdout.decode('utf-8').strip(), stderr.decode('utf-8').strip(), exitcode
 
 
-def get_config_json_data(config_json):
-    """ Return json data for a given json file.
+def get_config_json_data(json_file):
+    """ Return json data as a dict or list for a given json file.
+
+    :param json_file: json file
+    :type json_file: str
+    :return: data structure of json file
+    :rtype: dict or list
     """
-    with open(config_json) as json_file:
+    with open(json_file) as json_file:
         try:
             jsondata = json.load(json_file)
         except ValueError as err:
-            raise ValueError(f"Unable to read json file {json_file}: {err}")
+            print(f"Unable to read json file {json_file}: {err}")
+            sys.exit(1)
+
     return jsondata
 
 
 def substitute_jinja_vars(config_data, input_file, output_file):
     """ Substitute jinja variables defined in the given input file using the input json data. Write output
     to given output file.
+
+    :param config_data: dict defining key/value pairs to substitute jinja variables in input_file.
+    :type config_data: dict
+    :param input_file: input file containing jinja variables to substitute.
+    :type input_file: str
+    :param output_file: file to write output.
+    :type output_file: str
+    :return: None
     """
     print(f"Reading {input_file} ...")
     try:
         with open(input_file) as fh:
             tp = jinja2.Template(fh.read())
     except IOError as err:
-        raise IOError(f"failed to read {input_file}: {err}")
+        print(f"failed to read {input_file}: {err}")
+        sys.exit(1)
     except jinja2.exceptions.TemplateSyntaxError as err:
-        raise JinjaFormatError(f"Malformed jinja syntax in {input_file}")
+        print(f"Malformed jinja syntax in {input_file}: {err}")
+        sys.exit(1)
 
     print(f"Writing {output_file} ...")
     try:
         with open(output_file, 'w') as fh:
             fh.write(tp.render(config_data))
     except jinja2.exceptions.UndefinedError:
-        raise JinjaFormatError(f"Missing dict entry for substituting jinja vars in {input_file}")
+        print(f"Missing dict entry for substituting jinja vars in {input_file}")
+        sys.exit(1)
 
 
 def substitute_env_vars_in_json_file(input_file, output_file):
@@ -93,6 +100,12 @@ def substitute_env_vars_in_json_file(input_file, output_file):
     Returns:
     file name and path of main json config
     list containing namedtuple of site json config and site name.
+
+    :param input_file: file containing string values representing environment variables.
+    :type input_file: str
+    :param output_file: file to write output with substituted envirnment variables.
+    :type output_file: str
+    :return: None
     """
     # Substitute env vars in main json config and store in deploy dir
     print(f"Substituting environment variables in {input_file} ...")
@@ -100,30 +113,45 @@ def substitute_env_vars_in_json_file(input_file, output_file):
     stdout, stderr, exitcode = run_command(cmd)
 
     if exitcode or not os.path.isfile(output_file):
-        raise FileNotFoundError(f"Cannot find {output_file} file: {stderr}")
+        print(f"Cannot find {output_file} file: {stderr}")
+        sys.exit(1)
 
 
 def get_what_to_install(config_entries):
     """ Parses the input json data for install.components.<name>.add=1 entries.
     Return dict with key=component name, value=the value assigned to add key.
+
+    :param config_entries: json payload contaning structure to look for installable components
+    :type config_entries: dict
+    :return: components to install in dict format where key=name of component, value=the add value
+        from config_entries
+    :rtype: dict
     """
     services = collections.OrderedDict()
 
     # sort the services by the value in the 'add' key within config_entries.
-    for service in sorted(config_entries['install']['components'], \
-        key=lambda x: config_entries['install']['components'][x]['add']):
+    for service in sorted(config_entries['install']['components'],
+                          key=lambda x: config_entries['install']['components'][x]['add']):
         if config_entries['install']['components'][service].get('add', 0) > 0:
             services[service] = config_entries['install']['components'][service]['add']
 
     return services
 
 
-def write_deployment_files(config_json_file, files):
+def write_deployment_files(json_file, files):
     """ Given an input json file and a list of jinja template files, substitute jinja variables
     using json data from input json file and write to output file.
     Input files dict format is as follows: files[output_file] = jinja template file
+
+    :param json_file: file containing json payload describing the key/value pairs to substitute jinja
+        variables in the list of files specified in the parameter.
+    :type json_file: str
+    :param files: dict containing list of files with jinja variables to substitute. Key=output file name,
+        value=file to substitute
+    :type files: dict
+    :return: None
     """
-    config_entries = get_config_json_data(config_json_file)
+    config_entries = get_config_json_data(json_file)
 
     for output_file, template_file in files.items():
         if not template_file.startswith('/'):
@@ -146,6 +174,12 @@ def write_deployment_files(config_json_file, files):
 def change_file_perms(path, mode=755):
     """ Given a path or filename, change permisson to input mode. If input is a
     path, recursively change permissions for all sub dirs/files.
+
+    :param path: filename or path to change file permission
+    :type path: str
+    :param mode: file permission mode containing bits for user, group, world.
+    :type: int
+    :return: None
     """
     mode = int(f"0o{mode}", 0)
     os.chmod(path, mode)
@@ -163,67 +197,89 @@ def change_file_perms(path, mode=755):
             os.chmod(fullpath, mode)
 
 
-def get_jinja_translated_config_data(jsonfile, config_entries):
-    """ Substitute jinja variables in the given json with values defined in the given config entries dict.
+def get_jinja_translated_config_data(json_file, config_entries):
+    """ Substitute jinja variables in the given json file with values defined in the given config entries dict.
     Returns translated json data from input json file.
+
+    :param json_file: file containing jinja variables to substitute
+    :type: str
+    :param config_entries: dict defining key/value pairs to substitute jinja variables in json_file.
+    :type config_entries: dict
+    :return enttries: dict containing json payload from json_file with substituted jinja variables
+    :rtype: dict
     """
     entries = {}
-    if not jsonfile.startswith('/'):
-        jsonfile = os.path.join(ROOT_DIR, jsonfile)
+    if not json_file.startswith('/'):
+        json_file = os.path.join(ROOT_DIR, json_file)
 
     try:
-        with open(jsonfile) as fh:
+        with open(json_file) as fh:
             tp = jinja2.Template(fh.read())
     except IOError as err:
-        raise IOError(f"failed to read {jsonfile}: {err}")
+        print(f"failed to read {json_file}: {err}")
+        sys.exit(1)
     except jinja2.exceptions.TemplateSyntaxError as err:
-        raise JinjaFormatError(f"Malformed jinja template for {jsonfile}")
+        print(f"Malformed jinja template for {json_file}: {err}")
+        sys.exit(1)
 
     try:
         entries = json.loads(tp.render(config_entries))
     except ValueError as err:
-        raise ValueError(f"unable to read json file {jsonfile}: {err}")
+        print(f"unable to read json file {json_file}: {err}")
+        sys.exit(1)
 
     return entries
 
 
 def assign_deploy_env(entries, deploy_name):
     """ Traverse thru dict and look for deploy_name key for given deployment name in dict. if found,
-    assign deploy_name key with entries from the deployment name key.
-    example:
-    given dict, with deploy_name="dev":
+    assign deploy_name key with entries from the deployment name key. The input entries dict will be
+    mutated with the deploy_name structure redefined as described below.
+
+    Example: given dict, with deploy_name="dev":
     "deploy_name": {
         "dev": {
             "auth": 1,
             "rest": 2
         }
     }
-    returns:
+    redefine deploy_name structure to:
     "deploy_name": {
         "auth": 1,
         "rest": 2,
     }
+
+    :param entries: json payload containing deploy_name structure to collapse based on input deployment name
+    :type entries: dict
+    :param deploy_name: name of key within the deploy_name structure to redefine the deploy_name structure.
+    :return: None
     """
     for key, val in entries.items():
         if isinstance(val, dict):
             if 'deploy_name' in val and isinstance(val['deploy_name'], dict) and \
-                deploy_name in val['deploy_name']:
+                                                   deploy_name in val['deploy_name']:
                 val['deploy_name'] = val['deploy_name'][deploy_name]
             assign_deploy_env(val, deploy_name)
 
 
-def add_to_deploy_config_json(config_json_file, deploy_name):
+def add_to_deploy_config_json(json_file, deploy_name):
     """ Construct deploy.json file used for translating jinja variables in config and deployment files.
     Given the profile json file, look for all entries with install.components.<name>.add=1 and
     check if a deploy_json_template key exists. If yes, then get json template file, substitute
     jinja variables in template file using json data from input json file and merge with json data.
     If deploy json template contains the key 'deploy_name' where the value is a dict containing the
     input deployment name, collapse entries from the deployment name to the 'deploy_name' key. See
-    assign_deploy_env for more details.
+    assign_deploy_env for more details. The input json file will be overwritten with the merged json payloads
+    from the defined 'install.components.<name>.deploy_json_template' value.
+
+    :param json_file: file containing json payload describing installable components and deploy json
+        template to use for creating jaws config files.
+    :type json_file: str
+    :param deploy_name: name of deployment to use for redefining 'deploy_name' structure
+    :type deploy_name: str
+    :return: None
     """
-    config_entries = get_config_json_data(config_json_file)
-    site_entries = {}
-    add_site_data = 0
+    config_entries = get_config_json_data(json_file)
 
     # add client data to config entries if client install is on.
     for service in get_what_to_install(config_entries):
@@ -231,25 +287,31 @@ def add_to_deploy_config_json(config_json_file, deploy_name):
             jsonfile = config_entries['install']['components'][service]['deploy_json_template']
             print(f"Setting up {service} using {jsonfile} ...")
             service_entries = get_jinja_translated_config_data(jsonfile, config_entries)
-            update_dict(config_entries, service_entries)
+            update_dict(config_entries, service_entries)  # merge service_entries dict to config_entries dict
 
     # look for entries with 'deploy_name' key for given deployment name. if found,
     # replace 'deploy_env' with entries from 'deploy_name' key for given deployment name.
     assign_deploy_env(config_entries, deploy_name)
 
     # write json file to deployment dir - for user reference only.
-    with open(config_json_file, 'w') as fh:
+    with open(json_file, 'w') as fh:
         fh.write(json.dumps(config_entries, indent=4))
 
 
-def create_jaws_config_files(deploy_dir, deploy_name, config_json_file):
+def create_jaws_config_files(json_file):
     """ Create config files in installation dir for installed components defined in the input
-    json config file.
+    json config file. The json file must contain the structure 'install.components.<name>.config_template
+    in order for the config files to be created.
+
+    :param json_file: file containing json payload describing installable components and config template
+        to use for creating jaws config files.
+    :type json_file: str
+    :return: None
     """
     jaws_config_files = {}
     # Get json data from input config file.
-    print(f"Getting json data from {config_json_file} and constructing data for deployment ...")
-    config_entries = get_config_json_data(config_json_file)
+    print(f"Getting json data from {json_file} and constructing data for deployment ...")
+    config_entries = get_config_json_data(json_file)
 
     for service in get_what_to_install(config_entries):
         config_template = config_entries['install']['components'][service].get('config_template', None)
@@ -260,13 +322,26 @@ def create_jaws_config_files(deploy_dir, deploy_name, config_json_file):
     # For each jaws/jtm config file defined in jaws_config_files, substitute jinja vars in file and write
     # to deployment dir.
     print("Creating jaws config files ...")
-    write_deployment_files(config_json_file, jaws_config_files)
+    write_deployment_files(json_file, jaws_config_files)
 
 
-def create_deploy_scripts(deploy_dir, deploy_name, deploy_config_json_file):
+def create_deploy_scripts(deploy_dir, json_file):
+    """ Give json file containing json payload describing installable componets, look for the key
+    'install.components.<name>.deploy_script' and if found, substitute jinja variables defined in the
+    input json file and write output deploy script to specified deploy dir. The deployment script
+    is typically a bash script to create the python virtual env, install the jaws code for the given
+    component into the virtual env and create a launching bash script to execute the component (shim).
+
+    :param deploy_dir: name of output directory to write the deployment script.
+    :type deploy_dir: str
+    :param json_file: file containing json payload describing the installable components and deploy script.
+    :type json_file: str
+    :return: list of output deployment files created
+    :rtype: list
+    """
     # Create python virtualenv and launching scripts for each service to be installed.
     output_scripts = []
-    config_entries = get_config_json_data(deploy_config_json_file)
+    config_entries = get_config_json_data(json_file)
     install_these_services = get_what_to_install(config_entries)
 
     for service in install_these_services:
@@ -290,13 +365,18 @@ def create_deploy_scripts(deploy_dir, deploy_name, deploy_config_json_file):
 
 def run_deploy_scripts(cmds):
     """ Given a list of commands, execute each, one at a time.
+
+    :param cmds: list of commands to execute
+    :type cmds: list
+    :return: None
     """
     for cmd in cmds:
         # Execute deployment file (creates python virtualenv and shim file)
         stdout, stderr, exitcode = run_command(cmd)
         print(stdout)
         if exitcode:
-            raise CmdExecutionError(f"Failed to run {cmd}: {stderr}")
+            print(f"Failed to run {cmd}: {stderr}")
+            sys.exit(1)
 
 
 def update_dict(orig_dict, new_dict):
@@ -304,6 +384,13 @@ def update_dict(orig_dict, new_dict):
     this will append/overwite the keys in the original dict instead of replacing the
     sub key block with the one defined in the new dict (which is the behavior of python's update()
     function.
+
+    :param orig_dict: initial dict to update
+    :type orig_dict: dict
+    :param new_dict: new dict to merge into initial dict
+    :type new_dict: dict
+    :return: merged dict
+    :rtype: dict
     """
     for key, val in new_dict.items():
         if isinstance(val, collections.Mapping):
@@ -316,9 +403,16 @@ def update_dict(orig_dict, new_dict):
     return orig_dict
 
 
-def check_env_vars(config_json_file):
+def check_env_vars(json_file):
     """ Get payload from input json file and traverse through structure to look for string
     value that looks like an environment variable. If found, check if environment variable exists.
+
+    :param json_file: file containing json payload to look for string value that looks like an
+        environment variable
+    :type json_file: str
+    :return: True (all environment variables in json file defined) or False (missing environment
+        variables defined in json file)
+    :rtype: bool
     """
     def traverse_keys(entries, retval=True):
         def check_env_var(val):
@@ -353,14 +447,21 @@ def check_env_vars(config_json_file):
         return retval
 
     print("Checking for missing environment variables ...")
-    config_entries = get_config_json_data(config_json_file)
+    config_entries = get_config_json_data(json_file)
     return traverse_keys(config_entries)
 
 
-def check_for_valid_deploy_name(deploy_name, deploy_config_json_file):
+def check_for_valid_deploy_name(deploy_name, json_file):
     """ Get json payload from input json file and traverse thru structure and look for
     'deploy_name' key. If found and value is a dict, check that the dict contains the
     input deployment name as a key.
+
+    :param deploy_name: name of deployment env
+    :type deploy_name: str
+    :param json_file: file containing json payload to validate input deployment name
+    :type json_file: str
+    :return: True (all keys contain input deployment name) or False (missing deployment name in key)
+    :rtype: bool
     """
     def validate_deploy_name_keys(entries, deploy_name, retval=None):
         if not retval:
@@ -368,17 +469,17 @@ def check_for_valid_deploy_name(deploy_name, deploy_config_json_file):
         for key, val in entries.items():
             if isinstance(val, dict):
                 if 'deploy_name' in val and isinstance(val['deploy_name'], dict) and \
-                    deploy_name not in val['deploy_name']:
+                                                       deploy_name not in val['deploy_name']:
                     return False
                 else:
                     retval = validate_deploy_name_keys(val, deploy_name, retval)
         return retval
 
-    config_entries = get_config_json_data(deploy_config_json_file)
+    config_entries = get_config_json_data(json_file)
 
     # Check if entries for deployment name is defined in deploy.json file.
-    print(f"Checking for deploy name '{deploy_name}' keys in {deploy_config_json_file} ...")
-    profile_entries =  get_jinja_translated_config_data(deploy_config_json_file, config_entries)
+    print(f"Checking for deploy name '{deploy_name}' keys in {json_file} ...")
+    profile_entries = get_jinja_translated_config_data(json_file, config_entries)
     if not validate_deploy_name_keys(profile_entries, deploy_name):
         print(f" - missing '{deploy_name}' key within deploy_name dict.")
         return False
@@ -389,7 +490,7 @@ def check_for_valid_deploy_name(deploy_name, deploy_config_json_file):
         if not json_file:
             continue
         print(f"Checking for deploy name '{deploy_name}' keys in {json_file} ...")
-        service_entries =  get_jinja_translated_config_data(json_file, config_entries)
+        service_entries = get_jinja_translated_config_data(json_file, config_entries)
         if not validate_deploy_name_keys(service_entries, deploy_name):
             print(f" - missing '{deploy_name}' key within deploy_name dict.")
             return False
@@ -397,13 +498,23 @@ def check_for_valid_deploy_name(deploy_name, deploy_config_json_file):
     return True
 
 
-def check_input_json(config_json_file):
-    """ Check for valid keys in main input json file.
+def check_input_json(json_file):
+    """ Check for required keys in main input json file. The follow keys are validated:
+    - install.meta.output_dir
+    - install.meta.src_dir
+    - install.meta.deploy_name
+    - install.meta.developer_mode
+    - install.components.<name>.add
+
+    :param json_file: file containing json payload to validate.
+    :type json_file: str
+    :return: True or False
+    :rtype: bool
     """
     valid = True
-    config_entries = get_config_json_data(config_json_file)
+    config_entries = get_config_json_data(json_file)
 
-    print(f"Checking {config_json_file} for required keys ...")
+    print(f"Checking {json_file} for required keys ...")
 
     if 'install' in config_entries:
         if 'meta' in config_entries['install']:
@@ -429,11 +540,18 @@ def check_input_json(config_json_file):
     return valid
 
 
-def check_for_valid_json_files(config_json_file):
+def check_for_valid_json_files(json_file):
+    """ Give a file containing a json payload with the keys 'install.components.<name>.deploy_json_template',
+    validate the defined json template to ensure that the template is a valid json format.
 
-    sys.stderr.write(f"Validating {config_json_file} file ...")
+    :param json_file: file with json payload containing key structure defining json file to use.
+    :type json_file: str
+    :return: True or False
+    :rtype: bool
+    """
+    sys.stderr.write(f"Validating {json_file} file ...")
     try:
-        config_entries = get_config_json_data(config_json_file)
+        config_entries = get_config_json_data(json_file)
     except ValueError:
         print(" json data not valid.")
         return False
@@ -446,7 +564,7 @@ def check_for_valid_json_files(config_json_file):
             json_file = os.path.join(ROOT_DIR, json_file)
             print(f"Validating {json_file} file ...")
             try:
-                get_config_json_data(config_json_file)
+                get_config_json_data(json_file)
             except ValueError:
                 print(" json data not valid.")
                 return False
@@ -455,6 +573,7 @@ def check_for_valid_json_files(config_json_file):
 
 
 def main():
+    """ Main routine to perform installation and deployment. """
     args = get_args()
     install_dir = os.path.abspath(args.install_dir)
     deploy_name = args.deploy_name
@@ -462,7 +581,8 @@ def main():
     input_config_json_file = args.config_file
 
     if not os.path.isfile(input_config_json_file):
-        raise FileNotFoundError(f"Cannot find {input_config_json_file} file.")
+        print(f"Cannot find {input_config_json_file} file.")
+        sys.exit(1)
 
     # Validate input json config file.
     if not check_input_json(input_config_json_file):
@@ -504,10 +624,10 @@ def main():
     add_to_deploy_config_json(deploy_config_json_file, deploy_name)
 
     # Create jaws config files in deployment dir.
-    create_jaws_config_files(deploy_dir, deploy_name, deploy_config_json_file)
+    create_jaws_config_files(deploy_config_json_file)
 
     # Create deployment files in deployment dir.
-    deploy_scripts = create_deploy_scripts(deploy_dir, deploy_name, deploy_config_json_file)
+    deploy_scripts = create_deploy_scripts(deploy_dir, deploy_config_json_file)
 
     # Run deployment scripts
     run_deploy_scripts(deploy_scripts)
