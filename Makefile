@@ -66,7 +66,7 @@ test-jtm: test-requirements
 	$Q cd jtm && python -m pytest tests/
 
 .PHONY: test-parsl
-test-jtm: test-requirements
+test-parsl: test-requirements
 	$Q flake8 parsl
 	$Q cd parsl && python -m pytest tests/
 
