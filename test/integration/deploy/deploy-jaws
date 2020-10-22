@@ -12,8 +12,16 @@ set -eo pipefail
 # brew install gettext
 # brew link --force gettext
 
+print_usage() {
+    printf "deploy-jaws [-dh] <deploy_name> <profile json> <output_dir>\n"
+    printf "\n"
+    printf "OPTIONS:\n"
+    printf "  -d developer mode (install jaws code using pip install -e allowing code to be editable).\n"
+    printf "  -h help message.\n"
+}
+
 developer_mode=0
-while getopts ":d" opt; do
+while getopts "dh" opt; do
 case "$opt" in
     d)
         echo "In develop mode"
@@ -21,6 +29,10 @@ case "$opt" in
         ;;
     \?)
         echo "invalid option -$OPTARG";;
+    *)
+        print_usage
+        exit
+        ;;
 esac
 done
 
