@@ -208,6 +208,21 @@ class JtmInterface(object):
                 else:
                     json_data_dict["pool"]["partition"] = ""
 
+            if kw["jtm_host_name"] == "jgi":
+                try:
+                    # Get the mem request int value
+                    # Assume it is in the format of "<int>G" or "<int>GB" or "<int>g" or "<int>gb"
+                    node_mem_val = int(kw["node_mem"].upper().rstrip("GB"))
+                    if node_mem_val <= 45:
+                        json_data_dict["pool"]["qos"] = "condo_jgicloud"
+                        json_data_dict["pool"]["partition"] = "lr3"
+                        json_data_dict["pool"]["account"] = "lr_jgicloud"
+                except Exception as e:
+                    logger.exception(f"Failed to parse memory request value: {e}")
+                    logger.debug(f"Memory requested: {kw['node_mem']}")
+                    # Ignore this conversion in the case of exception
+                    # and just use jgi highmem nodes
+
         # For the command like, "jtm-submit -cr 'ls' -cl cori -p test"
         if (
             "pool" in json_data_dict
