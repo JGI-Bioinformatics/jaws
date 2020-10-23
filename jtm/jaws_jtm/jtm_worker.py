@@ -1349,7 +1349,7 @@ wait
 #SBATCH --cpus-per-task %(num_cores)d""" % dict(
                             num_cores=num_cpus_to_request
                         )
-                        batch_job_misc_params += " --cpus-per-task %(num_cores)d" % dict(
+                        batch_job_misc_params += " -c %(num_cores)d" % dict(
                             num_cores=num_cpus_to_request
                         )
 
