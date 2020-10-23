@@ -136,7 +136,7 @@ db = jtm_${JAWS_SITE,,}_$DEPLOYMENT_NAME
 # number of nodes for the pool
 nnodes = 1
 # num cores for small task
-ncpus = 1
+ncpus = 32
 # default wall clock time
 jobtime = 00:30:00
 mempercpu = 1gb
