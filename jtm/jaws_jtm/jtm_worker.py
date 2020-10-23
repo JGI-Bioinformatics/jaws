@@ -1344,6 +1344,15 @@ wait
                             worker_id=UNIQ_WORKER_ID
                         )
 
+                    if num_cores_to_request_param:
+                        batch_job_script_str += """
+#SBATCH --cpus-per-task %(num_cores)d""" % dict(
+                            num_cores=num_cpus_to_request
+                        )
+                        batch_job_misc_params += " -c %(num_cores)d" % dict(
+                            num_cores=num_cpus_to_request
+                        )
+
                     tp_param = ""
                     if pool_name_param:
                         tp_param = "-p " + pool_name_param
