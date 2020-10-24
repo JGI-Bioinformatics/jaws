@@ -1,0 +1,27 @@
+workflow fq_count {
+    File fastq_file
+    call count_seqs { input: infile = fastq_file }
+    output {
+        File outfile = count_seqs.outfile
+    }
+}
+
+task count_seqs {
+    File infile
+    command <<<
+	  # sleep for 20 minutes
+	  sleep 1200
+    >>>
+    output {
+        File outfile = "num_seqs.txt"
+    }
+    runtime {
+        poolname: "test_small"
+        node: 1
+        nwpn: 1
+        mem: "10G"
+        time: "00:10:00"
+        shared: 0
+    }
+}
+
