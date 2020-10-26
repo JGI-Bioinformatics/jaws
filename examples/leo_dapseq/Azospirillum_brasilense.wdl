@@ -158,17 +158,16 @@ task trimAlign {
     Int memory_gb = 7
     
     runtime {
-		docker: "leobaumgart/dap_py3:2.8"
+		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "10:00:00"
-        mem: "115G"
+        time: "00:20:00"
+        mem: "45G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 16
     }
     command {
 		bt2index_list_path=${bt2index_list[0]}
-        bt2index_list_path=$(readlink $bt2index_list_path)
         echo "bt2index_list_path: $bt2index_list_path"
 
         bt2index_dir=$(dirname $bt2index_list_path)
@@ -207,10 +206,10 @@ task mergeBams {
     Array[File] bams
 
     runtime {
-		docker: "leobaumgart/dap_py3:2.8"
+		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "10:00:00"
-        mem: "115G"
+        time: "00:20:00"
+        mem: "45G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 16
@@ -243,10 +242,10 @@ task findPeaks {
     Int min_foldch = 5
 
     runtime {
-		docker: "leobaumgart/dap_py2:2.7"
+		docker: "jfroula/dap_py:2"
         shared: 0
-        time: "10:00:00"
-        mem: "115G"
+        time: "00:20:00"
+        mem: "45G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 16
@@ -279,10 +278,10 @@ task motifInputs {
     File genome_fasta
 
     runtime {
-		docker: "leobaumgart/dap_py3:2.8"
+		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "10:00:00"
-        mem: "115G"
+        time: "00:20:00"
+        mem: "45G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 16
@@ -323,10 +322,10 @@ task findMotifs {
     String basename
 
     runtime {
-		docker: "leobaumgart/dap_py2:2.7"
+		docker: "jfroula/dap_py:2"
         shared: 0
-        time: "10:00:00"
-        mem: "115G"
+        time: "00:20:00"
+        mem: "45G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 16
@@ -356,10 +355,10 @@ task assignGenes {
     File genes_gff
 
     runtime {
-		docker: "leobaumgart/dap_py3:2.8"
+		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "10:00:00"
-        mem: "115G"
+        time: "00:20:00"
+        mem: "45G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 16
@@ -388,10 +387,10 @@ task dapStats {
     String amplified
 
     runtime {
-		docker: "leobaumgart/dap_py3:2.8"
+		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "10:00:00"
-        mem: "115G"
+        time: "00:20:00"
+        mem: "45G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 16
@@ -437,8 +436,8 @@ task copyOutput {
 
     runtime {
         shared: 0
-        time: "10:00:00"
-        mem: "115G"
+        time: "00:20:00"
+        mem: "45G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 16
