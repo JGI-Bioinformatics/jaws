@@ -980,7 +980,10 @@ def worker(
         "Total available memory (MBytes): %d"
         % (system_free_mem_bytes / 1024.0 / 1024.0)
     )
-    if worker_type_param != "manual" and num_workers_per_node > 1:
+
+    # This available memory validation needs to executed on a compute node
+    # not on a MOM node.
+    if worker_type_param != "manual" and num_workers_per_node > 1 and not charging_account_param:
         try:
             mem_per_node_to_request_byte = (
                 int(mem_per_node_to_request.lower().replace("gb", "").replace("g", ""))
