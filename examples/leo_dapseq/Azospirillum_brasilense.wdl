@@ -160,11 +160,11 @@ task trimAlign {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "00:20:00"
-        mem: "45G"
+        time: "00:40:00"
+        mem: "40G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 2
     }
     command {
 		bt2index_list_path=${bt2index_list[0]}
@@ -208,11 +208,11 @@ task mergeBams {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "00:20:00"
-        mem: "45G"
+        time: "00:40:00"
+        mem: "40G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 2
     }
     command {
         /bin/bash -c \
@@ -244,11 +244,11 @@ task findPeaks {
     runtime {
 		docker: "jfroula/dap_py:2"
         shared: 0
-        time: "00:20:00"
-        mem: "45G"
+        time: "00:40:00"
+        mem: "40G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 2
     }
     command {
         find_peaks.sh \
@@ -280,11 +280,11 @@ task motifInputs {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "00:20:00"
-        mem: "45G"
+        time: "00:40:00"
+        mem: "40G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 2
     }
     command {
         /bin/bash -c \
@@ -324,11 +324,11 @@ task findMotifs {
     runtime {
 		docker: "jfroula/dap_py:2"
         shared: 0
-        time: "00:20:00"
-        mem: "45G"
+        time: "00:40:00"
+        mem: "40G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 2
     }
     command {
         /global/projectb/scratch/leo/dap_analysis/scripts/find_motifs.sh \
@@ -357,11 +357,11 @@ task assignGenes {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "00:20:00"
-        mem: "45G"
+        time: "00:40:00"
+        mem: "40G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 2
     }
     command {
         assign_genes.sh \
@@ -389,11 +389,11 @@ task dapStats {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "00:20:00"
-        mem: "45G"
+        time: "00:40:00"
+        mem: "40G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 2
     }
     command {
         dap_stats.sh \
@@ -436,11 +436,11 @@ task copyOutput {
 
     runtime {
         shared: 0
-        time: "00:20:00"
-        mem: "45G"
+        time: "00:40:00"
+        mem: "40G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 2
     }
     command {
         mkdir -p ${destination} \
