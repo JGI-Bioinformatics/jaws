@@ -331,9 +331,9 @@ def submit(
     if ctx.obj["debug"]:
         click.echo("Debug mode")
 
-    if shared is None or shared == 1:
+    if shared is None:
         logger.error("jtm submit: invalid task or runtime definition. ")
-        logger.error("Only shared=0 is supported.")
+        logger.error("'shared' option cannot be None")
         sys.exit(1)
 
     cluster = cluster.lower()

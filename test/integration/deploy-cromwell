@@ -144,7 +144,7 @@ backend
         runtime-attributes = """
         String? docker
         String time = "00:30:00"
-        Int cpu = 1
+        Int cpu = 32
         String mem = "5G"
         String cluster = "${JAWS_SITE,,}"
         String poolname = "small"

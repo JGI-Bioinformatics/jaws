@@ -13,7 +13,7 @@
     "jgi_dap_leo.effgsize": 7682393,
     "jgi_dap_leo.genes_gff": "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245_filt.gff",
     "jgi_dap_leo.bgmodel": "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/Azospirillum_brasilense_Sp245.bgmodel",
-    "jgi_dap_leo.outdir": "./pipeout",
+    "jgi_dap_leo.outdir": "./leos_output",
     "jgi_dap_leo.amplified": "10cyc",
     "jgi_dap_leo.maxfrags": 1000011,
     "jgi_dap_leo.find_motifs": false,

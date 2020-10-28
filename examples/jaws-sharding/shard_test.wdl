@@ -1,6 +1,6 @@
 workflow shard_test_wf {
     meta {
-        version: '0.1.0'
+        version: '1.1.0'
         author: 'Jeff Froula <jlfroula@lbl.gov>'
     }
 
@@ -38,10 +38,13 @@ task shard {
 
     command {
         set -e -o pipefail
-        shifter --image=jfroula/jaws-sharding:1.0.10 fastq_indexer.py --input ${reads} --output ${bname}.index
-
-        shifter --image=jfroula/jaws-sharding:1.0.10 create_blocks.py -if ${bname}.index -ff ${reads} -of ${bname}.sharded -bs ${chunk_size}
+        fastq_indexer.py --input ${reads} --output ${bname}.index
+        create_blocks.py -if ${bname}.index -ff ${reads} -of ${bname}.sharded -bs ${chunk_size}
     }
+
+	runtime {
+	  docker: "jfroula/aligner-bbmap:2.0.1"
+	}
 
     output {
         Array[String] shards = read_lines("${bname}.sharded")
@@ -52,8 +55,12 @@ task bbmap_indexing {
     File reference
 
     command {
-        shifter --image=jfroula/aligner-bbmap:2.0.1 bbmap.sh ref=${reference} 
+        bbmap.sh ref=${reference} 
     }
+
+	runtime {
+	  docker: "jfroula/aligner-bbmap:2.0.1"
+	}
 
     output {
         File ref = "ref"
@@ -73,17 +80,17 @@ task alignment {
         end=$(echo ${coords} | awk '{print $2}')
 
 		# we are piping a block of the fastq sequence to the aligner 
-        shifter --image=jfroula/jaws-sharding:1.0.10 \
 		  shard_reader.py -i ${reads} -s $start -e $end | \
-        shifter --image=jfroula/aligner-bbmap:2.0.1 \
 		  bbmap.sh int in=stdin.fq path=${path_to_ref} out=${bname}.sam overwrite keepnames mappedonly threads=${threads}
 
 		# create a sorted bam file from the sam file
-		shifter --image=jfroula/aligner-bbmap:2.0.1 \
 		  samtools view -uS ${bname}.sam | \
-		shifter --image=jfroula/aligner-bbmap:2.0.1 \
 		  samtools sort - -o ${bname}.sorted.bam
     >>>
+
+    runtime {
+	  docker: "jfroula/aligner-bbmap:2.0.1"
+	}
 
     output {
         File bam = "${bname}.sorted.bam"
@@ -93,9 +100,12 @@ task merge_bams {
     Array[File] bams
 
     command {
-	  shifter --image=jfroula/aligner-bbmap:2.0.1 \
 	    picard MergeSamFiles I=${sep=' I=' bams} OUTPUT=merged.sorted.bam SORT_ORDER=coordinate ASSUME_SORTED=true USE_THREADING=true
     }
+
+    runtime {
+	  docker: "jfroula/aligner-bbmap:2.0.1"
+	}
 
     output {
        File merged = "merged.sorted.bam"

@@ -980,7 +980,10 @@ def worker(
         "Total available memory (MBytes): %d"
         % (system_free_mem_bytes / 1024.0 / 1024.0)
     )
-    if worker_type_param != "manual" and num_workers_per_node > 1:
+
+    # This available memory validation needs to executed on a compute node
+    # not on a MOM node.
+    if worker_type_param != "manual" and num_workers_per_node > 1 and not charging_account_param:
         try:
             mem_per_node_to_request_byte = (
                 int(mem_per_node_to_request.lower().replace("gb", "").replace("g", ""))
@@ -1342,6 +1345,15 @@ wait
                     if worker_id_param:
                         batch_job_misc_params += " -wi %(worker_id)s_${i}" % dict(
                             worker_id=UNIQ_WORKER_ID
+                        )
+
+                    if num_cores_to_request_param:
+                        batch_job_script_str += """
+#SBATCH --cpus-per-task %(num_cores)d""" % dict(
+                            num_cores=num_cpus_to_request
+                        )
+                        batch_job_misc_params += " -c %(num_cores)d" % dict(
+                            num_cores=num_cpus_to_request
                         )
 
                     tp_param = ""
