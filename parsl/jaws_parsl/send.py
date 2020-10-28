@@ -24,6 +24,8 @@ def send(cluster, command):
     rmq_host = rmq_params["host"]
     rmq_vhost = rmq_params["vhost"]
     rmq_port = rmq_params["port"]
+    rmq_queue = rmq_params["queue"]
+    rmq_exch = rmq_params["exchange"]
 
     creds = pika.PlainCredentials(rmq_user, rmq_password)
     params = pika.ConnectionParameters(credentials=creds,
@@ -32,8 +34,7 @@ def send(cluster, command):
                                        port=rmq_port)
     connection = pika.BlockingConnection(params)
     channel = connection.channel()
-    channel.queue_declare(queue='hello')
-    channel.basic_publish(exchange='',
-                          routing_key='hello',
+    channel.basic_publish(exchange=rmq_exch,
+                          routing_key=rmq_queue,
                           body=json.dumps(job_info))
     logging.debug(" [x] Sent job info to RMQ server.")
