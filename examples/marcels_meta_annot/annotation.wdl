@@ -25,7 +25,6 @@ workflow annotation {
   String  sa_rfam_claninfo_tsv
   String  sa_rfam_feature_lookup_tsv
   Boolean sa_crt_execute
-  String  sa_crt_cli_jar
   String  sa_crt_transform_bin
   Boolean sa_prodigal_execute
   String  sa_prodigal_bin
@@ -105,7 +104,6 @@ workflow annotation {
           rfam_claninfo_tsv = sa_rfam_claninfo_tsv,
           rfam_feature_lookup_tsv = sa_rfam_feature_lookup_tsv,
           crt_execute = sa_crt_execute,
-          crt_cli_jar = sa_crt_cli_jar,
           crt_transform_bin = sa_crt_transform_bin,
           prodigal_execute = sa_prodigal_execute,
           prodigal_bin = sa_prodigal_bin,
@@ -178,13 +176,13 @@ task setup {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
-    shared: 0
+    shared: 1
   }
 
   output {

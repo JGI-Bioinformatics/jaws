@@ -19,7 +19,6 @@
   "annotation.sa_rfam_claninfo_tsv": "/global/dna/shared/rqc/ref_databases/img/Rfam/13.0/Rfam.claninfo",
   "annotation.sa_rfam_feature_lookup_tsv": "/global/dna/shared/rqc/ref_databases/img/Rfam/13.0/Rfam_feature_lookup.tsv",
   "annotation.sa_crt_execute": true,
-  "annotation.sa_crt_cli_jar": " java -Xmx1536m -jar /opt/omics/bin/CRT-CLI.jar",
   "annotation.sa_crt_transform_bin": "transform_crt_output.py",
   "annotation.sa_prodigal_execute": true,
   "annotation.sa_prodigal_bin": "prodigal",

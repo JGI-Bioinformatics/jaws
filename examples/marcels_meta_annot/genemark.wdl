@@ -60,9 +60,9 @@ task gm_isolate {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -91,9 +91,9 @@ task gm_meta {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -134,9 +134,9 @@ task clean_and_unify {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"

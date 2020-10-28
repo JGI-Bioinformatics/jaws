@@ -25,7 +25,6 @@ workflow s_annotate {
   String  rfam_claninfo_tsv
   String  rfam_feature_lookup_tsv
   Boolean crt_execute
-  String  crt_cli_jar
   String  crt_transform_bin
   Boolean prodigal_execute
   String  prodigal_bin
@@ -80,7 +79,6 @@ workflow s_annotate {
   if(crt_execute) {
     call crt.crt {
       input:
-        crt_cli_jar = crt_cli_jar,
         crt_transform_bin = crt_transform_bin,
         imgap_input_fasta = imgap_input_fasta,
         imgap_project_id = imgap_project_id,
@@ -221,9 +219,9 @@ task pre_qc {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -257,9 +255,9 @@ task gff_merge {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -290,9 +288,9 @@ task fasta_merge {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -317,9 +315,9 @@ task gff_and_fasta_stats {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -341,9 +339,9 @@ task post_qc {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"

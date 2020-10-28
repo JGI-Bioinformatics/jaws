@@ -208,9 +208,9 @@ task ko_ec {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -312,9 +312,9 @@ task smart {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -415,9 +415,9 @@ task cog {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -516,9 +516,9 @@ task tigrfam {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -617,9 +617,9 @@ task superfam {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -716,9 +716,9 @@ task pfam {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -818,9 +818,9 @@ task cath_funfam {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -852,9 +852,9 @@ task signalp {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -886,9 +886,9 @@ task tmhmm {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -927,9 +927,9 @@ task product_name {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"

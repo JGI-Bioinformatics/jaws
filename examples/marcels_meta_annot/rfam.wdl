@@ -75,9 +75,9 @@ task cmsearch {
   }
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -111,9 +111,9 @@ task clan_filter {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -138,9 +138,9 @@ task misc_and_regulatory {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -164,9 +164,9 @@ task rrna {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
@@ -191,9 +191,9 @@ task ncrna_tmrna {
   >>>
 
   runtime {
-    time: "01:00:00"
+    time: "2:00:00"
     mem: "5G"
-    poolname: "marcel_split"
+    poolname: "boogie"
     node: 1
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
