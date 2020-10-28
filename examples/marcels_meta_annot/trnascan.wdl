@@ -43,10 +43,10 @@ task trnascan_ba {
   }
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -70,10 +70,10 @@ task pick_and_transform_to_gff {
   }
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1

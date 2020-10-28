@@ -71,14 +71,15 @@ task cmsearch {
   String out_dir
 
   command {
+	${bin} --notextw --cut_tc --cpu ${threads} --tblout ${project_id}_rfam.tbl ${cm} ${input_fasta}
     #cp ./${project_id}_rfam.tbl ${out_dir}
   }
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -100,7 +101,6 @@ task clan_filter {
   String out_dir
 
   command <<<
-    shifter --image=jfroula/img-omics:0.1.1 \
     tool_and_version=$(${cmsearch_bin} -h | grep INFERNAL | cut -d' ' -f3)
     grep -v '^#' ${tbl} | \
     awk '$17 == "!" {print $1,$3,$4,$6,$7,$8,$9,$10,$11,$15,$16}' | \
@@ -111,10 +111,10 @@ task clan_filter {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -138,10 +138,10 @@ task misc_and_regulatory {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -164,10 +164,10 @@ task rrna {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -191,10 +191,10 @@ task ncrna_tmrna {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1

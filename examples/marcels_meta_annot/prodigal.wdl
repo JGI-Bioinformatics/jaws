@@ -70,10 +70,10 @@ task fasta_len {
   }
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -100,10 +100,10 @@ task iso_big {
   }
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -129,10 +129,10 @@ task iso_small {
   }
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -158,10 +158,10 @@ task metag {
   }
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -208,10 +208,10 @@ task clean_and_unify {
   }
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1

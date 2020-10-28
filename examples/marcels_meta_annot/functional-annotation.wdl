@@ -198,7 +198,7 @@ task ko_ec {
   String out_dir
 
   command {
-    ${lastal} -f blasttab+ -P ${threads} ${nr_db}/img_nr ${input_fasta} 1> ${project_id}_proteins.img_nr.last.blasttab
+    /global/dna/shared/data/jfroula/Tools/memtime ${lastal} -f blasttab+ -P ${threads} ${nr_db} ${input_fasta} 1> ${project_id}_proteins.img_nr.last.blasttab
     ${selector} -l ${aln_length_ratio} -m ${min_ko_hits} -n ${top_hits} \
                 ${project_type} ${md5} ${phylo} \
                 ${project_id}_ko.tsv ${project_id}_ec.tsv \
@@ -208,10 +208,10 @@ task ko_ec {
   }
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -312,10 +312,10 @@ task smart {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -415,10 +415,10 @@ task cog {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -516,10 +516,10 @@ task tigrfam {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -617,10 +617,10 @@ task superfam {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -716,10 +716,10 @@ task pfam {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -818,10 +818,10 @@ task cath_funfam {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -852,10 +852,10 @@ task signalp {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -886,10 +886,10 @@ task tmhmm {
   >>>
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -927,10 +927,10 @@ task product_name {
   }
 
   runtime {
-    time: "2:00:00"
-    mem: "5G"
-    poolname: "boogie"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
