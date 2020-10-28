@@ -160,7 +160,7 @@ task trimAlign {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "00:40:00"
+        time: "02:00:00"
         mem: "40G"
         poolname: "dapseq_leo"
         node: 2
@@ -208,7 +208,7 @@ task mergeBams {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "00:40:00"
+        time: "02:00:00"
         mem: "40G"
         poolname: "dapseq_leo"
         node: 2
@@ -244,7 +244,7 @@ task findPeaks {
     runtime {
 		docker: "jfroula/dap_py:2"
         shared: 0
-        time: "00:40:00"
+        time: "02:00:00"
         mem: "40G"
         poolname: "dapseq_leo"
         node: 2
@@ -280,7 +280,7 @@ task motifInputs {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "00:40:00"
+        time: "02:00:00"
         mem: "40G"
         poolname: "dapseq_leo"
         node: 2
@@ -324,7 +324,7 @@ task findMotifs {
     runtime {
 		docker: "jfroula/dap_py:2"
         shared: 0
-        time: "00:40:00"
+        time: "02:00:00"
         mem: "40G"
         poolname: "dapseq_leo"
         node: 2
@@ -357,7 +357,7 @@ task assignGenes {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "00:40:00"
+        time: "02:00:00"
         mem: "40G"
         poolname: "dapseq_leo"
         node: 2
@@ -389,7 +389,7 @@ task dapStats {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "00:40:00"
+        time: "02:00:00"
         mem: "40G"
         poolname: "dapseq_leo"
         node: 2
@@ -436,7 +436,7 @@ task copyOutput {
 
     runtime {
         shared: 0
-        time: "00:40:00"
+        time: "02:00:00"
         mem: "40G"
         poolname: "dapseq_leo"
         node: 2
