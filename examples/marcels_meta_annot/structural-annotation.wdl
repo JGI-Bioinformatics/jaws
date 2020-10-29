@@ -25,7 +25,6 @@ workflow s_annotate {
   String  rfam_claninfo_tsv
   String  rfam_feature_lookup_tsv
   Boolean crt_execute
-  String  crt_cli_jar
   String  crt_transform_bin
   Boolean prodigal_execute
   String  prodigal_bin
@@ -80,7 +79,6 @@ workflow s_annotate {
   if(crt_execute) {
     call crt.crt {
       input:
-        crt_cli_jar = crt_cli_jar,
         crt_transform_bin = crt_transform_bin,
         imgap_input_fasta = imgap_input_fasta,
         imgap_project_id = imgap_project_id,
@@ -158,7 +156,9 @@ workflow s_annotate {
     }
   }
   output {
+	#File  gff = "${output_dir}"+"/"+"${imgap_project_id}_structural_annotation.gff"
 	File  gff = gff_merge.final_gff
+	#File  gff = post_qc.out
     File? proteins = fasta_merge.final_proteins 
   }
 }
@@ -213,18 +213,16 @@ task pre_qc {
         fasta_sanity_cmd="$fasta_sanity_cmd -p ${project_id}"
 	fi
     fasta_sanity_cmd="$fasta_sanity_cmd -l ${min_seq_length}"
-
     $fasta_sanity_cmd
-
     rm $tmp_fasta
     #cp ${project_id}_contigs.fna ${output_dir}
   >>>
 
   runtime {
-    time: "01:00:00"
-    mem: "5G"
-    poolname: "marcel_split"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -257,13 +255,14 @@ task gff_merge {
   }
 
   runtime {
-    time: "01:00:00"
-    mem: "5G"
-    poolname: "marcel_split"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
+	
   }
 
   output {
@@ -290,10 +289,10 @@ task fasta_merge {
   }
 
   runtime {
-    time: "01:00:00"
-    mem: "5G"
-    poolname: "marcel_split"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -317,10 +316,10 @@ task gff_and_fasta_stats {
   }
 
   runtime {
-    time: "01:00:00"
-    mem: "5G"
-    poolname: "marcel_split"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -341,10 +340,10 @@ task post_qc {
   }
 
   runtime {
-    time: "01:00:00"
-    mem: "5G"
-    poolname: "marcel_split"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
