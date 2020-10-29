@@ -51,6 +51,8 @@ class Configuration():
             "host": s["host"],
             "vhost": s["vhost"],
             "port": int(s["port"]),
+            "queue": s["queue"],
+            "exchange": s["exchange"]
         }
         print(params)
         return params

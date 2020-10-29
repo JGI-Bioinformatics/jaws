@@ -13,3 +13,14 @@ class Channel:
 class Connection:
     def __init__(self): pass
     def channel(self): return Channel()
+
+
+class spec:
+    def __init__(self): pass
+
+    class Basic:
+        def __init__(self): pass
+        def Deliver(): pass
+
+    class BasicProperties:
+        def __init__(self): pass

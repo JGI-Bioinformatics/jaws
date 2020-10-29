@@ -21,7 +21,7 @@ def start_file_logger(filename, name='task_updates', level=logging.DEBUG, format
     global logger
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename)
+    handler = logging.FileHandler(filename, delay=True)
     handler.setLevel(level)
     formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
@@ -54,7 +54,7 @@ class UpdatesChannel():
         try:
             self.channel.start_consuming()
         except Exception:
-            logger.exception("Caught exception while waiting of RMQ")
+            logger.exception("Caught exception while waiting for RMQ")
             logger.info("Ignoring error and continuing")
             pass
 

@@ -20,6 +20,8 @@ password = p455w0rd
 host = rmq.server.com
 vhost = jaws
 port = 5678
+queue = high-prio
+exchange = exch
 
 [SITE_RPC_CLIENT]
 user = jaws
