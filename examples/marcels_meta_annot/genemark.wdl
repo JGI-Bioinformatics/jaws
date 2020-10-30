@@ -60,10 +60,10 @@ task gm_isolate {
   }
 
   runtime {
-    time: "01:00:00"
-    mem: "5G"
-    poolname: "marcel_split"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -84,17 +84,17 @@ task gm_meta {
   String project_id
 
   command {
-    ${bin} --Meta ${model} --incomplete_at_gaps 30 \
+    ${bin} --Meta /opt/omics/bin/${model} --incomplete_at_gaps 30 \
            -o ${project_id}_genemark.gff \
            --format gff --NT ${project_id}_genemark_genes.fna \
            --AA ${project_id}_genemark_proteins.faa --seq ${input_fasta}
   }
 
   runtime {
-    time: "01:00:00"
-    mem: "5G"
-    poolname: "marcel_split"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
@@ -134,10 +134,10 @@ task clean_and_unify {
   }
 
   runtime {
-    time: "01:00:00"
-    mem: "5G"
-    poolname: "marcel_split"
-    node: 1
+    time: "02:00:00"
+    mem: "115G"
+    poolname: "catalan"
+    node: 5
     nwpn: 1
     docker: "jfroula/img-omics:0.1.1"
     shared: 1
