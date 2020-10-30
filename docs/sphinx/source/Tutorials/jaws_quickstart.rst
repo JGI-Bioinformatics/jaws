@@ -68,7 +68,7 @@ Setting up Globus endpoints
       a. Click on "ENDPOINTS" in the menu on the left. Note, you should be in the
          "Recently Used" tab which is default.
 
-      b. Search for NERSC DTN
+      b. Search for "NERSC DTN"
 
       c. Click on the arrow > at the right of NERSC DTN which is the endpoint details 
          (if you curser over it)
@@ -76,6 +76,10 @@ Setting up Globus endpoints
       d. On the right of the screen, click on "Activation" (or "Extend Activation")
          Follow the directions to authenticate using NERSC credentials!!
          You will have to re-activate every 11 days.
+
+      e. Now start from step 2.b. and add "lbnl#lrc"
+
+After you have added nersc and lbl endpoints, you may not see them listed on your "Endpoints" page under the tab "Recently Used" until you submit a JAWS run.  You can type lbnl#lrc or nersc dtn in the uppermost search window (the one for Endpoints) and they should show up with a "STATUS" of ready. 
 
 
 Setting up Globus linked accounts 
