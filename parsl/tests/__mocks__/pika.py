@@ -4,7 +4,7 @@ class Channel:
     def queue_declare(self, queue): pass
     def queue_bind(self): pass
     def basic_qos(self): pass
-    def basic_consume(self): pass
+    def basic_consume(self, queue, auto_ack, on_message_callback): pass
     def start_consuming(self): pass
     def basic_publish(self, exchange, routing_key, body): pass
     def basic_ack(self): pass
