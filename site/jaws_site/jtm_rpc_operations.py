@@ -7,7 +7,7 @@ import sqlalchemy.exc
 from datetime import datetime
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
-from jaws_site.models import Job_Log
+from jaws_site.models import Job_Log, Run
 from jaws_rpc.responses import success, failure
 
 
@@ -61,6 +61,25 @@ def update_job_status(params, session):
     return success(result)
 
 
+def get_run_id(params, session):
+    """
+    Get run_id given cromwell_run_id.  Requires the primary cromwell_run_id, not the subworkflows' cromwell_run_id.
+    """
+    cromwell_run_id = params["cromwell_run_id"]
+    try:
+        run = session.query(Run).filter_by(cromwell_run_id=cromwell_run_id).one_or_none
+    except Exception as error:
+        logger.exception(f"Unable to select runs: {error}")
+        return failure(error)
+
+    if not run:
+        error = Exception("Run not found")
+        return failure(error)
+
+    result = {"run_id": run.id}
+    return success(result)
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "update_job_status": {
@@ -72,5 +91,6 @@ operations = {
             "status_to",
             "timestamp",
         ],
-    }
+    },
+    "get_run_id": {"function": get_run_id, "required_params": ["cromwell_run_id"]},
 }
