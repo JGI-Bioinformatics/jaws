@@ -316,5 +316,32 @@ def pad_string_path(my_string, pad_length=8, depth=None):
     return pad_string
 
 
+# --------------------------------------------------------------------------------------------------
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
+
+
+# --------------------------------------------------------------------------------------------------
+def extract_cromwell_id_from_task(task: str) -> str:
+    """
+    Extract Cromwell run id from user command
+
+    ex)
+    /bin/bash /..../cromwell-executions/x/74a668ad-958e-437e-a941-6e5e23f8716d/call-y/shard-01/execution/script
+    ==> extract 74a668ad-958e-437e-a941-6e5e23f8716d
+
+    :param task: command string
+    :return: Cromwell run id in UUID format
+    """
+    cromwell_id = None
+    # NOTE: here UUID format spec is assumed to comply with "8-4-4-4-12" format
+    try:
+        regex = re.compile(r"[\w]{8}-[\w]{4}-[\w]{4}-[\w]{4}-[\w]{12}", re.I)
+        match = regex.search(task)
+    except Exception as e:
+        eprint(f"Failed to regex cromwell id from task: {e}, {task}")
+
+    if match:
+        cromwell_id = match.group()
+
+    return cromwell_id

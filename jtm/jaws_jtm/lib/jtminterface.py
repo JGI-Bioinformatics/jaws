@@ -9,6 +9,7 @@ import pika
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_jtm.common import logger
+from jaws_jtm.lib.run import extract_cromwell_id_from_task
 
 
 class JtmInterface(object):
@@ -140,11 +141,7 @@ class JtmInterface(object):
             # ex) cromwell_fe010880_stepA ==> extract fe010880
             # Ref) https://issues.jgi-psf.org/browse/JAWS-8
             #
-            if (
-                "pool" in json_data_dict
-                and "job_id" in json_data_dict["pool"]
-                and json_data_dict["pool"]["job_id"]
-            ):
+            if "pool" in json_data_dict and "job_id" in json_data_dict["pool"] and json_data_dict["pool"]["job_id"]:
                 exclusive_task_pool_name_postfix = json_data_dict["pool"][
                     "job_id"
                 ].split("_")[1]
@@ -156,7 +153,11 @@ class JtmInterface(object):
             elif "job_id" in kw and kw["job_id"]:
                 json_data_dict["job_id"] = kw["job_id"]
                 json_data_dict["shared"] = int(kw["shared"])
-                exclusive_task_pool_name_postfix = kw["job_id"].split("_")[1]
+                # exclusive_task_pool_name_postfix = kw["job_id"].split("_")[1]
+                try:
+                    exclusive_task_pool_name_postfix = extract_cromwell_id_from_task(kw["task_json"])
+                except Exception as e:
+                    logger.exception(e)
                 kw["pool_name"] = (
                     kw["pool_name"] + "_" + exclusive_task_pool_name_postfix
                 )
