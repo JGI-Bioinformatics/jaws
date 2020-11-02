@@ -21,7 +21,7 @@ def start_file_logger(filename, name='task_updates', level=logging.DEBUG, format
     global logger
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename, delay=True)
+    handler = logging.FileHandler(filename)
     handler.setLevel(level)
     formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
