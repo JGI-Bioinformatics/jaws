@@ -99,7 +99,7 @@ Setting up Globus linked accounts
        a. You should see <yourusername>@NERSC.gov listed.   
 
 .. warning:: 
-	You need to re-activate your Globus Endpoint every 11 days.  JAWS should give you an appropriate error if you need to do this. Go to globus.org and click on "ENDPOINTS".  If "NERSC DTN" says "inactive", you can click on the activate endpoint symbol at the right.
+    You need to re-activate your Globus Endpoint every 11 days.  JAWS should give you an appropriate error if you need to do this. Go to globus.org and click on "ENDPOINTS".  If "NERSC DTN" says "inactive", you can click on the activate endpoint symbol at the right.
 
 |
 
@@ -209,7 +209,7 @@ Cromwell will create a directory structure that looks like this: (different from
 
 Each task of your workflow gets run inside the :bash:`execution` directory so it is here that you can find any output files including the stderr, stdout & script file. Cromwell is run on scratch and when it is finished, everything below the "cromwell generated hash" is copied to your specified output directory. 
 
-	
+    
 So for our theoretical submission
 
 .. code-block:: bash
@@ -225,11 +225,39 @@ We should see an output folder that looks like this:
 Further Debugging Ideas
 -----------------------
 
+1) The :bash:`metadata` command will show you the output from the Cromwell server which may have additional debugging information.  Look for "causedBy" message as shown below. This error doesn't tell you much so the next step would be 2) below.
+
 .. code-block:: bash
 
-    # The output command should show you the contents of the stderr, stdout (same content as the stderr mentioned above).
-    jaws run output 80
-
-    # The metadata command will show you the output from the Cromwell server which may have additional debugging information.
-    # look for "causedBy"
     jaws run metadata 80
+
+    "causedBy": [],
+        "message": "Job jgi_dap_leo.assignGenes:4:1 exited with return code 79 which has not been declared as 
+        a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
+    }
+
+2) Use the :bash:`errors` command. This should show the contents of the stderr file, but only when there was an error code >0. 
+Sometimes a script will write to stderr but return an error code of 0, so this command won't show anything.
+
+.. code-block:: bash
+
+    jaws run errors 1186
+
+
+3) Check the contents of the stderr, stdout files that are created within each task's working directory (saved in your specified output directory). Following the above example, your stderr/stdout files would be in:
+
+.. code-block:: bash
+
+	out/call-setup/execution/stderr
+
+It is also useful to examine the file called :bash:`script` since this is exactly what cromwell ran.
+
+
+4) Use the :bash:`task-log` command to show errors that JTM catches, like timeout errors that occur when your task's runtime section didn't request enough time. We are aware of an issue with this command having a long delay, so please be patient until we can re-design the way task-log (and task-status) works.
+
+.. code-block:: bash
+
+    jaws run task-log 1186
+    
+    "jgi_dap_leo.assignGenes 1   5132    running failed  2020-10-28 21:11:14 failed with timeout"
+

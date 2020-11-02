@@ -57,6 +57,7 @@ computational workflows. Its purpose is to improve the re-usability and robustne
    Working Examples <Tutorials/example_wdls>
    Subworkflows <Tutorials/subworkflows>
    Current JGI Workflows </Specifications/current_workflows>
+   Known Issues </Specifications/known_issues>
 
 .. toctree::
    :hidden:
