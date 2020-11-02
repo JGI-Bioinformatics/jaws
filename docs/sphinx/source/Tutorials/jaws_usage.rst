@@ -10,9 +10,12 @@ How to Run a WDL in JAWS
    See `Quickstart Example <jaws_quickstart.html>`_ for full setup instructions.
 
 
-Once your environment is set up, you can submit a run
+Example submitting a workflow:
 
 :bash:`jaws run submit <wdl> <inputs json> <out dir> <site>` 
+
+... where "run" is a command, and "submit" is a sub-command. Running each command/sub-command without arguments 
+shows the help message.
 
 
 *************
@@ -40,7 +43,7 @@ You only need to run this once to get a Globus token.  Follow the directions to 
 
     jaws login
     
-    # This will generate a URL that you need to follow to get the Globus token 
+    # This will generate a URL that you need to follow to get the Globus token. Then save the token according to directions. 
     
 
 
@@ -62,9 +65,6 @@ You only need to run this once to get a Globus token.  Follow the directions to 
   task-log     get log of each Tasks' state transitions.
   task-status  show the current status of each task.
   validate     validate a WDL using Cromwell's WOMTool.
-
-.. hint::
-    run each command without arguments to see syntax of the command. For example :bash:`jaws run history`
 
    
 *jaws wdl*:
