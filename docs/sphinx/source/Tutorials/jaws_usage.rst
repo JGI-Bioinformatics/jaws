@@ -10,9 +10,12 @@ How to Run a WDL in JAWS
    See `Quickstart Example <jaws_quickstart.html>`_ for full setup instructions.
 
 
-Once your environment is set up, you can submit a run
+Example submitting a workflow:
 
 :bash:`jaws run submit <wdl> <inputs json> <out dir> <site>` 
+
+... where "run" is a command, and "submit" is a sub-command. Running each command/sub-command without arguments 
+shows the help message.
 
 
 *************
@@ -40,7 +43,7 @@ You only need to run this once to get a Globus token.  Follow the directions to 
 
     jaws login
     
-    # This will generate a URL that you need to follow to get the Globus token 
+    # This will generate a URL that you need to follow to get the Globus token. Then save the token according to directions. 
     
 
 
@@ -49,39 +52,35 @@ You only need to run this once to get a Globus token.  Follow the directions to 
 
 .. code-block:: text
 
-  cancel       cancel a run; prints whether aborting was successful or not.
-  history      print a list of the user's past runs, including failed runs.
-  inputs       generate inputs template (JSON) from workflow (WDL) file.
-  list-sites   list available Sites to run your jobs
-  log          view the log of Run state transitions. this is at a higher level than task-log.
-  metadata     print the detailed metadata for a run, partly produced by Cromwell server.
-  output       view the stdout/stderr output of Tasks.
-  queue        list user's unfinished runs.
-  status       print the current status of a run.
-  submit       submit a run for execution at a JAWS-Site.
-  task-log     get log of each Tasks' state transitions.
-  task-status  show the current status of each task.
-  validate     validate a WDL using Cromwell's WOMTool.
+  cancel       Cancel a run; prints whether aborting was successful or not.
+  errors       View error messages and stderr for failed tasks.
+  history      Print a list of the user's past runs.
+  inputs       Generate inputs template (JSON) from workflow (WDL) file.
+  list-sites   List available Sites
+  log          View the log of Run state transitions. this is at a higher level than task-log.
+  metadata     Print the detailed metadata for a run.
+  queue        List user's unfinished runs.
+  status       Print the current status of a run.
+  submit       Submit a run for execution at a JAWS-Site.
+  task-log     Get log of each Tasks' state transitions.
+  task-status  Show the current status of each task.
+  validate     Validate a WDL using Cromwell's WOMTool.
 
-.. hint::
-    run each command without arguments to see syntax of the command. For example :bash:`jaws run history`
-
-   
 *jaws wdl*:
 -------------------
 
 .. code-block:: text
 
-  about       return README document for a workflow
-  add         add a workflow to the catalog. do this before **release**
-  delete      remove a workflow from the catalog
-  get         get WDL specification for a workflow. this generates a WDL for running.
-  list        list shared workflows in the catalog
-  release     mark a version as an immutable production release. the README can still be changed.
-  update-doc  update a workflow README in the catalog
-  update-wdl  update a workflow WDL in the catalog (unavailable for released WDLs)
-  versions    list available versions of a workflow for the public to run. some versions may not be publicly available.
- 
+  about       Return README document for a workflow.
+  add         Add a new workflow to the catalog.
+  delete      Remove a workflow from the catalog.
+  get         Get workflow specification (WDL) for a workflow. This generates a WDL for running.
+  list        List available workflows in the Catalog.
+  release     Mark a version as released, which makes it's WDL immutable. The README can still be changed.
+  update-doc  Update a workflow's README in the catalog.
+  update-wdl  Update a workflow's WDL in the catalog (unavailable for released WDLs)
+  versions    List available versions of specified workflow.
+  versions    List publicly available versions of a specified workflow. Some versions may not be publicly available.
 
 *jaws status*:
 ----------------------
@@ -186,7 +185,7 @@ Examples
 
 **Monitoring Runs**
 
-When monitoring the runs, each task transitions between the following states. 
+When monitoring the runs with :bash:`jaws run status`, each task transitions between the following states. The :bash:`task-log` and :bash:`task-status` commands may show different states.
 
 .. code-block:: text
 
@@ -212,7 +211,7 @@ When monitoring the runs, each task transitions between the following states.
     jaws run status 121
     jaws run task-status 121
 
-    # the log commands show all the past states of either the run or tasks of the run
+    # the log commands include all the past states of either the run or tasks of the run
     jaws run log 121
     jaws run task-log 121
 
