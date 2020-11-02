@@ -4,11 +4,12 @@ import "functional-annotation.wdl" as fa
 workflow annotation {
 
   Int     num_splits
-  String  imgap_input_dir
-  String  imgap_input_fasta
+  Array[File]    imgap_input_paths
+  String  output_dir = "output_dir"
   String  imgap_project_id
   String  imgap_project_type
   Int     additional_threads
+
   # structural annotation
   Boolean sa_execute
   Boolean sa_pre_qc_execute
@@ -25,7 +26,6 @@ workflow annotation {
   String  sa_rfam_claninfo_tsv
   String  sa_rfam_feature_lookup_tsv
   Boolean sa_crt_execute
-  String  sa_crt_cli_jar
   String  sa_crt_transform_bin
   Boolean sa_prodigal_execute
   String  sa_prodigal_bin
@@ -38,6 +38,7 @@ workflow annotation {
   String  sa_fasta_merge_bin
   Boolean sa_gff_and_fasta_stats_execute
   String  sa_gff_and_fasta_stats_bin
+
   # functional annotation
   Boolean fa_execute
   String  fa_product_names_mapping_dir
@@ -75,13 +76,7 @@ workflow annotation {
   String  fa_tmhmm_decode_parser
   String  fa_product_assign_bin
 
-  call setup {
-    input:
-      n_splits = num_splits,
-      dir = imgap_input_dir
-  }
-
-  scatter(split in setup.splits) {
+  scatter(split in imgap_input_paths) {
 
     if(sa_execute) {
       call sa.s_annotate {
@@ -89,8 +84,8 @@ workflow annotation {
           imgap_project_id = imgap_project_id,
           additional_threads = additional_threads,
           imgap_project_type = imgap_project_type,
-          output_dir = split,
-          imgap_input_fasta = "${split}"+"/"+"${imgap_input_fasta}",
+          imgap_input_fasta = split,
+		  output_dir = output_dir,
           pre_qc_execute = sa_pre_qc_execute,
           pre_qc_bin = sa_pre_qc_bin,
           pre_qc_rename = sa_pre_qc_rename,
@@ -105,7 +100,6 @@ workflow annotation {
           rfam_claninfo_tsv = sa_rfam_claninfo_tsv,
           rfam_feature_lookup_tsv = sa_rfam_feature_lookup_tsv,
           crt_execute = sa_crt_execute,
-          crt_cli_jar = sa_crt_cli_jar,
           crt_transform_bin = sa_crt_transform_bin,
           prodigal_execute = sa_prodigal_execute,
           prodigal_bin = sa_prodigal_bin,
@@ -127,8 +121,8 @@ workflow annotation {
           imgap_project_id = imgap_project_id,
           imgap_project_type = imgap_project_type,
           additional_threads = additional_threads,
-          output_dir = split,
           input_fasta = s_annotate.proteins,
+		  output_dir = output_dir,
           ko_ec_execute = fa_ko_ec_execute,
           ko_ec_img_nr_db = fa_ko_ec_img_nr_db,
           ko_ec_md5_mapping = fa_ko_ec_md5_mapping,
@@ -169,25 +163,3 @@ workflow annotation {
   }
 }
 
-task setup {
-  String dir
-  Int    n_splits
-
-  command {
-    python -c 'for i in range(${n_splits}): print("${dir}/"+str(i+1)+"/")'
-  }
-
-  runtime {
-    time: "01:00:00"
-    mem: "5G"
-    poolname: "marcel_split"
-    node: 1
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
-    shared: 0
-  }
-
-  output {
-    Array[String] splits = read_lines(stdout())
-  }
-}
