@@ -18,8 +18,8 @@ computational workflows. Its purpose is to improve the re-usability and robustne
 .. topic:: Some Definitions
 
 	* **WDL** => The Workflow Description Language is essentially a wrapper around the commands in your pipeline code.  
-	* **Cromwell** => workflow engine which takes a WDL and converts it to bash commands that can be run on a "backend".  
-	* **backend** => any compute resource like your computer, or a public compute cluster. In our case we use JTM as a backend.  
+	* **`Cromwell <https://Cromwell.readthedocs.io/en/stable/>`_** => workflow engine which takes a WDL and converts it to bash commands that can be run on a "backend".  
+	* **backend** => any compute resource like a private labtop, or a public compute cluster like Cori. In our case we use JTM as a backend.  
 	* **JTM** => customized backend that uses different compute sites (i.e. CORI, and JGI) and is responsible for reserving workers on the cluster on 
 	* **workers** => workers are "processes" that run the `Cromwell <https://cromwell.readthedocs.io/en/stable/>`_ bash commands. They can be part of a "worker pool" to process parallel tasks.  
 	* **Tasks** => each WDL or run is composed of multiple tasks. 
@@ -57,6 +57,7 @@ computational workflows. Its purpose is to improve the re-usability and robustne
    Working Examples <Tutorials/example_wdls>
    Subworkflows <Tutorials/subworkflows>
    Current JGI Workflows </Specifications/current_workflows>
+   Known Issues </Specifications/known_issues>
 
 .. toctree::
    :hidden:
