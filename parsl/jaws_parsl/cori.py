@@ -24,14 +24,12 @@ config = Config(
                 # script to the scheduler eg: '#SBATCH --constraint=knl,quad,cache'
                 scheduler_options=cori_sched_opts,
 
-                # *** NOTE *** worker_init must be setup 
+                # *** NOTE *** worker_init must be setup
                 # Command to be run before starting a worker, such as:
                 # 'module load Anaconda; source activate parsl_env'.
                 worker_init='module load python; source activate parsl-env',
                 # We request all hyperthreads on a node.
-                
                 launcher=SrunLauncher(),
-                
                 walltime='00:10:00',
                 # Slurm scheduler on Cori can be slow at times,
                 # increase the command timeouts
