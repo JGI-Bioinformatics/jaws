@@ -17,10 +17,9 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
     """Configuration singleton class"""
 
     defaults = {
-        "JTM_RPC_SERVER": {
+        "LOCAL_RPC_SERVER": {
             "host": "localhost",
             "port": "5672",
-            "vhost": "site",
             "user": "guest",  # default from docker container
             "password": "guest",  # default from docker container
             "num_threads": 5,
@@ -28,35 +27,27 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         "CENTRAL_RPC_SERVER": {
             "host": "localhost",
             "port": "5672",
-            "vhost": "site",
             "user": "guest",  # default from docker container
             "password": "guest",  # default from docker container
             "num_threads": 5,
             "max_retries": 5},
         "CENTRAL_RPC_CLIENT": {
-            "host": "localhost",
             "port": "5672",
-            "vhost": "jaws_central",
-            "user": "",
-            "password": "",
         },
-        "GLOBUS": {"client_id": "", "endpoint_id": "jaws-testing", "root_dir": "/"},
         "DB": {
             "host": "localhost",
             "port": "3306",
-            "user": "jaws",
-            "password": "jawstest",
-            "db": "jaws-workflows",
             "dialect": "mysql+mysqlconnector",
         },
-        "CROMWELL": {
-            "url": "localhost:8000",
-        },
-        "SITE": {
-            "id": "local",
-            "staging_subdirectory": "staging",
-            "results_subdirectory": "results",
-        },
+    }
+    required_params = {
+        "LOCAL_RPC_SERVER": ["vhost"],
+        "CENTRAL_RPC_SERVER": ["vhost"],
+        "CENTRAL_RPC_CLIENT": ["host", "vhost", "user", "password"],
+        "GLOBUS": ["client_id", "endpoint_id", "root_dir", "default_dir"],
+        "DB": ["user", "password", "db"],
+        "CROMWELL": ["url"],
+        "SITE": ["id", "uploads_subdirectory", "downloads_subdirectory"],
     }
 
     config = None
@@ -78,6 +69,21 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         except Exception as error:
             logger.exception(f"Unable to load config file {config_file}: {error}")
             raise
+
+        # validate config
+        for section in self.required_params:
+            if section not in self.config:
+                error_msg = f"Config file, {config_file}, missing required section, {section}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            for key in self.required_params[section]:
+                if key not in self.config[section]:
+                    error_msg = (
+                        f"Config file, {config_file}, missing required parameter, {section}/{key}"
+                    )
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+
         global conf
         conf = self
 

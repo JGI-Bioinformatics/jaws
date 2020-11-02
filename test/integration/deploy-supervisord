@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+
+echo "BEGIN deploy-supervisord"
+
+## VERIFY REQUIRED VARS ARE DEFINED
+# If any env are undefined, try sourcing the setup script and check again.
+# Exits if any required var is undefined.
+REQUIRED_VARS="
+SUPERVISOR_DIR
+SITE_PYTHON
+SITE_JAWS_GROUP
+SITE_JTM_GROUP
+DEPLOYMENT_NAME
+SHIM_DIR
+JAWS_SUPERVISORD_PW
+JAWS_SUPERVISOR_PORT
+JTM_SUPERVISOR_PORT
+"
+RESULT=0
+for VAR in $REQUIRED_VARS; do
+  if [ -z ${!VAR+xxx} ]; then
+    echo "Missing env var, $VAR; sourcing setup script..."
+    source ./test/integration/define-env
+    RESULT=1
+    break
+  fi
+done
+if [[ $RESULT -ne 0 ]]; then
+  RESULT=0
+  for VAR in $REQUIRED_VARS; do
+    if [ -z ${!VAR+xxx} ]; then
+      echo "Missing env var: $VAR">&2
+      RESULT=1
+    fi
+  done
+fi
+[ $RESULT -eq 0 ] || exit 1
+
+## CREATE DIRS
+test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
+chgrp $SITE_JTM_GROUP $SUPERVISOR_DIR
+chmod 770 $SUPERVISOR_DIR
+
+$SITE_LOAD_PYTHON
+[[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
+[[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
+chgrp -R $SITE_JTM_GROUP $SUPERVISOR_DIR/{bin,venv}
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+function not_available() {
+  command -v $1 >/dev/null 2>&1
+}
+
+not_available "supervisord" || pip install supervisor
+
+function generate_shim() {
+prog=$1
+cat <<EOM > $SUPERVISOR_DIR/bin/$prog
+#!/usr/bin/env bash
+
+source $SUPERVISOR_DIR/venv/bin/activate
+
+$prog \$@
+EOM
+chmod +x $SUPERVISOR_DIR/bin/$prog
+}
+
+generate_shim supervisord
+generate_shim supervisorctl
+
+function fix_perms() {
+    local GROUP="$1"
+    local DIR="$2"
+    chmod -R 770 "$DIR"
+    chgrp -R "$GROUP" "$DIR"
+    find "$DIR" -type d -exec chmod g+s '{}' \;
+}
+
+fix_perms "$SITE_JTM_GROUP" "$SUPERVISOR_DIR"
+
+cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
+[inet_http_server]
+port=0.0.0.0:$JAWS_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+
+[supervisord]
+logfile=$SUPERVISOR_DIR/jaws-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile=$SUPERVISOR_DIR/jaws-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jaws-$DEPLOYMENT_NAME
+directory=$SUPERVISOR_DIR
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=$SITE_SUPERVISOR_HOST:$JAWS_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+prompt=supervisor-jaws-$DEPLOYMENT_NAME
+
+;----- Program Section
+
+[program:jaws-site-daemon]
+command=$SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-site-jtm-rpc]
+command=$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-site-central-rpc]
+command=$SHIM_DIR/jaws-site-central-rpc-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[group:jaws-$DEPLOYMENT_NAME]
+programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
+priority=999
+EOM
+
+
+## JTM SUPERVISOR CONF
+
+cat << EOM > $SUPERVISOR_DIR/supervisord-jtm.conf
+[inet_http_server]
+port=0.0.0.0:$JTM_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+
+[supervisord]
+logfile=$SUPERVISOR_DIR/jtm-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile=$SUPERVISOR_DIR/jtm-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jtm-$DEPLOYMENT_NAME
+directory=$SUPERVISOR_DIR
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=$SITE_SUPERVISOR_HOST:$JTM_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+prompt=supervisor-jtm-$DEPLOYMENT_NAME
+
+;----- Program Section
+
+[program:jaws-jtm]
+command=$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[program:jaws-cromwell]
+command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=10
+startretries=3
+autorestart=unexpected
+
+[group:jaws-$DEPLOYMENT_NAME]
+programs=jaws-jtm,jaws-cromwell
+priority=999
+EOM
+
+chgrp "$SITE_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
+chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
+chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-jtm.conf"
+chmod 660 "$SUPERVISOR_DIR/supervisord-jtm.conf"
+
+printf "END deploy-supervisord\n\n"

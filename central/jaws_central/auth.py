@@ -77,4 +77,9 @@ def save_globus_tokens(
     else:
         user_rec.auth_refresh_token = auth_refresh_token
         user_rec.transfer_refresh_token = transfer_refresh_token
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        logger.exception(f"Error updating run with globus tokens: {error}")
+        abort(500, f"Error saving Globus tokens; please try again later: {error}")

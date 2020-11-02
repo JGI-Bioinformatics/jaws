@@ -1,4 +1,4 @@
-"""RPC_Client sends JSON-RPC2 messages to an RPC_Server."""
+"""RpcClient sends JSON-RPC2 messages to an RpcServer."""
 
 import threading
 import amqpstorm
@@ -18,7 +18,7 @@ DEFAULT_MESSAGE_TTL = 10  # expires in seconds or 0=doesn't expire
 logger = logging.getLogger(__package__)
 
 
-class RPC_Client(object):
+class RpcClient(object):
     """Asynchronous remote procedure call (RPC) client class."""
 
     def __init__(self, params):

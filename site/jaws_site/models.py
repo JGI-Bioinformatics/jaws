@@ -3,14 +3,7 @@ SQLAlchemy models for persistent data structures.
 """
 
 from datetime import datetime
-from sqlalchemy import (
-    Column,
-    DateTime,
-    String,
-    Integer,
-    Boolean,
-    ForeignKey
-)
+from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey
 from jaws_site.database import Base
 
 
@@ -25,6 +18,7 @@ class Run(Base):
     id = Column(Integer, primary_key=True)
     submission_id = Column(String(36), nullable=False)
     cromwell_run_id = Column(String(36), nullable=True)
+    cromwell_workflow_dir = Column(String(4096), nullable=True)
     status = Column(String(32), nullable=False)
     user_id = Column(String(32), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
@@ -47,7 +41,7 @@ class Run_Log(Base):
     status_from = Column(String(32), primary_key=True)
     status_to = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
-    reason = Column(String(1024), nullable=True)
+    reason = Column(String(1024), nullable=False, default="")
     sent = Column(Boolean, default=False, nullable=False)
 
 
@@ -56,8 +50,8 @@ class Job_Log(Base):
     Log state transitions log.
     Initially, records are inserted when a state transition log is received from JTM;
     however JTM doesn't know the run_id, task_name, or attempt so they are NULL.
-    The Daemon process will fill in those fields by querying the db and cromwell
-    before the logs are sent to Central.
+    The Daemon process will fill in those fields by querying the db and cromwell;
+    until then, they will not be found by selecting run_id.
     """
 
     __tablename__ = "job_logs"
@@ -69,8 +63,7 @@ class Job_Log(Base):
     status_from = Column(String(32), primary_key=True)
     status_to = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
-    reason = Column(String(1024), nullable=True)
-    sent = Column(Boolean, default=False, nullable=False)
+    reason = Column(String(1024), nullable=False, default="")
 
 
 def create_all(engine, session):

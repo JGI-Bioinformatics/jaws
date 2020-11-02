@@ -8,6 +8,7 @@ import logging
 import connexion
 from urllib.parse import quote_plus
 import secrets
+from sqlalchemy.pool import QueuePool
 from jaws_central import config, log
 from jaws_central.models_fsa import db
 from jaws_rpc import rpc_index, rpc_server
@@ -24,16 +25,7 @@ JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
 @click.option("--log", "log_file", default=None, help="Log file")
 @click.option("--log-level", "log_level", default="INFO", help="Logging level")
 def cli(config_file: str, log_file: str, log_level: str) -> None:
-    """JAWS-Central.
-
-    :param config_file: filename of configuration file
-    :type config_file: str
-    :param log_file: filename of log file
-    :type log_file: str
-    :param log_level: logging level
-    :type log_level: str
-    :return:
-    """
+    """JAWS-Central"""
     # Initialize logging and configuration singletons;
     # as they are singletons, the Click context object is not needed.
     if log_file is None:
@@ -66,8 +58,12 @@ def auth() -> None:
     connex.app.config["SQLALCHEMY_ECHO"] = False
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        'poolclass': QueuePool,
         "pool_pre_ping": True,
-        "pool_recycle": 300,
+        "pool_recycle": 3600,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30
     }
     db.init_app(connex.app)
 
@@ -76,8 +72,9 @@ def auth() -> None:
         try:
             db.create_all()
             db.session.commit()
-        except Exception as e:
-            logger.exception(f"Failed to create tables: {e}")
+        except Exception as error:
+            db.session.rollback()
+            logger.exception(f"Failed to create tables: {error}")
             raise
 
     # define port
@@ -112,8 +109,12 @@ def rest() -> None:
     connex.app.config["SQLALCHEMY_ECHO"] = False
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        'poolclass': QueuePool,
         "pool_pre_ping": True,
-        "pool_recycle": 300,
+        "pool_recycle": 3600,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30
     }
     db.init_app(connex.app)
 
@@ -122,13 +123,14 @@ def rest() -> None:
         try:
             db.create_all()
             db.session.commit()
-        except Exception as e:
-            logger.exception(f"Failed to create tables: {e}")
+        except Exception as error:
+            db.session.rollback()
+            logger.exception(f"Failed to create tables: {error}")
             raise
 
     # init RPC clients
     site_rpc_params = config.conf.get_all_sites_rpc_params()
-    rpc_index.rpc_index = rpc_index.RPC_Index(site_rpc_params)
+    rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params)
 
     # define port
     port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
@@ -140,9 +142,10 @@ def rest() -> None:
 @cli.command()
 def rpc() -> None:
     """Start JAWS-Central RPC server."""
+    from jaws_central.database import Session
     from jaws_central import rpc_operations
     rpc_params = config.conf.get_section("RPC_SERVER")
-    app = rpc_server.RpcServer(rpc_params, rpc_operations.operations)
+    app = rpc_server.RpcServer(rpc_params, rpc_operations.operations, Session)
     app.start_server()
 
 
@@ -194,9 +197,10 @@ def add_user(
             db.session.commit()
             logger.info(f"Added new user {uid} ({email})")
             print(f"User's access token:\n{token}")
-        except Exception as e:
-            logger.exception(f"Failed to add user: {e}")
-            raise e
+        except Exception as error:
+            db.session.rollback()
+            logger.exception(f"Failed to add user: {error}")
+            raise error
 
 
 def jaws():

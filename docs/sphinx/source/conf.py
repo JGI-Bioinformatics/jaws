@@ -25,9 +25,9 @@ author = u'Jeff Froula'
 project = u'jaws'
 
 # The short X.Y version
-version = u''
+version = u'1.0'
 # The full version, including alpha/beta/rc tags
-release = u'0.0.1'
+release = u'1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -45,19 +45,18 @@ extensions = [
     'recommonmark',
     'sphinxcontrib.confluencebuilder'
 ]
-#extensions = ['sphinxcontrib.confluencebuilder']
 
 confluence_publish = True
 confluence_space_name = 'JAWS'
+
 # (for confluence cloud)
 confluence_server_url = 'https://docs.jgi.doe.gov/'
 confluence_server_user = 'jlfroula'
 confluence_server_pass = 'xxxxxxxxxxxxxxxxx'
 confluence_parent_page= 'JAWS Docs'
-#confluence_server_pass = 'gjnnXnOwrqQe2aNQgnya3F94'
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['ntemplates']
+templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -68,7 +67,6 @@ templates_path = ['ntemplates']
 #}
 
 source_suffix = ['.rst', '.md']
-#source_suffix = '.rst'
 
 # The master toctree document.
 master_doc = 'index'
@@ -105,7 +103,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['nstatic']
+html_static_path = ['_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

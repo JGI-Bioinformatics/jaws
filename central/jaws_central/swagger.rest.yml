@@ -26,11 +26,21 @@ paths:
   /status:
     get:
       operationId: jaws_central.utils.status
+      summary: Status of JAWS services
       responses:
         200:
           description: OK
         500:
           description: System is down
+      security: []
+
+  /info:
+    get:
+      operationId: jaws_central.utils.info
+      summary: Information about JAWS deployment
+      responses:
+        200:
+          description: OK
       security: []
 
   /auth:
@@ -528,44 +538,19 @@ paths:
         404:
           description: The specified record does not exist
 
-  /run/{run_id}/output:
+  /run/{run_id}/errors:
     get:
-      operationId: jaws_central.analysis.output
+      operationId: jaws_central.analysis.get_errors
       tags:
         - run
-      summary: Retrieve Task output
-      description: Return stdout/stderr output of all Tasks
+      summary: Retrieve error messages for a run
+      description: Return error messages and stderr for failed tasks
       parameters:
         - name: run_id
           in: path
           description: run_id of the run to retrieve
           type: integer
           required: True
-      produces:
-        - text/plain; charset=utf-8
-      responses:
-        200:
-          description: OK
-        401:
-          description: Authorization information is missing or invalid.
-        404:
-          description: The specified record does not exist
-
-  /run/{run_id}/failed:
-    get:
-      operationId: jaws_central.analysis.failed_output
-      tags:
-        - run
-      summary: Retrieve the output for failed tasks
-      description: Return stdout/stderr/submit output for failed tasks
-      parameters:
-        - name: run_id
-          in: path
-          description: run_id of the run to retrieve
-          type: integer
-          required: True
-      produces:
-        - text/plain; charset=utf-8
       responses:
         200:
           description: OK

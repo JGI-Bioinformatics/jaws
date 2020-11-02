@@ -1,13 +1,14 @@
+from deepdiff import DeepDiff
 from jaws_site import cromwell
 
-CROMWELL_IDS = [
-    "ee30d68f-39d4-4fde-85c2-afdecce2bad3",  # simple workflow without subworkflow
-    "8595abd1-30c4-40e1-8de8-169e3df0209e",  # main workflow
-    "ac7e42c1-456c-419f-a1e6-9e764bfc4af3",  # subworkflow of above
-]
+WORKFLOW_ID_EX1 = "ee30d68f-39d4-4fde-85c2-afdecce2bad3"  # simple successful run
+WORKFLOW_ID_EX2_MAIN = "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"  # successful run, with subworkflows
+WORKFLOW_ID_EX2_SUB1 = "7408a4f1-bc85-49ba-8d5f-c886261ab6a0"
+WORKFLOW_ID_EX2_SUB2 = "89d86efc-dd04-48aa-a65f-21fb9d0c8be3"
+WORKFLOW_ID_EX3 = "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"  # simple failed run
 
 METADATA = {
-    "ee30d68f-39d4-4fde-85c2-afdecce2bad3": {
+    "ee30d68f-39d4-4fde-85c2-afdecce2bad3": {  # METADATA FOR WORKFLOW_ID_EX1
         "actualWorkflowLanguage": "WDL",
         "actualWorkflowLanguageVersion": "draft-2",
         "calls": {
@@ -18,46 +19,46 @@ METADATA = {
                     "backendStatus": "Done",
                     "callCaching": {
                         "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff"
+                        "effectiveCallCachingMode": "CallCachingOff",
                     },
                     "callRoot": "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs",  # noqa
-                    "commandLine": "wc -l /global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/inputs/-230500445/tiny.fastq | perl -ne 'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, \" sequences\\n\"} else {print STDERR \"Invalid Fastq file\\n\"}' > num_seqs.txt",  # noqa
+                    "commandLine": 'wc -l /global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/inputs/-230500445/tiny.fastq | perl -ne \'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, " sequences\\n"} else {print STDERR "Invalid Fastq file\\n"}\' > num_seqs.txt',  # noqa
                     "end": "2020-06-10T03:43:54.794Z",
                     "executionEvents": [
                         {
                             "description": "RunningJob",
                             "endTime": "2020-06-10T03:43:54.673Z",
-                            "startTime": "2020-06-10T03:38:19.896Z"
+                            "startTime": "2020-06-10T03:38:19.896Z",
                         },
                         {
                             "description": "PreparingJob",
                             "endTime": "2020-06-10T03:38:19.896Z",
-                            "startTime": "2020-06-10T03:38:19.887Z"
+                            "startTime": "2020-06-10T03:38:19.887Z",
                         },
                         {
                             "description": "WaitingForValueStore",
                             "endTime": "2020-06-10T03:38:19.887Z",
-                            "startTime": "2020-06-10T03:38:19.887Z"
+                            "startTime": "2020-06-10T03:38:19.887Z",
                         },
                         {
                             "description": "RequestingExecutionToken",
                             "endTime": "2020-06-10T03:38:19.887Z",
-                            "startTime": "2020-06-10T03:38:19.089Z"
+                            "startTime": "2020-06-10T03:38:19.089Z",
                         },
                         {
                             "description": "UpdatingJobStore",
                             "endTime": "2020-06-10T03:43:54.794Z",
-                            "startTime": "2020-06-10T03:43:54.673Z"
+                            "startTime": "2020-06-10T03:43:54.673Z",
                         },
                         {
                             "description": "Pending",
                             "endTime": "2020-06-10T03:38:19.089Z",
-                            "startTime": "2020-06-10T03:38:19.089Z"
-                        }
+                            "startTime": "2020-06-10T03:38:19.089Z",
+                        },
                     ],
                     "executionStatus": "Done",
                     "inputs": {
-                        "infile": "/global/cscratch1/sd/jaws/test/staging/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
+                        "infile": "/global/cscratch1/sd/jaws/test/uploads/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
                     },
                     "jobId": "30",
                     "outputs": {
@@ -78,19 +79,19 @@ METADATA = {
                         "poolname": "test_small",
                         "qos": "genepool_special",
                         "shared": "0",
-                        "time": "00:10:00"
+                        "time": "00:10:00",
                     },
                     "shardIndex": -1,
                     "start": "2020-06-10T03:38:19.088Z",
                     "stderr": "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stderr",  # noqa
-                    "stdout": "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stdout"  # noqa
+                    "stdout": "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stdout",  # noqa
                 }
             ]
         },
         "end": "2020-06-10T03:43:56.709Z",
         "id": "ee30d68f-39d4-4fde-85c2-afdecce2bad3",
         "inputs": {
-            "fq_count.fastq_file": "/global/cscratch1/sd/jaws/test/staging/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
+            "fq_count.fastq_file": "/global/cscratch1/sd/jaws/test/uploads/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
         },
         "labels": {
             "cromwell-workflow-id": "cromwell-ee30d68f-39d4-4fde-85c2-afdecce2bad3"
@@ -102,12 +103,12 @@ METADATA = {
         "status": "Succeeded",
         "submission": "2020-06-10T03:38:16.572Z",
         "submittedFiles": {
-            "inputs": "{\"fq_count.fastq_file\":\"/global/cscratch1/sd/jaws/test/staging/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq\"}",  # noqa
+            "inputs": '{"fq_count.fastq_file":"/global/cscratch1/sd/jaws/test/uploads/ekirton/NERSC/global/cfs/projectdirs/jaws/test/tiny.fastq"}',  # noqa
             "labels": "{}",
             "options": "{\n\n}",
             "root": "",
-            "workflow": "workflow fq_count {\n    File fastq_file\n    call count_seqs { input: infile = fastq_file }\n    output {\n        File outfile = count_seqs.outfile\n    }\n}\n\ntask count_seqs {\n    File infile\n    command <<<\n        wc -l ${infile} | perl -ne 'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, \" sequences\\n\"} else {print STDERR \"Invalid Fastq file\\n\"}' > num_seqs.txt\n    >>>\n    output {\n        File outfile = \"num_seqs.txt\"\n    }\n    runtime {\n        poolname: \"test_small\"\n        node: 1\n        nwpn: 1\n        mem: \"10G\"\n        time: \"00:10:00\"\n        shared: 0\n    }\n}\n",  # noqa
-            "workflowUrl": ""
+            "workflow": 'workflow fq_count {\n    File fastq_file\n    call count_seqs { input: infile = fastq_file }\n    output {\n        File outfile = count_seqs.outfile\n    }\n}\n\ntask count_seqs {\n    File infile\n    command <<<\n        wc -l ${infile} | perl -ne \'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, " sequences\\n"} else {print STDERR "Invalid Fastq file\\n"}\' > num_seqs.txt\n    >>>\n    output {\n        File outfile = "num_seqs.txt"\n    }\n    runtime {\n        poolname: "test_small"\n        node: 1\n        nwpn: 1\n        mem: "10G"\n        time: "00:10:00"\n        shared: 0\n    }\n}\n',  # noqa
+            "workflowUrl": "",
         },
         "workflowName": "fq_count",
         "workflowProcessingEvents": [
@@ -115,18 +116,18 @@ METADATA = {
                 "cromwellId": "cromid-15c5397",
                 "cromwellVersion": "47",
                 "description": "PickedUp",
-                "timestamp": "2020-06-10T03:38:16.985Z"
+                "timestamp": "2020-06-10T03:38:16.985Z",
             },
             {
                 "cromwellId": "cromid-15c5397",
                 "cromwellVersion": "47",
                 "description": "Finished",
-                "timestamp": "2020-06-10T03:43:56.709Z"
-            }
+                "timestamp": "2020-06-10T03:43:56.709Z",
+            },
         ],
-        "workflowRoot": "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3"  # noqa
+        "workflowRoot": "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3",  # noqa
     },
-    "8595abd1-30c4-40e1-8de8-169e3df0209e": {
+    "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a": {  # METADATA FOR WORKFLOW_ID_EX2_MAIN
         "actualWorkflowLanguage": "WDL",
         "actualWorkflowLanguageVersion": "draft-2",
         "calls": {
@@ -136,98 +137,73 @@ METADATA = {
                     "backend": "JTM",
                     "backendStatus": "Done",
                     "callCaching": {
-                        "allowResultReuse": True,
-                        "effectiveCallCachingMode": "ReadAndWriteCache",
-                        "hashes": {
-                            "backend name": "6D3086C75F2DB761A86B2F982F10D384",
-                            "command template": "ABFF2C1CC753BB668C97E9560BBDAF14",
-                            "input": {
-                                "String addressee": "362DC0726AA6A2A62E9F7773FD901DF1"
-                            },
-                            "input count": "C4CA4238A0B923820DCC509A6F75849B",
-                            "output count": "C4CA4238A0B923820DCC509A6F75849B",
-                            "output expression": {
-                                "String salutation": "0183144CF6617D5341681C6B2F756046"
-                            },
-                            "runtime attribute": {
-                                "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
-                                "docker": "N/A",
-                                "failOnStderr": "68934A3E9455FA72420237EB05902327",
-                            },
-                        },
-                        "hit": False,
-                        "result": "Cache Miss",
+                        "allowResultReuse": False,
+                        "effectiveCallCachingMode": "CallCachingOff"
                     },
-                    "callRoot": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-goodbye",  # noqa
-                    "commandLine": 'echo "Goodbye World!"',
-                    "end": "2020-05-13T07:41:23.854Z",
+                    "callRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-goodbye",  # noqa
+                    "commandLine": "echo \"Goodbye World!\"",
+                    "end": "2020-09-10T23:07:47.221Z",
                     "executionEvents": [
                         {
+                            "description": "UpdatingJobStore",
+                            "endTime": "2020-09-10T23:07:47.221Z",
+                            "startTime": "2020-09-10T23:07:46.572Z"
+                        },
+                        {
                             "description": "PreparingJob",
-                            "endTime": "2020-05-13T07:38:39.676Z",
-                            "startTime": "2020-05-13T07:38:39.667Z",
+                            "endTime": "2020-09-10T23:07:36.343Z",
+                            "startTime": "2020-09-10T23:07:36.332Z"
                         },
                         {
                             "description": "RequestingExecutionToken",
-                            "endTime": "2020-05-13T07:38:39.666Z",
-                            "startTime": "2020-05-13T07:38:38.717Z",
-                        },
-                        {
-                            "description": "UpdatingCallCache",
-                            "endTime": "2020-05-13T07:41:22.974Z",
-                            "startTime": "2020-05-13T07:41:22.461Z",
-                        },
-                        {
-                            "description": "WaitingForValueStore",
-                            "endTime": "2020-05-13T07:38:39.667Z",
-                            "startTime": "2020-05-13T07:38:39.666Z",
-                        },
-                        {
-                            "description": "CallCacheReading",
-                            "endTime": "2020-05-13T07:38:39.736Z",
-                            "startTime": "2020-05-13T07:38:39.676Z",
-                        },
-                        {
-                            "description": "RunningJob",
-                            "endTime": "2020-05-13T07:41:22.461Z",
-                            "startTime": "2020-05-13T07:38:39.736Z",
-                        },
-                        {
-                            "description": "UpdatingJobStore",
-                            "endTime": "2020-05-13T07:41:23.854Z",
-                            "startTime": "2020-05-13T07:41:22.974Z",
+                            "endTime": "2020-09-10T23:07:36.331Z",
+                            "startTime": "2020-09-10T23:07:35.804Z"
                         },
                         {
                             "description": "Pending",
-                            "endTime": "2020-05-13T07:38:38.717Z",
-                            "startTime": "2020-05-13T07:38:38.716Z",
+                            "endTime": "2020-09-10T23:07:35.804Z",
+                            "startTime": "2020-09-10T23:07:35.803Z"
                         },
+                        {
+                            "description": "WaitingForValueStore",
+                            "endTime": "2020-09-10T23:07:36.332Z",
+                            "startTime": "2020-09-10T23:07:36.331Z"
+                        },
+                        {
+                            "description": "RunningJob",
+                            "endTime": "2020-09-10T23:07:46.572Z",
+                            "startTime": "2020-09-10T23:07:36.343Z"
+                        }
                     ],
                     "executionStatus": "Done",
-                    "inputs": {"addressee": "World"},
-                    "jobId": "2597",
-                    "outputs": {"salutation": "Goodbye World!"},
+                    "inputs": {
+                        "addressee": "World"
+                    },
+                    "jobId": "5480",
+                    "outputs": {
+                        "salutation": "Goodbye World!"
+                    },
                     "returnCode": 0,
                     "runtimeAttributes": {
-                        "account": "fungalp",
-                        "cluster": "cori",
-                        "constraint": "haswell",
+                        "account": "lr_jgicloud",
+                        "cluster": "jgi",
+                        "constraint": "",
                         "continueOnReturnCode": "0",
                         "cpu": "1",
-                        "failOnStderr": "False",
+                        "failOnStderr": "false",
                         "maxRetries": "0",
                         "mem": "10G",
                         "node": "1",
                         "nwpn": "1",
                         "poolname": "test_small",
-                        "qos": "genepool_special",
+                        "qos": "condo_jgicloud",
                         "shared": "0",
-                        "time": "00:10:00",
+                        "time": "00:10:00"
                     },
                     "shardIndex": -1,
-                    "start": "2020-05-13T07:38:38.716Z",
-                    "stderr": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-goodbye/execution/stderr",  # noqa
-                    "stdout": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-goodbye/execution/stdout",  # noqa
+                    "start": "2020-09-10T23:07:35.803Z",
+                    "stderr": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-goodbye/execution/stderr",  # noqa
+                    "stdout": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-goodbye/execution/stdout"  # noqa
                 }
             ],
             "main_workflow.hello": [
@@ -236,177 +212,197 @@ METADATA = {
                     "backend": "JTM",
                     "backendStatus": "Done",
                     "callCaching": {
-                        "allowResultReuse": True,
-                        "effectiveCallCachingMode": "ReadAndWriteCache",
-                        "hashes": {
-                            "backend name": "6D3086C75F2DB761A86B2F982F10D384",
-                            "command template": "4EAADE3CD5D558C5A6CFA4FD101A1486",
-                            "input": {
-                                "String addressee": "362DC0726AA6A2A62E9F7773FD901DF1"
-                            },
-                            "input count": "C4CA4238A0B923820DCC509A6F75849B",
-                            "output count": "C4CA4238A0B923820DCC509A6F75849B",
-                            "output expression": {
-                                "String salutation": "0183144CF6617D5341681C6B2F756046"
-                            },
-                            "runtime attribute": {
-                                "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
-                                "docker": "N/A",
-                                "failOnStderr": "68934A3E9455FA72420237EB05902327",
-                            },
-                        },
-                        "hit": False,
-                        "result": "Cache Miss",
+                        "allowResultReuse": False,
+                        "effectiveCallCachingMode": "CallCachingOff"
                     },
-                    "callRoot": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-hello",  # noqa
-                    "commandLine": 'echo "Hello World!"',
-                    "end": "2020-05-13T07:41:08.853Z",
+                    "callRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello",  # noqa
+                    "commandLine": "echo \"Hello World!\"",
+                    "end": "2020-09-10T23:07:52.226Z",
                     "executionEvents": [
                         {
-                            "description": "Pending",
-                            "endTime": "2020-05-13T07:38:38.716Z",
-                            "startTime": "2020-05-13T07:38:38.716Z",
-                        },
-                        {
-                            "description": "CallCacheReading",
-                            "endTime": "2020-05-13T07:38:39.707Z",
-                            "startTime": "2020-05-13T07:38:39.702Z",
-                        },
-                        {
-                            "description": "UpdatingJobStore",
-                            "endTime": "2020-05-13T07:41:08.853Z",
-                            "startTime": "2020-05-13T07:41:07.967Z",
-                        },
-                        {
-                            "description": "RunningJob",
-                            "endTime": "2020-05-13T07:41:06.281Z",
-                            "startTime": "2020-05-13T07:38:39.707Z",
-                        },
-                        {
-                            "description": "UpdatingCallCache",
-                            "endTime": "2020-05-13T07:41:07.967Z",
-                            "startTime": "2020-05-13T07:41:06.281Z",
-                        },
-                        {
                             "description": "RequestingExecutionToken",
-                            "endTime": "2020-05-13T07:38:39.666Z",
-                            "startTime": "2020-05-13T07:38:38.716Z",
+                            "endTime": "2020-09-10T23:07:37.330Z",
+                            "startTime": "2020-09-10T23:07:35.805Z"
                         },
                         {
                             "description": "WaitingForValueStore",
-                            "endTime": "2020-05-13T07:38:39.667Z",
-                            "startTime": "2020-05-13T07:38:39.666Z",
+                            "endTime": "2020-09-10T23:07:37.330Z",
+                            "startTime": "2020-09-10T23:07:37.330Z"
+                        },
+                        {
+                            "description": "UpdatingJobStore",
+                            "endTime": "2020-09-10T23:07:52.224Z",
+                            "startTime": "2020-09-10T23:07:51.893Z"
+                        },
+                        {
+                            "description": "Pending",
+                            "endTime": "2020-09-10T23:07:35.805Z",
+                            "startTime": "2020-09-10T23:07:35.804Z"
                         },
                         {
                             "description": "PreparingJob",
-                            "endTime": "2020-05-13T07:38:39.702Z",
-                            "startTime": "2020-05-13T07:38:39.667Z",
+                            "endTime": "2020-09-10T23:07:37.337Z",
+                            "startTime": "2020-09-10T23:07:37.330Z"
                         },
+                        {
+                            "description": "RunningJob",
+                            "endTime": "2020-09-10T23:07:51.893Z",
+                            "startTime": "2020-09-10T23:07:37.337Z"
+                        }
                     ],
                     "executionStatus": "Done",
-                    "inputs": {"addressee": "World"},
-                    "jobId": "2596",
-                    "outputs": {"salutation": "Hello World!"},
+                    "inputs": {
+                        "addressee": "World"
+                    },
+                    "jobId": "5481",
+                    "outputs": {
+                        "salutation": "Hello World!"
+                    },
                     "returnCode": 0,
                     "runtimeAttributes": {
-                        "account": "fungalp",
-                        "cluster": "cori",
-                        "constraint": "haswell",
+                        "account": "lr_jgicloud",
+                        "cluster": "jgi",
+                        "constraint": "",
                         "continueOnReturnCode": "0",
                         "cpu": "1",
-                        "failOnStderr": "False",
+                        "failOnStderr": "false",
                         "maxRetries": "0",
                         "mem": "10G",
                         "node": "1",
                         "nwpn": "1",
                         "poolname": "test_small",
-                        "qos": "genepool_special",
+                        "qos": "condo_jgicloud",
                         "shared": "0",
-                        "time": "00:10:00",
+                        "time": "00:10:00"
                     },
                     "shardIndex": -1,
-                    "start": "2020-05-13T07:38:38.716Z",
-                    "stderr": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-hello/execution/stderr",  # noqa
-                    "stdout": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-hello/execution/stdout",  # noqa
+                    "start": "2020-09-10T23:07:35.804Z",
+                    "stderr": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello/execution/stderr",  # noqa
+                    "stdout": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello/execution/stdout"  # noqa
                 }
             ],
-            "main_workflow.hello_and_goodbye": [
+            "main_workflow.hello_and_goodbye_1": [
                 {
                     "attempt": 1,
-                    "end": "2020-05-13T07:53:52.742Z",
+                    "end": "2020-09-10T23:08:12.521Z",
                     "executionEvents": [
                         {
-                            "description": "WaitingForValueStore",
-                            "endTime": "2020-05-13T07:38:38.739Z",
-                            "startTime": "2020-05-13T07:38:38.735Z",
+                            "description": "SubWorkflowPreparingState",
+                            "endTime": "2020-09-10T23:07:35.807Z",
+                            "startTime": "2020-09-10T23:07:35.805Z"
                         },
                         {
-                            "description": "SubWorkflowPendingState",
-                            "endTime": "2020-05-13T07:38:38.735Z",
-                            "startTime": "2020-05-13T07:38:38.718Z",
+                            "description": "WaitingForValueStore",
+                            "endTime": "2020-09-10T23:07:35.805Z",
+                            "startTime": "2020-09-10T23:07:35.804Z"
                         },
                         {
                             "description": "SubWorkflowRunningState",
-                            "endTime": "2020-05-13T07:53:52.738Z",
-                            "startTime": "2020-05-13T07:38:38.755Z",
+                            "endTime": "2020-09-10T23:08:12.521Z",
+                            "startTime": "2020-09-10T23:07:35.807Z"
                         },
                         {
-                            "description": "SubWorkflowPreparingState",
-                            "endTime": "2020-05-13T07:38:38.755Z",
-                            "startTime": "2020-05-13T07:38:38.739Z",
-                        },
+                            "description": "SubWorkflowPendingState",
+                            "endTime": "2020-09-10T23:07:35.804Z",
+                            "startTime": "2020-09-10T23:07:35.804Z"
+                        }
                     ],
                     "executionStatus": "Done",
-                    "inputs": {"hello_and_goodbye_input": "sub world"},
+                    "inputs": {
+                        "hello_and_goodbye_input": "cruel world"
+                    },
                     "outputs": {
-                        "goodbye_output": "Goodbye sub world!",
-                        "hello_output": "Hello sub world!",
+                        "goodbye_output": "Goodbye cruel world!",
+                        "hello_output": "Hello cruel world!"
                     },
                     "shardIndex": -1,
-                    "start": "2020-05-13T07:38:38.715Z",
-                    "subWorkflowId": "ac7e42c1-456c-419f-a1e6-9e764bfc4af3",
+                    "start": "2020-09-10T23:07:35.804Z",
+                    "subWorkflowId": "7408a4f1-bc85-49ba-8d5f-c886261ab6a0"
                 }
             ],
+            "main_workflow.hello_and_goodbye_2": [
+                {
+                    "attempt": 1,
+                    "end": "2020-09-10T23:08:17.620Z",
+                    "executionEvents": [
+                        {
+                            "description": "SubWorkflowPreparingState",
+                            "endTime": "2020-09-10T23:07:35.808Z",
+                            "startTime": "2020-09-10T23:07:35.805Z"
+                        },
+                        {
+                            "description": "SubWorkflowPendingState",
+                            "endTime": "2020-09-10T23:07:35.804Z",
+                            "startTime": "2020-09-10T23:07:35.804Z"
+                        },
+                        {
+                            "description": "WaitingForValueStore",
+                            "endTime": "2020-09-10T23:07:35.805Z",
+                            "startTime": "2020-09-10T23:07:35.804Z"
+                        },
+                        {
+                            "description": "SubWorkflowRunningState",
+                            "endTime": "2020-09-10T23:08:17.620Z",
+                            "startTime": "2020-09-10T23:07:35.808Z"
+                        }
+                    ],
+                    "executionStatus": "Done",
+                    "inputs": {
+                        "hello_and_goodbye_input": "beautiful world"
+                    },
+                    "outputs": {
+                        "goodbye_output": "Goodbye beautiful world!",
+                        "hello_output": "Hello beautiful world!"
+                    },
+                    "shardIndex": -1,
+                    "start": "2020-09-10T23:07:35.804Z",
+                    "subWorkflowId": "89d86efc-dd04-48aa-a65f-21fb9d0c8be3"
+                }
+            ]
         },
-        "end": "2020-05-13T07:53:54.785Z",
-        "id": "8595abd1-30c4-40e1-8de8-169e3df0209e",
+        "end": "2020-09-10T23:08:19.665Z",
+        "id": "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a",
         "inputs": {},
         "labels": {
-            "cromwell-workflow-id": "cromwell-8595abd1-30c4-40e1-8de8-169e3df0209e"
+            "cromwell-workflow-id": "cromwell-74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"
         },
-        "outputs": {"main_workflow.main_output": "Hello sub world!"},
-        "start": "2020-05-13T07:38:36.463Z",
+        "metadataSource": "Unarchived",
+        "outputs": {
+            "main_workflow.main_output_1": "Hello cruel world!",
+            "main_workflow.main_output_2": "Hello beautiful world!"
+        },
+        "start": "2020-09-10T23:07:33.678Z",
         "status": "Succeeded",
-        "submission": "2020-05-13T07:38:36.363Z",
+        "submission": "2020-09-10T23:07:33.637Z",
         "submittedFiles": {
             "imports": {
-                "sub_wdl.wdl": 'task hello {\n  String addressee\n  command {\n    echo "Hello ${addressee}!"\n  }\n  runtime {\n      poolname: "test_small"\n      node: 1\n      nwpn: 1\n      mem: "10G"\n      time: "00:10:00"\n      shared: 0\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\ntask goodbye {\n  String addressee\n  command {\n    echo "Goodbye ${addressee}!"\n  }\n  runtime {\n      poolname: "test_small"\n      node: 1\n      nwpn: 1\n      mem: "10G"\n      time: "00:10:00"\n      shared: 0\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\nworkflow hello_and_goodbye {\n  String hello_and_goodbye_input\n\n  call hello {input: addressee = hello_and_goodbye_input }\n  call goodbye {input: addressee = hello_and_goodbye_input }\n\n  output {\n    String hello_output = hello.salutation\n    String goodbye_output = goodbye.salutation\n  }\n}\n'  # noqa
+                "sub_wdl.wdl": "task hello {\n  String addressee\n  command {\n    echo \"Hello ${addressee}!\"\n  }\n  runtime {\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      mem: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\ntask goodbye {\n  String addressee\n  command {\n    echo \"Goodbye ${addressee}!\"\n  }\n  runtime {\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      mem: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\nworkflow hello_and_goodbye {\n  String hello_and_goodbye_input\n\n  call hello {input: addressee = hello_and_goodbye_input }\n  call goodbye {input: addressee = hello_and_goodbye_input }\n\n  output {\n    String hello_output = hello.salutation\n    String goodbye_output = goodbye.salutation\n  }\n}\n"  # noqa
             },
             "inputs": "{}",
             "labels": "{}",
             "options": "{\n\n}",
             "root": "",
-            "workflow": 'import "sub_wdl.wdl" as sub\n\nworkflow main_workflow {\n\n    call hello {input: addressee = "World" }\n    call goodbye {input: addressee = "World" }\n\n    call sub.hello_and_goodbye { input: hello_and_goodbye_input = "sub world" }\n\n    # call myTask { input: hello_and_goodbye.hello_output }\n\n    output {\n        String main_output = hello_and_goodbye.hello_output\n    }\n}\n\ntask hello {\n  String addressee\n  command {\n    echo "Hello ${addressee}!"\n  }\n  runtime {\n      poolname: "test_small"\n      node: 1\n      nwpn: 1\n      mem: "10G"\n      time: "00:10:00"\n      shared: 0 \n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\ntask goodbye {\n  String addressee\n  command {\n    echo "Goodbye ${addressee}!"\n  }\n  runtime {\n      poolname: "test_small"\n      node: 1\n      nwpn: 1\n      mem: "10G"\n      time: "00:10:00"\n      shared: 0\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n',  # noqa
-            "workflowUrl": "",
+            "workflow": "import \"sub_wdl.wdl\" as sub\n\nworkflow main_workflow {\n\n    call hello {input: addressee = \"World\" }\n    call goodbye {input: addressee = \"World\" }\n\n    call sub.hello_and_goodbye as hello_and_goodbye_1 { input: hello_and_goodbye_input = \"cruel world\" }\n    call sub.hello_and_goodbye as hello_and_goodbye_2 { input: hello_and_goodbye_input = \"beautiful world\" }\n\n    # call myTask { input: hello_and_goodbye.hello_output }\n\n    output {\n        String main_output_1 = hello_and_goodbye_1.hello_output\n        String main_output_2 = hello_and_goodbye_2.hello_output\n    }\n}\n\ntask hello {\n  String addressee\n  command {\n    echo \"Hello ${addressee}!\"\n  }\n  runtime {\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      mem: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\ntask goodbye {\n  String addressee\n  command {\n    echo \"Goodbye ${addressee}!\"\n  }\n  runtime {\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      mem: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n",  # noqa
+            "workflowUrl": ""
         },
         "workflowName": "main_workflow",
         "workflowProcessingEvents": [
             {
-                "cromwellId": "cromid-275519a",
-                "cromwellVersion": "47",
+                "cromwellId": "cromid-1366c4b",
+                "cromwellVersion": "52",
                 "description": "Finished",
-                "timestamp": "2020-05-13T07:53:54.785Z",
+                "timestamp": "2020-09-10T23:08:19.666Z"
             },
             {
-                "cromwellId": "cromid-275519a",
-                "cromwellVersion": "47",
+                "cromwellId": "cromid-1366c4b",
+                "cromwellVersion": "52",
                 "description": "PickedUp",
-                "timestamp": "2020-05-13T07:38:36.462Z",
-            },
+                "timestamp": "2020-09-10T23:07:33.677Z"
+            }
         ],
-        "workflowRoot": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e",  # noqa
+        "workflowRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"  # noqa
     },
-    "ac7e42c1-456c-419f-a1e6-9e764bfc4af3": {
+    "89d86efc-dd04-48aa-a65f-21fb9d0c8be3": {  # METADATA FOR WORKFLOW_ID_EX2_SUB1
         "calls": {
             "hello_and_goodbye.goodbye": [
                 {
@@ -414,98 +410,73 @@ METADATA = {
                     "backend": "JTM",
                     "backendStatus": "Done",
                     "callCaching": {
-                        "allowResultReuse": True,
-                        "effectiveCallCachingMode": "ReadAndWriteCache",
-                        "hashes": {
-                            "backend name": "6D3086C75F2DB761A86B2F982F10D384",
-                            "command template": "ABFF2C1CC753BB668C97E9560BBDAF14",
-                            "input": {
-                                "String addressee": "B3EB934782A0B263A4A7759213CB3ADA"
-                            },
-                            "input count": "C4CA4238A0B923820DCC509A6F75849B",
-                            "output count": "C4CA4238A0B923820DCC509A6F75849B",
-                            "output expression": {
-                                "String salutation": "0183144CF6617D5341681C6B2F756046"
-                            },
-                            "runtime attribute": {
-                                "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
-                                "docker": "N/A",
-                                "failOnStderr": "68934A3E9455FA72420237EB05902327",
-                            },
-                        },
-                        "hit": False,
-                        "result": "Cache Miss",
+                        "allowResultReuse": False,
+                        "effectiveCallCachingMode": "CallCachingOff"
                     },
-                    "callRoot": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-hello_and_goodbye/sub.hello_and_goodbye/ac7e42c1-456c-419f-a1e6-9e764bfc4af3/call-goodbye",  # noqa
-                    "commandLine": 'echo "Goodbye sub world!"',
-                    "end": "2020-05-13T07:53:29.856Z",
+                    "callRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_2/sub.hello_and_goodbye/89d86efc-dd04-48aa-a65f-21fb9d0c8be3/call-goodbye",  # noqa
+                    "commandLine": "echo \"Goodbye beautiful world!\"",
+                    "end": "2020-09-10T23:08:12.221Z",
                     "executionEvents": [
                         {
-                            "description": "Pending",
-                            "endTime": "2020-05-13T07:38:40.789Z",
-                            "startTime": "2020-05-13T07:38:40.786Z",
-                        },
-                        {
-                            "description": "CallCacheReading",
-                            "endTime": "2020-05-13T07:38:41.886Z",
-                            "startTime": "2020-05-13T07:38:41.881Z",
+                            "description": "RunningJob",
+                            "endTime": "2020-09-10T23:08:11.345Z",
+                            "startTime": "2020-09-10T23:07:39.339Z"
                         },
                         {
                             "description": "PreparingJob",
-                            "endTime": "2020-05-13T07:38:41.881Z",
-                            "startTime": "2020-05-13T07:38:41.666Z",
-                        },
-                        {
-                            "description": "UpdatingCallCache",
-                            "endTime": "2020-05-13T07:53:28.969Z",
-                            "startTime": "2020-05-13T07:53:27.787Z",
-                        },
-                        {
-                            "description": "WaitingForValueStore",
-                            "endTime": "2020-05-13T07:38:41.666Z",
-                            "startTime": "2020-05-13T07:38:41.666Z",
+                            "endTime": "2020-09-10T23:07:39.339Z",
+                            "startTime": "2020-09-10T23:07:39.330Z"
                         },
                         {
                             "description": "UpdatingJobStore",
-                            "endTime": "2020-05-13T07:53:29.856Z",
-                            "startTime": "2020-05-13T07:53:28.969Z",
+                            "endTime": "2020-09-10T23:08:12.221Z",
+                            "startTime": "2020-09-10T23:08:11.345Z"
                         },
                         {
                             "description": "RequestingExecutionToken",
-                            "endTime": "2020-05-13T07:38:41.666Z",
-                            "startTime": "2020-05-13T07:38:40.789Z",
+                            "endTime": "2020-09-10T23:07:39.330Z",
+                            "startTime": "2020-09-10T23:07:37.841Z"
                         },
                         {
-                            "description": "RunningJob",
-                            "endTime": "2020-05-13T07:53:27.787Z",
-                            "startTime": "2020-05-13T07:38:41.886Z",
+                            "description": "WaitingForValueStore",
+                            "endTime": "2020-09-10T23:07:39.330Z",
+                            "startTime": "2020-09-10T23:07:39.330Z"
                         },
+                        {
+                            "description": "Pending",
+                            "endTime": "2020-09-10T23:07:37.841Z",
+                            "startTime": "2020-09-10T23:07:37.840Z"
+                        }
                     ],
                     "executionStatus": "Done",
-                    "inputs": {"addressee": "sub world"},
-                    "jobId": "2598",
-                    "outputs": {"salutation": "Goodbye sub world!"},
+                    "inputs": {
+                        "addressee": "beautiful world"
+                    },
+                    "jobId": "5483",
+                    "outputs": {
+                        "salutation": "Goodbye beautiful world!"
+                    },
                     "returnCode": 0,
                     "runtimeAttributes": {
-                        "account": "fungalp",
-                        "cluster": "cori",
-                        "constraint": "haswell",
+                        "account": "lr_jgicloud",
+                        "cluster": "jgi",
+                        "constraint": "",
                         "continueOnReturnCode": "0",
                         "cpu": "1",
-                        "failOnStderr": "False",
+                        "failOnStderr": "false",
                         "maxRetries": "0",
                         "mem": "10G",
                         "node": "1",
                         "nwpn": "1",
                         "poolname": "test_small",
-                        "qos": "genepool_special",
+                        "qos": "condo_jgicloud",
                         "shared": "0",
-                        "time": "00:10:00",
+                        "time": "00:10:00"
                     },
                     "shardIndex": -1,
-                    "start": "2020-05-13T07:38:40.786Z",
-                    "stderr": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-hello_and_goodbye/sub.hello_and_goodbye/ac7e42c1-456c-419f-a1e6-9e764bfc4af3/call-goodbye/execution/stderr",  # noqa
-                    "stdout": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-hello_and_goodbye/sub.hello_and_goodbye/ac7e42c1-456c-419f-a1e6-9e764bfc4af3/call-goodbye/execution/stdout",  # noqa
+                    "start": "2020-09-10T23:07:37.840Z",
+                    "stderr": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_2/sub.hello_and_goodbye/89d86efc-dd04-48aa-a65f-21fb9d0c8be3/call-goodbye/execution/stderr",  # noqa
+                    "stdout": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_2/sub.hello_and_goodbye/89d86efc-dd04-48aa-a65f-21fb9d0c8be3/call-goodbye/execution/stdout"  # noqa
                 }
             ],
             "hello_and_goodbye.hello": [
@@ -514,85 +485,328 @@ METADATA = {
                     "backend": "JTM",
                     "backendStatus": "Done",
                     "callCaching": {
-                        "allowResultReuse": True,
-                        "effectiveCallCachingMode": "ReadAndWriteCache",
-                        "hashes": {
-                            "backend name": "6D3086C75F2DB761A86B2F982F10D384",
-                            "command template": "4EAADE3CD5D558C5A6CFA4FD101A1486",
-                            "input": {
-                                "String addressee": "B3EB934782A0B263A4A7759213CB3ADA"
-                            },
-                            "input count": "C4CA4238A0B923820DCC509A6F75849B",
-                            "output count": "C4CA4238A0B923820DCC509A6F75849B",
-                            "output expression": {
-                                "String salutation": "0183144CF6617D5341681C6B2F756046"
-                            },
-                            "runtime attribute": {
-                                "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
-                                "docker": "N/A",
-                                "failOnStderr": "68934A3E9455FA72420237EB05902327",
-                            },
-                        },
-                        "hit": False,
-                        "result": "Cache Miss",
+                        "allowResultReuse": False,
+                        "effectiveCallCachingMode": "CallCachingOff"
                     },
-                    "callRoot": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-hello_and_goodbye/sub.hello_and_goodbye/ac7e42c1-456c-419f-a1e6-9e764bfc4af3/call-hello",  # noqa
-                    "commandLine": 'echo "Hello sub world!"',
-                    "end": "2020-05-13T07:53:50.861Z",
+                    "callRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_2/sub.hello_and_goodbye/89d86efc-dd04-48aa-a65f-21fb9d0c8be3/call-hello",  # noqa
+                    "commandLine": "echo \"Hello beautiful world!\"",
+                    "end": "2020-09-10T23:08:16.221Z",
                     "executionEvents": [
                         {
-                            "description": "UpdatingCallCache",
-                            "endTime": "2020-05-13T07:53:49.972Z",
-                            "startTime": "2020-05-13T07:53:48.119Z",
-                        },
-                        {
-                            "description": "CallCacheReading",
-                            "endTime": "2020-05-13T07:38:41.891Z",
-                            "startTime": "2020-05-13T07:38:41.886Z",
-                        },
-                        {
-                            "description": "PreparingJob",
-                            "endTime": "2020-05-13T07:38:41.886Z",
-                            "startTime": "2020-05-13T07:38:41.666Z",
-                        },
-                        {
-                            "description": "UpdatingJobStore",
-                            "endTime": "2020-05-13T07:53:50.861Z",
-                            "startTime": "2020-05-13T07:53:49.972Z",
+                            "description": "RequestingExecutionToken",
+                            "endTime": "2020-09-10T23:07:41.330Z",
+                            "startTime": "2020-09-10T23:07:37.842Z"
                         },
                         {
                             "description": "RunningJob",
-                            "endTime": "2020-05-13T07:53:48.119Z",
-                            "startTime": "2020-05-13T07:38:41.891Z",
-                        },
-                        {
-                            "description": "RequestingExecutionToken",
-                            "endTime": "2020-05-13T07:38:41.666Z",
-                            "startTime": "2020-05-13T07:38:40.786Z",
-                        },
-                        {
-                            "description": "Pending",
-                            "endTime": "2020-05-13T07:38:40.786Z",
-                            "startTime": "2020-05-13T07:38:40.786Z",
+                            "endTime": "2020-09-10T23:08:15.923Z",
+                            "startTime": "2020-09-10T23:07:41.338Z"
                         },
                         {
                             "description": "WaitingForValueStore",
-                            "endTime": "2020-05-13T07:38:41.666Z",
-                            "startTime": "2020-05-13T07:38:41.666Z",
+                            "endTime": "2020-09-10T23:07:41.330Z",
+                            "startTime": "2020-09-10T23:07:41.330Z"
                         },
+                        {
+                            "description": "PreparingJob",
+                            "endTime": "2020-09-10T23:07:41.338Z",
+                            "startTime": "2020-09-10T23:07:41.330Z"
+                        },
+                        {
+                            "description": "UpdatingJobStore",
+                            "endTime": "2020-09-10T23:08:16.221Z",
+                            "startTime": "2020-09-10T23:08:15.923Z"
+                        },
+                        {
+                            "description": "Pending",
+                            "endTime": "2020-09-10T23:07:37.842Z",
+                            "startTime": "2020-09-10T23:07:37.841Z"
+                        }
                     ],
                     "executionStatus": "Done",
-                    "inputs": {"addressee": "sub world"},
-                    "jobId": "2599",
-                    "outputs": {"salutation": "Hello sub world!"},
+                    "inputs": {
+                        "addressee": "beautiful world"
+                    },
+                    "jobId": "5485",
+                    "outputs": {
+                        "salutation": "Hello beautiful world!"
+                    },
                     "returnCode": 0,
+                    "runtimeAttributes": {
+                        "account": "lr_jgicloud",
+                        "cluster": "jgi",
+                        "constraint": "",
+                        "continueOnReturnCode": "0",
+                        "cpu": "1",
+                        "failOnStderr": "false",
+                        "maxRetries": "0",
+                        "mem": "10G",
+                        "node": "1",
+                        "nwpn": "1",
+                        "poolname": "test_small",
+                        "qos": "condo_jgicloud",
+                        "shared": "0",
+                        "time": "00:10:00"
+                    },
+                    "shardIndex": -1,
+                    "start": "2020-09-10T23:07:37.841Z",
+                    "stderr": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_2/sub.hello_and_goodbye/89d86efc-dd04-48aa-a65f-21fb9d0c8be3/call-hello/execution/stderr",  # noqa
+                    "stdout": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_2/sub.hello_and_goodbye/89d86efc-dd04-48aa-a65f-21fb9d0c8be3/call-hello/execution/stdout"  # noqa
+                }
+            ]
+        },
+        "end": "2020-09-10T23:08:17.620Z",
+        "id": "89d86efc-dd04-48aa-a65f-21fb9d0c8be3",
+        "inputs": {
+            "hello_and_goodbye_input": "beautiful world"
+        },
+        "metadataSource": "Unarchived",
+        "outputs": {
+            "hello_and_goodbye.goodbye_output": "Goodbye beautiful world!",
+            "hello_and_goodbye.hello_output": "Hello beautiful world!"
+        },
+        "parentWorkflowId": "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a",
+        "rootWorkflowId": "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a",
+        "start": "2020-09-10T23:07:35.805Z",
+        "status": "Succeeded",
+        "workflowName": "hello_and_goodbye_2",
+        "workflowRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"  # noqa
+    },
+    "7408a4f1-bc85-49ba-8d5f-c886261ab6a0": {  # METADATA FOR WORKFLOW_ID_EX2_SUB2
+        "calls": {
+            "hello_and_goodbye.goodbye": [
+                {
+                    "attempt": 1,
+                    "backend": "JTM",
+                    "backendStatus": "Done",
+                    "callCaching": {
+                        "allowResultReuse": False,
+                        "effectiveCallCachingMode": "CallCachingOff"
+                    },
+                    "callRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-goodbye",  # noqa
+                    "commandLine": "echo \"Goodbye cruel world!\"",
+                    "end": "2020-09-10T23:08:01.219Z",
+                    "executionEvents": [
+                        {
+                            "description": "UpdatingJobStore",
+                            "endTime": "2020-09-10T23:08:01.219Z",
+                            "startTime": "2020-09-10T23:08:01.031Z"
+                        },
+                        {
+                            "description": "RequestingExecutionToken",
+                            "endTime": "2020-09-10T23:07:38.329Z",
+                            "startTime": "2020-09-10T23:07:37.841Z"
+                        },
+                        {
+                            "description": "RunningJob",
+                            "endTime": "2020-09-10T23:08:01.031Z",
+                            "startTime": "2020-09-10T23:07:38.336Z"
+                        },
+                        {
+                            "description": "Pending",
+                            "endTime": "2020-09-10T23:07:37.841Z",
+                            "startTime": "2020-09-10T23:07:37.840Z"
+                        },
+                        {
+                            "description": "WaitingForValueStore",
+                            "endTime": "2020-09-10T23:07:38.330Z",
+                            "startTime": "2020-09-10T23:07:38.329Z"
+                        },
+                        {
+                            "description": "PreparingJob",
+                            "endTime": "2020-09-10T23:07:38.336Z",
+                            "startTime": "2020-09-10T23:07:38.330Z"
+                        }
+                    ],
+                    "executionStatus": "Done",
+                    "inputs": {
+                        "addressee": "cruel world"
+                    },
+                    "jobId": "5482",
+                    "outputs": {
+                        "salutation": "Goodbye cruel world!"
+                    },
+                    "returnCode": 0,
+                    "runtimeAttributes": {
+                        "account": "lr_jgicloud",
+                        "cluster": "jgi",
+                        "constraint": "",
+                        "continueOnReturnCode": "0",
+                        "cpu": "1",
+                        "failOnStderr": "false",
+                        "maxRetries": "0",
+                        "mem": "10G",
+                        "node": "1",
+                        "nwpn": "1",
+                        "poolname": "test_small",
+                        "qos": "condo_jgicloud",
+                        "shared": "0",
+                        "time": "00:10:00"
+                    },
+                    "shardIndex": -1,
+                    "start": "2020-09-10T23:07:37.840Z",
+                    "stderr": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-goodbye/execution/stderr",  # noqa
+                    "stdout": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-goodbye/execution/stdout"  # noqa
+                }
+            ],
+            "hello_and_goodbye.hello": [
+                {
+                    "attempt": 1,
+                    "backend": "JTM",
+                    "backendStatus": "Done",
+                    "callCaching": {
+                        "allowResultReuse": False,
+                        "effectiveCallCachingMode": "CallCachingOff"
+                    },
+                    "callRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-hello",  # noqa
+                    "commandLine": "echo \"Hello cruel world!\"",
+                    "end": "2020-09-10T23:08:11.222Z",
+                    "executionEvents": [
+                        {
+                            "description": "RunningJob",
+                            "endTime": "2020-09-10T23:08:11.040Z",
+                            "startTime": "2020-09-10T23:07:40.337Z"
+                        },
+                        {
+                            "description": "Pending",
+                            "endTime": "2020-09-10T23:07:37.842Z",
+                            "startTime": "2020-09-10T23:07:37.841Z"
+                        },
+                        {
+                            "description": "UpdatingJobStore",
+                            "endTime": "2020-09-10T23:08:11.222Z",
+                            "startTime": "2020-09-10T23:08:11.040Z"
+                        },
+                        {
+                            "description": "WaitingForValueStore",
+                            "endTime": "2020-09-10T23:07:40.330Z",
+                            "startTime": "2020-09-10T23:07:40.329Z"
+                        },
+                        {
+                            "description": "PreparingJob",
+                            "endTime": "2020-09-10T23:07:40.337Z",
+                            "startTime": "2020-09-10T23:07:40.330Z"
+                        },
+                        {
+                            "description": "RequestingExecutionToken",
+                            "endTime": "2020-09-10T23:07:40.329Z",
+                            "startTime": "2020-09-10T23:07:37.842Z"
+                        }
+                    ],
+                    "executionStatus": "Done",
+                    "inputs": {
+                        "addressee": "cruel world"
+                    },
+                    "jobId": "5484",
+                    "outputs": {
+                        "salutation": "Hello cruel world!"
+                    },
+                    "returnCode": 0,
+                    "runtimeAttributes": {
+                        "account": "lr_jgicloud",
+                        "cluster": "jgi",
+                        "constraint": "",
+                        "continueOnReturnCode": "0",
+                        "cpu": "1",
+                        "failOnStderr": "false",
+                        "maxRetries": "0",
+                        "mem": "10G",
+                        "node": "1",
+                        "nwpn": "1",
+                        "poolname": "test_small",
+                        "qos": "condo_jgicloud",
+                        "shared": "0",
+                        "time": "00:10:00"
+                    },
+                    "shardIndex": -1,
+                    "start": "2020-09-10T23:07:37.841Z",
+                    "stderr": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-hello/execution/stderr",  # noqa
+                    "stdout": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-hello/execution/stdout"  # noqa
+                }
+            ]
+        },
+        "end": "2020-09-10T23:08:12.520Z",
+        "id": "7408a4f1-bc85-49ba-8d5f-c886261ab6a0",
+        "inputs": {
+            "hello_and_goodbye_input": "cruel world"
+        },
+        "metadataSource": "Unarchived",
+        "outputs": {
+            "hello_and_goodbye.goodbye_output": "Goodbye cruel world!",
+            "hello_and_goodbye.hello_output": "Hello cruel world!"
+        },
+        "parentWorkflowId": "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a",
+        "rootWorkflowId": "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a",
+        "start": "2020-09-10T23:07:35.805Z",
+        "status": "Succeeded",
+        "workflowName": "hello_and_goodbye_1",
+        "workflowRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"  # noqa
+    },
+    "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15": {  # EX3 IS A FAILED RUN
+        "actualWorkflowLanguage": "WDL",
+        "actualWorkflowLanguageVersion": "draft-2",
+        "calls": {
+            "fq_count.count_seqs": [
+                {
+                    "attempt": 1,
+                    "backend": "JTM",
+                    "callCaching": {
+                        "allowResultReuse": False,
+                        "effectiveCallCachingMode": "CallCachingOff"
+                    },
+                    "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs",  # noqa
+                    "commandLine": "wc -l /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/inputs/-113930193/tiny.fastq | perl -ne 'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, \" sequences\\n\"} else {print STDERR \"Invalid Fastq file\\n\"}' > num_seqs.txt",  # noqa
+                    "end": "2020-09-11T22:30:34.735Z",
+                    "executionEvents": [
+                        {
+                            "description": "PreparingJob",
+                            "endTime": "2020-09-11T22:30:33.918Z",
+                            "startTime": "2020-09-11T22:30:33.853Z"
+                        },
+                        {
+                            "description": "UpdatingJobStore",
+                            "endTime": "2020-09-11T22:30:34.736Z",
+                            "startTime": "2020-09-11T22:30:34.257Z"
+                        },
+                        {
+                            "description": "Pending",
+                            "endTime": "2020-09-11T22:30:33.566Z",
+                            "startTime": "2020-09-11T22:30:33.554Z"
+                        },
+                        {
+                            "description": "RunningJob",
+                            "endTime": "2020-09-11T22:30:34.257Z",
+                            "startTime": "2020-09-11T22:30:33.918Z"
+                        },
+                        {
+                            "description": "WaitingForValueStore",
+                            "endTime": "2020-09-11T22:30:33.853Z",
+                            "startTime": "2020-09-11T22:30:33.845Z"
+                        },
+                        {
+                            "description": "RequestingExecutionToken",
+                            "endTime": "2020-09-11T22:30:33.845Z",
+                            "startTime": "2020-09-11T22:30:33.566Z"
+                        }
+                    ],
+                    "executionStatus": "Failed",
+                    "failures": [
+                        {
+                            "causedBy": [],
+                            "message": "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"  # noqa
+                        }
+                    ],
+                    "inputs": {
+                        "infile": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
+                    },
+                    "retryableFailure": False,
                     "runtimeAttributes": {
                         "account": "fungalp",
                         "cluster": "cori",
                         "constraint": "haswell",
                         "continueOnReturnCode": "0",
                         "cpu": "1",
-                        "failOnStderr": "False",
+                        "failOnStderr": "false",
                         "maxRetries": "0",
                         "mem": "10G",
                         "node": "1",
@@ -600,29 +814,64 @@ METADATA = {
                         "poolname": "test_small",
                         "qos": "genepool_special",
                         "shared": "0",
-                        "time": "00:10:00",
+                        "time": "00:10:00"
                     },
                     "shardIndex": -1,
-                    "start": "2020-05-13T07:38:40.786Z",
-                    "stderr": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-hello_and_goodbye/sub.hello_and_goodbye/ac7e42c1-456c-419f-a1e6-9e764bfc4af3/call-hello/execution/stderr",  # noqa
-                    "stdout": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e/call-hello_and_goodbye/sub.hello_and_goodbye/ac7e42c1-456c-419f-a1e6-9e764bfc4af3/call-hello/execution/stdout",  # noqa
+                    "start": "2020-09-11T22:30:33.535Z",
+                    "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr",  # noqa
+                    "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stdout"  # noqa
                 }
-            ],
+            ]
         },
-        "end": "2020-05-13T07:53:52.738Z",
-        "id": "ac7e42c1-456c-419f-a1e6-9e764bfc4af3",
-        "inputs": {"hello_and_goodbye_input": "sub world"},
-        "outputs": {
-            "hello_and_goodbye.goodbye_output": "Goodbye sub world!",
-            "hello_and_goodbye.hello_output": "Hello sub world!",
+        "end": "2020-09-11T22:30:36.619Z",
+        "failures": [
+            {
+                "causedBy": [
+                    {
+                        "causedBy": [],
+                        "message": "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"  # noqa
+                    }
+                ],
+                "message": "Workflow failed"
+            }
+        ],
+        "id": "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15",
+        "inputs": {
+            "fq_count.fastq_file": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
         },
-        "parentWorkflowId": "8595abd1-30c4-40e1-8de8-169e3df0209e",
-        "rootWorkflowId": "8595abd1-30c4-40e1-8de8-169e3df0209e",
-        "start": "2020-05-13T07:38:38.738Z",
-        "status": "Succeeded",
-        "workflowName": "hello_and_goodbye",
-        "workflowRoot": "/global/cscratch1/sd/jaws_jtm/dev/cromwell-executions/main_workflow/8595abd1-30c4-40e1-8de8-169e3df0209e",  # noqa
-    },
+        "labels": {
+            "cromwell-workflow-id": "cromwell-dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"
+        },
+        "metadataSource": "Unarchived",
+        "outputs": {},
+        "start": "2020-09-11T22:30:30.640Z",
+        "status": "Failed",
+        "submission": "2020-09-11T22:30:29.607Z",
+        "submittedFiles": {
+            "inputs": "{\"fq_count.fastq_file\":\"/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq\"}",  # noqa
+            "labels": "{}",
+            "options": "{\n\n}",
+            "root": "",
+            "workflow": "workflow fq_count {\n    File fastq_file\n    call count_seqs { input: infile = fastq_file }\n    output {\n        File outfile = count_seqs.outfile\n    }\n}\n\ntask count_seqs {\n    File infile\n    command <<<\n        wc -l ${infile} | perl -ne 'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, \" sequences\\n\"} else {print STDERR \"Invalid Fastq file\\n\"}' > num_seqs.txt\n    >>>\n    output {\n        File outfile = \"num_seqs.txt\"\n    }\n    runtime {\n        poolname: \"test_small\"\n        node: 1\n        nwpn: 1\n        mem: \"10G\"\n        time: \"00:10:00\"\n    }\n}\n",  # noqa
+            "workflowUrl": ""
+        },
+        "workflowName": "fq_count",
+        "workflowProcessingEvents": [
+            {
+                "cromwellId": "cromid-41fef60",
+                "cromwellVersion": "52",
+                "description": "PickedUp",
+                "timestamp": "2020-09-11T22:30:30.605Z"
+            },
+            {
+                "cromwellId": "cromid-41fef60",
+                "cromwellVersion": "52",
+                "description": "Finished",
+                "timestamp": "2020-09-11T22:30:36.620Z"
+            }
+        ],
+        "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"  # noqa
+    }
 }
 
 
@@ -630,8 +879,53 @@ def test_metadata():
     c = cromwell.Cromwell("localhost:8000")
     m = c.get_metadata(
         "ee30d68f-39d4-4fde-85c2-afdecce2bad3",
-        METADATA["ee30d68f-39d4-4fde-85c2-afdecce2bad3"]
+        METADATA["ee30d68f-39d4-4fde-85c2-afdecce2bad3"],
     )
     expectedWorkflowRoot = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3"  # noqa
     workflowRoot = m.get("workflowRoot")
     assert workflowRoot == expectedWorkflowRoot
+
+
+def test_task():
+    EXAMPLE_TASK_NAME = "fq_count.count_seqs"
+    EXAMPLE_CALLS = METADATA[WORKFLOW_ID_EX1]["calls"][EXAMPLE_TASK_NAME]
+    task = cromwell.Task("localhost:8000", EXAMPLE_TASK_NAME, EXAMPLE_CALLS, METADATA)
+    assert task.name == EXAMPLE_TASK_NAME
+    assert task.is_subworkflow() is False
+    assert 30 in task.jobs
+    assert task.jobs[30]["attempt"] == 1
+    assert task.get("callRoot", 1) == "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs"  # noqa
+
+
+def test_task_subworkflow():
+    EXAMPLE_TASK_NAME = "main_workflow.hello_and_goodbye_1"  # this task is a subworkflow
+    EXAMPLE_CALLS = METADATA[WORKFLOW_ID_EX2_MAIN]["calls"][EXAMPLE_TASK_NAME]
+    task = cromwell.Task("localhost:8000", EXAMPLE_TASK_NAME, EXAMPLE_CALLS, METADATA)
+    SUBWORKFLOW_JOB_IDS = (5482, 5484)
+    for job_id in SUBWORKFLOW_JOB_IDS:
+        assert job_id in task.jobs
+
+
+def test_get_all_metadata():
+    """Given the uuid of a workflow with a subworkflow, we expect a dict with { uuid => metadata }"""
+    c = cromwell.Cromwell("localhost:8000")
+    result = c.get_all_metadata(WORKFLOW_ID_EX2_MAIN, METADATA)
+    assert bool(DeepDiff(result[WORKFLOW_ID_EX2_MAIN], METADATA[WORKFLOW_ID_EX2_MAIN], ignore_order=True)) is False
+    assert bool(DeepDiff(result[WORKFLOW_ID_EX2_SUB1], METADATA[WORKFLOW_ID_EX2_SUB1], ignore_order=True)) is False
+    assert bool(DeepDiff(result[WORKFLOW_ID_EX2_SUB2], METADATA[WORKFLOW_ID_EX2_SUB2], ignore_order=True)) is False
+
+
+def test_get_errors():
+    """Given workflow UUID, extract errors."""
+    crom = cromwell.Cromwell("localhost:8000")
+    metadata = crom.get_metadata(WORKFLOW_ID_EX3, METADATA[WORKFLOW_ID_EX3])
+    status = metadata.execution_status()
+    errors = metadata.errors()
+    assert status["fq_count.count_seqs"] == "Failed"
+    assert errors["fq_count.count_seqs"] == "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"  # noqa
+
+    # test for no errors
+    metadata = crom.get_metadata(WORKFLOW_ID_EX1, METADATA[WORKFLOW_ID_EX1])
+    status = metadata.execution_status()
+    errors = metadata.errors()
+    assert errors == {}

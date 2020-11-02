@@ -27,6 +27,22 @@ def status() -> dict:
     return result, 200
 
 
+def info() -> dict:
+    """Return basic information about JAWS deployment, such as version.
+    :return: JAWS info, etc.
+    :rtype: dict
+    """
+    name = config.conf.get("JAWS", "name")
+    version = config.conf.get("JAWS", "version")
+    docs_url = config.conf.get("JAWS", "docs_url")
+    result = {
+        "name": name,
+        "version": version,
+        "docs_url": docs_url
+    }
+    return result, 200
+
+
 def _rmq_server_status(params):
     """Check RMQ server status.
 

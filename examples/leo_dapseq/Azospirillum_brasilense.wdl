@@ -158,16 +158,16 @@ task trimAlign {
     Int memory_gb = 7
     
     runtime {
+		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "10:00:00"
+        time: "01:20:00"
         mem: "115G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 12
     }
     command {
 		bt2index_list_path=${bt2index_list[0]}
-        bt2index_list_path=$(readlink $bt2index_list_path)
         echo "bt2index_list_path: $bt2index_list_path"
 
         bt2index_dir=$(dirname $bt2index_list_path)
@@ -179,7 +179,7 @@ task trimAlign {
         bt2index=$bt2index_dir/$bt2index_name
         echo "bt2index: $bt2index"
 
-        shifter --image=leobaumgart/dap_py3:2.8 trim_align.sh \
+        trim_align.sh \
         -i ${raw_fastq} \
         -n ${basename} \
         -a ${adapters} \
@@ -206,15 +206,16 @@ task mergeBams {
     Array[File] bams
 
     runtime {
+		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "10:00:00"
+        time: "01:20:00"
         mem: "115G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 12
     }
     command {
-        shifter --image=leobaumgart/dap_py3:2.8 /bin/bash -c \
+        /bin/bash -c \
         " \
         samtools merge \
         merged.bam \
@@ -241,15 +242,16 @@ task findPeaks {
     Int min_foldch = 5
 
     runtime {
+		docker: "jfroula/dap_py:2"
         shared: 0
-        time: "10:00:00"
+        time: "01:20:00"
         mem: "115G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 12
     }
     command {
-        shifter --image=leobaumgart/dap_py2:2.7 find_peaks.sh \
+        find_peaks.sh \
         -i ${expt_bam} \
         ${"-c " + ctl_bam} \
         -n ${basename} \
@@ -276,15 +278,16 @@ task motifInputs {
     File genome_fasta
 
     runtime {
+		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "10:00:00"
+        time: "01:20:00"
         mem: "115G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 12
     }
     command {
-        shifter --image=leobaumgart/dap_py3:2.8 /bin/bash -c \
+        /bin/bash -c \
         " \
         narrowPeak_to_fasta.py \
         -narrowPeak ${peaks_narrow} \
@@ -319,15 +322,16 @@ task findMotifs {
     String basename
 
     runtime {
+		docker: "jfroula/dap_py:2"
         shared: 0
-        time: "10:00:00"
+        time: "01:20:00"
         mem: "115G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 12
     }
     command {
-        shifter --image=leobaumgart/dap_py2:2.7 /global/projectb/scratch/leo/dap_analysis/scripts/find_motifs.sh \
+        /global/projectb/scratch/leo/dap_analysis/scripts/find_motifs.sh \
         -s ${summit_seqs} \
         -p ${peak_seqs} \
         -b ${bgmodel} \
@@ -351,15 +355,16 @@ task assignGenes {
     File genes_gff
 
     runtime {
+		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "10:00:00"
+        time: "01:20:00"
         mem: "115G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 12
     }
     command {
-        shifter --image=leobaumgart/dap_py3:2.8 assign_genes.sh \
+        assign_genes.sh \
         -p ${peaks_narrow} \
         -t ${trim} \
         -n ${basename} \
@@ -382,15 +387,16 @@ task dapStats {
     String amplified
 
     runtime {
+		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "10:00:00"
+        time: "01:20:00"
         mem: "115G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 12
     }
     command {
-        shifter --image=leobaumgart/dap_py3:2.8 dap_stats.sh \
+        dap_stats.sh \
         -i ${expt_bam} \
         -j ${peaks_narrow} \
         -n ${basename} \
@@ -430,11 +436,11 @@ task copyOutput {
 
     runtime {
         shared: 0
-        time: "10:00:00"
+        time: "01:20:00"
         mem: "115G"
         poolname: "dapseq_leo"
         node: 2
-        nwpn: 16
+        nwpn: 12
     }
     command {
         mkdir -p ${destination} \

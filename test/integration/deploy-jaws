@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+set -e
+
+echo "BEGIN deploy-jaws"
+
+source ./test/integration/define-env
+
+## VERIFY REQUIRED VARS ARE DEFINED
+# If any env are undefined, try sourcing the setup script and check again.
+# Exits if any required var is undefined.
+REQUIRED_VARS="
+SUPERVISOR_DIR
+DEPLOYMENT_NAME
+"
+RESULT=0
+for VAR in $REQUIRED_VARS; do
+  if [ -z ${!VAR+xxx} ]; then
+    echo "Missing env var, $VAR; sourcing setup script..."
+    source ./test/integration/define-env
+    RESULT=1
+    break
+  fi
+done
+if [[ $RESULT -ne 0 ]]; then
+  RESULT=0
+  for VAR in $REQUIRED_VARS; do
+    if [ -z ${!VAR+xxx} ]; then
+      echo "Missing env var: $VAR">&2
+      RESULT=1
+    fi
+  done
+fi
+[ $RESULT -eq 0 ] || exit 1
+
+
+# stop services
+test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
+test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf stop jaws-$DEPLOYMENT_NAME:*
+
+# install services
+./test/integration/generate-venvs
+./test/integration/generate-configs
+./test/integration/generate-shims
+./test/integration/deploy-cromwell
+[[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && ./test/integration/deploy-client
+./test/integration/deploy-supervisord
+
+## start services
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:*
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf reread
+$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf start jaws-$DEPLOYMENT_NAME:*
+# the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
+# the gitlab-runner. no fix could by found is why that copy now happens in the jtm-worker-deploy shim created by generate-shims. this is a hack.
+#cp -a $INSTALL_DIR/configs/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf && chgrp $JTM_GROUP && chmod 640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
+
+echo "END deploy-jaws"

@@ -1,9 +1,8 @@
-#################
-Current Workflows 
-#################
+#####################
+Current JGI Workflows 
+#####################
 
-.. warning::
-	The links only point to the workflow's README but in the future should point to a pipeline's status 
+The official catalog of JGI workflows is located in the `JGI WDL Catalog <https://code.jgi.doe.gov/advanced-analysis/jgi-wdl-catalog>`_.  The README.md should help you find the repositories of the below completed workflows.
 
 ------------------------------------------
 
@@ -14,12 +13,13 @@ Completed Workflows
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
 |Workflow                                                                                           |Group (owning Workflow)  |Lead Developer  |
 +===================================================================================================+=========================+================+
-|`Metagenome annotation (KBase) <https://gitlab.com/jfroula/jaws-metagenome-annotation>`_           |JGI-KBase                |Jeff Froula     |
+|Metagenome annotation (KBase)                                                                      |JGI-KBase                |Jeff Froula     |
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|`Metagenome assembly <https://gitlab.com/jfroula/jgi_meta_assem>`_                                 |Assembly                 |Brian Foster    |
+|Metagenome assembly                                                                                |Assembly                 |Brian Foster    |
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|`DAP-Seq, prokaryote <https://gitlab.com/jfroula/leo_dap>`_                                        |Sequencing Technologies  |Leo Baumgart    |
+|DAP-Seq, prokaryote                                                                                |Sequencing Technologies  |Leo Baumgart    |
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
+
 
 ========================
 In Development Workflows
@@ -28,12 +28,13 @@ In Development Workflows
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
 |Workflow                                                                                           |Group (owning Workflow)  |Lead Developer  |
 +===================================================================================================+=========================+================+
-|`Fungal minimal-assembly QC <https://bitbucket.org/berkeleylab/jgi-fungal-asm/src/develop-cori/>`_ |Assembly                 |Stephan Trong   |
+|Fungal minimal-assembly QC                                                                         |Assembly                 |Stephan Trong   |
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|`Metatlas <https://github.com/biorack/metatlas>`_                                                  |Metabolomics             |Ben Bowen       |
+|Metatlas                                                                                           |Metabolomics             |Ben Bowen       |
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
 |IMG Annotation                                                                                     |IMG Pipelines            |Marcel Huntemann|
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
+
 
 =================
 In Planning Stage
@@ -52,7 +53,7 @@ In Planning Stage
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
 |Secondary metabolites annotation                                                                   |Secondary Metabolites Grp|Dan Udwary      |
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|DAP-Seq(fungal)                                                                                    |Resequencing             |Matt Mingay     |
+|DAP-Seq (fungal)                                                                                   |Resequencing             |Matt Mingay     |
 +---------------------------------------------------------------------------------------------------+-------------------------+----------------+
 
 

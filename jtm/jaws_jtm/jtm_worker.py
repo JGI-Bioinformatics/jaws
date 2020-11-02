@@ -36,13 +36,16 @@ import shortuuid
 
 from jaws_jtm.common import logger, setup_custom_logger
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_jtm.lib.rabbitmqconnection import (JtmAmqpstormBase,
-                                             RmqConnectionAmqpstorm)
-from jaws_jtm.lib.resourceusage import (get_cpu_load, get_free_memory,
-                                        get_pid_tree,
-                                        get_resident_memory_usage, get_runtime,
-                                        get_total_mem_usage_per_node,
-                                        get_virtual_memory_usage)
+from jaws_jtm.lib.rabbitmqconnection import JtmAmqpstormBase, RmqConnectionAmqpstorm
+from jaws_jtm.lib.resourceusage import (
+    get_cpu_load,
+    get_free_memory,
+    get_pid_tree,
+    get_resident_memory_usage,
+    get_runtime,
+    get_total_mem_usage_per_node,
+    get_virtual_memory_usage,
+)
 from jaws_jtm.lib.run import make_dir, run_sh_command
 
 # -------------------------------------------------------------------------------
@@ -66,6 +69,7 @@ class TaskTerminator(JtmAmqpstormBase):
     Process task cancellation
 
     """
+
     def start(self):
         """Start the OnWorkerResult.
         :return:
@@ -75,20 +79,26 @@ class TaskTerminator(JtmAmqpstormBase):
         while True:
             try:
                 channel = self.connection.channel()
-                channel.exchange.declare(exchange=self.jtm_task_kill_exch,
-                                         exchange_type="fanout",
-                                         durable=True,
-                                         auto_delete=False)
-                channel.queue.declare(queue=self.jtm_task_kill_q,
-                                      durable=True,
-                                      exclusive=False,
-                                      auto_delete=True)
-                channel.queue.bind(exchange=self.jtm_task_kill_exch,
-                                   queue=self.jtm_task_kill_q,
-                                   routing_key=UNIQ_WORKER_ID)
-                channel.basic.consume(self.process_kill,
-                                      self.jtm_task_kill_q,
-                                      no_ack=False)
+                channel.exchange.declare(
+                    exchange=self.jtm_task_kill_exch,
+                    exchange_type="fanout",
+                    durable=True,
+                    auto_delete=False,
+                )
+                channel.queue.declare(
+                    queue=self.jtm_task_kill_q,
+                    durable=True,
+                    exclusive=False,
+                    auto_delete=True,
+                )
+                channel.queue.bind(
+                    exchange=self.jtm_task_kill_exch,
+                    queue=self.jtm_task_kill_q,
+                    routing_key=UNIQ_WORKER_ID,
+                )
+                channel.basic.consume(
+                    self.process_kill, self.jtm_task_kill_q, no_ack=False
+                )
                 channel.basic.qos(prefetch_count=1)
                 channel.start_consuming()
                 if not channel.consumer_tags:
@@ -99,6 +109,11 @@ class TaskTerminator(JtmAmqpstormBase):
             except KeyboardInterrupt:
                 self.connection.close()
                 break
+            except Exception as e:
+                logger.exception(e)
+                if self.connection:
+                    self.connection.close()
+                raise
 
     def process_kill(self, message):
         """
@@ -122,23 +137,36 @@ class TaskTerminator(JtmAmqpstormBase):
                 # kill if there is child's children
                 for i in get_pid_tree(msg_unzipped["child_pid"]):
                     kill_cmd = "kill -9 %d" % i
-                    logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
+                    logger.info(
+                        "Executing {} for taskID, {}".format(
+                            kill_cmd, msg_unzipped["task_id"]
+                        )
+                    )
                     _, _, ec = run_sh_command(kill_cmd, log=logger)
                     if ec == 0:
                         logger.info("Successfully terminate a user task process.")
                     else:
-                        logger.warning("User process not found. Ignore the termination command, %s"
-                                       % (kill_cmd))
+                        logger.warning(
+                            "User process not found. Ignore the termination command, %s"
+                            % (kill_cmd)
+                        )
 
                 # Kill the main child process
                 # Note: can consider to use "pkill -9 -P ppid" to kill the family
                 kill_cmd = "kill -9 %d" % msg_unzipped["child_pid"]
-                logger.info("Executing {} for taskID, {}".format(kill_cmd, msg_unzipped["task_id"]))
+                logger.info(
+                    "Executing {} for taskID, {}".format(
+                        kill_cmd, msg_unzipped["task_id"]
+                    )
+                )
                 _, _, ec = run_sh_command(kill_cmd, log=logger)
                 if ec == 0:
                     logger.info("Successfully terminate a user task process.")
                 else:
-                    logger.warning("User process not found. Failed to execute the command, %s" % (kill_cmd))
+                    logger.warning(
+                        "User process not found. Failed to execute the command, %s"
+                        % (kill_cmd)
+                    )
             else:
                 logger.warning("No valid child process id to terminate.")
 
@@ -155,6 +183,7 @@ class TaskRunner(JtmAmqpstormBase):
     Process user task
 
     """
+
     def start(self, req_q):
         """Start the OnWorkerResult.
         :return:
@@ -164,20 +193,19 @@ class TaskRunner(JtmAmqpstormBase):
         while True:
             try:
                 channel = self.connection.channel()
-                channel.exchange.declare(exchange=self.jtm_inner_main_exch,
-                                         exchange_type='direct',
-                                         durable=True,
-                                         auto_delete=False)
-                channel.queue.declare(queue=req_q,
-                                      durable=True,
-                                      exclusive=False,
-                                      auto_delete=True)
-                channel.queue.bind(exchange=self.jtm_inner_main_exch,
-                                   queue=req_q,
-                                   routing_key=req_q)
-                channel.basic.consume(self.process_task,
-                                      req_q,
-                                      no_ack=False)
+                channel.exchange.declare(
+                    exchange=self.jtm_inner_main_exch,
+                    exchange_type="direct",
+                    durable=True,
+                    auto_delete=False,
+                )
+                channel.queue.declare(
+                    queue=req_q, durable=True, exclusive=False, auto_delete=True
+                )
+                channel.queue.bind(
+                    exchange=self.jtm_inner_main_exch, queue=req_q, routing_key=req_q
+                )
+                channel.basic.consume(self.process_task, req_q, no_ack=False)
                 channel.basic.qos(prefetch_count=1)
                 channel.start_consuming()
                 if not channel.consumer_tags:
@@ -188,6 +216,11 @@ class TaskRunner(JtmAmqpstormBase):
             except KeyboardInterrupt:
                 self.connection.close()
                 break
+            except Exception as e:
+                logger.exception(e)
+                if self.connection:
+                    self.connection.close()
+                raise
 
     def process_task(self, message):
         """
@@ -217,27 +250,36 @@ class TaskRunner(JtmAmqpstormBase):
         try:
             with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
                 with conn.channel() as ch:
-                    ch.exchange.declare(exchange=self.jtm_inner_main_exch,
-                                        exchange_type='direct',
-                                        durable=True,
-                                        auto_delete=False)
-                    ch.queue.declare(queue=self.inner_result_queue_name,
-                                     durable=True,
-                                     exclusive=False,
-                                     auto_delete=True)
-                    ch.queue.bind(exchange=self.jtm_inner_main_exch,
-                                  queue=self.inner_result_queue_name,
-                                  routing_key=self.inner_result_queue_name)
+                    ch.exchange.declare(
+                        exchange=self.jtm_inner_main_exch,
+                        exchange_type="direct",
+                        durable=True,
+                        auto_delete=False,
+                    )
+                    ch.queue.declare(
+                        queue=self.inner_result_queue_name,
+                        durable=True,
+                        exclusive=False,
+                        auto_delete=True,
+                    )
+                    ch.queue.bind(
+                        exchange=self.jtm_inner_main_exch,
+                        queue=self.inner_result_queue_name,
+                        routing_key=self.inner_result_queue_name,
+                    )
                     properties = {
-                        'correlation_id': message.correlation_id,
-                        'reply_to': message.reply_to
+                        "correlation_id": message.correlation_id,
+                        "reply_to": message.reply_to,
                     }
                     response = amqpstorm.Message.create(ch, response, properties)
                     response.publish(self.inner_result_queue_name)
         except Exception as detail:
-            logger.exception("Exception: Failed to send a request to %s", self.inner_result_queue_name)
+            logger.exception(
+                "Exception: Failed to send a request to %s",
+                self.inner_result_queue_name,
+            )
             logger.exception("Detail: %s", str(detail))
-            raise OSError(2, 'Failed to send a request to a worker')
+            raise OSError(2, "Failed to send a request to a worker")
 
         message.ack()
 
@@ -319,15 +361,19 @@ def run_user_task(msg_unzipped):
 
     logger.debug("Start subprocess to run a task.")
     try:
-        p = subprocess.Popen(user_task_cmd.split(),
-                             env=os.environ,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT)
+        p = subprocess.Popen(
+            user_task_cmd.split(),
+            env=os.environ,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
     except MemoryError:
         logger.exception("Exception: Out of memory, %s", user_task_cmd)
         proc_return_code = done_f["failed with out-of-mem"]
     except FileNotFoundError:
-        logger.exception("Exception: Input file or command not found, %s", user_task_cmd)
+        logger.exception(
+            "Exception: Input file or command not found, %s", user_task_cmd
+        )
         proc_return_code = 2
     except Exception as detail:
         logger.exception("Exception: Failed to run user command, %s", user_task_cmd)
@@ -384,7 +430,9 @@ def run_user_task(msg_unzipped):
             return_msg["ret_msg"] = "User task out-of-mem"
         elif proc_return_code == 2:  # system code
             logger.info("input file or command not found.")
-            return_msg["done_flag"] = done_f["failed with input file or command not found"]
+            return_msg["done_flag"] = done_f[
+                "failed with input file or command not found"
+            ]
             return_msg["ret_msg"] = "Input file or command not found."
         elif proc_return_code == 0:  # system code
             logger.info("Task# %s completed!" % (str(task_id)))
@@ -398,25 +446,34 @@ def run_user_task(msg_unzipped):
                 for i in range(len(ofs)):
                     out_file_list.append(ofs[i])
 
-                ret, file_size = check_output(out_file_list,
-                                              CONFIG.configparser.getfloat("JTM", "file_check_interval"),
-                                              CONFIG.configparser.getint("JTM", "file_checking_max_trial"),
-                                              CONFIG.configparser.getfloat("JTM", "file_check_int_inc"))
+                ret, file_size = check_output(
+                    out_file_list,
+                    CONFIG.configparser.getfloat("JTM", "file_check_interval"),
+                    CONFIG.configparser.getint("JTM", "file_checking_max_trial"),
+                    CONFIG.configparser.getfloat("JTM", "file_check_int_inc"),
+                )
 
                 if not ret:
-                    ret_msg_str = "Failed to check output file(s): %s, file size = %s." % (ofs, file_size)
+                    ret_msg_str = (
+                        "Failed to check output file(s): %s, file size = %s."
+                        % (ofs, file_size)
+                    )
                     logger.critical(ret_msg_str)
                     return_msg["done_flag"] = done_f["failed to check output file(s)"]
                     return_msg["ret_msg"] = ret_msg_str
                 else:
-                    return_msg["done_flag"] = done_f["success with correct output file(s)"]
+                    return_msg["done_flag"] = done_f[
+                        "success with correct output file(s)"
+                    ]
                     return_msg["ret_msg"] = "Output file checking is OK."
             else:
                 return_msg["done_flag"] = done_f["success"]
                 return_msg["ret_msg"] = "No file(s) to check."
         else:
-            logger.critical("Failed to execute a task, %s. Non-zero exit code. stdout = %s."
-                            % (user_task_cmd, stdout_str))
+            logger.critical(
+                "Failed to execute a task, %s. Non-zero exit code. stdout = %s."
+                % (user_task_cmd, stdout_str)
+            )
             return_msg["done_flag"] = done_f["failed to run user command"]
             return_msg["ret_msg"] = stdout_str
 
@@ -426,8 +483,12 @@ def run_user_task(msg_unzipped):
 
 
 # -------------------------------------------------------------------------------
-def check_output(out_files, out_file_check_wait_time=3,
-                 max_trial=3, out_file_check_wait_time_increase=1.5):
+def check_output(
+    out_files,
+    out_file_check_wait_time=3,
+    max_trial=3,
+    out_file_check_wait_time_increase=1.5,
+):
     """
     Check 1) existence, 2) size>0 for each file in out_files
 
@@ -480,8 +541,17 @@ def check_output(out_files, out_file_check_wait_time=3,
 
 
 # -------------------------------------------------------------------------------
-def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
-                           num_cores, job_time, pool_name, nwpn, show_resource_log):
+def send_hb_to_client_proc(
+    interval,
+    slurm_job_id,
+    mem_per_node,
+    mem_per_core,
+    num_cores,
+    job_time,
+    pool_name,
+    nwpn,
+    show_resource_log,
+):
     """
     Send heartbeats to the client
 
@@ -513,17 +583,20 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
     def publish_message(channel, body, queue, expiration="6000"):
         # Create the message with a expiration (time to live).
         # default 6000ms.
-        message = amqpstorm.Message.create(channel, body,
-                                           properties={"expiration": expiration})
+        message = amqpstorm.Message.create(
+            channel, body, properties={"expiration": expiration}
+        )
         # Publish the message to a queue.
         message.publish(queue)
 
     with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
         with conn.channel() as ch:
-            ch.exchange.declare(exchange=exch_name,
-                                exchange_type='direct',
-                                durable=False,
-                                auto_delete=False)
+            ch.exchange.declare(
+                exchange=exch_name,
+                exchange_type="direct",
+                durable=False,
+                auto_delete=False,
+            )
             task_id = 0
             proc_id_list_merged = list()
             vmem_usage_list = list()
@@ -562,10 +635,10 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                         vmem = get_virtual_memory_usage(pid, 0.0, False)
                     except ValueError:
                         logger.warning("ValueError: Failed to collect VM memory usage.")
-                        pass
                     except UnboundLocalError:
-                        logger.warning("UnboundLocalError: No entry in process id list.")
-                        pass
+                        logger.warning(
+                            "UnboundLocalError: No entry in process id list."
+                        )
                     else:
                         vmem_usage_list.append(vmem)
 
@@ -574,17 +647,23 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                     try:
                         rmem = get_resident_memory_usage(pid, 0.0, False)
                     except ValueError:
-                        logger.warning("ValueError: Failed to collect RES memory usage.")
-                        pass
+                        logger.warning(
+                            "ValueError: Failed to collect RES memory usage."
+                        )
                     except UnboundLocalError:
-                        logger.warning("UnboundLocalError: No entry in process id list.")
-                        pass
+                        logger.warning(
+                            "UnboundLocalError: No entry in process id list."
+                        )
                     else:
                         rmem_usage_list.append(rmem)
 
                 # Collect mem_usages for all pids in the tree and get sum()
-                rmem_usage = "%.1f" % sum(rmem_usage_list) if len(rmem_usage_list) > 0 else 0.0
-                vmem_usage = "%.1f" % sum(vmem_usage_list) if len(vmem_usage_list) > 0 else 0.0
+                rmem_usage = (
+                    "%.1f" % sum(rmem_usage_list) if len(rmem_usage_list) > 0 else 0.0
+                )
+                vmem_usage = (
+                    "%.1f" % sum(vmem_usage_list) if len(vmem_usage_list) > 0 else 0.0
+                )
 
                 # Collect cpu_usages for all pids in the tree and get max()
                 for pid in proc_id_list_merged:
@@ -592,7 +671,6 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                         cload = get_cpu_load(pid)
                     except Exception as e:
                         logger.warning("get_cpu_load() exception: {}".format(e))
-                        pass
                     else:
                         cpu_load_list.append(cload)
 
@@ -616,9 +694,10 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                 try:
                     perc_used_mem = "%.1f" % get_total_mem_usage_per_node()
                 except Exception as e:
-                    logger.warning("get_total_mem_usage_per_node() exception: {}".format(e))
+                    logger.warning(
+                        "get_total_mem_usage_per_node() exception: {}".format(e)
+                    )
                     perc_used_mem = 0.0
-                    pass
 
                 # Check if there is any task id in the ipc pipe
                 if PIPE_TASK_ID_RECV.poll():
@@ -628,55 +707,76 @@ def send_hb_to_client_proc(interval, slurm_job_id, mem_per_node, mem_per_core,
                     temp = WORKER_LIFE_LEFT_IN_MINUTE.value
                     try:
                         # hh:mm:ss --> seconds
-                        job_runtime_in_sec = int(job_time.split(':')[0]) * 3600 + \
-                                             int(job_time.split(':')[1]) * 60 + \
-                                             int(job_time.split(':')[2])
-                        end_date_time = WORKER_START_TIME + datetime.timedelta(seconds=int(job_runtime_in_sec))
+                        job_runtime_in_sec = (
+                            int(job_time.split(":")[0]) * 3600
+                            + int(job_time.split(":")[1]) * 60
+                            + int(job_time.split(":")[2])
+                        )
+                        end_date_time = WORKER_START_TIME + datetime.timedelta(
+                            seconds=int(job_runtime_in_sec)
+                        )
                         delta = end_date_time - datetime.datetime.now()
-                        WORKER_LIFE_LEFT_IN_MINUTE.value = int(divmod(delta.total_seconds(), 60)[0])
+                        WORKER_LIFE_LEFT_IN_MINUTE.value = int(
+                            divmod(delta.total_seconds(), 60)[0]
+                        )
                     except Exception as e:
-                        logger.warning("Something wrong in computing remaining wall clock time: %s", e)
+                        logger.warning(
+                            "Something wrong in computing remaining wall clock time: %s",
+                            e,
+                        )
                         WORKER_LIFE_LEFT_IN_MINUTE.value = temp
-                        pass
 
-                msg_dict_to_send = {hb_msg["child_pid"]: child_pid,
-                                    hb_msg["clone_time_rate"]: 0.0,  # OBSOLETE
-                                    hb_msg["cpu_load"]: max_cpu_load,
-                                    hb_msg["end_date"]: today,
-                                    hb_msg["host_name"]: host_name,
-                                    hb_msg["ip_address"]: ip_address,
-                                    hb_msg["job_time"]: job_time if w_type[THIS_WORKER_TYPE] > 0 else None,
-                                    hb_msg["jtm_host_name"]: CONFIG.configparser.get("SITE", "jtm_host_name"),
-                                    hb_msg["life_left"]: WORKER_LIFE_LEFT_IN_MINUTE.value,
-                                    hb_msg["mem_per_core"]: mem_per_core if w_type[THIS_WORKER_TYPE] > 0 else "",
-                                    hb_msg["mem_per_node"]: mem_per_node if w_type[THIS_WORKER_TYPE] > 0 else "",
-                                    hb_msg["num_cores"]: ncore_param,
-                                    hb_msg["num_tasks"]: 0,
-                                    hb_msg["num_workers_on_node"]: 1,  # not used
-                                    hb_msg["perc_mem_used"]: perc_used_mem,
-                                    hb_msg["pool_name"]: pool_name,
-                                    hb_msg["ret_msg"]: "hb",
-                                    hb_msg["rmem_usage"]: rmem_usage,
-                                    hb_msg["root_pid"]: PARENT_PROCESS_ID,
-                                    hb_msg["run_time"]: proc_run_time,
-                                    hb_msg["slurm_jobid"]: slurm_job_id,
-                                    hb_msg["task_id"]: task_id,
-                                    hb_msg["vmem_usage"]: vmem_usage,
-                                    hb_msg["worker_id"]: UNIQ_WORKER_ID,
-                                    hb_msg["worker_type"]: w_type[THIS_WORKER_TYPE],
-                                    hb_msg["nwpn"]: nwpn  # not used
-                                    }
+                msg_dict_to_send = {
+                    hb_msg["child_pid"]: child_pid,
+                    hb_msg["clone_time_rate"]: 0.0,  # OBSOLETE
+                    hb_msg["cpu_load"]: max_cpu_load,
+                    hb_msg["end_date"]: today,
+                    hb_msg["host_name"]: host_name,
+                    hb_msg["ip_address"]: ip_address,
+                    hb_msg["job_time"]: job_time
+                    if w_type[THIS_WORKER_TYPE] > 0
+                    else None,
+                    hb_msg["jtm_host_name"]: CONFIG.configparser.get(
+                        "SITE", "jtm_host_name"
+                    ),
+                    hb_msg["life_left"]: WORKER_LIFE_LEFT_IN_MINUTE.value,
+                    hb_msg["mem_per_core"]: mem_per_core
+                    if w_type[THIS_WORKER_TYPE] > 0
+                    else "",
+                    hb_msg["mem_per_node"]: mem_per_node
+                    if w_type[THIS_WORKER_TYPE] > 0
+                    else "",
+                    hb_msg["num_cores"]: ncore_param,
+                    hb_msg["num_tasks"]: 0,
+                    hb_msg["num_workers_on_node"]: 1,  # not used
+                    hb_msg["perc_mem_used"]: perc_used_mem,
+                    hb_msg["pool_name"]: pool_name,
+                    hb_msg["ret_msg"]: "hb",
+                    hb_msg["rmem_usage"]: rmem_usage,
+                    hb_msg["root_pid"]: PARENT_PROCESS_ID,
+                    hb_msg["run_time"]: proc_run_time,
+                    hb_msg["slurm_jobid"]: slurm_job_id,
+                    hb_msg["task_id"]: task_id,
+                    hb_msg["vmem_usage"]: vmem_usage,
+                    hb_msg["worker_id"]: UNIQ_WORKER_ID,
+                    hb_msg["worker_type"]: w_type[THIS_WORKER_TYPE],
+                    hb_msg["nwpn"]: nwpn,  # not used
+                }
 
                 msg_zipped_to_send = zdumps(json.dumps(msg_dict_to_send))
 
                 if show_resource_log:
                     logger.info(msg_dict_to_send)
                 try:
-                    publish_message(ch, msg_zipped_to_send,
-                                    worker_hb_queue,
-                                    CONFIG.configparser.get("JTM", "worker_s_hb_expiration"))
+                    publish_message(
+                        ch,
+                        msg_zipped_to_send,
+                        worker_hb_queue,
+                        CONFIG.configparser.get("JTM", "worker_s_hb_expiration"),
+                    )
                 except Exception as e:
                     logger.exception("Failed to send hb to manager: {}".format(e))
+                    raise
 
                 time.sleep(interval)
 
@@ -695,16 +795,30 @@ def proc_clean_exit(pid_list):
 
 
 # -------------------------------------------------------------------------------
-def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
-           custom_job_log_dir_name: str, pool_name_param: str, dry_run: bool,
-           slurm_job_id_param: int, worker_type_param: str, cluster_name_param: str,
-           worker_clone_time_rate_param: float, num_workers_per_node_param: int,
-           worker_id_param: str, charging_account_param: str,
-           num_nodes_to_request_param: int, num_cores_to_request_param: int,
-           constraint_param: str, mem_per_node_to_request_param: str,
-           mem_per_cpu_to_request_param: str,
-           qos_param: str, partition_param: str, job_time_to_request_param: str,
-           show_resource_log: bool) -> int:
+def worker(
+    ctx: object,
+    heartbeat_interval_param: int,
+    custom_log_dir: str,
+    custom_job_log_dir_name: str,
+    pool_name_param: str,
+    dry_run: bool,
+    slurm_job_id_param: int,
+    worker_type_param: str,
+    cluster_name_param: str,
+    worker_clone_time_rate_param: float,
+    num_workers_per_node_param: int,
+    worker_id_param: str,
+    charging_account_param: str,
+    num_nodes_to_request_param: int,
+    num_cores_to_request_param: int,
+    constraint_param: str,
+    mem_per_node_to_request_param: str,
+    mem_per_cpu_to_request_param: str,
+    qos_param: str,
+    partition_param: str,
+    job_time_to_request_param: str,
+    show_resource_log: bool,
+) -> int:
     """
 
     :param ctx:
@@ -733,9 +847,9 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     """
 
     global CONFIG
-    CONFIG = ctx.obj['config']
+    CONFIG = ctx.obj["config"]
     global DEBUG
-    DEBUG = ctx.obj['debug']
+    DEBUG = ctx.obj["debug"]
     # config file has precedence
     config_debug = CONFIG.configparser.getboolean("SITE", "debug")
     if config_debug:
@@ -774,37 +888,60 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     setup_custom_logger(log_level, log_dir_name, 1, 1, worker_id=UNIQ_WORKER_ID)
     hearbeat_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_send_interval")
 
-    logger.info("\n*****************\nDebug mode is %s\n*****************"
-                % ("ON" if DEBUG else "OFF"))
+    logger.info(
+        "\n*****************\nDebug mode is %s\n*****************"
+        % ("ON" if DEBUG else "OFF")
+    )
     logger.info("Set jtm log file location to %s", log_dir_name)
     logger.info("Set jtm job file location to %s", job_script_dir_name)
     logger.info("RabbitMQ broker: %s", CONFIG.configparser.get("RMQ", "host"))
     logger.info("RabbitMQ port: %s", CONFIG.configparser.get("RMQ", "port"))
     logger.info("JTM user name: %s", CONFIG.configparser.get("SITE", "user_name"))
     logger.info("Unique worker ID: %s", UNIQ_WORKER_ID)
-    logger.info("\n*****************\nRun mode is %s\n*****************"
-                % ("PROD" if prod_mod else "DEV"))
+    logger.info(
+        "\n*****************\nRun mode is %s\n*****************"
+        % ("PROD" if prod_mod else "DEV")
+    )
     logger.info("env activation: %s", CONFIG.configparser.get("JTM", "env_activation"))
     logger.info("JTM config file: %s" % (CONFIG.config_file))
 
     # Slurm config
-    num_nodes_to_request = num_nodes_to_request_param \
-        if num_nodes_to_request_param else CONFIG.configparser.getint("SLURM", "nnodes")
-    num_workers_per_node = num_workers_per_node_param \
-        if num_workers_per_node_param else CONFIG.configparser.getint("JTM", "num_workers_per_node")
+    num_nodes_to_request = (
+        num_nodes_to_request_param
+        if num_nodes_to_request_param
+        else CONFIG.configparser.getint("SLURM", "nnodes")
+    )
+    num_workers_per_node = (
+        num_workers_per_node_param
+        if num_workers_per_node_param
+        else CONFIG.configparser.getint("JTM", "num_workers_per_node")
+    )
     assert num_workers_per_node > 0
-    mem_per_cpu_to_request = mem_per_cpu_to_request_param \
-        if mem_per_cpu_to_request_param else CONFIG.configparser.get("SLURM", "mempercpu")
-    mem_per_node_to_request = mem_per_node_to_request_param \
-        if mem_per_node_to_request_param else CONFIG.configparser.get("SLURM", "mempernode")
+    mem_per_cpu_to_request = (
+        mem_per_cpu_to_request_param
+        if mem_per_cpu_to_request_param
+        else CONFIG.configparser.get("SLURM", "mempercpu")
+    )
+    mem_per_node_to_request = (
+        mem_per_node_to_request_param
+        if mem_per_node_to_request_param
+        else CONFIG.configparser.get("SLURM", "mempernode")
+    )
     assert mem_per_cpu_to_request
     assert mem_per_node_to_request
-    num_cpus_to_request = num_cores_to_request_param \
-        if num_cores_to_request_param else CONFIG.configparser.getint("SLURM", "ncpus")
+    num_cpus_to_request = (
+        num_cores_to_request_param
+        if num_cores_to_request_param
+        else CONFIG.configparser.getint("SLURM", "ncpus")
+    )
     assert num_cpus_to_request
 
     # Set CPU affinity for limiting the number of cores to use
-    if worker_type_param != "manual" and worker_id_param and worker_id_param.find('_') != -1:
+    if (
+        worker_type_param != "manual"
+        and worker_id_param
+        and worker_id_param.find("_") != -1
+    ):
         # ex)
         # total_cpu_num = 32, num_workers_per_node_param = 4
         # split_cpu_num = 8
@@ -814,16 +951,21 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         try:
             # Use the appended worker id number as worker_number
             # ex) 5wZwyCM8rxgNtERsU8znJU_1 --> extract "1" --> worker number
-            worker_number = int(worker_id_param.split('_')[-1]) - 1
+            worker_number = int(worker_id_param.split("_")[-1]) - 1
         except ValueError:
-            logger.exception("Not an expected worker ID. Cancelling CPU affinity setting")
+            logger.exception(
+                "Not an expected worker ID. Cancelling CPU affinity setting"
+            )
         else:
             # Note: may need to use num_cpus_to_request outside LBL
             total_cpu_num = psutil.cpu_count()
             logger.info("Total number of cores available: {}".format(total_cpu_num))
             split_cpu_num = int(total_cpu_num / num_workers_per_node)
-            cpu_affinity_list = list(range(worker_number * split_cpu_num,
-                                           ((worker_number + 1) * split_cpu_num)))
+            cpu_affinity_list = list(
+                range(
+                    worker_number * split_cpu_num, ((worker_number + 1) * split_cpu_num)
+                )
+            )
             logger.info("Set CPU affinity to use: {}".format(cpu_affinity_list))
             try:
                 proc.cpu_affinity(cpu_affinity_list)
@@ -834,55 +976,87 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     # Set memory upper limit
     # Todo: May need to use all free_memory on Cori and Lbl
     system_free_mem_bytes = get_free_memory()
-    logger.info("Total available memory (MBytes): %d"
-                % (system_free_mem_bytes / 1024.0 / 1024.0))
-    if worker_type_param != "manual" and num_workers_per_node > 1:
+    logger.info(
+        "Total available memory (MBytes): %d"
+        % (system_free_mem_bytes / 1024.0 / 1024.0)
+    )
+
+    # This available memory validation needs to executed on a compute node
+    # not on a MOM node.
+    if worker_type_param != "manual" and num_workers_per_node > 1 and not charging_account_param:
         try:
-            mem_per_node_to_request_byte = int(mem_per_node_to_request.lower()
-                                               .replace("gb", "")
-                                               .replace("g", "")) * 1024.0 * 1024.0 * 1024.0
-            logger.info("Requested memory for this worker (MBytes): %d"
-                        % (mem_per_node_to_request_byte / 1024.0 / 1024.0))
+            mem_per_node_to_request_byte = (
+                int(mem_per_node_to_request.lower().replace("gb", "").replace("g", ""))
+                * 1024.0
+                * 1024.0
+                * 1024.0
+            )
+            logger.info(
+                "Requested memory for this worker (MBytes): %d"
+                % (mem_per_node_to_request_byte / 1024.0 / 1024.0)
+            )
 
             # if requested mempernode is larger than system avaiable mem space
             if system_free_mem_bytes < mem_per_node_to_request_byte:
                 logger.critical("Requested memory space is not available")
-                logger.critical("Available space: %d (MBytes)"
-                                % (system_free_mem_bytes / 1024.0 / 1024.0))
-                logger.critical("Requested space: %d (MBytes)"
-                                % (mem_per_node_to_request_byte / 1024.0 / 1024.0))
+                logger.critical(
+                    "Available space: %d (MBytes)"
+                    % (system_free_mem_bytes / 1024.0 / 1024.0)
+                )
+                logger.critical(
+                    "Requested space: %d (MBytes)"
+                    % (mem_per_node_to_request_byte / 1024.0 / 1024.0)
+                )
                 # Option 1
                 # mem_per_node_to_request_byte = system_free_mem_bytes
                 # Option 2
                 raise MemoryError
 
-            mem_limit_per_worker_bytes = int(mem_per_node_to_request_byte /
-                                             num_workers_per_node)
+            mem_limit_per_worker_bytes = int(
+                mem_per_node_to_request_byte / num_workers_per_node
+            )
         except Exception as e:
-            logger.exception("Failed to compute the memory limit: %s", mem_per_node_to_request)
+            logger.exception(
+                "Failed to compute the memory limit: %s", mem_per_node_to_request
+            )
             logger.exception(e)
             sys.exit(1)
 
         try:
             soft, hard = resource.getrlimit(resource.RLIMIT_AS)
             resource.setrlimit(resource.RLIMIT_AS, (mem_limit_per_worker_bytes, hard))
-            logger.info("Set the memory usage upper limit (MBytes): %d"
-                        % (mem_limit_per_worker_bytes / 1024.0 / 1024.0))
+            logger.info(
+                "Set the memory usage upper limit (MBytes): %d"
+                % (mem_limit_per_worker_bytes / 1024.0 / 1024.0)
+            )
         except Exception as e:
-            logger.exception("Failed to set the memory usage limit: %s", mem_per_node_to_request)
+            logger.exception(
+                "Failed to set the memory usage limit: %s", mem_per_node_to_request
+            )
             logger.exception(e)
             sys.exit(1)
 
-    job_time_to_request = job_time_to_request_param \
-        if job_time_to_request_param else CONFIG.configparser.get("SLURM", "jobtime")
-    constraint = constraint_param \
-        if constraint_param else CONFIG.configparser.get("SLURM", "constraint")
-    charging_account = charging_account_param \
-        if charging_account_param else CONFIG.configparser.get("SLURM", "charge_accnt")
-    qos = qos_param \
-        if qos_param else CONFIG.configparser.get("SLURM", "qos")
-    partition = partition_param \
-        if partition_param else CONFIG.configparser.get("SLURM", "partition")
+    job_time_to_request = (
+        job_time_to_request_param
+        if job_time_to_request_param
+        else CONFIG.configparser.get("SLURM", "jobtime")
+    )
+    constraint = (
+        constraint_param
+        if constraint_param
+        else CONFIG.configparser.get("SLURM", "constraint")
+    )
+    charging_account = (
+        charging_account_param
+        if charging_account_param
+        else CONFIG.configparser.get("SLURM", "charge_accnt")
+    )
+    qos = qos_param if qos_param else CONFIG.configparser.get("SLURM", "qos")
+    partition = (
+        partition_param
+        if partition_param
+        else CONFIG.configparser.get("SLURM", "partition")
+    )
 
     global THIS_WORKER_TYPE
     THIS_WORKER_TYPE = worker_type_param
@@ -893,25 +1067,44 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         hearbeat_interval = heartbeat_interval_param
 
     # Start hb receive thread
-    tp_name = pool_name_param \
-        if pool_name_param else CONFIG.configparser.get("JTM", "pool_name")
+    tp_name = (
+        pool_name_param
+        if pool_name_param
+        else CONFIG.configparser.get("JTM", "pool_name")
+    )
 
     assert pool_name_param is not None, "User pool name is not set"
-    inner_task_request_queue = CONFIG.configparser.get("JTM", "jtm_inner_request_q") + "." + pool_name_param
+    inner_task_request_queue = (
+        CONFIG.configparser.get("JTM", "jtm_inner_request_q") + "." + pool_name_param
+    )
 
-    worker_clone_time_rate = worker_clone_time_rate_param \
-        if worker_clone_time_rate_param else CONFIG.configparser.getfloat("JTM", "clone_time_rate")
+    worker_clone_time_rate = (
+        worker_clone_time_rate_param
+        if worker_clone_time_rate_param
+        else CONFIG.configparser.getfloat("JTM", "clone_time_rate")
+    )
 
     if THIS_WORKER_TYPE in ("dynamic"):
-        assert cluster_name_param != "" and \
-               cluster_name_param != "local", "Static or dynamic worker needs a cluster setting (-cl)."
+        assert (
+            cluster_name_param != "" and cluster_name_param != "local"
+        ), "Static or dynamic worker needs a cluster setting (-cl)."
 
     slurm_job_id = slurm_job_id_param
-    cluster_name = cluster_name_param
+    cluster_name = None
+    if cluster_name_param:
+        cluster_name = cluster_name_param.lower()
 
-    if cluster_name == "cori" and mem_per_cpu_to_request != "" and \
-            float(mem_per_cpu_to_request.replace("GB", "").replace("G", "").replace("gb", "")) > 1.0:
-        logger.critical("--mem-per-cpu in Cori shouldn't be larger than 1GB. User '--mem' instead.")
+    if (
+        cluster_name == "cori"
+        and mem_per_cpu_to_request != ""
+        and float(
+            mem_per_cpu_to_request.replace("GB", "").replace("G", "").replace("gb", "")
+        )
+        > 1.0
+    ):
+        logger.critical(
+            "--mem-per-cpu in Cori shouldn't be larger than 1GB. User '--mem' instead."
+        )
         sys.exit(1)
 
     logger.info("Task queue name: %s", inner_task_request_queue)
@@ -920,8 +1113,10 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
     env_act = CONFIG.configparser.get("JTM", "env_activation")
 
     if slurm_job_id == 0 and THIS_WORKER_TYPE in ["dynamic"]:
-        batch_job_script_file = os.path.join(job_script_dir_name, "jtm_%s_worker_%s.job" %
-                                             (THIS_WORKER_TYPE, UNIQ_WORKER_ID))
+        batch_job_script_file = os.path.join(
+            job_script_dir_name,
+            "jtm_%s_worker_%s.job" % (THIS_WORKER_TYPE, UNIQ_WORKER_ID),
+        )
         batch_job_script_str = ""
         batch_job_misc_params = ""
 
@@ -929,47 +1124,66 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
         if CONFIG.configparser.get("JTM", "worker_config_file"):
             worker_config = CONFIG.configparser.get("JTM", "worker_config_file")
 
-        if cluster_name in ("cori", "lbl"):
+        if cluster_name in ("cori", "jgi", "cascade"):
 
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
 
                 if cluster_name in ("cori"):
-
                     if num_nodes_to_request_param:
                         batch_job_script_str += """
 #SBATCH -N %(num_nodes_to_request)d
-#SBATCH --mem=%(mem)s""" % dict(num_nodes_to_request=num_nodes_to_request, mem=mem_per_node_to_request)
-                        batch_job_misc_params += " -N %(num_nodes_to_request)d -m %(mem)s" % \
-                                                 dict(num_nodes_to_request=num_nodes_to_request,
-                                                      mem=mem_per_node_to_request)
+#SBATCH --mem=%(mem)s""" % dict(
+                            num_nodes_to_request=num_nodes_to_request,
+                            mem=mem_per_node_to_request,
+                        )
+                        batch_job_misc_params += (
+                            " -N %(num_nodes_to_request)d -m %(mem)s"
+                            % dict(
+                                num_nodes_to_request=num_nodes_to_request,
+                                mem=mem_per_node_to_request,
+                            )
+                        )
 
                         if num_cores_to_request_param:
                             batch_job_script_str += """
-#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_request)
-                            batch_job_misc_params += " -c %(num_cores)d" % \
-                                                     dict(num_cores=num_cpus_to_request)
+#SBATCH -c %(num_cores)d""" % dict(
+                                num_cores=num_cpus_to_request
+                            )
+                            batch_job_misc_params += " -c %(num_cores)d" % dict(
+                                num_cores=num_cpus_to_request
+                            )
 
                     else:
                         batch_job_script_str += """
-#SBATCH -c %(num_cores)d""" % dict(num_cores=num_cpus_to_request)
-                        batch_job_misc_params += " -c %(num_cores)d" % \
-                                                 dict(num_cores=num_cpus_to_request)
+#SBATCH -c %(num_cores)d""" % dict(
+                            num_cores=num_cpus_to_request
+                        )
+                        batch_job_misc_params += " -c %(num_cores)d" % dict(
+                            num_cores=num_cpus_to_request
+                        )
 
                         if mem_per_node_to_request:
                             batch_job_script_str += """
-#SBATCH --mem=%(mem)s""" % dict(mem=mem_per_node_to_request)
-                            batch_job_misc_params += " -m %(mem)s " % \
-                                                     dict(mem=mem_per_node_to_request)
+#SBATCH --mem=%(mem)s""" % dict(
+                                mem=mem_per_node_to_request
+                            )
+                            batch_job_misc_params += " -m %(mem)s " % dict(
+                                mem=mem_per_node_to_request
+                            )
                         else:
                             batch_job_script_str += """
-#SBATCH --mem-per-cpu=%(mempercore)s""" % dict(mempercore=mem_per_cpu_to_request)
-                            batch_job_misc_params += " -mc %(mempercore)s" % \
-                                                     dict(mempercore=mem_per_cpu_to_request)
+#SBATCH --mem-per-cpu=%(mempercore)s""" % dict(
+                                mempercore=mem_per_cpu_to_request
+                            )
+                            batch_job_misc_params += " -mc %(mempercore)s" % dict(
+                                mempercore=mem_per_cpu_to_request
+                            )
 
                         if worker_id_param:
-                            batch_job_misc_params += " -wi %(worker_id)s_${i}" % \
-                                                     dict(worker_id=UNIQ_WORKER_ID)
+                            batch_job_misc_params += " -wi %(worker_id)s_${i}" % dict(
+                                worker_id=UNIQ_WORKER_ID
+                            )
 
                     ###########################
                     if 1:
@@ -981,12 +1195,18 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                         if constraint == "haswell":
                             if qos_param:
                                 batch_job_script_str += """
-#SBATCH -q %(qosname)s""" % dict(qosname=qos)
-                                batch_job_misc_params += " -q %(qosname)s" % dict(qosname=qos)
+#SBATCH -q %(qosname)s""" % dict(
+                                    qosname=qos
+                                )
+                                batch_job_misc_params += " -q %(qosname)s" % dict(
+                                    qosname=qos
+                                )
 
                             else:
                                 batch_job_script_str += """
-#SBATCH -q %(qosname)s""" % dict(qosname=qos)
+#SBATCH -q %(qosname)s""" % dict(
+                                    qosname=qos
+                                )
 
                             batch_job_script_str += """
 #SBATCH -C haswell"""
@@ -995,7 +1215,9 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                                 batch_job_misc_params += " -A %(sa)s" % dict(sa="m342")
 
                             batch_job_script_str += """
-#SBATCH -A %(charging_account)s""" % dict(charging_account=charging_account)
+#SBATCH -A %(charging_account)s""" % dict(
+                                charging_account=charging_account
+                            )
 
                         elif constraint == "knl":
                             # Note: Basic KNL setting = "-q regular -A m342 -C knl"
@@ -1014,11 +1236,14 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                             batch_job_script_str += """
 #SBATCH -C knl
 #SBATCH -A %(charging_account)s
-#SBATCH -q %(qosname)s""" % \
-                                                    dict(charging_account=charging_account, qosname=qos)
+#SBATCH -q %(qosname)s""" % dict(
+                                charging_account=charging_account, qosname=qos
+                            )
 
-                            batch_job_misc_params += " -A %(charging_account)s -q %(qosname)s" % \
-                                                     dict(charging_account=charging_account, qosname=qos)
+                            batch_job_misc_params += (
+                                " -A %(charging_account)s -q %(qosname)s"
+                                % dict(charging_account=charging_account, qosname=qos)
+                            )
 
                         elif constraint == "skylake":
                             # Example usage with skylakte for Brian F.
@@ -1036,15 +1261,31 @@ def worker(ctx: object, heartbeat_interval_param: int, custom_log_dir: str,
                             # ======================
                             # -t 96:00:00 -c 72 --job-name=mga-627834 --mem=240G -C skylake --qos=jgi_exvivo
                             # -A gtrqc
+                            #
+                            # SBATCH examples
+                            # 500G
+                            # module load esslurm; sbatch --qos=jgi_exvivo -C skylake -A pkasmb -N 1
+                            # -t 48:00:00 -D $PWD --wrap=''
+                            #
+                            # 250G
+                            # module load esslurm; sbatch --qos=jgi_shared --mem=250G --cpus-per-task=12
+                            # -C skylake -A pkasmb
+                            # -N 1 -t 12:00:00 -D $PWD --wrap=""
 
                             batch_job_script_str += """
+#SBATCH -N %(num_nodes_to_request)d
 #SBATCH -C skylake
 #SBATCH -A %(charging_account)s
-#SBATCH -q %(qosname)s""" % \
-                                                    dict(charging_account=charging_account, qosname=qos)
+#SBATCH -q %(qosname)s""" % dict(
+                                num_nodes_to_request=num_nodes_to_request,
+                                charging_account=charging_account,
+                                qosname=qos,
+                            )
 
-                            batch_job_misc_params += " -A %(charging_account)s -q %(qosname)s" % \
-                                                     dict(charging_account=charging_account, qosname=qos)
+                            batch_job_misc_params += (
+                                " -A %(charging_account)s -q %(qosname)s"
+                                % dict(charging_account=charging_account, qosname=qos)
+                            )
 
                         excl_param = ""
                         if constraint != "skylake":
@@ -1068,7 +1309,7 @@ for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
     jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
--cl cori \
+-cl %(nersc_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
 --clone_time_rate %(clone_time_rate)f %(task_queue)s \
@@ -1076,41 +1317,52 @@ do
 -C %(constraint)s \
 -m %(mem)s \
 %(other_params)s &
-    sleep 1
+sleep 0.5
 done
 wait
-""" % \
-                                                dict(debug="--debug" if DEBUG else "",
-                                                     wall_time=job_time_to_request,
-                                                     job_dir=job_script_dir_name,
-                                                     worker_id=UNIQ_WORKER_ID,
-                                                     worker_type=THIS_WORKER_TYPE,
-                                                     clone_time_rate=worker_clone_time_rate,
-                                                     task_queue=tq_param,
-                                                     num_workers_per_node=num_workers_per_node,
-                                                     env_activation_cmd=env_act,
-                                                     other_params=batch_job_misc_params,
-                                                     constraint=constraint,
-                                                     mem=mem_per_node_to_request,
-                                                     job_name=job_name,
-                                                     exclusive=excl_param,
-                                                     export_jtm_config_file="export JTM_CONFIG_FILE=%s"
-                                                                            % worker_config,
-                                                     set_jtm_config_file="--config=%s"
-                                                                         % worker_config)
+""" % dict(
+                            debug="--debug" if DEBUG else "",
+                            wall_time=job_time_to_request,
+                            job_dir=job_script_dir_name,
+                            worker_id=UNIQ_WORKER_ID,
+                            worker_type=THIS_WORKER_TYPE,
+                            clone_time_rate=worker_clone_time_rate,
+                            task_queue=tq_param,
+                            num_workers_per_node=num_workers_per_node,
+                            env_activation_cmd=env_act,
+                            other_params=batch_job_misc_params,
+                            constraint=constraint,
+                            mem=mem_per_node_to_request,
+                            nersc_cluster_name=cluster_name,
+                            job_name=job_name,
+                            exclusive=excl_param,
+                            export_jtm_config_file="export JTM_CONFIG_FILE=%s"
+                            % worker_config,
+                            set_jtm_config_file="--config=%s" % worker_config,
+                        )
 
-                elif cluster_name in ("lawrencium", "lbl"):
-
+                elif cluster_name in ("jgi"):
                     if worker_id_param:
-                        batch_job_misc_params += " -wi %(worker_id)s_${i}" \
-                                                 % dict(worker_id=UNIQ_WORKER_ID)
+                        batch_job_misc_params += " -wi %(worker_id)s_${i}" % dict(
+                            worker_id=UNIQ_WORKER_ID
+                        )
+
+                    if num_cores_to_request_param:
+                        batch_job_script_str += """
+#SBATCH --cpus-per-task %(num_cores)d""" % dict(
+                            num_cores=num_cpus_to_request
+                        )
+                        batch_job_misc_params += " -c %(num_cores)d" % dict(
+                            num_cores=num_cpus_to_request
+                        )
 
                     tp_param = ""
                     if pool_name_param:
                         tp_param = "-p " + pool_name_param
 
-                    mnode_param = "#SBATCH --mem=%(mem)s" \
-                                  % dict(mem=mem_per_node_to_request)
+                    mnode_param = "#SBATCH --mem=%(mem)s" % dict(
+                        mem=mem_per_node_to_request
+                    )
 
                     batch_job_script_str += """
 #SBATCH --time=%(wall_time)s
@@ -1129,39 +1381,94 @@ for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
     jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
--cl %(lbl_cluster_name)s \
+-cl %(lblit_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
 --clone_time_rate %(clone_time_rate)f %(task_queue)s \
 --num_worker_per_node %(num_workers_per_node)d \
 -m %(mem)s \
 %(other_params)s &
-    sleep 1
+sleep 0.5
 done
 wait
-""" % \
-                                            dict(debug="--debug" if DEBUG else "",
-                                                 wall_time=job_time_to_request,
-                                                 job_name=job_name,
-                                                 partition_name=partition,
-                                                 qosname=qos,
-                                                 charging_account=charging_account,
-                                                 num_nodes_to_request=num_nodes_to_request,
-                                                 mem_per_node_setting=mnode_param,
-                                                 worker_id=UNIQ_WORKER_ID,
-                                                 job_dir=job_script_dir_name,
-                                                 env_activation_cmd=env_act,
-                                                 num_workers_per_node=num_workers_per_node,
-                                                 mem=mem_per_node_to_request,
-                                                 lbl_cluster_name=cluster_name,
-                                                 worker_type=THIS_WORKER_TYPE,
-                                                 clone_time_rate=worker_clone_time_rate,
-                                                 task_queue=tp_param,
-                                                 other_params=batch_job_misc_params,
-                                                 export_jtm_config_file="export JTM_CONFIG_FILE=%s"
-                                                                        % worker_config,
-                                                 set_jtm_config_file="--config=%s"
-                                                                     % worker_config)
+""" % dict(
+                        debug="--debug" if DEBUG else "",
+                        wall_time=job_time_to_request,
+                        job_name=job_name,
+                        partition_name=partition,
+                        qosname=qos,
+                        charging_account=charging_account,
+                        num_nodes_to_request=num_nodes_to_request,
+                        mem_per_node_setting=mnode_param,
+                        worker_id=UNIQ_WORKER_ID,
+                        job_dir=job_script_dir_name,
+                        env_activation_cmd=env_act,
+                        num_workers_per_node=num_workers_per_node,
+                        mem=mem_per_node_to_request,
+                        lblit_cluster_name=cluster_name,
+                        worker_type=THIS_WORKER_TYPE,
+                        clone_time_rate=worker_clone_time_rate,
+                        task_queue=tp_param,
+                        other_params=batch_job_misc_params,
+                        export_jtm_config_file="export JTM_CONFIG_FILE=%s"
+                        % worker_config,
+                        set_jtm_config_file="--config=%s" % worker_config,
+                    )
+
+                elif cluster_name in ("pnnl", "pnl", "emsl", "cascade"):
+                    if worker_id_param:
+                        batch_job_misc_params += " -wi %(worker_id)s_${i}" % dict(
+                            worker_id=UNIQ_WORKER_ID
+                        )
+                    tp_param = ""
+                    if pool_name_param:
+                        tp_param = "-p " + pool_name_param
+
+                    batch_job_script_str += """
+#SBATCH --account=%(charging_account)s
+#SBATCH --nodes=%(num_nodes_to_request)d
+#SBATCH --ntasks-per-node 16
+#SBATCH --time=%(wall_time)s
+#SBATCH --job-name=%(job_name)s
+#SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
+#SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
+
+%(env_activation_cmd)s
+%(export_jtm_config_file)s
+for i in {1..%(num_workers_per_node)d}
+do
+    echo "jobid: $SLURM_JOB_ID"
+    jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
+-cl %(emsl_cluster_name)s \
+-wt %(worker_type)s \
+-t %(wall_time)s \
+--clone_time_rate %(clone_time_rate)f %(task_queue)s \
+--num_worker_per_node %(num_workers_per_node)d \
+-m %(mem)s \
+%(other_params)s &
+sleep 0.5
+done
+wait
+""" % dict(
+                        debug="--debug" if DEBUG else "",
+                        wall_time=job_time_to_request,
+                        job_name=job_name,
+                        charging_account=charging_account,
+                        num_nodes_to_request=num_nodes_to_request,
+                        worker_id=UNIQ_WORKER_ID,
+                        job_dir=job_script_dir_name,
+                        env_activation_cmd=env_act,
+                        num_workers_per_node=num_workers_per_node,
+                        mem=mem_per_node_to_request,
+                        emsl_cluster_name=cluster_name,
+                        worker_type=THIS_WORKER_TYPE,
+                        clone_time_rate=worker_clone_time_rate,
+                        task_queue=tp_param,
+                        other_params=batch_job_misc_params,
+                        export_jtm_config_file="export JTM_CONFIG_FILE=%s"
+                        % worker_config,
+                        set_jtm_config_file="--config=%s" % worker_config,
+                    )
 
                 jf.writelines(batch_job_script_str)
 
@@ -1172,6 +1479,9 @@ wait
                 sys.exit(0)
 
             sbatch_cmd = "sbatch --parsable %s" % (batch_job_script_file)
+            if constraint == "skylake":
+                sbatch_cmd = "module load esslurm; " + sbatch_cmd
+                logger.debug(f"skylake sbatch: {sbatch_cmd}")
             _, _, ec = run_sh_command(sbatch_cmd, log=logger)
             return ec
 
@@ -1196,36 +1506,46 @@ wait
     except Exception as e:
         logger.exception("recv_task_kill_request_proc: {}".format(e))
         proc_clean_exit(pid_list)
+        raise
 
     # Start send_hb_to_client_proc proc
     try:
-        send_hb_to_client_proc_hdl = mp.Process(target=send_hb_to_client_proc,
-                                                args=(hearbeat_interval,
-                                                      slurm_job_id,
-                                                      mem_per_node_to_request,
-                                                      mem_per_cpu_to_request,
-                                                      num_cpus_to_request,
-                                                      job_time_to_request,
-                                                      tp_name,
-                                                      num_workers_per_node,
-                                                      show_resource_log))
+        send_hb_to_client_proc_hdl = mp.Process(
+            target=send_hb_to_client_proc,
+            args=(
+                hearbeat_interval,
+                slurm_job_id,
+                mem_per_node_to_request,
+                mem_per_cpu_to_request,
+                num_cpus_to_request,
+                job_time_to_request,
+                tp_name,
+                num_workers_per_node,
+                show_resource_log,
+            ),
+        )
         send_hb_to_client_proc_hdl.start()
         pid_list.append(send_hb_to_client_proc_hdl)
     except Exception as e:
         logger.exception("send_hb_to_client_proc: {}".format(e))
         proc_clean_exit(pid_list)
+        raise
 
-    logger.info("Start sending my heartbeat to the client in every %d sec to %s"
-                % (hearbeat_interval, CONFIG.configparser.get("JTM", "worker_hb_q_postfix")))
+    logger.info(
+        "Start sending my heartbeat to the client in every %d sec to %s"
+        % (hearbeat_interval, CONFIG.configparser.get("JTM", "worker_hb_q_postfix"))
+    )
 
-    # Start send_hb_to_client_proc proc
+    # Start task runner proc
     try:
-        process_task_proc_hdl = mp.Process(target=TaskRunner(config=CONFIG).start,
-                                           args=(inner_task_request_queue,))
+        process_task_proc_hdl = mp.Process(
+            target=TaskRunner(config=CONFIG).start, args=(inner_task_request_queue,)
+        )
         process_task_proc_hdl.start()
         pid_list.append(process_task_proc_hdl)
     except Exception as e:
         logger.exception("process_task_proc: {}".format(e))
         proc_clean_exit(pid_list)
+        raise
 
     return 0

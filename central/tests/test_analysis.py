@@ -10,7 +10,17 @@ import jaws_central.config
 @pytest.fixture
 def config_file(tmp_path):
     cfg = tmp_path / "jaws-central.ini"
-    content = """[DB]
+    content = """[JAWS]
+name = jaws-dev
+version = 2.0.1
+docs_url = https://jaws-docs.readthedocs.io/en/latest/
+
+[RPC_SERVER]
+user = jaws
+password = pppaass4
+vhost = jaws_test
+
+[DB]
 dialect = mysql+mysqlconnector
 host = db.foo.com
 port = 3306
@@ -22,25 +32,25 @@ db = jaws
 client_id = ZZZZ
 
 [SITE:LBNL]
-amqp_host = rmq.jaws.gov
-amqp_user = jaws
-amqp_password = passw0rd2
-amqp_vhost = jaws
-amqp_queue = lbnl_rpc
+host = rmq.jaws.gov
+user = jaws
+password = passw0rd2
+vhost = jaws
+queue = lbnl_rpc
 globus_endpoint = XXXX
 globus_basepath = "/global/scratch/jaws"
-staging_subdir = "staging"
+uploads_subdir = "uploads"
 max_ram_gb = 1024
 
 [SITE:NERSC]
-amqp_host = rmq.jaws.gov
-amqp_user = jaws
-amqp_password = passw0rd2
-amqp_vhost = jaws
-amqp_queue = nersc_rpc
+host = rmq.jaws.gov
+user = jaws
+password = passw0rd2
+vhost = jaws
+queue = nersc_rpc
 globus_endpoint = YYYY
 globus_basepath = "/"
-staging_subdir = "/global/scratch/jaws/staging"
+uploads_subdir = "/global/scratch/jaws/uploads"
 max_ram_gb = 2048
 """
     cfg.write_text(content)
@@ -121,6 +131,7 @@ class MockGetInactiveUploadRun:
         self.submitted = datetime.strptime("2020-05-14 23:08:50", "%Y-%m-%d %H:%M:%S")
         self.updated = datetime.strptime("2020-05-14 23:27:15", "%Y-%m-%d %H:%M:%S")
         self.upload_task_id = "dfbdfb7a-9637-11ea-bf90-0e6cccbb0103"
+        self.user_id = "dduck"
 
 
 @pytest.fixture()
@@ -142,6 +153,16 @@ def configuration(config_file):
     return jaws_central.config.Configuration(config_file)
 
 
+def test_list_sites(configuration):
+    user = "test_user"
+    result, code = jaws_central.analysis.list_sites(user)
+    assert isinstance(result, list)
+    for site in result:
+        assert isinstance(site, dict)
+        assert 'site_id' in site
+        assert 'max_ram_gb' in site
+
+
 def test_cancel_transfer(configuration, mock_database, mock_globus):
     user = "test_user"
     transfer_id = "without_error"
@@ -161,52 +182,6 @@ def test_run_status_inactive_upload(monkeypatch):
 
     out_json, status = jaws_central.analysis.run_status("user", 123)
     assert out_json["status_detail"] == comments
-
-
-def test_output(monkeypatch):
-    """Test output RPC call"""
-
-    def mock_get_run(user_id, run_id):
-        return {}
-
-    def mock_abort_if_pre_cromwell(run):
-        return
-
-    def mock_rpc_call(user_id, run_id, method, params={}):
-        assert isinstance(user_id, str)
-        assert isinstance(run_id, int)
-        assert method == "output"
-        assert params["failed_only"] is False
-
-    monkeypatch.setattr(jaws_central.analysis, "_get_run", mock_get_run)
-    monkeypatch.setattr(
-        jaws_central.analysis, "_abort_if_pre_cromwell", mock_abort_if_pre_cromwell
-    )
-    monkeypatch.setattr(jaws_central.analysis, "_rpc_call", mock_rpc_call)
-    jaws_central.analysis.output("user", 123)
-
-
-def test_failed_output(monkeypatch):
-    """Test output RPC call"""
-
-    def mock_get_run(user_id, run_id):
-        return {}
-
-    def mock_abort_if_pre_cromwell(run):
-        return
-
-    def mock_rpc_call(user_id, run_id, method, params={}):
-        assert isinstance(user_id, str)
-        assert isinstance(run_id, int)
-        assert method == "output"
-        assert params["failed_only"] is True
-
-    monkeypatch.setattr(jaws_central.analysis, "_get_run", mock_get_run)
-    monkeypatch.setattr(
-        jaws_central.analysis, "_abort_if_pre_cromwell", mock_abort_if_pre_cromwell
-    )
-    monkeypatch.setattr(jaws_central.analysis, "_rpc_call", mock_rpc_call)
-    jaws_central.analysis.failed_output("user", 123)
 
 
 def test_run_metadata(monkeypatch):

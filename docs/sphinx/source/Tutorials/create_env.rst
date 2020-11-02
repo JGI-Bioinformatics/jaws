@@ -21,13 +21,13 @@ Here are the steps we're going to take for this tutorial:
 ********************************
 Clone the Example Repository
 ********************************
-For this tutorial, I will be using the example code from `jaws-example-wdl <https://gitlab.com/jfroula/jaws-example-wdl>`_.
+For this tutorial, I will be using the example code from `jaws-example-wdl <https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git>`_.
 To follow along, do...
 
 .. code-block:: bash
 
-   git clone git@gitlab.com:jfroula/jaws-example-wdl.git
-   cd jaws-example-wdl/create_wdl_tutorial
+   git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
+   cd jaws-tutorial-example/5min_example
    
 
 
@@ -65,7 +65,7 @@ Try running the script to test environment. You need to be in this directory <yo
 
 .. code-block:: bash
    
-   ./script.sh reads.fq reference.fasta
+   ./script.sh ../data/sample.fastq.bz2 ../data/sample.fasta
 
 This should create a bam file (test.sorted.bam).
 
@@ -126,7 +126,7 @@ When you are convinced the docker image is good, you can register it with `hub.d
 5) Test your image on cori
 --------------------------
 
-Test the docker container on cori.nersc.gov. You'll need to use the shifter command instead of docker to run your workflow, but the image is the same. More about `shifter at NERSC <https://docs.nersc.gov/programming/shifter/how-to-use/>`_.
+Test the docker container on cori.NERSC.gov. You'll need to use the shifter command instead of docker to run your workflow, but the image is the same. More about `shifter at NERSC <https://docs.NERSC.gov/programming/shifter/how-to-use/>`_.
 
 example:
 

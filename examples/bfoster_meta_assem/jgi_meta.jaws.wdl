@@ -44,9 +44,9 @@ task bbcms {
     }
 
      command {
-        touch ${filename_resources}
-        bbcms.sh -Xmx105g metadatafile=${filename_counts} mincount=2 highcountfraction=0.6 in=${infile} out=${filename_outfile} > >(tee -a ${filename_outlog}) 2> >(tee -a ${filename_errlog} >&2) && grep Unique ${filename_errlog} | rev |  cut -f 1 | rev  > ${filename_kmerfile}
-        reformat.sh -Xmx105g in=${filename_outfile} out1=${filename_outfile1} out2=${filename_outfile2}
+        touch ${filename_resources} && \
+        bbcms.sh -Xmx105g metadatafile=${filename_counts} mincount=2 highcountfraction=0.6 in=${infile} out=${filename_outfile} > >(tee -a ${filename_outlog}) 2> >(tee -a ${filename_errlog} >&2) && grep Unique ${filename_errlog} | rev |  cut -f 1 | rev  > ${filename_kmerfile} && \
+        reformat.sh -Xmx105g in=${filename_outfile} out1=${filename_outfile1} out2=${filename_outfile2} && \
         readlength.sh -Xmx105g in=${filename_outfile} out=${filename_readlen}
      }
 
@@ -85,7 +85,7 @@ task assy {
     }
 
      command{
-        touch ${filename_resources}
+        touch ${filename_resources} && \
         spades.py -m 2000 --tmp-dir /tmp -o ${outprefix} --only-assembler -k 33,55,77,99,127  --meta -t ${dollar}(grep "model name" /proc/cpuinfo | wc -l) -1 ${infile1} -2 ${infile2}
      }
 
@@ -119,7 +119,7 @@ task create_agp {
     }
 
     command{
-        touch ${filename_resources}
+        touch ${filename_resources} && \
         fungalrelease.sh -Xmx105g in=${scaffolds_in} out=${filename_scaffolds} outc=${filename_contigs} agp=${filename_agp} legend=${filename_legend} mincontig=200 minscaf=200 sortscaffolds=t sortcontigs=t overwrite=t
   }
 
@@ -158,10 +158,10 @@ task read_mapping_pairs{
     }
 
     command{
-        touch ${filename_resources}
-        bbmap.sh -Xmx105g threads=${dollar}(grep "model name" /proc/cpuinfo | wc -l) nodisk=true interleaved=true ambiguous=random in=${reads} ref=${ref} out=${filename_unsorted} covstats=${filename_cov} bamscript=${filename_bamscript}
-        samtools sort -m100M -@ ${dollar}(grep "model name" /proc/cpuinfo | wc -l) ${filename_unsorted} -o ${filename_sorted}
-        samtools index ${filename_sorted}
+        touch ${filename_resources} && \
+        bbmap.sh -Xmx105g threads=${dollar}(grep "model name" /proc/cpuinfo | wc -l) nodisk=true interleaved=true ambiguous=random in=${reads} ref=${ref} out=${filename_unsorted} covstats=${filename_cov} bamscript=${filename_bamscript} && \
+        samtools sort -m100M -@ ${dollar}(grep "model name" /proc/cpuinfo | wc -l) ${filename_unsorted} -o ${filename_sorted} && \
+        samtools index ${filename_sorted} && \
         reformat.sh -Xmx105g in=${filename_unsorted} out=${filename_outsam} overwrite=true
   }
 

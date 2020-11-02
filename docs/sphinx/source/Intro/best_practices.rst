@@ -2,83 +2,38 @@
 Best Practices for Creating WDLs
 ================================
 
+This link has helpfull examples
+
+`WDL best practices (scott frazer's gist) <https://gist.github.com/scottfrazer/aa4ab1945a6a4c331211>`_
+
+
+Docker Images
 -----------------------------------
-* Container should have all code, but not necessarily reference data which may be mounted
+* save you docker images at hub.docker.com. Jaws will pull images from there by default.
 
-* Update version tag whenever the container is changed
+* include a "Dockerfile" in your git repository
 
-* Reference/use containers by specifying a version, rather than LATEST
+* keep older version of the docker images so older workflows can be reproduced
 
-* Conda environments are useful for creating containers; be sure to install by specifying versions explicitly rather than using LATEST
+* use conda or venv environments instead of docker for testing
 
-* Archive containers rather than rely upon a public docker hub, in case need to use an old container to reproduce an analysis
+* use Cromwell.jar instead of jaws for testing
 
-* Avoid hardcoded paths; include code to fetch reference files/dbs (e.g. ftp)
-
-* Method should be described, perhaps in a README file in the container or in a separate code repository (e.g. git)
-
-    - It should have sufficient detail to be comprehensible to a relatively naive user
-
-    - Any papers, test data, test results should be referenced and/or provided
 
 Workflows/Tasks:
 ----------------
 * Workflows should be comprised of distinct tasks than can be executed outside the context of the workflow
 
-* Tasks should produce one/few files, written to current working dir, rather than some user defined directory structure; files can be copied anywhere after the pipeline is done, or as a final task.
+* tasks should take file paths as inputs, not folders
+
+* separate tasks which use varying compute resources whenever possible
+
+* grouping tasks into sub-workflows makes them more understandable, reuseable, and more easily maintained
+
+* if multiple commands are used in a "command" stanza, they should be chained using `&&` or `set -euo pipefail` so subsequent commands are not executed after the first failure
 
 
-    - Similarly, tasks should take file paths as inputs, not folders
+There are opportunities to participate in code reviews with other WDL developers; there is also a #jaws-developers slack channel (see below link).
 
-* Separate tasks which use varying compute resources whenever possible
-
-* Task requirements should be explicitly document and not assumed
-
-* Minimize unnecessary assumptions about input to facilitate reuse
-
-* Grouping tasks into sub-workflows makes them more understandable, reuseable, and more easily maintained
-
-* Setup sub-workflows/microservices for common, important functions to consolidate code
-
-* Compute resources should be specified/described for each task (e.g. is it multithreaded?  How many threads recommended?  What are typical RAM requirements?  What is typical runtime?)
-
-Developer community
--------------------
-* Share lessons learned in persistent format (e.g. on wiki, forum; not meeting/presentation)
-* Share and announce your contributions (e.g. git, forum)
-* Favor reuse and contribute to shared tools rather than creating your own or forking
-
-Testing/QA
-----------
-* Regression test prior to releasing new container
-* Participate in code reviews with your peers
-
-FAIR data practices
--------------------
-
-.. figure:: /Figures/fair.png
-  :scale: 100%
-
-
-* Findable:
-    - Metadata and results should be indexed/stored in a data warehouse
-
-* Accessible:
-    - Metadata and files should be easily retrieved programmatically, e.g. FTP or web service rather than websites. i.e. allow bulk downloads, not just browsing capability
-
-* Interoperable:
-    - Use common file formats; when homegrown formats are used, they should be generated on the fly as temporary intermediate files
-
-* Reusability: 
-	- write once, run anywhere
-
-* Reproducible:
-    - Version workflows and use versioned containers
-    - Release workflows/code in additoin to describing method in paper
-    - Workflow output should contain log indicating:
-        + Workflow and version
-        + Input links to metadata (not just paths); including reference db (metadata must include release version)
-        + Runtime parameters
-        + Auto-generated parameters (e.g. random seeds)
-        + Outputs links to data warehouses (e.g. NCBI IDs, etc.)
+The `ContactUs <contact_us.html>`_ page offers ways for getting help.
 

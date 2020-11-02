@@ -7,11 +7,10 @@ from datetime import datetime, timedelta
 from flask import abort, request
 import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
-import collections
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
-from jaws_central.models_fsa import db, Run, User, Run_Log, Job_Log
+from jaws_central.models_fsa import db, Run, User, Run_Log
 
 
 logger = logging.getLogger(__package__)
@@ -26,7 +25,7 @@ run_active_states = [
     "running",
     "succeeded",
     "ready",
-    "downloading"
+    "downloading",
 ]
 
 run_pre_cromwell_states = [
@@ -110,6 +109,7 @@ def user_queue(user):
                 "id": run.id,
                 "submission_id": run.submission_id,
                 "cromwell_run_id": run.cromwell_run_id,
+                "result": run.result,
                 "status": run.status,
                 "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
                 "site_id": run.site_id,
@@ -121,6 +121,7 @@ def user_queue(user):
                 "output_endpoint": run.output_endpoint,
                 "output_dir": run.output_dir,
                 "download_task_id": run.download_task_id,
+                "user_id": run.user_id,
             }
         )
     return result, 200
@@ -167,6 +168,7 @@ def user_history(user, delta_days=10):
                 "output_endpoint": run.output_endpoint,
                 "output_dir": run.output_dir,
                 "download_task_id": run.download_task_id,
+                "user_id": run.user_id,
             }
         )
     return result, 200
@@ -183,7 +185,12 @@ def list_sites(user):
     logger.info(f"User {user}: List sites")
     result = []
     for site_id in config.conf.sites.keys():
-        result.append(site_id)
+        max_ram_gb = config.conf.get_site(site_id, "max_ram_gb")
+        record = {
+            "site_id": site_id,
+            "max_ram_gb": max_ram_gb,
+        }
+        result.append(record)
     return result, 200
 
 
@@ -194,14 +201,14 @@ def get_site(user, site_id):
     :type user: str
     :param site_id: a JAWS-Site's ID
     :type site_id: str
-    :return: globus endpoint id and staging path
+    :return: globus endpoint id and uploads path
     :rtype: dict
     """
     logger.debug(f"User {user}: Get info for site {site_id}")
     result = config.conf.get_site_info(site_id)
     if result is None:
         abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
-    result["staging_subdir"] = f'{result["staging_subdir"]}/{user}'
+    result["uploads_subdir"] = f'{result["uploads_subdir"]}/{user}'
     return result, 200
 
 
@@ -242,9 +249,16 @@ def submit_run(user):
     try:
         db.session.add(run)
     except Exception as error:
+        db.session.rollback()
         logger.exception(f"Error inserting Run: {error}")
         abort(500, f"Error inserting Run into db: {error}")
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        err_msg = f"Unable to insert new run in db: {error}"
+        logger.exception(err_msg)
+        abort(500, err_msg)
     logger.debug(f"User {user}: New run {run.id}")
 
     # SUBMIT GLOBUS TRANSFER
@@ -298,7 +312,9 @@ def submit_run(user):
         run.status = "upload failed"
         db.session.commit()
         if error.code == "NoCredException":
-            logger.warning(f"{user} submission {run.id} failed due to Globus {error.code}")
+            logger.warning(
+                f"{user} submission {run.id} failed due to Globus {error.code}"
+            )
             abort(
                 401,
                 error.message
@@ -309,17 +325,20 @@ def submit_run(user):
             )
         else:
             logger.exception(
-                f"{user} submission {run.id} failed for GlobusAPIError: {error}", exc_info=True
+                f"{user} submission {run.id} failed for GlobusAPIError: {error}",
+                exc_info=True,
             )
             abort(error.code, error.message)
     except globus_sdk.NetworkError as error:
         logger.exception(
-            f"{user} submission {run.id} failed due to NetworkError: {error}", exc_info=True
+            f"{user} submission {run.id} failed due to NetworkError: {error}",
+            exc_info=True,
         )
         abort(500, f"Network Error: {error}")
     except globus_sdk.GlobusError as error:
         logger.exception(
-            f"{user} submission {run.id} failed for unknown error: {error}", exc_info=True
+            f"{user} submission {run.id} failed for unknown error: {error}",
+            exc_info=True,
         )
         abort(500, f"Unexpected error: {error}")
     upload_task_id = transfer_result["task_id"]
@@ -339,8 +358,14 @@ def submit_run(user):
     try:
         db.session.add(log)
     except Exception as error:
+        db.session.rollback()
         logger.exception(f"Error inserting run log for Run {run.id}: {error}")
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        err_msg = f"Error inserting run log for Run {run.id}: {error}"
+        logger.exception(err_msg)
 
     # SEND TO SITE
     params = {
@@ -392,7 +417,11 @@ def _update_run_status(run, new_status, reason=None):
     """Update run table and insert run_logs entry."""
     status_from = run.status
     run.status = new_status
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        logger.exception(f"Error updating run status in db: {error}")
     log = Run_Log(
         run_id=run.id,
         status_from=status_from,
@@ -400,8 +429,12 @@ def _update_run_status(run, new_status, reason=None):
         timestamp=run.updated,
         reason=reason,
     )
-    db.session.add(log)
-    db.session.commit()
+    try:
+        db.session.add(log)
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        logger.exception(f"Error insert run log entry: {error}")
 
 
 def _get_run(user, run_id):
@@ -473,6 +506,7 @@ def run_status(user, run_id):
         "output_endpoint": run.output_endpoint,
         "output_dir": run.output_dir,
         "download_task_id": run.download_task_id,
+        "user_id": run.user_id,
     }
     return result, 200
 
@@ -488,38 +522,10 @@ def task_status(user, run_id):
     :return: The status of each task in a run.
     :rtype: dict
     """
+    logger.info(f"User {user}: Get task-status of Run {run_id}")
     run = _get_run(user, run_id)
-    logger.info(f"User {user}: Get task-status of Run {run.id}")
-    if not run:
-        abort(404, f"Run {run_id} does not exist")
-
-    # get job log entries, sorted by timestamp,
-    # save in dict in which only the latest entry is kept
-    try:
-        query = (
-            db.session.query(Job_Log)
-            .filter_by(run_id=run_id)
-            .order_by(Job_Log.timestamp)
-        )
-    except SQLAlchemyError as error:
-        logger.exception(f"Error selecting from job_log: {error}")
-        abort(500, f"Db error; {error}")
-    tasks = collections.OrderedDict()
-    for log in query:
-        task_name = log.task_name
-        reason = log.reason if log.reason else ""
-        tasks[task_name] = [
-            log.task_name,
-            log.attempt,
-            log.cromwell_job_id,
-            log.status_from,
-            log.status_to,
-            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason,
-            jaws_constants.task_status_msg.get(log.status_to, "")
-        ]
-        tasks.move_to_end(task_name)
-    return list(tasks.values()), 200
+    _abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "get_task_status")
 
 
 def run_log(user: str, run_id: int):
@@ -551,7 +557,7 @@ def run_log(user: str, run_id: int):
             log.status_from,
             log.status_to,
             log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason
+            reason,
         ]
         table.append(row)
     return table, 200
@@ -568,31 +574,10 @@ def task_log(user, run_id):
     :return: The complete log of all task state transitions.
     :rtype: dict
     """
+    logger.info(f"User {user}: Get task-log for Run {run_id}")
     run = _get_run(user, run_id)
-    logger.info(f"User {user}: Get task-log of Run {run.id}")
-    try:
-        query = (
-            db.session.query(Job_Log)
-            .filter_by(run_id=run_id)
-            .order_by(Job_Log.timestamp)
-        )
-    except SQLAlchemyError as error:
-        logger.exception(f"Error selecting from job_logs: {error}")
-        abort(500, f"Db error; {error}")
-    table = []
-    for log in query:
-        reason = log.reason if log.reason else ""
-        row = [
-            log.task_name,
-            log.attempt,
-            log.cromwell_job_id,
-            log.status_from,
-            log.status_to,
-            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason
-        ]
-        table.append(row)
-    return table, 200
+    _abort_if_pre_cromwell(run)
+    return _rpc_call(user, run_id, "get_task_log")
 
 
 def run_metadata(user, run_id):
@@ -612,38 +597,21 @@ def run_metadata(user, run_id):
     return _rpc_call(user, run_id, "run_metadata")
 
 
-def output(user, run_id):
+def get_errors(user, run_id):
     """
-    Retrieve the stdout/stderr output of all Tasks.
+    Retrieve error messages and stderr for failed tasks.
 
     :param user: current user's ID
     :type user: str
     :param run_id: unique identifier for a run
     :type run_id: int
-    :return: stdout/stderr file contents
+    :return: Cromwell error messages and stderr for all failed tasks.
     :rtype: str
     """
-    logger.info(f"User {user}: Get output for Run {run_id}")
+    logger.info(f"User {user}: Get errors for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "output", {"failed_only": False})
-
-
-def failed_output(user, run_id):
-    """
-    Retrieve the logs for failed tasks.
-
-    :param user: current user's ID
-    :type user: str
-    :param run_id: unique identifier for a run
-    :type run_id: int
-    :return: Cromwell stdout/stderr/submit files for failed tasks.
-    :rtype: str
-    """
-    logger.info(f"User {user}: Get failed-task output for Run {run_id}")
-    run = _get_run(user, run_id)
-    _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "output", {"failed_only": True})
+    return _rpc_call(user, run_id, "get_errors")
 
 
 def cancel_run(user, run_id):
@@ -691,6 +659,7 @@ def _cancel_run(run, reason="Cancelled by user"):
     try:
         db.session.commit()
     except Exception as error:
+        db.session.rollback()
         logger.exception(f"Error while updating run to 'cancelled': {error}")
     log = Run_Log(
         run_id=run.id,
@@ -703,7 +672,10 @@ def _cancel_run(run, reason="Cancelled by user"):
         db.session.add(log)
         db.session.commit()
     except Exception as error:
-        logger.error(f"Error while adding run log entry to cancel run {run.id}: {error}")
+        db.session.rollback()
+        logger.error(
+            f"Error while adding run log entry to cancel run {run.id}: {error}"
+        )
 
 
 def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:

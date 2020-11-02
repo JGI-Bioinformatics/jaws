@@ -17,7 +17,7 @@ def test_overwrite_all_default_values(config_file):
 
     expected_local_rpc_server_sections = [
         ("host", "localhost"),
-        ("vhost", "site_vhost"),
+        ("vhost", "jaws_test"),
         ("queue", "site_rpc"),
         ("user", "jaws"),
         ("password", "passw0rd1"),
@@ -27,7 +27,7 @@ def test_overwrite_all_default_values(config_file):
 
     expected_central_rpc_server_sections = [
         ("host", "currenthost"),
-        ("vhost", "jaws"),
+        ("vhost", "jaws_test"),
         ("user", "jaws_eagle"),
         ("password", "succotash"),
         ("num_threads", "5"),
@@ -36,7 +36,7 @@ def test_overwrite_all_default_values(config_file):
 
     expected_rpc_client_sections = [
         ("host", "currenthost"),
-        ("vhost", "jaws"),
+        ("vhost", "jaws_test"),
         ("queue", "central_rpc"),
         ("user", "jaws_eagle"),
         ("password", "succotash"),
@@ -45,7 +45,8 @@ def test_overwrite_all_default_values(config_file):
     expected_globus_sections = [
         ("client_id", "foghorn_leghorn"),
         ("endpoint_id", "rooster"),
-        ("root_dir", "cwd")
+        ("root_dir", "cwd"),
+        ("default_dir", "/")
     ]
 
     expected_db_sections = [
@@ -59,8 +60,8 @@ def test_overwrite_all_default_values(config_file):
 
     expected_site_sections = [
         ("id", "eagle"),
-        ("staging_subdirectory", "staging"),
-        ("results_subdirectory", "results"),
+        ("uploads_subdirectory", "uploads"),
+        ("downloads_subdirectory", "downloads"),
     ]
 
     expected_cromwell_sections = [
@@ -85,5 +86,5 @@ def test_config_overwrite_partial_values(partial_config):
     cfg = jaws_site.config.Configuration(config_path)
 
     check_section("CENTRAL_RPC_SERVER", [("host", "https://rmq.nersc.gov")], cfg)
-    check_section("CENTRAL_RPC_SERVER", [("vhost", "site")], cfg)
+    check_section("CENTRAL_RPC_SERVER", [("vhost", "jaws_test")], cfg)
     check_section("CENTRAL_RPC_SERVER", [("max_retries", "10")], cfg)

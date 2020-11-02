@@ -1,8 +1,74 @@
-# Integration Testing/Deployment
+# Deployment
 
-These directories contains scripts, which are used to deploy JAWS onto different sites. Those scripts
-are driven by the Gitlab CI/CD system, as specified in the .gitlab-ci.yml file in the root of
-this repository.
+There are multiple scripts that handle the creation of directories, python
+virtual environments, configuration files and supervisord wrapper scripts (shims)
+for starting JAWS services. 
+
+### Environment Variables 
+In order to deploy JAWS, you will need to set some environment variables. This
+is already taken care of in the `.gitlab-ci.yml` file. The following are
+variables that must be set for the deployment to be successful:  
+
+- DEPLOYMENT_NAME: Deployment environment name dev, staging, prod  
+- JAWS_SITE: name of the deployment site ([SITE], JGI, CASCADE)  
+- DEPLOY_JAWS_CLIENT: Whether client will be installed (1 or 0)  
+- JAWS_SITES: All the different sites that JAWS is installed   
+- JAWS_VERSION: version of JAWS  
+- JAWS_DOCS_URL: URL where readthedocs is hosted ("https://jaws-docs.readthedocs.io/en/latest/")  
+- JAWS_CENTRAL_HOST: hostname of JAWS central server  
+- JAWS_CENTRAL_RMQ_HOST: hostname of RabbitMQ server that Central will use
+- JAWS_CENTRAL_RMQ_PORT: port for RabbitMQ server  that Central will use
+- JAWS_GLOBUS_CLIENT_ID: Globus Client app registration id  
+- CROMWELL_VERSION: version of Cromwell
+- JAWS_CENTRAL_DB_HOST: hostname for the MYSQL database 
+- JAWS_CENTRAL_DB_PORT: port for the MYSQL database 
+
+These are deployment specific. The deployment placeholder stands for either
+dev, staging or prod.  
+- [deployment]_LOG_LEVEL: Python logging level (DEBUG)  
+- [deployment]_JAWS_SUPERVISOR_PORT: Supervisord port number  
+- [deployment]_JTM_SUPERVISOR_PORT: Supervisord port number for JTM service  
+- [deployment]_JAWS_AUTH_PORT: auth service port number  
+- [deployment]_JAWS_REST_PORT: rest service port number  
+- [deployment]_CROMWELL_PORT: cromwell port number  
+
+The following changes per site and are prefixed with the site name:  
+- [SITE]_INSTALL_BASEDIR: base directory where JAWS services will be installed  
+- [SITE]_GLOBUS_EP: Globus endpoint id   
+- [SITE]_GLOBUS_ROOT_DIR: Root path where globus will upload files   
+- [SITE]_GLOBUS_DEFAULT_DIR: Default directory for globus upload  
+- [SITE]_RMQ_HOST: hostname for RabbitMQ that site will use  
+- [SITE]_RMQ_PORT: port number for RabbitMQ that site will use  
+- [SITE]_PYTHON: The name of the python executable (eg python, python3)  
+- [SITE]_LOAD_PYTHON: The module command for loading python. Can be "" (ie - no modules)  
+- [SITE]_JAWS_GROUP: Linux group name for JAWS  
+- [SITE]_JTM_GROUP: Linux group name for JTM  
+- [SITE]_CLIENT_GROUP: Linux group name for client. Group name is something all JGI users can use  
+- [SITE]_JAWS_SCRATCH_BASEDIR: SCRATCH directory for JAWS  
+- [SITE]_JTM_SCRATCH_BASEDIR: SCRATCH directory for JTM. Can be same as JAWS   
+- [SITE]_JAWS_SW_BASEDIR: Base directory where JAWS code is located  
+- [SITE]_JTM_SW_BASEDIR: Base directory where JTM code is located  
+- [SITE]_REF_DATA_DIR: Location of JGI ref data  
+- [SITE]_SUPERVISOR_HOST: Supervisor hostname for site  
+- [SITE]_CONTAINER_TYPE: Container type the site uses (shifter, singularity etc)  
+- [SITE]_DB_HOST: db hostname site will be using  
+- [SITE]_DB_PORT: port number for db that site will use  
+- [SITE]_CLUSTER_QOS: quality of service to use for a particular cluster  
+- [SITE]_CLUSTER_PARTITION: Slurm partition name of the cluster  
+- [SITE]_CLUSTER_ACCOUNT: Slurm cluster account to use for job submission  
+- [SITE]_CLUSTER_CONSTRAINT: Cluster node type (eg - haswell, knl, skylake) 
+- [SITE]_MAX_RAM_GB: Maximum ram for the cluster
+- [SITE]_LOAD_JAVA: Module load command for Java  
+
+
+### deploy-jaws 
+This is the main execution script that drives the deployment of JAWS. It first
+sets up the environment by calling `define-envs` which looks for different
+environment variables defined above. Before deployment it will call on  
+`supervisorctl` to stop the services. Then it will perform a fresh install of
+JAWS by generating the python virtual environments, configs and shims. It will
+then restart the services with the new configuration and python installs. I
+
 
 ## Architecture
 
@@ -31,8 +97,6 @@ user workloads: one for JAWS and one for JTM/Cromwell.
 
 ## Ports
 
-### Cori (server: cori20.nersc.gov)
-
     Service          | dev   | staging | prod
     -----------------+-------+---------+------
     central-auth     | 3001  | 3002    | 3003
@@ -40,3 +104,74 @@ user workloads: one for JAWS and one for JTM/Cromwell.
     cromwell         | 50101 | 50102   | 50103
     supervisord-jaws | 64101 | 64102   | 64103
     supervisord-jtm  | 64111 | 64112   | 64113
+
+
+## Common Commands
+
+To see this in action see .gitlab-ci.yml .
+
+Start the supervisors. Only necessary once, after startup of the machine hosting the services: 
+
+    $ <command> <jaws_user>
+    $ /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf 
+
+    $ logout
+
+    $ <command> <jtm_user>
+    $ /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf
+
+The following users map to the following sites:  
+
+CORI:
+    - command: collabsu 
+    - user: jaws | jaws_jtm
+
+LRC:
+    - command: sudo -u <user> -i
+    - user: jaws | ja
+
+CASCADE:
+    - command: sudo -u <user> -i
+    - user: svc-jtm-manager | svc-jtm-user
+
+
+Note for cascade you will need to ssh to the host `gwf1.emsl.pnl.gov` before you attempt to change
+into the user. 
+
+
+Check the status of JAWS services:
+
+    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf status
+    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf status
+
+Start the JAWS services:
+
+    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start
+    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf start
+
+Note: there exists two supervisord processes, one for jaws and one for jtm,  even if there are not two
+separate jaws and jtm users in use at the deployment site.
+
+
+## Starting the gitlab-runner on Cori20
+
+After a maintenance, it is very likely that the runner will need to be restarted
+in order to accomplish this use the following steps:
+
+    $ collabsu jaws
+    $ cd $CFS/m342/jaws_runner/usr/bin
+    $ nohup ./gitlab-runner run &
+
+You can then check the UI on gitlab to see if the runner is up and working.
+
+To do this, on the sidebar go to `Settings > CI/CD > Runners` and check if
+the green dot is next to the cori20 runner.
+
+## Starting the gitlab-runner on LRC
+
+`/global/home/groups-sw/lr_jgicloud/jaws_ci_runner/usr/bin/gitlab-runner "run" "--config" "/global/home/groups-sw/lr_jgicloud/jaws_ci_runner/configuration/config.toml"``
+
+## Starting the gitlab-runner on CASCADE 
+
+Currently the gitlab runner is being managed by EMSL. To contact them, join the #emsl-jgi-coordination channel on the JGI slack. 
+

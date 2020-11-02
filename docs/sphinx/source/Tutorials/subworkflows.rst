@@ -1,6 +1,6 @@
-============
-Subworkflows
-============
+========================
+Current JGI Subworkflows
+========================
 
 .. role:: bash(code)
    :language: bash
@@ -9,42 +9,44 @@ Subworkflows
    This tutorial describes why you would use subworkflows and how to use them in your WDLs. 
 
 
-A subworkflow is just a WDL that can be called/imported from a main WDL. 
+A subworkflow is just a WDL that can be called/imported from a main WDL and then treated as a task. 
+
+Here is a more detailed description of subworkflows on `Cromwell's docs <https://Cromwell.readthedocs.io/en/stable/SubWorkflows>`_
 
 ####################
 Why use subworkflows
 ####################
 
-Reasons to use subworkflows
-  * re-use code
-  * use code that has been expertly vetted
+* re-use code
+* use code that has been expertly vetted
 
-#######
-Summary
-#######
+#######################
+Example of Subworkflow
+#######################
 
-A subworkflow can be imported into the main WDL and then treated as a task. 
-
-To see the detailed subworkflow description on `cromwell's docs <https://cromwell.readthedocs.io/en/stable/SubWorkflows>`_
-
-Main WDL: main.wdl
-------------------
+**Main WDL: main.wdl**
 
 .. figure:: /Figures/main.png
 
-Subworkflow: sub.wdl
----------------------
+**Subworkflow: sub.wdl**
 
 .. figure:: /Figures/sub.png
 
 ##############################
-How to Run Subworflows in JAWS
+How to Run Subworkflows in JAWS
 ##############################
 
-You can try running this example by downloading `subworkflow-helloworld <https://code.jgi.doe.gov/advanced-analysis/jaws/tree/dev/examples/subworkflow-helloworld>`_ as a tar or zip or you can clone :bash:`https://code.jgi.doe.gov/advanced-analysis/jaws` and cd into jaws/examples/subworkflow-helloworld.
-
-Then run
+You can try running this example
 
 .. code-block:: bash
 
-   jaws run submit main.wdl inputs.json $(pwd)/out nersc
+    # activate the environment you set up above
+    source ~/jaws-dev/bin/activate
+
+    # clone the example code
+    git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
+
+    cd jaws-tutorial-examples/subworkflow
+
+    # run jaws run submit <workflow> <inputs> <full path to outdir> <site>
+    jaws run submit main.wdl inputs.json out cori

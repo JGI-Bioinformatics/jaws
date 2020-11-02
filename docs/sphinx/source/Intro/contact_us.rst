@@ -2,31 +2,55 @@
 Contact Us
 ==========
 
-Questions about
-    * how to use JAWS
-    * bug reports
-    * feature requests
-
-should be brought up in the JAWS slack channel or via a JIRA ticket(see below).
-
-.. topic:: Main Contact
-
-   If slack or JIRA fails for you, you can email user support: jlfroula@lbl.gov
+Slack and JIRA are only available for **JGI Staff**. If these avenues are not available, you can write an email to jaws-support@lbl.gov.
 
 
-.. topic:: Using SLACK
+-------------------------------
+Create a JIRA Ticket for Issues
+-------------------------------
 
-   1. open slack
-   2. To add the workspace: joint-genome-inst.slack.com you can
-      use the big plus sign on the left panel. Type in "joint-genome-inst"
-      and folow directions.
-   3. Now you can use the "Jump to ..." search box also in left
-      panel near the top and type "jaws"
+   To open a JIRA Ticket, go to (`JGI Intranet -> SUPPORT -> JGI’s Analysis Workflow Service (JAWS) <https://intranet.lbl.gov/jgi/services/computers-networking/jaws/>`_)
 
 
+-----------------------------
+Using SLACK to Ask a Question
+-----------------------------
 
-.. topic:: To add a ticket to JIRA
+   Under the workspace: **joint-genome-inst.slack.com** there is a **#jaws** channel.
 
-      1. open JIRA (issues.jgi.doe.org)
-      2. under "Projects" -> "show all projects" search for "jaws".
 
+--------------------------
+
+------------
+Contributors
+------------
+
+Developers
+
+  * Edward Kirton
+  * Mario Melara
+  * Georg Rath
+  * Seung-jin Sul
+  * Stephan Trong
+
+Documentation and WDL authoring
+
+  * Jeff Froula
+
+User support
+
+  * Jeff Froula
+  * Ed Kirton
+  * Ramani Kothadia
+  * Seung-Jin Sul
+
+System and integration testing
+
+  * Jeff Froula
+  * Angie Kollmer
+  * Ramani Kothadia
+
+Functional design consulting, project and resource coordination
+
+  * Kjiersten Fagnan
+  * Hugh Salamon

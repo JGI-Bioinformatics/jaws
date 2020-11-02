@@ -21,8 +21,7 @@
 # command
 
 # cori
-java -Dconfig.file=cromwell.conf -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run main.wdl -i inputs.json 
+java -Dconfig.file=../ConfigFiles/cromwell_shifter.conf -Dbackend.providers.Local.config.dockerRoot=$(pwd)/cromwell-executions -jar $(crom) run main.wdl -i inputs.json
 
 # lbl
-java -Dconfig.file=cromwell.conf -jar /global/home/groups-sw/lr_jgicloud/dev/jtm/opt/cromwell.jar run main.wdl -i inputs.json 
 

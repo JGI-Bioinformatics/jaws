@@ -8,13 +8,23 @@ import pytest
 @pytest.fixture
 def config_file(tmp_path):
     cfg = tmp_path / "jaws-central.ini"
-    content = """[DB]
+    content = """[JAWS]
+name = jaws-dev
+version = 2.0.1
+docs_url = https://jaws-docs.readthedocs.io/en/latest/
+
+[DB]
 dialect = mysql+mysqlconnector
 host = db.foo.com
 port = 3306
 user = jaws
 password = passw0rd1
 db = jaws
+
+[RPC_SERVER]
+user = jaws
+password = pppaass4
+vhost = jaws_test
 
 [GLOBUS]
 client_id = ZZZZ
@@ -28,7 +38,7 @@ queue = lbnl_rpc
 port = 5672
 globus_endpoint = XXXX
 globus_basepath = "/global/scratch/jaws"
-staging_subdir = "staging"
+uploads_subdir = "uploads"
 max_ram_gb = 1024
 
 [SITE:NERSC]
@@ -40,7 +50,7 @@ queue = nersc_rpc
 port = 5672
 globus_endpoint = YYYY
 globus_basepath = "/"
-staging_subdir = "/global/scratch/jaws/staging"
+uploads_subdir = "/global/scratch/jaws/uploads"
 max_ram_gb = 2048
 """
     cfg.write_text(content)
@@ -58,6 +68,11 @@ user = j4ws
 password = p455w0rd1
 db = jaws
 
+[RPC_SERVER]
+user = jaws
+password = pppaasss4
+vhost = jaws_test
+
 [GLOBUS]
 client_id = ZZZZ
 """
@@ -73,7 +88,7 @@ rpc_client_dict = {
     "queue": "lbnl_rpc",
     "globus_endpoint": "XXXX",
     "globus_basepath": '"/global/scratch/jaws"',
-    "staging_subdir": "staging",
+    "uploads_subdir": "uploads",
     "max_ram_gb": 1024,
 }
 

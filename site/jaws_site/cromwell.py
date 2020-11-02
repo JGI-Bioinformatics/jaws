@@ -27,13 +27,28 @@ elsewhere in JAWS/JTM, as clarified below:
 import requests
 import json
 import logging
+import os
 
 
 class Task:
     """A Task may have multiple calls, each with a unique job_id.
-    If a Task is a subworkflow, it will contain a Metadata object."""
+    If a Task is a subworkflow, it will contain a Metadata object.
+    Associated job_ids are stored in a dict to facilitate lookup.
+    """
 
-    def __init__(self, workflows_url, name, calls):
+    def __init__(self, workflows_url, name, calls, cache={}):
+        """
+        Initialize a Task object, which may contain a subworkflow.
+
+        :param workflows_url: The Cromwell URL to GET workflow metadata
+        :type workflows_url: str
+        :param name: Task name
+        :type name: str
+        :param calls: A task's calls (AKA attempts) section of the Cromwell metadata.
+        :type calls: list
+        :param cache: cached {workflow_id => metadata}; avoids need to GET from Cromwell (optional)
+        :type cache: dict
+        """
         logger = logging.getLogger(__package__)
         self.workflows_url = workflows_url
         self.name = name
@@ -44,26 +59,41 @@ class Task:
         for call in calls:
             if "subWorkflowId" in call:
                 workflow_id = call["subWorkflowId"]
-                logger.debug(f"Task {self.name} is a subworkflow; getting metadata {workflow_id}")
-                metadata = Metadata(self.workflows_url, workflow_id)
+                logger.debug(
+                    f"Task {self.name} is a subworkflow; getting metadata {workflow_id}"
+                )
+                metadata = Metadata(self.workflows_url, workflow_id, None, cache)
+                # a subworkflow task has a workflow id for each attempt
                 self.subworkflows[workflow_id] = metadata
-                # copy subworkflows' jobs
+                # copy the subworkflows' jobs into the jobs dict;
+                # this dict is used when we query a workflow to see if a job id belongs to it or not
                 for job_id in metadata.jobs:
-                    logger.debug(f"Sub {self.name}, task {metadata.jobs[job_id]['task_name']}: job {job_id}")
+                    logger.debug(
+                        f"Sub {self.name}, task {metadata.jobs[job_id]['task_name']}: job {job_id}"
+                    )
                     self.jobs[job_id] = {
                         "task_name": f"{self.name}.{metadata.jobs[job_id]['task_name']}",
-                        "attempt": metadata.jobs[job_id]["attempt"]
+                        "attempt": int(metadata.jobs[job_id]["attempt"]),
+                        "call_root": None
                     }
+                    if "callRoot" in metadata.jobs[job_id]:
+                        # callRoot is not defined for subworkflow tasks
+                        self.jobs[job_id]["call_root"] = metadata.jobs[job_id]["callRoot"]
+
             elif "jobId" in call:
                 job_id = int(call["jobId"])
                 logger.debug(f"Task {self.name}: job {job_id}")
                 self.jobs[job_id] = {
                     "task_name": self.name,
-                    "attempt": int(call["attempt"])
+                    "attempt": int(call["attempt"]),
+                    "call_root": None
                 }
+                if "callRoot" in call:
+                    # callRoot is not defined for subworkflow tasks
+                    self.jobs[job_id]["call_root"] = call["callRoot"]
 
     def is_subworkflow(self):
-        return True if len(self.subworkflows.keys()) else False
+        return bool(self.subworkflows)
 
     def get(self, key, attempt=None, default=None):
         index = None
@@ -76,6 +106,97 @@ class Task:
             else:
                 index = attempt - 1
         return self.calls[index].get(key, default)
+
+    def call_root_dir(self, attempt=None):
+        return self.get("callRoot", attempt)
+
+    def execution_status(self, attempt=None):
+        return self.get("executionStatus", attempt)
+
+    def failures(self, attempt=None):
+        """
+        Return failures dict for specified attempt (last, if unspecified).
+        :param attempt: attempt number (first is 1; default is last)
+        :type attempt: int
+        :return: failures record
+        :rtype: dict
+        """
+        if attempt is None:
+            index = -1  # last attempt
+        else:
+            attempt = int(attempt)
+            if attempt == 0 or attempt > len(self.calls):
+                raise ValueError("Invalid attempt; of out range")
+            else:
+                index = attempt - 1
+        if "failures" in self.calls[index]:
+            return self.calls[index]["failures"]
+        else:
+            return None
+
+    def error(self, attempt=None):
+        """
+        Return user friendly error message plus stderr file contents.
+        :param attempt: attempt number (first is 1; default is last)
+        :type attempt: int
+        :return: Error messages and stderr
+        :rtype: str
+        """
+        failures = self.failures(attempt)
+        if not failures:
+            return None
+        msgs = []
+        for failure in failures:
+            msg = failure["message"]
+            msgs.append(msg)
+            for cause in failure["causedBy"]:
+                msgs.append(cause["message"])
+        msg = "\n".join(msgs)
+
+        # append standard error (if exists)
+        stderr_file = self.stderr(attempt)
+        if stderr_file and os.path.isfile(stderr_file):
+            with open(stderr_file, "r") as file:
+                msg = f"{msg}\nstderr:\n" + file.read()
+        return msg
+
+    def stdout(self, attempt=None, src=None, dest=None):
+        """
+        Return the path to the standard output file, optionally replacing part of the path.
+        :param attempt: attempt number (first is 1; default is last)
+        :type attempt: int
+        :param src: Source root dir
+        :type src: str
+        :param dest: Destination root dir
+        :type dest: str
+        :return: Path to stdout file
+        :rtype: str
+        """
+        path = self.get("stdout", attempt)
+        if not path:
+            return None
+        if src and dest:
+            path = os.path.join(dest, os.path.relpath(src, path))
+        return path
+
+    def stderr(self, attempt=None, src=None, dest=None):
+        """
+        Return the path to the standard err file, optionally replacing part of the path.
+        :param attempt: attempt number (first is 1; default is last)
+        :type attempt: int
+        :param src: Source root dir
+        :type src: str
+        :param dest: Destination root dir
+        :type dest: str
+        :return: Path to stdout file
+        :rtype: str
+        """
+        path = self.get("stderr", attempt)
+        if not path:
+            return None
+        if src and dest:
+            path = os.path.join(dest, os.path.relpath(src, path))
+        return path
 
 
 class CromwellException(Exception):
@@ -109,10 +230,18 @@ class Metadata:
     # "workflowProcessingEvents" =>  list
     # "workflowRoot" =>  str (path)
 
-    def __init__(self, workflows_url, workflow_id, data=None):
+    def __init__(self, workflows_url, workflow_id, data=None, cache={}):
         """
         Initialize Metadata object by retrieving metadata from Cromwell,
         including subworkflows, and initialize Task objects.
+        :param workflows_url: URL for Cromwell
+        :type workflows_url: str
+        :param workflow_id: Cromwell's UUID for the workflow (AKA run)
+        :type workflow_id: str
+        :param data: optionally provide metadata JSON to avoid GET from Cromwell
+        :type dict:
+        :param cache: optionally provide multiple metadata to avoid GET from Cromwell
+        :type cache: dict
         """
         logger = logging.getLogger(__package__)
         self.workflows_url = workflows_url
@@ -121,10 +250,15 @@ class Metadata:
         self.data = None
         if data:
             self.data = data
+        elif cache and workflow_id in cache:
+            # cache dict uses workflow_id as keys and metadata as values;
+            # it can be used to avoid unnecessary GETs and is currently
+            # used by tests/test_cromwell.py
+            self.data = cache[workflow_id]
         else:
             logger.debug(f"Get metadata for {workflow_id}")
             self._get_data()
-        self._init_tasks()
+        self._init_tasks(cache)
 
     def _get_data(self):
         """GET record from Cromwell REST server."""
@@ -142,31 +276,49 @@ class Metadata:
         except Exception as error:
             raise ValueError(f"Not valid json: {error}")
 
-    def _init_tasks(self):
-        """Initialize and save Task objects."""
+    def _init_tasks(self, cache):
+        """Initialize and save Task objects.
+        :param cache: Cached {workflow_id=>metadata} avoids unnecessary GET (optional)
+        :type cache: dict
+        """
         logger = logging.getLogger(__package__)
         self.tasks = []  # Task objects
         self.jobs = {}  # job_id => dict
+        self.subworkflows = {}  # workflow_id => metadata obj
         if "calls" in self.data:
             calls = self.data["calls"]
             for task_name in calls.keys():
                 logger.debug(f"Workflow {self.workflow_id}: Init task {task_name}")
-                task = Task(self.workflows_url, task_name, calls[task_name])
+                task = Task(self.workflows_url, task_name, calls[task_name], cache)
                 self.tasks.append(task)
                 for job_id in task.jobs:
                     job_info = task.jobs[job_id]
-                    logger.debug(f"Workflow {self.workflow_id}: job {job_id} = {job_info}")
+                    logger.debug(
+                        f"Workflow {self.workflow_id}: job {job_id} = {job_info}"
+                    )
                     self.jobs[job_id] = job_info
+                if task.is_subworkflow:
+                    for sub_id, sub_meta in task.subworkflows.items():
+                        self.subworkflows[sub_id] = sub_meta
 
     def get(self, param, default=None):
-        """Get a section of the document."""
+        """Get a section of the document.
+        :param param: key of parameter to get
+        :type param: str
+        :param default: Default value if param undefined
+        """
         return self.data.get(param, default)
 
     def is_subworkflow(self):
         return True if "parentWorkflowId" in self.data else False
 
     def get_job_info(self, job_id):
-        """Get task name and attempt if found, otherwise None."""
+        """Get task name and attempt if found, otherwise None.
+        :param job_id: cromwell job ID to look up
+        :type job_id" int
+        :return: selected key facts about the job
+        :rtype: dict
+        """
         logger = logging.getLogger(__package__)
         logger.debug(f"Get info for job {job_id}")
         job_id = int(job_id)
@@ -174,6 +326,26 @@ class Metadata:
             return self.jobs[job_id]
         else:
             return None
+
+    def execution_status(self):
+        """
+        Return dict of task name to execution status, for last attempt of each task.
+        """
+        result = {}
+        for task in self.tasks:
+            result[task.name] = task.execution_status()
+        return result
+
+    def errors(self):
+        """
+        Return dict of task name to error messages, for last attempt of each task.
+        """
+        result = {}
+        for task in self.tasks:
+            an_error = task.error()
+            if an_error:
+                result[task.name] = an_error
+        return result
 
 
 class Cromwell:
@@ -193,7 +365,7 @@ class Cromwell:
         self.workflows_url = f"{url}/api/workflows/v1"
         self.engine_url = f"{url}/engine/v1/status"
 
-    def get_metadata(self, workflow_id: str, data=None):
+    def get_metadata(self, workflow_id: str, data=None, cache={}):
         """Get Metadata object for a workflow-run.
 
         :param workflow_id: primary key used by Cromwell
@@ -203,7 +375,22 @@ class Cromwell:
         :return: Metadata object
         :rtype: cromwell.Metadata
         """
-        return Metadata(self.workflows_url, workflow_id, data)
+        return Metadata(self.workflows_url, workflow_id, data, cache)
+
+    def get_all_metadata(self, workflow_id: str, cache: dict = {}):
+        """Get dict of all runs => metadata json for run and all subworkflows.
+
+        :param workflow_id: primary key used by Cromwell
+        :type workflow_id: str
+        :return: all metadata docs { workflow_id => metadata obj }
+        :rtype: dict
+        """
+        result = {}
+        metadata = Metadata(self.workflows_url, workflow_id, None, cache)
+        result[workflow_id] = metadata.data
+        for sub_id, sub_meta in metadata.subworkflows.items():
+            result[sub_id] = sub_meta.data
+        return result
 
     def status(self):
         """Check if Cromwell is available"""
@@ -226,6 +413,14 @@ class Cromwell:
     def submit(self, wdl_file: str, json_file: str, zip_file: str = None) -> int:
         """
         Submit a run to Cromwell.
+        :param wdl_file: Path to WDL file
+        :type wdl_file: str
+        :param json_file: Path to inputs JSON file
+        :type json_file: str
+        :param zip_file: Path to subworkflows ZIP file (optional)
+        :type zip_file: str
+        :return: Cromwell workflow uuid
+        :rtype: str
         """
         logger = logging.getLogger(__package__)
         files = {}
@@ -258,6 +453,11 @@ class Cromwell:
                 raise IOError(f"Unable to open file, {zip_file}: {error}")
         try:
             response = requests.post(self.workflows_url, files=files)
+        except requests.ConnectionError as error:
+            lines = f"{error}".splitlines()
+            logger.exception(
+                f"Error submitting new run: Cromwell unavailable: {lines[-1]}"
+            )
         except Exception as error:
             logger.exception(f"Error submitting new run: {error}")
             raise error
@@ -268,6 +468,10 @@ class Cromwell:
     def get_status(self, workflow_id: str):
         """
         Get the status of a workflow.
+        :param workflow_id: Cromwell's workflow uuid
+        :type workflow_id: str
+        :return: Status of workflow
+        :rtype: str
         """
         url = f"{self.workflows_url}/{workflow_id}/status"
         try:
