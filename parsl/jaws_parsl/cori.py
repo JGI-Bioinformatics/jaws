@@ -30,7 +30,7 @@ config = Config(
                 worker_init='module load python; source activate parsl-env',
                 # We request all hyperthreads on a node.
                 launcher=SrunLauncher(),
-                walltime='00:10:00',
+                walltime='48:00:00',
                 # Slurm scheduler on Cori can be slow at times,
                 # increase the command timeouts
                 cmd_timeout=120,
