@@ -10,7 +10,7 @@ import pika
 import parsl
 from parsl import bash_app, AUTO_LOGNAME
 
-from jaws_parsl import config
+import jaws_parsl
 from jaws_rpc.rpc_client import RpcClient
 
 logger = None
@@ -18,6 +18,7 @@ logger = None
 G_TASK_COUNTER = 0
 G_TASK_TABLE = {}
 G_UPDATES_CHANNEL = None
+rpc_params = {}
 
 
 def on_task_callback(task_id, future):
@@ -68,6 +69,7 @@ def on_message_callback(ch, method, properties, body):
 
 
 def update_site(status, task_id):
+    global rpc_params
     now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     data = {
         "cromwell_run_id": "",  # not needed w/Parsl backend
@@ -78,7 +80,6 @@ def update_site(status, task_id):
     }
 
     # send message to Site
-    rpc_params = config.conf.get_rpc_params()
     try:
         with RpcClient({"user": rpc_params["user"],
                         "password": rpc_params["password"],
@@ -182,15 +183,17 @@ def start_file_logger(filename, name='parsl-rabbitmq', level=logging.DEBUG, form
 
 
 def cli():
+    global rpc_params
+    rpc_params = jaws_parsl.config.conf.get_rpc_params()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", default=8080,
                         help="Port at which the service will listen on")
-    parser.add_argument("-a", "--address", default="localhost",
+    parser.add_argument("-a", "--address", default=rpc_params["host"],
                         help="RabbitMQ address to connect to")
-    parser.add_argument("-q", "--qname", default="hello",
+    parser.add_argument("-q", "--qname", default=rpc_params["queue"],
                         help="RabbitMQ queue to listen on")
-    parser.add_argument("--tasks_qname", default="task_updates",
+    parser.add_argument("--tasks_qname", default=rpc_params["exchange"],
                         help="RabbitMQ queue to publish task updates on")
     parser.add_argument("-c", "--config", default=None,
                         help="Config file")

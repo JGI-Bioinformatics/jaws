@@ -2,6 +2,14 @@ import pytest
 import jaws_parsl.recv
 from unittest import mock
 
+jaws_parsl.recv.rpc_params = {'user': 'jaws',
+                              'password': 'p4s5w0rd',
+                              'host': 'rpc.server.com',
+                              'vhost': 'j4w5',
+                              'port': 56789,
+                              'queue': 'high-prio'
+                              }
+
 
 @mock.patch('jaws_parsl.recv.RpcClient', autospec=True)
 def test_update_site(patch, monkeypatch):
