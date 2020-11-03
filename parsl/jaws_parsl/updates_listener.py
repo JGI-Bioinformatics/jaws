@@ -1,6 +1,7 @@
 import argparse
 import logging
 import pika
+from jaws_parsl import config
 
 
 def start_file_logger(filename, name='task_updates', level=logging.DEBUG, format_string=None):
@@ -61,10 +62,12 @@ class UpdatesChannel():
 
 if __name__ == '__main__':
 
+    rpc_params = config.conf.get_rpc_params()
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("-a", "--address", default="localhost",
+    parser.add_argument("-a", "--address", default=rpc_params["host"],
                         help="RabbitMQ address to connect to")
-    parser.add_argument("--tasks_qname", default="task_updates",
+    parser.add_argument("--tasks_qname", default=rpc_params["queue"],
                         help="RabbitMQ queue to publish task updates on")
     parser.add_argument("-l", "--logfile", default=None,
                         help="Path to logfile")
