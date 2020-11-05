@@ -343,6 +343,6 @@ def extract_cromwell_id(task: str) -> str:
         raise
 
     if match:
-        cromwell_id = match.group()
+        cromwell_id = match.group(1)
 
     return cromwell_id
