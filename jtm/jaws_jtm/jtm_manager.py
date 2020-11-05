@@ -37,7 +37,7 @@ from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.lib.sqlstmt import JTM_SQL
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionAmqpstorm, JtmAmqpstormBase
 from jaws_jtm.lib.dbutils import DbSqlMysql
-from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command
+from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command, extract_cromwell_id
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_rpc import rpc_client
 
@@ -614,13 +614,11 @@ def extract_cromwell_run_id(task_id: int) -> str:
 
     run_id = None
     # NOTE: here UUID format spec is assumed to comply with "8-4-4-4-12" format
-    regex = re.compile(r"[\w]{8}-[\w]{4}-[\w]{4}-[\w]{4}-[\w]{12}", re.I)
     if os.path.isfile(task_script_file) and os.access(task_script_file, os.R_OK):
         with open(task_script_file, "r") as script_file:
             for line in script_file:
-                match = regex.search(line)
-                if match:
-                    run_id = match.group()
+                run_id = extract_cromwell_id(line)
+                if run_id:
                     break
 
     return run_id
