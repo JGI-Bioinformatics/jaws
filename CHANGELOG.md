@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.1.1 (2020-11-02)
+- Hotfix change to fix JAWS production deployment to production
+
 ## v2.1 (2020-11-02)
 Major feature release that includes JGI Cloud support 
 
