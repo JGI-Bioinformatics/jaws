@@ -40,6 +40,11 @@ deploy_name=${@:$OPTIND:1}
 config_profile=${@:$OPTIND+1:1}
 install_dir=${@:$OPTIND+2:1}
 
+if [[ -z $deploy_name ]] || [[ -z $config_profile ]] || [[ -z $install_dir ]]; then
+    print_usage
+    exit
+fi
+
 export SITE_NAME=$SITE_NAME
 export DEPLOY_NAME=$deploy_name
 export DEPLOY_DIR=$deploy_dir
