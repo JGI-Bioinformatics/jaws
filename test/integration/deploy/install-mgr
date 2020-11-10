@@ -26,7 +26,7 @@ def get_args():
 
 
 def run_command(cmd):
-    """ Execute input command, returning stdout, stderr, exitcode.
+    """Execute input command, returning stdout, stderr, exitcode.
 
     :param cmd: command to execute
     :type cmd: str
@@ -44,7 +44,7 @@ def run_command(cmd):
 
 
 def get_config_json_data(json_file):
-    """ Return json data as a dict or list for a given json file.
+    """Return json data as a dict or list for a given json file.
 
     :param json_file: json file
     :type json_file: str
@@ -62,7 +62,7 @@ def get_config_json_data(json_file):
 
 
 def substitute_jinja_vars(config_data, input_file, output_file):
-    """ Substitute jinja variables defined in the given input file using the input json data. Write output
+    """Substitute jinja variables defined in the given input file using the input json data. Write output
     to given output file.
 
     :param config_data: dict defining key/value pairs to substitute jinja variables in input_file.
@@ -94,7 +94,7 @@ def substitute_jinja_vars(config_data, input_file, output_file):
 
 
 def substitute_env_vars_in_json_file(input_file, output_file):
-    """ Substitute environment vars defined in config json files and copy to the
+    """Substitute environment vars defined in config json files and copy to the
     deployment location.
 
     Returns:
@@ -118,7 +118,7 @@ def substitute_env_vars_in_json_file(input_file, output_file):
 
 
 def get_what_to_install(config_entries):
-    """ Parses the input json data for install.components.<name>.add=1 entries.
+    """Parses the input json data for install.components.<name>.add=1 entries.
     Return dict with key=component name, value=the value assigned to add key.
 
     :param config_entries: json payload contaning structure to look for installable components
@@ -139,7 +139,7 @@ def get_what_to_install(config_entries):
 
 
 def write_deployment_files(json_file, files):
-    """ Given an input json file and a list of jinja template files, substitute jinja variables
+    """Given an input json file and a list of jinja template files, substitute jinja variables
     using json data from input json file and write to output file.
     Input files dict format is as follows: files[output_file] = jinja template file
 
@@ -172,7 +172,7 @@ def write_deployment_files(json_file, files):
 
 
 def change_file_perms(path, mode=755):
-    """ Given a path or filename, change permisson to input mode. If input is a
+    """Given a path or filename, change permisson to input mode. If input is a
     path, recursively change permissions for all sub dirs/files.
 
     :param path: filename or path to change file permission
@@ -198,7 +198,7 @@ def change_file_perms(path, mode=755):
 
 
 def get_jinja_translated_config_data(json_file, config_entries):
-    """ Substitute jinja variables in the given json file with values defined in the given config entries dict.
+    """Substitute jinja variables in the given json file with values defined in the given config entries dict.
     Returns translated json data from input json file.
 
     :param json_file: file containing jinja variables to substitute
@@ -232,7 +232,7 @@ def get_jinja_translated_config_data(json_file, config_entries):
 
 
 def assign_deploy_env(entries, deploy_name):
-    """ Traverse thru dict and look for deploy_name key for given deployment name in dict. if found,
+    """Traverse thru dict and look for deploy_name key for given deployment name in dict. if found,
     assign deploy_name key with entries from the deployment name key. The input entries dict will be
     mutated with the deploy_name structure redefined as described below.
 
@@ -263,7 +263,7 @@ def assign_deploy_env(entries, deploy_name):
 
 
 def add_to_deploy_config_json(json_file, deploy_name):
-    """ Construct deploy.json file used for translating jinja variables in config and deployment files.
+    """Construct deploy.json file used for translating jinja variables in config and deployment files.
     Given the profile json file, look for all entries with install.components.<name>.add=1 and
     check if a deploy_json_template key exists. If yes, then get json template file, substitute
     jinja variables in template file using json data from input json file and merge with json data.
@@ -299,7 +299,7 @@ def add_to_deploy_config_json(json_file, deploy_name):
 
 
 def create_jaws_config_files(json_file):
-    """ Create config files in installation dir for installed components defined in the input
+    """Create config files in installation dir for installed components defined in the input
     json config file. The json file must contain the structure 'install.components.<name>.config_template
     in order for the config files to be created.
 
@@ -326,7 +326,7 @@ def create_jaws_config_files(json_file):
 
 
 def create_deploy_scripts(deploy_dir, json_file):
-    """ Give json file containing json payload describing installable componets, look for the key
+    """Give json file containing json payload describing installable componets, look for the key
     'install.components.<name>.deploy_script' and if found, substitute jinja variables defined in the
     input json file and write output deploy script to specified deploy dir. The deployment script
     is typically a bash script to create the python virtual env, install the jaws code for the given
@@ -364,7 +364,7 @@ def create_deploy_scripts(deploy_dir, json_file):
 
 
 def run_deploy_scripts(cmds):
-    """ Given a list of commands, execute each, one at a time.
+    """Given a list of commands, execute each, one at a time.
 
     :param cmds: list of commands to execute
     :type cmds: list
@@ -380,7 +380,7 @@ def run_deploy_scripts(cmds):
 
 
 def update_dict(orig_dict, new_dict):
-    """ Updates an existing dict with the new dict. If the new dict contains sub keys,
+    """Updates an existing dict with the new dict. If the new dict contains sub keys,
     this will append/overwite the keys in the original dict instead of replacing the
     sub key block with the one defined in the new dict (which is the behavior of python's update()
     function.
@@ -404,7 +404,7 @@ def update_dict(orig_dict, new_dict):
 
 
 def check_env_vars(json_file):
-    """ Get payload from input json file and traverse through structure to look for string
+    """Get payload from input json file and traverse through structure to look for string
     value that looks like an environment variable. If found, check if environment variable exists.
 
     :param json_file: file containing json payload to look for string value that looks like an
@@ -452,7 +452,7 @@ def check_env_vars(json_file):
 
 
 def check_for_valid_deploy_name(deploy_name, json_file):
-    """ Get json payload from input json file and traverse thru structure and look for
+    """Get json payload from input json file and traverse thru structure and look for
     'deploy_name' key. If found and value is a dict, check that the dict contains the
     input deployment name as a key.
 
@@ -499,7 +499,7 @@ def check_for_valid_deploy_name(deploy_name, json_file):
 
 
 def check_input_json(json_file):
-    """ Check for required keys in main input json file. The follow keys are validated:
+    """Check for required keys in main input json file. The follow keys are validated:
     - install.meta.output_dir
     - install.meta.src_dir
     - install.meta.deploy_name
@@ -541,7 +541,7 @@ def check_input_json(json_file):
 
 
 def check_for_valid_json_files(json_file):
-    """ Give a file containing a json payload with the keys 'install.components.<name>.deploy_json_template',
+    """Give a file containing a json payload with the keys 'install.components.<name>.deploy_json_template',
     validate the defined json template to ensure that the template is a valid json format.
 
     :param json_file: file with json payload containing key structure defining json file to use.
@@ -573,7 +573,7 @@ def check_for_valid_json_files(json_file):
 
 
 def main():
-    """ Main routine to perform installation and deployment. """
+    """Main routine to perform installation and deployment. """
     args = get_args()
     install_dir = os.path.abspath(args.install_dir)
     deploy_name = args.deploy_name
