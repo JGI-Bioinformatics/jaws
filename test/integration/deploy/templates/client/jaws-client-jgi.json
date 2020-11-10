@@ -1,6 +1,6 @@
 {
     "client": {
-        "site_id": "CORI",
+        "site_id": "JGI",
         "install_dir": "/global/cfs/projectdirs/jaws/jaws-dev",
         "group_perms": "genome",
         "name": "jaws-{{install.meta.deploy_name}}",
