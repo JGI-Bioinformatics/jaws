@@ -8,9 +8,9 @@ set -eo pipefail
 jaws_group={{site[sitename]['group_perms']['jaws']}}
 src_dir={{install.meta.src_dir}}
 install_dir={{site[sitename]['install_dir']}}
-developer_mode={{developer_mode}}
+developer_mode={{install.meta.developer_mode}}
 central_dir=$install_dir/central
-config_dir=$install_dir/config
+config_dir=$install_dir/configs
 shim_dir=$install_dir/shims
 log_dir=$install_dir/logs
 log_level="DEBUG"

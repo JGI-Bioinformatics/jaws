@@ -33,14 +33,7 @@
                     "user": "jaws",
                     "password": "{{passwords.cromwell.mysql}}"
                 }
-            },
-            "local-dev": {
-                "port": 50104,
-                "mysql": {
-                    "url": "jdbc:mysql://jaws-db.lbl.gov:3306/cromwell_cori_dev?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
-                    "user": "jaws",
-                    "password": "{{passwords.cromwell.mysql}}"
-                }
             }
         }
+    }
 }

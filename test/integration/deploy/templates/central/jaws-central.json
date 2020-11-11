@@ -31,10 +31,6 @@
                 "prod": {
                     "auth": 3003,
                     "rest": 5003
-                },
-                "local-dev": {
-                    "auth": 3004,
-                    "rest": 5004
                 }
             }
         }

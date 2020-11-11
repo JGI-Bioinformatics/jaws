@@ -9,7 +9,7 @@ group_perms={{client.group_perms}}
 src_dir={{install.meta.src_dir}}
 install_dir={{site[sitename]['install_dir']}}
 client_dir={{client.install_dir}}
-developer_mode={{developer_mode}}
+developer_mode={{install.meta.developer_mode}}
 
 ## PERMISSIONS
 function fix_perms() {

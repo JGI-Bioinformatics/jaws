@@ -24,7 +24,7 @@ developer_mode=0
 while getopts "dh" opt; do
 case "$opt" in
     d)
-        echo "In develop mode"
+        echo "*** In developer mode ***"
         developer_mode=1
         ;;
     \?)
@@ -51,7 +51,7 @@ export DEPLOY_DIR=$deploy_dir
 
 deploy_dir="$install_dir/deploy"
 supervisor_dir="$install_dir/supervisor"
-config_dir="$install_dir/config"
+config_dir="$install_dir/configs"
 shim_dir="$install_dir/shims"
 central_dir="$install_dir/central"
 client_dir="$install_dir/client"

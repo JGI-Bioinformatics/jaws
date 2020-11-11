@@ -14,7 +14,7 @@ cromwell_tmpdir={{cromwell.tmp_dir}}
 load_java={{cromwell.load_java}}
 installed_cromwell_jar=$install_dir/cromwell.jar
 installed_womtool_jar=$install_dir/womtool.jar
-config_dir=$install_dir/config
+config_dir=$install_dir/configs
 shim_dir=$install_dir/shims
 log_dir=$install_dir/logs
 
