@@ -6,15 +6,11 @@ set -eo pipefail
 
 deploy_name={{install.meta.deploy_name}}
 supervisor_dir={{supervisor.deploy_name.install_dir}}
-config_dir={{install.meta.output_dir}}/config
+config_dir={{install.meta.output_dir}}/configs
 jtm_group={{site[sitename]['group_perms']['jtm']}}
 supervisor_jaws_config=supervisord-jaws.conf
 supervisor_jtm_config=supervisord-jtm.conf
-is_local_dev_env=0
-
-if [[ $deploy_name == "local-dev" ]]; then
-    is_local_dev_env=1
-fi
+is_local_dev_env={{install.meta.is_local_dev}}
 
 ## PERMISSIONS
 function fix_perms() {

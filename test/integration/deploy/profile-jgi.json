@@ -4,7 +4,8 @@
             "output_dir": "$INSTALL_DIR",
             "src_dir": "$SRC_DIR",
             "deploy_name": "$DEPLOY_NAME",
-            "developer_mode": "$DEVELOPER_MODE"
+            "developer_mode": "$DEVELOPER_MODE",
+            "is_local_dev": 0
         },
         "components": {
             "jaws_central": {
@@ -12,7 +13,7 @@
                 "deploy_script": "templates/centra/deploy-jaws-central",
                 "config_template": "templates/centra/jaws-central.conf",
                 "output_config_name": "$INSTALL_DIR/config/jaws-central.conf",
-                "sites": ["cori", "jgi", "local"]
+                "sites": ["cori", "jgi"]
             },
             "jaws_client_central_data": {
                 "add": 1,
