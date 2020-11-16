@@ -1,9 +1,9 @@
 {
     "cromwell": {
         "root": "",
-        "docker_root": "/global/cscratch1/sd/jaws_jtm/jtm-{{install.meta.deploy_name}}/cromwell-executions",
+        "docker_root": "/global/cscratch1/sd/jaws_jtm/jaws-{{install.meta.deploy_name}}/cromwell-executions",
         "workflow_log_dir": "/tmp/jaws-{{install.meta.deploy_name}}/logs/cromwell-workflow-logs",
-        "ref_data_dir": "/global/cscratch1/sd/jaws/refdata ",
+        "ref_data_dir": "/global/cscratch1/sd/jaws/refdata",
         "tmp_dir": "/tmp/jaws-{{install.meta.deploy_name}}/cromwell-tmp",
         "jar_file": "/global/cfs/projectdirs/jaws/cromwell/cromwell-52.jar",
         "url": "http://localhost",
