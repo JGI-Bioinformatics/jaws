@@ -26,6 +26,7 @@
     },
     "site": {
         "cori": {
+            "install_dir": "{{install.meta.output_dir}}",
             "group_perms": {
                 "jaws": "",
                 "jtm": "",
@@ -47,6 +48,7 @@
             }
         },
         "jgi": {
+            "install_dir": "{{install.meta.output_dir}}",
             "group_perms": {
                 "jaws": "",
                 "jtm": "",
