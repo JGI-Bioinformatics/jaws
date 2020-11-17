@@ -32,17 +32,7 @@
                 "jtm": "",
                 "client": ""
             },
-            "jaws": {
-                "scratch_dir": "{{install.meta.output_dir}}/scratch-{{install.meta.deploy_name}}"
-            },
-            "globus": {
-                "uploads_subdir": "{{install.meta.output_dir}}/uploads",
-                "downloads_subdir": "{{install.meta.output_dir}}/downloads"
-            },
             "jtm": {
-                "scratch_dir": "{{install.meta.output_dir}}/scratch",
-                "worker_config_file": "{{install.meta.output_dir}}/config/jaws-jtm.conf",
-                "worker_install_dir": "{{install.meta.output_dir}}/jtm",
                 "env_activation": "source {{install.meta.output_dir}}/jtm-{{install.meta.deploy_name}}/bin/activate",
                 "config_file": "{{install.meta.output_dir}}/configs/jaws-jtm.conf"
             }
