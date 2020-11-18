@@ -116,7 +116,7 @@ variables:
   JGI_CLUSTER_QOS: "normal"
   JGI_CLUSTER_PARTITION: "jgi"
   JGI_CLUSTER_ACCOUNT: "jgi"
-  JGI_CLUSTER_CONSTRAINT: ""
+  JGI_CLUSTER_CONSTRAINT: "None"
   JGI_MAX_RAM_GB: 250
   JGI_LOAD_JAVA: "module load java"
 
