@@ -9,6 +9,9 @@ group_perms={{client.group_perms}}
 src_dir={{install.meta.src_dir}}
 install_dir={{site[sitename]['install_dir']}}
 client_dir={{client.install_dir}}
+staging_user_dir={{client.staging_dir}}
+data_repo_dir={{client.data_repo_dir}}
+shared_endpoint_group={{client.shared_endpoint_group}}
 developer_mode={{install.meta.developer_mode}}
 
 ## PERMISSIONS
@@ -21,6 +24,18 @@ function fix_perms() {
     if [[ -d $dir ]]; then
         find $dir -type d -exec chmod g+s '{}' \;
     fi
+}
+
+function setup_dir {
+  local DIR="$1"
+  local GROUP="$2"
+  local PERMS="$3"
+  [[ -z $DIR ]] && echo "missing DIR" && exit 1
+  [[ -z $GROUP ]] && echo "missing GROUP" && exit 1
+  echo "... $DIR"
+  test -d "$DIR" || mkdir -p "$DIR"
+  chgrp "$GROUP" "$DIR"
+  chmod "$PERMS" "$DIR"
 }
 
 
@@ -36,7 +51,7 @@ python3 -m venv $client_dir && \
   deactivate
 
 
-# INSTALL JAWS FILES
+## INSTALL JAWS FILES
 if [[ $developer_mode == 1 ]]; then
   source $client_dir/bin/activate && \
     cd $src_dir/client && pip install -e . && \
@@ -50,3 +65,12 @@ else
 fi
 
 fix_perms $client_dir $group_perms
+
+
+## SETUP STAGING AND DATA REPO DIRS
+if [[ ! -z "$staging_user_dir" ]]; then
+    setup_dir "$staging_user_dir" "$shared_endpoint_group" 2775
+fi
+if [[ ! -z "$data_repo_dir" ]]; then
+    setup_dir "$data_repo_dir" "$shared_endpoint_group" 2775
+fi
