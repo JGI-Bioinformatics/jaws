@@ -1125,7 +1125,6 @@ def worker(
             worker_config = CONFIG.configparser.get("JTM", "worker_config_file")
 
         if cluster_name in ("cori", "jgi", "cascade"):
-
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
 
@@ -1186,116 +1185,115 @@ def worker(
                             )
 
                     ###########################
-                    if 1:
-                        # Need to set both --qos=genepool (or genepool_shared) _and_ -A fungalp
-                        # OR
-                        # no qos _and_ -A m342 _and_ -C haswell
+                    # Need to set both --qos=genepool (or genepool_shared) _and_ -A fungalp
+                    # OR
+                    # no qos _and_ -A m342 _and_ -C haswell
 
-                        # Note: currently constraint in ["haswell" | "knl"]
-                        if constraint == "haswell":
-                            if qos_param:
-                                batch_job_script_str += """
-#SBATCH -q %(qosname)s""" % dict(
-                                    qosname=qos
-                                )
-                                batch_job_misc_params += " -q %(qosname)s" % dict(
-                                    qosname=qos
-                                )
-
-                            else:
-                                batch_job_script_str += """
-#SBATCH -q %(qosname)s""" % dict(
-                                    qosname=qos
-                                )
-
+                    # Note: currently constraint in ["haswell" | "knl"]
+                    if constraint == "haswell":
+                        if qos_param:
                             batch_job_script_str += """
-#SBATCH -C haswell"""
-
-                            if charging_account == "m342":
-                                batch_job_misc_params += " -A %(sa)s" % dict(sa="m342")
-
-                            batch_job_script_str += """
-#SBATCH -A %(charging_account)s""" % dict(
-                                charging_account=charging_account
+#SBATCH -q %(qosname)s""" % dict(
+                                qosname=qos
+                            )
+                            batch_job_misc_params += " -q %(qosname)s" % dict(
+                                qosname=qos
                             )
 
-                        elif constraint == "knl":
-                            # Note: Basic KNL setting = "-q regular -A m342 -C knl"
-                            #
-                            # Note: KNL MCDRAM setting -> cache or flat
-                            #  cache mode - MCDRAM is configured entirely as a last-level cache (L3)
-                            #  flat mode - MCDRAM is configured entirely as addressable memory
-                            #  ex) #SBATCH -C knl,quad,cache
-                            #  ex) #SBATCH -C knl,quad,flat
-                            #      --> srun <srun options> numactl -p 1 yourapplication.x
-                            #
-                            # Note: for knl, we should use m342
-                            #
-                            # Note: for knl, charging_account can be set via runtime (like lanl, m3408)
-                            #
+                        else:
                             batch_job_script_str += """
+#SBATCH -q %(qosname)s""" % dict(
+                                qosname=qos
+                            )
+
+                        batch_job_script_str += """
+#SBATCH -C haswell"""
+
+                        if charging_account == "m342":
+                            batch_job_misc_params += " -A %(sa)s" % dict(sa="m342")
+
+                        batch_job_script_str += """
+#SBATCH -A %(charging_account)s""" % dict(
+                            charging_account=charging_account
+                        )
+
+                    elif constraint == "knl":
+                        # Note: Basic KNL setting = "-q regular -A m342 -C knl"
+                        #
+                        # Note: KNL MCDRAM setting -> cache or flat
+                        #  cache mode - MCDRAM is configured entirely as a last-level cache (L3)
+                        #  flat mode - MCDRAM is configured entirely as addressable memory
+                        #  ex) #SBATCH -C knl,quad,cache
+                        #  ex) #SBATCH -C knl,quad,flat
+                        #      --> srun <srun options> numactl -p 1 yourapplication.x
+                        #
+                        # Note: for knl, we should use m342
+                        #
+                        # Note: for knl, charging_account can be set via runtime (like lanl, m3408)
+                        #
+                        batch_job_script_str += """
 #SBATCH -C knl
 #SBATCH -A %(charging_account)s
 #SBATCH -q %(qosname)s""" % dict(
-                                charging_account=charging_account, qosname=qos
-                            )
+                            charging_account=charging_account, qosname=qos
+                        )
 
-                            batch_job_misc_params += (
-                                " -A %(charging_account)s -q %(qosname)s"
-                                % dict(charging_account=charging_account, qosname=qos)
-                            )
+                        batch_job_misc_params += (
+                            " -A %(charging_account)s -q %(qosname)s"
+                            % dict(charging_account=charging_account, qosname=qos)
+                        )
 
-                        elif constraint == "skylake":
-                            # Example usage with skylakte for Brian F.
-                            # 120G
-                            # ======================
-                            # -t 48:00:00 -c 16 --job-name=mga-627530 --mem=115G --qos=genepool_special
-                            # --exclusive -A gtrqc
-                            #
-                            # 250G
-                            # ======================
-                            # -t 96:00:00 -c 72 --job-name=mga-627834 --mem=240G -C skylake --qos=jgi_exvivo
-                            # -A gtrqc
-                            #
-                            # 500G
-                            # ======================
-                            # -t 96:00:00 -c 72 --job-name=mga-627834 --mem=240G -C skylake --qos=jgi_exvivo
-                            # -A gtrqc
-                            #
-                            # SBATCH examples
-                            # 500G
-                            # module load esslurm; sbatch --qos=jgi_exvivo -C skylake -A pkasmb -N 1
-                            # -t 48:00:00 -D $PWD --wrap=''
-                            #
-                            # 250G
-                            # module load esslurm; sbatch --qos=jgi_shared --mem=250G --cpus-per-task=12
-                            # -C skylake -A pkasmb
-                            # -N 1 -t 12:00:00 -D $PWD --wrap=""
+                    elif constraint == "skylake":
+                        # Example usage with skylakte for Brian F.
+                        # 120G
+                        # ======================
+                        # -t 48:00:00 -c 16 --job-name=mga-627530 --mem=115G --qos=genepool_special
+                        # --exclusive -A gtrqc
+                        #
+                        # 250G
+                        # ======================
+                        # -t 96:00:00 -c 72 --job-name=mga-627834 --mem=240G -C skylake --qos=jgi_exvivo
+                        # -A gtrqc
+                        #
+                        # 500G
+                        # ======================
+                        # -t 96:00:00 -c 72 --job-name=mga-627834 --mem=240G -C skylake --qos=jgi_exvivo
+                        # -A gtrqc
+                        #
+                        # SBATCH examples
+                        # 500G
+                        # module load esslurm; sbatch --qos=jgi_exvivo -C skylake -A pkasmb -N 1
+                        # -t 48:00:00 -D $PWD --wrap=''
+                        #
+                        # 250G
+                        # module load esslurm; sbatch --qos=jgi_shared --mem=250G --cpus-per-task=12
+                        # -C skylake -A pkasmb
+                        # -N 1 -t 12:00:00 -D $PWD --wrap=""
 
-                            batch_job_script_str += """
+                        batch_job_script_str += """
 #SBATCH -N %(num_nodes_to_request)d
 #SBATCH -C skylake
 #SBATCH -A %(charging_account)s
 #SBATCH -q %(qosname)s""" % dict(
-                                num_nodes_to_request=num_nodes_to_request,
-                                charging_account=charging_account,
-                                qosname=qos,
-                            )
+                            num_nodes_to_request=num_nodes_to_request,
+                            charging_account=charging_account,
+                            qosname=qos,
+                        )
 
-                            batch_job_misc_params += (
-                                " -A %(charging_account)s -q %(qosname)s"
-                                % dict(charging_account=charging_account, qosname=qos)
-                            )
+                        batch_job_misc_params += (
+                            " -A %(charging_account)s -q %(qosname)s"
+                            % dict(charging_account=charging_account, qosname=qos)
+                        )
 
-                        excl_param = ""
-                        if constraint != "skylake":
-                            excl_param = "#SBATCH --exclusive"
+                    excl_param = ""
+                    if constraint != "skylake":
+                        excl_param = "#SBATCH --exclusive"
 
-                        tq_param = ""
-                        if pool_name_param:
-                            tq_param = "-p " + pool_name_param
+                    tq_param = ""
+                    if pool_name_param:
+                        tq_param = "-p " + pool_name_param
 
-                        batch_job_script_str += """
+                    batch_job_script_str += """
 #SBATCH -t %(wall_time)s
 #SBATCH --job-name=%(job_name)s
 #SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
@@ -1307,8 +1305,8 @@ module unload python
 %(export_jtm_config_file)s
 for i in {1..%(num_workers_per_node)d}
 do
-    echo "jobid: $SLURM_JOB_ID"
-    jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
+echo "jobid: $SLURM_JOB_ID"
+jtm %(set_jtm_config_file)s %(debug)s worker --slurm_job_id $SLURM_JOB_ID \
 -cl %(nersc_cluster_name)s \
 -wt %(worker_type)s \
 -t %(wall_time)s \
@@ -1321,25 +1319,25 @@ sleep 0.5
 done
 wait
 """ % dict(
-                            debug="--debug" if DEBUG else "",
-                            wall_time=job_time_to_request,
-                            job_dir=job_script_dir_name,
-                            worker_id=UNIQ_WORKER_ID,
-                            worker_type=THIS_WORKER_TYPE,
-                            clone_time_rate=worker_clone_time_rate,
-                            task_queue=tq_param,
-                            num_workers_per_node=num_workers_per_node,
-                            env_activation_cmd=env_act,
-                            other_params=batch_job_misc_params,
-                            constraint=constraint,
-                            mem=mem_per_node_to_request,
-                            nersc_cluster_name=cluster_name,
-                            job_name=job_name,
-                            exclusive=excl_param,
-                            export_jtm_config_file="export JTM_CONFIG_FILE=%s"
-                            % worker_config,
-                            set_jtm_config_file="--config=%s" % worker_config,
-                        )
+                        debug="--debug" if DEBUG else "",
+                        wall_time=job_time_to_request,
+                        job_dir=job_script_dir_name,
+                        worker_id=UNIQ_WORKER_ID,
+                        worker_type=THIS_WORKER_TYPE,
+                        clone_time_rate=worker_clone_time_rate,
+                        task_queue=tq_param,
+                        num_workers_per_node=num_workers_per_node,
+                        env_activation_cmd=env_act,
+                        other_params=batch_job_misc_params,
+                        constraint=constraint,
+                        mem=mem_per_node_to_request,
+                        nersc_cluster_name=cluster_name,
+                        job_name=job_name,
+                        exclusive=excl_param,
+                        export_jtm_config_file="export JTM_CONFIG_FILE=%s"
+                        % worker_config,
+                        set_jtm_config_file="--config=%s" % worker_config,
+                    )
 
                 elif cluster_name in ("jgi"):
                     if worker_id_param:
@@ -1364,6 +1362,11 @@ wait
                         mem=mem_per_node_to_request
                     )
 
+                    if constraint:
+                        assert constraint in ("lr3_c32,jgi_m256", "lr3_c32,jgi_m512")
+                        batch_job_script_str += """
+#SBATCH -C %s""" % constraint
+
                     batch_job_script_str += """
 #SBATCH --time=%(wall_time)s
 #SBATCH --job-name=%(job_name)s
@@ -1387,6 +1390,7 @@ do
 --clone_time_rate %(clone_time_rate)f %(task_queue)s \
 --num_worker_per_node %(num_workers_per_node)d \
 -m %(mem)s \
+%(constraint)s \
 %(other_params)s &
 sleep 0.5
 done
@@ -1409,6 +1413,7 @@ wait
                         worker_type=THIS_WORKER_TYPE,
                         clone_time_rate=worker_clone_time_rate,
                         task_queue=tp_param,
+                        constraint="-C %s" % constraint if constraint else "",
                         other_params=batch_job_misc_params,
                         export_jtm_config_file="export JTM_CONFIG_FILE=%s"
                         % worker_config,
