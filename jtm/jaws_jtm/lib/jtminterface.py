@@ -236,7 +236,7 @@ class JtmInterface(object):
                             json_data_dict["pool"]["qos"] = "condo_jgicloud"
                             json_data_dict["pool"]["partition"] = "lr3"
                             json_data_dict["pool"]["account"] = "lr_jgicloud"
-                            json_data_dict["pool"]["constraint"] = "lr3_constraint"
+                            json_data_dict["pool"]["constraint"] = lr3_constraint
                 except Exception as e:
                     logger.exception(f"Failed to parse memory request value: {e}")
                     logger.debug(f"Memory requested: {kw['node_mem']}")
