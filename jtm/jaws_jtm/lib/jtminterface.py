@@ -232,6 +232,7 @@ class JtmInterface(object):
                         json_data_dict["pool"]["partition"] = "lr3"
                         json_data_dict["pool"]["account"] = "lr_jgicloud"
                     else:
+                        # LR3 has 32 256GB nodes and 8 512GB nodes
                         if lr3_constraint in ("lr3_c32,jgi_m256", "lr3_c32,jgi_m512"):
                             json_data_dict["pool"]["qos"] = "condo_jgicloud"
                             json_data_dict["pool"]["partition"] = "lr3"
