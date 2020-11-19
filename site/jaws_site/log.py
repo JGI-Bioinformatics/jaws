@@ -18,13 +18,18 @@ def setup_logger(name, log_file=None, log_level="INFO"):
         )
 
     if log_file is None:
-        log_file = f'{name}.log'
-    formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
+        log_file = f"{name}.log"
+    formatter = logging.Formatter(
+        fmt="%(asctime)s - %(levelname)s - %(module)s - %(message)s"
+    )
 
     handler_stderr = logging.StreamHandler()
     handler_stderr.setFormatter(formatter)
 
-    handler_file = logging.FileHandler(log_file)
+    # Rorational log: 100MB each
+    handler_file = logging.handlers.RotatingFileHandler(
+        log_file, maxBytes=100000000, backupCount=3
+    )
     handler_file.setFormatter(formatter)
 
     logger = logging.getLogger(name)
