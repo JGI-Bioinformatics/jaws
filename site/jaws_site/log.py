@@ -26,7 +26,7 @@ def setup_logger(name, log_file=None, log_level="INFO"):
     handler_stderr = logging.StreamHandler()
     handler_stderr.setFormatter(formatter)
 
-    # Rorational log: 100MB each
+    # Rorational log: 100MB each, total 4 log files
     handler_file = logging.handlers.RotatingFileHandler(
         log_file, maxBytes=100000000, backupCount=3
     )
