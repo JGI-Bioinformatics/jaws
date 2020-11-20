@@ -8,6 +8,8 @@
         "womtool_jar": "/global/cfs/projectdirs/jaws/cromwell/womtool.jar",
         "staging_dir": "/global/cscratch1/sd/jaws/users",
         "staging_subdir": "global/cscratch1/sd/jaws/jaws-${{install.meta.deploy_name}}/staging",
+        "data_repo_basedir": "/global/cfs/cdirs/jaws/data_repository",
+        "shared_endpoint_group": "genome",
         "globus": {
             "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3",
             "endpoint_id": "be1ff650-dcbc-11ea-85a2-0e1702b77d41",
