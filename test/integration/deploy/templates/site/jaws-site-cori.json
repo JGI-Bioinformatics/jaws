@@ -41,7 +41,7 @@
             "globus": {
                 "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3",
                 "endpoint_id": "be1ff650-dcbc-11ea-85a2-0e1702b77d41",
-                "uploads_subdir": "global/cscratch1/sd/jaws_jtm/jtm-{{install.meta.deploy_name}}/uploads",
+                "uploads_subdir": "global/cscratch1/sd/jaws_jtm/jaws_{{install.meta.deploy_name}}/uploads",
                 "downloads_subdir": "global/cscratch1/sd/jaws/jaws-{{install.meta.deploy_name}}/results",
                 "root_dir": "/",
                 "default_dir": "~"
