@@ -61,7 +61,7 @@ done
 ## SITE-SPECIFIC VARIABLES:
 ## This will define global vars with a SITE_ prefix, with values from variables referenced by the JAWS_SITE
 ## variable.  For instance, if JAWS_SITE="JGI", setting GLOBUS_EP site var will define a SITE_GLOBUS_EP var
-## with the value from JGI_GLOBUS_EP.  
+## with the value from JGI_GLOBUS_EP.
 ## This allows the site installation scripts to use the SITE_* vars.
 echo "DEFINING SITE VARS"
 function set_site_var {
@@ -191,3 +191,10 @@ setup_dir "$SITE_UPLOADS_DIR" "$SITE_JTM_GROUP" 777
 setup_dir "$SITE_JTM_WORKER_INSTALL_DIR" "$SITE_JTM_GROUP" 770
 
 setup_dir "$CROMWELL_EXECUTIONS_DIR" "$SITE_JTM_GROUP" 775
+
+if [[ ! -z "$SITE_STAGING_USER_DIR" ]]; then
+    setup_dir "$SITE_STAGING_USER_DIR" "$SITE_CLIENT_GROUP" 2775
+fi
+if [[ ! -z "$SITE_DATA_REPO_DIR" ]]; then
+    setup_dir "$SITE_DATA_REPO_DIR" "$SITE_CLIENT_GROUP" 2775
+fi
