@@ -324,7 +324,6 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
 
     wdl = os.path.join(root, "workflow", "sample.wdl")
     inputs = os.path.join(root, "workflow", "sample.json")
-    subdir = os.path.join(root, "globus", "staging", "output")
 
     def get_site(url, headers=None):
         body = {
@@ -337,9 +336,13 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     def mock_post(url, data=None, files=None, headers={}):
         return MockResult({"run_id": "36"}, 201)
 
+    def mock_is_file_accessible(*args):
+        return True
+
     monkeypatch.setattr(requests, "get", get_site)
     monkeypatch.setattr(requests, "post", mock_post)
+    monkeypatch.setattr(jaws_client.workflow, 'is_file_accessible', mock_is_file_accessible)
 
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["submit", wdl, inputs, subdir, "NERSC"])
+    result = runner.invoke(run, ["submit", wdl, inputs, "NERSC"])
     assert result.exit_code == 0

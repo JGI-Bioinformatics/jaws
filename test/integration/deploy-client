@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo "BEGIN deploy-client" 
+echo "BEGIN deploy-client"
 # NB: this should be run after generate-venvs because it doesn't `make pkg`
 
 ## VERIFY REQUIRED VARS ARE DEFINED
@@ -50,6 +50,7 @@ test -d "$SITE_CLIENT_INSTALL_DIR" && rm -rf "$SITE_CLIENT_INSTALL_DIR"
 mkdir -p "$SITE_CLIENT_INSTALL_DIR"
 chmod 755 "$SITE_CLIENT_INSTALL_DIR"
 
+
 ## MAKE VENV
 [[ -n "$SITE_LOAD_PYTHON" ]] && $SITE_LOAD_PYTHON
 CLIENT_DIST_DIR="client/dist"
@@ -82,8 +83,8 @@ cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.sh" "$SITE_CLIENT_INSTALL_DIR"
 ## GENERATE CONFIGS
 cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws.conf
 [USER]
-token = 
-staging_dir = 
+token =
+staging_dir =
 EOM
 chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws.conf
 chmod 644 $CONFIG_DIR/jaws.conf
@@ -96,6 +97,9 @@ name = jaws-$DEPLOYMENT_NAME
 url = $JAWS_CENTRAL_HOST:$JAWS_REST_PORT/api/v2
 womtool_jar = $SITE_WOMTOOL_JAR
 uploads_subdir = $SITE_UPLOADS_SUBDIR
+staging_dir = $SITE_STAGING_USER_DIR
+data_repo_basedir = $SITE_DATA_REPO_DIR
+shared_endpoint_group = $SITE_CLIENT_GROUP
 [GLOBUS]
 client_id = $JAWS_GLOBUS_CLIENT_ID
 endpoint_id = $SITE_GLOBUS_EP
@@ -108,4 +112,5 @@ cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
 # at this point, jaws-client is not usable due to permissions, but changing group and permissions via the gitlab-runner
 # does not work for parallel-FS for some reason.  The solution is to add such commands to one of the shims so that the
 # command are run by the jaws user via supervisord.  This is a hack.  See: jaws-central-daemon shim for more.
-printf "END deploy-client\n\n" 
+printf "END deploy-client\n\n"
+
