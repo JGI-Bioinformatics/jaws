@@ -261,6 +261,30 @@ def submit_run(user):
         abort(500, err_msg)
     logger.debug(f"User {user}: New run {run.id}")
 
+    # Output directory is a subdirectory that includes the user id, site id and run id.
+    # These are all placed in a common location with setgid sticky bits so that all
+    # submitting users have access.
+    output_dir += f"/{user}/{site_id}/{run.id}"
+
+    # Due to how the current database schema is setup, we have to update the output
+    # directory from the model object itself immediately after insert.
+    # TODO: Think of a better way to do this
+    try:
+        run.output_dir = output_dir
+    except Exception as error:
+        db.session.rollback()
+        err_msg = f"Unable to update output_dir in db: {error}"
+        logger.exception(err_msg)
+        abort(500, err_msg)
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        err_msg = f"Unable to update output_dir in db: {error}"
+        logger.exception(err_msg)
+        abort(500, err_msg)
+    logger.debug(f"Updating output dir for run_id={run.id}")
+
     # SUBMIT GLOBUS TRANSFER
     try:
         current_user = db.session.query(User).get(user)
