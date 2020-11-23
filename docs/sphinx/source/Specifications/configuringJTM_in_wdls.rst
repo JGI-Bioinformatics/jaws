@@ -20,7 +20,7 @@ Table of available resources
 
 Use the following tables to help figure out how many jobs (i.e. workers) you can run per node and how many total nodes you can expect to get.
 
-On Cori, JAWS runs on a dedicated cluster. 
+On Cori, JAWS runs on a dedicated cluster.
 
 +---------+-----+----------+----------------+-----+-------+--------------+
 |node type|nodes| ram (G)  | qos            |cores|threads|max time (hrs)|
@@ -36,15 +36,19 @@ On Cori, JAWS runs on a dedicated cluster.
 
 |
 
-At JGI, JAWS runs on a dedicated cluster called condo_jgicloud which is on partition = Lawrencium lr3.
+At JGI, JAWS runs on a dedicated clusters LR3 and JGI
 
-+-----------+-----+----------+-----+-------+--------------+
-|constraint |nodes| ram (G)  |cores|threads|max time (hrs)|
-+===========+=====+==========+=====+=======+==============+
-| n.a.      |  40 |256 (236*)|  32 |  64   |      72      |
-+-----------+-----+----------+-----+-------+--------------+
-| n.a.      |  4  |512 (472*)|  32 |  64   |      72      |
-+-----------+-----+----------+-----+-------+--------------+
++---------+------------------+-----+----------+-----+-------+--------------+
+|partition|    constraint    |nodes| ram (G)  |cores|threads|max time (hrs)|
++=========+==================+=====+==========+=====+=======+==============+
+|     lr3 |                  | 316 |  64 (45*)|  32 |  64   |      72      |
++---------+------------------+-----+----------+-----+-------+--------------+
+|     lr3 | lr3_c32,jgi_m256 | 32  |256 (236*)|  32 |  64   |      72      |
++---------+------------------+-----+----------+-----+-------+--------------+
+|     lr3 | lr3_c32,jgi_m512 | 8   |512 (492*)|  32 |  64   |      72      |
++---------+------------------+-----+----------+-----+-------+--------------+
+|     jgi |                  | 40  |256 (236*)|  32 |  64   |      72      |
++---------+------------------+-----+----------+-----+-------+--------------+
 
 |
 
@@ -63,7 +67,7 @@ At Pacific Northwest National Labs: `PNNL <https://www.emsl.pnnl.gov/MSC/UserGui
 ******************
 Requesting workers
 ******************
-You request resources in a similar manner as for sbatch jobs. The default options are shown below.  Remember to include quotes for strings. 
+You request resources in a similar manner as for sbatch jobs. The default options are shown below.  Remember to include quotes for strings.
 
 .. code-block:: bash
 
