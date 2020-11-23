@@ -119,8 +119,6 @@ variables:
   JGI_CLUSTER_CONSTRAINT: ""
   JGI_MAX_RAM_GB: 250
   JGI_LOAD_JAVA: "module load java"
-  CORI_STAGING_USER_DIR: "/global/cscratch1/sd/jaws/users"
-  CORI_DATA_REPO_DIR: "/global/cfs/cdirs/jaws/data_repository"
 
   CASCADE_INSTALL_BASEDIR: "/tmp"
   CASCADE_GLOBUS_EP: "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
