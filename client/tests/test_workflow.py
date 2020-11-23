@@ -274,11 +274,15 @@ def test_refdata_in_different_form(refdata_inputs_missing_slash):
 def test_refdata_not_in_src_input_files(refdata_inputs):
     inputs_json = os.path.join(refdata_inputs, "inputs.json")
     inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
-    print(inputs.inputs_json)
     assert "/refdata/" not in inputs.src_file_inputs
 
 
-def test_refdata_in_inputs_json(refdata_inputs):
+def test_refdata_in_inputs_json(refdata_inputs, monkeypatch):
+    def mock_is_file_accessible(*args):
+        return True
+
+    monkeypatch.setattr(jaws_client.workflow, 'is_file_accessible', mock_is_file_accessible)
+
     inputs_json = os.path.join(refdata_inputs, "inputs.json")
     inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "12312")
     inputs.validate()

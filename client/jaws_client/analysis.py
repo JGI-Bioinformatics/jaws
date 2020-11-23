@@ -8,6 +8,7 @@ import requests
 import click
 import logging
 import uuid
+import getpass
 import shutil
 from typing import Dict
 from collections import defaultdict
@@ -271,34 +272,32 @@ def list_sites() -> None:
 @run.command()
 @click.argument("wdl_file", nargs=1)
 @click.argument("infile", nargs=1)
-@click.argument("outdir", nargs=1)
 @click.argument("site", nargs=1)
 @click.option("--out_endpoint", default=None, help="Globus endpoint to send output")
-def submit(wdl_file, infile, outdir, site, out_endpoint):
+def submit(wdl_file, infile, site, out_endpoint):
     """Submit a run for execution at a JAWS-Site.
 
     :param wdl_file: Path to workflow specification (WDL) file
     :type wdl_file: str
-    :param infile: Path to inputs (JSON) file
+    :param infile: Path to inputgetpass.getuser()s (JSON) file
     :type infile: str
-    :param outdir: Path to output directory; doesn't have to exist
-    :type outdir: str
     :param site: JAWS Site ID at which to run
     :type site: str
+    :param out_endpoint: Globus endpoint id
+    :type out_endpoint: str
     """
     logger = logging.getLogger(__package__)
 
     current_user = user.User()
 
     # STAGING DIR
-    staging_subdir = config.Configuration().get("USER", "staging_dir")
+    staging_subdir = config.Configuration().get("JAWS", "staging_dir")
+    staging_user_subdir = os.path.join(staging_subdir, getpass.getuser())
     globus_basedir = config.Configuration().get("GLOBUS", "basedir")
     if not staging_subdir.startswith(globus_basedir):
         raise SystemExit(
             f"Configuration error: Staging dir must be under endpoint's basedir: {globus_basedir}"
         )
-    if not os.path.isdir(staging_subdir):
-        os.makedirs(staging_subdir)
 
     # GLOBUS
     local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
@@ -306,7 +305,7 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
         out_endpoint = local_endpoint_id
 
     # OUTDIR
-    outdir = os.path.abspath(outdir)
+    outdir = config.conf.get("JAWS", "data_repo_basedir")
     if out_endpoint == local_endpoint_id and not outdir.startswith(globus_basedir):
         raise SystemExit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
     if not os.path.isdir(outdir):
@@ -348,7 +347,7 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
         raise SystemExit(f"Your file, {infile}, is not a valid JSON file: {error}")
 
     jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
-    local_staging_endpoint = workflow.join_path(globus_basedir, staging_subdir)
+    local_staging_endpoint = workflow.join_path(globus_basedir, staging_user_subdir)
     manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
 
     wdl.validate()
@@ -372,7 +371,7 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     modified_json.write_to(staged_json)
 
     manifest_file.add(sanitized_wdl, zip_file, staged_json, *moved_files)
-    staged_manifest = workflow.join_path(staging_subdir, f"{submission_id}.tsv")
+    staged_manifest = workflow.join_path(staging_user_subdir, f"{submission_id}.tsv")
     manifest_file.write_to(staged_manifest)
 
     # CONFIRM OUTDIR WRITABLE BY COPYING WDLS, INPUT FILES
