@@ -59,6 +59,8 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_CLUSTER_CONSTRAINT: Cluster node type (eg - haswell, knl, skylake) 
 - [SITE]_MAX_RAM_GB: Maximum ram for the cluster
 - [SITE]_LOAD_JAVA: Module load command for Java  
+- [SITE]_STAGING_USER_DIR: staging area for wdls, json files, manifest files and zip files for Globus transfer.
+- [SITE]_DATA_REPO_DIR: output location of processed data sets. All under shared group permissions.
 
 
 ### deploy-jaws 
@@ -169,7 +171,14 @@ the green dot is next to the cori20 runner.
 
 ## Starting the gitlab-runner on LRC
 
-`/global/home/groups-sw/lr_jgicloud/jaws_ci_runner/usr/bin/gitlab-runner "run" "--config" "/global/home/groups-sw/lr_jgicloud/jaws_ci_runner/configuration/config.toml"``
+The LRC runner requires the python module to be loaded (`module load python`), before the runner is started.
+This ensures that the correct python is present in the environment so that it does not run into missing library issues 
+since it'll pick up the system python instead. 
+
+    $ sudo -u jaws -i
+    $ module load python
+    $ cd /global/home/groups-sw/lr_jgicloud/jaws_ci_runner
+    $ nohup ./usr/bin/gitlab-runner run -c configuration/config.toml &
 
 ## Starting the gitlab-runner on CASCADE 
 
