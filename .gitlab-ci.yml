@@ -290,8 +290,6 @@ deploy-jaws-cori-dev:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
     DEPLOY_JAWS_CLIENT: 1
-    STAGING_USER_DIR: "/global/cscratch1/sd/jaws/jaws-dev/users"
-    DATA_REPO_DIR: "/global/cfs/cdirs/jaws/data_repository/jaws-dev"
   environment:
     name: "cori/dev"
   script:
@@ -306,8 +304,6 @@ deploy-jaws-cori-staging:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
     DEPLOY_JAWS_CLIENT: 1
-    STAGING_USER_DIR: "/global/cscratch1/sd/jaws/jaws-staging/users"
-    DATA_REPO_DIR: "/global/cfs/cdirs/jaws/data_repository/jaws-staging"
   environment:
     name: "cori/staging"
   script:
@@ -322,8 +318,6 @@ deploy-jaws-cori-prod:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
     DEPLOY_JAWS_CLIENT: 1
-    STAGING_USER_DIR: "/global/cscratch1/sd/jaws/jaws-prod/users"
-    DATA_REPO_DIR: "/global/cfs/cdirs/jaws/data_repository/jaws-prod"
   environment:
     name: "cori/production"
   script:
