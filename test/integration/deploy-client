@@ -94,8 +94,8 @@ site_id = $JAWS_SITE
 url = $JAWS_CENTRAL_HOST:$JAWS_REST_PORT/api/v2
 womtool_jar = $SITE_WOMTOOL_JAR
 uploads_subdir = $SITE_UPLOADS_SUBDIR
-staging_dir = $SITE_STAGING_USER_DIR
-data_repo_basedir = $SITE_DATA_REPO_DIR
+staging_dir = $STAGING_USER_DIR
+data_repo_basedir = $DATA_REPO_DIR
 shared_endpoint_group = $SITE_CLIENT_GROUP
 [GLOBUS]
 client_id = $JAWS_GLOBUS_CLIENT_ID
