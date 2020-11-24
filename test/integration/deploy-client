@@ -88,14 +88,25 @@ EOM
 chgrp $SITE_JAWS_GROUP $SITE_CLIENT_INSTALL_DIR/jaws.conf
 chmod 775 $SITE_CLIENT_INSTALL_DIR/jaws.conf
 
+# Directories should only be required where client is deployed.
+# Client needs these destinations to be present somewhere on the filesystem
+USER_DIRECTORIES="STAGING_USER_BASEDIR DATA_REPO_BASEDIR"
+
+for VAR in $USER_DIRECTORIES; do
+    set_site_var "$JAWS_SITE" "$VAR"
+done
+
+SITE_STAGING_USER_DIR=$SITE_STAGING_USER_BASEDIR/jaws-$DEPLOYMENT_NAME/users
+SITE_DATA_REPO_DIR=$SITE_DATA_REPO_BASEDIR/data-repository-$DEPLOYMENT_NAME
+
 cat << EOM > $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 [JAWS]
 site_id = $JAWS_SITE
 url = $JAWS_CENTRAL_HOST:$JAWS_REST_PORT/api/v2
 womtool_jar = $SITE_WOMTOOL_JAR
 uploads_subdir = $SITE_UPLOADS_SUBDIR
-staging_dir = $STAGING_USER_DIR
-data_repo_basedir = $DATA_REPO_DIR
+staging_dir = $SITE_STAGING_USER_DIR
+data_repo_basedir = $SITE_DATA_REPO_DIR
 shared_endpoint_group = $SITE_CLIENT_GROUP
 [GLOBUS]
 client_id = $JAWS_GLOBUS_CLIENT_ID
@@ -109,15 +120,14 @@ cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
 
 
 # Finally setup the user directories for staging and storing data
-if [[ ! -z "$STAGING_USER_DIR" ]]; then
-    setup_dir "$STAGING_USER_DIR" "$SITE_CLIENT_GROUP" 2775
+if [[ ! -z "$SITE_STAGING_USER_DIR" ]]; then
+    setup_dir "$SITE_STAGING_USER_DIR" "$SITE_CLIENT_GROUP" 2775
 fi
-if [[ ! -z "$DATA_REPO_DIR" ]]; then
-    setup_dir "$DATA_REPO_DIR" "$SITE_CLIENT_GROUP" 2775
+if [[ ! -z "$SITE_DATA_REPO_DIR" ]]; then
+    setup_dir "$SITE_DATA_REPO_DIR" "$SITE_CLIENT_GROUP" 2775
 fi
 
 # at this point, jaws-client is not usable due to permissions, but changing group and permissions via the gitlab-runner
 # does not work for parallel-FS for some reason.  The solution is to add such commands to one of the shims so that the
 # command are run by the jaws user via supervisord.  This is a hack.  See: jaws-central-daemon shim for more.
 printf "END deploy-client\n\n"
-

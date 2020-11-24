@@ -90,6 +90,8 @@ variables:
   CORI_CLUSTER_CONSTRAINT: "haswell"
   CORI_MAX_RAM_GB: 2048
   CORI_LOAD_JAVA: ""
+  CORI_STAGING_USER_BASEDIR: "/global/cscratch1/sd/jaws"
+  CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
 
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
   JGI_GLOBUS_EP: "45afb626-a4bd-11e8-96f0-0a6d4e044368"
@@ -119,6 +121,8 @@ variables:
   JGI_CLUSTER_CONSTRAINT: ""
   JGI_MAX_RAM_GB: 250
   JGI_LOAD_JAVA: "module load java"
+  JGI_STAGING_USER_BASEDIR: "/global/scratch/jaws"
+  JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
 
   CASCADE_INSTALL_BASEDIR: "/tmp"
   CASCADE_GLOBUS_EP: "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
@@ -286,8 +290,8 @@ deploy-jaws-cori-dev:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
     DEPLOY_JAWS_CLIENT: 1
-    STAGING_USER_DIR: "/global/cscratch1/sd/jaws/users"
-    DATA_REPO_DIR: "/global/cfs/cdirs/jaws/data_repository"
+    STAGING_USER_DIR: "/global/cscratch1/sd/jaws/jaws-dev/users"
+    DATA_REPO_DIR: "/global/cfs/cdirs/jaws/data_repository/jaws-dev"
   environment:
     name: "cori/dev"
   script:
@@ -302,8 +306,8 @@ deploy-jaws-cori-staging:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
     DEPLOY_JAWS_CLIENT: 1
-    STAGING_USER_DIR: "/global/cscratch1/sd/jaws/users"
-    DATA_REPO_DIR: "/global/cfs/cdirs/jaws/data_repository"
+    STAGING_USER_DIR: "/global/cscratch1/sd/jaws/jaws-staging/users"
+    DATA_REPO_DIR: "/global/cfs/cdirs/jaws/data_repository/jaws-staging"
   environment:
     name: "cori/staging"
   script:
@@ -318,8 +322,8 @@ deploy-jaws-cori-prod:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
     DEPLOY_JAWS_CLIENT: 1
-    STAGING_USER_DIR: "/global/cscratch1/sd/jaws/users"
-    DATA_REPO_DIR: "/global/cfs/cdirs/jaws/data_repository"
+    STAGING_USER_DIR: "/global/cscratch1/sd/jaws/jaws-prod/users"
+    DATA_REPO_DIR: "/global/cfs/cdirs/jaws/data_repository/jaws-prod"
   environment:
     name: "cori/production"
   script:
