@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 
+# import helper functionn from any location
+# taken from https://stackoverflow.com/questions/192292/how-best-to-include-other-scripts
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+. "$DIR/utils.sh"
+
 echo "BEGIN deploy-client"
+
 # NB: this should be run after generate-venvs because it doesn't `make pkg`
 
 ## VERIFY REQUIRED VARS ARE DEFINED
@@ -15,8 +22,6 @@ SITE_CLIENT_INSTALL_DIR
 SITE_CLIENT_GROUP
 SITE_LOAD_PYTHON
 SITE_LOAD_JAVA
-SITE_STAGING_USER_DIR
-SITE_DATA_REPO_DIR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -37,15 +42,6 @@ if [[ $RESULT -ne 0 ]]; then
   done
 fi
 [ $RESULT -eq 0 ] || exit 1
-
-function fix_perms() {
-    local GROUP="$1"
-    local DIR="$2"
-    chmod -R a+rX "$DIR"
-    chmod -R ug+rwX "$DIR"
-    chgrp -R $GROUP "$DIR"
-    find "$DIR" -type d -exec chmod g+s '{}' \;
-}
 
 ## DELETE OLD VENV
 test -d "$SITE_CLIENT_INSTALL_DIR" && rm -rf "$SITE_CLIENT_INSTALL_DIR"
@@ -78,9 +74,9 @@ export JAWS_USER_CONFIG=~/jaws.conf
 
 echo "jaws-$DEPLOYMENT_NAME activated; see \"jaws --help\" for more."
 EOM
-chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.sh
-chmod 775 $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.sh
-cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.sh" "$SITE_CLIENT_INSTALL_DIR"
+
+chgrp $SITE_JAWS_GROUP $SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.sh
+chmod 775 $SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.sh
 
 ## GENERATE CONFIGS
 cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws.conf
@@ -88,28 +84,37 @@ cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws.conf
 token =
 staging_dir =
 EOM
-chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws.conf
-chmod 644 $CONFIG_DIR/jaws.conf
-cp "$CONFIG_DIR/jaws.conf" "$SITE_CLIENT_INSTALL_DIR"
+
+chgrp $SITE_JAWS_GROUP $SITE_CLIENT_INSTALL_DIR/jaws.conf
+chmod 775 $SITE_CLIENT_INSTALL_DIR/jaws.conf
 
 cat << EOM > $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 [JAWS]
 site_id = $JAWS_SITE
-name = jaws-$DEPLOYMENT_NAME
 url = $JAWS_CENTRAL_HOST:$JAWS_REST_PORT/api/v2
 womtool_jar = $SITE_WOMTOOL_JAR
 uploads_subdir = $SITE_UPLOADS_SUBDIR
-staging_dir = $SITE_STAGING_USER_DIR
-data_repo_basedir = $SITE_DATA_REPO_DIR
+staging_dir = $STAGING_USER_DIR
+data_repo_basedir = $DATA_REPO_DIR
 shared_endpoint_group = $SITE_CLIENT_GROUP
 [GLOBUS]
 client_id = $JAWS_GLOBUS_CLIENT_ID
 endpoint_id = $SITE_GLOBUS_EP
 basedir = $SITE_GLOBUS_ROOT_DIR
 EOM
+
 chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 chmod 644 $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
+
+
+# Finally setup the user directories for staging and storing data
+if [[ ! -z "$STAGING_USER_DIR" ]]; then
+    setup_dir "$STAGING_USER_DIR" "$SITE_CLIENT_GROUP" 2775
+fi
+if [[ ! -z "$DATA_REPO_DIR" ]]; then
+    setup_dir "$DATA_REPO_DIR" "$SITE_CLIENT_GROUP" 2775
+fi
 
 # at this point, jaws-client is not usable due to permissions, but changing group and permissions via the gitlab-runner
 # does not work for parallel-FS for some reason.  The solution is to add such commands to one of the shims so that the
