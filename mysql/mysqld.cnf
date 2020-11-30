@@ -1,0 +1,14 @@
+## Taken from here: https://github.com/docker-library/mysql/issues/275
+# To allow running site/central and connecting it from laptop to container 
+[mysqld]
+pid-file	            = /var/run/mysqld/mysqld.pid
+socket		            = /var/run/mysqld/mysqld.sock
+# Where the database files are stored inside the container
+datadir		            = /var/lib/mysql
+
+# My application special configuration
+max_allowed_packet          = 32M
+sql-mode                    = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'
+
+# Accept connections from any IP address
+bind-address	            = 0.0.0.0
