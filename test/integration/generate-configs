@@ -184,8 +184,6 @@ worker_info_update_wait = 0.5
 result_receive_interval = 0.1
 # num threads to recv results from workers
 num_result_recv_threads = 1
-# client->worker heartbeat sending interval
-client_hb_send_interval = 3.0
 # live worker checking count limit
 worker_hb_check_max_count = 0
 # worker->client heartbeat receiving interval
