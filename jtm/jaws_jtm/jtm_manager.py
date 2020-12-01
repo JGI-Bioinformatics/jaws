@@ -564,8 +564,6 @@ class JtmNonTaskCommandRunner(JtmAmqpstormBase):
         logger.info("New task: {}".format(msg_unzipped))
         task_type = msg_unzipped["task_type"]
 
-        # if task_type == "task":
-        #     self.send_reply(message, "task", process_task_request(msg_unzipped))
         if task_type == "status":
             self.send_reply(
                 message, "status", process_task_status(int(msg_unzipped["task_id"]))
@@ -1305,7 +1303,7 @@ def process_task_request(msg):
                 logger.critical("Failed to insert tasks table for new user task.")
                 logger.debug("Retry to insert tasks table for a user task.")
                 success = False
-                time.sleep(1.0)
+                time.sleep(0.5)
 
         success = False
         while success is not True:
@@ -1324,7 +1322,7 @@ def process_task_request(msg):
                 logger.critical("Failed to insert runs table for a new run.")
                 logger.debug("Retry to insert runs table for a new run.")
                 success = False
-                time.sleep(1.0)
+                time.sleep(0.5)
 
         # if it successfully updates runs table and gets a task id
         if last_task_id != -1:
@@ -1400,10 +1398,7 @@ def process_task_request(msg):
                 reply_q = CONFIG.configparser.get("JTM", "jtm_inner_result_q")
                 logger.info("Send a task to {}".format(inner_task_request_queue))
 
-                # Just a little gap b/w ready and queued
-                # time.sleep(CONFIG.configparser.getfloat("JTM", "task_stat_update_interval"))
-
-                # This TASK_STATUS["queued"] means it's queued to jtm task queue
+                # NOTE: This TASK_STATUS["queued"] means it's queued to jtm task queue
                 # TASK_STATUS["pending"] means node requested to slurm
                 # TASK_STATUS["running"] means task processing started
                 try:
@@ -2073,7 +2068,7 @@ def slurm_worker_cleanup_proc():
                 else:
                     logger.debug("Job id {} is alive.".format(j))
 
-                time.sleep(1)
+                time.sleep(1.0)
 
             time.sleep(CONFIG.configparser.getfloat("JTM", "worker_kill_interval"))
         except Exception as e:
