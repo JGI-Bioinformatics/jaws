@@ -1072,6 +1072,7 @@ def process_task_request(msg):
     last_task_id = -1
     b_failed_to_request_worker = False
     w_int = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
+    slurm_job_id = 0
 
     if "pool" in msg and "name" in msg["pool"] and "time" in msg["pool"]:
         # {u'resource': u'cori', u'name': u'test', u'size': 1}
@@ -1230,7 +1231,6 @@ def process_task_request(msg):
             run_sh_command(sbatch_cmd_str + " --dry_run", log=logger)
 
             # Get the slurm job id returned from jtm-worker
-            slurm_job_id = 0
             try:
                 slurm_job_id = int(so.split("\n")[1])
             except Exception:
