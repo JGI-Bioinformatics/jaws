@@ -702,6 +702,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     hb_msg = CONFIG.constants.HB_MSG
     jtm_worker_hb_exch = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
     interval = CONFIG.configparser.getfloat("JTM", "client_hb_recv_interval")
+    hb_mgs_to_recv = CONFIG.configparser.getfloat("JTM", "heartbreat_message_count")
 
     with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
         with conn.channel() as ch:
@@ -726,7 +727,8 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
 
             while True:
                 worker_ids_dict = {}
-                ch.basic.qos(100)
+                # this qos is to set how many messages to take out from RMQ queue
+                ch.basic.qos(hb_mgs_to_recv)
                 message = ch.basic.get(queue=hb_queue_name, no_ack=True)
                 if message and not b_is_msg_cleared:
                     cnt = message.method["message_count"]

@@ -187,7 +187,7 @@ num_result_recv_threads = 1
 # live worker checking count limit
 worker_hb_check_max_count = 0
 # worker->client heartbeat receiving interval
-client_hb_recv_interval = 6.0
+client_hb_recv_interval = 5.0
 # max number of trial for checking
 file_checking_max_trial = 3
 # sleep time between output file checking before retrial
@@ -198,6 +198,8 @@ file_check_int_inc = 1.5
 jtminterface_max_trial = 3600
 # worker lifeleft for task timeout
 task_kill_timeout_minute = 3
+# worker heartbeat consumption message count
+heartbreat_message_count = 1000
 jtm_inner_request_q = _jtm_inner_request_queue.\${SITE:instance_name}
 jtm_inner_result_q = _jtm_inner_result_queue.\${SITE:instance_name}
 jtm_task_kill_q = _jtm_task_kill.\${SITE:instance_name}
