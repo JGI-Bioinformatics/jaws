@@ -468,7 +468,7 @@ def run_user_task(msg_unzipped):
                     return_msg["ret_msg"] = "Output file checking is OK."
             else:
                 return_msg["done_flag"] = done_f["success"]
-                return_msg["ret_msg"] = "No file(s) to check."
+                return_msg["ret_msg"] = ""
         else:
             logger.critical(
                 "Failed to execute a task, %s. Non-zero exit code. stdout = %s."
