@@ -10,7 +10,7 @@ src_dir={{install.meta.src_dir}}
 install_dir={{site[sitename]['install_dir']}}
 client_dir={{client.install_dir}}
 staging_user_dir={{client.staging_dir}}
-data_repo_dir={{client.data_repo_dir}}
+data_repo_dir={{client.data_repo_basedir}}
 shared_endpoint_group={{client.shared_endpoint_group}}
 developer_mode={{install.meta.developer_mode}}
 
@@ -33,9 +33,9 @@ function setup_dir {
   [[ -z $DIR ]] && echo "missing DIR" && exit 1
   [[ -z $GROUP ]] && echo "missing GROUP" && exit 1
   echo "... $DIR"
-  test -d "$DIR" || mkdir -p "$DIR"
-  chgrp "$GROUP" "$DIR"
-  chmod "$PERMS" "$DIR"
+  test -d "$DIR" || (mkdir -p "$DIR" && \
+    chgrp "$GROUP" "$DIR" && \
+    chmod "$PERMS" "$DIR")
 }
 
 
@@ -62,15 +62,14 @@ else
   source $client_dir/bin/activate && \
     pip install $src_dir/client/dist/* && \
     deactivate
+  fix_perms $client_dir $group_perms
 fi
-
-fix_perms $client_dir $group_perms
 
 
 ## SETUP STAGING AND DATA REPO DIRS
-if [[ ! -z "$staging_user_dir" ]]; then
+if [[ ! -z $staging_user_dir ]]; then
     setup_dir "$staging_user_dir" "$shared_endpoint_group" 2775
 fi
-if [[ ! -z "$data_repo_dir" ]]; then
+if [[ ! -z $data_repo_dir ]]; then
     setup_dir "$data_repo_dir" "$shared_endpoint_group" 2775
 fi
