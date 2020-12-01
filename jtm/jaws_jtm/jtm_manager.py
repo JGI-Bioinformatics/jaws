@@ -645,9 +645,9 @@ def send_update_task_status_msg(
     reversed_done_flags = dict(map(reversed, CONFIG.constants.DONE_FLAGS.items()))
     reason_str = ""
     if fail_code:
-        reason_str += reversed_done_flags[fail_code]
+        reason_str += "%s, " % reversed_done_flags[fail_code]
     if reason:
-        reason_str += ": %s" % reason
+        reason_str += "%s" % reason
 
     data = {
         "cromwell_run_id": run_id,  # this is not the JAWS run_id
@@ -1230,6 +1230,7 @@ def process_task_request(msg):
             run_sh_command(sbatch_cmd_str + " --dry_run", log=logger)
 
             # Get the slurm job id returned from jtm-worker
+            slurm_job_id = 0
             try:
                 slurm_job_id = int(so.split("\n")[1])
             except Exception:
