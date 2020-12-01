@@ -6,30 +6,16 @@ set -eo pipefail
 
 deploy_name={{install.meta.deploy_name}}
 supervisor_dir={{supervisor.deploy_name.install_dir}}
-config_dir={{install.meta.output_dir}}/configs
+config_dir={{install.meta.output_dir}}/config
 jtm_group={{site[sitename]['group_perms']['jtm']}}
-supervisor_jaws_config=supervisord-jaws.conf
-supervisor_jtm_config=supervisord-jtm.conf
-is_local_dev_env={{install.meta.is_local_dev}}
+supervisor_jaws_config=$(basename {{install.components.supervisor_jaws.output_config_name}})
+supervisor_jtm_config=$(basename {{install.components.supervisor_jtm.output_config_name}})
 
-## PERMISSIONS
-function fix_perms() {
-    local dir=$1
-    local group=$2
-    chmod -R a+rX $dir
-    chmod -R ug+rwX $dir
-    [[ ! -z $group ]] && chgrp -R $group $dir
-    if [[ -d $dir ]]; then
-        find $dir -type d -exec chmod g+s '{}' \;
-    fi
-}
 
 ## Function to get supervisord pid
 function get_supervisord_pid() {
     local config_file=$1
-    local uname=$(whoami)
     pid=$(ps aux | \
-        grep $uname | \
         grep supervisord | \
         grep $supervisor_dir | \
         grep $config_file |  \
@@ -68,6 +54,24 @@ function shutdown_supervisord() {
 }
 
 
+## Function to compare two files, returning 0 if same, 1 if different.
+function diff_file() {
+    local file1=$1
+    local file2=$1
+    if [[ -f $file2 ]]; then
+        out=$(diff $file1 $file2)
+        echo "out=$out"
+        if [[ ! -z $out ]]; then
+            echo "1"
+        else
+            echo "0"
+        fi
+    else
+        echo "0"
+    fi
+}
+
+
 ## Function to generate supervisor executables.
 function generate_shim() {
 prog=$1
@@ -82,7 +86,7 @@ chmod +x $supervisor_dir/bin/$prog
 }
 
 
-## Determine what to install and set deploy var accordingly.
+## Determine what services stop
 if [[ {{install.components.jaws_central.add}} -ne 0 || \
    {{install.components.jaws_client.add}} -ne 0 || \
    {{install.components.jaws_site.add}} -ne 0 ]]; then
@@ -90,6 +94,7 @@ if [[ {{install.components.jaws_central.add}} -ne 0 || \
 else
     deploy_jaws=0
 fi
+
 if [[ {{install.components.jaws_jtm.add}} -ne 0 || {{install.components.cromwell.add}} -ne 0 ]]; then
     deploy_jtm=1
 else
@@ -97,54 +102,47 @@ else
 fi
 
 
-## Make directory if neccessary
+## mkdir if neccessary
 [[ -d $supervisor_dir ]] || mkdir $supervisor_dir
 [[ -d $supervisor_dir/bin ]] || mkdir $supervisor_dir/bin
 
 
-## Make python virtualenv if not exists and install supervisor
+## Make python virtualenv if not exists
 [[ -f $supervisor_dir/venv/bin/activate ]] || \
   python3 -m venv $supervisor_dir/venv && \
   pip install supervisor
 
+[[ ! -z "$jtm_group" ]] && chgrp -R $jtm_group $supervisor_dir/{bin,venv}
 
-## Create supervisor cmds
+
+## Install supervisor
 generate_shim supervisord
 generate_shim supervisorctl
 
 
-## Shutdown supervisord for jaws if already running
-if [[ -f $supervisor_dir/$supervisor_jaws_config ]]; then
-    shutdown_supervisord $supervisor_dir/$supervisor_jaws_config
-    sleep 10 # wait for process to terminate
-    rm $supervisor_dir/$supervisor_jaws_config
-fi
-
-
-## Shutdown supervisord for jtm ONLY if deployment is local-dev if already running. For other deployment envs,
-## the supervisord for jtm must be pre-launched using the jtm user.
-if [[ $is_local_dev_env == 1 && -f $supervisor_dir/$supervisor_jtm_config ]]; then
-   shutdown_supervisord $supervisor_dir/$supervisor_jtm_config
-   sleep 10 # wait for process to terminate
-   rm $supervisor_dir/$supervisor_jtm_config
-fi
-
-
-## Start supervisord for jaws if not already running.
+## Start supervisord if needed.
 if [[ $deploy_jaws == 1 ]]; then
+    is_config_different=$(diff_file $config/supervisor_jaws_config $supervisor_dir/$supervisor_jaws_config)
+    echo "Starting jaws services ..."
+    # if supervisor config is different then previous
+    if [[ $is_config_different == 1 ]]; then
+        shutdown_supervisord $supervisor_dir/$supervisor_jaws_config
+        sleep 10
+    fi
+
     cp $config_dir/$supervisor_jaws_config $supervisor_dir/$supervisor_jaws_config
     start_supervisord $supervisor_dir/$supervisor_jaws_config
 fi
 
-## Copy jtm supervisor config if deploying jtm
 if [[ $deploy_jtm == 1 ]]; then
+    is_config_different=$(diff_file $config/supervisor_jtm_config $supervisor_dir/$supervisor_jtm_config)
+    echo "Starting jtm services ..."
+    if [[ $is_config_different == 1 ]]; then
+        shutdown_supervisord $supervisor_dir/$supervisor_jaws_config
+        sleep 10
+    fi
+
     cp $config_dir/$supervisor_jtm_config $supervisor_dir/$supervisor_jtm_config
-fi
-
-
-## Start supervisord for jtm ONLY for local-dev if not already running. For other deployment envs,
-## assume supervisord is already running.
-if [[ $is_local_dev_env && $deploy_jtm == 1 ]]; then
     start_supervisord $supervisor_dir/$supervisor_jtm_config
 fi
 
@@ -172,7 +170,6 @@ if [[ $deploy_jtm == 1 ]]; then
     fi
 fi
 
-
-## Set group permissions
-fix_perms $jtm_group $supervisor_dir/bin
-fix_perms $jtm_group $supervisor_dir/venv
+# the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
+# the gitlab-runner. no fix could by found is why that copy now happens in the jtm-worker-deploy shim created by generate-shims. this is a hack.
+#cp -a $INSTALL_DIR/configs/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf && chgrp $jtm_group && chmod 640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
