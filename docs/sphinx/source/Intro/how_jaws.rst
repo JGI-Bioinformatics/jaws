@@ -14,7 +14,7 @@ JAWS is composed of four main parts:
 	1) a command line interface (:bash:`jaws-client`) 
 	2) a centralized orchestration service (:bash:`jaws-central`), managing N sites.
 	3) a site service wrapping the workflow engine (:bash:`jaws-site`)
-	4) job submission manager which submits jobs to worker pools (:bash:`jaws-jtm`). It is designed to efficiently use the high performance commputing (HPC) resources.
+	4) job submission manager which submits jobs to worker pools (:bash:`jaws-jtm`). It is designed to efficiently use the high performance computing (HPC) resources.
 
 
 
@@ -64,7 +64,7 @@ Cromwell
 
 JTM (jaws-jtm)
 --------------
-The main purpose of the JAWS JTM (JGI Task Manager) is to receive tasks from Cromwell and execute them on a compute resources (e.g. HPC cluster). Cromwell sends the workflow tasks to the workers running on the HPC cluster via JTM. JTM accomplishes this by using RabbitMQ message broker.  It acts as an abstraction layer between :bash:`jaws-site` and different resources (different clusters, eventually cloud resources).
+The main purpose of the JAWS JTM (JGI Task Manager) is to receive tasks from Cromwell and execute them on a compute resource (e.g. HPC cluster). Cromwell sends the workflow tasks to the workers running on the HPC cluster via JTM. JTM accomplishes this by using RabbitMQ message broker.  It acts as an abstraction layer between :bash:`jaws-site` and different resources (different clusters, eventually cloud resources).
 
 Globus
 ------
@@ -76,7 +76,7 @@ Technologies used:
 - **Authentication:** Globus OAuth
 - **Cromwell:** processes workflows described in either WDL `Workflow Description Language <https://software.broadinstitute.org/WDL>`_.
 - **Docker, Shifter, Singularity** defines run environment
-- **JGI Task Manager (JTM):** jobs are relayed to multiple compute clusters; for example, Cori 
+- **JGI Task Manager (JTM):** jobs are relayed to multiple compute clusters; for example, Cori & LBNL
 - **Globus:** File transfer to/from multiple end-points using GridFTP
 - **REST APIs:** multiple JAWS components communicate by REST
 - **RabbitMQ:** Message broker used to communicate workflow tasks between Cromwell and the JTM workers running on the compute cluster.

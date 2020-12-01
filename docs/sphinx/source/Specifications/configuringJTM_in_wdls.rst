@@ -64,12 +64,14 @@ At Pacific Northwest National Labs: `PNNL <https://www.emsl.pnnl.gov/MSC/UserGui
 | * the actual number of gigabytes you should request (remember there is overhead).
 
 
+.. _requesting-workers:
+
 ******************
 Requesting workers
 ******************
 You request resources in a similar manner as for sbatch jobs. The default options are shown below.  Remember to include quotes for strings.
 
-.. code-block:: bash
+.. code-block:: text
 
    runtime {
        time: "00:30:00"         # up to 72hrs
@@ -85,7 +87,7 @@ You request resources in a similar manner as for sbatch jobs. The default option
 
 If you wanted to use all defaults, you could get away with just specifying poolname.
 
-.. code-block:: bash
+.. code-block:: text
 
    runtime {
         poolname: "my_pool_name"
@@ -110,7 +112,7 @@ The decision process should go something like this:
 for example:
 **scattering high memory jobs**
 
-.. code-block:: bash
+.. code-block:: text
 
    runtime {
      poolname: "my_pool_name"
@@ -126,7 +128,7 @@ How many threads do I get per worker
 The answer is "It depends on how many workers you ask for".  Consider the following:
 Assuming we have a node with 64 threads. If you wanted to run `blastn -num_threads 4` in parallel, and if memory was not a bottleneck, you could run up to 16 blast tasks (64/4=16) on one node. This would equate to 16 workers per node.
 
-.. code-block:: bash
+.. code-block:: text
 
    runtime {
      node: 1
@@ -145,7 +147,7 @@ Example Cases and Best-practices
 
 If you want to scatter a task use a pool of >1 workers. For instance, If you have a hundred scatter jobs, having 10 workers will give you a 10x speedup. You can configure how many workers (jobs) you want on a node; this depends on the memory requirements per job. Assuming here that each job takes max of 20G, you could run a max of 5 jobs per node.
 
-.. code-block:: bash
+.. code-block:: text
 
    runtime {
        cluster: "cori"
@@ -158,7 +160,7 @@ If you want to scatter a task use a pool of >1 workers. For instance, If you hav
 
 To re-use a worker pool, copy all the params, not just the name.  In this example, the first task takes 20 minutes and the second task takes 40 minutes so the total needs to be at least 1hr.
 
-.. code-block:: bash
+.. code-block:: text
 
    task trim {
       runtime {
