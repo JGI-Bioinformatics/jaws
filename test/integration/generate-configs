@@ -195,19 +195,15 @@ heartbeat_message_count = 1000
 jtm_inner_request_q = _jtm_inner_request_queue.\${SITE:instance_name}
 jtm_inner_result_q = _jtm_inner_result_queue.\${SITE:instance_name}
 jtm_task_kill_q = _jtm_task_kill.\${SITE:instance_name}
-jtm_worker_poison_q = _jtm_worker_poison.\${SITE:instance_name}
 jtm_task_result_q = _jtm_task_result_queue.\${SITE:instance_name}
 jtm_task_request_q = _jtm_task_request_queue.\${SITE:instance_name}
 jtm_status_result_q = _jtm_status_result_queue.\${SITE:instance_name}
 jtm_status_request_q = _jtm_status_request_queue.\${SITE:instance_name}
 worker_hb_q_postfix = _jtm_worker_hb_queue.\${SITE:instance_name}
-client_hb_q_postfix = _jtm_client_hb_queue.\${SITE:instance_name}
 jgi_jtm_main_exch = jgi_jtm_main_exch_\${JTM:run_mode}_\${SITE:instance_name}
-jtm_client_hb_exch = jgi_jtm_client_hb_exch_\${JTM:run_mode}_\${SITE:instance_name}
 jtm_inner_main_exch = jgi_jtm_inner_main_exch_\${JTM:run_mode}_\${SITE:instance_name}
 jtm_worker_hb_exch = jgi_jtm_worker_hb_exch_\${JTM:run_mode}_\${SITE:instance_name}
 jtm_task_kill_exch = jgi_jtm_task_kill_exch_\${JTM:run_mode}_\${SITE:instance_name}
-jtm_worker_poison_exch = jgi_jtm_poison_exch_\${JTM:run_mode}_\${SITE:instance_name}
 EOM
 
 
