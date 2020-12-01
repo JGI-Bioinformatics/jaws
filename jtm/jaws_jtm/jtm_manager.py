@@ -109,9 +109,9 @@ class WorkerResultReceiver(JtmAmqpstormBase):
         done_flag = (
             int(msg_unzipped["done_flag"]) if "done_flag" in msg_unzipped else -2
         )
-        ret_msg = msg_unzipped["ret_msg"] if "ret_msg" in msg_unzipped else ""
-        a_worker_id = msg_unzipped["worker_id"] if "worker_id" in msg_unzipped else ""
-        host_name = msg_unzipped["host_name"] if "host_name" in msg_unzipped else ""
+        ret_msg = msg_unzipped.get("ret_msg", "")
+        a_worker_id = msg_unzipped.get("worker_id", "")
+        host_name = msg_unzipped.get("host_name", "")
 
         if ret_msg != "hb":
             db = DbSqlMysql(config=self.config)
@@ -648,6 +648,7 @@ def send_update_task_status_msg(
         reason_str += reversed_done_flags[fail_code]
     if reason:
         reason_str += ": %s" % reason
+
     data = {
         "cromwell_run_id": run_id,  # this is not the JAWS run_id
         "cromwell_job_id": task_id,
@@ -900,7 +901,8 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                     )
                                     if status_now == TASK_STATUS["pending"]:
                                         send_update_task_status_msg(
-                                            task_id, status_now, TASK_STATUS["running"]
+                                            task_id, status_now, TASK_STATUS["running"],
+                                            reason=slurm_job_id
                                         )
 
                                 db.execute(
@@ -1046,9 +1048,9 @@ def process_task_request(msg):
     output_file = (
         msg["output_files"] if "output_files" in msg else ""
     )  # comma separated list ex) "a.out,b.out,c.out"
-    output_dir = msg["output_dir"] if "output_dir" in msg else ""
-    stdout_file = msg["stdout"] if "stdout" in msg else ""
-    stderr_file = msg["stderr"] if "stderr" in msg else ""
+    output_dir = msg.get("output_dir", "")
+    stdout_file = msg.get("stdout", "")
+    stderr_file = msg.get("stderr", "")
 
     # If pool is set, the tasks which use the queue name (=pool name)
     # will only be sent to the pool of workers
@@ -1482,7 +1484,8 @@ def process_task_request(msg):
                         or status_now < 0
                     ):
                         send_update_task_status_msg(
-                            last_task_id, status_now, TASK_STATUS["pending"]
+                            last_task_id, status_now, TASK_STATUS["pending"],
+                            reason=slurm_job_id
                         )
 
                 # Note: only when the previous status == queued
