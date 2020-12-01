@@ -1436,13 +1436,6 @@ def process_task_request(msg):
                             debug=False,
                         )
                         db.commit()
-
-                    status_now = db.selectScalar(
-                        JTM_SQL["select_status_runs_by_taskid"]
-                        % dict(task_id=last_task_id),
-                        debug=False,
-                    )
-                    logger.debug(f"status now {last_task_id} = {status_now}")
                     db.close()
                 except Exception as e:
                     logger.critical(e)
