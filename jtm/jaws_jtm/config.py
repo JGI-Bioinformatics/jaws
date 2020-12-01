@@ -45,7 +45,7 @@ class JtmConstants():
                    "terminated": -4,  # terminated
                    "invalidtask": -5,  # task definition in the message from jtm_submit is not valid
                    "timeout": -6,
-                   "lostconnection": -7
+                   "lostconnection": -7,
                    }
 
     DONE_FLAGS = {"success": 1,
@@ -56,7 +56,7 @@ class JtmConstants():
                   "failed with user termination": -4,
                   "failed with input file or command not found": -5,
                   "failed with timeout": -6,
-                  "failed with lost connection": -7
+                  "failed with lost connection": -7,
                   }
 
     WORKER_TYPE = {"manual": 0,

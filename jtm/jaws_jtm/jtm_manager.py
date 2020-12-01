@@ -257,6 +257,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         TASK_STATUS["running"],
                         ret_status,
                         fail_code=done_flag if done_flag < 0 else None,
+                        reason=ret_msg
                     )
 
             db.execute(
@@ -626,7 +627,7 @@ def extract_cromwell_run_id(task_id: int) -> str:
 
 # --------------------------------------------------------------------------------------------------
 def send_update_task_status_msg(
-    task_id: int, status_from, status_to: int, fail_code=None
+    task_id: int, status_from, status_to: int, fail_code=None, reason=None
 ):
     """
     Publish a message for pushing task status change to JAWS Site
@@ -635,12 +636,18 @@ def send_update_task_status_msg(
     :param status_from: None or status code 0 ~ 4 or -2 if failed
     :param status_to: status code 0 ~ 4 or -2 if failed
     :param fail_code: fail code if failed -1 ~ -7
+    :param reason: additional info string like failure reason
     :return: None
     """
     now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     run_id = extract_cromwell_run_id(task_id)
     reversed_task_status = dict(map(reversed, CONFIG.constants.TASK_STATUS.items()))
     reversed_done_flags = dict(map(reversed, CONFIG.constants.DONE_FLAGS.items()))
+    reason_str = ""
+    if fail_code:
+        reason_str += reversed_done_flags[fail_code]
+    if reason:
+        reason_str += ": %s" % reason
     data = {
         "cromwell_run_id": run_id,  # this is not the JAWS run_id
         "cromwell_job_id": task_id,
@@ -649,7 +656,7 @@ def send_update_task_status_msg(
         else "",
         "status_to": reversed_task_status[status_to] if status_to is not None else "",
         "timestamp": now,
-        "reason": reversed_done_flags[fail_code] if fail_code else None,
+        "reason": reason_str
     }
 
     # send message to Site
