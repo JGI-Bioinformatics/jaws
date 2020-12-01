@@ -4,7 +4,7 @@
             "output_dir": "$INSTALL_DIR",
             "src_dir": "$SRC_DIR",
             "deploy_name": "$DEPLOY_NAME",
-            "developer_mode": "$DEVELOPER_MODE",
+            "developer_mode": 0,
             "is_local_dev": 0,
             "__comments__": "is_local_dev=1 will shutdown and restart supervisor for jtm"
         },
