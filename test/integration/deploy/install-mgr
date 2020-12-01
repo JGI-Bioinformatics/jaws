@@ -439,6 +439,7 @@ def check_env_vars(json_file):
 
     print("Checking for missing environment variables ...")
     config_entries = get_config_json_data(json_file)
+
     return traverse_keys(config_entries)
 
 
