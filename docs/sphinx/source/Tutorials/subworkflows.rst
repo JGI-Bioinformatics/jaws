@@ -32,18 +32,18 @@ Example of Subworkflow
 
 .. figure:: /Figures/sub.png
 
-##############################
+################################
 How to Run Subworkflows in JAWS
-##############################
+################################
 
 You can try running this example
 
 .. code-block:: bash
 
     # activate the environment you set up above
-    source ~/jaws-dev/bin/activate
+    source ~/jaws-prod.sh
 
-    # clone the example code
+    # clone the example code (use your nersc credentials to clone)
     git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
 
     cd jaws-tutorial-examples/subworkflow

@@ -11,7 +11,7 @@ Singularity Backend Example
 From file on lawrencium
 Cromwell_NERSC_dev.conf
 
-.. code-block:: bash
+.. code-block:: text
 
     JTM
     {
@@ -79,7 +79,7 @@ If your wdl task is being run in a docker image, then the "submit-docker" comman
 
 **singularity_exec.sh**
 
-.. code-block:: bash
+.. code-block:: text
 
 	export SINGULARITY_CACHEDIR=/<somepath>/sif_files
 	export SINGULARITY_PULLFOLDER=/<somepath>/sif_files
@@ -96,7 +96,7 @@ Shifter Backend Example
 From file on cori
 Cromwell.conf
 
-.. code-block:: bash
+.. code-block:: text
 
 	# this is required for shifter to find image from its registry.
 	docker {
@@ -175,7 +175,7 @@ If your wdl task is being run in a docker image, then the "submit-docker" comman
 
 **shifter_exec.sh**
 
-.. code-block:: bash
+.. code-block:: text
 
 	#!/bin/bash
 	shifter --image=$1 -V <full_path_to_db>:/refdata $2 $3
