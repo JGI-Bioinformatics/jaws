@@ -41,14 +41,14 @@ The README.md should include things like:
 Add your WDL to the catalog
 ---------------------------
 
-.. code-block:: bash
+.. code-block:: text
 
     jaws wdl add <wdl name> <my.wdl> <version> <readme.md>
 
 
 Use this command to see if your WDL was registered with JAWS 
 
-.. code-block:: bash
+.. code-block:: text
 
    jaws wdl list
 

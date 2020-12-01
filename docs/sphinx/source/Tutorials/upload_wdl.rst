@@ -30,7 +30,7 @@ Overall Process
 .. note::
    You may have to get access to the repository from (<Ed Kirton>eskirton@lbl.gov)
 
-.. code-block:: bash
+.. code-block:: text
 
    # clone jgi_workflows**
    git clone git@gitlab.com:eskirton/jgi_workflows.git
@@ -41,7 +41,7 @@ Overall Process
    Push your changes to the jgi_workflows repository to the main JAWS repository https://gitlab.com/eskirton/jgi_workflows.
    This jgi_workflows repo will be seen by JAWS (refreshes every hour or you can run :bash:`jaws --pull`)
 
-.. code-block:: bash
+.. code-block:: text
 
    # add your WDL folder to jgi_workflows*
    git add .
