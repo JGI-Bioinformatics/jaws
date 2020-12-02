@@ -1,0 +1,7 @@
+#!/bin/bash
+CONSTRAINT=haswell
+QOS=genepool_special
+shifterimg lookup jfroula/aligner-bbmap:2.0.1 || shifterimg pull jfroula/aligner-bbmap:2.0.1
+[ -z $CONSTRAINT ] || CONSTRAINT="-C $CONSTRAINT"
+[ -z $QOS ] || QOS="--qos $QOS"
+jtm --config=/global/cfs/projectdirs/jaws_jtm/jtm-staging/jaws-jtm.conf submit -cmd '/global/cfs/projectdirs/jaws_jtm/jtm-staging/shifter_exec.sh jfroula/aligner-bbmap:2.0.1 /global/cscratch1/sd/jaws/refdata /refdata /bin/bash /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-bbmap_indexing/execution/script' -cl cori -t 00:10:00 -c 1 -m 5G -p extrasmall -N 1 -nwpn 1 -jid cromwell_022a68d7_bbmap_indexing -A fungalp --shared 0 $QOS $CONSTRAINT

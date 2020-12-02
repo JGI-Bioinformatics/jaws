@@ -1,0 +1,23 @@
+/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+java -ea -Xmx3890m -Xms3890m -cp /usr/local/bin/bbmap/current/ align2.BBMap build=1 overwrite=true fastareadlen=500 ref=/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-bbmap_indexing/inputs/1820755849/sample.fasta
+Picked up _JAVA_OPTIONS: -Djava.io.tmpdir=/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-bbmap_indexing/tmp.4cce512b
+Executing align2.BBMap [build=1, overwrite=true, fastareadlen=500, ref=/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-bbmap_indexing/inputs/1820755849/sample.fasta]
+Version 38.82
+
+No output file.
+Writing reference.
+Executing dna.FastaToChromArrays2 [/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-bbmap_indexing/inputs/1820755849/sample.fasta, 1, writeinthread=false, genscaffoldinfo=true, retain, waitforwriting=false, gz=true, maxlen=536670912, writechroms=true, minscaf=1, midpad=300, startpad=8000, stoppad=8000, nodisk=false]
+
+Set genScaffoldInfo=true
+Writing chunk 1
+Set genome to 1
+
+Loaded Reference:	0.011 seconds.
+Loading index for chunk 1-1, build 1
+No index available; generating from reference genome: /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-bbmap_indexing/execution/ref/index/1/chr1_index_k13_c16_b1.block
+Indexing threads started for block 0-1
+Indexing threads finished for block 0-1
+Generated Index:	1.178 seconds.
+No reads to process; quitting.
+
+Total time:     	1.422 seconds.

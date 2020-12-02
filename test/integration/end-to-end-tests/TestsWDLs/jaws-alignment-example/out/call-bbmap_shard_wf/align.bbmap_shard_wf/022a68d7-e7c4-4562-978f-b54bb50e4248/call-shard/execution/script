@@ -1,0 +1,38 @@
+#!/bin/bash
+
+cd /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/execution
+tmpDir=$(mkdir -p "/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/tmp.c88d41cd" && echo "/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/tmp.c88d41cd")
+chmod 777 "$tmpDir"
+export _JAVA_OPTIONS=-Djava.io.tmpdir="$tmpDir"
+export TMPDIR="$tmpDir"
+export HOME="$HOME"
+(
+cd /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/execution
+
+)
+out022a68d7="${tmpDir}/out.$$" err022a68d7="${tmpDir}/err.$$"
+mkfifo "$out022a68d7" "$err022a68d7"
+trap 'rm "$out022a68d7" "$err022a68d7"' EXIT
+tee '/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/execution/stdout' < "$out022a68d7" &
+tee '/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/execution/stderr' < "$err022a68d7" >&2 &
+(
+cd /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/execution
+
+
+set -e -o pipefail
+fastq_indexer.py --input /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/inputs/1820755849/sample.fastq.bz2 --output sample.fastq.bz2.index
+create_blocks.py -if sample.fastq.bz2.index -ff /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/inputs/1820755849/sample.fastq.bz2 -of sample.fastq.bz2.sharded -bs 100000000
+)  > "$out022a68d7" 2> "$err022a68d7"
+echo $? > /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/execution/rc.tmp
+(
+# add a .file in every empty directory to facilitate directory delocalization on the cloud
+cd /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/execution
+find . -type d -exec sh -c '[ -z "$(ls -A '"'"'{}'"'"')" ] && touch '"'"'{}'"'"'/.file' \;
+)
+(
+cd /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/execution
+sync
+
+
+)
+mv /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/execution/rc.tmp /global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-shard/execution/rc

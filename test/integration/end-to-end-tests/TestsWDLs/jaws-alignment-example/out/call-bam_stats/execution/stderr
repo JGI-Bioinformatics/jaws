@@ -1,0 +1,17 @@
+/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+java -ea -Xms300m -cp /usr/local/bin/bbmap/current/ jgi.ReformatReads in=/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-merge_bams/execution/merged.sorted.bam out=stdout.fq
+/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+Picked up _JAVA_OPTIONS: -Djava.io.tmpdir=/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bam_stats/tmp.eb8a20d2
+Picked up _JAVA_OPTIONS: -Djava.io.tmpdir=/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bam_stats/tmp.eb8a20d2
+Executing jgi.ReformatReads [in=/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-merge_bams/execution/merged.sorted.bam, out=stdout.fq]
+
+Could not find sambamba.
+Found samtools 1.9
+Input is being processed as unpaired
+Input:                  	10 reads          	1510 bases
+Output:                 	10 reads (100.00%) 	1510 bases (100.00%)
+
+Time:                         	0.418 seconds.
+Reads Processed:          10 	0.02k reads/sec
+Bases Processed:        1510 	0.00m bases/sec

@@ -1,0 +1,82 @@
+/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+java -ea -Xmx3890m -Xms3890m -cp /usr/local/bin/bbmap/current/ align2.BBMap build=1 overwrite=true fastareadlen=500 int in=stdin.fq path=/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-bbmap_indexing/execution out=sample.fastq.bz2.sam overwrite keepnames mappedonly threads=4
+Picked up _JAVA_OPTIONS: -Djava.io.tmpdir=/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-alignment/shard-0/tmp.78ac71b9
+Executing align2.BBMap [build=1, overwrite=true, fastareadlen=500, int, in=stdin.fq, path=/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/main_wdl/1fd0d1af-c875-481b-94f3-74db4b4e91e5/call-bbmap_shard_wf/align.bbmap_shard_wf/022a68d7-e7c4-4562-978f-b54bb50e4248/call-bbmap_indexing/execution, out=sample.fastq.bz2.sam, overwrite, keepnames, mappedonly, threads=4]
+Version 38.82
+
+Set INTERLEAVED to true
+Set OUTPUT_MAPPED_ONLY to true
+Set threads to 4
+Retaining first best site only for ambiguous mappings.
+Set genome to 1
+
+Loaded Reference:	0.100 seconds.
+Loading index for chunk 1-1, build 1
+Generated Index:	0.588 seconds.
+Analyzed Index:   	2.503 seconds.
+Started output stream:	0.028 seconds.
+Cleared Memory:    	0.406 seconds.
+Processing reads in paired-ended mode.
+Started read stream.
+Started 4 mapping threads.
+Detecting finished threads: 0, 1, 2, 3
+
+   ------------------   Results   ------------------   
+
+Genome:                	1
+Key Length:            	13
+Max Indel:             	16000
+Minimum Score Ratio:  	0.56
+Mapping Mode:         	normal
+Reads Used:           	10	(1510 bases)
+
+Mapping:          	0.114 seconds.
+Reads/sec:       	87.98
+kBases/sec:      	13.29
+
+
+Pairing data:   	pct pairs	num pairs 	pct bases	   num bases
+
+mated pairs:     	  0.0000% 	        0 	  0.0000% 	           0
+bad pairs:       	100.0000% 	        5 	100.0000% 	        1510
+insert size avg: 	     NaN
+
+
+Read 1 data:      	pct reads	num reads 	pct bases	   num bases
+
+mapped:          	100.0000% 	        5 	100.0000% 	         755
+unambiguous:     	100.0000% 	        5 	100.0000% 	         755
+ambiguous:       	  0.0000% 	        0 	  0.0000% 	           0
+low-Q discards:  	  0.0000% 	        0 	  0.0000% 	           0
+
+perfect best site:	100.0000% 	        5 	100.0000% 	         755
+semiperfect site:	100.0000% 	        5 	100.0000% 	         755
+rescued:         	  0.0000% 	        0
+
+Match Rate:      	      NA 	       NA 	100.0000% 	         755
+Error Rate:      	  0.0000% 	        0 	  0.0000% 	           0
+Sub Rate:        	  0.0000% 	        0 	  0.0000% 	           0
+Del Rate:        	  0.0000% 	        0 	  0.0000% 	           0
+Ins Rate:        	  0.0000% 	        0 	  0.0000% 	           0
+N Rate:          	  0.0000% 	        0 	  0.0000% 	           0
+
+
+Read 2 data:      	pct reads	num reads 	pct bases	   num bases
+
+mapped:          	100.0000% 	        5 	100.0000% 	         755
+unambiguous:     	100.0000% 	        5 	100.0000% 	         755
+ambiguous:       	  0.0000% 	        0 	  0.0000% 	           0
+low-Q discards:  	  0.0000% 	        0 	  0.0000% 	           0
+
+perfect best site:	100.0000% 	        5 	100.0000% 	         755
+semiperfect site:	100.0000% 	        5 	100.0000% 	         755
+rescued:         	  0.0000% 	        0
+
+Match Rate:      	      NA 	       NA 	100.0000% 	         755
+Error Rate:      	  0.0000% 	        0 	  0.0000% 	           0
+Sub Rate:        	  0.0000% 	        0 	  0.0000% 	           0
+Del Rate:        	  0.0000% 	        0 	  0.0000% 	           0
+Ins Rate:        	  0.0000% 	        0 	  0.0000% 	           0
+N Rate:          	  0.0000% 	        0 	  0.0000% 	           0
+
+Total time:     	3.883 seconds.
