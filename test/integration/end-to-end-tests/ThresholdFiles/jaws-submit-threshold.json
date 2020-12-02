@@ -1,0 +1,36 @@
+{
+    "thresholds": [
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "some FAILMSG.",
+                "pass_msg": "some PASSMSG",
+                "name": "upload_task_id_valid"
+            },
+            "equals",
+            ":upload_task_id",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "some FAILMSG.",
+                "pass_msg": "some PASSMSG",
+                "name": "status_valid"
+            },
+            "equals",
+            ":status",
+            1
+        ]
+    ],
+    "metadata": {
+        "pipeline": {
+            "name": "jaws_status",
+            "description": "test of jaws services"
+        },
+        "version": {
+            "auto-qc": "2.0.1"
+        }
+    }
+}
+
