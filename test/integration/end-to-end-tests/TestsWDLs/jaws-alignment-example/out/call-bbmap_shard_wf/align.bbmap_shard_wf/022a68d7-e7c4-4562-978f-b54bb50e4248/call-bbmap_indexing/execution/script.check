@@ -1,2 +1,0 @@
-#!/bin/bash
-jtm --config=/global/cfs/projectdirs/jaws_jtm/jtm-staging/jaws-jtm.conf isalive -tid 136
