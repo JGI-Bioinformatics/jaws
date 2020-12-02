@@ -22,7 +22,7 @@ task task1 {
         node: 1
         nwpn: 1
         mem: "5G"
-        time: "00:10:00"
+        time: "00:30:00"
     }
 
     output { File outfile = "tmp.txt" }

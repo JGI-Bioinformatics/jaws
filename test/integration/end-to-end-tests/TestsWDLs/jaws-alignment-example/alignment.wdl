@@ -44,12 +44,9 @@ task shard {
     Int chunk_size
 
     command {
-		SECONDS=0
         set -e -o pipefail
         fastq_indexer.py --input ${reads} --output ${bname}.index
         create_blocks.py -if ${bname}.index -ff ${reads} -of ${bname}.sharded -bs ${chunk_size}
-		hrs=$(( SECONDS/3600 )); mins=$(( (SECONDS-hrs*3600)/60)); secs=$(( SECONDS-hrs*3600-mins*60 ))
-		printf 'Time spent: %02d:%02d:%02d\n' $hrs $mins $secs
     }
 
     output {
@@ -71,10 +68,7 @@ task bbmap_indexing {
     File reference
 
     command {
-		SECONDS=0
         bbmap.sh ref=${reference} 
-		hrs=$(( SECONDS/3600 )); mins=$(( (SECONDS-hrs*3600)/60)); secs=$(( SECONDS-hrs*3600-mins*60 ))
-		printf 'Time spent: %02d:%02d:%02d\n' $hrs $mins $secs
     }
 
     output {
@@ -101,20 +95,16 @@ task alignment {
     String path_to_ref = sub(ref, "/ref", "")
 
     command<<<
-		SECONDS=0
         start=$(echo ${coords} | awk '{print $1}')
         end=$(echo ${coords} | awk '{print $2}')
 
         # we are piping a block of the fastq sequence to the aligner 
         shard_reader.py -i ${reads} -s $start -e $end | \
         bbmap.sh int in=stdin.fq path=${path_to_ref} out=${bname}.sam overwrite keepnames mappedonly threads=${threads}
-		sleep 60
 
         # create a sorted bam file from the sam file
         samtools view -uS ${bname}.sam | \
         samtools sort - -o ${bname}.sorted.bam
-		hrs=$(( SECONDS/3600 )); mins=$(( (SECONDS-hrs*3600)/60)); secs=$(( SECONDS-hrs*3600-mins*60 ))
-		printf 'Time spent: %02d:%02d:%02d\n' $hrs $mins $secs
     >>>
 
     output {
@@ -135,11 +125,11 @@ task merge_bams {
     Array[File] bams
 
     command {
-		SECONDS=0
-		sleep 60
         picard MergeSamFiles I=${sep=' I=' bams} OUTPUT=merged.sorted.bam SORT_ORDER=coordinate ASSUME_SORTED=true USE_THREADING=true
-		hrs=$(( SECONDS/3600 )); mins=$(( (SECONDS-hrs*3600)/60)); secs=$(( SECONDS-hrs*3600-mins*60 ))
-		printf 'Time spent: %02d:%02d:%02d\n' $hrs $mins $secs
+    }
+
+    output {
+       File merged = "merged.sorted.bam"
     }
 
     runtime {
@@ -150,11 +140,6 @@ task merge_bams {
         nwpn: 1
         mem: "5G"
         time: "00:30:00"
-    }
-
-    output {
-       File merged = "merged.sorted.bam"
-    }
-
+   }
 }
 
