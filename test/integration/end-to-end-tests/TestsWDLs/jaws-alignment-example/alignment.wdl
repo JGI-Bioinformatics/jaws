@@ -60,7 +60,7 @@ task shard {
         node: 1
         nwpn: 1
         mem: "5G"
-        time: "00:10:00"
+        time: "00:30:00"
     }
 }
 
@@ -82,7 +82,7 @@ task bbmap_indexing {
         node: 1
         nwpn: 1
         mem: "5G"
-        time: "00:10:00"
+        time: "00:30:00"
     }
 }
 
@@ -118,7 +118,7 @@ task alignment {
         node: 1
         nwpn: 1
         mem: "5G"
-        time: "00:10:00"
+        time: "00:30:00"
     }
 }
 task merge_bams {
@@ -139,7 +139,7 @@ task merge_bams {
         node: 1
         nwpn: 1
         mem: "5G"
-        time: "00:10:00"
+        time: "00:30:00"
    }
 }
 

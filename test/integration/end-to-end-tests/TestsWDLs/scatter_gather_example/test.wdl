@@ -20,7 +20,7 @@ task stepA {
   >>> 
 
   runtime {
-    time: "00:10:00"
+    time: "00:20:00"
     mem: "5G"
     poolname: "smallworkerpoolforscattergather"
     shared: 0
