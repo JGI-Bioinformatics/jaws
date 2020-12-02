@@ -20,11 +20,8 @@ task bam_stats {
     String merged_bam
 
     command {
-	    SECONDS=0
         reformat.sh in=${merged_bam} out=stdout.fq | \
         bbstats.sh in=stdin.fq out=stats
-		hrs=$(( SECONDS/3600 )); mins=$(( (SECONDS-hrs*3600)/60)); secs=$(( SECONDS-hrs*3600-mins*60 ))
-		printf 'Time spent: %02d:%02d:%02d\n' $hrs $mins $secs
     }
 
     output {
@@ -38,7 +35,7 @@ task bam_stats {
         node: 1
         nwpn: 1
         mem: "5G"
-        time: "00:30:00"
+        time: "00:20:00"
     }
 }
 

@@ -20,7 +20,7 @@ task count_seqs {
         node: 1
         nwpn: 1
         mem: "10G"
-        time: "00:10:00"
+        time: "00:30:00"
         shared: 0
     }
 }
