@@ -1,0 +1,126 @@
+{
+    "thresholds": [
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "FAILMSG.",
+                "pass_msg": "PASSMSG",
+                "name": "CASCADE-Cromwell"
+            },
+            "equals",
+            ":CASCADE-Cromwell",
+            "UP"
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "FAILMSG.",
+                "pass_msg": "PASSMSG",
+                "name": "CASCADE-RMQ"
+            },
+            "equals",
+            ":CASCADE-RMQ",
+            "UP"
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "FAILMSG.",
+                "pass_msg": "PASSMSG",
+                "name": "CASCADE-Site"
+            },
+            "equals",
+            ":CASCADE-Site",
+            "UP"
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "FAILMSG.",
+                "pass_msg": "PASSMSG",
+                "name": "CORI-Cromwell"
+            },
+            "equals",
+            ":CORI-Cromwell",
+            "UP"
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "FAILMSG.",
+                "pass_msg": "PASSMSG",
+                "name": "CORI-RMQ"
+            },
+            "equals",
+            ":CORI-RMQ",
+            "UP"
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "FAILMSG.",
+                "pass_msg": "PASSMSG",
+                "name": "CORI-Site"
+            },
+            "equals",
+            ":CORI-Site",
+            "UP"
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "FAILMSG.",
+                "pass_msg": "PASSMSG",
+                "name": "JAWS-Central"
+            },
+            "equals",
+            ":JAWS-Central",
+            "UP"
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "FAILMSG.",
+                "pass_msg": "PASSMSG",
+                "name": "JGI-Cromwell"
+            },
+            "equals",
+            ":JGI-Cromwell",
+            "UP"
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "FAILMSG.",
+                "pass_msg": "PASSMSG",
+                "name": "JGI-RMQ"
+            },
+            "equals",
+            ":JGI-RMQ",
+            "UP"
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "FAILMSG.",
+                "pass_msg": "PASSMSG",
+                "name": "JGI-Site"
+            },
+            "equals",
+            ":JGI-Site",
+            "UP"
+        ]
+    ],
+    "metadata": {
+        "pipeline": {
+            "name": "jaws status",
+            "description": "test of jaws services"
+        },
+        "version": {
+            "auto-qc": "2.0.0"
+        },
+        "thresholdId": "5e80cca",
+        "thresholdVersion": "2.2.0"
+    }
+}
+
