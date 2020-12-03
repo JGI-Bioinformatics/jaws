@@ -47,7 +47,7 @@ def submit_multi_runs(num_submissions, wdl, inputs, dir, site):
 
 
 def submit_one_run(wdl, inputs, dir, site):
-    """Submit jobs to jaws and return a list of run ids."""
+    """Submit a job to jaws and return the run id."""
 
     # create timestamp string to make output directory unique
     out_dir = timestamp_dir(dir)

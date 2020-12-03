@@ -1,0 +1,16 @@
+{
+  "input-wdls": [
+    {
+      "wdl": "../TestsWDLs/jaws-alignment-example/main.wdl",
+      "inputs": "../TestsWDLs/jaws-alignment-example/inputs.json",
+      "output-dir": "$SCRATCH/autoqc/alignment/jgi",
+      "site": "JGI"
+    },
+    {
+      "wdl": "../TestsWDLs/jaws-alignment-example/main.wdl",
+      "inputs": "../TestsWDLs/jaws-alignment-example/inputs.json",
+      "output-dir": "$SCRATCH/autoqc/alignment/cori",
+      "site": "CORI"
+    }
+  ]
+}
