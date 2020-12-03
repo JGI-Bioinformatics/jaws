@@ -3,7 +3,7 @@
     {
       "wdl": "../TestsWDLs/jaws-alignment-example/main.wdl",
       "inputs": "../TestsWDLs/jaws-alignment-example/inputs.json",
-      "output-dir": "/global/cscratch1/sd/akollmer/alignment",
+      "output-dir": "/global/cscratch1/sd/akollmer/autoqc/alignment",
       "site": "JGI"
     },
     {
