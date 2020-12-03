@@ -39,7 +39,9 @@ def main():
         for job in data['input-wdls']:
             # print('Site: ' + job['site'])
 
-            run_id, time_dir = pf.submit_one_run(job['wdl'], job['inputs'], job['output-dir'], job['site'])
+            #run_id, time_dir = pf.submit_one_run(job['wdl'], job['inputs'], job['output-dir'], job['site'])
+            run_id = 100
+            time_dir = 888
 
             # add the run_id and the updated output directory string to the dictionary info
             job['run-id'] = run_id
