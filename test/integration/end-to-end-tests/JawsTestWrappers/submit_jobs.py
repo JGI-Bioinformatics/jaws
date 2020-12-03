@@ -25,18 +25,23 @@ def main():
         print (r"Error: {args.inputs} does not exist")
         sys.exit(1)
 
-    # list to hold the run ids that are created
-    run_ids = []
+    # source the environment specified on command line
+    pf.source_environment(args.environment)
 
     with open(args.inputs) as json_file:
         # read the inputs file
         data = json.load(json_file)
 
+        # add the environment specified on command line into the json data
+        data['env'] = args.environment
+
         # submit each wdl
         for job in data['input-wdls']:
             # print('Site: ' + job['site'])
 
-            run_id, time_dir = pf.submit_one_run(job['wdl'], job['inputs'], job['output-dir'], job['site'])
+            #run_id, time_dir = pf.submit_one_run(job['wdl'], job['inputs'], job['output-dir'], job['site'])
+            run_id = 100
+            time_dir = 888
 
             # add the run_id and the updated output directory string to the dictionary info
             job['run-id'] = run_id

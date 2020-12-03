@@ -135,6 +135,11 @@ def submit_cmd(cmd):
 
     return (output,stderror,thereturncode)
 
+def source_environment(env):
+    cmd = 'source ~/jaws-{}.sh'.format(env)
+    submit_cmd(cmd)
+    return cmd
+
 def create_analysis_file(final_dict,analysis_file,test_name):
     # Create the new analysis yaml file
     with open(analysis_file,"w") as wh:
