@@ -165,9 +165,9 @@ For each site, a `json_profile_config` has been created to define which componen
 
 * profile-jgi.json: for deploying  JAWS central on LabIT svm.
 
-* profile-cori-local.json: for deploying all JAWS components on cori with a separate instance.
+* profile-cori-local.json: for deploying all JAWS components on cori with a local deployment instance.
 
-* profile-jgi-local.json: for deploying all JAWS components on jgi with a separate instance.
+* profile-jgi-local.json: for deploying all JAWS components on jgi with a local deployment instance.
 
 Here, a `component` corresponds to a JAWS daemon process. The available components are jaws-central-rest, jaws-central-auth, jaws-central-rpc, jaws-cromwell, jaws-jtm, jaws-site-central-rpc, jaws-site-daemon, jaws-site-jtm-rpc.
 
