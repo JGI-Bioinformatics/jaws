@@ -3,13 +3,13 @@
     {
       "wdl": "../TestsWDLs/jaws-alignment-example/main.wdl",
       "inputs": "../TestsWDLs/jaws-alignment-example/inputs.json",
-      "output-dir": "$SCRATCH/autoqc/alignment/jgi",
+      "output-dir": "/global/cscratch1/sd/akollmer/alignment,",
       "site": "JGI"
     },
     {
       "wdl": "../TestsWDLs/jaws-alignment-example/main.wdl",
       "inputs": "../TestsWDLs/jaws-alignment-example/inputs.json",
-      "output-dir": "$SCRATCH/autoqc/alignment/cori",
+      "output-dir": "/global/cscratch1/sd/akollmer/autoqc/alignment",
       "site": "CORI"
     }
   ]
