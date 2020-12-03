@@ -5,6 +5,9 @@ import subprocess
 import json
 import time
 import sys
+import os
+import pprint
+import shlex
 
 SUBMIT_SLEEP = 2
 CHECK_SLEEP = 30
@@ -137,7 +140,14 @@ def submit_cmd(cmd):
 
 def source_environment(env):
     cmd = 'source ~/jaws-{}.sh'.format(env)
-    submit_cmd(cmd)
+    command = shlex.split("bash -c '{} && env'".format(cmd))
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+    for line in proc.stdout:
+        (key, _, value) = line.partition("=")
+        os.environ[key] = value
+    proc.communicate()
+
+    pprint.pprint(dict(os.environ))
     return cmd
 
 def create_analysis_file(final_dict,analysis_file,test_name):
