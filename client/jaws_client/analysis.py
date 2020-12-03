@@ -375,19 +375,20 @@ def submit(wdl_file, infile, site, out_endpoint):
     manifest_file.write_to(staged_manifest)
 
     # CONFIRM OUTDIR WRITABLE BY COPYING WDLS, INPUT FILES
-    try:
-        shutil.copy2(sanitized_wdl, outdir)
-    except Exception as error:
-        raise SystemExit(f"Unable to copy wdl file to outdir: {error}")
-    if zip_file:
-        try:
-            shutil.copy2(zip_file, outdir)
-        except Exception as error:
-            raise SystemExit(f"Unable to copy subworkflows zip file to outdir: {error}")
-    try:
-        shutil.copy2(infile, outdir)
-    except Exception as error:
-        raise SystemExit(f"Unable to copy json file to outdir: {error}")
+    # FIXME
+    # try:
+    #     shutil.copy2(sanitized_wdl, outdir)
+    # except Exception as error:
+    #     raise SystemExit(f"Unable to copy wdl file to outdir: {error}")
+    # if zip_file:
+    #     try:
+    #         shutil.copy2(zip_file, outdir)
+    #     except Exception as error:
+    #         raise SystemExit(f"Unable to copy subworkflows zip file to outdir: {error}")
+    # try:
+    #     shutil.copy2(infile, outdir)
+    # except Exception as error:
+    #     raise SystemExit(f"Unable to copy json file to outdir: {error}")
 
     # SUBMIT RUN TO CENTRAL
     data = {
@@ -414,9 +415,10 @@ def submit(wdl_file, infile, site, out_endpoint):
     logger.info(f"Submitted run {run_id}: {data}")
 
     # WRITE RUN INFO TO OUTDIR
-    logfile = os.path.join(outdir, f"jaws.run_{run_id}.log")
-    with open(logfile, "w") as fh:
-        fh.write(r.text + "\n")
+    # FIXME
+    # logfile = os.path.join(outdir, f"jaws.run_{run_id}.log")
+    # with open(logfile, "w") as fh:
+    #     fh.write(r.text + "\n")
     print(r.text)
 
 
