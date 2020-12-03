@@ -36,13 +36,11 @@ def main():
         for job in data['input-wdls']:
             # print('Site: ' + job['site'])
 
-            # add a timestamp to the end of the output directory
-            time_dir = pf.timestamp_dir(job["output-dir"])
-            run_id = pf.submit_one_run(job['wdl'], job['inputs'], time_dir, job['site'])
+            run_id, time_dir = pf.submit_one_run(job['wdl'], job['inputs'], job['output-dir'], job['site'])
 
             # add the run_id and the updated output directory string to the dictionary info
-            job["run-id"] = run_id
-            job["output-dir"] = time_dir
+            job['run-id'] = run_id
+            job['output-dir'] = time_dir
             #run_id += 1  #delete this later
 
     print(json.dumps(data, indent=4))

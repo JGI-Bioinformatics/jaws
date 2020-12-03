@@ -47,7 +47,7 @@ def submit_multi_runs(num_submissions, wdl, inputs, dir, site):
 
 
 def submit_one_run(wdl, inputs, dir, site):
-    """Submit a job to jaws and return the run id."""
+    """Submit a job to jaws and return the run id and output directory."""
 
     # create timestamp string to make output directory unique
     out_dir = timestamp_dir(dir)
@@ -66,7 +66,7 @@ def submit_one_run(wdl, inputs, dir, site):
     out_dir = str(out_json["output_dir"])
     print(f'run_id: {run_id} output_dir: {out_dir}')
 
-    return run_id
+    return run_id, out_dir
 
 
 def wait_for_multi_runs(run_ids):
