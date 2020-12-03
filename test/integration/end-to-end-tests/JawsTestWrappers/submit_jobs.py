@@ -16,7 +16,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='This will submit one or more WDLs to JAWS and wait for completions.')
     parser.add_argument("-e", "--environment", help="The environement you want the job submitted to dev|staging|prod",
-                        type=str, required=True)
+                        type=str, choices=['dev', 'staging', 'prod'], required=True)
     parser.add_argument("-i", "--inputs", help="The input json file that a list of wdls, input files and sites",
                         type=str, required=True)
     args = parser.parse_args()
