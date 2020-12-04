@@ -60,7 +60,7 @@ def submit_one_run(wdl, inputs, dir, site):
     thereturncode = data.returncode
 
     if thereturncode >= 1:
-        sys.stderr.write("Error: command failed\n%s\n%s" % (stderror,output))
+        sys.stderr.write("Error: JAWS submission failed\n%s\n%s" % (stderror,output))
         sys.exit(1)
 
     # fake output used for testing without actually submitting jobs
