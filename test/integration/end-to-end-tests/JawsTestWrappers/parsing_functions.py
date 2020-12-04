@@ -55,6 +55,12 @@ def submit_one_run(wdl, inputs, dir, site):
     data = subprocess.run(['jaws', 'run', 'submit', wdl, inputs, out_dir, site],
                           capture_output=True, text=True)
     output = data.stdout
+    stderror = data.stderr
+    thereturncode = data.returncode
+
+    if thereturncode >= 1:
+        sys.stderr.write("Error: command failed\n%s\n%s\n%s" % (cmd,stderror,output))
+        sys.exit(1)
 
     # fake output used for testing without actually submitting jobs
     #output = '{"run_id": 741, "output_dir": "/global/cscratch1/sd/jfroula/JAWS/AutoQC/out"}'
@@ -99,7 +105,7 @@ def wait_for_one_run(run_id):
     while tries < CHECK_TRIES:
         # check whether the run has finished every 60 seconds
         time.sleep(CHECK_SLEEP)
-        data = subprocess.run(['jaws', 'run', 'status', run_id], capture_output=True, text=True)
+        data = subprocess.run(['jaws', 'run', 'status', run_id], stdout=subprocess.PIPE, stderr=subprocess.PIPE, capture_output=True, text=True)
         output = data.stdout
 
         # fake output used for testing without actually submitting jobs
