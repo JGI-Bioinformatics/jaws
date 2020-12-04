@@ -25,9 +25,6 @@ def main():
         print (r"Error: {args.inputs} does not exist")
         sys.exit(1)
 
-    # source the environment specified on command line
-    pf.source_environment(args.environment)
-
     with open(args.inputs) as json_file:
         # read the inputs file
         data = json.load(json_file)
