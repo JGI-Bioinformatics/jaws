@@ -2,24 +2,27 @@
 # -*- coding: utf-8 -*-
 # Seung-Jin Sul (ssul@lbl.gov)
 #
-import datetime
 import logging
 import os
-
-from jaws_jtm.lib.run import make_dir
 
 logger = logging.getLogger(__package__)
 
 # To hide "No handlers could be found for logger "pika.adapters.base_connection"" warning
-logging.getLogger('pika').setLevel(logging.INFO)
+logging.getLogger("pika").setLevel(logging.INFO)
 
 
 # -------------------------------------------------------------------------------
-def setup_custom_logger(level, log_dest_dir, b_stream_logging=True, b_file_logging=False, worker_id=None):
+def setup_custom_logger(
+    level, log_dest_dir, log_file_name, b_stream_logging=True, b_file_logging=False
+):
     """
     Setting up logging
 
     @param level: logger level
+    @param log_dest_dir: log dir path
+    @param log_file_name: log file name
+    @param b_stream_logging:
+    @param b_file_logging:
     """
     # Set custom loglevel name for printing resource usage
     # CRITICAL = 50, ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10, NOTSET = 0.
@@ -28,14 +31,17 @@ def setup_custom_logger(level, log_dest_dir, b_stream_logging=True, b_file_loggi
 
     def resource(self, message, *args, **kws):
         self._log(DEBUG_LEVELV_NUM, message, args, **kws)
+
     logging.Logger.resource = resource
 
     numeric_level = getattr(logging, level.upper(), None)
     if not isinstance(numeric_level, int):
-        raise ValueError('Invalid log level: %s' % level)
+        raise ValueError("Invalid log level: %s" % level)
 
-    formatter = logging.Formatter('%(asctime)s | %(module)s | %(lineno)d | %(funcName)s | %(levelname)s : %(message)s',
-                                  "%Y-%m-%d %H:%M:%S")
+    formatter = logging.Formatter(
+        "%(asctime)s | %(module)s | %(lineno)d | %(funcName)s | %(levelname)s : %(message)s",
+        "%Y-%m-%d %H:%M:%S",
+    )
     logger.setLevel(numeric_level)
 
     # StreamLogger
@@ -47,24 +53,7 @@ def setup_custom_logger(level, log_dest_dir, b_stream_logging=True, b_file_loggi
 
     # FileLogger
     if b_file_logging:
-        datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        if worker_id:
-            datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
-            datetime_str = worker_id + '_' + datetime_str
-
-        assert log_dest_dir
-        worker_log_dir_name = os.path.join(log_dest_dir, "worker")
-
-        make_dir(worker_log_dir_name)
-        try:
-            os.chmod(worker_log_dir_name, 0o775)
-        except OSError:
-            logger.warning("Cannot change the permission of {} to 0775".format(worker_log_dir_name))
-
-        log_file_name = '%s/jtm_%s.log' % (worker_log_dir_name, datetime_str)
-        if worker_id:
-            log_file_name = '%s/jtm_worker_%s.log' % (worker_log_dir_name, datetime_str)
-
+        log_file_name = os.path.join(log_dest_dir, log_file_name)
         file_logger = logging.FileHandler(log_file_name)
         file_logger.setFormatter(formatter)
         file_logger.setLevel(numeric_level)
@@ -73,5 +62,7 @@ def setup_custom_logger(level, log_dest_dir, b_stream_logging=True, b_file_loggi
         try:
             os.chmod(log_file_name, 0o775)
         except OSError:
-            logger.warning("Cannot change the permission of {} to 0775".format(log_file_name))
+            logger.warning(
+                "Cannot change the permission of {} to 0775".format(log_file_name)
+            )
             raise

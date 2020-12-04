@@ -1236,7 +1236,9 @@ def process_task_request(msg):
 
             # Get the slurm job id returned from jtm-worker
             try:
-                slurm_job_id = int(so.split("\n")[1])
+                regex = re.compile(r"(\d+)", re.I)
+                match = regex.search(so)
+                slurm_job_id = int(match.group(1))
             except Exception:
                 logger.critical(
                     "Failed to get a valid job ID back from requesting a dynamic worker"
@@ -2168,18 +2170,21 @@ def manager(
         STANDALONE = False
 
     # Log dir setting
-    log_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "log")
+    datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    log_dir_name = CONFIG.configparser.get("JTM", "log_dir")
     if custom_log_dir_name:
         log_dir_name = custom_log_dir_name
+    log_dir_name = os.path.join(log_dir_name, "manager")
     make_dir(log_dir_name)
+    log_file_name = "%s/jtm_%s.log" % (log_dir_name, datetime_str)
 
     log_level = "info"
     if DEBUG:
         log_level = "debug"
 
-    print("JTM Manager, version: {}".format(CONFIG.constants.VERSION))
+    setup_custom_logger(log_level, log_dir_name, log_file_name, 1, 1)
 
-    setup_custom_logger(log_level, log_dir_name, 1, 1)
+    logger.info("JTM Manager, version: {}".format(CONFIG.constants.VERSION))
     logger.info(
         "\n*****************\nDebug mode is %s\n*****************"
         % ("ON" if DEBUG else "OFF")

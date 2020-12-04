@@ -147,6 +147,7 @@ charge_accnt = $SITE_CLUSTER_ACCOUNT
 constraint = $SITE_CLUSTER_CONSTRAINT
 [JTM]
 cluster = \${SITE:jtm_host_name}
+# deployment mode: prod, staging, dev
 run_mode = $DEPLOYMENT_NAME
 # if STANDALONE == 1, do not sending task status to JAWS Site
 standalone = 0
