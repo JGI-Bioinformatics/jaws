@@ -242,9 +242,11 @@ def jtm_manager_status(params, session):
     logger.info("Check jtm manager status")
     status = True
     try:
-        config.conf.get_section("JTM")
+        site_jtm_conf = config.conf.get_section("JTM")
         # prepare to call
-        # source /tmp/jaws-prod/jtm/bin/activate && jtm --config=/tmp/jaws-prod/configs/jaws-jtm.conf check-manager
+        #
+        # source {site_jtm_conf["install_dir"]}/jtm/bin/activate &&
+        # jtm --config={site_jtm_conf["install_dir"]}/configs/jaws-jtm.conf check-manager
     except Exception as error:
         return failure(error)
     return success(status)
