@@ -23,7 +23,16 @@ def status() -> dict:
         else:
             result[site_id + "-Site"] = "UP"
             result[site_id + "-Cromwell"] = "DOWN"
+
         result[f"{site_id}-RMQ"] = _rmq_server_status(config.conf.sites[site_id])
+
+        if result[site_id + "-Site"] == "UP":
+            response = client.request("jtm_manager_status")
+            if "error" not in response:
+                result[site_id + "-JtmManager"] = "UP"
+            else:
+                result[site_id + "-JtmManager"] = "DOWN"
+
     return result, 200
 
 
