@@ -104,6 +104,8 @@ uploads_subdirectory = $SITE_UPLOADS_SUBDIR
 downloads_subdirectory = $SITE_DOWNLOADS_SUBDIR
 [CROMWELL]
 url = http://localhost:$CROMWELL_PORT
+[JTM]
+deployment_name = $DEPLOYMENT_NAME
 EOM
 
 cat << EOM > $CONFIG_DIR/jaws-jtm.conf

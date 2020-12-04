@@ -156,7 +156,10 @@ def get_task_log(params, session):
     run_id = params["run_id"]
     try:
         query = (
-            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
+            session.query(Job_Log)
+            .filter_by(run_id=run_id)
+            .order_by(Job_Log.timestamp)
+            .all()
         )
     except SQLAlchemyError as error:
         return failure(error)
@@ -192,7 +195,10 @@ def get_task_status(params, session):
     # get job log entries, sorted by timestamp,
     try:
         query = (
-            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
+            session.query(Job_Log)
+            .filter_by(run_id=run_id)
+            .order_by(Job_Log.timestamp)
+            .all()
         )
     except Exception as error:
         return failure(error)
@@ -236,7 +242,9 @@ def jtm_manager_status(params, session):
     logger.info("Check jtm manager status")
     status = True
     try:
-        pass
+        config.conf.get_section("JTM")
+        # prepare to call
+        # source /tmp/jaws-prod/jtm/bin/activate && jtm --config=/tmp/jaws-prod/configs/jaws-jtm.conf check-manager
     except Exception as error:
         return failure(error)
     return success(status)
