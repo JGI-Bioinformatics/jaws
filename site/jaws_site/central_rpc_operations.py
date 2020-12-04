@@ -226,9 +226,26 @@ def get_task_status(params, session):
     return success(result)
 
 
+def jtm_manager_status(params, session):
+    """Return the current status of the jtm manager daemon
+
+    :return: Either a success- or failure-formatted JSON-RPC2 response,
+    if Cromwell up or not.
+    :rtype: dict
+    """
+    logger.info("Check jtm manager status")
+    status = True
+    try:
+        pass
+    except Exception as error:
+        return failure(error)
+    return success(status)
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
+    "jtm_manager_status": {"function": jtm_manager_status},
     "submit": {
         "function": submit,
         "required_params": [
