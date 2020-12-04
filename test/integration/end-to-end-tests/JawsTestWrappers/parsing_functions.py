@@ -4,6 +4,7 @@
 import subprocess
 import json
 import time
+import sys
 
 SUBMIT_SLEEP = 2
 CHECK_SLEEP = 30
@@ -50,7 +51,7 @@ def submit_one_run(wdl, inputs, dir, site):
 
     # create timestamp string to make output directory unique
     out_dir = timestamp_dir(dir)
-    print("output directory: " + out_dir)
+    # print("output directory: " + out_dir)
 
     data = subprocess.run(['jaws', 'run', 'submit', wdl, inputs, out_dir, site],
                           capture_output=True, text=True)
@@ -59,7 +60,7 @@ def submit_one_run(wdl, inputs, dir, site):
     thereturncode = data.returncode
 
     if thereturncode >= 1:
-        sys.stderr.write("Error: command failed\n%s\n%s\n%s" % (cmd,stderror,output))
+        sys.stderr.write("Error: command failed\n%s\n%s" % (stderror,output))
         sys.exit(1)
 
     # fake output used for testing without actually submitting jobs
