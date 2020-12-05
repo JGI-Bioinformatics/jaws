@@ -193,19 +193,18 @@ export PYTHONIOENCODING=utf-8
 # DEPLOY TO NFS DIR
 # HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
 
-test -d $jtm_worker_install_dir || mkdir $jtm_worker_install_dir
-test -d $jtm_scratch_dir || mkdir $jtm_scratch_dir
-test -d $upload_dir || mkdir $upload_dir
+test -d $jtm_worker_install_dir || (mkdir $jtm_worker_install_dir && \
+  chmod 770 $jtm_worker_install_dir && \
+  chmd 640 $jtm_worker_install_dir/jaws-jtm.conf
+  )
+test -d $jtm_scratch_dir || (mkdir $jtm_scratch_dir && chmod 775 $jtm_scratch_dir)
+test -d $upload_dir || (mkdir $upload_dir && chmod 777 $upload_dir)
 
 cp $config_dir/jaws-jtm.conf $jtm_worker_install_dir/
 if [[ ! -z "$jtm_group" ]]; then
     chgrp $jtm_group $jtm_worker_install_dir/jaws-jtm.conf
     chgrp $jtm_group $upload_dir
 fi
-chmod 770 $jtm_worker_install_dir
-chmod 640 $jtm_worker_install_dir/jaws-jtm.conf
-chmod 775 $jtm_scratch_dir
-chmod 777 $upload_dir
 
 
 # RUN JTM
