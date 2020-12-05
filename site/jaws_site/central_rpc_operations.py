@@ -6,11 +6,13 @@ import logging
 import sqlalchemy.exc
 from sqlalchemy.exc import SQLAlchemyError
 import collections
+from click.testing import CliRunner
+
 from jaws_site import config, jaws_constants
 from jaws_site.cromwell import Cromwell
 from jaws_site.models import Run, Job_Log
 from jaws_rpc.responses import success, failure
-
+from jaws_jtm import jtm
 
 # config and logging must be initialized before importing this module
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
@@ -232,7 +234,7 @@ def get_task_status(params, session):
     return success(result)
 
 
-def jtm_manager_status(params, session):
+def jtm_manager_status():
     """Return the current status of the jtm manager daemon
 
     :return: Either a success- or failure-formatted JSON-RPC2 response,
@@ -240,16 +242,17 @@ def jtm_manager_status(params, session):
     :rtype: dict
     """
     logger.info("Check jtm manager status")
-    status = True
+    exit_code = 0
     try:
-        site_jtm_conf = config.conf.get_section("JTM")
-        # prepare to call
-        #
-        # source {site_jtm_conf["install_dir"]}/jtm/bin/activate &&
-        # jtm --config={site_jtm_conf["install_dir"]}/configs/jaws-jtm.conf check-manager
-    except Exception as error:
-        return failure(error)
-    return success(status)
+        runner = CliRunner()
+        res = runner.invoke(jtm.check_manager, [], catch_exceptions=False)
+        exit_code = res.exit_code
+    except Exception as e:
+        logger.exception(f"Failed to call check_manager: {e}")
+        raise
+    if exit_code != 0:
+        return failure(None)
+    return success(True)
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
