@@ -645,9 +645,9 @@ def send_update_task_status_msg(
     reversed_done_flags = dict(map(reversed, CONFIG.constants.DONE_FLAGS.items()))
     reason_str = ""
     if fail_code:
-        reason_str += reversed_done_flags[fail_code]
+        reason_str += "%s, " % reversed_done_flags[fail_code]
     if reason:
-        reason_str += ": %s" % reason
+        reason_str += "%s" % reason
 
     data = {
         "cromwell_run_id": run_id,  # this is not the JAWS run_id
@@ -710,6 +710,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     hb_msg = CONFIG.constants.HB_MSG
     jtm_worker_hb_exch = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
     interval = CONFIG.configparser.getfloat("JTM", "client_hb_recv_interval")
+    hb_mgs_to_recv = CONFIG.configparser.getint("JTM", "heartbeat_message_count")
 
     with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
         with conn.channel() as ch:
@@ -734,16 +735,19 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
 
             while True:
                 worker_ids_dict = {}
-                ch.basic.qos(100)
+                # this qos is to set how many messages to take out from RMQ queue
+                ch.basic.qos(hb_mgs_to_recv)
                 message = ch.basic.get(queue=hb_queue_name, no_ack=True)
                 if message and not b_is_msg_cleared:
                     cnt = message.method["message_count"]
+                    logger.debug(f"hb msg count = {cnt}")
                     for i in range(cnt):
                         _ = ch.basic.get(queue=hb_queue_name, no_ack=True)
                     b_is_msg_cleared = True
 
                 elif message and b_is_msg_cleared:
                     cnt = message.method["message_count"]
+                    logger.debug(f"hb msg count = {cnt}")
                     msg_unzipped = json.loads(zloads(message.body))
                     msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
                     a_worker_id = msg_unzipped[hb_msg["worker_id"]]
@@ -1072,6 +1076,7 @@ def process_task_request(msg):
     last_task_id = -1
     b_failed_to_request_worker = False
     w_int = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
+    slurm_job_id = 0
 
     if "pool" in msg and "name" in msg["pool"] and "time" in msg["pool"]:
         # {u'resource': u'cori', u'name': u'test', u'size': 1}
