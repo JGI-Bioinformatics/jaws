@@ -6,7 +6,7 @@
         "name": "jaws-{{install.meta.deploy_name}}",
         "rest_url": "http://cori20.nersc.gov",
         "womtool_jar": "/global/cfs/projectdirs/jaws/cromwell/womtool.jar",
-        "staging_dir": "/global/cscratch1/sd/jaws-{{install.meta.deploy_name}}/users",
+        "staging_dir": "/global/cscratch1/sd/jaws/jaws-{{install.meta.deploy_name}}/users",
         "data_repo_basedir": "/global/cfs/cdirs/jaws/data-repository-{{install.meta.deploy_name}}",
         "shared_endpoint_group": "genome",
         "globus": {

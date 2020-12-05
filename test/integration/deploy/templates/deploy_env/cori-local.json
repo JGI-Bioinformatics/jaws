@@ -20,9 +20,7 @@
     "client": {
         "install_dir": "{{install.meta.output_dir}}/client",
         "group_perms": "",
-        "rest_url": "http://localhost",
-        "womtool_jar": "https://github.com/broadinstitute/cromwell/releases/download/52/womtool-52.jar",
-        "staging_subdir": "{{install.meta.output_dir}}/client/staging"
+        "rest_url": "http://localhost"
     },
     "site": {
         "cori": {
@@ -33,9 +31,7 @@
                 "client": ""
             },
             "jtm": {
-                "scratch_dir": "{{install.meta.output_dir}}/scratch",
                 "worker_config_file": "{{install.meta.output_dir}}/config/jaws-jtm.conf",
-                "worker_install_dir": "{{install.meta.output_dir}}/jtm",
                 "env_activation": "source {{install.meta.output_dir}}/jtm-{{install.meta.deploy_name}}/bin/activate",
                 "config_file": "{{install.meta.output_dir}}/configs/jaws-jtm.conf"
             }
@@ -50,10 +46,6 @@
         }
     },
     "cromwell": {
-        "docker_root": "{{install.meta.output_dir}}/cromwell-executions",
-        "workflow_log_dir": "{{install.meta.output_dir}}/logs/cromwell-workflow-logs",
-        "tmp_dir": "{{install.meta.output_dir}}/cromwell-tmp",
-        "jar_file": "https://github.com/broadinstitute/cromwell/releases/download/52/cromwell-52.jar",
         "deploy_name": {
             "prod": {
                 "port": 50104

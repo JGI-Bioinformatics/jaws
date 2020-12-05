@@ -11,7 +11,7 @@
             },
             "jaws": {
                 "scratch_dir": "/global/scratch/jaws-{{install.meta.deploy_name}}",
-                "max_ram_gb": 1024,
+                "max_ram_gb": 250,
                 "mysql": {
                     "db": "jaws_jgi_{{install.meta.deploy_name}}",
                     "host": "jaws-db.lbl.gov",
@@ -40,9 +40,9 @@
             },
             "globus": {
                 "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3",
-                "endoint_id": "b445e71a-4933-11ea-9714-021304b0cca7",
-                "uploads_subdir": "jaws-dev/uploads",
-                "downloads_subdir": "jaws-dev/downloads",
+                "endoint_id": "45afb626-a4bd-11e8-96f0-0a6d4e044368",
+                "uploads_subdir": "/global/scratch/jaws/jaws-dev/uploads",
+                "downloads_subdir": "/global/scratch/jaws/jaws-dev/downloads",
                 "root_dir": "/global/scratch/jaws/",
                 "default_dir": "/global/scratch/jaws/"
             },

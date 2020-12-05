@@ -11,7 +11,7 @@
             "host": "rmq.lbl.gov",
             "port": 5672,
             "vhost": "jaws_{{install.meta.deploy_name}}",
-            "queue": "JAWS_CORI",
+            "queue": "CENTRAL",
             "user": "jaws",
             "password": "{{passwords.jaws_central.rabbitmq}}"
         },
