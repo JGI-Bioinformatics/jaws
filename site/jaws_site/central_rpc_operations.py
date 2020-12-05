@@ -12,7 +12,8 @@ from jaws_site import config, jaws_constants
 from jaws_site.cromwell import Cromwell
 from jaws_site.models import Run, Job_Log
 from jaws_rpc.responses import success, failure
-from jaws_jtm import jtm
+# from jaws_jtm import jtm
+from jaws_jtm.jtm import cli
 
 # config and logging must be initialized before importing this module
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
@@ -244,8 +245,15 @@ def jtm_manager_status():
     logger.info("Check jtm manager status")
     exit_code = 0
     try:
+        install_dir = config.conf.get_section("JTM")["install_dir"]
         runner = CliRunner()
-        res = runner.invoke(jtm.check_manager, [], catch_exceptions=False)
+        # res = runner.invoke(jtm.check_manager, [], catch_exceptions=False)
+        res = runner.invoke(
+            cli,
+            ['--config',
+             '%s/configs/jaws-jtm.conf' % install_dir,
+             'check_manager']
+        )
         exit_code = res.exit_code
     except Exception as e:
         logger.exception(f"Failed to call check_manager: {e}")
