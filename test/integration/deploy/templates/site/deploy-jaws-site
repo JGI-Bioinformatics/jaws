@@ -133,10 +133,10 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-test -d "$jaws_scratch_dir" || mkdir "$jaws_scratch_dir"
-chmod 775 "$jaws_scratch_dir"
-test -d "$download_dir" || mkdir "$download_dir"
-chmod 775 "$download_dir"
+test -d "$jaws_scratch_dir" || (mkdir "$jaws_scratch_dir" && \
+    chmod 775 "$jaws_scratch_dir")
+test -d "$download_dir" || (mkdir "$download_dir" && \
+    chmod 775 "$download_dir")
 
 $fix_perms_client
 
