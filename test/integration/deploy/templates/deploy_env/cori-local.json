@@ -46,6 +46,9 @@
         }
     },
     "cromwell": {
+        "workflow_log_dir": "{{install.meta.output_dir}}/logs/cromwell-workflow-logs",
+        "tmp_dir": "{{install.meta.output_dir}}/cromwell-tmp",
+        "url": "http://localhost",
         "deploy_name": {
             "prod": {
                 "port": 50104

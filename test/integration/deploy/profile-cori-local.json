@@ -9,30 +9,15 @@
             "__comments__": "is_local_dev=1 will shutdown and restart supervisor for jtm"
         },
         "components": {
-            "jaws_central": {
+            "jaws_client_data": {
                 "add": 1,
-                "deploy_script": "templates/central/deploy-jaws-central",
-                "config_template": "templates/central/jaws-central.conf",
-                "output_config_name": "$INSTALL_DIR/configs/jaws-central.conf",
-                "sites": ["cori", "jgi"],
-                "__comments__": "set add=1 if installing central"
+                "deploy_json_template": "templates/client/jaws-client-cori.json",
+                "__comments__": "set add=1 if installing client and/or site"
             },
             "jaws_client_central_data": {
                 "add": 1,
                 "deploy_json_template": "templates/central/jaws-central.json",
                 "__comments__": "set add=1 if installing central and/or site"
-            },
-            "jaws_client": {
-                "add": 1,
-                "deploy_script": "templates/client/deploy-jaws-client",
-                "config_template": "templates/client/jaws-client.conf",
-                "output_config_name": "$INSTALL_DIR/configs/jaws-client.conf",
-                "__comments__": "set add=1 if installing client"
-            },
-            "jaws_client_data": {
-                "add": 1,
-                "deploy_json_template": "templates/client/jaws-client-cori.json",
-                "__comments__": "set add=1 if installing client and/or site"
             },
             "jaws_central_site_cori_data": {
                 "add": 1,
@@ -42,6 +27,52 @@
             "jaws_central_site_jgi_data": {
                 "add": 1,
                 "deploy_json_template": "templates/site/jaws-site-jgi.json",
+                "__comments__": "set add=1 if installing central"
+            },
+            "cromwell_data": {
+                "add": 1,
+                "deploy_json_template": "templates/cromwell/cromwell-cori.json",
+                "__comments__": "set add=1 if installing cromwell"
+            },
+            "jaws_site_cori_data": {
+                "add": 1,
+                "deploy_json_template": "templates/site/jaws-site-cori.json",
+                "__comments__": "set add=1 if installing site on cori"
+            },
+            "supervisor_jaws_data": {
+                "add": 1,
+                "config_template": "templates/supervisor/supervisord-config-jaws",
+                "output_config_name": "$INSTALL_DIR/configs/supervisord-jaws.conf",
+                "__comments__": "set add=1 if installing supervisor and central and/or site"
+            },
+            "supervisor_jtm_data": {
+                "add": 1,
+                "config_template": "templates/supervisor/supervisord-config-jtm",
+                "output_config_name": "$INSTALL_DIR/configs/supervisord-jtm.conf",
+                "__comments__": "set add=1 if installing supervisor and jaws_jtm and/or cromwell"
+            },
+            "supervisor_data": {
+                "add": 1,
+                "deploy_json_template": "templates/supervisor/supervisor.json"
+            },
+            "local_deploy_data": {
+                "add": 2,
+                "deploy_json_template": "templates/deploy_env/cori-local.json",
+                "__comments__": "overwrite json entries with entries defined in cori-local.json"
+            },
+            "jaws_client": {
+                "add": 1,
+                "deploy_script": "templates/client/deploy-jaws-client",
+                "config_template": "templates/client/jaws-client.conf",
+                "output_config_name": "$INSTALL_DIR/configs/jaws-client.conf",
+                "__comments__": "set add=1 if installing client"
+            },
+            "jaws_central": {
+                "add": 1,
+                "deploy_script": "templates/central/deploy-jaws-central",
+                "config_template": "templates/central/jaws-central.conf",
+                "output_config_name": "$INSTALL_DIR/configs/jaws-central.conf",
+                "sites": ["cori", "jgi"],
                 "__comments__": "set add=1 if installing central"
             },
             "jaws_site": {
@@ -61,35 +92,13 @@
             },
             "cromwell": {
                 "add": 1,
-                "deploy_json_template": "templates/cromwell/cromwell-cori.json",
                 "deploy_script": "templates/cromwell/deploy-cromwell",
                 "config_template": "templates/cromwell/cromwell-shifter.conf",
                 "output_config_name": "$INSTALL_DIR/configs/cromwell.conf",
                 "__comments__": "set add=1 if installing cromwell and/or site"
             },
-            "supervisor_jaws_data": {
-                "add": 1,
-                "config_template": "templates/supervisor/supervisord-config-jaws",
-                "output_config_name": "$INSTALL_DIR/configs/supervisord-jaws.conf",
-                "__comments__": "set add=1 if installing supervisor and central and/or site"
-            },
-            "supervisor_jtm_data": {
-                "add": 1,
-                "config_template": "templates/supervisor/supervisord-config-jtm",
-                "output_config_name": "$INSTALL_DIR/configs/supervisord-jtm.conf",
-                "__comments__": "set add=1 if installing supervisor and jaws_jtm and/or cromwell"
-            },
-            "supervisor_data": {
-                "add": 1,
-                "deploy_json_template": "templates/supervisor/supervisor.json"
-            },
-            "local_deploy_entries": {
-                "add": 2,
-                "deploy_json_template": "templates/deploy_env/cori-local.json",
-                "__comments__": "overwrite json entries with entries defined in cori-local.json"
-            },
             "supervisor": {
-                "add": 3,
+                "add": 1,
                 "deploy_script": "templates/supervisor/deploy-supervisor",
                 "__comments__": "set add=3 if installing supervisor"
             }

@@ -40,11 +40,11 @@
             },
             "globus": {
                 "client_id": "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3",
-                "endoint_id": "45afb626-a4bd-11e8-96f0-0a6d4e044368",
+                "endpoint_id": "45afb626-a4bd-11e8-96f0-0a6d4e044368",
                 "uploads_subdir": "/global/scratch/jaws/jaws-dev/uploads",
                 "downloads_subdir": "/global/scratch/jaws/jaws-dev/downloads",
-                "root_dir": "/global/scratch/jaws/",
-                "default_dir": "/global/scratch/jaws/"
+                "root_dir": "/",
+                "default_dir": "~"
             },
             "jtm": {
                 "host_name": "JGI",

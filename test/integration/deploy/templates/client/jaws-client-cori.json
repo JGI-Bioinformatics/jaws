@@ -4,7 +4,7 @@
         "install_dir": "/global/cfs/projectdirs/jaws/jaws-dev",
         "group_perms": "genome",
         "name": "jaws-{{install.meta.deploy_name}}",
-        "rest_url": "http://cori20.nersc.gov",
+        "rest_url": "http://jaws.lbl.gov",
         "womtool_jar": "/global/cfs/projectdirs/jaws/cromwell/womtool.jar",
         "staging_dir": "/global/cscratch1/sd/jaws/jaws-{{install.meta.deploy_name}}/users",
         "data_repo_basedir": "/global/cfs/cdirs/jaws/data-repository-{{install.meta.deploy_name}}",

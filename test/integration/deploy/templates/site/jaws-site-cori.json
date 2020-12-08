@@ -32,7 +32,7 @@
                         "host": "rmq.lbl.gov",
                         "port": 5672,
                         "vhost": "jaws_{{install.meta.deploy_name}}",
-                        "queue": "CENTRAL",
+                        "queue": "JAWS_CORI",
                         "user": "jaws",
                         "password": "{{passwords.jaws_site.rabbitmq}}"
                     }
@@ -53,7 +53,7 @@
                 "worker_config_file": "/global/cfs/projectdirs/jaws/jtm-{{install.meta.deploy_name}}/jaws-jtm.conf",
                 "worker_install_dir": "/global/cfs/projectdirs/jaws_jtm/jtm-{{install.meta.deploy_name}}",
                 "env_activation": "source /global/cfs/projectdirs/jaws/jtm-{{install.meta.deploy_name}}/bin/activate",
-                "config_file": "{{install.meta.output_dir}}/configs/jaws-jtm.conf",
+                "config_file": "/tmp/jaws-{{install.meta.deploy_name}}/configs/jaws-jtm.conf",
                 "mysql": {
                     "db": "jtm_cori_{{install.meta.deploy_name}}",
                     "host": "jaws-db.lbl.gov",

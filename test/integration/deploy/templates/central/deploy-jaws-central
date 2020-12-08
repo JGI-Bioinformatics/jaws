@@ -14,6 +14,7 @@ config_dir=$install_dir/configs
 shim_dir=$install_dir/shims
 log_dir=$install_dir/logs
 log_level="DEBUG"
+is_local_dev_env={{install.meta.is_local_dev}
 
 ## PERMISSIONS
 function fix_perms() {
@@ -29,7 +30,12 @@ function fix_perms() {
 
 
 ## MAKE DIR IF NOT EXIST
-test -d $central_dir && rm -rf $central_dir && mkdir "$central_dir"
+## If deploying local dev, ensure that directories created by local dev doesn't affect other deployments.
+if [[ -z $is_local_dev_env || $is_local_dev_env == 0 ]];then
+  test -d $central_dir && rm -rf $central_dir && mkdir "$central_dir"
+else
+  test -d $central_dir || mkdir $central_dir
+fi
 test -d $shim_dir || mkdir "$shim_dir"
 test -d $log_dir || mkdir "$log_dir"
 

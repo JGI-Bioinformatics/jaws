@@ -99,8 +99,8 @@ fi
 
 
 ## Make directory if neccessary
-[[ -d $supervisor_dir ]] || mkdir $supervisor_dir
-[[ -d $supervisor_dir/bin ]] || mkdir $supervisor_dir/bin
+test -d $supervisor_dir || mkdir $supervisor_dir
+test -d $supervisor_dir/bin || mkdir $supervisor_dir/bin
 
 
 ## Make python virtualenv if not exists and install supervisor

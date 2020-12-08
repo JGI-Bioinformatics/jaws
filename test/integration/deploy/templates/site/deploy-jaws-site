@@ -24,6 +24,7 @@ config_dir=$install_dir/configs
 shim_dir=$install_dir/shims
 log_dir=$install_dir/logs
 log_level="DEBUG"
+is_local_dev_env={{install.meta.is_local_dev}
 
 ## PERMISSIONS
 function fix_perms() {
@@ -39,11 +40,31 @@ function fix_perms() {
 
 
 ## MAKE DIR IF NOT EXIST
-test -d $site_dir && rm -rf $site_dir && mkdir $site_dir
-test -d $jtm_dir && rm -rf $jtm_dir
-test -d $jtm_worker_install_dir && rm -rf $jtm_worker_install_dir
+## If deploying local dev, ensure that directories created by local dev doesn't affect other deployments.
+if [[ -z $is_local_dev_env || $is_local_dev_env == 0 ]];then
+  test -d $site_dir && rm -rf $site_dir && mkdir $site_dir
+  test -d $jtm_dir && rm -rf $jtm_dir
+  test -d $jtm_worker_install_dir && rm -rf $jtm_worker_install_dir
+else
+  test -d $site_dir || mkdir $site_dir
+  test -d $jtm_dir || mkdir jtm_dir
+fi
 test -d $shim_dir || mkdir $shim_dir
-test -d $log_dir || mkdir "$log_dir"
+test -d $log_dir || mkdir $log_dir
+
+
+## CREATE PYTHON VIRTUALENV
+python3 -m venv $site_dir && \
+  source $site_dir/bin/activate && \
+  pip install --upgrade pip && \
+  pip install wheel && \
+  deactivate
+python3 -m venv $jtm_dir && \
+  source $jtm_dir/bin/activate && \
+  pip install --upgrade pip && \
+  pip install wheel && \
+  deactivate
+fi
 
 
 ## CREATE PYTHON VIRTUALENV
