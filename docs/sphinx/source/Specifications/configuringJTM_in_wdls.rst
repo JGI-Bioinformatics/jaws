@@ -22,17 +22,85 @@ Use the following tables to help figure out how many jobs (i.e. workers) you can
 
 On Cori, JAWS runs on a dedicated cluster.
 
-+---------+-----+----------+----------------+-----+-------+--------------+
-|node type|nodes| ram (G)  | qos            |cores|threads|max time (hrs)|
-+=========+=====+==========+================+=====+=======+==============+
-| haswell |2,388|128 (118*)|genepool_special| 16  |   32  |  72          |
-+---------+-----+----------+----------------+-----+-------+--------------+
-|     knl |9,489| 96 (87*) | regular        | 68  |  272  |  48          |
-+---------+-----+----------+----------------+-----+-------+--------------+
-| skylake |  20 |758 (700*)| jgi_exvivo     | 32  |   32  | 168          |
-+---------+-----+----------+----------------+-----+-------+--------------+
-| skylake |  20 |250 (230*)| jgi_shared     | 32  |   32  | 168          |
-+---------+-----+----------+----------------+-----+-------+--------------+
++----------+-----+----------+----------------+-----+-------+--------------+
+|constraint|nodes| ram (G)  | qos            |cores|threads|max time (hrs)|
++==========+=====+==========+================+=====+=======+==============+
+| haswell  |2,388|128 (118*)|genepool_special| 16  |   32  |  72          |
++----------+-----+----------+----------------+-----+-------+--------------+
+| haswell  |2,388|128 (118*)|genepool**      | 16  |   32  |  72          |
++----------+-----+----------+----------------+-----+-------+--------------+
+|     knl  |9,489| 96 (87*) | regular        | 68  |  272  |  48          |
++----------+-----+----------+----------------+-----+-------+--------------+
+| skylake  |  20 |758 (700*)| jgi_exvivo     | 32  |   32  | 168          |
++----------+-----+----------+----------------+-----+-------+--------------+
+| skylake  |  20 |250 (230*)| jgi_shared     | 32  |   32  | 168          |
++----------+-----+----------+----------------+-----+-------+--------------+
+
+**note: If you have many jobs to submit(>10), use qos: "genepool" and not genepool_special which is a priority node. 
+
+.. raw:: html
+
+  <details>
+  <summary><a>See examples of requesting different resources</a></summary>
+
+  Using 250G machines
+  <br>
+  <code>
+	<pre>
+    runtime {
+      cluster: "cori"
+      time: "00:30:00"
+      mem: "250G"
+      poolname: "some-unique-name"
+      shared: 0
+      node: 1
+      nwpn: 1
+      constraint: "skylake"
+      qos: "jgi_shared"
+      account: "fungalp"
+      cpu: 12
+    }
+	</pre>
+  </code>
+    
+    
+  Using 700G machines
+  <br>
+  <code>
+	<pre>
+    runtime {
+      cluster: "cori"
+      time: "00:30:00"
+      mem: "700G"
+      poolname: "some-unique-name"
+      shared: 0
+      node: 1
+      nwpn: 1
+      constraint: "skylake"
+      qos: "jgi_exvivo"
+      account: "fungalp"
+    }
+	</pre>
+  </code>
+    
+  Using non-priority queue ("genepool")
+  <br>
+  <code>
+    <pre>
+    runtime {
+      poolname: "some-unique-name"
+      node: 1
+      nwpn: 1
+      mem: "10G"
+      time: "00:10:00"
+      shared: 0
+      qos: "regular"
+      account: "m342"
+    }
+	</pre>
+  </code>
+   </details>
+
 
 |
 
