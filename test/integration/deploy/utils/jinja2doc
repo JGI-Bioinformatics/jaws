@@ -8,7 +8,6 @@ import os
 import sys
 import json
 import jinja2
-import pprint
 
 if len(sys.argv) != 3:
     print("Usage: jinja2doc <jinja_template> <json_file>")
@@ -26,4 +25,5 @@ with open(template_file) as fh:
     tp = jinja2.Template(fh.read())
     template_entries = tp.render(config_entries)
 
-pprint.pprint(template_entries)
+for entry in template_entries:
+    sys.stdout.write(entry)
