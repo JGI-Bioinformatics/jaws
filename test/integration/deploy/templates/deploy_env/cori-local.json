@@ -32,8 +32,10 @@
             },
             "jtm": {
                 "worker_config_file": "{{install.meta.output_dir}}/config/jaws-jtm.conf",
-                "env_activation": "source {{install.meta.output_dir}}/jtm-{{install.meta.deploy_name}}/bin/activate",
-                "config_file": "{{install.meta.output_dir}}/configs/jaws-jtm.conf"
+                "worker_install_dir": "{{install.meta.deploy_name}}/jtm",
+                "env_activation": "source {{install.meta.output_dir}}/jtm",
+                "config_file": "{{install.meta.output_dir}}/configs/jaws-jtm.conf",
+                "scratch_dir": "{{install.meta.output_dir}}/jtm_scratch_dir"
             }
         },
         "jgi": {

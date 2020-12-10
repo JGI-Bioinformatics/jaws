@@ -14,7 +14,7 @@ config_dir=$install_dir/configs
 shim_dir=$install_dir/shims
 log_dir=$install_dir/logs
 log_level="DEBUG"
-is_local_dev_env={{install.meta.is_local_dev}
+is_local_dev_env={{install.meta.is_local_dev}}
 
 ## PERMISSIONS
 function fix_perms() {

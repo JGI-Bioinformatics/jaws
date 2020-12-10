@@ -8,23 +8,18 @@ set -eo pipefail
 deploy_jaws_client={{install.components.jaws_client.deploy}}
 client_install_dir={{client.install_dir}}
 jaws_group={{site[sitename]['group_perms']['jaws']}}
-jtm_group={{site[sitename]['group_perms']['jtm']}}
 client_group={{site[sitename]['group_perms']['client']}}
 src_dir={{install.meta.src_dir}}
 install_dir={{site[sitename]['install_dir']}}
 jaws_scratch_dir={{site[sitename]['jaws']['scratch_dir']}}
-jtm_scratch_dir={{site[sitename]['jtm']['scratch_dir']}}
-jtm_worker_install_dir={{site[sitename]['jtm']['worker_install_dir']}}
-developer_mode={{install.meta.developer_mode}}
-jtm_dir=$install_dir/jtm
 download_dir=$jaws_scratch_dir/downloads
-upload_dir=$jaws_scratch_dir/uploads
 site_dir=$install_dir/site
 config_dir=$install_dir/configs
 shim_dir=$install_dir/shims
 log_dir=$install_dir/logs
 log_level="DEBUG"
-is_local_dev_env={{install.meta.is_local_dev}
+developer_mode={{install.meta.developer_mode}}
+is_local_dev_env={{install.meta.is_local_dev}}
 
 ## PERMISSIONS
 function fix_perms() {
@@ -43,11 +38,8 @@ function fix_perms() {
 ## If deploying local dev, ensure that directories created by local dev doesn't affect other deployments.
 if [[ -z $is_local_dev_env || $is_local_dev_env == 0 ]];then
   test -d $site_dir && rm -rf $site_dir && mkdir $site_dir
-  test -d $jtm_dir && rm -rf $jtm_dir
-  test -d $jtm_worker_install_dir && rm -rf $jtm_worker_install_dir
 else
   test -d $site_dir || mkdir $site_dir
-  test -d $jtm_dir || mkdir jtm_dir
 fi
 test -d $shim_dir || mkdir $shim_dir
 test -d $log_dir || mkdir $log_dir
@@ -56,30 +48,6 @@ test -d $log_dir || mkdir $log_dir
 ## CREATE PYTHON VIRTUALENV
 python3 -m venv $site_dir && \
   source $site_dir/bin/activate && \
-  pip install --upgrade pip && \
-  pip install wheel && \
-  deactivate
-python3 -m venv $jtm_dir && \
-  source $jtm_dir/bin/activate && \
-  pip install --upgrade pip && \
-  pip install wheel && \
-  deactivate
-fi
-
-
-## CREATE PYTHON VIRTUALENV
-python3 -m venv $site_dir && \
-  source $site_dir/bin/activate && \
-  pip install --upgrade pip && \
-  pip install wheel && \
-  deactivate
-python3 -m venv $jtm_dir && \
-  source $jtm_dir/bin/activate && \
-  pip install --upgrade pip && \
-  pip install wheel && \
-  deactivate
-python3 -m venv $jtm_worker_install_dir && \
-  source $jtm_worker_install_dir/bin/activate && \
   pip install --upgrade pip && \
   pip install wheel && \
   deactivate
@@ -92,32 +60,18 @@ if [[ $developer_mode == 1 ]]; then
     cd $src_dir/rpc && pip install -e . && \
     cd $src_dir/site && pip install -e . && \
     deactivate
-  source $jtm_dir/bin/activate && \
-    cd $src_dir/rpc && pip install -e . && \
-    cd $src_dir/jtm && pip install -e . && \
-    deactivate
-  source $jtm_worker_install_dir/bin/activate && \
-    cd $src_dir/rpc && pip install -e . && \
-    cd $src_dir/jtm && pip install -e . && \
-    deactivate
 else
-  [[ -d $src_dir/rpc/dist ]] && rm -f $src_dir/rpc/dist/* ]]
-  [[ -d $src_dir/site/dist ]] && rm -f $src_dir/site/dist/* ]]
-  [[ -d $src_dir/jtm/dist ]] && rm -f $src_dir/jtm/dist/* ]]
+  # remove files only if not installing local dev instance.
+  if [[ ! -z $is_local_dev_env || $is_local_dev_env == 0 ]]; then
+    test -d $src_dir/rpc/dist && rm -f $src_dir/rpc/dist/*
+    test -d $src_dir/site/dist && rm -f $src_dir/site/dist/*
+    test -d $src_dir/jtm/dist && rm -f $src_dir/jtm/dist/*
+  fi
   cd $src_dir/rpc && python setup.py bdist_wheel && \
     cd ../site && python setup.py bdist_wheel && \
-    cd ../jtm && python setup.py bdist_wheel
   source $site_dir/bin/activate && \
     pip install $src_dir/rpc/dist/* && \
     pip install $src_dir/site/dist/* && \
-    deactivate
-  source $jtm_dir/bin/activate && \
-    pip install $src_dir/rpc/dist/* && \
-    pip install $src_dir/jtm/dist/* && \
-    deactivate
-  source $jtm_worker_install_dir/bin/activate && \
-    pip install $src_dir/rpc/dist/* && \
-    pip install $src_dir/jtm/dist/* && \
     deactivate
 fi
 
@@ -196,44 +150,6 @@ export PYTHONIOENCODING=utf-8
 
 source $install_dir/site/bin/activate
 exec jaws-site --log $log_dir/site-jtm-rpc.log --config $config_dir/jaws-site.conf --log-level DEBUG jtm-rpc
-EOM
-chmod 770 $shim_file
-fix_perms $jaws_group $shim_file
-
-
-## Create jaws-jtm shim file
-shim_file=$shim_dir/jaws-jtm
-cat <<EOM > $shim_file
-#!/usr/bin/env bash
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-
-
-# DEPLOY TO NFS DIR
-# HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
-
-test -d $jtm_worker_install_dir || (mkdir $jtm_worker_install_dir && \
-  chmod 770 $jtm_worker_install_dir && \
-  chmd 640 $jtm_worker_install_dir/jaws-jtm.conf
-  )
-test -d $jtm_scratch_dir || (mkdir $jtm_scratch_dir && chmod 775 $jtm_scratch_dir)
-test -d $upload_dir || (mkdir $upload_dir && chmod 777 $upload_dir)
-
-cp $config_dir/jaws-jtm.conf $jtm_worker_install_dir/
-if [[ ! -z "$jtm_group" ]]; then
-    chgrp $jtm_group $jtm_worker_install_dir/jaws-jtm.conf
-    chgrp $jtm_group $upload_dir
-fi
-
-
-# RUN JTM
-
-source $install_dir/jtm/bin/activate
-export JTM_CONFIG_FILE=$config_dir/jaws-jtm.conf
-
-exec jtm --config=$config_dir/jaws-jtm.conf --debug manager -ld $log_dir
 EOM
 chmod 770 $shim_file
 fix_perms $jaws_group $shim_file

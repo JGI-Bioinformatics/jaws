@@ -13,7 +13,7 @@ staging_user_dir={{client.staging_dir}}
 data_repo_dir={{client.data_repo_basedir}}
 shared_endpoint_group={{client.shared_endpoint_group}}
 developer_mode={{install.meta.developer_mode}}
-is_local_dev_env={{install.meta.is_local_dev}
+is_local_dev_env={{install.meta.is_local_dev}}
 
 ## PERMISSIONS
 function fix_perms() {
@@ -42,7 +42,7 @@ function setup_dir {
 
 ## MAKE DIR IF NOT EXIST
 ## If deploying local dev, ensure that directories created by local dev doesn't affect other deployments.
-if [[ -z $is_local_dev_env || $is_local_dev_env == 0 ]];the
+if [[ -z $is_local_dev_env || $is_local_dev_env == 0 ]];then
   test -d $client_dir && rm -rf $client_dir && mkdir $client_dir
 else
   test -d $client_dir || mkdir $client_dir

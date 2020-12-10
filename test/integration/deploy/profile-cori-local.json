@@ -34,7 +34,7 @@
                 "deploy_json_template": "templates/cromwell/cromwell-cori.json",
                 "__comments__": "set add=1 if installing cromwell"
             },
-            "jaws_site_cori_data": {
+            "jaws_site_data": {
                 "add": 1,
                 "deploy_json_template": "templates/site/jaws-site-cori.json",
                 "__comments__": "set add=1 if installing site on cori"
@@ -77,7 +77,6 @@
             },
             "jaws_site": {
                 "add": 1,
-                "deploy_json_template": "templates/site/jaws-site-cori.json",
                 "deploy_script": "templates/site/deploy-jaws-site",
                 "config_template": "templates/site/jaws-site.conf",
                 "output_config_name": "$INSTALL_DIR/configs/jaws-site.conf",
@@ -86,9 +85,10 @@
             },
             "jaws_jtm": {
                 "add": 1,
+                "deploy_script": "templates/jtm/deploy-jaws-jtm",
                 "config_template": "templates/jtm/jaws-jtm.conf",
                 "output_config_name": "$INSTALL_DIR/configs/jaws-jtm.conf",
-                "__comments__": "set add=1 if installing site"
+                "__comments__": "set add=1 if installing jtm"
             },
             "cromwell": {
                 "add": 1,
