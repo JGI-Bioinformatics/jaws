@@ -1,0 +1,8 @@
+#!/bin/bash
+CONSTRAINT=
+QOS=normal
+PARTITION=jgi
+[ -z $QOS ] || QOS="--qos $QOS"
+[ -z $CONSTRAINT ] || CONSTRAINT="-C $CONSTRAINT"
+[ -z $PARTITION ] || PARTITION="-P $PARTITION"
+jtm --config=/global/home/groups-sw/lr_jgicloud/jtm-prod/jaws-jtm.conf submit -cmd '/global/home/groups-sw/lr_jgicloud/jtm-prod/singularity_exec.sh ubuntu:16.04 /global/scratch/jaws/refdata /refdata /bin/bash /global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution/script' -cl jgi -t 00:10:00 -c 32 -m 5G -p referece_db_pool -N 1 -nwpn 1 -jid cromwell_0769b5b3_task1 -A jgi --shared 0 $QOS $CONSTRAINT $PARTITION
