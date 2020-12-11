@@ -1,0 +1,37 @@
+#!/bin/bash
+
+cd /global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution
+tmpDir=$(mkdir -p "/global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/tmp.e5329070" && echo "/global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/tmp.e5329070")
+chmod 777 "$tmpDir"
+export _JAVA_OPTIONS=-Djava.io.tmpdir="$tmpDir"
+export TMPDIR="$tmpDir"
+export HOME="$HOME"
+(
+cd /global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution
+
+)
+out0769b5b3="${tmpDir}/out.$$" err0769b5b3="${tmpDir}/err.$$"
+mkfifo "$out0769b5b3" "$err0769b5b3"
+trap 'rm "$out0769b5b3" "$err0769b5b3"' EXIT
+tee '/global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution/stdout' < "$out0769b5b3" &
+tee '/global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution/stderr' < "$err0769b5b3" >&2 &
+(
+cd /global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution
+
+
+# how to access reference data
+ls /refdata/ > tmp.txt
+)  > "$out0769b5b3" 2> "$err0769b5b3"
+echo $? > /global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution/rc.tmp
+(
+# add a .file in every empty directory to facilitate directory delocalization on the cloud
+cd /global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution
+find . -type d -exec sh -c '[ -z "$(ls -A '"'"'{}'"'"')" ] && touch '"'"'{}'"'"'/.file' \;
+)
+(
+cd /global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution
+sync
+
+
+)
+mv /global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution/rc.tmp /global/scratch/jaws/jaws-prod/cromwell-executions/runblastplus_sub/0769b5b3-8339-4e9d-894e-8cae4d3dbf65/call-task1/execution/rc
