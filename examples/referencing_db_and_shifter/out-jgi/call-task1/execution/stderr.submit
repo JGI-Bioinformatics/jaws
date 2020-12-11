@@ -1,0 +1,24 @@
+Error processing line 1 of /tmp/jaws-prod/jtm/lib/python3.8/site-packages/protobuf-3.14.0-py3.8-nspkg.pth:
+
+  Traceback (most recent call last):
+    File "/global/software/sl-7.x86_64/modules/langs/python/3.8.2/lib/python3.8/site.py", line 169, in addpackage
+      exec(line)
+    File "<string>", line 1, in <module>
+    File "<frozen importlib._bootstrap>", line 553, in module_from_spec
+  AttributeError: 'NoneType' object has no attribute 'loader'
+
+Remainder of file ignored
+Error processing line 1 of /tmp/jaws-prod/jtm/lib/python3.8/site-packages/protobuf-3.14.0-py3.8-nspkg.pth:
+
+  Traceback (most recent call last):
+    File "/global/software/sl-7.x86_64/modules/langs/python/3.8.2/lib/python3.8/site.py", line 169, in addpackage
+      exec(line)
+    File "<string>", line 1, in <module>
+    File "<frozen importlib._bootstrap>", line 553, in module_from_spec
+  AttributeError: 'NoneType' object has no attribute 'loader'
+
+Remainder of file ignored
+Traceback (most recent call last):
+  File "/tmp/jaws-prod/jtm/bin/jtm", line 5, in <module>
+    from jaws_jtm.jtm import jtm
+ModuleNotFoundError: No module named 'jaws_jtm.jtm'
