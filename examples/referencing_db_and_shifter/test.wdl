@@ -23,7 +23,6 @@ task task1 {
         nwpn: 1
         mem: "5G"
         time: "00:10:00"
-		partition: "jgi"
     }
 
     output { File outfile = "tmp.txt" }
@@ -34,17 +33,6 @@ task task2 {
 
     command {
 		cat ${tmpfile}
-    }
-
-    runtime {   
-        docker: "ubuntu:16.04"
-        poolname: "referece_db_pool"
-        shared: 0
-        node: 1
-        nwpn: 1
-        mem: "5G"
-        time: "00:10:00"
-		partition: "jgi"
     }
 
     output { String outfile = stdout() }
