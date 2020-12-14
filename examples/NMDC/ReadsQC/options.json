@@ -1,5 +1,0 @@
-{
-    "default_runtime_attributes": {
-        "docker": "microbiomedata/bbtools:38.44"
-    }
-}
