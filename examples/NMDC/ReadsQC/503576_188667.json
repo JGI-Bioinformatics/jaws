@@ -1,7 +1,0 @@
-{
-    "jgi_rqcfilter.input_files": [
-        "/global/cfs/cdirs/m3408/ficus_rqcfiltered/12512.1.261459.GGATTCG-ACGAATC/12512.1.261459.GGATTCG-ACGAATC.anqdpht.fastq.gz"
-    ], 
-    "jgi_rqcfilter.outdir": "503576_188667", 
-    "jgi_rqcfilter.rename_contig_prefix": "503576_188667"
-}
