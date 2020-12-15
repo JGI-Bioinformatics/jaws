@@ -1,5 +1,0 @@
-{
-    "default_runtime_attributes": {
-        "docker": "microbiomedata/nmdc_taxa_profilers:1.0.0"
-    }
-}
