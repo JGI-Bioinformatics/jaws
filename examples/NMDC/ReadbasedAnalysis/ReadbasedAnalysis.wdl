@@ -3,17 +3,16 @@ import "ReadbasedAnalysisTasks.wdl" as tp
 workflow ReadbasedAnalysis {
     Map[String, Boolean] enabled_tools
     Array[File] reads
-    Int cpu
+    Int? cpu = 32
     String prefix
     String outdir
     Boolean? paired = false
-    String? docker = "microbiomedata/nmdc_taxa_profilers:1.0.0"
+    String docker = "microbiomedata/nmdc_taxa_profilers:1.0.0"
 
     if (enabled_tools["gottcha2"] == true) {
         call tp.profilerGottcha2 {
             input: READS = reads,
                    PREFIX = prefix,
-                   OUTPATH = outdir+"/gottcha2",
                    CPU = cpu,
                    DOCKER = docker
         }
@@ -23,7 +22,6 @@ workflow ReadbasedAnalysis {
             input: READS = reads,
                    PAIRED = paired,
                    PREFIX = prefix,
-                   OUTPATH = outdir+"/kraken2",
                    CPU = cpu,
                    DOCKER = docker
         }
@@ -32,7 +30,6 @@ workflow ReadbasedAnalysis {
         call tp.profilerCentrifuge {
             input: READS = reads,
                    PREFIX = prefix,
-                   OUTPATH = outdir+"/centrifuge",
                    CPU = cpu,
                    DOCKER = docker
         }
