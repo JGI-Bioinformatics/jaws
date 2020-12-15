@@ -10,6 +10,5 @@
   ],
   "ReadbasedAnalysis.paired": true,
   "ReadbasedAnalysis.prefix": "SRR7877884",
-  "ReadbasedAnalysis.outdir": "ReadbasedAnalysis_SRR7877884",
-  "ReadbasedAnalysis.cpu": 8
+  "ReadbasedAnalysis.cpu": 32
 }
