@@ -5,7 +5,7 @@ workflow jgi_rqcfilter {
 
     scatter(file in input_files) {
         call rqcfilter{
-             input:  input_file=file, database=database
+             input:  input_file=file, container=bbtools_container, database=database
         }
     }
 
@@ -24,16 +24,18 @@ workflow jgi_rqcfilter {
 
 task rqcfilter {
      File input_file
+     String container
      String database
      String filename_outlog="stdout.log"
      String filename_errlog="stderr.log"
      String filename_stat="filtered/filterStats.txt"
      String filename_stat2="filtered/filterStats2.txt"
      String dollar="$"
+     String num_threads=8
 
      runtime {
-        docker: "microbiomedata/bbtools:38.44"
-        time: "00:30:00"
+        docker: container
+        time: "01:00:00"
         mem: "40G"
         poolname: "nmdc_readqc_test"
         shared: 0
@@ -45,7 +47,7 @@ task rqcfilter {
         #sleep 30
         export TIME="time result\ncmd:%C\nreal %es\nuser %Us \nsys  %Ss \nmemory:%MKB \ncpu %P"
         set -eo pipefail
-        rqcfilter2.sh -Xmx105g threads=${dollar}(grep "model name" /proc/cpuinfo | wc -l) jni=t in=${input_file} path=filtered rna=f trimfragadapter=t qtrim=r trimq=0 maxns=3 maq=3 minlen=51 mlf=0.33 phix=t removehuman=t removedog=t removecat=t removemouse=t khist=t removemicrobes=t sketch kapa=t clumpify=t tmpdir= barcodefilter=f trimpolyg=5 usejni=f rqcfilterdata=${database} > > (tee -a ${filename_outlog}) 2> >(tee -a ${filename_errlog} >&2)
+        rqcfilter2.sh -Xmx35g threads=${num_threads} jni=t in=${input_file} path=filtered rna=f trimfragadapter=t qtrim=r trimq=0 maxns=3 maq=3 minlen=51 mlf=0.33 phix=t removehuman=t removedog=t removecat=t removemouse=t khist=t removemicrobes=t sketch kapa=t clumpify=t tmpdir= barcodefilter=f trimpolyg=5 usejni=f rqcfilterdata=${database} > >(tee -a ${filename_outlog}) 2> >(tee -a ${filename_errlog} >&2)
      }
      output {
             File stdout = filename_outlog
