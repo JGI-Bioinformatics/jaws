@@ -282,48 +282,48 @@ deploy-jaws-central-prod:
   only:
   - master
 
-#deploy-jaws-cori-dev:
-#  stage: deploy-jaws
-#  tags:
-#    - cori
-#  variables:
-#    DEPLOYMENT_NAME: "dev"
-#    JAWS_SITE: "CORI"
-#    DEPLOY_JAWS_CLIENT: 1
-#  environment:
-#    name: "cori/dev"
-#  script:
-#    - ./test/integration/deploy-jaws
-#  only:
-#  - dev
-#deploy-jaws-cori-staging:
-#  stage: deploy-jaws
-#  tags:
-#    - cori
-#  variables:
-#    DEPLOYMENT_NAME: "staging"
-#    JAWS_SITE: "CORI"
-#    DEPLOY_JAWS_CLIENT: 1
-#  environment:
-#    name: "cori/staging"
-#  script:
-#    - ./test/integration/deploy-jaws
-#  only:
-#  - staging
-#deploy-jaws-cori-prod:
-#  stage: deploy-jaws
-#  tags:
-#    - cori
-#  variables:
-#    DEPLOYMENT_NAME: "prod"
-#    JAWS_SITE: "CORI"
-#    DEPLOY_JAWS_CLIENT: 1
-#  environment:
-#    name: "cori/production"
-#  script:
-#    - ./test/integration/deploy-jaws
-#  only:
-#  - master
+deploy-jaws-cori-dev:
+  stage: deploy-jaws
+  tags:
+    - cori
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CORI"
+    DEPLOY_JAWS_CLIENT: 1
+  environment:
+    name: "cori/dev"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+  - dev
+deploy-jaws-cori-staging:
+  stage: deploy-jaws
+  tags:
+    - cori
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "CORI"
+    DEPLOY_JAWS_CLIENT: 1
+  environment:
+    name: "cori/staging"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+  - staging
+deploy-jaws-cori-prod:
+  stage: deploy-jaws
+  tags:
+    - cori
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: "CORI"
+    DEPLOY_JAWS_CLIENT: 1
+  environment:
+    name: "cori/production"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+  - master
 
 deploy-jaws-jgi-dev:
   stage: deploy-jaws
