@@ -71,7 +71,7 @@ variables:
   CORI_JTM_RMQ_HOST: "rmq.lbl.gov"
   CORI_JTM_RMQ_PORT: 5672
   CORI_PYTHON: "python3"
-  CORI_LOAD_PYTHON: "module load python3/3.7-anaconda-2019.10"
+  CORI_LOAD_PYTHON: "module load python/3.8-anaconda-2020.11"
   CORI_JAWS_GROUP: "jaws"
   CORI_JTM_GROUP: "jaws_jtm"
   CORI_CLIENT_GROUP: "genome"
@@ -100,7 +100,7 @@ variables:
   JGI_JTM_RMQ_HOST: "rmq.lbl.gov"
   JGI_JTM_RMQ_PORT: 5672
   JGI_PYTHON: "python"
-  JGI_LOAD_PYTHON: "module load python"
+  JGI_LOAD_PYTHON: "module load python/3.8.2-dll"
   JGI_JAWS_GROUP: "jaws"
   JGI_JTM_GROUP: "jaws"
   JGI_CLIENT_GROUP: "jgi"
