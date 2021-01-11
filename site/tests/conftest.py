@@ -376,8 +376,8 @@ def cromwell_run_dir(tmp_path):
 def uploads_files():
     home_dir = os.path.expanduser("~")
     root_dir = os.path.join(home_dir, "1")
-
-    os.mkdir(root_dir)
+    if not os.path.exists(root_dir):
+        os.mkdir(root_dir)
 
     for f in ["2.wdl", "2.json", "2.zip"]:
         file_path = os.path.join(root_dir, f)
@@ -387,6 +387,21 @@ def uploads_files():
     yield
 
     shutil.rmtree(root_dir)
+
+
+@pytest.fixture()
+def transfer_dirs(tmp_path):
+    uploads_dir = tmp_path / "cwd/uploads/jaws"
+
+    uploads_dir.mkdir(parents=True)
+
+    for f in ["2.wdl", "2.json", "2.zip"]:
+        file_path = uploads_dir / f
+        file_path.write_text(f"output for {f}")
+
+    yield
+
+    shutil.rmtree(uploads_dir)
 
 
 class MockSession:

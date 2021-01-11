@@ -3,6 +3,7 @@ JAWS Daemon process periodically checks on runs and performs actions to usher
 them to the next state.
 """
 
+import shutil
 import schedule
 import time
 import os
@@ -152,6 +153,9 @@ class Daemon:
         elif globus_status == "SUCCEEDED":
             self.update_run_status(run, "upload complete")
 
+    def get_uploads_file_path(self, run):
+        return os.path.join(self.uploads_dir, run.user_id, run.submission_id)
+
     def submit_run(self, run):
         """
         Submit a run to Cromwell.
@@ -159,7 +163,7 @@ class Daemon:
         logger.debug(f"Run {run.id}: Submit to Cromwell")
 
         # Validate input
-        file_path = os.path.join(self.uploads_dir, run.user_id, run.submission_id)
+        file_path = self.get_uploads_file_path(run)
         wdl_file = file_path + ".wdl"
         json_file = file_path + ".json"
         zip_file = file_path + ".zip"  # might not exist
@@ -321,6 +325,16 @@ class Daemon:
                 # This run failed before a folder was created; nothing to xfer
                 self.update_run_status(run, "download complete", "No run folder was created")
                 return
+
+        file_path = self.get_uploads_file_path(run)
+        wdl_file = file_path + ".wdl"
+        json_file = file_path + ".json"
+        zip_file = file_path + ".zip"  # might not exist
+        shutil.copy(wdl_file, run.cromwell_workflow_dir)
+        shutil.copy(json_file, run.cromwell_workflow_dir)
+        if os.path.exists(zip_file):
+            shutil.copy(zip_file, run.cromwell_workflow_dir)
+
         transfer_rt = run.transfer_refresh_token
         transfer_task_id = self.__transfer_folder(
             f"Run {run.id}",
