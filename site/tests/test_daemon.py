@@ -67,16 +67,21 @@ def test_submit_run(monkeypatch, uploads_files):
     daemon.submit_run(run)
 
 
-def test_transfer_results(monkeypatch):
+def test_transfer_results(monkeypatch, transfer_dirs, tmp_path):
     def mock_authorize_client(jawd, token):
         return tests.conftest.MockTransferClient({"status": "running"})
+
+    def mock_path(*args, **kwargs):
+        return str(tmp_path / "cwd/uploads/jaws/2")
 
     monkeypatch.setattr(Daemon, "_authorize_transfer_client", mock_authorize_client)
     monkeypatch.setattr(globus_sdk, "TransferData", tests.conftest.MockTransferData)
     monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
+    monkeypatch.setattr(Daemon, "get_uploads_file_path", mock_path)
 
     daemon = Daemon()
     run = tests.conftest.MockRun(status="running", cromwell_run_id="EXAMPLE_CROMWELL_ID")
+    run.cromwell_workflow_dir = str(tmp_path)
 
     daemon.transfer_results(run)
 
