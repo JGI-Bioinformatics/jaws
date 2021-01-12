@@ -7,8 +7,6 @@ import time
 import sys
 
 SUBMIT_SLEEP = 2
-CHECK_SLEEP = 30
-CHECK_TRIES = 100
 
 def submit_multi_runs(num_submissions, wdl, inputs, dir, site):
     """Submit jobs to jaws and return a list of run ids."""
@@ -46,50 +44,26 @@ def submit_multi_runs(num_submissions, wdl, inputs, dir, site):
     return run_ids
 
 
-def submit_one_run(wdl, inputs, dir, site):
-    """Submit a job to jaws and return the run id."""
-
-    # create timestamp string to make output directory unique
-    out_dir = timestamp_dir(dir)
-    print("output directory: " + out_dir)
-
-    data = subprocess.run(['jaws', 'run', 'submit', wdl, inputs, out_dir, site],
-                          capture_output=True, text=True)
-    output = data.stdout
-
-    # fake output used for testing without actually submitting jobs
-    #output = '{"run_id": 741, "output_dir": "/global/cscratch1/sd/jfroula/JAWS/AutoQC/out"}'
-
-    out_json = json.loads(output)
-
-    run_id = str(out_json["run_id"])
-    out_dir = str(out_json["output_dir"])
-    print(f'run_id: {run_id} output_dir: {out_dir}')
-
-    return run_id
-
-
 def submit_one_run_to_env(wdl, inputs, dir, site, env):
-    """Submit a single job to jaws and return the run info."""
+    """Submit a single job to jaws and return the run info as a dictionary."""
 
     # create timestamp string to make output directory unique
     out_dir = timestamp_dir(dir)
 
     # source the jaws environment and submit the run
-    cmd = "source ~/jaws-%s.sh && jaws run submit %s %s %s %s" % (env, wdl, inputs, out_dir, site)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run submit %s %s %s %s" % (env, wdl, inputs, out_dir, site)
     (out, err, rc) = submit_cmd(cmd)
 
-    # read the output json with info about the run
     return json.loads(out)
 
 
-def wait_for_multi_runs(run_ids):
+def wait_for_multi_runs(run_ids,check_tries=100,check_sleep=30):
     """Wait for all the runs in run_ids list to finish."""
     for run in run_ids:
         tries = 1
-        while tries < CHECK_TRIES:
+        while tries < check_tries:
             # check whether the run has finished every 60 seconds
-            time.sleep(CHECK_SLEEP)
+            time.sleep(check_sleep)
             data = subprocess.run(['jaws', 'run', 'status', run], capture_output=True, text=True)
             output = data.stdout
 
@@ -108,19 +82,20 @@ def wait_for_multi_runs(run_ids):
 
     print("All runs have finished")
 
-def wait_for_one_run(run_id):
+def wait_for_one_run(env,run_id,check_tries=100,check_sleep=30):
     """Wait for all the runs in run_ids list to finish."""
+    run_id = str(run_id)
     tries = 1
-    while tries < CHECK_TRIES:
+    while tries < check_tries:
         # check whether the run has finished every 60 seconds
-        time.sleep(CHECK_SLEEP)
-        data = subprocess.run(['jaws', 'run', 'status', run_id], capture_output=True, text=True)
-        output = data.stdout
+        time.sleep(check_sleep)
+        cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,run_id)
+        (o,e,r) = submit_cmd(cmd)
 
         # fake output used for testing without actually submitting jobs
         #output = '{"status": "download complete"}'
 
-        status_json = json.loads(output)
+        status_json = json.loads(o)
 
         run_status = status_json["status"]
         print("Run " + run_id + " status after " + str(tries) + " try is: " + run_status)
@@ -133,12 +108,14 @@ def wait_for_one_run(run_id):
     print("All tries have have been exhausted")
 
 def submit_cmd(cmd):
+    """returns the stdout, stderr and rc"""
     process=subprocess.run([cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=False)
     output = process.stdout
     stderror = process.stderr
     thereturncode = process.returncode
 
     # combine stdout & stderr since they can sometimes be mixed up for some scripts.
+    # this is just used for the print command below.
     er=output + "\n" + stderror
 
     if thereturncode >= 1:
@@ -149,18 +126,14 @@ def submit_cmd(cmd):
 
     return (output,stderror,thereturncode)
 
-def submit_jaws_cmd(cmd, env):
-    cmd = "source ~/jaws-%s.sh && %s" % (env, cmd)
-    return submit_cmd(cmd)
-
-
 
 def submit_analysis_file(analysis_file, threshold_file_name, env):
     #  build a command like below
     #    global/dna/projectdirs/PI/rqc/prod/versions/jgi-rqc-autoqc/bin/autoqc_tool_gp.py \
     #    -p jaws qc analysis.yaml jaws_status
 
-    autoqc_script = 'global/dna/projectdirs/PI/rqc/prod/versions/jgi-rqc-autoqc/bin/autoqc_tool_gp.py'
+    autoqc_script = 'source /global/dna/projectdirs/PI/rqc/prod/versions/jgi-rqc-autoqc/config/rqc38.sh && \
+    /global/dna/projectdirs/PI/rqc/prod/versions/jgi-rqc-autoqc/bin/autoqc_tool_gp.py'
 
     # make string to specify autoqc db for the JAWS environment we are using
     # commented out for now because we only have one jaws autoqc db currently
@@ -183,7 +156,7 @@ def create_analysis_file(final_dict,analysis_file,test_name):
             elif (isinstance(value, (str))):
                 wh.write("    %s: \"%s\"\n" % (key,value))
             else:
-                sys.stderr.write("The value of the input json file can not be determined. It should be an int, str, or bool.")
+                sys.stderr.write("The value for the following dictionary value cannot be determined. It should be an int, str, or bool.\n%s: %s\n" % (key,value))
                 sys.exit(1)
 
 def timestamp_dir(dir):

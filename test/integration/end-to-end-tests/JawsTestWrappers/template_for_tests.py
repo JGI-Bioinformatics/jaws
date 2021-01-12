@@ -13,6 +13,36 @@ ANALYSIS_FILE_NAME = 'analysis.yaml'
 # this must match the name of a threshold file that has been submitted to autoqc before running this test
 THRESHOLD_FILE_NAME = 'jaws_run_success'
 
+
+#########################
+###     Functions     ###
+#########################
+#
+# Test functions for verification of jaws log commands (log,task-log,status,task-status).
+#
+def test_upload_task_id(final_dict,data):
+    """ tests that there is a valid upload_task_id. """
+
+    id = data["upload_task_id"]
+    if (len(id) == 36):
+        final_dict['upload_task_id'] = 1
+    else:
+        final_dict['upload_task_id'] = 0
+
+def test_status(final_dict,data):
+    """ tests that the status is one of an several expected values. """
+
+    status = data["status"]
+    if (status in ["ready","uploading","upload complete","submitted","queued","running","downloading","download complete"]):
+        final_dict['status'] = 1
+    else:
+        final_dict['status'] = 0
+
+
+####################
+###     MAIN     ###
+####################
+
 # parse arguments
 parser = argparse.ArgumentParser(
     description="This will submit a WDL to JAWS and wait for completions. It will then submit "
@@ -53,9 +83,9 @@ print(f"{cmd}\n")
 status_info = json.loads(o)
 
 
-#################################################
-# Create Test Functions and Populate final_dict #
-#################################################
+##############################################
+# Run Test Functions and Populate final_dict #
+##############################################
 #
 # Write the status and result of the run into a dictionary
 # that will become the AutoQC thresholds file as yaml.
