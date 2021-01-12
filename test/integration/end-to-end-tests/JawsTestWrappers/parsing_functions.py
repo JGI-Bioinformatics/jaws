@@ -47,7 +47,7 @@ def submit_multi_runs(num_submissions, wdl, inputs, dir, site):
 
 
 def submit_one_run(wdl, inputs, dir, site):
-    """Submit jobs to jaws and return a list of run ids."""
+    """Submit a job to jaws and return the run id."""
 
     # create timestamp string to make output directory unique
     out_dir = timestamp_dir(dir)
@@ -67,6 +67,20 @@ def submit_one_run(wdl, inputs, dir, site):
     print(f'run_id: {run_id} output_dir: {out_dir}')
 
     return run_id
+
+
+def submit_one_run_to_env(wdl, inputs, dir, site, env):
+    """Submit a single job to jaws and return the run info."""
+
+    # create timestamp string to make output directory unique
+    out_dir = timestamp_dir(dir)
+
+    # source the jaws environment and submit the run
+    cmd = "source ~/jaws-%s.sh && jaws run submit %s %s %s %s" % (env, wdl, inputs, out_dir, site)
+    (out, err, rc) = submit_cmd(cmd)
+
+    # read the output json with info about the run
+    return json.loads(out)
 
 
 def wait_for_multi_runs(run_ids):
@@ -134,6 +148,28 @@ def submit_cmd(cmd):
         print(f"command successfully submitted: {cmd}\n{er}")
 
     return (output,stderror,thereturncode)
+
+def submit_jaws_cmd(cmd, env):
+    cmd = "source ~/jaws-%s.sh && %s" % (env, cmd)
+    return submit_cmd(cmd)
+
+
+
+def submit_analysis_file(analysis_file, threshold_file_name, env):
+    #  build a command like below
+    #    global/dna/projectdirs/PI/rqc/prod/versions/jgi-rqc-autoqc/bin/autoqc_tool_gp.py \
+    #    -p jaws qc analysis.yaml jaws_status
+
+    autoqc_script = 'global/dna/projectdirs/PI/rqc/prod/versions/jgi-rqc-autoqc/bin/autoqc_tool_gp.py'
+
+    # make string to specify autoqc db for the JAWS environment we are using
+    # commented out for now because we only have one jaws autoqc db currently
+    # autoqcDb = 'jaws' + "_" + env
+    autoqcDb = 'jaws'  # for now just use jaws
+
+    cmd = autoqc_script + " -p " + autoqcDb + " qc " + analysis_file + " " + threshold_file_name
+    return submit_cmd(cmd)
+
 
 def create_analysis_file(final_dict,analysis_file,test_name):
     # Create the new analysis yaml file
