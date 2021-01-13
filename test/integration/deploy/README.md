@@ -177,7 +177,7 @@ The JAWS deployment scripts for client, central and site perform the following o
 * pip install the code into the virtual environment
 * create a shim file for executing the daemon process using `supervisor`
 
-For the cromwell deployment script, the `cromwell.jar` and `womtool.jar` is either copied from an existing location on the file system or retrieved using `wget`. The JAWS_CROMWELL_JAR_FILE and JAWS_CROMWELL_WOOMTOOL_JAR environment variables are used to define how to get the jar files. If the value contains a url, then `wget` is used. Otherwise, the specified file location is used to copy the jar file to the installation directory.
+For the cromwell deployment script, the `cromwell.jar` is either copied from an existing location on the file system or retrieved using `wget`. The JAWS_CROMWELL_JAR_FILE environment variable are used to define how to get the jar files. If the value contains a url, then `wget` is used. Otherwise, the specified file location is used to copy the jar file to the installation directory. Similarly, the client deployment script either copies or uses wget to create the womtool.jar file in the install dir. The JAWS_CLIENT_WOMTOOL_JAR environment variable is used to define this.
 
 
 ##### Supervisor deployment script
