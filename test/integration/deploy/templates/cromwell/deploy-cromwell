@@ -4,14 +4,12 @@ set -eo pipefail
 
 install_dir=$JAWS_INSTALL_DIR
 cromwell_jar=$JAWS_CROMWELL_JAR_FILE
-womtool_jar=$JAWS_CROMWELL_WOOMTOOL_JAR
 jaws_group=$JAWS_SITE_JAWS_GROUP_PERMISSION
 jtm_group=$JAWS_SITE_JTM_GROUP_PERMISSION
 jtm_scratch_dir=$JAWS_SITE_JTM_SCRATCH_DIR
 cromwell_tmpdir=$JAWS_CROMWELL_TMP_DIR
 load_java=$JAWS_CROMWELL_LOAD_JAVA
 installed_cromwell_jar=$install_dir/cromwell.jar
-installed_womtool_jar=$install_dir/womtool.jar
 config_dir=$install_dir/configs
 shim_dir=$install_dir/shims
 log_dir=$install_dir/logs
@@ -34,13 +32,6 @@ if [[ $cromwell_jar =~ http ]]; then
     wget $cromwell_jar -O $installed_cromwell_jar
 else
     cp "$cromwell_jar" "$installed_cromwell_jar"
-fi
-
-# If the specified womtool jar starts with http, use wget to get the file
-if [[ $womtool_jar =~ http ]]; then
-    wget $womtool_jar -O $installed_womtool_jar
-else
-    cp $womtool_jar $installed_womtool_jar
 fi
 
 [[ ! -z $jtm_group ]] && chgrp $jtm_group $installed_cromwell_jar && chmod 640 $installed_cromwell_jar
