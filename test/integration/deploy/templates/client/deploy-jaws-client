@@ -1,0 +1,79 @@
+#!/bin/bash
+
+set -eo pipefail
+
+## DEFINE INSTALL VARS
+group_perms="$JAWS_CLIENT_GROUP_PERMISSION"
+src_dir="$JAWS_SRC_DIR"
+install_dir="$JAWS_INSTALL_DIR"
+client_dir="$JAWS_CLIENT_INSTALL_DIR"
+staging_user_dir="$JAWS_CLIENT_STAGING_DIR"
+data_repo_dir="$JAWS_CLIENT_DATA_REPO_DIR"
+shared_endpoint_group="$JAWS_CLIENT_SHARED_ENDPOINT_GROUP"
+developer_mode="$JAWS_DEVELOPER_MODE"
+is_local_dev_env="$JAWS_IS_LOCAL_DEV_ENV"
+
+## PERMISSIONS
+function fix_perms() {
+    local dir="$1"
+    local group="$2"
+    chmod -R a+rX $dir
+    chmod -R ug+rwX $dir
+    [[ ! -z $group ]] && chgrp -R $group $dir
+    if [[ -d $dir ]]; then
+        find $dir -type d -exec chmod g+s '{}' \;
+    fi
+}
+
+function setup_dir {
+  local dir="$1"
+  local group="$2"
+  local perms="$3"
+#  [[ -z $dir ]] && echo "missing dir" && exit 1
+#  [[ -z $group ]] && echo "missing group" && exit 1
+  echo "... $dir"
+  test -d "$dir" || (mkdir -p "$dir" && \
+    chgrp "$group" "$dir" && \
+    chmod "$perms" "$dir")
+}
+
+
+## MAKE DIR IF NOT EXIST
+## If deploying local dev, ensure that directories created by local dev doesn't affect other deployments.
+if [[ -z $is_local_dev_env || $is_local_dev_env == 0 ]];then
+  test -d $client_dir && rm -rf $client_dir && mkdir $client_dir
+else
+  test -d $client_dir || mkdir $client_dir
+fi
+
+
+## CREATE PYTHON VIRTUALENV
+python3 -m venv $client_dir && \
+  source $client_dir/bin/activate && \
+  pip install --upgrade pip && \
+  pip install wheel && \
+  deactivate
+
+
+## INSTALL JAWS FILES
+if [[ $developer_mode == 1 ]]; then
+  source $client_dir/bin/activate && \
+    cd $src_dir/client && pip install -e . && \
+    deactivate
+else
+  [[ -d $src_dir/client/dist ]] && rm -f $src_dir/client/dist/*
+  cd $src_dir/client && python3 setup.py bdist_wheel
+  source $client_dir/bin/activate && \
+    pip install $src_dir/client/dist/* && \
+    deactivate
+  fix_perms $client_dir $group_perms
+fi
+
+
+## SETUP STAGING AND DATA REPO DIRS
+if [[ ! -z $staging_user_dir ]]; then
+    setup_dir "$staging_user_dir" "$shared_endpoint_group" 2775
+fi
+if [[ ! -z $data_repo_dir ]]; then
+    setup_dir "$data_repo_dir" "$shared_endpoint_group" 2775
+fi

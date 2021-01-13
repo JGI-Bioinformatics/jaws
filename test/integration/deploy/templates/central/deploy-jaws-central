@@ -1,0 +1,116 @@
+#!/bin/bash
+
+set -eo pipefail
+
+## DEFINE INSTALL VARS
+jaws_group="$JAWS_SITE_JAWS_GROUP_PERMISSION"
+src_dir="$JAWS_SRC_DIR"
+install_dir="$JAWS_INSTALL_DIR"
+developer_mode="$JAWS_DEVELOPER_MODE"
+central_dir="$install_dir/central"
+config_dir="$install_dir/configs"
+shim_dir="$install_dir/shims"
+log_dir="$install_dir/logs"
+log_level="DEBUG"
+is_local_dev_env="$JAWS_IS_LOCAL_DEV_ENV"
+
+## PERMISSIONS
+function fix_perms() {
+    local dir=$1
+    local group=$2
+    chmod -R a+rX $dir
+    chmod -R ug+rwX $dir
+    [[ ! -z $group ]] && chgrp -R $group $dir
+    if [[ -d $dir ]]; then
+        find $dir -type d -exec chmod g+s '{}' \;
+    fi
+}
+
+
+## MAKE DIR IF NOT EXIST
+## If deploying local dev, ensure that directories created by local dev doesn't affect other deployments.
+if [[ -z $is_local_dev_env || $is_local_dev_env == 0 ]];then
+  test -d $central_dir && rm -rf $central_dir && mkdir "$central_dir"
+else
+  test -d $central_dir || mkdir $central_dir
+fi
+test -d $shim_dir || mkdir "$shim_dir"
+test -d $log_dir || mkdir "$log_dir"
+
+## CREATE PYTHON VIRTUALENV
+python3 -m venv $central_dir && \
+  source $central_dir/bin/activate && \
+  pip install --upgrade pip && \
+  pip install wheel && \
+  deactivate
+
+
+# INSTALL JAWS FILES
+if [[ $developer_mode == 1 ]]; then
+  echo "** Installing in developer mode **"
+  source $central_dir/bin/activate && \
+    cd $src_dir/rpc && pip install -e . && \
+    cd $src_dir/central && pip install -e . && \
+    deactivate
+else
+  [[ -d $src_dir/rpc/dist ]] && rm -f $src_dir/rpc/dist/*
+  [[ -d $src_dir/central/dist ]] && rm -f $src_dir/central/dist/*
+  cd $src_dir/rpc && python3 setup.py bdist_wheel && \
+    cd $src_dir/central && python3 setup.py bdist_wheel && \
+    source $central_dir/bin/activate && \
+    pip install $src_dir/rpc/dist/* && \
+    pip install $src_dir/central/dist/* && \
+    deactivate
+fi
+
+if [[ -z $is_local_dev_env || $is_local_dev_env == 0 ]];then
+    fix_perms $central_dir $jaws_group
+fi
+
+
+## Create jaws-central-auth shim file
+shim_file=$shim_dir/jaws-central-auth
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $install_dir/central/bin/activate
+exec jaws-central --log $log_dir/central-auth.log --config $config_dir/jaws-central.conf --log-level $log_level auth
+EOM
+chmod 770 $shim_file
+fix_perms $jaws_group $shim_file
+
+
+## Create jaws-central-rest shim file
+shim_file=$shim_dir/jaws-central-rest
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $install_dir/central/bin/activate
+exec jaws-central --log $log_dir/central-rest.log --config $config_dir/jaws-central.conf --log-level $log_level rest
+EOM
+chmod 770 $shim_file
+fix_perms $jaws_group $shim_file
+
+
+## Create jaws-central-rpc shim file
+shim_file=$shim_dir/jaws-central-rpc
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $install_dir/central/bin/activate
+exec jaws-central --log $log_dir/central-rpc.log --config $config_dir/jaws-central.conf --log-level $log_level rpc
+EOM
+chmod 770 $shim_file
+fix_perms $jaws_group $shim_file
