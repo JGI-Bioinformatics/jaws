@@ -66,6 +66,7 @@ environment:
   JAWS_CLIENT_REST_URL: http://localhost
   JAWS_CLIENT_STAGING_DIR: /global/cscratch1/sd/jaws/jaws-$JAWS_DEPLOY_NAME/users
   JAWS_CLIENT_DATA_REPO_DIR: /global/cfs/cdirs/jaws/data-repository-$JAWS_DEPLOY_NAME
+  JAWS_CLIENT_WOMTOOL_JAR: https://github.com/broadinstitute/cromwell/releases/download/52/womtool-52.jar
   JAWS_CLIENT_SHARED_ENDPOINT_GROUP: ''
   JAWS_CLIENT_GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
   JAWS_CLIENT_GLOBUS_ENDPOINT_ID: be1ff650-dcbc-11ea-85a2-0e1702b77d41
@@ -146,7 +147,6 @@ environment:
   JAWS_CROMWELL_REF_DATA_DIR: $JAWS_SITE_REF_DATA_DIR
   JAWS_CROMWELL_TMP_DIR: $JAWS_INSTALL_DIR/cromwell-tmp
   JAWS_CROMWELL_JAR_FILE: https://github.com/broadinstitute/cromwell/releases/download/52/cromwell-52.jar
-  JAWS_CROMWELL_WOOMTOOL_JAR: https://github.com/broadinstitute/cromwell/releases/download/52/womtool-52.jar
   JAWS_CROMWELL_URL: http://localhost
   JAWS_CROMWELL_LOAD_JAVA: ''
   JAWS_CROMWELL_CONTAINER_EXEC: /global/cfs/projectdirs/jaws_jtm/jtm-dev/shifter_exec.sh

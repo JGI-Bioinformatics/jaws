@@ -67,6 +67,7 @@ environment:
   JAWS_CLEINT_STAGING_DIR: /global/scratch/jaws/jaws-$DEPLOY_NAME/users
   JAWS_CLIENT_DATA_REPO_DIR: /global/cfs/cdirs/jaws/data-repository-$DEPLOY_NAME
   JAWS_CLIENT_SHARED_ENDPOINT_GROUP: jgi
+  JAWS_CLIENT_WOMTOOL_JAR: /global/home/groups-sw/lr_jgicloud/cromwell/womtool-52.jar
   JAWS_CLIENT_GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
   JAWS_CLIENT_GLOBUS_ENDPOINT_ID: be1ff650-dcbc-11ea-85a2-0e1702b77d41
   JAWS_CLIENT_GLOBUS_BASEDIR: /
@@ -146,7 +147,6 @@ environment:
   JAWS_CROMWELL_REF_DATA_DIR: $JAWS_SITE_REF_DATA_DIR
   JAWS_CROMWELL_TMP_DIR: $JAWS_INSTALL_DIR/cromwell-tmp
   JAWS_CROMWELL_JAR_FILE: /global/home/groups-sw/lr_jgicloud/cromwell/cromwell-52.jar
-  JAWS_CROMWELL_WOOMTOOL_JAR: /global/home/groups-sw/lr_jgicloud/cromwell/womtool-52.jar
   JAWS_CROMWELL_URL: http://localhost
   JAWS_CROMWELL_LOAD_JAVA: ''
   JAWS_CROMWELL_CONTAINER_EXEC: /global/home/groups-sw/lr_jgicloud/jtm-dev/singularity_exec.sh

@@ -10,6 +10,8 @@ client_dir="$JAWS_CLIENT_INSTALL_DIR"
 staging_user_dir="$JAWS_CLIENT_STAGING_DIR"
 data_repo_dir="$JAWS_CLIENT_DATA_REPO_DIR"
 shared_endpoint_group="$JAWS_CLIENT_SHARED_ENDPOINT_GROUP"
+womtool_jar="$JAWS_CLIENT_WOMTOOL_JAR"
+installed_womtool_jar=$install_dir/womtool.jar
 developer_mode="$JAWS_DEVELOPER_MODE"
 is_local_dev_env="$JAWS_IS_LOCAL_DEV_ENV"
 
@@ -54,6 +56,13 @@ python3 -m venv $client_dir && \
   pip install wheel && \
   deactivate
 
+
+# If the specified womtool jar starts with http, use wget to get the file
+if [[ $womtool_jar =~ http ]]; then
+    wget $womtool_jar -O $installed_womtool_jar
+else
+    cp $womtool_jar $installed_womtool_jar
+fi
 
 ## INSTALL JAWS FILES
 if [[ $developer_mode == 1 ]]; then
