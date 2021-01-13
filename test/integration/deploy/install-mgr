@@ -91,7 +91,7 @@ def get_services_to_install(deploy_config_file, input_services):
     entries = yaml.load(open(deploy_config_file, 'r'), Loader=yaml.FullLoader)
     services = entries['services']
 
-    # Turn list into dict where key is name of val in list, val=1
+    # Turn list into dict where key is name of val in list, val=1.
     services_to_install = dict([(val, 1) for val in input_services])
 
     # Get unique service names to install based on input, expanding names if input is a service group.
@@ -108,6 +108,34 @@ def get_services_to_install(deploy_config_file, input_services):
             services.append(service)
 
     return services
+
+
+def validate_service_inputs(deploy_config_file, input_services):
+    """Check input service names to what's defined in the yaml file under the 'services' and 'service group'
+    section.
+
+    :param deploy_config_file: name of config yml file
+    :type deploy_config_file: string
+    :param input_services: list of input service names to install
+    :type input_services: list
+    :return: is_valid: boolean for valid inputs
+    :rtype: boolean
+    """  # noqa
+
+    is_valid = True
+    entries = yaml.load(open(deploy_config_file, 'r'), Loader=yaml.FullLoader)
+    services = entries['services']
+    valid_services = dict([(val, 1) for val in get_service_names(services)])
+
+    for service in entries['service_group']:
+        valid_services[service] = 1
+
+    for input_service in input_services:
+        if input_service not in valid_services:
+            sys.stderr.write(f"No service defined for {input_service}\n")
+            is_valid = False
+
+    return is_valid
 
 
 def set_env_vars(deploy_config_file, services):
@@ -162,7 +190,7 @@ def set_env_vars(deploy_config_file, services):
     entries = yaml.load(open(deploy_config_file, 'r'), Loader=yaml.FullLoader)
     env_vars_not_defined = add_env(entries['environment'], env_var_list)
 
-    # Turn list into dict where key is name of val in list, val=1
+    # Turn list into dict where key is name of val in list, val=1.
     services_to_install = dict([(val, 1) for val in services])
 
     # Look for environment key in services section. If defined, set environment vars for
@@ -323,17 +351,21 @@ def main():
     if not os.path.isfile(deploy_config_file):
         raise SystemExit(f"Cannot find {deploy_config_file} file.")
 
-    # Get services to install based on input
+    # Validate inputs for service names.
+    if not validate_service_inputs(deploy_config_file, input_services):
+        raise SystemExit("Invalid service inputs. Exiting")
+
+    # Get services to install based on input.
     services_to_install = get_services_to_install(deploy_config_file, input_services)
     if not services_to_install:
-        raise SystemExit(f"No valid service found for the inputs you specified")
+        raise SystemExit(f"No valid service found for the inputs you specified.")
 
     # Create output install dir if not exists.
     pathlib.Path(install_dir).mkdir(parents=True, exist_ok=True)
     pathlib.Path(deploy_dir).mkdir(parents=True, exist_ok=True)
     pathlib.Path(config_dir).mkdir(parents=True, exist_ok=True)
 
-    # Set environment variables
+    # Set environment variables.
     os.environ['JAWS_INSTALL_DIR'] = install_dir
     os.environ['JAWS_SRC_DIR'] = src_dir
     if args.developer_mode:
@@ -356,7 +388,7 @@ def main():
     # Includes substituting environment variables in config template before writing to install dir.
     deploy_scripts = create_jaws_deploy_files(services_to_install, deploy_dir)
 
-    # Run deployment scripts
+    # Run deployment scripts.
     run_deploy_scripts(deploy_scripts)
 
 
