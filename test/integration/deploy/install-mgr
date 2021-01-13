@@ -1,0 +1,364 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import argparse
+import subprocess
+import yaml
+import pathlib
+import shutil
+from envsubst import envsubst
+
+ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+
+def get_args():
+    """Parse command line arguments. """
+    prog_desc = '''
+    '''
+    parser = argparse.ArgumentParser(description=prog_desc, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('config_file', help='deploy config yaml file')
+    parser.add_argument('services', nargs='+', help='one or more service names to install')
+    parser.add_argument('install_dir', help='installation directory')
+    parser.add_argument('-d', dest='developer_mode', action='store_true',
+                        help='developer mode; performs pip install -e')
+
+    return parser.parse_args()
+
+
+def run_command(cmd):
+    """Execute input command, returning stdout, stderr, exitcode.
+
+    :param cmd: command to execute
+    :type cmd: str
+    :return: stdout, stderr, exitcode
+    :rtype: str, str, int
+    """
+    print(f"Running: {cmd}")
+    process = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = process.communicate()
+    exitcode = process.returncode
+
+    return stdout.decode('utf-8').strip(), stderr.decode('utf-8').strip(), exitcode
+
+
+def get_service_name_from_service(service):
+    """Returns the service name for a given service structure parsed from the config yml file.
+    The service structure is a dict that looks like:
+    {'client': {'config': 'templates/client/jaws-client.config', 'deploy_script': 'templates/client/deploy-client'}}
+
+    :param service: data structure for a given service
+    :type service: dict
+    :return: service name
+    :rtype: string
+    """
+    return list(service.keys())[0]
+
+
+def get_service_names(services):
+    """Returns the list of service names for a given service structure parsed from the config yml file.
+    The service structure is a list of dicts where a dict looks like:
+    {'client': {'config_template': 'templates/client/jaws-client.config', 'deploy_script': 'templates/client/deploy-client'}}
+
+    :param services: data structure for all services
+    :type services: list
+    :return: service names
+    :rtype: list
+    """  # noqa
+    service_names = []
+    for service in services:
+        service_name = get_service_name_from_service(service)
+        service_names.append(service_name)
+    return service_names
+
+
+def get_services_to_install(deploy_config_file, input_services):
+    """Given a list of input services to install, returns a list of dicts for the given inputs based on
+    what is defined in the config yml file. If an input service name is a group name, defined in the
+    config yml file under service_groups section, expand the service names for that group name.
+    The dict in the list looks like:
+    {'client': {'config_template': 'templates/client/jaws-client.config', 'deploy_script': 'templates/client/deploy-client'}}
+
+    :param deploy_config_file: name of config yml file
+    :type deploy_config_file: string
+    :param input_services: list of input service names to install
+    :type input_services: list
+    :return: services: list of dicts contaning structure in yaml for the corresponding services
+    :rtype: list
+    """  # noqa
+    entries = yaml.load(open(deploy_config_file, 'r'), Loader=yaml.FullLoader)
+    services = entries['services']
+
+    # Turn list into dict where key is name of val in list, val=1
+    services_to_install = dict([(val, 1) for val in input_services])
+
+    # Get unique service names to install based on input, expanding names if input is a service group.
+    for group_name in entries['service_group']:
+        if group_name in input_services:
+            services_to_install.update(dict([val, 1] for val in entries['service_group'][group_name]))
+            del services_to_install[group_name]
+
+    # Create data structure for the services to install.
+    services = []
+    for service in entries['services']:
+        service_name = get_service_name_from_service(service)
+        if service_name in services_to_install:
+            services.append(service)
+
+    return services
+
+
+def set_env_vars(deploy_config_file, services):
+    """Lookup all entries in the config yaml file under the 'environment' section and assign
+    environment variables to the key/value definition. If the value contains an environment variable,
+    perform substitution in the value before assigning the environment variable.
+
+    For each service, also lookup the 'environment' section and assign the environment variables(s)
+    that are defined in this section.
+
+    :param deploy_config_file: config yaml file
+    :type deploy_config_file: string
+    :param services: list of input service names to install
+    :type input_services: list
+    :rtype: none
+    """  # noqa
+    def add_env(env_vars, env_var_list):
+        env_vars_not_defined = False
+        envs_to_subst = {}
+
+        for env_name in env_vars:
+            env_val = env_vars[env_name]
+            # Check if entry value contains an environment variable definition. If yes, save entry for substitute
+            if env_val and '$' in str(env_val):
+                envs_to_subst[env_name] = env_val
+            # If environment var is not defined in shell, set to default from config yml.
+            elif os.environ.get(env_name) is None:
+                if env_vars.get(env_name) is not None:
+                    value = str(env_vars[env_name])
+                    os.environ[env_name] = value
+                    env_var_list[env_name] = value
+                else:
+                    env_vars_not_defined = True
+                    sys.stderr.write(f"ERROR: environment variable {env_name} is not defined.\n")
+
+        # For entries in environment list that contains environment variable names in the value,
+        # substitute variable and set env var.
+        # Ex: substitute jaws_{JAWS_DEPLOY_NAME} to jaws_dev if env var JAWS_DEPLOY_NAME=dev
+        for env_name in envs_to_subst:
+            value = envsubst(envs_to_subst[env_name])
+            if value:
+                os.environ[env_name] = value
+                env_var_list[env_name] = value
+            else:
+                env_vars_not_defined = True
+                sys.stderr.write(f"ERROR: environment variable {env_name} is not defined.\n")
+
+        return env_vars_not_defined
+
+    # Parse environment section and set environment variables
+    env_var_list = {}
+    entries = yaml.load(open(deploy_config_file, 'r'), Loader=yaml.FullLoader)
+    env_vars_not_defined = add_env(entries['environment'], env_var_list)
+
+    # Turn list into dict where key is name of val in list, val=1
+    services_to_install = dict([(val, 1) for val in services])
+
+    # Look for environment key in services section. If defined, set environment vars for
+    # that service definition.
+    for service in entries['services']:
+        service_name = get_service_name_from_service(service)
+        if service_name in services_to_install and service[service_name].get('environment'):
+            this_env_vars_not_defined = add_env(service[service_name]['environment'], env_var_list)
+    if this_env_vars_not_defined:
+        env_vars_not_defined = True
+
+    # If any environment variable is not set, exit
+    if env_vars_not_defined:
+        raise SystemExit('Missing environment variables.')
+
+    return env_var_list
+
+
+def parse_filename_from_services(services, keyname, service_name=None):
+    """For the given services to be installed via a list of dict data structure defining the file to create like
+    'config' or 'deploy_script', do the following:
+    1. get filename from entry
+    2. convert to abspath if filename is a relative path. abs path points to the src deploy dir.
+    files = []
+    3: return list of files
+
+    The dict in the list looks like:
+    {'client': {'config_template': 'templates/client/jaws-client.config', 'deploy_script': 'templates/client/deploy-client'}}
+
+    :param services: data scruture defining info for each service to be installed
+    :type services: list
+    :param keyname: keyname in dict structure to get filename
+    :type: string
+    :return files: list of filenames
+    :rtype; list
+    """  # noqa
+    files = []
+    for service in services:
+        name = get_service_name_from_service(service)
+        filename = service[name].get(keyname)
+        if not filename:
+            continue
+        filename = envsubst(filename)
+        if not os.path.isabs(filename):
+            filename = os.path.join(ROOT_DIR, filename)
+        if service_name is not None and name == service_name:
+            return filename
+        files.append(filename)
+    return None if service_name else files
+
+
+def create_jaws_config_files(services, out_dir):
+    """For the given services to be installed via a dict data structure, get the config file for
+    each service, substitute environment variables in the config file and write file to install
+    directory.
+
+    :param services: data scruture defining info for each service to be installed
+    :type services: list
+    :param: out_dir: name of output dir to write file to
+    :type out_dir: string
+    :return: out_files: list of output files created in install dir
+    :rtype: list
+    """  # noqa
+    out_files = []
+    for name in get_service_names(services):
+        in_file = parse_filename_from_services(services, 'config_template', service_name=name)
+        out_file = parse_filename_from_services(services, 'config_output', service_name=name)
+        if not in_file:
+            continue
+        with open(in_file, 'r') as fh:
+            doc = envsubst(fh.read())
+        with open(out_file, 'w') as fh:
+            print(f"Creating file {out_file}")
+            fh.write(doc)
+            out_files.append(out_file)
+        os.chmod(out_file, 0o600)
+
+    return out_files
+
+
+def create_jaws_deploy_files(services, out_dir):
+    """For the given services to be installed via a dict data structure, parse the deployment script for
+    each service and copy the deployment file to the install dir.
+
+    The dict in the list looks like:
+    {'client': {'deploy_script': 'templates/client/deploy-client'}}
+
+    :param services: data scruture defining info for each service to be installed
+    :type services: list
+    :param: out_dir: name of output dir to write file to
+    :type out_dir: string
+    :return: out_files: list of output files created in install dir
+    :rtype: list
+    """  # noqa
+    out_files = []
+    for in_file in parse_filename_from_services(services, 'deploy_script'):
+        out_file = os.path.join(out_dir, os.path.basename(in_file))
+        out_files.append(out_file)
+        try:
+            print(f"Creating file {out_file}")
+            shutil.copy(in_file, out_file)
+            os.chmod(out_file, 0o700)
+        except IOError as err:
+            raise SystemExit(f"Failed to copy {in_file} to {out_dir}: {err}")
+
+    return out_files
+
+
+def run_deploy_scripts(cmds):
+    """Given a list of commands, execute each, one at a time.
+
+    :param cmds: list of commands to execute
+    :type cmds: list
+    :return: None
+    """
+    for cmd in cmds:
+        # Execute deployment file (creates python virtualenv and shim file)
+        stdout, stderr, exitcode = run_command(cmd)
+        print(stdout)
+        if exitcode:
+            raise SystemExit(f"Failed to run {cmd}: {stderr}")
+
+
+def write_env_vars_to_file(filename, env_vars):
+    """Write defined environment variables to a bash script for reference.
+
+    :param filename: name of bash file to write
+    :type filename: string
+    :param env_vars: dict containing environment variables to export
+    :type env_vars: dict
+    :return: None
+    """  # noqa
+    with open(filename, 'w') as fh:
+        fh.write("#!/usr/bin/env bash\n\n")
+        for key in env_vars:
+            value = env_vars[key]
+            if not value.isnumeric():  # add quotes if value is not numeric
+                value = f'"{value}"'
+            fh.write(f"export {key}={value}\n")
+
+    os.chmod(filename, 0o700)
+
+
+def main():
+    """Main routine to perform installation and deployment. """
+    args = get_args()
+    input_services = args.services
+    install_dir = os.path.abspath(args.install_dir)
+    deploy_dir = os.path.join(install_dir, "deploy")
+    config_dir = os.path.join(install_dir, "configs")
+    src_dir = os.path.abspath(os.path.join(ROOT_DIR, "../../.."))
+
+    if args.config_file:
+        deploy_config_file = args.config_file
+    else:
+        deploy_config_file = os.path.join(ROOT_DIR, "deploy-cori.yml")
+
+    if not os.path.isfile(deploy_config_file):
+        raise SystemExit(f"Cannot find {deploy_config_file} file.")
+
+    # Get services to install based on input
+    services_to_install = get_services_to_install(deploy_config_file, input_services)
+    if not services_to_install:
+        raise SystemExit(f"No valid service found for the inputs you specified")
+
+    # Create output install dir if not exists.
+    pathlib.Path(install_dir).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(deploy_dir).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(config_dir).mkdir(parents=True, exist_ok=True)
+
+    # Set environment variables
+    os.environ['JAWS_INSTALL_DIR'] = install_dir
+    os.environ['JAWS_SRC_DIR'] = src_dir
+    if args.developer_mode:
+        os.environ['JAWS_DEVELOPER_MODE'] = 1
+
+    env_var_list = set_env_vars(deploy_config_file, get_service_names(services_to_install))
+    env_var_list['JAWS_INSTALL_DIR'] = os.environ['JAWS_INSTALL_DIR']
+    env_var_list['JAWS_SRC_DIR'] = os.environ['JAWS_SRC_DIR']
+    env_var_list['JAWS_DEVELOPER_MODE'] = os.environ['JAWS_DEVELOPER_MODE']
+
+    # Write defined environment variables to bash file in deployment dir as a record of which env vars
+    # were used for deployment. This file is for reference only and not used by this tool.
+    write_env_vars_to_file(os.path.join(deploy_dir, "define-env"), env_var_list)
+
+    # Get config templates defined in config yml and generate config file in output install dir.
+    # Includes substituting environment variables in config template before writing to install dir.
+    create_jaws_config_files(services_to_install, config_dir)
+
+    # Get deploy script templates defined in config yml and generate deploy scripts in output install dir.
+    # Includes substituting environment variables in config template before writing to install dir.
+    deploy_scripts = create_jaws_deploy_files(services_to_install, deploy_dir)
+
+    # Run deployment scripts
+    run_deploy_scripts(deploy_scripts)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,153 @@
+#!/bin/bash
+
+set -eo pipefail
+
+## DEFINE INSTALL VARS
+deploy_jaws_client=$JAWS_DEPLOY_CLIENT
+client_install_dir=$JAWS_CLIENT_INSTALL_DIR
+jaws_group=$JAWS_SITE_JAWS_GROUP_PERMISSION
+client_group=$JAWS_SITE_CLIENT_GROUP_PERMISSION
+src_dir=$JAWS_SRC_DIR
+install_dir=$JAWS_INSTALL_DIR
+jaws_scratch_dir=$JAWS_SITE_SCRATCH_DIR
+download_dir=$jaws_scratch_dir/downloads
+site_dir=$install_dir/site
+config_dir=$install_dir/configs
+shim_dir=$install_dir/shims
+log_dir=$install_dir/logs
+log_level="DEBUG"
+developer_mode=$JAWS_DEVELOPER_MODE
+is_local_dev_env=$JAWS_IS_LOCAL_DEV_ENV
+
+## PERMISSIONS
+function fix_perms() {
+    local dir=$1
+    local group=$2
+    chmod -R a+rX $dir
+    chmod -R ug+rwX $dir
+    [[ ! -z $group ]] && chgrp -R $group $dir
+    if [[ -d $dir ]]; then
+        find $dir -type d -exec chmod g+s '{}' \;
+    fi
+}
+
+
+## MAKE DIR IF NOT EXIST
+## If deploying local dev, ensure that directories created by local dev doesn't affect other deployments.
+if [[ -z $is_local_dev_env || $is_local_dev_env == 0 ]];then
+  test -d $site_dir && rm -rf $site_dir && mkdir $site_dir
+else
+  test -d $site_dir || mkdir $site_dir
+fi
+test -d $shim_dir || mkdir $shim_dir
+test -d $log_dir || mkdir $log_dir
+
+
+## CREATE PYTHON VIRTUALENV
+python3 -m venv $site_dir && \
+  source $site_dir/bin/activate && \
+  pip install --upgrade pip && \
+  pip install wheel && \
+  deactivate
+
+
+## INSTALL JAWS FILES
+if [[ $developer_mode == 1 ]]; then
+  echo "** Installing in developer mode **"
+  source $site_dir/bin/activate && \
+    cd $src_dir/rpc && pip install -e . && \
+    cd $src_dir/site && pip install -e . && \
+    deactivate
+else
+  # remove files only if not installing local dev instance.
+  if [[ ! -z $is_local_dev_env || $is_local_dev_env == 0 ]]; then
+    test -d $src_dir/rpc/dist && rm -f $src_dir/rpc/dist/*
+    test -d $src_dir/site/dist && rm -f $src_dir/site/dist/*
+    test -d $src_dir/jtm/dist && rm -f $src_dir/jtm/dist/*
+  fi
+  cd $src_dir/rpc && python setup.py bdist_wheel && \
+    cd ../site && python setup.py bdist_wheel && \
+  source $site_dir/bin/activate && \
+    pip install $src_dir/rpc/dist/* && \
+    pip install $src_dir/site/dist/* && \
+    deactivate
+fi
+
+fix_perms $site_dir $jaws_group
+
+
+##  CREATE SHIM FILES
+# If the DEPLOY-CLIENT flag is set, the deploy-client script will be run, but the files must have group and permissions set.
+# Unfortunately, chgrp/chmod don't work on the parallel-fs when executed by the gitlab-runner for some reason; the
+# solution is to have the jaws user perform these commands in one of the shims (under supervsiord), so it's executed before one
+# of the required services is executed.  This is a hack.
+fix_perms_client=""
+[[ -n "$deploy_jaws_client" ]] && \
+  [[ "$deploy_jaws_client" -eq 1 ]] && \
+  [[ ! -z $client_group ]] && \
+  fix_perms_client="fix_perms $client_group $client_install_dir"
+
+
+## CREATE jaws-site-daemon shim file
+shim_file=$shim_dir/jaws-site-daemon
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+function fix_perms() {
+    local GROUP="\$1"
+    local DIR="\$2"
+    chmod -R a+rX "\$DIR"
+    chmod -R ug+rwX "\$DIR"
+    [[ ! -z "$GROUP" ]] && chgrp -R "\$GROUP" "\$DIR"
+    find "\$DIR" -type d -exec chmod g+s '{}' \;
+}
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+test -d "$jaws_scratch_dir" || (mkdir "$jaws_scratch_dir" && \
+    chmod 775 "$jaws_scratch_dir")
+test -d "$download_dir" || (mkdir "$download_dir" && \
+    chmod 775 "$download_dir")
+
+$fix_perms_client
+
+source $install_dir/site/bin/activate
+exec jaws-site --log $log_dir/site-daemon.log --config $config_dir/jaws-site.conf --log-level $log_level daemon
+EOM
+chmod 770 $shim_file
+fix_perms $jaws_group $shim_file
+
+
+## Create jaws-site-central-rpc shim file
+shim_file=$shim_dir/jaws-site-central-rpc
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+# START RPC SERVER
+source $install_dir/site/bin/activate
+exec jaws-site --log $log_dir/site-central-rpc.log --config $config_dir/jaws-site.conf --log-level $log_level central-rpc
+EOM
+chmod 770 $shim_file
+fix_perms $jaws_group $shim_file
+
+
+## Create jaws-site-jtm-rpc shim file
+shim_file=$shim_dir/jaws-site-jtm-rpc
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $install_dir/site/bin/activate
+exec jaws-site --log $log_dir/site-jtm-rpc.log --config $config_dir/jaws-site.conf --log-level DEBUG jtm-rpc
+EOM
+chmod 770 $shim_file
+fix_perms $jaws_group $shim_file

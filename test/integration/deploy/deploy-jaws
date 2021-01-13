@@ -1,0 +1,87 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# INPUTS:
+# $1 = config yaml file
+# $2 to n-1 = one or more names of services to install
+# $n = install_dir
+
+print_usage() {
+    printf "deploy-jaws [-dh] <config yml file> <service name> [<service name> ...] <output_dir>\n"
+    printf "\n"
+    printf "OPTIONS:\n"
+    printf "  -d developer mode (install jaws code using pip install -e allowing code to be editable).\n"
+    printf "  -h help message.\n"
+}
+
+developer_mode=0
+while getopts "dh" opt; do
+case "$opt" in
+    d)
+        echo "*** In developer mode ***"
+        developer_mode=1
+        ;;
+    \?)
+        echo "invalid option -$OPTARG";;
+    *)
+        print_usage
+        exit
+        ;;
+esac
+done
+
+shift "$((OPTIND-1))" # removes any flags from $@
+args_length=${#@}     # get number of positional arguments
+
+# Check that the input argument contains at least 3 entries.
+if [[ $args_length -lt 3 ]]; then
+    print_usage
+    exit
+fi
+
+# Assign variables to positional arguments
+config_profile=${@:1:1}         # first argument
+install_dir=${@:$args_length:1} # last argument
+services=${@:2:$args_length-2}  # subsequent arguments
+
+deploy_dir="$install_dir/deploy"
+config_dir="$install_dir/configs"
+shim_dir="$install_dir/shims"
+central_dir="$install_dir/central"
+client_dir="$install_dir/client"
+site_dir="$install_dir/site"
+jtm_dir="$install_dir/jtm"
+src_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+#module load python  # NEED TO MOVE THIjS TO .gitlab-ci.yml
+
+test -d $install_dir || mkdir $install_dir
+test -d $deploy_dir && rm -rf $deploy_dir
+test -d $config_dir && rm -rf $config_dir
+test -d $shim_dir && rm -rf $shim_dir
+test -d $central_dir && rm -rf $central_dir
+test -d $client_dir && rm -rf $client_dir
+test -d $site_dir && rm -rf $site_dir
+test -d $jtm_dir && rm -rf $jtm_dir
+
+mkdir "$deploy_dir"
+chmod 770 "$deploy_dir"
+
+echo "Creating python env for deployment script ..."
+python3 -m venv $deploy_dir/venv && \
+  source $deploy_dir/venv/bin/activate && \
+  pip install --upgrade pip && \
+  pip install wheel envsubst pyyaml
+
+if [[ $developer_mode == 1 ]]; then
+    cmd="$src_dir/install-mgr -d $config_profile $services $install_dir"
+else
+    cmd="$src_dir/install-mgr $config_profile $services $install_dir"
+fi
+echo
+echo "Installing and deploying JAWS ..."
+echo "$cmd"
+eval $cmd
+
+#deactivate
