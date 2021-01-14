@@ -47,7 +47,7 @@ variables:
 
   ## CENTRAL-SPECIFIC VARIABLES:
   CENTRAL_INSTALL_BASEDIR: "/tmp"
-  CENTRAL_GLOBUS_EP: "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
+  CENTRAL_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
   CENTRAL_GLOBUS_ROOT_DIR: "/"
   CENTRAL_GLOBUS_DEFAULT_DIR: "~"
   CENTRAL_RMQ_HOST: "rmq.lbl.gov"
@@ -63,7 +63,7 @@ variables:
 
   ## SITE-SPECIFIC VARIABLES:
   CORI_INSTALL_BASEDIR: "/tmp"
-  CORI_GLOBUS_EP: "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
+  CORI_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
   CORI_GLOBUS_ROOT_DIR: "/"
   CORI_GLOBUS_DEFAULT_DIR: "~"
   CORI_RMQ_HOST: "rmq.lbl.gov"
@@ -71,7 +71,7 @@ variables:
   CORI_JTM_RMQ_HOST: "rmq.lbl.gov"
   CORI_JTM_RMQ_PORT: 5672
   CORI_PYTHON: "python3"
-  CORI_LOAD_PYTHON: "module load python3/3.7-anaconda-2019.10"
+  CORI_LOAD_PYTHON: "module load python/3.8-anaconda-2020.11"
   CORI_JAWS_GROUP: "jaws"
   CORI_JTM_GROUP: "jaws_jtm"
   CORI_CLIENT_GROUP: "genome"
@@ -79,7 +79,7 @@ variables:
   CORI_JTM_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws_jtm"
   CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_JTM_SW_BASEDIR: "/global/cfs/projectdirs/jaws_jtm"
-  CORI_REF_DATA_DIR: "/global/cscratch1/sd/jaws/refdata"
+  CORI_REF_DATA_DIR: " /global/dna/shared/databases/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
   CORI_DB_HOST: "jaws-db.lbl.gov"
@@ -90,6 +90,8 @@ variables:
   CORI_CLUSTER_CONSTRAINT: "haswell"
   CORI_MAX_RAM_GB: 2048
   CORI_LOAD_JAVA: ""
+  CORI_STAGING_USER_BASEDIR: "/global/cscratch1/sd/jaws"
+  CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
 
   JGI_INSTALL_BASEDIR: "/tmp"
   JGI_GLOBUS_EP: "45afb626-a4bd-11e8-96f0-0a6d4e044368"
@@ -100,7 +102,7 @@ variables:
   JGI_JTM_RMQ_HOST: "rmq.lbl.gov"
   JGI_JTM_RMQ_PORT: 5672
   JGI_PYTHON: "python"
-  JGI_LOAD_PYTHON: "module load python"
+  JGI_LOAD_PYTHON: "module load python/3.8.2-dll"
   JGI_JAWS_GROUP: "jaws"
   JGI_JTM_GROUP: "jaws"
   JGI_CLIENT_GROUP: "jgi"
@@ -108,7 +110,7 @@ variables:
   JGI_JTM_SCRATCH_BASEDIR: "/global/scratch/jaws"
   JGI_JAWS_SW_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_JTM_SW_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
-  JGI_REF_DATA_DIR: "/global/scratch/jaws/refdata"
+  JGI_REF_DATA_DIR: "/global/home/groups/lr_jgicloud/refdata"
   JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
   JGI_CONTAINER_TYPE: "singularity"
   JGI_DB_HOST: "jaws-db.lbl.gov"
@@ -119,6 +121,8 @@ variables:
   JGI_CLUSTER_CONSTRAINT: ""
   JGI_MAX_RAM_GB: 250
   JGI_LOAD_JAVA: "module load java"
+  JGI_STAGING_USER_BASEDIR: "/global/scratch/jaws"
+  JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
 
   CASCADE_INSTALL_BASEDIR: "/tmp"
   CASCADE_GLOBUS_EP: "9d6d994a-6d04-11e5-ba46-22000b92c6ec"

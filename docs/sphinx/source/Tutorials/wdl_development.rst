@@ -43,7 +43,7 @@ I chose "64-bit (bash installer)" for MaxOS, Python 2.7.
 
 Installation
 
-.. code-block:: bash
+.. code-block:: text
 
    bash Miniconda2-latest-MacOSX-x86_64.sh
    # follow the directions for installation.  
@@ -58,21 +58,21 @@ Install Other Tool Dependencies
 *******************************
 Create a conda environment to install dependencies in
 
-.. code-block:: bash
+.. code-block:: text
 
   conda create -n test_env python=3
   conda activate test_env  # if this fails, use source activate test_env
 
 Install the dependencies
 
-.. code-block:: bash
+.. code-block:: text
 
     conda install -y -c bioconda bbmap==38.69
     conda install -y -c bioconda samtools==1.9
 
 Of course you can install Cromwell if you wanted to test on your labtop, etc., by adding the command
 
-.. code-block:: bash
+.. code-block:: text
 
     conda install -y -c bioconda Cromwell
 
@@ -80,7 +80,7 @@ Of course you can install Cromwell if you wanted to test on your labtop, etc., b
 Download the Example WDL repository
 ***********************************
 
-.. code-block:: bash
+.. code-block:: text
 
   git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
   cd jaws-tutorial-examples/5min_example
@@ -89,7 +89,7 @@ Download the Example WDL repository
 Run the WDL Workflow
 ********************
 
-.. code-block:: bash
+.. code-block:: text
   
   # run with your installed version
   Cromwell run align.wdl -i inputs.json

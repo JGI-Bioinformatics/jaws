@@ -27,7 +27,7 @@ How do I use Arrays and Maps in my WDL.
     Use WDL functions for common transformations
     
     
-    .. code-block:: bash
+    .. code-block:: text
 
         task example {
           Array[String] array
@@ -97,7 +97,7 @@ How do I use Arrays and Maps in my WDL.
 How can I use bash commands that require curly braces?
     If you ever need to use curly braces in bash to strip a suffix txt or set a default:
 
-    .. code-block:: bash
+    .. code-block:: text
 
         # strip a suffix
         myvar=${somefile%.txt}
@@ -108,7 +108,7 @@ How can I use bash commands that require curly braces?
 
     Then you need to do
 
-    .. code-block:: bash
+    .. code-block:: text
 
         task somthing {
             String dollar='$'
@@ -120,7 +120,7 @@ How can I use bash commands that require curly braces?
 How can I output a file that has been named dynamically as a bash variable
 	Bash variables created in the command{} block cannot be seen outside the block, for example, in the output {} section. Therefore, you can write the name(s) of any output files to another file which will be read inside the output {} block.
 
-    .. code-block:: bash
+    .. code-block:: text
 
         command{
            echo $lib.bam > list_of_files

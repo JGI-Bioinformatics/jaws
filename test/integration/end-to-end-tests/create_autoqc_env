@@ -1,0 +1,6 @@
+python3 -m venv autoqc-env
+. ./autoqc-env/bin/activate
+pip install funcy
+pip install fn
+pip install pyyaml
+pip install json2yaml

@@ -39,7 +39,7 @@ There are four top level JAWS commands (but many sub commands):
 
 You only need to run this once to get a Globus token.  Follow the directions to obtain the token from Globus and this will allow JAWS to transfer data around via Globus in your name.
 
-.. code-block:: bash
+.. code-block:: text
 
     jaws login
     
@@ -79,8 +79,7 @@ You only need to run this once to get a Globus token.  Follow the directions to 
   release     Mark a version as released, which makes it's WDL immutable. The README can still be changed.
   update-doc  Update a workflow's README in the catalog.
   update-wdl  Update a workflow's WDL in the catalog (unavailable for released WDLs)
-  versions    List available versions of specified workflow.
-  versions    List publicly available versions of a specified workflow. Some versions may not be publicly available.
+  versions    List publicly available versions of a specified workflow. Not all versions are publicly available.
 
 *jaws status*:
 ----------------------
