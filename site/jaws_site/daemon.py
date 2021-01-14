@@ -179,14 +179,16 @@ class Daemon:
             zip_file = None
 
         # submit to Cromwell
-        cromwell_run_id = self.cromwell.submit(wdl_file, json_file, zip_file)
-        if cromwell_run_id:
+        try:
+            cromwell_run_id = self.cromwell.submit(wdl_file, json_file, zip_file)
+        except Exception as error:
+            logger.error(f"Run {run.id} submission failed: {error}")
+            run.update_run_status(run, "submission_failed")
+        else:
             run.cromwell_run_id = cromwell_run_id
             self.update_run_status(
                 run, "submitted", f"cromwell_run_id={cromwell_run_id}"
             )
-        else:
-            run.update_run_status(run, "submission failed")
 
     def check_run_cromwell_status(self, run):
         """
@@ -294,8 +296,7 @@ class Daemon:
             transfer_result = transfer_client.submit_transfer(tdata)
         except globus_sdk.GlobusAPIError:
             logger.warning(
-                f"Failed to download results with Globus for {label}",
-                exc_info=True,
+                f"Failed to download results with Globus for {label}", exc_info=True,
             )
             return None
         return transfer_result["task_id"]
@@ -323,7 +324,9 @@ class Daemon:
                     logger.exception(f"Error updating run: {error}")
             else:
                 # This run failed before a folder was created; nothing to xfer
-                self.update_run_status(run, "download complete", "No run folder was created")
+                self.update_run_status(
+                    run, "download complete", "No run folder was created"
+                )
                 return
 
         file_path = self.get_uploads_file_path(run)
@@ -533,10 +536,10 @@ class Daemon:
                 )
 
                 # set label
-                short_task_name = log.task_name.split('.')
-                short_task_name = short_task_name[1].split(':')
+                short_task_name = log.task_name.split(".")
+                short_task_name = short_task_name[1].split(":")
                 label = f"Run {log.run_id} Task {short_task_name[0]}"
-                label = re.sub('[^0-9a-zA-Z_]+', ' ', label)
+                label = re.sub("[^0-9a-zA-Z_]+", " ", label)
 
                 # recursively transfer task dir
                 transfer_task_id = self.__transfer_folder(
