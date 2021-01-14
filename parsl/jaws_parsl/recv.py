@@ -50,7 +50,11 @@ def on_message_callback(ch, method, properties, body):
 
     global G_TASK_TABLE
 
-    # executor = message['cluster'] # todo: get machine as executor
+    cpus = message['cpus']
+    mem = message['memory']
+
+    # choose and set executor based on available resources
+
     future = run_script(message['command'])
     task_id = future.tid
     logger.debug(f"[Task:{task_id} Launched")

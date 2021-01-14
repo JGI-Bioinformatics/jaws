@@ -1,5 +1,5 @@
 # run like:
-# python send.py -cl cori -cmd $(pwd)/hello.sh
+# python send.py -c <# of CPUs> -m <memory> -cmd $(pwd)/hello.sh
 
 import click
 import pika
@@ -9,11 +9,13 @@ from jaws_parsl import config
 
 
 @click.command()
-@click.option("-cl", "--cluster", help="Compute cluster name")
+@click.option("-c", "--cpus", help="Number of CPUs needed")
+@click.option("-m", "--memory", help="Amount of memory needed")
 @click.option("-cmd", "--command", help="Command script")
-def send(cluster, command):
+def send(cpus, memory, command):
     job_info = {
-        "cluster": cluster,
+        "cpus": cpus,
+        "memory": memory,
         "command": command
     }
 
