@@ -5,6 +5,7 @@ import subprocess
 import json
 import time
 import sys
+import logging
 
 SUBMIT_SLEEP = 2
 
@@ -86,26 +87,24 @@ def wait_for_one_run(env,run_id,check_tries=100,check_sleep=30):
     """Wait for all the runs in run_ids list to finish."""
     run_id = str(run_id)
     tries = 1
-    while tries < check_tries:
+    while tries <= check_tries:
         # check whether the run has finished every 60 seconds
         time.sleep(check_sleep)
         cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,run_id)
         (o,e,r) = submit_cmd(cmd)
 
-        # fake output used for testing without actually submitting jobs
-        #output = '{"status": "download complete"}'
-
         status_json = json.loads(o)
 
         run_status = status_json["status"]
-        print("Run " + run_id + " status after " + str(tries) + " try is: " + run_status)
+        logging.info("Run " + run_id + " status after " + str(tries) + " try is: " + run_status)
 
         if run_status == "download complete":
-            break
+            return 1
 
         tries += 1
 
-    print("All tries have have been exhausted")
+    logging.info("All tries have have been exhausted")
+    return 0
 
 def submit_cmd(cmd):
     """returns the stdout, stderr and rc"""
@@ -114,18 +113,7 @@ def submit_cmd(cmd):
     stderror = process.stderr
     thereturncode = process.returncode
 
-    # combine stdout & stderr since they can sometimes be mixed up for some scripts.
-    # this is just used for the print command below.
-    er=output + "\n" + stderror
-
-    if thereturncode >= 1:
-        sys.stderr.write("Error: command failed\n%s\n%s\n%s" % (cmd,stderror,output))
-        sys.exit(1)
-    else:
-        print(f"command successfully submitted: {cmd}\n{er}")
-
     return (output,stderror,thereturncode)
-
 
 def submit_analysis_file(analysis_file, threshold_file_name, env):
     #  build a command like below
