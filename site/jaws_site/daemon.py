@@ -171,12 +171,24 @@ class Daemon:
             logger.warning(f"Missing inputs JSON for run {run.id}: {json_file}")
             self.update_run_status(run, "missing input", "Missing inputs JSON file")
             return
+        if os.path.getsize(json_file) == 0:
+            logger.warning(f"Empty inputs JSON for run {run.id}: {json_file}")
+            self.update_run_status(run, "upload failed", "Empty inputs JSON file")
+            return
         if not os.path.exists(wdl_file):
             logger.warning(f"Missing WDL for run {run.id}: {wdl_file}")
             self.update_run_status(run, "missing input", "Missing WDL file")
             return
+        if os.path.getsize(wdl_file) == 0:
+            logger.warning(f"Empty WDL file for run {run.id}: {wdl_file}")
+            self.update_run_status(run, "upload failed", "Empty WDL file")
+            return
         if not os.path.exists(zip_file):
             zip_file = None
+        if zip_file and os.path.getsize(zip_file) == 0:
+            logger.warning(f"Empty ZIP file for run {run.id}: {zip_file}")
+            self.update_run_status(run, "upload failed", "Empty subworkflows ZIP file")
+            return
 
         # submit to Cromwell
         cromwell_run_id = self.cromwell.submit(wdl_file, json_file, zip_file)
@@ -294,8 +306,7 @@ class Daemon:
             transfer_result = transfer_client.submit_transfer(tdata)
         except globus_sdk.GlobusAPIError:
             logger.warning(
-                f"Failed to download results with Globus for {label}",
-                exc_info=True,
+                f"Failed to download results with Globus for {label}", exc_info=True,
             )
             return None
         return transfer_result["task_id"]
@@ -323,7 +334,9 @@ class Daemon:
                     logger.exception(f"Error updating run: {error}")
             else:
                 # This run failed before a folder was created; nothing to xfer
-                self.update_run_status(run, "download complete", "No run folder was created")
+                self.update_run_status(
+                    run, "download complete", "No run folder was created"
+                )
                 return
 
         file_path = self.get_uploads_file_path(run)
@@ -533,10 +546,10 @@ class Daemon:
                 )
 
                 # set label
-                short_task_name = log.task_name.split('.')
-                short_task_name = short_task_name[1].split(':')
+                short_task_name = log.task_name.split(".")
+                short_task_name = short_task_name[1].split(":")
                 label = f"Run {log.run_id} Task {short_task_name[0]}"
-                label = re.sub('[^0-9a-zA-Z_]+', ' ', label)
+                label = re.sub("[^0-9a-zA-Z_]+", " ", label)
 
                 # recursively transfer task dir
                 transfer_task_id = self.__transfer_folder(
