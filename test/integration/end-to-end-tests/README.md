@@ -21,6 +21,8 @@ There are two template files that you can use:
 * ThresholdFiles/template.json can be used to generate a corresponding threasholds file.
 
 ## Procedure
+Note: Requires python3.8.  You can do `module load python/3.8-anaconda-2020.11`
+
 1) What I do is first write the tests (e.g. JawsTestWrappers/test_jaws_cmds.py). This will produce an autoQC file that is used for the GUI, but also creates an intermediate file, e.g. analysis.yaml.
 
    The tests can be run like so
@@ -28,7 +30,10 @@ There are two template files that you can use:
    JawsTestWrappers/test_jaws_cmds.py -w TestsWDLs/fq_count.wdl -i TestsWDLs/fq_count.json -s cori -e prod
    ```
    A log file is also create (e.g. test_jaws_cmds.log).  
-2) You can model the thresholds file from the analysis.yaml file, the path to which can be found in the log file.
+2) You can model the thresholds file from the analysis.yaml file, the path to which can be found in the log file. 
+   It should look something like this `create_analysis_file <somepath>/1611111560207628/analysis.yaml`
+   The AutoQC file should be saved somewhere like (also in log file):  `Created /tmp/autoqc.tmp.74x8hcnr/test_jaws_cmds.yml`
+
 3) The thresholds file needs to be registered into the AutoQC mongo database. This can be done by
    ```
    source /global/dna/projectdirs/PI/rqc/prod/jgi-rqc-autoqc/config/rqc38.sh
@@ -55,3 +60,4 @@ See [Description of AutoQC](https://code.jgi.doe.gov/qaqc/autoqc/-/wikis/AutoQC-
 #### parsing_functions.py
 
 This is a module adapted from submit_loop.py.  It includeds functions to submit a jaws run and wait for it to complete. Please add shared functions here. 
+

@@ -351,7 +351,7 @@ final_dict = {}
 run_info = pf.submit_one_run_to_env(args.wdl, args.inputs, ".", args.site, args.environment)
 
 # uncomment for testing
-#run_info = {'output_dir': '/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/JawsTestWrappers/16110953090795753', 'output_endpoint': '9d6d994a-6d04-11e5-ba46-22000b92c6ec', 'run_id': 16232, 'site_id': 'CORI', 'status': 'uploading', 'submission_id': '90d4e7f5-0ad7-4374-8d00-bc7ed07919df', 'upload_task_id': 'ab0138e2-5aa5-11eb-87bd-02187389bd35'}
+#run_info = {'output_dir': '/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/1611111560207628', 'output_endpoint': '9d6d994a-6d04-11e5-ba46-22000b92c6ec', 'run_id': 16240, 'site_id': 'CORI', 'status': 'uploading', 'submission_id': 'e599f6b6-ed6a-4db5-8f0c-026a766a772c', 'upload_task_id': '8220363c-5acb-11eb-a4e5-0a53a3613b81'}
 
 logging.info(f"submitted job: {run_info}\n")
 run_id = run_info['run_id']
@@ -397,5 +397,5 @@ pf.create_analysis_file(final_dict, analysis_file_path, test_report_name)
 logging.info("create_analysis_file %s\n",analysis_file_path)
 
 # submit the analysis.yml file
-#(o,e,r) = pf.submit_analysis_file(analysis_file_path, THRESHOLD_FILE_NAME, args.environment)
-#logging.info("submit_analysis_file\n%s\n%s\n",o,e)
+(o,e,r) = pf.submit_analysis_file(analysis_file_path, THRESHOLD_FILE_NAME, args.environment)
+logging.info("submit_analysis_file\n%s\n%s\n",o,e)
