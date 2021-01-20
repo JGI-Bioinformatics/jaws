@@ -102,3 +102,13 @@ where:
 https://rqc.jgi-psf.org/autoqc_gp/report/
 click on `Jaws_status` and then the "Search" button.
 ```
+
+## Registering a Thresholds File
+```
+source /global/dna/projectdirs/PI/rqc/prod/jgi-rqc-autoqc/config/rqc38.sh
+
+# There are different profiles (jaws_prod, jaws_staging, and jaws_dev).
+autoqc_tool_gp.py --profile jaws_prod add threshold test_jaws_cmds.json
+```
+
+
