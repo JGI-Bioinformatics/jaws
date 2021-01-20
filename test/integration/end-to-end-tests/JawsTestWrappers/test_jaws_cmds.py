@@ -17,7 +17,7 @@ logging.basicConfig(filename='test_jaws_cmds.log', filemode='w', format='**%(asc
 ANALYSIS_FILE_NAME = 'analysis.yaml'
 
 # this must match the name of a threshold file that has been submitted to autoqc before running this test
-THRESHOLD_FILE_NAME = 'jaws_run_success'
+THRESHOLD_FILE_NAME = 'test_jaws_cmds'
 
 tmp_wdl = "pow23.wdl"
 tmp_readme = "pow23.md"
@@ -125,6 +125,7 @@ def jaws_wdl_add(final_dict,env):
         task count_seqs {
         File infile
         command <<< echo ~{infile} >>> 
+        output { File outfile = stdout() }
         }
         """
 
@@ -348,6 +349,11 @@ final_dict = {}
 # wait for jaws run to complete
 #
 run_info = pf.submit_one_run_to_env(args.wdl, args.inputs, ".", args.site, args.environment)
+
+# uncomment for testing
+#run_info = {'output_dir': '/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/JawsTestWrappers/16110953090795753', 'output_endpoint': '9d6d994a-6d04-11e5-ba46-22000b92c6ec', 'run_id': 16232, 'site_id': 'CORI', 'status': 'uploading', 'submission_id': '90d4e7f5-0ad7-4374-8d00-bc7ed07919df', 'upload_task_id': 'ab0138e2-5aa5-11eb-87bd-02187389bd35'}
+
+logging.info(f"submitted job: {run_info}\n")
 run_id = run_info['run_id']
 
 jaws_info(final_dict,args.environment)
@@ -391,5 +397,5 @@ pf.create_analysis_file(final_dict, analysis_file_path, test_report_name)
 logging.info("create_analysis_file %s\n",analysis_file_path)
 
 # submit the analysis.yml file
-(o,e,r) = pf.submit_analysis_file(analysis_file_path, THRESHOLD_FILE_NAME, args.environment)
-logging.info("submit_analysis_file\n%s\n%s",o,e)
+#(o,e,r) = pf.submit_analysis_file(analysis_file_path, THRESHOLD_FILE_NAME, args.environment)
+#logging.info("submit_analysis_file\n%s\n%s\n",o,e)

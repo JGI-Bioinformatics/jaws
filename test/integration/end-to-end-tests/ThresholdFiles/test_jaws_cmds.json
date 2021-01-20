@@ -1,0 +1,179 @@
+{
+    "thresholds": [
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws info failed.",
+                "pass_msg": "cmd: jaws info succeeded.",
+                "name": "info"
+            },
+            "equals",
+            ":info",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws status failed.",
+                "pass_msg": "cmd: jaws status succeeded.",
+                "name": "status"
+            },
+            "equals",
+            ":status",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws run queue failed.",
+                "pass_msg": "cmd: jaws run queue succeeded.",
+                "name": "queue"
+            },
+            "equals",
+            ":queue",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws run status failed.",
+                "pass_msg": "cmd: jaws run status succeeded.",
+                "name": "run_status"
+            },
+            "equals",
+            ":run_status",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws run history failed.",
+                "pass_msg": "cmd: jaws run history succeeded.",
+                "name": "hist"
+            },
+            "equals",
+            ":hist",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws wdl add failed.",
+                "pass_msg": "cmd: jaws wdl add succeeded.",
+                "name": "add"
+            },
+            "equals",
+            ":add",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws wdl update of readme failed.",
+                "pass_msg": "cmd: jaws wdl update of readme succeeded.",
+                "name": "update"
+            },
+            "equals",
+            ":update",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws wdl update-wdl failed.",
+                "pass_msg": "cmd: jaws wdl update-wdl succeeded.",
+                "name": "updateWDL"
+            },
+            "equals",
+            ":updateWDL",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws wdl versions failed.",
+                "pass_msg": "cmd: jaws wdl versions succeeded.",
+                "name": "versions"
+            },
+            "equals",
+            ":versions",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws wdl delete failed.",
+                "pass_msg": "cmd: jaws wdl delete succeeded.",
+                "name": "delete"
+            },
+            "equals",
+            ":delete",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws run metadata failed.",
+                "pass_msg": "cmd: jaws run metadata succeeded",
+                "name": "metadata"
+            },
+            "equals",
+            ":metadata",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws run errors failed.",
+                "pass_msg": "cmd: jaws run errors succeeded.",
+                "name": "errors"
+            },
+            "equals",
+            ":errors",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws run task-status failed.",
+                "pass_msg": "cmd: jaws run task-status succeeded.",
+                "name": "task_status"
+            },
+            "equals",
+            ":task_status",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws run log failed.",
+                "pass_msg": "cmd: jaws run log succeeded",
+                "name": "log"
+            },
+            "equals",
+            ":log",
+            1
+        ],
+        [
+            {
+                "fail_code": "",
+                "fail_msg": "cmd: jaws run task-log failed.",
+                "pass_msg": "cmd: jaws run task-log succeeded",
+                "name": "task_log"
+            },
+            "equals",
+            ":task_log",
+            1
+        ]
+    ],
+    "metadata": {
+        "pipeline": {
+            "name": "test_jaws_cmds",
+            "description": "a minimum test that the jaws commands are functional."
+        },
+        "version": {
+            "auto-qc": "2.0.1"
+        }
+    }
+} 
+

@@ -55,6 +55,10 @@ def submit_one_run_to_env(wdl, inputs, dir, site, env):
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run submit %s %s %s %s" % (env, wdl, inputs, out_dir, site)
     (out, err, rc) = submit_cmd(cmd)
 
+    if (rc > 0):
+        print(f"Failed cmd: {cmd}\n{out}\n{err}\n")
+        sys.exit(1)
+
     return json.loads(out)
 
 
@@ -129,6 +133,7 @@ def submit_analysis_file(analysis_file, threshold_file_name, env):
     autoqcDb = 'jaws'  # for now just use jaws
 
     cmd = autoqc_script + " -p " + autoqcDb + " qc " + analysis_file + " " + threshold_file_name
+    logging.info(cmd)
     return submit_cmd(cmd)
 
 
