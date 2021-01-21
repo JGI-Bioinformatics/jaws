@@ -6,12 +6,18 @@ import sys
 import os
 import argparse
 import json
+import logging
 import parsing_functions as pf
+
+logging.basicConfig(filename='run_success_test.log', filemode='w', format='**%(asctime)s**\n%(message)s', level=logging.DEBUG)
 
 # this is the name of the analysis file that will be created in the run's output directory
 ANALYSIS_FILE_NAME = 'analysis.yaml'
 # this must match the name of a threshold file that has been submitted to autoqc before running this test
 THRESHOLD_FILE_NAME = 'jaws_run_success'
+
+check_tries = 100 # try this many times when waiting for a JAWS run to complete.
+check_sleep = 30 # wait for this amount of time between tries.
 
 # parse arguments
 parser = argparse.ArgumentParser(
@@ -50,6 +56,8 @@ pf.wait_for_one_run(args.environment,run_id,check_tries=50,check_sleep=30)
 cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (args.environment,run_id)
 print(f"{cmd}\n")
 (o,e,r) = pf.submit_cmd(cmd)
+logging.info("%s\n%s\n%s",cmd,o,e)
+
 status_info = json.loads(o)
 
 
@@ -76,10 +84,11 @@ analysis_file_path = status_info['output_dir'] + '/' + ANALYSIS_FILE_NAME
 # create the name that will show up in the AutoQC report header by appending
 # the test name 'run_success' to the wdl file name
 test_report_name = os.path.basename(args.wdl) + '_' + str(run_id)
-print(f"test_report_name: {test_report_name}\n")
-pf.create_analysis_file(final_dict, analysis_file_path, test_report_name)
+logging.info(f"test_report_name: {test_report_name}\n")
 
-#
+pf.create_analysis_file(final_dict, analysis_file_path, test_report_name)
+logging.info("create_analysis_file %s\n",analysis_file_path)
+
 # submit the analysis.yml file
-#
-pf.submit_analysis_file(analysis_file_path, THRESHOLD_FILE_NAME, args.environment)
+(o,e,r) = pf.submit_analysis_file(analysis_file_path, THRESHOLD_FILE_NAME, args.environment)
+logging.info("submit_analysis_file\n%s\n%s",o,e)
