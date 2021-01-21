@@ -22,6 +22,8 @@ THRESHOLD_FILE_NAME = 'test_jaws_cmds'
 tmp_wdl = "pow23.wdl"
 tmp_readme = "pow23.md"
 wdl_catalog_name="tmp_wdl_catalog_name"
+check_tries = 50 # try this many times when waiting for a JAWS run to complete.
+check_sleep = 30 # wait for this amount of time between tries.
 
 #########################
 ###     Functions     ###
@@ -312,9 +314,10 @@ def jaws_wdl_task_log(final_dict,run_id,env):
     # remove empty elements
     a = list(filter(None,a))
 
-    if a[1][3] == 'created' and a[-1][4] == 'success': 
-        final_dict['task_log'] = 1
-    else:
+    try:
+        if a[1][3] == 'created' and a[-1][4] == 'success': 
+            final_dict['task_log'] = 1
+    except:
         final_dict['task_log'] = 0
 
 ####################
@@ -331,6 +334,8 @@ parser.add_argument("-s", "--site", help="The site at which you wish to run [cor
 parser.add_argument("-e", "--environment", help="The JAWS environment to run the test in [prod|staging|dev]",
                     type=str, required=True)
 args = parser.parse_args()
+# test_report_name will appear in the autoqc report table (GUI) under the column "Name".
+test_report_name = os.path.basename(args.wdl) + '_run_success'
 
 if not os.path.exists(args.wdl):
     print(r"Error: {args.wdl} does not exist")
@@ -360,7 +365,7 @@ jaws_info(final_dict,args.environment)
 jaws_status(final_dict,args.environment)
 jaws_run_queue(final_dict,run_id,args.environment)
 
-if pf.wait_for_one_run(args.environment,run_id):
+if pf.wait_for_one_run(args.environment,run_id,check_tries=check_tries,check_sleep=check_sleep):
     # if this function returns 1, that means 'jaws run status' worked. So lets set final_dict for status.
     final_dict['run_status'] = 1
 else:
@@ -390,7 +395,6 @@ analysis_file_path = run_info['output_dir'] + '/' + ANALYSIS_FILE_NAME
 
 # create the name that will show up in the AutoQC report header by appending
 # the test name 'run_success' to the wdl file name
-test_report_name = os.path.basename(args.wdl) + '_run_success'
 logging.info(f"test_report_name: {test_report_name}\n")
 
 pf.create_analysis_file(final_dict, analysis_file_path, test_report_name)
