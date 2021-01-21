@@ -18,6 +18,8 @@ ANALYSIS_FILE_NAME = 'analysis.yaml'
 THRESHOLD_FILE_NAME = 'jaws_run_success'
 
 wdl_catalog_name="tmp_wdl_catalog_name"
+check_tries = 50 # try this many times when waiting for a JAWS run to complete.
+check_sleep = 30 # wait for this amount of time between tries.
 
 #########################
 ###     Functions     ###
@@ -130,7 +132,7 @@ run_id = run_info['run_id']
 jaws_info(final_dict,args.environment)
 jaws_status(final_dict,args.environment)
 
-if not pf.wait_for_one_run(args.environment,run_id):
+if not pf.wait_for_one_run(args.environment,run_id,check_tries=check_tries,check_sleep=check_sleep):
     sys.stderr.write("Workflow not complete after alloted time...exiting.")
 
 jaws_wdl_metadata(final_dict,run_id,args.environment)
