@@ -5,7 +5,7 @@ import time
 import os
 import json
 from functools import partial
-
+import subprocess
 import pika
 import parsl
 from parsl import bash_app, AUTO_LOGNAME
@@ -19,6 +19,7 @@ G_TASK_COUNTER = 0
 G_TASK_TABLE = {}
 G_UPDATES_CHANNEL = None
 rpc_params = {}
+executor = ''
 
 
 def on_task_callback(task_id, future):
@@ -54,6 +55,27 @@ def on_message_callback(ch, method, properties, body):
     mem = message['memory']
 
     # choose and set executor based on available resources
+    # check if machines are up by trying an SSH
+    machines = {
+        'cori': {'addr': 'cori.nersc.gov'},
+        'lbl':  {'addr': 'lrc-login.lbl.gov'}
+    }
+
+    # choose first available machine in dict as executor
+    # throw error if all machines down
+    #
+    # note: parsl chooses an executor "at random" if one not specified
+    # this happens in parsl/dataflow/dflow.py
+    global executor
+    for m in machines:
+        m['up'] = subprocess.call(['ssh', '-q', m['addr']]) == 0
+        if m['up']:
+            executor = m
+            break
+    if machines[-1]['up'] is False:
+        msg = "All machines currently offline."
+        logger.exception(msg)
+        raise Exception(msg)
 
     future = run_script(message['command'])
     task_id = future.tid
@@ -108,7 +130,7 @@ def update_site(status, task_id):
         raise
 
 
-@bash_app(executors=['cori'])
+@bash_app(executors=[executor])
 def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME):
     cmd = 'bash ' + script
     return cmd
@@ -207,7 +229,7 @@ def cli():
                         help="Enables debug logging")
 
     # from parsl.configs.htex_local import config
-    from cori import config
+    from execs import config
 
     dfk = parsl.load(config)
     parsl_run_dir = dfk.run_dir
