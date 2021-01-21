@@ -393,7 +393,7 @@ analysis_file_path = run_info['output_dir'] + '/' + ANALYSIS_FILE_NAME
 
 # create the name that will show up in the AutoQC report header by appending
 # the test name 'run_success' to the wdl file name
-test_report_name = os.path.basename(args.wdl) + '_' + run_id
+test_report_name = os.path.basename(args.wdl) + '_' + str(run_id)
 logging.info(f"test_report_name: {test_report_name}\n")
 
 pf.create_analysis_file(final_dict, analysis_file_path, test_report_name)
