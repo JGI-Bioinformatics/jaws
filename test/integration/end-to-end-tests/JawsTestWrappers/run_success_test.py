@@ -45,6 +45,7 @@ if args.environment.lower() not in ['prod', 'staging', 'dev']:
 # wait for jaws run to complete
 #
 run_info = pf.submit_one_run_to_env(args.wdl, args.inputs, ".", args.site, args.environment)
+logging.info(f"submitted job: {run_info}\n")
 
 run_id = run_info['run_id']
 
