@@ -30,7 +30,7 @@ check_sleep = 30  # wait for this amount of time between tries.
 # Test functions for verification of jaws log commands (log,task-log,status,task-status).
 #
 
-def json_file_does_not_exist(e):
+def json_file_does_not_exist(final_dict, e):
     # check for the correct error message
     if "No such file or directory:" in e:
         final_dict['json_missing'] = 1
@@ -38,7 +38,7 @@ def json_file_does_not_exist(e):
         final_dict['json_missing'] = 0
 
 
-def test_json_bad_path_to_input_file_msg(e):
+def test_json_bad_path_to_input_file_msg(final_dict, e):
     # check for the correct error message
     if "File(s) not accessible:" in e:
         final_dict['bad_path_in_json'] = 1
@@ -82,7 +82,7 @@ cmd = source_cmd + submit_cmd
 logging.info("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
 
 # test for correct error message
-json_file_does_not_exist(e)
+json_file_does_not_exist(final_dict, e)
 
 # Submit job with json contains path to a non-existent input file
 # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
@@ -90,7 +90,7 @@ json = "../TestsWDLs/bad-inputs/bad_path.json"
 submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, args.site)
 
 # test for correct error message
-test_json_bad_path_to_input_file_msg(e)
+test_json_bad_path_to_input_file_msg(final_dict, e)
 #################################
 # create the analysis yaml file #
 #################################
