@@ -13,7 +13,6 @@ from parsl import bash_app, AUTO_LOGNAME
 import jaws_parsl
 from jaws_rpc.rpc_client import RpcClient
 from jaws_rpc import rpc_index
-from jaws_central import utils
 
 logger = None
 
@@ -60,12 +59,12 @@ def on_message_callback(ch, method, properties, body):
     mem = message['memory']
 
     # choose and set executor based on available resources
-    machines = utils.status()[0]
     machines_up = []
     rpci = rpc_index.rpc_index
     for site_id in rpci.get_sites():
-        if machines[site_id + "-Site"] == "UP" and \
-           machines[site_id + "-Cromwell"] == "UP":
+        client = rpci.get_client(site_id)
+        response = client.request("server_status")
+        if "error" not in response:
             machines_up.append(site_id)
 
     # choose first available machine in dict as executor

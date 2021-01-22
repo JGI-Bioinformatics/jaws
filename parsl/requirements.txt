@@ -2,6 +2,5 @@ Click==7.0
 parsl==1.0.0
 pika==1.1.0
 pytest
-jaws_central
 jaws_rpc
 
