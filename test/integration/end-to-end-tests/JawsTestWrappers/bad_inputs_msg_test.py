@@ -88,6 +88,9 @@ json_file_does_not_exist(final_dict, e)
 # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
 json = "../TestsWDLs/bad-inputs/bad_path.json"
 submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, args.site)
+cmd = source_cmd + submit_cmd
+(o, e, r) = pf.submit_cmd(cmd)
+logging.info("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
 
 # test for correct error message
 test_json_bad_path_to_input_file_msg(final_dict, e)
@@ -104,8 +107,8 @@ analysis_file_path = out_dir + '/' + ANALYSIS_FILE_NAME
 test_report_name = 'bad_inputs_test'
 logging.info(f"test_report_name: {test_report_name}\n")
 
-# pf.create_analysis_file(final_dict, analysis_file_path, test_report_name)
-# logging.info("create_analysis_file %s\n",analysis_file_path)
+pf.create_analysis_file(final_dict, analysis_file_path, test_report_name)
+logging.info("create_analysis_file %s\n",analysis_file_path)
 
 # submit the analysis.yml file
 # (o, e, r) = pf.submit_analysis_file(analysis_file_path, THRESHOLD_FILE_NAME, args.environment)
