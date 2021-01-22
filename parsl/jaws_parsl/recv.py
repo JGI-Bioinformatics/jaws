@@ -5,13 +5,15 @@ import time
 import os
 import json
 from functools import partial
-import subprocess
+
 import pika
 import parsl
 from parsl import bash_app, AUTO_LOGNAME
 
 import jaws_parsl
 from jaws_rpc.rpc_client import RpcClient
+from jaws_rpc import rpc_index
+from jaws_central import utils
 
 logger = None
 
@@ -20,6 +22,8 @@ G_TASK_TABLE = {}
 G_UPDATES_CHANNEL = None
 rpc_params = {}
 executor = ''
+cpus = 0
+mem = ''
 
 
 def on_task_callback(task_id, future):
@@ -51,15 +55,18 @@ def on_message_callback(ch, method, properties, body):
 
     global G_TASK_TABLE
 
+    global cpus, mem
     cpus = message['cpus']
     mem = message['memory']
 
     # choose and set executor based on available resources
-    # check if machines are up by trying an SSH
-    machines = {
-        'cori': {'addr': 'cori.nersc.gov'},
-        'lbl':  {'addr': 'lrc-login.lbl.gov'}
-    }
+    machines = utils.status()[0]
+    machines_up = []
+    rpci = rpc_index.rpc_index
+    for site_id in rpci.get_sites():
+        if machines[site_id + "-Site"] == "UP" and \
+           machines[site_id + "-Cromwell"] == "UP":
+            machines_up.append(site_id)
 
     # choose first available machine in dict as executor
     # throw error if all machines down
@@ -67,15 +74,12 @@ def on_message_callback(ch, method, properties, body):
     # note: parsl chooses an executor "at random" if one not specified
     # this happens in parsl/dataflow/dflow.py
     global executor
-    for m in machines:
-        m['up'] = subprocess.call(['ssh', '-q', m['addr']]) == 0
-        if m['up']:
-            executor = m
-            break
-    if machines[-1]['up'] is False:
+    if len(machines_up) == 0:
         msg = "All machines currently offline."
         logger.exception(msg)
         raise Exception(msg)
+    else:
+        executor = machines_up[0]
 
     future = run_script(message['command'])
     task_id = future.tid
@@ -131,7 +135,8 @@ def update_site(status, task_id):
 
 
 @bash_app(executors=[executor])
-def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME):
+def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME,
+               parsl_resource_specification={'cores': cpus, 'memory': mem}):
     cmd = 'bash ' + script
     return cmd
 
