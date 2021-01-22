@@ -30,7 +30,14 @@ check_sleep = 30  # wait for this amount of time between tries.
 # Test functions for verification of jaws log commands (log,task-log,status,task-status).
 #
 
-def test_bad_json_path_msg():
+def json_file_does_not_exist(e):
+    # check wh
+    if "File(s) not accessible:" in e:
+        final_dict['json_missing'] = 1
+    else:
+        final_dict['json_missing'] = 0
+
+def test_json_bad_path_to_input_file_msg():
     pass
 
 
@@ -56,17 +63,26 @@ final_dict = {}
 # Submit WDLs & run Tests #
 ##########################
 #
-# Submit json that points to non-existent input file
+# Submit path to json file that does not exist
 # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
 source_cmd = "source ~/jaws-%s.sh > /dev/null && " % args.environment
 wdl = "../TestsWDLs/jaws-alignment-example/main.wdl"
-json = "../TestsWDLs/bad-inputs/bad-path.json"
-out_dir = "bad_test_out_1"
+json = "./FileDoesNotExist.json"
+out_dir = "out"  # nothing will get written here because these submissions are not accepted
+
 submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, args.site)
 
 cmd = source_cmd + submit_cmd
 (o, e, r) = pf.submit_cmd(cmd)
 logging.info("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
+
+json_file_does_not_exist(e)
+
+
+# Submit json that points to non-existent input file
+# Can't use pf.submit_one_run_to_env here because it exits if submission not successful
+# json = "../TestsWDLs/bad-inputs/bad_path.json"
+# submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, args.site)
 
 
 #################################
