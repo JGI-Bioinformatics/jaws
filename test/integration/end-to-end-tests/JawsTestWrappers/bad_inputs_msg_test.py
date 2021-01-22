@@ -46,7 +46,6 @@ def test_json_bad_path_to_input_file_msg(e):
         final_dict['bad_path_in_json'] = 0
 
 
-
 ####################
 #     MAIN
 ####################
@@ -72,7 +71,7 @@ final_dict = {}
 
 source_cmd = "source ~/jaws-%s.sh > /dev/null && " % args.environment
 wdl = "../TestsWDLs/jaws-alignment-example/main.wdl"
-out_dir = "out"  # nothing will get written here because these submissions are not accepted
+out_dir = pf.timestamp_dir("./out/bad_inputs")  # the analysis file will get written here
 
 # Submit job with path to json file that does not exist
 # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
@@ -98,16 +97,16 @@ test_json_bad_path_to_input_file_msg(e)
 #
 # Put the analysis file in the run's output folder so that running multiple tests
 # at one time does not result in the analysis files overwriting one another
-analysis_file_path = run_info['output_dir'] + '/' + ANALYSIS_FILE_NAME
+analysis_file_path = out_dir + '/' + ANALYSIS_FILE_NAME
 
 # create the name that will show up in the AutoQC report header by appending
 # the test name 'run_success' to the wdl file name
 test_report_name = 'bad_inputs_test'
 logging.info(f"test_report_name: {test_report_name}\n")
 
-#pf.create_analysis_file(final_dict, analysis_file_path, test_report_name)
-#logging.info("create_analysis_file %s\n",analysis_file_path)
+# pf.create_analysis_file(final_dict, analysis_file_path, test_report_name)
+# logging.info("create_analysis_file %s\n",analysis_file_path)
 
 # submit the analysis.yml file
-#(o, e, r) = pf.submit_analysis_file(analysis_file_path, THRESHOLD_FILE_NAME, args.environment)
-#logging.info("submit_analysis_file\n%s\n%s", o, e)
+# (o, e, r) = pf.submit_analysis_file(analysis_file_path, THRESHOLD_FILE_NAME, args.environment)
+# logging.info("submit_analysis_file\n%s\n%s", o, e)
