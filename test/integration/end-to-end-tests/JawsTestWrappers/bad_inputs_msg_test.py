@@ -61,11 +61,11 @@ final_dict = {}
 source_cmd = "source ~/jaws-%s.sh > /dev/null && " % args.environment
 wdl = "../TestsWDLs/jaws-alignment-example/main.wdl"
 json = "../TestsWDLs/bad-inputs/bad-path.json"
-submit_cmd = "jaws run submit %s %s %s" % (wdl, json, args.site)
+submit_cmd = "jaws run submit %s %s %s" % (wdl, json, "bad_test_out_1", args.site)
 
 cmd = source_cmd + submit_cmd
 (o, e, r) = pf.submit_cmd(cmd)
-logging.info("%s\n%s\n%s", cmd, o, e)
+logging.info("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
 
 
 #################################
