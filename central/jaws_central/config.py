@@ -47,7 +47,7 @@ class Configuration(metaclass=Singleton):
     }
     required_params = {
         "DB": ["user", "password", "db"],
-        "GLOBUS": ["client_id"],
+        "GLOBUS": ["client_id", "client_secret"],
         "RPC_SERVER": ["user", "password", "vhost"],
     }
     required_site_params = [

@@ -27,7 +27,8 @@ password = pppaass4
 vhost = jaws_test
 
 [GLOBUS]
-client_id = ZZZZ
+client_id = AAAA
+client_secret = BBBB
 
 [SITE:LBNL]
 host = rmq.jaws.gov
@@ -74,7 +75,8 @@ password = pppaasss4
 vhost = jaws_test
 
 [GLOBUS]
-client_id = ZZZZ
+client_id = AAAA
+client_secret = BBBB
 """
     cfg.write_text(content)
     return cfg.as_posix()

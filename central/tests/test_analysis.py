@@ -29,7 +29,8 @@ password = passw0rd1
 db = jaws
 
 [GLOBUS]
-client_id = ZZZZ
+client_id = AAAA
+client_secret = BBBB
 
 [SITE:LBNL]
 host = rmq.jaws.gov
@@ -72,8 +73,18 @@ class MockNativeAppAuthClient:
         pass
 
 
+class MockConfidentialAppAuthClient:
+    def __init__(self, client_id, client_secret):
+        pass
+
+
 class MockRefreshTokenAuthorizer:
     def __init__(self, token, client):
+        pass
+
+
+class MockClientCredentialsAuthorizer:
+    def __init__(self, client, scopes):
         pass
 
 
@@ -142,8 +153,12 @@ def mock_database(monkeypatch):
 @pytest.fixture()
 def mock_globus(monkeypatch):
     monkeypatch.setattr(globus_sdk, "NativeAppAuthClient", MockNativeAppAuthClient)
+    monkeypatch.setattr(globus_sdk, "ConfidentialAppAuthClient", MockConfidentialAppAuthClient)
     monkeypatch.setattr(
         globus_sdk, "RefreshTokenAuthorizer", MockRefreshTokenAuthorizer
+    )
+    monkeypatch.setattr(
+        globus_sdk, "ClientCredentialsAuthorizer", MockClientCredentialsAuthorizer
     )
     monkeypatch.setattr(globus_sdk, "TransferClient", MockGlobusTransferClient)
 
