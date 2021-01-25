@@ -368,8 +368,7 @@ def main():
     # Set environment variables.
     os.environ['JAWS_INSTALL_DIR'] = install_dir
     os.environ['JAWS_SRC_DIR'] = src_dir
-    if args.developer_mode:
-        os.environ['JAWS_DEVELOPER_MODE'] = 1
+    os.environ['DEVELOPER_MODE'] = "1" if args.developer_mode else "0"
 
     env_var_list = set_env_vars(deploy_config_file, get_service_names(services_to_install))
     env_var_list['JAWS_INSTALL_DIR'] = os.environ['JAWS_INSTALL_DIR']
