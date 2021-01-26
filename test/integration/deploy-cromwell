@@ -193,6 +193,7 @@ submit \
 CONSTRAINT=\${constraint}
 QOS=\${qos}
 PARTITION=\${partition}
+$CONTAINER_CHECK
 [ -z \$QOS ] || QOS="--qos \$QOS"
 [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
 [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
