@@ -546,7 +546,7 @@ class Daemon:
                     run.output_endpoint,
                     task_output_dir,
                 )
-                log.debug(f"Xfer {log.task_name}: {transfer_task_id}")
+                logger.debug(f"Xfer {log.task_name}: {transfer_task_id}")
 
     def send_run_status_logs(self):
         """Send run logs to Central"""
