@@ -65,7 +65,10 @@ def setup_custom_logger(level, log_dest_dir, b_stream_logging=True, b_file_loggi
         if worker_id:
             log_file_name = '%s/jtm_worker_%s.log' % (worker_log_dir_name, datetime_str)
 
-        file_logger = logging.FileHandler(log_file_name)
+        # Rotational log: 100MB each, total 4 log files
+        file_logger = logging.handlers.RotatingFileHandler(
+            log_file_name, maxBytes=100000000, backupCount=3
+        )
         file_logger.setFormatter(formatter)
         file_logger.setLevel(numeric_level)
         logger.addHandler(file_logger)
