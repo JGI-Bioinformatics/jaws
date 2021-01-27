@@ -179,14 +179,16 @@ class Daemon:
             zip_file = None
 
         # submit to Cromwell
-        cromwell_run_id = self.cromwell.submit(wdl_file, json_file, zip_file)
-        if cromwell_run_id:
+        try:
+            cromwell_run_id = self.cromwell.submit(wdl_file, json_file, zip_file)
+        except Exception as error:
+            logger.error(f"Run {run.id} submission failed: {error}")
+            self.update_run_status(run, "submission failed")
+        else:
             run.cromwell_run_id = cromwell_run_id
             self.update_run_status(
                 run, "submitted", f"cromwell_run_id={cromwell_run_id}"
             )
-        else:
-            run.update_run_status(run, "submission failed")
 
     def check_run_cromwell_status(self, run):
         """
