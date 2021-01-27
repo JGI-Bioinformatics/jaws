@@ -5,6 +5,7 @@
 import datetime
 import logging
 import os
+from logging import handlers
 
 from jaws_jtm.lib.run import make_dir
 
@@ -66,7 +67,7 @@ def setup_custom_logger(level, log_dest_dir, b_stream_logging=True, b_file_loggi
             log_file_name = '%s/jtm_worker_%s.log' % (worker_log_dir_name, datetime_str)
 
         # Rotational log: 100MB each, total 4 log files
-        file_logger = logging.handlers.RotatingFileHandler(
+        file_logger = handlers.RotatingFileHandler(
             log_file_name, maxBytes=100000000, backupCount=3
         )
         file_logger.setFormatter(formatter)
