@@ -37,6 +37,7 @@ class User(Base):
     email = Column(String(64), nullable=False)
     name = Column(String(64), nullable=True)
     is_admin = Column(Boolean, nullable=False, default=False)
+    is_dashboard = Column(Boolean, nullable=False, default=False)
     jaws_token = Column(String(256), nullable=False)
     globus_id = Column(String(36), nullable=True)
     auth_refresh_token = Column(String(256), nullable=True)
