@@ -93,7 +93,7 @@ variables:
   CORI_STAGING_USER_BASEDIR: "/global/cscratch1/sd/jaws"
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
 
-  JGI_INSTALL_BASEDIR: "/tmp"
+  JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
   JGI_GLOBUS_EP: "45afb626-a4bd-11e8-96f0-0a6d4e044368"
   JGI_GLOBUS_ROOT_DIR: "/"
   JGI_GLOBUS_DEFAULT_DIR: "~"
