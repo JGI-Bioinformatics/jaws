@@ -7,5 +7,5 @@ job:on-schedule:
     - ./health-check-robot/submit_and_wait_for_success_prod.v3.sh -s jgi -r prod
     - ./health-check-robot/submit_and_wait_for_success_prod.v3.sh -s jgi -r staging
   tags:
-    - central
+    - cori
 
