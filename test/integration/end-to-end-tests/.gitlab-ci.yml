@@ -3,6 +3,9 @@ job:on-schedule:
     - schedules
   script:
     - ./health-check-robot/submit_and_wait_for_success_prod.v3.sh -s cori -r prod
+    - ./health-check-robot/submit_and_wait_for_success_prod.v3.sh -s cori -r staging
+    - ./health-check-robot/submit_and_wait_for_success_prod.v3.sh -s jgi -r prod
+    - ./health-check-robot/submit_and_wait_for_success_prod.v3.sh -s jgi -r staging
   tags:
-    - jf-cori20
+    - central
 

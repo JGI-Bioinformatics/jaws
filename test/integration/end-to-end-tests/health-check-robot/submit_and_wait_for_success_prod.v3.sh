@@ -1,13 +1,13 @@
 #!/bin/bash -l
 
 # jfroula slack channel (for testing)
-#WEBHOOK_URL=https://hooks.slack.com/services/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
+WEBHOOK_URL=https://hooks.slack.com/services/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
 
 # jaws
 #WEBHOOK_URL=https://hooks.slack.com/services/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
 
 # jaws_health
-WEBHOOK_URL=https://hooks.slack.com/services/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
+#WEBHOOK_URL=https://hooks.slack.com/services/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
 
 SITE=
 RELEASE=
