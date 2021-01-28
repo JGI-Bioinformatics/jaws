@@ -1,0 +1,8 @@
+job:on-schedule:
+  only:
+    - schedules
+  script:
+    - ./health-check-robot/submit_and_wait_for_success_prod.v3.sh -s cori -r prod
+  tags:
+    - jf-cori20
+
