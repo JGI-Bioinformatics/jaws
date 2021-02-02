@@ -50,11 +50,9 @@ def get_versions(user: str, name: str) -> Tuple[dict, int]:
     return result, 200
 
 
-def get_doc(user: str, name: str, version: str) -> Tuple[str, int]:
+def get_doc(name: str, version: str) -> Tuple[str, int]:
     """Returns a workflow's README (stored in md format) as HTML.
 
-    :param user: Current user's ID
-    :type user: str
     :param name: Name of a workflow
     :type name: str
     :param version: Version of a workflow
@@ -62,7 +60,7 @@ def get_doc(user: str, name: str, version: str) -> Tuple[str, int]:
     :return: The workflow's README document in markdown format
     :rtype: str
     """
-    logger.info(f"User {user}: Get README of {name}:{version}")
+    logger.info(f"Get README of {name}:{version}")
     try:
         doc = catalog.get_doc(name, version)
     except catalog.CatalogWorkflowNotFoundError:
@@ -73,11 +71,9 @@ def get_doc(user: str, name: str, version: str) -> Tuple[str, int]:
     return markdown.markdown(doc), 200
 
 
-def get_wdl(user: str, name: str, version: str) -> Tuple[str, int]:
+def get_wdl(name: str, version: str) -> Tuple[str, int]:
     """Returns a workflow's WDL
 
-    :param user: Current user's ID
-    :type user: str
     :param name: Name of a workflow
     :type name: str
     :param version: Version of a workflow
@@ -85,7 +81,7 @@ def get_wdl(user: str, name: str, version: str) -> Tuple[str, int]:
     :return: The workflow's specification document in WDL format
     :rtype: str
     """
-    logger.info(f"User {user}: Get WDL of {name}:{version}")
+    logger.info(f"Get WDL of {name}:{version}")
     try:
         wdl = catalog.get_wdl(name, version)
     except catalog.CatalogWorkflowNotFoundError:
