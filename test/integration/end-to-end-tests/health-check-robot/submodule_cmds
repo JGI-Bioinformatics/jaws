@@ -1,0 +1,40 @@
+submodules
+https://code.jgi.doe.gov/advanced-analysis/jgi-wdl-catalog
+
+
+
+## add new submodule from existing git repository
+
+git submodule add https://gitlab.com/jfroula/jaws-health-test health-test
+
+## clone a repo with one or more submodules
+git clone --recurse-submodules https://code.jgi.doe.gov/advanced-analysis/jgi-wdl-catalog.git
+
+## populate existing submodule empty folders into top level repo. You would
+## do this if you have just cloned master.  (e.g. git clone <master>.git)
+
+git submodule update --init --recursive
+
+
+## keep updated submodules.  Do from top level of repo.
+
+git submodule update --remote <submodule name>
+
+(same as git fetch, git merge)
+
+
+## pushing a main repo with altered submodules
+## This goes into each submodule and pushes changes. 
+## This is unecessary if you have already gone into each submodule and pushed.
+
+git push --recurse-submodules=on-demand
+
+## Delete submodule
+
+Delete the relevant section from the .gitmodules file.
+Stage the .gitmodules changes git add .gitmodules
+Delete the relevant section from .git/config.
+Run git rm --cached path_to_submodule (no trailing slash).
+Run rm -rf .git/modules/path_to_submodule (no trailing slash).
+Commit git commit -m "Removed submodule "
+Delete the now untracked submodule files rm -rf path_to_submodule
