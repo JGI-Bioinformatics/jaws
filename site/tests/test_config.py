@@ -43,7 +43,8 @@ def test_overwrite_all_default_values(config_file):
     ]
 
     expected_globus_sections = [
-        ("client_id", "foghorn_leghorn"),
+        ("client_id", "AAAA"),
+        ("client_secret", "BBBB"),
         ("endpoint_id", "rooster"),
         ("root_dir", "cwd"),
         ("default_dir", "/")

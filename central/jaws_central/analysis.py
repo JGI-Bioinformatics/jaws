@@ -287,26 +287,12 @@ def submit_run(user):
 
     # SUBMIT GLOBUS TRANSFER
     try:
-        current_user = db.session.query(User).get(user)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, f"Db error; {e}")
-    transfer_rt = current_user.transfer_refresh_token
-    client_id = config.conf.get("GLOBUS", "client_id")
-    try:
-        client = globus_sdk.NativeAppAuthClient(client_id)
-        authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
-        transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
-    except globus_sdk.GlobusAPIError:
+        transfer_client = authorize_transfer_client()
+    except globus_sdk.GlobusAPIError as error:
         run.status = "upload failed"
         db.session.commit()
-        logger.exception(
-            f"Error getting transfer client for user {user}", exc_info=True
-        )
-        abort(
-            401,
-            "Globus access denied; have you granted JAWS access via the 'login' command?",
-        )
+        logger.error(f"Error getting Globus transfer client: {error}")
+        abort(500, f"Globus error: {error}")
     tdata = globus_sdk.TransferData(
         transfer_client,
         input_endpoint,
@@ -390,6 +376,13 @@ def submit_run(user):
         db.session.rollback()
         err_msg = f"Error inserting run log for Run {run.id}: {error}"
         logger.exception(err_msg)
+
+    # GET CURRENT USER INFO
+    try:
+        current_user = db.session.query(User).get(user)
+    except SQLAlchemyError as e:
+        logger.error(e)
+        abort(500, f"Db error; {e}")
 
     # SEND TO SITE
     params = {
@@ -713,21 +706,10 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
     """
     logger.debug(f"Run {run_id}: Cancel transfer {transfer_task_id}")
     try:
-        current_user = db.session.query(User).get(user)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, f"Db error; {e}")
-    transfer_rt = current_user.transfer_refresh_token
-    client_id = config.conf.get("GLOBUS", "client_id")
-    try:
-        client = globus_sdk.NativeAppAuthClient(client_id)
-        authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
-        transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
+        transfer_client = authorize_transfer_client()
     except globus_sdk.GlobusAPIError as error:
-        logger.exception(
-            f"Error getting transfer client for user {user}: {error}", exc_info=True
-        )
-        abort(500, "Unable to get Globus transfer client; perhaps try 'login' command")
+        logger.error(f"Error getting Globus transfer client: {error}")
+        abort(500, "Globus error: {error}")
     try:
         transfer_response = transfer_client.cancel_task(transfer_task_id)
         logger.debug(
@@ -739,3 +721,26 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
             exc_info=True,
         )
         abort(500, f"Globus error: {error}")
+
+
+def authorize_transfer_client():
+    """
+    Create a globus transfer client using client id and client secret for credentials. More information
+    can be found via Globus documentation:
+
+    https://globus-sdk-python.readthedocs.io/en/stable/examples/client_credentials.html?highlight=secret
+
+    :return: globus_sdk.TransferClient
+    """
+    client_id = config.conf.get("GLOBUS", "client_id")
+    client_secret = config.conf.get("GLOBUS", "client_secret")
+    try:
+        client = globus_sdk.ConfidentialAppAuthClient(client_id, client_secret)
+    except globus_sdk.GlobusAPIError as error:
+        raise error
+    scopes = "urn:globus:auth:scope:transfer.api.globus.org:all"
+    try:
+        authorizer = globus_sdk.ClientCredentialsAuthorizer(client, scopes)
+    except globus_sdk.GlobusAPIError as error:
+        raise error
+    return globus_sdk.TransferClient(authorizer=authorizer)
