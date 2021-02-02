@@ -4,6 +4,10 @@ import smtplib
 import time
 from subprocess import Popen, PIPE
 
+wdl="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count.wdl"
+inputs="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count.json"
+env="prod"
+
 def run(cmd):
     output = Popen(cmd, stdout=PIPE,
              stderr=PIPE, shell=True,
@@ -14,42 +18,16 @@ def run(cmd):
 
     return rc,stdout,stderr
 
-@pytest.fixture()
-def sleep_little_baby():
-    cmd='./go.sh > tmp.txt'
-    rc,stdout,stderr = run(cmd)
-    return stdout
-
-@pytest.fixture(scope="module")
-def mysubmit_wdl():
-    data={
-        "output_dir": "/global/cscratch1/sd/jfroula/JAWS/pytests/score-card-tests/fq_count_out",
-        "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
-        "run_id": 16304,
-        "site_id": "CORI",
-        "status": "uploading",
-        "submission_id": "47a555c7-07a6-442c-a2f1-d0319f2e3008",
-        "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
-    }
-    return data
-
-#@pytest.fixture(scope="module", params=["prod","staging"])
-#def submit_wdl(requests):
-    #request.param
-
 @pytest.fixture(scope="module")
 def submit_wdl_and_wait():
     """
     This is a fixture that will submit a wdl for all functions to use.  
     This function returns the output of a wdl submission. 
     """
-    
-    env="prod"
-    wdl="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/TestsWDLs/fq_count.wdl"
-    inputs="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/TestsWDLs/fq_count.json"
-
     cmd = ". ~jfroula/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s fq_count_out cori" % (env,wdl,inputs)
     (rc,stdout,stderr) = run(cmd)
+    if rc > 0:
+        pytest.exit("stderr: %s" % stderr)
     
     assert rc == 0
     data = json.loads(stdout)
@@ -74,6 +52,8 @@ def submit_wdl_and_wait():
         time.sleep(check_sleep)
         cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,run_id)
         (rc,stdout,stderr) = run(cmd)
+        if rc > 0:
+            pytest.exit("stderr: %s" % stderr)
 
         status_output = json.loads(stdout)
         run_status = status_output["status"]
@@ -91,28 +71,25 @@ def submit_wdl():
     This is a fixture that will submit a wdl for all functions to use.  
     This function returns the output of a wdl submission. 
     """
-    
-    env="prod"
-    wdl="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/TestsWDLs/fq_count.wdl"
-    inputs="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/TestsWDLs/fq_count.json"
-
     cmd = ". ~jfroula/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s fq_count_out cori" % (env,wdl,inputs)
     (rc,stdout,stderr) = run(cmd)
+    if rc > 0:
+        pytest.exit("stderr: %s" % stderr)
     
     assert rc == 0
     data = json.loads(stdout)
+
     # uncomment for testing
     #data={
-    #    "output_dir": "/global/cscratch1/sd/jfroula/JAWS/pytests/score-card-tests/fq_count_out",
+    #    "output_dir": "fq_count_out",
     #    "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
-    #    "run_id": 16304,
+    #    "run_id": 16405,
     #    "site_id": "CORI",
     #    "status": "uploading",
     #    "submission_id": "47a555c7-07a6-442c-a2f1-d0319f2e3008",
     #    "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
     #}
-    run_id = str(data['run_id'])
-    return run_id
+    return data
 #
 # The next two functions allows us to use the --env to capture the environment [prod|staging|dev]. 
 # This environment is an argument that can be passed into the test functions
