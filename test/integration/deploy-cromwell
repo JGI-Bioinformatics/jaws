@@ -228,7 +228,8 @@ submit \
 
 
         submit-docker = """
-[ -z \$CONTAINER_EXPORT ] || $CONTAINER_EXPORT
+[ -z \$CONTAINER_EXPORT ] || SINGULARITY_EXPORT="\$CONTAINER_EXPORT"
+\$SINGULARITY_EXPORT
 CONSTRAINT=\${constraint}
 QOS=\${qos}
 PARTITION=\${partition}
