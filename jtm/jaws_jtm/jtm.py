@@ -6,6 +6,7 @@ import socket
 import json
 import csv
 import time
+import re
 
 from jaws_jtm.config import JtmConfig
 from jaws_jtm.jtm_manager import manager as jtmmanager
@@ -345,10 +346,11 @@ def submit(
         sys.exit(1)
 
     def is_time_format(input: str):
-        try:
-            time.strptime(input, "%H:%M:%S")
+        # Allowed format: 12:12:12 02:59:59 77:00:00 12312312:00:00
+        patt = re.compile(r"\d+:[0-5][0-9]:[0-5][0-9]")
+        if patt.match(input):
             return True
-        except ValueError:
+        else:
             return False
 
     if time is None or not is_time_format(job_time):

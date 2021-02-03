@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+  #!/usr/bin/env bash
 
 echo "BEGIN deploy-cromwell"
 
@@ -55,15 +55,28 @@ fi
 
 
 # When creating the wrapper scripts the arguments to each script are as follows:
+# For SHIFTER
 # $1 image name
 # $2 shell name (eg - bash, csh)
 # $3 script name
 # $4 the location of the refdata directory location at the site
-# $5 the name of the directory $SITE_REF_DATA_DIR will be mounted on
+# $5 the name of the directory $SITE_REF_DATA_DIR will be mounted on inside container
+#
+# For SINGULARITY
+# $1 the location of the refdata directory location at the site
+# $2 the name of the directory $SITE_REF_DATA_DIR will be mounted on inside container
+# $3 script name
+# $4 docker command
+# $5 image name
+# $6 shell name (eg - bash, csh)
+# $7 script name
+#
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
 if [ $SITE_CONTAINER_TYPE = "shifter" ]; then
+  CONTAINER_EXPORT=""
   CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
+  CONTAINER_EXEC_COMMAND="\$CONTAINER_WRAPPER \${docker} \$SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
   cat <<EOM > "$CONTAINER_WRAPPER"
 #!/usr/bin/env bash
 shifter --image=\$1 -V \$2:\$3 \$4 \$5
@@ -72,15 +85,40 @@ EOM
   chmod 775 "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
 
 elif [ $SITE_CONTAINER_TYPE = "singularity" ]; then
-  CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
-  cat <<EOM > "$CONTAINER_WRAPPER"
-#!/usr/bin/env bash
+  CONTAINER_EXPORT="
 export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_DIR
 export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_DIR
 export SINGULARITY_TMPDIR=$SITE_CONTAINERS_DIR
 export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_DIR
-singularity exec --bind \$2:\$3 docker://\$1 \$4 \$5
-exit \$?
+export FLOCK_DIR=/tmp
+
+IMAGE=\$(echo \${docker} | tr '/:' '_').sif
+IMAGE=\$SINGULARITY_CACHEDIR/\$IMAGE
+echo \"\$IMAGE\"
+if [ -z \$SINGULARITY_CACHEDIR ];
+    then CACHE_DIR=\$HOME/.singularity/cache
+    else CACHE_DIR=$\SINGULARITY_CACHEDIR
+fi
+# Make sure cache dir exists so lock file can be created by flock
+mkdir -p \$CACHE_DIR
+LOCK_FILE=\$CACHE_DIR/singularity_pull_flock
+flock --exclusive --timeout 900 \$LOCK_FILE \
+singularity pull \$IMAGE docker://\${docker} && echo \"Successfully pulled \${docker}!\" \
+|| echo \"Faield to pull \${docker}!\"
+"
+  CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
+  CONTAINER_EXEC_COMMAND="\$CONTAINER_WRAPPER SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
+  cat <<EOM > "$CONTAINER_WRAPPER"
+#!/usr/bin/env bash
+REMOTE_REF=\$1
+LOCAL_REF=\$2
+CWD=\$3
+DOCKER_CWD=\$4
+IMAGE=\$5
+JOB_SHELL=\$6
+SCRIPT=\$7
+singularity exec --bind \$REMOTE_REF:\$LOCAL_REF --bind \$CWD:\$DOCKER_CWD \$IMAGE \$JOB_SHELL \$SCRIPT
+exit $?
 EOM
   chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
   chmod 775 "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
@@ -190,6 +228,8 @@ submit \
 
 
         submit-docker = """
+[ -z \$CONTAINER_EXPORT ] || SINGULARITY_EXPORT="\$CONTAINER_EXPORT"
+\$SINGULARITY_EXPORT
 CONSTRAINT=\${constraint}
 QOS=\${qos}
 PARTITION=\${partition}
@@ -199,7 +239,7 @@ $CONTAINER_CHECK
 [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
--cmd '$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}' \
+-cmd '$CONTAINER_EXEC_COMMAND' \
 -cl \${cluster} \
 -t \${time} \
 -c \${cpu} \
