@@ -25,7 +25,9 @@ This is how I created the requirements file
 `pip freeze > requirements.txt`
 
 ## Run a test
-pytest --verbose --env prod test_jaws_cmds.py
+`pytest [--capture=no] --verbose --env prod test_jaws_cmds.py`
+
+Note: the --capture=no statement will allow you to see the print statements from within your tests
 
 
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#!/usr/bin/env python
 
 # These functions are to test the "testcases" from the "score_card" integration tests.
 # google doc: https://docs.google.com/document/d/1nXuPDVZ3dXl0AetyU5Imdbi0Gvc5sUhAR0OfYxss2uI/edit#heading=h.rmy1jmsa0m7n
@@ -12,12 +11,6 @@ import os
 import json
 import time
 import parsing_functions as pf
-
-# this is the name of the analysis file that will be created in the run's output directory
-ANALYSIS_FILE_NAME = 'analysis.yaml'
-
-# this must match the name of a threshold file that has been submitted to autoqc before running this test
-THRESHOLD_FILE_NAME = 'test_jaws_cmds'
 
 tmp_wdl = "pow23.wdl"
 tmp_readme = "pow23.md"
