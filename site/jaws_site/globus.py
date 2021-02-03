@@ -16,6 +16,7 @@ class GlobusService:
 
     def __init__(self):
         self.globus_config = jaws_site.config.Configuration()
+        self.endpoint_id = self.globus_config.get("GLOBUS", "endpoint_id")
         self.root_dir = self.globus_config.get("GLOBUS", "root_dir")
         self.default_dir = self.globus_config.get("GLOBUS", "default_dir")
 
