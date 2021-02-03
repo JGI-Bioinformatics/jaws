@@ -75,8 +75,8 @@ CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
 if [ $SITE_CONTAINER_TYPE = "shifter" ]; then
   CONTAINER_EXPORT=""
-  CNTAINER_EXEC_COMMAND="\$CONTAINER_WRAPPER \${docker} \$SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
   CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
+  CNTAINER_EXEC_COMMAND="\$CONTAINER_WRAPPER \${docker} \$SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
   cat <<EOM > "$CONTAINER_WRAPPER"
 #!/usr/bin/env bash
 shifter --image=\$1 -V \$2:\$3 \$4 \$5
@@ -106,8 +106,8 @@ flock --exclusive --timeout 900 \$LOCK_FILE \
 singularity pull \$IMAGE docker://\${docker}
 echo \"successfully pulled \${docker}!\"
 "
-  CONTAINER_EXEC_COMMAND="\$CONTAINER_WRAPPER SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
   CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
+  CONTAINER_EXEC_COMMAND="\$CONTAINER_WRAPPER SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
   cat <<EOM > "$CONTAINER_WRAPPER"
 #!/usr/bin/env bash
 REMOTE_REF=\$1
@@ -228,7 +228,7 @@ submit \
 
 
         submit-docker = """
-[ -z \CONTAINER_EXPORT ] || $CONTAINER_EXPORT
+[ -z \$CONTAINER_EXPORT ] || $CONTAINER_EXPORT
 CONSTRAINT=\${constraint}
 QOS=\${qos}
 PARTITION=\${partition}
