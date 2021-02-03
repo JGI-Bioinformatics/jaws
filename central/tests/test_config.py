@@ -33,7 +33,8 @@ def test_check_all_values(config_file):
     ]
 
     expected_globus_parameters = [
-        ("client_id", "ZZZZ"),
+        ("client_id", "AAAA"),
+        ("client_secret", "BBBB"),
     ]
 
     expected_site_lbnl_parameters = [
@@ -79,7 +80,7 @@ def test_config_overwrite_partial_values(partial_config):
     ]
 
     expected_globus_sections = [
-        ("client_id", "ZZZZ"),
+        ("client_id", "AAAA"),
     ]
 
     check_section("DB", expected_db_sections, cfg)

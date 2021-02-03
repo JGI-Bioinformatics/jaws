@@ -36,7 +36,8 @@ user = jaws_eagle
 password = succotash
 
 [GLOBUS]
-client_id = foghorn_leghorn
+client_id = AAAA
+client_secret = BBBB
 endpoint_id = rooster
 root_dir = cwd
 default_dir = /
@@ -62,7 +63,7 @@ downloads_subdirectory = downloads
     return cfg.as_posix()
 
 
-@pytest.fixture()
+@pytest.fixture
 def partial_config(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
     content = """[CENTRAL_RPC_SERVER]
@@ -79,7 +80,8 @@ password = xqweasdasa
 vhost = jaws_test
 
 [GLOBUS]
-client_id = foghorn_leghorn
+client_id = AAAA
+client_secret = BBBB
 endpoint_id = rooster
 root_dir = cwd
 default_dir = /
@@ -441,18 +443,6 @@ class MockRun:
         self.transfer_refresh_token = "EXAMPLE_GLOBUS_TRANSFER_TOKEN"
         self.email = "jaws@vog.gov"
         self.cromwell_workflow_dir = "/global/scratch/jaws/dev/cromwell-executions/test_wdl/myid"
-
-
-class MockTransferClient:
-    def __init__(self, status, transfer_result={"task_id": "325"}):
-        self.status = status
-        self.transfer_result = transfer_result
-
-    def get_task(self, task_id):
-        return self.status
-
-    def submit_transfer(self, transfer_dat):
-        return self.transfer_result
 
 
 class MockTransferClientWithCopy:

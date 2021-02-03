@@ -188,6 +188,7 @@ num_threads = 5
 max_retries = 3
 [GLOBUS]
 client_id = $JAWS_GLOBUS_CLIENT_ID
+client_secret = $JAWS_GLOBUS_CLIENT_SECRET
 [HTTP]
 auth_port = $JAWS_AUTH_PORT
 rest_port = $JAWS_REST_PORT

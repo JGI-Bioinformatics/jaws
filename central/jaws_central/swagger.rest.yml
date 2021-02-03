@@ -175,10 +175,9 @@ paths:
           description: OK
           schema:
             type: file
-        401:
-          description: Authorization information is missing or invalid.
         404:
           description: The specified record does not exist
+      security: []
 
     post:
       operationId: jaws_central.catalog_rest.add_wdl
@@ -295,10 +294,9 @@ paths:
           description: OK
           schema:
             type: file
-        401:
-          description: Authorization information is missing or invalid.
         404:
           description: The specified record does not exist
+      security: []
 
     put:
       operationId: jaws_central.catalog_rest.update_doc
