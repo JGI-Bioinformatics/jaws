@@ -4,8 +4,8 @@ import smtplib
 import time
 from subprocess import Popen, PIPE
 
-wdl="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count.wdl"
-inputs="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count.json"
+wdl="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/test-inputs/fq_count.wdl"
+inputs="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/test-inputs/fq_count.json"
 env="prod"
 
 def run(cmd):
