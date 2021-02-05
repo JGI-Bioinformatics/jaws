@@ -4,8 +4,8 @@ import smtplib
 import time
 from subprocess import Popen, PIPE
 
-wdl="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/test-inputs/fq_count.wdl"
-inputs="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/test-inputs/fq_count.json"
+wdl="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count.wdl"
+inputs="/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count.json"
 env="prod"
 
 def run(cmd):
@@ -46,7 +46,7 @@ def submit_wdl_and_wait():
 
     # Wait for all the runs in run_ids list to finish.
     check_tries=100
-    check_sleep=1 # 30
+    check_sleep=30
     tries = 1
     while tries <= check_tries:
         # check whether the run has finished every 60 seconds
@@ -64,7 +64,8 @@ def submit_wdl_and_wait():
 
         tries += 1
 
-    return data
+    # if we got here the number of tries was exceeded, the run has not completed
+    pytest.exit("tries exceeded")
 
 @pytest.fixture(scope="module")
 def submit_wdl():
