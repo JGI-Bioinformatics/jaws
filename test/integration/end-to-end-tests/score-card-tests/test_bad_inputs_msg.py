@@ -21,7 +21,8 @@ def test_json_file_does_not_exist(env):
     # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
     json = "./FileDoesNotExist.json"
 
-    submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, args.site)
+    # TODO pass site info in through command line also
+    submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, "cori")
     cmd = source_cmd + submit_cmd
     (o, e, r) = pf.submit_cmd(cmd)
     # print("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
@@ -38,7 +39,7 @@ def test_json_bad_path_to_input_file_msg(env):
     # Submit job with json contains path to a non-existent input file
     # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
     json = "../test-inputs/bad_path_inputs.json"
-    submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, args.site)
+    submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, "cori")
     cmd = source_cmd + submit_cmd
     (o, e, r) = pf.submit_cmd(cmd)
     # print("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
