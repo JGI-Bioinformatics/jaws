@@ -25,8 +25,14 @@ This is how I created the requirements file
 `pip freeze > requirements.txt`
 
 ## Run a test
-`pytest [--capture=no] --verbose --env prod test_jaws_cmds.py`
+```
+#To pass in the env argument to module-functions
+pytest [--capture=no] --verbose --env prod test_jaws_cmds.py
 
+# To pass in an argument to the fixture-functions, use an ENV var
+# This is how the conftest.py is set up now.
+MYINI_FILE=fq_count.ini pytest --capture=no --verbose subworkflow_behavior.py
+```
 Note: the --capture=no statement will allow you to see the print statements from within your tests
 
 
