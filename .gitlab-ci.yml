@@ -95,7 +95,7 @@ variables:
 
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
   JGI_GLOBUS_EP: "e8b18c38-36cd-11eb-b54c-02d9497ca481"
-  JGI_GLOBUS_ROOT_DIR: "/"
+  JGI_GLOBUS_ROOT_DIR: "/global/scratch/jaws"
   JGI_GLOBUS_DEFAULT_DIR: "~"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
