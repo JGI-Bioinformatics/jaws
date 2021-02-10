@@ -75,7 +75,8 @@ def submit_wdl_and_wait():
 
         tries += 1
 
-    os.exit("We have exeeded the wait time for the job to complete. You can increase the number of tries or sleep time.")
+    # if we got here the number of tries was exceeded, the run has not completed
+    pytest.exit("We have exeeded the wait time for the job to complete. You can increase the number of tries or sleep time.")
 
 @pytest.fixture(scope="module")
 def submit_wdl():
