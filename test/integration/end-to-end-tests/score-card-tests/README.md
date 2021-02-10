@@ -17,7 +17,7 @@ python --version
 
 # create a venv
 python -m venv pytest_venv
-source pytest_venvbin/activate
+source pytest_venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -31,9 +31,12 @@ pytest [--capture=no] --verbose --env prod test_jaws_cmds.py
 
 # To pass in an argument to the fixture-functions, use an ENV var
 # This is how the conftest.py is set up now.
-MYINI_FILE=fq_count.ini pytest --capture=no --verbose subworkflow_behavior.py
+MYINI_FILE=subwdl.ini pytest --capture=no --verbose subworkflow_behavior.py
 ```
 Note: the --capture=no statement will allow you to see the print statements from within your tests
 
+## Tutorial Data 
+Data used for tests should be put here:
+`/global/cfs/projectdirs/jaws/test/tutorial_test_data/`
 
 

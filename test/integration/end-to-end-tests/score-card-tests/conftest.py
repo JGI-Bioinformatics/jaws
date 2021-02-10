@@ -13,6 +13,9 @@ config.read(os.environ.get('MYINI_FILE'))
 WDL        = config['wdl']['wdl']
 INPUT_JSON = config['wdl']['input_json']
 ENV        = config['wdl']['env']
+OUTDIR     = config['wdl']['outdir']
+SITE       = config['wdl']['site']
+
 
 def run(cmd):
     output = Popen(cmd, stdout=PIPE,
@@ -39,15 +42,17 @@ def submit_wdl_and_wait():
     data = json.loads(stdout)
 
     # uncomment for testing
-#    data={
-#        "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count_out",
-#        "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
-#        "run_id": 16421,
-#        "site_id": "CORI",
-#        "status": "uploading",
-#        "submission_id": "47a555c7-07a6-442c-a2f1-d0319f2e3008",
-#        "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
-#    }
+    """
+    data={
+        "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/out",
+        "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+        "run_id": 16648,
+        "site_id": "CORI",
+        "status": "uploading",
+        "submission_id": "54f664e6-4603-48c8-88cb-98c7ce016799",
+        "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
+    }
+    """
     run_id = str(data['run_id'])
 
     # Wait for all the runs in run_ids list to finish.
@@ -64,8 +69,9 @@ def submit_wdl_and_wait():
 
         status_output = json.loads(stdout)
         run_status = status_output["status"]
+        result = status_output["result"]
 
-        if run_status == "download complete":
+        if run_status == "download complete" and result == "succeeded":
             return data
 
         tries += 1
