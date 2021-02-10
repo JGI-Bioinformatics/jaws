@@ -1,7 +1,8 @@
 ## CHANGELOG
 
-### Feb 2, 2021
+### Feb 9, 2021
 * I added subworkflow_behavior.py that checks JAWS handles subworkflows correctly.
+* The conftest.py file now requires a ini file (i.e. fq_count.ini) to pass variables (ENV,WDL,INPUT_JSON,OUTDIR,SITE).  These variables are used in the submission of JAWS runs. The ini file is itself an environmental variable so when running pytest, you need to make sure MYINI_FILE is set.For example:  MYINI_FILE=subwdl.ini pytest --capture=no --verbose subworkflow_behavior.py
 
 ### Feb 2, 2021
 * I added a wait_for_wdl function to the test functions in test_jaws_cmds.py. Now each function is reponsible for waiting for the WDL run to finish. This means I can use just the one fixture "submit_wdl" for both cases, for testing while a run is running, and tests for when the run is complete.
