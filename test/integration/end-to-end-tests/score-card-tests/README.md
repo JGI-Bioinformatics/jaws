@@ -30,7 +30,10 @@ This is how I created the requirements file
 pytest [--capture=no] --verbose --env prod test_jaws_cmds.py
 
 # To pass in an argument to the fixture-functions, use an ENV var
-# This is how the conftest.py is set up now.
+# For example, the conftest.py file now requires a ini file (i.e. fq_count.ini) to pass 
+# variables (ENV,WDL,INPUT_JSON,OUTDIR,SITE).  These variables are used in the submission 
+# of JAWS runs. The ini file is itself an environmental variable so when running pytest, 
+# you need to make sure MYINI_FILE is set.
 MYINI_FILE=subwdl.ini pytest --capture=no --verbose subworkflow_behavior.py
 ```
 Note: the --capture=no statement will allow you to see the print statements from within your tests
@@ -38,5 +41,4 @@ Note: the --capture=no statement will allow you to see the print statements from
 ## Tutorial Data 
 Data used for tests should be put here:
 `/global/cfs/projectdirs/jaws/test/tutorial_test_data/`
-
 
