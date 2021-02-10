@@ -46,10 +46,10 @@ def submit_wdl_and_wait():
     data={
         "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/out",
         "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
-        "run_id": 16648,
+        "run_id": 16679,
         "site_id": "CORI",
         "status": "uploading",
-        "submission_id": "54f664e6-4603-48c8-88cb-98c7ce016799",
+        "submission_id": "6a16e3a3-a975-4924-b0e8-713215b8b771",
         "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
     }
     """
@@ -85,6 +85,12 @@ def submit_wdl():
     This is a fixture that will submit a wdl for all functions to use.  
     This function returns the output of a wdl submission. 
     """
+    if os.path.exists(OUTDIR):
+        cmd = "rm -rf %s" % OUTDIR
+        (rc,stdout,stderr) = run(cmd)
+        if rc > 0:
+            os.exit("Failed to remove old output directory %s" % OUTDIR)
+
     cmd = ". ~jfroula/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s fq_count_out cori" % (ENV,WDL,INPUT_JSON)
     (rc,stdout,stderr) = run(cmd)
     if rc > 0:
