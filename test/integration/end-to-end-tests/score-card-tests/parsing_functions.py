@@ -116,6 +116,7 @@ def submit_cmd(cmd):
     output = process.stdout
     stderror = process.stderr
     thereturncode = process.returncode
+    #print(cmd)
 
     return (output,stderror,thereturncode)
 
