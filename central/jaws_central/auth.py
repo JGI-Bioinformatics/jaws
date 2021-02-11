@@ -127,3 +127,14 @@ def get_user_token(user, globus_user_id):
     """
     query_user = _get_user_by_globus_id(globus_user_id)
     return {"jaws_token": query_user.jaws_token}
+
+def get_user_id(user):
+    """
+    Return the user's id.
+
+    :param user: user ID
+    :type user: str
+    :return: user ID
+    :rtype: str
+    """
+    return {"user_id": user}
