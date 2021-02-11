@@ -39,7 +39,7 @@ def submit_wdl_and_wait():
         if rc > 0:
             os.exit("Failed to remove old output directory %s" % OUTDIR)
 
-    cmd = ". ~jfroula/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s %s %s" % (ENV,WDL,INPUT_JSON,OUTDIR,SITE)
+    cmd = ". ~/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s %s %s" % (ENV,WDL,INPUT_JSON,OUTDIR,SITE)
     (rc,stdout,stderr) = run(cmd)
     if rc > 0:
         pytest.exit("stderr: %s" % stderr)
@@ -48,17 +48,17 @@ def submit_wdl_and_wait():
     data = json.loads(stdout)
 
     # uncomment for testing
-    """
-    data={
-        "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/out",
-        "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
-        "run_id": 16679,
-        "site_id": "CORI",
-        "status": "uploading",
-        "submission_id": "6a16e3a3-a975-4924-b0e8-713215b8b771",
-        "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
-    }
-    """
+    # """
+    # data={
+    #     "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/out",
+    #     "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+    #     "run_id": 16679,
+    #     "site_id": "CORI",
+    #     "status": "uploading",
+    #     "submission_id": "6a16e3a3-a975-4924-b0e8-713215b8b771",
+    #     "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
+    # }
+    # """
     run_id = str(data['run_id'])
 
     # Wait for all the runs in run_ids list to finish.
@@ -97,7 +97,7 @@ def submit_wdl():
         if rc > 0:
             os.exit("Failed to remove old output directory %s" % OUTDIR)
 
-    cmd = ". ~jfroula/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s fq_count_out cori" % (ENV,WDL,INPUT_JSON)
+    cmd = ". ~/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s fq_count_out cori" % (ENV,WDL,INPUT_JSON)
     (rc,stdout,stderr) = run(cmd)
     if rc > 0:
         pytest.exit("stderr: %s" % stderr)
