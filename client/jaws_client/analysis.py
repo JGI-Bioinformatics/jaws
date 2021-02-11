@@ -328,7 +328,7 @@ def submit(wdl_file, infile, site, out_endpoint):
         result = r.json()
         raise SystemExit(result["detail"])
     result = r.json()
-    compute_basedir = result["globus_basepath"]
+    compute_basedir = result["globus_host_path"]
     compute_uploads_subdir = result["uploads_subdir"]
     compute_max_ram_gb = int(result["max_ram_gb"])
 

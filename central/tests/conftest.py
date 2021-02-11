@@ -38,7 +38,7 @@ vhost = jaws
 queue = lbnl_rpc
 port = 5672
 globus_endpoint = XXXX
-globus_basepath = "/global/scratch/jaws"
+globus_host_path = "/global/scratch/jaws"
 uploads_subdir = "uploads"
 max_ram_gb = 1024
 
@@ -50,7 +50,7 @@ vhost = jaws
 queue = nersc_rpc
 port = 5672
 globus_endpoint = YYYY
-globus_basepath = "/"
+globus_host_path = "/"
 uploads_subdir = "/global/scratch/jaws/uploads"
 max_ram_gb = 2048
 """
@@ -89,7 +89,7 @@ rpc_client_dict = {
     "vhost": "jaws",
     "queue": "lbnl_rpc",
     "globus_endpoint": "XXXX",
-    "globus_basepath": '"/global/scratch/jaws"',
+    "globus_host_path": '"/global/scratch/jaws"',
     "uploads_subdir": "uploads",
     "max_ram_gb": 1024,
 }

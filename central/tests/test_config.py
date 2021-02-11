@@ -43,7 +43,7 @@ def test_check_all_values(config_file):
         ("password", "passw0rd2"),
         ("vhost", "jaws"),
         ("globus_endpoint", "XXXX"),
-        ("globus_basepath", '"/global/scratch/jaws"'),
+        ("globus_host_path", '"/global/scratch/jaws"'),
         ("uploads_subdir", '"uploads"'),
         ("max_ram_gb", "1024"),
     ]
@@ -51,7 +51,7 @@ def test_check_all_values(config_file):
     expected_site_nersc_parameters = [
         ("site_id", "NERSC"),
         ("globus_endpoint", "YYYY"),
-        ("globus_basepath", '"/"'),
+        ("globus_host_path", '"/"'),
         ("uploads_subdir", '"/global/scratch/jaws/uploads"'),
         ("max_ram_gb", "2048"),
     ]
