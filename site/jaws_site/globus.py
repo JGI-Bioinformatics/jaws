@@ -17,7 +17,7 @@ class GlobusService:
     def __init__(self):
         self.globus_config = jaws_site.config.Configuration()
         self.endpoint_id = self.globus_config.get("GLOBUS", "endpoint_id")
-        self.root_dir = self.globus_config.get("GLOBUS", "root_dir")
+        self.host_path = self.globus_config.get("GLOBUS", "host_path")
         self.default_dir = self.globus_config.get("GLOBUS", "default_dir")
 
     def _authorize_transfer_client(self):
@@ -67,7 +67,7 @@ class GlobusService:
         """
         logger.debug(f"Globus xfer {label}")
 
-        if not src_dir.startswith(self.root_dir):
+        if not src_dir.startswith(self.host_path):
             logger.error(f"Dir is not accessible via Globus: {src_dir}")
 
         transfer_client = self._create_transfer_client()
@@ -87,7 +87,7 @@ class GlobusService:
             skip_activation_check=True,
         )
 
-        if self.root_dir == "/":
+        if self.host_path == "/":
             tdata.add_item(src_dir, dest_dir, recursive=True)
         else:
             tdata.add_item(rel_src_dir, dest_dir, recursive=True)

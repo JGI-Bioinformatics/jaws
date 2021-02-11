@@ -44,7 +44,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "client_id",
             "client_secret",
             "endpoint_id",
-            "root_dir",
+            "host_path",
             "default_dir",
         ],
         "DB": ["user", "password", "db"],

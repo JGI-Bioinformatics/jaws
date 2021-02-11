@@ -46,7 +46,7 @@ def test_overwrite_all_default_values(config_file):
         ("client_id", "AAAA"),
         ("client_secret", "BBBB"),
         ("endpoint_id", "rooster"),
-        ("root_dir", "cwd"),
+        ("host_path", "cwd"),
         ("default_dir", "/")
     ]
 

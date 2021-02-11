@@ -39,7 +39,7 @@ password = succotash
 client_id = AAAA
 client_secret = BBBB
 endpoint_id = rooster
-root_dir = cwd
+host_path = cwd
 default_dir = /
 
 [DB]
@@ -83,7 +83,7 @@ vhost = jaws_test
 client_id = AAAA
 client_secret = BBBB
 endpoint_id = rooster
-root_dir = cwd
+host_path = cwd
 default_dir = /
 
 [DB]
@@ -377,18 +377,18 @@ def cromwell_run_dir(tmp_path):
 @pytest.fixture()
 def uploads_files():
     home_dir = os.path.expanduser("~")
-    root_dir = os.path.join(home_dir, "1")
-    if not os.path.exists(root_dir):
-        os.mkdir(root_dir)
+    host_path = os.path.join(home_dir, "1")
+    if not os.path.exists(host_path):
+        os.mkdir(host_path)
 
     for f in ["2.wdl", "2.json", "2.zip"]:
-        file_path = os.path.join(root_dir, f)
+        file_path = os.path.join(host_path, f)
         with open(file_path, "w") as outfile:
             outfile.write(f"output for {f}")
 
     yield
 
-    shutil.rmtree(root_dir)
+    shutil.rmtree(host_path)
 
 
 @pytest.fixture()

@@ -134,7 +134,7 @@ class Daemon:
 
     def get_uploads_file_path(self, run):
         uploads_dir = os.path.join(
-            config.conf.get("GLOBUS", "root_dir"),
+            config.conf.get("GLOBUS", "host_path"),
             config.conf.get("SITE", "uploads_subdirectory"),
         )
         return os.path.join(uploads_dir, run.user_id, run.submission_id)
