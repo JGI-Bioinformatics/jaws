@@ -43,12 +43,12 @@ class Configuration(metaclass=Singleton):
             "data_repo_basedir": "",
             "shared_endpoint_group": ""
         },
-        "GLOBUS": {"client_id": "", "endpoint_id": "", "basedir": "/"},
+        "GLOBUS": {"client_id": "", "endpoint_id": "", "host_path": "/"},
     }
 
     required_jaws_params = {
         "JAWS": ["name", "site_id", "url", "womtool_jar", "staging_dir", "data_repo_basedir", "shared_endpoint_group"],
-        "GLOBUS": ["client_id", "endpoint_id", "basedir"],
+        "GLOBUS": ["client_id", "endpoint_id", "host_path"],
     }
     required_user_params = {"USER": ["token", "staging_dir"]}
 

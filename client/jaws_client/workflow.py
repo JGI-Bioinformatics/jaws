@@ -269,7 +269,7 @@ class WdlFile:
         """
         Filters the output of WOMTool inputs -l so that it can parse through and grab the paths to the sub-workflows.
 
-        It will collect the sub-workflows to a set of WdlFiles. The parent globus_basedir, staging_dir and path
+        It will collect the sub-workflows to a set of WdlFiles. The parent globus_host_path, staging_dir and path
         to the ZIP file are passed down to the sub workflows.
 
         :param output: stdout from WOMTool validation
@@ -412,7 +412,7 @@ def move_input_files(workflow_inputs, destination):
     :return: list of the moved_files
     """
     moved_files = []
-    globus_basedir = config.Configuration().get("GLOBUS", "basedir")
+    globus_host_path = config.Configuration().get("GLOBUS", "base_path")
 
     for original_path in workflow_inputs.src_file_inputs:
         staged_path = pathlib.Path(f"{destination}{original_path}")
@@ -424,7 +424,7 @@ def move_input_files(workflow_inputs, destination):
             dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
 
         # globus paths are accessible via symlink
-        if original_path.startswith(globus_basedir):
+        if original_path.startswith(globus_host_path):
             if not os.path.exists(staged_path):
                 os.symlink(original_path, staged_path.as_posix())
         else:

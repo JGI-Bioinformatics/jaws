@@ -292,10 +292,10 @@ def submit(wdl_file, infile, site, out_endpoint):
     # STAGING DIR
     staging_subdir = config.Configuration().get("JAWS", "staging_dir")
     staging_user_subdir = os.path.join(staging_subdir, getpass.getuser())
-    globus_basedir = config.Configuration().get("GLOBUS", "basedir")
-    if not staging_subdir.startswith(globus_basedir):
+    globus_host_path = config.Configuration().get("GLOBUS", "host_path")
+    if not staging_subdir.startswith(globus_host_path):
         raise SystemExit(
-            f"Configuration error: Staging dir must be under endpoint's basedir: {globus_basedir}"
+            f"Configuration error: Staging dir must be under endpoint's host path: {globus_host_path}"
         )
 
     # GLOBUS
@@ -305,8 +305,8 @@ def submit(wdl_file, infile, site, out_endpoint):
 
     # OUTDIR
     outdir = config.conf.get("JAWS", "data_repo_basedir")
-    if out_endpoint == local_endpoint_id and not outdir.startswith(globus_basedir):
-        raise SystemExit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
+    if out_endpoint == local_endpoint_id and not outdir.startswith(globus_host_path):
+        raise SystemExit(f"Outdir must be under endpoint's host path: {globus_host_path}")
     if not os.path.isdir(outdir):
         try:
             os.makedirs(outdir)
@@ -328,7 +328,7 @@ def submit(wdl_file, infile, site, out_endpoint):
         result = r.json()
         raise SystemExit(result["detail"])
     result = r.json()
-    compute_basedir = result["globus_host_path"]
+    compute_host_path = result["globus_host_path"]
     compute_uploads_subdir = result["uploads_subdir"]
     compute_max_ram_gb = int(result["max_ram_gb"])
 
@@ -345,8 +345,8 @@ def submit(wdl_file, infile, site, out_endpoint):
     except Exception as error:
         raise SystemExit(f"Your file, {infile}, is not a valid JSON file: {error}")
 
-    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
-    local_staging_endpoint = workflow.join_path(globus_basedir, staging_user_subdir)
+    jaws_site_staging_dir = workflow.join_path(compute_host_path, compute_uploads_subdir)
+    local_staging_endpoint = workflow.join_path(globus_host_path, staging_user_subdir)
     manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
 
     wdl.validate()
