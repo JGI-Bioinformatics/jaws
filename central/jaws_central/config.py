@@ -57,7 +57,7 @@ class Configuration(metaclass=Singleton):
         "vhost",
         "globus_endpoint",
         "globus_host_path",
-        "uploads_subdir",
+        "uploads_dir",
         "max_ram_gb",
     ]
 
@@ -96,28 +96,23 @@ class Configuration(metaclass=Singleton):
                     raise ValueError(error_msg)
 
         # init Sites
-        self.sites = {}
+        self.sites = []
         for section in self.config.sections():
             if section.startswith("SITE:"):
+                # extract site id
                 site_id = section[len("SITE:"):].upper()
                 if len(site_id) > MAX_SITE_ID_LEN:
                     raise ConfigurationError(
                         f"Invalid Site ID: {site_id} (max. {MAX_SITE_ID_LEN} char.)"
                     )
+                # save site id
+                self.sites.append(site_id)
                 # validate
                 for key in self.required_site_params:
                     if key not in self.config[section]:
                         error_msg = f"Config file, {config_file}, missing required parameter, {section}/{key}"
                         logger.error(error_msg)
                         raise ValueError(error_msg)
-                # copy
-                self.sites[site_id] = {}
-                for key in self.config[section]:
-                    self.sites[site_id][key] = self.config[section][key]
-                self.sites[site_id]["uploads_dir"] = os.path.join(
-                    self.sites[site_id]["globus_host_path"],
-                    self.sites[site_id]["uploads_subdir"],
-                )
 
         # save singleton
         global conf
@@ -139,7 +134,10 @@ class Configuration(metaclass=Singleton):
         :rtype: str
         """
         site_id = site_id.upper()
-        return self.sites[site_id].get(key)
+        if site_id not in self.sites:
+            return None
+        section = f"SITE:{site_id}"
+        return self.get(section, key)
 
     def get_site_info(self, site_id: str) -> Dict[str, str]:
         """Returns public info about requested Site.
@@ -153,12 +151,13 @@ class Configuration(metaclass=Singleton):
         if site_id not in self.sites:
             return None
         section = f"SITE:{site_id}"
+        # COPY ONLY SPECIFIC FIELDS
         s = self.config[section]
         result = {
             "site_id": site_id,
             "globus_endpoint": s["globus_endpoint"],
             "globus_host_path": s["globus_host_path"],
-            "uploads_subdir": s["uploads_subdir"],
+            "uploads_dir": s["uploads_dir"],
             "max_ram_gb": s["max_ram_gb"],
         }
         return result

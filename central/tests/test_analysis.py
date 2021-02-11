@@ -39,8 +39,8 @@ password = passw0rd2
 vhost = jaws
 queue = lbnl_rpc
 globus_endpoint = XXXX
-globus_host_path = "/global/scratch/jaws"
-uploads_subdir = "uploads"
+globus_host_path = /global/scratch/jaws
+uploads_dir = /global/scratch/jaws/uploads
 max_ram_gb = 1024
 
 [SITE:NERSC]
@@ -50,8 +50,8 @@ password = passw0rd2
 vhost = jaws
 queue = nersc_rpc
 globus_endpoint = YYYY
-globus_host_path = "/"
-uploads_subdir = "/global/scratch/jaws/uploads"
+globus_host_path = /
+uploads_dir = /global/scratch/jaws/uploads
 max_ram_gb = 2048
 """
     cfg.write_text(content)

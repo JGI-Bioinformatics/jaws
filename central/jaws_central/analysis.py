@@ -184,7 +184,7 @@ def list_sites(user):
     """
     logger.info(f"User {user}: List sites")
     result = []
-    for site_id in config.conf.sites.keys():
+    for site_id in config.conf.sites:
         max_ram_gb = config.conf.get_site(site_id, "max_ram_gb")
         record = {
             "site_id": site_id,
@@ -208,7 +208,7 @@ def get_site(user, site_id):
     result = config.conf.get_site_info(site_id)
     if result is None:
         abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
-    result["uploads_subdir"] = f'{result["uploads_subdir"]}/{user}'
+    result["uploads_dir"] = f'{result["uploads_dir"]}/{user}'
     return result, 200
 
 
