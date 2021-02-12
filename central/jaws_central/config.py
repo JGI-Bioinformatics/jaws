@@ -4,7 +4,7 @@ import configparser
 from typing import Dict
 
 
-MAX_SITE_ID_LEN = 8
+MAX_SITE_ID_LEN = 8  # this matches the db column's varchar()
 
 
 conf = None
