@@ -72,6 +72,7 @@ def submit_fq_count_wdl(request):
     outdir ="./fq_count_out"
     site = getattr(request.module, "site")
     util.submit_wdl(env, wdl, input_json, outdir, site)
+
 #
 # The next two functions allows us to use the --env to capture the environment [prod|staging|dev]. 
 # This environment is an argument that can be passed into the test functions
