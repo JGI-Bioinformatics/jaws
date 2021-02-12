@@ -45,7 +45,6 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "client_secret",
             "endpoint_id",
             "host_path",
-            "default_dir",
         ],
         "DB": ["user", "password", "db"],
         "CROMWELL": ["url"],

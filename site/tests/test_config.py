@@ -47,7 +47,6 @@ def test_overwrite_all_default_values(config_file):
         ("client_secret", "BBBB"),
         ("endpoint_id", "rooster"),
         ("host_path", "cwd"),
-        ("default_dir", "/")
     ]
 
     expected_db_sections = [

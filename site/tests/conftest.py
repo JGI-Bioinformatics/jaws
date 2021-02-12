@@ -40,7 +40,6 @@ client_id = AAAA
 client_secret = BBBB
 endpoint_id = rooster
 host_path = cwd
-default_dir = /
 
 [DB]
 dialect = mysql+mysqlconnector
@@ -84,7 +83,6 @@ client_id = AAAA
 client_secret = BBBB
 endpoint_id = rooster
 host_path = cwd
-default_dir = /
 
 [DB]
 dialect = mysql+mysqlconnector
