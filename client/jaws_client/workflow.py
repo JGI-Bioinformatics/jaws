@@ -400,7 +400,7 @@ class WdlFile:
         return repr(self.file_location)
 
 
-def copy_input_files(workflow_inputs, destination):
+def copy_input_files(workflow_inputs, globus_host_path, destination):
     """
     Moves the input files defined in a JSON file to a destination.
 
@@ -412,7 +412,6 @@ def copy_input_files(workflow_inputs, destination):
     :return: list of the moved_files
     """
     moved_files = []
-    globus_host_path = config.Configuration().get("GLOBUS", "base_path")
 
     for original_path in workflow_inputs.src_file_inputs:
         staged_path = pathlib.Path(f"{destination}{original_path}")

@@ -330,6 +330,7 @@ def submit(wdl_file, infile, compute_site_id, outep, outdir):
         raise SystemExit(result["detail"])
     result = r.json()
     input_globus_endpoint = result["globus_endpoint"]
+    input_globus_host_path = result["globus_host_path"]
     input_dir = result["input_dir"]
 
     # GET OUTPUT INFO (by default, also local)
@@ -388,7 +389,7 @@ def submit(wdl_file, infile, compute_site_id, outep, outdir):
 
     # copy input files to input dir, in subdirectory named after the input-Site
     input_files_dir = workflow.join_path(input_dir, input_site_id)
-    staged_files = workflow.copy_input_files(inputs_json, input_files_dir)
+    staged_files = workflow.copy_input_files(inputs_json, input_globus_host_path, input_files_dir)
 
     # write a new json file for the compute site; all the input file paths therein shall
     # match the locations of the destination files after having been transferred to
