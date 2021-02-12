@@ -42,8 +42,8 @@ class Configuration(metaclass=Singleton):
             "host": "localhost",
             "port": "5672",
             "queue": "central_rpc",
-            "max_threads": 2,
-            "max_retries": 3,
+            "max_threads": "2",
+            "max_retries": "3",
         },
         "HTTP": {"auth_url": "localhost", "auth_port": "3000", "rest_port": "5000"},
     }
@@ -62,7 +62,7 @@ class Configuration(metaclass=Singleton):
         "output_dir",
         "max_ram_gb",
     ]
-    default_site_params = {"globus_host_path": "/", "port": 5672, "message_ttl": 5}
+    default_site_params = {"globus_host_path": "/", "port": "5672", "message_ttl": "5"}
 
     config = None
 

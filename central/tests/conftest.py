@@ -51,9 +51,9 @@ vhost = jaws
 queue = nersc_rpc
 port = 5672
 globus_endpoint = YYYY
-globus_host_path = /
-input_dir = /global/scratch/jaws/input
-output_dir = /global/scratch/jaws/output
+globus_host_path = /global/cscratch1/sd/jaws
+input_dir = /global/cscratch1/sd/jaws/input
+output_dir = /global/cscratch1/sd/jaws/output
 max_ram_gb = 2048
 """
     cfg.write_text(content)
@@ -84,20 +84,18 @@ client_secret = BBBB
     return cfg.as_posix()
 
 
-rpc_client_dict = {
-    "host": "rmq.jaws.gov",
-    "user": "jaws",
-    "password": "passw0rd2",
-    "vhost": "jaws",
-    "queue": "lbnl_rpc",
-    "globus_endpoint": "XXXX",
-    "globus_host_path": "/global/scratch/jaws",
-    "input_dir": "/global/scratch/jaws/input",
-    "output_dir": "/global/scratch/jaws/output",
-    "max_ram_gb": 1024,
-}
-
-
 @pytest.fixture()
 def rpc_dict():
+    rpc_client_dict = {
+        "host": "rmq.jaws.gov",
+        "user": "jaws",
+        "password": "passw0rd2",
+        "vhost": "jaws",
+        "queue": "lbnl_rpc",
+        "globus_endpoint": "XXXX",
+        "globus_host_path": "/",
+        "input_dir": "/global/scratch/jaws/input",
+        "output_dir": "/global/scratch/jaws/output",
+        "max_ram_gb": 1024,
+    }
     return rpc_client_dict
