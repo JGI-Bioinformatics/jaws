@@ -271,9 +271,9 @@ def list_sites() -> None:
 @click.argument("wdl_file", nargs=1)
 @click.argument("infile", nargs=1)
 @click.argument("compute_site_id", nargs=1)
-@click.option("--outep", default=None, help="Globus endpoint to send output")
-@click.option("--outdir", default=None, help="Directory to send output")
-def submit(wdl_file, infile, compute_site_id, outep, outdir):
+@click.option("--out_endpoint", default=None, help="Globus endpoint to send output")
+@click.option("--out_dir", default=None, help="Directory to send output")
+def submit(wdl_file, infile, compute_site_id, out_endpoint, out_dir):
     """Submit a run for execution at a JAWS-Site.
 
     :param wdl_file: Path to workflow specification (WDL) file
@@ -288,8 +288,8 @@ def submit(wdl_file, infile, compute_site_id, outep, outdir):
     :type output_dir: str
     """
     # short variable names were used for user convenience
-    output_globus_endpoint = outep
-    output_dir = outdir
+    output_globus_endpoint = out_endpoint
+    output_dir = out_dir
 
     # The "output_dir" should be in the form expected by Globus.
     # Specifically, if the path starts with a '/' (looks like absolute path),
