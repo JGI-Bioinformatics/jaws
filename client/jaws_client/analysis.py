@@ -330,7 +330,6 @@ def submit(wdl_file, infile, compute_site_id, outep, outdir):
         raise SystemExit(result["detail"])
     result = r.json()
     input_globus_endpoint = result["globus_endpoint"]
-    #input_globus_host_path = result["globus_host_path"]
     input_dir = result["input_dir"]
 
     # GET OUTPUT INFO (by default, also local)
@@ -357,7 +356,6 @@ def submit(wdl_file, infile, compute_site_id, outep, outdir):
         result = r.json()
         raise SystemExit(result["detail"])
     result = r.json()
-    #compute_host_path = result["globus_host_path"]
     compute_input_dir = result["input_dir"]
     compute_max_ram_gb = int(result["max_ram_gb"])
 
