@@ -103,7 +103,7 @@ class Configuration(metaclass=Singleton):
         for section in self.config.sections():
             if section.startswith("SITE:"):
                 # extract site id
-                site_id = section[len("SITE:") :].upper()
+                site_id = section[len("SITE:"):].upper()
                 if len(site_id) > MAX_SITE_ID_LEN:
                     # This matches the varchar() column type in the db
                     raise ConfigurationError(
@@ -116,7 +116,7 @@ class Configuration(metaclass=Singleton):
                     if key not in self.config[section]:
                         error_msg = f"Config file, {config_file}, missing required parameter, {section}/{key}"
                         logger.error(error_msg)
-                        raise ContigItemNotFound(error_msg)
+                        raise ConfigItemNotFound(error_msg)
 
         # save singleton
         global conf
@@ -210,9 +210,8 @@ class Configuration(metaclass=Singleton):
             "queue",
             "message_ttyl",
         ]:
-            result[key] = get(
-                self.config[section], key, Configuration.default_site_params.get(key)
-            )
+            default = Configuration.default_site_params.get(key)
+            result[key] = self.config[section].get(key, default)
         return result
 
     def get_all_sites_rpc_params(self) -> Dict[str, Dict]:
