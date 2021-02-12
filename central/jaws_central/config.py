@@ -109,6 +109,7 @@ class Configuration(metaclass=Singleton):
                 # extract site id
                 site_id = section[len("SITE:") :].upper()
                 if len(site_id) > MAX_SITE_ID_LEN:
+                    # This matches the varchar() column type in the db
                     raise ConfigurationError(
                         f"Invalid Site ID: {site_id} (max. {MAX_SITE_ID_LEN} char.)"
                     )
