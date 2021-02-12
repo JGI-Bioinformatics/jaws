@@ -18,6 +18,7 @@ released_wdl_catalog_name="fq_count"
 check_tries=100
 check_sleep=30
 env = ""
+site = ""
 
 #########################
 ###     Functions     ###
@@ -294,7 +295,7 @@ def test_jaws_wdl_task_log(env, site, submit_fq_count_wdl):
     """
     env = env
     site = site
-    
+
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
