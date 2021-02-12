@@ -205,8 +205,10 @@ def get_site(user, site_id):
     :rtype: dict
     """
     logger.debug(f"User {user}: Get info for site {site_id}")
-    result = config.conf.get_site_info(site_id.upper())
-    if result is None:
+    try:
+        result = config.conf.get_site_info(site_id.upper())
+    except Exception as error:
+        logger.error(f"Failed to get_site: {error}")
         abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
     result["input_dir"] = f'{result["input_dir"]}/{user}'
     result["output_dir"] = f'{result["output_dir"]}/{user}'
