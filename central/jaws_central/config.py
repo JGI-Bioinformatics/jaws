@@ -157,7 +157,7 @@ class Configuration(metaclass=Singleton):
             raise ConfigItemNotFound
         section = f"SITE:{site_id}"
         # return only specific fields
-        result = {}
+        result = { "site_id": site_id }
         for key in [
             "globus_endpoint",
             "globus_host_path",
@@ -165,7 +165,7 @@ class Configuration(metaclass=Singleton):
             "output_dir",
             "max_ram_gb",
         ]:
-            value = self.config[section].get(
+            result[key] = self.config[section].get(
                 key, Configuration.default_site_params.get(key)
             )
         return result
