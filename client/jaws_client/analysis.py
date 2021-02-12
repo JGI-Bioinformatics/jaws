@@ -282,10 +282,10 @@ def submit(wdl_file, infile, compute_site_id, out_endpoint, out_dir):
     :type infile: str
     :param compute_site_id: JAWS Site ID at which to run
     :type compute_site_id: str
-    :param output_endpoint: Globus endpoint id
-    :type output_endpoint: str
-    :param output_dir: Output dir, as expected by Globus
-    :type output_dir: str
+    :param out_endpoint: Globus endpoint id
+    :type out_endpoint: str
+    :param out_dir: Output dir, as expected by Globus
+    :type out_dir: str
     """
     # short variable names were used for user convenience
     output_globus_endpoint = out_endpoint
