@@ -64,7 +64,11 @@ class Configuration(metaclass=Singleton):
         "output_dir",
         "max_ram_gb",
     ]
-    default_site_params = {"globus_host_path": "/"}
+    default_site_params = {
+        "globus_host_path": "/",
+        "port": DEFAULT_AMQP_PORT,
+        "message_ttl": DEFAULT_RPC_MESSAGE_TTL
+    }
 
     config = None
 
@@ -126,7 +130,10 @@ class Configuration(metaclass=Singleton):
     def get(self, section: str, key: str) -> str:
         if section not in self.config:
             raise ConfigurationError(f"Section {section} not defined in config obj")
-        return self.config[section].get(key)
+        if section in Configuration.defaults:
+            return self.config[section].get(key, Configuration.defaults[section].get(key))
+        else:
+            return self.config[section].get(key)
 
     def get_site(self, site_id: str, key: str) -> str:
         """Retrieve Site config parameter; syntactic sugar.
@@ -165,9 +172,8 @@ class Configuration(metaclass=Singleton):
             "output_dir",
             "max_ram_gb",
         ]:
-            result[key] = self.config[section].get(
-                key, Configuration.default_site_params.get(key)
-            )
+            default = Configuration.default_site_params.get(key, None)
+            result[key] = self.config[section].get(key, default)
         return result
 
     def get_section(self, section: str) -> dict:
@@ -195,17 +201,22 @@ class Configuration(metaclass=Singleton):
         if site_id not in self.sites:
             raise ConfigItemNotFound
         section = f"SITE:{site_id}"
-        s = self.config[section]
-        params = {
-            "host": s["host"],
-            "port": int(s.get("port", DEFAULT_AMQP_PORT)),
-            "user": s["user"],
-            "password": s["password"],
-            "vhost": s["vhost"],
-            "queue": s["queue"],
-            "message_ttl": int(s.get("message_ttl", DEFAULT_RPC_MESSAGE_TTL)),
-        }
-        return params
+
+        # return only specific fields
+        result = { "site_id": site_id }
+        for key in [
+            "host",
+            "port",
+            "user",
+            "password",
+            "vhost",
+            "queue",
+            "message_ttyl"
+        ]:
+            result[key] = get(self.config[section],
+                key, Configuration.default_site_params.get(key)
+            )
+        return result
 
     def get_all_sites_rpc_params(self) -> Dict[str, Dict]:
         """Returns public info about requested Site.
