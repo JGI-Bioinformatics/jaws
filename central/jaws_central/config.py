@@ -62,11 +62,7 @@ class Configuration(metaclass=Singleton):
         "output_dir",
         "max_ram_gb",
     ]
-    default_site_params = {
-        "globus_host_path": "/",
-        "port": 5672,
-        "message_ttl": 5
-    }
+    default_site_params = {"globus_host_path": "/", "port": 5672, "message_ttl": 5}
 
     config = None
 
@@ -130,7 +126,9 @@ class Configuration(metaclass=Singleton):
         if section not in self.config:
             raise ConfigurationError(f"Section {section} not defined in config obj")
         if section in Configuration.defaults:
-            return self.config[section].get(key, Configuration.defaults[section].get(key))
+            return self.config[section].get(
+                key, Configuration.defaults[section].get(key)
+            )
         else:
             return self.config[section].get(key)
 
@@ -163,7 +161,7 @@ class Configuration(metaclass=Singleton):
             raise ConfigItemNotFound
         section = f"SITE:{site_id}"
         # return only specific fields
-        result = { "site_id": site_id }
+        result = {"site_id": site_id}
         for key in [
             "globus_endpoint",
             "globus_host_path",
@@ -202,7 +200,7 @@ class Configuration(metaclass=Singleton):
         section = f"SITE:{site_id}"
 
         # return only specific fields
-        result = { "site_id": site_id }
+        result = {"site_id": site_id}
         for key in [
             "host",
             "port",
@@ -210,10 +208,10 @@ class Configuration(metaclass=Singleton):
             "password",
             "vhost",
             "queue",
-            "message_ttyl"
+            "message_ttyl",
         ]:
-            result[key] = get(self.config[section],
-                key, Configuration.default_site_params.get(key)
+            result[key] = get(
+                self.config[section], key, Configuration.default_site_params.get(key)
             )
         return result
 
