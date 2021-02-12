@@ -36,7 +36,6 @@ user = jaws
 password = passw0rd2
 vhost = jaws
 queue = lbnl_rpc
-port = 5672
 globus_endpoint = XXXX
 globus_host_path = /global/scratch/jaws
 input_dir = /global/scratch/jaws/input
@@ -88,6 +87,7 @@ client_secret = BBBB
 def rpc_dict():
     rpc_client_dict = {
         "host": "rmq.jaws.gov",
+        "port": "5672",
         "user": "jaws",
         "password": "passw0rd2",
         "vhost": "jaws",

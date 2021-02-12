@@ -18,6 +18,13 @@ def check_site_info(site_to_test, expected_entries, actual_config):
         assert site_params[key] == expected
 
 
+def check_site_rpc_params(site_to_test, expected_entries, actual_config):
+    site_params = actual_config.get_site_rpc_params(site_to_test)
+    for key, expected in expected_entries:
+        assert key in site_params
+        assert site_params[key] == expected
+
+
 def test_check_all_values(config_file):
 
     config_path = config_file
@@ -56,10 +63,21 @@ def test_check_all_values(config_file):
         ("max_ram_gb", "2048"),
     ]
 
+    expected_site_lbnl_rpc_parameters = [
+        ("host", "rmq.jaws.gov"),
+        ("port", "5672"),
+        ("user", "jaws"),
+        ("password", "passw0rd2"),
+        ("vhost", "jaws"),
+        ("queue", "lbnl_rpc"),
+        ("message_ttl", "5"),
+    ]
+
     check_section("DB", expected_db_parameters, cfg)
     check_section("GLOBUS", expected_globus_parameters, cfg)
     check_site("LBNL", expected_site_lbnl_parameters, cfg)
     check_site_info("NERSC", expected_site_nersc_parameters, cfg)
+    check_site_rpc_params("LBNL", expected_site_lbnl_rpc_parameters, cfg)
 
 
 def test_config_overwrite_partial_values(partial_config):

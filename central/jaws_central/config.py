@@ -208,7 +208,7 @@ class Configuration(metaclass=Singleton):
             "password",
             "vhost",
             "queue",
-            "message_ttyl",
+            "message_ttl",
         ]:
             default = Configuration.default_site_params.get(key)
             result[key] = self.config[section].get(key, default)
