@@ -86,8 +86,8 @@ variables:
   CORI_CLUSTER_CONSTRAINT: "haswell"
   CORI_MAX_RAM_GB: 2048
   CORI_LOAD_JAVA: ""
-  CORI_INPUT_DIR: "/global/cscratch1/sd/jaws-input"
-  CORI_OUTPUT_DIR: "/global/cfs/projectdirs/jaws-output"
+  CORI_INPUT_DIR: "/global/cscratch1/sd/jaws/jaws-input"
+  CORI_OUTPUT_DIR: "/global/cfs/projectdirs/jaws/jaws-output"
 
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
   JGI_GLOBUS_EP: "e8b18c38-36cd-11eb-b54c-02d9497ca481"
