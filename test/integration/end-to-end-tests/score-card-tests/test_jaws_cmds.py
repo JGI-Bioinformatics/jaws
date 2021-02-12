@@ -17,6 +17,7 @@ wdl_catalog_name="tmp_wdl_catalog_name"
 released_wdl_catalog_name="fq_count"
 check_tries=100
 check_sleep=30
+env = ""
 
 #########################
 ###     Functions     ###
@@ -87,6 +88,7 @@ def test_jaws_status(env):
 
 def test_jaws_run_queue(env,submit_fq_count_wdl):
     """ tests that the jaws run queue command has the run id in the stdout."""
+    env = env
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
     (o,e,r) = pf.submit_cmd(cmd)
@@ -98,6 +100,7 @@ def test_jaws_run_queue(env,submit_fq_count_wdl):
 
 def test_jaws_run_history(env,submit_fq_count_wdl):
     """ tests that the jaws run history command has the run id in the stdout."""
+    env = env
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
@@ -237,6 +240,7 @@ def test_jaws_wdl_metadata(env,submit_fq_count_wdl):
 
 def test_jaws_wdl_errors(env,submit_fq_count_wdl):
     """Check that a jaws run metadata returns workflowRoot has a value"""
+    env = env
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
@@ -251,6 +255,7 @@ def test_jaws_wdl_task_status(env,submit_fq_count_wdl):
     """Check that jaws run task-status returns something like this:
      fq_count.count_seqs 1   25177   running success 2021-01-13 12:37:45     The job completed successfully
     """
+    env = env
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
@@ -263,6 +268,7 @@ def test_jaws_wdl_log(env,submit_fq_count_wdl):
     """Check that the final line of jaws run log returns something like this:
         downloading download complete   2021-01-13 12:41:28 
     """
+    env = env
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
@@ -275,6 +281,7 @@ def test_jaws_wdl_task_log(env,submit_fq_count_wdl):
     """Check that the final line of jaws run log returns something like this:
         downloading download complete   2021-01-13 12:41:28 
     """
+    env = env
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
