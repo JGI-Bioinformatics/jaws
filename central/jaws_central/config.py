@@ -144,7 +144,7 @@ class Configuration(metaclass=Singleton):
         """
         site_id = site_id.upper()
         if site_id not in self.sites:
-            raise ConfigItemNotFound
+            raise ConfigItemNotFound(f"Invalid Site ID: {site_id}")
         section = f"SITE:{site_id}"
         return self.config[section].get(key, Configuration.default_site_params.get(key))
 
@@ -158,7 +158,7 @@ class Configuration(metaclass=Singleton):
         """
         site_id = site_id.upper()
         if site_id not in self.sites:
-            raise ConfigItemNotFound
+            raise ConfigItemNotFound(f"Invalid Site ID: {site_id}")
         section = f"SITE:{site_id}"
         # return only specific fields
         result = {"site_id": site_id}
@@ -196,7 +196,7 @@ class Configuration(metaclass=Singleton):
         """
         site_id = site_id.upper()
         if site_id not in self.sites:
-            raise ConfigItemNotFound
+            raise ConfigItemNotFound(f"Invalid Site ID: {site_id}")
         section = f"SITE:{site_id}"
 
         # return only specific fields
