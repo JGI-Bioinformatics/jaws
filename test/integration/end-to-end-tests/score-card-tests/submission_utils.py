@@ -22,11 +22,13 @@ def submit_wdl(env, wdl, input_json, outdir, site):
     """
     if os.path.exists(outdir):
         cmd = "rm -rf %s" % outdir
+        print(cmd)
         (rc, stdout, stderr) = run(cmd)
         if rc > 0:
             os.exit("Failed to remove old output directory %s" % outdir)
 
     cmd = "~/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s %s %s" % (env, wdl, input_json, outdir, site)
+    print(cmd)
     (rc, stdout, stderr) = run(cmd)
     if rc > 0:
         pytest.exit("stderr: %s\nstdout: " % stderr, stdout)
