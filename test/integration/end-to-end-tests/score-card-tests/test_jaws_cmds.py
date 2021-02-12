@@ -86,9 +86,10 @@ def test_jaws_status(env):
         assert k in actual_keys
 
 
-def test_jaws_run_queue(env,submit_fq_count_wdl):
+def test_jaws_run_queue(env, site, submit_fq_count_wdl):
     """ tests that the jaws run queue command has the run id in the stdout."""
     env = env
+    site = site
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
     (o,e,r) = pf.submit_cmd(cmd)
@@ -98,9 +99,10 @@ def test_jaws_run_queue(env,submit_fq_count_wdl):
     assert run_id in ids
 
 
-def test_jaws_run_history(env,submit_fq_count_wdl):
+def test_jaws_run_history(env, site, submit_fq_count_wdl):
     """ tests that the jaws run history command has the run id in the stdout."""
     env = env
+    site = site
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
@@ -228,8 +230,11 @@ def test_jaws_wdl_delete(env):
     # if grep found wdl_catalog_name still in the catalog, delete failed
     assert not o
 
-def test_jaws_wdl_metadata(env,submit_fq_count_wdl):
+def test_jaws_wdl_metadata(env, site, submit_fq_count_wdl):
     """Check that a jaws run metadata returns workflowRoot has a value"""
+    env = env
+    site = site
+
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
@@ -238,9 +243,11 @@ def test_jaws_wdl_metadata(env,submit_fq_count_wdl):
 
     assert o 
 
-def test_jaws_wdl_errors(env,submit_fq_count_wdl):
+def test_jaws_wdl_errors(env, site, submit_fq_count_wdl):
     """Check that a jaws run metadata returns workflowRoot has a value"""
     env = env
+    site = site
+
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
@@ -251,11 +258,13 @@ def test_jaws_wdl_errors(env,submit_fq_count_wdl):
     # We don't have a good test for this command here, but we only test that the return code is 0.
     assert r == 0
         
-def test_jaws_wdl_task_status(env,submit_fq_count_wdl):
+def test_jaws_wdl_task_status(env, site, submit_fq_count_wdl):
     """Check that jaws run task-status returns something like this:
      fq_count.count_seqs 1   25177   running success 2021-01-13 12:37:45     The job completed successfully
     """
     env = env
+    site = site
+
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
@@ -264,11 +273,13 @@ def test_jaws_wdl_task_status(env,submit_fq_count_wdl):
 
     assert 'fq_count.count_seqs' in o and 'The job completed successfully' in o
 
-def test_jaws_wdl_log(env,submit_fq_count_wdl):
+def test_jaws_wdl_log(env, site, submit_fq_count_wdl):
     """Check that the final line of jaws run log returns something like this:
         downloading download complete   2021-01-13 12:41:28 
     """
     env = env
+    site = site
+
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 
@@ -277,11 +288,13 @@ def test_jaws_wdl_log(env,submit_fq_count_wdl):
 
     assert 'download complete' in o
 
-def test_jaws_wdl_task_log(env,submit_fq_count_wdl):
+def test_jaws_wdl_task_log(env, site, submit_fq_count_wdl):
     """Check that the final line of jaws run log returns something like this:
         downloading download complete   2021-01-13 12:41:28 
     """
     env = env
+    site = site
+    
     run_id = str(submit_fq_count_wdl['run_id'])
     wait_for_run(env,run_id)
 

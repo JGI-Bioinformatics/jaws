@@ -70,8 +70,8 @@ def submit_fq_count_wdl(request):
     input_json = "fq_count.json"
     env = getattr(request.module, "env")
     outdir ="./fq_count_out"
-    site = "cori"
-    util.submit_wdl(env, wdl, input_json, outdir)
+    site = getattr(request.module, "site")
+    util.submit_wdl(env, wdl, input_json, outdir, site)
 #
 # The next two functions allows us to use the --env to capture the environment [prod|staging|dev]. 
 # This environment is an argument that can be passed into the test functions
@@ -84,14 +84,14 @@ def pytest_addoption(parser):
         help="testing environment [prod|staging|dev] passed to test functions",
     )
     parser.addoption(
-        "--wdl",
+        "--site",
         action="append",
         default=[],
-        help="the wdl that will be submitted",
+        help="the JAWS site [cori|jgi] that will be used during submission",
     )
 
 def pytest_generate_tests(metafunc):
     if "env" in metafunc.fixturenames:
         metafunc.parametrize("env", metafunc.config.getoption("env"))
-    if "wdl" in metafunc.fixturenames:
-        metafunc.parametrize("wdl", metafunc.config.getoption("wdl"))
+    if "site" in metafunc.fixturenames:
+        metafunc.parametrize("site", metafunc.config.getoption("site"))
