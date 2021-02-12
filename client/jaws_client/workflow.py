@@ -180,10 +180,12 @@ def apply_filepath_op(obj, operation):
             for k in obj
         }
     else:
-        raise ValueError(f"cannot perform op={operation.__name__} to object of type {type(obj)}")
+        raise ValueError(
+            f"cannot perform op={operation.__name__} to object of type {type(obj)}"
+        )
 
 
-def compress_wdls(main_wdl, staging_dir="."):
+def compress_wdls(main_wdl, submission_id, staging_dir="."):
     """
     Create a new staging WDL and compress any subworkflow files into a ZIP file.
 
@@ -193,6 +195,7 @@ def compress_wdls(main_wdl, staging_dir="."):
     If there are no subworkflows, the zipfile is not produced..
 
     :param main_wdl: a WDL file
+    :param submission_id:  a uuid.uuid4() generated string used as basename
     :param staging_dir: path where files will be compressed to. Default is current directory.
     :return: paths to the main wdl and the compressed file (latter may be None)
     """
@@ -201,7 +204,7 @@ def compress_wdls(main_wdl, staging_dir="."):
 
     # WRITE SANITIZED MAIN WDL
     modified_wdl = main_wdl.sanitized_wdl()
-    staged_wdl_filename = join_path(staging_dir, f"{main_wdl.submission_id}.wdl")
+    staged_wdl_filename = join_path(staging_dir, f"{submission_id}.wdl")
     modified_wdl.write_to(staged_wdl_filename)
 
     # IF NO SUBWORKFLOWS, DONE
@@ -210,13 +213,9 @@ def compress_wdls(main_wdl, staging_dir="."):
 
     # ZIP SUBWORKFLOWS
     compressed_file_format = ".zip"
-    compression_dir = pathlib.Path(
-        os.path.join(staging_dir, main_wdl.submission_id)
-    )
+    compression_dir = pathlib.Path(os.path.join(staging_dir, submission_id))
     compression_dir.mkdir(parents=True, exist_ok=True)
-    compressed_file = join_path(
-        staging_dir, main_wdl.submission_id + compressed_file_format
-    )
+    compressed_file = join_path(staging_dir, submission_id + compressed_file_format)
 
     for subworkflow in main_wdl.subworkflows:
         modified_sub = subworkflow.sanitized_wdl()
@@ -245,19 +244,17 @@ class WdlFile:
     keep track of any resource requirements (max_memory) required. It will also know its compressed file location.
     """
 
-    def __init__(self, wdl_file_location, submission_id, contents=None):
+    def __init__(self, wdl_file_location, contents=None):
         """
         Constructor for the WDL file.
 
         :param wdl_file_location:  location where the WDL file exists
         :param staging_subdir_path:  the directory where WDLs and cromwell files are all staged
-        :param submission_id:  a uuid.uuid4() generated string
         """
 
         self.logger = logging.getLogger(__package__)
         self.file_location = os.path.abspath(wdl_file_location)
         self.name = self._get_wdl_name(wdl_file_location)
-        self.submission_id = submission_id
         self.contents = (
             contents if contents is not None else open(wdl_file_location, "r").read()
         )
@@ -279,8 +276,11 @@ class WdlFile:
         filtered_out_lines = ["Success!", "List of Workflow dependencies is:", "None"]
         subworkflows = set()
         for sub in out:
+            if sub.startswith("http://") or sub.startswith("https://"):
+                # subworkflow file not provided, Cromwell will GET automatically
+                continue
             if sub not in filtered_out_lines:
-                subworkflows.add(WdlFile(sub, self.submission_id))
+                subworkflows.add(WdlFile(sub))
         return subworkflows
 
     @property
@@ -365,7 +365,7 @@ class WdlFile:
 
     def sanitized_wdl(self):
         contents = self._remove_invalid_backends()
-        return WdlFile(self.file_location, self.submission_id, contents=contents)
+        return WdlFile(self.file_location, contents=contents)
 
     def write_to(self, destination):
         with open(destination, "w") as new_wdl:
@@ -400,7 +400,7 @@ class WdlFile:
         return repr(self.file_location)
 
 
-def move_input_files(workflow_inputs, destination):
+def copy_input_files(workflow_inputs, destination):
     """
     Moves the input files defined in a JSON file to a destination.
 
@@ -449,10 +449,14 @@ class WorkflowInputs:
         self.basedir = os.path.dirname(self.inputs_location)
 
         # JSON inputs could contain relative paths, so we process the JSON file to include absolute paths
-        inputs_json = json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+        inputs_json = (
+            json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+        )
         self.inputs_json = {}
         for k in inputs_json:
-            self.inputs_json[k] = apply_filepath_op(inputs_json[k], self._relative_to_absolute_paths)
+            self.inputs_json[k] = apply_filepath_op(
+                inputs_json[k], self._relative_to_absolute_paths
+            )
 
         self._src_file_inputs = None
 
