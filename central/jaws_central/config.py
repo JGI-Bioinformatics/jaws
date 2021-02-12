@@ -30,6 +30,10 @@ class ConfigurationError(Exception):
         super().__init__(message)
 
 
+class ConfigItemNotFound(Exception):
+    pass
+
+
 class Configuration(metaclass=Singleton):
     """Configuration singleton class."""
 
@@ -56,11 +60,11 @@ class Configuration(metaclass=Singleton):
         "password",
         "vhost",
         "globus_endpoint",
-        "globus_host_path",
         "input_dir",
         "output_dir",
         "max_ram_gb",
     ]
+    default_site_params = {"globus_host_path": "/"}
 
     config = None
 
@@ -89,19 +93,19 @@ class Configuration(metaclass=Singleton):
                     f"Config file, {config_file}, missing required section, {section}"
                 )
                 logger.error(error_msg)
-                raise ValueError(error_msg)
+                raise ConfigItemNotFound(error_msg)
             for key in self.required_params[section]:
                 if key not in self.config[section]:
                     error_msg = f"Config file, {config_file}, missing required parameter, {section}/{key}"
                     logger.error(error_msg)
-                    raise ValueError(error_msg)
+                    raise ConfigItemNotFound(error_msg)
 
         # init Sites
         self.sites = []
         for section in self.config.sections():
             if section.startswith("SITE:"):
                 # extract site id
-                site_id = section[len("SITE:"):].upper()
+                site_id = section[len("SITE:") :].upper()
                 if len(site_id) > MAX_SITE_ID_LEN:
                     raise ConfigurationError(
                         f"Invalid Site ID: {site_id} (max. {MAX_SITE_ID_LEN} char.)"
@@ -113,7 +117,7 @@ class Configuration(metaclass=Singleton):
                     if key not in self.config[section]:
                         error_msg = f"Config file, {config_file}, missing required parameter, {section}/{key}"
                         logger.error(error_msg)
-                        raise ValueError(error_msg)
+                        raise ContigItemNotFound(error_msg)
 
         # save singleton
         global conf
@@ -136,7 +140,7 @@ class Configuration(metaclass=Singleton):
         """
         site_id = site_id.upper()
         if site_id not in self.sites:
-            return None
+            raise ConfigItemNotFound
         section = f"SITE:{site_id}"
         return self.get(section, key)
 
@@ -150,18 +154,20 @@ class Configuration(metaclass=Singleton):
         """
         site_id = site_id.upper()
         if site_id not in self.sites:
-            return None
+            raise ConfigItemNotFound
         section = f"SITE:{site_id}"
-        # COPY ONLY SPECIFIC FIELDS
-        s = self.config[section]
-        result = {
-            "site_id": site_id,
-            "globus_endpoint": s["globus_endpoint"],
-            "globus_host_path": s["globus_host_path"],
-            "input_dir": s["input_dir"],
-            "output_dir": s["output_dir"],
-            "max_ram_gb": s["max_ram_gb"],
-        }
+        # return only specific fields
+        result = {}
+        for key in [
+            "globus_endpoint",
+            "globus_host_path",
+            "input_dir",
+            "output_dir",
+            "max_ram_gb",
+        ]:
+            value = self.config[section].get(
+                key, Configuration.default_site_params.get(key)
+            )
         return result
 
     def get_section(self, section: str) -> dict:
@@ -187,7 +193,7 @@ class Configuration(metaclass=Singleton):
         """
         site_id = site_id.upper()
         if site_id not in self.sites:
-            return None
+            raise ConfigItemNotFound
         section = f"SITE:{site_id}"
         s = self.config[section]
         params = {
