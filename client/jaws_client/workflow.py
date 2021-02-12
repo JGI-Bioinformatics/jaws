@@ -423,7 +423,7 @@ def copy_input_files(workflow_inputs, globus_host_path, destination):
             dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
 
         # globus paths are accessible via symlink
-        if original_path.startswith(globus_host_path):
+        if original_path.startswith(f"{globus_host_path}"):
             if not os.path.exists(staged_path):
                 os.symlink(original_path, staged_path.as_posix())
         else:

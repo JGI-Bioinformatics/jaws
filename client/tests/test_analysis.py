@@ -319,7 +319,7 @@ def test_cli_metadata(monkeypatch, mock_user, configuration):
 @pytest.mark.skipif(
     shutil.which("womtool") is None, reason="WOMTool needs to be installed."
 )
-def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
+def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow, globus_host_path, input_dir, output_dir):
     root = sample_workflow
 
     wdl = os.path.join(root, "workflow", "sample.wdl")
@@ -328,9 +328,9 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     def get_site(url, headers=None):
         body = {
             "globus_endpoint": "AA-BB-CC",
-            "globus_host_path": "/NERSC/globus",
-            "input_dir": "/NERSC/globus/input",
-            "output_dir": "/NERSC/globus/output",
+            "globus_host_path": globus_host_path,
+            "input_dir": input_dir,
+            "output_dir": output_dir,
             "max_ram_gb": "256",
         }
         return MockResult(body, 200)

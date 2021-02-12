@@ -49,6 +49,25 @@ staging_dir = {0}/globus/staging
 
 
 @pytest.fixture
+def globus_host_path(tmp_path):
+    host_path = tmp_path / "gsharing"
+    host_path.mkdir()
+    return host_path
+
+@pytest.fixture
+def input_dir(tmp_path):
+    input_dir = tmp_path / "gsharing/input"
+    input_dir.mkdir()
+    return input_dir
+
+@pytest.fixture
+def output_dir(tmp_path):
+    output_dir = tmp_path / "gsharing/output"
+    output_dir.mkdir()
+    return output_dir
+
+
+@pytest.fixture
 def wdl_path(tmp_path):
     wdls = tmp_path / "wdls"
     wdls.mkdir()
