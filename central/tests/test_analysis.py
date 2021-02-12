@@ -40,7 +40,8 @@ vhost = jaws
 queue = lbnl_rpc
 globus_endpoint = XXXX
 globus_host_path = /global/scratch/jaws
-uploads_dir = /global/scratch/jaws/uploads
+input_dir = /global/scratch/jaws/input
+output_dir = /global/scratch/jaws/output
 max_ram_gb = 1024
 
 [SITE:NERSC]
@@ -51,7 +52,8 @@ vhost = jaws
 queue = nersc_rpc
 globus_endpoint = YYYY
 globus_host_path = /
-uploads_dir = /global/scratch/jaws/uploads
+input_dir = /global/scratch/jaws/input
+output_dir = /global/scratch/jaws/output
 max_ram_gb = 2048
 """
     cfg.write_text(content)

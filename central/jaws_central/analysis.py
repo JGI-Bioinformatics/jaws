@@ -201,14 +201,15 @@ def get_site(user, site_id):
     :type user: str
     :param site_id: a JAWS-Site's ID
     :type site_id: str
-    :return: globus endpoint id and uploads path
+    :return: globus endpoint id, input and output paths
     :rtype: dict
     """
     logger.debug(f"User {user}: Get info for site {site_id}")
-    result = config.conf.get_site_info(site_id)
+    result = config.conf.get_site_info(site_id.upper())
     if result is None:
         abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
-    result["uploads_dir"] = f'{result["uploads_dir"]}/{user}'
+    result["input_dir"] = f'{result["input_dir"]}/{user}'
+    result["output_dir"] = f'{result["output_dir"]}/{user}'
     return result, 200
 
 
@@ -221,11 +222,11 @@ def submit_run(user):
     :return: run_id, upload_task_id
     :rtype: dict
     """
-    site_id = request.form.get("site_id", None).upper()
+    site_id = request.form.get("compute_site_id", None).upper()
     submission_id = request.form.get("submission_id")
     input_site_id = request.form.get("input_site_id", None).upper()
-    input_endpoint = request.form.get("input_endpoint", None)
-    output_endpoint = request.form.get("output_endpoint")
+    input_endpoint = request.form.get("input_globus_endpoint", None)
+    output_endpoint = request.form.get("output_globus_endpoint")
     output_dir = request.form.get("output_dir")
     compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
     if compute_endpoint is None:

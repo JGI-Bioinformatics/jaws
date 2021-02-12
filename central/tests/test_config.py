@@ -44,7 +44,7 @@ def test_check_all_values(config_file):
         ("vhost", "jaws"),
         ("globus_endpoint", "XXXX"),
         ("globus_host_path", "/global/scratch/jaws"),
-        ("uploads_dir", "/global/scratch/jaws/uploads"),
+        ("input_dir", "/global/scratch/jaws/input"),
         ("max_ram_gb", "1024"),
     ]
 
@@ -52,7 +52,7 @@ def test_check_all_values(config_file):
         ("site_id", "NERSC"),
         ("globus_endpoint", "YYYY"),
         ("globus_host_path", "/"),
-        ("uploads_dir", "/global/scratch/jaws/uploads"),
+        ("input_dir", "/global/scratch/jaws/input"),
         ("max_ram_gb", "2048"),
     ]
 
