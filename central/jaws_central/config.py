@@ -147,7 +147,7 @@ class Configuration(metaclass=Singleton):
         if site_id not in self.sites:
             raise ConfigItemNotFound
         section = f"SITE:{site_id}"
-        return self.get(section, key)
+        return self.config[section].get(key, Configuration.default_site_params.get(key))
 
     def get_site_info(self, site_id: str) -> Dict[str, str]:
         """Returns public info about requested Site.
