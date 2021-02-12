@@ -4,8 +4,6 @@ import configparser
 from typing import Dict
 
 
-DEFAULT_AMQP_PORT = 5672
-DEFAULT_RPC_MESSAGE_TTL = 5
 MAX_SITE_ID_LEN = 8
 
 
@@ -66,8 +64,8 @@ class Configuration(metaclass=Singleton):
     ]
     default_site_params = {
         "globus_host_path": "/",
-        "port": DEFAULT_AMQP_PORT,
-        "message_ttl": DEFAULT_RPC_MESSAGE_TTL
+        "port": 5672,
+        "message_ttl": 5
     }
 
     config = None
