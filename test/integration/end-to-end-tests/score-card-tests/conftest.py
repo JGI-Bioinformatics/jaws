@@ -66,8 +66,8 @@ import submission_utils as util
 
 @pytest.fixture(scope="module")
 def submit_fq_count_wdl(request):
-    wdl = "fq_count.wdl"
-    input_json = "fq_count.json"
+    wdl = "~/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count.wdl"
+    input_json = "~/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count.json"
     #env = getattr(request.module, "env")
     env = request.config.getoption("--env")
     outdir ="./fq_count_out"
