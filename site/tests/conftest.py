@@ -54,8 +54,8 @@ url = http://localhost:8000
 
 [SITE]
 id = eagle
-uploads_subdirectory = uploads
-downloads_subdirectory = downloads
+input_dir = input
+output_dir = output
 """
 
     cfg.write_text(content)

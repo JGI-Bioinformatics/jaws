@@ -48,7 +48,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         ],
         "DB": ["user", "password", "db"],
         "CROMWELL": ["url"],
-        "SITE": ["id", "uploads_subdirectory", "downloads_subdirectory"],
+        "SITE": ["id", "input_dir", "output_dir"]
     }
 
     config = None

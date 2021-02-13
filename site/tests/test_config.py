@@ -60,8 +60,8 @@ def test_overwrite_all_default_values(config_file):
 
     expected_site_sections = [
         ("id", "eagle"),
-        ("uploads_subdirectory", "uploads"),
-        ("downloads_subdirectory", "downloads"),
+        ("input_dir", "input"),
+        ("output_dir", "output"),
     ]
 
     expected_cromwell_sections = [
