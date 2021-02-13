@@ -97,8 +97,8 @@ def pytest_addoption(parser):
         help="the JAWS site [cori|jgi] that will be used during submission",
     )
 
-def pytest_generate_tests(metafunc):
-    if "env" in metafunc.fixturenames:
-        metafunc.parametrize("env", metafunc.config.getoption("env"))
-    if "site" in metafunc.fixturenames:
-        metafunc.parametrize("site", metafunc.config.getoption("site"))
+# def pytest_generate_tests(metafunc):
+#     if "env" in metafunc.fixturenames:
+#         metafunc.parametrize("env", metafunc.config.getoption("env"))
+#     if "site" in metafunc.fixturenames:
+#         metafunc.parametrize("site", metafunc.config.getoption("site"))
