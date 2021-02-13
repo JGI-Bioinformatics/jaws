@@ -69,14 +69,14 @@ def submission_info():
 #     pytest.exit("We have exeeded the wait time for the job to complete. You can increase the number of tries or sleep time.")
 
 @pytest.fixture(scope="module")
-def submit_fq_count_wdl(submission_info, command_line_args):
+def submit_fq_count_wdl(request):
     wdl = "fq_count.wdl"
     input_json = "fq_count.json"
     #env = getattr(request.module, "env")
-    env = submission_info["env"]
+    env = request.config.getoption("--env")
     outdir ="./fq_count_out"
     #site = getattr(request.module, "site")
-    site = submission_info["site"]
+    site = request.config.getoption("--site")
     util.submit_wdl(env, wdl, input_json, outdir, site)
 
 #
