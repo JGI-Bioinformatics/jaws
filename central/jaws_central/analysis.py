@@ -238,16 +238,16 @@ def submit_run(user):
             input_endpoint = config.conf.get_site(input_site_id, "globus_endpoint")
         except Exception as error:
             logger.error(
-                f"Received run submission from {user} with invalid input site ID: {input_site_id}"
+                f"Received run submission from {user} with invalid input site ID, {input_site_id}: {error}"
             )
-            abort(404, f"Invalid input Site ID, {site_id}")
+            abort(404, f"Invalid input Site ID, {input_site_id}")
     try:
         compute_endpoint = config.conf.get_site(compute_site_id, "globus_endpoint")
     except Exception as error:
         logger.error(
-            f"Received run submission from {user} with invalid compute site ID: {compute_site_id}"
+            f"Received run submission from {user} with invalid compute site ID, {compute_site_id}: {error}"
         )
-        abort(404, f"Invalid compute Site ID, {site_id}")
+        abort(404, f"Invalid compute Site ID, {compute_site_id}")
 
     logger.info(
         f"User {user}: New run submission {submission_id} from {input_site_id} to {compute_site_id}"
@@ -399,7 +399,7 @@ def submit_run(user):
         _submission_failed(user, run, reason)
         abort(500, reason)
     if "error" in result:
-        reason = f"Error sending new run to {site_id}: {result['error']['message']}"
+        reason = f"Error sending new run to {compute_site_id}: {result['error']['message']}"
         logger.error(reason)
         _submission_failed(user, run, reason)
         abort(result["error"]["code"], result["error"]["message"])
