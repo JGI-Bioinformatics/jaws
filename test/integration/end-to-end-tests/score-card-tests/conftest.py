@@ -4,6 +4,7 @@ import pytest
 import smtplib
 import time
 import submission_utils as util
+import parsing_functions as pf
 
 
 # @pytest.fixture(scope="module")
@@ -73,7 +74,8 @@ def submit_fq_count_wdl(request):
     outdir ="./fq_count_out"
     #site = getattr(request.module, "site")
     site = request.config.getoption("--site")
-    util.submit_wdl(env, wdl, input_json, outdir, site)
+    #util.submit_wdl(env, wdl, input_json, outdir, site)
+    pf.submit_one_run_to_env(wdl, input_json, outdir, site, env)
 
 #
 # The next two functions allows us to use the --env to capture the environment [prod|staging|dev]. 
