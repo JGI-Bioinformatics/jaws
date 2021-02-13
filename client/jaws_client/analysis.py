@@ -269,40 +269,28 @@ def list_sites() -> None:
 
 @run.command()
 @click.argument("wdl_file", nargs=1)
-@click.argument("infile", nargs=1)
+@click.argument("json_file", nargs=1)
 @click.argument("compute_site_id", nargs=1)
 @click.option("--out_endpoint", default=None, help="Globus endpoint to send output")
-@click.option("--out_dir", default=None, help="Directory to send output")
-def submit(wdl_file, infile, compute_site_id, out_endpoint, out_dir):
+@click.option(
+    "--out_dir",
+    default=None,
+    help="Directory to send output. Use abs path as if endpoint host_path is /",
+)
+def submit(wdl_file, json_file, compute_site_id, out_endpoint, out_dir):
     """Submit a run for execution at a JAWS-Site.
 
     :param wdl_file: Path to workflow specification (WDL) file
     :type wdl_file: str
-    :param infile: Path to inputgetpass.getuser()s (JSON) file
-    :type infile: str
+    :param json_file: Path to inputgetpass.getuser()s (JSON) file
+    :type json_file: str
     :param compute_site_id: JAWS Site ID at which to run
     :type compute_site_id: str
     :param out_endpoint: Globus endpoint id
     :type out_endpoint: str
-    :param out_dir: Output dir, as expected by Globus
+    :param out_dir: Output dir, which is an absolute path as if the endpoint's host_path is /
     :type out_dir: str
     """
-    # short variable names were used for user convenience
-    output_globus_endpoint = out_endpoint
-    output_dir = out_dir
-
-    # The "output_dir" should be in the form expected by Globus.
-    # Specifically, if the path starts with a '/' (looks like absolute path),
-    # Globus shall prepend the Globus endpoint's host_path; otherwise
-    # Globus shall prepend the Globus endpoint's default_dir.
-    #
-    # The Globus endpoint's host_path and default_dir are part of the endpoint's config,
-    # and are neither provided nor needed by JAWS.
-    #
-    # For example, if endpoint has host_path='/scratch' and default_dir='~' then:
-    # ex1. /mydir => /scratch/mydir
-    # ex2. mydir => ~/mydir
-
     logger = logging.getLogger(__package__)
 
     current_user = user.User()
@@ -332,15 +320,22 @@ def submit(wdl_file, infile, compute_site_id, out_endpoint, out_dir):
     input_globus_endpoint = result["globus_endpoint"]
     input_globus_host_path = result["globus_host_path"]
     input_dir = result["input_dir"]
+    input_globus_dir = os.path.join(
+        "/", os.path.relpath(input_dir, input_globus_host_path)
+    )
 
     # GET OUTPUT INFO (by default, also local)
-    if output_globus_endpoint is None:
-        # return results back to this Site
-        output_globus_endpoint = input_globus_endpoint
-        output_dir = os.path.join(result["output_dir"], submission_id)
-    elif output_dir is None:
+    if out_endpoint is None:
+        # return results back to the input site
+        out_endpoint = input_globus_endpoint
+        out_dir = os.path.join(
+            "/",
+            os.path.relpath(result["output_dir"], input_globus_host_path),
+            submission_id,
+        )
+    elif out_dir is None:
         # put in the endpoint's default dir
-        output_dir = submission_id
+        out_dir = submission_id
 
     # GET COMPUTE SITE INFO
     compute_site_id = compute_site_id.upper()
@@ -357,10 +352,18 @@ def submit(wdl_file, infile, compute_site_id, out_endpoint, out_dir):
         result = r.json()
         raise SystemExit(result["detail"])
     result = r.json()
+    compute_globus_host_path = result["globus_host_path"]
     compute_input_dir = result["input_dir"]
+    compute_globus_input_dir = os.path.join(
+        "/", os.path.relpath(compute_input_dir, compute_globus_host_path)
+    )
     compute_max_ram_gb = int(result["max_ram_gb"])
 
-    # VALIDATE WORKFLOW AND INPUTS JSON
+    # MAKE INPUT DIR IF NECESSARY
+    if not os.path.isdir(input_dir):
+        os.mkdir(input_dir, 0o0775)
+
+    # VALIDATE WORKFLOW(S)
     try:
         wdl = workflow.WdlFile(wdl_file)
     except workflow.WdlError as error:
@@ -368,40 +371,55 @@ def submit(wdl_file, infile, compute_site_id, out_endpoint, out_dir):
     except Exception as error:
         raise SystemExit(f"Unexpected error validating workflow: {error}")
     try:
-        inputs_json = workflow.WorkflowInputs(infile, submission_id)
+        wdl.validate()
     except Exception as error:
-        raise SystemExit(f"Your file, {infile}, is not a valid JSON file: {error}")
-    # check if valid wdl(s)
-    wdl.validate()
-    # check if valid json and all infiles accessible
-    inputs_json.validate()
-    # check if requested compute site has sufficient ram
+        raise SystemExit(f"Invalid workflow: {error}")
+
+    # verify requested compute site has sufficient ram to run the workflow
     max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
         raise AnalysisError(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
         )
 
-    # PREPARE ALL INPUT FILES
+    # VALIDATE INPUTS JSON
+    try:
+        workflowInputs = workflow.WorkflowInputs(json_file, submission_id)
+    except Exception as error:
+        raise SystemExit(f"Your file, {json_file}, is not a valid JSON file: {error}")
+    try:
+        workflowInputs.validate()
+    except Exception as error:
+        raise SystemExit(f"Invalid inputs json: {error}")
 
-    # sanitize wdl and zip subworkflows
+    # PREPARE ALL INPUT FILES:
+
+    # Sanitize wdl and zip subworkflows; these are written to the input dir which is
+    # accessible via Globus
     sanitized_wdl, zip_file = workflow.compress_wdls(wdl, submission_id, input_dir)
 
-    # copy input files to input dir, in subdirectory named after the input-Site
-    input_files_dir = workflow.join_path(input_dir, input_site_id)
-    staged_files = workflow.copy_input_files(inputs_json, input_globus_host_path, input_files_dir)
+    # Copy input files to input dir, under a subdirectory which is named after the input-Site.
+    staging_dir = workflow.join_path(input_dir, input_site_id)
+    staged_files = workflow.copy_input_files(
+        workflowInputs, input_globus_host_path, staging_dir
+    )
 
-    # write a new json file for the compute site; all the input file paths therein shall
-    # match the locations of the destination files after having been transferred to
-    # the compute-Site, in a subdirectory named after the input-Site
-    compute_input_files_dir = os.path.join(compute_input_dir, input_site_id)
-    compute_json = inputs_json.prepend_paths_to_json(compute_input_files_dir)
+    # Write a new json file which is appropriate for the compute site; the paths will need to be
+    # translated to match their destinations at the compute site.
+    compute_staging_dir = os.path.join(compute_input_dir, input_site_id)
+    compute_json = workflowInputs.prepend_paths_to_json(compute_staging_dir)
     compute_json_file = workflow.join_path(input_dir, f"{submission_id}.json")
     compute_json.write_to(compute_json_file)
 
-    # write the Globus transfer manifest file, which is a table with source (input site) and
-    # destination (compute site) paths
-    manifest = workflow.Manifest(input_dir, compute_input_dir)
+    # WRITE GLOBUS TRANSFER MANIFEST
+    # write a table with source (input site) and destination (compute site) paths;
+    # paths are virtual absolute paths (i.e. assumes endpoint's host_path is /)
+    manifest = workflow.Manifest(
+        input_globus_host_path,
+        input_globus_dir,
+        compute_globus_host_path,
+        compute_input_dir,
+    )
     manifest.add(sanitized_wdl, zip_file, compute_json_file, *staged_files)
     manifest_file = workflow.join_path(input_dir, f"{submission_id}.tsv")
     manifest.write_to(manifest_file)
@@ -412,8 +430,8 @@ def submit(wdl_file, infile, compute_site_id, out_endpoint, out_dir):
         "input_site_id": input_site_id,
         "input_globus_endpoint": input_globus_endpoint,
         "compute_site_id": compute_site_id,
-        "output_globus_endpoint": output_globus_endpoint,
-        "output_dir": output_dir,
+        "out_endpoint": out_endpoint,
+        "out_dir": out_dir,
     }
     files = {"manifest": open(manifest_file, "r")}
     url = f'{config.conf.get("JAWS", "url")}/run'

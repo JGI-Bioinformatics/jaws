@@ -185,7 +185,7 @@ def apply_filepath_op(obj, operation):
         )
 
 
-def compress_wdls(main_wdl, submission_id, staging_dir="."):
+def compress_wdls(main_wdl, output_basename, output_dir="."):
     """
     Create a new staging WDL and compress any subworkflow files into a ZIP file.
 
@@ -194,17 +194,17 @@ def compress_wdls(main_wdl, submission_id, staging_dir="."):
     compressed.
     If there are no subworkflows, the zipfile is not produced..
 
-    :param main_wdl: a WDL file
-    :param submission_id:  a uuid.uuid4() generated string used as basename
-    :param staging_dir: path where files will be compressed to. Default is current directory.
+    :param main_wdl: a WdlFile object
+    :param output_basename: string used to generate wdl and zip output file names
+    :param output_dir: path where files will be compressed to. Default is current directory.
     :return: paths to the main wdl and the compressed file (latter may be None)
     """
-    if not os.path.isdir(staging_dir):
-        os.makedirs(staging_dir)
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
 
     # WRITE SANITIZED MAIN WDL
     modified_wdl = main_wdl.sanitized_wdl()
-    staged_wdl_filename = join_path(staging_dir, f"{submission_id}.wdl")
+    staged_wdl_filename = join_path(output_dir, f"{output_basename}.wdl")
     modified_wdl.write_to(staged_wdl_filename)
 
     # IF NO SUBWORKFLOWS, DONE
@@ -213,25 +213,32 @@ def compress_wdls(main_wdl, submission_id, staging_dir="."):
 
     # ZIP SUBWORKFLOWS
     compressed_file_format = ".zip"
-    compression_dir = pathlib.Path(os.path.join(staging_dir, submission_id))
+    compression_dir = pathlib.Path(os.path.join(output_dir, output_basename))
     compression_dir.mkdir(parents=True, exist_ok=True)
-    compressed_file = join_path(staging_dir, submission_id + compressed_file_format)
+    compressed_file = join_path(output_dir, output_basename + compressed_file_format)
 
+    # write temporary sanitized/modified subworkflows
     for subworkflow in main_wdl.subworkflows:
         modified_sub = subworkflow.sanitized_wdl()
         new_subwf_path = join_path(compression_dir, subworkflow.name)
         modified_sub.write_to(new_subwf_path)
 
+    # if the output zip file already exists, delete it before writing a new one
     try:
         os.remove(compressed_file)
     except FileNotFoundError:
         pass
 
-    with zipfile.ZipFile(compressed_file, "w") as z:
-        for sub_wdl in main_wdl.subworkflows:
-            staged_sub_wdl = join_path(compression_dir, sub_wdl.name)
-            z.write(staged_sub_wdl, arcname=sub_wdl.name)
+    # compress modified subworkflow files
+    if compressed_file_format == ".zip":
+        with zipfile.ZipFile(compressed_file, "w") as z:
+            for sub_wdl in main_wdl.subworkflows:
+                staged_sub_wdl = join_path(compression_dir, sub_wdl.name)
+                z.write(staged_sub_wdl, arcname=sub_wdl.name)
+    else:
+        raise ValueError("Only zip files are supported at this time")
 
+    # delete the temporary modified subworkflow files
     shutil.rmtree(compression_dir)
     return staged_wdl_filename, compressed_file
 
@@ -408,14 +415,19 @@ def copy_input_files(workflow_inputs, globus_host_path, destination):
     if they are a globus path or use rsync to move the files.
 
     :param workflow_inputs: JSON file where inputs are specified.
+    :type workflow_inputs: str
+    :param globus_host_path: The root dir of the Globus endpoint
+    :type globus_host_path: str
+    :type globus_host_path: str
     :param destination: path to where to moved the input files
+    :type destination: str
     :return: list of the moved_files
     """
-    moved_files = []
+    staged_files = []
 
     for original_path in workflow_inputs.src_file_inputs:
         staged_path = pathlib.Path(f"{destination}{original_path}")
-        moved_files.append(staged_path.as_posix())
+        staged_files.append(staged_path.as_posix())
         if os.path.isdir(original_path):
             staged_path.mkdir(mode=0o0770, parents=True, exist_ok=True)
         else:
@@ -428,7 +440,7 @@ def copy_input_files(workflow_inputs, globus_host_path, destination):
                 os.symlink(original_path, staged_path.as_posix())
         else:
             rsync(original_path, staged_path.as_posix())
-    return moved_files
+    return staged_files
 
 
 class WorkflowInputs:
@@ -558,12 +570,26 @@ class Manifest:
     """
     A Manifest file includes all the files and their inode types that are transferred over via Globus.
 
+    File paths are as expected by Globus transfer service; they appear as an absolute path but Globus shall
+    prepend the endpoint's host_path automatically.
+
+    e.g. A transfer task of "/mydir/myfile" will actually transfer the file "/tmp/gsharing/mydir/myfile" if
+         the host_path of the endpoint is "/tmp/gsharing".
+
     It is a TSV (tab-separate value) file.
     """
 
-    def __init__(self, staging_dir, dest_dir):
+    def __init__(self, src_host_path, src_dir, dest_host_path, dest_dir):
+        """
+        :param src_host_path: root directory of the source globus endpoint
+        :type src_host_path: str
+        :param dest_host_path: root directory of the destination globus endpoint
+        :type dest_host_path: str
+        """
         self.logger = logging.getLogger(__package__)
-        self.staging_dir = staging_dir
+        self.src_host_path = src_host_path
+        self.src_dir = src_dir
+        self.dest_host_path = dest_host_path
         self.dest_dir = dest_dir
         self.manifest = []
 
@@ -572,16 +598,24 @@ class Manifest:
         Adds the specified filepath to the manifest TSV. It will include the source path, the destination path
         and its inode type (file or directory).
 
-        :param filepath: path of the file to add to TSV
+        :param filepath: full path of the file to add to TSV
         :return:
         """
         for filepath in args:
             if filepath is None:
                 continue  # zip file may be none
             inode_type = "D" if os.path.isdir(filepath) else "F"
-            src_rel_path = os.path.relpath(filepath, self.staging_dir)
-            dest_rel_path = f"{self.dest_dir}/{src_rel_path}"
-            self.manifest.append([filepath, dest_rel_path, inode_type])
+
+            # virtual paths, using host_path as root
+            src_path = os.path.join("/", os.path.relpath(filepath, self.src_host_path))
+            dest_path = os.path.join(
+                "/",
+                os.path.relpath(self.dest_dir, self.dest_host_path),
+                os.path.relpath(src_path, self.src_dir),
+            )
+
+            # save
+            self.manifest.append([src_path, dest_path, inode_type])
 
     def write_to(self, write_location):
         """
@@ -591,7 +625,6 @@ class Manifest:
         :return:
         """
         self.logger.info(f"Writing file manifest to {write_location}")
-        self.logger.debug(f"Writing manifest file: {write_location}")
         with open(write_location, "w") as f:
             for src, dest, inode_type in self.manifest:
                 f.write(f"{src}\t{dest}\t{inode_type}\n")
