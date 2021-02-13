@@ -17,8 +17,13 @@ wdl_catalog_name="tmp_wdl_catalog_name"
 released_wdl_catalog_name="fq_count"
 check_tries=100
 check_sleep=30
-env = ""
-site = ""
+
+
+@pytest.fixture
+def command_line_args(submission_info, env, site):
+    submission_info["env"] = env
+    submission_info["site"] = site
+
 
 #########################
 ###     Functions     ###

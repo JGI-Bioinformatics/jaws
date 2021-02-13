@@ -5,6 +5,10 @@ import smtplib
 import time
 import submission_utils as util
 
+@pytest.fixture
+def submission_info():
+    return {}
+
 
 # @pytest.fixture(scope="module")
 # def submit_wdl_and_wait():
@@ -65,12 +69,14 @@ import submission_utils as util
 #     pytest.exit("We have exeeded the wait time for the job to complete. You can increase the number of tries or sleep time.")
 
 @pytest.fixture(scope="module")
-def submit_fq_count_wdl(request):
+def submit_fq_count_wdl(submission_info, command_line_args):
     wdl = "fq_count.wdl"
     input_json = "fq_count.json"
-    env = getattr(request.module, "env")
+    #env = getattr(request.module, "env")
+    env = submission_info["env"]
     outdir ="./fq_count_out"
-    site = getattr(request.module, "site")
+    #site = getattr(request.module, "site")
+    site = submission_info["site"]
     util.submit_wdl(env, wdl, input_json, outdir, site)
 
 #
