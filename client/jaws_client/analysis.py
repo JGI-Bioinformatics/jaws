@@ -430,8 +430,8 @@ def submit(wdl_file, json_file, compute_site_id, out_endpoint, out_dir):
         "input_site_id": input_site_id,
         "input_endpoint": input_globus_endpoint,
         "compute_site_id": compute_site_id,
-        "out_endpoint": out_endpoint,
-        "out_dir": out_dir,
+        "output_endpoint": out_endpoint,
+        "output_dir": out_dir,
     }
     files = {"manifest": open(manifest_file, "r")}
     url = f'{config.conf.get("JAWS", "url")}/run'
