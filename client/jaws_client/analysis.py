@@ -354,9 +354,6 @@ def submit(wdl_file, json_file, compute_site_id, out_endpoint, out_dir):
     result = r.json()
     compute_globus_host_path = result["globus_host_path"]
     compute_input_dir = result["input_dir"]
-    compute_globus_input_dir = os.path.join(
-        "/", os.path.relpath(compute_input_dir, compute_globus_host_path)
-    )
     compute_max_ram_gb = int(result["max_ram_gb"])
 
     # MAKE INPUT DIR IF NECESSARY
