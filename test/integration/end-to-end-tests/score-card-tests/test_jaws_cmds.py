@@ -19,12 +19,6 @@ check_tries=100
 check_sleep=30
 
 
-@pytest.fixture(scope="module")
-def command_line_args(submission_info, env, site):
-    submission_info["env"] = env
-    submission_info["site"] = site
-
-
 #########################
 ###     Functions     ###
 #########################

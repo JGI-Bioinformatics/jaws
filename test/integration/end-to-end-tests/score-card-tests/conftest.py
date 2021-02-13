@@ -5,10 +5,6 @@ import smtplib
 import time
 import submission_utils as util
 
-@pytest.fixture(scope="module")
-def submission_info():
-    return {}
-
 
 # @pytest.fixture(scope="module")
 # def submit_wdl_and_wait():
@@ -96,6 +92,15 @@ def pytest_addoption(parser):
         default=[],
         help="the JAWS site [cori|jgi] that will be used during submission",
     )
+
+@pytest.fixture
+def env(request):
+    return request.config.getoption("--env")
+
+@pytest.fixture
+def site(request):
+    return request.config.getoption("--site")
+
 
 # def pytest_generate_tests(metafunc):
 #     if "env" in metafunc.fixturenames:
