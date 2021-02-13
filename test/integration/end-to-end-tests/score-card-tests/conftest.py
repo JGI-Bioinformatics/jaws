@@ -5,7 +5,7 @@ import smtplib
 import time
 import submission_utils as util
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def submission_info():
     return {}
 
