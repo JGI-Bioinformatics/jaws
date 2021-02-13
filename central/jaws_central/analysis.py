@@ -393,7 +393,6 @@ def submit_run(user):
     logger.debug(f"User {user}: submit run: {params}")
     try:
         result = a_site_rpc_client.request("submit", params)
-        logger.info(f"SUBMIT RPC RESULT = {result}")  # ECCE
     except Exception as error:
         reason = f"RPC submit failed: {error}"
         logger.exception(reason)
