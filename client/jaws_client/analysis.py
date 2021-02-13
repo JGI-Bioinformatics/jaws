@@ -428,7 +428,7 @@ def submit(wdl_file, json_file, compute_site_id, out_endpoint, out_dir):
     data = {
         "submission_id": submission_id,
         "input_site_id": input_site_id,
-        "input_globus_endpoint": input_globus_endpoint,
+        "input_endpoint": input_globus_endpoint,
         "compute_site_id": compute_site_id,
         "out_endpoint": out_endpoint,
         "out_dir": out_dir,

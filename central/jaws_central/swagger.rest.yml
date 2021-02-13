@@ -396,7 +396,7 @@ paths:
       summary: Begin run run process
       description: Returns site information to send infiles.
       parameters:
-        - name: site_id
+        - name: compute_site_id
           description: computing site to use
           type: string
           in: formData

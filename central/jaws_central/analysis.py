@@ -224,24 +224,39 @@ def submit_run(user):
     :return: run_id, upload_task_id
     :rtype: dict
     """
-    site_id = request.form.get("compute_site_id", None).upper()
+    # parse formdata
     submission_id = request.form.get("submission_id")
     input_site_id = request.form.get("input_site_id", None).upper()
     input_endpoint = request.form.get("input_globus_endpoint", None)
+    compute_site_id = request.form.get("compute_site_id", None).upper()
     output_endpoint = request.form.get("output_globus_endpoint")
     output_dir = request.form.get("output_dir")
-    compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
-    if compute_endpoint is None:
+
+    # get globus endpoints from config
+    if input_endpoint is None:
+        try:
+            input_endpoint = config.conf.get_site(input_site_id, "globus_endpoint")
+        except Exception as error:
+            logger.error(
+                f"Received run submission from {user} with invalid input site ID: {input_site_id}"
+            )
+            abort(404, f"Invalid input Site ID, {site_id}")
+    try:
+        compute_endpoint = config.conf.get_site(compute_site_id, "globus_endpoint")
+    except Exception as error:
         logger.error(
-            f"Received run submission from {user} with invalid computing site ID: {site_id}"
+            f"Received run submission from {user} with invalid compute site ID: {compute_site_id}"
         )
-        abort(404, f'Unknown Site ID, "{site_id}"; try the "list-sites" command')
-    logger.info(f"User {user}: New run submission {submission_id} to {site_id}")
+        abort(404, f"Invalid compute Site ID, {site_id}")
+
+    logger.info(
+        f"User {user}: New run submission {submission_id} from {input_site_id} to {compute_site_id}"
+    )
 
     # INSERT INTO RDB TO GET RUN ID
     run = Run(
         user_id=user,
-        site_id=site_id,
+        site_id=compute_site_id,
         submission_id=submission_id,
         input_site_id=input_site_id,
         input_endpoint=input_endpoint,
