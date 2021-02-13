@@ -86,13 +86,13 @@ def submit_fq_count_wdl(request):
 def pytest_addoption(parser):
     parser.addoption(
         "--env",
-        action="append",
+        action="store",
         default=[],
         help="testing environment [prod|staging|dev] passed to test functions",
     )
     parser.addoption(
         "--site",
-        action="append",
+        action="store",
         default=[],
         help="the JAWS site [cori|jgi] that will be used during submission",
     )
