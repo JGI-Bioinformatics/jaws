@@ -6,6 +6,7 @@ import os
 import click
 import logging
 import connexion
+from flask_cors import CORS
 from urllib.parse import quote_plus
 import secrets
 from sqlalchemy.pool import QueuePool
@@ -116,6 +117,10 @@ def rest() -> None:
         "max_overflow": 10,
         "pool_timeout": 30
     }
+
+    # add CORS support
+    CORS(connex.app)
+
     db.init_app(connex.app)
 
     # create tables if not exists
