@@ -68,14 +68,11 @@ import submission_utils
 def submit_fq_count_wdl(request):
     wdl = "~/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count.wdl"
     input_json = "~/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count.json"
-    #env = getattr(request.module, "env")
     env = request.config.getoption("--env")
     outdir ="./fq_count_out"
-    #site = getattr(request.module, "site")
     site = request.config.getoption("--site")
-    #util.submit_wdl(env, wdl, input_json, outdir, site)
     data = submission_utils.submit_wdl(env, wdl, input_json, outdir, site)
-    print(data)
+    # print(data)  # used for debugging
     return data
 
 
