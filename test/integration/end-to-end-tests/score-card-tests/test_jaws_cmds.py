@@ -91,6 +91,8 @@ def test_jaws_run_queue(env, site, submit_fq_count_wdl):
     env = env
     site = site
 
+    data = submit_fq_count_wdl
+    print("inside test_jaws_run_queue, data: " + data)
     run_id = str(submit_fq_count_wdl['run_id'])
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)

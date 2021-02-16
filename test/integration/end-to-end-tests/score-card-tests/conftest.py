@@ -121,7 +121,9 @@ def submit_fq_count_wdl(request):
     #site = getattr(request.module, "site")
     site = request.config.getoption("--site")
     #util.submit_wdl(env, wdl, input_json, outdir, site)
-    submit_wdl(env, wdl, input_json, outdir, site)
+    data = submit_wdl(env, wdl, input_json, outdir, site)
+    print(data)
+    return data
 
 
 #
