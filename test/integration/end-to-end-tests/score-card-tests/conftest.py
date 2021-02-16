@@ -29,7 +29,7 @@ def submit_wdl(env, wdl, input_json, outdir, site):
         if rc > 0:
             os.exit("Failed to remove old output directory %s" % outdir)
 
-    cmd = "source ~/jaws-%s.sh && jaws run submit %s %s %s %s" % (env, wdl, input_json, outdir, site)
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s %s %s" % (env, wdl, input_json, outdir, site)
     print(cmd)
     (rc, stdout, stderr) = run(cmd)
     if rc > 0:
