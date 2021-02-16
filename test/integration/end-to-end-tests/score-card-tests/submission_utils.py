@@ -29,6 +29,7 @@ def submit_wdl(env, wdl, input_json, outdir, site):
 
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
     # activation command causes an error when we try to do json load later
+    """
     cmd = "source ~/jaws-%s.sh > /dev/null 2>&1  && jaws run submit %s %s %s %s" % (env, wdl, input_json, outdir, site)
     # print(cmd)  used for debugging
     (rc, stdout, stderr) = run(cmd)
@@ -37,15 +38,37 @@ def submit_wdl(env, wdl, input_json, outdir, site):
 
     assert rc == 0
     data = json.loads(stdout)
+    """
 
     # uncomment for testing
-    # data={
-    #    "output_dir": "fq_count_out",
-    #    "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
-    #    "run_id": 16405,
-    #    "site_id": "CORI",
-    #    "status": "uploading",
-    #    "submission_id": "47a555c7-07a6-442c-a2f1-d0319f2e3008",
-    #    "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
-    # }
+    data={
+       "output_dir": "fq_count_out",
+       "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
+       "run_id": 16809,
+       "site_id": "CORI",
+       "status": "uploading",
+       "submission_id": "47a555c7-07a6-442c-a2f1-d0319f2e3008",
+       "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
+    }
+
     return data
+
+def wait_for_run(env,run_id,check_tries,check_wait):
+    """ Wait for all the runs in run_ids list to finish."""
+    tries = 1 
+    while tries <= check_tries:
+        # check whether the run has finished every 60 seconds
+        cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,run_id)
+        (r,o,e) = run(cmd)
+        if r > 0:
+            pytest.exit("stderr: %s" % e)
+
+        status_output = json.loads(o)
+        run_status = status_output["status"]
+
+        if run_status == "download complete":
+            return
+
+        tries += 1
+        time.sleep(check_sleep)
+

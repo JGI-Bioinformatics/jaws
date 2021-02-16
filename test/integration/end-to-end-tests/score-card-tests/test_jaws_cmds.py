@@ -9,7 +9,7 @@
 import pytest
 import json
 import time
-import parsing_functions as pf
+import submission_utils as util
 
 tmp_wdl = "pow23.wdl"
 tmp_readme = "pow23.md"
@@ -25,25 +25,6 @@ check_sleep=30
 #
 # Test functions for verification of jaws log commands (log,task-log,status,task-status).
 #
-def wait_for_run(env,run_id):
-    """ Wait for all the runs in run_ids list to finish."""
-    tries = 1 
-    while tries <= check_tries:
-        # check whether the run has finished every 60 seconds
-        cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,run_id)
-        (o,e,r) = pf.submit_cmd(cmd)
-        if r > 0:
-            pytest.exit("stderr: %s" % e)
-
-        status_output = json.loads(o)
-        run_status = status_output["status"]
-
-        if run_status == "download complete":
-            return
-
-        tries += 1
-        time.sleep(check_sleep)
-
 def test_jaws_info(env):
     """ tests that there is a valid output for jaws info. Name should be dev,staging, or prod and version should have some value.
     {
@@ -53,7 +34,7 @@ def test_jaws_info(env):
     } """
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws info" % (env)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     data = json.loads(o)
 
@@ -76,7 +57,7 @@ def test_jaws_status(env):
     """
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws status" % (env)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
     data = json.loads(o)
 
     actual_keys = list(data.keys())
@@ -86,26 +67,26 @@ def test_jaws_status(env):
         assert k in actual_keys
 
 
-def test_jaws_run_queue(env, site, submit_fq_count_wdl):
+def test_jaws_run_queue(env, submit_fq_count_wdl):
     """ tests that the jaws run queue command has the run id in the stdout."""
 
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
     ids=o.split()
     assert run_id in ids
 
 
-def test_jaws_run_history(env, site, submit_fq_count_wdl):
+def test_jaws_run_history(env, submit_fq_count_wdl):
     """ tests that the jaws run history command has the run id in the stdout."""
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
-    wait_for_run(env,run_id)
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run history | grep '\"id\": %s' | awk '{print $2}' | tr -d ','" % (env,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     # if there was something in stdout, then grep found "id": <run_id>
     assert o
@@ -138,23 +119,23 @@ def test_jaws_wdl_add(env):
 
     # make sure this wdl doesn't already exist in the catalog (i.e. delete failed for the last test).
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl list | grep %s" % (env,wdl_catalog_name)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     # if command succeeds, then there is still an old wdl in catalog.  We need to delete it.
     if r == 0:
         # delete wdl from catalog so we can test adding it back again
         cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl delete %s 2.0.0" % (env,wdl_catalog_name)
-        (o,e,r) = pf.submit_cmd(cmd)
+        (r,o,e) = util.run(cmd)
 
         assert not r
             
     # add to catalog
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl add %s 2.0.0 %s %s" % (env,wdl_catalog_name,tmp_wdl,tmp_readme)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     # show that it was added
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl list | grep %s" % (env,wdl_catalog_name)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     # if there was something in stdout, then grep found "id": <run_id>
     assert o
@@ -166,9 +147,9 @@ def test_jaws_wdl_update_readme(env):
         f.write(readme)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl update-doc %s 1.0.0 %s" % (env,released_wdl_catalog_name,tmp_readme)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl about %s 1.0.0 " % (env,released_wdl_catalog_name)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     assert readme in o
 
@@ -179,10 +160,10 @@ def test_jaws_wdl_update_wdl(env):
         f.write(readme)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl update-doc %s 2.0.0 %s" % (env,wdl_catalog_name,tmp_readme)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
     
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl about %s 2.0.0 " % (env,wdl_catalog_name)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     assert readme in o
 
@@ -197,7 +178,7 @@ def test_jaws_wdl_update_released_wdl(env):
         f.write(task)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl update-wdl %s 1.0.0 %s" % (env,released_wdl_catalog_name,tmp_wdl)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     assert "Action not allowed" in e
 
@@ -213,81 +194,81 @@ def test_jaws_wdl_versions(env):
         }
     """
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl versions %s | grep version | awk '{print $2}' " % (env,wdl_catalog_name)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     assert o.strip() == '\"2.0.0\"'
 
 def test_jaws_wdl_delete(env):
     """Check that a WDL is deleted"""
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl delete %s 2.0.0" % (env,wdl_catalog_name)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl list | grep %s" % (env,wdl_catalog_name)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     # if grep found wdl_catalog_name still in the catalog, delete failed
     assert not o
 
-def test_jaws_wdl_metadata(env, site, submit_fq_count_wdl):
+def test_jaws_wdl_metadata(env, submit_fq_count_wdl):
     """Check that a jaws run metadata returns workflowRoot has a value"""
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
-    wait_for_run(env,run_id)
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run metadata %s | grep workflowRoot | awk '{print $2}' | tr -d '\"'" % (env,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     assert o 
 
-def test_jaws_wdl_errors(env, site, submit_fq_count_wdl):
+def test_jaws_wdl_errors(env, submit_fq_count_wdl):
     """Check that a jaws run metadata returns workflowRoot has a value"""
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
-    wait_for_run(env,run_id)
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run errors %s" % (env,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     # we don't have any errors in our wdl so the errors command should't return anything.
     # We don't have a good test for this command here, but we only test that the return code is 0.
     assert r == 0
         
-def test_jaws_wdl_task_status(env, site, submit_fq_count_wdl):
+def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     """Check that jaws run task-status returns something like this:
      fq_count.count_seqs 1   25177   running success 2021-01-13 12:37:45     The job completed successfully
     """
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
-    wait_for_run(env,run_id)
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s" % (env,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     assert 'fq_count.count_seqs' in o and 'The job completed successfully' in o
 
-def test_jaws_wdl_log(env, site, submit_fq_count_wdl):
+def test_jaws_wdl_log(env, submit_fq_count_wdl):
     """Check that the final line of jaws run log returns something like this:
         downloading download complete   2021-01-13 12:41:28 
     """
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
-    wait_for_run(env,run_id)
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run log %s | tail -1" % (env,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     assert 'download complete' in o
 
-def test_jaws_wdl_task_log(env, site, submit_fq_count_wdl):
+def test_jaws_wdl_task_log(env, submit_fq_count_wdl):
     """Check that the final line of jaws run log returns something like this:
         downloading download complete   2021-01-13 12:41:28 
     """
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
-    wait_for_run(env,run_id)
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s" % (env,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
 
     a=[]
     for line in o.split("\n"):
