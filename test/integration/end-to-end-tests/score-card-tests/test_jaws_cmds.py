@@ -91,11 +91,11 @@ def test_jaws_run_queue(env, site, submit_fq_count_wdl):
     env = env
     site = site
 
+    run_id = str(submit_fq_count_wdl['run_id'])
+
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
     (o,e,r) = pf.submit_cmd(cmd)
-
     ids=o.split()
-    run_id = str(submit_fq_count_wdl['run_id'])
     assert run_id in ids
 
 
