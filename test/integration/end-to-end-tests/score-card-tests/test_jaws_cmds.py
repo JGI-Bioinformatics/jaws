@@ -100,9 +100,8 @@ def test_jaws_run_queue(env, site, submit_fq_count_wdl):
 
 def test_jaws_run_history(env, site, submit_fq_count_wdl):
     """ tests that the jaws run history command has the run id in the stdout."""
-    env = env
-    site = site
-    run_id = str(submit_fq_count_wdl['run_id'])
+    data = submit_fq_count_wdl
+    run_id = str(data['run_id'])
     wait_for_run(env,run_id)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run history | grep '\"id\": %s' | awk '{print $2}' | tr -d ','" % (env,run_id)
@@ -231,10 +230,8 @@ def test_jaws_wdl_delete(env):
 
 def test_jaws_wdl_metadata(env, site, submit_fq_count_wdl):
     """Check that a jaws run metadata returns workflowRoot has a value"""
-    env = env
-    site = site
-
-    run_id = str(submit_fq_count_wdl['run_id'])
+    data = submit_fq_count_wdl
+    run_id = str(data['run_id'])
     wait_for_run(env,run_id)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run metadata %s | grep workflowRoot | awk '{print $2}' | tr -d '\"'" % (env,run_id)
@@ -244,10 +241,8 @@ def test_jaws_wdl_metadata(env, site, submit_fq_count_wdl):
 
 def test_jaws_wdl_errors(env, site, submit_fq_count_wdl):
     """Check that a jaws run metadata returns workflowRoot has a value"""
-    env = env
-    site = site
-
-    run_id = str(submit_fq_count_wdl['run_id'])
+    data = submit_fq_count_wdl
+    run_id = str(data['run_id'])
     wait_for_run(env,run_id)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run errors %s" % (env,run_id)
@@ -261,10 +256,8 @@ def test_jaws_wdl_task_status(env, site, submit_fq_count_wdl):
     """Check that jaws run task-status returns something like this:
      fq_count.count_seqs 1   25177   running success 2021-01-13 12:37:45     The job completed successfully
     """
-    env = env
-    site = site
-
-    run_id = str(submit_fq_count_wdl['run_id'])
+    data = submit_fq_count_wdl
+    run_id = str(data['run_id'])
     wait_for_run(env,run_id)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s" % (env,run_id)
@@ -276,10 +269,8 @@ def test_jaws_wdl_log(env, site, submit_fq_count_wdl):
     """Check that the final line of jaws run log returns something like this:
         downloading download complete   2021-01-13 12:41:28 
     """
-    env = env
-    site = site
-
-    run_id = str(submit_fq_count_wdl['run_id'])
+    data = submit_fq_count_wdl
+    run_id = str(data['run_id'])
     wait_for_run(env,run_id)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run log %s | tail -1" % (env,run_id)
@@ -291,10 +282,8 @@ def test_jaws_wdl_task_log(env, site, submit_fq_count_wdl):
     """Check that the final line of jaws run log returns something like this:
         downloading download complete   2021-01-13 12:41:28 
     """
-    env = env
-    site = site
-
-    run_id = str(submit_fq_count_wdl['run_id'])
+    data = submit_fq_count_wdl
+    run_id = str(data['run_id'])
     wait_for_run(env,run_id)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s" % (env,run_id)
