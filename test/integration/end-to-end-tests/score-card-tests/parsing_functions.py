@@ -60,6 +60,7 @@ def submit_one_run_to_env(wdl, inputs, dir, site, env):
         print(f"Failed cmd: {cmd}\n{out}\n{err}\n")
         sys.exit(1)
 
+    print(out)
     return json.loads(out)
 
 
