@@ -29,7 +29,7 @@ def submit_wdl(env, wdl, input_json, outdir, site):
 
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
     # activation command causes an error when we try to do json load later
-    """
+
     cmd = "source ~/jaws-%s.sh > /dev/null 2>&1  && jaws run submit %s %s %s %s" % (env, wdl, input_json, outdir, site)
     # print(cmd)  used for debugging
     (rc, stdout, stderr) = run(cmd)
@@ -38,9 +38,9 @@ def submit_wdl(env, wdl, input_json, outdir, site):
 
     assert rc == 0
     data = json.loads(stdout)
-    """
 
     # uncomment for testing
+    """
     data={
        "output_dir": "fq_count_out",
        "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
@@ -50,6 +50,7 @@ def submit_wdl(env, wdl, input_json, outdir, site):
        "submission_id": "47a555c7-07a6-442c-a2f1-d0319f2e3008",
        "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
     }
+    """
 
     return data
 
