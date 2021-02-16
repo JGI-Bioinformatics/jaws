@@ -53,6 +53,7 @@ def submit_one_run_to_env(wdl, inputs, dir, site, env):
 
     # source the jaws environment and submit the run
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run submit %s %s %s %s" % (env, wdl, inputs, out_dir, site)
+    print(cmd)
     (out, err, rc) = submit_cmd(cmd)
 
     if (rc > 0):
