@@ -88,8 +88,6 @@ def test_jaws_status(env):
 
 def test_jaws_run_queue(env, site, submit_fq_count_wdl):
     """ tests that the jaws run queue command has the run id in the stdout."""
-    env = env
-    site = site
 
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
