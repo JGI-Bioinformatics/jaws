@@ -3,6 +3,7 @@ import json
 import pytest
 import smtplib
 import time
+from subprocess import Popen, PIPE
 
 
 def run(cmd):
