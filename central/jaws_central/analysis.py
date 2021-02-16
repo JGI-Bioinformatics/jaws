@@ -207,9 +207,15 @@ def get_site(user, site_id):
     logger.debug(f"User {user}: Get info for site {site_id}")
     try:
         result = config.conf.get_site_info(site_id.upper())
+    except ConfigItemNotFound as error:
+        logger.info(f"Invalid site {site_id}; cannot get_site: {error}")
+        abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
     except Exception as error:
         logger.error(f"Failed to get_site: {error}")
-        abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
+        abort(
+            404,
+            f'Unable to retrieve info for Site; "{site_id}" is not one of our sites',
+        )
     result["input_dir"] = f'{result["input_dir"]}/{user}'
     result["output_dir"] = f'{result["output_dir"]}/{user}'
     return result, 200
@@ -399,7 +405,9 @@ def submit_run(user):
         _submission_failed(user, run, reason)
         abort(500, reason)
     if "error" in result:
-        reason = f"Error sending new run to {compute_site_id}: {result['error']['message']}"
+        reason = (
+            f"Error sending new run to {compute_site_id}: {result['error']['message']}"
+        )
         logger.error(reason)
         _submission_failed(user, run, reason)
         abort(result["error"]["code"], result["error"]["message"])
