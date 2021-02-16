@@ -35,6 +35,7 @@ def submit_wdl(env, wdl, input_json, outdir, site):
         pytest.exit("stderr: %s    stdout: " % stderr, stdout)
 
     assert rc == 0
+    print(stdout)
     data = json.loads(stdout)
 
     # uncomment for testing
