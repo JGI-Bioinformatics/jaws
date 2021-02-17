@@ -22,6 +22,20 @@ def join_path(*args):
     return os.path.join(*args)
 
 
+def globus_transfer_path(full_path, host_path):
+    """Return an absolute path used by Globus transfer service that uses the host_path as root.
+
+    :param full_path: The complete absolute path 
+    :type full_path: str
+    :param host_path: Host path is root path of the globus endpoint
+    :type host_path: str
+    :return: virtual absolute path
+    :rtype: str
+    """
+    if not full_path.startswith(host_path):
+        raise ValueError(f"Path, {full_path}, is not accessible via Globus endpoint")
+    return os.path.join("/", os.path.relpath(full_path, host_path))
+
 def rsync(src, dest):
     """Copy source to destination using rsync.
 
@@ -273,8 +287,7 @@ class WdlFile:
         """
         Filters the output of WOMTool inputs -l so that it can parse through and grab the paths to the sub-workflows.
 
-        It will collect the sub-workflows to a set of WdlFiles. The parent globus_host_path, staging_dir and path
-        to the ZIP file are passed down to the sub workflows.
+        It will collect the sub-workflows to a set of WdlFiles.
 
         :param output: stdout from WOMTool validation
         :return: set of WdlFile sub-workflows
@@ -581,10 +594,14 @@ class Manifest:
 
     def __init__(self, src_host_path, src_dir, dest_host_path, dest_dir):
         """
-        :param src_host_path: root directory of the source globus endpoint
+        :param src_host_path: host path of the source globus endpoint
         :type src_host_path: str
-        :param dest_host_path: root directory of the destination globus endpoint
+        :param src_dir: full path to folder at source, containing infiles
+        :type src_dir: str
+        :param dest_host_path: host path of the destination globus endpoint
         :type dest_host_path: str
+        :param dest_dir: full path to folder at destination, to contain infiles
+        :type dest_dir: str
         """
         self.logger = logging.getLogger(__package__)
         self.src_host_path = src_host_path
@@ -607,10 +624,10 @@ class Manifest:
             inode_type = "D" if os.path.isdir(filepath) else "F"
 
             # virtual paths, using host_path as root
-            src_path = os.path.join("/", os.path.relpath(filepath, self.src_host_path))
+            src_path = globus_transfer_path(filepath, self.src_host_path)
+            rel_path = os.path.relpath(src_path, self.src_dir)
             dest_path = os.path.join(
-                "/",
-                os.path.relpath(self.dest_dir, self.dest_host_path),
+                globus_transfer_path(dest_dir, self.dest_host_path),
                 os.path.relpath(src_path, self.src_dir),
             )
 

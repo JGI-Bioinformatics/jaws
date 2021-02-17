@@ -196,11 +196,11 @@ def test_copy_input_files_to_destination(configuration, sample_workflow):
 def test_zipping_up_of_subworkflow_files(configuration, subworkflows_example):
     basedir = subworkflows_example
     staging_dir = os.path.join(basedir, "staging")
-    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"), "1234")
+    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"))
     submission_id="1234"
 
     staged_wdl, zip_file = jaws_client.workflow.compress_wdls(
-        wdl, submission_id, staging_dir=staging_dir
+        wdl, submission_id, output_dir=staging_dir
     )
     assert os.path.exists(staged_wdl)
     assert os.path.exists(zip_file)
@@ -211,10 +211,13 @@ def test_no_zip_file_in_manifest_if_no_subworkflows(simple_wdl_example):
     staging_dir = os.path.join(basedir, "staging")
     compute_dir = os.path.join(basedir, "compute")
 
-    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "align.wdl"), "1234")
+    # prepare WDL file
+    wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "align.wdl"))
     submission_id="1234"
     staged_wdl, zip_file = jaws_client.workflow.compress_wdls(wdl, submission_id, basedir)
-    manifest_file = jaws_client.workflow.Manifest(staging_dir, compute_dir)
+
+    # create manifest file
+    manifest_file = jaws_client.workflow.Manifest('/', staging_dir, '/', compute_dir)
     manifest_file.add(staged_wdl, zip_file)
 
     for infiles in manifest_file.manifest:
@@ -370,3 +373,16 @@ def test_nested_files_are_in_src_file_inputs():
 
     for src_file in wf_inputs.src_file_inputs:
         assert src_file in expected_file_paths
+
+def test_globus_transfer_path():
+
+    # full_path, host_path, transfer path
+    test_data = [
+        ("/a/b/c/d", "/a/b", "/c/d"),
+        ("/a/b/c/d", "/a/b/", "/c/d"),
+        ("/a/b/c/d", "/", "/a/b/c/d")
+    ]
+
+    for (full_path, host_path, expected_path) in test_data:
+        result = jaws_client.workflow.globus_transfer_path(full_path, host_path)
+        assert result == expected_path

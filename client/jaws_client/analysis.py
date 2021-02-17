@@ -320,19 +320,14 @@ def submit(wdl_file, json_file, compute_site_id, out_endpoint, out_dir):
     input_globus_endpoint = result["globus_endpoint"]
     input_globus_host_path = result["globus_host_path"]
     input_dir = result["input_dir"]
-    input_globus_dir = os.path.join(
-        "/", os.path.relpath(input_dir, input_globus_host_path)
-    )
+    input_globus_dir = workflow.globus_transfer_path(input_dir, input_globus_host_path)
 
     # GET OUTPUT INFO (by default, also local)
     if out_endpoint is None:
         # return results back to the input site
         out_endpoint = input_globus_endpoint
-        out_dir = os.path.join(
-            "/",
-            os.path.relpath(result["output_dir"], input_globus_host_path),
-            submission_id,
-        )
+        out_globus_dir = workflow.globus_transfer_path(result["output_dir"], input_globus_path)
+        out_dir = os.path.join(out_globus_dir, submission_id)
     elif out_dir is None:
         # put in the endpoint's default dir
         out_dir = submission_id
