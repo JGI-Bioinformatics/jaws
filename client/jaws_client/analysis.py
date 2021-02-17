@@ -270,13 +270,7 @@ def list_sites() -> None:
 @run.command()
 @click.argument("wdl_file", nargs=1)
 @click.argument("json_file", nargs=1)
-@click.argument("compute_site_id", nargs=1)
-@click.option("--out_endpoint", default=None, help="Globus endpoint to send output")
-@click.option(
-    "--out_dir",
-    default=None,
-    help="Directory to send output. Use abs path as if endpoint host_path is /",
-)
+@click.argument("site_id", nargs=1)
 def submit(wdl_file, json_file, compute_site_id, out_endpoint, out_dir):
     """Submit a run for execution at a JAWS-Site.
 
@@ -284,12 +278,8 @@ def submit(wdl_file, json_file, compute_site_id, out_endpoint, out_dir):
     :type wdl_file: str
     :param json_file: Path to inputgetpass.getuser()s (JSON) file
     :type json_file: str
-    :param compute_site_id: JAWS Site ID at which to run
-    :type compute_site_id: str
-    :param out_endpoint: Globus endpoint id
-    :type out_endpoint: str
-    :param out_dir: Output dir, which is an absolute path as if the endpoint's host_path is /
-    :type out_dir: str
+    :param site_id: JAWS Site ID at which to run
+    :type site_id: str
     """
     logger = logging.getLogger(__package__)
 
@@ -302,7 +292,7 @@ def submit(wdl_file, json_file, compute_site_id, out_endpoint, out_dir):
     # That is, submission_id is only used internally.
     submission_id = str(uuid.uuid4())
 
-    # GET INPUT (LOCAL) SITE INFO
+    # GET LOCAL SITE INFO
     input_site_id = config.conf.get("JAWS", "site_id")
     url = f'{config.conf.get("JAWS", "url")}/site/{input_site_id}'
     try:
@@ -321,19 +311,17 @@ def submit(wdl_file, json_file, compute_site_id, out_endpoint, out_dir):
     input_globus_host_path = result["globus_host_path"]
     input_dir = result["input_dir"]
     input_globus_dir = workflow.globus_transfer_path(input_dir, input_globus_host_path)
-
-    # GET OUTPUT INFO (by default, also local)
-    if out_endpoint is None:
-        # return results back to the input site
-        out_endpoint = input_globus_endpoint
-        out_globus_dir = workflow.globus_transfer_path(result["output_dir"], input_globus_path)
-        out_dir = os.path.join(out_globus_dir, submission_id)
-    elif out_dir is None:
-        # put in the endpoint's default dir
-        out_dir = submission_id
+    # return results back to the input site
+    out_endpoint = input_globus_endpoint
+    out_globus_dir = workflow.globus_transfer_path(
+        result["output_dir"], input_globus_path
+    )
+    # out_dir is globus transfer path not nfs path
+    # (i.e. virtual absolute path, using endpoint host_path as root)
+    out_dir = os.path.join(out_globus_dir, submission_id)
 
     # GET COMPUTE SITE INFO
-    compute_site_id = compute_site_id.upper()
+    compute_site_id = site_id.upper()
     url = f'{config.conf.get("JAWS", "url")}/site/{compute_site_id}'
     try:
         r = requests.get(url, headers=current_user.header())
