@@ -6,7 +6,7 @@ from typing import Dict
 
 DEFAULT_AMQP_PORT = 5672
 DEFAULT_RPC_MESSAGE_TTL = 5
-MAX_SITE_ID_LEN = 8
+MAX_SITE_ID_LEN = 8  # this matches the MYSQL column's varchar()
 
 
 conf = None
@@ -55,8 +55,8 @@ class Configuration(metaclass=Singleton):
         "user",
         "password",
         "vhost",
+        "globus_host_path",
         "globus_endpoint",
-        "globus_basepath",
         "uploads_subdir",
         "max_ram_gb",
     ]
@@ -115,7 +115,7 @@ class Configuration(metaclass=Singleton):
                 for key in self.config[section]:
                     self.sites[site_id][key] = self.config[section][key]
                 self.sites[site_id]["uploads_dir"] = os.path.join(
-                    self.sites[site_id]["globus_basepath"],
+                    self.sites[site_id]["globus_host_path"],
                     self.sites[site_id]["uploads_subdir"],
                 )
 
@@ -157,7 +157,7 @@ class Configuration(metaclass=Singleton):
         result = {
             "site_id": site_id,
             "globus_endpoint": s["globus_endpoint"],
-            "globus_basepath": s["globus_basepath"],
+            "globus_host_path": s["globus_host_path"],
             "uploads_subdir": s["uploads_subdir"],
             "max_ram_gb": s["max_ram_gb"],
         }

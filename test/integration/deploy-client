@@ -111,7 +111,7 @@ shared_endpoint_group = $SITE_CLIENT_GROUP
 [GLOBUS]
 client_id = $JAWS_GLOBUS_CLIENT_ID
 endpoint_id = $SITE_GLOBUS_EP
-basedir = $SITE_GLOBUS_ROOT_DIR
+host_path = $SITE_GLOBUS_HOST_PATH
 EOM
 
 chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf

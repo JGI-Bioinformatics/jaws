@@ -5,8 +5,11 @@ Analysis (AKA Run) REST endpoints.
 import logging
 from datetime import datetime, timedelta
 from flask import abort, request
-import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
+import globus_sdk
+
+import jaws_central.globus
+
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
@@ -14,6 +17,7 @@ from jaws_central.models_fsa import db, Run, User, Run_Log
 
 
 logger = logging.getLogger(__package__)
+
 
 run_active_states = [
     "created",
@@ -27,6 +31,7 @@ run_active_states = [
     "ready",
     "downloading",
 ]
+
 
 run_pre_cromwell_states = [
     "created",
@@ -228,6 +233,8 @@ def submit_run(user):
     output_endpoint = request.form.get("output_endpoint")
     output_dir = request.form.get("output_dir")
     compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
+    globus = jaws_central.globus.GlobusService()
+
     if compute_endpoint is None:
         logger.error(
             f"Received run submission from {user} with invalid computing site ID: {site_id}"
@@ -265,12 +272,17 @@ def submit_run(user):
     # These are all placed in a common location with setgid sticky bits so that all
     # submitting users have access.
     output_dir += f"/{user}/{site_id}/{run.id}"
+    src_host_path = config.conf.get_site(input_site_id, "globus_host_path")
+
+    # We modify the output dir path since we know the endpoint of the returning source site. From here
+    # a compute site can simply query the output directory and send.
+    virtual_output_path = globus.virtual_transfer_path(output_dir, src_host_path)
 
     # Due to how the current database schema is setup, we have to update the output
     # directory from the model object itself immediately after insert.
     # TODO: Think of a better way to do this
     try:
-        run.output_dir = output_dir
+        run.output_dir = virtual_output_path
     except Exception as error:
         db.session.rollback()
         err_msg = f"Unable to update output_dir in db: {error}"
@@ -286,38 +298,17 @@ def submit_run(user):
     logger.debug(f"Updating output dir for run_id={run.id}")
 
     # SUBMIT GLOBUS TRANSFER
-    try:
-        transfer_client = authorize_transfer_client()
-    except globus_sdk.GlobusAPIError as error:
-        run.status = "upload failed"
-        db.session.commit()
-        logger.error(f"Error getting Globus transfer client: {error}")
-        abort(500, f"Globus error: {error}")
-    tdata = globus_sdk.TransferData(
-        transfer_client,
-        input_endpoint,
-        compute_endpoint,
-        label=f"Upload run {run.id}",
-        sync_level="checksum",
-        verify_checksum=True,
-        preserve_timestamp=True,
-        notify_on_succeeded=False,
-        notify_on_failed=True,
-        notify_on_inactive=True,
-        skip_activation_check=False,
-    )
     manifest_file = request.files["manifest"]
-    manifest = manifest_file.read().splitlines()
-    for line in manifest:
-        line = line.decode("UTF-8")
-        source_path, dest_path, inode_type = line.split("\t")
-        logger.debug(f"add transfer: {source_path} -> {dest_path}")
-        if inode_type == "D":
-            tdata.add_item(source_path, dest_path, recursive=True)
-        else:
-            tdata.add_item(source_path, dest_path, recursive=False)
+    host_paths = {}
+    host_paths["src"] = src_host_path
+    host_paths["dest"] = config.conf.get_site(site_id, "globus_host_path")
+
     try:
-        transfer_result = transfer_client.submit_transfer(tdata)
+        transfer_result = globus.submit_transfer(f"Upload run {run.id}",
+                                                 host_paths,
+                                                 input_endpoint,
+                                                 compute_endpoint,
+                                                 manifest_file)
     except globus_sdk.GlobusAPIError as error:
         run.status = "upload failed"
         db.session.commit()
@@ -335,6 +326,7 @@ def submit_run(user):
             )
         else:
             logger.exception(
+
                 f"{user} submission {run.id} failed for GlobusAPIError: {error}",
                 exc_info=True,
             )
@@ -351,6 +343,7 @@ def submit_run(user):
             exc_info=True,
         )
         abort(500, f"Unexpected error: {error}")
+
     upload_task_id = transfer_result["task_id"]
     logger.debug(f"User {user}: Run {run.id} upload {upload_task_id}")
 

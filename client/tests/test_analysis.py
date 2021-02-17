@@ -326,12 +326,14 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     inputs = os.path.join(root, "workflow", "sample.json")
 
     def get_site(url, headers=None):
-        body = {
-            "globus_basepath": "/NERSC/globus",
-            "uploads_subdir": "/NERSC/globus/staging",
-            "max_ram_gb": "256",
+        result = {
+            "site_id": "CORI",
+            "globus_endpoint": "abcdeqerawr13423sdasd",
+            "globus_host_path": "/",
+            "uploads_subdir": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads",
+            "max_ram_gb": 1024,
         }
-        return MockResult(body, 200)
+        return MockResult(result, 200)
 
     def mock_post(url, data=None, files=None, headers={}):
         return MockResult({"run_id": "36"}, 201)
@@ -344,5 +346,5 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     monkeypatch.setattr(jaws_client.workflow, 'is_file_accessible', mock_is_file_accessible)
 
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["submit", wdl, inputs, "NERSC"])
+    result = runner.invoke(run, ["submit", wdl, inputs, "CORI"])
     assert result.exit_code == 0
