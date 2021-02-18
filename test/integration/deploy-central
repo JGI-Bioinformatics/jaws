@@ -158,6 +158,7 @@ port = $JAWS_CENTRAL_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JAWS_$A_SITE
 globus_host_path = $A_SITE_GLOBUS_HOST_PATH
+globus_endpoint = $A_SITE_GLOBUS_EP
 uploads_subdir = $A_SITE_UPLOADS_SUBDIR
 max_ram_gb = $A_SITE_MAX_RAM_GB
 "
