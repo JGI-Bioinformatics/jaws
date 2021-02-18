@@ -275,11 +275,16 @@ class WdlFile:
         :param output: stdout from WOMTool validation
         :return: set of WdlFile sub-workflows
         """
+        # some stdout text include original input for
+        # subprocess.run. This attempts to match and filter out that output
+        # eg. ['/usr/local/anaconda3/bin/java', '-Xms512m', ...]
+        command_line_regex = r"\[.*\]"
         out = output.splitlines()
         filtered_out_lines = ["Success!", "List of Workflow dependencies is:", "None"]
         subworkflows = set()
         for sub in out:
-            if sub not in filtered_out_lines:
+            match = re.search(command_line_regex, sub)
+            if sub not in filtered_out_lines and not match:
                 subworkflows.add(WdlFile(sub, self.submission_id))
         return subworkflows
 

@@ -64,8 +64,7 @@ variables:
   ## SITE-SPECIFIC VARIABLES:
   CORI_INSTALL_BASEDIR: "/tmp"
   CORI_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
-  CORI_GLOBUS_ROOT_DIR: "/"
-  CORI_GLOBUS_DEFAULT_DIR: "~"
+  CORI_GLOBUS_HOST_PATH: "/"
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
   CORI_JTM_RMQ_HOST: "rmq.lbl.gov"
@@ -95,8 +94,7 @@ variables:
 
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
   JGI_GLOBUS_EP: "e8b18c38-36cd-11eb-b54c-02d9497ca481"
-  JGI_GLOBUS_ROOT_DIR: "/"
-  JGI_GLOBUS_DEFAULT_DIR: "~"
+  JGI_GLOBUS_HOST_PATH: "/global/scratch/jaws"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
   JGI_JTM_RMQ_HOST: "rmq.lbl.gov"
@@ -126,8 +124,7 @@ variables:
 
   CASCADE_INSTALL_BASEDIR: "/tmp"
   CASCADE_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
-  CASCADE_GLOBUS_ROOT_DIR: "/"
-  CASCADE_GLOBUS_DEFAULT_DIR: "/"
+  CASCADE_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
   CASCADE_RMQ_HOST: "localhost"
   CASCADE_RMQ_PORT: 5672
   CASCADE_JTM_RMQ_HOST: "localhost"

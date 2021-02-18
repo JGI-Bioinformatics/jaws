@@ -5,57 +5,7 @@ from datetime import datetime
 import jaws_central.analysis
 import jaws_central.models_fsa
 import jaws_central.config
-
-
-@pytest.fixture
-def config_file(tmp_path):
-    cfg = tmp_path / "jaws-central.ini"
-    content = """[JAWS]
-name = jaws-dev
-version = 2.0.1
-docs_url = https://jaws-docs.readthedocs.io/en/latest/
-
-[RPC_SERVER]
-user = jaws
-password = pppaass4
-vhost = jaws_test
-
-[DB]
-dialect = mysql+mysqlconnector
-host = db.foo.com
-port = 3306
-user = jaws
-password = passw0rd1
-db = jaws
-
-[GLOBUS]
-client_id = AAAA
-client_secret = BBBB
-
-[SITE:LBNL]
-host = rmq.jaws.gov
-user = jaws
-password = passw0rd2
-vhost = jaws
-queue = lbnl_rpc
-globus_endpoint = XXXX
-globus_basepath = "/global/scratch/jaws"
-uploads_subdir = "uploads"
-max_ram_gb = 1024
-
-[SITE:NERSC]
-host = rmq.jaws.gov
-user = jaws
-password = passw0rd2
-vhost = jaws
-queue = nersc_rpc
-globus_endpoint = YYYY
-globus_basepath = "/"
-uploads_subdir = "/global/scratch/jaws/uploads"
-max_ram_gb = 2048
-"""
-    cfg.write_text(content)
-    return cfg.as_posix()
+import jaws_central.globus
 
 
 class MockClient:
@@ -163,18 +113,15 @@ def mock_globus(monkeypatch):
     monkeypatch.setattr(globus_sdk, "TransferClient", MockGlobusTransferClient)
 
 
-@pytest.fixture()
-def configuration(config_file):
-    return jaws_central.config.Configuration(config_file)
-
-
 def test_list_sites(configuration):
     user = "test_user"
     result, code = jaws_central.analysis.list_sites(user)
+    expected_sites = ["JGI", "NERSC"]
     assert isinstance(result, list)
     for site in result:
         assert isinstance(site, dict)
         assert 'site_id' in site
+        assert site['site_id'] in expected_sites
         assert 'max_ram_gb' in site
 
 
@@ -218,3 +165,18 @@ def test_run_metadata(monkeypatch):
     )
     monkeypatch.setattr(jaws_central.analysis, "_rpc_call", mock_rpc_call)
     jaws_central.analysis.run_metadata("test_user", 123)
+
+
+def test_globus_transfer_path(configuration):
+    globus = jaws_central.globus.GlobusService()
+    test_data = [
+        ("/global/cscratch1/sd/jaws/jaws-dev/users/mamelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl", "/", "/global/cscratch1/sd/jaws/jaws-dev/users/mamelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl"),  # noqa: E501
+        ("/global/scratch/jaws/jaws-dev/uploads/mmelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl", "/global/scratch/jaws", "/jaws-dev/uploads/mmelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl"),  # noqa: E501
+        ("/global/cscratch1/sd/jaws/jaws-dev/users/mamelara/CORI/global/u2/m/mamelara/jaws-quickstart-example/data/sample.fastq.bz2", "/", "/global/cscratch1/sd/jaws/jaws-dev/users/mamelara/CORI/global/u2/m/mamelara/jaws-quickstart-example/data/sample.fastq.bz2"),  # noqa: E501
+        ("/global/scratch/jaws/jaws-dev/uploads/mmelara/CORI/global/u2/m/mamelara/jaws-quickstart-example/data/sample.fastq.bz2", "/global/scratch/jaws", "/jaws-dev/uploads/mmelara/CORI/global/u2/m/mamelara/jaws-quickstart-example/data/sample.fastq.bz2"),  # noqa: E501
+        ("/global/cfs/cdirs/jaws/data-repository-dev/mmelara/CORI/5247", "/", "/global/cfs/cdirs/jaws/data-repository-dev/mmelara/CORI/5247"),  # noqa: E501
+        ("/global/scratch/jaws/data-repository-dev/mmelara/JGI/3593", "/global/scratch/jaws", "/data-repository-dev/mmelara/JGI/3593")  # noqa: E501
+    ]
+    for (full_path, host_path, expected_path) in test_data:
+        result = globus.virtual_transfer_path(full_path, host_path)
+        assert result == expected_path

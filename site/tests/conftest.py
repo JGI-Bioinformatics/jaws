@@ -18,7 +18,6 @@ user = jaws
 password = passw0rd1
 num_threads = 5
 max_retries = 3
-
 [CENTRAL_RPC_SERVER]
 host = currenthost
 vhost = jaws_test
@@ -27,21 +26,17 @@ user = jaws_eagle
 password = succotash
 num_threads = 5
 max_retries = 3
-
 [CENTRAL_RPC_CLIENT]
 host = currenthost
 vhost = jaws_test
 queue = central_rpc
 user = jaws_eagle
 password = succotash
-
 [GLOBUS]
 client_id = AAAA
 client_secret = BBBB
 endpoint_id = rooster
-root_dir = cwd
-default_dir = /
-
+host_path = /global/scratch/jaws
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
@@ -49,14 +44,12 @@ port = 60032
 user = elmer_fudd
 password = hunting
 db = hunting_sites
-
 [CROMWELL]
 url = http://localhost:8000
-
 [SITE]
 id = eagle
-uploads_subdirectory = uploads
-downloads_subdirectory = downloads
+uploads_subdirectory = /global/scratch/jaws/jaws-dev/uploads
+downloads_subdirectory = /global/scratch/jaws/jaws-dev/downloads
 """
 
     cfg.write_text(content)
@@ -72,20 +65,16 @@ vhost = jaws_test
 user = bugs_bunny
 password = xqweasdasa
 max_retries = 10
-
 [CENTRAL_RPC_CLIENT]
 host = https://rmq.nersc.gov
 user = bugs_bunny
 password = xqweasdasa
 vhost = jaws_test
-
 [GLOBUS]
 client_id = AAAA
 client_secret = BBBB
 endpoint_id = rooster
-root_dir = cwd
-default_dir = /
-
+host_path = /global/scratch/jaws
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
@@ -93,17 +82,14 @@ port = 60032
 user = elmer_fudd
 password = hunting
 db = hunting_sites
-
 [LOCAL_RPC_SERVER]
 vhost = jaws_test
-
 [CROMWELL]
 url = http://localhost:8000
-
 [SITE]
 id = eagle
-uploads_subdirectory = uploads
-downloads_subdirectory = downloads
+uploads_subdirectory = /global/scratch/jaws/jaws-dev/uploads
+downloads_subdirectory = /global/scratch/jaws/jaws-dev/downloads
     """
     cfg.write_text(content)
     return cfg.as_posix()

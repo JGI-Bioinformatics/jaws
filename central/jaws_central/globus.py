@@ -1,7 +1,7 @@
 import logging
 import os
 import globus_sdk
-import jaws_site.config
+import jaws_central.config
 
 
 logger = logging.getLogger(__package__)
@@ -15,9 +15,7 @@ class GlobusService:
     """
 
     def __init__(self):
-        self.globus_config = jaws_site.config.Configuration()
-        self.endpoint_id = self.globus_config.get("GLOBUS", "endpoint_id")
-        self.host_path = self.globus_config.get("GLOBUS", "host_path")
+        self.globus_config = jaws_central.config.Configuration()
 
     def _authorize_transfer_client(self):
         """
@@ -68,34 +66,50 @@ class GlobusService:
             raise ValueError(f"Path, {full_path}, is not accessible via Globus endpoint")
         return os.path.join("/", os.path.relpath(full_path, host_path))
 
-    def submit_transfer(self, label, dest_endpoint, src_dir, dest_dir):
+    def submit_transfer(self, label, host_paths, src_endpoint, dest_endpoint, manifest_file):
         """
         Submit a transfer to Globus
 
         :param label: label for the data transfer
+        :param host_paths: a dictionary that includes source host path and compute host path. This is used to modify
+        the paths and create virtual transfer paths.
+        :param src_endpoint: globus source endpoint UUID
         :param dest_endpoint: destination endpoint UUID
-        :param src_dir: source directory
-        :param dest_dir: destination directory
+        :param manifest_file: manifest of all the files to be transferred
         :return:
         """
         logger.debug(f"Globus xfer {label}")
 
+        src_host_path = host_paths["src"]
+        dest_host_path = host_paths["dest"]
+
         transfer_client = self._create_transfer_client()
+
         tdata = globus_sdk.TransferData(
             transfer_client,
-            self.endpoint_id,
+            src_endpoint,
             dest_endpoint,
             label=label,
-            sync_level="mtime",
-            verify_checksum=False,
+            sync_level="checksum",
+            verify_checksum=True,
             preserve_timestamp=True,
             notify_on_succeeded=False,
-            notify_on_failed=False,
-            notify_on_inactive=False,
-            skip_activation_check=True,
+            notify_on_failed=True,
+            notify_on_inactive=True,
+            skip_activation_check=False,
         )
 
-        virtual_src_path = self.virtual_transfer_path(src_dir, self.host_path)
-        tdata.add_item(virtual_src_path, dest_dir, recursive=True)
+        for line in manifest_file:
+            line = line.decode("UTF-8")
+            source_path, dest_path, inode_type = line.split("\t")
+            logger.debug(f"add transfer: {source_path} -> {dest_path}")
+            virtual_src_path = self.virtual_transfer_path(source_path, src_host_path)
+            virtual_dest_path = self.virtual_transfer_path(dest_path, dest_host_path)
+
+            if inode_type == "D":
+                tdata.add_item(virtual_src_path, virtual_dest_path, recursive=True)
+            else:
+                tdata.add_item(virtual_src_path, virtual_dest_path, recursive=False)
+
         transfer_result = transfer_client.submit_transfer(tdata)
         return transfer_result["task_id"]
