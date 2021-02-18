@@ -21,24 +21,16 @@ import pytest
 import time
 import configparser
 import glob
-import parsing_functions as pf
-
-
-# get some environmental vars
-config = configparser.ConfigParser()
-config.read(os.environ.get('MYINI_FILE'))
-
-WDL        = config['wdl']['wdl']
-INPUT_JSON = config['wdl']['input_json']
-ENV        = config['wdl']['env']
-OUTDIR     = config['wdl']['outdir']
-SITE       = config['wdl']['site']
+import submission_utils as util
+ 
+check_tries = 50
+check_sleep = 60
 
 #########################
 ###     Functions     ###
 #########################
 
-def test_task_status(submit_wdl_and_wait):
+def test_task_status(env,submit_subworkflow_alignment):
     """
     # task-status verifies all subworkflows task status was shown
     #
@@ -49,16 +41,19 @@ def test_task_status(submit_wdl_and_wait):
     main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams 1	46809	running	success	2021-02-08 20:54:37  The job completed successfully
     main_wdl.bam_stats	                              1	46810	running	success	2021-02-08 20:56:36  The job completed successfully
     """
-    run_id = submit_wdl_and_wait['run_id']
+    run_id = submit_subworkflow_alignment['run_id']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+
     time.sleep(60)  # wait some time before running task-status since there is some lag between 
                     # when "jaws run status" calls success and when "jaws run task-status" calls success.
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s | tail -n+2" % (ENV,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s | tail -n+2" % (env,run_id)
+    (r,o,e) = util.run(cmd)
 
     # put the table into a dictionary
     task_names = []
     status_to = []
-    line_list = o.split("\n")
+    #print(f"{}\n")
+    line_list = o.split("\n") 
     line_list = list(filter(None, line_list))  # remove empty element
     for i in line_list:
         task_names.append(i.split("\t")[0])
@@ -70,7 +65,7 @@ def test_task_status(submit_wdl_and_wait):
     # make sure all tasks completed with success
     assert len(list(filter(lambda x: (x == 'success'),status_to))) == 5
     
-def test_task_log(submit_wdl_and_wait):
+def test_task_log(env,submit_subworkflow_alignment):
     """
     Test that all subworkflow tasks are represented by the task-log command
 
@@ -101,11 +96,13 @@ def test_task_log(submit_wdl_and_wait):
     main_wdl.bam_stats	1	46892	pending	running	2021-02-09 22:07:30
     main_wdl.bam_stats	1	46892	running	success	2021-02-09 22:07:31
     """
-    run_id = submit_wdl_and_wait['run_id']
+    run_id = submit_subworkflow_alignment['run_id']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+
     time.sleep(60)  # wait some time before running task-status since there is some lag between 
                     # when "jaws run status" calls success and when "jaws run task-status" calls success.
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s | tail -n+2" % (ENV,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s | tail -n+2" % (env,run_id)
+    (r,o,e) = util.run(cmd)
 
     # put the table into a dictionary
     task_names = []
@@ -117,7 +114,7 @@ def test_task_log(submit_wdl_and_wait):
     # check that the subworkflows tasks are in the list
     assert len(task_names) == 25
 
-def test_for_raw_cromwell_files():
+def test_for_raw_cromwell_files(env,submit_subworkflow_alignment):
     """ 
     test that raw cromwell subworkflow files are returned to user defined output dir.
 
@@ -129,35 +126,46 @@ def test_for_raw_cromwell_files():
 
         out/call-bbmap_shard_wf/align.bbmap_shard_wf/c9f67f71-1acd-4d8c-8879-14b7b1a28b54/call-shard/execution/rc
     """
-    cmd = "find %s/call-bbmap_shard_wf/align.bbmap_shard_wf -name rc -exec cat {} \\; | grep -c 0" % (OUTDIR)
-    (o,e,r) = pf.submit_cmd(cmd)
+    run_id = submit_subworkflow_alignment['run_id']
+    outdir = submit_subworkflow_alignment['output_dir']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+
+    cmd = "find %s/call-bbmap_shard_wf/align.bbmap_shard_wf -name rc -exec cat {} \\; | grep -c 0" % (outdir)
+    (r,o,e) = util.run(cmd)
 
     # make sure all 4 of our "rc" files returned 0
     assert int(o.strip()) == 4
 
 
-def test_saved_subwdl(submit_wdl_and_wait):
+def test_saved_subwdl(env,submit_subworkflow_alignment):
     """
     subworkflow WDLs are saved in the user defined output dir
 
     """
-    submission_id = submit_wdl_and_wait['submission_id']
-    zip_file = os.path.join(OUTDIR,submission_id + ".zip")
+    run_id        = submit_subworkflow_alignment['run_id']
+    outdir        = submit_subworkflow_alignment['output_dir']
+    submission_id = submit_subworkflow_alignment['submission_id']
+
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+
+    zip_file = os.path.join(outdir,submission_id + ".zip")
 
     assert os.path.exists(zip_file)
 
     cmd = "unzip -l %s" % (zip_file)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
     assert "alignment.wdl" in o
 
 
-def test_subworkflow_metadata(submit_wdl_and_wait):
+def test_subworkflow_metadata(env,submit_subworkflow_alignment):
     """
     metadata command also returns cromwell metadata for subworkflows
     """
-    run_id = submit_wdl_and_wait['run_id']
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run metadata %s" % (ENV,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    run_id        = submit_subworkflow_alignment['run_id']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run metadata %s" % (env,run_id)
+    (r,o,e) = util.run(cmd)
     meta_output = json.loads(o)
 
     # make sure metadata returns these calls

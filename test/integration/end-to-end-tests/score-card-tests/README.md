@@ -15,7 +15,7 @@ To create the venv environment you can do
 module load python
 python --version
 
-# create a venv
+# creating the venv
 python -m venv pytest_venv
 source pytest_venv/bin/activate
 pip install -r requirements.txt
@@ -23,6 +23,9 @@ pip install -r requirements.txt
 
 This is how I created the requirements file
 `pip freeze > requirements.txt`
+
+To use the requirements.txt file to create a venv:
+`pip install -r requirements.txt`
 
 ## Run a test
 ```

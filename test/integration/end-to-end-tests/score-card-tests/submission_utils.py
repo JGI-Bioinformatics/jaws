@@ -1,4 +1,4 @@
-import os
+import os,sys
 import json
 import pytest
 import time
@@ -11,6 +11,8 @@ def run(cmd):
 
     stdout,stderr=output.communicate()
     rc=output.returncode
+    if rc:
+        sys.stderr.write("Error: This command returned an error code greater than 0: \n%s\n%s" % (cmd,stderr))
 
     return rc,stdout,stderr
 
@@ -30,31 +32,36 @@ def submit_wdl(env, wdl, input_json, outdir, site):
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
     # activation command causes an error when we try to do json load later
 
-    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1  && jaws run submit %s %s %s %s" % (env, wdl, input_json, outdir, site)
-    # print(cmd)  used for debugging
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s %s %s" % (env, wdl, input_json, outdir, site)
     (rc, stdout, stderr) = run(cmd)
     if rc > 0:
-        pytest.exit("stderr: %s    stdout: " % stderr, stdout)
+        if stderr:
+            pytest.exit("stderr: %s" % stderr)
+        if stdout:
+            pytest.exit("stdout: %s" % stdout)
+        else:
+            pytest.exit("The return code from the command below returned something > 0. There was no stderr accompaning this failure. \n%s" % cmd)
 
     assert rc == 0
     data = json.loads(stdout)
 
-    # uncomment for testing
+
     """
+    # uncomment for testing
     data={
-       "output_dir": "fq_count_out",
+       "output_dir": "alignment_subworkflow_out",
        "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
-       "run_id": 16809,
+       "run_id": 16906,
        "site_id": "CORI",
        "status": "uploading",
-       "submission_id": "47a555c7-07a6-442c-a2f1-d0319f2e3008",
+       "submission_id": "e7ef7456-bf05-4e12-ba3d-cd4e06727922",
        "upload_task_id": "444ac0b8-60f0-11eb-9905-0aa9ddbe2755"
     }
     """
 
     return data
 
-def wait_for_run(env,run_id,check_tries,check_wait):
+def wait_for_run(env,run_id,check_tries,check_sleep):
     """ Wait for all the runs in run_ids list to finish."""
     tries = 1 
     while tries <= check_tries:

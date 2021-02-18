@@ -35,7 +35,10 @@ import sys
 import os
 import json
 import re
-import parsing_functions as pf
+import submission_utils as util
+
+check_tries = 50
+check_sleep = 60
 
 #########################
 ###     Functions     ###
@@ -43,7 +46,7 @@ import parsing_functions as pf
 #
 # Test functions for verification of jaws log commands (log,task-log,status,task-status).
 #
-def test_jaws_run_log(env,submit_wdl_and_wait):
+def test_jaws_run_log(env,submit_fq_count_wdl):
     """ * State (eg ready, uploading, submitted, running, succeeded, downloading, finished, failed) => jaws run log
         * Information since when run is in said state jaws run status: updated
         * A list of transitions between states (entered state at time, left state at time) =>  jaws run log
@@ -62,10 +65,11 @@ def test_jaws_run_log(env,submit_wdl_and_wait):
         downloading	download complete  2021-02-02 22:08:54
     """
 
-    run_id = submit_wdl_and_wait['run_id']
+    run_id = submit_fq_count_wdl['run_id']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
     
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run log %s | tail -n+2" % (env,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
     stages = []
     line_list = o.split("\n")
     line_list = list(filter(None, line_list))  # remove empty element
@@ -102,11 +106,11 @@ def test_jaws_run_log(env,submit_wdl_and_wait):
 
     # test that an output directory was displayed 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
     data = json.loads(o)
     assert os.path.exists(data['output_dir'])
     
-def test_jaws_run_task_log(env,submit_wdl_and_wait):
+def test_jaws_run_task_log(env,submit_fq_count_wdl):
     """ 
         TESTCASE-3
         Task level info
@@ -126,10 +130,11 @@ def test_jaws_run_task_log(env,submit_wdl_and_wait):
     """
 
 
-    run_id = submit_wdl_and_wait['run_id']
+    run_id = submit_fq_count_wdl['run_id']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
     
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s | tail -n+2" % (env,run_id)
-    (o,e,r) = pf.submit_cmd(cmd)
+    (r,o,e) = util.run(cmd)
     stages_from = []
     stages_to = []
     times = []
