@@ -199,8 +199,8 @@ def set_env_vars(deploy_config_file, services):
         service_name = get_service_name_from_service(service)
         if service_name in services_to_install and service[service_name].get('environment'):
             this_env_vars_not_defined = add_env(service[service_name]['environment'], env_var_list)
-    if this_env_vars_not_defined:
-        env_vars_not_defined = True
+            if this_env_vars_not_defined:
+                env_vars_not_defined = True
 
     # If any environment variable is not set, exit
     if env_vars_not_defined:
@@ -225,7 +225,7 @@ def parse_filename_from_services(services, keyname, service_name=None):
     :param keyname: keyname in dict structure to get filename
     :type: string
     :return files: list of filenames
-    :rtype; list
+    :rtype: list
     """  # noqa
     files = []
     for service in services:
@@ -349,7 +349,7 @@ def main():
         deploy_config_file = os.path.join(ROOT_DIR, "deploy-cori.yml")
 
     if not os.path.isfile(deploy_config_file):
-        raise SystemExit(f"Cannot find {deploy_config_file} file.")
+        raise SystemExit(f"Cannot find deploy config file {deploy_config_file}.")
 
     # Validate inputs for service names.
     if not validate_service_inputs(deploy_config_file, input_services):
