@@ -24,14 +24,20 @@ services:
       config_template: templates/jtm/jaws-jtm.conf
       config_output: $JAWS_INSTALL_DIR/configs/jaws-jtm.conf
       deploy_script: templates/jtm/deploy-jaws-jtm
+  - jaws_monitor:
+      config_template: templates/monitor/jaws-monitor.conf
+      config_output: $JAWS_INSTALL_DIR/configs/jaws-monitor.conf
+      deploy_script: templates/monitor/deploy-jaws-monitor
   - supervisor_jaws:
       deploy_script: templates/supervisor/deploy-supervisor-jaws
   - supervisor_jtm:
       deploy_script: templates/supervisor/deploy-supervisor-jtm
+  - supervisor_monitor:
+      deploy_script: templates/supervisor/deploy-supervisor-monitor
 
 service_group:
   all: [client, central, site, cromwell, jtm, supervisor_jaws, supervisor_jtm]
-  supervisor: [supervisor_jaws, supervisor_jtm]
+  monitor: [jaws_monitor, supervisor_monitor]
 
 environment:
   JAWS_INSTALL_DIR:
@@ -165,3 +171,7 @@ environment:
   JAWS_SUPERVISOR_INSTALL_DIR: $JAWS_INSTALL_DIR/supervisor
   JAWS_SUPERVISOR_JAWS_PORT: 9001
   JAWS_SUPERVISOR_JTM_PORT: 9010
+
+  JAWS_MONITOR_GROUP_PERMISSON: ''
+  JAWS_MONITOR_HOST: 0.0.0.0
+  JAWS_MONITOR_PORT: 9180
