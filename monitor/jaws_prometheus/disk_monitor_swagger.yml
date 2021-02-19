@@ -1,0 +1,23 @@
+swagger: "2.0"
+
+info:
+  title: JAWS (JGI Analysis Workflows Service)
+  description: Definition of REST API for JGI Analysis Workflows Service
+  version: "2.0"
+consumes:
+  - application/json
+produces:
+  - application/json
+basePath: /api/v2
+
+paths:
+  /disk_free_pct:
+    get:
+      operationId: disk_monitor.disk_free
+      summary: Status of JAWS services
+      responses:
+        200:
+          description: OK
+        500:
+          description: System is down
+      security: []
