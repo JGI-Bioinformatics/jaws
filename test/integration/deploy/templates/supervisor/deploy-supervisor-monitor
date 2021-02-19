@@ -1,0 +1,179 @@
+#!/bin/bash
+
+set -eo pipefail
+
+deploy_name=$JAWS_DEPLOY_NAME
+deploy_central=$JAWS_DEPLOY_CENTRAL
+deploy_site=$JAWS_DEPLOY_SITE
+shim_dir=$JAWS_INSTALL_DIR/shims
+supervisor_dir=$JAWS_SUPERVISOR_INSTALL_DIR
+supervisor_user=$JAWS_SUPERVISOR_USERNAME
+supervisor_pwd=$JAWS_SUPERVISOR_PWD
+supervisor_inet_http_server=$JAWS_SUPERVISOR_INET_HTTP_SERVER
+supervisor_ctl_url=$JAWS_SUPERVISOR_CTL_URL
+supervisor_port=$JAWS_SUPERVISOR_JAWS_PORT
+supervisor_config=$supervisor_dir/supervisord-monitor.conf
+
+
+## PERMISSIONS
+function fix_perms() {
+    local dir=$1
+    local group=$2
+    chmod -R a+rX $dir
+    chmod -R ug+rwX $dir
+    [[ ! -z $group ]] && chgrp -R $group $dir
+    if [[ -d $dir ]]; then
+        find $dir -type d -exec chmod g+s '{}' \;
+    fi
+}
+
+## Function to get supervisord pid
+function get_supervisord_pid() {
+    local config_file=$1
+    local uname=$(whoami)
+    pid=$(ps aux | \
+        grep $uname | \
+        grep supervisord | \
+        grep $supervisor_dir | \
+        grep $config_file |  \
+        grep -v grep | \
+        awk '{print $2}'
+    )
+    echo "$pid"
+}
+
+
+## Function to start supervisord
+function start_supervisord() {
+    local config_file=$1
+    pid=$(get_supervisord_pid $config_file)
+    if [[ -z $pid ]]; then
+        echo "Starting supervisord ..."
+        cmd="$supervisor_dir/bin/supervisord -c $config_file"
+        echo $cmd
+        eval $cmd
+    fi
+}
+
+
+## Function to kill supervisord
+function shutdown_supervisord() {
+    local config_file=$1
+    pid=$(get_supervisord_pid $config_file)
+    if [[ ! -z $pid ]]; then
+        echo "Existing supervisord process found (pid=$pid) ... shutting down."
+        cmd="$supervisor_dir/bin/supervisorctl -c $config_file stop all"
+        echo $cmd
+        eval $cmd
+        cmd="kill -s SIGTERM $pid"
+        echo $cmd
+        eval $cmd
+    fi
+}
+
+
+## Function to create supervisor config
+function generate_supervisor_config() {
+    local config_file=$1
+    local programs=()
+    cat << EOM > $config_file
+[inet_http_server]
+port=$supervisor_inet_http_server:$supervisor_port
+username=$supervisor_user
+password=$supervisor_pwd
+
+[supervisord]
+logfile=$supervisor_dir/jaws-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile=$supervisor_dir/jaws-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-jaws-$deploy_name
+directory=$supervisor_dir
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=$supervisor_ctl_url:$supervisor_port
+username=$supervisor_user
+password=$supervisor_pwd
+prompt=supervisor-jaws-$deploy_name
+
+;----- Program Section
+[program:jaws-prometheus]
+command=$shim_dir/jaws-prometheus
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+
+[group:jaws-$deploy_name]
+programs=jaws-prometheus
+priority=999
+EOM
+
+}
+
+## Function to generate supervisor executables.
+function generate_shim() {
+    prog=$1
+    cat <<EOM > $supervisor_dir/bin/$prog
+#!/usr/bin/env bash
+
+source $supervisor_dir/venv/bin/activate
+
+$prog \$@
+EOM
+chmod +x $supervisor_dir/bin/$prog
+}
+
+
+## Make directory if neccessary
+test -d $supervisor_dir || mkdir $supervisor_dir
+test -d $supervisor_dir/bin || mkdir $supervisor_dir/bin
+
+
+## Make python virtualenv if not exists and install supervisor
+if [[ ! -f $supervisor_dir/venv ]]; then
+    python3 -m venv $supervisor_dir/venv && \
+    source $supervisor_dir/venv/bin/activate && \
+    pip install supervisor
+fi
+
+## Create supervisor cmds
+generate_shim supervisord
+generate_shim supervisorctl
+
+
+## Shutdown supervisord for jaws if already running. Here, running "supervisorctl reread" doesn't
+## work if the install dir containing supervisor is deleted and rebuilt
+if [[ -f $supervisor_config ]]; then
+    shutdown_supervisord $supervisor_config
+    sleep 10 # wait for process to terminate
+    rm $supervisor_config
+fi
+
+
+## Create supervisor config
+generate_supervisor_config $supervisor_config
+
+
+## Start supervisor daemon if not already running
+start_supervisord $supervisor_config
+
+
+## Start jaws processes
+pid=$(get_supervisord_pid $supervisor_config)
+if [[ ! -z $pid && -f $supervisor_config ]]; then
+    cmd="$supervisor_dir/bin/supervisorctl -c $supervisor_config reread"
+    echo $cmd && eval $cmd
+    cmd="$supervisor_dir/bin/supervisorctl -c $supervisor_config start jaws-$deploy_name:*"
+    echo $cmd && eval $cmd
+fi
