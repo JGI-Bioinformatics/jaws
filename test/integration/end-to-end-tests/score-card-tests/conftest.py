@@ -5,6 +5,13 @@ import smtplib
 import time
 import submission_utils as util
 
+@pytest.fixture(scope="session",autouse=True)
+def test_for_all_args(request):
+    env = request.config.getoption("--env")
+    site = request.config.getoption("--site")
+    if not env or not site: 
+        pytest.exit("Error: You are missing some arguments?\nUsage: pytest -n <number of tests in parallel> --capture=<[yes|no]> --verbose --env <[prod|staging|dev]> --site <[cori|jgi]> <directory or file>")
+
 @pytest.fixture(scope="session")
 def submit_fq_count_wdl(request):
     wdl = "./WDLs/fq_count.wdl"
