@@ -55,11 +55,6 @@ import time
 import json
 import configparser
 from prometheus_client import start_http_server, Gauge
-
-import sys
-ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0, os.path.join(ROOT_DIR, '../../rpc'))
-
 from jaws_rpc import rpc_client
 
 
