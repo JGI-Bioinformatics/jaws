@@ -55,6 +55,11 @@ import time
 import json
 import configparser
 from prometheus_client import start_http_server, Gauge
+
+#import sys
+#ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+#sys.path.insert(0, os.path.join(ROOT_DIR, '../../rpc'))
+
 from jaws_rpc import rpc_client
 
 
@@ -140,7 +145,8 @@ def get_services(config):
 
         # Add monitoring for services that uses RMQ/RPC
         elif section.startswith('RMQ:'):
-            services[section.lower()] = {
+            name = section.replace('RMQ:', '', 1).lower()
+            services[name] = {
                 'function': rmq_request,
                 'args': rpc_client.RpcClient(config[section]),
             }
