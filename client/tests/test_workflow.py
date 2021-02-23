@@ -365,3 +365,14 @@ def test_nested_files_are_in_src_file_inputs():
 
     for src_file in wf_inputs.src_file_inputs:
         assert src_file in expected_file_paths
+
+def test_looks_like_file_path():
+    test_inputs = [
+        ("./fileX", True),
+        ("../fileY", True),
+        ("/opt/fileZ", True),
+        ("file0", False),
+        ("http://some-service.lbl.gov", False)
+    ]
+    for (input, expected) in test_inputs:
+        assert jaws_client.workflow.looks_like_file_path(input) is expected

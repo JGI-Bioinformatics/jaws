@@ -124,7 +124,7 @@ def is_refdata(filepath):
 
 
 def looks_like_file_path(input):
-    return isinstance(input, str) and "/" in input
+    return True if isinstance(input, str) and re.match(".{0,2}/.+", input) else False
 
 
 def is_file_accessible(filename):
@@ -180,7 +180,9 @@ def apply_filepath_op(obj, operation):
             for k in obj
         }
     else:
-        raise ValueError(f"cannot perform op={operation.__name__} to object of type {type(obj)}")
+        raise ValueError(
+            f"cannot perform op={operation.__name__} to object of type {type(obj)}"
+        )
 
 
 def compress_wdls(main_wdl, staging_dir="."):
@@ -210,9 +212,7 @@ def compress_wdls(main_wdl, staging_dir="."):
 
     # ZIP SUBWORKFLOWS
     compressed_file_format = ".zip"
-    compression_dir = pathlib.Path(
-        os.path.join(staging_dir, main_wdl.submission_id)
-    )
+    compression_dir = pathlib.Path(os.path.join(staging_dir, main_wdl.submission_id))
     compression_dir.mkdir(parents=True, exist_ok=True)
     compressed_file = join_path(
         staging_dir, main_wdl.submission_id + compressed_file_format
@@ -454,10 +454,14 @@ class WorkflowInputs:
         self.basedir = os.path.dirname(self.inputs_location)
 
         # JSON inputs could contain relative paths, so we process the JSON file to include absolute paths
-        inputs_json = json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+        inputs_json = (
+            json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+        )
         self.inputs_json = {}
         for k in inputs_json:
-            self.inputs_json[k] = apply_filepath_op(inputs_json[k], self._relative_to_absolute_paths)
+            self.inputs_json[k] = apply_filepath_op(
+                inputs_json[k], self._relative_to_absolute_paths
+            )
 
         self._src_file_inputs = None
 
