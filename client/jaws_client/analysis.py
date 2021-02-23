@@ -330,8 +330,17 @@ def submit(wdl_file, infile, site):
     local_staging_endpoint = workflow.join_path(globus_host_path, staging_user_subdir)
     manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
 
-    wdl.validate()
-    inputs_json.validate()
+    # validate WDL or exit with error message
+    try:
+        wdl.validate()
+    except workflow.WdlError as error:
+        raise SystemExit(error)
+
+    # validate inputs JSON or exit with error message
+    try:
+        inputs_json.validate()
+    except workflow.WorkflowInputsError as error:
+        raise SystemExit(error)
 
     max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
