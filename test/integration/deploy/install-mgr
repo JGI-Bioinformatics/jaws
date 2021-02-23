@@ -234,11 +234,19 @@ def parse_filename_from_services(services, keyname, service_name=None):
         if not filename:
             continue
         filename = envsubst(filename)
+
+        # If the filename contains a relative path, prepend path of the location of this
+        # script to the filename.
         if not os.path.isabs(filename):
             filename = os.path.join(ROOT_DIR, filename)
+
+        # if service_name is specified as an argument, return the filename.
         if service_name is not None and name == service_name:
             return filename
+
+        # if the service_name argument is NONE, store the filenames in a list to be returned.
         files.append(filename)
+
     return None if service_name else files
 
 
