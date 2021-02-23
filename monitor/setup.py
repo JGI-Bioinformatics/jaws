@@ -14,7 +14,10 @@ setup(
     include_package_data=True,
     install_requires=[line.strip() for line in open("requirements.txt")],
     entry_points={
-        "console_scripts": ["jaws-prometheus = jaws_prometheus.jaws_prometheus:main", ]
+        "console_scripts": [
+            "jaws-prometheus = jaws_prometheus.jaws_prometheus:main",
+            "disk-monitor = jaws_prometheus.disk_monitor:main",
+        ]
     },
     zip_safe=False,
 )
