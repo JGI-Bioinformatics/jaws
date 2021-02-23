@@ -50,6 +50,7 @@ environment:
   JAWS_VERSION: 2.0.1
   JAWS_DOCS_URL: https://jaws-docs.readthedocs.io/en/latest
 
+  JAWS_CENTRAL_HOST: jaws.lbl.gov
   JAWS_CENTRAL_DB_HOST: jaws-db.lbl.gov
   JAWS_CENTRAL_DB_PORT: 3306
   JAWS_CENTRAL_DB_NAME: jaws_central_$JAWS_DEPLOY_NAME
