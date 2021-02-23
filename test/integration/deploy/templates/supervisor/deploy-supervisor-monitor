@@ -11,7 +11,7 @@ supervisor_user=$JAWS_SUPERVISOR_USERNAME
 supervisor_pwd=$JAWS_SUPERVISOR_PWD
 supervisor_inet_http_server=$JAWS_SUPERVISOR_INET_HTTP_SERVER
 supervisor_ctl_url=$JAWS_SUPERVISOR_CTL_URL
-supervisor_port=$JAWS_SUPERVISOR_JAWS_PORT
+supervisor_port=$JAWS_SUPERVISOR_MONITOR_PORT
 supervisor_config=$supervisor_dir/supervisord-monitor.conf
 
 
