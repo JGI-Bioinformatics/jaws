@@ -48,7 +48,7 @@ db = hunting_sites
 url = http://localhost:8000
 [SITE]
 id = eagle
-uploads_subdirectory = /global/scratch/jaws/jaws-dev/uploads
+uploads_dir = /global/scratch/jaws/jaws-dev/uploads
 downloads_subdirectory = /global/scratch/jaws/jaws-dev/downloads
 """
 
@@ -88,7 +88,7 @@ vhost = jaws_test
 url = http://localhost:8000
 [SITE]
 id = eagle
-uploads_subdirectory = /global/scratch/jaws/jaws-dev/uploads
+uploads_dir = /global/scratch/jaws/jaws-dev/uploads
 downloads_subdirectory = /global/scratch/jaws/jaws-dev/downloads
     """
     cfg.write_text(content)

@@ -60,7 +60,7 @@ def test_overwrite_all_default_values(config_file):
 
     expected_site_sections = [
         ("id", "eagle"),
-        ("uploads_subdirectory", "/global/scratch/jaws/jaws-dev/uploads"),
+        ("uploads_dir", "/global/scratch/jaws/jaws-dev/uploads"),
         ("downloads_subdirectory", "/global/scratch/jaws/jaws-dev/downloads"),
     ]
 

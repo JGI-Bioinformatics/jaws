@@ -310,7 +310,7 @@ def submit(wdl_file, infile, site):
 
     result = r.json()
     compute_basedir = result["globus_host_path"]
-    compute_uploads_subdir = result["uploads_subdir"]
+    compute_uploads_subdir = result["uploads_dir"]
     compute_max_ram_gb = int(result["max_ram_gb"])
 
     # VALIDATE WORKFLOW

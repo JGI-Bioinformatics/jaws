@@ -133,10 +133,7 @@ class Daemon:
             self.update_run_status(run, "upload complete")
 
     def get_uploads_file_path(self, run):
-        uploads_dir = os.path.join(
-            config.conf.get("GLOBUS", "host_path"),
-            config.conf.get("SITE", "uploads_subdirectory"),
-        )
+        uploads_dir = config.conf.get("SITE", "uploads_dir")
         return os.path.join(uploads_dir, run.user_id, run.submission_id)
 
     def submit_run(self, run):
