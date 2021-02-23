@@ -304,11 +304,13 @@ def submit_run(user):
     host_paths["dest"] = config.conf.get_site(site_id, "globus_host_path")
 
     try:
-        transfer_result = globus.submit_transfer(f"Upload run {run.id}",
-                                                 host_paths,
-                                                 input_endpoint,
-                                                 compute_endpoint,
-                                                 manifest_file)
+        upload_task_id = globus.submit_transfer(
+            f"Upload run {run.id}",
+            host_paths,
+            input_endpoint,
+            compute_endpoint,
+            manifest_file,
+        )
     except globus_sdk.GlobusAPIError as error:
         run.status = "upload failed"
         db.session.commit()
@@ -326,7 +328,6 @@ def submit_run(user):
             )
         else:
             logger.exception(
-
                 f"{user} submission {run.id} failed for GlobusAPIError: {error}",
                 exc_info=True,
             )
@@ -344,7 +345,6 @@ def submit_run(user):
         )
         abort(500, f"Unexpected error: {error}")
 
-    upload_task_id = transfer_result["task_id"]
     logger.debug(f"User {user}: Run {run.id} upload {upload_task_id}")
 
     # UPDATE RUN WITH UPLOAD TASK ID AND ADD LOG ENTRY
