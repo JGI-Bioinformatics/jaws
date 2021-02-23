@@ -509,7 +509,7 @@ class WorkflowInputs:
             msg = "File(s) not accessible:\n" + "\n".join(not_accessible)
             msg += f"\nPlease make sure that the group owner is set to {group_owner} and the group permissions are "
             msg += "set to readable and executable."
-            raise SystemExit(msg)
+            raise WorkflowInputsError(msg)
 
     def write_to(self, json_location):
         """
@@ -605,5 +605,10 @@ class WorkflowError(Exception):
 
 
 class WdlError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class WorkflowInputsError(Exception):
     def __init__(self, message):
         super().__init__(message)
