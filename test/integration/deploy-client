@@ -104,7 +104,7 @@ cat << EOM > $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 site_id = $JAWS_SITE
 url = $JAWS_CENTRAL_HOST:$JAWS_REST_PORT/api/v2
 womtool_jar = $SITE_WOMTOOL_JAR
-uploads_subdir = $SITE_UPLOADS_SUBDIR
+uploads_dir = $SITE_UPLOADS_DIR
 staging_dir = $SITE_STAGING_USER_DIR
 data_repo_basedir = $SITE_DATA_REPO_DIR
 shared_endpoint_group = $SITE_CLIENT_GROUP

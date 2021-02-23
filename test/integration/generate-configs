@@ -37,7 +37,7 @@ SITE_RMQ_PW
 SITE_JTM_RMQ_HOST
 SITE_JTM_RMQ_PORT
 SITE_JTM_RMQ_PW
-SITE_UPLOADS_SUBDIR
+SITE_UPLOADS_DIR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -100,7 +100,7 @@ host_path = $SITE_GLOBUS_HOST_PATH
 endpoint_id = $SITE_GLOBUS_EP
 [SITE]
 id = $JAWS_SITE
-uploads_subdirectory = $SITE_UPLOADS_SUBDIR
+uploads_dir = $SITE_UPLOADS_DIR
 downloads_subdirectory = $SITE_DOWNLOADS_SUBDIR
 [CROMWELL]
 url = http://localhost:$CROMWELL_PORT

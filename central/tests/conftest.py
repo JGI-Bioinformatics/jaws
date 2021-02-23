@@ -43,7 +43,7 @@ vhost = jaws
 queue = lbnl_rpc
 globus_endpoint = XXXX
 globus_host_path = /global/scratch/jaws
-uploads_subdir = jaws-dev/uploads
+uploads_dir = /global/scratch/jaws/jaws-dev/uploads
 max_ram_gb = 1024
 [SITE:NERSC]
 host = rmq.jaws.gov
@@ -54,7 +54,7 @@ queue = nersc_rpc
 message_ttl = 5
 globus_endpoint = YYYY
 globus_host_path = /
-uploads_subdir = /global/cscratch/sd1/jaws/jaws-dev/uploads
+uploads_dir = /global/cscratch/sd1/jaws/jaws-dev/uploads
 max_ram_gb = 2048
 """
     cfg.write_text(content)
@@ -93,7 +93,7 @@ rpc_client_dict = {
     "queue": "lbnl_rpc",
     "globus_endpoint": "XXXX",
     "globus_basepath": '"/global/scratch/jaws"',
-    "uploads_subdir": "uploads",
+    "uploads_dir": "/global/scratch/jaws/uploads",
     "max_ram_gb": 1024,
 }
 

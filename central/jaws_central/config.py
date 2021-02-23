@@ -57,7 +57,7 @@ class Configuration(metaclass=Singleton):
         "vhost",
         "globus_host_path",
         "globus_endpoint",
-        "uploads_subdir",
+        "uploads_dir",
         "max_ram_gb",
     ]
 
@@ -116,7 +116,7 @@ class Configuration(metaclass=Singleton):
                     self.sites[site_id][key] = self.config[section][key]
                 self.sites[site_id]["uploads_dir"] = os.path.join(
                     self.sites[site_id]["globus_host_path"],
-                    self.sites[site_id]["uploads_subdir"],
+                    self.sites[site_id]["uploads_dir"],
                 )
 
         # save singleton
@@ -158,7 +158,7 @@ class Configuration(metaclass=Singleton):
             "site_id": site_id,
             "globus_endpoint": s["globus_endpoint"],
             "globus_host_path": s["globus_host_path"],
-            "uploads_subdir": s["uploads_subdir"],
+            "uploads_dir": s["uploads_dir"],
             "max_ram_gb": s["max_ram_gb"],
         }
         return result

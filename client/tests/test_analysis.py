@@ -330,7 +330,7 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
             "site_id": "CORI",
             "globus_endpoint": "abcdeqerawr13423sdasd",
             "globus_host_path": "/",
-            "uploads_subdir": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads",
+            "uploads_dir": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads",
             "max_ram_gb": 1024,
         }
         return MockResult(result, 200)
