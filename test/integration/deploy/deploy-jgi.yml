@@ -19,19 +19,30 @@ services:
   - cromwell:
       config_template: templates/cromwell/cromwell-singularity.config
       config_output: $JAWS_INSTALL_DIR/configs/cromwell.conf
-        deploy_script: templates/cromwell/deploy-cromwell
+      deploy_script: templates/cromwell/deploy-cromwell
   - jtm:
       config_template: templates/jtm/jaws-jtm.config
       config_output: $JAWS_INSTALL_DIR/configs/jaws-jtm.conf
       deploy_script: templates/jtm/deploy-jaws-jtm
+  - jaws_prometheus:
+      config_template: templates/monitor/jaws-monitor.conf
+      config_output: $JAWS_INSTALL_DIR/configs/jaws-monitor.conf
+      deploy_script: templates/monitor/deploy-jaws-monitor
+  - disk_monitor:
+      deploy_script: templates/monitor/deploy-disk-monitor
+      environment:
+        JAWS_DEPLOY_DISK_MONITOR:
   - supervisor_jaws:
         deploy_script: templates/supervisor/deploy-supervisor
   - supervisor_jtm:
         deploy_script: templates/supervisor/deploy-supervisor
+  - supervisor_monitor:
+      deploy_script: templates/supervisor/deploy-supervisor-monitor
 
 service_group:
   all: [client, central, site, cromwell, jtm, supervisor_jaws, supervisor_jtm]
-  supervisor: [supervisor_jaws, supervisor_jtm]
+  monitor-prom: [jaws_prometheus, supervisor_monitor]
+  monitor-disk: [disk_monitor, supervisor_jaws]
 
 environment:
   JAWS_INSTALL_DIR:
@@ -44,6 +55,7 @@ environment:
   JAWS_VERSION: 2.0.1
   JAWS_DOCS_URL: https://jaws-docs.readthedocs.io/en/latest
 
+  JAWS_CENTRAL_HOST: jaws.lbl.gov
   JAWS_CENTRAL_DB_HOST: jaws-db.lbl.gov
   JAWS_CENTRAL_DB_PORT: 3306
   JAWS_CENTRAL_DB_NAME: jaws_central_${JAWS_DEPLOY_NAME}
@@ -164,3 +176,17 @@ environment:
   JAWS_SUPERVISOR_INSTALL_DIR: ${JAWS_INSTALL_DIR}/supervisor
   JAWS_SUPERVISOR_JAWS_PORT: 64101
   JAWS_SUPERVISOR_JTM_PORT: 64111
+  JAWS_SUPERVISOR_MONITOR_PORT: 64121
+
+  JAWS_MONITOR_GROUP_PERMISSON: ''
+  JAWS_MONITOR_HOST: 0.0.0.0
+  JAWS_MONITOR_PORT: 9180
+  JAWS_MONITOR_CORI_HOST: cori20-224.nersc.gov
+  JAWS_MONITOR_JGI_HOST: lrc-services.lbl.gov
+
+  JAWS_DISK_MONITOR_CORI_HOST: $JAWS_MONITOR_CORI_HOST
+  JAWS_DISK_MONITOR_CORI_PORT: 51000
+  JAWS_DISK_MONITOR_CORI_PATH: /global/cscratch1
+  JAWS_DISK_MONITOR_LRC_HOST: $JAWS_MONITOR_JGI_HOST
+  JAWS_DISK_MONITOR_LRC_PORT: 51000
+  JAWS_DISK_MONITOR_LRC_PATH: /global/scratch
