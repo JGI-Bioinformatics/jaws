@@ -30,16 +30,11 @@ To use the requirements.txt file to create a venv:
 ## Run a test
 ```
 #To pass in the env argument to module-functions
-pytest [--capture=no] --verbose --env prod test_jaws_cmds.py
+pytest [-n <#>] [--capture=no] --verbose --env prod test_jaws_cmds.py
 
-# To pass in an argument to the fixture-functions, use an ENV var
-# For example, the conftest.py file now requires a ini file (i.e. fq_count.ini) to pass 
-# variables (ENV,WDL,INPUT_JSON,OUTDIR,SITE).  These variables are used in the submission 
-# of JAWS runs. The ini file is itself an environmental variable so when running pytest, 
-# you need to make sure MYINI_FILE is set.
-MYINI_FILE=subwdl.ini pytest --capture=no --verbose subworkflow_behavior.py
 ```
 Note: the --capture=no statement will allow you to see the print statements from within your tests
+      the -n <number> argument alows you to run tests in parallel (if "pytest-xdist" is installed, which it is for above env).
 
 ## Tutorial Data 
 Data used for tests should be put here:

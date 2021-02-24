@@ -38,9 +38,8 @@ def test_jaws_run_task_log(env,submit_fq_count_wdl):
     run_id = str(data['run_id'])
     util.wait_for_run(env,run_id,check_tries,check_sleep)
 
-    output_dir = submit_wdl_and_wait['output_dir']
-    run_id = submit_wdl_and_wait['run_id']
-    submission_id = submit_wdl_and_wait['submission_id']
+    output_dir = submit_fq_count_wdl['output_dir']
+    submission_id = submit_fq_count_wdl['submission_id']
     input_wdl = submission_id + ".wdl"
     input_json = "fq_count.json"
 
@@ -68,3 +67,22 @@ def test_jaws_run_task_log(env,submit_fq_count_wdl):
     for file in expected_files:
         if os.path.exists(os.path.join(output_dir,"fq_count_out/call-count_seqs/execution/",file)):
             print("file found")
+
+def test_jaws_run_task_log(env,submit_fq_count_wdl):
+    """
+    Check that wfcopy works and can flatten the directory
+
+    i.e. should see something like MyCopy/count_seqs/num_seqs.txt
+    """
+    data = submit_fq_count_wdl
+    run_id = str(data['run_id'])
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wfcopy --flatten fq_count_out MyCopy info" % (env)
+    (r,o,e) = util.run(cmd)
+
+    data = json.loads(o)
+
+    # does this path exist
+    assert os.path.exists("MyCopy/count_seqs/num_seqs.txt")
+
