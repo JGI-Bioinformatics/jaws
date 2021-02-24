@@ -62,6 +62,7 @@ if [[ $developer_mode == 1 ]]; then
     cd $src_dir/monitor && pip install -e . && \
     deactivate
 else
+  [[ -d $src_dir/rpc/dist ]] && rm -f $src_dir/rpc/dist/*
   [[ -d $src_dir/monitor/dist ]] && rm -f $src_dir/monitor/dist/*
   cd $src_dir/rpc && python3 setup.py bdist_wheel && \
     cd ../monitor && python3 setup.py bdist_wheel && \
