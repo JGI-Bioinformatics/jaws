@@ -5,6 +5,7 @@ set -eo pipefail
 deploy_name=$JAWS_DEPLOY_NAME
 deploy_central=$JAWS_DEPLOY_CENTRAL
 deploy_site=$JAWS_DEPLOY_SITE
+deploy_disk_monitor=$JAWS_DEPLOY_DISK_MONITOR
 shim_dir=$JAWS_INSTALL_DIR/shims
 supervisor_dir=$JAWS_SUPERVISOR_INSTALL_DIR
 supervisor_user=$JAWS_SUPERVISOR_USERNAME
@@ -139,7 +140,7 @@ EOM
     fi
 
     if [[ $deploy_central ]]; then
-        programs+=("jaws-site-daemon")
+        programs+=("jaws-central-rest")
         programs+=("jaws-central-rpc")
         programs+=("jaws-central-auth")
         cat << EOM >> $config_file
@@ -167,6 +168,19 @@ autorestart=unexpected
 EOM
     fi
 
+    if [[ $deploy_disk_monitor ]]; then
+        programs+=("disk-monitor")
+        cat << EOM >> $config_file
+
+[program:disk-monitor]
+command=$shim_dir/disk-monitor
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+EOM
+    fi
+
     program_list=$( IFS=$','; echo "${programs[*]}" )
     cat << EOM >> $config_file
 
@@ -174,8 +188,8 @@ EOM
 programs=$program_list
 priority=999
 EOM
-
 }
+
 
 ## Function to generate supervisor executables.
 function generate_shim() {
