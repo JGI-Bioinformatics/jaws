@@ -91,7 +91,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-source $install_dir/monitor/bin/activate
+source $install_dir/disk-monitor/bin/activate
 exec disk-monitor
 EOM
 chmod 770 $shim_file
