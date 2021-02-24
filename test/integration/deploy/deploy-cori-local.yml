@@ -24,10 +24,14 @@ services:
       config_template: templates/jtm/jaws-jtm.conf
       config_output: $JAWS_INSTALL_DIR/configs/jaws-jtm.conf
       deploy_script: templates/jtm/deploy-jaws-jtm
-  - jaws_monitor:
+  - jaws_prometheus:
       config_template: templates/monitor/jaws-monitor.conf
       config_output: $JAWS_INSTALL_DIR/configs/jaws-monitor.conf
       deploy_script: templates/monitor/deploy-jaws-monitor
+  - disk_monitor:
+      deploy_script: templates/monitor/deploy-disk-monitor
+      environment:
+        JAWS_DEPLOY_DISK_MONITOR: 1
   - supervisor_jaws:
       deploy_script: templates/supervisor/deploy-supervisor-jaws
   - supervisor_jtm:
@@ -37,7 +41,8 @@ services:
 
 service_group:
   all: [client, central, site, cromwell, jtm, supervisor_jaws, supervisor_jtm]
-  monitor: [jaws_monitor, supervisor_monitor]
+  monitor-prom: [jaws_prometheus, supervisor_monitor]
+  monitor-disk: [disk_monitor, supervisor_jaws]
 
 environment:
   JAWS_INSTALL_DIR:
