@@ -6,6 +6,7 @@
 
 # This library of tests uses "fixtures" from conftest.py which should be located in the same directory.
 
+import os
 import pytest
 import json
 import time
@@ -240,6 +241,7 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(env,run_id,check_tries,check_sleep)
+    time.sleep(120)  # wait an aditional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
@@ -253,6 +255,7 @@ def test_jaws_wdl_log(env, submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(env,run_id,check_tries,check_sleep)
+    #time.sleep(120)  # wait an aditional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run log %s | tail -1" % (env,run_id)
     (r,o,e) = util.run(cmd)
@@ -266,6 +269,7 @@ def test_jaws_wdl_task_log(env, submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(env,run_id,check_tries,check_sleep)
+    #time.sleep(120)  # wait an aditional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
@@ -278,4 +282,27 @@ def test_jaws_wdl_task_log(env, submit_fq_count_wdl):
     a = list(filter(None,a))
 
     assert a[1][3] == 'created' and a[-1][4] == 'success'
+
+def test_wfcopy(env,submit_fq_count_wdl):
+    """ 
+    Check that wfcopy works and can flatten the directory
+
+    i.e. should see something like MyCopy/count_seqs/num_seqs.txt
+    """
+    run_id = str(submit_fq_count_wdl['run_id'])
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+
+    # remove MyCopy if it exists, otherwise wfcopy will complain when it tryies to create it again.
+    mycopy = "MyCopy"
+    if os.path.exists(mycopy):
+        cmd = "rm -rf %s" % outdir
+        (r,o,e) = util.run(cmd)
+        if r > 0:
+            pytest.exit("Failed to remove old output directory %s" (mycopy))
+
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wfcopy --flatten fq_count_out %s" % (env,mycopy)
+    (r,o,e) = util.run(cmd)
+
+    # does this path exist
+    assert os.path.exists("MyCopy/count_seqs/num_seqs.txt")
 
