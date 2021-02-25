@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """This will submit a WDL to JAWS and wait for completion, 
-   run tests and finally create a yaml file for the autoqc GUI."""
+   run tests and finally create a yaml file for the autoqc GUI.
+
+   Author: Angie Koller <akoller@lbl.gov>
+   Updated: 01/23/21
+"""
 
 import sys
 import os
@@ -18,10 +22,11 @@ def test_json_file_does_not_exist(env):
     json = "./FileDoesNotExist.json"
 
     # TODO pass site info in through command line also
+    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
     submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, "cori")
     cmd = source_cmd + submit_cmd
     (r,o,e) = util.run(cmd)
-    # print("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
+    print("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
 
     # check for the correct error message
     assert "No such file or directory:" in e
@@ -29,8 +34,8 @@ def test_json_file_does_not_exist(env):
 
 def test_json_bad_path_to_input_file_msg(env):
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    wdl = "~/jaws/examples/jaws-alignment-example/main.wdl"
-    out_dir = pf.timestamp_dir("./out/bad_inputs")
+    wdl        = "~/jaws/examples/jaws-alignment-example/main.wdl"
+    out_dir    = pf.timestamp_dir("./out/bad_inputs")
 
     # Submit job with json contains path to a non-existent input file
     # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
