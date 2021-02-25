@@ -30,7 +30,7 @@ To use the requirements.txt file to create a venv:
 ## Run a test
 ```
 #To pass in the env argument to module-functions
-pytest [-n <#>] [--capture=no] --verbose --env prod test_jaws_cmds.py
+pytest [-n <#>] [--capture=no] --verbose --env prod --site cori test_jaws_cmds.py
 
 ```
 Note: the --capture=no statement will allow you to see the print statements from within your tests

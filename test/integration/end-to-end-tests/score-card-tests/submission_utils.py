@@ -24,7 +24,6 @@ def submit_wdl(env, wdl, input_json, outdir, site):
     """
     if os.path.exists(outdir):
         cmd = "rm -rf %s" % outdir
-        print(cmd)
         (rc, stdout, stderr) = run(cmd)
         if rc > 0:
             pytest.exit("Failed to remove old output directory %s" % outdir)
@@ -44,9 +43,13 @@ def submit_wdl(env, wdl, input_json, outdir, site):
 
     assert rc == 0
     data = json.loads(stdout)
-
+    """
     # uncomment for testing
-    #data={ "run_id": 17031,"cromwell_run_id": "ba65fb65-fab9-46f2-8479-9d4a42ade337" }
+    data={ "run_id": 17037,
+            "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count_out",
+            "submission_id": "856d97e8-909d-48dd-8e77-c74ac97b9fc1"
+            }
+    """
 
     return data
 
@@ -62,7 +65,12 @@ def submit_wdl_noexit(env, wdl, input_json, outdir, site):
     cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s %s %s" % (env, wdl, input_json, outdir, site)
     (rc, stdout, stderr) = run(cmd)
     data = json.loads(stdout)
-    #data = { "run_id": 17028 }
+    """
+    data={ "run_id": 17037,
+            "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count_out",
+            "submission_id": "856d97e8-909d-48dd-8e77-c74ac97b9fc1"
+            }
+    """
 
     return data
 

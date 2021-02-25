@@ -26,7 +26,6 @@ def submit_fq_count_wdl(request):
     site = request.config.getoption("--site")
 
     data = util.submit_wdl(env, wdl, input_json, outdir, site)
-    # print(data)  # used for debugging
     return data
 
 @pytest.fixture(scope="session")
@@ -40,6 +39,10 @@ def submit_subworkflow_alignment(request):
     site = request.config.getoption("--site")
 
     data = util.submit_wdl(env, wdl, input_json, outdir, site)
+
+    # wait for run to complete
+    run_id = data['run_id']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
     # print(data)  # used for debugging
     return data
 
@@ -55,7 +58,10 @@ def submit_bad_task(request):
     site = request.config.getoption("--site")
 
     data = util.submit_wdl_noexit(env, wdl, input_json, outdir, site)
-    # print(data)  # used for debugging
+    run_id = data['run_id']
+
+    # wait for run to complete
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
     return data
 
 
@@ -113,6 +119,7 @@ def submit_skylake_500(request):
     util.wait_for_run(env,run_id,check_tries,check_sleep)
 
     return data
+
 
 #
 # The next two functions allows us to use the --env to capture the environment [prod|staging|dev]. 
