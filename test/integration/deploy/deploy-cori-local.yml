@@ -40,7 +40,7 @@ services:
       deploy_script: templates/supervisor/deploy-supervisor-monitor
 
 service_group:
-  all: [client, central, site, cromwell, jtm, supervisor_jaws, supervisor_jtm]
+  jaws: [client, central, site, cromwell, jtm, supervisor_jaws, supervisor_jtm]
   monitor-prom: [jaws_prometheus, supervisor_monitor]
   monitor-disk: [disk_monitor, supervisor_jaws]
 
@@ -82,7 +82,7 @@ environment:
   JAWS_CLIENT_WOMTOOL_JAR: https://github.com/broadinstitute/cromwell/releases/download/52/womtool-52.jar
   JAWS_CLIENT_SHARED_ENDPOINT_GROUP: genome
   JAWS_CLIENT_GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-  JAWS_CLIENT_GLOBUS_ENDPOINT_ID: be1ff650-dcbc-11ea-85a2-0e1702b77d41
+  JAWS_CLIENT_GLOBUS_ENPOINT_ID: be1ff650-dcbc-11ea-85a2-0e1702b77d41
   JAWS_CLIENT_GLOBUS_BASEDIR: /
 
   JAWS_SITE_CORI_GLOBUS_ENDPOINT_ID: be1ff650-dcbc-11ea-85a2-0e1702b77d41
@@ -118,7 +118,6 @@ environment:
   JAWS_SITE_GLOBUS_ENDPOINT_ID: $JAWS_SITE_CORI_GLOBUS_ENDPOINT_ID
   JAWS_SITE_GLOBUS_ROOT_DIR: $JAWS_SITE_CORI_GLOBUS_ROOT_DIR
   JAWS_SITE_GLOBUS_UPLOADS_SUBDIR: $JAWS_SITE_CORI_GLOBUS_UPLOADS_SUBDIR
-  JAWS_SITE_GLOBUS_DEFAULT_DIR: '~'
   JAWS_SITE_SCRATCH_DIR: $JAWS_INSTALL_DIR/site_scratch_dir
   JAWS_SITE_JAWS_DB_HOST: jaws-db.lbl.gov
   JAWS_SITE_JAWS_DB_PORT: 3306
