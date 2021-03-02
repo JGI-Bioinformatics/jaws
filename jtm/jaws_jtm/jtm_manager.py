@@ -37,7 +37,12 @@ from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.lib.sqlstmt import JTM_SQL
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionAmqpstorm, JtmAmqpstormBase
 from jaws_jtm.lib.dbutils import DbSqlMysql
-from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command, extract_cromwell_id
+from jaws_jtm.lib.run import (
+    pad_string_path,
+    make_dir,
+    run_sh_command,
+    extract_cromwell_id,
+)
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_rpc import rpc_client, rpc_server, responses
 
@@ -257,7 +262,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         TASK_STATUS["running"],
                         ret_status,
                         fail_code=done_flag if done_flag < 0 else None,
-                        reason=ret_msg
+                        reason=ret_msg,
                     )
 
             db.execute(
@@ -657,7 +662,7 @@ def send_update_task_status_msg(
         else "",
         "status_to": reversed_task_status[status_to] if status_to is not None else "",
         "timestamp": now,
-        "reason": reason_str
+        "reason": reason_str,
     }
 
     # send message to Site
@@ -905,8 +910,10 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                     )
                                     if status_now == TASK_STATUS["pending"]:
                                         send_update_task_status_msg(
-                                            task_id, status_now, TASK_STATUS["running"],
-                                            reason=slurm_job_id
+                                            task_id,
+                                            status_now,
+                                            TASK_STATUS["running"],
+                                            reason=slurm_job_id,
                                         )
 
                                 db.execute(
@@ -1491,8 +1498,10 @@ def process_task_request(msg):
                         or status_now < 0
                     ):
                         send_update_task_status_msg(
-                            last_task_id, status_now, TASK_STATUS["pending"],
-                            reason=slurm_job_id
+                            last_task_id,
+                            status_now,
+                            TASK_STATUS["pending"],
+                            reason=slurm_job_id,
                         )
 
                 # Note: only when the previous status == queued
@@ -2351,7 +2360,7 @@ def manager(
         run_mode = CONFIG.configparser.get("JTM", "run_mode")
         n_manager_threads = CONFIG.constants.JTM_NUM_PROCS
         if not check_num_threads(run_mode, n_manager_threads):
-             alive = False
+            alive = False
         if alive:
             return responses.success(True)
         else:
@@ -2370,6 +2379,5 @@ def manager(
 
     logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)
     logger.info("Waiting for a task request from %s", jtm_task_request_q)
-
 
     return 0
