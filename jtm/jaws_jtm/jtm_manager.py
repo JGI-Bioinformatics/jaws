@@ -2355,7 +2355,8 @@ def manager(
         raise
 
     # Start JTM JSON-RPC server for monitoring
-    def jtm_manager_status():
+    def jtm_manager_status(params):
+        # 'params' is not used
         alive = True
         run_mode = CONFIG.configparser.get("JTM", "run_mode")
         n_manager_threads = CONFIG.constants.JTM_NUM_PROCS
