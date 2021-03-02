@@ -61,18 +61,19 @@ done
 
 ## DEFINE VARS FROM OTHER VARS
 echo "DEFINING PATHS"
-export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
+#export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
 export SITE_CLIENT_INSTALL_DIR="$SITE_JAWS_SW_BASEDIR/jaws-$DEPLOYMENT_NAME"
 
 # source venv
 source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
 
-# write token to homedir
-cat << END > ~/jaws.conf
-{
-	token: $JAWS_TEST_TOKEN
-}
-END 
+# write token to jaws.conf
+# [USER]
+# token =
+# staging_dir =
+
+# SITE_JAWS_SCRATCH_DIR
+echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN\nstaging_dir = $SITE_JAWS_SCRATCH_DIR" > ~/jaws.conf
 
 chmod 600 ~/jaws.conf
 
