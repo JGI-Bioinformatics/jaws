@@ -325,14 +325,21 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     wdl = os.path.join(root, "workflow", "sample.wdl")
     inputs = os.path.join(root, "workflow", "sample.json")
 
-    def get_site(url, headers=None):
-        result = {
-            "site_id": "CORI",
-            "globus_endpoint": "abcdeqerawr13423sdasd",
-            "globus_host_path": "/",
-            "uploads_dir": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads",
-            "max_ram_gb": 1024,
-        }
+    def mock_get(url, headers=None):
+        if "user" in url:
+            result = {
+                "email": "joe@lbl.gov",
+                "uid": "jdoe",
+                "name": "John Doe"
+            }
+        else:
+            result = {
+                "site_id": "CORI",
+                "globus_endpoint": "abcdeqerawr13423sdasd",
+                "globus_host_path": "/",
+                "uploads_dir": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads",
+                "max_ram_gb": 1024,
+            }
         return MockResult(result, 200)
 
     def mock_post(url, data=None, files=None, headers={}):
@@ -341,7 +348,7 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     def mock_is_file_accessible(*args):
         return True
 
-    monkeypatch.setattr(requests, "get", get_site)
+    monkeypatch.setattr(requests, "get", mock_get)
     monkeypatch.setattr(requests, "post", mock_post)
     monkeypatch.setattr(jaws_client.workflow, 'is_file_accessible', mock_is_file_accessible)
 

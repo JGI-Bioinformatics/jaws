@@ -127,3 +127,22 @@ def get_user_token(user, globus_user_id):
     """
     query_user = _get_user_by_globus_id(globus_user_id)
     return {"jaws_token": query_user.jaws_token}
+
+
+def get_user(user):
+    """
+    Return current user's info.
+    """
+    try:
+        user_rec = db.session.query(User).get(user)
+    except SQLAlchemyError as e:
+        abort(500, f"Db error: {e}")
+    if user_rec is None:
+        logger.error(f"No match for user {user} in db")
+        abort(401, "User db record not found")
+    result = {
+        "uid": user,
+        "name": user_rec.name,
+        "email": user_rec.email,
+    }
+    return result
