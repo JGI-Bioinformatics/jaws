@@ -2381,5 +2381,4 @@ def manager(
     logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)
     logger.info("Waiting for a task request from %s", jtm_task_request_q)
 
-
     return 0
