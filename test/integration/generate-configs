@@ -124,6 +124,15 @@ host = $SITE_RMQ_HOST
 port = $SITE_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = SITE_$JAWS_SITE
+[JTM_RPC_SERVER]
+user = jaws
+password = $SITE_RMQ_PW
+host = $SITE_RMQ_HOST
+port = $SITE_RMQ_PORT
+vhost = jaws_$DEPLOYMENT_NAME
+queue = JTM_RPC_$JAWS_SITE
+num_threads = 5
+max_retries = 3
 [MYSQL]
 host = $SITE_DB_HOST
 port = $SITE_DB_PORT
