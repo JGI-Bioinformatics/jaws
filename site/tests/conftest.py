@@ -49,7 +49,6 @@ url = http://localhost:8000
 [SITE]
 id = eagle
 uploads_dir = /global/scratch/jaws/jaws-dev/uploads
-downloads_subdirectory = /global/scratch/jaws/jaws-dev/downloads
 """
 
     cfg.write_text(content)
@@ -89,7 +88,6 @@ url = http://localhost:8000
 [SITE]
 id = eagle
 uploads_dir = /global/scratch/jaws/jaws-dev/uploads
-downloads_subdirectory = /global/scratch/jaws/jaws-dev/downloads
     """
     cfg.write_text(content)
     return cfg.as_posix()
