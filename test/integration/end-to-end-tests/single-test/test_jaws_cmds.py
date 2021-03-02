@@ -35,7 +35,8 @@ def test_jaws_info(env):
         "version": "2.1"
     } """
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws info" % (env)
+    #cmd = "source ~/jaws-%s.sh > /dev/null && jaws info" % (env)
+    cmd = "jaws info" % (env)
     (r,o,e) = util.run(cmd)
 
     data = json.loads(o)
@@ -58,7 +59,8 @@ def test_jaws_status(env):
     }
     """
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status" % (env)
+    #cmd = "source ~/jaws-%s.sh > /dev/null && jaws status" % (env)
+    cmd = "jaws status" % (env)
     (r,o,e) = util.run(cmd)
     data = json.loads(o)
 
@@ -75,7 +77,8 @@ def test_jaws_run_queue(env, submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
+    #cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
+    cmd = "jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
     (r,o,e) = util.run(cmd)
     ids=o.split()
     assert run_id in ids
