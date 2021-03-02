@@ -1,59 +1,149 @@
-# content of conftest.py
+import os
 import json
 import pytest
 import smtplib
-from subprocess import Popen, PIPE
+import time
+import submission_utils as util
 
+check_tries=50
+check_sleep=30
 
+@pytest.fixture(scope="session",autouse=True)
+def test_for_all_args(request):
+    env = request.config.getoption("--env")
+    site = request.config.getoption("--site")
+    if not env or not site: 
+        pytest.exit("Error: You are missing some arguments?\nUsage: pytest -n <number of tests in parallel> --capture=<[yes|no]> --verbose --env <[prod|staging|dev]> --site <[cori|jgi]> <directory or file>")
 
-def run(cmd):
-    output = Popen(cmd, stdout=PIPE,
-             stderr=PIPE, shell=True,
-             cwd="/global/cscratch1/sd/jaws/jfroula", universal_newlines=True)
+@pytest.fixture(scope="session")
+def submit_fq_count_wdl(request):
+    wdl = "./WDLs/fq_count.wdl"
+    input_json = "./test-inputs/fq_count.json"
 
-    stdout,stderr=output.communicate()
-    rc=output.returncode
+    # allow user to pass variables into the test functions via command line
+    env = request.config.getoption("--env")
+    site = request.config.getoption("--site")
 
-    return rc,stdout,stderr
-
-@pytest.fixture()
-def sleep_little_baby():
-    cmd='./go.sh > tmp.txt'
-    rc,stdout,stderr = run(cmd)
-    return stdout
-
-@pytest.fixture(scope="module")
-def submit_wdl():
-    """
-    This is a fixture that will submit a wdl for all functions to use.  
-    This function returns the output of a wdl submission. 
-    """
-    
-    cmd = "jaws run submit /global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/TestsWDLs/fq_count.wdl /global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/TestsWDLs/fq_count.json fq_count_out nersc"
-    rc,stdout,stderr = run(cmd)
-    print(stderr)
-
-    assert rc == 0
-    data = json.loads(stdout)
+    data = util.submit_wdl(env, wdl, input_json, site)
     return data
 
-@pytest.fixture(scope="module")
-def submit_subworkflow():
-    """
-    This is a fixture that will submit a subworkflow wdl for all functions to use.  
-    This function returns the output of the wdl submission. 
-    """
-    
-    cmd = "jaws run submit TestsWDLs/jaws_alignment_example.wdl TestsWDLs/jaws_alignment_example.json alignment_out nersc"
-    rc,stdout,stderr = run(cmd)
-    print(stderr)
+@pytest.fixture(scope="session")
+def submit_subworkflow_alignment(request):
+    wdl = "./WDLs/jaws-alignment-example/main.wdl"
+    input_json = "./WDLs/jaws-alignment-example/inputs.json"
 
-    assert rc == 0
-    data = json.loads(stdout)
+    # allow user to pass variables into the test functions via command line
+    env = request.config.getoption("--env")
+    site = request.config.getoption("--site")
+
+    data = util.submit_wdl(env, wdl, input_json, site)
+
+    # wait for run to complete
+    run_id = data['run_id']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+    # print(data)  # used for debugging
     return data
 
-#@pytest.fixture(autouse=True)
-#def env_setup(monkeypatch):
-#    """set jaws-test variables from jaws-test.env"""
-#    monkeypatch.setenv('JAWS_CLIENT_CONFIG', '/global/u2/j/jfroula/jaws-test.conf')
-#    monkeypatch.setenv('JAWS_CLIENT_LOG', '/global/cscratch1/sd/jaws/jfroula/jaws-test.log')
+
+@pytest.fixture(scope="session")
+def submit_bad_task(request):
+    wdl = "./WDLs/bad_task.wdl"
+    input_json = "./test-inputs/fq_count.json"
+
+    # allow user to pass variables into the test functions via command line
+    env = request.config.getoption("--env")
+    site = request.config.getoption("--site")
+
+    data = util.submit_wdl_noexit(env, wdl, input_json, site)
+    run_id = data['run_id']
+
+    # wait for run to complete
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+    return data
+
+
+@pytest.fixture(scope="session")
+def submit_bad_docker(request):
+    wdl = "./WDLs/bad_docker.wdl"
+    input_json = "./test-inputs/fq_count.json"
+
+    # allow user to pass variables into the test functions via command line
+    env = request.config.getoption("--env")
+    site = request.config.getoption("--site")
+
+    data = util.submit_wdl(env, wdl, input_json, site)
+
+    # wait for run to complete
+    run_id = data['run_id']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+
+    # print(data)  # used for debugging
+    return data
+
+@pytest.fixture(scope="session")
+def submit_skylake_250(request):
+    wdl = "./WDLs/skylake_test_250.wdl"
+    input_json = "./test-inputs/fq_count.json"
+    site="cori"
+
+    # allow user to pass variables into the test functions via command line
+    env = request.config.getoption("--env")
+
+    data = util.submit_wdl(env, wdl, input_json, site)
+
+    # wait for run to complete
+    run_id = data['run_id']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+
+    return data
+
+@pytest.fixture(scope="session")
+def submit_skylake_500(request):
+    wdl = "./WDLs/skylake_test_500.wdl"
+    input_json = "./test-inputs/fq_count.json"
+    site="cori"
+
+    # allow user to pass variables into the test functions via command line
+    env = request.config.getoption("--env")
+
+    data = util.submit_wdl(env, wdl, input_json, site)
+
+    # wait for run to complete
+    run_id = data['run_id']
+    util.wait_for_run(env,run_id,check_tries,check_sleep)
+
+    return data
+
+
+#
+# The next two functions allows us to use the --env to capture the environment [prod|staging|dev]. 
+# This environment is an argument that can be passed into the test functions
+#
+def pytest_addoption(parser):
+    parser.addoption(
+        "--env",
+        action="store",
+        default=[],
+        help="testing environment [prod|staging|dev] passed to test functions",
+    )
+    parser.addoption(
+        "--site",
+        action="store",
+        default=[],
+        help="the JAWS site [cori|jgi] that will be used during submission",
+    )
+
+@pytest.fixture
+def env(request):
+    return request.config.getoption("--env")
+
+@pytest.fixture
+def site(request):
+    return request.config.getoption("--site")
+
+
+# def pytest_generate_tests(metafunc):
+#     if "env" in metafunc.fixturenames:
+#         metafunc.parametrize("env", metafunc.config.getoption("env"))
+#     if "site" in metafunc.fixturenames:
+#         metafunc.parametrize("site", metafunc.config.getoption("site"))
