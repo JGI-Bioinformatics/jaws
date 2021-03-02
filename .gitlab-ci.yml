@@ -393,9 +393,10 @@ nightly:on-schedule:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   only:
     - schedules
   environment:
     name: "cori/dev"
   script:
-    - ./test/integration/end-to-end-tests/single-test/pytest_wrapper.sh dev cori single-test
+    - ./test/integration/end-to-end-tests/single-test/pytest_wrapper.sh single-test
