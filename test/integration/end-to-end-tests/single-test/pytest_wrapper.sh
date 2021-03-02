@@ -78,4 +78,5 @@ echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN\nstaging_dir = /global/cscratch1/sd/ja
 chmod 600 ~/jaws.conf
 
 cd test/integration/end-to-end-tests/${TEST_FOLDER}
+source ~jfroula/venv/pytest/bin/activate && \
 pytest --verbose --env $DEPLOYMENT_NAME --site $JAWS_SITE .
