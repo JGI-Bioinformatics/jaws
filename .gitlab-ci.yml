@@ -225,15 +225,6 @@ package:
     - source pkg-venv/bin/activate
     - pip install wheel
     - make pkg
-  artifacts:
-    name: "packages-$CI_PROJECT_NAME-$CI_PIPELINE_ID"
-    expire_in: 6 hour
-    paths:
-      - rpc/dist
-      - site/dist
-      - client/dist
-      - central/dist
-      - jtm/dist
 
 ## integration tests - only run on merge request
 deploy-jaws-central-dev:
