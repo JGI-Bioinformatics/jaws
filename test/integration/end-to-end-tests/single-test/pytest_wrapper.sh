@@ -73,7 +73,7 @@ source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
 # staging_dir =
 
 # SITE_JAWS_SCRATCH_DIR
-echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN\nstaging_dir = $SITE_JAWS_SCRATCH_DIR" > ~/jaws.conf
+echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN\n" > ~/jaws.conf
 
 chmod 600 ~/jaws.conf
 
