@@ -8,7 +8,6 @@ import requests
 import click
 import logging
 import uuid
-import getpass
 from typing import Dict
 from collections import defaultdict
 
@@ -288,8 +287,13 @@ def submit(wdl_file, infile, site):
 
     current_user = user.User()
 
+    user_url = f'{config.conf.get("JAWS", "url")}/user'
+    user_rec = _get(user_url)
+    user_json = user_rec.json()
+    uid = user_json["uid"]
+
     staging_subdir = config.Configuration().get("JAWS", "staging_dir")
-    staging_user_subdir = os.path.join(staging_subdir, getpass.getuser())
+    staging_user_subdir = os.path.join(staging_subdir, uid)
     globus_host_path = config.Configuration().get("GLOBUS", "host_path")
     output_directory = config.conf.get("JAWS", "data_repo_basedir")
 
