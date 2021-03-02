@@ -386,17 +386,3 @@ deploy-jaws-cori-dev-integration-tests:
   only:
   - 742-add-automated-scorecard-tests-to-gitlab-ci-yml
 
-nightly:on-schedule:
-  stage: nightly-tests
-  tags:
-    - cori
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CORI"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
-  only:
-    - schedules
-  environment:
-    name: "cori/dev"
-  script:
-    - ./test/integration/end-to-end-tests/single-test/pytest_wrapper.sh single-test
