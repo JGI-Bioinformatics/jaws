@@ -68,7 +68,7 @@ export SITE_CLIENT_INSTALL_DIR="$SITE_JAWS_SW_BASEDIR/jaws-$DEPLOYMENT_NAME"
 source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
 
 # write token to homedir
-echo << END > ~/jaws.conf
+echo <<END > ~/jaws.conf
 {
 	token: $JAWS_TEST_TOKEN
 }
