@@ -73,9 +73,10 @@ source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
 # staging_dir =
 
 # SITE_JAWS_SCRATCH_DIR
-echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN\n" > ~/jaws.conf
+echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN\nstaging_dir = /global/cscratch1/sd/jaws/jfroula\n" > ~/jaws.conf
 
 chmod 600 ~/jaws.conf
 
-cd test/integration/end-to-end-tests
-pytest --verbose --env $DEPLOYMENT_NAME --site $JAWS_SITE $TEST_FOLDER
+cd test/integration/end-to-end-tests/${TEST_FOLDER}
+source ~jfroula/venv/pytest/bin/activate && \
+pytest --verbose --env $DEPLOYMENT_NAME --site $JAWS_SITE .
