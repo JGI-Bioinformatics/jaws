@@ -1,8 +1,10 @@
 stages:
+  - .pre
   - unit-test
   - package
   - deploy-jaws
   - integration-test
+  - nightly-tests
   - .post
 
 variables:
@@ -369,3 +371,31 @@ deploy-jaws-cascade-dev:
     - ./test/integration/deploy-jaws
   only:
     - dev
+
+deploy-jaws-cori-dev-integration-tests:
+  stage: integration-test
+  tags:
+    - cori
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CORI"
+  environment:
+    name: "cori/dev"
+  script:
+    - ./test/integration/end-to-end-tests/single-test/pytest_wrapper.sh dev cori single-test
+  only:
+  - dev
+
+nightly:on-schedule:
+  stage: nightly-tests
+  tags:
+    - cori
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CORI"
+  only:
+    - schedules
+  environment:
+    name: "cori/dev"
+  script:
+    - ./test/integration/end-to-end-tests/single-test/pytest_wrapper.sh dev cori single-test
