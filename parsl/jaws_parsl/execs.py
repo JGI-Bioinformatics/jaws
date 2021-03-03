@@ -1,7 +1,7 @@
 from parsl.config import Config
 from parsl.providers import SlurmProvider
 from parsl.launchers import SrunLauncher
-from parsl.executors import WorkQueueExecutor
+from parsl.executors import HighThroughputExecutor
 from parsl.addresses import address_by_interface
 
 cori_sched_opts = '#SBATCH -C haswell'
@@ -13,12 +13,11 @@ cascade_sched_opts = ''
 
 config = Config(
     executors=[
-        WorkQueueExecutor(
+        HighThroughputExecutor(
             label='CORI',
             # This is the network interface on the login node to
             # which compute nodes can communicate
             address=address_by_interface('bond0.144'),
-            cores_per_worker=2,
             provider=SlurmProvider(
                 # 'regular',  # Partition / QOS
                 'debug',  # Partition / QOS
@@ -31,7 +30,6 @@ config = Config(
                 # Command to be run before starting a worker, such as:
                 # 'module load Anaconda; source activate parsl_env'.
                 worker_init='module load python; source activate parsl-env',
-                workers_per_node=32,
                 # We request all hyperthreads on a node.
                 launcher=SrunLauncher(),
                 walltime='48:00:00',
@@ -40,12 +38,11 @@ config = Config(
                 cmd_timeout=120,
             ),
         ),
-        WorkQueueExecutor(
+        HighThroughputExecutor(
             label='JGI',
             # This is the network interface on the login node to
             # which compute nodes can communicate
             address=address_by_interface('bond0.144'),
-            cores_per_worker=2,
             provider=SlurmProvider(
                 # 'regular',  # Partition / QOS
                 'jgi',  # Partition / QOS
@@ -66,12 +63,11 @@ config = Config(
                 cmd_timeout=120,
             ),
         ),
-        WorkQueueExecutor(
+        HighThroughputExecutor(
             label='CASCADE',
             # This is the network interface on the login node to
             # which compute nodes can communicate
             address=address_by_interface('bond0.144'),
-            cores_per_worker=2,
             provider=SlurmProvider(
                 # 'regular',  # Partition / QOS
                 'debug',  # Partition / QOS

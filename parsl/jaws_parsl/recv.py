@@ -134,8 +134,7 @@ def update_site(status, task_id):
 
 
 @bash_app(executors=[executor])
-def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME,
-               parsl_resource_specification={'cores': cpus, 'memory': mem}):
+def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME):
     cmd = 'bash ' + script
     return cmd
 
@@ -145,10 +144,16 @@ class UpdatesChannel():
     def __init__(self, address, qname):
         self.address = address
         self.qname = qname
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(address))
-        self.channel = self.connection.channel()
-        self.channel.queue_declare(queue=qname)
-        logger.debug(f"Task updates on {address}:{qname}")
+        self.connection = None
+        self.channel = None
+        self.connect()
+
+    def connect(self):
+        if not self.connection or self.connection.is_closed:
+            self.connection = pika.BlockingConnection(pika.ConnectionParameters(self.address))
+            self.channel = self.connection.channel()
+            self.channel.queue_declare(queue=self.qname)
+            logger.debug(f"Task updates on {self.address}:{self.qname}")
 
     def _publish(self, message):
         logger.debug(f"Sending message {message}")
@@ -234,7 +239,7 @@ def cli():
 
     # from parsl.configs.htex_local import config
     from execs import config
-
+    config.retries = 3
     dfk = parsl.load(config)
     parsl_run_dir = dfk.run_dir
 
