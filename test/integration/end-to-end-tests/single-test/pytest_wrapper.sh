@@ -79,10 +79,14 @@ fi
 
 
 # source venv
-source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
+#echo source $SITE_CLIENT_INSTALL_DIR/bin/activate
+#source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
+echo "source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
+      source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh
 
 #pytest --version
 #jaws info
+#exit
 
 # write token to jaws.conf
 # [USER]
@@ -90,7 +94,8 @@ source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
 # staging_dir =
 
 # Create the jaws.con
-echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN\nstaging_dir = /global/cscratch1/sd/jaws/jfroula\n" > ~/jaws.conf
+#echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN\nstaging_dir = /global/cscratch1/sd/jaws/jfroula\n" > ~/jaws.conf
+echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN" > ~/jaws.conf
 chmod 600 ~/jaws.conf
 
 cd test/integration/end-to-end-tests/${TEST_FOLDER}
