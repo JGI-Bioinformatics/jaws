@@ -32,9 +32,6 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     is_dashboard = db.Column(db.Boolean, nullable=False, default=False)
     jaws_token = db.Column(db.String(256), nullable=False)
-    globus_id = db.Column(db.String(36), nullable=True)
-    auth_refresh_token = db.Column(db.String(256), nullable=True)
-    transfer_refresh_token = db.Column(db.String(256), nullable=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

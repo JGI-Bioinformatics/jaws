@@ -43,33 +43,7 @@ paths:
           description: OK
       security: []
 
-  /auth:
-    post:
-      operationId: jaws_central.auth.save_globus_tokens
-      consumes:
-        - multipart/form-data
-      tags:
-        - user
-      summary: Save a user's Glbous tokens
-      description: Give a user's Globus Auth and Transfer tokens to JAWS
-      parameters:
-        - name: auth_refresh_token
-          in: formData
-          type: string
-          required: True
-          description: Globus Auth Refresh Token
-        - name: transfer_refresh_token
-          in: formData
-          type: string
-          required: True
-          description: Globus Transfer Refresh Token
-      responses:
-        200:
-          description: OK
-        401:
-          description: Authorization information is missing or invalid.
-
-  /auth/{globus_user_id}:
+  /auth/{email}:
     get:
       operationId: jaws_central.auth.get_user_token
       tags:
@@ -77,9 +51,9 @@ paths:
       summary: Get a user's JAWS access token
       description: Allows the dashboard to retrieve a logged-in user's JAWS token.
       parameters:
-        - name: globus_user_id
+        - name: email
           in: path
-          description: Globus user ID
+          description: User's email address of authenticated user
           type: string
           required: True
       responses:
@@ -90,7 +64,7 @@ paths:
         404:
           description: User not found
       security:
-        - oauth2: ['user', 'dashboard']
+        - oauth2: ['dashboard']
 
   /user:
     get:

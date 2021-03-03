@@ -133,7 +133,6 @@ def submit(params, session):
             id=run_id,  # pk used by Central
             user_id=user_id,
             email=params["email"],
-            transfer_refresh_token=params["transfer_refresh_token"],
             submission_id=params["submission_id"],
             upload_task_id=params["upload_task_id"],
             output_endpoint=params["output_endpoint"],
@@ -235,7 +234,6 @@ operations = {
             "user_id",
             "run_id",
             "email",
-            "transfer_refresh_token",
             "submission_id",
             "upload_task_id",
             "output_endpoint",
