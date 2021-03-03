@@ -124,7 +124,7 @@ def is_refdata(filepath):
 
 
 def looks_like_file_path(input):
-    return isinstance(input, str) and "/" in input
+    return True if isinstance(input, str) and re.match(".{0,2}/.+", input) else False
 
 
 def is_file_accessible(filename):
@@ -180,7 +180,9 @@ def apply_filepath_op(obj, operation):
             for k in obj
         }
     else:
-        raise ValueError(f"cannot perform op={operation.__name__} to object of type {type(obj)}")
+        raise ValueError(
+            f"cannot perform op={operation.__name__} to object of type {type(obj)}"
+        )
 
 
 def compress_wdls(main_wdl, staging_dir="."):
@@ -210,9 +212,7 @@ def compress_wdls(main_wdl, staging_dir="."):
 
     # ZIP SUBWORKFLOWS
     compressed_file_format = ".zip"
-    compression_dir = pathlib.Path(
-        os.path.join(staging_dir, main_wdl.submission_id)
-    )
+    compression_dir = pathlib.Path(os.path.join(staging_dir, main_wdl.submission_id))
     compression_dir.mkdir(parents=True, exist_ok=True)
     compressed_file = join_path(
         staging_dir, main_wdl.submission_id + compressed_file_format
@@ -275,11 +275,16 @@ class WdlFile:
         :param output: stdout from WOMTool validation
         :return: set of WdlFile sub-workflows
         """
+        # some stdout text include original input for
+        # subprocess.run. This attempts to match and filter out that output
+        # eg. ['/usr/local/anaconda3/bin/java', '-Xms512m', ...]
+        command_line_regex = r"\[.*\]"
         out = output.splitlines()
         filtered_out_lines = ["Success!", "List of Workflow dependencies is:", "None"]
         subworkflows = set()
         for sub in out:
-            if sub not in filtered_out_lines:
+            match = re.search(command_line_regex, sub)
+            if sub not in filtered_out_lines and not match:
                 subworkflows.add(WdlFile(sub, self.submission_id))
         return subworkflows
 
@@ -449,10 +454,14 @@ class WorkflowInputs:
         self.basedir = os.path.dirname(self.inputs_location)
 
         # JSON inputs could contain relative paths, so we process the JSON file to include absolute paths
-        inputs_json = json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+        inputs_json = (
+            json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+        )
         self.inputs_json = {}
         for k in inputs_json:
-            self.inputs_json[k] = apply_filepath_op(inputs_json[k], self._relative_to_absolute_paths)
+            self.inputs_json[k] = apply_filepath_op(
+                inputs_json[k], self._relative_to_absolute_paths
+            )
 
         self._src_file_inputs = None
 
@@ -504,7 +513,7 @@ class WorkflowInputs:
             msg = "File(s) not accessible:\n" + "\n".join(not_accessible)
             msg += f"\nPlease make sure that the group owner is set to {group_owner} and the group permissions are "
             msg += "set to readable and executable."
-            raise SystemExit(msg)
+            raise WorkflowInputsError(msg)
 
     def write_to(self, json_location):
         """
@@ -600,5 +609,10 @@ class WorkflowError(Exception):
 
 
 class WdlError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class WorkflowInputsError(Exception):
     def __init__(self, message):
         super().__init__(message)

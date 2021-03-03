@@ -18,7 +18,7 @@ variables that must be set for the deployment to be successful:
 - JAWS_CENTRAL_HOST: hostname of JAWS central server  
 - JAWS_CENTRAL_RMQ_HOST: hostname of RabbitMQ server that Central will use
 - JAWS_CENTRAL_RMQ_PORT: port for RabbitMQ server  that Central will use
-- JAWS_GLOBUS_CLIENT_ID: Globus Client app registration id  
+- JAWS_GLOBUS_CLIENT_ID: Globus Confidential Application Client ID
 - CROMWELL_VERSION: version of Cromwell
 - JAWS_CENTRAL_DB_HOST: hostname for the MYSQL database 
 - JAWS_CENTRAL_DB_PORT: port for the MYSQL database 

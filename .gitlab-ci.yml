@@ -1,8 +1,10 @@
 stages:
+  - .pre
   - unit-test
   - package
   - deploy-jaws
   - integration-test
+  - nightly-tests
   - .post
 
 variables:
@@ -15,7 +17,7 @@ variables:
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_CENTRAL_RMQ_HOST: "rmq.lbl.gov"
   JAWS_CENTRAL_RMQ_PORT: 5672
-  JAWS_GLOBUS_CLIENT_ID: "29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3"
+  JAWS_GLOBUS_CLIENT_ID: "1a130a01-48bc-489b-a729-9ab858de1755"
   CROMWELL_VERSION: "52"
 
   ## CENTRAL-SPECIFIC VARIABLES:
@@ -64,8 +66,7 @@ variables:
   ## SITE-SPECIFIC VARIABLES:
   CORI_INSTALL_BASEDIR: "/tmp"
   CORI_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
-  CORI_GLOBUS_ROOT_DIR: "/"
-  CORI_GLOBUS_DEFAULT_DIR: "~"
+  CORI_GLOBUS_HOST_PATH: "/"
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
   CORI_JTM_RMQ_HOST: "rmq.lbl.gov"
@@ -94,9 +95,8 @@ variables:
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
 
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
-  JGI_GLOBUS_EP: "45afb626-a4bd-11e8-96f0-0a6d4e044368"
-  JGI_GLOBUS_ROOT_DIR: "/"
-  JGI_GLOBUS_DEFAULT_DIR: "~"
+  JGI_GLOBUS_EP: "e8b18c38-36cd-11eb-b54c-02d9497ca481"
+  JGI_GLOBUS_HOST_PATH: "/global/scratch/jaws"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
   JGI_JTM_RMQ_HOST: "rmq.lbl.gov"
@@ -125,9 +125,8 @@ variables:
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
 
   CASCADE_INSTALL_BASEDIR: "/tmp"
-  CASCADE_GLOBUS_EP: "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
-  CASCADE_GLOBUS_ROOT_DIR: "/"
-  CASCADE_GLOBUS_DEFAULT_DIR: "/"
+  CASCADE_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
+  CASCADE_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
   CASCADE_RMQ_HOST: "localhost"
   CASCADE_RMQ_PORT: 5672
   CASCADE_JTM_RMQ_HOST: "localhost"
@@ -228,15 +227,6 @@ package:
     - source pkg-venv/bin/activate
     - pip install wheel
     - make pkg
-  artifacts:
-    name: "packages-$CI_PROJECT_NAME-$CI_PIPELINE_ID"
-    expire_in: 6 hour
-    paths:
-      - rpc/dist
-      - site/dist
-      - client/dist
-      - central/dist
-      - jtm/dist
 
 ## integration tests - only run on merge request
 deploy-jaws-central-dev:
@@ -381,3 +371,19 @@ deploy-jaws-cascade-dev:
     - ./test/integration/deploy-jaws
   only:
     - dev
+
+deploy-jaws-cori-dev-integration-tests:
+  stage: integration-test
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  environment:
+    name: "cori/dev"
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh single-test
+  only:
+  -  742-add-automated-scorecard-tests-to-gitlab-ci-yml-2

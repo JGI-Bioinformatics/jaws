@@ -8,7 +8,6 @@ import requests
 import click
 import logging
 import uuid
-import getpass
 from typing import Dict
 from collections import defaultdict
 
@@ -272,8 +271,7 @@ def list_sites() -> None:
 @click.argument("wdl_file", nargs=1)
 @click.argument("infile", nargs=1)
 @click.argument("site", nargs=1)
-@click.option("--out_endpoint", default=None, help="Globus endpoint to send output")
-def submit(wdl_file, infile, site, out_endpoint):
+def submit(wdl_file, infile, site):
     """Submit a run for execution at a JAWS-Site.
 
     :param wdl_file: Path to workflow specification (WDL) file
@@ -289,29 +287,15 @@ def submit(wdl_file, infile, site, out_endpoint):
 
     current_user = user.User()
 
-    # STAGING DIR
+    user_url = f'{config.conf.get("JAWS", "url")}/user'
+    user_rec = _get(user_url)
+    user_json = user_rec.json()
+    uid = user_json["uid"]
+
     staging_subdir = config.Configuration().get("JAWS", "staging_dir")
-    staging_user_subdir = os.path.join(staging_subdir, getpass.getuser())
-    globus_basedir = config.Configuration().get("GLOBUS", "basedir")
-    if not staging_subdir.startswith(globus_basedir):
-        raise SystemExit(
-            f"Configuration error: Staging dir must be under endpoint's basedir: {globus_basedir}"
-        )
-
-    # GLOBUS
-    local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
-    if out_endpoint is None:
-        out_endpoint = local_endpoint_id
-
-    # OUTDIR
-    outdir = config.conf.get("JAWS", "data_repo_basedir")
-    if out_endpoint == local_endpoint_id and not outdir.startswith(globus_basedir):
-        raise SystemExit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
-    if not os.path.isdir(outdir):
-        try:
-            os.makedirs(outdir)
-        except Exception as error:
-            raise SystemExit(f"Unable to make outdir, {outdir}: {error}")
+    staging_user_subdir = os.path.join(staging_subdir, uid)
+    globus_host_path = config.Configuration().get("GLOBUS", "host_path")
+    output_directory = config.conf.get("JAWS", "data_repo_basedir")
 
     # GET SITE INFO
     compute_site_id = site.upper()
@@ -327,9 +311,10 @@ def submit(wdl_file, infile, site, out_endpoint):
     elif r.status_code != requests.codes.ok:
         result = r.json()
         raise SystemExit(result["detail"])
+
     result = r.json()
-    compute_basedir = result["globus_basepath"]
-    compute_uploads_subdir = result["uploads_subdir"]
+    compute_basedir = result["globus_host_path"]
+    compute_uploads_subdir = result["uploads_dir"]
     compute_max_ram_gb = int(result["max_ram_gb"])
 
     # VALIDATE WORKFLOW
@@ -346,11 +331,20 @@ def submit(wdl_file, infile, site, out_endpoint):
         raise SystemExit(f"Your file, {infile}, is not a valid JSON file: {error}")
 
     jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
-    local_staging_endpoint = workflow.join_path(globus_basedir, staging_user_subdir)
+    local_staging_endpoint = workflow.join_path(globus_host_path, staging_user_subdir)
     manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
 
-    wdl.validate()
-    inputs_json.validate()
+    # validate WDL or exit with error message
+    try:
+        wdl.validate()
+    except workflow.WdlError as error:
+        raise SystemExit(error)
+
+    # validate inputs JSON or exit with error message
+    try:
+        inputs_json.validate()
+    except workflow.WorkflowInputsError as error:
+        raise SystemExit(error)
 
     max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
@@ -374,13 +368,14 @@ def submit(wdl_file, infile, site, out_endpoint):
     manifest_file.write_to(staged_manifest)
 
     # SUBMIT RUN TO CENTRAL
+    local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
     data = {
         "site_id": compute_site_id,
         "submission_id": submission_id,
         "input_site_id": config.conf.get("JAWS", "site_id"),
-        "input_endpoint": config.conf.get("GLOBUS", "endpoint_id"),
-        "output_endpoint": out_endpoint,
-        "output_dir": outdir,
+        "input_endpoint": local_endpoint_id,
+        "output_endpoint": local_endpoint_id,  # return to original submission site
+        "output_dir": output_directory,
     }
     files = {"manifest": open(staged_manifest, "r")}
     url = f'{config.conf.get("JAWS", "url")}/run'

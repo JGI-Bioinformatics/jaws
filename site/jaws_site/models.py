@@ -28,7 +28,6 @@ class Run(Base):
     output_dir = Column(String(256), nullable=False)
     download_task_id = Column(String(36), nullable=True)
     email = Column(String(64), nullable=False)
-    transfer_refresh_token = Column(String(256), nullable=False)
 
 
 class Run_Log(Base):

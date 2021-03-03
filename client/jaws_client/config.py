@@ -41,16 +41,24 @@ class Configuration(metaclass=Singleton):
             "womtool_jar": "",
             "staging_dir": "",
             "data_repo_basedir": "",
-            "shared_endpoint_group": ""
+            "shared_endpoint_group": "",
         },
         "GLOBUS": {"client_id": "", "endpoint_id": "", "basedir": "/"},
     }
 
     required_jaws_params = {
-        "JAWS": ["name", "site_id", "url", "womtool_jar", "staging_dir", "data_repo_basedir", "shared_endpoint_group"],
+        "JAWS": [
+            "name",
+            "site_id",
+            "url",
+            "womtool_jar",
+            "staging_dir",
+            "data_repo_basedir",
+            "shared_endpoint_group",
+        ],
         "GLOBUS": ["client_id", "endpoint_id", "basedir"],
     }
-    required_user_params = {"USER": ["token", "staging_dir"]}
+    required_user_params = {"USER": ["token"]}
 
     config = None
 

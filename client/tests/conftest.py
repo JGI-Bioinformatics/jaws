@@ -19,20 +19,17 @@ def configuration(tmp_path):
 
     contents = """
 [JAWS]
-name = JAWS
-site_id = NERSC
-url = http://localhost:5000
+site_id = CORI
+url = http://localhost:5001/api/v2
 womtool_jar =
-staging_dir = {0}/globus/staging
-data_repo_basedir = {0}/globus/data_repo
-shared_endpoint_group =
+uploads_subdir = {0}/globus/staging/uploads
+staging_dir = {0}/globus/staging/users
+data_repo_basedir = {0}/globus/data-repository-dev
+shared_endpoint_group = genome
 [GLOBUS]
 client_id =
 endpoint_id =
-basedir = {0}/globus
-data_repo_basedir =
-shared_endpoint_group = staff
-
+host_path = {0}/globus
 """.format(tmp_path.as_posix())
     config_path.write_text(contents)
 
