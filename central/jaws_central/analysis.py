@@ -382,7 +382,6 @@ def submit_run(user):
         "run_id": run.id,
         "user_id": user,
         "email": current_user.email,
-        "transfer_refresh_token": current_user.transfer_refresh_token,
         "submission_id": submission_id,
         "upload_task_id": upload_task_id,
         "output_endpoint": output_endpoint,

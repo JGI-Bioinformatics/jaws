@@ -13,8 +13,8 @@ class MockUser:
         return "EEEEFFFFGGGG"
 
     @property
-    def transfer_refresh_token(self):
-        return "abcdefghijklmnopqrstuvwxyz"
+    def email(self):
+        return "ijklmn@foo.gov"
 
     @property
     def is_admin(self):
@@ -68,16 +68,16 @@ def test_get_tokeninfo(monkeypatch):
 
 
 def test_get_user_token(monkeypatch):
-    def mock__get_user_by_globus_id(access_globus_id):
+    def mock__get_user_by_email(access_email):
         user = MockUser()
         return user
 
     monkeypatch.setattr(
-        jaws_central.auth, "_get_user_by_globus_id", mock__get_user_by_globus_id
+        jaws_central.auth, "_get_user_by_email", mock__get_user_by_email
     )
 
     user = MockUser()
-    globus_user_id = "ijklmn"
-    result = jaws_central.auth.get_user_token(user, globus_user_id)
+    email = "ijklmn@foo.gov"
+    result = jaws_central.auth.get_user_token(user, email)
 
     assert result["jaws_token"] == "EEEEFFFFGGGG"
