@@ -2373,7 +2373,7 @@ def manager(
             "required_params": [],
         }
     }
-    jtm_rpc_server_params = CONFIG.configparser._sections("JTM_RPC_SERVER")
+    jtm_rpc_server_params = CONFIG.configparser._sections["JTM_RPC_SERVER"]
     logger.debug("jtm_rpc_server params: %s", jtm_rpc_server_params)
     app = rpc_server.RpcServer(jtm_rpc_server_params, operations)
     app.start_server()
