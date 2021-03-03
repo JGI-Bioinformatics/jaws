@@ -42,7 +42,7 @@ This command should output a template for the inputs.json file. You can then fil
    }
 
 .. warning::
-    File paths may be absolute or relative paths, but must contain a slash in the path (e.g. `/tmp/x` or `./x`). 
+    File paths may be absolute or relative paths, but must start with `./`, `../`, or `/` to be recognized as a path.
 
 To include lists or dictionaries in your input.json files, you would do something like:
 
