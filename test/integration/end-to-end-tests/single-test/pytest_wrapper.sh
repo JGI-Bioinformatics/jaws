@@ -88,6 +88,9 @@ echo "source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAM
 #jaws info
 #exit
 
+#pytest --version
+#jaws info
+
 # write token to jaws.conf
 # [USER]
 # token =
