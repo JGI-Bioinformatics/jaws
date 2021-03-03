@@ -27,7 +27,7 @@ check_sleep=30
 #
 # Test functions for verification of jaws log commands (log,task-log,status,task-status).
 #
-def test_jaws_info(env):
+def test_jaws_info():
     """ tests that there is a valid output for jaws info. Name should be dev,staging, or prod and version should have some value.
     {
     "docs_url": "https://jaws-docs.readthedocs.io/en/latest/",
@@ -35,8 +35,7 @@ def test_jaws_info(env):
         "version": "2.1"
     } """
 
-    #cmd = "source ~/jaws-%s.sh > /dev/null && jaws info" % (env)
-    cmd = "jaws info" % (env)
+    cmd = "jaws info"
     (r,o,e) = util.run(cmd)
 
     data = json.loads(o)
@@ -45,7 +44,7 @@ def test_jaws_info(env):
     assert data["name"] in ["prod","staging","dev"]
     assert data["version"] is not None
 
-def test_jaws_status(env):
+def test_jaws_status():
     """ tests that the jaws status is working. We don't care if some services are down.
         Just test that all below services are shown, regardless of status.
     {
@@ -59,8 +58,7 @@ def test_jaws_status(env):
     }
     """
 
-    #cmd = "source ~/jaws-%s.sh > /dev/null && jaws status" % (env)
-    cmd = "jaws status" % (env)
+    cmd = "jaws status"
     (r,o,e) = util.run(cmd)
     data = json.loads(o)
 
@@ -71,14 +69,13 @@ def test_jaws_status(env):
         assert k in actual_keys
 
 
-def test_jaws_run_queue(env, submit_fq_count_wdl):
+def test_jaws_run_queue(submit_fq_count_wdl):
     """ tests that the jaws run queue command has the run id in the stdout."""
 
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
 
-    #cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
-    cmd = "jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
+    cmd = "jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','"
     (r,o,e) = util.run(cmd)
     ids=o.split()
     assert run_id in ids
