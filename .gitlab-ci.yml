@@ -384,7 +384,7 @@ deploy-jaws-cori-dev-integration-tests:
   environment:
     name: "cori/dev"
   script:
-    - ./test/integration/end-to-end-tests/single-test/pytest_wrapper.sh single-test
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh single-test
   only:
   -  742-add-automated-scorecard-tests-to-gitlab-ci-yml-2
 
