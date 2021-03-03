@@ -9,7 +9,7 @@ if [[ ! $TEST_FOLDER ]]; then
 fi
 
 
-set -euox pipefail
+#set -euox pipefail
 
 ## VALIDATE INPUT VARS
 ## print list of all missing vars (instead of exiting on first undefined var)
@@ -25,11 +25,11 @@ for VAR in $REQUIRED_VARS; do
   if [[ -z ${!VAR} ]]; then
     echo "Missing env var: $VAR">&2
     RESULT=1
+  else
+  	echo "... $VAR: ${!VAR}"
   fi
-  echo "... $VAR : OK"
 done
 [ $RESULT -eq 0 ] || exit $RESULT
-
 
 ## SITE-SPECIFIC VARIABLES:
 ## This will define global vars with a SITE_ prefix, with values from variables referenced by the JAWS_SITE
@@ -46,7 +46,7 @@ function set_site_var {
   fi
   SITE_VAR_NAME="SITE_${VAR_NAME}"
   VALUE="${!SRC_VAR_NAME}"
-  echo "... $SITE_VAR_NAME"
+  echo "... $SITE_VAR_NAME: ${!SITE_VAR_NAME}"
   export $SITE_VAR_NAME
   printf -v "$SITE_VAR_NAME" "%s" "$VALUE"
 }
@@ -61,22 +61,37 @@ done
 
 ## DEFINE VARS FROM OTHER VARS
 echo "DEFINING PATHS"
-#export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
+export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
 export SITE_CLIENT_INSTALL_DIR="$SITE_JAWS_SW_BASEDIR/jaws-$DEPLOYMENT_NAME"
+if [[ ! -d $INSTALL_DIR ]]; then
+	echo "INSTALL_DIR does not exist ($INSTALL_DIR)"
+	exit 1
+else
+	echo "... INSTALL_DIR: $INSTALL_DIR"
+fi
+
+if [[ ! -d $SITE_CLIENT_INSTALL_DIR ]]; then
+	echo "SITE_CLIENT_INSTALL_DIR does not exist ($SITE_CLIENT_INSTALL_DIR)"
+	exit 1
+else
+	echo "... SITE_CLIENT_INSTALL_DIR: $SITE_CLIENT_INSTALL_DIR"
+fi
+
 
 # source venv
 source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
+
+#pytest --version
+#jaws info
 
 # write token to jaws.conf
 # [USER]
 # token =
 # staging_dir =
 
-# SITE_JAWS_SCRATCH_DIR
+# Create the jaws.con
 echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN\nstaging_dir = /global/cscratch1/sd/jaws/jfroula\n" > ~/jaws.conf
-
 chmod 600 ~/jaws.conf
 
 cd test/integration/end-to-end-tests/${TEST_FOLDER}
-source ~jfroula/venv/pytest/bin/activate && \
 pytest --verbose --env $DEPLOYMENT_NAME --site $JAWS_SITE .

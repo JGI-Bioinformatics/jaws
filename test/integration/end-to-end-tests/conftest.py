@@ -24,7 +24,7 @@ def submit_fq_count_wdl(request):
     env = request.config.getoption("--env")
     site = request.config.getoption("--site")
 
-    data = util.submit_wdl(env, wdl, input_json, site)
+    data = util.submit_wdl(wdl, input_json, site)
     return data
 
 @pytest.fixture(scope="session")
