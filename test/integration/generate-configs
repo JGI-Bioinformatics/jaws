@@ -112,25 +112,25 @@ instance_name = \${jtm_host_name}.\${user_name}
 scratch = $SITE_JTM_SCRATCH_DIR
 debug = 1
 [RMQ]
-user = jaws
 host = $SITE_JTM_RMQ_HOST
 port = $SITE_JTM_RMQ_PORT
-password = $SITE_JTM_RMQ_PW
 vhost = jtm_$DEPLOYMENT_NAME
-[SITE_RPC_CLIENT]
 user = jaws
-password = $SITE_RMQ_PW
+password = $SITE_JTM_RMQ_PW
+[SITE_RPC_CLIENT]
 host = $SITE_RMQ_HOST
 port = $SITE_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = SITE_$JAWS_SITE
-[JTM_RPC_SERVER]
 user = jaws
 password = $SITE_RMQ_PW
+[JTM_RPC_SERVER]
 host = $SITE_RMQ_HOST
 port = $SITE_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JTM_RPC_$JAWS_SITE
+user = jaws
+password = $SITE_RMQ_PW
 num_threads = 5
 max_retries = 3
 [MYSQL]
