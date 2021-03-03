@@ -44,7 +44,7 @@ def test_jaws_info():
     assert data["name"] in ["prod","staging","dev"]
     assert data["version"] is not None
 
-def mtest_jaws_status():
+def test_jaws_status():
     """ tests that the jaws status is working. We don't care if some services are down.
         Just test that all below services are shown, regardless of status.
     {
@@ -69,7 +69,7 @@ def mtest_jaws_status():
         assert k in actual_keys
 
 
-def mtest_jaws_run_queue(submit_fq_count_wdl):
+def test_jaws_run_queue(submit_fq_count_wdl):
     """ tests that the jaws run queue command has the run id in the stdout."""
 
     data = submit_fq_count_wdl
