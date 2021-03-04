@@ -409,15 +409,13 @@ def move_input_files(workflow_inputs, destination):
     """
     Moves the input files defined in a JSON file to a destination.
 
-    It will make any directories that are needed in the staging path, and then either symlink them
-    if they are a globus path or use rsync to move the files.
+    It will make any directories that are needed in the staging path and then copy the files.
 
     :param workflow_inputs: JSON file where inputs are specified.
     :param destination: path to where to moved the input files
     :return: list of the moved_files
     """
     moved_files = []
-    globus_basedir = config.Configuration().get("GLOBUS", "basedir")
 
     for original_path in workflow_inputs.src_file_inputs:
         staged_path = pathlib.Path(f"{destination}{original_path}")
@@ -428,12 +426,9 @@ def move_input_files(workflow_inputs, destination):
             dirname = pathlib.Path(os.path.dirname(staged_path))
             dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
 
-        # globus paths are accessible via symlink
-        if original_path.startswith(globus_basedir):
-            if not os.path.exists(staged_path):
-                os.symlink(original_path, staged_path.as_posix())
-        else:
-            rsync(original_path, staged_path.as_posix())
+        # files must be copied in to ensure they are readable by the jaws and jtm users,
+        # as a result of the gid sticky bit and acl rules on the inputs dir.
+        rsync(original_path, staged_path.as_posix())
     return moved_files
 
 
