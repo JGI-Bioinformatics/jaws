@@ -127,6 +127,7 @@ def user_queue(user):
                 "output_dir": run.output_dir,
                 "download_task_id": run.download_task_id,
                 "user_id": run.user_id,
+                "tag": run.tag,
             }
         )
     return result, 200
@@ -174,6 +175,7 @@ def user_history(user, delta_days=10):
                 "output_dir": run.output_dir,
                 "download_task_id": run.download_task_id,
                 "user_id": run.user_id,
+                "tag": run.tag,
             }
         )
     return result, 200
@@ -232,6 +234,9 @@ def submit_run(user):
     input_endpoint = request.form.get("input_endpoint", None)
     output_endpoint = request.form.get("output_endpoint")
     output_dir = request.form.get("output_dir")
+    wdl_file = request.form.get("wdl_file")
+    json_file = request.form.get("json_file")
+    tag = request.form.get("tag")
     compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
     globus = jaws_central.globus.GlobusService()
 
@@ -251,6 +256,9 @@ def submit_run(user):
         input_endpoint=input_endpoint,
         output_endpoint=output_endpoint,
         output_dir=output_dir,
+        wdl_file=wdl_file,
+        json_file=json_file,
+        tag=tag,
         status="created",
     )
     try:
@@ -405,12 +413,10 @@ def submit_run(user):
     # DONE
     result = {
         "run_id": run.id,
-        "submission_id": submission_id,
         "status": run.status,
-        "upload_task_id": upload_task_id,
         "site_id": site_id,
-        "output_endpoint": output_endpoint,
         "output_dir": output_dir,
+        "tag": tag,
     }
     logger.info(f"User {user}: New run: {result}")
     return result, 201

@@ -413,6 +413,21 @@ paths:
           type: string
           in: formData
           required: True
+        - name: wdl_file
+          description: Original WDL infile path
+          type: string
+          in: formData
+          required: True
+        - name: json_file
+          description: Original JSON infile path
+          type: string
+          in: formData
+          required: True
+        - name: tag
+          description: User-specified label for the run
+          type: string
+          in: formData
+          required: False
       responses:
         201:
           description: Successful
