@@ -271,7 +271,8 @@ def list_sites() -> None:
 @click.argument("wdl_file", nargs=1)
 @click.argument("infile", nargs=1)
 @click.argument("site", nargs=1)
-def submit(wdl_file, infile, site):
+@click.option("--tag", default=1)
+def submit(wdl_file: str, infile: str, site: str, tag: str):
     """Submit a run for execution at a JAWS-Site.
 
     :param wdl_file: Path to workflow specification (WDL) file
@@ -280,8 +281,8 @@ def submit(wdl_file, infile, site):
     :type infile: str
     :param site: JAWS Site ID at which to run
     :type site: str
-    :param out_endpoint: Globus endpoint id
-    :type out_endpoint: str
+    :param tag: User-supplied label for this run.
+    :type tag: str
     """
     logger = logging.getLogger(__package__)
 
@@ -375,7 +376,10 @@ def submit(wdl_file, infile, site):
         "input_site_id": config.conf.get("JAWS", "site_id"),
         "input_endpoint": local_endpoint_id,
         "output_endpoint": local_endpoint_id,  # return to original submission site
-        "output_dir": output_directory,
+        "output_dir": output_directory,  # jaws-writable dir to initially receive results
+        "wdl_file": wdl_file,
+        "json_file": infile,
+        "tag": tag,
     }
     files = {"manifest": open(staged_manifest, "r")}
     url = f'{config.conf.get("JAWS", "url")}/run'
