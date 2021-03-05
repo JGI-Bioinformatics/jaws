@@ -20,10 +20,11 @@ check_sleep = 30  # wait for this amount of time between tries.
 def test_json_file_does_not_exist(env, site):
     # Submit job with path to json file that does not exist
     # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
+    wdl = "~/jaws/examples/jaws-alignment-example/main.wdl"
     json = "./FileDoesNotExist.json"
 
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, site)
+    submit_cmd = "jaws run submit %s %s %s" % (wdl, json, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
     print("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
@@ -34,13 +35,12 @@ def test_json_file_does_not_exist(env, site):
 
 def test_json_bad_path_to_input_file_msg(env, site):
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    wdl        = "~/jaws/examples/jaws-alignment-example/main.wdl"
-    out_dir    = "./out/bad_inputs"
+    wdl = "~/jaws/examples/jaws-alignment-example/main.wdl"
 
     # Submit job with json contains path to a non-existent input file
     # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
     json = "../test-inputs/bad_path_inputs.json"
-    submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, out_dir, site)
+    submit_cmd = "jaws run submit %s %s %s %s" % (wdl, json, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
     # print("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
