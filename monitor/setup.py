@@ -16,7 +16,7 @@ setup(
     entry_points={
         "console_scripts": [
             "jaws-prometheus = jaws_prometheus.jaws_prometheus:main",
-            "disk-monitor = jaws_prometheus.disk_monitor:main",
+            "site-monitor = jaws_prometheus.site_monitor:main",
         ]
     },
     zip_safe=False,
