@@ -1,6 +1,7 @@
 import os
 import configparser
 
+
 class Configuration():
     def __init__(self, config_file):
         """Read the given config file and create a config parser object containing the

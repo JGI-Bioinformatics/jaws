@@ -55,15 +55,10 @@ queue: rmq_queue
 
 """
 
-import os
 import requests
 import argparse
 import time
-import json
-import configparser
-import time
 from prometheus_client import start_http_server, Gauge
-from pprint import pprint
 from jaws_prometheus.config import Configuration
 from jaws_rpc import rpc_client
 
@@ -73,7 +68,6 @@ from jaws_rpc import rpc_client
 # sys.path.insert(0, os.path.join(ROOT_DIR, '../../rpc'))
 # from jaws_rpc import rpc_client
 # from config import Configuration
-
 
 
 def get_args():
@@ -120,7 +114,6 @@ def set_prometheus_metric(proms, name, value):
 
     if name not in proms:
         proms[name] = Gauge(name, f"Monitor JAWS {name}")
-    print(f"{value}\t{name}")
     proms[name].set(value)
 
 
@@ -143,15 +136,16 @@ def http_request(url, **rkwargs):
             rkwargs['params'] = dict(item.split("=") for item in p.split("&"))
         r = requests.get(url=url, **rkwargs)
     except requests.exceptions.RequestException as err:
-        return 500, {}
+        return 500, {'error': err}
     except Exception as err:
-        return 500, {}
+        return 500, {'error': err}
     if r.status_code != 200:
-        return 500, {}
+        return 500, {'error': f'HTTP returned a code of {r.status.code}'}
     try:
         jsondata = r.json()
     except ValueError as err:
-        raise ValueError("%s error occurred: %s"%(type(err).__name__, err))
+        return 500, {'error': 'Invalid json returned from HTTP request: %s: %s' %
+                     (type(err).__name__, err)}
 
     status = r.status_code
 
@@ -178,7 +172,7 @@ def rpc_request(entries):
 
     try:
         rpc = rpc_client.RpcClient(entries)
-    except Exception as err:
+    except Exception:
         rpc = None
     return rpc
 
@@ -314,10 +308,10 @@ def main():
     # Parse args from command-line
     args = get_args()
     config_file = args.config_file
-    time_delay = 30 # 30 seconds
+    time_delay = 30  # 30 seconds
 
     # Parse config file and define services to monitor
-    config= Configuration(config_file)
+    config = Configuration(config_file)
 
     # Lookup port number for this app from the config file
     port = config.get_port()
