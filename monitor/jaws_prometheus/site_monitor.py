@@ -173,7 +173,7 @@ def get_supervisor_processes():
     """
 
     processes = {}
-    config = request.args.get('config', None) # supervisord config file
+    config = request.args.get('config', None)  # supervisord config file
     supervisor_cmd = request.args.get('cmd', None)  # supervisord cmd full path and name
 
     if not config:
