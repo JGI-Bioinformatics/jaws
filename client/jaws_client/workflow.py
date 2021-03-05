@@ -166,10 +166,12 @@ def compress_wdls(main_wdl, staging_dir="."):
     if not os.path.isdir(staging_dir):
         os.makedirs(staging_dir)
 
-    # WRITE SANITIZED MAIN WDL
-    modified_wdl = main_wdl.sanitized_wdl()
+    # COPY MAIN WDL
     staged_wdl_filename = join_path(staging_dir, f"{main_wdl.submission_id}.wdl")
-    modified_wdl.write_to(staged_wdl_filename)
+    try:
+        main_wdl.copy_to(staged_wdl_filename)
+    except Exception as error:
+        raise WdlError(f"Error copying main-wdl file: {error}")
 
     # IF NO SUBWORKFLOWS, DONE
     if not len(main_wdl.subworkflows):
@@ -184,9 +186,11 @@ def compress_wdls(main_wdl, staging_dir="."):
     )
 
     for subworkflow in main_wdl.subworkflows:
-        modified_sub = subworkflow.sanitized_wdl()
-        new_subwf_path = join_path(compression_dir, subworkflow.name)
-        modified_sub.write_to(new_subwf_path)
+        staged_sub_wdl = join_path(compression_dir, subworkflow.name)
+        try:
+            subworkflow.copy_to(staged_sub_wdl)
+        except Exception as error:
+            raise WdlError(f"Error copying sub-wdl file: {error}")
 
     try:
         os.remove(compressed_file)
@@ -237,6 +241,8 @@ class WdlFile:
         It will collect the sub-workflows to a set of WdlFiles. The parent globus_basedir, staging_dir and path
         to the ZIP file are passed down to the sub workflows.
 
+        Subworkflows are also checked for invalid 'backend' tag and a WdlError will be raised if found.
+
         :param output: stdout from WOMTool validation
         :return: set of WdlFile sub-workflows
         """
@@ -250,7 +256,9 @@ class WdlFile:
         for sub in out:
             match = re.search(command_line_regex, sub)
             if sub not in filtered_out_lines and not match:
-                subworkflows.add(WdlFile(sub, self.submission_id))
+                sub_wdl = WdlFile(sub, self.submission_id)
+                sub_wdl.verify_wdl_has_no_backend_tags()
+                subworkflows.add(sub_wdl)
         return subworkflows
 
     @property
@@ -280,7 +288,8 @@ class WdlFile:
 
     def validate(self):
         """
-        Validates using WOMTool the WDL file. Any syntax errors from WDL will be raised in a WdlError
+        Validates the WDL file using Cromwell's womtool.
+        Any syntax errors from WDL will be raised in a WdlError.
         :return:
         """
         self.logger.info(f"Validating WDL, {self.file_location}")
@@ -288,6 +297,7 @@ class WdlFile:
         if stderr:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
+        self.verify_wdl_has_no_backend_tags()
 
     @staticmethod
     def _get_wdl_name(file_location):
@@ -333,32 +343,28 @@ class WdlFile:
         self.logger.info(f"Maximum RAM requested is {self._max_ram_gb}Gb")
         return self._max_ram_gb
 
-    def sanitized_wdl(self):
-        contents = self._remove_invalid_backends()
-        return WdlFile(self.file_location, self.submission_id, contents=contents)
+    def copy_to(self, destination):
+        shutil.copy(self.file_location, destination)
 
-    def write_to(self, destination):
-        with open(destination, "w") as new_wdl:
-            new_wdl.write(self.contents)
-
-    def _remove_invalid_backends(self):
+    def verify_wdl_has_no_backend_tags(self):
         """
-        Removes the backend keyword in a WDL file.
+        Checks for disallowed "backend" keyword in a WDL file.
 
-        This sanitizes the WDL so that any declared backends are taken off. The reason for this is because we
-        are ONLY using JGI Task Manager (JTM) as the backend and want to prevent any WDL from using a different
-        backend.
+        Each Site has it's own configured backend; we do not allow users to specify which to
+        use.  In particular, the "LOCAL" backend would cause jobs to run on the head node,
+        which would cause problems if it consumed too much RAM.
+
+        An exception is WdlError exception is raised if disallowed backend is found.
 
         :param wdl: the path to a WDL file
-        :return: the contents of the file without backend keyword
+        :type wdl: str
+        :return:
         """
-        contents = ""
-        with open(self.file_location, "r") as fo:
-            for line in fo:
+        with open(self.file_location, "r") as fh:
+            for line in fh:
                 m = re.match(r"^\s*backend", line)
-                if not m:
-                    contents += line
-        return contents
+                if m:
+                    raise WdlError("ERROR: WDLs may not contain 'backend' tag")
 
     def __eq__(self, other):
         return self.file_location == other.file_location

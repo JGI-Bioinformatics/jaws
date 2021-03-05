@@ -356,7 +356,10 @@ def submit(wdl_file: str, infile: str, site: str, tag: str):
     site_id = config.conf.get("JAWS", "site_id")
     site_subdir = workflow.join_path(local_staging_endpoint, site_id)
 
-    sanitized_wdl, zip_file = workflow.compress_wdls(wdl, local_staging_endpoint)
+    try:
+        staged_wdl, zip_file = workflow.compress_wdls(wdl, local_staging_endpoint)
+    except Exception as error:
+        raise SystemExit(f"Unable to copy WDLs to inputs dir: {error}")
     moved_files = workflow.move_input_files(inputs_json, site_subdir)
 
     staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
@@ -364,7 +367,7 @@ def submit(wdl_file: str, infile: str, site: str, tag: str):
     modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
     modified_json.write_to(staged_json)
 
-    manifest_file.add(sanitized_wdl, zip_file, staged_json, *moved_files)
+    manifest_file.add(staged_wdl, zip_file, staged_json, *moved_files)
     staged_manifest = workflow.join_path(staging_user_subdir, f"{submission_id}.tsv")
     manifest_file.write_to(staged_manifest)
 
