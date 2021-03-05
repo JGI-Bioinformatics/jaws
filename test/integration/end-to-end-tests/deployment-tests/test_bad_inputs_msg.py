@@ -46,6 +46,6 @@ def test_json_bad_path_to_input_file_msg(env, site):
     # print("cmd: %s\nout: %s\nerror: %s", cmd, o, e)
 
     # check for the correct error message
-    assert "File(s) not accessible:" in e
-
+    #assert "File(s) not accessible:" in e
+    assert "No such file or directory" in e
     # TODO add more tests to cover the other scorecard scenarios that I said this test would cover
