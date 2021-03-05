@@ -17,25 +17,33 @@ using JAWS_MONITOR_CONFIG environment variable name.
 
 The structure of the config file is in ini format and looks for the following sections:
 
-[MONITOR]    # required section
+[MONITOR]  # required section
 port = port for this application
 
-[HTTP:STATUS]  # (optional) returns 0 or 1 designating whether the http request failed
-             # or is successful.
-name_of_service_1 = http://somehost:someport
-name_of_service_2 = http://somehost:someport
+[REST_SERVICES]  # (optional) returns 0 or 1 designating whether the http request failed
+                 # or is successful.
+name_of_metric = http://somehost:someport
 ...
 
-[HTTP:DISK_FREE] # (optional) returns float from http request for returning disk free percent
+[DISK_MONITOR]  # (optional) returns float from http request for returning disk free percent
 as float.
-name_of_service_3 = http://somehost:someport
-name_of_service_4 = http://somehost:someport
+name_of_metric = http://somehost:someport
 ...
 
-[RMQ:name_of_service_5]  # (optional) performs an rmq/rpc request and returns 0 or 1 designating rmq request
-                         # failed or is successful.
-                         # The return value must be in JSON_RPC format with the key='result' and
-                         # a value of either True or False.
+[SUPERVISOR_STATUS]  # (optional) returns float from http request for returning supervisord pid
+as float.
+name_of_metric = http://somehost:someport?config=/path/supervisor.conf&cmd=/path/supervisord
+...
+
+[SUPERVISOR_PROCESS]  # (optional) returns float from http request for returning the status of each
+process that supervisord is managing.
+name_of_metric = http://somehost:someport?config=/path/supervisor.conf&cmd=/path/supervisorctl
+...
+
+[RMQ:name_of_metric]   # (optional) performs an rmq/rpc request and returns 0 or 1 designating rmq request
+                       # failed or is successful.
+                       # The return value must be in JSON_RPC format with the key='result' and
+                       # a value of either True or False.
 user: rmq_user
 password: rmq_pwd
 host: rmq_host
@@ -43,7 +51,6 @@ port: rmq_port
 vhost: rmq_vhost
 queue: rmq_queue
 
-[RMQ:name_of_service_6] # (optional)
 ...
 
 """
@@ -54,27 +61,19 @@ import argparse
 import time
 import json
 import configparser
+import time
 from prometheus_client import start_http_server, Gauge
+from pprint import pprint
+from jaws_prometheus.config import Configuration
 from jaws_rpc import rpc_client
 
+# ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+# import sys
+# sys.path.insert(0, os.path.join(ROOT_DIR, '../jaws_prometheus'))
+# sys.path.insert(0, os.path.join(ROOT_DIR, '../../rpc'))
+# from jaws_rpc import rpc_client
+# from config import Configuration
 
-def configuration(config_file):
-    """Read the given config file and create a config parser object containing the
-    contents of the config file.
-
-    :param config_file: file path and name of config file
-    :type config_file: str
-    :return: none
-    """
-    if not config_file:
-        config_file = os.environ.get('JAWS_MONITOR_CONFIG')
-    config = configparser.ConfigParser()
-    try:
-        config.read(config_file)
-    except Exception:
-        raise
-
-    return config
 
 
 def get_args():
@@ -85,6 +84,7 @@ def get_args():
     :return: argparser object
     :rtype: object
     """
+
     prog_desc = '''
     '''
     parser = argparse.ArgumentParser(description=prog_desc, formatter_class=argparse.RawTextHelpFormatter)
@@ -92,79 +92,7 @@ def get_args():
     return parser.parse_args()
 
 
-def get_services(config):
-    """Parse the config entries and create a dictionary containing the following keys
-    for each component to be monitored:
-
-    function=name of function to call to get status
-    args=parameter(s) used to pass into function for getting status
-
-    The functions here are either for http requests or for rabbitmq requests.
-
-    Example of returned dict:
-    services = {
-        "central_prod": {
-            "function": http_respones
-            "args": "http://jaws.lbl.gov:5003/api/v2/status"
-        }
-        "site_cori_prod": {
-            "function":rmq_request
-            "args": rpc_client.RpcClient()
-        }
-    }
-
-    :param none
-    :type none
-    :return: none
-    """
-
-    services = {}
-
-    # Add monitoring for services that uses RMQ/RPC
-    for section in config.sections():
-        # Add monitoring for services that uses REST
-        if section == 'HTTP:STATUS':
-            for name in config[section]:
-                services[name] = {
-                    'function': http_status,
-                    'args': config['HTTP:STATUS'].get(name)
-                }
-
-        # Add monitoring for disk quota using REST
-        elif section == 'HTTP:DISK_FREE':
-            for name in config[section]:
-                services[name] = {
-                    'function': disk_free,
-                    'args': config['HTTP:DISK_FREE'].get(name),
-                }
-
-        # Add monitoring for services that uses RMQ/RPC
-        elif section.startswith('RMQ:'):
-            name = section.replace('RMQ:', '', 1).lower()
-            services[name] = {
-                'function': rmq_request,
-                'args': rpc_client.RpcClient(config[section]),
-            }
-
-    return services
-
-
-def get_port(config):
-    """Parse the config entries to get the port number for serving up this web server using
-    the prometheus client module.
-
-    :param none
-    :type none
-    :return: none
-    """
-    port = config['MONITOR'].get('port')
-    if port:
-        return int(port)
-    else:
-        return None
-
-
-def is_valid_http_status(status_code):
+def is_http_status_valid(status_code):
     """Check the HTTP status code and return 1 if response is successful or 0 if response
     is bad.
 
@@ -173,40 +101,105 @@ def is_valid_http_status(status_code):
     :return 0 or 1
     :rtype: int
     """
+
     return 1 if status_code >= 200 and status_code < 300 else 0
 
 
-def convert_text_to_json(text):
-    """Convert json string to dictionary.
+def set_prometheus_metric(proms, name, value):
+    """Given a metric value, report the metric to the prometheus gauge object. If the guage object
+    doesn't exist for the given name in the proms dictionary, one is created.
 
-    :param text: string
-    :return jsondata: json datastructure from input string
-    :rtype jsondata: dictionary or list
+    :param proms: dictionary containing prometheus gauge objects
+    :type proms; dictionary
+    :param name: name of metric to report
+    :type name: string
+    :param value: metric value to report
+    :type value: integer
+    :return: None
     """
-    try:
-        jsondata = json.loads(text)
-    except ValueError:
-        jsondata = {}
-    return jsondata
+
+    if name not in proms:
+        proms[name] = Gauge(name, f"Monitor JAWS {name}")
+    print(f"{value}\t{name}")
+    proms[name].set(value)
 
 
-def http_status(url):
-    """Performs an HTTP request for the given url, checks the http status code for valid ranges and returns 0 or 1,
-    with 0 for bad response and 1 for successful response. Also returns the output of the http request.
+def http_request(url, **rkwargs):
+    """Performs an HTTP request and lookup the HTTP return status. If status 200-299, return 1
+    else return 0. If kwargs[tofloat] = True, return float form of value from http request.
 
     :param url: url of HTTP request
     :type url: string
-    :return status: 0 or 1
-    :rtype int
-    :return text: output of HTTP request
-    :rtype text: json
+    :return status: http status code
+    :rtype status: int
+    :return jsondata: json output from http request
+    :rtype jsondata: dict
     """
-    status_code, _ = http_request(url)
-    status = is_valid_http_status(status_code)
-    return status
+
+    jsondata = {}
+    try:
+        if '?' in url:
+            url, p = url.split('?')
+            rkwargs['params'] = dict(item.split("=") for item in p.split("&"))
+        r = requests.get(url=url, **rkwargs)
+    except requests.exceptions.RequestException as err:
+        return 500, {}
+    except Exception as err:
+        return 500, {}
+    if r.status_code != 200:
+        return 500, {}
+    try:
+        jsondata = r.json()
+    except ValueError as err:
+        raise ValueError("%s error occurred: %s"%(type(err).__name__, err))
+
+    status = r.status_code
+
+    return status, jsondata
 
 
-def disk_free(url):
+def rpc_request(entries):
+    """Create an rpc_client object to connect to the RabbitMQ server, vhost and queue.
+    If the connection to the RabbitMQ server fails, return None.
+
+    :param entries: A dictionary containing the rabbitmq connection information. Ex:
+    {
+        user: RabbitMQ user
+        password: RabbitMQ password
+        host: RabbitMQ host
+        port: RabbitMQ port
+        vhost: vhost name
+        queue: queue name
+    }
+    :type entries: dict
+    :return: rpc_client object with connection to RabbitMQ
+    :rtype rpc_client object
+    """
+
+    try:
+        rpc = rpc_client.RpcClient(entries)
+    except Exception as err:
+        rpc = None
+    return rpc
+
+
+def report_rest_services(config, proms):
+    """Performs an HTTP request for the given url, checks the http status code for valid ranges and returns 0 or 1,
+    with 0 for bad response and 1 for successful response. Also returns the output of the http request.
+
+    :param config: config object
+    :type config: jaws_prometheus.config.Configuration object
+    :param proms: dictionary containing the prometheus gauge object for reporting metrics
+    :type proms; dictionary
+    :return: None
+    """
+    for name, url in config.get_config_section('REST_SERVICES'):
+        status_code, _ = http_request(url)
+        status = is_http_status_valid(status_code)
+        set_prometheus_metric(proms, name, status)
+
+
+def report_disk_free(config, proms):
     """Performs an HTTP request for the given url. If status is successful, parse json
     output from disk monitor and return disk free percentage as a float. Assumes
     url returns json structure in the format:
@@ -215,103 +208,97 @@ def disk_free(url):
     }
     If HTTP response is unsuccessful, return -1.
 
-    :param url: url of HTTP request
-    :type url: string
-    :return disk_free_pct: percent of free disk from disk monitor
-    :rtype: float
+    :param config: config object
+    :type config: jaws_prometheus.config.Configuration object
+    :param proms: dictionary containing the prometheus gauge object for reporting metrics
+    :type proms; dictionary
+    :return: None
     """
-
-    disk_free_pct = -1
-    status_code, text = http_request(url)
-
-    status = is_valid_http_status(status_code)
-    if status:
-        jsondata = convert_text_to_json(text)
-        disk_free_pct = float(jsondata.get('disk_free_pct', 0))
-
-    return disk_free_pct
+    for name, url in config.get_config_section('DISK_MONITOR'):
+        disk_free_pct = -1
+        status_code, jsondata = http_request(url)
+        status = is_http_status_valid(status_code)
+        if status:
+            disk_free_pct = float(jsondata.get('disk_free_pct', 0))
+        set_prometheus_metric(proms, name, disk_free_pct)
 
 
-def http_request(url):
-    """Performs an HTTP request and lookup the HTTP return status. If status 200-299, return 1
-    else return 0. If kwargs[tofloat] = True, return float form of value from http request.
-
-    :param url: url of HTTP request
-    :type url: string
-    :return status: http status code
-    :rtype status: int
-    :return text: output from http request
-    :rtype text: string
-    """
-    try:
-        r = requests.get(url=url)
-    except Exception:
-        return 500, {}
-
-    return r.status_code, r.text
-
-
-def rmq_request(rpc):
-    """Perform an RPC client request for the give rpc client object from the rpc_client module to
+def report_rmq_services(config, proms):
+    """Performs an RPC client request for the give rpc client object from the rpc_client module to
     check for the status of the service or component.
     The input rpc object contains the RMQ connection for a specific channel and queue. The response
     will be reported back by the server process (site, jtm, ...)
 
-    :param rpc: rpc_client object for rabbitMQ requests
-    :type rpc: object
-    :return: 0 or 1
-    :rtype: int
-    """
-    try:
-        response = rpc.request("server_status")
-    except rpc_client.ConnectionError:
-        return 0
-    if response and 'result' in response and response['result'] is True:
-        return 1
-    else:
-        return 0
-
-
-def create_proms(services):
-    """For each service or component to be monitored (defined in the services dict config entries),
-    create a prometheus gauge object to report metrics to the prometheus server.
-
-    :param services: dictionary defining the services to monitor.
-    :type services: dict
-    :return: dictionary where key=name of service, value=prometheus gauge object.
-    :rtype: object
-    """
-    # Register and create prometheus objects for each service to store metrics.
-    proms = {}
-    for name in services:
-        proms[name] = Gauge(name, f"Monitor JAWS {name}")
-    return proms
-
-
-def process_request(services, proms, t=60):
-    """Lookup the status for each service defined in the services dict (derived from the config
-    file entries) and report the metrics using the prometheus client module.
-
-    :param services: dictionary defining the services to monitor.
-    :type services: dict
-    :param proms: dictionary where key=name of service, value=prometheus gauge object
-    :type proms: dict
-    :param t: sleep time in seconds
-    :type t: int
-    :rtype: none
+    :param config: config object
+    :type config: jaws_prometheus.config.Configuration object
+    :param proms: dictionary containing the prometheus gauge object for reporting metrics
+    :type proms; dictionary
+    :return: None
     """
 
-    for name in services:
-        func = services[name].get('function')
-        if not func:
-            raise SystemExit("Missing func key in services dict")
+    for name, entries in config.get_config_section('RMQ:', is_partial_name=True):
+        status = 0
+        rpc = rpc_request(entries)
+        if rpc:
+            try:
+                response = rpc.request("server_status")
+            except rpc_client.ConnectionError:
+                status = 0
+            if response and 'result' in response and response['result'] is True:
+                status = 1
+            else:
+                status = 0
+        set_prometheus_metric(proms, name, status)
 
-        args = services[name].get('args')
-        value = func(args)
-        print(name, args, value, type(value))
-        proms[name].set(value)
 
-    time.sleep(t)
+def report_supervisor_pid(config, proms):
+    """Performs a REST call to site-monitor to get the supervisord process id. If alive, site-monitor
+    returns a non-zero number in a json structure like:
+    {
+        'pid': number
+    }
+
+    :param config: config object
+    :type config: jaws_prometheus.config.Configuration object
+    :param proms: dictionary containing the prometheus gauge object for reporting metrics
+    :type proms; dictionary
+    :return: None
+    """
+
+    for name, url in config.get_config_section('SUPERVISOR_STATUS'):
+        status = 0
+        http_status_code, jsondata = http_request(url)
+        if is_http_status_valid(http_status_code):
+            status = jsondata.get('pid', 0)
+        set_prometheus_metric(proms, name, status)
+
+
+def report_supervisor_processes(config, proms):
+    """Performs a REST call to site-monitor to get the status of all processes managed by the supervisord.
+    The site-monitor returns a dictionary where the key is the name of the process, the value is the status
+    of the process (0=down, 1=up).
+
+    :param config: config object
+    :type config: jaws_prometheus.config.Configuration object
+    :param proms: dictionary containing the prometheus gauge object for reporting metrics
+    :type proms; dictionary
+    :return: None
+    """
+
+    for name, url in config.get_config_section('SUPERVISOR_PROCESS'):
+        http_status_code, jsondata = http_request(url)
+        if not is_http_status_valid(http_status_code):
+            continue
+        for process in jsondata:
+            # Prepend the name of the metric from the config file to the name of the supervisor process.
+            metric_name = f"{name}_{process}"
+
+            # prometheus doesn't like dashes in the metric name so we need to convert this
+            # to underscores.
+            metric_name = metric_name.replace('-', '_')
+
+            status = jsondata[process]
+            set_prometheus_metric(proms, metric_name, status)
 
 
 def main():
@@ -326,24 +313,36 @@ def main():
     # Parse args from command-line
     args = get_args()
     config_file = args.config_file
+    time_delay = 30 # 30 seconds
 
     # Parse config file and define services to monitor
-    config = configuration(config_file)
-    services = get_services(config)
+    config= Configuration(config_file)
 
-    port = get_port(config)
+    # Lookup port number for this app from the config file
+    port = config.get_port()
     if not port:
         raise SystemExit("Failed to get port number for jaws_prometheus web server")
 
     # Start http server using the prometheus client module
     start_http_server(port)
 
-    # Create prometheus gauge objects for each service to monitor.
-    proms = create_proms(services)
+    # Here, we define a dictionary to store the prometheus client objects for reporting
+    # metrics, one for each metric that we want to capture. Because prometheus only
+    # allows the instantiation to be done once, we'll store the client object in this
+    # dict as one is created and reuse ones that have already been created. The client
+    # object are created when calling the set_prometheus_metric function if not already
+    # defined.
+    proms = {}
 
-    # Lookup status of each service and report status.
+    # Lookup status of each service and report metrics.
     while True:
-        process_request(services, proms)
+        report_rest_services(config, proms)
+        report_rmq_services(config, proms)
+        report_disk_free(config, proms)
+        report_supervisor_pid(config, proms)
+        report_supervisor_processes(config, proms)
+
+        time.sleep(time_delay)
 
 
 if __name__ == '__main__':
