@@ -39,7 +39,7 @@ def test_json_bad_path_to_input_file_msg(env, site):
 
     # Submit job with json contains path to a non-existent input file
     # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
-    json = "../test-inputs/bad_path_inputs.json"
+    json = "test-inputs/bad_path_inputs.json"
     submit_cmd = "jaws run submit %s %s %s" % (wdl, json, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
