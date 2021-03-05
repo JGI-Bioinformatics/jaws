@@ -345,12 +345,8 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     def mock_post(url, data=None, files=None, headers={}):
         return MockResult({"run_id": "36"}, 201)
 
-    def mock_is_file_accessible(*args):
-        return True
-
     monkeypatch.setattr(requests, "get", mock_get)
     monkeypatch.setattr(requests, "post", mock_post)
-    monkeypatch.setattr(jaws_client.workflow, 'is_file_accessible', mock_is_file_accessible)
 
     runner = click.testing.CliRunner()
     result = runner.invoke(run, ["submit", wdl, inputs, "CORI"])
