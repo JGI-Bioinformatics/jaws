@@ -214,6 +214,7 @@ def report_disk_free(config, proms):
     :type proms; dictionary
     :return: None
     """
+
     for name, url in config.get_config_section('DISK_MONITOR'):
         disk_free_pct = -1
         status_code, jsondata = http_request(url)
