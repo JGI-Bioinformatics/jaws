@@ -7,13 +7,11 @@ needs to be transferred over to Globus.
 import os
 import shutil
 import json
-import stat
 import subprocess
 import re
 import zipfile
 import logging
 import pathlib
-from pathlib import Path
 
 from jaws_client import config
 
@@ -125,39 +123,6 @@ def is_refdata(filepath):
 
 def looks_like_file_path(input):
     return True if isinstance(input, str) and re.match(".{0,2}/.+", input) else False
-
-
-def is_file_accessible(filename):
-    """
-    Checks if the file can be access by the jaws shared user account.
-
-    Validates files by first checking if the file is the special case `/refdata` folder.
-    Returns true if that is the case since /refdata is a database that exists outside of the local
-    filesystem.
-
-    Then it checks whether the group file permissions are properly set on the group file permissions.
-    Assumes that there exists a common group permission that the shared user belongs in. It will check
-    whether the datasets are readable and executable (executable is needed for moving files).
-
-    :param filename: str name of the file
-    :return: True iff group perms set.
-    """
-    if is_refdata(filename):  # Ignores refdata since it is a special case directory
-        return True
-    else:
-        st = os.stat(filename)
-        group_permission = Path(filename).group()
-
-        # Check if file exists or accessible
-        if not os.path.exists(filename):
-            return False
-        # Check if group permission is correct
-        if group_permission != config.conf.get("JAWS", "shared_endpoint_group"):
-            return False
-        # Check if file has group readable and executable
-        if not bool(st.st_mode & stat.S_IRGRP) or not bool(st.st_mode & stat.S_IXGRP):
-            return False
-        return True
 
 
 def apply_filepath_op(obj, operation):
@@ -491,24 +456,18 @@ class WorkflowInputs:
 
     def validate(self):
         """
-        Validates all of the input files in the JSON.
+        Checks the input JSON for items that look like a path and check whether or not the path exists.
+        Returns a list of items not found so we can warn the user.  We do not fail the run submission because
+        the paths may refer to paths in the task's docker container or may not be paths at all.
 
-        A valid file is considered one that exists and that can be read and executed by the shared Globus
-        user account. If a file has the wrong permissions, or is not at the specified location,
-        a WorkflowError is raised to alert the user.
-        :return:
+        :return: list of nonexistant path-like strings
+        :rtype: list
         """
-        not_accessible = []
+        paths_not_found = []
         for filepath in values(self.inputs_json):
-            if looks_like_file_path(filepath):
-                if not is_file_accessible(filepath):
-                    not_accessible.append(filepath)
-        if not_accessible:
-            group_owner = config.conf.get("JAWS", "shared_endpoint_group")
-            msg = "File(s) not accessible:\n" + "\n".join(not_accessible)
-            msg += f"\nPlease make sure that the group owner is set to {group_owner} and the group permissions are "
-            msg += "set to readable and executable."
-            raise WorkflowInputsError(msg)
+            if looks_like_file_path(filepath) and not os.path.exists(filepath):
+                paths_not_found.append(filepath)
+        return paths_not_found
 
     def write_to(self, json_location):
         """

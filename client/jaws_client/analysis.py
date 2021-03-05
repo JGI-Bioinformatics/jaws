@@ -8,6 +8,7 @@ import requests
 import click
 import logging
 import uuid
+import sys
 from typing import Dict
 from collections import defaultdict
 
@@ -342,10 +343,9 @@ def submit(wdl_file: str, infile: str, site: str, tag: str):
         raise SystemExit(error)
 
     # validate inputs JSON or exit with error message
-    try:
-        inputs_json.validate()
-    except workflow.WorkflowInputsError as error:
-        raise SystemExit(error)
+    inaccessible = inputs_json.validate()
+    for path in inaccessible:
+        sys.stderr.write(f"WARNING: input variable looks like a path but is inaccessible: {path}")
 
     max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
