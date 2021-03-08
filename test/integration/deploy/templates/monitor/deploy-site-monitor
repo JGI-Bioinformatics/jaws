@@ -1,0 +1,100 @@
+#!/bin/bash
+
+set -eo pipefail
+
+## DEFINE INSTALL VARS
+group_perms="$JAWS_MONITOR_GROUP_PERMISSION"
+src_dir="$JAWS_SRC_DIR"
+install_dir=$JAWS_INSTALL_DIR
+port=$JAWS_MONITOR_SITE_PORT
+site_monitor_dir=$install_dir/site-monitor
+shim_dir=$install_dir/shims
+shim_file=$shim_dir/site-monitor
+developer_mode="$JAWS_DEVELOPER_MODE"
+is_local_dev_env="$JAWS_IS_LOCAL_DEV_ENV"
+
+## PERMISSIONS
+function fix_perms() {
+    local dir="$1"
+    local group="$2"
+    chmod -R a+rX $dir
+    chmod -R ug+rwX $dir
+    [[ ! -z $group ]] && chgrp -R $group $dir
+    if [[ -d $dir ]]; then
+        find $dir -type d -exec chmod g+s '{}' \;
+    fi
+}
+
+function setup_dir {
+  local dir="$1"
+  local group="$2"
+  local perms="$3"
+#  [[ -z $dir ]] && echo "missing dir" && exit 1
+#  [[ -z $group ]] && echo "missing group" && exit 1
+  echo "... $dir"
+  test -d "$dir" || (mkdir -p "$dir" && \
+    chgrp "$group" "$dir" && \
+    chmod "$perms" "$dir")
+}
+
+
+## MAKE DIR IF NOT EXIST
+## If deploying local dev, ensure that directories created by local dev doesn't affect other deployments.
+if [[ -z $is_local_dev_env || $is_local_dev_env == 0 ]];then
+  test -d $site_monitor_dir && rm -rf $site_monitor_dir && mkdir $site_monitor_dir
+else
+  test -d $site_monitor_dir || mkdir $site_monitor_dir
+fi
+test -d $shim_dir || mkdir $shim_dir
+
+
+## CREATE PYTHON VIRTUALENV
+python3 -m venv $site_monitor_dir && \
+  source $site_monitor_dir/bin/activate && \
+  pip install --upgrade pip && \
+  pip install wheel && \
+  deactivate
+
+
+## INSTALL JAWS FILES
+if [[ $developer_mode == 1 ]]; then
+  source $site_monitor_dir/bin/activate && \
+    cd $src_dir/rpc && pip install -e . && \
+    cd $src_dir/monitor && pip install -e . && \
+    deactivate
+else
+  [[ -d $src_dir/rpc/dist ]] && rm -f $src_dir/rpc/dist/*
+  [[ -d $src_dir/monitor/dist ]] && rm -f $src_dir/monitor/dist/*
+  cd $src_dir/rpc && python3 setup.py bdist_wheel && \
+    cd ../monitor && python3 setup.py bdist_wheel && \
+  source $site_monitor_dir/bin/activate && \
+    pip install $src_dir/rpc/dist/* && \
+    pip install $src_dir/monitor/dist/* && \
+    deactivate
+  fix_perms $site_monitor_dir $group_perms
+fi
+
+
+## CREATE jaws-monitor shim file
+cat <<EOM > $shim_file
+#!/usr/bin/env bash
+
+function fix_perms() {
+    local GROUP="\$1"
+    local DIR="\$2"
+    chmod -R a+rX "\$DIR"
+    chmod -R ug+rwX "\$DIR"
+    [[ ! -z "$GROUP" ]] && chgrp -R "\$GROUP" "\$DIR"
+    find "\$DIR" -type d -exec chmod g+s '{}' \;
+}
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $site_monitor_dir/bin/activate
+exec site-monitor --port $port
+EOM
+chmod 770 $shim_file
+fix_perms $group_perms $shim_file
+
