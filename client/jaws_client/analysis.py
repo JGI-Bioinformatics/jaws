@@ -9,6 +9,7 @@ import click
 import logging
 import uuid
 import sys
+import shutil
 from typing import Dict
 from collections import defaultdict
 
@@ -270,16 +271,16 @@ def list_sites() -> None:
 
 @run.command()
 @click.argument("wdl_file", nargs=1)
-@click.argument("infile", nargs=1)
+@click.argument("json_file", nargs=1)
 @click.argument("site", nargs=1)
 @click.option("--tag", default=1)
-def submit(wdl_file: str, infile: str, site: str, tag: str):
+def submit(wdl_file: str, json_file: str, site: str, tag: str):
     """Submit a run for execution at a JAWS-Site.
 
     :param wdl_file: Path to workflow specification (WDL) file
     :type wdl_file: str
-    :param infile: Path to inputgetpass.getuser()s (JSON) file
-    :type infile: str
+    :param json_file: Path to input JSON file
+    :type json_file: str
     :param site: JAWS Site ID at which to run
     :type site: str
     :param tag: User-supplied label for this run.
@@ -328,9 +329,9 @@ def submit(wdl_file: str, infile: str, site: str, tag: str):
     except Exception as error:
         raise SystemExit(f"Unexpected error validating workflow: {error}")
     try:
-        inputs_json = workflow.WorkflowInputs(infile, submission_id)
+        inputs_json = workflow.WorkflowInputs(json_file, submission_id)
     except Exception as error:
-        raise SystemExit(f"Your file, {infile}, is not a valid JSON file: {error}")
+        raise SystemExit(f"Your file, {json_file}, is not a valid JSON file: {error}")
 
     jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
     local_staging_endpoint = workflow.join_path(globus_host_path, staging_user_subdir)
@@ -345,7 +346,9 @@ def submit(wdl_file: str, infile: str, site: str, tag: str):
     # validate inputs JSON or exit with error message
     inaccessible = inputs_json.validate()
     for path in inaccessible:
-        sys.stderr.write(f"WARNING: input variable looks like a path but is inaccessible: {path}")
+        sys.stderr.write(
+            f"WARNING: input variable looks like a path but is inaccessible: {path}"
+        )
 
     max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
@@ -362,12 +365,15 @@ def submit(wdl_file: str, infile: str, site: str, tag: str):
         raise SystemExit(f"Unable to copy WDLs to inputs dir: {error}")
     moved_files = workflow.move_input_files(inputs_json, site_subdir)
 
+    orig_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.orig.json")
+    shutil.copy(json_file, orig_json)
+
     staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
     jaws_site_staging_site_subdir = workflow.join_path(jaws_site_staging_dir, site_id)
     modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
     modified_json.write_to(staged_json)
 
-    manifest_file.add(staged_wdl, zip_file, staged_json, *moved_files)
+    manifest_file.add(staged_wdl, zip_file, staged_json, orig_json, *moved_files)
     staged_manifest = workflow.join_path(staging_user_subdir, f"{submission_id}.tsv")
     manifest_file.write_to(staged_manifest)
 
@@ -381,7 +387,7 @@ def submit(wdl_file: str, infile: str, site: str, tag: str):
         "output_endpoint": local_endpoint_id,  # return to original submission site
         "output_dir": output_directory,  # jaws-writable dir to initially receive results
         "wdl_file": wdl_file,
-        "json_file": infile,
+        "json_file": json_file,
         "tag": tag,
     }
     files = {"manifest": open(staged_manifest, "r")}
