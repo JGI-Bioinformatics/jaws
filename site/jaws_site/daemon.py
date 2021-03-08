@@ -21,6 +21,21 @@ from jaws_rpc import rpc_client
 logger = logging.getLogger(__package__)
 
 
+def file_size(file_path: str):
+    """
+    Checks if a file exists and is a file; if it does, check it's size.
+
+    :param file_path: path to file
+    :type file_path: str
+    :return: Size in bytes if file exists; else None
+    :rtype: int
+    """
+    if os.path.isfile(file_path):
+        return os.path.getsize(file_path)
+    else:
+        return None
+
+
 class DataError(Exception):
     pass
 
@@ -136,31 +151,46 @@ class Daemon:
         uploads_dir = config.conf.get("SITE", "uploads_dir")
         return os.path.join(uploads_dir, run.user_id, run.submission_id)
 
+    def get_run_input(self, run):
+        """
+        Checks if the input files are valid and returns a tuple of their paths.  Otherwise raises an error.
+
+        :param run: The SQLAlchemy ORM model for the run record.
+        :type run: obj
+        :return: list of [wdl,json,zip] file paths
+        :rtype: list
+        """
+        suffixes_and_required = [("wdl", True), ("json", True), ("zip", False)]
+        files = []
+        file_path = self.get_uploads_file_path(run)
+        for (suffix, required) in suffixes_and_required:
+            a_file = f"{file_path}.{suffix}"
+            a_file_size = file_size(a_file)
+            if required:
+                if a_file_size is None:
+                    raise DataError(f"Input {suffix} file not found: {a_file}")
+                elif a_file_size == 0:
+                    raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
+            elif a_file_size is not None and a_file_size == 0:
+                raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
+            files.append(a_file)
+        return files
+
     def submit_run(self, run):
         """
         Submit a run to Cromwell.
         """
         logger.debug(f"Run {run.id}: Submit to Cromwell")
 
-        # Validate input
-        file_path = self.get_uploads_file_path(run)
-        wdl_file = file_path + ".wdl"
-        json_file = file_path + ".json"
-        zip_file = file_path + ".zip"  # might not exist
-        if not os.path.exists(json_file):
-            logger.warning(f"Missing inputs JSON for run {run.id}: {json_file}")
-            self.update_run_status(run, "missing input", "Missing inputs JSON file")
-            return
-        if not os.path.exists(wdl_file):
-            logger.warning(f"Missing WDL for run {run.id}: {wdl_file}")
-            self.update_run_status(run, "missing input", "Missing WDL file")
-            return
-        if not os.path.exists(zip_file):
-            zip_file = None
-
-        # submit to Cromwell
         try:
-            cromwell_run_id = self.cromwell.submit(wdl_file, json_file, zip_file)
+            infiles = self.get_run_input(run)
+        except Exception as error:
+            logger.error(f"Run {run.id}: {error}")
+            self.update_run_status(run, "submission failed", f"Bad input: {error}")
+            return
+
+        try:
+            cromwell_run_id = self.cromwell.submit(*infiles)
         except Exception as error:
             logger.error(f"Run {run.id} submission failed: {error}")
             self.update_run_status(run, "submission failed")
@@ -267,7 +297,7 @@ class Daemon:
                 f"Run {run.id}",
                 run.output_endpoint,
                 run.cromwell_workflow_dir,
-                run.output_dir
+                run.output_dir,
             )
         except globus_sdk.GlobusAPIError:
             logger.exception("error while submitting transfer")
