@@ -25,8 +25,8 @@ services:
       config_output: $JAWS_INSTALL_DIR/configs/jaws-jtm.conf
       deploy_script: templates/jtm/deploy-jaws-jtm
   - jaws_prometheus:
-      config_template: templates/monitor/jaws-monitor.conf
-      config_output: $JAWS_INSTALL_DIR/configs/jaws-monitor-site.conf
+      config_template: templates/monitor/jaws-monitor-site.conf
+      config_output: $JAWS_INSTALL_DIR/configs/jaws-monitor.conf
       deploy_script: templates/monitor/deploy-jaws-monitor
       environment:
         JAWS_DEPLOY_JAWS_PROMETHEUS: 1
