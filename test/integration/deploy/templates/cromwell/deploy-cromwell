@@ -7,11 +7,13 @@ cromwell_jar=$JAWS_CROMWELL_JAR_FILE
 jaws_group=$JAWS_SITE_JAWS_GROUP_PERMISSION
 jtm_group=$JAWS_SITE_JTM_GROUP_PERMISSION
 jtm_scratch_dir=$JAWS_SITE_JTM_SCRATCH_DIR
+jtm_dir=$install_dir/jtm
 cromwell_tmpdir=$JAWS_CROMWELL_TMP_DIR
 load_java=$JAWS_CROMWELL_LOAD_JAVA
 installed_cromwell_jar=$install_dir/cromwell.jar
 config_dir=$install_dir/configs
 shim_dir=$install_dir/shims
+shim_file=$shim_dir/jaws-cromwell
 log_dir=$install_dir/logs
 
 ## PERMISSIONS
@@ -39,7 +41,6 @@ fi
 [[ ! -z $jtm_group ]] && chgrp $jtm_group $config_dir/cromwell.conf
 
 ## GENERATE SHIM
-shim_file=$shim_dir/jaws-cromwell
 cat <<EOM > $shim_file
 #!/usr/bin/env bash
 
@@ -48,7 +49,7 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
 # cromwell needs jtm to be in path
-source $install_dir/jtm/bin/activate
+source $jtm_dir/bin/activate
 
 $load_java
 

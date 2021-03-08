@@ -6,9 +6,10 @@ set -eo pipefail
 group_perms="$JAWS_MONITOR_GROUP_PERMISSION"
 src_dir="$JAWS_SRC_DIR"
 install_dir=$JAWS_INSTALL_DIR
-monitor_dir=$install_dir/monitor
+monitor_dir=$install_dir/jaws-prometheus
 config_dir=$install_dir/configs
 shim_dir=$install_dir/shims
+shim_file=$shim_dir/jaws-prometheus
 developer_mode="$JAWS_DEVELOPER_MODE"
 is_local_dev_env="$JAWS_IS_LOCAL_DEV_ENV"
 
@@ -75,7 +76,6 @@ fi
 
 
 ## CREATE jaws-monitor shim file
-shim_file=$shim_dir/jaws-prometheus
 cat <<EOM > $shim_file
 #!/usr/bin/env bash
 
@@ -92,7 +92,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-source $install_dir/monitor/bin/activate
+source $monitor_dir/bin/activate
 exec jaws-prometheus $config_dir/jaws-monitor.conf
 EOM
 chmod 770 $shim_file

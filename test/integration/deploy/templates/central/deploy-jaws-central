@@ -77,7 +77,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-source $install_dir/central/bin/activate
+source $central_dir/bin/activate
 exec jaws-central --log $log_dir/central-auth.log --config $config_dir/jaws-central.conf --log-level $log_level auth
 EOM
 chmod 770 $shim_file
@@ -93,7 +93,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-source $install_dir/central/bin/activate
+source $central_dir/bin/activate
 exec jaws-central --log $log_dir/central-rest.log --config $config_dir/jaws-central.conf --log-level $log_level rest
 EOM
 chmod 770 $shim_file
@@ -109,7 +109,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-source $install_dir/central/bin/activate
+source $central_dir/bin/activate
 exec jaws-central --log $log_dir/central-rpc.log --config $config_dir/jaws-central.conf --log-level $log_level rpc
 EOM
 chmod 770 $shim_file

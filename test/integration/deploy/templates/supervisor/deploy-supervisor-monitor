@@ -3,8 +3,8 @@
 set -eo pipefail
 
 deploy_name=$JAWS_DEPLOY_NAME
-deploy_central=$JAWS_DEPLOY_CENTRAL
-deploy_site=$JAWS_DEPLOY_SITE
+deploy_jaws_prometheus=$JAWS_DEPLOY_JAWS_PROMETHEUS
+deploy_site_monitor=$JAWS_DEPLOY_SITE_MONITOR
 shim_dir=$JAWS_INSTALL_DIR/shims
 supervisor_dir=$JAWS_SUPERVISOR_INSTALL_DIR
 supervisor_user=$JAWS_SUPERVISOR_USERNAME
@@ -107,18 +107,41 @@ password=$supervisor_pwd
 prompt=supervisor-jaws-$deploy_name
 
 ;----- Program Section
+EOM
+
+    if [[ $deploy_jaws_prometheus ]]; then
+        programs+=("jaws-prometheus")
+        cat << EOM >> $config_file
+
 [program:jaws-prometheus]
 command=$shim_dir/jaws-prometheus
 numprocs=1
 startsecs=3
 startretries=3
 autorestart=unexpected
+EOM
+    fi
+
+    if [[ $deploy_site_monitor ]]; then
+        programs+=("site-monitor")
+        cat << EOM >> $config_file
+
+[program:site-monitor]
+command=$shim_dir/site-monitor
+numprocs=1
+startsecs=3
+startretries=3
+autorestart=unexpected
+EOM
+    fi
+
+    program_list=$( IFS=$','; echo "${programs[*]}" )
+    cat << EOM >> $config_file
 
 [group:jaws-$deploy_name]
-programs=jaws-prometheus
+programs=$program_list
 priority=999
 EOM
-
 }
 
 ## Function to generate supervisor executables.

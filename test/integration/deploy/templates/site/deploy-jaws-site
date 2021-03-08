@@ -14,6 +14,7 @@ download_dir=$jaws_scratch_dir/downloads
 site_dir=$install_dir/site
 config_dir=$install_dir/configs
 shim_dir=$install_dir/shims
+shim_file=$shim_dir/jaws-site-daemon
 log_dir=$install_dir/logs
 log_level="DEBUG"
 developer_mode=$JAWS_DEVELOPER_MODE
@@ -89,7 +90,6 @@ fix_perms_client=""
 
 
 ## CREATE jaws-site-daemon shim file
-shim_file=$shim_dir/jaws-site-daemon
 cat <<EOM > $shim_file
 #!/usr/bin/env bash
 
@@ -146,7 +146,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-source $install_dir/site/bin/activate
+source $site_dir/bin/activate
 exec jaws-site --log $log_dir/site-jtm-rpc.log --config $config_dir/jaws-site.conf --log-level DEBUG jtm-rpc
 EOM
 chmod 770 $shim_file
