@@ -52,6 +52,8 @@ central_dir="$install_dir/central"
 client_dir="$install_dir/client"
 site_dir="$install_dir/site"
 jtm_dir="$install_dir/jtm"
+prom_monitor_dir="$install_dir/jaws-prometheus"
+site_monitor_dir="$install_dir/site-monitor"
 src_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 #module load python  # NEED TO MOVE THIjS TO .gitlab-ci.yml
@@ -64,6 +66,8 @@ test -d $central_dir && rm -rf $central_dir
 test -d $client_dir && rm -rf $client_dir
 test -d $site_dir && rm -rf $site_dir
 test -d $jtm_dir && rm -rf $jtm_dir
+test -d $prom_monitor_dir && rm -rf $prom_monitor_dir
+test -d $site_monitor_dir && rm -rf $site_monitor_dir
 
 mkdir "$deploy_dir"
 chmod 770 "$deploy_dir"
