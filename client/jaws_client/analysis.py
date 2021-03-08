@@ -441,3 +441,34 @@ def validate(wdl_file: str) -> None:
         raise SystemExit(stderr)
     else:
         print("Workflow is OK")
+
+
+@run.command()
+@click.argument("run_id")
+@click.argument("dest")
+def get(run_id: int, dest: str) -> None:
+    """Copy the output of a run to the specified folder.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :param dest: destination path
+    :type dest: str
+    :return:
+    """
+    logger = logging.getLogger(__package__)
+    result = _run_status(run_id)
+    status = result["status"]
+    src = result["output_dir"]
+
+    if status != "download complete":
+        raise SystemExit(f"Run {run_id} output is not yet available; status is {status}")
+
+    if src is None:
+        logger.error(f"Run {run_id} doesn't have an output_dir defined")
+        raise SystemExit(f"Run {run_id} doesn't have an output_dir defined")
+
+    try:
+        workflow.rsync(src, dest)
+    except Exception as error:
+        logger.error(f"Rsync output failed for run {run_id}: {error}")
+        raise SystemExit(f"Error getting output for run {run_id}: {error}")
