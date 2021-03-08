@@ -26,12 +26,14 @@ services:
       deploy_script: templates/jtm/deploy-jaws-jtm
   - jaws_prometheus:
       config_template: templates/monitor/jaws-monitor.conf
-      config_output: $JAWS_INSTALL_DIR/configs/jaws-monitor.conf
+      config_output: $JAWS_INSTALL_DIR/configs/jaws-monitor-site.conf
       deploy_script: templates/monitor/deploy-jaws-monitor
-  - disk_monitor:
-      deploy_script: templates/monitor/deploy-disk-monitor
       environment:
-        JAWS_DEPLOY_DISK_MONITOR: 1
+        JAWS_DEPLOY_JAWS_PROMETHEUS: 1
+  - site_monitor:
+      deploy_script: templates/monitor/deploy-site-monitor
+      environment:
+        JAWS_DEPLOY_SITE_MONITOR: 1
   - supervisor_jaws:
       deploy_script: templates/supervisor/deploy-supervisor-jaws
   - supervisor_jtm:
@@ -39,10 +41,11 @@ services:
   - supervisor_monitor:
       deploy_script: templates/supervisor/deploy-supervisor-monitor
 
+
 service_group:
   jaws: [client, central, site, cromwell, jtm, supervisor_jaws, supervisor_jtm]
-  monitor-prom: [jaws_prometheus, supervisor_monitor]
-  monitor-disk: [disk_monitor, supervisor_jaws]
+  monitor-jaws: [jaws_prometheus, supervisor_monitor]
+  monitor-site: [site_monitor, supervisor_monitor]
 
 environment:
   JAWS_INSTALL_DIR:
@@ -179,16 +182,16 @@ environment:
   JAWS_SUPERVISOR_MONITOR_PORT: 9020
 
   JAWS_MONITOR_GROUP_PERMISSON: ''
-  JAWS_MONITOR_HOST: 0.0.0.0
-  JAWS_MONITOR_PORT: 9180
-  JAWS_MONITOR_CORI_HOST: cori20-224.nersc.gov
+  JAWS_MONITOR_PROM_COLLECTOR_PORT: 9183
+  JAWS_MONITOR_CORI_HOST: cori21-224.nersc.gov
+  JAWS_MONITOR_CORI_PORT: 51003
+  JAWS_MONITOR_CORI_DISK_FREE_DIR: /global/cscratch1
   JAWS_MONITOR_JGI_HOST: lrc-services.lbl.gov
-
-  JAWS_DISK_MONITOR_CORI_HOST: $JAWS_MONITOR_CORI_HOST
-  JAWS_DISK_MONITOR_CORI_PORT: 51000
-  JAWS_DISK_MONITOR_CORI_PATH: /global/cscratch1
-  JAWS_DISK_MONITOR_LRC_HOST: $JAWS_MONITOR_JGI_HOST
-  JAWS_DISK_MONITOR_LRC_PORT: 51000
-  JAWS_DISK_MONITOR_LRC_PATH: /global/scratch
-
-
+  JAWS_MONITOR_JGI_PORT: 51003
+  JAWS_MONITOR_SITE_PORT: $JAWS_MONITOR_CORI_PORT
+  JAWS_MONITOR_JGI_DISK_FREE_SCRATCH_DIR: /global/scratch
+  JAWS_MONITOR_JGI_DISK_FREE_GROUPS_DIR: /global/home/groups
+  JAWS_MONITOR_JGI_DISK_FREE_GROUPS_SW_DIR: /global/home/groups-sw
+  JAWS_MONITOR_SUPERVISOR_BIN_DIR: $JAWS_SUPERVISOR_INSTALL_DIR/venv/bin
+  JAWS_MONITOR_SUPERVISOR_JAWS_CONFIG: $JAWS_SUPERVISOR_INSTALL_DIR/supervisord-jaws.conf
+  JAWS_MONITOR_SUPERVISOR_JTM_CONFIG: $JAWS_SUPERVISOR_INSTALL_DIR/supervisord-jtm.conf
