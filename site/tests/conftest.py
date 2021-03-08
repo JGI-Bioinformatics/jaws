@@ -365,7 +365,7 @@ def uploads_files():
     if not os.path.exists(root_dir):
         os.mkdir(root_dir)
 
-    for f in ["2.wdl", "2.json", "2.zip"]:
+    for f in ["2.wdl", "2.json", "2.orig.json", "2.zip"]:
         file_path = os.path.join(root_dir, f)
         with open(file_path, "w") as outfile:
             outfile.write(f"output for {f}")
@@ -381,7 +381,7 @@ def transfer_dirs(tmp_path):
 
     uploads_dir.mkdir(parents=True)
 
-    for f in ["2.wdl", "2.json", "2.zip"]:
+    for f in ["2.wdl", "2.json", "2.orig.json", "2.zip"]:
         file_path = uploads_dir / f
         file_path.write_text(f"output for {f}")
 

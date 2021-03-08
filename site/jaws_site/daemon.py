@@ -253,9 +253,11 @@ class Daemon:
         file_path = self.get_uploads_file_path(run)
         wdl_file = file_path + ".wdl"
         json_file = file_path + ".json"
+        orig_json_file = file_path + ".orig.json"
         zip_file = file_path + ".zip"  # might not exist
         shutil.copy(wdl_file, run.cromwell_workflow_dir)
         shutil.copy(json_file, run.cromwell_workflow_dir)
+        shutil.copy(orig_json_file, run.cromwell_workflow_dir)
         if os.path.exists(zip_file):
             shutil.copy(zip_file, run.cromwell_workflow_dir)
 
