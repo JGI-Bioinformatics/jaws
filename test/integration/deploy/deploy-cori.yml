@@ -24,10 +24,22 @@ services:
       config_template: templates/jtm/jaws-jtm.conf
       config_output: $JAWS_INSTALL_DIR/configs/jaws-jtm.conf
       deploy_script: templates/jtm/deploy-jaws-jtm
+  - jaws_prometheus:
+      config_template: templates/monitor/jaws-monitor-site.conf
+      config_output: $JAWS_INSTALL_DIR/configs/jaws-monitor.conf
+      deploy_script: templates/monitor/deploy-jaws-monitor
+      environment:
+        JAWS_DEPLOY_JAWS_PROMETHEUS: 1
+  - site_monitor:
+      deploy_script: templates/monitor/deploy-site-monitor
+      environment:
+        JAWS_DEPLOY_SITE_MONITOR: 1
   - supervisor_jaws:
       deploy_script: templates/supervisor/deploy-supervisor-jaws
   - supervisor_jtm:
       deploy_script: templates/supervisor/deploy-supervisor-jtm
+  - supervisor_monitor:
+      deploy_script: templates/supervisor/deploy-supervisor-monitor
 
 service_group:
   all: [client, central, site, cromwell, jtm, supervisor_jaws, supervisor_jtm]
@@ -57,8 +69,8 @@ environment:
   JAWS_CENTRAL_RMQ_PWD: $JAWS_CENTRAL_RMQ_PW
   JAWS_CENTRAL_GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
   JAWS_CENTRAL_GLOBAL_CLIENT_SECRET: $JAWS_GLOBUS_CLIENT_SECRET
-  JAWS_CENTRAL_AUTH_PORT: 3001
-  JAWS_CENTRAL_REST_PORT: 5001
+  JAWS_CENTRAL_AUTH_PORT: 3003
+  JAWS_CENTRAL_REST_PORT: 5003
 
   JAWS_CLIENT_SITE_NAME_ID: $JAWS_SITE_NAME
   JAWS_CLIENT_INSTALL_DIR: $JAWS_INSTALL_DIR/client
@@ -152,7 +164,7 @@ environment:
   JAWS_CROMWELL_URL: http://localhost
   JAWS_CROMWELL_LOAD_JAVA: ''
   JAWS_CROMWELL_CONTAINER_EXEC: /global/cfs/projectdirs/jaws_jtm/jtm-dev/shifter_exec.sh
-  JAWS_CROMWELL_PORT: 50101
+  JAWS_CROMWELL_PORT: 50103
   JAWS_CROMWELL_MYSQL_URL: jdbc:mysql://$JAWS_SITE_JAWS_DB_HOST:$JAWS_SITE_JAWS_DB_PORT/cromwell_cori_${JAWS_DEPLOY_NAME}?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
   JAWS_CROMWELL_MYSQL_USER: jaws
   JAWS_CROMWELL_MYSQL_PWD: $JAWS_CROMWELL_CORI_DB_PW
@@ -161,6 +173,22 @@ environment:
   JAWS_SUPERVISOR_CTL_URL: http://cori20.nersc.gov
   JAWS_SUPERVISOR_USERNAME: jaws
   JAWS_SUPERVISOR_PWD: $JAWS_SUPERVISORD_PW
-  JAWS_SUPERVISOR_INSTALL_DIR: $JAWS_INSTALL_DIR/supervisor
-  JAWS_SUPERVISOR_JAWS_PORT: 64101
-  JAWS_SUPERVISOR_JTM_PORT: 64111
+  JAWS_SUPERVISOR_INSTALL_DIR: /tmp/jaws-supervisord-prod
+  JAWS_SUPERVISOR_JAWS_PORT: 64103
+  JAWS_SUPERVISOR_JTM_PORT: 64113
+  JAWS_SUPERVISOR_MONITOR_PORT: 64123
+
+  JAWS_MONITOR_GROUP_PERMISSON: ''
+  JAWS_MONITOR_PROM_COLLECTOR_PORT: 9183
+  JAWS_MONITOR_CORI_HOST: cori20-224.nersc.gov
+  JAWS_MONITOR_CORI_PORT: 51003
+  JAWS_MONITOR_CORI_DISK_FREE_DIR: /global/cscratch1
+  JAWS_MONITOR_JGI_HOST: lrc-services.lbl.gov
+  JAWS_MONITOR_JGI_PORT: 51003
+  JAWS_MONITOR_SITE_PORT: $JAWS_MONITOR_CORI_PORT
+  JAWS_MONITOR_JGI_DISK_FREE_SCRATCH_DIR: /global/scratch
+  JAWS_MONITOR_JGI_DISK_FREE_GROUPS_DIR: /global/home/groups
+  JAWS_MONITOR_JGI_DISK_FREE_GROUPS_SW_DIR: /global/home/groups-sw
+  JAWS_MONITOR_SUPERVISOR_BIN_DIR: $JAWS_SUPERVISOR_INSTALL_DIR/venv/bin
+  JAWS_MONITOR_SUPERVISOR_JAWS_CONFIG: $JAWS_SUPERVISOR_INSTALL_DIR/supervisord-jaws.conf
+  JAWS_MONITOR_SUPERVISOR_JTM_CONFIG: $JAWS_SUPERVISOR_INSTALL_DIR/supervisord-jtm.conf
