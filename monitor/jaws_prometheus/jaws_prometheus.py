@@ -139,17 +139,16 @@ def http_request(url, **rkwargs):
         return 500, {'error': err}
     except Exception as err:
         return 500, {'error': err}
-    if r.status_code != 200:
-        return 500, {'error': f'HTTP returned a code of {r.status.code}'}
-    try:
-        jsondata = r.json()
-    except ValueError as err:
-        return 500, {'error': 'Invalid json returned from HTTP request: %s: %s' %
-                     (type(err).__name__, err)}
 
-    status = r.status_code
-
-    return status, jsondata
+    if is_http_status_valid(r.status_code):
+        try:
+            jsondata = r.json()
+        except ValueError as err:
+            return 500, {'error': 'Invalid json returned from HTTP request: %s: %s' %
+                        (type(err).__name__, err)}
+        return r.status_code, jsondata
+    else:
+        return r.status.code, {'error': f'HTTP returned a code of {r.status.code}'}
 
 
 def rpc_request(entries):
@@ -272,6 +271,13 @@ def report_supervisor_processes(config, proms):
     """Performs a REST call to site-monitor to get the status of all processes managed by the supervisord.
     The site-monitor returns a dictionary where the key is the name of the process, the value is the status
     of the process (0=down, 1=up).
+
+    Example of output from site-monitor:
+    {
+        'jaws-site-daemon': 1,
+        'jaws-site-central-rpc': 1,
+        'jaws-site-jtm-rpc': 1,
+    }
 
     :param config: config object
     :type config: jaws_prometheus.config.Configuration object
