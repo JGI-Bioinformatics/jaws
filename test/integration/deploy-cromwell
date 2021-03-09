@@ -190,7 +190,7 @@ backend
         String? docker
         String time = "00:30:00"
         Int cpu = 32
-        String memory = "5G"
+        ?Float memory_gb = 5
         String cluster = "${JAWS_SITE,,}"
         String poolname = "small"
         String constraint = "$SITE_CLUSTER_CONSTRAINT"
@@ -221,7 +221,7 @@ submit \
 -cl \${cluster} \
 -t \${time} \
 -c \${cpu} \
--m \${memory} \
+-m \${memory_gb}G \
 -p \${poolname} \
 -N \${node} \
 -nwpn \${nwpn} \
@@ -250,7 +250,7 @@ submit \
 -cl \${cluster} \
 -t \${time} \
 -c \${cpu} \
--m \${memory} \
+-m \${memory_gb}G \
 -p \${poolname} \
 -N \${node} \
 -nwpn \${nwpn} \
