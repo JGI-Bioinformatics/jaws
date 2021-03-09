@@ -1,5 +1,36 @@
 # Changelog
 
+## v2.2.0rc (2021-03-05)
+Minor release that includes Globus client authentication support. Users no longer need to activate an endpoint
+which required users to have an account at a compute site. This now uses a shared endpoint and service account to 
+do Globus transfers on behalf of the user. 
+
+### Major Core Changes
+- Globus endpoints are now set to shared endpoints for NERSC, LRC and EMSL (!560, !586)
+- Users no longer have to authenticate or activate a Globus endpoint. Instead we use app client credentials [model](https://globus-sdk-python.readthedocs.io/en/stable/examples/client_credentials.html?highlight=secret). (!610)
+- Properly sets the transfer paths for shared endpoints. There is a mechanism where non-root globus paths require virtual relative paths. (!621, !627)
+- No longer require Globus accounts/tokens for transfers (!664)
+- WDLS and JSON sent to output directory for reproducibility (!667, !669)
+- Input files are no longer symlinked to output directory but are copied over (!679) 
+- Cromwell caching is turned on (!569)
+
+### Deployment changes
+- Staging directory is now created by deployment scripts and has setgid set for genome group. Output directories are also created by deployment script (!562)
+- Change software installation of JGI and Central away from `/tmp` (!642, commit hash `6f00ca1f`)
+- Use the same directory as Globus uploads. Gets rid of "staging" diretory (commit hash `ddc65562343ef6d568917f4033c35486e1d47df9`) 
+
+### Database schema changes
+- Database schema includes wdl and json file paths (!643)
+- User no longer requires globus tokens. No longer necessary in schema (!664)
+- Label column added so users can specify "label" their runs (!643)
+
+### CLI changes
+- User no longer specifies the output directory, instead there is a shared output directory where JAWS will transfer
+data files upon completion. (!562)
+- Users can retrieve files using the new `jaws get` command. This allows users to set the permissions to the original
+owner who submitted rather than owned by the `jaws` service account user. (!638)
+
+
 ## v2.1.1 (2020-11-02)
 - Hotfix change to fix JAWS production deployment to production
 
