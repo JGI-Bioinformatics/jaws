@@ -173,7 +173,8 @@ class Daemon:
                     raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
             elif a_file_size is not None and a_file_size == 0:
                 raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
-            files.append(a_file)
+            if a_file_size:
+                files.append(a_file)
         return files
 
     def submit_run(self, run):

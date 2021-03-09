@@ -90,7 +90,7 @@ def test_file_size(uploads_files_empty_wdl):
     assert test_size is None
 
 
-def test_get_run_input(monkeypatch, uploads_files, uploads_files_missing_json):
+def test_get_run_input(monkeypatch, uploads_files, uploads_files_missing_json, uploads_files_without_zip):
     def mock_get_uploads_file_path(self, run):
         submission_id = run.submission_id
         home_dir = os.path.expanduser("~")
@@ -116,6 +116,15 @@ def test_get_run_input(monkeypatch, uploads_files, uploads_files_missing_json):
     run2 = tests.conftest.MockRun(status="upload complete", submission_id="YYYY")
     with pytest.raises(jaws_site.daemon.DataError):
         infiles = daemon.get_run_input(run2)
+
+    # test 3: valid input, no subworkflows zip
+    run1 = tests.conftest.MockRun(status="upload complete", submission_id="WWWW")
+    infiles = daemon.get_run_input(run1)
+    home_dir = os.path.expanduser("~")
+    root_dir = os.path.join(home_dir, "WWWW")
+    assert infiles[0] == os.path.join(root_dir, "WWWW.wdl")
+    assert infiles[1] == os.path.join(root_dir, "WWWW.json")
+    assert len(infiles) == 2
 
 
 def test_submit_run(monkeypatch, uploads_files):

@@ -377,6 +377,23 @@ def uploads_files():
 
 
 @pytest.fixture()
+def uploads_files_without_zip():
+    home_dir = os.path.expanduser("~")
+    root_dir = os.path.join(home_dir, "WWWW")
+    if not os.path.exists(root_dir):
+        os.mkdir(root_dir)
+
+    for f in ["WWWW.wdl", "WWWW.json", "WWWW.orig.json"]:
+        file_path = os.path.join(root_dir, f)
+        with open(file_path, "w") as outfile:
+            outfile.write(f"output for {f}")
+
+    yield
+
+    shutil.rmtree(root_dir)
+
+
+@pytest.fixture()
 def uploads_files_missing_json():
     home_dir = os.path.expanduser("~")
     root_dir = os.path.join(home_dir, "YYYY")
