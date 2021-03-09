@@ -1561,7 +1561,7 @@ def process_task_request(msg):
                     logger.exception("Detail: %s", str(detail))
                     raise OSError(2, "Failed to send a request to a worker")
 
-        return last_task_id
+    return last_task_id
 
 
 # -------------------------------------------------------------------------------
