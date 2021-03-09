@@ -2168,7 +2168,7 @@ def check_num_threads(mode: str, n_manager_threads: int) -> bool:
         logger.error(ps_cmd)
         return False
     else:
-        # THIS IS THE NUM OF JTM MANAGER PROCS = 8
+        # THIS IS THE NUM OF JTM MANAGER PROCS = 7
         if num_total_procs != n_manager_threads:
             return False
         else:
