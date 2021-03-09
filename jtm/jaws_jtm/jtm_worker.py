@@ -986,7 +986,11 @@ def worker(
 
     # This available memory validation needs to executed on a compute node
     # not on a MOM node.
-    if worker_type_param != "manual" and num_workers_per_node > 1 and not charging_account_param:
+    if (
+        worker_type_param != "manual"
+        and num_workers_per_node > 1
+        and not charging_account_param
+    ):
         try:
             mem_per_node_to_request_byte = (
                 int(mem_per_node_to_request.lower().replace("gb", "").replace("g", ""))
