@@ -213,7 +213,7 @@ class Consumer(object):
 
 
 class RpcServer(object):
-    def __init__(self, params, operations, sessionmaker) -> None:
+    def __init__(self, params, operations, sessionmaker: None) -> None:
         self.logger = logging.getLogger(__package__)
         self.params = {}
         for required_param in ["host", "vhost", "user", "password", "queue"]:

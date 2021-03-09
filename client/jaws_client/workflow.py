@@ -29,15 +29,12 @@ def rsync(src, dest):
     :type dest: str
     :return: None
     """
-    cmd = f"rsync -rLptq {src} {dest}"
-    process = subprocess.Popen(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    stdout, stderr = process.communicate()
-    if process.returncode:
-        raise IOError(
-            f"Failed to rsync {src} to {dest}: " + stderr.decode("utf-8").strip()
+    try:
+        result = subprocess.run(
+            ["rsync", "-rLtq", src, dest], capture_output=True, text=True, check=True
         )
+    except subprocess.CalledProcessError as error:
+        raise IOError(f"Failed to rsync {src}->{dest}: {error}; {result.stderr}")
 
 
 def convert_to_gb(mem, prefix):
