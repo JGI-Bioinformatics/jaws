@@ -26,7 +26,6 @@ These are the steps (in order) you'll be required to complete.
 
 |check| get a NERSC account |br|
 |check| get JAWS token |br|
-|check| get Globus account and link your NERSC account to Globus |br|
 |check| activate the JAWS virtual environment |br|
 |check| get Globus token
 
@@ -43,63 +42,6 @@ Before you go further, you need to complete these three steps:
     - If you do not have a NERSC account yet, please get one by writing to consult@NERSC.gov
 
 2) get a JAWS token from JAWS admin jaws-support@lbl.gov 
-
-3) get an account at globus.org
-
-    - `for help logging in <https://docs.globus.org/how-to/get-started>`_
-
-*************
-Set up Globus 
-*************
-
-You need to set up Globus so your files can be transfered between different filesystems. 
-
-Setting up Globus endpoints
-
-.. code-block:: bash
-
-    1. open globus.org (you should have created an account already for the previous steps to work).
-
-      a. under the "Account" tab, make sure you have something like <username>@globusid.org
-
-    2. once you are logged in, you need to add an endpoint (institutions that JAWS
-       uses have endpoints already; its where data will be transfered to and from).
-
-      a. Click on "ENDPOINTS" in the menu on the left. Note, you should be in the
-         "Recently Used" tab which is default.
-
-      b. Search for NERSC DTN
-
-      c. Click on the arrow > at the right of NERSC DTN which is the endpoint details 
-         (if you curser over it)
-
-      d. On the right of the screen, click on "Activation" (or "Extend Activation")
-         Follow the directions to authenticate using NERSC credentials!!
-         You will have to re-activate every 11 days.
-
-      e. Now start from step 2.b. and add "lbnl#lrc"
-
-After you have added nersc and lbl endpoints, you may not see them listed on your "Endpoints" page under the tab "Recently Used" until you submit a JAWS run.  You can type lbnl#lrc or nersc dtn in the uppermost search window (the one for Endpoints) and they should show up with a "STATUS" of ready. 
-
-
-Setting up Globus linked accounts 
-
-.. code-block:: bash
-
-    You can link accounts like your NERSC and LBL account. 
-    Linking the NERSC account is required for Globus to know that its ok to upload 
-    and download your data when you are using jaws and thus logged in as NERSC credentials. 
-
-    1. Click on "ACCOUNT" in the left menu.  You should be in the "Identities" tab. 
-
-    2. Click on "Link Another Identity"
-
-    3. Search for NERSC and click continue....follow the authentication steps.  
-
-       a. You should see <yourusername>@NERSC.gov listed.   
-
-.. warning:: 
-    You need to re-activate your Globus Endpoint every 11 days.  JAWS should give you an appropriate error if you need to do this. Go to globus.org and click on "ENDPOINTS".  If "NERSC DTN" says "inactive", you can click on the activate endpoint symbol at the right.
 
 |
 
@@ -118,26 +60,20 @@ Currently JAWS can run on the following resources:
 
 Do the following
 
-.. code-block:: bash
+.. code-block:: text
 
     cp /global/cfs/projectdirs/jaws/jaws-prod/jaws.conf ~/jaws.conf
     chmod 600 ~/jaws.conf
 
     Edit ~/jaws.conf and add values for the [USER] variables:
       token : This should be the token you got from the JAWS admin
-      staging_dir : Set to a JAWS subdir in your scratch dir, e.g. /global/cscratch1/sd/YOURUID/jaws
 
     # Set up the virtual environment
-    # You will use an existing one. This gives you access to all the jaws commands.
-    # By using a symlink, we can update the file without requiring you to re-copy the file.
-    ln -s /global/cfs/projectdirs/jaws/jaws-prod/jaws.sh ~
+    # You will use an existing one. This gives you access to all the jaws commands.  # By using a symlink, we can update the file without requiring you to re-copy the file.
+    ln -s /global/cfs/projectdirs/jaws/jaws-prod/jaws-prod.sh ~
 
-    source ~/jaws.sh
+    source ~/jaws-prod.sh
     (use "deactivate" to get out of the environment)
-
-    # Get the jaws-auth token. 
-    # After running this command, follow directions to get a token from Globus.
-    jaws login
 
 |
 
@@ -145,57 +81,61 @@ Do the following
 Run WDL in JAWS
 ***************
 
-.. code-block:: bash
+.. code-block:: text
 
     # activate the environment you set up above
-    source ~/jaws.sh
+    source ~/jaws-prod.sh
 
     # clone the example code
     git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
+    (You'll need to use your LBL LDAP credentials).
 
     cd jaws-tutorial-examples/quickstart
 
-    # run "jaws run submit <workflow> <inputs> <full path to outdir> <site>"
-    jaws run list-sites  # you should see CORI
-    jaws run submit align.wdl inputs.json out cori  # note that case doesn't matter for sites.
+    # run "jaws run submit <workflow> <inputs> <site>"
+    jaws run list-sites  # you should see all the sites available to JAWS
+    jaws run submit align.wdl inputs.json cori  # note that case doesn't matter for sites.
 
     # you should see something like this
-    2020-04-16 13:04:18,434 - INFO - workflow - Validating WDL, align.wdl
-    2020-04-16 13:04:20,357 - INFO - workflow - Validating inputs file, inputs.json
-    2020-04-16 13:04:22,084 - INFO - workflow - Maximum RAM requested is 0Gb
-    2020-04-16 13:04:22,085 - INFO - workflow - Staging WDLs to <fullpath>/JAWS-scratch
-    2020-04-16 13:04:22,088 - INFO - workflow - Staging infiles to <fullpath>/JAWS-scratch/CORI
-    2020-04-16 13:04:22,093 - INFO - workflow - Writing file manifest to <fullpath>/JAWS-scratch/ca626c3e-ad65-44b8-a55a-4ce310d2108b.tsv
-
+    2020-11-13 17:51:20,444 - INFO - workflow - Validating WDL, /global/cscratch1/sd/jfroula/JAWS/jaws-tutorial-examples/quickstart/align.wdl
+    2020-11-13 17:51:24,762 - INFO - workflow - Maximum RAM requested is 5Gb
+    2020-11-13 17:51:24,790 - INFO - workflow - Writing file manifest to .../JAWS-scratch/9cfc798e-2015-4cd8-b1ce-75e56f033ccb.tsv
+    2020-11-13 17:51:26,919 - INFO - analysis - Submitted run 1367: {'site_id': 'CORI', 'submission_id': '9cfc798e-2015-4cd8-b1ce-75e56f033ccb', 'input_site_id': 'CORI', 'input_endpoint': '9d6d994a-6d04-11e5-ba46-22000b92c6ec', 'output_endpoint': '9d6d994a-6d04-11e5-ba46-22000b92c6ec', 'output_dir': '/global/cscratch1/sd/jfroula/JAWS/jaws-tutorial-examples/quickstart/out'}
     {
-        "output_dir": "<fullpath>/examples/create_wdl_tutorial/out",
-        "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
-        "run_id": 80,
-        "site_id": "CORI",
-        "status": "uploading",
-        "submission_id": "ca626c3e-ad65-44b8-a55a-4ce310d2108b",
-        "upload_task_id": "77810d8e-801d-11ea-97a5-0e56c063f437"
-    }
-    
+      "run_id": 1367,
+      "site_id": "CORI",
+      "status": "uploading",
+    } 
 
 ******************
 Monitoring the Job
 ******************
 
-From the output above, we see that the run_id was 80.
+From the output above, we see that the run_id was 1367.
 
-.. code-block:: bash
+.. code-block:: text
 
     # make sure you remember the id of the job submission,
     # if you didn't you can run this to see your run's id
     jaws run queue
     
     # check jaws status
-    jaws run status 80
+    jaws run status 1367
 
     # check status of the tasks (the last command has the most detail)
-    jaws run task-status 80
-    jaws run task-log 80
+    jaws run task-status 1367
+    jaws run task-log 1367
+
+***************
+Get the results
+***************
+
+Once the run status has changed to "download complete", you can write the output to a folder of your choice using:
+
+.. code-block:: text
+
+    # copy the output of run 1367 to a folder of your choice
+    jaws run get 1367 $SCRATCH/my-test-run
 
 
 ***********
@@ -212,9 +152,9 @@ Each task of your workflow gets run inside the :bash:`execution` directory so it
     
 So for our theoretical submission
 
-.. code-block:: bash
+.. code-block:: text
 
-    jaws run submit align.wdl inputs.json out cori  
+    jaws run submit align.wdl inputs.json cori  
 
 We should see an output folder that looks like this:
 
@@ -227,7 +167,7 @@ Further Debugging Ideas
 
 1) The :bash:`metadata` command will show you the output from the Cromwell server which may have additional debugging information.  Look for "causedBy" message as shown below. This error doesn't tell you much so the next step would be 2) below.
 
-.. code-block:: bash
+.. code-block:: text
 
     jaws run metadata 80
 
@@ -239,23 +179,23 @@ Further Debugging Ideas
 2) Use the :bash:`errors` command. This should show the contents of the stderr file, but only when there was an error code >0. 
 Sometimes a script will write to stderr but return an error code of 0, so this command won't show anything.
 
-.. code-block:: bash
+.. code-block:: text
 
     jaws run errors 1186
 
 
 3) Check the contents of the stderr, stdout files that are created within each task's working directory (saved in your specified output directory). Following the above example, your stderr/stdout files would be in:
 
-.. code-block:: bash
+.. code-block:: text
 
-	out/call-setup/execution/stderr
+    out/call-setup/execution/stderr
 
 It is also useful to examine the file called :bash:`script` since this is exactly what cromwell ran.
 
 
 4) Use the :bash:`task-log` command to show errors that JTM catches, like timeout errors that occur when your task's runtime section didn't request enough time. We are aware of an issue with this command having a long delay, so please be patient until we can re-design the way task-log (and task-status) works.
 
-.. code-block:: bash
+.. code-block:: text
 
     jaws run task-log 1186
     

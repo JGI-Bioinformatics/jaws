@@ -19,15 +19,17 @@ def configuration(tmp_path):
 
     contents = """
 [JAWS]
-name = JAWS
-site_id = NERSC
-url = http://localhost:5000
-womtool_jar = 
+site_id = CORI
+url = http://localhost:5001/api/v2
+womtool_jar =
+uploads_subdir = {0}/globus/staging/uploads
+staging_dir = {0}/globus/staging/users
+data_repo_basedir = {0}/globus/data-repository-dev
+shared_endpoint_group = genome
 [GLOBUS]
 client_id =
 endpoint_id =
-basedir = {0}/globus
-
+host_path = {0}/globus
 """.format(tmp_path.as_posix())
     config_path.write_text(contents)
 
@@ -155,7 +157,7 @@ def simple_wdl_example(tmp_path):
     inputs = tmp_path / "inputs.json"
 
     wdl_contents = """
-workflow bbtools { 
+workflow bbtools {
     File reads
     File ref
 
@@ -426,7 +428,7 @@ def subworkflows_example(tmp_path):
     sub2 = tmp_path / "sub2.wdl"
     inputs_json = tmp_path / "inputs.json"
 
-    main_contents = """ 
+    main_contents = """
 import "sub1.wdl" as sub1
 import "sub2.wdl" as sub2
 
@@ -591,10 +593,10 @@ def sample_workflow(tmp_path):
 workflow simple_workflow {
     File simple
     Array[File] arr_files
-    Map[File, File] file_to_file_map 
+    Map[File, File] file_to_file_map
     Map[File, String] file_to_other_map
     Map[String, File] other_to_file_map
-    
+
     call print {
         input:  simple=simple,
                 arr_files=arr_files,
@@ -603,21 +605,21 @@ workflow simple_workflow {
                 other_to_file_map=other_to_file_map
     }
 }
-    
+
 task print {
     File simple
     Array[File] arr_files
     Map[File, File] file_to_file_map
     Map[File, String] file_to_other_map
     Map[String, File] other_to_file_map
-        
+
     command {
         echo ${simple} ${file_to_file_map} ${file_to_other_map} \
         ${other_to_file_map} ${arr_files}
-    } 
+    }
     output {
         String status = "task completed"
-    } 
+    }
 }
 """ # noqa
     inputs_contents = """{{
@@ -739,7 +741,7 @@ task samtools {
     output {
        File bam = "test.sorted.bam"
     }
-} 
+}
 """
     wdl.write_text(contents)
     return wdl
@@ -754,14 +756,14 @@ def no_subworkflows_present(tmp_path):
     wdl = tmp_path / "main.wdl"
     contents = """import "alignment.wdl" as align
 
-workflow main_wdl { 
+workflow main_wdl {
     File fastq
     File reference
 
-    # this task calls the sub-workflow named bbmap_shard_wf which 
-    # is the alignment.wdl.  
+    # this task calls the sub-workflow named bbmap_shard_wf which
+    # is the alignment.wdl.
     # It's output is "merged_bam_file"
-    call align.bbmap_shard_wf { 
+    call align.bbmap_shard_wf {
            input: reads = fastq,
                   reference = reference
     }

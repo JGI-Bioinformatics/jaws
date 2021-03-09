@@ -37,10 +37,8 @@ class User(Base):
     email = Column(String(64), nullable=False)
     name = Column(String(64), nullable=True)
     is_admin = Column(Boolean, nullable=False, default=False)
+    is_dashboard = Column(Boolean, nullable=False, default=False)
     jaws_token = Column(String(256), nullable=False)
-    globus_id = Column(String(36), nullable=True)
-    auth_refresh_token = Column(String(256), nullable=True)
-    transfer_refresh_token = Column(String(256), nullable=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -101,6 +99,9 @@ class Run(Base):
     upload_task_id = Column(String(36), nullable=True)
     output_endpoint = Column(String(36), nullable=False)
     output_dir = Column(String(256), nullable=False)
+    wdl_file = Column(String(256), nullable=False)
+    json_file = Column(String(256), nullable=False)
+    tag = Column(String(256), nullable=True)
     download_task_id = Column(String(36), nullable=True)
 
     def __init__(self, *args, **kwargs):

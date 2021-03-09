@@ -8,6 +8,7 @@ import requests
 import click
 import logging
 import uuid
+import sys
 import shutil
 from typing import Dict
 from collections import defaultdict
@@ -270,50 +271,34 @@ def list_sites() -> None:
 
 @run.command()
 @click.argument("wdl_file", nargs=1)
-@click.argument("infile", nargs=1)
-@click.argument("outdir", nargs=1)
+@click.argument("json_file", nargs=1)
 @click.argument("site", nargs=1)
-@click.option("--out_endpoint", default=None, help="Globus endpoint to send output")
-def submit(wdl_file, infile, outdir, site, out_endpoint):
+@click.option("--tag", default="")
+def submit(wdl_file: str, json_file: str, site: str, tag: str):
     """Submit a run for execution at a JAWS-Site.
 
     :param wdl_file: Path to workflow specification (WDL) file
     :type wdl_file: str
-    :param infile: Path to inputs (JSON) file
-    :type infile: str
-    :param outdir: Path to output directory; doesn't have to exist
-    :type outdir: str
+    :param json_file: Path to input JSON file
+    :type json_file: str
     :param site: JAWS Site ID at which to run
     :type site: str
+    :param tag: User-supplied label for this run.
+    :type tag: str
     """
     logger = logging.getLogger(__package__)
 
     current_user = user.User()
 
-    # STAGING DIR
-    staging_subdir = config.Configuration().get("USER", "staging_dir")
-    globus_basedir = config.Configuration().get("GLOBUS", "basedir")
-    if not staging_subdir.startswith(globus_basedir):
-        raise SystemExit(
-            f"Configuration error: Staging dir must be under endpoint's basedir: {globus_basedir}"
-        )
-    if not os.path.isdir(staging_subdir):
-        os.makedirs(staging_subdir)
+    user_url = f'{config.conf.get("JAWS", "url")}/user'
+    user_rec = _get(user_url)
+    user_json = user_rec.json()
+    uid = user_json["uid"]
 
-    # GLOBUS
-    local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
-    if out_endpoint is None:
-        out_endpoint = local_endpoint_id
-
-    # OUTDIR
-    outdir = os.path.abspath(outdir)
-    if out_endpoint == local_endpoint_id and not outdir.startswith(globus_basedir):
-        raise SystemExit(f"Outdir must be under endpoint's basedir: {globus_basedir}")
-    if not os.path.isdir(outdir):
-        try:
-            os.makedirs(outdir)
-        except Exception as error:
-            raise SystemExit(f"Unable to make outdir, {outdir}: {error}")
+    staging_subdir = config.Configuration().get("JAWS", "staging_dir")
+    staging_user_subdir = os.path.join(staging_subdir, uid)
+    globus_host_path = config.Configuration().get("GLOBUS", "host_path")
+    output_directory = config.conf.get("JAWS", "data_repo_basedir")
 
     # GET SITE INFO
     compute_site_id = site.upper()
@@ -329,9 +314,10 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     elif r.status_code != requests.codes.ok:
         result = r.json()
         raise SystemExit(result["detail"])
+
     result = r.json()
-    compute_basedir = result["globus_basepath"]
-    compute_uploads_subdir = result["uploads_subdir"]
+    compute_basedir = result["globus_host_path"]
+    compute_uploads_subdir = result["uploads_dir"]
     compute_max_ram_gb = int(result["max_ram_gb"])
 
     # VALIDATE WORKFLOW
@@ -343,16 +329,26 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     except Exception as error:
         raise SystemExit(f"Unexpected error validating workflow: {error}")
     try:
-        inputs_json = workflow.WorkflowInputs(infile, submission_id)
+        inputs_json = workflow.WorkflowInputs(json_file, submission_id)
     except Exception as error:
-        raise SystemExit(f"Your file, {infile}, is not a valid JSON file: {error}")
+        raise SystemExit(f"Your file, {json_file}, is not a valid JSON file: {error}")
 
     jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
-    local_staging_endpoint = workflow.join_path(globus_basedir, staging_subdir)
+    local_staging_endpoint = workflow.join_path(globus_host_path, staging_user_subdir)
     manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
 
-    wdl.validate()
-    inputs_json.validate()
+    # validate WDL or exit with error message
+    try:
+        wdl.validate()
+    except workflow.WdlError as error:
+        raise SystemExit(error)
+
+    # validate inputs JSON or exit with error message
+    inaccessible = inputs_json.validate()
+    for path in inaccessible:
+        sys.stderr.write(
+            f"WARNING: input variable looks like a path but is inaccessible: {path}"
+        )
 
     max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
@@ -363,41 +359,36 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     site_id = config.conf.get("JAWS", "site_id")
     site_subdir = workflow.join_path(local_staging_endpoint, site_id)
 
-    sanitized_wdl, zip_file = workflow.compress_wdls(wdl, local_staging_endpoint)
+    try:
+        staged_wdl, zip_file = workflow.compress_wdls(wdl, local_staging_endpoint)
+    except Exception as error:
+        raise SystemExit(f"Unable to copy WDLs to inputs dir: {error}")
     moved_files = workflow.move_input_files(inputs_json, site_subdir)
+
+    orig_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.orig.json")
+    shutil.copy(json_file, orig_json)
 
     staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
     jaws_site_staging_site_subdir = workflow.join_path(jaws_site_staging_dir, site_id)
     modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
     modified_json.write_to(staged_json)
 
-    manifest_file.add(sanitized_wdl, zip_file, staged_json, *moved_files)
-    staged_manifest = workflow.join_path(staging_subdir, f"{submission_id}.tsv")
+    manifest_file.add(staged_wdl, zip_file, staged_json, orig_json, *moved_files)
+    staged_manifest = workflow.join_path(staging_user_subdir, f"{submission_id}.tsv")
     manifest_file.write_to(staged_manifest)
 
-    # CONFIRM OUTDIR WRITABLE BY COPYING WDLS, INPUT FILES
-    try:
-        shutil.copy2(sanitized_wdl, outdir)
-    except Exception as error:
-        raise SystemExit(f"Unable to copy wdl file to outdir: {error}")
-    if zip_file:
-        try:
-            shutil.copy2(zip_file, outdir)
-        except Exception as error:
-            raise SystemExit(f"Unable to copy subworkflows zip file to outdir: {error}")
-    try:
-        shutil.copy2(infile, outdir)
-    except Exception as error:
-        raise SystemExit(f"Unable to copy json file to outdir: {error}")
-
     # SUBMIT RUN TO CENTRAL
+    local_endpoint_id = config.conf.get("GLOBUS", "endpoint_id")
     data = {
         "site_id": compute_site_id,
         "submission_id": submission_id,
         "input_site_id": config.conf.get("JAWS", "site_id"),
-        "input_endpoint": config.conf.get("GLOBUS", "endpoint_id"),
-        "output_endpoint": out_endpoint,
-        "output_dir": outdir,
+        "input_endpoint": local_endpoint_id,
+        "output_endpoint": local_endpoint_id,  # return to original submission site
+        "output_dir": output_directory,  # jaws-writable dir to initially receive results
+        "wdl_file": wdl_file,
+        "json_file": json_file,
+        "tag": tag,
     }
     files = {"manifest": open(staged_manifest, "r")}
     url = f'{config.conf.get("JAWS", "url")}/run'
@@ -414,10 +405,6 @@ def submit(wdl_file, infile, outdir, site, out_endpoint):
     run_id = result["run_id"]
     logger.info(f"Submitted run {run_id}: {data}")
 
-    # WRITE RUN INFO TO OUTDIR
-    logfile = os.path.join(outdir, f"jaws.run_{run_id}.log")
-    with open(logfile, "w") as fh:
-        fh.write(r.text + "\n")
     print(r.text)
 
 
@@ -454,3 +441,34 @@ def validate(wdl_file: str) -> None:
         raise SystemExit(stderr)
     else:
         print("Workflow is OK")
+
+
+@run.command()
+@click.argument("run_id")
+@click.argument("dest")
+def get(run_id: int, dest: str) -> None:
+    """Copy the output of a run to the specified folder.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :param dest: destination path
+    :type dest: str
+    :return:
+    """
+    logger = logging.getLogger(__package__)
+    result = _run_status(run_id)
+    status = result["status"]
+    src = result["output_dir"]
+
+    if status != "download complete":
+        raise SystemExit(f"Run {run_id} output is not yet available; status is {status}")
+
+    if src is None:
+        logger.error(f"Run {run_id} doesn't have an output_dir defined")
+        raise SystemExit(f"Run {run_id} doesn't have an output_dir defined")
+
+    try:
+        workflow.rsync(src, dest)
+    except Exception as error:
+        logger.error(f"Rsync output failed for run {run_id}: {error}")
+        raise SystemExit(f"Error getting output for run {run_id}: {error}")

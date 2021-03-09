@@ -9,6 +9,7 @@ import pika
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionHB
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_jtm.common import logger
+from jaws_jtm.lib.run import extract_cromwell_id
 
 
 class JtmInterface(object):
@@ -95,26 +96,26 @@ class JtmInterface(object):
         json_str = ""
         jtm_host_name = ""
 
-        if "task_file" in kw and kw["task_file"]:
+        if kw.get("task_file"):
             with open(kw["task_file"], "r") as jf:
                 for task_file_read_line in jf:
                     if task_file_read_line:
                         json_str += task_file_read_line
-        elif "task_json" in kw and kw["task_json"]:
+        elif kw.get("task_json"):
             json_str = '{"command": "%s"}' % kw["task_json"]
 
-        if "task_id" in kw and kw["task_id"] == 0:  # jtm-submit
+        if kw.get("task_id") == 0:  # jtm-submit
             try:
                 json_data_dict = json.loads(json_str)
             except ValueError:
                 logger.error(f"Unexpected task/command format: {json_str}")
                 return -2  # invalid task format
-        else:  # jtm-status, jtm-kill, jtm-resource, jtm-check-*, jtm-isalive
+        else:  # the other commands like jtm-status, jtm-kill, jtm-resource, jtm-check-*, jtm-isalive
             json_data_dict = {}
 
-        if "task_pool" in kw and kw["task_pool"]:
+        if kw.get("task_pool"):
             json_data_dict["task_pool"] = kw["task_pool"]
-        if "jtm_host_name" in kw and kw["jtm_host_name"]:
+        if kw.get("jtm_host_name"):
             jtm_host_name = json_data_dict["jtm_host_name"] = kw[
                 "jtm_host_name"
             ].replace(".", "_")
@@ -140,6 +141,8 @@ class JtmInterface(object):
             # ex) cromwell_fe010880_stepA ==> extract fe010880
             # Ref) https://issues.jgi-psf.org/browse/JAWS-8
             #
+            # New: use Cromwell UUID extracted from a user task command string for unique pool name
+            #
             if (
                 "pool" in json_data_dict
                 and "job_id" in json_data_dict["pool"]
@@ -153,10 +156,16 @@ class JtmInterface(object):
                     + "_"
                     + exclusive_task_pool_name_postfix
                 )
-            elif "job_id" in kw and kw["job_id"]:
+            elif kw.get("job_id"):
                 json_data_dict["job_id"] = kw["job_id"]
-                json_data_dict["shared"] = int(kw["shared"])
-                exclusive_task_pool_name_postfix = kw["job_id"].split("_")[1]
+                json_data_dict["shared"] = int(kw.get("shared", 0))
+                try:
+                    exclusive_task_pool_name_postfix = extract_cromwell_id(
+                        kw["task_json"]
+                    )
+                except Exception as e:
+                    logger.exception(e)
+                    raise
                 kw["pool_name"] = (
                     kw["pool_name"] + "_" + exclusive_task_pool_name_postfix
                 )
@@ -183,19 +192,19 @@ class JtmInterface(object):
                 json_data_dict["pool"]["mem"] = kw["node_mem"]
                 json_data_dict["pool"]["name"] = kw["pool_name"]
                 json_data_dict["pool"]["cluster"] = kw["jtm_host_name"]
-                json_data_dict["pool"]["nwpn"] = (
-                    kw["nwpn"] if "nwpn" in kw else 1
-                )  # number of workers per node
-                json_data_dict["pool"]["node"] = (
-                    kw["node"] if "node" in kw else 1
-                )  # number of nodes
-                json_data_dict["pool"]["shared"] = int(kw["shared"])
+                json_data_dict["pool"]["nwpn"] = int(kw.get("nwpn", 1))
+                json_data_dict["pool"]["node"] = int(kw.get("node", 1))
+                json_data_dict["pool"]["shared"] = int(kw.get("shared", 0))
 
                 if "account" in kw and kw["account"] != "" and kw["account"] != "None":
                     json_data_dict["pool"]["account"] = kw["account"]
                 else:
                     json_data_dict["pool"]["account"] = ""
-                if "constraint" in kw and kw["constraint"] != "" and kw["constraint"] != "None":
+                if (
+                    "constraint" in kw
+                    and kw["constraint"] != ""
+                    and kw["constraint"] != "None"
+                ):
                     json_data_dict["pool"]["constraint"] = kw["constraint"]
                 else:
                     json_data_dict["pool"]["constraint"] = ""
@@ -203,7 +212,11 @@ class JtmInterface(object):
                     json_data_dict["pool"]["qos"] = kw["qos"]
                 else:
                     json_data_dict["pool"]["qos"] = ""
-                if "partition" in kw and kw["partition"] != "" and kw["partition"] != "None":
+                if (
+                    "partition" in kw
+                    and kw["partition"] != ""
+                    and kw["partition"] != "None"
+                ):
                     json_data_dict["pool"]["partition"] = kw["partition"]
                 else:
                     json_data_dict["pool"]["partition"] = ""
@@ -318,9 +331,9 @@ class JtmInterface(object):
         jtm_host_name = ""
         json_data_dict = {}
 
-        if "task_pool" in kw and kw["task_pool"]:
+        if kw.get("task_pool"):
             json_data_dict["task_pool"] = kw["task_pool"]
-        if "jtm_host_name" in kw and kw["jtm_host_name"]:
+        if kw.get("jtm_host_name"):
             jtm_host_name = json_data_dict["jtm_host_name"] = kw[
                 "jtm_host_name"
             ].replace(".", "_")

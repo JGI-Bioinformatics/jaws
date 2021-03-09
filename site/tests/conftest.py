@@ -5,6 +5,7 @@ testing.
 import pytest
 import os
 import shutil
+from pathlib import Path
 
 
 @pytest.fixture
@@ -18,7 +19,6 @@ user = jaws
 password = passw0rd1
 num_threads = 5
 max_retries = 3
-
 [CENTRAL_RPC_SERVER]
 host = currenthost
 vhost = jaws_test
@@ -27,20 +27,17 @@ user = jaws_eagle
 password = succotash
 num_threads = 5
 max_retries = 3
-
 [CENTRAL_RPC_CLIENT]
 host = currenthost
 vhost = jaws_test
 queue = central_rpc
 user = jaws_eagle
 password = succotash
-
 [GLOBUS]
-client_id = foghorn_leghorn
+client_id = AAAA
+client_secret = BBBB
 endpoint_id = rooster
-root_dir = cwd
-default_dir = /
-
+host_path = /global/scratch/jaws
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
@@ -48,21 +45,18 @@ port = 60032
 user = elmer_fudd
 password = hunting
 db = hunting_sites
-
 [CROMWELL]
 url = http://localhost:8000
-
 [SITE]
 id = eagle
-uploads_subdirectory = uploads
-downloads_subdirectory = downloads
+uploads_dir = /global/scratch/jaws/jaws-dev/uploads
 """
 
     cfg.write_text(content)
     return cfg.as_posix()
 
 
-@pytest.fixture()
+@pytest.fixture
 def partial_config(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
     content = """[CENTRAL_RPC_SERVER]
@@ -71,19 +65,16 @@ vhost = jaws_test
 user = bugs_bunny
 password = xqweasdasa
 max_retries = 10
-
 [CENTRAL_RPC_CLIENT]
 host = https://rmq.nersc.gov
 user = bugs_bunny
 password = xqweasdasa
 vhost = jaws_test
-
 [GLOBUS]
-client_id = foghorn_leghorn
+client_id = AAAA
+client_secret = BBBB
 endpoint_id = rooster
-root_dir = cwd
-default_dir = /
-
+host_path = /global/scratch/jaws
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
@@ -91,17 +82,13 @@ port = 60032
 user = elmer_fudd
 password = hunting
 db = hunting_sites
-
 [LOCAL_RPC_SERVER]
 vhost = jaws_test
-
 [CROMWELL]
 url = http://localhost:8000
-
 [SITE]
 id = eagle
-uploads_subdirectory = uploads
-downloads_subdirectory = downloads
+uploads_dir = /global/scratch/jaws/jaws-dev/uploads
     """
     cfg.write_text(content)
     return cfg.as_posix()
@@ -375,11 +362,11 @@ def cromwell_run_dir(tmp_path):
 @pytest.fixture()
 def uploads_files():
     home_dir = os.path.expanduser("~")
-    root_dir = os.path.join(home_dir, "1")
+    root_dir = os.path.join(home_dir, "XXXX")
+    if not os.path.exists(root_dir):
+        os.mkdir(root_dir)
 
-    os.mkdir(root_dir)
-
-    for f in ["2.wdl", "2.json", "2.zip"]:
+    for f in ["XXXX.wdl", "XXXX.json", "XXXX.orig.json", "XXXX.zip"]:
         file_path = os.path.join(root_dir, f)
         with open(file_path, "w") as outfile:
             outfile.write(f"output for {f}")
@@ -387,6 +374,73 @@ def uploads_files():
     yield
 
     shutil.rmtree(root_dir)
+
+
+@pytest.fixture()
+def uploads_files_without_zip():
+    home_dir = os.path.expanduser("~")
+    root_dir = os.path.join(home_dir, "WWWW")
+    if not os.path.exists(root_dir):
+        os.mkdir(root_dir)
+
+    for f in ["WWWW.wdl", "WWWW.json", "WWWW.orig.json"]:
+        file_path = os.path.join(root_dir, f)
+        with open(file_path, "w") as outfile:
+            outfile.write(f"output for {f}")
+
+    yield
+
+    shutil.rmtree(root_dir)
+
+
+@pytest.fixture()
+def uploads_files_missing_json():
+    home_dir = os.path.expanduser("~")
+    root_dir = os.path.join(home_dir, "YYYY")
+    if not os.path.exists(root_dir):
+        os.mkdir(root_dir)
+
+    file_path = os.path.join(root_dir, "YYYY.wdl")
+    with open(file_path, "w") as outfile:
+        outfile.write(f"workflow test { ... }")
+
+    yield
+
+    shutil.rmtree(root_dir)
+
+
+@pytest.fixture()
+def uploads_files_empty_wdl():
+    home_dir = os.path.expanduser("~")
+    root_dir = os.path.join(home_dir, "ZZZZ")
+    if not os.path.exists(root_dir):
+        os.mkdir(root_dir)
+
+    file_path = os.path.join(root_dir, "ZZZZ.wdl")
+    Path(file_path).touch()
+
+    file_path = os.path.join(root_dir, "ZZZZ.json")
+    with open(file_path, "w") as outfile:
+        outfile.write("{}")
+
+    yield
+
+    shutil.rmtree(root_dir)
+
+
+@pytest.fixture()
+def transfer_dirs(tmp_path):
+    uploads_dir = tmp_path / "cwd/uploads/jaws"
+
+    uploads_dir.mkdir(parents=True)
+
+    for f in ["XXXX.wdl", "XXXX.json", "XXXX.orig.json", "XXXX.zip"]:
+        file_path = uploads_dir / f
+        file_path.write_text(f"output for {f}")
+
+    yield
+
+    shutil.rmtree(uploads_dir)
 
 
 class MockSession:
@@ -413,31 +467,23 @@ class MockDb:
 
 class MockRun:
     """Mock Run object with useable defaults."""
+
     def __init__(self, **kwargs):
         self.user_id = kwargs.get("user_id", "jaws")
         self.upload_task_id = kwargs.get("upload_task_id", "1")
-        self.submission_id = kwargs.get("submit_id", "2")
+        self.submission_id = kwargs.get("submission_id", "XXXX")
         self.cromwell_run_id = kwargs.get("cromwell_run_id", "myid")
         self.status = kwargs.get("status", "running")
         self.id = kwargs.get("id", "99")
-        self.output_endpoint = kwargs.get("output_endpoint", "EXAMPLE_OUTPUT_ENDPOINT_ID")
+        self.output_endpoint = kwargs.get(
+            "output_endpoint", "EXAMPLE_OUTPUT_ENDPOINT_ID"
+        )
         self.output_dir = kwargs.get("output_dir", ".")
         self.download_task_id = kwargs.get("download_task_id", "325")
-        self.transfer_refresh_token = "EXAMPLE_GLOBUS_TRANSFER_TOKEN"
         self.email = "jaws@vog.gov"
-        self.cromwell_workflow_dir = "/global/scratch/jaws/dev/cromwell-executions/test_wdl/myid"
-
-
-class MockTransferClient:
-    def __init__(self, status, transfer_result={"task_id": "325"}):
-        self.status = status
-        self.transfer_result = transfer_result
-
-    def get_task(self, task_id):
-        return self.status
-
-    def submit_transfer(self, transfer_dat):
-        return self.transfer_result
+        self.cromwell_workflow_dir = (
+            "/global/scratch/jaws/dev/cromwell-executions/test_wdl/myid"
+        )
 
 
 class MockTransferClientWithCopy:
@@ -454,15 +500,9 @@ class MockTransferClientWithCopy:
         return self.transfer_result
 
 
-class MockUserQuery:
-    def __init__(self, token):
-        self.transfer_refresh_token = token
-
-
 class MockUser:
     def __init__(self):
         self.id = "jaws_user"
-        self.transfer_refresh_token = "1234567890"
 
 
 def query_jaws_id(jawsd, run):

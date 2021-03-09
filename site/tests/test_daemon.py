@@ -1,15 +1,33 @@
 import pytest
 import globus_sdk
+import os.path
 
 from jaws_site.daemon import Daemon
+import jaws_site.globus
 import tests.conftest
-import requests
 
 
 def mock_update_run_status(self, run, new_status, reason=None):
     run.status = new_status
     assert isinstance(new_status, str)
     return
+
+
+class MockGlobusService:
+    def __init__(self, status, transfer_result={"task_id": "325"}):
+        self.status = status
+        self.transfer_result = transfer_result
+
+    def transfer_status(self, task_id):
+        return self.status["status"]
+
+    def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
+        return self.transfer_result["task_id"]
+
+
+class MockGlobusWithError(MockGlobusService):
+    def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
+        raise globus_sdk.GlobusError()
 
 
 @pytest.mark.parametrize(
@@ -46,37 +64,103 @@ def test_check_if_upload_complete(statuses, monkeypatch):
     daemon = Daemon()
     run = tests.conftest.MockRun(status="uploading")
 
-    def mock_authorize_client(daemon, token):
-        return tests.conftest.MockTransferClient(statuses)
+    def mock_globus_service(daemon):
+        return MockGlobusService(statuses)
 
-    monkeypatch.setattr(Daemon, "_authorize_transfer_client", mock_authorize_client)
+    monkeypatch.setattr(jaws_site.globus, "GlobusService", mock_globus_service)
     monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
     daemon.check_if_upload_complete(run)
 
 
+def test_file_size(uploads_files_empty_wdl):
+
+    home_dir = os.path.expanduser("~")
+    root_dir = os.path.join(home_dir, "ZZZZ")
+
+    test_files = [
+        (os.path.join(root_dir, "ZZZZ.json"), 2),
+        (os.path.join(root_dir, "ZZZZ.wdl"), 0),
+    ]
+
+    for (test_file, expected) in test_files:
+        test_size = jaws_site.daemon.file_size(test_file)
+        assert test_size == expected
+
+    test_size = jaws_site.daemon.file_size(os.path.join(root_dir, "ZZZZ.zip"))
+    assert test_size is None
+
+
+def test_get_run_input(monkeypatch, uploads_files, uploads_files_missing_json, uploads_files_without_zip):
+    def mock_get_uploads_file_path(self, run):
+        submission_id = run.submission_id
+        home_dir = os.path.expanduser("~")
+        root_dir = os.path.join(home_dir, submission_id)
+        return os.path.join(root_dir, submission_id)
+
+    monkeypatch.setattr(
+        jaws_site.daemon.Daemon, "get_uploads_file_path", mock_get_uploads_file_path
+    )
+
+    daemon = Daemon()
+
+    # test 1: valid input
+    run1 = tests.conftest.MockRun(status="upload complete", submission_id="XXXX")
+    infiles = daemon.get_run_input(run1)
+    home_dir = os.path.expanduser("~")
+    root_dir = os.path.join(home_dir, "XXXX")
+    assert infiles[0] == os.path.join(root_dir, "XXXX.wdl")
+    assert infiles[1] == os.path.join(root_dir, "XXXX.json")
+    assert infiles[2] == os.path.join(root_dir, "XXXX.zip")
+
+    # test 2: invalid input
+    run2 = tests.conftest.MockRun(status="upload complete", submission_id="YYYY")
+    with pytest.raises(jaws_site.daemon.DataError):
+        infiles = daemon.get_run_input(run2)
+
+    # test 3: valid input, no subworkflows zip
+    run1 = tests.conftest.MockRun(status="upload complete", submission_id="WWWW")
+    infiles = daemon.get_run_input(run1)
+    home_dir = os.path.expanduser("~")
+    root_dir = os.path.join(home_dir, "WWWW")
+    assert infiles[0] == os.path.join(root_dir, "WWWW.wdl")
+    assert infiles[1] == os.path.join(root_dir, "WWWW.json")
+    assert len(infiles) == 2
+
+
 def test_submit_run(monkeypatch, uploads_files):
-    def workflows_post(url, files={}):
-        return tests.conftest.MockResponses({"id": "2"}, 201)
+    def mock_cromwell_submit(self, wdl_file, json_file, zip_file):
+        return "ABCD-EFGH"
 
     daemon = Daemon()
     run = tests.conftest.MockRun(status="upload complete")
 
-    monkeypatch.setattr(requests, "post", workflows_post)
+    monkeypatch.setattr(jaws_site.cromwell.Cromwell, "submit", mock_cromwell_submit)
     monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
 
     daemon.submit_run(run)
 
 
-def test_transfer_results(monkeypatch):
-    def mock_authorize_client(jawd, token):
-        return tests.conftest.MockTransferClient({"status": "running"})
+@pytest.fixture
+def mock_path(tmp_path):
+    def tmp_path_mock(*args, **kwargs):
+        return (tmp_path / "cwd/uploads/jaws/XXXX").as_posix()
 
-    monkeypatch.setattr(Daemon, "_authorize_transfer_client", mock_authorize_client)
-    monkeypatch.setattr(globus_sdk, "TransferData", tests.conftest.MockTransferData)
+    return tmp_path_mock
+
+
+def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path):
+
     monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
+    monkeypatch.setattr(Daemon, "get_uploads_file_path", mock_path)
 
     daemon = Daemon()
-    run = tests.conftest.MockRun(status="running", cromwell_run_id="EXAMPLE_CROMWELL_ID")
+    monkeypatch.setattr(daemon, "globus", MockGlobusService({"status": "SUCCEEDED"}))
+    monkeypatch.setattr(daemon, "session", tests.conftest.MockSession())
+
+    run = tests.conftest.MockRun(
+        status="running", cromwell_run_id="EXAMPLE_CROMWELL_ID"
+    )
+    run.cromwell_workflow_dir = tmp_path.as_posix()
 
     daemon.transfer_results(run)
 
@@ -84,26 +168,37 @@ def test_transfer_results(monkeypatch):
     assert run.download_task_id == "325"
 
 
-@pytest.mark.parametrize(
-    "status,expected",
-    [({"status": "SUCCEEDED"}, "download complete"), ({"status": "FAILED"}, "download failed")],
-)
-def test_check_if_download_complete(status, expected, monkeypatch):
-    def mock_authorize_client(jawd, token):
-        return tests.conftest.MockTransferClient(status)
-
-    def mock_get_globus_transfer_status(self, run, task_id):
-        return status["status"]
-
-    monkeypatch.setattr(Daemon, "_authorize_transfer_client", mock_authorize_client)
+def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path):
     monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
-    monkeypatch.setattr(
-        Daemon, "_get_globus_transfer_status", mock_get_globus_transfer_status
-    )
+    monkeypatch.setattr(Daemon, "get_uploads_file_path", mock_path)
 
     daemon = Daemon()
-    run = tests.conftest.MockRun(status="downloading")
+    monkeypatch.setattr(daemon, "globus", MockGlobusWithError({"status": "FAILED"}))
+    monkeypatch.setattr(daemon, "session", tests.conftest.MockSession())
 
+    run = tests.conftest.MockRun(
+        status="running", cromwell_run_id="EXAMPLE_CROMWELL_ID"
+    )
+    run.cromwell_workflow_dir = tmp_path.as_posix()
+
+    with pytest.raises(globus_sdk.GlobusError):
+        daemon.transfer_results(run)
+
+
+@pytest.mark.parametrize(
+    "status,expected",
+    [
+        ({"status": "SUCCEEDED"}, "download complete"),
+        ({"status": "FAILED"}, "download failed"),
+    ],
+)
+def test_check_if_download_complete(status, expected, monkeypatch):
+
+    monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
+    daemon = Daemon()
+    monkeypatch.setattr(daemon, "globus", MockGlobusService(status))
+
+    run = tests.conftest.MockRun(status="downloading")
     daemon.check_if_download_complete(run)
 
     assert run.status == expected

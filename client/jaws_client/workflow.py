@@ -29,15 +29,12 @@ def rsync(src, dest):
     :type dest: str
     :return: None
     """
-    cmd = f"rsync -rLptq {src} {dest}"
-    process = subprocess.Popen(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    stdout, stderr = process.communicate()
-    if process.returncode:
-        raise IOError(
-            f"Failed to rsync {src} to {dest}: " + stderr.decode("utf-8").strip()
+    try:
+        result = subprocess.run(
+            ["rsync", "-rLtq", src, dest], capture_output=True, text=True, check=True
         )
+    except subprocess.CalledProcessError as error:
+        raise IOError(f"Failed to rsync {src}->{dest}: {error}; {result.stderr}")
 
 
 def convert_to_gb(mem, prefix):
@@ -122,14 +119,7 @@ def is_refdata(filepath):
 
 
 def looks_like_file_path(input):
-    return isinstance(input, str) and "/" in input
-
-
-def accessible_file(filename):
-    if is_refdata(filename):  # Ignores refdata since it is a special case directory
-        return True
-    else:
-        return os.path.exists(filename) and os.access(filename, os.R_OK)
+    return True if isinstance(input, str) and re.match(".{0,2}/.+", input) else False
 
 
 def apply_filepath_op(obj, operation):
@@ -152,7 +142,9 @@ def apply_filepath_op(obj, operation):
             for k in obj
         }
     else:
-        raise ValueError(f"cannot perform op={operation.__name__} to object of type {type(obj)}")
+        raise ValueError(
+            f"cannot perform op={operation.__name__} to object of type {type(obj)}"
+        )
 
 
 def compress_wdls(main_wdl, staging_dir="."):
@@ -171,10 +163,12 @@ def compress_wdls(main_wdl, staging_dir="."):
     if not os.path.isdir(staging_dir):
         os.makedirs(staging_dir)
 
-    # WRITE SANITIZED MAIN WDL
-    modified_wdl = main_wdl.sanitized_wdl()
+    # COPY MAIN WDL
     staged_wdl_filename = join_path(staging_dir, f"{main_wdl.submission_id}.wdl")
-    modified_wdl.write_to(staged_wdl_filename)
+    try:
+        main_wdl.copy_to(staged_wdl_filename)
+    except Exception as error:
+        raise WdlError(f"Error copying main-wdl file: {error}")
 
     # IF NO SUBWORKFLOWS, DONE
     if not len(main_wdl.subworkflows):
@@ -182,18 +176,18 @@ def compress_wdls(main_wdl, staging_dir="."):
 
     # ZIP SUBWORKFLOWS
     compressed_file_format = ".zip"
-    compression_dir = pathlib.Path(
-        os.path.join(staging_dir, main_wdl.submission_id)
-    )
+    compression_dir = pathlib.Path(os.path.join(staging_dir, main_wdl.submission_id))
     compression_dir.mkdir(parents=True, exist_ok=True)
     compressed_file = join_path(
         staging_dir, main_wdl.submission_id + compressed_file_format
     )
 
     for subworkflow in main_wdl.subworkflows:
-        modified_sub = subworkflow.sanitized_wdl()
-        new_subwf_path = join_path(compression_dir, subworkflow.name)
-        modified_sub.write_to(new_subwf_path)
+        staged_sub_wdl = join_path(compression_dir, subworkflow.name)
+        try:
+            subworkflow.copy_to(staged_sub_wdl)
+        except Exception as error:
+            raise WdlError(f"Error copying sub-wdl file: {error}")
 
     try:
         os.remove(compressed_file)
@@ -244,15 +238,24 @@ class WdlFile:
         It will collect the sub-workflows to a set of WdlFiles. The parent globus_basedir, staging_dir and path
         to the ZIP file are passed down to the sub workflows.
 
+        Subworkflows are also checked for invalid 'backend' tag and a WdlError will be raised if found.
+
         :param output: stdout from WOMTool validation
         :return: set of WdlFile sub-workflows
         """
+        # some stdout text include original input for
+        # subprocess.run. This attempts to match and filter out that output
+        # eg. ['/usr/local/anaconda3/bin/java', '-Xms512m', ...]
+        command_line_regex = r"\[.*\]"
         out = output.splitlines()
         filtered_out_lines = ["Success!", "List of Workflow dependencies is:", "None"]
         subworkflows = set()
         for sub in out:
-            if sub not in filtered_out_lines:
-                subworkflows.add(WdlFile(sub, self.submission_id))
+            match = re.search(command_line_regex, sub)
+            if sub not in filtered_out_lines and not match:
+                sub_wdl = WdlFile(sub, self.submission_id)
+                sub_wdl.verify_wdl_has_no_backend_tags()
+                subworkflows.add(sub_wdl)
         return subworkflows
 
     @property
@@ -282,7 +285,8 @@ class WdlFile:
 
     def validate(self):
         """
-        Validates using WOMTool the WDL file. Any syntax errors from WDL will be raised in a WdlError
+        Validates the WDL file using Cromwell's womtool.
+        Any syntax errors from WDL will be raised in a WdlError.
         :return:
         """
         self.logger.info(f"Validating WDL, {self.file_location}")
@@ -290,6 +294,7 @@ class WdlFile:
         if stderr:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
+        self.verify_wdl_has_no_backend_tags()
 
     @staticmethod
     def _get_wdl_name(file_location):
@@ -335,32 +340,28 @@ class WdlFile:
         self.logger.info(f"Maximum RAM requested is {self._max_ram_gb}Gb")
         return self._max_ram_gb
 
-    def sanitized_wdl(self):
-        contents = self._remove_invalid_backends()
-        return WdlFile(self.file_location, self.submission_id, contents=contents)
+    def copy_to(self, destination):
+        shutil.copy(self.file_location, destination)
 
-    def write_to(self, destination):
-        with open(destination, "w") as new_wdl:
-            new_wdl.write(self.contents)
-
-    def _remove_invalid_backends(self):
+    def verify_wdl_has_no_backend_tags(self):
         """
-        Removes the backend keyword in a WDL file.
+        Checks for disallowed "backend" keyword in a WDL file.
 
-        This sanitizes the WDL so that any declared backends are taken off. The reason for this is because we
-        are ONLY using JGI Task Manager (JTM) as the backend and want to prevent any WDL from using a different
-        backend.
+        Each Site has it's own configured backend; we do not allow users to specify which to
+        use.  In particular, the "LOCAL" backend would cause jobs to run on the head node,
+        which would cause problems if it consumed too much RAM.
+
+        An exception is WdlError exception is raised if disallowed backend is found.
 
         :param wdl: the path to a WDL file
-        :return: the contents of the file without backend keyword
+        :type wdl: str
+        :return:
         """
-        contents = ""
-        with open(self.file_location, "r") as fo:
-            for line in fo:
+        with open(self.file_location, "r") as fh:
+            for line in fh:
                 m = re.match(r"^\s*backend", line)
-                if not m:
-                    contents += line
-        return contents
+                if m:
+                    raise WdlError("ERROR: WDLs may not contain 'backend' tag")
 
     def __eq__(self, other):
         return self.file_location == other.file_location
@@ -376,31 +377,26 @@ def move_input_files(workflow_inputs, destination):
     """
     Moves the input files defined in a JSON file to a destination.
 
-    It will make any directories that are needed in the staging path, and then either symlink them
-    if they are a globus path or use rsync to move the files.
+    It will make any directories that are needed in the staging path and then copy the files.
 
     :param workflow_inputs: JSON file where inputs are specified.
     :param destination: path to where to moved the input files
     :return: list of the moved_files
     """
     moved_files = []
-    globus_basedir = config.Configuration().get("GLOBUS", "basedir")
 
     for original_path in workflow_inputs.src_file_inputs:
         staged_path = pathlib.Path(f"{destination}{original_path}")
         moved_files.append(staged_path.as_posix())
         if os.path.isdir(original_path):
-            staged_path.mkdir(mode=0o0700, parents=True, exist_ok=True)
+            staged_path.mkdir(mode=0o0770, parents=True, exist_ok=True)
         else:
             dirname = pathlib.Path(os.path.dirname(staged_path))
-            dirname.mkdir(mode=0o0700, parents=True, exist_ok=True)
+            dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
 
-        # globus paths are accessible via symlink
-        if original_path.startswith(globus_basedir):
-            if not os.path.exists(staged_path):
-                os.symlink(original_path, staged_path.as_posix())
-        else:
-            rsync(original_path, staged_path.as_posix())
+        # files must be copied in to ensure they are readable by the jaws and jtm users,
+        # as a result of the gid sticky bit and acl rules on the inputs dir.
+        rsync(original_path, staged_path.as_posix())
     return moved_files
 
 
@@ -421,10 +417,14 @@ class WorkflowInputs:
         self.basedir = os.path.dirname(self.inputs_location)
 
         # JSON inputs could contain relative paths, so we process the JSON file to include absolute paths
-        inputs_json = json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+        inputs_json = (
+            json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+        )
         self.inputs_json = {}
         for k in inputs_json:
-            self.inputs_json[k] = apply_filepath_op(inputs_json[k], self._relative_to_absolute_paths)
+            self.inputs_json[k] = apply_filepath_op(
+                inputs_json[k], self._relative_to_absolute_paths
+            )
 
         self._src_file_inputs = None
 
@@ -459,19 +459,18 @@ class WorkflowInputs:
 
     def validate(self):
         """
-        Validates all of the input files in the JSON.
+        Checks the input JSON for items that look like a path and check whether or not the path exists.
+        Returns a list of items not found so we can warn the user.  We do not fail the run submission because
+        the paths may refer to paths in the task's docker container or may not be paths at all.
 
-        A valid file is considered one that exists and that can be read. If a file has the wrong permissions,
-        or is not at the specified location, a WorkflowError is raised to alert the user.
-        :return:
+        :return: list of nonexistant path-like strings
+        :rtype: list
         """
-        missing = []
+        paths_not_found = []
         for filepath in values(self.inputs_json):
-            if looks_like_file_path(filepath):
-                if not accessible_file(filepath):
-                    missing.append(filepath)
-        if missing:
-            raise WorkflowError("File(s) not accessible: " + ", ".join(missing))
+            if looks_like_file_path(filepath) and not os.path.exists(filepath):
+                paths_not_found.append(filepath)
+        return paths_not_found
 
     def write_to(self, json_location):
         """
@@ -567,5 +566,10 @@ class WorkflowError(Exception):
 
 
 class WdlError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class WorkflowInputsError(Exception):
     def __init__(self, message):
         super().__init__(message)

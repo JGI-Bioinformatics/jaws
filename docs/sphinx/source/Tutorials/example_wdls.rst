@@ -11,7 +11,7 @@ How to Run an Example
 ---------------------
 To run the following examples, click on an example link and clone the repo. For the subworkflow example, you would do:
 
-.. code-block:: bash
+.. code-block:: text
 
     git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
 
@@ -20,7 +20,7 @@ To run the following examples, click on an example link and clone the repo. For 
 
 And then follow the command in the README.md of that example.
 
-.. code-block:: bash
+.. code-block:: text
     
     jaws run submit main.wdl inputs.json out cori
 
