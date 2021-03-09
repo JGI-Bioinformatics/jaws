@@ -95,7 +95,7 @@ class JtmConstants():
     DEFAULT_POOL_NAME = ["small", "medium", "large", "xlarge"]
 
     # Total number of JTM manager procs
-    JTM_NUM_PROCS = 8
+    JTM_NUM_PROCS = 7
 
 
 class JtmConfig(object):
