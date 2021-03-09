@@ -380,7 +380,7 @@ def submit(
         account=account,
     )
 
-    if ret is None:
+    if ret is None or ret == -1:
         logger.error("jtm submit: invalid task or runtime definition.")
         ret_code = 1
     else:
