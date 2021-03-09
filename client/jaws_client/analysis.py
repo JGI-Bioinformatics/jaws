@@ -273,7 +273,7 @@ def list_sites() -> None:
 @click.argument("wdl_file", nargs=1)
 @click.argument("json_file", nargs=1)
 @click.argument("site", nargs=1)
-@click.option("--tag", default=1)
+@click.option("--tag", default="")
 def submit(wdl_file: str, json_file: str, site: str, tag: str):
     """Submit a run for execution at a JAWS-Site.
 
