@@ -73,7 +73,7 @@ task bbcms{
      runtime {
 		docker: container
 		time: "01:00:00"
-		mem: "115G"
+		memory: "115G"
 		poolname: "bfoster_ma_wdl"
 		node: 1
 		nwpn: 1
@@ -115,7 +115,7 @@ task assy{
     runtime {
 	  docker: container
 	  time: "01:00:00"
-	  mem: "115G"
+	  memory: "115G"
 	  poolname: "bfoster_ma_wdl"
 	  node: 1
 	  nwpn: 1
@@ -153,7 +153,7 @@ task create_agp {
     runtime {
 	  docker: container
 	  time: "01:00:00"
-	  mem: "115G"
+	  memory: "115G"
 	  poolname: "bfoster_ma_wdl"
 	  node: 1
 	  nwpn: 1
