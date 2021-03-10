@@ -25,38 +25,18 @@ import shutil
 import subprocess
 import getpass
 import re
-import logging
-from logging.handlers import RotatingFileHandler
 from flask import Flask, request
+from jaws_prometheus.log import setup_logger
+
+# import sys
+# import os
+# ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+# sys.path.insert(0, os.path.join(ROOT_DIR, '../jaws_prometheus'))
+# sys.path.insert(0, os.path.join(ROOT_DIR, '../../rpc'))
+# from log import setup_logger
 
 app = Flask(__name__.split('.')[0])
-logger = logging.getLogger(__package__)
-
-
-def set_logger(logger, level=logging.INFO, logfile=None):
-    """Set logger behavior. If logfile is specified, write log to a rotating log handler.
-
-    :param logger: logger
-    :rtype logger: logging.getLogger object
-    :param level: logging level (e.g., logging.INFO)
-    :rtype level: logging object's level
-    :param logfile: log file
-    :rtype logfile: string
-    :return None
-    """
-
-    logger.setLevel(level)
-    formatter = logging.Formatter(
-        "%(asctime)s | %(module)s | %(lineno)d | %(funcName)s | %(levelname)s : %(message)s",
-        "%Y-%m-%d %H:%M:%S",
-    )
-    ch = logging.StreamHandler()
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
-
-    if logfile:
-        handler = RotatingFileHandler(logfile, maxBytes=5000, backupCount=3)
-        logger.addHandler(handler)
+logger = None
 
 
 def jsonrpc_error(error_msg, code=1):
@@ -148,6 +128,8 @@ def get_disk_free_pct(file_path):
 
     disk_free_pct = -1
 
+    logger.info(f'Looking up disk free pct for {file_path}')
+
     # if path doesn't exists, try prepend path with '/'
     if not check_path(file_path):
         file_path = os.path.join('/', file_path)
@@ -156,6 +138,8 @@ def get_disk_free_pct(file_path):
     if check_path(file_path):
         total, _, free = shutil.disk_usage(file_path)
         disk_free_pct = "%.1f" % (free/total*100)
+
+    logger.info(f'Found disk_free_pct={disk_free_pct}')
 
     return {'disk_free_pct': float(disk_free_pct)}, 200
 
@@ -199,6 +183,8 @@ def get_supervisor_pid():
     cmd = "ps -ef | grep {0} | grep {1} | grep {2} | grep -v grep".format(
         username, supervisor_cmd, config)
 
+    logger.info(f'Looking up supervisor pid: {cmd}')
+
     stdout, stderr, exitcode = run_command(cmd)
 
     if exitcode:
@@ -212,6 +198,8 @@ def get_supervisor_pid():
         values = stdout.split()
         if len(values) > 1:
             pid = int(values[1])
+
+    logger.info(f'Found supervisor pid: {pid}')
 
     return {'pid': pid}, 200
 
@@ -248,6 +236,8 @@ def get_supervisor_processes():
 
     cmd = f"{supervisor_cmd} -c {config} status"
 
+    logger.info(f'Looking up supervisor processes: {cmd}')
+
     stdout, _, exitcode = run_command(cmd)
 
     # Output of cmd should look something like:
@@ -276,6 +266,8 @@ def get_supervisor_processes():
                 status = 1 if rows[1] == 'RUNNING' else 0
                 processes[name] = status
 
+    logger.info(f'Found supervisor processes: {processes}')
+
     return processes, 200
 
 
@@ -293,7 +285,7 @@ def get_args():
     parser = argparse.ArgumentParser(description=prog_desc, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--host', help='host name', default='0.0.0.0')
     parser.add_argument('--port', help='port', type=int, default=51000)
-    parser.add_argument('--log', dest='logfile', help='log file')
+    parser.add_argument('--log', dest='log_file', help='log file')
     parser.add_argument('--debug', action='store_true', help='debug')
     return parser.parse_args()
 
@@ -302,7 +294,9 @@ def main():
     """Main routine.
     """
 
+    global logger
     args = get_args()
+    logger = setup_logger(__package__, args.log_file, log_level='INFO')
     app.run(args.host, args.port, args.debug)
 
 

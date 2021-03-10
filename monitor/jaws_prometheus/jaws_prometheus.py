@@ -58,9 +58,8 @@ queue: rmq_queue
 import requests
 import argparse
 import time
-import logging
-from logging.handlers import RotatingFileHandler
 from prometheus_client import start_http_server, Gauge
+from jaws_prometheus.log import setup_logger
 from jaws_prometheus.config import Configuration
 from jaws_rpc import rpc_client
 
@@ -71,9 +70,10 @@ from jaws_rpc import rpc_client
 # sys.path.insert(0, os.path.join(ROOT_DIR, '../../rpc'))
 # from jaws_rpc import rpc_client
 # from config import Configuration
+# from log import setup_logger
 
 
-logger = logging.getLogger(__package__)
+logger = None
 
 
 def get_args():
@@ -88,35 +88,9 @@ def get_args():
     prog_desc = '''
     '''
     parser = argparse.ArgumentParser(description=prog_desc, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-l', '--log', dest='logfile', help='log file')
+    parser.add_argument('-l', '--log', dest='log_file', help='log file')
     parser.add_argument('config_file', help='jaws monitor config file')
     return parser.parse_args()
-
-
-def set_logger(logger, level=logging.INFO, logfile=None):
-    """Set logger behavior. If logfile is specified, write log to a rotating log handler.
-
-    :param logger: logger
-    :rtype logger: logging.getLogger object
-    :param level: logging level (e.g., logging.INFO)
-    :rtype level: logging object's level
-    :param logfile: log file
-    :rtype logfile: string
-    :return None
-    """
-
-    logger.setLevel(level)
-    formatter = logging.Formatter(
-        "%(asctime)s | %(module)s | %(lineno)d | %(funcName)s | %(levelname)s : %(message)s",
-        "%Y-%m-%d %H:%M:%S",
-    )
-    ch = logging.StreamHandler()
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
-
-    if logfile:
-        handler = RotatingFileHandler(logfile, maxBytes=5000, backupCount=3)
-        logger.addHandler(handler)
 
 
 def is_http_status_valid(status_code):
@@ -147,7 +121,7 @@ def set_prometheus_metric(proms, name, value):
 
     if name not in proms:
         proms[name] = Gauge(name, f"Monitor JAWS {name}")
-    logging.info(f"{name} = {value}")
+    logger.info(f"{name} = {value}")
     proms[name].set(value)
 
 
@@ -177,33 +151,42 @@ def http_request(url, **rkwargs):
 
     :param url: url of HTTP request
     :type url: string
-    :return status: http status code
-    :rtype status: int
     :return jsondata: json output from http request
     :rtype jsondata: dict
+    :return status: http status code
+    :rtype status: int
     """
 
     jsondata = {}
+    status_code = None
+    err_msg = None
+
+    if '?' in url:
+        url, p = url.split('?')
+        rkwargs['params'] = dict(item.split("=") for item in p.split("&"))
+
     try:
-        if '?' in url:
-            url, p = url.split('?')
-            rkwargs['params'] = dict(item.split("=") for item in p.split("&"))
         r = requests.get(url=url, **rkwargs)
     except requests.exceptions.RequestException as err:
-        return 500, jsonrpc_error(err, 500)
+        status_code = 500
+        err_msg = str(err)
     except Exception as err:
-        return 500, jsonrpc_error(err, 500)
+        status_code = 500
+        err_msg = str(err)
+    else:
+        status_code = r.status_code
 
-    if is_http_status_valid(r.status_code):
+    if is_http_status_valid(status_code):
         try:
             jsondata = r.json()
         except ValueError as err:
-            err_msg = 'Invalid json returned from HTTP request: %s: %s' % (type(err).__name__, err)
-            return 500, jsonrpc_error(err_msg, 500)
-        return r.status_code, jsondata
+            status_code = 500
+            err_msg = str(err)
+
+    if err_msg:
+        return jsonrpc_error(err_msg, status_code), status_code
     else:
-        err_msg = f'HTTP returned a code of {r.status.code}'
-        return r.status.code, jsonrpc_error(err_msg, r.status.code)
+        return jsondata, status_code
 
 
 def rpc_request(entries):
@@ -241,14 +224,14 @@ def report_rest_services(config, proms):
     :type proms; dictionary
     :return: None
     """
-    for name, url in config.get_config_section('REST_SERVICES'):
-        status_code, jsondata = http_request(url)
 
+    for name, url in config.get_config_section('REST_SERVICES'):
+        jsondata, status_code = http_request(url)
         status = is_http_status_valid(status_code)
 
         if not status:
-            errmsg = jsondata['error']['message'] if jsondata.get('error') else 'Unknown error'
-            logger.error(f"{name} = {errmsg}")
+            err_msg = jsondata['error']['message'] if jsondata.get('error') else 'Unknown error'
+            logger.error(f"{name} = {err_msg}")
 
         set_prometheus_metric(proms, name, status)
 
@@ -271,7 +254,7 @@ def report_disk_free(config, proms):
 
     for name, url in config.get_config_section('DISK_MONITOR'):
         disk_free_pct = -1
-        status_code, jsondata = http_request(url)
+        jsondata, status_code = http_request(url)
 
         status = is_http_status_valid(status_code)
 
@@ -332,7 +315,10 @@ def report_supervisor_pid(config, proms):
 
     for name, url in config.get_config_section('SUPERVISOR_STATUS'):
         status = 0
-        http_status_code, jsondata = http_request(url)
+        jsondata, http_status_code = http_request(url)
+        print("report_supervisor_pid", url)
+        print(jsondata, http_status_code)
+        print()
         if is_http_status_valid(http_status_code):
             status = jsondata.get('pid', 0)
         set_prometheus_metric(proms, name, status)
@@ -358,7 +344,7 @@ def report_supervisor_processes(config, proms):
     """
 
     for name, url in config.get_config_section('SUPERVISOR_PROCESS'):
-        http_status_code, jsondata = http_request(url)
+        jsondata, http_status_code = http_request(url)
         if not is_http_status_valid(http_status_code):
             continue
         for process in jsondata:
@@ -381,23 +367,22 @@ def main():
     :type: none
     :rtype: none
     """
-
+    global logger
     time_delay = 30  # 30 seconds
 
-    # Parse args from command-line
     args = get_args()
     config_file = args.config_file
+    log_file = args.log_file
 
-    # Set logging behavior
-    set_logger(logger, logging.INFO, args.logfile)
-
-    # Parse config file and define services to monitor
+    logger = setup_logger(__package__, log_file, log_level='INFO')
     config = Configuration(config_file)
 
     # Lookup port number for this app from the config file
     port = config.get_port()
     if not port:
-        raise SystemExit("Failed to get port number for jaws_prometheus web server")
+        err_msg = "Failed to get port number for jaws_prometheus web server"
+        logger.error(err_msg)
+        raise SystemExit(err_msg)
 
     # Start http server using the prometheus client module
     start_http_server(port)
