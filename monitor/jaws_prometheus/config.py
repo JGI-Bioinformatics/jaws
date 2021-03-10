@@ -59,12 +59,20 @@ class Configuration():
         """
 
         if is_partial_name:
+            found_section = False
             for section in self.config.sections():
                 if not section.startswith(section_name):
                     continue
                 metric_name = section.replace(section_name, '', 1).lower()
                 entries = dict(self.config.items(section))
+                found_section = True
                 yield metric_name, entries
+
+            if not found_section:
+                return None, None
         else:
+            if not self.config.has_section(section_name):
+                return None, None
+
             for name, value in self.config.items(section_name):
                 yield name, value
