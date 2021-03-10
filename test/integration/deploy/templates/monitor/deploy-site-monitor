@@ -8,6 +8,7 @@ src_dir="$JAWS_SRC_DIR"
 install_dir=$JAWS_INSTALL_DIR
 port=$JAWS_SITE_MONITOR_PORT
 site_monitor_dir=$install_dir/site-monitor
+log_dir=$install_dir/logs
 shim_dir=$install_dir/shims
 shim_file=$shim_dir/site-monitor
 developer_mode="$JAWS_DEVELOPER_MODE"
@@ -29,8 +30,6 @@ function setup_dir {
   local dir="$1"
   local group="$2"
   local perms="$3"
-#  [[ -z $dir ]] && echo "missing dir" && exit 1
-#  [[ -z $group ]] && echo "missing group" && exit 1
   echo "... $dir"
   test -d "$dir" || (mkdir -p "$dir" && \
     chgrp "$group" "$dir" && \
@@ -46,6 +45,7 @@ else
   test -d $site_monitor_dir || mkdir $site_monitor_dir
 fi
 test -d $shim_dir || mkdir $shim_dir
+test -d $log_dir || mkdir $log_dir
 
 
 ## CREATE PYTHON VIRTUALENV
@@ -93,7 +93,7 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
 source $site_monitor_dir/bin/activate
-exec site-monitor --port $port
+exec site-monitor --port $port --log $log_dir/site-monitor.log
 EOM
 chmod 770 $shim_file
 fix_perms $group_perms $shim_file
