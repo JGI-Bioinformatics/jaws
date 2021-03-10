@@ -3,10 +3,10 @@
 set -eo pipefail
 
 ## DEFINE INSTALL VARS
-group_perms="$JAWS_MONITOR_GROUP_PERMISSION"
+group_perms="$JAWS_SITE_MONITOR_GROUP_PERMISSION"
 src_dir="$JAWS_SRC_DIR"
 install_dir=$JAWS_INSTALL_DIR
-port=$JAWS_MONITOR_SITE_PORT
+port=$JAWS_SITE_MONITOR_PORT
 site_monitor_dir=$install_dir/site-monitor
 shim_dir=$install_dir/shims
 shim_file=$shim_dir/site-monitor
