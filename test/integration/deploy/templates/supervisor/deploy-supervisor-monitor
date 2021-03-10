@@ -167,6 +167,7 @@ test -d $supervisor_dir/bin || mkdir $supervisor_dir/bin
 if [[ ! -f $supervisor_dir/venv ]]; then
     python3 -m venv $supervisor_dir/venv && \
     source $supervisor_dir/venv/bin/activate && \
+    pip install --upgrade pip && \
     pip install supervisor
 fi
 
