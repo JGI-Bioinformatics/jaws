@@ -39,7 +39,7 @@ services:
   - supervisor_jtm:
       deploy_script: templates/supervisor/deploy-supervisor-jtm
   - supervisor_monitor:
-      deploy_script: templates/supervisor/deploy-supervisor-monitorr
+      deploy_script: templates/supervisor/deploy-supervisor-monitor
 
 service_group:
   jaws: [client, central, site, cromwell, jtm, supervisor_jaws, supervisor_jtm]
