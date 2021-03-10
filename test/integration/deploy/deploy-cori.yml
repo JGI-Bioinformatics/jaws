@@ -3,12 +3,6 @@ services:
       config_template: templates/client/jaws-client.conf
       config_output: $JAWS_INSTALL_DIR/configs/jaws-client.conf
       deploy_script: templates/client/deploy-jaws-client
-  - central:
-      config_template: templates/central/jaws-central.conf
-      config_output: $JAWS_INSTALL_DIR/configs/jaws-central.conf
-      deploy_script: templates/central/deploy-jaws-central
-      environment:
-        JAWS_DEPLOY_CENTRAL: 1
   - site:
       config_template: templates/site/jaws-site.conf
       config_output: $JAWS_INSTALL_DIR/configs/jaws-site.conf
@@ -25,9 +19,9 @@ services:
       config_output: $JAWS_INSTALL_DIR/configs/jaws-jtm.conf
       deploy_script: templates/jtm/deploy-jaws-jtm
   - jaws_prometheus:
-      config_template: templates/monitor/jaws-monitor-site.conf
-      config_output: $JAWS_INSTALL_DIR/configs/jaws-monitor.conf
-      deploy_script: templates/monitor/deploy-jaws-monitor
+      config_template: templates/monitor/jaws-prometheus.conf
+      config_output: $JAWS_INSTALL_DIR/configs/jaws-prometheus.conf
+      deploy_script: templates/monitor/deploy-jaws-prometheus
       environment:
         JAWS_DEPLOY_JAWS_PROMETHEUS: 1
   - site_monitor:
@@ -42,8 +36,8 @@ services:
       deploy_script: templates/supervisor/deploy-supervisor-monitor
 
 service_group:
-  all: [client, central, site, cromwell, jtm, supervisor_jaws, supervisor_jtm]
-  supervisor: [supervisor_jaws, supervisor_jtm]
+  jaws: [client, central, site, cromwell, jtm, supervisor_jaws, supervisor_jtm]
+  monitor: [site_monitor, supervisor_monitor]
 
 environment:
   JAWS_INSTALL_DIR:
@@ -56,6 +50,7 @@ environment:
   JAWS_VERSION: 2.0.1
   JAWS_DOCS_URL: https://jaws-docs.readthedocs.io/en/latest
 
+  JAWS_CENTRAL_HOST: jaws.lbl.gov
   JAWS_CENTRAL_DB_HOST: jaws-db.lbl.gov
   JAWS_CENTRAL_DB_PORT: 3306
   JAWS_CENTRAL_DB_NAME: jaws_central_$JAWS_DEPLOY_NAME
@@ -85,6 +80,7 @@ environment:
   JAWS_CLIENT_GLOBUS_ENDPOINT_ID: be1ff650-dcbc-11ea-85a2-0e1702b77d41
   JAWS_CLIENT_GLOBUS_BASEDIR: /
 
+  JAWS_SITE_CORI_HOST: cori20.nersc.gov
   JAWS_SITE_CORI_GLOBUS_ENDPOINT_ID: be1ff650-dcbc-11ea-85a2-0e1702b77d41
   JAWS_SITE_CORI_GLOBUS_UPLOADS_SUBDIR: /global/cscratch1/sd/jaws_jtm/jaws-dev/uploads
   JAWS_SITE_CORI_GLOBUS_ROOT_DIR: /
@@ -95,6 +91,7 @@ environment:
   JAWS_SITE_CORI_JAWS_RMQ_CENTRAL_USER: jaws
   JAWS_SITE_CORI_JAWS_RMQ_CENTRAL_PWD: $JAWS_SITE_CORI_RMQ_PW
 
+  JAWS_SITE_JGI_HOST: lrc-services.lbl.gov
   JAWS_SITE_JGI_GLOBUS_ENDPOINT_ID: 45afb626-a4bd-11e8-96f0-0a6d4e044368
   JAWS_SITE_JGI_GLOBUS_UPLOADS_SUBDIR: /global/scratch/jaws/jaws-$DEPLOY_NAME/uploads
   JAWS_SITE_JGI_GLOBUS_ROOT_DIR: /
@@ -169,26 +166,41 @@ environment:
   JAWS_CROMWELL_MYSQL_USER: jaws
   JAWS_CROMWELL_MYSQL_PWD: $JAWS_CROMWELL_CORI_DB_PW
 
-  JAWS_SUPERVISOR_INET_HTTP_SERVER: http://cori20.nersc.gov
+  JAWS_SUPERVISOR_INET_HTTP_SERVER: 0.0.0.0
   JAWS_SUPERVISOR_CTL_URL: http://cori20.nersc.gov
   JAWS_SUPERVISOR_USERNAME: jaws
   JAWS_SUPERVISOR_PWD: $JAWS_SUPERVISORD_PW
-  JAWS_SUPERVISOR_INSTALL_DIR: /tmp/jaws-supervisord-prod
+  JAWS_SUPERVISOR_CORI_INSTALL_DIR: /tmp/jaws-supervisord-prod
+  JAWS_SUPERVISOR_JGI_INSTALL_DIR: /global/home/groups-sw/lr_jgicloud/jaws-install/jaws-supervisord-prod/venv/bin
+  JAWS_SUPERVISOR_CENTRAL_INSTALL_DIR: /tmp/jaws-central-supervisord-prod
+  JAWS_SUPERVISOR_INSTALL_DIR: $JAWS_INSTALL_DIR/supervisor
   JAWS_SUPERVISOR_JAWS_PORT: 64103
   JAWS_SUPERVISOR_JTM_PORT: 64113
-  JAWS_SUPERVISOR_MONITOR_PORT: 64123
+  JAWS_SUPERVISOR_CENTRAL_PORT: 64123
+  JAWS_SUPERVISOR_MONITOR_PORT: 64133
 
-  JAWS_MONITOR_GROUP_PERMISSON: ''
-  JAWS_MONITOR_PROM_COLLECTOR_PORT: 9183
-  JAWS_MONITOR_CORI_HOST: cori20-224.nersc.gov
-  JAWS_MONITOR_CORI_PORT: 51003
-  JAWS_MONITOR_CORI_DISK_FREE_DIR: /global/cscratch1
-  JAWS_MONITOR_JGI_HOST: lrc-services.lbl.gov
-  JAWS_MONITOR_JGI_PORT: 51003
-  JAWS_MONITOR_SITE_PORT: $JAWS_MONITOR_CORI_PORT
-  JAWS_MONITOR_JGI_DISK_FREE_SCRATCH_DIR: /global/scratch
-  JAWS_MONITOR_JGI_DISK_FREE_GROUPS_DIR: /global/home/groups
-  JAWS_MONITOR_JGI_DISK_FREE_GROUPS_SW_DIR: /global/home/groups-sw
-  JAWS_MONITOR_SUPERVISOR_BIN_DIR: $JAWS_SUPERVISOR_INSTALL_DIR/venv/bin
-  JAWS_MONITOR_SUPERVISOR_JAWS_CONFIG: $JAWS_SUPERVISOR_INSTALL_DIR/supervisord-jaws.conf
-  JAWS_MONITOR_SUPERVISOR_JTM_CONFIG: $JAWS_SUPERVISOR_INSTALL_DIR/supervisord-jtm.conf
+  JAWS_PROMETHEUS_PORT: 9183
+  JAWS_PROMETHEUS_GROUP_PERMISSON: ''
+  JAWS_MONITOR_SUPERVISOR_DIR: $JAWS_SUPERVISOR_INSTALL_DIR
+  JAWS_SITE_MONITOR_GROUP_PERMISSON: ''
+  JAWS_SITE_MONITOR_CENTRAL_HOST: $JAWS_CENTRAL_HOST
+  JAWS_SITE_MONITOR_CENTRAL_PORT: 51003
+  JAWS_SITE_MONITOR_CORI_HOST: localhost
+  JAWS_SITE_MONITOR_CORI_PORT: 51003
+  JAWS_SITE_MONITOR_CORI_DISK_FREE_DIR: /global/cscratch1
+  JAWS_SITE_MONITOR_JGI_HOST: $JAWS_SITE_JGI_HOST
+  JAWS_SITE_MONITOR_JGI_PORT: 51003
+  JAWS_SITE_MONITOR_PORT: $JAWS_SITE_MONITOR_CORI_PORT
+  JAWS_SITE_MONITOR_JGI_DISK_FREE_SCRATCH_DIR: /global/scratch
+  JAWS_SITE_MONITOR_JGI_DISK_FREE_GROUPS_DIR: /global/home/groups
+  JAWS_SITE_MONITOR_JGI_DISK_FREE_GROUPS_SW_DIR: /global/home/groups-sw
+  JAWS_SITE_MONITOR_SUPERVISOR_CORI_JAWS_BIN_DIR: $JAWS_SUPERVISOR_CORI_JAWS_INSTALL_DIR/venv/bin
+  JAWS_SITE_MONITOR_SUPERVISOR_CORI_JTM_BIN_DIR: $JAWS_SUPERVISOR_CORI_JTM_INSTALL_DIR/venv/bin
+  JAWS_SITE_MONITOR_SUPERVISOR_JGI_JAWS_BIN_DIR: $JAWS_SUPERVISOR_JGI_JAWS_INSTALL_DIR/venv/bin
+  JAWS_SITE_MONITOR_SUPERVISOR_JGI_JTM_BIN_DIR: $JAWS_SUPERVISOR_JGI_JTM_INSTALL_DIR/venv/bin
+  JAWS_SITE_MONITOR_SUPERVISOR_CENTRAL_BIN_DIR: $JAWS_SUPERVISOR_CENTRAL_INSTALL_DIR/venv/bin
+  JAWS_SITE_MONITOR_SUPERVISOR_CORI_JAWS_CONFIG: $JAWS_SUPERVISOR_CORI_JAWS_INSTALL_DIR/supervisord-jaws.conf
+  JAWS_SITE_MONITOR_SUPERVISOR_CORI_JTM_CONFIG: $JAWS_SUPERVISOR_CORI_JTM_INSTALL_DIR/supervisord-jtm.conf
+  JAWS_SITE_MONITOR_SUPERVISOR_JGI_JAWS_CONFIG: $JAWS_SUPERVISOR_JGI_JAWS_INSTALL_DIR-jaws.conf
+  JAWS_SITE_MONITOR_SUPERVISOR_JGI_JTM_CONFIG: $JAWS_SUPERVISOR_JGI_JTM_INSTALL_DIR/supervisord-jtm.conf
+  JAWS_SITE_MONITOR_SUPERVISOR_CENTRAL_CONFIG: $JAWS_SUPERVISOR_CENTRAL_INSTALL_DIR/supervisord-jaws.conf
