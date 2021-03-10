@@ -58,16 +58,22 @@ queue: rmq_queue
 import requests
 import argparse
 import time
+import logging
+from logging.handlers import RotatingFileHandler
 from prometheus_client import start_http_server, Gauge
 from jaws_prometheus.config import Configuration
 from jaws_rpc import rpc_client
 
-# ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 # import sys
+# import os
+# ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 # sys.path.insert(0, os.path.join(ROOT_DIR, '../jaws_prometheus'))
 # sys.path.insert(0, os.path.join(ROOT_DIR, '../../rpc'))
 # from jaws_rpc import rpc_client
 # from config import Configuration
+
+
+logger = logging.getLogger(__package__)
 
 
 def get_args():
@@ -82,8 +88,35 @@ def get_args():
     prog_desc = '''
     '''
     parser = argparse.ArgumentParser(description=prog_desc, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-l', '--log', dest='logfile', help='log file')
     parser.add_argument('config_file', help='jaws monitor config file')
     return parser.parse_args()
+
+
+def set_logger(logger, level=logging.INFO, logfile=None):
+    """Set logger behavior. If logfile is specified, write log to a rotating log handler.
+
+    :param logger: logger
+    :rtype logger: logging.getLogger object
+    :param level: logging level (e.g., logging.INFO)
+    :rtype level: logging object's level
+    :param logfile: log file
+    :rtype logfile: string
+    :return None
+    """
+
+    logger.setLevel(level)
+    formatter = logging.Formatter(
+        "%(asctime)s | %(module)s | %(lineno)d | %(funcName)s | %(levelname)s : %(message)s",
+        "%Y-%m-%d %H:%M:%S",
+    )
+    ch = logging.StreamHandler()
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    if logfile:
+        handler = RotatingFileHandler(logfile, maxBytes=5000, backupCount=3)
+        logger.addHandler(handler)
 
 
 def is_http_status_valid(status_code):
@@ -114,7 +147,28 @@ def set_prometheus_metric(proms, name, value):
 
     if name not in proms:
         proms[name] = Gauge(name, f"Monitor JAWS {name}")
+    logging.info(f"{name} = {value}")
     proms[name].set(value)
+
+
+def jsonrpc_error(error_msg, code=1):
+    """Returns a json-rpc structure for reporting errors.
+
+    :param error_msg: error message
+    :type error_msg: string
+    :param code: error code
+    :type code: int
+    :return: json
+    :rtype: dict
+    """
+
+    return {
+        "jsonrpc": "2.0",
+        "error": {
+            "code": code,
+            "message": error_msg,
+        }
+    }
 
 
 def http_request(url, **rkwargs):
@@ -136,19 +190,20 @@ def http_request(url, **rkwargs):
             rkwargs['params'] = dict(item.split("=") for item in p.split("&"))
         r = requests.get(url=url, **rkwargs)
     except requests.exceptions.RequestException as err:
-        return 500, {'error': err}
+        return 500, jsonrpc_error(err, 500)
     except Exception as err:
-        return 500, {'error': err}
+        return 500, jsonrpc_error(err, 500)
 
     if is_http_status_valid(r.status_code):
         try:
             jsondata = r.json()
         except ValueError as err:
-            return 500, {'error': 'Invalid json returned from HTTP request: %s: %s' %
-                        (type(err).__name__, err)}
+            err_msg = 'Invalid json returned from HTTP request: %s: %s' % (type(err).__name__, err)
+            return 500, jsonrpc_error(err_msg, 500)
         return r.status_code, jsondata
     else:
-        return r.status.code, {'error': f'HTTP returned a code of {r.status.code}'}
+        err_msg = f'HTTP returned a code of {r.status.code}'
+        return r.status.code, jsonrpc_error(err_msg, r.status.code)
 
 
 def rpc_request(entries):
@@ -187,8 +242,14 @@ def report_rest_services(config, proms):
     :return: None
     """
     for name, url in config.get_config_section('REST_SERVICES'):
-        status_code, _ = http_request(url)
+        status_code, jsondata = http_request(url)
+
         status = is_http_status_valid(status_code)
+
+        if not status:
+            errmsg = jsondata['error']['message'] if jsondata.get('error') else 'Unknown error'
+            logger.error(f"{name} = {errmsg}")
+
         set_prometheus_metric(proms, name, status)
 
 
@@ -211,9 +272,15 @@ def report_disk_free(config, proms):
     for name, url in config.get_config_section('DISK_MONITOR'):
         disk_free_pct = -1
         status_code, jsondata = http_request(url)
+
         status = is_http_status_valid(status_code)
+
         if status:
             disk_free_pct = float(jsondata.get('disk_free_pct', 0))
+        else:
+            errmsg = jsondata['error']['message'] if jsondata.get('error') else 'Unknown error'
+            logger.error(f"{name} = {errmsg}")
+
         set_prometheus_metric(proms, name, disk_free_pct)
 
 
@@ -237,11 +304,15 @@ def report_rmq_services(config, proms):
             try:
                 response = rpc.request("server_status")
             except rpc_client.ConnectionError:
+                logger.error(f"{name} = Failed to get a RabbitMQ response")
                 status = 0
             if response and 'result' in response and response['result'] is True:
                 status = 1
             else:
                 status = 0
+        else:
+            logger.error(f"{name} = Failed to establish a RabbitMQ connection")
+
         set_prometheus_metric(proms, name, status)
 
 
@@ -311,10 +382,14 @@ def main():
     :rtype: none
     """
 
+    time_delay = 30  # 30 seconds
+
     # Parse args from command-line
     args = get_args()
     config_file = args.config_file
-    time_delay = 30  # 30 seconds
+
+    # Set logging behavior
+    set_logger(logger, logging.INFO, args.logfile)
 
     # Parse config file and define services to monitor
     config = Configuration(config_file)

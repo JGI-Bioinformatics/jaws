@@ -25,9 +25,58 @@ import shutil
 import subprocess
 import getpass
 import re
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask, request
 
 app = Flask(__name__.split('.')[0])
+logger = logging.getLogger(__package__)
+
+
+def set_logger(logger, level=logging.INFO, logfile=None):
+    """Set logger behavior. If logfile is specified, write log to a rotating log handler.
+
+    :param logger: logger
+    :rtype logger: logging.getLogger object
+    :param level: logging level (e.g., logging.INFO)
+    :rtype level: logging object's level
+    :param logfile: log file
+    :rtype logfile: string
+    :return None
+    """
+
+    logger.setLevel(level)
+    formatter = logging.Formatter(
+        "%(asctime)s | %(module)s | %(lineno)d | %(funcName)s | %(levelname)s : %(message)s",
+        "%Y-%m-%d %H:%M:%S",
+    )
+    ch = logging.StreamHandler()
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    if logfile:
+        handler = RotatingFileHandler(logfile, maxBytes=5000, backupCount=3)
+        logger.addHandler(handler)
+
+
+def jsonrpc_error(error_msg, code=1):
+    """Returns a json-rpc structure for reporting errors.
+
+    :param error_msg: error message
+    :type error_msg: string
+    :param code: error code
+    :type code: int
+    :return: json
+    :rtype: dict
+    """
+
+    return {
+        "jsonrpc": "2.0",
+        "error": {
+            "code": code,
+            "message": error_msg,
+        }
+    }
 
 
 def check_path(file_path):
@@ -82,7 +131,7 @@ def rename_supervisor_process(name):
 
 
 @app.route('/disk_free_pct/<path:file_path>')
-def disk_free_pct(file_path):
+def get_disk_free_pct(file_path):
     """Check the percent of free disk for the given path and return value as a float.
     If input file path is invalid, returns -1.
 
@@ -129,25 +178,34 @@ def get_supervisor_pid():
     """
 
     pid = 0
+    jsonerr = None
     username = getpass.getuser()
     config = request.args.get('config', None)   # supervisord config file
     supervisor_cmd = request.args.get('cmd', None)  # supervisord cmd full path and name
 
     if not config:
-        return {'pid': 0, 'error': 'Missing config parameter in url.'}, 400
+        jsonerr = jsonrpc_error('Missing config parameter in url.', 400)
     if not supervisor_cmd:
-        return {'pid': 0, 'error': 'Missing cmd parameter in url.'}, 400
+        jsonerr = jsonrpc_error('Missing cmd parameter in url.', 400)
     if not os.path.isfile(supervisor_cmd):
-        return {'pid': 0, 'error': f'Cannot find supervisor cmd: {supervisor_cmd}'}, 400
+        jsonerr = jsonrpc_error(f'Cannot find supervisor cmd: {supervisor_cmd}', 400)
+
+    if jsonerr:
+        jsonerr['pid'] = 0
+        logger.error(jsonerr['error']['message'])
+        return jsonerr, 400
 
     config = os.path.basename(config)
-    cmd = "ps aux | grep {0} | grep {1} | grep {2} | grep -v grep".format(
+    cmd = "ps -ef | grep {0} | grep {1} | grep {2} | grep -v grep".format(
         username, supervisor_cmd, config)
 
     stdout, stderr, exitcode = run_command(cmd)
 
     if exitcode:
-        return {'pid': 0, 'error': 'ps encountered an error'}, 400
+        jsonerr = jsonrpc_error(f'ps cmd encountered an error ({cmd}, {stderr}).', 400)
+        jsonerr['pid'] = 0
+        logger.error(jsonerr['error']['message'])
+        return jsonerr, 400
     else:
         # parse pid from ps command. output looks like:
         # strong   48047  0.0  0.0  46548 22632
@@ -173,15 +231,20 @@ def get_supervisor_processes():
     """
 
     processes = {}
+    jsonerr = None
     config = request.args.get('config', None)  # supervisord config file
     supervisor_cmd = request.args.get('cmd', None)  # supervisord cmd full path and name
 
     if not config:
-        return {'pid': 0, 'error': 'Missing config parameter in url.'}, 400
+        jsonerr = jsonrpc_error('Missing config parameter in url.', 400)
     if not supervisor_cmd:
-        return {'pid': 0, 'error': 'Missing cmd parameter in url.'}, 400
+        jsonerr = jsonrpc_error('Missing cmd parameter in url.', 400)
     if not os.path.isfile(supervisor_cmd):
-        return {'pid': 0, 'error': f'Cannot find supervisor cmd: {supervisor_cmd}'}, 400
+        jsonerr = jsonrpc_error(f'Cannot find supervisor cmd {supervisor_cmd}.', 400)
+
+    if jsonerr:
+        logger.error(jsonerr['error']['message'])
+        return jsonerr, 400
 
     cmd = f"{supervisor_cmd} -c {config} status"
 
@@ -197,7 +260,9 @@ def get_supervisor_processes():
 
     # supervisorctl exits with code 4 if error is 'http://localhost:nnnn refused connection'
     if exitcode == 4:
-        return {'error': stdout}, 400
+        jsonerr = jsonrpc_error(f'{cmd} encountered an error: {stdout}', 400)
+        logger.error(jsonerr['error']['message'])
+        return jsonerr, 400
 
     # Parse output getting the name of the process minus any word before the colon and
     # the status. If the status is RUNNING, set status=1, else 0
@@ -228,6 +293,7 @@ def get_args():
     parser = argparse.ArgumentParser(description=prog_desc, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--host', help='host name', default='0.0.0.0')
     parser.add_argument('--port', help='port', type=int, default=51000)
+    parser.add_argument('--log', dest='logfile', help='log file')
     parser.add_argument('--debug', action='store_true', help='debug')
     return parser.parse_args()
 
