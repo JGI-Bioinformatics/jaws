@@ -44,7 +44,7 @@ You can try running this example
     source ~/jaws-prod.sh
 
     # clone the example code (use your nersc credentials to clone)
-    git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
+    git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
 
     cd jaws-tutorial-examples/subworkflow
 
