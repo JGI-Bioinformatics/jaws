@@ -210,7 +210,7 @@ After shifter is removed from the :bash:`command{}` block, you would add :bash:`
     runtime {
         docker: "jfroula/bbtools:1.2.1"
         time: "00:30:00"
-        mem: "5G"
+        memory: "5G"
         poolname: "small"
         node: 1
         nwpn: 1

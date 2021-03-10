@@ -50,7 +50,7 @@ On Cori, JAWS runs on a dedicated cluster.
     runtime {
       cluster: "cori"
       time: "00:30:00"
-      mem: "250G"
+      memory: "250G"
       poolname: "some-unique-name"
       shared: 0
       node: 1
@@ -71,7 +71,7 @@ On Cori, JAWS runs on a dedicated cluster.
     runtime {
       cluster: "cori"
       time: "00:30:00"
-      mem: "700G"
+      memory: "700G"
       poolname: "some-unique-name"
       shared: 0
       node: 1
@@ -91,7 +91,7 @@ On Cori, JAWS runs on a dedicated cluster.
       poolname: "some-unique-name"
       node: 1
       nwpn: 1
-      mem: "10G"
+      memory: "10G"
       time: "00:10:00"
       shared: 0
       qos: "regular"
@@ -143,7 +143,7 @@ You request resources in a similar manner as for sbatch jobs. The default option
 
    runtime {
        time: "00:30:00"         # up to 72hrs
-       mem: "5G"                # you get a exclusive machine no matter what this setting is. You have two choices: ["115G"|"500G"]
+       memory: "5G"                # you get a exclusive machine no matter what this setting is. You have two choices: ["115G"|"500G"]
        poolname: "small"        # your choice.
        node: 1                  # number of nodes in the pool. You only need to set this higher when you are scattering a job.
        nwpn: 1                  # number of workers per node (max is number of threads).  This depends on the job's memory & thread requirements.
@@ -172,7 +172,7 @@ The answer depends on how much memory and threads each job will take (e.g. jobs 
 
 The decision process should go something like this:
 
-  1. Decide if you want a regular machine (128G) or a large memory machine (512G). Remember that there is an overhead of roughly 13G that you need to subtract from the total memory, so you'd use mem: "115G" or mem: "500G".
+  1. Decide if you want a regular machine (128G) or a large memory machine (512G). Remember that there is an overhead of roughly 13G that you need to subtract from the total memory, so you'd use memory: "115G" or mem: "500G".
   2. If your job maximum memory usage was 50G, and you are using a regular 115G machine then you can run 2 jobs per node. To get 10 workers, you would request :bash:`node: 5` and :bash:`nwpn: 2`.
   3. Alternatively, if your job max memory usage is 2G and it only uses 1 thread, then set :bash:`node: 1` and :bash:`nwpn: 56` (equals 112G total ram). Remember that nwpn: 64 is the maximum.
 
@@ -185,7 +185,7 @@ for example:
    runtime {
      poolname: "my_pool_name"
      time: "2:00:00"
-     mem: "115G"
+     memory: "115G"
      node: 5
      nwpn: 2
    }
@@ -220,7 +220,7 @@ If you want to scatter a task use a pool of >1 workers. For instance, If you hav
    runtime {
        cluster: "cori"
        time: "1:00:00"
-       mem: "115G"
+       memory: "115G"
        poolname: "my_pool_name"
        node: 2
        nwpn: 5
@@ -234,7 +234,7 @@ To re-use a worker pool, copy all the params, not just the name.  In this exampl
       runtime {
         cluster: "cori"
         time: "1:00:00"
-        mem: "115G"
+        memory: "115G"
         poolname: "my_pool_name"
         node: 1
         nwpn: 10
@@ -244,7 +244,7 @@ To re-use a worker pool, copy all the params, not just the name.  In this exampl
       runtime {
         cluster: "cori"
         time: "1:00:00"
-        mem: "115G"
+        memory: "115G"
         poolname: "my_pool_name"
         node: 1
         nwpn: 10

@@ -26,7 +26,7 @@ task profilerGottcha2 {
 		poolname: "readbaseanalysis-pool"
 		node: 1
 		nwpn: 1
-		mem: "45G"
+		memory: "45G"
 		time: "04:00:00"
 		shared: 1
     }
@@ -62,7 +62,7 @@ task profilerCentrifuge {
 		poolname: "readbaseanalysis-pool"
 		node: 1
 		nwpn: 1
-		mem: "45G"
+		memory: "45G"
 		time: "04:00:00"
 		shared: 1
     }
@@ -100,7 +100,7 @@ task profilerKraken2 {
 		poolname: "readbaseanalysis-pool"
 		node: 1
 		nwpn: 1
-		mem: "45G"
+		memory: "45G"
 		time: "04:00:00"
 		shared: 1
     }

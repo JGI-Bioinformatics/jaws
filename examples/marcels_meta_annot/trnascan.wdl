@@ -44,7 +44,7 @@ task trnascan_ba {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -71,7 +71,7 @@ task pick_and_transform_to_gff {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
