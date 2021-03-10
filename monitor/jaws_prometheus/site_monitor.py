@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 FLASK application containing endpoints to monitor site specific entities. The following endpoints are
 available:

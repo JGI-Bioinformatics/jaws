@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 This program serves as a prometheus custom exporter (otherwise known as a custom collector) for
 monitoring jaws components.
