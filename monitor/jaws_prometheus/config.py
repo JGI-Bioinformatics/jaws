@@ -15,7 +15,7 @@ class Configuration():
         if not config_file:
             config_file = os.environ.get('JAWS_MONITOR_CONFIG')
         if not os.path.isfile(config_file):
-            raise
+            raise FileNotFoundError(f'Cannot find config file {config_file}')
 
         self.config = configparser.ConfigParser()
         try:
