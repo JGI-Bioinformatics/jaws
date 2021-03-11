@@ -172,7 +172,7 @@ The answer depends on how much memory and threads each job will take (e.g. jobs 
 
 The decision process should go something like this:
 
-  1. Decide if you want a regular machine (128G) or a large memory machine (512G). Remember that there is an overhead of roughly 13G that you need to subtract from the total memory, so you'd use memory: "115G" or mem: "500G".
+  1. Decide if you want a regular machine (128G) or a large memory machine (512G). Remember that there is an overhead of roughly 13G that you need to subtract from the total memory, so you'd use memory: "115G" or memory: "500G".
   2. If your job maximum memory usage was 50G, and you are using a regular 115G machine then you can run 2 jobs per node. To get 10 workers, you would request :bash:`node: 5` and :bash:`nwpn: 2`.
   3. Alternatively, if your job max memory usage is 2G and it only uses 1 thread, then set :bash:`node: 1` and :bash:`nwpn: 56` (equals 112G total ram). Remember that nwpn: 64 is the maximum.
 
