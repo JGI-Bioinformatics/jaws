@@ -316,9 +316,6 @@ def report_supervisor_pid(config, proms):
     for name, url in config.get_config_section('SUPERVISOR_STATUS'):
         status = 0
         jsondata, http_status_code = http_request(url)
-        print("report_supervisor_pid", url)
-        print(jsondata, http_status_code)
-        print()
         if is_http_status_valid(http_status_code):
             status = jsondata.get('pid', 0)
         set_prometheus_metric(proms, name, status)
