@@ -99,7 +99,7 @@ if [ -z \$SINGULARITY_CACHEDIR ];
 fi
 # Make sure cache dir exists so lock file can be created by flock
 mkdir -p \$CACHE_DIR
-LOCK_FILE=$FLOCK_DIR/singularity_pull_flock
+LOCK_FILE=\$FLOCK_DIR/singularity_pull_flock
 flock --exclusive --timeout 900 \$LOCK_FILE \
 singularity pull \$IMAGE docker://\${docker} && echo \"Successfully pulled \${docker}!\" \
 || echo \"Failed to pull \${docker}!\"
