@@ -49,7 +49,7 @@ cp "$SITE_CROMWELL_JAR" "$INSTALLED_CROMWELL_JAR" && \
   chmod 640 "$INSTALLED_CROMWELL_JAR"
 
 CONTAINER_CHECK=""
-if [ $SITE_CONTAINER_TYPE = "shifter" ]; then
+if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
   CONTAINER_CHECK="shifterimg lookup \${docker} || shifterimg pull \${docker}"
 fi
 
@@ -73,7 +73,7 @@ fi
 #
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
-if [ $SITE_CONTAINER_TYPE = "shifter" ]; then
+if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
   CONTAINER_EXPORT=""
   CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
   CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
@@ -84,7 +84,7 @@ EOM
   chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
   chmod 775 "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
 
-elif [ $SITE_CONTAINER_TYPE = "singularity" ]; then
+elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
   CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_DIR
 export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_DIR
 export SINGULARITY_TMPDIR=$SITE_CONTAINERS_DIR
