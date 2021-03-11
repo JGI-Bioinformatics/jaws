@@ -1,4 +1,4 @@
-  #!/usr/bin/env bash
+#!/usr/bin/env bash
 
 echo "BEGIN deploy-cromwell"
 
@@ -49,7 +49,7 @@ cp "$SITE_CROMWELL_JAR" "$INSTALLED_CROMWELL_JAR" && \
   chmod 640 "$INSTALLED_CROMWELL_JAR"
 
 CONTAINER_CHECK=""
-if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
+if [ $SITE_CONTAINER_TYPE = "shifter" ]; then
   CONTAINER_CHECK="shifterimg lookup \${docker} || shifterimg pull \${docker}"
 fi
 
@@ -235,8 +235,7 @@ submit \
 
 
         submit-docker = """
-[ -z \$CONTAINER_EXPORT ] || SINGULARITY_EXPORT="\$CONTAINER_EXPORT"
-$SINGULARITY_EXPORT
+$CONTAINER_EXPORT
 CONSTRAINT=\${constraint}
 QOS=\${qos}
 PARTITION=\${partition}
