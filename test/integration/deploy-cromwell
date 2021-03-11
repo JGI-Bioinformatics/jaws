@@ -92,7 +92,6 @@ export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_DIR
 export FLOCK_DIR=/tmp
 
 IMAGE=\$(echo \${docker} | tr '/:' '_').sif
-IMAGE=\$SINGULARITY_CACHEDIR/\$IMAGE
 echo \"\$IMAGE\"
 if [ -z \$SINGULARITY_CACHEDIR ];
     then CACHE_DIR=\$HOME/.singularity/cache
@@ -100,10 +99,10 @@ if [ -z \$SINGULARITY_CACHEDIR ];
 fi
 # Make sure cache dir exists so lock file can be created by flock
 mkdir -p \$CACHE_DIR
-LOCK_FILE=\$CACHE_DIR/singularity_pull_flock
+LOCK_FILE=\$FLOCK_DIR/singularity_pull_flock
 flock --exclusive --timeout 900 \$LOCK_FILE \
 singularity pull \$IMAGE docker://\${docker} && echo \"Successfully pulled \${docker}!\" \
-|| echo \"Faield to pull \${docker}!\"
+|| echo \"Failed to pull \${docker}!\"
 "
   CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
   CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
