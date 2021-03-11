@@ -188,7 +188,7 @@ def get_supervisor_pid():
     stdout, stderr, exitcode = run_command(cmd)
 
     if exitcode:
-        jsonerr = jsonrpc_error(f'ps cmd encountered an error ({cmd}, {stderr}).', 400)
+        jsonerr = jsonrpc_error(f'ps cmd encountered an error ({cmd}: {stderr}).', 400)
         jsonerr['pid'] = 0
         logger.error(jsonerr['error']['message'])
         return jsonerr, 400
