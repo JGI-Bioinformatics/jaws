@@ -61,7 +61,7 @@ task gm_isolate {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -92,7 +92,7 @@ task gm_meta {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -135,7 +135,7 @@ task clean_and_unify {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1

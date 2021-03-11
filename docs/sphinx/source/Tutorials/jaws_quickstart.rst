@@ -87,7 +87,7 @@ Run WDL in JAWS
     source ~/jaws-prod.sh
 
     # clone the example code
-    git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
+    git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
     (You'll need to use your LBL LDAP credentials).
 
     cd jaws-tutorial-examples/quickstart
