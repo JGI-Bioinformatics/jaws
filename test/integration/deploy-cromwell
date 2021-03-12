@@ -108,6 +108,7 @@ if [[ \$ret == 0 ]]; then
 else
     if [[ \$(echo \$out | grep \"exists\" ) ]]; then
         echo \"Image file already exists, \${docker}!\"
+        \$? = 0
     else
         echo \"Failed to pull \${docker}!\"
         exit \$ret
