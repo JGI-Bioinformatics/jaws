@@ -100,9 +100,19 @@ fi
 # Make sure cache dir exists so lock file can be created by flock
 mkdir -p \$CACHE_DIR
 LOCK_FILE=\$FLOCK_DIR/singularity_pull_flock
-flock --exclusive --timeout 900 \$LOCK_FILE \
-singularity pull \$IMAGE docker://\${docker} && echo \"Successfully pulled \${docker}!\" \
-|| echo \"Failed to pull \${docker}!\"
+out=\$(flock --exclusive --timeout 900 \$LOCK_FILE \
+singularity pull \$IMAGE docker://\${docker}  2>&1)
+ret=\$?
+if [[ \$ret == 0 ]]; then
+    echo \"Successfully pulled \${docker}!\"
+else
+    if [[ \$(echo \$out | grep \"exists\" ) ]]; then
+        echo \"Image file already exists, \${docker}!\"
+    else
+        echo \"Failed to pull \${docker}!\"
+        exit \$ret
+    fi
+fi
 "
   CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
   CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
