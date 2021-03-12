@@ -128,6 +128,8 @@ def user_queue(user):
                 "download_task_id": run.download_task_id,
                 "user_id": run.user_id,
                 "tag": run.tag,
+                "wdl_file": run.wdl_file,
+                "json_file": run.json_file,
             }
         )
     return result, 200
@@ -176,6 +178,8 @@ def user_history(user, delta_days=10):
                 "download_task_id": run.download_task_id,
                 "user_id": run.user_id,
                 "tag": run.tag,
+                "wdl_file": run.wdl_file,
+                "json_file": run.json_file,
             }
         )
     return result, 200
@@ -522,6 +526,9 @@ def run_status(user, run_id):
         "output_dir": run.output_dir,
         "download_task_id": run.download_task_id,
         "user_id": run.user_id,
+        "tag": run.tag,
+        "wdl_file": run.wdl_file,
+        "json_file": run.json_file,
     }
     return result, 200
 

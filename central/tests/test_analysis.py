@@ -93,6 +93,9 @@ class MockGetInactiveUploadRun:
         self.updated = datetime.strptime("2020-05-14 23:27:15", "%Y-%m-%d %H:%M:%S")
         self.upload_task_id = "dfbdfb7a-9637-11ea-bf90-0e6cccbb0103"
         self.user_id = "dduck"
+        self.tag = "example"
+        self.wdl_file = "example.wdl"
+        self.json_file = "example.json"
 
 
 @pytest.fixture()
