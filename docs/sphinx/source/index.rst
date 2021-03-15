@@ -5,8 +5,7 @@ Documentation for JAWS
 .. figure:: /Figures/JAWS5.tiny.png
     :scale: 100%
 
-The `Joint Genome Institute <https://jgi.doe.gov>`_  has developed JAWS (JGI's Analysis Workflow Service) as a framework to run
-computational workflows. Its purpose is to improve the re-usability and robustness of workflows in a high performance computing `(HPC defined) <https://www.nics.tennessee.edu/computing-resources/what-is-hpc>`_ environment.
+The `Joint Genome Institute <https://jgi.doe.gov>`_ has developed JAWS (JGI Analysis Workflow Service) as a framework to run computational workflows. Its purpose is to improve the re-usability and robustness of workflows in a high performance computing (`HPC <https://www.nics.tennessee.edu/computing-resources/what-is-hpc>`_), cluster, and cloud environments.
 
 .. topic:: In Short...
 
