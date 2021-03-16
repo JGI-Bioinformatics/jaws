@@ -60,10 +60,7 @@ function shutdown_supervisord() {
     pid=$(get_supervisord_pid $config_file)
     if [[ ! -z $pid ]]; then
         echo "Existing supervisord process found (pid=$pid) ... shutting down."
-        cmd="$supervisor_dir/bin/supervisorctl -c $config_file stop all"
-        echo $cmd
-        eval $cmd
-        cmd="kill -s SIGTERM $pid"
+        cmd="$supervisor_dir/bin/supervisorctl -c $config_file shutdown"
         echo $cmd
         eval $cmd
     fi
