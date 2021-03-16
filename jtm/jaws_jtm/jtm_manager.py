@@ -2139,6 +2139,34 @@ def kill_child_proc(ppid):
 
 
 # -------------------------------------------------------------------------------
+def check_num_threads(mode: str, n_manager_threads: int) -> bool:
+    ps_cmd = "ps -aef | grep -v grep | grep -v check-manager | grep jtm | grep manager "
+    if mode != "test":
+        ps_cmd += f"| grep jaws-{mode} "
+    else:
+        ps_cmd += "| grep test "
+    ps_cmd += "| wc -l"
+    num_total_procs = 0
+    try:
+        so, _, ec = run_sh_command(ps_cmd, log=logger, show_stdout=False)
+        num_total_procs = int(so.rstrip())
+    except TypeError as te:
+        logger.exception(te)
+        logger.error(so)
+        return False
+    except Exception as e:
+        logger.exception(e)
+        logger.error(ps_cmd)
+        return False
+    else:
+        # THIS IS THE NUM OF JTM MANAGER PROCS = 7
+        if num_total_procs != n_manager_threads:
+            return False
+        else:
+            return True
+
+
+# -------------------------------------------------------------------------------
 def manager(
     ctx: object, custom_log_dir_name: str, b_resource_usage_log_on: bool
 ) -> int:
