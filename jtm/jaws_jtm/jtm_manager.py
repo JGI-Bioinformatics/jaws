@@ -2354,8 +2354,7 @@ def manager(
         proc_clean_exit(plist)
         raise
 
-        # Start JTM JSON-RPC server for monitoring
-
+    # Start JTM JSON-RPC server for monitoring
     def jtm_manager_status(params):
         # 'params' is not used
         alive = True
@@ -2368,16 +2367,16 @@ def manager(
         else:
             return responses.success(False)
 
-        operations = {
-            "server_status": {
-                "function": jtm_manager_status,
-                "required_params": [],
-            }
+    operations = {
+        "server_status": {
+            "function": jtm_manager_status,
+            "required_params": [],
         }
-        jtm_rpc_server_params = CONFIG.configparser._sections["JTM_RPC_SERVER"]
-        logger.debug("jtm_rpc_server params: %s", jtm_rpc_server_params)
-        app = rpc_server.RpcServer(jtm_rpc_server_params, operations)
-        app.start_server()
+    }
+    jtm_rpc_server_params = CONFIG.configparser._sections["JTM_RPC_SERVER"]
+    logger.debug("jtm_rpc_server params: %s", jtm_rpc_server_params)
+    app = rpc_server.RpcServer(jtm_rpc_server_params, operations)
+    app.start_server()
 
     logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)
     logger.info("Waiting for a task request from %s", jtm_task_request_q)
