@@ -61,7 +61,7 @@ import time
 from prometheus_client import start_http_server, Gauge
 from jaws_prometheus.log import setup_logger
 from jaws_prometheus.config import Configuration
-from jaws_rpc import rpc_client
+from jaws_rpc import rpc_client, responses
 
 # import sys
 # import os
@@ -125,24 +125,24 @@ def set_prometheus_metric(proms, name, value):
     proms[name].set(value)
 
 
-def jsonrpc_error(error_msg, code=1):
-    """Returns a json-rpc structure for reporting errors.
+# def jsonrpc_error(error_msg, code=1):
+#     """Returns a json-rpc structure for reporting errors.
 
-    :param error_msg: error message
-    :type error_msg: string
-    :param code: error code
-    :type code: int
-    :return: json
-    :rtype: dict
-    """
+#     :param error_msg: error message
+#     :type error_msg: string
+#     :param code: error code
+#     :type code: int
+#     :return: json
+#     :rtype: dict
+#     """
 
-    return {
-        "jsonrpc": "2.0",
-        "error": {
-            "code": code,
-            "message": error_msg,
-        }
-    }
+#     return {
+#         "jsonrpc": "2.0",
+#         "error": {
+#             "code": code,
+#             "message": error_msg,
+#         }
+#     }
 
 
 def http_request(url, **rkwargs):
@@ -166,27 +166,20 @@ def http_request(url, **rkwargs):
         rkwargs['params'] = dict(item.split("=") for item in p.split("&"))
 
     try:
-        r = requests.get(url=url, **rkwargs)
-    except requests.exceptions.RequestException as err:
-        status_code = 500
-        err_msg = str(err)
+        with requests.get(url=url, **rkwargs) as r:
+            status_code = r.status_code
+            if is_http_status_valid(status_code):
+                try:
+                    jsondata = r.json()
+                except ValueError as err:
+                    status_code = 500
+                    jsondata = responses.failure(err)
+
     except Exception as err:
         status_code = 500
-        err_msg = str(err)
-    else:
-        status_code = r.status_code
+        jsondata = responses.failure(err)
 
-    if is_http_status_valid(status_code):
-        try:
-            jsondata = r.json()
-        except ValueError as err:
-            status_code = 500
-            err_msg = str(err)
-
-    if err_msg:
-        return jsonrpc_error(err_msg, status_code), status_code
-    else:
-        return jsondata, status_code
+    return jsondata, status_code
 
 
 def rpc_request(entries):
@@ -203,15 +196,23 @@ def rpc_request(entries):
         queue: queue name
     }
     :type entries: dict
-    :return: rpc_client object with connection to RabbitMQ
-    :rtype rpc_client object
+    :return jsondata: dictionary containing response result or json rpc error
+    :rtype jsondata: dictionary
+    :return status_code: return status code
+    :rtype status_code: integer
     """
 
+    jsondata = {}
+    status_code = 1
+
     try:
-        rpc = rpc_client.RpcClient(entries)
-    except Exception:
-        rpc = None
-    return rpc
+        with rpc_client.RpcClient(entries) as rpc:
+            jsondata = rpc.request("server_status")
+            status_code = 0
+    except Exception as err:
+        jsondata = responses.failure(err)
+
+    return jsondata, status_code
 
 
 def report_rest_services(config, proms):
@@ -226,14 +227,16 @@ def report_rest_services(config, proms):
     """
 
     for name, url in config.get_config_section('REST_SERVICES'):
+        is_alive = 0
         jsondata, status_code = http_request(url)
-        status = is_http_status_valid(status_code)
 
-        if not status:
+        if is_http_status_valid(status_code):
+            is_alive = 1
+        else:
             err_msg = jsondata['error']['message'] if jsondata.get('error') else 'Unknown error'
             logger.error(f"{name} = {err_msg}")
 
-        set_prometheus_metric(proms, name, status)
+        set_prometheus_metric(proms, name, is_alive)
 
 
 def report_disk_free(config, proms):
@@ -256,9 +259,7 @@ def report_disk_free(config, proms):
         disk_free_pct = -1
         jsondata, status_code = http_request(url)
 
-        status = is_http_status_valid(status_code)
-
-        if status:
+        if is_http_status_valid(status_code):
             disk_free_pct = float(jsondata.get('disk_free_pct', 0))
         else:
             errmsg = jsondata['error']['message'] if jsondata.get('error') else 'Unknown error'
@@ -281,22 +282,15 @@ def report_rmq_services(config, proms):
     """
 
     for name, entries in config.get_config_section('RMQ:', is_partial_name=True):
-        status = 0
-        rpc = rpc_request(entries)
-        if rpc:
-            try:
-                response = rpc.request("server_status")
-            except rpc_client.ConnectionError:
-                logger.error(f"{name} = Failed to get a RabbitMQ response")
-                status = 0
-            if response and 'result' in response and response['result'] is True:
-                status = 1
-            else:
-                status = 0
-        else:
-            logger.error(f"{name} = Failed to establish a RabbitMQ connection")
+        is_alive = 0
+        jsondata, status_code = rpc_request(entries)
 
-        set_prometheus_metric(proms, name, status)
+        if status_code:
+            logger.error(f"{name} = {jsondata.get('error', 'unknown')}")
+        elif jsondata.get('result') is True:
+            is_alive = 1
+
+        set_prometheus_metric(proms, name, is_alive)
 
 
 def report_supervisor_pid(config, proms):
@@ -314,11 +308,16 @@ def report_supervisor_pid(config, proms):
     """
 
     for name, url in config.get_config_section('SUPERVISOR_STATUS'):
-        status = 0
-        jsondata, http_status_code = http_request(url)
-        if is_http_status_valid(http_status_code):
-            status = jsondata.get('pid', 0)
-        set_prometheus_metric(proms, name, status)
+        pid = 0
+        jsondata, status_code = http_request(url)
+
+        if is_http_status_valid(status_code):
+            pid = jsondata.get('pid', 0)
+        else:
+            errmsg = jsondata['error']['message'] if jsondata.get('error') else 'Unknown error'
+            logger.error(f"{name} = {errmsg}")
+
+        set_prometheus_metric(proms, name, pid)
 
 
 def report_supervisor_processes(config, proms):
@@ -341,19 +340,23 @@ def report_supervisor_processes(config, proms):
     """
 
     for name, url in config.get_config_section('SUPERVISOR_PROCESS'):
-        jsondata, http_status_code = http_request(url)
-        if not is_http_status_valid(http_status_code):
-            continue
-        for process in jsondata:
-            # Prepend the name of the metric from the config file to the name of the supervisor process.
-            metric_name = f"{name}_{process}"
+        jsondata, status_code = http_request(url)
 
-            # prometheus doesn't like dashes in the metric name so we need to convert this
-            # to underscores.
-            metric_name = metric_name.replace('-', '_')
+        if is_http_status_valid(status_code):
+            for process in jsondata:
+                # Prepend the name of the metric from the config file to the name of the supervisor process.
+                metric_name = f"{name}_{process}"
 
-            status = jsondata[process]
-            set_prometheus_metric(proms, metric_name, status)
+                # prometheus doesn't like dashes in the metric name so we need to convert this
+                # to underscores.
+                metric_name = metric_name.replace('-', '_')
+
+                is_alive = jsondata[process]
+                set_prometheus_metric(proms, metric_name, is_alive)
+
+        else:
+            errmsg = jsondata['error']['message'] if jsondata.get('error') else 'Unknown error'
+            logger.error(f"{name} = {errmsg}")
 
 
 def main():
