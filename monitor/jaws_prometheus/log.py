@@ -2,7 +2,7 @@ import logging
 from logging import handlers
 
 
-def setup_logger(name, log_file=None, log_level="INFO"):
+def setup_logger(name, log_file=None, log_level="INFO", max_bytes=100_000_000, backup_count=3):
     """Configure logging singleton for the package.
 
     :param log_file: Path to log output file
@@ -29,7 +29,7 @@ def setup_logger(name, log_file=None, log_level="INFO"):
 
     # Rorational log: 100MB each, total 4 log files
     handler_file = handlers.RotatingFileHandler(
-        log_file, maxBytes=100000000, backupCount=3
+        log_file, maxBytes=max_bytes, backupCount=backup_count
     )
     handler_file.setFormatter(formatter)
 
