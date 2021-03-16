@@ -2,6 +2,8 @@
 Documentation for JAWS
 ======================
 
+.. role:: chocolate
+
 .. figure:: /Figures/JAWS5.tiny.png
     :scale: 100%
 
@@ -18,26 +20,24 @@ The `Joint Genome Institute <https://jgi.doe.gov>`_ has developed JAWS (JGI Anal
 Some Definitions
 ----------------
 
-+------------+---------------------------------------------------------------------------------------+
-|**WDL**     | | The Workflow Description Language is essentially a                                  |
-|            | | wrapper around the commands in your pipeline code.                                  |
-+------------+---------------------------------------------------------------------------------------+
-|**Cromwell**| | A workflow engine which takes a WDL and converts it                                 |
-|            | | to bash commands that can be run on a "backend".                                    |
-+------------+---------------------------------------------------------------------------------------+
-|**backend** | | Any compute resource like a private labtop, or a public                             |
-|            | | compute cluster like Cori. In our case we use JTM as a backend.                     |
-+------------+---------------------------------------------------------------------------------------+
-|**JTM**     | | A customized backend that uses different compute                                    |
-|            | | sites (i.e. Cori, and JGI) and is responsible for reserving workers on the cluster. |
-+------------+---------------------------------------------------------------------------------------+
-|**workers** | | Workers are "processes" that run the Cromwell commands.                             |
-|            | | They can be part of a "worker pool" to process parallel tasks.                      |
-+------------+---------------------------------------------------------------------------------------+
-|**Tasks**   | | Each WDL or run is composed of multiple tasks.                                      |
-+------------+---------------------------------------------------------------------------------------+
-|**Run**     | | One JAWS submission.                                                                |
-+------------+---------------------------------------------------------------------------------------+
++---------------------+------------------------------------------------------------------------------+
+|:chocolate:`WDL`     | | The Workflow Description Language is essentially a                         |
+|                     | | wrapper around the commands in your pipeline code.                         |
++---------------------+------------------------------------------------------------------------------+
+|:chocolate:`Cromwell`| | A workflow engine which takes a WDL and converts it                        |
+|                     | | to bash commands that can be run on a "backend".                           |
++---------------------+------------------------------------------------------------------------------+
+|:chocolate:`Backend` | | Any compute resource like a private labtop, or a public                    |
+|                     | | compute cluster like Cori. In our case we use JTM as a backend.            |
++---------------------+------------------------------------------------------------------------------+
+|:chocolate:`JTM`     | | A customized backend that uses different compute sites (i.e. Cori, and JGI)|
+|                     | | and is responsible for reserving workers on the cluster.                   |
++---------------------+------------------------------------------------------------------------------+
+|:chocolate:`Workers` | | Workers are "processes" that run the Cromwell commands.                    |
+|                     | | They can be part of a "worker pool" to process parallel tasks.             |
++---------------------+------------------------------------------------------------------------------+
+|:chocolate:`Tasks`   | | Each WDL or run is composed of multiple tasks.                             |
++---------------------+------------------------------------------------------------------------------+
 
 
 .. toctree::

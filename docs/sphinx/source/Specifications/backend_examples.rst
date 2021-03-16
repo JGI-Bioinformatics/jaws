@@ -22,7 +22,7 @@ Cromwell_NERSC_dev.conf
           String? docker
           String time = "00:00:00"
           Int cpu = 1
-          Float? memory_gb = 5
+          String mem = "0G"
           Int node = 1
           Int nwpn = 1
         """
@@ -32,7 +32,7 @@ Cromwell_NERSC_dev.conf
           -cl ${cluster} \
           -t ${time} \
           -c ${cpu} \
-          -m ${memory_gb} \
+          -m ${mem} \
           -p ${poolname} \
           -C ${constraint} \
           -N ${node} \
@@ -57,7 +57,7 @@ Cromwell_NERSC_dev.conf
               -cl ${cluster} \
               -t ${time} \
               -c ${cpu} \
-              -m ${memory_gb} \
+              -m ${mem} \
               -p ${poolname} \
               -C ${constraint} \
               -N ${node} \
@@ -114,7 +114,7 @@ Cromwell.conf
           String? docker
           String time = "00:00:00"
           Int cpu = 1
-          Float? memory_gb = 5
+          String mem = "0G"
           String cluster = "cori"
           String poolname = "small"
           String constraint = "haswell"
@@ -129,7 +129,7 @@ Cromwell.conf
           -cl ${cluster} \
           -t ${time} \
           -c ${cpu} \
-          -m ${memory_gb} \
+          -m ${mem} \
           -p ${poolname} \
           -C ${constraint} \
           -N ${node} \
@@ -153,7 +153,7 @@ Cromwell.conf
               -cl ${cluster} \
               -t ${time} \
               -c ${cpu} \
-              -m ${memory_gb} \
+              -m ${mem} \
               -p ${poolname} \
               -C ${constraint} \
               -N ${node} \
