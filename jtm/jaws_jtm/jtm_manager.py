@@ -39,7 +39,7 @@ from jaws_jtm.lib.rabbitmqconnection import RmqConnectionAmqpstorm, JtmAmqpstorm
 from jaws_jtm.lib.dbutils import DbSqlMysql
 from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command, extract_cromwell_id
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_rpc import rpc_client
+from jaws_rpc import rpc_client, rpc_server, responses
 
 
 # --------------------------------------------------------------------------------------------------
@@ -2316,6 +2316,31 @@ def manager(
         logger.exception("JtmNonTaskCommandRunner: {}".format(e))
         proc_clean_exit(plist)
         raise
+
+        # Start JTM JSON-RPC server for monitoring
+
+    def jtm_manager_status(params):
+        # 'params' is not used
+        alive = True
+        run_mode = CONFIG.configparser.get("JTM", "run_mode")
+        n_manager_threads = CONFIG.constants.JTM_NUM_PROCS
+        if not check_num_threads(run_mode, n_manager_threads):
+            alive = False
+        if alive:
+            return responses.success(True)
+        else:
+            return responses.success(False)
+
+        operations = {
+            "server_status": {
+                "function": jtm_manager_status,
+                "required_params": [],
+            }
+        }
+        jtm_rpc_server_params = CONFIG.configparser._sections["JTM_RPC_SERVER"]
+        logger.debug("jtm_rpc_server params: %s", jtm_rpc_server_params)
+        app = rpc_server.RpcServer(jtm_rpc_server_params, operations)
+        app.start_server()
 
     logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)
     logger.info("Waiting for a task request from %s", jtm_task_request_q)
