@@ -103,7 +103,7 @@ def is_http_status_valid(status_code):
     :rtype: int
     """
 
-    return 1 if status_code >= 200 and status_code < 300 else 0
+    return 1 if status_code >= 200 and status_code < 500 else 0
 
 
 def set_prometheus_metric(proms, name, value):
