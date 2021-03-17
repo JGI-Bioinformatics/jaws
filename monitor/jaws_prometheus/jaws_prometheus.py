@@ -140,9 +140,11 @@ def http_request(url, **rkwargs):
     jsondata = {}
     status_code = None
     err_msg = None
+    max_connect_time = 30  # wait max 30 sec to connect to server
+    max_response_time = 30  # wait max 30 sec for response to server
 
     if 'timeout' not in rkwargs:
-        rkwargs['timeout'] = (5, 10)  # Max 5 seconds to connect to server and max 10 seconds to wait on response
+        rkwargs['timeout'] = (max_connect_time, max_response_time)
 
     if '?' in url:
         url, p = url.split('?')
