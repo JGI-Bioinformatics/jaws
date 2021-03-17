@@ -141,6 +141,9 @@ def http_request(url, **rkwargs):
     status_code = None
     err_msg = None
 
+    if 'timeout' not in rkwargs:
+        rkwargs['timeout'] = (5, 10)  # Max 5 seconds to connect to server and max 10 seconds to wait on response
+
     if '?' in url:
         url, p = url.split('?')
         rkwargs['params'] = dict(item.split("=") for item in p.split("&"))
