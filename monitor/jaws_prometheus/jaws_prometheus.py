@@ -125,26 +125,6 @@ def set_prometheus_metric(proms, name, value):
     proms[name].set(value)
 
 
-# def jsonrpc_error(error_msg, code=1):
-#     """Returns a json-rpc structure for reporting errors.
-
-#     :param error_msg: error message
-#     :type error_msg: string
-#     :param code: error code
-#     :type code: int
-#     :return: json
-#     :rtype: dict
-#     """
-
-#     return {
-#         "jsonrpc": "2.0",
-#         "error": {
-#             "code": code,
-#             "message": error_msg,
-#         }
-#     }
-
-
 def http_request(url, **rkwargs):
     """Performs an HTTP request and lookup the HTTP return status. If status 200-299, return 1
     else return 0. If kwargs[tofloat] = True, return float form of value from http request.
