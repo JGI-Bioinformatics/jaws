@@ -37,9 +37,14 @@ from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.lib.sqlstmt import JTM_SQL
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionAmqpstorm, JtmAmqpstormBase
 from jaws_jtm.lib.dbutils import DbSqlMysql
-from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command, extract_cromwell_id
+from jaws_jtm.lib.run import (
+    pad_string_path,
+    make_dir,
+    run_sh_command,
+    extract_cromwell_id,
+)
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_rpc import rpc_client
+from jaws_rpc import rpc_client, rpc_server, responses
 
 
 # --------------------------------------------------------------------------------------------------
@@ -257,7 +262,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         TASK_STATUS["running"],
                         ret_status,
                         fail_code=done_flag if done_flag < 0 else None,
-                        reason=ret_msg
+                        reason=ret_msg,
                     )
 
             db.execute(
@@ -657,7 +662,7 @@ def send_update_task_status_msg(
         else "",
         "status_to": reversed_task_status[status_to] if status_to is not None else "",
         "timestamp": now,
-        "reason": reason_str
+        "reason": reason_str,
     }
 
     # send message to Site
@@ -905,8 +910,10 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                     )
                                     if status_now == TASK_STATUS["pending"]:
                                         send_update_task_status_msg(
-                                            task_id, status_now, TASK_STATUS["running"],
-                                            reason=slurm_job_id
+                                            task_id,
+                                            status_now,
+                                            TASK_STATUS["running"],
+                                            reason=slurm_job_id,
                                         )
 
                                 db.execute(
@@ -1491,8 +1498,10 @@ def process_task_request(msg):
                         or status_now < 0
                     ):
                         send_update_task_status_msg(
-                            last_task_id, status_now, TASK_STATUS["pending"],
-                            reason=slurm_job_id
+                            last_task_id,
+                            status_now,
+                            TASK_STATUS["pending"],
+                            reason=slurm_job_id,
                         )
 
                 # Note: only when the previous status == queued
@@ -1552,7 +1561,7 @@ def process_task_request(msg):
                     logger.exception("Detail: %s", str(detail))
                     raise OSError(2, "Failed to send a request to a worker")
 
-        return last_task_id
+    return last_task_id
 
 
 # -------------------------------------------------------------------------------
@@ -2139,6 +2148,34 @@ def kill_child_proc(ppid):
 
 
 # -------------------------------------------------------------------------------
+def check_num_threads(mode: str, n_manager_threads: int) -> bool:
+    ps_cmd = "ps -aef | grep -v grep | grep -v check-manager | grep jtm | grep manager "
+    if mode != "test":
+        ps_cmd += f"| grep jaws-{mode} "
+    else:
+        ps_cmd += "| grep test "
+    ps_cmd += "| wc -l"
+    num_total_procs = 0
+    try:
+        so, _, ec = run_sh_command(ps_cmd, log=logger, show_stdout=False)
+        num_total_procs = int(so.rstrip())
+    except TypeError as te:
+        logger.exception(te)
+        logger.error(so)
+        return False
+    except Exception as e:
+        logger.exception(e)
+        logger.error(ps_cmd)
+        return False
+    else:
+        # THIS IS THE NUM OF JTM MANAGER PROCS = 7
+        if num_total_procs != n_manager_threads:
+            return False
+        else:
+            return True
+
+
+# -------------------------------------------------------------------------------
 def manager(
     ctx: object, custom_log_dir_name: str, b_resource_usage_log_on: bool
 ) -> int:
@@ -2316,6 +2353,30 @@ def manager(
         logger.exception("JtmNonTaskCommandRunner: {}".format(e))
         proc_clean_exit(plist)
         raise
+
+    # Start JTM JSON-RPC server for monitoring
+    def jtm_manager_status(params):
+        # 'params' is not used
+        alive = True
+        run_mode = CONFIG.configparser.get("JTM", "run_mode")
+        n_manager_threads = CONFIG.constants.JTM_NUM_PROCS
+        if not check_num_threads(run_mode, n_manager_threads):
+            alive = False
+        if alive:
+            return responses.success(True)
+        else:
+            return responses.success(False)
+
+    operations = {
+        "server_status": {
+            "function": jtm_manager_status,
+            "required_params": [],
+        }
+    }
+    jtm_rpc_server_params = CONFIG.configparser._sections["JTM_RPC_SERVER"]
+    logger.debug("jtm_rpc_server params: %s", jtm_rpc_server_params)
+    app = rpc_server.RpcServer(jtm_rpc_server_params, operations)
+    app.start_server()
 
     logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)
     logger.info("Waiting for a task request from %s", jtm_task_request_q)
