@@ -253,7 +253,7 @@ $CONTAINER_CHECK
 [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
--cmd \"\'$CONTAINER_EXEC_COMMAND\'\" \
+-cmd "$CONTAINER_EXEC_COMMAND" \
 -cl \${cluster} \
 -t \${time} \
 -c \${cpu} \
