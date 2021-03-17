@@ -243,7 +243,7 @@ def report_disk_free(config, proms):
             disk_free_pct = float(jsondata.get('disk_free_pct', 0))
         else:
             err_msg = jsondata['error']['message'] if jsondata.get('error') else f'http status returned {status_code}.'
-            logger.error(f"{name} = {errmsg}")
+            logger.error(f"{name} = {err_msg}")
 
         set_prometheus_metric(proms, name, disk_free_pct)
 
@@ -295,7 +295,7 @@ def report_supervisor_pid(config, proms):
             pid = jsondata.get('pid', 0)
         else:
             err_msg = jsondata['error']['message'] if jsondata.get('error') else f'http status returned {status_code}. Output={jsondata}'
-            logger.error(f"{name} = {errmsg}")
+            logger.error(f"{name} = {err_msg}")
 
         set_prometheus_metric(proms, name, pid)
 
@@ -336,7 +336,7 @@ def report_supervisor_processes(config, proms):
 
         else:
             err_msg = jsondata['error']['message'] if jsondata.get('error') else f'http status returned {status_code}. Output={jsondata}'
-            logger.error(f"{name} = {errmsg}")
+            logger.error(f"{name} = {err_msg}")
 
 
 def main():
