@@ -63,12 +63,13 @@ from jaws_prometheus.log import setup_logger
 from jaws_prometheus.config import Configuration
 from jaws_rpc import rpc_client, responses
 
+# For debugging:
 # import sys
 # import os
 # ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 # sys.path.insert(0, os.path.join(ROOT_DIR, '../jaws_prometheus'))
 # sys.path.insert(0, os.path.join(ROOT_DIR, '../../rpc'))
-# from jaws_rpc import rpc_client
+# from jaws_rpc import rpc_client, responses
 # from config import Configuration
 # from log import setup_logger
 
@@ -103,7 +104,7 @@ def is_http_status_valid(status_code):
     :rtype: int
     """
 
-    return 1 if status_code >= 200 and status_code < 500 else 0
+    return 1 if status_code >= 200 and status_code < 300 else 0
 
 
 def set_prometheus_metric(proms, name, value):
