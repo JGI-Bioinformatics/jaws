@@ -20,21 +20,26 @@ def join_path(*args):
     return os.path.join(*args)
 
 
-def rsync(src, dest):
+def rsync(src, dest, options=["-rLtq"]):
     """Copy source to destination using rsync.
 
     :param src: Source path
     :type src: str
     :param dest: Destination path
     :type dest: str
+    :param options: rsync options
+    :type options: str
     :return: None
     """
     try:
         result = subprocess.run(
-            ["rsync", "-rLtq", src, dest], capture_output=True, text=True, check=True
+            ["rsync", *options, src, dest], capture_output=True, text=True
         )
-    except subprocess.CalledProcessError as error:
-        raise IOError(f"Failed to rsync {src}->{dest}: {error}; {result.stderr}")
+    except Exception as error:
+        raise(f"Failed to rsync {src}->{dest} with {options}: {error}")
+    if result.returncode != 0:
+        err_msg = f"Failed to rsync {src}->{dest} with {options}: {result.stdout}; {result.stderr}"
+        raise IOError(err_msg)
 
 
 def convert_to_gb(mem, prefix):
@@ -396,7 +401,7 @@ def move_input_files(workflow_inputs, destination):
 
         # files must be copied in to ensure they are readable by the jaws and jtm users,
         # as a result of the gid sticky bit and acl rules on the inputs dir.
-        rsync(original_path, staged_path.as_posix())
+        rsync(original_path, staged_path.as_posix(), ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"])
     return moved_files
 
 

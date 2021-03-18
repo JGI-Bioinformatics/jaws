@@ -468,7 +468,7 @@ def get(run_id: int, dest: str) -> None:
         raise SystemExit(f"Run {run_id} doesn't have an output_dir defined")
 
     try:
-        workflow.rsync(src, dest)
+        workflow.rsync(src, dest, ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo="])
     except Exception as error:
         logger.error(f"Rsync output failed for run {run_id}: {error}")
         raise SystemExit(f"Error getting output for run {run_id}: {error}")
