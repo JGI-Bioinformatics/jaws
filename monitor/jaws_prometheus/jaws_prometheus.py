@@ -140,7 +140,6 @@ def http_request(url, **rkwargs):
 
     jsondata = {}
     status_code = None
-    err_msg = None
     max_connect_time = 30  # wait max 30 sec to connect to server
     max_response_time = 30  # wait max 30 sec for response to server
 
@@ -219,7 +218,8 @@ def report_rest_services(config, proms):
         if is_http_status_valid(status_code):
             is_alive = 1
         else:
-            err_msg = jsondata['error']['message'] if jsondata.get('error') else f'http status returned {status_code}. Output={jsondata}'
+            err_msg = jsondata['error']['message'] if jsondata.get('error') else \
+                f'http status returned {status_code}. Output={jsondata}'
             logger.error(f"{name} = {err_msg}")
 
         set_prometheus_metric(proms, name, is_alive)
@@ -248,7 +248,8 @@ def report_disk_free(config, proms):
         if is_http_status_valid(status_code):
             disk_free_pct = float(jsondata.get('disk_free_pct', 0))
         else:
-            err_msg = jsondata['error']['message'] if jsondata.get('error') else f'http status returned {status_code}.'
+            err_msg = jsondata['error']['message'] if jsondata.get('error') else \
+                f'http status returned {status_code}.'
             logger.error(f"{name} = {err_msg}")
 
         set_prometheus_metric(proms, name, disk_free_pct)
@@ -272,7 +273,9 @@ def report_rmq_services(config, proms):
         jsondata, status_code = rpc_request(entries)
 
         if status_code:
-            err_msg = jsondata['error']['message'] if jsondata.get('error') else f'http status returned {status_code}. Output={jsondata}'
+            err_msg = jsondata['error']['message'] if jsondata.get('error') else \
+                f'http status returned {status_code}. Output={jsondata}'
+            logger.error(f"{name} = {err_msg}")
         elif jsondata.get('result') is True:
             is_alive = 1
 
@@ -300,7 +303,8 @@ def report_supervisor_pid(config, proms):
         if is_http_status_valid(status_code):
             pid = jsondata.get('pid', 0)
         else:
-            err_msg = jsondata['error']['message'] if jsondata.get('error') else f'http status returned {status_code}. Output={jsondata}'
+            err_msg = jsondata['error']['message'] if jsondata.get('error') else \
+                f'http status returned {status_code}. Output={jsondata}'
             logger.error(f"{name} = {err_msg}")
 
         set_prometheus_metric(proms, name, pid)
@@ -341,7 +345,8 @@ def report_supervisor_processes(config, proms):
                 set_prometheus_metric(proms, metric_name, is_alive)
 
         else:
-            err_msg = jsondata['error']['message'] if jsondata.get('error') else f'http status returned {status_code}. Output={jsondata}'
+            err_msg = jsondata['error']['message'] if jsondata.get('error') else \
+                f'http status returned {status_code}. Output={jsondata}'
             logger.error(f"{name} = {err_msg}")
 
 
