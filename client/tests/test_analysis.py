@@ -370,7 +370,7 @@ def test_get(configuration, mock_user, monkeypatch):
         else:
             raise ValueError
 
-    def mock_rsync(src, dest):
+    def mock_rsync(src, dest, options):
         pass
 
     monkeypatch.setattr(subprocess, "run", mock_run)
