@@ -352,7 +352,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str):
 
     max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
-        raise AnalysisError(
+        raise SystemExit(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
         )
 
