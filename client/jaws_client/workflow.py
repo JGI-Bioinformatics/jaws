@@ -36,7 +36,7 @@ def rsync(src, dest, options=["-rLtq"]):
             ["rsync", *options, src, dest], capture_output=True, text=True
         )
     except Exception as error:
-        raise(f"Failed to rsync {src}->{dest} with {options}: {error}")
+        raise (f"Failed to rsync {src}->{dest} with {options}: {error}")
     if result.returncode != 0:
         err_msg = f"Failed to rsync {src}->{dest} with {options}: {result.stdout}; {result.stderr}"
         raise IOError(err_msg)
@@ -345,8 +345,9 @@ class WdlFile:
         self.logger.info(f"Maximum RAM requested is {self._max_ram_gb}Gb")
         return self._max_ram_gb
 
-    def copy_to(self, destination):
+    def copy_to(self, destination, permissions=0o664):
         shutil.copy(self.file_location, destination)
+        os.chmod(destination, permissions)
 
     def verify_wdl_has_no_backend_tags(self):
         """
@@ -401,7 +402,11 @@ def move_input_files(workflow_inputs, destination):
 
         # files must be copied in to ensure they are readable by the jaws and jtm users,
         # as a result of the gid sticky bit and acl rules on the inputs dir.
-        rsync(original_path, staged_path.as_posix(), ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"])
+        rsync(
+            original_path,
+            staged_path.as_posix(),
+            ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"],
+        )
     return moved_files
 
 

@@ -366,7 +366,14 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str):
     moved_files = workflow.move_input_files(inputs_json, site_subdir)
 
     orig_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.orig.json")
-    shutil.copy(json_file, orig_json)
+    try:
+        shutil.copy(json_file, orig_json)
+    except Exception as error:
+        raise SystemExit(f"Error copying JSON to {orig_json}: {error}")
+    try:
+        os.chmod(orig_json, 0o0664)
+    except Exception as error:
+        raise SystemExit(f"Error chmod {orig_json}: {error}")
 
     staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
     jaws_site_staging_site_subdir = workflow.join_path(jaws_site_staging_dir, site_id)
@@ -461,14 +468,18 @@ def get(run_id: int, dest: str) -> None:
     src = result["output_dir"]
 
     if status != "download complete":
-        raise SystemExit(f"Run {run_id} output is not yet available; status is {status}")
+        raise SystemExit(
+            f"Run {run_id} output is not yet available; status is {status}"
+        )
 
     if src is None:
         logger.error(f"Run {run_id} doesn't have an output_dir defined")
         raise SystemExit(f"Run {run_id} doesn't have an output_dir defined")
 
     try:
-        workflow.rsync(src, dest, ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo="])
+        workflow.rsync(
+            src, dest, ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo="]
+        )
     except Exception as error:
         logger.error(f"Rsync output failed for run {run_id}: {error}")
         raise SystemExit(f"Error getting output for run {run_id}: {error}")
