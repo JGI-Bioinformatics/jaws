@@ -286,11 +286,23 @@ class Daemon:
         json_file = file_path + ".json"
         orig_json_file = file_path + ".orig.json"
         zip_file = file_path + ".zip"  # might not exist
-        shutil.copy(wdl_file, run.cromwell_workflow_dir)
-        shutil.copy(json_file, run.cromwell_workflow_dir)
-        shutil.copy(orig_json_file, run.cromwell_workflow_dir)
+        try:
+            shutil.copy(wdl_file, run.cromwell_workflow_dir)
+        except Exception as error:
+            logger.error(f"Error copying WDL from {wdl_file}->{run.cromwell_workflow_dir}: {error}")
+        try:
+            shutil.copy(json_file, run.cromwell_workflow_dir)
+        except Exception as error:
+            logger.error(f"Error copying JSON from {json_file}->{run.cromwell_workflow_dir}: {error}")
+        try:
+            shutil.copy(orig_json_file, run.cromwell_workflow_dir)
+        except Exception as error:
+            logger.error(f"Error copying original JSON from {orig_json_file}->{run.cromwell_workflow_dir}: {error}")
         if os.path.exists(zip_file):
-            shutil.copy(zip_file, run.cromwell_workflow_dir)
+            try:
+                shutil.copy(zip_file, run.cromwell_workflow_dir)
+            except Exception as error:
+                logger.error(f"Error copying ZIP from {zip_file}->{run.cromwell_workflow_dir}: {error}")
 
         transfer_task_id = None
         try:
