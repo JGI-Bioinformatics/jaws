@@ -11,7 +11,6 @@ import uuid
 import sys
 import shutil
 from typing import Dict
-from collections import defaultdict
 
 from jaws_client import config, user, workflow
 
@@ -133,12 +132,12 @@ def task_status(run_id: int, fmt: str) -> None:
         print(json.dumps(result, indent=4, sort_keys=True))
     else:
         print(
-            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\tSTATUS_DETAIL"
+            "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
-        for log_entry in result:
-            log_entry[1] = str(log_entry[1])
-            log_entry[2] = str(log_entry[2])
-            print("\t".join(log_entry))
+        for row in result:
+            row[2] = str(row[2])
+            row[3] = str(row[3])
+            print("\t".join(row))
 
 
 @run.command()
@@ -193,18 +192,13 @@ def task_log(run_id: int, fmt: str) -> None:
     if fmt == "json":
         print(json.dumps(result, indent=4, sort_keys=True))
     else:
-        tasks = defaultdict(list)
-        for log_entry in result:
-            task_name = log_entry[0]
-            tasks[task_name].append(log_entry)
         print(
-            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
+            "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
-        for task_name in tasks:
-            for log_entry in tasks[task_name]:
-                log_entry[1] = str(log_entry[1])
-                log_entry[2] = str(log_entry[2])
-                print("\t".join(log_entry))
+        for row in result:
+            row[2] = str(row[2])
+            row[3] = str(row[3])
+            print("\t".join(row))
 
 
 @run.command()
