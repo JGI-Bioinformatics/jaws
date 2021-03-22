@@ -220,17 +220,20 @@ def report_rest_services(config, proms):
         else:
             err_msg = jsondata['error']['message'] if jsondata.get('error') else \
                 f'http status returned {status_code}. Output={jsondata}'
-            logger.error(f"{name} = {err_msg}")
+            logger.error(f"{name} = HTTP request {url} failed: {err_msg}")
 
         set_prometheus_metric(proms, name, is_alive)
 
 
 def report_disk_free(config, proms):
     """Performs an HTTP request for the given url. If status is successful, parse json
-    output from disk monitor and return disk free percentage as a float. Assumes
-    url returns json structure in the format:
+    output from disk monitor and return disk free percentage as a float. The return
+    json data from site monitor looks like this:
     {
-        'disk_free_pct': numeric
+        "disk_free_pb": 9.7,
+        "disk_free_pct": 31.9,
+        "disk_total_pb": 30.2,
+        "disk_used_pb":20.3
     }
     If HTTP response is unsuccessful, return -1.
 
@@ -242,17 +245,29 @@ def report_disk_free(config, proms):
     """
 
     for name, url in config.get_config_section('DISK_MONITOR'):
-        disk_free_pct = -1
+        value = -1
         jsondata, status_code = http_request(url)
 
-        if is_http_status_valid(status_code):
-            disk_free_pct = float(jsondata.get('disk_free_pct', 0))
-        else:
-            err_msg = jsondata['error']['message'] if jsondata.get('error') else \
-                f'http status returned {status_code}.'
-            logger.error(f"{name} = {err_msg}")
+        # Report disk free pct, disk free amount in PB. The entries in the for loop corresponds
+        # to the keys that are returned from the http request for site monitoring.
+        #
+        for usage in ['disk_free_pct', 'disk_free_pb']:
+            if is_http_status_valid(status_code):
+                value = float(jsondata.get(usage, 0))
+            else:
+                err_msg = jsondata['error']['message'] if jsondata.get('error') else \
+                    f'http status returned {status_code}.'
+                logger.error(f"{name} = HTTP request {url} failed: {err_msg}")
 
-        set_prometheus_metric(proms, name, disk_free_pct)
+            # Modify the name of the metric (defined in jaws-prometheus.conf) to the type of disk usage that is being
+            # reported.
+            # Ex: (if usage='disk_free_pct')
+            # original name=jaws_cori_disk_free_prod
+            # modified name=jaws_cori_disk_free_pct_prod
+            #
+            metric_name = name.replace('disk_free', usage)
+
+            set_prometheus_metric(proms, metric_name, value)
 
 
 def report_rmq_services(config, proms):
@@ -305,7 +320,7 @@ def report_supervisor_pid(config, proms):
         else:
             err_msg = jsondata['error']['message'] if jsondata.get('error') else \
                 f'http status returned {status_code}. Output={jsondata}'
-            logger.error(f"{name} = {err_msg}")
+            logger.error(f"{name} = HTTP request {url} failed: {err_msg}")
 
         set_prometheus_metric(proms, name, pid)
 
@@ -347,7 +362,7 @@ def report_supervisor_processes(config, proms):
         else:
             err_msg = jsondata['error']['message'] if jsondata.get('error') else \
                 f'http status returned {status_code}. Output={jsondata}'
-            logger.error(f"{name} = {err_msg}")
+            logger.error(f"{name} = HTTP request {url} failed: {err_msg}")
 
 
 def main():
