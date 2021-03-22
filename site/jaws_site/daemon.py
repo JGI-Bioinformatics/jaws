@@ -11,7 +11,7 @@ import globus_sdk
 import logging
 from datetime import datetime
 from jaws_site.database import Session
-from jaws_site.models import Run, Run_Log, Job_Log
+from jaws_site.models import Run, Run_Log
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_site.globus import GlobusService
@@ -116,9 +116,6 @@ class Daemon:
             proc = self.operations.get(run.status, None)
             if proc:
                 proc(run)
-
-        # process logs
-        self.update_job_status_logs()
         self.session.close()
 
     def _get_globus_transfer_status(self, run, task_id):
@@ -383,114 +380,6 @@ class Daemon:
                 f"Failed to insert log for Run {run.id} : {new_status}, {reason}: {error}"
             )
         # notifying Central of state change is handled by send_run_status_logs
-
-    def update_job_status_logs(self):
-        """
-        JTM job status logs are missing some fields: run_id, task_name, attempt.
-        Fill them in now by querying Cromwell metadata.
-        """
-        logger.debug("Update job status logs")
-
-        # select incomplete job log entries from database
-        last_cromwell_run_id = None  # cache last
-        last_metadata = None  # no need to get from cromwell repeatedly
-        try:
-            query = (
-                self.session.query(Job_Log)
-                .filter_by(task_name=None)
-                .order_by(Job_Log.cromwell_run_id)
-            )
-        except Exception as error:
-            logger.exception(f"Unable to select job_logs: {error}")
-            return
-
-        if not query:
-            # nothing to do
-            return
-
-        for log in query:
-            run_id = log.run_id  # may be None
-            cromwell_run_id = log.cromwell_run_id
-            cromwell_job_id = log.cromwell_job_id
-            logger.debug(f"Job {cromwell_job_id} now {log.status_to}")
-
-            # Lookup run_id given cromwell_run_id
-            if not run_id:
-                run = (
-                    self.session.query(Run)
-                    .filter_by(cromwell_run_id=cromwell_run_id)
-                    .one_or_none()
-                )
-                if not run:
-                    # JTM may send first job status update before cromwell_run_id is recorded
-                    continue
-                log.run_id = run_id = run.id
-
-                # update run state if first job to run
-                if log.status_to == "running" and run.status == "queued":
-                    self.update_run_status(run, "running")
-
-                try:
-                    self.session.commit()
-                except Exception as error:
-                    self.session.rollback()
-                    logger.exception(f"Error updating job log: {error}")
-
-            # TRY TO GET task_name AND attempt FROM CROMWELL METADATA
-            if cromwell_run_id == last_cromwell_run_id:
-                # another update for same run, reuse previously initialized object
-                metadata = last_metadata
-            else:
-                # get from cromwell
-                try:
-                    metadata = last_metadata = self.cromwell.get_metadata(
-                        cromwell_run_id
-                    )
-                    last_cromwell_run_id = cromwell_run_id
-                except Exception as error:
-                    logger.exception(
-                        f"Error getting metadata for {cromwell_run_id}: {error}"
-                    )
-                    continue
-            job_info = metadata.get_job_info(cromwell_job_id)
-            if job_info is None:
-                status = metadata.get("status")
-                if status in ("Failed", "Succeeded", "Aborted"):
-                    logger.error(
-                        f"job_id {cromwell_job_id} not found in inactive run, {cromwell_run_id}"
-                    )
-                    # If the Run is done and the job_id cannot be found, it's an orphan job
-                    # (Cromwell never received the job_id from JTM), so set task_name to "ORPHAN"
-                    # to mark it as such and so it won't be picked up in the next round.
-                    log.task_name = "ORPHAN"
-                    try:
-                        self.session.commit()
-                    except Exception as error:
-                        self.session.rollback()
-                        logger.exception(f"Error updating job log: {error}")
-                    continue
-                else:
-                    # The Cromwell metadata could be a bit outdated; try again next time
-                    logger.debug(
-                        f"job_id {cromwell_job_id} not found in active run, {cromwell_run_id}"
-                    )
-                continue
-            log.attempt = job_info["attempt"]
-            log.task_name = job_info["task_name"]
-            task_dir = job_info[
-                "call_root"
-            ]  # not saved in db but may be used below for xfer
-            try:
-                self.session.commit()
-            except Exception as error:
-                self.session.rollback()
-                logger.exception(f"Error updating job log: {error}")
-
-            # if Task complete, then transfer output
-            if log.status_to in ["success", "failed"] and task_dir:
-                logger.debug(
-                    f"Transfer Run {log.run_id}, Task {log.task_name}:{log.attempt}"
-                )
 
     def send_run_status_logs(self):
         """Send run logs to Central"""
