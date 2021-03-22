@@ -26,14 +26,14 @@ import subprocess
 import getpass
 import re
 from flask import Flask, request
-from jaws_prometheus.log import setup_logger
+#from jaws_prometheus.log import setup_logger
 
-# import sys
-# import os
-# ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
-# sys.path.insert(0, os.path.join(ROOT_DIR, '../jaws_prometheus'))
-# sys.path.insert(0, os.path.join(ROOT_DIR, '../../rpc'))
-# from log import setup_logger
+import sys
+import os
+ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, os.path.join(ROOT_DIR, '../jaws_prometheus'))
+sys.path.insert(0, os.path.join(ROOT_DIR, '../../rpc'))
+from log import setup_logger
 
 app = Flask(__name__.split('.')[0])
 logger = None
@@ -110,8 +110,8 @@ def rename_supervisor_process(name):
         return name
 
 
-@app.route('/disk_free_pct/<path:file_path>')
-def get_disk_free_pct(file_path):
+@app.route('/disk_free/<path:file_path>')
+def get_disk_free(file_path):
     """Check the percent of free disk for the given path and return value as a float.
     If input file path is invalid, returns -1.
 
@@ -126,9 +126,7 @@ def get_disk_free_pct(file_path):
     :rtype: dictionary
     """
 
-    disk_free_pct = -1
-
-    logger.info(f'Looking up disk free pct for {file_path}')
+    logger.info(f'Looking up disk usage for {file_path}')
 
     # if path doesn't exists, try prepend path with '/'
     if not check_path(file_path):
@@ -136,12 +134,16 @@ def get_disk_free_pct(file_path):
 
     # if path exists, compute pct disk free
     if check_path(file_path):
-        total, _, free = shutil.disk_usage(file_path)
-        disk_free_pct = "%.1f" % (free/total*100)
+        total, used, free = shutil.disk_usage(file_path)
 
-    logger.info(f'Found disk_free_pct={disk_free_pct}')
+    logger.info(f'Found disk_total={total}, disk_used={used}, disk_free={free}')
 
-    return {'disk_free_pct': float(disk_free_pct)}, 200
+    return {
+        'disk_free_pct': float("{:.1f}".format(free/total*100)),
+        'disk_free_pb': float("{:,.1f}".format(free/1_000_000_000_000_000)),
+        'disk_used_pb': float("{:,.1f}".format(used/1_000_000_000_000_000)),
+        'disk_total_pb': float("{:,.1f}".format(total/1_000_000_000_000_000)),
+    }, 200
 
 
 @app.route('/supervisor_pid')
