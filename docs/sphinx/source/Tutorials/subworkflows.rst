@@ -43,7 +43,7 @@ You can try running this example
     # activate the environment you set up above
     source ~/jaws-prod.sh
 
-    # clone the example code (use your nersc credentials to clone)
+    # clone the example code 
     git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
 
     cd jaws-tutorial-examples/subworkflow

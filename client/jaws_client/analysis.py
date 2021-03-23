@@ -11,7 +11,6 @@ import uuid
 import sys
 import shutil
 from typing import Dict
-from collections import defaultdict
 
 from jaws_client import config, user, workflow
 
@@ -133,12 +132,12 @@ def task_status(run_id: int, fmt: str) -> None:
         print(json.dumps(result, indent=4, sort_keys=True))
     else:
         print(
-            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\tSTATUS_DETAIL"
+            "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
-        for log_entry in result:
-            log_entry[1] = str(log_entry[1])
-            log_entry[2] = str(log_entry[2])
-            print("\t".join(log_entry))
+        for row in result:
+            row[2] = str(row[2])
+            row[3] = str(row[3])
+            print("\t".join(row))
 
 
 @run.command()
@@ -193,18 +192,13 @@ def task_log(run_id: int, fmt: str) -> None:
     if fmt == "json":
         print(json.dumps(result, indent=4, sort_keys=True))
     else:
-        tasks = defaultdict(list)
-        for log_entry in result:
-            task_name = log_entry[0]
-            tasks[task_name].append(log_entry)
         print(
-            "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
+            "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
-        for task_name in tasks:
-            for log_entry in tasks[task_name]:
-                log_entry[1] = str(log_entry[1])
-                log_entry[2] = str(log_entry[2])
-                print("\t".join(log_entry))
+        for row in result:
+            row[2] = str(row[2])
+            row[3] = str(row[3])
+            print("\t".join(row))
 
 
 @run.command()
@@ -352,7 +346,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str):
 
     max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
-        raise AnalysisError(
+        raise SystemExit(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
         )
 
@@ -366,7 +360,14 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str):
     moved_files = workflow.move_input_files(inputs_json, site_subdir)
 
     orig_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.orig.json")
-    shutil.copy(json_file, orig_json)
+    try:
+        shutil.copy(json_file, orig_json)
+    except Exception as error:
+        raise SystemExit(f"Error copying JSON to {orig_json}: {error}")
+    try:
+        os.chmod(orig_json, 0o0664)
+    except Exception as error:
+        raise SystemExit(f"Error chmod {orig_json}: {error}")
 
     staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
     jaws_site_staging_site_subdir = workflow.join_path(jaws_site_staging_dir, site_id)
@@ -461,14 +462,18 @@ def get(run_id: int, dest: str) -> None:
     src = result["output_dir"]
 
     if status != "download complete":
-        raise SystemExit(f"Run {run_id} output is not yet available; status is {status}")
+        raise SystemExit(
+            f"Run {run_id} output is not yet available; status is {status}"
+        )
 
     if src is None:
         logger.error(f"Run {run_id} doesn't have an output_dir defined")
         raise SystemExit(f"Run {run_id} doesn't have an output_dir defined")
 
     try:
-        workflow.rsync(src, dest)
+        workflow.rsync(
+            src, dest, ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo="]
+        )
     except Exception as error:
         logger.error(f"Rsync output failed for run {run_id}: {error}")
         raise SystemExit(f"Error getting output for run {run_id}: {error}")

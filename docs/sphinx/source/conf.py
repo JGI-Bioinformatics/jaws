@@ -22,12 +22,15 @@
 
 copyright = u'2019, Jeff Froula'
 author = u'Jeff Froula'
-project = u'jaws'
+project = u'home'
 
 # The short X.Y version
-version = u'1.0'
+version = u'documentation for 2.1'
+
 # The full version, including alpha/beta/rc tags
-release = u'1.0.0'
+#release = u'2.1.0'
+
+html_logo='Figures/JAWS5.tiny.png'
 
 
 # -- General configuration ---------------------------------------------------
@@ -87,6 +90,7 @@ exclude_patterns = []
 pygments_style = None
 
 
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -104,6 +108,15 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# These paths are either relative to html_static_path
+# or fully qualified paths (eg. https://...)
+html_css_files = [
+    'css/custom.css',
+]
+
+# add JavaScript files
+#html_js_files = [ 'js/custom.js, ']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

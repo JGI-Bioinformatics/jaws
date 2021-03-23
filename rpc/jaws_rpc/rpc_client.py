@@ -48,7 +48,16 @@ class RpcClient(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Close connection to RabbitMQ"""
+        """Close connection to RabbitMQ when exiting a context manager (with statement)"""
+        if self.channel:
+            self.channel.close()
+            self.channel = None
+        if self.connection:
+            self.connection.close()
+            self.connection = None
+
+    def __del__(self):
+        """Close connection to RabbitMQ when object is destroyed"""
         if self.channel:
             self.channel.close()
         if self.connection:
