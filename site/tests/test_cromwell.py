@@ -964,3 +964,13 @@ def test_task_summary():
         [WORKFLOW_ID_EX2_SUB1, "hello_and_goodbye.hello", 1, "5484"],
     ]
     assert bool(DeepDiff(result, EXPECTED, ignore_order=True)) is False
+
+
+def test_task_stdout():
+    metadata = cromwell.Metadata("localhost:8000", WORKFLOW_ID_EX1, METADATA[WORKFLOW_ID_EX1], METADATA)
+    expected_stderr = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stderr"  # noqa
+    expected_stdout = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stdout"  # noqa
+    assert len(metadata.tasks) == 1
+    task = metadata.tasks[0]
+    assert task.stderr() == expected_stderr
+    assert task.stdout() == expected_stdout
