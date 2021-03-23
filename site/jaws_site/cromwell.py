@@ -130,6 +130,12 @@ class Task:
         if stderr_file and os.path.isfile(stderr_file):
             with open(stderr_file, "r") as file:
                 msg = f"{msg}\nstderr:\n" + file.read()
+
+        # append standard output (if exists)
+        stdout_file = self.stdout(attempt)
+        if stdout_file and os.path.isfile(stdout_file):
+            with open(stdout_file, "r") as file:
+                msg = f"{msg}\nstdout:\n" + file.read()
         return msg
 
     def stdout(self, attempt=None, src=None, dest=None):
