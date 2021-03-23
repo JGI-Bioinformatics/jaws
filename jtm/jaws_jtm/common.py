@@ -4,6 +4,10 @@
 #
 import logging
 import os
+import datetime
+from logging import handlers
+from jaws_jtm.lib.run import make_dir
+
 
 logger = logging.getLogger(__package__)
 
@@ -13,7 +17,7 @@ logging.getLogger("pika").setLevel(logging.INFO)
 
 # -------------------------------------------------------------------------------
 def setup_custom_logger(
-    level, log_dest_dir, log_file_name, b_stream_logging=True, b_file_logging=False
+    level, log_dest_dir, log_file_name, b_stream_logging=True, b_file_logging=False, worker_id=None
 ):
     """
     Setting up logging
@@ -21,8 +25,9 @@ def setup_custom_logger(
     @param level: logger level
     @param log_dest_dir: log dir path
     @param log_file_name: log file name
-    @param b_stream_logging:
-    @param b_file_logging:
+    @param b_stream_logging: enable stream logging
+    @param b_file_logging: enable file logging
+    @param worker_id: if specidied, use worker_id to create a log file name
     """
     # Set custom loglevel name for printing resource usage
     # CRITICAL = 50, ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10, NOTSET = 0.
@@ -53,8 +58,28 @@ def setup_custom_logger(
 
     # FileLogger
     if b_file_logging:
-        log_file_name = os.path.join(log_dest_dir, log_file_name)
-        file_logger = logging.FileHandler(log_file_name)
+        datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        if worker_id:
+            datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
+            datetime_str = worker_id + '_' + datetime_str
+
+        assert log_dest_dir
+        worker_log_dir_name = os.path.join(log_dest_dir, "worker")
+
+        make_dir(worker_log_dir_name)
+        try:
+            os.chmod(worker_log_dir_name, 0o775)
+        except OSError:
+            logger.warning("Cannot change the permission of {} to 0775".format(worker_log_dir_name))
+
+        log_file_name = '%s/jtm_%s.log' % (worker_log_dir_name, datetime_str)
+        if worker_id:
+            log_file_name = '%s/jtm_worker_%s.log' % (worker_log_dir_name, datetime_str)
+
+        # Rotational log: 100MB each, total 4 log files
+        file_logger = handlers.RotatingFileHandler(
+            log_file_name, maxBytes=100000000, backupCount=3
+        )
         file_logger.setFormatter(formatter)
         file_logger.setLevel(numeric_level)
         logger.addHandler(file_logger)
@@ -62,7 +87,5 @@ def setup_custom_logger(
         try:
             os.chmod(log_file_name, 0o775)
         except OSError:
-            logger.warning(
-                "Cannot change the permission of {} to 0775".format(log_file_name)
-            )
+            logger.warning("Cannot change the permission of {} to 0775".format(log_file_name))
             raise
