@@ -1,6 +1,18 @@
 # Changelog
 
-## v2.2.0rc (2021-03-05)
+## v2.2.0rc-2 (2021-03-24)
+Release that addresses the stuck in "uploading" issue (#797, #781, #790, #603, #407). Jobs were stuck in
+uploading due to slow processing of the messages from RMQ. MR !702 adds improvement in message processing.
+
+### Minor Core Changes
+Changes include fixes to regressions that took place after updates to staging (!717, !716)
+ - Change install path location of Central back to /opt/jaws (!717)
+ - Add log rotation back to JTM  (!716)
+ - Rsync uses flags `-rLtq` and also allows `chmod` of the input files (!707)
+ - Moves origin unmodified JSON to the output directory (!710)
+ - Check permissions of wdl and inputs json in cromwell output directory (!709)
+
+## v2.2.0rc-1 (2021-03-05)
 Minor release that includes Globus client authentication support. Users no longer need to activate an endpoint
 which required users to have an account at a compute site. This now uses a shared endpoint and service account to 
 do Globus transfers on behalf of the user. 
