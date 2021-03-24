@@ -2,7 +2,7 @@
 Best Practices for Creating WDLs
 ================================
 
-This link has helpfull examples
+This link has helpful examples
 
 `WDL best practices (scott frazer's gist) <https://gist.github.com/scottfrazer/aa4ab1945a6a4c331211>`_
 
