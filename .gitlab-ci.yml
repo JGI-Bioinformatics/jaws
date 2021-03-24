@@ -405,6 +405,9 @@ update-jaws-docs:
   allow_failure: true   
 
 docker build:
+  stage: .post
+  environment:
+    name: "cori/dev"
   variables:
     DOCKERFILES_DIR: './docs/sphinx/source'
   script: echo building docker file
