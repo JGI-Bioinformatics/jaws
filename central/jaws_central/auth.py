@@ -1,9 +1,13 @@
 import logging
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
+import secrets
 from jaws_central.models_fsa import db, User
 
 logger = logging.getLogger(__package__)
+
+
+OAUTH_TOKEN_LENGTH = 255
 
 
 def _get_bearer_token():
@@ -50,11 +54,7 @@ def get_tokeninfo() -> dict:
 
 def _get_user_by_email(email):
     try:
-        user = (
-            db.session.query(User)
-            .filter(User.email == email)
-            .one_or_none()
-        )
+        user = db.session.query(User).filter(User.email == email).one_or_none()
     except SQLAlchemyError as e:
         abort(500, f"Db error: {e}")
     if user is None:
@@ -95,3 +95,34 @@ def get_user(user):
         "email": user_rec.email,
     }
     return result
+
+
+def add_user(
+    user: str, session, uid: str, name: str, email: str, admin: bool = False
+) -> None:
+    """
+    Add user and return an OAuth2 token.
+    """
+    uid = uid.lower()
+    a_user = db.session.query(User).get(uid)
+    if a_user is not None:
+        abort(400, f"Cannot add user {uid}; user.id already taken.")
+
+    token = secrets.token_urlsafe(OAUTH_TOKEN_LENGTH)
+    try:
+        new_user = User(
+            id=uid,
+            name=name,
+            jaws_token=token,
+            email=email,
+            is_admin=admin,
+            is_dashboard=False,
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        logger.info(f"Added new user {uid} ({email})")
+    except Exception as error:
+        db.session.rollback()
+        logger.error(f"Failed to add user, {uid}: {error}")
+        abort(500, f"Failed to add user, {uid}: {error}")
+    return {"token": token}
