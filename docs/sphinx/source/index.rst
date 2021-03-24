@@ -16,8 +16,9 @@ The `Joint Genome Institute <https://jgi.doe.gov>`_ has developed JAWS (JGI Anal
    * JAWS presents the user with many commands to manage your jobs. 
 
 
+
 Some Definitions
-----------------
+-----------------
 
 +---------------------+------------------------------------------------------------------------------+
 |:chocolate:`WDL`     | | The Workflow Description Language is essentially a                         |

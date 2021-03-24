@@ -401,6 +401,6 @@ update-jaws-docs:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
       changes:
-        - ./docs/sphinx/source/*
+        - ./docs/sphinx/source/index.rst
       when: manual
   allow_failure: true
