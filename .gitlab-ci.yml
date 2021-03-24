@@ -399,18 +399,6 @@ update-jaws-docs:
   script:
     - ./docs/sphinx/update-jaws-docs.sh
   rules:
-    - changes:
-        - ./docs/sphinx/source
+    - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
-  allow_failure: true   
-
-docker build:
-  stage: .post
-  environment:
-    name: "cori/dev"
-  variables:
-    DOCKERFILES_DIR: './docs/sphinx/source'
-  script: echo building docker file
-  rules:
-    - changes:
-        - $DOCKERFILES_DIR/index.rst
+  allow_failure: true

@@ -1,8 +1,6 @@
-======================================
-Donscrew with thismentation for JAWS
-======================================
-
-I added this
+======================
+Documentation for JAWS
+======================
 
 .. role:: chocolate
 

@@ -1,5 +1,5 @@
 ==========
-lk;asdf Us
+Contact Us
 ==========
 
 Slack and JIRA are only available for **JGI Staff**. If these avenues are not available, you can write an email to jaws-support@lbl.gov.
