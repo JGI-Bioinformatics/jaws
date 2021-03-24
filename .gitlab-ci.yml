@@ -389,17 +389,3 @@ deploy-jaws-cori-dev-integration-tests:
       when: manual
     - when: never
   allow_failure: true
-
-update-jaws-docs:
-  stage: .post
-  tags:
-    - cori
-  environment:
-    name: "cori/dev"
-  script:
-    - ./docs/sphinx/update-jaws-docs.sh
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: manual
-    - when: never
-  allow_failure: true
