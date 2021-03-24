@@ -403,3 +403,11 @@ update-jaws-docs:
         - ./docs/sphinx/source
       when: manual
   allow_failure: true   
+
+docker build:
+  variables:
+    DOCKERFILES_DIR: './docs/sphinx/source'
+  script: echo building docker file
+  rules:
+    - changes:
+        - $DOCKERFILES_DIR/index.rst
