@@ -401,5 +401,7 @@ update-jaws-docs:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: manual
+    - if: '$UPDATE_THE_DOCS == "true"'
+      when: manual
     - when: never
   allow_failure: true
