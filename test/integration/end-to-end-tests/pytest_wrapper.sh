@@ -2,7 +2,7 @@
 
 TEST_FOLDER=$1
 
-# check we have all arguments and environmental variables set
+# check if we have all arguments and environmental variables set
 if [[ ! $TEST_FOLDER ]]; then
 	echo "Usage: $0 <folder-with-tests>"
 	exit 1

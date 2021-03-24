@@ -400,5 +400,7 @@ update-jaws-docs:
     - ./docs/sphinx/update-jaws-docs.sh
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+       - ./docs/sphinx/source/*
       when: manual
-  allow_failure: true
+      allow_failure: true
