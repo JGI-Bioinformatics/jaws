@@ -399,9 +399,6 @@ update-jaws-docs:
   script:
     - ./docs/sphinx/update-jaws-docs.sh
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
-    - if: '$UPDATE_THE_DOCS == "true"'
-      when: manual
-    - when: never
   allow_failure: true
