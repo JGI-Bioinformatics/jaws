@@ -390,7 +390,7 @@ deploy-jaws-cori-dev-integration-tests:
     - when: never
   allow_failure: true
 
-update-jaws-docs:
+.update-jaws-docs:
   stage: .post
   tags:
     - cori
@@ -401,4 +401,20 @@ update-jaws-docs:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
+  allow_failure: true
+
+update-jaws-docs:
+  stage: .post
+  tags:
+    - cori
+  environment:
+    name: "cori/dev"
+  script:
+    - ./docs/sphinx/update-jaws-docs.sh
+  only:
+    refs:
+      - branches
+    changes:
+      - ./docs/sphinx/source/*
+  when: manual
   allow_failure: true
