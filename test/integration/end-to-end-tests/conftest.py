@@ -8,12 +8,12 @@ import submission_utils as util
 check_tries=50
 check_sleep=30
 
-@pytest.fixture(scope="session",autouse=True)
-def test_for_all_args(request):
-    target_dir = request.config.getoption("--dir")
-    site = request.config.getoption("--site")
-    if not target_dir or not site: 
-        pytest.exit("Error: You are missing some arguments?\nUsage: pytest -n <number of tests in parallel> --capture=<[yes|no]> --verbose --dir <directory with tests> --site <[cori|jgi]> <directory or file>")
+#@pytest.fixture(scope="session",autouse=True)
+#def test_for_all_args(request):
+#    target_dir = request.config.getoption("--dir")
+#    site = request.config.getoption("--site")
+#    if not target_dir or not site: 
+#        pytest.exit("Error: You are missing some arguments?\nUsage: pytest -n <number of tests in parallel> --capture=<[yes|no]> --verbose --dir <directory with tests> --site <[cori|jgi]> <directory or file>")
 
 @pytest.fixture(scope="session")
 def submit_fq_count_wdl(request):
