@@ -383,7 +383,7 @@ deploy-jaws-cori-dev-integration-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh single-test
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
     - when: never
   allow_failure: true
