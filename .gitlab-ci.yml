@@ -395,6 +395,6 @@ nightly:on-schedule:
   tags: 
     - cori
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $TASKNAME == "on_schedule"
   script:
     - ./test/integration/end-to-end-tests/nightly-tests/run_nightly_tests.sh
