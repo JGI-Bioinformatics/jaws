@@ -394,8 +394,8 @@ nightly:on-schedule:
   stage: nightly-tests
   tags: 
     - cori
-  only:
-    variables: 
-      - $NIGHTLY == 'true' 
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
   script:
     - ./test/integration/end-to-end-tests/nightly-tests/run_nightly_tests.sh
