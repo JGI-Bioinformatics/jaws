@@ -86,7 +86,7 @@ echo "source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAM
 # [USER]
 # token =
 if [[ ! -e "~/jaws.conf" ]]; then
-	echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN" > ~/jaws.conf
+	echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN\nstaging_dir = /global/cfs/projectdirs/jaws/jfroula" > ~/jaws.conf
 	chmod 600 ~/jaws.conf
 fi
 
