@@ -395,8 +395,6 @@ nightly:on-schedule:
   tags: 
     - cori
   only:
-    - schedules
-  environment:
-    name: "cori/dev"
+    variables: $NIGHTLY == 'true' 
   script:
     - ./test/integration/end-to-end-tests/nightly-tests/run_nightly_tests.sh
