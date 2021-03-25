@@ -35,7 +35,7 @@ def test_success_at_staging_cori():
     # if there was something in stdout, then grep found "id": <run_id>
     assert "UP" in o 
 
-def test_success_at_staging_jgi():
+def mtest_success_at_staging_jgi():
     """ the submit_and_wait_for_success_prod.v3.2.sh command is for testing staging on cori and jgi. It will submit fq_count.wdl and send the result to slack: jaws_health """
 
     cmd = "./submit_and_wait_for_success_prod.v3.2.sh -r staging -s jgi"
@@ -44,7 +44,7 @@ def test_success_at_staging_jgi():
     # if there was something in stdout, then grep found "id": <run_id>
     assert "UP" in o 
 
-def test_success_at_prod_cori():
+def mtest_success_at_prod_cori():
     """ the submit_and_wait_for_success_prod.v3.sh command is for testing prod on cori and jgi. It will submit fq_count.wdl and send the result to slack: jaws_health """
 
     cmd = "./submit_and_wait_for_success_prod.v3.sh -r prod -s cori"
@@ -53,7 +53,7 @@ def test_success_at_prod_cori():
     # if there was something in stdout, then grep found "id": <run_id>
     assert "UP" in o
 
-def test_success_at_prod_jgi():
+def mtest_success_at_prod_jgi():
     """ the submit_and_wait_for_success_prod.v3.sh command is for testing prod on cori and jgi. It will submit fq_count.wdl and send the result to slack: jaws_health """
 
     cmd = "./submit_and_wait_for_success_prod.v3.sh -r prod -s jgi"
