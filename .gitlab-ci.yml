@@ -376,8 +376,6 @@ deploy-jaws-cori-dev-integration-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   environment:
@@ -392,11 +390,13 @@ deploy-jaws-cori-dev-integration-tests:
 
 nightly:on-schedule:
   stage: nightly-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CORI"
   tags: 
     - cori
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      when: never
+    - if: '$RUN_NIGHTLY == "true"'
   script:
-    - ./test/integration/end-to-end-tests/nightly-tests/run_nightly_tests.sh
+    - ./test/integration/end-to-end-tests/nightly-tests/pytest_wrapper.sh health-robot
+
