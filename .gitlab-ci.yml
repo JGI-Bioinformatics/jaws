@@ -396,5 +396,7 @@ nightly:on-schedule:
     - cori
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: never
   script:
     - ./test/integration/end-to-end-tests/nightly-tests/run_nightly_tests.sh
