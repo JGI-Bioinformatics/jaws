@@ -92,5 +92,5 @@ fi
 
 # this script is being called from where .gitlab-ci.yml lives, which is "jaws" root. 
 # So we need to cd down to end-to-end-tests/nightly-tests before running pytests.
-cd test/integration/end-to-end-tests/nightly-tests
-pytest -n 4 --verbose ${TEST_FOLDER}
+cd test/integration/end-to-end-tests/nightly-tests/health-robot
+pytest -n 4 --verbose test_fq_count_all_sites.py
