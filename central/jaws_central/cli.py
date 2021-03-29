@@ -134,7 +134,7 @@ def rest() -> None:
 
     # init RPC clients
     site_rpc_params = config.conf.get_all_sites_rpc_params()
-    rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params)
+    rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params, logger)
 
     # define port
     port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
@@ -149,7 +149,8 @@ def rpc() -> None:
     from jaws_central.database import Session
     from jaws_central import rpc_operations
     rpc_params = config.conf.get_section("RPC_SERVER")
-    app = rpc_server.RpcServer(rpc_params, rpc_operations.operations, Session)
+    logger = logging.getLogger(__package__)
+    app = rpc_server.RpcServer(rpc_params, logger, rpc_operations.operations, Session)
     app.start_server()
 
 
