@@ -3,6 +3,7 @@ from jaws_rpc import rpc_index
 from jaws_central import utils
 import jaws_central.config
 import pytest
+import logging
 
 
 @pytest.fixture
@@ -23,7 +24,8 @@ def configuration(config_file):
 
 
 def test_status():
-    rpci1 = rpc_index.RpcIndex({})
+    logger = logging.getLogger(__package__)
+    rpci1 = rpc_index.RpcIndex({}, logger)
     rpci2 = rpc_index.rpc_index
     assert rpci1 == rpci2
     sites = rpci1.get_sites()

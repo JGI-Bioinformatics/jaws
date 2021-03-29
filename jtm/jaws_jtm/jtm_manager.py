@@ -675,7 +675,7 @@ def send_update_task_status_msg(
                 "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
                 "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
                 "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password"),
-            }
+            }, logger
         ) as rpc_cl:
             wait_count = 0
             response = rpc_cl.request("update_job_status", data)
@@ -2375,7 +2375,7 @@ def manager(
     }
     jtm_rpc_server_params = CONFIG.configparser._sections["JTM_RPC_SERVER"]
     logger.debug("jtm_rpc_server params: %s", jtm_rpc_server_params)
-    app = rpc_server.RpcServer(jtm_rpc_server_params, operations)
+    app = rpc_server.RpcServer(jtm_rpc_server_params, logger, operations)
     app.start_server()
 
     logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)

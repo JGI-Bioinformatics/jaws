@@ -2,12 +2,10 @@
 It is useful if you wish to maintain a persistent shared object or
 have many RPC Servers to communicate with."""
 
-import logging
 from typing import List
 from jaws_rpc import rpc_client
 
 
-logger = logging.getLogger(__package__)
 rpc_index = None
 
 
@@ -31,7 +29,7 @@ class RpcIndex(metaclass=Singleton):
 
     clients = {}
 
-    def __init__(self, params):
+    def __init__(self, params, logger):
         """Initialize an RPC client object for each configured Site.
 
         :param params: site_id => { amqp connection parameters }
@@ -39,9 +37,10 @@ class RpcIndex(metaclass=Singleton):
         :return: RpcIndex object
         :rtype: obj
         """
+        self.logger = logger
         for site_id in params:
-            logger.info(f"Initializing RPC client for {site_id}: {params}")
-            self.clients[site_id] = rpc_client.RpcClient(params[site_id])
+            self.logger.info(f"Initializing RPC client for {site_id}: {params}")
+            self.clients[site_id] = rpc_client.RpcClient(params[site_id], self.logger)
         global rpc_index
         rpc_index = self
 
