@@ -109,13 +109,15 @@ class Consumer(object):
         # rpc manager was initialized with a sessionmaker obj or not, because an rpc server
         # may or may not have an associated (sqlalchemy) db.
         response = None
+        session = None
         if self.sessionmaker:
             session = self.sessionmaker()
             response = proc(params, session)
         else:
             response = proc(params)
         self.__respond__(message, response)
-        session.close()
+        if session:
+            session.close()
 
     def __respond__(self, message, response):
         try:
