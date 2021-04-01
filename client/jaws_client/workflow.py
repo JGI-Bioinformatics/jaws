@@ -12,6 +12,7 @@ import re
 import zipfile
 import logging
 import pathlib
+import warnings
 
 from jaws_client import config
 
@@ -31,15 +32,9 @@ def rsync(src, dest, options=["-rLtq"]):
     :type options: str
     :return: None
     """
-    try:
-        result = subprocess.run(
-            ["rsync", *options, src, dest], capture_output=True, text=True
-        )
-    except Exception as error:
-        raise (f"Failed to rsync {src}->{dest} with {options}: {error}")
-    if result.returncode != 0:
-        err_msg = f"Failed to rsync {src}->{dest} with {options}: {result.stdout}; {result.stderr}"
-        raise IOError(err_msg)
+    return subprocess.run(
+        ["rsync", *options, src, dest], capture_output=True, text=True
+    )
 
 
 def convert_to_gb(mem, prefix):
@@ -170,10 +165,7 @@ def compress_wdls(main_wdl, staging_dir="."):
 
     # COPY MAIN WDL
     staged_wdl_filename = join_path(staging_dir, f"{main_wdl.submission_id}.wdl")
-    try:
-        main_wdl.copy_to(staged_wdl_filename)
-    except Exception as error:
-        raise WdlError(f"Error copying main-wdl file: {error}")
+    main_wdl.copy_to(staged_wdl_filename)
 
     # IF NO SUBWORKFLOWS, DONE
     if not len(main_wdl.subworkflows):
@@ -189,10 +181,7 @@ def compress_wdls(main_wdl, staging_dir="."):
 
     for subworkflow in main_wdl.subworkflows:
         staged_sub_wdl = join_path(compression_dir, subworkflow.name)
-        try:
-            subworkflow.copy_to(staged_sub_wdl)
-        except Exception as error:
-            raise WdlError(f"Error copying sub-wdl file: {error}")
+        subworkflow.copy_to(staged_sub_wdl)
 
     try:
         os.remove(compressed_file)
@@ -292,6 +281,8 @@ class WdlFile:
         """
         Validates the WDL file using Cromwell's womtool.
         Any syntax errors from WDL will be raised in a WdlError.
+        This is a separate method and not done automatically by the constructor because subworkflows() returns
+        WdlFile objects and we wish to avoid running womtool multiple times unnecessarily.
         :return:
         """
         self.logger.info(f"Validating WDL, {self.file_location}")
@@ -379,37 +370,6 @@ class WdlFile:
         return repr(self.file_location)
 
 
-def move_input_files(workflow_inputs, destination):
-    """
-    Moves the input files defined in a JSON file to a destination.
-
-    It will make any directories that are needed in the staging path and then copy the files.
-
-    :param workflow_inputs: JSON file where inputs are specified.
-    :param destination: path to where to moved the input files
-    :return: list of the moved_files
-    """
-    moved_files = []
-
-    for original_path in workflow_inputs.src_file_inputs:
-        staged_path = pathlib.Path(f"{destination}{original_path}")
-        moved_files.append(staged_path.as_posix())
-        if os.path.isdir(original_path):
-            staged_path.mkdir(mode=0o0770, parents=True, exist_ok=True)
-        else:
-            dirname = pathlib.Path(os.path.dirname(staged_path))
-            dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
-
-        # files must be copied in to ensure they are readable by the jaws and jtm users,
-        # as a result of the gid sticky bit and acl rules on the inputs dir.
-        rsync(
-            original_path,
-            staged_path.as_posix(),
-            ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"],
-        )
-    return moved_files
-
-
 class WorkflowInputs:
     """
     Represents a JSON file where the input files of a WDL are specified.
@@ -421,110 +381,122 @@ class WorkflowInputs:
     """
 
     def __init__(self, inputs_loc, submission_id, inputs_json=None):
-
+        """
+        This class represents the inputs JSON which may contain both path and non-path elements.
+        Inputs that look like relative paths and converted to absolute paths.
+        Input paths are saved in a set, for ease of processing without traversing complex data structure.
+        """
         self.submission_id = submission_id
         self.inputs_location = os.path.abspath(inputs_loc)
         self.basedir = os.path.dirname(self.inputs_location)
-
-        # JSON inputs could contain relative paths, so we process the JSON file to include absolute paths
         inputs_json = (
             json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
         )
         self.inputs_json = {}
+        self.src_file_inputs = set()
         for k in inputs_json:
             self.inputs_json[k] = apply_filepath_op(
-                inputs_json[k], self._relative_to_absolute_paths
+                inputs_json[k], self._gather_absolute_paths
             )
 
-        self._src_file_inputs = None
+    def _gather_absolute_paths(self, element):
+        """
+        Helper method that recognizes file-like elements, converts relative to absolute paths,
+        and adds them to the object's set of files.
+        """
+        if looks_like_file_path(element):
+            if not os.path.isabs(element):
+                element = os.path.abspath(join_path(self.basedir, element))
+            self.src_file_inputs.add(element)
+        return element
+
+    def move_input_files(self, destination):
+        """
+        Moves the input files defined in a JSON file to a destination.
+
+        It will make any directories that are needed in the staging path and then copy the files.
+
+        :param workflow_inputs: JSON file where inputs are specified.
+        :param destination: path to where to moved the input files
+        :return: list of the moved_files
+        """
+        moved_files = []
+
+        for original_path in self.src_file_inputs:
+
+            # if the path doesn't exist, it may refer to a path in a Docker container, so just
+            # warn user and skip, without raising an exception
+            if not os.path.exists(original_path):
+                warnings.warn(f"Input path not found: {original_path}")
+                continue
+
+            staged_path = pathlib.Path(f"{destination}{original_path}")
+            dest = staged_path.as_posix()
+            moved_files.append(dest)
+
+            if os.path.isdir(original_path):
+                staged_path.mkdir(mode=0o0770, parents=True, exist_ok=True)
+            else:
+                dirname = pathlib.Path(os.path.dirname(staged_path))
+                dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
+
+            # files must be copied in to ensure they are readable by the jaws and jtm users,
+            # as a result of the gid sticky bit and acl rules on the inputs dir.
+            rsync_params = ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"]
+            try:
+                result = rsync(
+                    original_path,
+                    dest,
+                    rsync_params,
+                )
+            except OSError as error:
+                raise (f"rsync executable not found: {error}")
+            except ValueError as error:
+                raise (f"Invalid rsync options, {rsync_params}, for {original_path}->{dest}: {error}")
+            if result.returncode != 0:
+                err_msg = (
+                    f"Failed to rsync {original_path}: {result.stdout}; {result.stderr}"
+                )
+                raise IOError(err_msg)
+
+        return moved_files
 
     def prepend_paths_to_json(self, staging_dir):
         """
-        Modifies the JSON file to include the adjusted paths to the JAWS Central staging area.
-
-        :return: contents of the modified JSON file which is a WorkflowInputs object
+        Modifies the paths of real files by prepending the base dir of the compute site.
+        Only paths which exist are modified; other path-like strings presumably refer to files in the container.
         """
         destination_json = {}
         for k in self.inputs_json:
             destination_json[k] = apply_filepath_op(
                 self.inputs_json[k], self._prepend_path(staging_dir)
             )
-        return WorkflowInputs(
-            self.inputs_location, self.submission_id, inputs_json=destination_json
-        )
 
-    @property
-    def src_file_inputs(self):
+        return WorkflowInputs(staging_dir, self.submission_id, destination_json)
+
+    @staticmethod
+    def _prepend_path(path_to_prepend):
         """
-        Gathers all the input files specified in the JSON file into a set of files.
-
-        This allows for easy traversal of all the input files rather than have to recurse down the dictionary
-        and attempt to determine whether an element is a file or a keyword.
-
-        :return: set of file paths
+        The input files shall be transferred to the compute-site, so the paths in the inputs json file must be
+        updated to reflect the new location by prepending the site's uploads basedir.
+        Only paths which exist are modified because these are the only files which are transferred; the other
+        paths presumably refer to files in a Docker container.
         """
-        if self._src_file_inputs is None:
-            self._src_file_inputs = self._gather_paths()
-        return self._src_file_inputs
-
-    def validate(self):
-        """
-        Checks the input JSON for items that look like a path and check whether or not the path exists.
-        Returns a list of items not found so we can warn the user.  We do not fail the run submission because
-        the paths may refer to paths in the task's docker container or may not be paths at all.
-
-        :return: list of nonexistant path-like strings
-        :rtype: list
-        """
-        paths_not_found = []
-        for filepath in values(self.inputs_json):
-            if looks_like_file_path(filepath) and not os.path.exists(filepath):
-                paths_not_found.append(filepath)
-        return paths_not_found
+        def func(path):
+            if looks_like_file_path(path) and os.path.exists(path):
+                return f"{path_to_prepend}{path}"
+            return path
+        return func
 
     def write_to(self, json_location):
         """
-        Writes the modified JSON file to the specified location.
-
-        A modified file is one that includes the JAWS central staging path prepended to all the input file paths.
+        Writes the JSON file to the specified location.
 
         :param json_location: location to write the new JSON file
         :return:
         """
         with open(json_location, "w") as json_inputs:
             json.dump(self.inputs_json, json_inputs, indent=4)
-
-    def _relative_to_absolute_paths(self, element):
-        """
-        Helper method that converts any relative paths in a JSON into absolute paths.
-        It is applied to each value.
-        """
-        if looks_like_file_path(element) and not is_refdata(element):
-            new_path = element
-            if not os.path.isabs(element):
-                new_path = join_path(self.basedir, element)
-                new_path = os.path.abspath(new_path)
-                return new_path
-        return element
-
-    @staticmethod
-    def _prepend_path(path_to_prepend):
-        def func(path):
-            if looks_like_file_path(path) and not is_refdata(path):
-                return f"{path_to_prepend}{path}"
-            return path
-
-        return func
-
-    def _gather_paths(self):
-        """
-        Helper method that aggregates all the paths in a JSON file
-        """
-        paths = set()
-        for element in values(self.inputs_json):
-            if looks_like_file_path(element) and not is_refdata(element):
-                paths.add(element)
-        return paths
 
 
 class Manifest:

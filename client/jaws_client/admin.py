@@ -37,18 +37,13 @@ def log(uid: str, email: str, name: str, admin: bool) -> None:
     """
     logger = logging.getLogger(__package__)
     current_user = user.User()
-    data = {
-        "uid": uid,
-        "email": email,
-        "name": name,
-        "admin": admin
-    }
+    data = {"uid": uid, "email": email, "name": name, "admin": admin}
     url = f'{config.conf.get("JAWS", "url")}/user'
     try:
         r = requests.post(url, data=data, headers=current_user.header())
-    except Exception as error:
+    except requests.ConnectTimeout as error:
         logger.error(f"Unable to add user: {error}")
-        raise SystemExit(f"Unable to add user: {error}")
+        raise SystemExit("Unable to add user as jaws-central did not reply in time")
     result = r.json()
     if r.status_code != 201:
         raise SystemExit(result["detail"])
