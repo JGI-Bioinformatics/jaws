@@ -8,7 +8,6 @@ import requests
 import click
 import logging
 import uuid
-import sys
 import shutil
 from typing import Dict
 
@@ -282,8 +281,8 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str):
     """
     logger = logging.getLogger(__package__)
 
+    # the users' jaws id may not match the linux uid where the client is installed
     current_user = user.User()
-
     user_url = f'{config.conf.get("JAWS", "url")}/user'
     user_rec = _get(user_url)
     user_json = user_rec.json()
@@ -293,6 +292,8 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str):
     staging_user_subdir = os.path.join(staging_subdir, uid)
     globus_host_path = config.Configuration().get("GLOBUS", "host_path")
     output_directory = config.conf.get("JAWS", "data_repo_basedir")
+    input_site_id = config.conf.get("JAWS", "site_id")
+    local_staging_endpoint = workflow.join_path(globus_host_path, staging_user_subdir)
 
     # GET SITE INFO
     compute_site_id = site.upper()
@@ -308,72 +309,67 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str):
     elif r.status_code != requests.codes.ok:
         result = r.json()
         raise SystemExit(result["detail"])
-
     result = r.json()
     compute_basedir = result["globus_host_path"]
     compute_uploads_subdir = result["uploads_dir"]
     compute_max_ram_gb = int(result["max_ram_gb"])
 
-    # VALIDATE WORKFLOW
+    # VALIDATE WORKFLOW WDLs
     submission_id = str(uuid.uuid4())
     try:
         wdl = workflow.WdlFile(wdl_file, submission_id)
     except workflow.WdlError as error:
         raise SystemExit(f"There is a problem with your workflow:\n{error}")
-    except Exception as error:
-        raise SystemExit(f"Unexpected error validating workflow: {error}")
-    try:
-        inputs_json = workflow.WorkflowInputs(json_file, submission_id)
-    except Exception as error:
-        raise SystemExit(f"Your file, {json_file}, is not a valid JSON file: {error}")
-
-    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
-    local_staging_endpoint = workflow.join_path(globus_host_path, staging_user_subdir)
-    manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
-
-    # validate WDL or exit with error message
     try:
         wdl.validate()
     except workflow.WdlError as error:
         raise SystemExit(error)
-
-    # validate inputs JSON or exit with error message
-    inaccessible = inputs_json.validate()
-    for path in inaccessible:
-        sys.stderr.write(
-            f"WARNING: input variable looks like a path but is inaccessible: {path}"
-        )
-
     max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
         raise SystemExit(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
         )
 
-    site_id = config.conf.get("JAWS", "site_id")
-    site_subdir = workflow.join_path(local_staging_endpoint, site_id)
-
+    # any and all subworkflow WDL files must be supplied to Cromwell in a single ZIP archive
     try:
         staged_wdl, zip_file = workflow.compress_wdls(wdl, local_staging_endpoint)
-    except Exception as error:
+    except IOError as error:
         raise SystemExit(f"Unable to copy WDLs to inputs dir: {error}")
-    moved_files = workflow.move_input_files(inputs_json, site_subdir)
 
-    orig_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.orig.json")
+    # VALIDATE INPUTS JSON
     try:
-        shutil.copy(json_file, orig_json)
-    except Exception as error:
-        raise SystemExit(f"Error copying JSON to {orig_json}: {error}")
-    try:
-        os.chmod(orig_json, 0o0664)
-    except Exception as error:
-        raise SystemExit(f"Error chmod {orig_json}: {error}")
+        inputs_json = workflow.WorkflowInputs(json_file, submission_id)
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"Your file, {json_file}, is not a valid JSON file: {error}")
 
     staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
-    jaws_site_staging_site_subdir = workflow.join_path(jaws_site_staging_dir, site_id)
+    site_subdir = workflow.join_path(local_staging_endpoint, input_site_id)
+    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
+    jaws_site_staging_site_subdir = workflow.join_path(
+        jaws_site_staging_dir, input_site_id
+    )
+
+    # copy infiles in inputs json to site's inputs dir so they may be read by jaws user and
+    # transferred to the compute site via globus
+    moved_files = inputs_json.move_input_files(site_subdir)
+
+    # the paths in the inputs json file are changed to their paths at the compute site
     modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
     modified_json.write_to(staged_json)
 
+    # the original inputs json file is kept with the run submission for record-keeping only
+    orig_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.orig.json")
+    try:
+        shutil.copy(json_file, orig_json)
+    except IOError as error:
+        raise SystemExit(f"Error copying JSON to {orig_json}: {error}")
+    try:
+        os.chmod(orig_json, 0o0664)
+    except PermissionError as error:
+        raise SystemExit(f"Unable to chmod {orig_json}: {error}")
+
+    # write the file transfer manifest; jaws-central shall submit the transfer to globus
+    manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
     manifest_file.add(staged_wdl, zip_file, staged_json, orig_json, *moved_files)
     staged_manifest = workflow.join_path(staging_user_subdir, f"{submission_id}.tsv")
     manifest_file.write_to(staged_manifest)
@@ -383,7 +379,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str):
     data = {
         "site_id": compute_site_id,
         "submission_id": submission_id,
-        "input_site_id": config.conf.get("JAWS", "site_id"),
+        "input_site_id": input_site_id,
         "input_endpoint": local_endpoint_id,
         "output_endpoint": local_endpoint_id,  # return to original submission site
         "output_dir": output_directory,  # jaws-writable dir to initially receive results
@@ -405,7 +401,6 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str):
         raise SystemExit(f"Run submission failed: {result}")
     run_id = result["run_id"]
     logger.info(f"Submitted run {run_id}: {data}")
-
     print(r.text)
 
 
@@ -471,9 +466,12 @@ def get(run_id: int, dest: str) -> None:
         raise SystemExit(f"Run {run_id} doesn't have an output_dir defined")
 
     try:
-        workflow.rsync(
+        result = workflow.rsync(
             src, dest, ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo="]
         )
-    except Exception as error:
+    except IOError as error:
         logger.error(f"Rsync output failed for run {run_id}: {error}")
         raise SystemExit(f"Error getting output for run {run_id}: {error}")
+    if result.returncode != 0:
+        err_msg = f"Failed to rsync {src}->{dest}: {result.stdout}; {result.stderr}"
+        raise SystemExit(err_msg)
