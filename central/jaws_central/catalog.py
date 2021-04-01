@@ -51,13 +51,16 @@ def list_wdls() -> Tuple[dict, int]:
     result = []
     for row in query:
         is_released = "yes" if row.is_released else "no"
-        result.append({
-            "name": row.name,
-            "version": row.version,
-            "owner": row.user_id,
-            "created": row.created,
-            "last_updated": row.updated,
-            "production_release": is_released})
+        result.append(
+            {
+                "name": row.name,
+                "version": row.version,
+                "owner": row.user_id,
+                "created": row.created,
+                "last_updated": row.updated,
+                "production_release": is_released,
+            }
+        )
     return result
 
 
@@ -256,7 +259,9 @@ def update_wdl(user: str, name: str, version: str, new_wdl: str) -> Tuple[dict, 
     if workflow.user_id != user:
         raise CatalogAuthenticationError("You are not the owner of this workflow")
     if workflow.is_released is True:
-        raise CatalogWorkflowImmutableError("The WDL of a 'released' workflow cannot be updated, only deleted")
+        raise CatalogWorkflowImmutableError(
+            "The WDL of a 'released' workflow cannot be updated, only deleted"
+        )
     try:
         workflow.wdl = new_wdl
         db.session.commit()
@@ -339,7 +344,7 @@ def add_wdl(
         raise CatalogDatabaseError(error)
     if workflow is not None:
         raise CatalogInvalidInputError(
-            "A workflow with that name:version already exists"
+            "That workflow name:version was previously assigned and cannot be reused"
         )
     now = datetime.now()
     workflow = Workflow(
