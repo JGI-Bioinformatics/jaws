@@ -11,6 +11,11 @@ jaws_parsl.recv.rpc_params = {'user': 'jaws',
                               }
 
 
+def test_start_file_logger(tmp_path):
+    tmp_log = tmp_path / "test.txt"
+    jaws_parsl.recv.start_file_logger(tmp_log)
+
+
 @mock.patch('jaws_parsl.recv.RpcClient', autospec=True)
 def test_update_site(patch, monkeypatch):
     mock_rpc = mock.MagicMock()
