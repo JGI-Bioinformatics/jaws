@@ -8,7 +8,6 @@ import logging
 import connexion
 from flask_cors import CORS
 from urllib.parse import quote_plus
-import secrets
 from sqlalchemy.pool import QueuePool
 from jaws_central import config, log
 from jaws_central.models_fsa import db
@@ -135,7 +134,7 @@ def rest() -> None:
 
     # init RPC clients
     site_rpc_params = config.conf.get_all_sites_rpc_params()
-    rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params)
+    rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params, logger)
 
     # define port
     port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
@@ -150,62 +149,9 @@ def rpc() -> None:
     from jaws_central.database import Session
     from jaws_central import rpc_operations
     rpc_params = config.conf.get_section("RPC_SERVER")
-    app = rpc_server.RpcServer(rpc_params, rpc_operations.operations, Session)
-    app.start_server()
-
-
-@cli.command()
-@click.argument("uid")
-@click.argument("email")
-@click.option("--admin", is_flag=True, default=False, help="Grant admin privileges")
-def add_user(
-    uid: str, email: str, admin: bool = False
-) -> None:
-    """Add user and generate OAuth2 token."""
     logger = logging.getLogger(__package__)
-    logger.debug(f"Adding new user, {uid}")
-
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
-    connex.add_api("swagger.rest.yml")
-
-    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
-        config.conf.get("DB", "dialect"),
-        config.conf.get("DB", "user"),
-        quote_plus(config.conf.get("DB", "password")),
-        config.conf.get("DB", "host"),
-        config.conf.get("DB", "port"),
-        config.conf.get("DB", "db"),
-    )
-    connex.app.config["SQLALCHEMY_ECHO"] = False
-    connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_pre_ping": True,
-        "pool_recycle": 300,
-    }
-    db.init_app(connex.app)
-
-    with connex.app.app_context():
-        # CHECK IF UID EXISTS
-        from jaws_central.models_fsa import User
-        user = db.session.query(User).get(uid)
-        if user is not None:
-            msg = f"Cannot add user {uid}; user.id already taken."
-            logger.debug(msg)
-            raise ValueError(msg)
-
-        # GENERATE TOKEN AND INSERT RECORD
-        token = secrets.token_urlsafe()
-        try:
-            new_user = User(id=uid, jaws_token=token, email=email, is_admin=admin)
-            db.session.add(new_user)
-            db.session.commit()
-            logger.info(f"Added new user {uid} ({email})")
-            print(f"User's access token:\n{token}")
-        except Exception as error:
-            db.session.rollback()
-            logger.exception(f"Failed to add user: {error}")
-            raise error
+    app = rpc_server.RpcServer(rpc_params, logger, rpc_operations.operations, Session)
+    app.start_server()
 
 
 def jaws():

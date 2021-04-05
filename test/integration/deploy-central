@@ -294,21 +294,21 @@ prompt=supervisord-jaws-central-$DEPLOYMENT_NAME
 command=$SHIM_DIR/jaws-central-rest-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
-startretries=3
+startretries=10
 autorestart=unexpected
 
 [program:rpc]
 command=$SHIM_DIR/jaws-central-rpc-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
-startretries=3
+startretries=10
 autorestart=unexpected
 
 [program:auth]
 command=$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
-startretries=3
+startretries=10
 autorestart=unexpected
 
 [group:jaws-central-$DEPLOYMENT_NAME]

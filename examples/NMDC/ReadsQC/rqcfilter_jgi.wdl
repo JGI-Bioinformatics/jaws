@@ -36,7 +36,7 @@ task rqcfilter {
      runtime {
         docker: container
         time: "05:00:00"
-        mem: "240G"
+        memory: "240G"
         poolname: "nmdc_readqc_test"
         shared: 0
         node: 1

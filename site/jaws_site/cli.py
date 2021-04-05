@@ -7,6 +7,7 @@ JAWS Site server runs at each computing site and is comprised of:
 Each computing site also has a Cromwell server instance, typically installed on the same server.
 """
 
+import logging
 import os
 import click
 
@@ -44,7 +45,8 @@ def central_rpc() -> None:
     from jaws_rpc import rpc_server
 
     central_rpc_server_params = config.conf.get_section("CENTRAL_RPC_SERVER")
-    app = rpc_server.RpcServer(central_rpc_server_params, central_rpc_operations.operations, Session)
+    logger = logging.getLogger(__package__)
+    app = rpc_server.RpcServer(central_rpc_server_params, logger, central_rpc_operations.operations, Session)
     app.start_server()
 
 
@@ -56,7 +58,8 @@ def jtm_rpc() -> None:
     from jaws_rpc import rpc_server
 
     jtm_rpc_server_params = config.conf.get_section("LOCAL_RPC_SERVER")
-    app = rpc_server.RpcServer(jtm_rpc_server_params, jtm_rpc_operations.operations, Session)
+    logger = logging.getLogger(__package__)
+    app = rpc_server.RpcServer(jtm_rpc_server_params, logger, jtm_rpc_operations.operations, Session)
     app.start_server()
 
 

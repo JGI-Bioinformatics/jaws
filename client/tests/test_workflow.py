@@ -25,46 +25,21 @@ def dict_comparison(expected_dict, actual_dict):
     for k in expected_dict:
         recur_dict_comparison(expected_dict[k], actual_dict[k])
 
+def test_create_destination_json(configuration, input_file):
 
-def test_create_destination_json(configuration, dap_seq_example):
-
-    root_dir = dap_seq_example
-    staging_dir = os.path.join(root_dir, "jaws_central", "NERSC", "staging")
+    root_dir = input_file
+    staging_dir = os.path.join(root_dir, "test_user", "CORI")
 
     expected = {
-        "jgi_dap_leo.adapters": f"{staging_dir}/global/projectb/sandbox/gaag/bbtools/data/adapters.fa",
-        "jgi_dap_leo.genome_fasta": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417.fasta",  # noqa
-        "jgi_dap_leo.bt2index_dir": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417_bt2index",  # noqa
-        "jgi_dap_leo.bt2index_name": "PsimiaeWCS417",
-        "jgi_dap_leo.effgsize": 6169071,
-        "jgi_dap_leo.genes_gff": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417.gff",  # noqa
-        "jgi_dap_leo.bgmodel": f"{staging_dir}/global/projectb/sandbox/rnaseq/DAP/leo/cromwell_genomes/PsimiaeWCS417/PsimiaeWCS417.bgmodel",  # noqa
-        "jgi_dap_leo.outdir": ".",
-        "jgi_dap_leo.expt_raw_fastqs": [
-            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TATCAGC-TATCAGC.fastq.gz"
-        ],  # noqa
-        "jgi_dap_leo.ctl_raw_fastqs": [],
-        "jgi_dap_leo.library_names_map": {
-            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TATCAGC-TATCAGC.fastq.gz": "CTTZN",  # noqa
-            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.GGTTGAT-GGTTGAT.fastq.gz": "CTUGZ",  # noqa
-            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TTGCTGG-TTGCTGG.fastq.gz": "CTUHA",  # noqa
-        },
-        "jgi_dap_leo.sample_names_map": {
-            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TATCAGC-TATCAGC.fastq.gz": "TF4",
-            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.GGTTGAT-GGTTGAT.fastq.gz": "negCtl2",  # noqa
-            f"{staging_dir}/global/dna/dm_archive/sdm/illumina/01/25/27/12527.1.262232.TTGCTGG-TTGCTGG.fastq.gz": "negCtl1",  # noqa
-        },
-        "jgi_dap_leo.expt_bam": f"{staging_dir}/global/projectb/scratch/jaws/jfroula/leo_dap/CTTZN_TF4.bam",
-        "jgi_dap_leo.expt_bai": f"{staging_dir}/global/projectb/scratch/jaws/jfroula/leo_dap/CTTZN_TF4.bam",
+        "file1": f"{staging_dir}{root_dir}/test.fasta"
     }
 
-    json_filepath = os.path.join(root_dir, "test.json")
     uuid = "12345"
+    json_filepath = os.path.join(root_dir, "test.json")
     wf_inputs = jaws_client.workflow.WorkflowInputs(json_filepath, uuid)
     actual = wf_inputs.prepend_paths_to_json(staging_dir)
     assert actual
     dict_comparison(expected, actual.inputs_json)
-
 
 def test_src_json_inputs(configuration, inputs_json):
     uuid = "1234"
@@ -158,7 +133,7 @@ def test_appropriate_staging_dir_for_all_wdls(configuration, subworkflows_exampl
     wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"), "1234")
 
     new_wdl_path = os.path.join(staging, wdl.name)
-    wdl.write_to(new_wdl_path)
+    wdl.copy_to(new_wdl_path)
 
     assert staging not in wdl.file_location
     assert os.path.exists(os.path.join(staging, wdl.name))
@@ -168,24 +143,20 @@ def test_appropriate_staging_dir_for_all_wdls(configuration, subworkflows_exampl
 
     for sub in wdl.subworkflows:
         new_path = os.path.join(zip_path, sub.name)
-        sub.write_to(new_path)
+        sub.copy_to(new_path)
         assert os.path.exists(new_path)
 
 
-def test_remove_invalid_backend(wdl_with_invalid_backend):
+def test_fail_invalid_backend(wdl_with_invalid_backend):
     wdl = jaws_client.workflow.WdlFile(wdl_with_invalid_backend, "1234")
-    wdl_with_backend_removed = wdl.sanitized_wdl()
-    for line in wdl_with_backend_removed.contents:
-        assert "backend" not in line
-
+    with pytest.raises(jaws_client.workflow.WdlError) as e_info:
+        wdl.verify_wdl_has_no_backend_tags()
 
 def test_move_input_files_to_destination(configuration, sample_workflow):
     inputs = os.path.join(sample_workflow, "workflow", "sample.json")
     staging_dir = os.path.join(sample_workflow, "staging")
     inputs_json = jaws_client.workflow.WorkflowInputs(inputs, uuid.uuid4())
-    jaws_client.workflow.move_input_files(
-        inputs_json, os.path.join(staging_dir, "NERSC")
-    )
+    inputs_json.move_input_files(os.path.join(staging_dir, "NERSC"))
 
 
 @pytest.mark.skipif(
@@ -257,7 +228,7 @@ def test_refdata_not_translated(refdata_inputs):
     inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
     modified_json = inputs.prepend_paths_to_json("/remote/uploads/NERSC/staging")
     expected = {"file1": "/remote/uploads/NERSC/staging" + text_file,
-                "runblastplus_sub.ncbi_nt": "/refdata/"}
+                "runblastplus_sub.ncbi_nt": "/refdata/nt"}
     dict_comparison(modified_json.inputs_json, expected)
 
 
@@ -271,21 +242,10 @@ def test_refdata_in_different_form(refdata_inputs_missing_slash):
     dict_comparison(modified_json.inputs_json, expected)
 
 
-def test_refdata_not_in_src_input_files(refdata_inputs):
-    inputs_json = os.path.join(refdata_inputs, "inputs.json")
-    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
-    assert "/refdata/" not in inputs.src_file_inputs
-
-
 def test_refdata_in_inputs_json(refdata_inputs, monkeypatch):
-    def mock_is_file_accessible(*args):
-        return True
-
-    monkeypatch.setattr(jaws_client.workflow, 'is_file_accessible', mock_is_file_accessible)
-
     inputs_json = os.path.join(refdata_inputs, "inputs.json")
     inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "12312")
-    inputs.validate()
+    assert "/refdata/nt" in inputs.src_file_inputs
 
 
 def test_rel_path_in_input_files():

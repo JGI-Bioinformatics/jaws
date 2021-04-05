@@ -2,6 +2,7 @@ import pytest
 import os
 import requests
 import shutil
+import subprocess
 
 import click.testing
 
@@ -148,7 +149,7 @@ RUN_LOG_JSON = [
         "Globus download_task_id=72a56d84-a951-11ea-bee5-0e716405a293",
     ],
     ["downloading", "download complete", "2020-06-08 06:30:34", ""],
-    ["download complete", "finished", "2020-06-08 06:30:44", ""]
+    ["download complete", "finished", "2020-06-08 06:30:44", ""],
 ]
 
 RUN_LOG_TEXT = (
@@ -173,7 +174,7 @@ TASK_LOG_JSON = [
         "queued",
         "2020-06-10 13:42:44",
         "",
-        "The job was received by JTM-manager and sent to JTM-worker"
+        "The job was received by JTM-manager and sent to JTM-worker",
     ],
     [
         "runblastplus_sub.task2",
@@ -183,8 +184,8 @@ TASK_LOG_JSON = [
         "pending",
         "2020-06-10 13:43:36",
         "",
-        "The job was receive by JTM-worker and is awaiting resources"
-    ]
+        "The job was receive by JTM-worker and is awaiting resources",
+    ],
 ]
 
 TASK_LOG_TEXT = (
@@ -345,13 +346,46 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     def mock_post(url, data=None, files=None, headers={}):
         return MockResult({"run_id": "36"}, 201)
 
-    def mock_is_file_accessible(*args):
-        return True
-
     monkeypatch.setattr(requests, "get", mock_get)
     monkeypatch.setattr(requests, "post", mock_post)
-    monkeypatch.setattr(jaws_client.workflow, 'is_file_accessible', mock_is_file_accessible)
 
     runner = click.testing.CliRunner()
     result = runner.invoke(run, ["submit", wdl, inputs, "CORI"])
     assert result.exit_code == 0
+
+
+def test_get(configuration, mock_user, monkeypatch):
+    def mock__run_status(run_id):
+        if run_id == "1":
+            return {
+                "status": "download complete",
+                "output_dir": "/data/repo/dir/mockuser/run1",
+            }
+        else:
+            return {"status": "submitted", "output_dir": "/data/repo/dir/mockuser/run1"}
+
+    def mock_run(args, **kwargs):
+        if args[0] == "rsync" and args[1] == "-a" and len(args) == 4:
+            return
+        else:
+            raise ValueError
+
+    def mock_rsync(src, dest, options):
+        class Result:
+            def __init__(self):
+                self.returncode = 0
+        return Result()
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    monkeypatch.setattr(jaws_client.analysis, "_run_status", mock__run_status)
+    monkeypatch.setattr(jaws_client.workflow, "rsync", mock_rsync)
+
+    runner = click.testing.CliRunner()
+
+    # a completed run
+    result = runner.invoke(run, ["get", "1", "/home/mockuser/mydir"])
+    assert result.exit_code == 0
+
+    # an incomplete run
+    result = runner.invoke(run, ["get", "2", "/home/mockuser/mydir"])
+    assert result.exit_code != 0

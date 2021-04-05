@@ -220,7 +220,7 @@ task pre_qc {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -256,7 +256,7 @@ task gff_merge {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -290,7 +290,7 @@ task fasta_merge {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -317,7 +317,7 @@ task gff_and_fasta_stats {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -341,7 +341,7 @@ task post_qc {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1

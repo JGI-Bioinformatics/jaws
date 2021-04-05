@@ -21,12 +21,12 @@ Here are the steps we're going to take for this tutorial:
 ********************************
 Clone the Example Repository
 ********************************
-For this tutorial, I will be using the example code from `jaws-tutorial-examples <https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git>`_.
+For this tutorial, I will be using the example code from `jaws-tutorial-examples <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git>`_.
 To follow along, do...
 
 .. code-block:: text
 
-   git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
+   git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
    cd jaws-tutorial-example/5min_example
    
 
@@ -210,7 +210,7 @@ After shifter is removed from the :bash:`command{}` block, you would add :bash:`
     runtime {
         docker: "jfroula/bbtools:1.2.1"
         time: "00:30:00"
-        mem: "5G"
+        memory: "5G"
         poolname: "small"
         node: 1
         nwpn: 1

@@ -1,4 +1,4 @@
-  #!/usr/bin/env bash
+#!/usr/bin/env bash
 
 echo "BEGIN deploy-cromwell"
 
@@ -73,10 +73,10 @@ fi
 #
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
-if [ $SITE_CONTAINER_TYPE = "shifter" ]; then
+if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
   CONTAINER_EXPORT=""
   CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
-  CONTAINER_EXEC_COMMAND="\$CONTAINER_WRAPPER \${docker} \$SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
+  CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
   cat <<EOM > "$CONTAINER_WRAPPER"
 #!/usr/bin/env bash
 shifter --image=\$1 -V \$2:\$3 \$4 \$5
@@ -84,16 +84,14 @@ EOM
   chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
   chmod 775 "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
 
-elif [ $SITE_CONTAINER_TYPE = "singularity" ]; then
-  CONTAINER_EXPORT="
-export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_DIR
+elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
+  CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_DIR
 export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_DIR
 export SINGULARITY_TMPDIR=$SITE_CONTAINERS_DIR
 export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_DIR
 export FLOCK_DIR=/tmp
 
 IMAGE=\$(echo \${docker} | tr '/:' '_').sif
-IMAGE=\$SINGULARITY_CACHEDIR/\$IMAGE
 echo \"\$IMAGE\"
 if [ -z \$SINGULARITY_CACHEDIR ];
     then CACHE_DIR=\$HOME/.singularity/cache
@@ -101,13 +99,23 @@ if [ -z \$SINGULARITY_CACHEDIR ];
 fi
 # Make sure cache dir exists so lock file can be created by flock
 mkdir -p \$CACHE_DIR
-LOCK_FILE=\$CACHE_DIR/singularity_pull_flock
-flock --exclusive --timeout 900 \$LOCK_FILE \
-singularity pull \$IMAGE docker://\${docker} && echo \"Successfully pulled \${docker}!\" \
-|| echo \"Faield to pull \${docker}!\"
+LOCK_FILE=\$FLOCK_DIR/singularity_pull_flock
+out=\$(flock --exclusive --timeout 900 \$LOCK_FILE \
+singularity pull \$IMAGE docker://\${docker}  2>&1)
+ret=\$?
+if [[ \$ret == 0 ]]; then
+    echo \"Successfully pulled \${docker}!\"
+else
+    if [[ \$(echo \$out | grep \"exists\" ) ]]; then
+        echo \"Image file already exists, \${docker}!\"
+    else
+        echo \"Failed to pull \${docker}!\"
+        exit \$ret
+    fi
+fi
 "
   CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
-  CONTAINER_EXEC_COMMAND="\$CONTAINER_WRAPPER SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
+  CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
   cat <<EOM > "$CONTAINER_WRAPPER"
 #!/usr/bin/env bash
 REMOTE_REF=\$1
@@ -174,6 +182,13 @@ backend
   default = "JTM"
   providers
   {
+    LOCAL
+    {
+      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+      config {
+        concurrent-job-limit = 0
+      }
+    }
     JTM
     {
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
@@ -183,7 +198,7 @@ backend
         String? docker
         String time = "00:30:00"
         Int cpu = 32
-        String mem = "5G"
+        Float? memory_gb = 5
         String cluster = "${JAWS_SITE,,}"
         String poolname = "small"
         String constraint = "$SITE_CLUSTER_CONSTRAINT"
@@ -214,7 +229,7 @@ submit \
 -cl \${cluster} \
 -t \${time} \
 -c \${cpu} \
--m \${mem} \
+-m \${memory_gb} \
 -p \${poolname} \
 -N \${node} \
 -nwpn \${nwpn} \
@@ -228,8 +243,7 @@ submit \
 
 
         submit-docker = """
-[ -z \$CONTAINER_EXPORT ] || SINGULARITY_EXPORT="\$CONTAINER_EXPORT"
-\$SINGULARITY_EXPORT
+$CONTAINER_EXPORT
 CONSTRAINT=\${constraint}
 QOS=\${qos}
 PARTITION=\${partition}
@@ -239,11 +253,11 @@ $CONTAINER_CHECK
 [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
 jtm --config=$JTM_CONFIG_FILE \
 submit \
--cmd '$CONTAINER_EXEC_COMMAND' \
+-cmd "$CONTAINER_EXEC_COMMAND" \
 -cl \${cluster} \
 -t \${time} \
 -c \${cpu} \
--m \${mem} \
+-m \${memory_gb} \
 -p \${poolname} \
 -N \${node} \
 -nwpn \${nwpn} \
@@ -297,6 +311,8 @@ source $INSTALL_DIR/jtm/bin/activate
 $SITE_LOAD_JAVA
 
 test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
+chgrp $SITE_JTM_GROUP $SITE_JTM_SCRATCH_DIR
+chmod 2775 $SITE_JTM_SCRATCH_DIR
 cd $SITE_JTM_SCRATCH_DIR
 exec java -Xmx5g -Dconfig.file="$CONFIG_DIR/cromwell.conf" -Djava.io.tmpdir="$SITE_CROMWELL_TMPDIR" -jar "$INSTALL_DIR/cromwell.jar" server
 EOM
