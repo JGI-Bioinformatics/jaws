@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.2.0rc-3 (2021-04-05)
+Release addresses error messaging and bugs in the jaws_rpc module
+
+### Minor core changes
+- RPC log messages were not written to their log files, fix includes adding logger to jaws_rpc (!725)
+- Unbound local error with jaws_rpc fix (!726)
+- Improve messaging of error with inputs. No longer rejects bad paths in inputs.json but warns the user (!712)
+
 ## v2.2.0rc-2 (2021-03-24)
 Release that addresses the stuck in "uploading" issue (#797, #781, #790, #603, #407). Jobs were stuck in
 uploading due to slow processing of the messages from RMQ. MR !702 adds improvement in message processing.
