@@ -20,9 +20,6 @@ def test_start_file_logger(tmp_path):
 def test_update_site(patch, monkeypatch):
     mock_rpc = mock.MagicMock()
     mock_rpc.__enter__.return_value = mock_rpc
-    mock_rpc.request.return_value = {"jsonrpc": "2.0", "result": {"foo": "bar"}}
-    mock_log = mock.Mock()
-    monkeypatch.setattr('jaws_parsl.recv.logger', mock_log)
     jaws_parsl.recv.update_site('update', 1)
 
 
@@ -30,7 +27,5 @@ def test_update_site(patch, monkeypatch):
 def test_update_site_fail(patch, monkeypatch):
     mock_rpc = mock.MagicMock()
     mock_rpc.__enter__.return_value = mock_rpc
-    mock_log = mock.Mock()
-    monkeypatch.setattr('jaws_parsl.recv.logger', mock_log)
     with pytest.raises(Exception):
         jaws_parsl.recv.update_site('update', 1)

@@ -115,7 +115,8 @@ def update_site(status, task_id):
                         "host": rpc_params["host"],
                         "vhost": rpc_params["vhost"],
                         "port": rpc_params["port"],
-                        "queue": rpc_params["queue"]}
+                        "queue": rpc_params["queue"]},
+                       logger
                        ) as rpc_cl:
             wait_count = 0
             response = rpc_cl.request("update_job_status", data)
