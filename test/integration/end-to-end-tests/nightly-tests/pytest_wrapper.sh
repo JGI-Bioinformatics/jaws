@@ -1,10 +1,10 @@
 #!/bin/bash
 
-TEST_FOLDER=$1
+TEST_FOLDER=$2
 
 # check we have all arguments and environmental variables set
 if [[ ! $TEST_FOLDER ]]; then
-	echo "Usage: $0 <folder-with-tests>"
+	echo "Usage: $0 <[test-script|folder-with-tests]>"
 	exit 1
 fi
 
@@ -78,9 +78,9 @@ else
 fi
 
 
-# source venv
-echo "source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
-      source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh
+## source venv
+#echo "source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
+#      source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh
 
 # write token to jaws.conf
 # [USER]

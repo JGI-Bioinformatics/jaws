@@ -391,12 +391,12 @@ deploy-jaws-cori-dev-integration-tests:
 nightly:on-schedule:
   stage: nightly-tests
   variables:
-    DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
   tags: 
     - cori
   rules:
     - if: '$RUN_NIGHTLY == "true"'
   script:
-    - ./test/integration/end-to-end-tests/nightly-tests/pytest_wrapper.sh health-robot
+    - ./test/integration/end-to-end-tests/nightly-tests/pytest_wrapper.sh dev health-robot
+    - ./test/integration/end-to-end-tests/nightly-tests/pytest_wrapper.sh prod health-robot
 
