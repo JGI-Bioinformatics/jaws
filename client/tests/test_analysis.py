@@ -371,7 +371,10 @@ def test_get(configuration, mock_user, monkeypatch):
             raise ValueError
 
     def mock_rsync(src, dest, options):
-        pass
+        class Result:
+            def __init__(self):
+                self.returncode = 0
+        return Result()
 
     monkeypatch.setattr(subprocess, "run", mock_run)
     monkeypatch.setattr(jaws_client.analysis, "_run_status", mock__run_status)

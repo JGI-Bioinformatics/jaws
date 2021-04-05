@@ -79,6 +79,42 @@ paths:
         401:
           description: Authorization information is missing or invalid.
 
+    post:
+      operationId: jaws_central.auth.add_user
+      tags:
+        - user
+      summary: Add new user
+      description: Create a new user account and generate a JAWS access token
+      parameters:
+        - name: uid
+          in: formData
+          description: User ID
+          type: string
+          required: True
+        - name: name
+          in: formData
+          description: User's full name
+          type: string
+          required: True
+        - name: email
+          in: formData
+          description: User's email address
+          type: string
+          required: True
+        - name: admin
+          in: formData
+          description: True if user has admin access
+          type: boolean
+          default: False
+          required: False
+      responses:
+        201:
+          description: New user added
+        401:
+          description: Access denied
+      security:
+        - oauth2: ['admin']
+
   /wdl:
     get:
       operationId: jaws_central.catalog_rest.list_wdls

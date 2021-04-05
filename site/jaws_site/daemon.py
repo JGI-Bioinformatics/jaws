@@ -74,7 +74,8 @@ class Daemon:
         """
         try:
             self.rpc_client = rpc_client.RpcClient(
-                config.conf.get_section("CENTRAL_RPC_CLIENT")
+                config.conf.get_section("CENTRAL_RPC_CLIENT"),
+                logger
             )
         except Exception as error:
             logger.exception(f"Unable to init central rpc client: {error}")

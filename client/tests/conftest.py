@@ -55,11 +55,11 @@ def wdl_path(tmp_path):
 @pytest.fixture()
 def input_file(wdl_path):
     wdl_dir = wdl_path
-    inputs = wdl_dir / "inputs.json"
+    inputs = wdl_dir / "test.json"
     path = wdl_dir.as_posix()
     contents = """
 {
-    "file1": "%s/test.wdl"
+    "file1": "%s/test.fasta"
 }"""
     inputs.write_text(contents % path)
     test_wdl = wdl_dir / "test.wdl"
@@ -73,7 +73,12 @@ task hello_world {
   }
 }
     """)
-    return inputs
+    test_file = wdl_dir / "test.fasta"
+    test_file.write_text("""
+>test
+GATTACA
+    """)
+    return path
 
 
 @pytest.fixture
@@ -680,7 +685,7 @@ def refdata_inputs(tmp_path):
 
     contents = """{{
     "file1": "{0}",
-      "runblastplus_sub.ncbi_nt": "/refdata/"
+      "runblastplus_sub.ncbi_nt": "/refdata/nt"
 }}
 """.format(text_file)
 
