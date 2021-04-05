@@ -397,6 +397,5 @@ nightly:on-schedule:
   rules:
     - if: '$RUN_NIGHTLY == "true"'
   script:
-    - ./test/integration/end-to-end-tests/nightly-tests/pytest_wrapper.sh dev health-robot
-    - ./test/integration/end-to-end-tests/nightly-tests/pytest_wrapper.sh prod health-robot
+    - ./test/integration/end-to-end-tests/nightly-tests/pytest_wrapper.sh health-robot
 
