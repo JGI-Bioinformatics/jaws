@@ -2,6 +2,7 @@ import pytest
 import os
 import shutil
 import uuid
+import warnings
 
 import jaws_client.config
 import jaws_client.workflow
@@ -150,7 +151,13 @@ def test_appropriate_staging_dir_for_all_wdls(configuration, subworkflows_exampl
 def test_fail_invalid_backend(wdl_with_invalid_backend):
     wdl = jaws_client.workflow.WdlFile(wdl_with_invalid_backend, "1234")
     with pytest.raises(jaws_client.workflow.WdlError) as e_info:
-        wdl.verify_wdl_has_no_backend_tags()
+        wdl.verify_wdl_has_no_local_backend()
+
+def test_warning_rises_with_unknown_backend(wdl_with_warned_backend):
+    wdl = jaws_client.workflow.WdlFile(wdl_with_warned_backend, "1234")
+    with pytest.warns(UserWarning) as e_info:
+        wdl.verify_wdl_has_no_local_backend()
+
 
 def test_move_input_files_to_destination(configuration, sample_workflow):
     inputs = os.path.join(sample_workflow, "workflow", "sample.json")

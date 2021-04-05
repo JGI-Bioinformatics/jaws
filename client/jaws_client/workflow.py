@@ -248,7 +248,7 @@ class WdlFile:
             match = re.search(command_line_regex, sub)
             if sub not in filtered_out_lines and not match:
                 sub_wdl = WdlFile(sub, self.submission_id)
-                sub_wdl.verify_wdl_has_no_backend_tags()
+                sub_wdl.verify_wdl_has_no_local_backend()
                 subworkflows.add(sub_wdl)
         return subworkflows
 
@@ -290,7 +290,7 @@ class WdlFile:
         if stderr:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
-        self.verify_wdl_has_no_backend_tags()
+        self.verify_wdl_has_no_local_backend()
 
     @staticmethod
     def _get_wdl_name(file_location):
@@ -340,9 +340,9 @@ class WdlFile:
         shutil.copy(self.file_location, destination)
         os.chmod(destination, permissions)
 
-    def verify_wdl_has_no_backend_tags(self):
+    def verify_wdl_has_no_local_backend(self):
         """
-        Checks for disallowed "backend" keyword in a WDL file.
+        Checks for disallowed "LOCAL backend" keyword in a WDL file.
 
         Each Site has it's own configured backend; we do not allow users to specify which to
         use.  In particular, the "LOCAL" backend would cause jobs to run on the head node,
@@ -354,11 +354,16 @@ class WdlFile:
         :type wdl: str
         :return:
         """
+        valid_backends = ["JTM", "PARSL"]
         with open(self.file_location, "r") as fh:
             for line in fh:
-                m = re.match(r"^\s*backend", line)
+                m = re.match(r'\s*backend\s*:\s*"?(\w+)"?', line)
                 if m:
-                    raise WdlError("ERROR: WDLs may not contain 'backend' tag")
+                    backend = m.group(1)
+                    if backend.upper() == "LOCAL":
+                        raise WdlError("ERROR: WDLs may not use 'LOCAL' backend")
+                    elif backend.upper() not in valid_backends:
+                        warnings.warn(f"invalid backend specified in WDL: {backend}", UserWarning)
 
     def __eq__(self, other):
         return self.file_location == other.file_location

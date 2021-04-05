@@ -101,7 +101,28 @@ task hello_world {
 @pytest.fixture
 def wdl_with_invalid_backend(wdl_path):
     wdl_dir = wdl_path
-    good_runtime = wdl_dir / "backend.wdl"
+    bad_local_runtime = wdl_dir / "backend.wdl"
+    contents = """
+task hello_world {
+
+  String hi = "Hello world"
+
+  command {
+    echo ${hi}
+  }
+  runtime {
+    cpu: "1"
+    backend: "LOCAL"
+  }
+}"""
+    bad_local_runtime.write_text(contents)
+    return bad_local_runtime
+
+
+@pytest.fixture
+def wdl_with_warned_backend(wdl_path):
+    wdl_dir = wdl_path
+    backend_with_warning = wdl_dir / "backend.wdl"
     contents = """
 task hello_world {
 
@@ -115,8 +136,29 @@ task hello_world {
     backend: "AWS"
   }
 }"""
-    good_runtime.write_text(contents)
-    return good_runtime
+    backend_with_warning.write_text(contents)
+    return backend_with_warning
+
+
+@pytest.fixture
+def wdl_with_valid_backend(wdl_path):
+    wdl_dir = wdl_path
+    good_backend = wdl_dir / "backend.wdl"
+    contents = """
+task hello_world {
+
+  String hi = "Hello world"
+
+  command {
+    echo ${hi}
+  }
+  runtime {
+    cpu: "1"
+    backend: "PARSL"
+  }
+}"""
+    good_backend.write_text(contents)
+    return good_backend
 
 
 @pytest.fixture
