@@ -11,7 +11,7 @@ import globus_sdk
 import logging
 from datetime import datetime
 from jaws_site.database import Session
-from jaws_site.models import Run, Run_Log, Job_Log
+from jaws_site.models import Run, Run_Log
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_site.globus import GlobusService
@@ -19,6 +19,21 @@ from jaws_rpc import rpc_client
 
 
 logger = logging.getLogger(__package__)
+
+
+def file_size(file_path: str):
+    """
+    Checks if a file exists and is a file; if it does, check it's size.
+
+    :param file_path: path to file
+    :type file_path: str
+    :return: Size in bytes if file exists; else None
+    :rtype: int
+    """
+    if os.path.isfile(file_path):
+        return os.path.getsize(file_path)
+    else:
+        return None
 
 
 class DataError(Exception):
@@ -59,7 +74,8 @@ class Daemon:
         """
         try:
             self.rpc_client = rpc_client.RpcClient(
-                config.conf.get_section("CENTRAL_RPC_CLIENT")
+                config.conf.get_section("CENTRAL_RPC_CLIENT"),
+                logger
             )
         except Exception as error:
             logger.exception(f"Unable to init central rpc client: {error}")
@@ -101,9 +117,6 @@ class Daemon:
             proc = self.operations.get(run.status, None)
             if proc:
                 proc(run)
-
-        # process logs
-        self.update_job_status_logs()
         self.session.close()
 
     def _get_globus_transfer_status(self, run, task_id):
@@ -136,31 +149,47 @@ class Daemon:
         uploads_dir = config.conf.get("SITE", "uploads_dir")
         return os.path.join(uploads_dir, run.user_id, run.submission_id)
 
+    def get_run_input(self, run):
+        """
+        Checks if the input files are valid and returns a tuple of their paths.  Otherwise raises an error.
+
+        :param run: The SQLAlchemy ORM model for the run record.
+        :type run: obj
+        :return: list of [wdl,json,zip] file paths
+        :rtype: list
+        """
+        suffixes_and_required = [("wdl", True), ("json", True), ("zip", False)]
+        files = []
+        file_path = self.get_uploads_file_path(run)
+        for (suffix, required) in suffixes_and_required:
+            a_file = f"{file_path}.{suffix}"
+            a_file_size = file_size(a_file)
+            if required:
+                if a_file_size is None:
+                    raise DataError(f"Input {suffix} file not found: {a_file}")
+                elif a_file_size == 0:
+                    raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
+            elif a_file_size is not None and a_file_size == 0:
+                raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
+            if a_file_size:
+                files.append(a_file)
+        return files
+
     def submit_run(self, run):
         """
         Submit a run to Cromwell.
         """
         logger.debug(f"Run {run.id}: Submit to Cromwell")
 
-        # Validate input
-        file_path = self.get_uploads_file_path(run)
-        wdl_file = file_path + ".wdl"
-        json_file = file_path + ".json"
-        zip_file = file_path + ".zip"  # might not exist
-        if not os.path.exists(json_file):
-            logger.warning(f"Missing inputs JSON for run {run.id}: {json_file}")
-            self.update_run_status(run, "missing input", "Missing inputs JSON file")
-            return
-        if not os.path.exists(wdl_file):
-            logger.warning(f"Missing WDL for run {run.id}: {wdl_file}")
-            self.update_run_status(run, "missing input", "Missing WDL file")
-            return
-        if not os.path.exists(zip_file):
-            zip_file = None
-
-        # submit to Cromwell
         try:
-            cromwell_run_id = self.cromwell.submit(wdl_file, json_file, zip_file)
+            infiles = self.get_run_input(run)
+        except Exception as error:
+            logger.error(f"Run {run.id}: {error}")
+            self.update_run_status(run, "submission failed", f"Bad input: {error}")
+            return
+
+        try:
+            cromwell_run_id = self.cromwell.submit(*infiles)
         except Exception as error:
             logger.error(f"Run {run.id} submission failed: {error}")
             self.update_run_status(run, "submission failed")
@@ -253,11 +282,25 @@ class Daemon:
         file_path = self.get_uploads_file_path(run)
         wdl_file = file_path + ".wdl"
         json_file = file_path + ".json"
+        orig_json_file = file_path + ".orig.json"
         zip_file = file_path + ".zip"  # might not exist
-        shutil.copy(wdl_file, run.cromwell_workflow_dir)
-        shutil.copy(json_file, run.cromwell_workflow_dir)
+        try:
+            shutil.copy(wdl_file, run.cromwell_workflow_dir)
+        except Exception as error:
+            logger.error(f"Error copying WDL from {wdl_file}->{run.cromwell_workflow_dir}: {error}")
+        try:
+            shutil.copy(json_file, run.cromwell_workflow_dir)
+        except Exception as error:
+            logger.error(f"Error copying JSON from {json_file}->{run.cromwell_workflow_dir}: {error}")
+        try:
+            shutil.copy(orig_json_file, run.cromwell_workflow_dir)
+        except Exception as error:
+            logger.error(f"Error copying original JSON from {orig_json_file}->{run.cromwell_workflow_dir}: {error}")
         if os.path.exists(zip_file):
-            shutil.copy(zip_file, run.cromwell_workflow_dir)
+            try:
+                shutil.copy(zip_file, run.cromwell_workflow_dir)
+            except Exception as error:
+                logger.error(f"Error copying ZIP from {zip_file}->{run.cromwell_workflow_dir}: {error}")
 
         transfer_task_id = None
         try:
@@ -265,7 +308,7 @@ class Daemon:
                 f"Run {run.id}",
                 run.output_endpoint,
                 run.cromwell_workflow_dir,
-                run.output_dir
+                run.output_dir,
             )
         except globus_sdk.GlobusAPIError:
             logger.exception("error while submitting transfer")
@@ -338,114 +381,6 @@ class Daemon:
                 f"Failed to insert log for Run {run.id} : {new_status}, {reason}: {error}"
             )
         # notifying Central of state change is handled by send_run_status_logs
-
-    def update_job_status_logs(self):
-        """
-        JTM job status logs are missing some fields: run_id, task_name, attempt.
-        Fill them in now by querying Cromwell metadata.
-        """
-        logger.debug("Update job status logs")
-
-        # select incomplete job log entries from database
-        last_cromwell_run_id = None  # cache last
-        last_metadata = None  # no need to get from cromwell repeatedly
-        try:
-            query = (
-                self.session.query(Job_Log)
-                .filter_by(task_name=None)
-                .order_by(Job_Log.cromwell_run_id)
-            )
-        except Exception as error:
-            logger.exception(f"Unable to select job_logs: {error}")
-            return
-
-        if not query:
-            # nothing to do
-            return
-
-        for log in query:
-            run_id = log.run_id  # may be None
-            cromwell_run_id = log.cromwell_run_id
-            cromwell_job_id = log.cromwell_job_id
-            logger.debug(f"Job {cromwell_job_id} now {log.status_to}")
-
-            # Lookup run_id given cromwell_run_id
-            if not run_id:
-                run = (
-                    self.session.query(Run)
-                    .filter_by(cromwell_run_id=cromwell_run_id)
-                    .one_or_none()
-                )
-                if not run:
-                    # JTM may send first job status update before cromwell_run_id is recorded
-                    continue
-                log.run_id = run_id = run.id
-
-                # update run state if first job to run
-                if log.status_to == "running" and run.status == "queued":
-                    self.update_run_status(run, "running")
-
-                try:
-                    self.session.commit()
-                except Exception as error:
-                    self.session.rollback()
-                    logger.exception(f"Error updating job log: {error}")
-
-            # TRY TO GET task_name AND attempt FROM CROMWELL METADATA
-            if cromwell_run_id == last_cromwell_run_id:
-                # another update for same run, reuse previously initialized object
-                metadata = last_metadata
-            else:
-                # get from cromwell
-                try:
-                    metadata = last_metadata = self.cromwell.get_metadata(
-                        cromwell_run_id
-                    )
-                    last_cromwell_run_id = cromwell_run_id
-                except Exception as error:
-                    logger.exception(
-                        f"Error getting metadata for {cromwell_run_id}: {error}"
-                    )
-                    continue
-            job_info = metadata.get_job_info(cromwell_job_id)
-            if job_info is None:
-                status = metadata.get("status")
-                if status in ("Failed", "Succeeded", "Aborted"):
-                    logger.error(
-                        f"job_id {cromwell_job_id} not found in inactive run, {cromwell_run_id}"
-                    )
-                    # If the Run is done and the job_id cannot be found, it's an orphan job
-                    # (Cromwell never received the job_id from JTM), so set task_name to "ORPHAN"
-                    # to mark it as such and so it won't be picked up in the next round.
-                    log.task_name = "ORPHAN"
-                    try:
-                        self.session.commit()
-                    except Exception as error:
-                        self.session.rollback()
-                        logger.exception(f"Error updating job log: {error}")
-                    continue
-                else:
-                    # The Cromwell metadata could be a bit outdated; try again next time
-                    logger.debug(
-                        f"job_id {cromwell_job_id} not found in active run, {cromwell_run_id}"
-                    )
-                continue
-            log.attempt = job_info["attempt"]
-            log.task_name = job_info["task_name"]
-            task_dir = job_info[
-                "call_root"
-            ]  # not saved in db but may be used below for xfer
-            try:
-                self.session.commit()
-            except Exception as error:
-                self.session.rollback()
-                logger.exception(f"Error updating job log: {error}")
-
-            # if Task complete, then transfer output
-            if log.status_to in ["success", "failed"] and task_dir:
-                logger.debug(
-                    f"Transfer Run {log.run_id}, Task {log.task_name}:{log.attempt}"
-                )
 
     def send_run_status_logs(self):
         """Send run logs to Central"""

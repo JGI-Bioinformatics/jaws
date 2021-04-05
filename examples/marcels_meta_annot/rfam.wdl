@@ -77,7 +77,7 @@ task cmsearch {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -112,7 +112,7 @@ task clan_filter {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -139,7 +139,7 @@ task misc_and_regulatory {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -165,7 +165,7 @@ task rrna {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -192,7 +192,7 @@ task ncrna_tmrna {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1

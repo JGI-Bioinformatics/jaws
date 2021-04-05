@@ -33,7 +33,6 @@ import os
 class Task:
     """A Task may have multiple calls, each with a unique job_id.
     If a Task is a subworkflow, it will contain a Metadata object.
-    Associated job_ids are stored in a dict to facilitate lookup.
     """
 
     def __init__(self, workflows_url, name, calls, cache={}):
@@ -53,7 +52,6 @@ class Task:
         self.workflows_url = workflows_url
         self.name = name
         self.calls = calls
-        self.jobs = {}  # job_id => dict
         self.subworkflows = {}  # subworkflow_id => Metadata obj
 
         for call in calls:
@@ -65,32 +63,6 @@ class Task:
                 metadata = Metadata(self.workflows_url, workflow_id, None, cache)
                 # a subworkflow task has a workflow id for each attempt
                 self.subworkflows[workflow_id] = metadata
-                # copy the subworkflows' jobs into the jobs dict;
-                # this dict is used when we query a workflow to see if a job id belongs to it or not
-                for job_id in metadata.jobs:
-                    logger.debug(
-                        f"Sub {self.name}, task {metadata.jobs[job_id]['task_name']}: job {job_id}"
-                    )
-                    self.jobs[job_id] = {
-                        "task_name": f"{self.name}.{metadata.jobs[job_id]['task_name']}",
-                        "attempt": int(metadata.jobs[job_id]["attempt"]),
-                        "call_root": None
-                    }
-                    if "callRoot" in metadata.jobs[job_id]:
-                        # callRoot is not defined for subworkflow tasks
-                        self.jobs[job_id]["call_root"] = metadata.jobs[job_id]["callRoot"]
-
-            elif "jobId" in call:
-                job_id = int(call["jobId"])
-                logger.debug(f"Task {self.name}: job {job_id}")
-                self.jobs[job_id] = {
-                    "task_name": self.name,
-                    "attempt": int(call["attempt"]),
-                    "call_root": None
-                }
-                if "callRoot" in call:
-                    # callRoot is not defined for subworkflow tasks
-                    self.jobs[job_id]["call_root"] = call["callRoot"]
 
     def is_subworkflow(self):
         return bool(self.subworkflows)
@@ -158,6 +130,12 @@ class Task:
         if stderr_file and os.path.isfile(stderr_file):
             with open(stderr_file, "r") as file:
                 msg = f"{msg}\nstderr:\n" + file.read()
+
+        # append standard output (if exists)
+        stdout_file = self.stdout(attempt)
+        if stdout_file and os.path.isfile(stdout_file):
+            with open(stdout_file, "r") as file:
+                msg = f"{msg}\nstdout:\n" + file.read()
         return msg
 
     def stdout(self, attempt=None, src=None, dest=None):
@@ -283,7 +261,6 @@ class Metadata:
         """
         logger = logging.getLogger(__package__)
         self.tasks = []  # Task objects
-        self.jobs = {}  # job_id => dict
         self.subworkflows = {}  # workflow_id => metadata obj
         if "calls" in self.data:
             calls = self.data["calls"]
@@ -291,12 +268,6 @@ class Metadata:
                 logger.debug(f"Workflow {self.workflow_id}: Init task {task_name}")
                 task = Task(self.workflows_url, task_name, calls[task_name], cache)
                 self.tasks.append(task)
-                for job_id in task.jobs:
-                    job_info = task.jobs[job_id]
-                    logger.debug(
-                        f"Workflow {self.workflow_id}: job {job_id} = {job_info}"
-                    )
-                    self.jobs[job_id] = job_info
                 if task.is_subworkflow:
                     for sub_id, sub_meta in task.subworkflows.items():
                         self.subworkflows[sub_id] = sub_meta
@@ -311,21 +282,6 @@ class Metadata:
 
     def is_subworkflow(self):
         return True if "parentWorkflowId" in self.data else False
-
-    def get_job_info(self, job_id):
-        """Get task name and attempt if found, otherwise None.
-        :param job_id: cromwell job ID to look up
-        :type job_id" int
-        :return: selected key facts about the job
-        :rtype: dict
-        """
-        logger = logging.getLogger(__package__)
-        logger.debug(f"Get info for job {job_id}")
-        job_id = int(job_id)
-        if job_id in self.jobs:
-            return self.jobs[job_id]
-        else:
-            return None
 
     def execution_status(self):
         """
@@ -346,6 +302,22 @@ class Metadata:
             if an_error:
                 result[task.name] = an_error
         return result
+
+    def task_summary(self):
+        """
+        Return table of all tasks, including any subworkflows.
+        """
+        summary = []
+        for task in self.tasks:
+            for call in task.calls:
+                if "jobId" in call:
+                    summary.append([self.workflow_id, task.name, call["attempt"], call["jobId"]])
+                elif "subWorkflowId" in call:
+                    subworkflow_id = call["subWorkflowId"]
+                    subworkflow = task.subworkflows[subworkflow_id]
+                    sub_summary = subworkflow.task_summary()
+                    summary.extend(sub_summary)
+        return summary
 
 
 class Cromwell:

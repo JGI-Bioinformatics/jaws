@@ -82,7 +82,7 @@ Download the Example WDL repository
 
 .. code-block:: text
 
-  git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
+  git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
   cd jaws-tutorial-examples/5min_example
 
 ********************

@@ -256,7 +256,7 @@ def worker(
     help="Unique Cromwell job id with step name",
     required=False,
 )
-@click.option("-m", "--memory", help="Slurm memory request per node")
+@click.option("-m", "--memory", help="Slurm memory request per node", type=float)
 @click.option(
     "-N",
     "--nnodes",
@@ -293,7 +293,7 @@ def submit(
     constraint: str,
     num_worker_per_node: int,
     cromwell_job_id: str,
-    memory: str,
+    memory: float,
     nnodes: int,
     qos: str,
     partition: str,
@@ -360,6 +360,9 @@ def submit(
         )
         sys.exit(1)
 
+    node_mem_val = int(memory+0.5)
+    node_mem = f"{node_mem_val}G"
+
     add_info = pool_name
     ret = JtmInterface("task", ctx, info_tag=add_info).call(
         task_file=task_file,
@@ -367,7 +370,7 @@ def submit(
         task_id=0,
         jtm_host_name=cluster,
         job_time=job_time,
-        node_mem=memory,
+        node_mem=node_mem,
         num_core=ncpu,
         pool_name=pool_name,
         shared=shared,
@@ -380,7 +383,7 @@ def submit(
         account=account,
     )
 
-    if ret is None:
+    if ret is None or ret == -1:
         logger.error("jtm submit: invalid task or runtime definition.")
         ret_code = 1
     else:

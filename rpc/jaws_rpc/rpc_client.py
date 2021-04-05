@@ -4,7 +4,6 @@ import threading
 import amqpstorm
 from amqpstorm import Message
 import json
-import logging
 from time import sleep
 from jaws_rpc import jsonrpc_utils
 
@@ -15,19 +14,17 @@ DEFAULT_MAX_WAIT = 10
 DEFAULT_MESSAGE_TTL = 10  # expires in seconds or 0=doesn't expire
 
 
-logger = logging.getLogger(__package__)
-
-
 class RpcClient(object):
     """Asynchronous remote procedure call (RPC) client class."""
 
-    def __init__(self, params):
+    def __init__(self, params, logger):
         """Constructor
 
         :param params: A dictionary containing configuration parameters.
         :type params: dict
         """
         self.params = {}
+        self.logger = logger
         for required_param in ["host", "vhost", "user", "password", "queue"]:
             if required_param not in params:
                 raise ConfigurationError(f"{required_param} required")
@@ -48,7 +45,16 @@ class RpcClient(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Close connection to RabbitMQ"""
+        """Close connection to RabbitMQ when exiting a context manager (with statement)"""
+        if self.channel:
+            self.channel.close()
+            self.channel = None
+        if self.connection:
+            self.connection.close()
+            self.connection = None
+
+    def __del__(self):
+        """Close connection to RabbitMQ when object is destroyed"""
         if self.channel:
             self.channel.close()
         if self.connection:
@@ -56,7 +62,7 @@ class RpcClient(object):
 
     def open(self):
         """Open connection to RabbitMQ"""
-        logger.debug(f"Open connection to {self.params['host']}:{self.params['queue']}")
+        self.logger.debug(f"Open connection to {self.params['host']}:{self.params['queue']}")
         try:
             self.connection = amqpstorm.Connection(
                 self.params["host"],
@@ -125,7 +131,7 @@ class RpcClient(object):
         self.queue[message.correlation_id] = None
 
         # Publish the RPC request.
-        logger.debug(f"Publishing message {message.correlation_id} to {self.params['queue']}")
+        self.logger.debug(f"Publishing message {message.correlation_id} to {self.params['queue']}")
         try:
             message.publish(routing_key=self.params["queue"])
         except Exception as error:

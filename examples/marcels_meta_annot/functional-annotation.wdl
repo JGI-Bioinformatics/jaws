@@ -209,7 +209,7 @@ task ko_ec {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -313,7 +313,7 @@ task smart {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -416,7 +416,7 @@ task cog {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -517,7 +517,7 @@ task tigrfam {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -618,7 +618,7 @@ task superfam {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -717,7 +717,7 @@ task pfam {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -819,7 +819,7 @@ task cath_funfam {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -853,7 +853,7 @@ task signalp {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -887,7 +887,7 @@ task tmhmm {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1
@@ -928,7 +928,7 @@ task product_name {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan"
     node: 5
     nwpn: 1

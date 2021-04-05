@@ -31,7 +31,7 @@ Example configs
 Example of Running a WDL with Slurm Config
 ******************************************
 You can see a working example of how to run a task on slurm.
-`working example using slurm <https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples/using_slurm_and_local>`_
+`working example using slurm <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples/using_slurm_and_local>`_
 
 Follow the README.md in the above repository to run the WDL (`test.wdl`) and inspect the WDL and `cori.conf` file. 
 
