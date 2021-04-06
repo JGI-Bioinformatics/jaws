@@ -72,7 +72,7 @@ class Daemon:
         AMQP.
         """
         try:
-            rpc_client = rpc_client.RpcClient(
+            central_client = rpc_client.RpcClient(
                 config.conf.get_section("CENTRAL_RPC_CLIENT"),
                 logger
             )
