@@ -113,3 +113,15 @@ class GlobusService:
 
         transfer_result = transfer_client.submit_transfer(tdata)
         return transfer_result["task_id"]
+
+    def cancel_transfer(self, transfer_task_id: str) -> None:
+        """Cancel a Globus transfer.
+
+        :param transfer_task_id: Globus transfer task id
+        :type transfer_task_id: str
+        :return: transfer response code (keyword)
+        :rtype: str
+        """
+        transfer_client = self._authorize_transfer_client()
+        transfer_response = transfer_client.cancel_task(transfer_task_id)
+        return transfer_response["code"]
