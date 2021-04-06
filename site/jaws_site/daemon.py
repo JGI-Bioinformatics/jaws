@@ -65,7 +65,6 @@ class Daemon:
         self.globus = GlobusService()
         self.terminal_states = ["cancelled", "download complete"]
         self.session = None
-        self.rpc_client = None
 
     def _init_rpc_client(self):
         """
@@ -73,13 +72,14 @@ class Daemon:
         AMQP.
         """
         try:
-            self.rpc_client = rpc_client.RpcClient(
+            rpc_client = rpc_client.RpcClient(
                 config.conf.get_section("CENTRAL_RPC_CLIENT"),
                 logger
             )
         except Exception as error:
             logger.exception(f"Unable to init central rpc client: {error}")
             raise
+        return central_client
 
     def start_daemon(self):
         """
@@ -95,8 +95,6 @@ class Daemon:
         """
         Check for runs in particular states.
         """
-        if self.rpc_client is None:
-            self._init_rpc_client()
         self.session = Session()
         try:
             query = (
@@ -416,8 +414,7 @@ class Daemon:
             return
         logger.debug(f"Sending {num_logs} run logs")
 
-        if self.rpc_client is None:
-            self._init_rpc_client()
+        central_client = self._init_rpc_client()
 
         # send logs via RPC
         for log in query:
@@ -437,7 +434,7 @@ class Daemon:
                 run = session.query(Run).get(log.run_id)
                 data["download_task_id"] = run.download_task_id
             try:
-                response = self.rpc_client.request("update_run_logs", data)
+                response = central_client.request("update_run_logs", data)
             except Exception as error:
                 logger.exception(f"RPC update_run_logs error: {error}")
                 continue
