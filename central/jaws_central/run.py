@@ -71,18 +71,12 @@ class Run:
         :type params: dict
         """
         self.session = session
-        if type(user) == str:
-            self._select_user(user)
-        else:
-            self.user = user
+        self.user = user
         self.id = run_id
         if run.id:
             self._select_run()
         else:
             self._submit_run()
-
-    def _select_user(self, user_id):
-        self.user = db.session.query(User).get(user_id)
 
     def _select_run(self):
         """Retrieve Run's object model from RDb"""
@@ -92,10 +86,8 @@ class Run:
             raise RunNotFoundError(f"Run {self.id} not found")
         if not run:
             raise RunNotFoundError(f"Run {self.id} not found")
-        if run.user_id != self.user:
-            current_user = db.session.query(User).get(user)
-            if not current_user.is_admin:
-                raise RunAccessDenied(f"User {user} does not own Run {run_id}")
+        if run.user_id != self.user.id and not self.user.is_admin:
+            raise RunAccessDenied(f"User {self.user.id} does not own Run {self.id}")
         self.model = run
 
     def _rpc_call(self, method, params={}):
@@ -111,7 +103,7 @@ class Run:
         :rtype: dict or list
         """
         a_site_rpc_client = rpc_index.rpc_index.get_client(self.model.site_id)
-        params["user_id"] = self.user
+        params["user_id"] = self.user.id
         params["run_id"] = self.id
         params["cromwell_run_id"] = self.model.cromwell_run_id
         try:
@@ -134,7 +126,7 @@ class Run:
         tag = params.get("tag")
 
         run = Run(
-            user_id=self.user,
+            user_id=self.user.id,
             site_id=site_id,
             submission_id=submission_id,
             input_site_id=input_site_id,
@@ -217,7 +209,7 @@ class Run:
             err_msg = f"Unable to update output_dir in db: {error}"
             logger.exception(err_msg)
             abort(500, err_msg)
-        logger.debug(f"Updating output dir for run_id={run.id}")
+        logger.debug(f"Updating output dir for run_id={self.id}")
 
         # SUBMIT GLOBUS TRANSFER
         manifest_file = request.files["manifest"]
@@ -267,7 +259,7 @@ class Run:
         old_status = run.status
         new_status = run.status = "uploading"
         log = Run_Log(
-            run_id=run.id,
+            run_id=self.id,
             status_to=new_status,
             status_from=old_status,
             timestamp=run.updated,
@@ -287,7 +279,7 @@ class Run:
 
         # SEND TO SITE
         params = {
-            "run_id": run.id,
+            "run_id": self.id,
             "user_id": user,
             "email": current_user.email,
             "submission_id": submission_id,
@@ -396,7 +388,7 @@ class Run:
         if self.pre_cromwell:
             return None
         else:
-            return self._rpc_call(user, run_id, "get_task_status")
+            return self._rpc_call("get_task_status")
 
     def run_log(self):
         """
@@ -416,7 +408,7 @@ class Run:
         :return: The complete log of all task state transitions.
         :rtype: dict
         """
-        logger.info(f"User {self.user}: Get task-log for Run {self.id}")
+        logger.info(f"User {self.user.id}: Get task-log for Run {self.id}")
         if self.pre_cromwell:
             return None
         else:
@@ -442,7 +434,7 @@ class Run:
         :return: Cromwell error messages and stderr for all failed tasks.
         :rtype: str
         """
-        logger.info(f"User {self.user}: Get errors for Run {self.id}")
+        logger.info(f"User {self.user.id}: Get errors for Run {self.id}")
         if self.pre_cromwell:
             return None
         else:
@@ -455,7 +447,7 @@ class Run:
         :return: OK message upon success; abort otherwise
         :rtype: dict
         """
-        logger.info(f"User {self.user}: Cancel Run {self.id}")
+        logger.info(f"User {self.user.id}: Cancel Run {self.id}")
         if self.model.status in ["cancelled", "download complete"]:
             return
         _cancel_run(run)
@@ -484,6 +476,11 @@ class SearchRuns:
 
     def __init__(self, session, user):
         """Initialize Runs query object.
+
+        :param session: db handle
+        :type session: sqlalchemy.Session
+        :param user: user object
+        :type user: jaws_central.User
         """
         self.session = session
         self.user = user
