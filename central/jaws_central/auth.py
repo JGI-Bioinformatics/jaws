@@ -3,6 +3,8 @@ from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
 import secrets
 from jaws_central.models_fsa import db, User
+import requests
+import json
 
 logger = logging.getLogger(__package__)
 
@@ -62,7 +64,20 @@ def _get_user_by_email(email):
     return user
 
 
-def get_user_token(user, email):
+def _get_json_from_sso(hash_code):
+    base = "https://signon.jgi.doe.gov"
+    response = None
+    try:
+        response = requests.get(base + hash_code + ".json", allow_redirects=True)
+    except Exception as err:
+        logger.error(err)
+        abort(500, f"Error: {err}")
+    if response is None:
+        abort(401, "Response object is NoneType")
+    return json.loads(response.content)
+
+
+def get_user_token(user, hash_code):
     """
     Return the JAWS token for the queried user' globus ID.
     This is restricted to 'dashboard' scope.
@@ -74,8 +89,13 @@ def get_user_token(user, email):
     :return: The user's JAWS access token.
     :rtype: str
     """
-    query_user = _get_user_by_email(email)
-    return {"jaws_token": query_user.jaws_token}
+    json_obj = _get_json_from_sso(hash_code)
+
+    if "user" not in json_obj or "email" not in json_obj["user"]:
+        abort(401, "No user or email information found in the JSON")
+
+    query_user = _get_user_by_email(json_obj["user"]["email"])
+    return {"jaws_token": query_user.jaws_token, "sso_json": json_obj}
 
 
 def get_user(user):

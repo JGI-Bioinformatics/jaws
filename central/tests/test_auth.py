@@ -2,6 +2,19 @@ import pytest
 import jaws_central.auth
 import jaws_central.models_fsa
 
+MOCK_JSON = {
+    "ip": "1.2.3.4",
+    "id": "abcd",
+    "user": {
+        "login": "JaneDoe",
+        "email": "ijklmn@foo.gov",
+        "first_name": "Jane",
+        "middle_name": None,
+        "last_name": "Doe",
+        "email_address": "ijklmn@foo.gov"
+    }
+}
+
 
 class MockUser:
     @property
@@ -72,12 +85,20 @@ def test_get_user_token(monkeypatch):
         user = MockUser()
         return user
 
+    def mock__get_json_from_sso(hash_code):
+        return MOCK_JSON
+
     monkeypatch.setattr(
         jaws_central.auth, "_get_user_by_email", mock__get_user_by_email
     )
 
+    monkeypatch.setattr(
+        jaws_central.auth, "_get_json_from_sso", mock__get_json_from_sso
+    )
     user = MockUser()
-    email = "ijklmn@foo.gov"
-    result = jaws_central.auth.get_user_token(user, email)
+    hash_code = "/api/session/abcde"
+    result = jaws_central.auth.get_user_token(user, hash_code)
 
     assert result["jaws_token"] == "EEEEFFFFGGGG"
+    assert result["sso_json"] == MOCK_JSON
+    assert result["sso_json"]["user"]["first_name"] == "Jane"
