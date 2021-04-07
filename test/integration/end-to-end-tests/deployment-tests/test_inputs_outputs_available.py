@@ -34,14 +34,18 @@ def test_jaws_run_task_log(env,submit_fq_count_wdl):
         fq_count_out/call-count_seqs/execution/
             num_seqs.txt  rc  script  script.submit  stderr  stderr.submit	stdout	stdout.submit
     """
-    data = submit_fq_count_wdl
-    run_id = str(data['run_id'])
+    run_id = str(submit_fq_count_wdl['run_id'])
     output_dir = submit_fq_count_wdl['output_dir']
-    submission_id = submit_fq_count_wdl['submission_id']
-    input_wdl = submission_id + ".wdl"
-    input_json = "fq_count.json"
 
-    util.wait_for_run(env,run_id,check_tries,check_sleep)
+    util.wait_for_run(run_id,env,check_tries,check_sleep)
+
+    # grab submission_id from "jaws run status" command so we can construct name of output files
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,run_id)
+    (r,o,e) = util.run(cmd)
+    status_data = json.loads(o)
+    submission_id = status_data['submission_id']
+    input_wdl = submission_id + ".wdl"
+    input_json = submission_id + ".json"
 
     # check that we have the initial WDL saved to the output_dir
     # using the full path (output_dir and input_wdl), we are essentially testing that the output_dir 
@@ -57,6 +61,7 @@ def test_jaws_run_task_log(env,submit_fq_count_wdl):
 
     # check that we have a valid inputs json
     if not os.path.exists(os.path.join(output_dir,input_json)):
+        pytest.exit(f"inputs json: {os.path.join(output_dir,input_json)}")
         assert 0
 
     with open(os.path.join(output_dir,input_json)) as fh:
@@ -66,7 +71,6 @@ def test_jaws_run_task_log(env,submit_fq_count_wdl):
     
     expected_files = ["num_seqs.txt","rc","script","script.submit","stderr","stderr.submit","stdout","stdout.submit"]
     for file in expected_files:
-        if os.path.exists(os.path.join(output_dir,"fq_count_out/call-count_seqs/execution/",file)):
-            print("file found")
-
+        if not os.path.exists(os.path.join(output_dir,"call-count_seqs/execution/",file)):
+            assert 0
 

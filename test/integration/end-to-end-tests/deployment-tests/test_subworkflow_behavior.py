@@ -55,7 +55,9 @@ def test_task_status(env,submit_subworkflow_alignment):
     line_list = list(filter(None, line_list))  # remove empty element
     for i in line_list:
         task_names.append(i.split("\t")[0])
-        status_to.append(i.split("\t")[4])
+        status_to.append(i.split("\t")[5])
+
+    #print(f"TASK names: {status_to}")
 
     # check that the subworkflows tasks are in the list
     assert len(task_names) == 5
@@ -97,6 +99,7 @@ def test_task_log(env,submit_subworkflow_alignment):
 
     time.sleep(120)  # wait some time before running task-status since there is some lag between 
                      # when "jaws run status" calls success and when "jaws run task-status" calls success.
+
     run_id = submit_subworkflow_alignment['run_id']
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s | tail -n+2" % (env,run_id)
     (r,o,e) = util.run(cmd)
@@ -140,7 +143,13 @@ def test_saved_subwdl(env,submit_subworkflow_alignment):
     """
     run_id        = submit_subworkflow_alignment['run_id']
     outdir        = submit_subworkflow_alignment['output_dir']
-    submission_id = submit_subworkflow_alignment['submission_id']
+
+    # need to get the submission_id from the status
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,run_id)
+    (r,o,e) = util.run(cmd)
+    assert not r
+    data = json.loads(o)
+    submission_id = data['submission_id']
 
     zip_file = os.path.join(outdir,submission_id + ".zip")
 

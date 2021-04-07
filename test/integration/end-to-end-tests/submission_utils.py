@@ -17,7 +17,7 @@ def run(cmd):
     return rc,stdout,stderr
 
 
-def submit_wdl(wdl, input_json, site):
+def submit_wdl(env, wdl, input_json, site):
     """
     This is a fixture that will submit a wdl for all functions to use.
     This function returns the output of a wdl submission.
@@ -25,7 +25,7 @@ def submit_wdl(wdl, input_json, site):
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
     # activation command causes an error when we try to do json load later
 
-    cmd = "jaws run submit %s %s %s" % (wdl, input_json, site)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run submit %s %s %s" % (env, wdl, input_json, site)
     (rc, stdout, stderr) = run(cmd)
     if rc > 0:
         if stderr:
@@ -37,17 +37,9 @@ def submit_wdl(wdl, input_json, site):
 
     assert rc == 0
     data = json.loads(stdout)
-    """
-    # uncomment for testing
-    data={ "run_id": 17037,
-            "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count_out",
-            "submission_id": "856d97e8-909d-48dd-8e77-c74ac97b9fc1"
-            }
-    """
-
     return data
 
-def submit_wdl_noexit(wdl, input_json, site):
+def submit_wdl_noexit(env, wdl, input_json, site):
     """
     This is a fixture that will submit a wdl that is expected to error out. 
     I will not exit the function if there is an error, but will just return the stderr, stdout, and rc.
@@ -56,11 +48,11 @@ def submit_wdl_noexit(wdl, input_json, site):
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
     # activation command causes an error when we try to do json load later
 
-    cmd = "jaws run submit %s %s %s" % (wdl, input_json, site)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run submit %s %s %s" % (env, wdl, input_json, site)
     (rc, stdout, stderr) = run(cmd)
     data = json.loads(stdout)
     """
-    data={ "run_id": 17037,
+    data={ "id": 17037,
             "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count_out",
             "submission_id": "856d97e8-909d-48dd-8e77-c74ac97b9fc1"
             }
@@ -68,12 +60,12 @@ def submit_wdl_noexit(wdl, input_json, site):
 
     return data
 
-def wait_for_run(run_id,check_tries,check_sleep):
-    """ Wait for all the runs in run_ids list to finish."""
+def wait_for_run(id,env,check_tries,check_sleep):
+    """ Wait for all the runs in ids list to finish."""
     tries = 1 
     while tries <= check_tries:
         # check whether the run has finished every 60 seconds
-        cmd = "jaws run status %s" % (run_id)
+        cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,id)
         (r,o,e) = run(cmd)
         if r > 0:
             pytest.exit("stderr: %s" % e)
