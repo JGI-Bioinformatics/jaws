@@ -90,7 +90,9 @@ def test_file_size(uploads_files_empty_wdl):
     assert test_size is None
 
 
-def test_get_run_input(monkeypatch, uploads_files, uploads_files_missing_json, uploads_files_without_zip):
+def test_get_run_input(
+    monkeypatch, uploads_files, uploads_files_missing_json, uploads_files_without_zip
+):
     def mock_get_uploads_file_path(self, run):
         submission_id = run.submission_id
         home_dir = os.path.expanduser("~")
@@ -202,3 +204,41 @@ def test_check_if_download_complete(status, expected, monkeypatch):
     daemon.check_if_download_complete(run)
 
     assert run.status == expected
+
+
+def test_check_run_cromwell_status(monkeypatch):
+    def mock_get_status_running(self, run_id):
+        return "Running"
+
+    def mock_get_status_succeeded(self, run_id):
+        return "Succeeded"
+
+    def mock_get_status_failed(self, run_id):
+        return "Failed"
+
+    daemon = Daemon()
+    monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
+
+    # test: queued -> running
+    run = tests.conftest.MockRun(status="queued")
+    monkeypatch.setattr(
+        jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
+    )
+    daemon.check_run_cromwell_status(run)
+    assert run.status == "running"
+
+    # test: queued -> succeeded
+    run = tests.conftest.MockRun(status="queued")
+    monkeypatch.setattr(
+        jaws_site.cromwell.Cromwell, "get_status", mock_get_status_succeeded
+    )
+    daemon.check_run_cromwell_status(run)
+    assert run.status == "succeeded"
+
+    # test: queued -> failed
+    run = tests.conftest.MockRun(status="queued")
+    monkeypatch.setattr(
+        jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
+    )
+    daemon.check_run_cromwell_status(run)
+    assert run.status == "failed"
