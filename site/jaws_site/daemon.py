@@ -238,6 +238,8 @@ class Daemon:
             # no skips allowed, so there may be more than one transition
             if run.status == "submitted":
                 self.update_run_status(run, "queued")
+            if run.status == "queued":
+                self.update_run_status(run, "running")
         elif cromwell_status == "Failed":
             self.update_run_status(run, "failed")
         elif cromwell_status == "Succeeded":
