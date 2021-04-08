@@ -270,3 +270,25 @@ class TaskLog:
                 tasks_and_last_states.append(row)
                 last_job_id = job_id
         return tasks_and_last_states
+
+
+def get_run_status(session, run_id: int) -> str:
+    """
+    Retrieve the status of all tasks associated with a run and determine the run's state, with respect to tasks.
+    If there are no tasks, return None.
+    If any tasks are running/complete, return "running"; "queued" otherwise.
+
+    :param run_id: JAWS run ID
+    :type run_id: int
+    :return: the status of run, as far as tasks are concerned (None, "queued", or "running")
+    :rtype: str
+    """
+    task_log = TaskLog(session)
+    tasks = task_log.get_task_status(run_id)
+    if len(tasks) == 0:
+        return None
+    max_task_status_value = 0
+    for task in tasks:
+        cromwell_run_id, task_name, attempt, cromwell_job_id, status_from, status_to, timestamp, reason = task
+        max_task_status_value = max(max_task_status_value, job_status_value[status_to])
+    return "queued" if max_task_status_value < 3 else "running"

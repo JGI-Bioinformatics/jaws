@@ -12,7 +12,7 @@ import logging
 from datetime import datetime
 from jaws_site.database import Session
 from jaws_site.models import Run, Run_Log
-from jaws_site import config
+from jaws_site import config, tasks
 from jaws_site.cromwell import Cromwell
 from jaws_site.globus import GlobusService
 from jaws_rpc import rpc_client
@@ -235,19 +235,26 @@ class Daemon:
         # Additionally, any state can transition directly to cancelled or failed.
         logger.debug(f"Run {run.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
-            # no skips allowed, so there may be more than one transition
             if run.status == "submitted":
                 self.update_run_status(run, "queued")
-            if run.status == "queued":
-                self.update_run_status(run, "running")
+            elif run.status == "queued":
+                # although Cromwell may consider a Run to be "Running", since it does not distinguish between
+                # "queued" and "running", we check the task-log to see if any task is "running"; only once any
+                # task is running does the Run transition to the "running" state.
+                tasks_status = tasks.get_run_status(self.session, run.id)
+                if tasks_status == "running":
+                    self.update_run_status(run, "running")
         elif cromwell_status == "Failed":
             self.update_run_status(run, "failed")
         elif cromwell_status == "Succeeded":
-            # no skips allowed, so there may be more than one transition
+            # no skips allowed, so there may be more than one transition;
+            # sleep is used to avoid multiple state transitions with the same timestamp
             if run.status == "submitted":
                 self.update_run_status(run, "queued")
+                time.sleep(1)
             if run.status == "queued":
                 self.update_run_status(run, "running")
+                time.sleep(1)
             if run.status == "running":
                 self.update_run_status(run, "succeeded")
         elif cromwell_status == "Aborted":
