@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.2.0rc-4 (2021-04-08)
+Release that fixes the inconsistent status between run and task-status.
+
+When running and observing the job using `jaws queue` the run would show the 
+status as `queued` even though running `jaws run task-status` would show that the
+some tasks are running. MR !749 fixes this issue
+
+## v2.2.0rc-4 (2021-04-08)
+Release that fixes the inconsistent status between run and task-status.
+
+When running and observing the job using `jaws queue` the run would show the 
+status as `queued` even though running `jaws run task-status` would show that the
+some tasks are running. MR !749 fixes this issue
+
 ## v2.2.0rc-3 (2021-04-05)
 Release addresses error messaging and bugs in the jaws_rpc module
 
