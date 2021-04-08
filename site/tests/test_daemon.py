@@ -216,14 +216,42 @@ def test_check_run_cromwell_status(monkeypatch):
     def mock_get_status_failed(self, run_id):
         return "Failed"
 
+    def mock_get_run_status_queued(session, run_id):
+        return "queued"
+
+    def mock_get_run_status_none(session, run_id):
+        return None
+
+    def mock_get_run_status_running(session, run_id):
+        return "running"
+
     daemon = Daemon()
     monkeypatch.setattr(Daemon, "update_run_status", mock_update_run_status)
+
+    # test: submitted -> queued
+    run = tests.conftest.MockRun(status="submitted")
+    monkeypatch.setattr(
+        jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
+    )
+    monkeypatch.setattr(jaws_site.tasks, "get_run_status", mock_get_run_status_queued)
+    daemon.check_run_cromwell_status(run)
+    assert run.status == "queued"
+
+    # test: queued -> queued
+    run = tests.conftest.MockRun(status="queued")
+    monkeypatch.setattr(
+        jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
+    )
+    monkeypatch.setattr(jaws_site.tasks, "get_run_status", mock_get_run_status_none)
+    daemon.check_run_cromwell_status(run)
+    assert run.status == "queued"
 
     # test: queued -> running
     run = tests.conftest.MockRun(status="queued")
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
+    monkeypatch.setattr(jaws_site.tasks, "get_run_status", mock_get_run_status_running)
     daemon.check_run_cromwell_status(run)
     assert run.status == "running"
 
@@ -237,6 +265,22 @@ def test_check_run_cromwell_status(monkeypatch):
 
     # test: queued -> failed
     run = tests.conftest.MockRun(status="queued")
+    monkeypatch.setattr(
+        jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
+    )
+    daemon.check_run_cromwell_status(run)
+    assert run.status == "failed"
+
+    # test: running -> succeeded
+    run = tests.conftest.MockRun(status="running")
+    monkeypatch.setattr(
+        jaws_site.cromwell.Cromwell, "get_status", mock_get_status_succeeded
+    )
+    daemon.check_run_cromwell_status(run)
+    assert run.status == "succeeded"
+
+    # test: running -> failed
+    run = tests.conftest.MockRun(status="running")
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
     )

@@ -1,3 +1,4 @@
+from jaws_site import tasks
 from jaws_site.tasks import TaskLog
 from deepdiff import DeepDiff
 
@@ -163,3 +164,109 @@ def test_task_status(monkeypatch):
 
     task_status = tasks.get_task_status(example_run_id)
     assert bool(DeepDiff(task_status, expected_status, ignore_order=True)) is False
+
+
+def test_get_run_status(monkeypatch):
+    def mock_get_task_status(session, run_id):
+        example_status = []
+        if run_id == 102:
+            example_status = [
+                [
+                    "EX_RUN_ID",
+                    "main.ex_task_1",
+                    1,
+                    "2222",
+                    "created",
+                    "ready",
+                    "2020-03-22 12:47:10",
+                    None,
+                ],
+            ]
+        elif run_id == 103:
+            example_status = [
+                [
+                    "EX_RUN_ID",
+                    "main.ex_task_2",
+                    1,
+                    "2222",
+                    "ready",
+                    "queued",
+                    "2020-03-22 12:47:20",
+                    None,
+                ]
+            ]
+        elif run_id == 104:
+            example_status = [
+                [
+                    "EX_RUN_ID",
+                    "main.ex_task_2",
+                    1,
+                    "2222",
+                    "ready",
+                    "queued",
+                    "2020-03-22 12:47:20",
+                    None,
+                ],
+                [
+                    "EX_RUN_ID",
+                    "main.ex_task_3",
+                    1,
+                    "2222",
+                    "queued",
+                    "pending",
+                    "2020-03-22 12:47:25",
+                    None,
+                ],
+            ]
+        elif run_id == 105:
+            example_status = [
+                [
+                    "EX_RUN_ID",
+                    "main.ex_task_4",
+                    1,
+                    "2222",
+                    "pending",
+                    "running",
+                    "2020-03-22 12:48:01",
+                    None,
+                ],
+                [
+                    "EX_RUN_ID",
+                    "main.ex_task_5",
+                    1,
+                    "2223",
+                    "created",
+                    "ready",
+                    "2020-03-22 12:48:11",
+                    None,
+                ],
+            ]
+        elif run_id == 106:
+            example_status = [
+                [
+                    "EX_RUN_ID",
+                    "main.ex_task_6",
+                    1,
+                    "2223",
+                    "running",
+                    "success",
+                    "2020-03-22 12:48:16",
+                    None,
+                ],
+            ]
+        return example_status
+
+    run_id_and_expected = {
+        101: None,
+        102: "queued",
+        103: "queued",
+        104: "running",
+        105: "running",
+        106: "running",
+    }
+
+    monkeypatch.setattr(TaskLog, "get_task_status", mock_get_task_status)
+    mock_session = None
+
+    for run_id, expected in run_id_and_expected.items():
+        assert tasks.get_run_status(mock_session, run_id) == expected
