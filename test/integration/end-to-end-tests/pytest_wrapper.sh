@@ -88,7 +88,12 @@ fi
 echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN" > ~/jaws.conf
 chmod 600 ~/jaws.conf
 
+# Add the environmental file to home since this is where the test's expect it.
+# Then source the file so pytest is available.  The test.py scripts also source the 
+# same file so it is somewhat redundant but that is ok. The env file is also sourced 
+# in the test.py scripts for testing.
 ln -s $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh ~/jaws-${DEPLOYMENT_NAME}.sh
+source ~/jaws-${DEPLOYMENT_NAME}.sh
 
 # this script is being called from where .gitlab-ci.yml lives, which is "jaws" parent. 
 # So we need to cd down to end-to-end-tests before running pytests.
