@@ -79,14 +79,16 @@ fi
 
 
 # source venv
-echo "source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
-      source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh
+#echo "source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
+#      source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh
 
 # write token to jaws.conf
 # [USER]
 # token =
 echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN" > ~/jaws.conf
 chmod 600 ~/jaws.conf
+
+ln -s $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh ~/jaws-${DEPLOYMENT_NAME}.sh
 
 # this script is being called from where .gitlab-ci.yml lives, which is "jaws" parent. 
 # So we need to cd down to end-to-end-tests before running pytests.
