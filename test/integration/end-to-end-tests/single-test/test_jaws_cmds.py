@@ -10,7 +10,6 @@ import os,sys
 import pytest
 import json
 import time
-#sys.path.append('../')
 import submission_utils as util
 
 tmp_wdl = "pow23.wdl"
@@ -69,13 +68,13 @@ def test_jaws_status():
         assert k in actual_keys
 
 
-def test_jaws_run_queue(submit_fq_count_wdl):
+def test_jaws_run_queue(env,submit_fq_count_wdl):
     """ tests that the jaws run queue command has the run id in the stdout."""
 
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
 
-    cmd = "jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','"
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
     (r,o,e) = util.run(cmd)
     ids=o.split()
     assert run_id in ids

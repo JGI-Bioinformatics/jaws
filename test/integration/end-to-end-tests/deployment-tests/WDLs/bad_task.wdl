@@ -9,7 +9,7 @@ workflow fq_count {
 task count_seqs {
     File infile
     command <<<
-        bad_cmd_name -l ${infile} | perl -ne 'if (/^\s*(\d+)/ and !($1%4)) {print $1/4, " sequences\n"} else {print STDERR "Invalid Fastq file\n"}' > num_seqs.txt
+        bad_cmd_name -l ${infile} 
     >>>
     output {
         File outfile = "num_seqs.txt"

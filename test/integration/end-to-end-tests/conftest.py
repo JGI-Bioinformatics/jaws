@@ -28,11 +28,7 @@ def submit_fq_count_wdl(request):
 
     """
     data = {
-    "output_dir": "/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/CORI/6744",
-    "run_id": 6744,
-    "site_id": "CORI",
-    "status": "uploading",
-    "tag": ""
+    'output_dir': '/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/CORI/6848', 'run_id': 6848, 'site_id': 'CORI', 'status': 'uploading'
     }
     """
 

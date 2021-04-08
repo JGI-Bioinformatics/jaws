@@ -1,0 +1,9 @@
+for i in {1..48}; do 
+	echo $i
+	jaws run submit WDLs/configurable_scatter.wdl test-inputs/configurable_scatter_inputs.json cori
+	sleep 3
+done
+
+jaws run history --days 1 | grep '"id":' | tail -48 | tr -d ',' | sed -e 's/\"id\":\s*//' -e 's/^\s*//' > ids
+
+for i in `cat ids`; do jaws run status $i | grep '"status":'; done

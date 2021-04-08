@@ -203,7 +203,7 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
-    #time.sleep(120)  # wait an additional amount of time to make sure everything is updated
+    time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s" % (env,run_id)
     (r,o,e) = util.run(cmd)

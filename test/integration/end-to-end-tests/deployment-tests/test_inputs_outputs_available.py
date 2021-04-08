@@ -56,7 +56,7 @@ def test_jaws_run_task_log(env,submit_fq_count_wdl):
 
     # verify it is a valid wdl
     with open(os.path.join(output_dir,input_wdl)) as fh:
-        if not "workflow fq_count" in fh.readline():
+        if not "workflow fq_count" in fh.read():
             assert 0
 
     # check that we have a valid inputs json
