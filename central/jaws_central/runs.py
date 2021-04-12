@@ -8,7 +8,8 @@ from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_central.run_log import RunLog
 from jaws_rpc import rpc_index
-from jaws_central.models_fsa import db, Run, User
+#from jaws_central.models_fsa import Run, User
+from jaws_central import models_fsa as models
 
 
 logger = logging.getLogger(__package__)
@@ -72,23 +73,32 @@ class Run:
         """
         self.session = session
         self.user = user
-        self.id = run_id
-        if run.id:
+        if run_id:
             self._select_run()
         else:
             self._submit_run()
 
-    def _select_run(self):
+    def _select_run(self, run_id):
         """Retrieve Run's object model from RDb"""
         try:
-            run = db.session.query(Run).get(self.id)
+            run = self.session.query(models.Run).get(run_id)
         except IntegrityError as error:
             raise RunNotFoundError(f"Run {self.id} not found")
         if not run:
             raise RunNotFoundError(f"Run {self.id} not found")
-        if run.user_id != self.user.id and not self.user.is_admin:
+        if self.model.user_id != self.user.id and not self.user.is_admin:
             raise RunAccessDenied(f"User {self.user.id} does not own Run {self.id}")
         self.model = run
+
+    @property
+    def id(self):
+        """Returns the Run's ID"""
+        return self.model.id
+
+    @property
+    def status(self):
+        """Returns the Run's current status"""
+        return self.model.status
 
     def _rpc_call(self, method, params={}):
         """This is not a Flask endpoint, but a helper used by several endpoints.
@@ -104,7 +114,7 @@ class Run:
         """
         a_site_rpc_client = rpc_index.rpc_index.get_client(self.model.site_id)
         params["user_id"] = self.user.id
-        params["run_id"] = self.id
+        params["run_id"] = self.model.id
         params["cromwell_run_id"] = self.model.cromwell_run_id
         try:
             response = a_site_rpc_client.request(method, params)
@@ -125,7 +135,7 @@ class Run:
         json_file = params.get("json_file")
         tag = params.get("tag")
 
-        run = Run(
+        run = models.Run(
             user_id=self.user.id,
             site_id=site_id,
             submission_id=submission_id,
@@ -139,20 +149,19 @@ class Run:
             status="created",
         )
         try:
-            db.session.add(run)
+            self.session.add(run)
         except IntegrityError as error:
-            db.session.rollback()
+            self.session.rollback()
             logger.exception(f"Error inserting Run: {error}")
             raise
         try:
-            db.session.commit()
+            self.session.commit()
         except Exception as error:
-            db.session.rollback()
+            self.session.rollback()
             err_msg = f"Unable to insert new run in db: {error}"
             logger.exception(err_msg)
             raise
         self.model = run
-        self.id = run.id
 
     def _submit_run(self, params):
         """
@@ -177,15 +186,15 @@ class Run:
             raise ValueError(
                 f'Unknown Site ID, "{site_id}"; try the "list-sites" command'
             )
-        logger.info(f"User {user}: New run submission {submission_id} to {site_id}")
+        logger.info(f"User {self.user.id}: New run submission {submission_id} to {site_id}")
 
         self._insert_run(params)
-        logger.debug(f"User {user}: New run {run.id}")
+        logger.debug(f"User {self.user.id}: New run {self.id}")
 
         # Output directory is a subdirectory that includes the user id, site id and run id.
         # These are all placed in a common location with setgid sticky bits so that all
         # submitting users have access.
-        output_dir += f"/{user}/{site_id}/{run.id}"
+        output_dir += f"/{self.user.id}/{site_id}/{self.id}"
         src_host_path = config.conf.get_site(input_site_id, "globus_host_path")
 
         # We modify the output dir path since we know the endpoint of the returning source site. From here
@@ -196,16 +205,16 @@ class Run:
         # directory from the model object itself immediately after insert.
         # TODO: Think of a better way to do this
         try:
-            run.output_dir = virtual_output_path
+            self.model.output_dir = virtual_output_path
         except Exception as error:
-            db.session.rollback()
+            self.session.rollback()
             err_msg = f"Unable to update output_dir in db: {error}"
             logger.exception(err_msg)
             abort(500, err_msg)
         try:
-            db.session.commit()
+            self.session.commit()
         except Exception as error:
-            db.session.rollback()
+            self.session.rollback()
             err_msg = f"Unable to update output_dir in db: {error}"
             logger.exception(err_msg)
             abort(500, err_msg)
@@ -219,87 +228,87 @@ class Run:
 
         try:
             upload_task_id = globus.submit_transfer(
-                f"Upload run {run.id}",
+                f"Upload run {self.id}",
                 host_paths,
                 input_endpoint,
                 compute_endpoint,
                 manifest_file,
             )
         except globus_sdk.GlobusAPIError as error:
-            run.status = "upload failed"
-            db.session.commit()
+            self.model.status = "upload failed"
+            self.session.commit()
             if error.code == "NoCredException":
                 logger.warning(
-                    f"{user} submission {run.id} failed due to Globus {error.code}"
+                    f"{self.user.id} submission {self.id} failed due to Globus {error.code}"
                 )
                 abort(401, error.message)
             else:
                 logger.exception(
-                    f"{user} submission {run.id} failed for GlobusAPIError: {error}",
+                    f"{self.user.id} submission {self.id} failed for GlobusAPIError: {error}",
                     exc_info=True,
                 )
                 abort(error.code, error.message)
         except globus_sdk.NetworkError as error:
             logger.exception(
-                f"{user} submission {run.id} failed due to NetworkError: {error}",
+                f"{self.user.id} submission {self.id} failed due to NetworkError: {error}",
                 exc_info=True,
             )
             abort(500, f"Network Error: {error}")
         except globus_sdk.GlobusError as error:
             logger.exception(
-                f"{user} submission {run.id} failed for unknown error: {error}",
+                f"{self.user.id} submission {self.id} failed for unknown error: {error}",
                 exc_info=True,
             )
             abort(500, f"Unexpected error: {error}")
 
-        logger.debug(f"User {user}: Run {run.id} upload {upload_task_id}")
+        logger.debug(f"User {self.user.id}: Run {self.id} upload {upload_task_id}")
 
         # UPDATE RUN WITH UPLOAD TASK ID AND ADD LOG ENTRY
-        run.upload_task_id = upload_task_id
-        old_status = run.status
-        new_status = run.status = "uploading"
-        log = Run_Log(
+        self.model.upload_task_id = upload_task_id
+        old_status = self.model.status
+        new_status = self.model.status = "uploading"
+        log = models.RunLog(
             run_id=self.id,
             status_to=new_status,
             status_from=old_status,
-            timestamp=run.updated,
+            timestamp=self.model.updated,
             reason=f"upload_task_id={upload_task_id}",
         )
         try:
-            db.session.add(log)
+            self.session.add(log)
         except Exception as error:
-            db.session.rollback()
-            logger.exception(f"Error inserting run log for Run {run.id}: {error}")
+            self.session.rollback()
+            logger.exception(f"Error inserting run log for Run {self.id}: {error}")
         try:
-            db.session.commit()
+            self.session.commit()
         except Exception as error:
-            db.session.rollback()
-            err_msg = f"Error inserting run log for Run {run.id}: {error}"
+            self.session.rollback()
+            err_msg = f"Error inserting run log for Run {self.id}: {error}"
             logger.exception(err_msg)
 
         # SEND TO SITE
         params = {
             "run_id": self.id,
-            "user_id": user,
-            "email": current_user.email,
+            "user_id": self.user.id,
+            "email": self.user.email,
             "submission_id": submission_id,
             "upload_task_id": upload_task_id,
             "output_endpoint": output_endpoint,
             "output_dir": output_dir,
         }
-        a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
-        logger.debug(f"User {user}: submit run: {params}")
+        a_site_rpc_client = rpc_index.rpc_index.get_client(self.model.site_id)
+        logger.debug(f"User {self.user.id}: submit run: {params}")
         try:
             result = a_site_rpc_client.request("submit", params)
         except Exception as error:
             reason = f"RPC submit failed: {error}"
             logger.exception(reason)
-            _submission_failed(user, run, reason)
+            self._submission_failed(reason)
             abort(500, reason)
         if "error" in result:
             reason = f"Error sending new run to {site_id}: {result['error']['message']}"
             logger.error(reason)
-            _submission_failed(user, run, reason)
+            self._submission_failed(reason)
             abort(result["error"]["code"], result["error"]["message"])
 
         # DONE
@@ -323,11 +332,11 @@ class Run:
         status_from = self.model.status
         self.model.status = new_status
         try:
-            db.session.commit()
+            self.session.commit()
         except Exception as error:
-            db.session.rollback()
+            self.session.rollback()
             logger.exception(f"Error updating run status in db: {error}")
-        log = Run_Log(
+        log = RunLog(
             run_id=self.id,
             status_from=status_from,
             status_to=new_status,
@@ -335,10 +344,10 @@ class Run:
             reason=reason,
         )
         try:
-            db.session.add(log)
-            db.session.commit()
+            self.session.add(log)
+            self.session.commit()
         except Exception as error:
-            db.session.rollback()
+            self.session.rollback()
             logger.error(f"Error insert run log entry: {error}")
 
     @property
@@ -348,12 +357,12 @@ class Run:
 
     def run_status(self):
         """
-        Retrieve the current status of a run.
+        Retrieve the current status of a self.model.
 
         :return: The status of the run
         :rtype: dict
         """
-        logger.info(f"Get status of Run {run.id}")
+        logger.info(f"Get status of Run {self.id}")
         result = {
             "id": self.model.id,
             "submission_id": self.model.submission_id,
@@ -381,7 +390,7 @@ class Run:
         """
         Retrieve the current status of each Task in a Run.
 
-        :return: The status of each task in a run.
+        :return: The status of each task in a self.model.
         :rtype: dict
         """
         logger.info(f"User {self.user.id}: Get task-status of Run {self.id}")
@@ -416,7 +425,7 @@ class Run:
 
     def run_metadata(self):
         """
-        Retrieve the metadata of a run.
+        Retrieve the metadata of a self.model.
 
         :return: Cromwell metadata for the run, if found; abort otherwise
         :rtype: dict
@@ -442,7 +451,7 @@ class Run:
 
     def cancel_run(self):
         """
-        Cancel a run.  It doesn't cancel Globus transfers, just Cromwell runs.
+        Cancel a self.model.  It doesn't cancel Globus transfers, just Cromwell runs.
 
         :return: OK message upon success; abort otherwise
         :rtype: dict
@@ -450,130 +459,125 @@ class Run:
         logger.info(f"User {self.user.id}: Cancel Run {self.id}")
         if self.model.status in ["cancelled", "download complete"]:
             return
-        _cancel_run(run)
-        if status.startswith("upload"):
+        self._cancel_run("Cancelled by user")
+        if self.status.startswith("upload"):
             self._cancel_transfer(self.model.upload_task_id)
-        elif status.startswith("download"):
+        elif self.status.startswith("download"):
             self._cancel_transfer(self.model.download_task_id)
         self._rpc_call("cancel_run")
 
-    def _cancel_run(self, reason="Cancelled by user"):
+    def _cancel_run(self, reason=None):
         """Update database record."""
         status_from = self.model.status
         self.model.status = "cancelled"
         self.model.result = "cancelled"
         try:
-            db.session.commit()
+            self.session.commit()
         except Exception as error:
-            db.session.rollback()
+            self.session.rollback()
             logger.exception(f"Error while updating run to 'cancelled': {error}")
         log = RunLog(self.id)
         log.add_log(status_from, self.model.status, self.model.updated, reason)
 
 
-class SearchRuns:
-    """Object to query runs db"""
+def queue(session, user):
+    """Return the current user's unfinished runs.
 
-    def __init__(self, session, user):
-        """Initialize Runs query object.
+    :param session: db handle
+    :type session: sqlalchemy.session
+    :param user: current user
+    :type user: jaws_site.models.User
+    :return: details about any current runs
+    :rtype: list
+    """
+    logger.info(f"User {user.id}: Get queue")
+    try:
+        queue = (
+            session.query(models.Run)
+            .filter_by(user_id=user.id)
+            .filter(models.Run.status.in_(run_active_states))
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise
 
-        :param session: db handle
-        :type session: sqlalchemy.Session
-        :param user: user object
-        :type user: jaws_central.User
-        """
-        self.session = session
-        self.user = user
+    result = []
+    for run in queue:
+        result.append(
+            {
+                "id": run.model.id,
+                "submission_id": run.model.submission_id,
+                "cromwell_run_id": run.model.cromwell_run_id,
+                "result": run.model.result,
+                "status": run.model.status,
+                "status_detail": jaws_constants.run_status_msg.get(run.model.status, ""),
+                "site_id": run.model.site_id,
+                "submitted": run.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+                "updated": run.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
+                "input_site_id": run.model.input_site_id,
+                "input_endpoint": run.model.input_endpoint,
+                "upload_task_id": run.model.upload_task_id,
+                "output_endpoint": run.model.output_endpoint,
+                "output_dir": run.model.output_dir,
+                "download_task_id": run.model.download_task_id,
+                "user_id": run.model.user_id,
+                "tag": run.model.tag,
+                "wdl_file": run.model.wdl_file,
+                "json_file": run.model.json_file,
+            }
+        )
+    return result
 
-    def queue(self):
-        """Return the current user's unfinished runs.
 
-        :return: details about any current runs
-        :rtype: list
-        """
-        logger.info(f"User {self.user.id}: Get queue")
-        try:
-            queue = (
-                db.session.query(Run)
-                .filter_by(user_id=self.user.id)
-                .filter(Run.status.in_(run_active_states))
-                .all()
-            )
-        except SQLAlchemyError as error:
-            logger.error(error)
-            raise
+def history(session, user, delta_days=10):
+    """Return the current user's recent runs, regardless of status.
 
-        result = []
-        for run in queue:
-            result.append(
-                {
-                    "id": run.id,
-                    "submission_id": run.submission_id,
-                    "cromwell_run_id": run.cromwell_run_id,
-                    "result": run.result,
-                    "status": run.status,
-                    "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
-                    "site_id": run.site_id,
-                    "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-                    "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
-                    "input_site_id": run.input_site_id,
-                    "input_endpoint": run.input_endpoint,
-                    "upload_task_id": run.upload_task_id,
-                    "output_endpoint": run.output_endpoint,
-                    "output_dir": run.output_dir,
-                    "download_task_id": run.download_task_id,
-                    "user_id": run.user_id,
-                    "tag": run.tag,
-                    "wdl_file": run.wdl_file,
-                    "json_file": run.json_file,
-                }
-            )
-        return result
+    :param session: db handle
+    :type session: sqlalchemy.session
+    :param user: current user
+    :type user: jaws_site.user.User
+    :param delta_days: number of days in which to search
+    :type delta_days: int
+    :return: details about any recent runs
+    :rtype: list
+    """
+    start_date = datetime.today() - timedelta(int(delta_days))
+    logger.info(f"User {user.id}: Get history, last {delta_days} days")
+    try:
+        history = (
+            session.query(models.Run)
+            .filter_by(user_id=user.id)
+            .filter(models.Run.submitted >= start_date)
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.exception(f"Failed to select run history: {error}")
+        raise
 
-    def history(self, delta_days=10):
-        """Return the current user's recent runs, regardless of status.
-
-        :param delta_days: number of days in which to search
-        :type delta_days: int
-        :return: details about any recent runs
-        :rtype: list
-        """
-        start_date = datetime.today() - timedelta(int(delta_days))
-        logger.info(f"User {self.user.id}: Get history, last {delta_days} days")
-        try:
-            history = (
-                db.session.query(Run)
-                .filter_by(user_id=self.user.id)
-                .filter(Run.submitted >= start_date)
-                .all()
-            )
-        except SQLAlchemyError as error:
-            logger.exception(f"Failed to select run history: {error}")
-            raise
-
-        result = []
-        for run in history:
-            result.append(
-                {
-                    "id": run.id,
-                    "submission_id": run.submission_id,
-                    "cromwell_run_id": run.cromwell_run_id,
-                    "result": run.result,
-                    "status": run.status,
-                    "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
-                    "site_id": run.site_id,
-                    "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-                    "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
-                    "input_site_id": run.input_site_id,
-                    "input_endpoint": run.input_endpoint,
-                    "upload_task_id": run.upload_task_id,
-                    "output_endpoint": run.output_endpoint,
-                    "output_dir": run.output_dir,
-                    "download_task_id": run.download_task_id,
-                    "user_id": run.user_id,
-                    "tag": run.tag,
-                    "wdl_file": run.wdl_file,
-                    "json_file": run.json_file,
-                }
-            )
-        return result
+    result = []
+    for run in history:
+        result.append(
+            {
+                "id": run.model.id,
+                "submission_id": run.model.submission_id,
+                "cromwell_run_id": run.model.cromwell_run_id,
+                "result": run.model.result,
+                "status": run.model.status,
+                "status_detail": jaws_constants.run_status_msg.get(run.model.status, ""),
+                "site_id": run.model.site_id,
+                "submitted": run.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+                "updated": run.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
+                "input_site_id": run.model.input_site_id,
+                "input_endpoint": run.model.input_endpoint,
+                "upload_task_id": run.model.upload_task_id,
+                "output_endpoint": run.model.output_endpoint,
+                "output_dir": run.model.output_dir,
+                "download_task_id": run.model.download_task_id,
+                "user_id": run.model.user_id,
+                "tag": run.model.tag,
+                "wdl_file": run.model.wdl_file,
+                "json_file": run.model.json_file,
+            }
+        )
+    return result
