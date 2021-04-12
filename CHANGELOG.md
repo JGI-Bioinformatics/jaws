@@ -54,7 +54,7 @@ Changes include fixes to regressions that took place after updates to staging (!
 ### CLI changes
 - User no longer specifies the output directory, instead there is a shared output directory where JAWS will transfer
 data files upon completion. (!562)
-- Users can retrieve files using the new `jaws get` command. This allows users to set the permissions to the original
+- Users can retrieve files using the new `jaws run get` command. This allows users to set the permissions to the original
 owner who submitted rather than owned by the `jaws` service account user. (!638)
 
 
