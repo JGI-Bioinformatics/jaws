@@ -168,9 +168,10 @@ class Run:
             raise
         self.model = run
 
-    def submit_run(self, params):
+    def _submit_run(self, params):
         """
-        Record the run submission in the database, with status as "uploading".
+        Insert the run submission in the database, submit transfer to Globus service,
+        and notify the JAWS-Site via RPC.
 
         :param params: New run parameters
         :type params: dict
@@ -357,8 +358,50 @@ class Run:
     @property
     def pre_cromwell(self):
         """Returns True if Run has not been submitted to Cromwell yet"""
-        return True if self.status in run_pre_cromwell_states else False
+        return True if self.model.status in run_pre_cromwell_states else False
 
+    def info(self) -> dict:
+        """
+        Get some info about a run; admins get more detail than regular users.
+        """
+        info = None
+        if self.user.is_admin:
+            info = {
+                "id": self.model.id,
+                "submission_id": self.model.submission_id,
+                "cromwell_run_id": self.model.cromwell_run_id,
+                "result": self.model.result,
+                "status": self.model.status,
+                "status_detail": jaws_constants.run_status_msg.get(self.model.status, ""),
+                "site_id": self.model.site_id,
+                "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+                "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
+                "input_site_id": self.model.input_site_id,
+                "input_endpoint": self.model.input_endpoint,
+                "upload_task_id": self.model.upload_task_id,
+                "output_endpoint": self.model.output_endpoint,
+                "output_dir": self.model.output_dir,
+                "download_task_id": self.model.download_task_id,
+                "user_id": self.model.user_id,
+                "tag": self.model.tag,
+                "wdl_file": self.model.wdl_file,
+                "json_file": self.model.json_file,
+            }
+        else:
+            info = {
+                "id": self.model.id,
+                "result": self.model.result,
+                "status": self.model.status,
+                "status_detail": jaws_constants.run_status_msg.get(self.model.status, ""),
+                "site_id": self.model.site_id,
+                "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+                "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
+                "tag": self.model.tag,
+                "wdl_file": self.model.wdl_file,
+                "json_file": self.model.json_file,
+            }
+        return info
+        
     def run_status(self):
         """
         Retrieve the current status of a self.model.
@@ -367,28 +410,7 @@ class Run:
         :rtype: dict
         """
         logger.info(f"Get status of Run {self.id}")
-        result = {
-            "id": self.model.id,
-            "submission_id": self.model.submission_id,
-            "cromwell_run_id": self.model.cromwell_run_id,
-            "result": self.model.result,
-            "status": self.model.status,
-            "status_detail": jaws_constants.run_status_msg.get(self.model.status, ""),
-            "site_id": self.model.site_id,
-            "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-            "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
-            "input_site_id": self.model.input_site_id,
-            "input_endpoint": self.model.input_endpoint,
-            "upload_task_id": self.model.upload_task_id,
-            "output_endpoint": self.model.output_endpoint,
-            "output_dir": self.model.output_dir,
-            "download_task_id": self.model.download_task_id,
-            "user_id": self.model.user_id,
-            "tag": self.model.tag,
-            "wdl_file": self.model.wdl_file,
-            "json_file": self.model.json_file,
-        }
-        return result
+        return run.info()
 
     def task_status(self):
         """
@@ -464,9 +486,10 @@ class Run:
         if self.model.status in ["cancelled", "download complete"]:
             return
         self._cancel_run("Cancelled by user")
-        if self.status.startswith("upload"):
+        status = self.model.status
+        if status.startswith("upload"):
             self._cancel_transfer(self.model.upload_task_id)
-        elif self.status.startswith("download"):
+        elif status.startswith("download"):
             self._cancel_transfer(self.model.download_task_id)
         self._rpc_call("cancel_run")
 
@@ -518,7 +541,7 @@ class RunLog:
             table.append(row)
         return table
 
-    def _insert_log(self, log_entry):
+    def _insert_log(self, log_entry) -> None:
         try:
             self.session.add(log_entry)
             self.session.commit()
@@ -528,7 +551,7 @@ class RunLog:
                 f"Error while adding run log entry to cancel run {self.id}: {error}"
             )
 
-    def add_log(self, status_from, status_to, timestamp, reason=None):
+    def add_log(self, status_from: str, status_to: str, timestamp, reason: str=None) -> None:
         log_entry = models.Run_Log(
             run_id=self.id,
             status_from=status_from,
@@ -538,6 +561,20 @@ class RunLog:
         )
         self._insert_log(log_entry)
 
+
+def _select_run_queue(session, user_id):
+    """Select runs of a user which are in active states"""
+    try:
+        rows = (
+            session.query(models.Run)
+            .filter_by(user_id=user_id)
+            .filter(models.Run.status.in_(run_active_states))
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.error(error)
+        raise
+    return rows
 
 def queue(session, user):
     """Return the current user's unfinished runs.
@@ -550,45 +587,28 @@ def queue(session, user):
     :rtype: list
     """
     logger.info(f"User {user.id}: Get queue")
+    rows = _select_run_queue(session, user.id)
+    queue = []
+    for row in rows:
+        run = Run(session, user, model=row)
+        info = run.info()
+        queue.append(info)
+    return queue
+
+
+def _select_run_history(session, user_id, start_date):
+    """Select runs of a user submitted on/after query date"""
     try:
-        queue = (
+        rows = (
             session.query(models.Run)
-            .filter_by(user_id=user.id)
-            .filter(models.Run.status.in_(run_active_states))
+            .filter_by(user_id=user_id)
+            .filter(models.Run.submitted >= start_date)
             .all()
         )
     except SQLAlchemyError as error:
-        logger.error(error)
+        logger.exception(f"Failed to select run history: {error}")
         raise
-
-    result = []
-    for run in queue:
-        result.append(
-            {
-                "id": run.model.id,
-                "submission_id": run.model.submission_id,
-                "cromwell_run_id": run.model.cromwell_run_id,
-                "result": run.model.result,
-                "status": run.model.status,
-                "status_detail": jaws_constants.run_status_msg.get(
-                    run.model.status, ""
-                ),
-                "site_id": run.model.site_id,
-                "submitted": run.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-                "updated": run.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
-                "input_site_id": run.model.input_site_id,
-                "input_endpoint": run.model.input_endpoint,
-                "upload_task_id": run.model.upload_task_id,
-                "output_endpoint": run.model.output_endpoint,
-                "output_dir": run.model.output_dir,
-                "download_task_id": run.model.download_task_id,
-                "user_id": run.model.user_id,
-                "tag": run.model.tag,
-                "wdl_file": run.model.wdl_file,
-                "json_file": run.model.json_file,
-            }
-        )
-    return result
+    return rows
 
 
 def history(session, user, delta_days=10):
@@ -605,42 +625,10 @@ def history(session, user, delta_days=10):
     """
     start_date = datetime.today() - timedelta(int(delta_days))
     logger.info(f"User {user.id}: Get history, last {delta_days} days")
-    try:
-        history = (
-            session.query(models.Run)
-            .filter_by(user_id=user.id)
-            .filter(models.Run.submitted >= start_date)
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.exception(f"Failed to select run history: {error}")
-        raise
-
-    result = []
-    for run in history:
-        result.append(
-            {
-                "id": run.model.id,
-                "submission_id": run.model.submission_id,
-                "cromwell_run_id": run.model.cromwell_run_id,
-                "result": run.model.result,
-                "status": run.model.status,
-                "status_detail": jaws_constants.run_status_msg.get(
-                    run.model.status, ""
-                ),
-                "site_id": run.model.site_id,
-                "submitted": run.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-                "updated": run.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
-                "input_site_id": run.model.input_site_id,
-                "input_endpoint": run.model.input_endpoint,
-                "upload_task_id": run.model.upload_task_id,
-                "output_endpoint": run.model.output_endpoint,
-                "output_dir": run.model.output_dir,
-                "download_task_id": run.model.download_task_id,
-                "user_id": run.model.user_id,
-                "tag": run.model.tag,
-                "wdl_file": run.model.wdl_file,
-                "json_file": run.model.json_file,
-            }
-        )
-    return result
+    rows = _select_run_history(session, user.id, start_date)
+    history = []
+    for run in rows:
+        run = Run(session, user, model=run)
+        info = run.info()
+        history.append(info)
+    return history
