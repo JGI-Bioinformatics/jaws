@@ -3,11 +3,10 @@ JAWS-Central REST endpoints.
 """
 
 import logging
-from datetime import datetime, timedelta
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config, db, run
-from jaws_central.user import User, Run
+from jaws_central.run import Run, RunNotFoundError
 
 logger = logging.getLogger(__package__)
 
@@ -22,8 +21,7 @@ def user_queue(user):
     """
     logger.info(f"User {user}: Get queue")
     try:
-        current_user = User(db.session, user)
-        queue = run.queue(db.session, current_user)
+        queue = run.queue(db.session, user)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -40,11 +38,9 @@ def user_history(user, delta_days=10):
     :return: details about any recent runs
     :rtype: list
     """
-    start_date = datetime.today() - timedelta(int(delta_days))
     logger.info(f"User {user}: Get history, last {delta_days} days")
     try:
-        current_user = User(db.session, user)
-        history = run.history(db.session, current_user)
+        history = run.history(db.session, user, delta_days)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -110,8 +106,7 @@ def submit_run(user):
     params["tag"] = request.form.get("tag")
 
     try:
-        current_user = User(db.session, user)
-        run = Run(db.session, current_user, params)
+        run = Run(db.session, user, params)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -137,8 +132,7 @@ def run_status(user, run_id):
     """
     logger.info(f"User {user}: Get status of Run {run_id}")
     try:
-        current_user = User(db.session, user)
-        run = Run(db.session, current_user, run_id=run_id)
+        run = Run(db.session, user, run_id=run_id)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -161,8 +155,7 @@ def task_status(user, run_id):
     """
     logger.info(f"User {user}: Get task-status of Run {run_id}")
     try:
-        current_user = User(db.session, user)
-        run = Run(db.session, current_user, run_id=run_id)
+        run = Run(db.session, user, run_id=run_id)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -184,8 +177,7 @@ def run_log(user: str, run_id: int):
     """
     logger.info(f"User {user}: Get log of Run {run_id}")
     try:
-        current_user = User(db.session, user)
-        run = Run(db.session, current_user, run_id=run_id)
+        run = Run(db.session, user, run_id=run_id)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -207,8 +199,7 @@ def task_log(user, run_id):
     """
     logger.info(f"User {user}: Get task-log for Run {run_id}")
     try:
-        current_user = User(db.session, user)
-        run = Run(db.session, current_user, run_id=run_id)
+        run = Run(db.session, user, run_id=run_id)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -230,8 +221,7 @@ def run_metadata(user, run_id):
     """
     logger.info(f"User {user}: Get metadata for Run {run_id}")
     try:
-        current_user = User(db.session, user)
-        run = Run(db.session, current_user, run_id=run_id)
+        run = Run(db.session, user, run_id=run_id)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -253,8 +243,7 @@ def get_errors(user, run_id):
     """
     logger.info(f"User {user}: Get errors for Run {run_id}")
     try:
-        current_user = User(db.session, user)
-        run = Run(db.session, current_user, run_id=run_id)
+        run = Run(db.session, user, run_id=run_id)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -276,8 +265,7 @@ def cancel_run(user, run_id):
     """
     logger.info(f"User {user}: Cancel Run {run_id}")
     try:
-        current_user = User(db.session, user)
-        run = Run(db.session, current_user, run_id=run_id)
+        run = Run(db.session, user, run_id=run_id)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")

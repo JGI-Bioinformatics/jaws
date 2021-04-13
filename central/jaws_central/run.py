@@ -11,6 +11,7 @@ import jaws_central.globus
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
+from jaws_central.user import User
 
 # from jaws_central.models_fsa import Run, User
 from jaws_central import models_fsa as models
@@ -63,20 +64,20 @@ class RunAccessDenied(RunError):
 
 
 class Run:
-    def __init__(self, session, user, run_id=None, params={}):
+    def __init__(self, session, user_id, run_id=None, params={}):
         """Initialize Run object. Either loads existing or inserts new.
 
         :param session: db handle
         :type session: sqlalchemy.session
-        :param user: Current user object
-        :type user: jaws_central.user.User
+        :param user_id: Current user's ID
+        :type user_id: str
         :param run_id: Run's primary key; required if exists
         :type run_id: int
         :param params: parameters for new Run; required if not exists
         :type params: dict
         """
         self.session = session
-        self.user = user
+        self.user = User(session, user_id)
         if run_id:
             self._select_run()
         else:
@@ -372,7 +373,9 @@ class Run:
                 "cromwell_run_id": self.model.cromwell_run_id,
                 "result": self.model.result,
                 "status": self.model.status,
-                "status_detail": jaws_constants.run_status_msg.get(self.model.status, ""),
+                "status_detail": jaws_constants.run_status_msg.get(
+                    self.model.status, ""
+                ),
                 "site_id": self.model.site_id,
                 "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
                 "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
@@ -392,7 +395,9 @@ class Run:
                 "id": self.model.id,
                 "result": self.model.result,
                 "status": self.model.status,
-                "status_detail": jaws_constants.run_status_msg.get(self.model.status, ""),
+                "status_detail": jaws_constants.run_status_msg.get(
+                    self.model.status, ""
+                ),
                 "site_id": self.model.site_id,
                 "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
                 "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
@@ -401,7 +406,7 @@ class Run:
                 "json_file": self.model.json_file,
             }
         return info
-        
+
     def run_status(self):
         """
         Retrieve the current status of a self.model.
@@ -410,7 +415,7 @@ class Run:
         :rtype: dict
         """
         logger.info(f"Get status of Run {self.id}")
-        return run.info()
+        return self.info()
 
     def task_status(self):
         """
@@ -519,7 +524,7 @@ class RunLog:
         :return: Table of log entries
         :rtype: list
         """
-        logger.info(f"User {self.user.id}: Get log of Run {self.id}")
+        logger.info(f"Get log of Run {self.id}")
         try:
             query = (
                 self.session.query(models.Run_Log)
@@ -551,7 +556,9 @@ class RunLog:
                 f"Error while adding run log entry to cancel run {self.id}: {error}"
             )
 
-    def add_log(self, status_from: str, status_to: str, timestamp, reason: str=None) -> None:
+    def add_log(
+        self, status_from: str, status_to: str, timestamp, reason: str = None
+    ) -> None:
         log_entry = models.Run_Log(
             run_id=self.id,
             status_from=status_from,
@@ -576,21 +583,22 @@ def _select_run_queue(session, user_id):
         raise
     return rows
 
-def queue(session, user):
+
+def queue(session, user_id):
     """Return the current user's unfinished runs.
 
     :param session: db handle
     :type session: sqlalchemy.session
-    :param user: current user
-    :type user: jaws_site.models.User
+    :param user_id: current user's ID
+    :type user_id: str
     :return: details about any current runs
     :rtype: list
     """
-    logger.info(f"User {user.id}: Get queue")
-    rows = _select_run_queue(session, user.id)
+    logger.info(f"User {user_id}: Get queue")
+    rows = _select_run_queue(session, user_id)
     queue = []
     for row in rows:
-        run = Run(session, user, model=row)
+        run = Run(session, user_id, model=row)
         info = run.info()
         queue.append(info)
     return queue
@@ -611,24 +619,24 @@ def _select_run_history(session, user_id, start_date):
     return rows
 
 
-def history(session, user, delta_days=10):
+def history(session, user_id, delta_days=10):
     """Return the current user's recent runs, regardless of status.
 
     :param session: db handle
     :type session: sqlalchemy.session
-    :param user: current user
-    :type user: jaws_site.user.User
+    :param user_id: current user's ID
+    :type user_id: str
     :param delta_days: number of days in which to search
     :type delta_days: int
     :return: details about any recent runs
     :rtype: list
     """
     start_date = datetime.today() - timedelta(int(delta_days))
-    logger.info(f"User {user.id}: Get history, last {delta_days} days")
-    rows = _select_run_history(session, user.id, start_date)
+    logger.info(f"User {user_id}: Get history, last {delta_days} days")
+    rows = _select_run_history(session, user_id, start_date)
     history = []
     for run in rows:
-        run = Run(session, user, model=run)
+        run = Run(session, user_id, model=run)
         info = run.info()
         history.append(info)
     return history
