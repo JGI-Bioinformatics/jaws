@@ -336,3 +336,18 @@ def test_looks_like_file_path():
     ]
     for (input, expected) in test_inputs:
         assert jaws_client.workflow.looks_like_file_path(input) is expected
+
+
+def test_rsync_excludes(configuration, output_example):
+    base_dir = output_example
+    src = f"{base_dir}/run1"
+    dest = f"{base_dir}/test_copy"
+    result = jaws_client.workflow.rsync(
+        src,
+        dest,
+        ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo=", "--exclude=inputs"],
+    )
+    assert result.returncode == 0
+    assert os.path.exists(f"{dest}/run1/task1/execution/stdout") is True
+    assert os.path.exists(f"{dest}/run1/task1/inputs/infile") is False
+

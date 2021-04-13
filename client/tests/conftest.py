@@ -803,3 +803,22 @@ task bam_stats {
 """
     wdl.write_text(contents)
     return wdl
+
+
+@pytest.fixture()
+def output_example(tmp_path):
+    run_dir = tmp_path / "run1"
+    run_dir.mkdir()
+    task_dir = run_dir / "task1"
+    task_dir.mkdir()
+    task_inputs = task_dir / "inputs"
+    task_inputs.mkdir()
+    task_infile = task_inputs / "infile"
+    infile_contents = "EXAMPLE INPUT"
+    task_infile.write_text(infile_contents)
+    task_execution = task_dir / "execution"
+    task_execution.mkdir()
+    task_outfile = task_execution / "stdout"
+    outfile_contents = "EXAMPLE OUTPUT"
+    task_outfile.write_text(outfile_contents)
+    return tmp_path.as_posix()
