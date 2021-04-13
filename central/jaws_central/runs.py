@@ -1,3 +1,7 @@
+"""
+Run and RunLog classes
+"""
+
 import logging
 from datetime import datetime, timedelta
 from flask import abort, request
@@ -6,9 +10,9 @@ import globus_sdk
 import jaws_central.globus
 from jaws_central import config
 from jaws_central import jaws_constants
-from jaws_central.run_log import RunLog
 from jaws_rpc import rpc_index
-#from jaws_central.models_fsa import Run, User
+
+# from jaws_central.models_fsa import Run, User
 from jaws_central import models_fsa as models
 
 
@@ -83,6 +87,7 @@ class Run:
         try:
             run = self.session.query(models.Run).get(run_id)
         except IntegrityError as error:
+            logger.error(f"Error selecting Run {run_id}: {error}")
             raise RunNotFoundError(f"Run {self.id} not found")
         if not run:
             raise RunNotFoundError(f"Run {self.id} not found")
@@ -163,7 +168,7 @@ class Run:
             raise
         self.model = run
 
-    def _submit_run(self, params):
+    def submit_run(self, params):
         """
         Record the run submission in the database, with status as "uploading".
 
@@ -176,9 +181,6 @@ class Run:
         input_endpoint = params.get("input_endpoint", None)
         output_endpoint = params.get("output_endpoint")
         output_dir = params.get("output_dir")
-        wdl_file = params.get("wdl_file")
-        json_file = params.get("json_file")
-        tag = params.get("tag")
 
         compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
 
@@ -186,7 +188,9 @@ class Run:
             raise ValueError(
                 f'Unknown Site ID, "{site_id}"; try the "list-sites" command'
             )
-        logger.info(f"User {self.user.id}: New run submission {submission_id} to {site_id}")
+        logger.info(
+            f"User {self.user.id}: New run submission {submission_id} to {site_id}"
+        )
 
         self._insert_run(params)
         logger.debug(f"User {self.user.id}: New run {self.id}")
@@ -481,7 +485,6 @@ class Run:
 
 
 class RunLog:
-
     def __init__(self, session, run_id):
         self.session = session
         self.id = run_id
@@ -497,7 +500,7 @@ class RunLog:
         try:
             query = (
                 self.session.query(models.Run_Log)
-                .filter_by(run_id=run_id)
+                .filter_by(run_id=self.id)
                 .order_by(models.Run_Log.timestamp)
             )
         except SQLAlchemyError as error:
@@ -515,22 +518,22 @@ class RunLog:
             table.append(row)
         return table
 
-    def _insert_log(self, log_entry)
+    def _insert_log(self, log_entry):
         try:
             self.session.add(log_entry)
             self.session.commit()
         except Exception as error:
             self.session.rollback()
             logger.error(
-                f"Error while adding run log entry to cancel run {run.id}: {error}"
+                f"Error while adding run log entry to cancel run {self.id}: {error}"
             )
 
-    def add_log(self, status_from, status_to, timestamp, reason=None): 
+    def add_log(self, status_from, status_to, timestamp, reason=None):
         log_entry = models.Run_Log(
-            run_id=run.id,
+            run_id=self.id,
             status_from=status_from,
-            status_to=run.status,
-            timestamp=run.updated,
+            status_to=status_to,
+            timestamp=timestamp,
             reason=reason,
         )
         self._insert_log(log_entry)
@@ -567,7 +570,9 @@ def queue(session, user):
                 "cromwell_run_id": run.model.cromwell_run_id,
                 "result": run.model.result,
                 "status": run.model.status,
-                "status_detail": jaws_constants.run_status_msg.get(run.model.status, ""),
+                "status_detail": jaws_constants.run_status_msg.get(
+                    run.model.status, ""
+                ),
                 "site_id": run.model.site_id,
                 "submitted": run.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
                 "updated": run.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
@@ -620,7 +625,9 @@ def history(session, user, delta_days=10):
                 "cromwell_run_id": run.model.cromwell_run_id,
                 "result": run.model.result,
                 "status": run.model.status,
-                "status_detail": jaws_constants.run_status_msg.get(run.model.status, ""),
+                "status_detail": jaws_constants.run_status_msg.get(
+                    run.model.status, ""
+                ),
                 "site_id": run.model.site_id,
                 "submitted": run.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
                 "updated": run.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
