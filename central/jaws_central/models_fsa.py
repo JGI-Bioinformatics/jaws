@@ -27,7 +27,7 @@ class User(db.Model):
 
     __tablename__ = "users"
     id = db.Column(db.String(32), primary_key=True)
-    email = db.Column(db.String(64), nullable=False)
+    email = db.Column(db.String(64), nullable=False, unique=True)
     name = db.Column(db.String(64), nullable=True)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     is_dashboard = db.Column(db.Boolean, nullable=False, default=False)
