@@ -250,8 +250,7 @@ def list_sites() -> None:
 @click.option("--tag", help="identifier for the run")
 def submit(wdl_file: str, json_file: str, site: str, tag: str):
     """Submit a run for execution at a JAWS-Site.
-
-    Available sites can be found by running 'jaws run list-sites'.
+       Available sites can be found by running 'jaws run list-sites'.
     """
     logger = logging.getLogger(__package__)
 
