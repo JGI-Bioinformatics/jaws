@@ -20,31 +20,103 @@ Table of available resources
 
 Use the following tables to help figure out how many jobs (i.e. workers) you can run per node and how many total nodes you can expect to get.
 
-On Cori, JAWS runs on a dedicated cluster. 
+On Cori, JAWS runs on a dedicated cluster.
 
-+---------+-----+----------+----------------+-----+-------+--------------+
-|node type|nodes| ram (G)  | qos            |cores|threads|max time (hrs)|
-+=========+=====+==========+================+=====+=======+==============+
-| haswell |2,388|128 (118*)|genepool_special| 16  |   32  |  72          |
-+---------+-----+----------+----------------+-----+-------+--------------+
-|     knl |9,489| 96 (87*) | regular        | 68  |  272  |  48          |
-+---------+-----+----------+----------------+-----+-------+--------------+
-| skylake |  20 |758 (700*)| jgi_exvivo     | 32  |   32  | 168          |
-+---------+-----+----------+----------------+-----+-------+--------------+
-| skylake |  20 |250 (230*)| jgi_shared     | 32  |   32  | 168          |
-+---------+-----+----------+----------------+-----+-------+--------------+
++----------+-----+----------+----------------+-----+-------+--------------+
+|constraint|nodes| ram (G)  | qos            |cores|threads|max time (hrs)|
++==========+=====+==========+================+=====+=======+==============+
+| haswell  |2,388|128 (118*)|genepool_special| 32  |   64  |  72          |
++----------+-----+----------+----------------+-----+-------+--------------+
+| haswell  |2,388|128 (118*)|genepool**      | 32  |   64  |  72          |
++----------+-----+----------+----------------+-----+-------+--------------+
+|     knl  |9,489| 96 (87*) | regular        | 68  |  272  |  48          |
++----------+-----+----------+----------------+-----+-------+--------------+
+| skylake  |  20 |758 (700*)| jgi_exvivo     | 32  |   32  | 168          |
++----------+-----+----------+----------------+-----+-------+--------------+
+| skylake  |  20 |250 (230*)| jgi_shared     | 32  |   32  | 168          |
++----------+-----+----------+----------------+-----+-------+--------------+
+
+**note: If you have many jobs to submit(>10), use qos: "genepool" and not genepool_special which is a priority node. 
+
+.. raw:: html
+
+  <details>
+  <summary><a>See examples of requesting different resources</a></summary>
+
+  Using 250G machines
+  <br>
+  <code>
+	<pre>
+    runtime {
+      cluster: "cori"
+      time: "00:30:00"
+      memory: "250G"
+      poolname: "some-unique-name"
+      shared: 0
+      node: 1
+      nwpn: 1
+      constraint: "skylake"
+      qos: "jgi_shared"
+      account: "fungalp"
+      cpu: 12
+    }
+	</pre>
+  </code>
+    
+    
+  Using 700G machines
+  <br>
+  <code>
+	<pre>
+    runtime {
+      cluster: "cori"
+      time: "00:30:00"
+      memory: "700G"
+      poolname: "some-unique-name"
+      shared: 0
+      node: 1
+      nwpn: 1
+      constraint: "skylake"
+      qos: "jgi_exvivo"
+      account: "fungalp"
+    }
+	</pre>
+  </code>
+    
+  Using non-priority queue ("genepool")
+  <br>
+  <code>
+    <pre>
+    runtime {
+      poolname: "some-unique-name"
+      node: 1
+      nwpn: 1
+      memory: "10G"
+      time: "00:10:00"
+      shared: 0
+      qos: "regular"
+      account: "m342"
+    }
+	</pre>
+  </code>
+   </details>
+
 
 |
 
-At JGI, JAWS runs on a dedicated cluster called condo_jgicloud which is on partition = Lawrencium lr3.
+At JGI, JAWS runs on a dedicated clusters LR3 and JGI
 
-+-----------+-----+----------+-----+-------+--------------+
-|constraint |nodes| ram (G)  |cores|threads|max time (hrs)|
-+===========+=====+==========+=====+=======+==============+
-| n.a.      |  40 |256 (236*)|  32 |  64   |      72      |
-+-----------+-----+----------+-----+-------+--------------+
-| n.a.      |  4  |512 (472*)|  32 |  64   |      72      |
-+-----------+-----+----------+-----+-------+--------------+
++---------+------------------+-----+----------+-----+-------+--------------+
+|partition|    constraint    |nodes| ram (G)  |cores|threads|max time (hrs)|
++=========+==================+=====+==========+=====+=======+==============+
+|     lr3 |                  | 316 |  64 (45*)|  32 |  64   |      72      |
++---------+------------------+-----+----------+-----+-------+--------------+
+|     lr3 | lr3_c32,jgi_m256 | 32  |256 (236*)|  32 |  64   |      72      |
++---------+------------------+-----+----------+-----+-------+--------------+
+|     lr3 | lr3_c32,jgi_m512 | 8   |512 (492*)|  32 |  64   |      72      |
++---------+------------------+-----+----------+-----+-------+--------------+
+|     jgi |                  | 40  |256 (236*)|  32 |  64   |      72      |
++---------+------------------+-----+----------+-----+-------+--------------+
 
 |
 
@@ -60,16 +132,18 @@ At Pacific Northwest National Labs: `PNNL <https://www.emsl.pnnl.gov/MSC/UserGui
 | * the actual number of gigabytes you should request (remember there is overhead).
 
 
+.. _requesting-workers:
+
 ******************
 Requesting workers
 ******************
-You request resources in a similar manner as for sbatch jobs. The default options are shown below.  Remember to include quotes for strings. 
+You request resources in a similar manner as for sbatch jobs. The default options are shown below.  Remember to include quotes for strings.
 
-.. code-block:: bash
+.. code-block:: text
 
    runtime {
        time: "00:30:00"         # up to 72hrs
-       mem: "5G"                # you get a exclusive machine no matter what this setting is. You have two choices: ["115G"|"500G"]
+       memory: "5G"                # you get a exclusive machine no matter what this setting is. You have two choices: ["115G"|"500G"]
        poolname: "small"        # your choice.
        node: 1                  # number of nodes in the pool. You only need to set this higher when you are scattering a job.
        nwpn: 1                  # number of workers per node (max is number of threads).  This depends on the job's memory & thread requirements.
@@ -81,7 +155,7 @@ You request resources in a similar manner as for sbatch jobs. The default option
 
 If you wanted to use all defaults, you could get away with just specifying poolname.
 
-.. code-block:: bash
+.. code-block:: text
 
    runtime {
         poolname: "my_pool_name"
@@ -98,7 +172,7 @@ The answer depends on how much memory and threads each job will take (e.g. jobs 
 
 The decision process should go something like this:
 
-  1. Decide if you want a regular machine (128G) or a large memory machine (512G). Remember that there is an overhead of roughly 13G that you need to subtract from the total memory, so you'd use mem: "115G" or mem: "500G".
+  1. Decide if you want a regular machine (128G) or a large memory machine (512G). Remember that there is an overhead of roughly 13G that you need to subtract from the total memory, so you'd use memory: "115G" or memory: "500G".
   2. If your job maximum memory usage was 50G, and you are using a regular 115G machine then you can run 2 jobs per node. To get 10 workers, you would request :bash:`node: 5` and :bash:`nwpn: 2`.
   3. Alternatively, if your job max memory usage is 2G and it only uses 1 thread, then set :bash:`node: 1` and :bash:`nwpn: 56` (equals 112G total ram). Remember that nwpn: 64 is the maximum.
 
@@ -106,12 +180,12 @@ The decision process should go something like this:
 for example:
 **scattering high memory jobs**
 
-.. code-block:: bash
+.. code-block:: text
 
    runtime {
      poolname: "my_pool_name"
      time: "2:00:00"
-     mem: "115G"
+     memory: "115G"
      node: 5
      nwpn: 2
    }
@@ -122,7 +196,7 @@ How many threads do I get per worker
 The answer is "It depends on how many workers you ask for".  Consider the following:
 Assuming we have a node with 64 threads. If you wanted to run `blastn -num_threads 4` in parallel, and if memory was not a bottleneck, you could run up to 16 blast tasks (64/4=16) on one node. This would equate to 16 workers per node.
 
-.. code-block:: bash
+.. code-block:: text
 
    runtime {
      node: 1
@@ -141,12 +215,12 @@ Example Cases and Best-practices
 
 If you want to scatter a task use a pool of >1 workers. For instance, If you have a hundred scatter jobs, having 10 workers will give you a 10x speedup. You can configure how many workers (jobs) you want on a node; this depends on the memory requirements per job. Assuming here that each job takes max of 20G, you could run a max of 5 jobs per node.
 
-.. code-block:: bash
+.. code-block:: text
 
    runtime {
        cluster: "cori"
        time: "1:00:00"
-       mem: "115G"
+       memory: "115G"
        poolname: "my_pool_name"
        node: 2
        nwpn: 5
@@ -154,13 +228,13 @@ If you want to scatter a task use a pool of >1 workers. For instance, If you hav
 
 To re-use a worker pool, copy all the params, not just the name.  In this example, the first task takes 20 minutes and the second task takes 40 minutes so the total needs to be at least 1hr.
 
-.. code-block:: bash
+.. code-block:: text
 
    task trim {
       runtime {
         cluster: "cori"
         time: "1:00:00"
-        mem: "115G"
+        memory: "115G"
         poolname: "my_pool_name"
         node: 1
         nwpn: 10
@@ -170,7 +244,7 @@ To re-use a worker pool, copy all the params, not just the name.  In this exampl
       runtime {
         cluster: "cori"
         time: "1:00:00"
-        mem: "115G"
+        memory: "115G"
         poolname: "my_pool_name"
         node: 1
         nwpn: 10

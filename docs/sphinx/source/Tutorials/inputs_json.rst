@@ -7,7 +7,7 @@ An inputs json file has the below format.
 Typically, you pass a variable to the workflow and within the WDL, 
 you can pass the variable to one or more tasks.
 
-.. code-block:: bash 
+.. code-block:: text 
 
    {
     "<workflow name>.<variable name>": "<value>"
@@ -15,7 +15,7 @@ you can pass the variable to one or more tasks.
 
 Alternatively, you can pass a variable just to a individual task
 
-.. code-block:: bash 
+.. code-block:: text 
 
    {
     "<workflow name>.<task name>.<variable name>": "<value>"
@@ -28,13 +28,13 @@ Alternatively, you can pass a variable just to a individual task
 
 You can create an inputs file by scratch or you can build a template based on the WDL using the following command:
 
-.. code-block:: bash 
+.. code-block:: text 
 
    jaws run inputs <path to your.wdl>
 
 This command should output a template for the inputs.json file. You can then fill in the vaules of each key.
 
-.. code-block:: bash 
+.. code-block:: text 
 
    {
      "bbtools.reads": "File",
@@ -42,11 +42,11 @@ This command should output a template for the inputs.json file. You can then fil
    }
 
 .. warning::
-    File paths may be absolute or relative paths, but must contain a slash in the path (e.g. `/tmp/x` or `./x` but not `x`). Furthermore, any relative paths that start with ../x will cause an error.
+    File paths may be absolute or relative paths, but must start with `./`, `../`, or `/` to be recognized as a path.
 
 To include lists or dictionaries in your input.json files, you would do something like:
 
-.. code-block:: bash
+.. code-block:: text
 
    {
       "bbtools.var_list": ["a","b","c"]

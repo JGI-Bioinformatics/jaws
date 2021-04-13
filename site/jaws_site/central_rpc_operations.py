@@ -3,13 +3,12 @@ RPC functions for Central.  Most of these simply wrap the localhost Cromwell RES
 """
 
 import logging
-import sqlalchemy.exc
-from sqlalchemy.exc import SQLAlchemyError
-import collections
-from jaws_site import config, jaws_constants
+from sqlalchemy.exc import IntegrityError
+from jaws_site import config
 from jaws_site.cromwell import Cromwell
-from jaws_site.models import Run, Job_Log
+from jaws_site.models import Run
 from jaws_rpc.responses import success, failure
+from jaws_site.tasks import TaskLog
 
 
 # config and logging must be initialized before importing this module
@@ -71,7 +70,7 @@ def cancel_run(params, session):
     # check if run in active runs tables
     try:
         run = session.query(Run).get(run_id)
-    except sqlalchemy.exc.IntegrityError as error:
+    except IntegrityError as error:
         logger.exception(f"Run not found: {run_id}: {error}")
     except Exception as error:
         logger.exception(f"Error selecting on runs table: {error}")
@@ -133,7 +132,6 @@ def submit(params, session):
             id=run_id,  # pk used by Central
             user_id=user_id,
             email=params["email"],
-            transfer_refresh_token=params["transfer_refresh_token"],
             submission_id=params["submission_id"],
             upload_task_id=params["upload_task_id"],
             output_endpoint=params["output_endpoint"],
@@ -153,77 +151,26 @@ def submit(params, session):
 
 def get_task_log(params, session):
     """Retrieve task log from database"""
-    run_id = params["run_id"]
     try:
-        query = (
-            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
-        )
-    except SQLAlchemyError as error:
-        return failure(error)
+        tasks = TaskLog(session)
+        result = tasks.get_task_log(params["run_id"])
     except Exception as error:
         return failure(error)
-    table = []
-    for log in query:
-        # replace None with empty string
-        task_name = log.task_name
-        if task_name is None:
-            task_name = "<updating>"
-        attempt = log.attempt
-        if attempt is None:
-            attempt = 1
-        row = [
-            task_name,
-            attempt,
-            log.cromwell_job_id,
-            log.status_from,
-            log.status_to,
-            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            log.reason,
-        ]
-        table.append(row)
-    return success(table)
+    else:
+        return success(result)
 
 
 def get_task_status(params, session):
     """
     Retrieve the current status of each task.
     """
-    run_id = params["run_id"]
-    # get job log entries, sorted by timestamp,
     try:
-        query = (
-            session.query(Job_Log).filter_by(run_id=run_id).order_by(Job_Log.timestamp).all()
-        )
+        tasks = TaskLog(session)
+        result = tasks.get_task_status(params["run_id"])
     except Exception as error:
         return failure(error)
-    tasks = collections.OrderedDict()
-    for log in query:
-        task_name = log.task_name
-        # skip tasks without a name yet (initially logs are missing task name, which is filled in
-        # from cromwell metadata by site-daemon
-        if not task_name:
-            continue
-        # keep only the latest log entry per task
-        tasks[task_name] = [
-            log.task_name,
-            log.attempt,
-            log.cromwell_job_id,
-            log.status_from,
-            log.status_to,
-            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            log.reason,
-        ]
-        # this keeps the log entries sorted by timestamp
-        tasks.move_to_end(task_name)
-
-    # return only the values, the key (task_name) was just used for dereplication
-    result = list(tasks.values())
-
-    # add explanatory text column
-    for row in result:
-        status_to = row[4]
-        row.append(jaws_constants.task_status_msg.get(status_to, ""))
-    return success(result)
+    else:
+        return success(result)
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
@@ -235,7 +182,6 @@ operations = {
             "user_id",
             "run_id",
             "email",
-            "transfer_refresh_token",
             "submission_id",
             "upload_task_id",
             "output_endpoint",

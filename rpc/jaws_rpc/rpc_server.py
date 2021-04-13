@@ -1,7 +1,6 @@
 """
 A Scalable and threaded Consumer that will automatically re-connect on failure.
 """
-import logging
 import threading
 import time
 import json
@@ -22,7 +21,7 @@ class InvalidResponse(Exception):
 
 
 class Consumer(object):
-    def __init__(self, queue, operations, sessionmaker):
+    def __init__(self, logger, queue, operations, sessionmaker=None):
         """Initialize Consumer object
 
         :param queue: The name of the queue from which to retrieve messages.
@@ -32,7 +31,7 @@ class Consumer(object):
         self.queue = queue
         self.operations = operations
         self.sessionmaker = sessionmaker
-        self.logger = logging.getLogger(__package__)
+        self.logger = logger
         self.channel = None
         self.active = False
 
@@ -106,10 +105,19 @@ class Consumer(object):
         # GET RESPONSE FROM DISPATCH FUNCTION
         self.logger.debug(f"RPC method {method} with {params}")
         proc = self.operations[method]["function"]
-        session = self.sessionmaker()
-        response = proc(params, session)
+        # rpc procedures are either called with a db session or not, depending on whether the
+        # rpc manager was initialized with a sessionmaker obj or not, because an rpc server
+        # may or may not have an associated (sqlalchemy) db.
+        response = None
+        session = None
+        if self.sessionmaker:
+            session = self.sessionmaker()
+            response = proc(params, session)
+        else:
+            response = proc(params)
         self.__respond__(message, response)
-        session.close()
+        if session:
+            session.close()
 
     def __respond__(self, message, response):
         try:
@@ -206,8 +214,8 @@ class Consumer(object):
 
 
 class RpcServer(object):
-    def __init__(self, params, operations, sessionmaker) -> None:
-        self.logger = logging.getLogger(__package__)
+    def __init__(self, params, logger, operations, sessionmaker=None) -> None:
+        self.logger = logger
         self.params = {}
         for required_param in ["host", "vhost", "user", "password", "queue"]:
             if required_param not in params:
@@ -222,7 +230,8 @@ class RpcServer(object):
         self.operations = operations
         self.sessionmaker = sessionmaker
         self.consumers = [
-            Consumer(params["queue"], self.operations, self.sessionmaker) for _ in range(self.num_threads)
+            Consumer(self.logger, params["queue"], self.operations, self.sessionmaker)
+            for _ in range(self.num_threads)
         ]
         self.stopped = threading.Event()
         self.connection = self.create_connection()
@@ -250,7 +259,9 @@ class RpcServer(object):
         :return: index where we activate consumers
         """
         for _ in range(num):
-            consumer = Consumer(self.params["queue"], self.operations, self.sessionmaker)
+            consumer = Consumer(
+                self.params["queue"], self.operations, self.sessionmaker
+            )
             self.start_consumer(consumer)
             self.consumers.append(consumer)
 

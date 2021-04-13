@@ -468,7 +468,7 @@ def run_user_task(msg_unzipped):
                     return_msg["ret_msg"] = "Output file checking is OK."
             else:
                 return_msg["done_flag"] = done_f["success"]
-                return_msg["ret_msg"] = "No file(s) to check."
+                return_msg["ret_msg"] = ""
         else:
             logger.critical(
                 "Failed to execute a task, %s. Non-zero exit code. stdout = %s."
@@ -861,33 +861,36 @@ def worker(
     if CONFIG.configparser.get("JTM", "run_mode") == "prod":
         prod_mod = True
 
-    # Job dir setting
+    # Set uniq worker id if worker id is provided in the params
+    if worker_id_param:
+        global UNIQ_WORKER_ID
+        UNIQ_WORKER_ID = worker_id_param
+
+    # Job log dir setting
     job_script_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "job")
     if custom_job_log_dir_name:
         job_script_dir_name = custom_job_log_dir_name
     make_dir(job_script_dir_name)
 
     # Log dir setting
-    log_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "log")
+    datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    datetime_str = UNIQ_WORKER_ID + "_" + datetime_str
+    log_dir_name = CONFIG.configparser.get("JTM", "log_dir")
     if custom_log_dir:
         log_dir_name = custom_log_dir
+    log_dir_name = os.path.join(log_dir_name, "worker")
     make_dir(log_dir_name)
-
-    print("JTM Worker, version: {}".format(CONFIG.constants.VERSION))
-
-    # Set uniq worker id if worker id is provided in the params
-    if worker_id_param:
-        global UNIQ_WORKER_ID
-        UNIQ_WORKER_ID = worker_id_param
+    log_file_name = "%s/jtm_worker_%s.log" % (log_dir_name, datetime_str)
 
     # Logger setting
     log_level = "info"
     if DEBUG:
         log_level = "debug"
 
-    setup_custom_logger(log_level, log_dir_name, 1, 1, worker_id=UNIQ_WORKER_ID)
-    hearbeat_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_send_interval")
+    setup_custom_logger(log_level, log_dir_name, log_file_name, 1, 1)
 
+    logger.info("JTM Worker, version: {}".format(CONFIG.constants.VERSION))
+    hearbeat_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_send_interval")
     logger.info(
         "\n*****************\nDebug mode is %s\n*****************"
         % ("ON" if DEBUG else "OFF")

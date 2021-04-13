@@ -34,31 +34,32 @@ def test_check_all_values(config_file):
 
     expected_globus_parameters = [
         ("client_id", "ZZZZ"),
+        ("client_secret", "AAAAA"),
     ]
 
-    expected_site_lbnl_parameters = [
+    expected_site1_parameters = [
         ("host", "rmq.jaws.gov"),
         ("user", "jaws"),
-        ("password", "passw0rd2"),
+        ("password", "passw0rd3"),
         ("vhost", "jaws"),
         ("globus_endpoint", "XXXX"),
-        ("globus_basepath", '"/global/scratch/jaws"'),
-        ("uploads_subdir", '"uploads"'),
+        ("globus_host_path", "/global/scratch/jaws"),
+        ("uploads_dir", "/global/scratch/jaws/jaws-dev/uploads"),
         ("max_ram_gb", "1024"),
     ]
 
-    expected_site_nersc_parameters = [
+    expected_site2_parameters = [
         ("site_id", "NERSC"),
         ("globus_endpoint", "YYYY"),
-        ("globus_basepath", '"/"'),
-        ("uploads_subdir", '"/global/scratch/jaws/uploads"'),
+        ("globus_host_path", "/"),
+        ("uploads_dir", "/global/cscratch/sd1/jaws/jaws-dev/uploads"),
         ("max_ram_gb", "2048"),
     ]
 
     check_section("DB", expected_db_parameters, cfg)
     check_section("GLOBUS", expected_globus_parameters, cfg)
-    check_site("LBNL", expected_site_lbnl_parameters, cfg)
-    check_site_info("NERSC", expected_site_nersc_parameters, cfg)
+    check_site("JGI", expected_site1_parameters, cfg)
+    check_site_info("NERSC", expected_site2_parameters, cfg)
 
 
 def test_config_overwrite_partial_values(partial_config):
@@ -79,7 +80,7 @@ def test_config_overwrite_partial_values(partial_config):
     ]
 
     expected_globus_sections = [
-        ("client_id", "ZZZZ"),
+        ("client_id", "AAAA"),
     ]
 
     check_section("DB", expected_db_sections, cfg)

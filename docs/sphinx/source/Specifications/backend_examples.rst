@@ -11,7 +11,7 @@ Singularity Backend Example
 From file on lawrencium
 Cromwell_NERSC_dev.conf
 
-.. code-block:: bash
+.. code-block:: text
 
     JTM
     {
@@ -22,7 +22,7 @@ Cromwell_NERSC_dev.conf
           String? docker
           String time = "00:00:00"
           Int cpu = 1
-          String mem = "0G"
+          Float? memory_gb = 5
           Int node = 1
           Int nwpn = 1
         """
@@ -32,7 +32,7 @@ Cromwell_NERSC_dev.conf
           -cl ${cluster} \
           -t ${time} \
           -c ${cpu} \
-          -m ${mem} \
+          -m ${memory_gb} \
           -p ${poolname} \
           -C ${constraint} \
           -N ${node} \
@@ -57,7 +57,7 @@ Cromwell_NERSC_dev.conf
               -cl ${cluster} \
               -t ${time} \
               -c ${cpu} \
-              -m ${mem} \
+              -m ${memory_gb} \
               -p ${poolname} \
               -C ${constraint} \
               -N ${node} \
@@ -79,7 +79,7 @@ If your wdl task is being run in a docker image, then the "submit-docker" comman
 
 **singularity_exec.sh**
 
-.. code-block:: bash
+.. code-block:: text
 
 	export SINGULARITY_CACHEDIR=/<somepath>/sif_files
 	export SINGULARITY_PULLFOLDER=/<somepath>/sif_files
@@ -96,7 +96,7 @@ Shifter Backend Example
 From file on cori
 Cromwell.conf
 
-.. code-block:: bash
+.. code-block:: text
 
 	# this is required for shifter to find image from its registry.
 	docker {
@@ -114,7 +114,7 @@ Cromwell.conf
           String? docker
           String time = "00:00:00"
           Int cpu = 1
-          String mem = "0G"
+          Float? memory_gb = 5
           String cluster = "cori"
           String poolname = "small"
           String constraint = "haswell"
@@ -129,7 +129,7 @@ Cromwell.conf
           -cl ${cluster} \
           -t ${time} \
           -c ${cpu} \
-          -m ${mem} \
+          -m ${memory_gb} \
           -p ${poolname} \
           -C ${constraint} \
           -N ${node} \
@@ -153,7 +153,7 @@ Cromwell.conf
               -cl ${cluster} \
               -t ${time} \
               -c ${cpu} \
-              -m ${mem} \
+              -m ${memory_gb} \
               -p ${poolname} \
               -C ${constraint} \
               -N ${node} \
@@ -175,7 +175,7 @@ If your wdl task is being run in a docker image, then the "submit-docker" comman
 
 **shifter_exec.sh**
 
-.. code-block:: bash
+.. code-block:: text
 
 	#!/bin/bash
 	shifter --image=$1 -V <full_path_to_db>:/refdata $2 $3

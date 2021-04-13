@@ -28,7 +28,6 @@ class Run(Base):
     output_dir = Column(String(256), nullable=False)
     download_task_id = Column(String(36), nullable=True)
     email = Column(String(64), nullable=False)
-    transfer_refresh_token = Column(String(256), nullable=False)
 
 
 class Run_Log(Base):
@@ -55,11 +54,8 @@ class Job_Log(Base):
     """
 
     __tablename__ = "job_logs"
-    run_id = Column(Integer, ForeignKey("runs.id"), nullable=True)
     cromwell_run_id = Column(String(36), nullable=False)
     cromwell_job_id = Column(Integer, primary_key=True)
-    task_name = Column(String(128), nullable=True)
-    attempt = Column(Integer, nullable=True)
     status_from = Column(String(32), primary_key=True)
     status_to = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)

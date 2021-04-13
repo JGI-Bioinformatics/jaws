@@ -39,15 +39,26 @@ class Configuration(metaclass=Singleton):
             "site_id": "",
             "url": "http://localhost:5000",
             "womtool_jar": "",
+            "staging_dir": "",
+            "data_repo_basedir": "",
+            "shared_endpoint_group": "",
         },
         "GLOBUS": {"client_id": "", "endpoint_id": "", "basedir": "/"},
     }
 
     required_jaws_params = {
-        "JAWS": ["name", "site_id", "url", "womtool_jar"],
+        "JAWS": [
+            "name",
+            "site_id",
+            "url",
+            "womtool_jar",
+            "staging_dir",
+            "data_repo_basedir",
+            "shared_endpoint_group",
+        ],
         "GLOBUS": ["client_id", "endpoint_id", "basedir"],
     }
-    required_user_params = {"USER": ["token", "staging_dir"]}
+    required_user_params = {"USER": ["token"]}
 
     config = None
 
@@ -69,8 +80,8 @@ class Configuration(metaclass=Singleton):
         self.config.read_dict(self.defaults)
         try:
             self.config.read(jaws_config_file)
-        except Exception as error:
-            logger.exception(f"Unable to load config from {jaws_config_file}: {error}")
+        except configparser.Error as error:
+            logger.exception(f"Invalid config file, {jaws_config_file}: {error}")
             raise
 
         # validate config
@@ -105,9 +116,9 @@ class Configuration(metaclass=Singleton):
         user_config = configparser.ConfigParser()
         try:
             user_config.read(user_config_file)
-        except Exception as error:
-            logger.exception(f"Unable to load config from {user_config_file}: {error}")
-            raise
+        except configparser.Error as error:
+            logger.exception(f"Invalid config file, {user_config_file}: {error}")
+            raise SystemExit(f"Invalid config file, {user_config_file}: {error}")
         for section in self.required_user_params:
             self.config[section] = {}
             if section not in user_config:

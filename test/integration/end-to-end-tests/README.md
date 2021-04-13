@@ -1,18 +1,23 @@
-# End to End Integration Testing
+# Directory Contents
 
-## Summary
+**`deployment-tests`**
+This fold contains pytests that are run everytime we deploy to the `staging` branch. They represent `integration-tests` that are run after these other stages (found in the .gitlab-ci.yml file:
 
-official [pydtest docs](https://docs.pytest.org/en/latest/)
+stages:
+ - unit-test
+ - package
+ - deploy-jaws
+ (- integration-test)
 
-The pytest "fixtures" are kept in the `conftest.py` file.  These are functions that can be re-used by different functions in the main_runner.py. 
+See `deploy-jaws-central-staging-integration-tests` in the .gitlab-ci.yml.
 
-In the "TestsWDLs" directory, there are wdls with names like "testcase22.wdl". This name corresponds to the testcase in the "score-card" tests at [google doc](https://docs.google.com/document/d/1nXuPDVZ3dXl0AetyU5Imdbi0Gvc5sUhAR0OfYxss2uI/edit#heading=h.rmy1jmsa0m7n) and [google sheet](https://docs.google.com/spreadsheets/d/1eBWvk4FSPpbFclTuzu0o77aPAxcZ78C_mVKCnHoMMAo/edit#gid=1883830451)
 
-## Run Tests
+**`nightly-tests`**
+These are tests that run "end-to-end" JAWS runs that make sure all the JAWS systems are functioning properly (differentiating them from unit-tests). These pytests are initiated by the native gitlab scheduling system (akin to cronjobs). These scheduled jobs are run by the gitlab runner with the tag of `central` and therefore, run on the machine where `central` is installed.
 
-```
-. ~/jaws-dev/bin/activate
-pytest main_runner.py
-```
+See `nightly-end-to-end-tests` in the .gitlab-ci.yml.
 
+
+**`manually_initiated_tests`**
+These are tests that are not part of the previous categories and are initiated by manually running pytest. They include things like stress tests, etc.
 

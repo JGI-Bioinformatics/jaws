@@ -13,6 +13,7 @@ Below is a step-by-step example of creating a WDL from bash code and running it 
     
 
 * start with the official `WDL site <https://software.broadinstitute.org/wdl/documentation/>`_
+
 * link to `real world examples <https://software.broadinstitute.org/wdl/documentation/topic?name=wdl-scripts>`_.
 
 
@@ -24,7 +25,7 @@ Converting Example Bash Code to a WDL
 If we have a mini bash pipeline
 -------------------------------
 
-.. code-block:: bash
+.. code-block:: text
 
    #!/bin/bash
 
@@ -41,7 +42,8 @@ Notice that I am running all the commands inside a docker container :bash:`jfrou
 which should exist in hub.docker.com and will therefore be pulled localy by the :bash:`shifterimg pull` command.
 
 Example should be run on CORI.
-.. code-block:: bash
+
+.. code-block:: text
 
     workflow bbtools {
         File reads
@@ -61,22 +63,22 @@ Example should be run on CORI.
         File fasta
 
         command {
-    		shifterimg pull jfroula/bbtools:1.2.1 && \
-    		shifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=${fastq} ref=${fasta} out=test.sam
+            shifterimg pull jfroula/bbtools:1.2.1 && \
+            shifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=${fastq} ref=${fasta} out=test.sam
         }
         output {
-           File sam = "test.sam"
+            File sam = "test.sam"
         }
     }
 
     task samtools {
-    	File sam
+        File sam
 
         command {
-       	    shifter --image=jfroula/bbtools:1.2.1 samtools view -b -F0x4 ${sam} | samtools sort - > test.sorted.bam
+           shifter --image=jfroula/bbtools:1.2.1 samtools view -b -F0x4 ${sam} | samtools sort - > test.sorted.bam
         }
         output {
-       	    File bam = "test.sorted.bam"
+           File bam = "test.sorted.bam"
         }
     }
 
@@ -95,7 +97,7 @@ Refer to the official WDL website for deeper description and examples.  I'll jus
 The input file ("inputs.json") would look like this
 ---------------------------------------------------
 
-.. code-block:: bash
+.. code-block:: text
 
    {
     "bbtools.reads": "<full_path>/reads.fq",
@@ -108,7 +110,7 @@ Create a file called :bash:`alignment.wdl` with the WDL code from above.
 
 Create another file called :bash:`inputs.json` with the inputs and run...
 
-.. code-block:: bash
+.. code-block:: text
 
-	source activate /global/cfs/projectdirs/jaws/prod/cli/
+    source activate /global/cfs/projectdirs/jaws/prod/cli/
     jaws run submit alignment.wdl inputs.json

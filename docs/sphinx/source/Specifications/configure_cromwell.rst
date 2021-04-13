@@ -31,13 +31,13 @@ Example configs
 Example of Running a WDL with Slurm Config
 ******************************************
 You can see a working example of how to run a task on slurm.
-`working example using slurm <https://gitlab.com/jfroula/jaws-example-wdl/tree/master/using_slurm_and_local>`_
+`working example using slurm <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples/using_slurm_and_local>`_
 
 Follow the README.md in the above repository to run the WDL (`test.wdl`) and inspect the WDL and `cori.conf` file. 
 
 Essentially, you specify that you want to use slurm in the runtime section of your WDL. If you don't specify anything for the `backend:` then the default will run jobs locally, as set in the config (see below).
 
-.. code-block:: bash
+.. code-block:: text
 
 	runtime {	
 		backend: "SLURM"
@@ -45,7 +45,7 @@ Essentially, you specify that you want to use slurm in the runtime section of yo
 
 And in the config file you would define `SLURM` to be one of the backend `providers`.
 
-.. code-block:: bash
+.. code-block:: text
 
 	backend {
   		default = "Local"

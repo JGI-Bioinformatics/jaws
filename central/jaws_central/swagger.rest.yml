@@ -43,31 +43,77 @@ paths:
           description: OK
       security: []
 
-  /auth:
-    post:
-      operationId: jaws_central.auth.save_globus_tokens
-      consumes:
-        - multipart/form-data
+  /auth/{hash_code}:
+    get:
+      operationId: jaws_central.auth.get_user_token
       tags:
         - user
-      summary: Save a user's Glbous tokens
-      description: Give a user's Globus Auth and Transfer tokens to JAWS
+      summary: Get a user's JAWS access token
+      description: Allows the dashboard to retrieve a logged-in user's JAWS token.
       parameters:
-        - name: auth_refresh_token
-          in: formData
+        - name: hash_code
+          in: path
+          description: User's JGI SSO session hash code
           type: string
           required: True
-          description: Globus Auth Refresh Token
-        - name: transfer_refresh_token
-          in: formData
-          type: string
-          required: True
-          description: Globus Transfer Refresh Token
+      responses:
+        200:
+          description: OK
+        401:
+          description: Access denied
+        404:
+          description: User not found
+      security:
+        - oauth2: ['dashboard']
+
+  /user:
+    get:
+      operationId: jaws_central.auth.get_user
+      tags:
+        - user
+      summary: Get user info
+      description: Get current user's info
       responses:
         200:
           description: OK
         401:
           description: Authorization information is missing or invalid.
+
+    post:
+      operationId: jaws_central.auth.add_user
+      tags:
+        - user
+      summary: Add new user
+      description: Create a new user account and generate a JAWS access token
+      parameters:
+        - name: uid
+          in: formData
+          description: User ID
+          type: string
+          required: True
+        - name: name
+          in: formData
+          description: User's full name
+          type: string
+          required: True
+        - name: email
+          in: formData
+          description: User's email address
+          type: string
+          required: True
+        - name: admin
+          in: formData
+          description: True if user has admin access
+          type: boolean
+          default: False
+          required: False
+      responses:
+        201:
+          description: New user added
+        401:
+          description: Access denied
+      security:
+        - oauth2: ['admin']
 
   /wdl:
     get:
@@ -152,10 +198,9 @@ paths:
           description: OK
           schema:
             type: file
-        401:
-          description: Authorization information is missing or invalid.
         404:
           description: The specified record does not exist
+      security: []
 
     post:
       operationId: jaws_central.catalog_rest.add_wdl
@@ -272,10 +317,9 @@ paths:
           description: OK
           schema:
             type: file
-        401:
-          description: Authorization information is missing or invalid.
         404:
           description: The specified record does not exist
+      security: []
 
     put:
       operationId: jaws_central.catalog_rest.update_doc
@@ -405,6 +449,21 @@ paths:
           type: string
           in: formData
           required: True
+        - name: wdl_file
+          description: Original WDL infile path
+          type: string
+          in: formData
+          required: True
+        - name: json_file
+          description: Original JSON infile path
+          type: string
+          in: formData
+          required: True
+        - name: tag
+          description: User-specified label for the run
+          type: string
+          in: formData
+          required: False
       responses:
         201:
           description: Successful

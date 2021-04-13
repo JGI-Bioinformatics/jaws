@@ -61,7 +61,7 @@ done
 ## SITE-SPECIFIC VARIABLES:
 ## This will define global vars with a SITE_ prefix, with values from variables referenced by the JAWS_SITE
 ## variable.  For instance, if JAWS_SITE="JGI", setting GLOBUS_EP site var will define a SITE_GLOBUS_EP var
-## with the value from JGI_GLOBUS_EP.  
+## with the value from JGI_GLOBUS_EP.
 ## This allows the site installation scripts to use the SITE_* vars.
 echo "DEFINING SITE VARS"
 function set_site_var {
@@ -80,8 +80,7 @@ function set_site_var {
 SITE_VARS="
 INSTALL_BASEDIR
 GLOBUS_EP
-GLOBUS_ROOT_DIR
-GLOBUS_DEFAULT_DIR
+GLOBUS_HOST_PATH
 RMQ_HOST
 RMQ_PORT
 RMQ_PW
@@ -108,7 +107,8 @@ CLUSTER_ACCOUNT
 CLUSTER_CONSTRAINT
 MAX_RAM_GB
 DB_PW
-LOAD_JAVA"
+LOAD_JAVA
+"
 for SITE_VAR in $SITE_VARS; do
   set_site_var $SITE_VAR
 done
@@ -128,8 +128,7 @@ export SITE_JTM_WORKER_INSTALL_DIR="$SITE_JTM_SW_BASEDIR/jtm-$DEPLOYMENT_NAME"
 
 # Globus-related dirs:
 export SITE_CROMWELL_TMPDIR="$INSTALL_DIR/cromwell-tmp"
-export SITE_UPLOADS_DIR="$SITE_JTM_SCRATCH_DIR/uploads"
-export SITE_DOWNLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/downloads"
+export SITE_UPLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/inputs"
 
 # Cromwell-related dirs
 export SITE_CROMWELL_JAR="$SITE_JAWS_SW_BASEDIR/cromwell/cromwell-$CROMWELL_VERSION.jar"
@@ -143,13 +142,6 @@ export INSTALLED_CROMWELL_JAR="$INSTALL_DIR/cromwell.jar"
 
 # Globus has some rules about how paths are interpreted, depending on how the endpoint is configured.
 [[ ${SITE_GLOBUS_ROOT_DIR: -1} == "/" ]] || SITE_GLOBUS_ROOT_DIR="$SITE_GLOBUS_ROOT_DIR/"
-if [[ $SITE_GLOBUS_ROOT_DIR == "/" ]]; then
-  export SITE_UPLOADS_SUBDIR=$SITE_UPLOADS_DIR
-  export SITE_DOWNLOADS_SUBDIR=$SITE_DOWNLOADS_DIR
-else
-  export SITE_UPLOADS_SUBDIR=${SITE_UPLOADS_DIR#$SITE_GLOBUS_ROOT_DIR}
-  export SITE_DOWNLOADS_SUBDIR=${SITE_DOWNLOADS_DIR#$SITE_GLOBUS_ROOT_DIR}
-fi
 
 
 ## CREATE DIRS AND SET GROUP AND PERMISSIONS

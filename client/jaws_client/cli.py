@@ -6,9 +6,7 @@ import click
 import os
 import requests
 import json
-import logging
-import globus_sdk
-from jaws_client import log, config, analysis, catalog, user
+from jaws_client import log, config, analysis, catalog, admin
 from jaws_client import wfcopy as wfc
 
 JAWS_LOG_ENV = "JAWS_CLIENT_LOG"
@@ -85,48 +83,9 @@ def wfcopy(src_dir: str, dest_dir: str, flatten) -> None:
     wfc.wfcopy(src_dir, dest_dir, flatten)
 
 
-@cli.command()
-def login() -> None:
-    """Authenticate using Globus OAuth2 and provide tokens to JAWS-Central"""
-    logger = logging.getLogger(__package__)
-    requested_scopes = (
-        "openid profile email urn:globus:auth:scope:transfer.api.globus.org:all"
-    )
-    globus_client = globus_sdk.NativeAppAuthClient(
-        config.conf.get("GLOBUS", "client_id")
-    )
-    globus_client.oauth2_start_flow(
-        requested_scopes=requested_scopes, refresh_tokens=True
-    )
-    authorize_url = globus_client.oauth2_get_authorize_url()
-    print(f"Please go to this URL and log in:\n{authorize_url}")
-    auth_code = input("Paste the authorization code here: ").strip()
-    logger.debug("Authenticate with Globus")
-    try:
-        token_response = globus_client.oauth2_exchange_code_for_tokens(auth_code)
-    except globus_sdk.GlobusError:
-        raise SystemExit("Authentication failed")
-
-    # POST TOKENS TO JAWS CENTRAL
-    data = {}
-    auth_service_name = "auth.globus.org"
-    auth = token_response.by_resource_server[auth_service_name]
-    data["auth_refresh_token"] = auth["refresh_token"]
-    transfer_service_name = "transfer.api.globus.org"
-    transfer = token_response.by_resource_server[transfer_service_name]
-    data["transfer_refresh_token"] = transfer["refresh_token"]
-    current_user = user.User()
-    url = f'{config.conf.get("JAWS", "url")}/auth'
-    try:
-        r = requests.post(url, data=data, headers=current_user.header())
-    except requests.exceptions.RequestException:
-        raise SystemExit("Unable to communicate with JAWS server")
-    if r.status_code != 200:
-        raise SystemExit(r.text)
-
-
 def jaws():
     """Entrypoint for jaws-client app."""
     cli.add_command(analysis.run)
     cli.add_command(catalog.wdl)
+    cli.add_command(admin.admin)
     cli()

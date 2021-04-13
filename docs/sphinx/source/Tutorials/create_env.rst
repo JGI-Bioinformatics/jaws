@@ -8,7 +8,7 @@ Using Docker Images to Define your Running Environment
 In this tutorial, I will describe one way docker images can be created and used in your WDL. If you are unfamiliar with docker, please see `docker tutorial <https://scotch.io/tutorials/getting-started-with-docker>`_ or search for the many YouTube tutorials.
 
 .. note::
-	As a pre-requisite, you will need a computer with docker installed (Docker Engine - Community).  Installation instructions can be found at `docs.docker.com/install <https://docs.docker.com/install/>`_ or if you have conda installed :bash:`conda install -c conda-forge docker-py`.
+    As a pre-requisite, you will need a computer with docker installed (Docker Engine - Community).  Installation instructions can be found at `docs.docker.com/install <https://docs.docker.com/install/>`_ or if you have conda installed :bash:`conda install -c conda-forge docker-py`.
 
 
 Here are the steps we're going to take for this tutorial:
@@ -21,12 +21,12 @@ Here are the steps we're going to take for this tutorial:
 ********************************
 Clone the Example Repository
 ********************************
-For this tutorial, I will be using the example code from `jaws-example-wdl <https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git>`_.
+For this tutorial, I will be using the example code from `jaws-tutorial-examples <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git>`_.
 To follow along, do...
 
-.. code-block:: bash
+.. code-block:: text
 
-   git clone https://code.jgi.doe.gov/advanced-analysis/jaws-tutorial-examples.git
+   git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
    cd jaws-tutorial-example/5min_example
    
 
@@ -36,7 +36,7 @@ To follow along, do...
 
 If you haven't done so in the last section, create the conda environment :bash:`bbtools`
 
-.. code-block:: bash
+.. code-block:: text
 
    # create bbtools env
    conda create --name bbtools
@@ -46,7 +46,7 @@ If you haven't done so in the last section, create the conda environment :bash:`
 
 Install necessary dependencies into your environment
 
-.. code-block:: bash
+.. code-block:: text
 
    # install dependencies
    conda install -y -c bioconda bbmap==38.49
@@ -61,9 +61,9 @@ For our tutorial, we have a sample wrapper that will become a "task" in the WDL,
    Each wrapper should write its output to the **current working directory**. You can copy files to other directories after the pipeline has finished.
 
 
-Try running the script to test environment. You need to be in this directory <your_repo_clone>/jaws-example-wdl/create_wdl_tutorial/. Also, make sure you activated the bbtools environment.
+Try running the script to test environment. You need to be in this directory <your_repo_clone>/jaws-tutorial-examples/create_wdl_tutorial/. Also, make sure you activated the bbtools environment.
 
-.. code-block:: bash
+.. code-block:: text
    
    ./script.sh ../data/sample.fastq.bz2 ../data/sample.fasta
 
@@ -72,13 +72,13 @@ This should create a bam file (test.sorted.bam).
 4) Create docker image
 ----------------------
 
-   Next we'll describe how to create a Dockerfile and register it with hub.docker.com. (you'll have to create a repository on `hub.docker.com <hub.docker.com>`_ first).  Follow this link if you need more information on how to `building dockerfiles <https://docs.docker.com/get-started/part2/#define-a-container-with-dockerfile>`_.
+   Next we'll describe how to create a Dockerfile and register it with `hub.docker.com <https://docs.docker.com/docker-hub/>`_. (you'll have to create a repository there first).  Follow this link if you need more information on how to `building dockerfiles <https://docs.docker.com/get-started/>`_.
 
    To make the Dockerfile, you can use the same commands you used for the conda environment.  Notice that it is good practice to specify the versions for each software like I have done in the Dockerfile. There may be different versions of a conda package for different operating systems, so don't assume the versions I used will work for your operating system. Of course, you can drop the versions altogether to get the latest version.
 
 The Dockerfile looks like
 
-.. code-block:: bash
+.. code-block:: text
 
    FROM continuumio/miniconda2
 
@@ -94,7 +94,7 @@ The Dockerfile looks like
 
 Build the image and upload to hub.docker.com. You need to use your docker hub user name to tag the image when you are building it.
 
-.. code-block:: bash
+.. code-block:: text
 
    # create a "Build" directory and create docker container from there so its a small image. Its good practice to always create an image in 
    # a directory containing only the required files.
@@ -107,7 +107,7 @@ Build the image and upload to hub.docker.com. You need to use your docker hub us
 
 Test that the script runs in the docker container
 
-.. code-block:: bash
+.. code-block:: text
 
    docker run jfroula/bbtools:1.0.0 script.sh
  
@@ -117,7 +117,7 @@ Test that the script runs in the docker container
 
 When you are convinced the docker image is good, you can register it with `hub.docker.com <hub.docker.com>`_  (you need to make an account first).  When you run a WDL in JAWS, the docker images will be pulled from hub.docker.com. 
 
-.. code-block:: bash
+.. code-block:: text
 
    docker login
    docker push <your_docker_hub_user_name>/bbtools:1.0.0
@@ -130,7 +130,7 @@ Test the docker container on cori.NERSC.gov. You'll need to use the shifter comm
 
 example:
 
-.. code-block:: bash
+.. code-block:: text
 
    # pull image from hub.docker.com
    shifterimg pull jfroula/bbtools:1.0.0
@@ -147,13 +147,13 @@ Continueing with our :bash:`script.sh` example...
 
 The script.sh that is supplied with the repo has two essential commands: 
 
-.. code-block:: bash
+.. code-block:: text
  
-   	# align reads to reference contigs
-	bbmap.sh in=$READS ref=$REF out=test.sam
+    # align reads to reference contigs
+    bbmap.sh in=$READS ref=$REF out=test.sam
 
-	# create a bam file from alignment
-	samtools view -b -F0x4 test.sam | samtools sort - > test.sorted.bam
+    # create a bam file from alignment
+    samtools view -b -F0x4 test.sam | samtools sort - > test.sorted.bam
 
 And it has two inputs :bash:`READS` and :bash:`REF`
 
@@ -162,7 +162,7 @@ And it has two inputs :bash:`READS` and :bash:`REF`
   however, when we are ready to run the WDL in JAWS, the docker image will be removed from the :bash:`command {}` 
   block and added to the :bash:`runtime {}` block, as described in the next section.
 
-.. code-block:: bash
+.. code-block:: text
 
    workflow bbtools {
      File reads
@@ -201,9 +201,26 @@ And it has two inputs :bash:`READS` and :bash:`REF`
      }
    }
 
+Note that in the above code, shifter is in the command block. Since shifter only runs on Cori, this WDL will not be portable to other sites; for example, JGI machines run singularity instead of shifter.  By adding the docker image to the runtime section, all the code in the command block will run inside the docker container, regardless of what environment you are using.
+
+After shifter is removed from the :bash:`command{}` block, you would add :bash:`docker:` inside the :bash:`runtime{}` block to each of the tasks above:
+
+.. code-block:: text
+
+    runtime {
+        docker: "jfroula/bbtools:1.2.1"
+        time: "00:30:00"
+        memory: "5G"
+        poolname: "small"
+        node: 1
+        nwpn: 1
+        cpu: 1
+        constraint: "haswell"
+    }
 
 
-This sample WDL is also in the repository, called align.wdl.
+To get a description of the runtime section, see Requesting workers :ref:`requesting-workers`.
 
-For a description of what each section of the WDL code does, see the official `WDL docs <https://software.broadinstitute.org/wdl/documentation/quickstart>`_.
+For more on WDLs, see the official page `openwdl.org <https://openwdl.org>`_.
 
+Or see the playlist on `youtube <https://www.youtube.com/playlist?list=PL4Q4HssKcxYv5syJKUKRrD8Fbd-_CnxTM>`_

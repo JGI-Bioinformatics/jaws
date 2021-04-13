@@ -5,8 +5,11 @@ Analysis (AKA Run) REST endpoints.
 import logging
 from datetime import datetime, timedelta
 from flask import abort, request
-import globus_sdk
 from sqlalchemy.exc import SQLAlchemyError
+import globus_sdk
+
+import jaws_central.globus
+
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
@@ -14,6 +17,7 @@ from jaws_central.models_fsa import db, Run, User, Run_Log
 
 
 logger = logging.getLogger(__package__)
+
 
 run_active_states = [
     "created",
@@ -27,6 +31,7 @@ run_active_states = [
     "ready",
     "downloading",
 ]
+
 
 run_pre_cromwell_states = [
     "created",
@@ -122,6 +127,9 @@ def user_queue(user):
                 "output_dir": run.output_dir,
                 "download_task_id": run.download_task_id,
                 "user_id": run.user_id,
+                "tag": run.tag,
+                "wdl_file": run.wdl_file,
+                "json_file": run.json_file,
             }
         )
     return result, 200
@@ -169,6 +177,9 @@ def user_history(user, delta_days=10):
                 "output_dir": run.output_dir,
                 "download_task_id": run.download_task_id,
                 "user_id": run.user_id,
+                "tag": run.tag,
+                "wdl_file": run.wdl_file,
+                "json_file": run.json_file,
             }
         )
     return result, 200
@@ -208,7 +219,7 @@ def get_site(user, site_id):
     result = config.conf.get_site_info(site_id)
     if result is None:
         abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
-    result["uploads_subdir"] = f'{result["uploads_subdir"]}/{user}'
+    result["uploads_dir"] = f'{result["uploads_dir"]}/{user}'
     return result, 200
 
 
@@ -227,7 +238,12 @@ def submit_run(user):
     input_endpoint = request.form.get("input_endpoint", None)
     output_endpoint = request.form.get("output_endpoint")
     output_dir = request.form.get("output_dir")
+    wdl_file = request.form.get("wdl_file")
+    json_file = request.form.get("json_file")
+    tag = request.form.get("tag")
     compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
+    globus = jaws_central.globus.GlobusService()
+
     if compute_endpoint is None:
         logger.error(
             f"Received run submission from {user} with invalid computing site ID: {site_id}"
@@ -244,6 +260,9 @@ def submit_run(user):
         input_endpoint=input_endpoint,
         output_endpoint=output_endpoint,
         output_dir=output_dir,
+        wdl_file=wdl_file,
+        json_file=json_file,
+        tag=tag,
         status="created",
     )
     try:
@@ -261,53 +280,49 @@ def submit_run(user):
         abort(500, err_msg)
     logger.debug(f"User {user}: New run {run.id}")
 
-    # SUBMIT GLOBUS TRANSFER
+    # Output directory is a subdirectory that includes the user id, site id and run id.
+    # These are all placed in a common location with setgid sticky bits so that all
+    # submitting users have access.
+    output_dir += f"/{user}/{site_id}/{run.id}"
+    src_host_path = config.conf.get_site(input_site_id, "globus_host_path")
+
+    # We modify the output dir path since we know the endpoint of the returning source site. From here
+    # a compute site can simply query the output directory and send.
+    virtual_output_path = globus.virtual_transfer_path(output_dir, src_host_path)
+
+    # Due to how the current database schema is setup, we have to update the output
+    # directory from the model object itself immediately after insert.
+    # TODO: Think of a better way to do this
     try:
-        current_user = db.session.query(User).get(user)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, f"Db error; {e}")
-    transfer_rt = current_user.transfer_refresh_token
-    client_id = config.conf.get("GLOBUS", "client_id")
+        run.output_dir = virtual_output_path
+    except Exception as error:
+        db.session.rollback()
+        err_msg = f"Unable to update output_dir in db: {error}"
+        logger.exception(err_msg)
+        abort(500, err_msg)
     try:
-        client = globus_sdk.NativeAppAuthClient(client_id)
-        authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
-        transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
-    except globus_sdk.GlobusAPIError:
-        run.status = "upload failed"
         db.session.commit()
-        logger.exception(
-            f"Error getting transfer client for user {user}", exc_info=True
-        )
-        abort(
-            401,
-            "Globus access denied; have you granted JAWS access via the 'login' command?",
-        )
-    tdata = globus_sdk.TransferData(
-        transfer_client,
-        input_endpoint,
-        compute_endpoint,
-        label=f"Upload run {run.id}",
-        sync_level="checksum",
-        verify_checksum=True,
-        preserve_timestamp=True,
-        notify_on_succeeded=False,
-        notify_on_failed=True,
-        notify_on_inactive=True,
-        skip_activation_check=False,
-    )
+    except Exception as error:
+        db.session.rollback()
+        err_msg = f"Unable to update output_dir in db: {error}"
+        logger.exception(err_msg)
+        abort(500, err_msg)
+    logger.debug(f"Updating output dir for run_id={run.id}")
+
+    # SUBMIT GLOBUS TRANSFER
     manifest_file = request.files["manifest"]
-    manifest = manifest_file.read().splitlines()
-    for line in manifest:
-        line = line.decode("UTF-8")
-        source_path, dest_path, inode_type = line.split("\t")
-        logger.debug(f"add transfer: {source_path} -> {dest_path}")
-        if inode_type == "D":
-            tdata.add_item(source_path, dest_path, recursive=True)
-        else:
-            tdata.add_item(source_path, dest_path, recursive=False)
+    host_paths = {}
+    host_paths["src"] = src_host_path
+    host_paths["dest"] = config.conf.get_site(site_id, "globus_host_path")
+
     try:
-        transfer_result = transfer_client.submit_transfer(tdata)
+        upload_task_id = globus.submit_transfer(
+            f"Upload run {run.id}",
+            host_paths,
+            input_endpoint,
+            compute_endpoint,
+            manifest_file,
+        )
     except globus_sdk.GlobusAPIError as error:
         run.status = "upload failed"
         db.session.commit()
@@ -341,7 +356,7 @@ def submit_run(user):
             exc_info=True,
         )
         abort(500, f"Unexpected error: {error}")
-    upload_task_id = transfer_result["task_id"]
+
     logger.debug(f"User {user}: Run {run.id} upload {upload_task_id}")
 
     # UPDATE RUN WITH UPLOAD TASK ID AND ADD LOG ENTRY
@@ -367,12 +382,18 @@ def submit_run(user):
         err_msg = f"Error inserting run log for Run {run.id}: {error}"
         logger.exception(err_msg)
 
+    # GET CURRENT USER INFO
+    try:
+        current_user = db.session.query(User).get(user)
+    except SQLAlchemyError as e:
+        logger.error(e)
+        abort(500, f"Db error; {e}")
+
     # SEND TO SITE
     params = {
         "run_id": run.id,
         "user_id": user,
         "email": current_user.email,
-        "transfer_refresh_token": current_user.transfer_refresh_token,
         "submission_id": submission_id,
         "upload_task_id": upload_task_id,
         "output_endpoint": output_endpoint,
@@ -396,12 +417,10 @@ def submit_run(user):
     # DONE
     result = {
         "run_id": run.id,
-        "submission_id": submission_id,
         "status": run.status,
-        "upload_task_id": upload_task_id,
         "site_id": site_id,
-        "output_endpoint": output_endpoint,
         "output_dir": output_dir,
+        "tag": tag,
     }
     logger.info(f"User {user}: New run: {result}")
     return result, 201
@@ -507,6 +526,9 @@ def run_status(user, run_id):
         "output_dir": run.output_dir,
         "download_task_id": run.download_task_id,
         "user_id": run.user_id,
+        "tag": run.tag,
+        "wdl_file": run.wdl_file,
+        "json_file": run.json_file,
     }
     return result, 200
 
@@ -689,21 +711,10 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
     """
     logger.debug(f"Run {run_id}: Cancel transfer {transfer_task_id}")
     try:
-        current_user = db.session.query(User).get(user)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, f"Db error; {e}")
-    transfer_rt = current_user.transfer_refresh_token
-    client_id = config.conf.get("GLOBUS", "client_id")
-    try:
-        client = globus_sdk.NativeAppAuthClient(client_id)
-        authorizer = globus_sdk.RefreshTokenAuthorizer(transfer_rt, client)
-        transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
+        transfer_client = authorize_transfer_client()
     except globus_sdk.GlobusAPIError as error:
-        logger.exception(
-            f"Error getting transfer client for user {user}: {error}", exc_info=True
-        )
-        abort(500, "Unable to get Globus transfer client; perhaps try 'login' command")
+        logger.error(f"Error getting Globus transfer client: {error}")
+        abort(500, "Globus error: {error}")
     try:
         transfer_response = transfer_client.cancel_task(transfer_task_id)
         logger.debug(
@@ -715,3 +726,26 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
             exc_info=True,
         )
         abort(500, f"Globus error: {error}")
+
+
+def authorize_transfer_client():
+    """
+    Create a globus transfer client using client id and client secret for credentials. More information
+    can be found via Globus documentation:
+
+    https://globus-sdk-python.readthedocs.io/en/stable/examples/client_credentials.html?highlight=secret
+
+    :return: globus_sdk.TransferClient
+    """
+    client_id = config.conf.get("GLOBUS", "client_id")
+    client_secret = config.conf.get("GLOBUS", "client_secret")
+    try:
+        client = globus_sdk.ConfidentialAppAuthClient(client_id, client_secret)
+    except globus_sdk.GlobusAPIError as error:
+        raise error
+    scopes = "urn:globus:auth:scope:transfer.api.globus.org:all"
+    try:
+        authorizer = globus_sdk.ClientCredentialsAuthorizer(client, scopes)
+    except globus_sdk.GlobusAPIError as error:
+        raise error
+    return globus_sdk.TransferClient(authorizer=authorizer)

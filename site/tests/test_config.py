@@ -43,10 +43,10 @@ def test_overwrite_all_default_values(config_file):
     ]
 
     expected_globus_sections = [
-        ("client_id", "foghorn_leghorn"),
+        ("client_id", "AAAA"),
+        ("client_secret", "BBBB"),
         ("endpoint_id", "rooster"),
-        ("root_dir", "cwd"),
-        ("default_dir", "/")
+        ("host_path", "/global/scratch/jaws")
     ]
 
     expected_db_sections = [
@@ -60,8 +60,7 @@ def test_overwrite_all_default_values(config_file):
 
     expected_site_sections = [
         ("id", "eagle"),
-        ("uploads_subdirectory", "uploads"),
-        ("downloads_subdirectory", "downloads"),
+        ("uploads_dir", "/global/scratch/jaws/jaws-dev/uploads"),
     ]
 
     expected_cromwell_sections = [

@@ -1,59 +1,186 @@
-# content of conftest.py
+import os
 import json
 import pytest
 import smtplib
-from subprocess import Popen, PIPE
+import time
+import submission_utils as util
+import socket
 
+check_tries=50
+check_sleep=30
 
+#@pytest.fixture(scope="session",autouse=True)
+#def test_for_all_args(request):
+#    target_dir = request.config.getoption("--dir")
+#    site = request.config.getoption("--site")
+#    if not target_dir or not site: 
+#       pytest.exit("Error: You are missing some arguments?\nUsage: pytest -n <number of tests in parallel> --capture=<[yes|no]> --verbose --dir <directory with tests> --site <[cori|jgi]> <directory or file>")
 
-def run(cmd):
-    output = Popen(cmd, stdout=PIPE,
-             stderr=PIPE, shell=True,
-             cwd="/global/cscratch1/sd/jaws/jfroula", universal_newlines=True)
+@pytest.fixture(scope="session")
+def submit_fq_count_wdl(request):
+    # allow user to pass variables into the test functions via command line
+    target_dir = request.config.getoption("--dir")
+    site = request.config.getoption("--site")
+    env = request.config.getoption("--env")
 
-    stdout,stderr=output.communicate()
-    rc=output.returncode
+    wdl = target_dir + "/WDLs/fq_count.wdl"
+    input_json = target_dir + "/test-inputs/fq_count.json"
 
-    return rc,stdout,stderr
-
-@pytest.fixture()
-def sleep_little_baby():
-    cmd='./go.sh > tmp.txt'
-    rc,stdout,stderr = run(cmd)
-    return stdout
-
-@pytest.fixture(scope="module")
-def submit_wdl():
     """
-    This is a fixture that will submit a wdl for all functions to use.  
-    This function returns the output of a wdl submission. 
+    data = {
+    "output_dir": "/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/CORI/6744",
+    "run_id": 6744,
+    "site_id": "CORI",
+    "status": "uploading",
+    "tag": ""
+    }
     """
-    
-    cmd = "jaws run submit /global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/TestsWDLs/fq_count.wdl /global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/TestsWDLs/fq_count.json fq_count_out nersc"
-    rc,stdout,stderr = run(cmd)
-    print(stderr)
 
-    assert rc == 0
-    data = json.loads(stdout)
+    data = util.submit_wdl(env, wdl, input_json, site)
     return data
 
-@pytest.fixture(scope="module")
-def submit_subworkflow():
-    """
-    This is a fixture that will submit a subworkflow wdl for all functions to use.  
-    This function returns the output of the wdl submission. 
-    """
-    
-    cmd = "jaws run submit TestsWDLs/jaws_alignment_example.wdl TestsWDLs/jaws_alignment_example.json alignment_out nersc"
-    rc,stdout,stderr = run(cmd)
-    print(stderr)
+@pytest.fixture(scope="session")
+def submit_subworkflow_alignment(request):
+    # allow user to pass variables into the test functions via command line
+    target_dir = request.config.getoption("--dir")
+    site = request.config.getoption("--site")
+    env = request.config.getoption("--env")
 
-    assert rc == 0
-    data = json.loads(stdout)
+    wdl = target_dir + "/WDLs/jaws-alignment-example/main.wdl"
+    input_json = target_dir + "/WDLs/jaws-alignment-example/inputs.json"
+
+    data = util.submit_wdl(env, wdl, input_json, site)
+    #data = {'output_dir': '/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/JGI/6766', 'run_id': 6766, 'site_id': 'JGI', 'status': 'uploading'}
+
+    # wait for run to complete
+    id = data['run_id']
+    util.wait_for_run(id,env,check_tries,check_sleep)
     return data
 
-#@pytest.fixture(autouse=True)
-#def env_setup(monkeypatch):
-#    """set jaws-test variables from jaws-test.env"""
-#    monkeypatch.setenv('JAWS_CLIENT_CONFIG', '/global/u2/j/jfroula/jaws-test.conf')
-#    monkeypatch.setenv('JAWS_CLIENT_LOG', '/global/cscratch1/sd/jaws/jfroula/jaws-test.log')
+
+@pytest.fixture(scope="session")
+def submit_bad_task(request):
+    # allow user to pass variables into the test functions via command line
+    target_dir = request.config.getoption("--dir")
+    site = request.config.getoption("--site")
+    env = request.config.getoption("--env")
+
+    wdl = target_dir + "/WDLs/bad_task.wdl"
+    input_json = target_dir + "/test-inputs/fq_count.json"
+
+    data = util.submit_wdl_noexit(env, wdl, input_json, site)
+
+    """
+    data = {
+    "output_dir": "/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/CORI/6744",
+    "run_id": 6744,
+    "site_id": "CORI",
+    "status": "uploading",
+    "tag": ""
+    }
+    """
+
+    id = data['run_id']
+
+    # wait for run to complete
+    util.wait_for_run(id,env,check_tries,check_sleep)
+    return data
+
+
+@pytest.fixture(scope="session")
+def submit_bad_docker(request):
+    # allow user to pass variables into the test functions via command line
+    target_dir = request.config.getoption("--dir")
+    site = request.config.getoption("--site")
+    env = request.config.getoption("--env")
+
+    wdl = target_dir + "/WDLs/bad_docker.wdl"
+    input_json = target_dir + "/test-inputs/fq_count.json"
+
+    data = util.submit_wdl(env, wdl, input_json, site)
+
+    # wait for run to complete
+    id = data['run_id']
+    util.wait_for_run(id,env,check_tries,check_sleep)
+
+    # print(data)  # used for debugging
+    return data
+
+@pytest.fixture(scope="session")
+def submit_skylake_250(request):
+
+    # allow user to pass variables into the test functions via command line
+    target_dir = request.config.getoption("--dir")
+    site = request.config.getoption("--site")
+    env = request.config.getoption("--env")
+
+    # skip this fixture if not run on cori
+    if 'cori' not in site.lower():
+        pytest.skip("needs to run on cori only")
+
+    wdl = target_dir + "/WDLs/skylake_test_250.wdl"
+    input_json = target_dir + "/test-inputs/fq_count.json"
+    site="cori"
+
+    data = util.submit_wdl(env, wdl, input_json, site)
+
+    # wait for run to complete
+    id = data['run_id']
+    util.wait_for_run(id,env,check_tries,check_sleep)
+
+    return data
+
+@pytest.fixture(scope="session")
+def submit_skylake_500(request):
+    # allow user to pass variables into the test functions via command line
+    target_dir = request.config.getoption("--dir")
+    site = request.config.getoption("--site")
+    env = request.config.getoption("--env")
+
+    # skip this fixture if not run on cori
+    if 'cori' not in site.lower():
+        pytest.skip("needs to run on cori only")
+
+    wdl = target_dir + "/WDLs/skylake_test_500.wdl"
+    input_json = target_dir + "/test-inputs/fq_count.json"
+
+    data = util.submit_wdl(env, wdl, input_json, site)
+
+    # wait for run to complete
+    id = data['run_id']
+    util.wait_for_run(id,env,check_tries,check_sleep)
+
+    return data
+
+
+# The addoption functions allows us to use flags to capture arguments on the command line.
+def pytest_addoption(parser):
+    parser.addoption(
+        "--dir",
+        action="store",
+        default=["."],
+        help="this is the path to where the WDLs and input.json files are."
+    )
+    parser.addoption(
+        "--site",
+        action="store",
+        help="the JAWS site [cori|jgi] that will be used during submission",
+    )
+    parser.addoption(
+        "--env",
+        action="store",
+        help="the JAWS environment [dev|staging|prod] that will be used during submission",
+    )
+
+# These functions allows an argument to be passed into the test functions
+@pytest.fixture
+def dir(request):
+    return request.config.getoption("--dir")
+
+@pytest.fixture
+def site(request):
+    return request.config.getoption("--site")
+
+@pytest.fixture
+def env(request):
+    return request.config.getoption("--env")

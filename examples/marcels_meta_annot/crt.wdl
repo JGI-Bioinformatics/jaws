@@ -38,7 +38,7 @@ task run {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan-crt"
     node: 5
     nwpn: 1
@@ -67,7 +67,7 @@ task transform {
 
   runtime {
     time: "02:00:00"
-    mem: "115G"
+    memory: "115G"
     poolname: "catalan-crt"
     node: 5
     nwpn: 1

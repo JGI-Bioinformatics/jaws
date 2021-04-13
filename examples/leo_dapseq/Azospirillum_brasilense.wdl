@@ -160,8 +160,8 @@ task trimAlign {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "01:20:00"
-        mem: "115G"
+        time: "05:00:00"
+        memory: "115G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 12
@@ -209,7 +209,7 @@ task mergeBams {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
         time: "01:20:00"
-        mem: "115G"
+        memory: "115G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 12
@@ -244,8 +244,8 @@ task findPeaks {
     runtime {
 		docker: "jfroula/dap_py:2"
         shared: 0
-        time: "01:20:00"
-        mem: "115G"
+        time: "05:00:00"
+        memory: "115G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 12
@@ -280,8 +280,8 @@ task motifInputs {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "01:20:00"
-        mem: "115G"
+        time: "05:00:00"
+        memory: "115G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 12
@@ -324,8 +324,8 @@ task findMotifs {
     runtime {
 		docker: "jfroula/dap_py:2"
         shared: 0
-        time: "01:20:00"
-        mem: "115G"
+        time: "05:00:00"
+        memory: "115G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 12
@@ -357,8 +357,8 @@ task assignGenes {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "01:20:00"
-        mem: "115G"
+        time: "05:00:00"
+        memory: "115G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 12
@@ -389,8 +389,8 @@ task dapStats {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "01:20:00"
-        mem: "115G"
+        time: "05:00:00"
+        memory: "115G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 12
@@ -436,8 +436,8 @@ task copyOutput {
 
     runtime {
         shared: 0
-        time: "01:20:00"
-        mem: "115G"
+        time: "05:00:00"
+        memory: "115G"
         poolname: "dapseq_leo"
         node: 2
         nwpn: 12

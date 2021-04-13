@@ -23,31 +23,32 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "user": "guest",  # default from docker container
             "password": "guest",  # default from docker container
             "num_threads": 5,
-            "max_retries": 5},
+            "max_retries": 5,
+        },
         "CENTRAL_RPC_SERVER": {
             "host": "localhost",
             "port": "5672",
             "user": "guest",  # default from docker container
             "password": "guest",  # default from docker container
             "num_threads": 5,
-            "max_retries": 5},
-        "CENTRAL_RPC_CLIENT": {
-            "port": "5672",
+            "max_retries": 5,
         },
-        "DB": {
-            "host": "localhost",
-            "port": "3306",
-            "dialect": "mysql+mysqlconnector",
-        },
+        "CENTRAL_RPC_CLIENT": {"port": "5672", },
+        "DB": {"host": "localhost", "port": "3306", "dialect": "mysql+mysqlconnector", },
     }
     required_params = {
         "LOCAL_RPC_SERVER": ["vhost"],
         "CENTRAL_RPC_SERVER": ["vhost"],
         "CENTRAL_RPC_CLIENT": ["host", "vhost", "user", "password"],
-        "GLOBUS": ["client_id", "endpoint_id", "root_dir", "default_dir"],
+        "GLOBUS": [
+            "client_id",
+            "client_secret",
+            "endpoint_id",
+            "host_path",
+        ],
         "DB": ["user", "password", "db"],
         "CROMWELL": ["url"],
-        "SITE": ["id", "uploads_subdirectory", "downloads_subdirectory"],
+        "SITE": ["id", "uploads_dir"],
     }
 
     config = None
@@ -73,14 +74,14 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         # validate config
         for section in self.required_params:
             if section not in self.config:
-                error_msg = f"Config file, {config_file}, missing required section, {section}"
+                error_msg = (
+                    f"Config file, {config_file}, missing required section, {section}"
+                )
                 logger.error(error_msg)
                 raise ValueError(error_msg)
             for key in self.required_params[section]:
                 if key not in self.config[section]:
-                    error_msg = (
-                        f"Config file, {config_file}, missing required parameter, {section}/{key}"
-                    )
+                    error_msg = f"Config file, {config_file}, missing required parameter, {section}/{key}"
                     logger.error(error_msg)
                     raise ValueError(error_msg)
 

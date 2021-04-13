@@ -37,9 +37,14 @@ from jaws_jtm.common import setup_custom_logger, logger
 from jaws_jtm.lib.sqlstmt import JTM_SQL
 from jaws_jtm.lib.rabbitmqconnection import RmqConnectionAmqpstorm, JtmAmqpstormBase
 from jaws_jtm.lib.dbutils import DbSqlMysql
-from jaws_jtm.lib.run import pad_string_path, make_dir, run_sh_command
+from jaws_jtm.lib.run import (
+    pad_string_path,
+    make_dir,
+    run_sh_command,
+    extract_cromwell_id,
+)
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_rpc import rpc_client
+from jaws_rpc import rpc_client, rpc_server, responses
 
 
 # --------------------------------------------------------------------------------------------------
@@ -109,9 +114,9 @@ class WorkerResultReceiver(JtmAmqpstormBase):
         done_flag = (
             int(msg_unzipped["done_flag"]) if "done_flag" in msg_unzipped else -2
         )
-        ret_msg = msg_unzipped["ret_msg"] if "ret_msg" in msg_unzipped else ""
-        a_worker_id = msg_unzipped["worker_id"] if "worker_id" in msg_unzipped else ""
-        host_name = msg_unzipped["host_name"] if "host_name" in msg_unzipped else ""
+        ret_msg = msg_unzipped.get("ret_msg", "")
+        a_worker_id = msg_unzipped.get("worker_id", "")
+        host_name = msg_unzipped.get("host_name", "")
 
         if ret_msg != "hb":
             db = DbSqlMysql(config=self.config)
@@ -257,6 +262,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         TASK_STATUS["running"],
                         ret_status,
                         fail_code=done_flag if done_flag < 0 else None,
+                        reason=ret_msg,
                     )
 
             db.execute(
@@ -614,13 +620,11 @@ def extract_cromwell_run_id(task_id: int) -> str:
 
     run_id = None
     # NOTE: here UUID format spec is assumed to comply with "8-4-4-4-12" format
-    regex = re.compile(r"[\w]{8}-[\w]{4}-[\w]{4}-[\w]{4}-[\w]{12}", re.I)
     if os.path.isfile(task_script_file) and os.access(task_script_file, os.R_OK):
         with open(task_script_file, "r") as script_file:
             for line in script_file:
-                match = regex.search(line)
-                if match:
-                    run_id = match.group()
+                run_id = extract_cromwell_id(line)
+                if run_id:
                     break
 
     return run_id
@@ -628,7 +632,7 @@ def extract_cromwell_run_id(task_id: int) -> str:
 
 # --------------------------------------------------------------------------------------------------
 def send_update_task_status_msg(
-    task_id: int, status_from, status_to: int, fail_code=None
+    task_id: int, status_from, status_to: int, fail_code=None, reason=None
 ):
     """
     Publish a message for pushing task status change to JAWS Site
@@ -637,12 +641,19 @@ def send_update_task_status_msg(
     :param status_from: None or status code 0 ~ 4 or -2 if failed
     :param status_to: status code 0 ~ 4 or -2 if failed
     :param fail_code: fail code if failed -1 ~ -7
+    :param reason: additional info string like failure reason
     :return: None
     """
     now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     run_id = extract_cromwell_run_id(task_id)
     reversed_task_status = dict(map(reversed, CONFIG.constants.TASK_STATUS.items()))
     reversed_done_flags = dict(map(reversed, CONFIG.constants.DONE_FLAGS.items()))
+    reason_str = ""
+    if fail_code:
+        reason_str += "%s, " % reversed_done_flags[fail_code]
+    if reason:
+        reason_str += "%s" % reason
+
     data = {
         "cromwell_run_id": run_id,  # this is not the JAWS run_id
         "cromwell_job_id": task_id,
@@ -651,7 +662,7 @@ def send_update_task_status_msg(
         else "",
         "status_to": reversed_task_status[status_to] if status_to is not None else "",
         "timestamp": now,
-        "reason": reversed_done_flags[fail_code] if fail_code else None,
+        "reason": reason_str,
     }
 
     # send message to Site
@@ -664,7 +675,7 @@ def send_update_task_status_msg(
                 "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
                 "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
                 "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password"),
-            }
+            }, logger
         ) as rpc_cl:
             wait_count = 0
             response = rpc_cl.request("update_job_status", data)
@@ -704,6 +715,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     hb_msg = CONFIG.constants.HB_MSG
     jtm_worker_hb_exch = CONFIG.configparser.get("JTM", "jtm_worker_hb_exch")
     interval = CONFIG.configparser.getfloat("JTM", "client_hb_recv_interval")
+    hb_mgs_to_recv = CONFIG.configparser.getint("JTM", "heartbeat_message_count")
 
     with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
         with conn.channel() as ch:
@@ -728,16 +740,19 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
 
             while True:
                 worker_ids_dict = {}
-                ch.basic.qos(100)
+                # this qos is to set how many messages to take out from RMQ queue
+                ch.basic.qos(hb_mgs_to_recv)
                 message = ch.basic.get(queue=hb_queue_name, no_ack=True)
                 if message and not b_is_msg_cleared:
                     cnt = message.method["message_count"]
+                    logger.debug(f"hb msg count = {cnt}")
                     for i in range(cnt):
                         _ = ch.basic.get(queue=hb_queue_name, no_ack=True)
                     b_is_msg_cleared = True
 
                 elif message and b_is_msg_cleared:
                     cnt = message.method["message_count"]
+                    logger.debug(f"hb msg count = {cnt}")
                     msg_unzipped = json.loads(zloads(message.body))
                     msg_unzipped = {int(k): v for k, v in msg_unzipped.items()}
                     a_worker_id = msg_unzipped[hb_msg["worker_id"]]
@@ -895,7 +910,10 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                     )
                                     if status_now == TASK_STATUS["pending"]:
                                         send_update_task_status_msg(
-                                            task_id, status_now, TASK_STATUS["running"]
+                                            task_id,
+                                            status_now,
+                                            TASK_STATUS["running"],
+                                            reason=slurm_job_id,
                                         )
 
                                 db.execute(
@@ -1041,9 +1059,9 @@ def process_task_request(msg):
     output_file = (
         msg["output_files"] if "output_files" in msg else ""
     )  # comma separated list ex) "a.out,b.out,c.out"
-    output_dir = msg["output_dir"] if "output_dir" in msg else ""
-    stdout_file = msg["stdout"] if "stdout" in msg else ""
-    stderr_file = msg["stderr"] if "stderr" in msg else ""
+    output_dir = msg.get("output_dir", "")
+    stdout_file = msg.get("stdout", "")
+    stderr_file = msg.get("stderr", "")
 
     # If pool is set, the tasks which use the queue name (=pool name)
     # will only be sent to the pool of workers
@@ -1065,6 +1083,7 @@ def process_task_request(msg):
     last_task_id = -1
     b_failed_to_request_worker = False
     w_int = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
+    slurm_job_id = 0
 
     if "pool" in msg and "name" in msg["pool"] and "time" in msg["pool"]:
         # {u'resource': u'cori', u'name': u'test', u'size': 1}
@@ -1224,7 +1243,9 @@ def process_task_request(msg):
 
             # Get the slurm job id returned from jtm-worker
             try:
-                slurm_job_id = int(so.split("\n")[1])
+                regex = re.compile(r"(\d+)", re.I)
+                match = regex.search(so)
+                slurm_job_id = int(match.group(1))
             except Exception:
                 logger.critical(
                     "Failed to get a valid job ID back from requesting a dynamic worker"
@@ -1477,7 +1498,10 @@ def process_task_request(msg):
                         or status_now < 0
                     ):
                         send_update_task_status_msg(
-                            last_task_id, status_now, TASK_STATUS["pending"]
+                            last_task_id,
+                            status_now,
+                            TASK_STATUS["pending"],
+                            reason=slurm_job_id,
                         )
 
                 # Note: only when the previous status == queued
@@ -1537,7 +1561,7 @@ def process_task_request(msg):
                     logger.exception("Detail: %s", str(detail))
                     raise OSError(2, "Failed to send a request to a worker")
 
-        return last_task_id
+    return last_task_id
 
 
 # -------------------------------------------------------------------------------
@@ -2124,6 +2148,34 @@ def kill_child_proc(ppid):
 
 
 # -------------------------------------------------------------------------------
+def check_num_threads(mode: str, n_manager_threads: int) -> bool:
+    ps_cmd = "ps -aef | grep -v grep | grep -v check-manager | grep jtm | grep manager "
+    if mode != "test":
+        ps_cmd += f"| grep jaws-{mode} "
+    else:
+        ps_cmd += "| grep test "
+    ps_cmd += "| wc -l"
+    num_total_procs = 0
+    try:
+        so, _, ec = run_sh_command(ps_cmd, log=logger, show_stdout=False)
+        num_total_procs = int(so.rstrip())
+    except TypeError as te:
+        logger.exception(te)
+        logger.error(so)
+        return False
+    except Exception as e:
+        logger.exception(e)
+        logger.error(ps_cmd)
+        return False
+    else:
+        # THIS IS THE NUM OF JTM MANAGER PROCS = 7
+        if num_total_procs != n_manager_threads:
+            return False
+        else:
+            return True
+
+
+# -------------------------------------------------------------------------------
 def manager(
     ctx: object, custom_log_dir_name: str, b_resource_usage_log_on: bool
 ) -> int:
@@ -2155,18 +2207,21 @@ def manager(
         STANDALONE = False
 
     # Log dir setting
-    log_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "log")
+    datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    log_dir_name = CONFIG.configparser.get("JTM", "log_dir")
     if custom_log_dir_name:
         log_dir_name = custom_log_dir_name
+    log_dir_name = os.path.join(log_dir_name, "manager")
     make_dir(log_dir_name)
+    log_file_name = "%s/jtm_%s.log" % (log_dir_name, datetime_str)
 
     log_level = "info"
     if DEBUG:
         log_level = "debug"
 
-    print("JTM Manager, version: {}".format(CONFIG.constants.VERSION))
+    setup_custom_logger(log_level, log_dir_name, log_file_name, 1, 1)
 
-    setup_custom_logger(log_level, log_dir_name, 1, 1)
+    logger.info("JTM Manager, version: {}".format(CONFIG.constants.VERSION))
     logger.info(
         "\n*****************\nDebug mode is %s\n*****************"
         % ("ON" if DEBUG else "OFF")
@@ -2298,6 +2353,30 @@ def manager(
         logger.exception("JtmNonTaskCommandRunner: {}".format(e))
         proc_clean_exit(plist)
         raise
+
+    # Start JTM JSON-RPC server for monitoring
+    def jtm_manager_status(params):
+        # 'params' is not used
+        alive = True
+        run_mode = CONFIG.configparser.get("JTM", "run_mode")
+        n_manager_threads = CONFIG.constants.JTM_NUM_PROCS
+        if not check_num_threads(run_mode, n_manager_threads):
+            alive = False
+        if alive:
+            return responses.success(True)
+        else:
+            return responses.success(False)
+
+    operations = {
+        "server_status": {
+            "function": jtm_manager_status,
+            "required_params": [],
+        }
+    }
+    jtm_rpc_server_params = CONFIG.configparser._sections["JTM_RPC_SERVER"]
+    logger.debug("jtm_rpc_server params: %s", jtm_rpc_server_params)
+    app = rpc_server.RpcServer(jtm_rpc_server_params, logger, operations)
+    app.start_server()
 
     logger.info("Waiting for worker's heartbeats from %s", worker_hb_queue_name)
     logger.info("Waiting for a task request from %s", jtm_task_request_q)

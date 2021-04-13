@@ -3,16 +3,16 @@ File that contains all the mock classes and fixtures that will be used during
 testing.
 """
 import pytest
+import jaws_central.config
 
 
 @pytest.fixture
 def config_file(tmp_path):
     cfg = tmp_path / "jaws-central.ini"
     content = """[JAWS]
-name = jaws-dev
-version = 2.0.1
-docs_url = https://jaws-docs.readthedocs.io/en/latest/
-
+name = jaws
+version = 2.1
+docs_url = https://jaws-docs.readthedocs.io/en/latest
 [DB]
 dialect = mysql+mysqlconnector
 host = db.foo.com
@@ -20,37 +20,41 @@ port = 3306
 user = jaws
 password = passw0rd1
 db = jaws
-
 [RPC_SERVER]
-user = jaws
-password = pppaass4
-vhost = jaws_test
-
-[GLOBUS]
-client_id = ZZZZ
-
-[SITE:LBNL]
 host = rmq.jaws.gov
+port = 5672
 user = jaws
 password = passw0rd2
 vhost = jaws
+queue = central_rpc
+num_threads = 5
+max_retries = 3
+[HTTP]
+auth_port = 3001
+rest_port = 5001
+[GLOBUS]
+client_id = ZZZZ
+client_secret = AAAAA
+[SITE:JGI]
+host = rmq.jaws.gov
+user = jaws
+password = passw0rd3
+vhost = jaws
 queue = lbnl_rpc
-port = 5672
 globus_endpoint = XXXX
-globus_basepath = "/global/scratch/jaws"
-uploads_subdir = "uploads"
+globus_host_path = /global/scratch/jaws
+uploads_dir = /global/scratch/jaws/jaws-dev/uploads
 max_ram_gb = 1024
-
 [SITE:NERSC]
 host = rmq.jaws.gov
 user = jaws
-password = passw0rd2
+password = passw0rd4
 vhost = jaws
 queue = nersc_rpc
-port = 5672
+message_ttl = 5
 globus_endpoint = YYYY
-globus_basepath = "/"
-uploads_subdir = "/global/scratch/jaws/uploads"
+globus_host_path = /
+uploads_dir = /global/cscratch/sd1/jaws/jaws-dev/uploads
 max_ram_gb = 2048
 """
     cfg.write_text(content)
@@ -74,7 +78,8 @@ password = pppaasss4
 vhost = jaws_test
 
 [GLOBUS]
-client_id = ZZZZ
+client_id = AAAA
+client_secret = BBBB
 """
     cfg.write_text(content)
     return cfg.as_posix()
@@ -88,7 +93,7 @@ rpc_client_dict = {
     "queue": "lbnl_rpc",
     "globus_endpoint": "XXXX",
     "globus_basepath": '"/global/scratch/jaws"',
-    "uploads_subdir": "uploads",
+    "uploads_dir": "/global/scratch/jaws/uploads",
     "max_ram_gb": 1024,
 }
 
@@ -96,3 +101,10 @@ rpc_client_dict = {
 @pytest.fixture()
 def rpc_dict():
     return rpc_client_dict
+
+
+@pytest.fixture()
+def configuration(config_file):
+    if jaws_central.config.conf is not None:
+        jaws_central.config.Configuration._destructor()
+    return jaws_central.config.Configuration(config_file)
