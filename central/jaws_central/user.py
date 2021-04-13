@@ -1,10 +1,10 @@
-from jaws_central import db
-from jaws_central.models_sa import User as UserModel
+from jaws_central import models_sa as models
+
 
 class User:
 
-    def __init__(self, uid: str):
-        self.model = db.session.query(UserModel).get(uid)
+    def __init__(self, session, uid: str):
+        self.model = session.query(models.User).get(uid)
 
     @property
     def id(self):
