@@ -1002,3 +1002,14 @@ def test_get_failed_task_runtime_attributes():
             assert task.name == "fq_count.count_seqs"
             runtime = task.runtime()
             assert bool(DeepDiff(runtime, expected_runtime, ignore_order=True)) is False
+
+def test_outputs():
+    expected = {
+        "main_workflow.main_output_1": "Hello cruel world!",
+        "main_workflow.main_output_2": "Hello beautiful world!",
+    }
+    metadata = cromwell.Metadata(
+        "localhost:8000", WORKFLOW_ID_EX2_MAIN, METADATA[WORKFLOW_ID_EX2_MAIN], METADATA
+    )
+    outputs = metadata.outputs()
+    assert bool(DeepDiff(outputs, expected, ignore_order=True)) is False

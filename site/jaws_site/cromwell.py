@@ -328,6 +328,12 @@ class Metadata:
                     summary.extend(sub_summary)
         return summary
 
+    def outputs(self):
+        """
+        Returns all outputs for a workflow.
+        """
+        return self.get("outputs", {})
+
 
 class Cromwell:
     """Class representing a Cromwell REST server."""
@@ -474,22 +480,3 @@ class Cromwell:
         response.raise_for_status()
         result = response.json()
         return result["status"]
-
-    def get_outputs(self, workflow_id: str):
-        """
-        Retrieve the outputs for the specified workflow.
-        Cromwell will return any outputs which currently exist even if a workflow has not successfully completed.
-        :param workflow_id: Cromwell's workflow uuid
-        :type workflow_id: str
-        :return: output names and paths
-        :rtype: dict
-        """
-        url = f"{self.workflows_url}/{workflow_id}/outputs"
-        try:
-            response = requests.get(url)
-        except Exception as error:
-            raise error
-        response.raise_for_status()
-        result = response.json()
-        outputs = result["outputs"]
-        return outputs
