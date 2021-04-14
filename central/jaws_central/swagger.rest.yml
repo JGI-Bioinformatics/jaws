@@ -618,6 +618,17 @@ paths:
         404:
           description: The specified record does not exist
 
+  /run/cancel-all:
+    put:
+      operationId: jaws_central.analysis.cancel_all
+      tags:
+        - run
+      summary: Cancel all
+      description: Abort the execution of all of the user's runs
+      responses:
+        201:
+          description: OK
+
   /site:
     get:
       operationId: jaws_central.analysis.list_sites
