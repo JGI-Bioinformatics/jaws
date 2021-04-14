@@ -490,7 +490,7 @@ task run_task1 {
         shared: 1
         node: 1
         nwpn: 1
-        mem: "4G"
+        memory: "4G"
         time: "00:10:00"
     }
 }
@@ -521,7 +521,7 @@ task run_task2 {
         shared: 1
         node: 1
         nwpn: 1
-        mem: "6G"
+        memory: "6G"
         time: "00:10:00"
     }
 }
@@ -795,7 +795,7 @@ task bam_stats {
         shared: 1
         node: 1
         nwpn: 1
-        mem: "5G"
+        memory: "5G"
         time: "00:10:00"
     }
 }
@@ -821,4 +821,34 @@ def output_example(tmp_path):
     task_outfile = task_execution / "stdout"
     outfile_contents = "EXAMPLE OUTPUT"
     task_outfile.write_text(outfile_contents)
+    return tmp_path.as_posix()
+
+
+@pytest.fixture()
+def deprecated_mem_example(tmp_path):
+    wdl_file = tmp_path / "deprecated_mem.wdl"
+    wdl_contents = """
+workflow fq_count {
+    File fastq_file
+    call count_seqs { input: infile = fastq_file }
+    output {
+        File outfile = count_seqs.outfile
+    }
+}
+
+task count_seqs {
+    File infile
+    command <<<
+        wc -l ${infile} | perl -ne 'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, " sequences\\n"} else {print STDERR "Invalid Fastq file\\n"}' > num_seqs.txt
+    >>>
+    output {
+        File outfile = "num_seqs.txt"
+    }
+    runtime {
+        mem: "1G"
+        time: "00:10:00"
+    }
+}
+    """
+    wdl_file.write_text(wdl_contents)
     return tmp_path.as_posix()

@@ -309,11 +309,15 @@ class WdlFile:
                     r"^\s+(mem|memory)\s*[:=]\s*\"?(\d+\.?\d*)([kKmMgGtT])\"?", line
                 )
                 if m:
-                    mem = int(m.group(2))
-                    prefix = m.group(3).lower()
-                    mem = convert_to_gb(mem, prefix)
-                    if mem > max_ram:
-                        max_ram = mem
+                    g = m.groups()
+                    if g[0] == "memory":
+                        mem = int(m.group(2))
+                        prefix = m.group(3).lower()
+                        mem = convert_to_gb(mem, prefix)
+                        if mem > max_ram:
+                            max_ram = mem
+                    else:
+                        raise WdlError("The 'mem' tag is deprecated; please use 'memory' instead")
         return max_ram
 
     @property
