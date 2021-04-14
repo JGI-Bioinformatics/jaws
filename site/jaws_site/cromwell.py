@@ -328,11 +328,19 @@ class Metadata:
                     summary.extend(sub_summary)
         return summary
 
-    def outputs(self):
+    def outputs(self, **kwargs):
         """
         Returns all outputs for a workflow.
         """
-        return self.get("outputs", {})
+        outputs = self.get("outputs", {})
+        if "relpath" in kwargs and kwargs["relpath"] is True:
+            workflowRoot = self.get("workflowRoot")
+            relpath_outputs = {}
+            for key, value in outputs.items():
+                relpath_outputs[key] = value.replace(workflowRoot, '.', 1)
+            return relpath_outputs
+        else:
+            return outputs
 
 
 class Cromwell:

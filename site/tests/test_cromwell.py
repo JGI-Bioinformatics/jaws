@@ -1004,6 +1004,7 @@ def test_get_failed_task_runtime_attributes():
             assert bool(DeepDiff(runtime, expected_runtime, ignore_order=True)) is False
 
 def test_outputs():
+    # TEST1
     expected = {
         "main_workflow.main_output_1": "Hello cruel world!",
         "main_workflow.main_output_2": "Hello beautiful world!",
@@ -1012,4 +1013,12 @@ def test_outputs():
         "localhost:8000", WORKFLOW_ID_EX2_MAIN, METADATA[WORKFLOW_ID_EX2_MAIN], METADATA
     )
     outputs = metadata.outputs()
+    assert bool(DeepDiff(outputs, expected, ignore_order=True)) is False
+
+    # TEST2
+    metadata = cromwell.Metadata("localhost:8000", WORKFLOW_ID_EX1, METADATA[WORKFLOW_ID_EX1])
+    expected = {
+        "fq_count.outfile": "./call-count_seqs/execution/num_seqs.txt"
+    }
+    outputs = metadata.outputs(relpath=True)
     assert bool(DeepDiff(outputs, expected, ignore_order=True)) is False
