@@ -491,4 +491,5 @@ class Cromwell:
             raise error
         response.raise_for_status()
         result = response.json()
-        return result
+        outputs = result["outputs"]
+        return outputs
