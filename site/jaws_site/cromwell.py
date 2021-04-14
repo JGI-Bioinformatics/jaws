@@ -391,7 +391,7 @@ class Cromwell:
             raise error
         response.raise_for_status()
 
-    def submit(self, wdl_file: str, json_file: str, zip_file: str = None) -> int:
+    def submit(self, wdl_file: str, json_file: str, zip_file: str = None, options_file: str = None) -> int:
         """
         Submit a run to Cromwell.
         :param wdl_file: Path to WDL file
@@ -400,6 +400,8 @@ class Cromwell:
         :type json_file: str
         :param zip_file: Path to subworkflows ZIP file (optional)
         :type zip_file: str
+        :param options_file: Path to options JSON file (optional)
+        :type options_file: str
         :return: Cromwell workflow uuid
         :rtype: str
         """
@@ -432,6 +434,16 @@ class Cromwell:
                 )
             except Exception as error:
                 raise IOError(f"Unable to open file, {zip_file}: {error}")
+        if options_file:
+            try:
+                files["workflowOptions"] = (
+                    "workflowOptions",
+                    open(options_file, "r"),
+                    "application/json",
+                )
+            except Exception as error:
+                logger.exception(f"Unable to open file, {options_file}: {error}")
+                raise IOError(f"Unable to open file, {options_file}: {error}")
         try:
             response = requests.post(self.workflows_url, files=files)
         except requests.ConnectionError as error:

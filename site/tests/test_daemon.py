@@ -113,6 +113,7 @@ def test_get_run_input(
     assert infiles[0] == os.path.join(root_dir, "XXXX.wdl")
     assert infiles[1] == os.path.join(root_dir, "XXXX.json")
     assert infiles[2] == os.path.join(root_dir, "XXXX.zip")
+    assert infiles[3] is None
 
     # test 2: invalid input
     run2 = tests.conftest.MockRun(status="upload complete", submission_id="YYYY")
@@ -126,7 +127,8 @@ def test_get_run_input(
     root_dir = os.path.join(home_dir, "WWWW")
     assert infiles[0] == os.path.join(root_dir, "WWWW.wdl")
     assert infiles[1] == os.path.join(root_dir, "WWWW.json")
-    assert len(infiles) == 2
+    assert infiles[2] is None
+    assert infiles[3] is None
 
 
 def test_submit_run(monkeypatch, uploads_files):
