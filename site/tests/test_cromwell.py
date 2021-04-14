@@ -925,7 +925,7 @@ def test_get_errors():
     status = metadata.execution_status()
     errors = metadata.errors()
     assert status["fq_count.count_seqs"] == "Failed"
-    assert errors["fq_count.count_seqs"] == "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"  # noqa
+    assert errors["fq_count.count_seqs"] == "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit\nruntime:\n{'account': 'fungalp', 'cluster': 'cori', 'constraint': 'haswell', 'continueOnReturnCode': '0', 'cpu': '1', 'failOnStderr': 'false', 'maxRetries': '0', 'mem': '10G', 'node': '1', 'nwpn': '1', 'poolname': 'test_small', 'qos': 'genepool_special', 'shared': '0', 'time': '00:10:00'}\n" # noqa
 
     # test for no errors
     metadata = crom.get_metadata(WORKFLOW_ID_EX1, METADATA[WORKFLOW_ID_EX1])
@@ -974,3 +974,31 @@ def test_task_stdout():
     task = metadata.tasks[0]
     assert task.stderr() == expected_stderr
     assert task.stdout() == expected_stdout
+
+
+def test_get_failed_task_runtime_attributes():
+    expected_runtime = {
+        "account": "fungalp",
+        "cluster": "cori",
+        "constraint": "haswell",
+        "continueOnReturnCode": "0",
+        "cpu": "1",
+        "failOnStderr": "false",
+        "maxRetries": "0",
+        "mem": "10G",
+        "node": "1",
+        "nwpn": "1",
+        "poolname": "test_small",
+        "qos": "genepool_special",
+        "shared": "0",
+        "time": "00:10:00",
+    }
+
+    crom = cromwell.Cromwell("localhost:8000")
+    metadata = crom.get_metadata(WORKFLOW_ID_EX3, METADATA[WORKFLOW_ID_EX3])
+    for task in metadata.tasks:
+        failures = task.failures()
+        if failures:
+            assert task.name == "fq_count.count_seqs"
+            runtime = task.runtime()
+            assert bool(DeepDiff(runtime, expected_runtime, ignore_order=True)) is False
