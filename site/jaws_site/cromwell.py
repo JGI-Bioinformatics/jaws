@@ -131,11 +131,12 @@ class Task:
             with open(stderr_file, "r") as file:
                 msg = f"{msg}\nstderr:\n" + file.read()
 
-        # append standard output (if exists)
-        stdout_file = self.stdout(attempt)
-        if stdout_file and os.path.isfile(stdout_file):
-            with open(stdout_file, "r") as file:
-                msg = f"{msg}\nstdout:\n" + file.read()
+        # append submission standard error (if exists)
+        submit_stderr_file = f"{stderr_file}.submit"
+        if submit_stderr_file and os.path.isfile(submit_stderr_file):
+            with open(submit_stderr_file, "r") as file:
+                msg = f"{msg}\nstderr:\n" + file.read()
+
         return msg
 
     def stdout(self, attempt=None, src=None, dest=None):
@@ -311,7 +312,9 @@ class Metadata:
         for task in self.tasks:
             for call in task.calls:
                 if "jobId" in call:
-                    summary.append([self.workflow_id, task.name, call["attempt"], call["jobId"]])
+                    summary.append(
+                        [self.workflow_id, task.name, call["attempt"], call["jobId"]]
+                    )
                 elif "subWorkflowId" in call:
                     subworkflow_id = call["subWorkflowId"]
                     subworkflow = task.subworkflows[subworkflow_id]
