@@ -480,7 +480,7 @@ class Run:
         else:
             return self._rpc_call("get_errors")
 
-    def cancel_run(self):
+    def cancel(self) -> None:
         """
         Cancel a self.model.  It doesn't cancel Globus transfers, just Cromwell runs.
 
@@ -584,14 +584,33 @@ def _select_run_queue(session, user_id):
     return rows
 
 
-def queue(session, user_id):
+def get_queue(session, user_id):
     """Return the current user's unfinished runs.
 
     :param session: db handle
     :type session: sqlalchemy.session
     :param user_id: current user's ID
     :type user_id: str
-    :return: details about any current runs
+    :return: Run objects of active runs
+    :rtype: list
+    """
+    logger.info(f"User {user_id}: Get queue")
+    rows = _select_run_queue(session, user_id)
+    queue = []
+    for row in rows:
+        run = Run(session, user_id, model=row)
+        queue.append(run)
+    return queue
+
+
+def get_queue_info(session, user_id):
+    """Return the current user's unfinished runs.
+
+    :param session: db handle
+    :type session: sqlalchemy.session
+    :param user_id: current user's ID
+    :type user_id: str
+    :return: info about current runs
     :rtype: list
     """
     logger.info(f"User {user_id}: Get queue")
@@ -619,7 +638,7 @@ def _select_run_history(session, user_id, start_date):
     return rows
 
 
-def history(session, user_id, delta_days=10):
+def get_history(session, user_id, delta_days=10):
     """Return the current user's recent runs, regardless of status.
 
     :param session: db handle

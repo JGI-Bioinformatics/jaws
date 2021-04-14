@@ -5,8 +5,8 @@ JAWS-Central REST endpoints.
 import logging
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_central import config, db, run
-from jaws_central.run import Run, RunNotFoundError
+from jaws_central import config, db
+from jaws_central.run import Run, RunNotFoundError, get_queue, get_queue_info, get_history
 
 logger = logging.getLogger(__package__)
 
@@ -21,7 +21,7 @@ def user_queue(user):
     """
     logger.info(f"User {user}: Get queue")
     try:
-        queue = run.queue(db.session, user)
+        queue = get_queue_info(db.session, user)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -40,7 +40,7 @@ def user_history(user, delta_days=10):
     """
     logger.info(f"User {user}: Get history, last {delta_days} days")
     try:
-        history = run.history(db.session, user, delta_days)
+        history = get_history(db.session, user, delta_days)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
@@ -271,4 +271,32 @@ def cancel_run(user, run_id):
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
-    return run.cancel(), 201
+    run.cancel()
+    result = {run_id: "cancelled"}
+    return result, 201
+
+
+def cancel_all(user):
+    """
+    Cancel all of a user's active runs.
+
+    :param user: current user's ID
+    :type user: str
+    :return: run ids and results
+    :rtype: dict
+    """
+    logger.info(f"User {user}: Cancel-all")
+    try:
+        queue = get_queue(db.session, user)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        abort(500, f"Db error; {error}")
+    result = {}
+    for run in queue:
+        try:
+            run.cancel()
+        except Exception as error:
+            result[run.id] = f"{error}"
+        else:
+            result[run.id] = "cancelled"
+    return result, 201
