@@ -137,6 +137,9 @@ class Task:
             with open(submit_stderr_file, "r") as file:
                 msg = f"{msg}\nstderr:\n" + file.read()
 
+        # append runtime attributes
+        runtime = self.get("runtimeAttributes", None, "")
+        msg = f"{msg}\nruntime:\n{runtime}\n"
         return msg
 
     def stdout(self, attempt=None, src=None, dest=None):
@@ -176,6 +179,9 @@ class Task:
         if src and dest:
             path = os.path.join(dest, os.path.relpath(src, path))
         return path
+
+    def runtime(self, attempt=None):
+        return self.get("runtimeAttributes", attempt, {})
 
 
 class CromwellException(Exception):
