@@ -98,6 +98,7 @@ def test_wdl_subworkflows(configuration, subworkflows_example):
 
     for expected in subworkflows:
         assert expected in wdl.subworkflows
+    assert wdl.max_ram_gb == 6
 
 
 @pytest.mark.skipif(
@@ -108,6 +109,17 @@ def test_calculate_wdl_max_ram_gb(configuration, dap_seq_example):
         os.path.join(dap_seq_example, "test.wdl"), "1234"
     )
     assert 5 == wdl.max_ram_gb
+
+
+@pytest.mark.skipif(
+    shutil.which("womtool") is None, reason="WOMTool needs to be installed"
+)
+def test_calculate_wdl_max_ram_gb_warn_on_mem_keyword(configuration, deprecated_mem_example):
+    wdl = jaws_client.workflow.WdlFile(
+        os.path.join(deprecated_mem_example, "deprecated_mem.wdl"), "1234"
+    )
+    with pytest.raises(jaws_client.workflow.WdlError):
+        gb = wdl.max_ram_gb
 
 
 @pytest.mark.skipif(
