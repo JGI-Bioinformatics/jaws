@@ -126,7 +126,7 @@ def release(name: str, version: str) -> None:
 @click.argument("version")
 @click.argument("wdl_file")
 def update_wdl(name: str, version: str, wdl_file: str) -> None:
-    """Update a workflow's WDL in the catalog."""
+    """Update a workflow's WDL in the catalog. This is not allowed for released WDLs."""
     current_user = user.User()
     url = f'{config.conf.get("JAWS", "url")}/wdl/{name}/{version}'
     files = {"wdl_file": open(wdl_file, "r")}

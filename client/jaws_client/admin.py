@@ -22,19 +22,8 @@ def admin():
 @click.argument("name")
 @click.option("--admin", default=False, help="Grant admin access")
 def log(uid: str, email: str, name: str, admin: bool) -> None:
-    """Add new user and get JAWS OAuth access token.
+    """Add new user and get JAWS OAuth access token."""
 
-    :param uid: New user's ID
-    :type id: str
-    :param email: New user's email address
-    :type id: str
-    :param name: New user's full name
-    :type id: str
-    :param admin: Grant new user administrator access
-    :type id: bool
-    :return: JSON response contains new user's access token
-    :rtype: dict
-    """
     logger = logging.getLogger(__package__)
     current_user = user.User()
     data = {"uid": uid, "email": email, "name": name, "admin": admin}
