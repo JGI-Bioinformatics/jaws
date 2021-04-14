@@ -338,7 +338,10 @@ class Metadata:
             relpath_outputs = {}
             for key, value in outputs.items():
                 relpath_outputs[key] = value.replace(workflowRoot, '.', 1)
-            return relpath_outputs
+            outputs = relpath_outputs
+        if "outfile" in kwargs:
+            with open(outfile, 'w') as fh:
+                fh.write(json.dumps(outputs))
         else:
             return outputs
 
