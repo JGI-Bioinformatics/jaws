@@ -721,6 +721,45 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
         abort(500, f"Globus error: {error}")
 
 
+def cancel_all(user):
+    """
+    Cancel all of a user's active runs.
+
+    :param user: current user's ID
+    :type user: str
+    :return: run ids and results
+    :rtype: dict
+    """
+    logger.info(f"User {user}: Cancel-all")
+    try:
+        queue = (
+            db.session.query(Run)
+            .filter_by(user_id=user)
+            .filter(Run.status.in_(run_active_states))
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.error(error)
+        abort(500, f"Db error; {error}")
+    result = {}
+    for run in queue:
+        status = run.status
+        if status == "cancelled":
+            result[run.id] = "Already cancelled"
+            continue
+        elif status == "download complete":
+            result[run.id] = "Too late to cancel; download complete"
+            continue
+        _cancel_run(run)
+        if status.startswith("upload"):
+            _cancel_transfer(user, run.upload_task_id, run.id)
+        elif status.startswith("download"):
+            _cancel_transfer(user, run.download_task_id, run.id)
+        _rpc_call(user, run.id, "cancel_run")
+        result[run.id] = "Cancelled"
+    return result, 201
+
+
 def authorize_transfer_client():
     """
     Create a globus transfer client using client id and client secret for credentials. More information

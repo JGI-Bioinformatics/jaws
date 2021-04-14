@@ -226,12 +226,30 @@ def errors(run_id: int, fmt: str) -> None:
 @run.command()
 @click.argument("run_id")
 def cancel(run_id):
-    """Cancel a run; prints whether aborting was successful or not.
+    """Cancel a particular run.
 
     :param run_id: JAWS run ID to cancel.
     :type run_id: int
     """
     url = f'{config.conf.get("JAWS", "url")}/run/{run_id}/cancel'
+    current_user = user.User()
+    try:
+        r = requests.put(url, headers=current_user.header())
+    except requests.exceptions.RequestException:
+        raise SystemExit("Unable to communicate with JAWS server")
+    result = r.json()
+    if r.status_code != 201:
+        if "detail" in result:
+            raise SystemExit(result["detail"])
+        else:
+            raise SystemExit(r.text)
+    print(json.dumps(result, indent=4, sort_keys=True))
+
+
+@run.command()
+def cancel_all():
+    """Cancel all active runs."""
+    url = f'{config.conf.get("JAWS", "url")}/run/cancel-all'
     current_user = user.User()
     try:
         r = requests.put(url, headers=current_user.header())
