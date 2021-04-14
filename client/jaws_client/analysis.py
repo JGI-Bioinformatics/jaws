@@ -248,7 +248,8 @@ def list_sites() -> None:
 @click.argument("json_file", nargs=1)
 @click.argument("site", nargs=1)
 @click.option("--tag", help="identifier for the run")
-def submit(wdl_file: str, json_file: str, site: str, tag: str):
+@click.option('--no-cache', is_flag=True, help='Disable call-caching for this run')
+def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     """Submit a run for execution at a JAWS-Site.
        Available sites can be found by running 'jaws run list-sites'.
     """
@@ -341,9 +342,18 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str):
     except PermissionError as error:
         raise SystemExit(f"Unable to chmod {orig_json}: {error}")
 
+    # turning off call-caching requires a Cromwell options json file be created
+    options_json_file = None
+    if no_cache is True:
+        options_json_file = workflow.join_path(local_staging_endpoint, f"{submission_id}.options.json")
+        with open(options_json_file, 'w') as fh:
+            fh.write('{"read_from_cache": False, "write_to_cache": False}')
+
     # write the file transfer manifest; jaws-central shall submit the transfer to globus
     manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
     manifest_file.add(staged_wdl, zip_file, staged_json, orig_json, *moved_files)
+    if options_json_file:
+        manifest_file.add(options_json_file)
     staged_manifest = workflow.join_path(staging_user_subdir, f"{submission_id}.tsv")
     manifest_file.write_to(staged_manifest)
 

@@ -158,7 +158,7 @@ class Daemon:
         :return: list of [wdl,json,zip] file paths
         :rtype: list
         """
-        suffixes_and_required = [("wdl", True), ("json", True), ("zip", False)]
+        suffixes_and_required = [("wdl", True), ("json", True), ("zip", False), ("options.json", False)]
         files = []
         file_path = self.get_uploads_file_path(run)
         for (suffix, required) in suffixes_and_required:
@@ -173,6 +173,8 @@ class Daemon:
                 raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
             if a_file_size:
                 files.append(a_file)
+            else:
+                files.append(None)
         return files
 
     def submit_run(self, run):
@@ -293,6 +295,7 @@ class Daemon:
         json_file = file_path + ".json"
         orig_json_file = file_path + ".orig.json"
         zip_file = file_path + ".zip"  # might not exist
+        options_file = file_path + ".options.json"  # might not exist
         try:
             shutil.copy(wdl_file, run.cromwell_workflow_dir)
         except Exception as error:
@@ -310,6 +313,11 @@ class Daemon:
                 shutil.copy(zip_file, run.cromwell_workflow_dir)
             except Exception as error:
                 logger.error(f"Error copying ZIP from {zip_file}->{run.cromwell_workflow_dir}: {error}")
+        if os.path.exists(options_file):
+            try:
+                shutil.copy(options_file, run.cromwell_workflow_dir)
+            except Exception as error:
+                logger.error(f"Error copying options-JSON from {options_file}->{run.cromwell_workflow_dir}: {error}")
 
         transfer_task_id = None
         try:
