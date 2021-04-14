@@ -66,14 +66,8 @@ def _rpc_call(user, run_id, method, params={}):
         abort(500, f"Db error; {e}")
     if not run:
         abort(404, "Run not found; please check your run_id")
-    if run.user_id != user:
-        try:
-            current_user = db.session.query(User).get(user)
-        except SQLAlchemyError as error:
-            logger.error(error)
-            abort(500, f"Db error; {error}")
-        if not current_user.is_admin:
-            abort(401, "Access denied; you cannot access to another user's workflow")
+    if run.user_id != user and not _is_admin(user):
+        abort(401, "Access denied; you cannot access to another user's workflow")
     a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
     params["user_id"] = user
     params["run_id"] = run_id
@@ -88,6 +82,72 @@ def _rpc_call(user, run_id, method, params={}):
     return result["result"], 200
 
 
+def _is_admin(user):
+    """
+    Check if current user is an adinistrator.
+    :param user: Current user's ID
+    :type user: str
+    :return: True if user is an admin
+    :rtype: bool
+    """
+    try:
+        current_user = db.session.query(User).get(user)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        abort(500, f"Db error; {error}")
+    return True if current_user.is_admin else False
+
+
+def _run_info(run, complete=False):
+    """
+    Given a SQLAlchemy model for a Run, create a dict with the desired fields.
+    :param run: Run object
+    :type run: model
+    :param complete: True if all fields desired
+    :type complete: bool
+    :return: selected fields
+    :rtype: dict
+    """
+    info = {}
+    if complete:
+        info = {
+            "id": run.id,
+            "submission_id": run.submission_id,
+            "cromwell_run_id": run.cromwell_run_id,
+            "result": run.result,
+            "status": run.status,
+            "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
+            "site_id": run.site_id,
+            "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
+            "input_site_id": run.input_site_id,
+            "input_endpoint": run.input_endpoint,
+            "upload_task_id": run.upload_task_id,
+            "output_endpoint": run.output_endpoint,
+            "output_dir": run.output_dir,
+            "download_task_id": run.download_task_id,
+            "user_id": run.user_id,
+            "tag": run.tag,
+            "wdl_file": run.wdl_file,
+            "json_file": run.json_file,
+        }
+    else:
+        info = {
+            "id": run.id,
+            "result": run.result,
+            "status": run.status,
+            "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
+            "site_id": run.site_id,
+            "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
+            "input_site_id": run.input_site_id,
+            "tag": run.tag,
+            "wdl_file": run.wdl_file,
+            "json_file": run.json_file,
+        }
+    return info
+
+
 def user_queue(user):
     """Return the current user's unfinished runs.
 
@@ -98,7 +158,7 @@ def user_queue(user):
     """
     logger.info(f"User {user}: Get queue")
     try:
-        queue = (
+        rows = (
             db.session.query(Run)
             .filter_by(user_id=user)
             .filter(Run.status.in_(run_active_states))
@@ -107,32 +167,11 @@ def user_queue(user):
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
-    result = []
-    for run in queue:
-        result.append(
-            {
-                "id": run.id,
-                "submission_id": run.submission_id,
-                "cromwell_run_id": run.cromwell_run_id,
-                "result": run.result,
-                "status": run.status,
-                "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
-                "site_id": run.site_id,
-                "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-                "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
-                "input_site_id": run.input_site_id,
-                "input_endpoint": run.input_endpoint,
-                "upload_task_id": run.upload_task_id,
-                "output_endpoint": run.output_endpoint,
-                "output_dir": run.output_dir,
-                "download_task_id": run.download_task_id,
-                "user_id": run.user_id,
-                "tag": run.tag,
-                "wdl_file": run.wdl_file,
-                "json_file": run.json_file,
-            }
-        )
-    return result, 200
+    queue = []
+    is_admin = _is_admin(user)
+    for run in rows:
+        queue.append(_run_info(run, is_admin))
+    return queue, 200
 
 
 def user_history(user, delta_days=10):
@@ -145,10 +184,10 @@ def user_history(user, delta_days=10):
     :return: details about any recent runs
     :rtype: list
     """
-    start_date = datetime.today() - timedelta(int(delta_days))
     logger.info(f"User {user}: Get history, last {delta_days} days")
+    start_date = datetime.today() - timedelta(int(delta_days))
     try:
-        history = (
+        rows = (
             db.session.query(Run)
             .filter_by(user_id=user)
             .filter(Run.submitted >= start_date)
@@ -157,32 +196,11 @@ def user_history(user, delta_days=10):
     except SQLAlchemyError as error:
         logger.exception(f"Failed to select run history: {error}")
         abort(500, f"Db error; {error}")
-    result = []
-    for run in history:
-        result.append(
-            {
-                "id": run.id,
-                "submission_id": run.submission_id,
-                "cromwell_run_id": run.cromwell_run_id,
-                "result": run.result,
-                "status": run.status,
-                "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
-                "site_id": run.site_id,
-                "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-                "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
-                "input_site_id": run.input_site_id,
-                "input_endpoint": run.input_endpoint,
-                "upload_task_id": run.upload_task_id,
-                "output_endpoint": run.output_endpoint,
-                "output_dir": run.output_dir,
-                "download_task_id": run.download_task_id,
-                "user_id": run.user_id,
-                "tag": run.tag,
-                "wdl_file": run.wdl_file,
-                "json_file": run.json_file,
-            }
-        )
-    return result, 200
+    history = []
+    is_admin = _is_admin(user)
+    for run in rows:
+        history.append(_run_info(run, is_admin))
+    return history, 200
 
 
 def list_sites(user):
@@ -471,14 +489,8 @@ def _get_run(user, run_id):
         abort(500, f"Db error; {error}")
     if not run:
         abort(404, "Run not found; please check your run_id")
-    if run.user_id != user:
-        try:
-            current_user = db.session.query(User).get(user)
-        except SQLAlchemyError as error:
-            logger.error(error)
-            abort(500, f"Db error; {error}")
-        if not current_user.is_admin:
-            abort(401, "Access denied; you are not the owner of that Run.")
+    if run.user_id != user and not _is_admin(user):
+        abort(401, "Access denied; you are not the owner of that Run.")
     return run
 
 
@@ -509,28 +521,9 @@ def run_status(user, run_id):
     """
     run = _get_run(user, run_id)
     logger.info(f"User {user}: Get status of Run {run.id}")
-    result = {
-        "id": run.id,
-        "submission_id": run.submission_id,
-        "cromwell_run_id": run.cromwell_run_id,
-        "result": run.result,
-        "status": run.status,
-        "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
-        "site_id": run.site_id,
-        "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-        "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
-        "input_site_id": run.input_site_id,
-        "input_endpoint": run.input_endpoint,
-        "upload_task_id": run.upload_task_id,
-        "output_endpoint": run.output_endpoint,
-        "output_dir": run.output_dir,
-        "download_task_id": run.download_task_id,
-        "user_id": run.user_id,
-        "tag": run.tag,
-        "wdl_file": run.wdl_file,
-        "json_file": run.json_file,
-    }
-    return result, 200
+    is_admin = _is_admin(user)
+    info = _run_info(run, is_admin)
+    return info, 200
 
 
 def task_status(user, run_id):
