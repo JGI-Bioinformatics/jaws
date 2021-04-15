@@ -64,7 +64,7 @@ def test_get_job_logs(monkeypatch):
     job_logs = tasks.get_job_logs([test_cromwell_run_id])
     assert test_cromwell_job_id in job_logs
     assert len(job_logs[test_cromwell_job_id]) == len(test_job_logs)
-    assert job_logs[test_cromwell_job_id][0][0] == "created"
+    assert job_logs[test_cromwell_job_id][0][1] == "created"
 
 
 def test_task_status(monkeypatch):
@@ -270,3 +270,158 @@ def test_get_run_status(monkeypatch):
 
     for run_id, expected in run_id_and_expected.items():
         assert tasks.get_run_status(mock_session, run_id) == expected
+
+
+def test_get_job_metadata(monkeypatch):
+    def mock_get_cromwell_task_summary(self, cromwell_run_id):
+        example_task_summary = [
+            ["WORKFLOW_ID_MAIN", "main_workflow.goodbye", 1, "5480"],
+            ["WORKFLOW_ID_MAIN", "main_workflow.hello", 1, "5481"],
+            ["WORKFLOW_ID_SUB2", "hello_and_goodbye.goodbye", 1, "5483"],
+            ["WORKFLOW_ID_SUB2", "hello_and_goodbye.hello", 1, "5485"],
+            ["WORKFLOW_ID_SUB1", "hello_and_goodbye.goodbye", 1, "5482"],
+            ["WORKFLOW_ID_SUB1", "hello_and_goodbye.hello", 1, "5484"],
+        ]
+        return example_task_summary
+
+    monkeypatch.setattr(
+        TaskLog, "_get_cromwell_task_summary", mock_get_cromwell_task_summary
+    )
+
+    expected = {
+        "5480": ["WORKFLOW_ID_MAIN", "main_workflow.goodbye", 1],
+        "5481": ["WORKFLOW_ID_MAIN", "main_workflow.hello", 1],
+        "5483": ["WORKFLOW_ID_SUB2", "hello_and_goodbye.goodbye", 1],
+        "5485": ["WORKFLOW_ID_SUB2", "hello_and_goodbye.hello", 1],
+        "5482": ["WORKFLOW_ID_SUB1", "hello_and_goodbye.goodbye", 1],
+        "5484": ["WORKFLOW_ID_SUB1", "hello_and_goodbye.hello", 1],
+    }
+
+    mock_session = None
+    tasks = TaskLog(mock_session)
+    job_metadata = tasks.get_job_metadata("WORKFLOW_ID_MAIN")
+    assert bool(DeepDiff(job_metadata, expected, ignore_order=True)) is False
+
+
+def test_get_task_log(monkeypatch):
+
+    example_run_id = 9
+
+    def mock_get_cromwell_run_id(self, run_id):
+        assert run_id == example_run_id
+        return "AAAA"
+
+    monkeypatch.setattr(TaskLog, "_get_cromwell_run_id", mock_get_cromwell_run_id)
+
+    def mock_get_job_metadata(self, cromwell_run_id):
+        assert cromwell_run_id == "AAAA"
+        example_metadata = {
+            "5480": ["WORKFLOW_ID_MAIN", "main_workflow.goodbye", 1],
+            "5481": ["WORKFLOW_ID_MAIN", "main_workflow.hello", 1],
+            "5482": ["WORKFLOW_ID_SUB1", "hello_and_goodbye.goodbye", 1],
+            "5484": ["WORKFLOW_ID_SUB1", "hello_and_goodbye.hello", 1],
+        }
+        return example_metadata
+
+    monkeypatch.setattr(TaskLog, "get_job_metadata", mock_get_job_metadata)
+
+    def mock_get_cromwell_run_ids_from_job_metadata(self, job_metadata):
+        assert "5480" in job_metadata
+        cromwell_run_ids = ["WORKFLOW_ID_MAIN", "WORKFLOW_ID_SUB1"]
+        return cromwell_run_ids
+
+    monkeypatch.setattr(
+        TaskLog,
+        "_get_cromwell_run_ids_from_job_metadata",
+        mock_get_cromwell_run_ids_from_job_metadata,
+    )
+
+    def mock_get_job_logs(self, cromwell_run_ids):
+        assert len(cromwell_run_ids) == 2
+        example_logs = {
+            "5480": [
+                ["WORKFLOW_ID_MAIN", "created", "ready", "2021-04-15 12:42:08", None],
+                ["WORKFLOW_ID_MAIN", "ready", "queued", "2021-04-15 12:42:28", None],
+                ["WORKFLOW_ID_MAIN", "queued", "pending", "2021-04-15 12:42:29", None],
+            ],
+            "5481": [
+                ["WORKFLOW_ID_MAIN", "created", "queued", "2021-04-15 12:49:95", None]
+            ],
+            "5482": [
+                ["WORKFLOW_ID_SUB1", "created", "queued", "2021-04-15 01:01:04", None]
+            ],
+            "5484": [
+                ["WORKFLOW_ID_SUB1", "created", "queued", "2021-04-15 01:11:52", None]
+            ],
+        }
+        return example_logs
+
+    monkeypatch.setattr(TaskLog, "get_job_logs", mock_get_job_logs)
+
+    expected = [
+        [
+            "WORKFLOW_ID_MAIN",
+            "main_workflow.goodbye",
+            1,
+            "5480",
+            "created",
+            "ready",
+            "2021-04-15 12:42:08",
+            None,
+        ],
+        [
+            "WORKFLOW_ID_MAIN",
+            "main_workflow.goodbye",
+            1,
+            "5480",
+            "ready",
+            "queued",
+            "2021-04-15 12:42:28",
+            None,
+        ],
+        [
+            "WORKFLOW_ID_MAIN",
+            "main_workflow.goodbye",
+            1,
+            "5480",
+            "queued",
+            "pending",
+            "2021-04-15 12:42:29",
+            None,
+        ],
+        [
+            "WORKFLOW_ID_MAIN",
+            "main_workflow.hello",
+            1,
+            "5481",
+            "created",
+            "queued",
+            "2021-04-15 12:49:95",
+            None,
+        ],
+        [
+            "WORKFLOW_ID_SUB1",
+            "hello_and_goodbye.goodbye",
+            1,
+            "5482",
+            "created",
+            "queued",
+            "2021-04-15 01:01:04",
+            None,
+        ],
+        [
+            "WORKFLOW_ID_SUB1",
+            "hello_and_goodbye.hello",
+            1,
+            "5484",
+            "created",
+            "queued",
+            "2021-04-15 01:11:52",
+            None,
+        ],
+    ]
+
+    mock_session = None
+    tasks = TaskLog(mock_session)
+    actual = tasks.get_task_log(example_run_id)
+    assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
