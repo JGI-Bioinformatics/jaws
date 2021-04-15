@@ -955,7 +955,7 @@ def test_task_summary():
         "localhost:8000", WORKFLOW_ID_EX2_MAIN, METADATA[WORKFLOW_ID_EX2_MAIN], METADATA
     )
     result = metadata.task_summary()
-    EXPECTED = [
+    expected = [
         [WORKFLOW_ID_EX2_MAIN, "main_workflow.goodbye", 1, "5480"],
         [WORKFLOW_ID_EX2_MAIN, "main_workflow.hello", 1, "5481"],
         [WORKFLOW_ID_EX2_SUB2, "hello_and_goodbye.goodbye", 1, "5483"],
@@ -963,7 +963,7 @@ def test_task_summary():
         [WORKFLOW_ID_EX2_SUB1, "hello_and_goodbye.goodbye", 1, "5482"],
         [WORKFLOW_ID_EX2_SUB1, "hello_and_goodbye.hello", 1, "5484"],
     ]
-    assert bool(DeepDiff(result, EXPECTED, ignore_order=True)) is False
+    assert bool(DeepDiff(result, expected, ignore_order=True)) is False
 
 
 def test_task_stdout():
