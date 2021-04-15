@@ -6,7 +6,7 @@ import click
 import os
 import requests
 import json
-from jaws_client import log, config, analysis, catalog, admin
+from jaws_client import log, config, analysis, admin
 from jaws_client import wfcopy as wfc
 
 JAWS_LOG_ENV = "JAWS_CLIENT_LOG"
@@ -86,6 +86,5 @@ def wfcopy(src_dir: str, dest_dir: str, flatten) -> None:
 def jaws():
     """Entrypoint for jaws-client app."""
     cli.add_command(analysis.run)
-    cli.add_command(catalog.wdl)
     cli.add_command(admin.admin)
     cli()
