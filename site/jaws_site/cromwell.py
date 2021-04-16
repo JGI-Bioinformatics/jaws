@@ -340,7 +340,7 @@ class Metadata:
                 relpath_outputs[key] = value.replace(workflowRoot, '.', 1)
             outputs = relpath_outputs
         if "outfile" in kwargs:
-            with open(outfile, 'w') as fh:
+            with open(kwargs["outfile"], 'w') as fh:
                 fh.write(json.dumps(outputs))
         else:
             return outputs

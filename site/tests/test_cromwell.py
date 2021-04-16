@@ -1003,6 +1003,7 @@ def test_get_failed_task_runtime_attributes():
             runtime = task.runtime()
             assert bool(DeepDiff(runtime, expected_runtime, ignore_order=True)) is False
 
+
 def test_outputs():
     # TEST1
     expected = {
