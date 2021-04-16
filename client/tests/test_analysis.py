@@ -6,7 +6,7 @@ import subprocess
 
 import click.testing
 
-from jaws_client.analysis import run
+from jaws_client.analysis import runs
 import jaws_client.user
 
 import json
@@ -270,7 +270,7 @@ def test_cli_queue(mock_user, monkeypatch, configuration):
     monkeypatch.setattr(requests, "get", get_queue)
 
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["queue"])
+    result = runner.invoke(runs, ["queue"])
     assert result.exit_code == 0
     assert "running" in result.output
 
@@ -282,7 +282,7 @@ def test_cli_history(mock_user, monkeypatch, configuration):
 
     monkeypatch.setattr(requests, "get", get_history)
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["history"])
+    result = runner.invoke(runs, ["history"])
     assert result.exit_code == 0
 
     for task_id in ["33", "34", "35", "36"]:
@@ -300,7 +300,7 @@ def test_cli_status(mock_user, monkeypatch, configuration):
 
     monkeypatch.setattr(requests, "get", mock_status_get)
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["status", "36"])
+    result = runner.invoke(runs, ["status", "36"])
     assert result.exit_code == 0
     assert "Running" in result.output
 
@@ -311,7 +311,7 @@ def test_cli_metadata(monkeypatch, mock_user, configuration):
 
     monkeypatch.setattr(requests, "get", get_metadata)
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["metadata", "36"])
+    result = runner.invoke(runs, ["metadata", "36"])
     assert "workflowName" in result.output
 
     def get_tasks(url, headers=None):
@@ -351,7 +351,7 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     monkeypatch.setattr(requests, "post", mock_post)
 
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["submit", wdl, inputs, "CORI"])
+    result = runner.invoke(runs, ["submit", wdl, inputs, "CORI"])
     assert result.exit_code == 0
 
 
@@ -384,11 +384,11 @@ def test_get(configuration, mock_user, monkeypatch):
     runner = click.testing.CliRunner()
 
     # a completed run
-    result = runner.invoke(run, ["get", "1", "/home/mockuser/mydir"])
+    result = runner.invoke(runs, ["get", "1", "/home/mockuser/mydir"])
     assert result.exit_code == 0
 
     # an incomplete run
-    result = runner.invoke(run, ["get", "2", "/home/mockuser/mydir"])
+    result = runner.invoke(runs, ["get", "2", "/home/mockuser/mydir"])
     assert result.exit_code != 0
 
 
@@ -399,7 +399,7 @@ def test_cancel_OK(mock_user, monkeypatch, configuration):
 
     monkeypatch.setattr(requests, "put", get_cancel)
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["cancel", "35"])
+    result = runner.invoke(runs, ["cancel", "35"])
     assert result.exit_code == 0
     assert json.loads(result.output)["cancel"] == "OK"
 
@@ -416,7 +416,7 @@ def test_cancel_ERR(mock_user, monkeypatch, configuration):
 
     monkeypatch.setattr(requests, "put", get_cancel)
     runner = click.testing.CliRunner()
-    result = runner.invoke(run, ["cancel", "35"])
+    result = runner.invoke(runs, ["cancel", "35"])
     assert result.exit_code == 1
     json_result = json.loads(result.output.replace("'", "\""))
     assert json_result["error"] == "That Run had already been cancelled"
