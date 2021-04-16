@@ -137,6 +137,44 @@ def test_cancel_transfer(configuration, mock_database, mock_globus):
     jaws_central.analysis._cancel_transfer(user, transfer_id, run_id)
 
 
+def test_cancel_run(monkeypatch):
+    """Test the cancel run functioning."""
+    def get_run_cancelled(user_id, run_id):
+        run = MockGetInactiveUploadRun()
+        run.status = "cancelled"
+        return run
+
+    def get_run_regular(user_id, run_id):
+        run = MockGetInactiveUploadRun()
+        run.status = "running"
+        return run
+
+    def mock_cancel_run(run):
+        run.status = "cancelled"
+        run.result = "cancelled"
+        return run
+
+    def mock_cancel_transfer(user_id, transfer_task_id, run_id):
+        pass
+
+    def mock_rpc_call_cancel(user_id, run_id, method, params={}):
+        assert isinstance(user_id, str)
+        assert isinstance(run_id, int)
+        assert method == "cancel_run"
+
+    """Check if an exception is raised in case run is already cancelled"""
+    monkeypatch.setattr(jaws_central.analysis, "_rpc_call", mock_rpc_call_cancel)
+    monkeypatch.setattr(jaws_central.analysis, "_get_run", get_run_cancelled)
+    monkeypatch.setattr(jaws_central.analysis, "_cancel_run", mock_cancel_run)
+    monkeypatch.setattr(jaws_central.analysis, "_cancel_transfer", mock_cancel_transfer)
+    with pytest.raises(Exception):
+        jaws_central.analysis.cancel_run("user", 123)
+
+    """Check if no exception is raised in case run has a regular status"""
+    monkeypatch.setattr(jaws_central.analysis, "_get_run", get_run_regular)
+    jaws_central.analysis.cancel_run("user", 123)
+
+
 def test_run_status_inactive_upload(monkeypatch):
     """ Tests returning run status with comments for a failed download status """
 

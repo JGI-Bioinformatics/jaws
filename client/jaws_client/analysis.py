@@ -200,7 +200,7 @@ def cancel(run_id):
     except requests.exceptions.RequestException:
         raise SystemExit("Unable to communicate with JAWS server")
     result = r.json()
-    if r.status_code != 201:
+    if r.status_code != 200:
         if "detail" in result:
             raise SystemExit(result["detail"])
         else:
@@ -218,7 +218,7 @@ def cancel_all():
     except requests.exceptions.RequestException:
         raise SystemExit("Unable to communicate with JAWS server")
     result = r.json()
-    if r.status_code != 201:
+    if r.status_code != 200:
         if "detail" in result:
             raise SystemExit(result["detail"])
         else:

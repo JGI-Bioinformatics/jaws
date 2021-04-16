@@ -63,11 +63,11 @@ def _rpc_call(user, run_id, method, params={}):
         run = db.session.query(Run).get(run_id)
     except SQLAlchemyError as e:
         logger.error(e)
-        abort(500, f"Db error; {e}")
+        abort(500, {"error": f"Db error; {e}"})
     if not run:
-        abort(404, "Run not found; please check your run_id")
+        abort(404, {"error": "Run not found; please check your run_id"})
     if run.user_id != user and not _is_admin(user):
-        abort(401, "Access denied; you cannot access to another user's workflow")
+        abort(401, {"error": "Access denied; you cannot access to another user's workflow"})
     a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
     params["user_id"] = user
     params["run_id"] = run_id
@@ -78,7 +78,7 @@ def _rpc_call(user, run_id, method, params={}):
     except Exception as error:
         logger.exception(f"RPC {method} failed: {error}")
     if "error" in result:
-        abort(result["error"]["code"], result["error"]["message"])
+        abort(result["error"]["code"], {"error": result["error"]["message"]})
     return result["result"], 200
 
 
@@ -94,7 +94,7 @@ def _is_admin(user):
         current_user = db.session.query(User).get(user)
     except SQLAlchemyError as error:
         logger.error(error)
-        abort(500, f"Db error; {error}")
+        abort(500, {"error": f"Db error; {error}"})
     return True if current_user.is_admin else False
 
 
@@ -166,7 +166,7 @@ def user_queue(user):
         )
     except SQLAlchemyError as error:
         logger.error(error)
-        abort(500, f"Db error; {error}")
+        abort(500, {"error": f"Db error; {error}"})
     queue = []
     is_admin = _is_admin(user)
     for run in rows:
@@ -195,7 +195,7 @@ def user_history(user, delta_days=10):
         )
     except SQLAlchemyError as error:
         logger.exception(f"Failed to select run history: {error}")
-        abort(500, f"Db error; {error}")
+        abort(500, {"error": f"Db error; {error}"})
     history = []
     is_admin = _is_admin(user)
     for run in rows:
@@ -236,7 +236,7 @@ def get_site(user, site_id):
     logger.debug(f"User {user}: Get info for site {site_id}")
     result = config.conf.get_site_info(site_id)
     if result is None:
-        abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
+        abort(404, {"error": f'Unknown Site ID; "{site_id}" is not one of our sites'})
     result["uploads_dir"] = f'{result["uploads_dir"]}/{user}'
     return result, 200
 
@@ -266,7 +266,7 @@ def submit_run(user):
         logger.error(
             f"Received run submission from {user} with invalid computing site ID: {site_id}"
         )
-        abort(404, f'Unknown Site ID, "{site_id}"; try the "list-sites" command')
+        abort(404, {"error": f'Unknown Site ID, "{site_id}"; try the "list-sites" command'})
     logger.info(f"User {user}: New run submission {submission_id} to {site_id}")
 
     # INSERT INTO RDB TO GET RUN ID
@@ -288,14 +288,14 @@ def submit_run(user):
     except Exception as error:
         db.session.rollback()
         logger.exception(f"Error inserting Run: {error}")
-        abort(500, f"Error inserting Run into db: {error}")
+        abort(500, {"error": f"Error inserting Run into db: {error}"})
     try:
         db.session.commit()
     except Exception as error:
         db.session.rollback()
         err_msg = f"Unable to insert new run in db: {error}"
         logger.exception(err_msg)
-        abort(500, err_msg)
+        abort(500, {"error": err_msg})
     logger.debug(f"User {user}: New run {run.id}")
 
     # Output directory is a subdirectory that includes the user id, site id and run id.
@@ -317,14 +317,14 @@ def submit_run(user):
         db.session.rollback()
         err_msg = f"Unable to update output_dir in db: {error}"
         logger.exception(err_msg)
-        abort(500, err_msg)
+        abort(500, {"error": err_msg})
     try:
         db.session.commit()
     except Exception as error:
         db.session.rollback()
         err_msg = f"Unable to update output_dir in db: {error}"
         logger.exception(err_msg)
-        abort(500, err_msg)
+        abort(500, {"error": err_msg})
     logger.debug(f"Updating output dir for run_id={run.id}")
 
     # SUBMIT GLOBUS TRANSFER
@@ -350,30 +350,30 @@ def submit_run(user):
             )
             abort(
                 401,
-                error.message
-                + " -- Your access to the Globus endpoint has expired.  "
-                + "To reactivate, log-in to https://app.globus.org, go to Endpoints (left), "
-                + "search for the endpoint by name (if not shown), click on the endpoint, "
-                + "and use the button on the right to activate your credentials.",
+                {"error": error.message
+                    + " -- Your access to the Globus endpoint has expired.  "
+                    + "To reactivate, log-in to https://app.globus.org, go to Endpoints (left), "
+                    + "search for the endpoint by name (if not shown), click on the endpoint, "
+                    + "and use the button on the right to activate your credentials."},
             )
         else:
             logger.exception(
                 f"{user} submission {run.id} failed for GlobusAPIError: {error}",
                 exc_info=True,
             )
-            abort(error.code, error.message)
+            abort(error.code, {"error": error.message})
     except globus_sdk.NetworkError as error:
         logger.exception(
             f"{user} submission {run.id} failed due to NetworkError: {error}",
             exc_info=True,
         )
-        abort(500, f"Network Error: {error}")
+        abort(500, {"error": f"Network Error: {error}"})
     except globus_sdk.GlobusError as error:
         logger.exception(
             f"{user} submission {run.id} failed for unknown error: {error}",
             exc_info=True,
         )
-        abort(500, f"Unexpected error: {error}")
+        abort(500, {"error": f"Unexpected error: {error}"})
 
     logger.debug(f"User {user}: Run {run.id} upload {upload_task_id}")
 
@@ -405,7 +405,7 @@ def submit_run(user):
         current_user = db.session.query(User).get(user)
     except SQLAlchemyError as e:
         logger.error(e)
-        abort(500, f"Db error; {e}")
+        abort(500, {"error": f"Db error; {e}"})
 
     # SEND TO SITE
     params = {
@@ -425,12 +425,12 @@ def submit_run(user):
         reason = f"RPC submit failed: {error}"
         logger.exception(reason)
         _submission_failed(user, run, reason)
-        abort(500, reason)
+        abort(500, {"error": reason})
     if "error" in result:
         reason = f"Error sending new run to {site_id}: {result['error']['message']}"
         logger.error(reason)
         _submission_failed(user, run, reason)
-        abort(result["error"]["code"], result["error"]["message"])
+        abort(result["error"]["code"], {"error": result["error"]["message"]})
 
     # DONE
     result = {
@@ -486,11 +486,11 @@ def _get_run(user, run_id):
         run = db.session.query(Run).get(run_id)
     except SQLAlchemyError as error:
         logger.error(error)
-        abort(500, f"Db error; {error}")
+        abort(500, {"error": f"Db error; {error}"})
     if not run:
-        abort(404, "Run not found; please check your run_id")
+        abort(404, {"error": "Run not found; please check your run_id"})
     if run.user_id != user and not _is_admin(user):
-        abort(401, "Access denied; you are not the owner of that Run.")
+        abort(401, {"error": "Access denied; you are not the owner of that Run."})
     return run
 
 
@@ -504,7 +504,7 @@ def _abort_if_pre_cromwell(run):
     """
     if run.status in run_pre_cromwell_states:
         abort(
-            404, "No data available as the Run hasn't been submitted to Cromwell yet."
+            404, {"error": "No data available as the Run hasn't been submitted to Cromwell yet."}
         )
 
 
@@ -564,7 +564,7 @@ def run_log(user: str, run_id: int):
         )
     except SQLAlchemyError as error:
         logger.exception(f"Error selecting from run_logs: {error}")
-        abort(500, f"Db error; {error}")
+        abort(500, {"error": f"Db error; {error}"})
     table = []
     for log in query:
         reason = log.reason if log.reason else ""
@@ -648,9 +648,9 @@ def cancel_run(user, run_id):
 
     # check if run can be cancelled
     if status == "cancelled":
-        abort(400, "That Run had already been cancelled")
+        abort(400, {"error": "That Run had already been cancelled"})
     elif status == "download complete":
-        abort(400, "It's too late to cancel; run is finished.")
+        abort(400, {"error": "It's too late to cancel; run is finished."})
 
     # mark as cancelled
     _cancel_run(run)
@@ -707,7 +707,7 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
         transfer_client = authorize_transfer_client()
     except globus_sdk.GlobusAPIError as error:
         logger.error(f"Error getting Globus transfer client: {error}")
-        abort(500, "Globus error: {error}")
+        abort(500, {"error": "Globus error: {error}"})
     try:
         transfer_response = transfer_client.cancel_task(transfer_task_id)
         logger.debug(
@@ -718,7 +718,7 @@ def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
             f"Failed to cancel {user}'s Globus transfer, {transfer_task_id}: {error}",
             exc_info=True,
         )
-        abort(500, f"Globus error: {error}")
+        abort(500, {"error": f"Globus error: {error}"})
 
 
 def cancel_all(user):
@@ -740,7 +740,7 @@ def cancel_all(user):
         )
     except SQLAlchemyError as error:
         logger.error(error)
-        abort(500, f"Db error; {error}")
+        abort(500, {"error": f"Db error; {error}"})
     result = {}
     for run in queue:
         status = run.status
