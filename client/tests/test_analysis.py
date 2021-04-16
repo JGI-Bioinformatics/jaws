@@ -9,6 +9,7 @@ import click.testing
 from jaws_client.analysis import run
 import jaws_client.user
 
+import json
 
 # flake8: noqa
 
@@ -389,3 +390,33 @@ def test_get(configuration, mock_user, monkeypatch):
     # an incomplete run
     result = runner.invoke(run, ["get", "2", "/home/mockuser/mydir"])
     assert result.exit_code != 0
+
+
+def test_cancel_OK(mock_user, monkeypatch, configuration):
+    """Check if cancel run producs expected JSON output in case of a successful cancel."""
+    def get_cancel(url, headers={}):
+        return MockResult({"cancel":"OK"}, 200)
+
+    monkeypatch.setattr(requests, "put", get_cancel)
+    runner = click.testing.CliRunner()
+    result = runner.invoke(run, ["cancel", "35"])
+    assert result.exit_code == 0
+    assert json.loads(result.output)["cancel"] == "OK"
+
+
+def test_cancel_ERR(mock_user, monkeypatch, configuration):
+    """Check if cancel run producs expected JSON output in case of an error in cancel run."""
+    def get_cancel(url, headers={}):
+        err = {
+            "detail": "{'error': 'That Run had already been cancelled'}",
+            "status": 400,
+            "title": "Bad Request",
+            "type": "about:blank"}
+        return MockResult(err, 400)
+
+    monkeypatch.setattr(requests, "put", get_cancel)
+    runner = click.testing.CliRunner()
+    result = runner.invoke(run, ["cancel", "35"])
+    assert result.exit_code == 1
+    json_result = json.loads(result.output.replace("'", "\""))
+    assert json_result["error"] == "That Run had already been cancelled"
