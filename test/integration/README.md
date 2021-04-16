@@ -190,3 +190,19 @@ since it'll pick up the system python instead.
 
 Currently the gitlab runner is being managed by EMSL. To contact them, join the #emsl-jgi-coordination channel on the JGI slack. 
 
+
+## File cleanup (cron)
+
+The input files and cromwell-executions folders must be purged regularly by cron at each compute-site.
+
+`inputs` folder:
+
+    0 2 * * 0 find $SCRATCH/jaws-dev/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 2 * * 5 find $SCRATCH/jaws-staging/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 2 * * 6 find $SCRATCH/jaws-prod/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+
+`cromwell-executions` (outputs) folder:
+
+    0 5 * * 0 find $SCRATCH/jaws-dev/cromwell-executions -mindepth 2 -maxdepth 2 -type d -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 5 * * 5 find $SCRATCH/jaws-staging/cromwell-executions -mindepth 2 -maxdepth 2 -type d -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 5 * * 6 find $SCRATCH/jaws-prod/cromwell-executions -mindepth 2 -maxdepth 2 -type d -mtime +14 -exec rm -rf {} \; 2>/dev/null
