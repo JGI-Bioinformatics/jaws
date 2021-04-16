@@ -6,7 +6,7 @@ import click
 import os
 import requests
 import json
-from jaws_client import log, config, analysis, user, deprecated
+from jaws_client import log, config, analysis, admin
 from jaws_client import wfcopy as wfc
 
 JAWS_LOG_ENV = "JAWS_CLIENT_LOG"
@@ -22,7 +22,7 @@ JAWS_USER_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws.conf")
 @click.option("--user", "user_config_file", default=None, help="User config file")
 @click.option("--log", "log_file", default=None, help="Log file")
 @click.option("--log-level", "log_level", default="INFO", help="Logging level [debug|info|warning|error|critical]")
-def main(jaws_config_file: str, user_config_file: str, log_file: str, log_level: str):
+def cli(jaws_config_file: str, user_config_file: str, log_file: str, log_level: str):
     """JGI Analysis Workflows Service"""
     if log_file is None:
         log_file = (
@@ -46,8 +46,8 @@ def main(jaws_config_file: str, user_config_file: str, log_file: str, log_level:
         logger.debug(f"Config using {jaws_config_file}, {user_config_file}")
 
 
-@main.command()
-def health() -> None:
+@cli.command()
+def status() -> None:
     """Current system status."""
     url = f'{config.conf.get("JAWS", "url")}/status'
     try:
@@ -60,7 +60,7 @@ def health() -> None:
     print(json.dumps(result, indent=4, sort_keys=True))
 
 
-@main.command()
+@cli.command()
 def info() -> None:
     """JAWS version and info."""
     url = f'{config.conf.get("JAWS", "url")}/info'
@@ -74,7 +74,7 @@ def info() -> None:
     print(json.dumps(result, indent=4, sort_keys=True))
 
 
-@main.command()
+@cli.command()
 @click.argument("src_dir")
 @click.argument("dest_dir")
 @click.option("--flatten", is_flag=True, default=False, help="Flatten shard dirs")
@@ -83,29 +83,8 @@ def wfcopy(src_dir: str, dest_dir: str, flatten) -> None:
     wfc.wfcopy(src_dir, dest_dir, flatten)
 
 
-@main.command()
-@click.argument("uid")
-@click.argument("email")
-@click.argument("name")
-@click.option("--admin", default=False, help="Grant admin access")
-def add_user(uid: str, email: str, name: str, admin: bool) -> None:
-    """Add new user and get JAWS OAuth access token (restricted)."""
-
-    current_user = user.User()
-    data = {"uid": uid, "email": email, "name": name, "admin": admin}
-    url = f'{config.conf.get("JAWS", "url")}/user'
-    try:
-        r = requests.post(url, data=data, headers=current_user.header())
-    except requests.ConnectTimeout as error:
-        raise SystemExit(f"Unable to add user: {error}")
-    result = r.json()
-    if r.status_code != 201:
-        raise SystemExit(result["detail"])
-    print(json.dumps(result, indent=4, sort_keys=True))
-
-
 def jaws():
     """Entrypoint for jaws-client app."""
-    main.add_command(deprecated.run)
-    cli = click.CommandCollection(sources=[main, analysis.runs])
+    cli.add_command(analysis.run)
+    cli.add_command(admin.admin)
     cli()
