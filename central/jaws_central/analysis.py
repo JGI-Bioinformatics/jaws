@@ -148,59 +148,69 @@ def _run_info(run, complete=False):
     return info
 
 
-def user_queue(user):
-    """Return the current user's unfinished runs.
-
-    :param user: current user's ID
-    :type user: str
-    :return: details about any current runs
-    :rtype: list
-    """
-    logger.info(f"User {user}: Get queue")
-    try:
-        rows = (
-            db.session.query(Run)
-            .filter_by(user_id=user)
-            .filter(Run.status.in_(run_active_states))
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.error(error)
-        abort(500, {"error": f"Db error; {error}"})
-    queue = []
+def search_runs(user):
+    """Search is used by both user queue and history commands."""
+    logger.info(f"User {user}: Search runs")
+    active_only = request.form.get("active_only", False)
+    delta_days = request.form.get("delta_days", None)
+    site_id = request.form.get("site_id", None).upper()
+    rows = _select_runs(user, active_only, delta_days, site_id)
+    table = []
     is_admin = _is_admin(user)
     for run in rows:
-        queue.append(_run_info(run, is_admin))
-    return queue, 200
+        table.append(_run_info(run, is_admin))
+    return table, 200
 
 
-def user_history(user, delta_days=10):
-    """Return the current user's recent runs, regardless of status.
+def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str):
+    """Select runs from db.
 
     :param user: current user's ID
     :type user: str
-    :param delta_days: number of days in which to search
+    :param active_only: Select only active runs
+    :type active_only: bool
+    :param delta_days: Limit to this many recent days
     :type delta_days: int
-    :return: details about any recent runs
+    :param site_id: Limit to this compute-site
+    :type site_id: str
+    :return: Runs matching search criteria
     :rtype: list
     """
-    logger.info(f"User {user}: Get history, last {delta_days} days")
-    start_date = datetime.today() - timedelta(int(delta_days))
-    try:
-        rows = (
-            db.session.query(Run)
-            .filter_by(user_id=user)
-            .filter(Run.submitted >= start_date)
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.exception(f"Failed to select run history: {error}")
-        abort(500, {"error": f"Db error; {error}"})
-    history = []
-    is_admin = _is_admin(user)
-    for run in rows:
-        history.append(_run_info(run, is_admin))
-    return history, 200
+    rows = None
+    if active_only:
+        if site_id:
+            rows = (
+                db.session.query(Run)
+                .filter_by(user_id=user)
+                .filter_by(site_id=site_id)
+                .filter(Run.status.in_(run_active_states))
+                .all()
+            )
+        else:
+            rows = (
+                db.session.query(Run)
+                .filter_by(user_id=user)
+                .filter(Run.status.in_(run_active_states))
+                .all()
+            )
+    elif delta_days:
+        start_date = datetime.today() - timedelta(int(delta_days))
+        if site_id:
+            rows = (
+                db.session.query(Run)
+                .filter_by(user_id=user)
+                .filter(Run.submitted >= start_date)
+                .all()
+            )
+        else:
+            rows = (
+                db.session.query(Run)
+                .filter_by(user_id=user)
+                .filter_by(site_id=site_id)
+                .filter(Run.submitted >= start_date)
+                .all()
+            )
+    return rows
 
 
 def list_sites(user):
