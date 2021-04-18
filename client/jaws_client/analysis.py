@@ -407,7 +407,12 @@ def get(run_id: int, dest: str) -> None:
         result = workflow.rsync(
             src,
             dest,
-            ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo=", "--exclude=inputs"],
+            [
+                "-rLtq",
+                "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo=",
+                "--exclude=inputs",
+                "--exclude=tmp.*",
+            ],
         )
     except IOError as error:
         logger.error(f"Rsync output failed for run {run_id}: {error}")
