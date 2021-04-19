@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jaws_site.models import Job_Log, Run
 from jaws_site import config
 from jaws_site import cromwell
+from jaws_site.cromwell import CromwellException
 
 
 logger = logging.getLogger(__package__)
@@ -25,17 +26,16 @@ job_status_value = {
 
 class TaskLogDbError(Exception):
     """This is raised on database errors."""
-
     pass
 
 
 class TaskLogRunNotFoundError(Exception):
     """This is raised when the requested JAWS run_id is not found in the rdb."""
-
     pass
 
 
 class TaskLogError(Exception):
+    """This is raised on db errors"""
     pass
 
 
@@ -67,7 +67,7 @@ class TaskLog:
             logger.warning(
                 f"Job {job_log.cromwell_job_id} status is duplicate; ignored"
             )
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             raise TaskLogDbError(
                 f"Error saving job log, {job_log.cromwell_job_id}:{job_log.status_to}, in db: {error}"
@@ -95,7 +95,7 @@ class TaskLog:
                 timestamp=timestamp,
                 reason=reason,
             )
-        except Exception as error:
+        except SQLAlchemyError as error:
             raise TaskLogError(
                 f"Error initializing job_log {cromwell_job_id}:{status_to}: {error}"
             )
@@ -118,7 +118,7 @@ class TaskLog:
             raise TaskLogError(
                 f"SQLAlchemy error retrieving task logs from db for run {cromwell_run_ids}: {error}"
             )
-        except Exception as error:
+        except SQLAlchemyError as error:
             raise TaskLogError(
                 f"Unknown error retrieving task logs from db for run {cromwell_run_ids}: {error}"
             )
@@ -187,7 +187,7 @@ class TaskLog:
         """
         try:
             run = self.session.query(Run).filter_by(id=run_id).one_or_none()
-        except Exception as error:
+        except SQLAlchemyError as error:
             raise TaskLogDbError(
                 f"Task log service was unable to query the db to get the cromwell_run_id for run {run_id}: {error}"
             )
@@ -205,7 +205,7 @@ class TaskLog:
         """
         try:
             metadata = self.cromwell.get_metadata(cromwell_run_id)
-        except Exception as error:
+        except CromwellException as error:
             err_msg = f"The task log service was unable to retrieve run metadata from Cromwell: {error}"
             self.logger.error(err_msg)
             raise (err_msg)

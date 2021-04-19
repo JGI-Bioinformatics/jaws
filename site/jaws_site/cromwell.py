@@ -290,6 +290,9 @@ class Metadata:
         """
         return self.data.get(param, default)
 
+    def workflow_root(self):
+        return self.get("workflowRoot", None)
+
     def is_subworkflow(self):
         return True if "parentWorkflowId" in self.data else False
 
