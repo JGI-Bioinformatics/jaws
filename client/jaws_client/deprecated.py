@@ -6,6 +6,13 @@ import click
 import warnings
 
 
+def pretty_warning(message, category, filename, lineno, line=None):
+    return f"{message}\n"
+
+
+warnings.formatwarning = pretty_warning
+
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def run():
     """JAWS Run Commands (DEPRECATED)"""
