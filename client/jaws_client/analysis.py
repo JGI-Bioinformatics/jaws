@@ -322,7 +322,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
             local_staging_endpoint, f"{submission_id}.options.json"
         )
         with open(options_json_file, "w") as fh:
-            fh.write('{"read_from_cache": False, "write_to_cache": False}')
+            fh.write('{"read_from_cache": false, "write_to_cache": false}')
 
     # write the file transfer manifest; jaws-central shall submit the transfer to globus
     manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
