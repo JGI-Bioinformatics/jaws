@@ -9,6 +9,7 @@ from jaws_site.cromwell import Cromwell
 from jaws_site.models import Run
 from jaws_rpc.responses import success, failure
 from jaws_site.tasks import TaskLog
+from jaws_site import errors
 
 
 # config and logging must be initialized before importing this module
@@ -100,11 +101,11 @@ def cancel_run(params, session):
 
 
 def get_errors(params, session):
-    """Retrieve error messages and stderr for failed Tasks.
+    """Retrieve error report which includes errors from both Cromwell metadata and the TaskLog.
 
     :param cromwell_run_id: Cromwell run ID
     :type params: dict
-    :return: error messages and stderr for failed Tasks
+    :return: errors report
     :rtype: dict
     """
     user_id = params["user_id"]
@@ -115,11 +116,10 @@ def get_errors(params, session):
         return success(f"Run {run_id} hasn't been submitted to Cromwell.")
     logger.info(f"{user_id} - Run {run_id} - Get errors")
     try:
-        metadata = cromwell.get_metadata(cromwell_run_id)
-        result = metadata.errors()
+        errors_report = errors.get_errors(session, cromwell_run_id)
     except Exception as error:
         return failure(error)
-    return success(result)
+    return success(errors_report)
 
 
 def submit(params, session):

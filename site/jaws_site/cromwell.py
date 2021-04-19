@@ -117,30 +117,33 @@ class Task:
         failures = self.failures(attempt)
         if not failures:
             return None
-        msgs = []
+
+        report = {}
+
+        failure_msgs = []
         for failure in failures:
             msg = failure["message"]
-            msgs.append(msg)
+            failure_msgs.append(msg)
             for cause in failure["causedBy"]:
-                msgs.append(cause["message"])
-        msg = "\n".join(msgs)
+                failure_msgs.append(cause["message"])
+        report["failures"] = "\n".join(failure_msgs)
 
-        # append standard error (if exists)
         stderr_file = self.stderr(attempt)
         if stderr_file and os.path.isfile(stderr_file):
             with open(stderr_file, "r") as file:
-                msg = f"{msg}\nstderr:\n" + file.read()
+                report["stderr"] = file.read()
 
-        # append submission standard error (if exists)
         submit_stderr_file = f"{stderr_file}.submit"
         if submit_stderr_file and os.path.isfile(submit_stderr_file):
             with open(submit_stderr_file, "r") as file:
-                msg = f"{msg}\nstderr:\n" + file.read()
+                report["stderr.submit"] = file.read()
 
-        # append runtime attributes
-        runtime = self.get("runtimeAttributes", None, "")
-        msg = f"{msg}\nruntime:\n{runtime}\n"
-        return msg
+        report["runtime"] = self.get("runtimeAttributes", None, "")
+
+        cromwell_job_id = self.get("jobId", None, None)
+        report["cromwell_job_id"] = cromwell_job_id
+
+        return report
 
     def stdout(self, attempt=None, src=None, dest=None):
         """

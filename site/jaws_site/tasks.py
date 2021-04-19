@@ -6,7 +6,7 @@ import logging
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jaws_site.models import Job_Log, Run
 from jaws_site import config
-from jaws_site.cromwell import Cromwell
+from jaws_site import cromwell
 
 
 logger = logging.getLogger(__package__)
@@ -45,7 +45,7 @@ class TaskLog:
     """
 
     def __init__(self, session):
-        self.cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
+        self.cromwell = cromwell.Cromwell(config.conf.get("CROMWELL", "url"))
         self.session = session
 
     def _save_job_log(self, job_log):
@@ -344,3 +344,40 @@ def get_run_status(session, run_id: int) -> str:
         ) = task
         max_task_status_value = max(max_task_status_value, job_status_value[status_to])
     return "queued" if max_task_status_value < 3 else "running"
+
+
+def _select_task_log_error_messages(session, cromwell_job_id: str) -> list:
+    """
+    Get all non-NULL strings from 'reason' column of job logs.
+    :param cromwell_job_id: Cromwell's "jobId" field
+    :type cromwell_job_ids: str
+    :return: list of error messages
+    :rtype: list
+    """
+    try:
+        table = (
+            session.query(Job_Log)
+            .filter_by(cromwell_job_id=cromwell_job_id)
+            .filter(Job_Log.reason.isnot(None))
+            .filter(Job_Log.reason.isnot(""))
+            .all()
+        )
+    except SQLAlchemyError as error:
+        raise TaskLogError(
+            f"SQLAlchemy error retrieving task logs from db for run {cromwell_job_id}: {error}"
+        )
+    except Exception as error:
+        raise TaskLogError(
+            f"Unknown error retrieving task logs from db for run {cromwell_job_id}: {error}"
+        )
+    result = []
+    for row in table:
+        result.append(row.reason)
+    return result
+
+
+def get_task_log_error_messages(session, cromwell_job_id):
+    """
+    Query task-log table any return any error messages found in the optional "reason" column.
+    """
+    return _select_task_log_error_messages(session, cromwell_job_id)
