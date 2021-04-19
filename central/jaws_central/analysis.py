@@ -5,6 +5,7 @@ Analysis (AKA Run) REST endpoints.
 import logging
 from datetime import datetime, timedelta
 from flask import abort, request
+from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 import globus_sdk
 
@@ -150,19 +151,20 @@ def _run_info(run, complete=False):
 
 def search_runs(user):
     """Search is used by both user queue and history commands."""
+    site_id = request.form.get("site_id", "all").upper()
+    active_only = True if request.form.get("active_only") == "True" else False
+    delta_days = int(request.form.get("delta_days", 0))
+    result = request.form.get("result", "any").lower()
     logger.info(f"User {user}: Search runs")
-    active_only = request.form.get("active_only", False)
-    delta_days = request.form.get("delta_days", None)
-    site_id = request.form.get("site_id", None).upper()
-    rows = _select_runs(user, active_only, delta_days, site_id)
-    table = []
+    rows = _select_runs(user, active_only, delta_days, site_id, result)
+    runs = []
     is_admin = _is_admin(user)
     for run in rows:
-        table.append(_run_info(run, is_admin))
-    return table, 200
+        runs.append(_run_info(run, is_admin))
+    return runs, 200
 
 
-def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str):
+def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str, result: str):
     """Select runs from db.
 
     :param user: current user's ID
@@ -173,44 +175,22 @@ def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str):
     :type delta_days: int
     :param site_id: Limit to this compute-site
     :type site_id: str
+    :param result: Limit to this result
+    :type result: str
     :return: Runs matching search criteria
     :rtype: list
     """
-    rows = None
+    query = db.session.query(Run).filter(Run.user_id == user)
     if active_only:
-        if site_id:
-            rows = (
-                db.session.query(Run)
-                .filter_by(user_id=user)
-                .filter_by(site_id=site_id)
-                .filter(Run.status.in_(run_active_states))
-                .all()
-            )
-        else:
-            rows = (
-                db.session.query(Run)
-                .filter_by(user_id=user)
-                .filter(Run.status.in_(run_active_states))
-                .all()
-            )
-    elif delta_days:
+        query = query.filter(Run.status.in_(run_active_states))
+    if site_id != "ALL":
+        query = query.filter(Run.site_id == site_id)
+    if delta_days > 0:
         start_date = datetime.today() - timedelta(int(delta_days))
-        if site_id:
-            rows = (
-                db.session.query(Run)
-                .filter_by(user_id=user)
-                .filter(Run.submitted >= start_date)
-                .all()
-            )
-        else:
-            rows = (
-                db.session.query(Run)
-                .filter_by(user_id=user)
-                .filter_by(site_id=site_id)
-                .filter(Run.submitted >= start_date)
-                .all()
-            )
-    return rows
+        query = query.filter(Run.submitted >= start_date)
+    if result != "any":
+        query = query.filter(Run.result == result)
+    return query.all()
 
 
 def list_sites(user):
@@ -744,8 +724,7 @@ def cancel_all(user):
     try:
         queue = (
             db.session.query(Run)
-            .filter_by(user_id=user)
-            .filter(Run.status.in_(run_active_states))
+            .filter(and_(Run.user_id == user, Run.status.in_(run_active_states)))
             .all()
         )
     except SQLAlchemyError as error:

@@ -127,18 +127,22 @@ paths:
           description: Return active runs only
           type: boolean
           in: formData
-          required: False
-          default: False
+          required: True
         - name: delta_days
           description: time window to search
           type: integer
           in: formData
-          required: False
+          required: True
         - name: site_id
           description: Limit search to a compute-site
           type: string
           in: formData
-          required: False
+          required: True
+        - name: result
+          description: Limit search to this status
+          type: string
+          in: formData
+          required: True
       responses:
         200:
           description: OK
