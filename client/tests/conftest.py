@@ -297,7 +297,6 @@ task findPeaks {
         time: "00:00:00"
         cpu: 1
         memory: "0G"
-        backend: "JTM"
     }
     command {
         shifter --image=leobaumgart/dap_py2:2.0 find_peaks.sh \
@@ -330,7 +329,6 @@ task motifInputs {
         time: "00:00:00"
         cpu: 1
         memory: "0G"
-        backend: "JTM"
     }
     command {
         shifter --image=leobaumgart/dap_py3:2.0 /bin/bash -c \
@@ -375,7 +373,6 @@ task findMotifs {
         memory: "5G"
         poolname: "test"
         poolsize: 1
-        backend: "JTM"
     }
     command {
         shifter --image=leobaumgart/dap_py2:2.0 find_motifs.sh \

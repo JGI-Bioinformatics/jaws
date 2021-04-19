@@ -279,7 +279,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
 
     # any and all subworkflow WDL files must be supplied to Cromwell in a single ZIP archive
     try:
-        staged_wdl, zip_file = workflow.compress_wdls(wdl, local_staging_endpoint)
+        staged_wdl, zip_file = wdl.compress_wdls(local_staging_endpoint)
     except IOError as error:
         raise SystemExit(f"Unable to copy WDLs to inputs dir: {error}")
 

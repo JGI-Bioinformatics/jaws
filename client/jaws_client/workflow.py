@@ -154,56 +154,6 @@ def apply_filepath_op(obj, operation):
         )
 
 
-def compress_wdls(main_wdl, staging_dir="."):
-    """
-    Create a new staging WDL and compress any subworkflow files into a ZIP file.
-
-    The WDL is named based off of the submission ID and moved to a staging location that is specified in a
-    configuration file. Then any subworkflow WDLs that are associated with that WDL are moved to a zip file and
-    compressed.
-    If there are no subworkflows, the zipfile is not produced..
-
-    :param main_wdl: a WDL file
-    :param staging_dir: path where files will be compressed to. Default is current directory.
-    :return: paths to the main wdl and the compressed file (latter may be None)
-    """
-    if not os.path.isdir(staging_dir):
-        os.makedirs(staging_dir)
-
-    # COPY MAIN WDL
-    staged_wdl_filename = join_path(staging_dir, f"{main_wdl.submission_id}.wdl")
-    main_wdl.copy_to(staged_wdl_filename)
-
-    # IF NO SUBWORKFLOWS, DONE
-    if not len(main_wdl.subworkflows):
-        return staged_wdl_filename, None
-
-    # ZIP SUBWORKFLOWS
-    compressed_file_format = ".zip"
-    compression_dir = pathlib.Path(os.path.join(staging_dir, main_wdl.submission_id))
-    compression_dir.mkdir(parents=True, exist_ok=True)
-    compressed_file = join_path(
-        staging_dir, main_wdl.submission_id + compressed_file_format
-    )
-
-    for subworkflow in main_wdl.subworkflows:
-        staged_sub_wdl = join_path(compression_dir, subworkflow.name)
-        subworkflow.copy_to(staged_sub_wdl)
-
-    try:
-        os.remove(compressed_file)
-    except FileNotFoundError:
-        pass
-
-    with zipfile.ZipFile(compressed_file, "w") as z:
-        for sub_wdl in main_wdl.subworkflows:
-            staged_sub_wdl = join_path(compression_dir, sub_wdl.name)
-            z.write(staged_sub_wdl, arcname=sub_wdl.name)
-
-    shutil.rmtree(compression_dir)
-    return staged_wdl_filename, compressed_file
-
-
 class WdlFile:
     """
     A WDL object that can be queried for subworkflows, memory requirements and can also validate itself.
@@ -271,8 +221,7 @@ class WdlFile:
         :return: set of WdlFiles
         """
         if self._subworkflows is None:
-            stdout, stderr = womtool("validate", "-l", self.file_location)
-            self._subworkflows = self._filter_subworkflows(stdout)
+            self.validate()
         return self._subworkflows
 
     @staticmethod
@@ -293,7 +242,8 @@ class WdlFile:
         :return:
         """
         self.logger.info(f"Validating WDL, {self.file_location}")
-        _, stderr = womtool("validate", "-l", self.file_location)
+        stdout, stderr = womtool("validate", "-l", self.file_location)
+        self._subworkflows = self._filter_subworkflows(stdout)
         if stderr:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
@@ -372,6 +322,57 @@ class WdlFile:
                 m = re.match(r"^\s*backend", line)
                 if m:
                     raise WdlError("ERROR: WDLs may not contain 'backend' tag")
+
+    def compress_wdls(self, staging_dir="."):
+        """
+        Create a new staging WDL and compress any subworkflow files into a ZIP file.
+
+        The WDL is named based off of the submission ID and moved to a staging location that is specified in a
+        configuration file. Then any subworkflow WDLs that are associated with that WDL are moved to a zip file and
+        compressed.
+
+        This method should be called on the main WDL object and shall include the subworkflows.
+        If there are no subworkflows, the zipfile is not produced.
+
+        :param staging_dir: path where files will be compressed to. Default is current directory.
+        :type staging_dir: str
+        :return: paths to the main wdl and the compressed file (latter may be None)
+        """
+        if not os.path.isdir(staging_dir):
+            os.makedirs(staging_dir)
+
+        # COPY MAIN WDL
+        staged_wdl_filename = join_path(staging_dir, f"{self.submission_id}.wdl")
+        self.copy_to(staged_wdl_filename)
+
+        # IF NO SUBWORKFLOWS, DONE
+        if not len(self.subworkflows):
+            return staged_wdl_filename, None
+
+        # ZIP SUBWORKFLOWS
+        compressed_file_format = ".zip"
+        compression_dir = pathlib.Path(os.path.join(staging_dir, self.submission_id))
+        compression_dir.mkdir(parents=True, exist_ok=True)
+        compressed_file = join_path(
+            staging_dir, self.submission_id + compressed_file_format
+        )
+
+        for subworkflow in self.subworkflows:
+            staged_sub_wdl = join_path(compression_dir, subworkflow.name)
+            subworkflow.copy_to(staged_sub_wdl)
+
+        try:
+            os.remove(compressed_file)
+        except FileNotFoundError:
+            pass
+
+        with zipfile.ZipFile(compressed_file, "w") as z:
+            for sub_wdl in self.subworkflows:
+                staged_sub_wdl = join_path(compression_dir, sub_wdl.name)
+                z.write(staged_sub_wdl, arcname=sub_wdl.name)
+
+        shutil.rmtree(compression_dir)
+        return staged_wdl_filename, compressed_file
 
     def __eq__(self, other):
         return self.file_location == other.file_location
