@@ -17,6 +17,13 @@ import warnings
 from jaws_client import config
 
 
+def pretty_warning(message, category, filename, lineno, line=None):
+    return f"WARNING: {message}\n"
+
+
+warnings.formatwarning = pretty_warning
+
+
 def join_path(*args):
     return os.path.join(*args)
 
@@ -317,7 +324,9 @@ class WdlFile:
                         if mem > max_ram:
                             max_ram = mem
                     else:
-                        raise WdlError("The 'mem' tag is deprecated; please use 'memory' instead")
+                        raise WdlError(
+                            "The 'mem' tag is deprecated; please use 'memory' instead"
+                        )
         return max_ram
 
     @property
@@ -448,15 +457,13 @@ class WorkflowInputs:
             # as a result of the gid sticky bit and acl rules on the inputs dir.
             rsync_params = ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"]
             try:
-                result = rsync(
-                    original_path,
-                    dest,
-                    rsync_params,
-                )
+                result = rsync(original_path, dest, rsync_params,)
             except OSError as error:
                 raise (f"rsync executable not found: {error}")
             except ValueError as error:
-                raise (f"Invalid rsync options, {rsync_params}, for {original_path}->{dest}: {error}")
+                raise (
+                    f"Invalid rsync options, {rsync_params}, for {original_path}->{dest}: {error}"
+                )
             if result.returncode != 0:
                 err_msg = (
                     f"Failed to rsync {original_path}: {result.stdout}; {result.stderr}"
@@ -486,10 +493,12 @@ class WorkflowInputs:
         Only paths which exist are modified because these are the only files which are transferred; the other
         paths presumably refer to files in a Docker container.
         """
+
         def func(path):
             if looks_like_file_path(path) and os.path.exists(path):
                 return f"{path_to_prepend}{path}"
             return path
+
         return func
 
     def write_to(self, json_location):
