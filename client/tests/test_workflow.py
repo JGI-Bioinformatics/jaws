@@ -178,9 +178,7 @@ def test_zipping_up_of_subworkflow_files(configuration, subworkflows_example):
     basedir = subworkflows_example
     staging_dir = os.path.join(basedir, "staging")
     wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"), "1234")
-    staged_wdl, zip_file = jaws_client.workflow.compress_wdls(
-        wdl, staging_dir=staging_dir
-    )
+    staged_wdl, zip_file = wdl.compress_wdls(staging_dir)
     assert os.path.exists(staged_wdl)
     assert os.path.exists(zip_file)
 
@@ -191,7 +189,7 @@ def test_no_zip_file_in_manifest_if_no_subworkflows(simple_wdl_example):
     compute_dir = os.path.join(basedir, "compute")
 
     wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "align.wdl"), "1234")
-    staged_wdl, zip_file = jaws_client.workflow.compress_wdls(wdl, basedir)
+    staged_wdl, zip_file = wdl.compress_wdls(basedir)
     manifest_file = jaws_client.workflow.Manifest(staging_dir, compute_dir)
     manifest_file.add(staged_wdl, zip_file)
 
@@ -230,7 +228,7 @@ def test_same_submission_id_in_workflow_files(subworkflows_example):
     wdl_file = os.path.join(subworkflows_example, "main.wdl")
     wdl = jaws_client.workflow.WdlFile(wdl_file, submission_id)
     zip_path = os.path.join(subworkflows_example, "zip_directory")
-    zip_wdl, _ = jaws_client.workflow.compress_wdls(wdl, staging_dir=zip_path)
+    zip_wdl, _ = wdl.compress_wdls(zip_path)
     assert os.path.basename(zip_wdl).strip(".wdl") == submission_id
 
 
