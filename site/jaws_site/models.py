@@ -18,7 +18,6 @@ class Run(Base):
     id = Column(Integer, primary_key=True)
     submission_id = Column(String(36), nullable=False)
     cromwell_run_id = Column(String(36), nullable=True)
-    cromwell_workflow_dir = Column(String(4096), nullable=True)
     status = Column(String(32), nullable=False)
     user_id = Column(String(32), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
