@@ -39,27 +39,27 @@ test-requirements:
 .PHONY: test-rpc
 test-rpc: test-requirements
 	$Q flake8 rpc
-	$Q cd rpc && python -m pytest tests/
+	$Q cd rpc && python -m pytest --cov=jaws_rpc --junitxml=rpc.xml tests/ && coverage xml
 
 .PHONY: test-site
 test-site: test-requirements
 	$Q flake8 site
-	$Q cd site && python -m pytest tests/
+	$Q cd site && python -m pytest --cov=jaws_site --junitxml=site.xml tests/ && coverage xml
 
 .PHONY: test-central
 test-central: test-requirements
 	$Q flake8 central
-	$Q cd central && python -m pytest tests/
+	$Q cd central && python -m pytest --cov=jaws_central --junitxml=central.xml tests/ && coverage xml
 
 .PHONY: test-client
 test-client: test-requirements
 	$Q flake8 client
-	$Q cd client && python -m pytest tests/
+	$Q cd client && python -m pytest --cov=jaws_client --junitxml=client.xml tests/ && coverage xml
 
 .PHONY: test-jtm
 test-jtm: test-requirements
 	$Q flake8 jtm
-	$Q cd jtm && python -m pytest tests/
+	$Q cd jtm && python -m pytest --cov=jaws_jtm --junitxml=jtm.xml tests/ && coverage xml
 
 .PHONY: test
 test: test-rpc test-site test-central test-client test-jtm
