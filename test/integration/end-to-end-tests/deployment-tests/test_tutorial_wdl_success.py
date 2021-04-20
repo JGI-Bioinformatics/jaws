@@ -52,11 +52,7 @@ class TestTutorialSuccess(TestRunSuccess):
                  './jaws-tutorial-examples/subworkflows_and_conditionals/inputs.json')
         )
     )
-    def test_tutorial_success(self, site, wdl, input_json):
-        # clone the jaws-tutorial-examples repo
-        cmd = "git clone " \
-              "https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git"
-        util.run(cmd)
 
+    def test_tutorial_success(self, clone_tutorials_repo, site, wdl, input_json):
         # run the test against all the wdl/json in the @pytest.mark.parametrize
         self.run_success(site, wdl, input_json)

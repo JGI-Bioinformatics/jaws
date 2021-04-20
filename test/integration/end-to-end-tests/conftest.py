@@ -152,6 +152,23 @@ def submit_skylake_500(request):
 
     return data
 
+@pytest.fixture(scope="session")
+def clone_tutorials_repo(request):
+    # clone the jaws-tutorial-examples repo
+    cmd = "git clone " \
+          "https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git"
+    util.run(cmd)
+
+    yield
+
+    cmd = "rm -rf jaws-tutorial-examples/"
+    util.run(cmd)
+
+    yield
+
+    cmd = "rm -rf jaws-tutorial-examples/"
+    util.run(cmd)
+
 
 # The addoption functions allows us to use flags to capture arguments on the command line.
 def pytest_addoption(parser):
