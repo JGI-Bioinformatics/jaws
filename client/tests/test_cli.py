@@ -3,13 +3,10 @@ import os
 import requests
 import shutil
 import subprocess
-
-import click.testing
-
-from jaws_client.analysis import runs
-import jaws_client.user
-
 import json
+import click.testing
+from jaws_client import cli
+
 
 # flake8: noqa
 
@@ -226,14 +223,6 @@ TASK_STATUS_TEXT = (
 )
 
 
-class MockUser:
-    def __init__(self):
-        pass
-
-    def header(self):
-        return {"Authorization": "Bearer ABCDEFGHIJKLMNOP"}
-
-
 class MockResponse:
     def __init__(self, result, status_code):
         self.result = result
@@ -247,12 +236,7 @@ class MockResponse:
         return str(self.result)
 
 
-@pytest.fixture()
-def mock_user(monkeypatch):
-    monkeypatch.setattr(jaws_client.user, "User", MockUser)
-
-
-def test_cli_queue(mock_user, monkeypatch, configuration):
+def test_cli_queue(monkeypatch, configuration):
 
     def post_queue(url, data={}, files={}, headers=None):
         result = [
@@ -269,26 +253,26 @@ def test_cli_queue(mock_user, monkeypatch, configuration):
     monkeypatch.setattr(requests, "post", post_queue)
 
     runner = click.testing.CliRunner()
-    result = runner.invoke(runs, ["queue"])
+    result = runner.invoke(cli.main, [ "queue"])
     assert result.exit_code == 0
     assert "running" in result.output
 
 
-def test_cli_history(mock_user, monkeypatch, configuration):
+def test_cli_history(monkeypatch, configuration):
 
     def post_history(url, data={}, files={}, headers=None):
         return MockResponse(HISTORY, 200)
 
     monkeypatch.setattr(requests, "post", post_history)
     runner = click.testing.CliRunner()
-    result = runner.invoke(runs, ["history"])
+    result = runner.invoke(cli.main, [ "history"])
     assert result.exit_code == 0
 
     for task_id in ["33", "34", "35", "36"]:
         assert task_id in result.output
 
 
-def test_cli_status(mock_user, monkeypatch, configuration):
+def test_cli_status(monkeypatch, configuration):
     def mock_status_get(url, headers={}):
         """
         Returns a list of attributes from a run ordered as the following:
@@ -299,18 +283,18 @@ def test_cli_status(mock_user, monkeypatch, configuration):
 
     monkeypatch.setattr(requests, "get", mock_status_get)
     runner = click.testing.CliRunner()
-    result = runner.invoke(runs, ["status", "36"])
+    result = runner.invoke(cli.main, ["status", "36"])
     assert result.exit_code == 0
     assert "Running" in result.output
 
 
-def test_cli_metadata(monkeypatch, mock_user, configuration):
+def test_cli_metadata(monkeypatch, configuration):
     def get_metadata(url, headers=None):
         return MockResponse(WORKFLOW_METADATA, 200)
 
     monkeypatch.setattr(requests, "get", get_metadata)
     runner = click.testing.CliRunner()
-    result = runner.invoke(runs, ["metadata", "36"])
+    result = runner.invoke(cli.main, [ "metadata", "36"])
     assert "workflowName" in result.output
 
     def get_tasks(url, headers=None):
@@ -320,7 +304,7 @@ def test_cli_metadata(monkeypatch, mock_user, configuration):
 @pytest.mark.skipif(
     shutil.which("womtool") is None, reason="WOMTool needs to be installed."
 )
-def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
+def test_cli_submit(configuration, monkeypatch, sample_workflow):
     root = sample_workflow
 
     wdl = os.path.join(root, "workflow", "sample.wdl")
@@ -346,11 +330,11 @@ def test_cli_submit(configuration, mock_user, monkeypatch, sample_workflow):
     monkeypatch.setattr(requests, "post", mock_post)
 
     runner = click.testing.CliRunner()
-    result = runner.invoke(runs, ["submit", wdl, inputs, "CORI"])
+    result = runner.invoke(cli.main, [ "submit", wdl, inputs, "CORI"])
     assert result.exit_code == 0
 
 
-def test_get(configuration, mock_user, monkeypatch):
+def test_get(configuration, monkeypatch):
     def mock__run_status(run_id):
         if run_id == "1":
             return {
@@ -374,32 +358,33 @@ def test_get(configuration, mock_user, monkeypatch):
         return Result()
 
     monkeypatch.setattr(subprocess, "run", mock_run)
-    monkeypatch.setattr(jaws_client.analysis, "_run_status", mock__run_status)
-    monkeypatch.setattr(jaws_client.workflow, "rsync", mock_rsync)
+    monkeypatch.setattr(cli, "_run_status", mock__run_status)
+    from jaws_client import workflow
+    monkeypatch.setattr(workflow, "rsync", mock_rsync)
 
     runner = click.testing.CliRunner()
 
     # a completed run
-    result = runner.invoke(runs, ["get", "1", "/home/mockuser/mydir"])
+    result = runner.invoke(cli.main, [ "get", "1", "/home/mockuser/mydir"])
     assert result.exit_code == 0
 
     # an incomplete run
-    result = runner.invoke(runs, ["get", "2", "/home/mockuser/mydir"])
+    result = runner.invoke(cli.main, [ "get", "2", "/home/mockuser/mydir"])
     assert result.exit_code != 0
 
 
-def test_cancel_OK(mock_user, monkeypatch, configuration):
+def test_cancel_OK(monkeypatch, configuration):
     """Check if cancel run producs expected JSON output in case of a successful cancel."""
     def put_cancel(url, data={}, files={}, headers={}):
         return MockResponse({"cancel":"OK"}, 200)
 
     monkeypatch.setattr(requests, "put", put_cancel)
     runner = click.testing.CliRunner()
-    result = runner.invoke(runs, ["cancel", "35"])
+    result = runner.invoke(cli.main, [ "cancel", "35"])
     assert result.exit_code == 0
 
 
-def test_cancel_ERR(mock_user, monkeypatch, configuration):
+def test_cancel_ERR(monkeypatch, configuration):
     """Check if cancel run producs expected JSON output in case of an error in cancel run."""
     def put_cancel(url, headers={}):
         err = {
@@ -411,5 +396,5 @@ def test_cancel_ERR(mock_user, monkeypatch, configuration):
 
     monkeypatch.setattr(requests, "put", put_cancel)
     runner = click.testing.CliRunner()
-    result = runner.invoke(runs, ["cancel", "35"])
+    result = runner.invoke(cli.main, [ "cancel", "35"])
     assert result.exit_code == 1

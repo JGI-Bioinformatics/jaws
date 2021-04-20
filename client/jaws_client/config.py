@@ -7,30 +7,17 @@ import os
 import configparser
 import shutil
 
-conf = None
 
-
-class Singleton(type):
-
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super().__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-    def _destructor(cls):
-        if cls in cls._instances:
-            del cls._instances[cls]
+JAWS_CONFIG_ENV = "JAWS_CLIENT_CONFIG"
+JAWS_USER_CONFIG_ENV = "JAWS_USER_CONFIG"
 
 
 class ConfigurationError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+    pass
 
 
-class Configuration(metaclass=Singleton):
-    """Configuration singleton."""
+class Configuration:
+    """Configuration class variables should be initialized at the start of the program."""
 
     defaults = {
         "USER": {"token": "", "staging_dir": ""},
@@ -62,14 +49,26 @@ class Configuration(metaclass=Singleton):
 
     config = None
 
-    def __init__(self, jaws_config_file, user_config_file) -> None:
-        """Initialize the configuration object singleton
+    def __init__(
+        self, jaws_config_file: str = None, user_config_file: str = None
+    ) -> None:
+        """Initialize the configuration object.  Use class variables if paths not provided.
 
         :param jaws_config_file: Path to configuration file of JAWS deployment
         :type jaws_config_file: str
         :param user_config_file: Path to configuration file of user info
         :type user_config_file: str
         """
+        if self.config is not None:
+            return
+        if not jaws_config_file:
+            jaws_config_file = os.environ.get(JAWS_CONFIG_ENV)
+            if not jaws_config_file:
+                raise ValueError("config path required")
+        if not user_config_file:
+            user_config_file = os.environ.get(JAWS_USER_CONFIG_ENV)
+            if not user_config_file:
+                raise ValueError("user config path required")
         logger = logging.getLogger(__package__)
         logger.debug(f"Loading config from {jaws_config_file}, {user_config_file}")
         if not os.path.isfile(jaws_config_file):
@@ -133,10 +132,6 @@ class Configuration(metaclass=Singleton):
                     logger.error(error_msg)
                     raise ValueError(error_msg)
                 self.config[section][key] = user_config[section][key]
-
-        # save this into global singleton
-        global conf
-        conf = self
 
     def get(self, section: str, key: str) -> str:
         """Get a configuration value (which is always a string).
