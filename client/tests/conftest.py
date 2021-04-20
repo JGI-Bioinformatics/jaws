@@ -1,4 +1,5 @@
 import pytest
+import os
 import jaws_client.config
 
 
@@ -6,11 +7,10 @@ import jaws_client.config
 
 @pytest.fixture()
 def configuration(tmp_path):
-
-    jaws_client.config.Configuration._destructor()
-
     config_path = tmp_path / "jaws_client.ini"
     user_config_path = tmp_path / "jaws_user.ini"
+    os.environ["JAWS_CLIENT_CONFIG"] = config_path.as_posix()
+    os.environ["JAWS_USER_CONFIG"] = user_config_path.as_posix()
 
     globus_basedir = tmp_path / "globus_basedir"
     staging_dir = globus_basedir / "staging"
@@ -36,13 +36,10 @@ host_path = {0}/globus
     user_contents = """
 [USER]
 token = "xasdasdasfasdasdasfas"
-staging_dir = {0}/globus/staging
-
-""".format(tmp_path.as_posix())
+"""
     user_config_path.write_text(user_contents)
 
-    config = jaws_client.config.Configuration(config_path.as_posix(), user_config_path.as_posix())
-    return config
+    return (config_path.as_posix(), user_config_path.as_posix())
 
 
 @pytest.fixture

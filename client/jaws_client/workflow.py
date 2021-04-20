@@ -13,8 +13,10 @@ import zipfile
 import logging
 import pathlib
 import warnings
+from jaws_client.config import Configuration
 
-from jaws_client import config
+
+config = Configuration()
 
 
 def pretty_warning(message, category, filename, lineno, line=None):
@@ -76,7 +78,7 @@ def womtool(*args):
     :param args: WOMTool arguments
     :return: stdout and stderr of WOMTool completed process
     """
-    womtool_cmd = config.conf.get("JAWS", "womtool").split()
+    womtool_cmd = config.get("JAWS", "womtool").split()
     womtool_cmd.extend(list(args))
     proc = subprocess.run(womtool_cmd, capture_output=True, text=True)
     return proc.stdout, proc.stderr
@@ -171,7 +173,6 @@ class WdlFile:
         :param submission_id:  a uuid.uuid4() generated string
         """
 
-        self.logger = logging.getLogger(__package__)
         self.file_location = os.path.abspath(wdl_file_location)
         self.name = self._get_wdl_name(wdl_file_location)
         self.submission_id = submission_id
@@ -182,7 +183,7 @@ class WdlFile:
         self._subworkflows = None
         self._max_ram_gb = None
 
-    def _filter_subworkflows(self, output):
+    def _set_subworkflows(self, output):
         """
         Filters the output of WOMTool inputs -l so that it can parse through and grab the paths to the sub-workflows.
 
@@ -207,7 +208,7 @@ class WdlFile:
                 sub_wdl = WdlFile(sub, self.submission_id)
                 sub_wdl.verify_wdl_has_no_backend_tags()
                 subworkflows.add(sub_wdl)
-        return subworkflows
+        self._subworkflows = list(subworkflows)
 
     @property
     def subworkflows(self):
@@ -241,9 +242,10 @@ class WdlFile:
         WdlFile objects and we wish to avoid running womtool multiple times unnecessarily.
         :return:
         """
-        self.logger.info(f"Validating WDL, {self.file_location}")
+        logger = logging.getLogger(__package__)
+        logger.debug(f"Validating WDL, {self.file_location}")
         stdout, stderr = womtool("validate", "-l", self.file_location)
-        self._subworkflows = self._filter_subworkflows(stdout)
+        self._set_subworkflows(stdout)
         if stderr:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
@@ -296,7 +298,8 @@ class WdlFile:
                 if subworkflow_file.max_ram_gb > self._max_ram_gb:
                     self._max_ram_gb = subworkflow_file.max_ram_gb
 
-        self.logger.info(f"Maximum RAM requested is {self._max_ram_gb}Gb")
+        logger = logging.getLogger(__package__)
+        logger.debug(f"Maximum RAM requested is {self._max_ram_gb}Gb")
         return self._max_ram_gb
 
     def copy_to(self, destination, permissions=0o664):
@@ -521,7 +524,6 @@ class Manifest:
     """
 
     def __init__(self, staging_dir, dest_dir):
-        self.logger = logging.getLogger(__package__)
         self.staging_dir = staging_dir
         self.dest_dir = dest_dir
         self.manifest = []
@@ -549,8 +551,8 @@ class Manifest:
         :param write_location: a file path
         :return:
         """
-        self.logger.info(f"Writing file manifest to {write_location}")
-        self.logger.debug(f"Writing manifest file: {write_location}")
+        logger = logging.getLogger(__package__)
+        logger.debug(f"Writing manifest file: {write_location}")
         with open(write_location, "w") as f:
             for src, dest, inode_type in self.manifest:
                 f.write(f"{src}\t{dest}\t{inode_type}\n")
