@@ -18,7 +18,7 @@ The `Joint Genome Institute <https://jgi.doe.gov>`_ has developed JAWS (JGI Anal
 
 
 Some Definitions
-----------------
+-----------------
 
 +---------------------+------------------------------------------------------------------------------+
 |:chocolate:`WDL`     | | The Workflow Description Language is essentially a                         |
@@ -86,5 +86,6 @@ Some Definitions
    Write a WDL <Tutorials/building_wdls>
    Best Practices for WDLs <Intro/best_practices>
    Runtime Options <Specifications/configuringJTM_in_wdls>
+   Code Snippets  <Tutorials/snippets>
    Registering your Workflow <Tutorials/register_wdl>
 
