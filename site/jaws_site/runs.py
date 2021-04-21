@@ -328,6 +328,9 @@ class Run:
             self.update_run_status("download complete", "No run folder was created")
             return
 
+        outputs_file = os.path.join(cromwell_workflow_dir, "outputs.json")
+        metadata.outputs(outputs_file, relpath=True
+
         file_path = self.uploads_file_path()
         self._cp_infile_to_outdir(file_path, "wdl", cromwell_workflow_dir)
         self._cp_infile_to_outdir(file_path, "json", cromwell_workflow_dir)
