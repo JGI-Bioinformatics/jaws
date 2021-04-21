@@ -97,7 +97,7 @@ def submit(params, session):
     except Exception as error:
         return failure(error)
     else:
-        return success(run.status())
+        return success(run.status)
 
 
 def get_task_log(params, session):

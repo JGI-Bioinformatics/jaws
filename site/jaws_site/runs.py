@@ -77,19 +77,16 @@ class Run:
 
     def _insert_run(self, **kwargs) -> None:
         """Insert run record into rdb"""
-        status = "uploading"
-        if "status" in kwargs:
-            status = kwargs["status"]
         try:
             self.model = models.Run(
-                id=kwargs["run_id"],  # pk used by Central
+                id=int(kwargs["run_id"]),
                 user_id=kwargs["user_id"],
                 email=kwargs["email"],
                 submission_id=kwargs["submission_id"],
                 upload_task_id=kwargs["upload_task_id"],
                 output_endpoint=kwargs["output_endpoint"],
                 output_dir=kwargs["output_dir"],
-                status=status,
+                status="uploading",
             )
         except SQLAlchemyError as error:
             raise (f"Error creating model for new Run {kwargs['run_id']}: {error}")
@@ -229,7 +226,7 @@ class Run:
         logger.debug(f"Run {self.model.id}: Submit to Cromwell")
         try:
             infiles = self.get_run_input()
-        except Exception as error:
+        except DataError as error:
             logger.error(f"Run {self.model.id}: {error}")
             self.update_run_status("submission failed", f"Bad input: {error}")
             return
