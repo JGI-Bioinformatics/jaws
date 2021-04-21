@@ -496,7 +496,8 @@ def validate(wdl_file: str) -> None:
 @main.command()
 @click.argument("run_id")
 @click.argument("dest")
-def get(run_id: int, dest: str) -> None:
+@click.option("--complete", is_flag=True, default=False, help="Get complete cromwell output")
+def get(run_id: int, dest: str, complete: bool) -> None:
     """Copy the output of a run to the specified folder."""
 
     from jaws_client import workflow
@@ -514,6 +515,15 @@ def get(run_id: int, dest: str) -> None:
         logger.error(f"Run {run_id} doesn't have an output_dir defined")
         sys.exit(f"Run {run_id} doesn't have an output_dir defined")
 
+    if complete is True:
+        _get_complete(run_id, src, dest)
+    else:
+        _get_outputs(run_id, src, dest)
+
+
+def _get_complete(run_id: int, src: str, dest: str) -> None:
+    """Copy the complete cromwell output dir"""
+    from jaws_client import workflow
     try:
         result = workflow.rsync(
             src,
@@ -552,6 +562,20 @@ def _utc_to_local(utc_datetime):
     fmt = "%Y-%m-%d %H:%M:%S"
     datetime_obj = datetime.strptime(utc_datetime, fmt)
     return datetime_obj.replace(tzinfo=timezone.utc).astimezone(tz=local_tz_obj).strftime(fmt)
+
+
+def _get_outputs(run_id: int, src_dir: str, dest_dir: str) -> None:
+    """Copy workflow outputs"""
+    outputs_file = f"{src_dir}/outputs.json"
+    outputs = {}
+    with open(outputs_file, 'r') as fh:
+        outputs = json.load(fh)
+    for (key, value) in outputs.items():
+        src_file = os.path.normpath(os.path.join(src_dir), value)
+        dest_file = os.path.join(dest_dir, os.path.basename(value))
+        if os.path.isfile(src_file):
+            shutil.copy(src_file, dest_file)
+            os.chmod(dest_file, 0o0664)
 
 
 @main.command()
