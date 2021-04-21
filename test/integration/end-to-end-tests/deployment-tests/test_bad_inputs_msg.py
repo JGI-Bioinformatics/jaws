@@ -19,8 +19,9 @@ check_tries = 50  # try this many times when waiting for a JAWS run to complete.
 check_sleep = 30  # wait for this amount of time between tries.
 
 def test_json_file_does_not_exist(env,dir,site):
+    # TESTCASE-4
     # Submit job with path to json file that does not exist
-    # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
+    # Can't use submission_utils submit_wdl function here because it exits if submission not successful
     wdl = os.path.join(dir,"WDLs/fq_count.wdl")
     json = "./FileDoesNotExist.json"
 
@@ -35,11 +36,12 @@ def test_json_file_does_not_exist(env,dir,site):
 
 
 def test_json_bad_path_to_input_file_msg(env,dir,site):
+    # TESTCASE-4
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
     wdl = os.path.join(dir,"WDLs/fq_count.wdl")
 
-    # Submit job with json contains path to a non-existent input file
-    # Can't use pf.submit_one_run_to_env here because it exits if submission not successful
+    # Submit job with json that contains a path to a non-existent input file
+    # Can't use  submission_utils submit_wdl here because it exits if submission not successful
     json = "test-inputs/bad_path_inputs.json"
     submit_cmd = "jaws run submit %s %s %s" % (wdl, json, site)
     cmd = source_cmd + submit_cmd
@@ -49,4 +51,9 @@ def test_json_bad_path_to_input_file_msg(env,dir,site):
     # check for the correct error message
     assert "UserWarning: Input path not found:" in e
 
-# TODO add more tests to cover the other scorecard scenarios that I said this test would cover
+# TODO add test for TESTCASE-5a
+# TODO add test for TESTCASE-5b
+# TODO add test for TESTCASE-6
+# TODO add test for TESTCASE-7
+# TODO add test for TESTCASE-8
+
