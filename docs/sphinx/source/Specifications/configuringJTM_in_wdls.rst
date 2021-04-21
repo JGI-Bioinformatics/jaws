@@ -48,7 +48,6 @@ On Cori, JAWS runs on a dedicated cluster.
   <code>
 	<pre>
     runtime {
-      cluster: "cori"
       time: "00:30:00"
       memory: "250G"
       poolname: "some-unique-name"
@@ -69,7 +68,6 @@ On Cori, JAWS runs on a dedicated cluster.
   <code>
 	<pre>
     runtime {
-      cluster: "cori"
       time: "00:30:00"
       memory: "700G"
       poolname: "some-unique-name"

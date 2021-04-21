@@ -12,10 +12,13 @@ How to Run a WDL in JAWS
 
 Example submitting a workflow:
 
-:bash:`jaws run submit <wdl> <inputs json> <out dir> <site>` 
+:bash:`jaws run submit --tag <give this workflow a name> <wdl> <inputs json> <site>` 
 
-... where "run" is a command, and "submit" is a sub-command. Running each command/sub-command without arguments 
+... where "run" is a command, and "submit" is a sub-command. Running any command/sub-command without arguments 
 shows the help message.
+
+.. note:: 
+	using :bash:`--tag` is useful to keep track of things when you have multiple runs. The tag identifier you give will show up with the various jaws logging and status commands.
 
 
 *************
@@ -34,8 +37,8 @@ There are four top level JAWS commands (but many sub commands):
   :bash:`jaws status`  displays the status of jaws-services at different sites. 
 
 
-*jaws login*:
-----------------------
+The command: *jaws login*
+-----------------------------
 
 You only need to run this once to get a Globus token.  Follow the directions to obtain the token from Globus and this will allow JAWS to transfer data around via Globus in your name.
 
@@ -47,13 +50,14 @@ You only need to run this once to get a Globus token.  Follow the directions to 
     
 
 
-*jaws run*:
--------------------
+The sub-commands for *jaws run*:
+--------------------------------
 
 .. code-block:: text
 
   cancel       Cancel a run; prints whether aborting was successful or not.
   errors       View error messages and stderr for failed tasks.
+  get          Copy the output of a run to the specified folder.
   history      Print a list of the user's past runs.
   inputs       Generate inputs template (JSON) from workflow (WDL) file.
   list-sites   List available Sites
@@ -66,8 +70,8 @@ You only need to run this once to get a Globus token.  Follow the directions to 
   task-status  Show the current status of each task.
   validate     Validate a WDL using Cromwell's WOMTool.
 
-*jaws wdl*:
--------------------
+The sub-commands for *jaws wdl*:
+--------------------------------
 
 .. code-block:: text
 
@@ -81,8 +85,8 @@ You only need to run this once to get a Globus token.  Follow the directions to 
   update-wdl  Update a workflow's WDL in the catalog (unavailable for released WDLs)
   versions    List publicly available versions of a specified workflow. Not all versions are publicly available.
 
-*jaws status*:
-----------------------
+The command: *jaws status*
+--------------------------
 
 This command shows the status of the various jaws-services. Some services are site specific.
 
@@ -109,10 +113,9 @@ Examples
 
     # find available sites and submit to CORI
     jaws run list-sites
-    jaws run submit my.wdl inputs.json out cori
 
     # submit it to JGI
-    jaws run submit my.wdl inputs.json out jgi
+    jaws run submit --tag cori-lg-data my.wdl inputs.json cori
 
 
 **Anyone can share a WDL. To see a list of workflows available in the catalog run**
@@ -153,7 +156,7 @@ Examples
     vi inputs.json
 
     # run as usual
-    jaws run submit my.wdl inputs.json out cori
+    jaws run submit my.wdl inputs.json cori
 
 
 .. note::
@@ -184,7 +187,7 @@ Examples
 
 **Monitoring Runs**
 
-When monitoring the runs with :bash:`jaws run status`, each task transitions between the following states. The :bash:`task-log` and :bash:`task-status` commands may show different states.
+When monitoring the runs with :bash:`jaws run status`, each task transitions between the following states. 
 
 .. code-block:: text
 
@@ -202,7 +205,7 @@ When monitoring the runs with :bash:`jaws run status`, each task transitions bet
    canceled             # run was cancelled by user or JTM issue
 
 
-**Checking the staus of a task**
+**Checking the status of a task**
 
 .. code-block:: text
 
