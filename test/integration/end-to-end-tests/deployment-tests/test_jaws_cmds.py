@@ -70,24 +70,24 @@ def test_jaws_status(env):
 
 
 def test_jaws_run_queue(env, submit_fq_count_wdl):
-    """ tests that the jaws run queue command has the run id in the stdout."""
+    """ tests that the jaws queue command has the run id in the stdout."""
 
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
     (r,o,e) = util.run(cmd)
     ids=o.split()
     assert run_id in ids
 
 
 def test_jaws_run_history(env, submit_fq_count_wdl):
-    """ tests that the jaws run history command has the run id in the stdout."""
+    """ tests that the jaws history command has the run id in the stdout."""
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run history | grep '\"id\": %s' | awk '{print $2}' | tr -d ','" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws history | grep '\"id\": %s' | awk '{print $2}' | tr -d ','" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     # if there was something in stdout, then grep found "id": <run_id>
@@ -171,23 +171,23 @@ def test_jaws_wdl_versions(env):
     assert o.strip() == '\"1.0.0\"'
 
 def test_jaws_wdl_metadata(env, submit_fq_count_wdl):
-    """Check that a jaws run metadata returns workflowRoot has a value"""
+    """Check that a jaws metadata returns workflowRoot has a value"""
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run metadata %s | grep workflowRoot | awk '{print $2}' | tr -d '\"'" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws metadata %s | grep workflowRoot | awk '{print $2}' | tr -d '\"'" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     assert o 
 
 def test_jaws_wdl_errors(env, submit_fq_count_wdl):
-    """Check that a jaws run metadata returns workflowRoot has a value"""
+    """Check that a jaws metadata returns workflowRoot has a value"""
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run errors %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws errors %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     # we don't have any errors in our wdl so the errors command should't return anything.
@@ -195,7 +195,7 @@ def test_jaws_wdl_errors(env, submit_fq_count_wdl):
     assert r == 0
         
 def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
-    """Check that jaws run task-status returns something like this:
+    """Check that jaws task-status returns something like this:
      fq_count.count_seqs 1   25177   running success 2021-01-13 12:37:45     The job completed successfully
 
      It should have only one line.
@@ -205,7 +205,7 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     util.wait_for_run(run_id,env,check_tries,check_sleep)
     #time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-status %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     # make sure there is only 1 output line (not including header)
@@ -217,7 +217,7 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     assert 'fq_count.count_seqs' in a[1]
 
 def test_jaws_wdl_log(env, submit_fq_count_wdl):
-    """Check that the first line of jaws run log returns something like this:
+    """Check that the first line of jaws log returns something like this:
        created uploading 2021-04-06 02:56:49 upload_task_id=bbbc09c2-9683-11eb-955a-752ba7b88ebe
     """
     data = submit_fq_count_wdl
@@ -225,7 +225,7 @@ def test_jaws_wdl_log(env, submit_fq_count_wdl):
     util.wait_for_run(run_id,env,check_tries,check_sleep)
     #time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run log %s " % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws log %s " % (env,run_id)
     (r,o,e) = util.run(cmd)
     a=o.split("\n")
     a = list(filter(None,a)) # remove empty elements
@@ -240,7 +240,7 @@ def test_jaws_wdl_log(env, submit_fq_count_wdl):
 
 
 def mtest_jaws_wdl_task_log(env, submit_fq_count_wdl):
-    """Check that the first line of jaws run task-log returns something like this:
+    """Check that the first line of jaws task-log returns something like this:
        f0b7fd65-1620-4765-8b62-55d0bec74a8d  fq_count.count_seqs 1 16948  running failed 2021-04-06 03:46:26
     """
     data = submit_fq_count_wdl
@@ -248,7 +248,7 @@ def mtest_jaws_wdl_task_log(env, submit_fq_count_wdl):
     util.wait_for_run(run_id,env,check_tries,check_sleep)
     #time.sleep(120)  # wait an aditional amount of time to make sure everything is updated
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-log %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     a=o.split("\n")
     a = list(filter(None,a)) # remove empty elements

@@ -17,7 +17,7 @@ class TestRunSuccess:
 
         util.wait_for_run(run_id, TestRunSuccess.check_tries, TestRunSuccess.check_sleep)
 
-        cmd = "jaws run status %s" % run_id
+        cmd = "jaws status %s" % run_id
         (rc, stdout, stderr) = util.run(cmd)
         print("status cmd:", cmd)
         print("rc: ", rc)
