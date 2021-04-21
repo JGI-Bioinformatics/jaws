@@ -342,6 +342,23 @@ class Metadata:
                     summary.extend(sub_summary)
         return summary
 
+    def outputs(self, **kwargs):
+        """
+        Returns all outputs for a workflow.
+        """
+        outputs = self.get("outputs", {})
+        if "relpath" in kwargs and kwargs["relpath"] is True:
+            workflowRoot = self.get("workflowRoot")
+            relpath_outputs = {}
+            for key, value in outputs.items():
+                relpath_outputs[key] = value.replace(workflowRoot, '.', 1)
+            outputs = relpath_outputs
+        if "outfile" in kwargs:
+            with open(kwargs["outfile"], 'w') as fh:
+                fh.write(json.dumps(outputs))
+        else:
+            return outputs
+
 
 class Cromwell:
     """Class representing a Cromwell REST server."""
