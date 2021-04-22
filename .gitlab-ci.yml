@@ -396,12 +396,10 @@ deploy-jaws-cori-dev-integration-tests:
     CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
-  environment:
-    name: "cori/dev"
   script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh single-test
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-test
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
     - when: never
   allow_failure: true

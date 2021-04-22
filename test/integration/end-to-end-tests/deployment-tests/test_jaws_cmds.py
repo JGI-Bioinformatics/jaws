@@ -203,7 +203,7 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
-    #time.sleep(120)  # wait an additional amount of time to make sure everything is updated
+    time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
@@ -214,7 +214,7 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     assert len(a) == 2
 
     # output line should have this string
-    assert 'fq_count.count_seqs' in a[1]
+    assert 'fq_count.count_seqs' in a[1],
 
 def test_jaws_wdl_log(env, submit_fq_count_wdl):
     """Check that the first line of jaws run log returns something like this:
@@ -223,7 +223,7 @@ def test_jaws_wdl_log(env, submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
-    #time.sleep(120)  # wait an additional amount of time to make sure everything is updated
+    time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run log %s " % (env,run_id)
     (r,o,e) = util.run(cmd)
@@ -239,21 +239,21 @@ def test_jaws_wdl_log(env, submit_fq_count_wdl):
     assert len(a) == 9
 
 
-def mtest_jaws_wdl_task_log(env, submit_fq_count_wdl):
+def test_jaws_wdl_task_log(env, submit_fq_count_wdl):
     """Check that the first line of jaws run task-log returns something like this:
        f0b7fd65-1620-4765-8b62-55d0bec74a8d  fq_count.count_seqs 1 16948  running failed 2021-04-06 03:46:26
     """
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
-    #time.sleep(120)  # wait an aditional amount of time to make sure everything is updated
+    time.sleep(120)  # wait an aditional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     a=o.split("\n")
     a = list(filter(None,a)) # remove empty elements
 
-    assert 'fq_count.count_seqs' in a[1]
+    assert 'fq_count.count_seqs' in a[1],
 
     # there should be 8 columns of output 
     assert len(a[1].split()) == 8

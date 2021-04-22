@@ -26,17 +26,15 @@ def submit_fq_count_wdl(request):
     wdl = target_dir + "/WDLs/fq_count.wdl"
     input_json = target_dir + "/test-inputs/fq_count.json"
 
-    """
     data = {
-    "output_dir": "/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/CORI/6744",
-    "run_id": 6744,
-    "site_id": "CORI",
-    "status": "uploading",
+    'output_dir': '/global/cfs/projectdirs/jaws/data-repository-prod/jfroula/CORI/17853', 
+    'run_id': 17853, 
+    'site_id': 'CORI', 
+    'status': 'uploading', 
     "tag": ""
     }
-    """
 
-    data = util.submit_wdl(env, wdl, input_json, site)
+    #data = util.submit_wdl(env, wdl, input_json, site)
     return data
 
 @pytest.fixture(scope="session")

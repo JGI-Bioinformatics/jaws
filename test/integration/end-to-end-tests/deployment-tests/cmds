@@ -1,1 +1,1 @@
-pytest --capture=no --verbose --env prod --site cori
+pytest --capture=no --verbose --env prod --site cori --dir . <test.py>

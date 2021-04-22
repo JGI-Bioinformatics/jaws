@@ -51,26 +51,19 @@ def test_jaws_run_task_log(env,submit_fq_count_wdl):
     # using the full path (output_dir and input_wdl), we are essentially testing that the output_dir 
     # was correct and that the wdl file got created.
 
-    if not os.path.exists(os.path.join(output_dir,input_wdl)):
-        assert 0
-
     # verify it is a valid wdl
     with open(os.path.join(output_dir,input_wdl)) as fh:
         if not "workflow fq_count" in fh.readline():
-            assert 0
+            assert 0,"This does not look like a valid workflow"
 
     # check that we have a valid inputs json
-    if not os.path.exists(os.path.join(output_dir,input_json)):
-        pytest.exit(f"inputs json: {os.path.join(output_dir,input_json)}")
-        assert 0
-
     with open(os.path.join(output_dir,input_json)) as fh:
         expected = '"fq_count.fastq_file":' 
         if not expected in fh.read():
-            assert 0
+            assert 0,"This does not look like a valid inputs json file"
     
     expected_files = ["num_seqs.txt","rc","script","script.submit","stderr","stderr.submit","stdout","stdout.submit"]
     for file in expected_files:
         if not os.path.exists(os.path.join(output_dir,"call-count_seqs/execution/",file)):
-            assert 0
+            assert 0, (f"expected result file not found in: {os.path.join(output_dir,'call-count_seqs/execution/',file)}")
 

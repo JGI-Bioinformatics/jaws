@@ -20,7 +20,7 @@ import submission_utils as util
 #########################
 ###     Functions     ###
 #########################
-def test_skylake_250G(submit_skylake_250):
+def test_skylake_250G(env,submit_skylake_250):
     """ tests that the jaws run history command has the run id in the stdout.
         This test will be skipped if the 'env' is not cori.
     """
