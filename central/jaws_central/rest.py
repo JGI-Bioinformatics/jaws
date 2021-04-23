@@ -5,46 +5,21 @@ JAWS-Central REST endpoints.
 import logging
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_central import config, db
-from jaws_central.run import Run, RunNotFoundError, get_queue, get_queue_info, get_history
+from jaws_central import config, db, runs
+from jaws_central.runs import Run, RunNotFoundError
 
 logger = logging.getLogger(__package__)
 
 
-def user_queue(user):
-    """Return the current user's unfinished runs.
-
-    :param user: current user's ID
-    :type user: str
-    :return: details about any current runs
-    :rtype: list
-    """
-    logger.info(f"User {user}: Get queue")
-    try:
-        queue = get_queue_info(db.session, user)
-    except SQLAlchemyError as error:
-        logger.error(error)
-        abort(500, f"Db error; {error}")
-    return queue, 200
-
-
-def user_history(user, delta_days=10):
-    """Return the current user's recent runs, regardless of status.
-
-    :param user: current user's ID
-    :type user: str
-    :param delta_days: number of days in which to search
-    :type delta_days: int
-    :return: details about any recent runs
-    :rtype: list
-    """
-    logger.info(f"User {user}: Get history, last {delta_days} days")
-    try:
-        history = get_history(db.session, user, delta_days)
-    except SQLAlchemyError as error:
-        logger.error(error)
-        abort(500, f"Db error; {error}")
-    return history, 200
+def search_runs(user):
+    """Search is used by both user queue and history commands."""
+    site_id = request.form.get("site_id", "all").upper()
+    active_only = True if request.form.get("active_only") == "True" else False
+    delta_days = int(request.form.get("delta_days", 0))
+    result = request.form.get("result", "any").lower()
+    logger.info(f"User {user}: Search runs")
+    search_results = runs.select_runs(user, active_only, delta_days, site_id, result)
+    return search_results, 200
 
 
 def list_sites(user):
@@ -156,12 +131,13 @@ def task_status(user, run_id):
     logger.info(f"User {user}: Get task-status of Run {run_id}")
     try:
         run = Run(db.session, user, run_id=run_id)
+        task_status = run.task_status()
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
-    return run.task_status(), 200
+    return task_status, 200
 
 
 def run_log(user: str, run_id: int):
@@ -178,12 +154,13 @@ def run_log(user: str, run_id: int):
     logger.info(f"User {user}: Get log of Run {run_id}")
     try:
         run = Run(db.session, user, run_id=run_id)
+        log = run.log()
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
-    return run.log(), 200
+    return log, 200
 
 
 def task_log(user, run_id):
@@ -200,12 +177,13 @@ def task_log(user, run_id):
     logger.info(f"User {user}: Get task-log for Run {run_id}")
     try:
         run = Run(db.session, user, run_id=run_id)
+        task_log = run.task_log()
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
-    return run.task_log(), 200
+    return task_log, 200
 
 
 def run_metadata(user, run_id):
@@ -222,12 +200,13 @@ def run_metadata(user, run_id):
     logger.info(f"User {user}: Get metadata for Run {run_id}")
     try:
         run = Run(db.session, user, run_id=run_id)
+        metadata = run.metadata()
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
-    return run.metadata(), 200
+    return metadata, 200
 
 
 def get_errors(user, run_id):
@@ -244,12 +223,13 @@ def get_errors(user, run_id):
     logger.info(f"User {user}: Get errors for Run {run_id}")
     try:
         run = Run(db.session, user, run_id=run_id)
+        result = run.errors()
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
-    return run.errors(), 200
+    return result, 200
 
 
 def cancel_run(user, run_id):
@@ -266,14 +246,13 @@ def cancel_run(user, run_id):
     logger.info(f"User {user}: Cancel Run {run_id}")
     try:
         run = Run(db.session, user, run_id=run_id)
+        run.cancel()
+        return {"cancel": "OK"}, 201
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
-    run.cancel()
-    result = {run_id: "cancelled"}
-    return result, 201
 
 
 def cancel_all(user):
@@ -287,16 +266,8 @@ def cancel_all(user):
     """
     logger.info(f"User {user}: Cancel-all")
     try:
-        queue = get_queue(db.session, user)
+        result = runs.cancel_all(db.session, user)
+        return result, 201
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
-    result = {}
-    for run in queue:
-        try:
-            run.cancel()
-        except Exception as error:
-            result[run.id] = f"{error}"
-        else:
-            result[run.id] = "cancelled"
-    return result, 201

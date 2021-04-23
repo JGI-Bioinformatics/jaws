@@ -116,7 +116,7 @@ paths:
 
   /search:
     post:
-      operationId: jaws_central.analysis.search_runs
+      operationId: jaws_central.rest.search_runs
       tags:
         - search
         - runs
@@ -156,7 +156,7 @@ paths:
 
   /run:
     post:
-      operationId: jaws_central.analysis.submit_run
+      operationId: jaws_central.rest.submit_run
       consumes:
         - multipart/form-data
       tags:
@@ -219,7 +219,7 @@ paths:
 
   /run/{run_id}:
     get:
-      operationId: jaws_central.analysis.run_status
+      operationId: jaws_central.rest.run_status
       tags:
         - run
       summary: Retrieve the status of a specified run
@@ -261,7 +261,7 @@ paths:
 
   /run/{run_id}/task_status:
     get:
-      operationId: jaws_central.analysis.task_status
+      operationId: jaws_central.rest.task_status
       tags:
         - run
       summary: Retrieve a summary of a run's tasks
@@ -282,7 +282,7 @@ paths:
 
   /run/{run_id}/cancel:
     put:
-      operationId: jaws_central.analysis.cancel_run
+      operationId: jaws_central.rest.cancel_run
       tags:
         - run
       summary: Cancel a run
@@ -302,7 +302,7 @@ paths:
 
   /run/{run_id}/metadata:
     get:
-      operationId: jaws_central.analysis.run_metadata
+      operationId: jaws_central.rest.run_metadata
       tags:
         - run
       summary: Retrieve the metadata of a specified run
@@ -323,7 +323,7 @@ paths:
 
   /run/{run_id}/run_log:
     get:
-      operationId: jaws_central.analysis.run_log
+      operationId: jaws_central.rest.run_log
       tags:
         - run
       summary: Retrieve the run logs of a specified run
@@ -344,7 +344,7 @@ paths:
 
   /run/{run_id}/task_log:
     get:
-      operationId: jaws_central.analysis.task_log
+      operationId: jaws_central.rest.task_log
       tags:
         - run
       summary: Retrieve the task logs of a specified run
@@ -365,7 +365,7 @@ paths:
 
   /run/{run_id}/errors:
     get:
-      operationId: jaws_central.analysis.get_errors
+      operationId: jaws_central.rest.get_errors
       tags:
         - run
       summary: Retrieve error messages for a run
@@ -386,7 +386,7 @@ paths:
 
   /run/cancel-all:
     put:
-      operationId: jaws_central.analysis.cancel_all
+      operationId: jaws_central.rest.cancel_all
       tags:
         - run
       summary: Cancel all
@@ -397,7 +397,7 @@ paths:
 
   /site:
     get:
-      operationId: jaws_central.analysis.list_sites
+      operationId: jaws_central.rest.list_sites
       tags:
         - site
       summary: Retrieve summary of all JAWS-Sites
@@ -410,7 +410,7 @@ paths:
 
   /site/{site_id}:
     get:
-      operationId: jaws_central.analysis.get_site
+      operationId: jaws_central.rest.get_site
       tags:
         - site
       summary: Retrieve JAWS-Site info

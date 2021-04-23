@@ -1,5 +1,5 @@
 """
-Run and RunLog classes
+Run and RunLog classes, plus aggregate functions
 """
 
 import logging
@@ -357,7 +357,7 @@ class Run:
     @property
     def pre_cromwell(self):
         """Returns True if Run has not been submitted to Cromwell yet"""
-        return True if self.model.status in run_pre_cromwell_states else False
+        return True if self.status in run_pre_cromwell_states else False
 
     def info(self) -> dict:
         """
@@ -575,8 +575,8 @@ def search_runs(session, user_id, active_only=False, delta_days=0, site_id="ALL"
     logger.info(f"User {user_id}: Search runs")
     rows = _select_runs(user_id, active_only, delta_days, site_id, result)
     runs = []
-    for run in rows:
-        run = Run(session, user_id, model=run)
+    for row in rows:
+        run = Run(session, user_id, model=row)
         runs.append(run.info())
     return runs
 
@@ -612,21 +612,6 @@ def _select_runs(session, user_id: str, active_only: bool, delta_days: int, site
     return query.all()
 
 
-def _select_run_queue(session, user_id):
-    """Select runs of a user which are in active states"""
-    try:
-        rows = (
-            session.query(models.Run)
-            .filter_by(user_id=user_id)
-            .filter(models.Run.status.in_(run_active_states))
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.error(error)
-        raise
-    return rows
-
-
 def cancel_all(session, user_id):
     """
     Cancel all of a user's active runs.
@@ -637,7 +622,7 @@ def cancel_all(session, user_id):
     :rtype: dict
     """
     logger.info(f"User {user_id}: Cancel-all")
-    rows = _select_run_queue(session, user_id)
+    rows = _select_runs(session, user_id, True, 0, 'ALL', 'any')
     cancelled = []
     for row in rows:
         run = Run(session, user_id, model=row)
