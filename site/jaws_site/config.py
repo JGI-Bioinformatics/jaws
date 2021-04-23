@@ -8,8 +8,7 @@ conf = None
 
 
 class ConfigurationError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+    pass
 
 
 class Configuration(metaclass=jaws_site.utils.Singleton):
@@ -67,7 +66,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         self.config.read_dict(self.defaults)
         try:
             self.config.read(config_file)
-        except Exception as error:
+        except configparser.ParsingError as error:
             logger.exception(f"Unable to load config file {config_file}: {error}")
             raise
 

@@ -117,26 +117,33 @@ class Task:
         failures = self.failures(attempt)
         if not failures:
             return None
-        msgs = []
+
+        report = {}
+
+        failure_msgs = []
         for failure in failures:
             msg = failure["message"]
-            msgs.append(msg)
+            failure_msgs.append(msg)
             for cause in failure["causedBy"]:
-                msgs.append(cause["message"])
-        msg = "\n".join(msgs)
+                failure_msgs.append(cause["message"])
+        report["failures"] = "\n".join(failure_msgs)
 
-        # append standard error (if exists)
         stderr_file = self.stderr(attempt)
         if stderr_file and os.path.isfile(stderr_file):
             with open(stderr_file, "r") as file:
-                msg = f"{msg}\nstderr:\n" + file.read()
+                report["stderr"] = file.read()
 
-        # append standard output (if exists)
-        stdout_file = self.stdout(attempt)
-        if stdout_file and os.path.isfile(stdout_file):
-            with open(stdout_file, "r") as file:
-                msg = f"{msg}\nstdout:\n" + file.read()
-        return msg
+        submit_stderr_file = f"{stderr_file}.submit"
+        if submit_stderr_file and os.path.isfile(submit_stderr_file):
+            with open(submit_stderr_file, "r") as file:
+                report["stderr.submit"] = file.read()
+
+        report["runtime"] = self.get("runtimeAttributes", None, "")
+
+        cromwell_job_id = self.get("jobId", None, None)
+        report["cromwell_job_id"] = cromwell_job_id
+
+        return report
 
     def stdout(self, attempt=None, src=None, dest=None):
         """
@@ -175,6 +182,9 @@ class Task:
         if src and dest:
             path = os.path.join(dest, os.path.relpath(src, path))
         return path
+
+    def runtime(self, attempt=None):
+        return self.get("runtimeAttributes", attempt, {})
 
 
 class CromwellException(Exception):
@@ -280,6 +290,9 @@ class Metadata:
         """
         return self.data.get(param, default)
 
+    def workflow_root(self):
+        return self.get("workflowRoot", None)
+
     def is_subworkflow(self):
         return True if "parentWorkflowId" in self.data else False
 
@@ -311,7 +324,9 @@ class Metadata:
         for task in self.tasks:
             for call in task.calls:
                 if "jobId" in call:
-                    summary.append([self.workflow_id, task.name, call["attempt"], call["jobId"]])
+                    summary.append(
+                        [self.workflow_id, task.name, call["attempt"], call["jobId"]]
+                    )
                 elif "subWorkflowId" in call:
                     subworkflow_id = call["subWorkflowId"]
                     subworkflow = task.subworkflows[subworkflow_id]
@@ -382,7 +397,7 @@ class Cromwell:
             raise error
         response.raise_for_status()
 
-    def submit(self, wdl_file: str, json_file: str, zip_file: str = None) -> int:
+    def submit(self, wdl_file: str, json_file: str, zip_file: str = None, options_file: str = None) -> int:
         """
         Submit a run to Cromwell.
         :param wdl_file: Path to WDL file
@@ -391,6 +406,8 @@ class Cromwell:
         :type json_file: str
         :param zip_file: Path to subworkflows ZIP file (optional)
         :type zip_file: str
+        :param options_file: Path to options JSON file (optional)
+        :type options_file: str
         :return: Cromwell workflow uuid
         :rtype: str
         """
@@ -423,6 +440,16 @@ class Cromwell:
                 )
             except Exception as error:
                 raise IOError(f"Unable to open file, {zip_file}: {error}")
+        if options_file:
+            try:
+                files["workflowOptions"] = (
+                    "workflowOptions",
+                    open(options_file, "r"),
+                    "application/json",
+                )
+            except Exception as error:
+                logger.exception(f"Unable to open file, {options_file}: {error}")
+                raise IOError(f"Unable to open file, {options_file}: {error}")
         try:
             response = requests.post(self.workflows_url, files=files)
         except requests.ConnectionError as error:

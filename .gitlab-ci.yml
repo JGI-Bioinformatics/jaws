@@ -12,7 +12,7 @@ variables:
 
   ## GLOBAL INSTALL VARIABLES:
   JAWS_SITES: "CORI JGI"
-  JAWS_VERSION: "2.1"
+  JAWS_VERSION: "2.2.0"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_CENTRAL_RMQ_HOST: "rmq.lbl.gov"
@@ -170,9 +170,12 @@ test-rpc:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
     - pip install -r rpc/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip install flake8 pytest pytest-cov
     - make test-rpc
+  artifacts:
+    reports:
+      junit: rpc/rpc.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
 test-site:
   <<: *only-default
   stage: unit-test
@@ -181,9 +184,12 @@ test-site:
     - source test-venv/bin/activate
     - pip install rpc/
     - pip install -r site/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip install flake8 pytest pytest-cov
     - make test-site
+  artifacts:
+    reports:
+      junit: site/site.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
 test-central:
   <<: *only-default
   stage: unit-test
@@ -192,9 +198,12 @@ test-central:
     - source test-venv/bin/activate
     - pip install rpc/
     - pip install -r central/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip install flake8 pytest pytest-cov
     - make test-central
+  artifacts:
+    reports:
+      junit: central/central.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
 test-client:
   <<: *only-default
   stage: unit-test
@@ -204,9 +213,12 @@ test-client:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
     - pip install -r client/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip install flake8 pytest pytest-cov
     - make test-client
+  artifacts:
+    reports:
+      junit: client/client.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
 test-jtm:
   <<: *only-default
   stage: unit-test
@@ -215,9 +227,13 @@ test-jtm:
     - source test-venv/bin/activate
     - pip install rpc/
     - pip install -r jtm/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip install flake8 pytest pytest-cov
     - make test-jtm
+  artifacts:
+    reports:
+      junit: jtm/jtm.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+
 package:
   <<: *only-default
   stage: package

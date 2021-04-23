@@ -43,7 +43,7 @@ paths:
           description: OK
       security: []
 
-  /auth/{email}:
+  /auth/{hash_code}:
     get:
       operationId: jaws_central.auth.get_user_token
       tags:
@@ -51,9 +51,9 @@ paths:
       summary: Get a user's JAWS access token
       description: Allows the dashboard to retrieve a logged-in user's JAWS token.
       parameters:
-        - name: email
+        - name: hash_code
           in: path
-          description: User's email address of authenticated user
+          description: User's JGI SSO session hash code
           type: string
           required: True
       responses:
@@ -105,8 +105,7 @@ paths:
           in: formData
           description: True if user has admin access
           type: boolean
-          default: False
-          required: False
+          required: True
       responses:
         201:
           description: New user added
@@ -115,293 +114,34 @@ paths:
       security:
         - oauth2: ['admin']
 
-  /wdl:
-    get:
-      operationId: jaws_central.catalog_rest.list_wdls
-      tags:
-        - workflow
-      summary: List shared workflows
-      description: List all available workflows
-      responses:
-        200:
-          description: OK
-          schema:
-            type: array
-            properties:
-              id:
-                type: integer
-                description: Unique ID
-              name:
-                type: string
-                description: Workflow name
-              version:
-                type: string
-                description: Workflow version
-        401:
-          description: Authorization information is missing or invalid.
-
-  /wdl/{name}:
-    get:
-      operationId: jaws_central.catalog_rest.get_versions
-      tags:
-        - workflow
-      summary: Workflow versions
-      description: Returns a workflow's available versions
-      parameters:
-        - name: name
-          in: path
-          description: name of the workflow
-          type: string
-          required: True
-      responses:
-        200:
-          description: OK
-          schema:
-            type: array
-            properties:
-              id:
-                type: integer
-                description: Unique ID
-              name:
-                type: string
-                description: Workflow name
-              version:
-                type: string
-                description: Workflow version
-        401:
-          description: Authorization information is missing or invalid.
-        404:
-          description: The specified record does not exist
-
-  /wdl/{name}/{version}:
-    get:
-      operationId: jaws_central.catalog_rest.get_wdl
-      tags:
-        - workflow
-      summary: Return a workflow's WDL file
-      description: Returns the workflow specification in WDL or CWL format
-      parameters:
-        - name: name
-          in: path
-          description: name of the workflow
-          type: string
-          required: True
-        - name: version
-          in: path
-          description: version of the workflow
-          type: string
-          required: True
-      produces:
-        - text/plain; charset=utf-8
-      responses:
-        200:
-          description: OK
-          schema:
-            type: file
-        404:
-          description: The specified record does not exist
-      security: []
-
-    post:
-      operationId: jaws_central.catalog_rest.add_wdl
-      consumes:
-        - multipart/form-data
-      tags:
-        - workflow
-      summary: Add a workflow WDL
-      description: Upload WDL
-      parameters:
-        - name: wdl_file
-          in: formData
-          type: file
-          required: True
-          description: WDL file
-        - name: md_file
-          in: formData
-          type: file
-          required: True
-          description: Documentation file in markdown format
-        - name: name
-          in: path
-          type: string
-          required: True
-          description: name of workflow
-        - name: version
-          in: path
-          type: string
-          required: True
-          description: version of workflow
-      responses:
-        200:
-          description: OK
-        401:
-          description: Authorization information is missing or invalid.
-
-    put:
-      operationId: jaws_central.catalog_rest.update_wdl
-      tags:
-        - workflow
-      summary: Replace a workflow's WDL
-      description: Upload WDL
-      parameters:
-        - name: name
-          in: path
-          type: string
-          required: True
-          description: name of workflow
-        - name: version
-          in: path
-          type: string
-          required: True
-          description: version of workflow
-        - name: wdl_file
-          in: formData
-          type: file
-          required: False
-          description: new WDL file
-      responses:
-        200:
-          description: OK
-        401:
-          description: Authorization information is missing or invalid.
-        404:
-          description: The specified workflow does not exist.
-
-    delete:
-      operationId: jaws_central.catalog_rest.del_wdl
-      tags:
-        - workflow
-      summary: Delete a workflow
-      description: Delete a specific version of a workflow
-      parameters:
-        - name: name
-          in: path
-          type: string
-          required: True
-          description: name of workflow
-        - name: version
-          in: path
-          type: string
-          required: True
-          description: version of workflow
-      responses:
-        200:
-          description: OK
-        401:
-          description: Authorization information is missing or invalid.
-        404:
-          description: The specified workflow does not exist.
-
-  /wdl/{name}/{version}/doc:
-    get:
-      operationId: jaws_central.catalog_rest.get_doc
-      tags:
-        - workflow
-      summary: Return information about a workflow
-      description: Returns the workflow's description
-      parameters:
-        - name: name
-          in: path
-          description: name of the workflow
-          type: string
-          required: True
-        - name: version
-          in: path
-          description: version of the workflow
-          type: string
-          required: True
-      produces:
-        - text/html
-      responses:
-        200:
-          description: OK
-          schema:
-            type: file
-        404:
-          description: The specified record does not exist
-      security: []
-
-    put:
-      operationId: jaws_central.catalog_rest.update_doc
-      tags:
-        - workflow
-      summary: Update a workflow's documentation
-      description: Replaces the doc file for a workflow
-      parameters:
-        - name: name
-          in: path
-          description: name of the workflow
-          type: string
-          required: True
-        - name: version
-          in: path
-          description: version of the workflow
-          type: string
-          required: True
-        - name: md_file
-          in: formData
-          description: New doc file in markdown format
-          type: file
-          required: True
-      responses:
-        200:
-          description: OK
-        401:
-          description: Authorization information is missing or invalid.
-        404:
-          description: The specified record does not exist
-
-  /wdl/{name}/{version}/release:
-    put:
-      operationId: jaws_central.catalog_rest.release_wdl
-      tags:
-        - workflow
-      summary: Mark a Workflow as Released
-      description: Released Workflows are immutable.
-      parameters:
-        - name: name
-          in: path
-          description: name of the workflow
-          type: string
-          required: True
-        - name: version
-          in: path
-          description: version of the workflow
-          type: string
-          required: True
-      responses:
-        200:
-          description: OK
-        401:
-          description: Authorization information is missing or invalid.
-        404:
-          description: The specified record does not exist
-
   /search:
-    get:
-      operationId: jaws_central.analysis.user_queue
+    post:
+      operationId: jaws_central.analysis.search_runs
       tags:
         - search
-      summary: Search for current user's unfinished runs
-      description: Return runs in Submitted, Queued, Running, or Transferring states.
-      responses:
-        200:
-          description: OK
-        401:
-          description: Authorization information is missing or invalid.
-
-  /search/{delta_days}:
-    get:
-      operationId: jaws_central.analysis.user_history
-      tags:
-        - search
-      summary: Get a user's recent runs
-      description: Returns a user's runs within the last specified number of days
+        - runs
+      summary: Search Runs
+      description: Search is used to return active runs or history
       parameters:
+        - name: active_only
+          description: Return active runs only
+          type: boolean
+          in: formData
+          required: True
         - name: delta_days
           description: time window to search
           type: integer
-          in: path
+          in: formData
+          required: True
+        - name: site_id
+          description: Limit search to a compute-site
+          type: string
+          in: formData
+          required: True
+        - name: result
+          description: Limit search to this status
+          type: string
+          in: formData
           required: True
       responses:
         200:
@@ -617,6 +357,17 @@ paths:
           description: Authorization information is missing or invalid.
         404:
           description: The specified record does not exist
+
+  /run/cancel-all:
+    put:
+      operationId: jaws_central.analysis.cancel_all
+      tags:
+        - run
+      summary: Cancel all
+      description: Abort the execution of all of the user's runs
+      responses:
+        201:
+          description: OK
 
   /site:
     get:

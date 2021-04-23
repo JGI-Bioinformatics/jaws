@@ -22,7 +22,7 @@ And then follow the command in the README.md of that example.
 
 .. code-block:: text
     
-    jaws run submit main.wdl inputs.json out cori
+    jaws run submit main.wdl inputs.json cori
 
 
 Example List

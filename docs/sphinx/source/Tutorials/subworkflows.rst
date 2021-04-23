@@ -5,11 +5,7 @@ Current JGI Subworkflows
 .. role:: bash(code)
    :language: bash
 
-.. note::
-   This tutorial describes why you would use subworkflows and how to use them in your WDLs. 
-
-
-A subworkflow is just a WDL that can be called/imported from a main WDL and then treated as a task. 
+A subworkflow is just a WDL that can be imported into a main WDL and then called like a task. 
 
 Here is a more detailed description of subworkflows on `Cromwell's docs <https://Cromwell.readthedocs.io/en/stable/SubWorkflows>`_
 
@@ -48,5 +44,5 @@ You can try running this example
 
     cd jaws-tutorial-examples/subworkflow
 
-    # run jaws run submit <workflow> <inputs> <full path to outdir> <site>
-    jaws run submit main.wdl inputs.json out cori
+    # run jaws run submit <workflow> <inputs> <site>
+    jaws run submit main.wdl inputs.json cori

@@ -210,6 +210,16 @@ backend
         Int shared = 0
         """
 
+        filesystems {
+          local {
+            localization: [ "soft-link", "copy" ]
+            caching {
+              duplication-strategy: [ "soft-link", "copy" ]
+              hashing-strategy: "path+modtime"
+            }
+          }
+        }
+
         kill = "jtm --config=$JTM_CONFIG_FILE kill -tid \${job_id}"
 
         check-alive = "jtm --config=$JTM_CONFIG_FILE isalive -tid \${job_id}"
