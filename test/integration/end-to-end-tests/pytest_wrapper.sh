@@ -91,7 +91,7 @@ chmod 600 ~/jaws.conf
 # this script is being called from where .gitlab-ci.yml lives, which is "jaws" parent. 
 # So we need to cd down to end-to-end-tests before running pytests.
 cd test/integration/end-to-end-tests/${TEST_FOLDER}
-pytest --verbose --env staging --site cori --dir . test_resources_avail.py
+pytest --verbose --env ${DEPLOYMENT_NAME} --site cori --dir . test_resources_avail.py
 #pytest --verbose --env ${DEPLOYMENT_NAME} --site cori --dir . test_bad_inputs_msg.py
 #pytest --verbose --env ${DEPLOYMENT_NAME} --site cori --dir . test_error_handling.py
 #pytest --verbose --env ${DEPLOYMENT_NAME} --site cori --dir . test_jaws_cmds.py
