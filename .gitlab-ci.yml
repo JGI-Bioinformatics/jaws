@@ -388,7 +388,7 @@ deploy-jaws-cascade-dev:
     - dev
 
 deploy-jaws-cori-dev-integration-tests:
-  stage: .pre
+  stage: integration-test
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"

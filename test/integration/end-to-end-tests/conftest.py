@@ -9,13 +9,6 @@ import socket
 check_tries=50
 check_sleep=30
 
-#@pytest.fixture(scope="session",autouse=True)
-#def test_for_all_args(request):
-#    target_dir = request.config.getoption("--dir")
-#    site = request.config.getoption("--site")
-#    if not target_dir or not site: 
-#       pytest.exit("Error: You are missing some arguments?\nUsage: pytest -n <number of tests in parallel> --capture=<[yes|no]> --verbose --dir <directory with tests> --site <[cori|jgi]> <directory or file>")
-
 @pytest.fixture(scope="session")
 def submit_fq_count_wdl(request):
     # allow user to pass variables into the test functions via command line
@@ -26,6 +19,7 @@ def submit_fq_count_wdl(request):
     wdl = target_dir + "/WDLs/fq_count.wdl"
     input_json = target_dir + "/test-inputs/fq_count.json"
 
+    """
     data = {
     'output_dir': '/global/cfs/projectdirs/jaws/data-repository-prod/jfroula/CORI/17853', 
     'run_id': 17853, 
@@ -33,8 +27,9 @@ def submit_fq_count_wdl(request):
     'status': 'uploading', 
     "tag": ""
     }
+    """
 
-    #data = util.submit_wdl(env, wdl, input_json, site)
+    data = util.submit_wdl(env, wdl, input_json, site)
     return data
 
 @pytest.fixture(scope="session")
