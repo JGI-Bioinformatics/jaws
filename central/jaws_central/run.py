@@ -57,7 +57,7 @@ class RunNotFoundError(RunError):
     pass
 
 
-class RunAccessDenied(RunError):
+class RunAccessDeniedError(RunError):
     """The requesting user does not have access to the Run."""
 
     pass
@@ -93,7 +93,9 @@ class Run:
         if not run:
             raise RunNotFoundError(f"Run {self.id} not found")
         if self.model.user_id != self.user.id and not self.user.is_admin:
-            raise RunAccessDenied(f"User {self.user.id} does not own Run {self.id}")
+            raise RunAccessDeniedError(
+                f"User {self.user.id} does not own Run {self.id}"
+            )
         self.model = run
 
     @property
@@ -107,9 +109,9 @@ class Run:
         return self.model.status
 
     def _rpc_call(self, method, params={}):
-        """This is not a Flask endpoint, but a helper used by several endpoints.
-        It checks a user's permission to access a run, perform the specified RPC function,
-        and returns result if OK, aborts if error.
+        """
+        Perform a RPC call to a JAWS-Site.  It checks a user's permission to access a run,
+        performs the specified RPC function, and returns the JSON-RPC2 response.
 
         :param method: the method to execute remotely
         :type method: string
@@ -124,7 +126,7 @@ class Run:
         params["cromwell_run_id"] = self.model.cromwell_run_id
         try:
             response = a_site_rpc_client.request(method, params)
-        except Exception as error:
+        except ConnectionError as error:
             logger.error(f"RPC {method} {params} failed: {error}")
             raise
         return response
@@ -185,17 +187,13 @@ class Run:
         output_dir = params.get("output_dir")
 
         compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
-
         if compute_endpoint is None:
             raise ValueError(
                 f'Unknown Site ID, "{site_id}"; try the "list-sites" command'
             )
-        logger.info(
-            f"User {self.user.id}: New run submission {submission_id} to {site_id}"
-        )
 
         self._insert_run(params)
-        logger.debug(f"User {self.user.id}: New run {self.id}")
+        logger.debug(f"User {self.user.id}: New run {self.id} to {site_id}")
 
         # Output directory is a subdirectory that includes the user id, site id and run id.
         # These are all placed in a common location with setgid sticky bits so that all
@@ -569,6 +567,51 @@ class RunLog:
         self._insert_log(log_entry)
 
 
+def search_runs(session, user_id, active_only=False, delta_days=0, site_id="ALL", result="any"):
+    """Search is used by both user queue and history commands."""
+    site_id = site_id.upper()
+    delta_days = int(delta_days)
+    result = result.lower()
+    logger.info(f"User {user_id}: Search runs")
+    rows = _select_runs(user_id, active_only, delta_days, site_id, result)
+    runs = []
+    for run in rows:
+        run = Run(session, user_id, model=run)
+        runs.append(run.info())
+    return runs
+
+
+def _select_runs(session, user_id: str, active_only: bool, delta_days: int, site_id: str, result: str):
+    """Select runs from db.
+
+    :param session: db handle
+    :type session: sqlalchemy.Session
+    :param user_id: current user's ID
+    :type user_id: str
+    :param active_only: Select only active runs
+    :type active_only: bool
+    :param delta_days: Limit to this many recent days
+    :type delta_days: int
+    :param site_id: Limit to this compute-site
+    :type site_id: str
+    :param result: Limit to this result
+    :type result: str
+    :return: Runs matching search criteria
+    :rtype: list
+    """
+    query = session.query(models.Run).filter(models.Run.user_id == user_id)
+    if active_only:
+        query = query.filter(models.Run.status.in_(run_active_states))
+    if site_id != "ALL":
+        query = query.filter(models.Run.site_id == site_id)
+    if delta_days > 0:
+        start_date = datetime.today() - timedelta(int(delta_days))
+        query = query.filter(models.Run.submitted >= start_date)
+    if result != "any":
+        query = query.filter(models.Run.result == result)
+    return query.all()
+
+
 def _select_run_queue(session, user_id):
     """Select runs of a user which are in active states"""
     try:
@@ -584,78 +627,20 @@ def _select_run_queue(session, user_id):
     return rows
 
 
-def get_queue(session, user_id):
-    """Return the current user's unfinished runs.
-
-    :param session: db handle
-    :type session: sqlalchemy.session
-    :param user_id: current user's ID
-    :type user_id: str
-    :return: Run objects of active runs
-    :rtype: list
+def cancel_all(session, user_id):
     """
-    logger.info(f"User {user_id}: Get queue")
+    Cancel all of a user's active runs.
+
+    :param user: current user's ID
+    :type user: str
+    :return: run ids and results
+    :rtype: dict
+    """
+    logger.info(f"User {user_id}: Cancel-all")
     rows = _select_run_queue(session, user_id)
-    queue = []
+    cancelled = []
     for row in rows:
         run = Run(session, user_id, model=row)
-        queue.append(run)
-    return queue
-
-
-def get_queue_info(session, user_id):
-    """Return the current user's unfinished runs.
-
-    :param session: db handle
-    :type session: sqlalchemy.session
-    :param user_id: current user's ID
-    :type user_id: str
-    :return: info about current runs
-    :rtype: list
-    """
-    logger.info(f"User {user_id}: Get queue")
-    rows = _select_run_queue(session, user_id)
-    queue = []
-    for row in rows:
-        run = Run(session, user_id, model=row)
-        info = run.info()
-        queue.append(info)
-    return queue
-
-
-def _select_run_history(session, user_id, start_date):
-    """Select runs of a user submitted on/after query date"""
-    try:
-        rows = (
-            session.query(models.Run)
-            .filter_by(user_id=user_id)
-            .filter(models.Run.submitted >= start_date)
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.exception(f"Failed to select run history: {error}")
-        raise
-    return rows
-
-
-def get_history(session, user_id, delta_days=10):
-    """Return the current user's recent runs, regardless of status.
-
-    :param session: db handle
-    :type session: sqlalchemy.session
-    :param user_id: current user's ID
-    :type user_id: str
-    :param delta_days: number of days in which to search
-    :type delta_days: int
-    :return: details about any recent runs
-    :rtype: list
-    """
-    start_date = datetime.today() - timedelta(int(delta_days))
-    logger.info(f"User {user_id}: Get history, last {delta_days} days")
-    rows = _select_run_history(session, user_id, start_date)
-    history = []
-    for run in rows:
-        run = Run(session, user_id, model=run)
-        info = run.info()
-        history.append(info)
-    return history
+        run.cancel()
+        cancelled.append(run.id)
+    return cancelled
