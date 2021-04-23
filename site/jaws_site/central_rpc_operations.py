@@ -1,18 +1,17 @@
 """
-RPC functions for Central.  Most of these simply wrap the localhost Cromwell REST functions.
+RPC functions for Central.
 """
 
 import logging
-from sqlalchemy.exc import IntegrityError
-from jaws_site import config
-from jaws_site.cromwell import Cromwell
-from jaws_site.models import Run
 from jaws_rpc.responses import success, failure
 from jaws_site.tasks import TaskLog
+from jaws_site import errors
+from jaws_site import config
+from jaws_site.cromwell import Cromwell
+from jaws_site.runs import Run, RunNotFound
 
 
 # config and logging must be initialized before importing this module
-cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 logger = logging.getLogger(__package__)
 
 
@@ -24,6 +23,7 @@ def server_status(params, session):
     :rtype: dict
     """
     logger.info("Check server status")
+    cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
     try:
         status = cromwell.status()
     except Exception as error:
@@ -39,17 +39,10 @@ def run_metadata(params, session):
     :return: The Cromwell metadata for the specified run.
     :rtype: dict
     """
-    user_id = params["user_id"]
-    run_id = params["run_id"]
-    cromwell_run_id = params["cromwell_run_id"]
-    logger.info(f"User {user_id}: Get metadata for Run {run_id}")
-    if cromwell_run_id is None:
-        return success(
-            f"Run {run_id} hasn't been submitted to Cromwell, so has no metadata."
-        )
-    logger.info(f"{user_id} - Run {run_id} - Get metadata")
+    logger.info(f"User {params['user_id']}: Metadata Run {params['run_id']}")
     try:
-        result = cromwell.get_all_metadata(cromwell_run_id)
+        run = Run(session, **params)
+        result = run.metadata()
     except Exception as error:
         return failure(error)
     return success(result)
@@ -63,48 +56,23 @@ def cancel_run(params, session):
     :return: Either a JSON-RPC2-compliant success or failure message,
     :rtype: dict
     """
-    user_id = params["user_id"]
-    run_id = params["run_id"]
-    logger.info(f"User {user_id}: Cancel run {run_id}")
-
-    # check if run in active runs tables
+    logger.info(f"User {params['user_id']}: Cancel Run {params['run_id']}")
     try:
-        run = session.query(Run).get(run_id)
-    except IntegrityError as error:
-        logger.exception(f"Run not found: {run_id}: {error}")
+        run = Run(session, **params)
+        run.cancel()
+    except RunNotFound as error:
+        return success(f"Cancelled with Cromwell warning: {error}")
     except Exception as error:
-        logger.exception(f"Error selecting on runs table: {error}")
-    if not run:
-        logger.debug(f"Run {run_id} not found")
-        return success()
-
-    cromwell_run_id = run.cromwell_run_id
-    status = run.status
-    run.status = "cancelled"
-    try:
-        session.commit()
-    except Exception as error:
-        session.rollback()
         return failure(error)
-    logger.debug(f"Run {run_id} cancelled")
-
-    # tell Cromwell to cancel the run if it has been submitted to Cromwell already
-    if cromwell_run_id and status in ["submitted", "queued", "running"]:
-        logger.debug(f"Run {run_id} is {status}: Instructing Cromwell to cancel")
-        try:
-            cromwell.abort(cromwell_run_id)
-        except Exception as error:
-            return failure(error)
-    result = {"cancel": "OK"}
-    return success(result)
+    return success(True)
 
 
 def get_errors(params, session):
-    """Retrieve error messages and stderr for failed Tasks.
+    """Retrieve error report which includes errors from both Cromwell metadata and the TaskLog.
 
     :param cromwell_run_id: Cromwell run ID
     :type params: dict
-    :return: error messages and stderr for failed Tasks
+    :return: errors report
     :rtype: dict
     """
     user_id = params["user_id"]
@@ -115,42 +83,26 @@ def get_errors(params, session):
         return success(f"Run {run_id} hasn't been submitted to Cromwell.")
     logger.info(f"{user_id} - Run {run_id} - Get errors")
     try:
-        metadata = cromwell.get_metadata(cromwell_run_id)
-        result = metadata.errors()
+        errors_report = errors.get_errors(session, cromwell_run_id)
     except Exception as error:
         return failure(error)
-    return success(result)
+    return success(errors_report)
 
 
 def submit(params, session):
     """Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes."""
-    user_id = params["user_id"]
-    run_id = params["run_id"]
-    logger.info(f"User {user_id}: Submit new Run {run_id}")
+    logger.info(f"User {params['user_id']}: Submit Run {params['run_id']}")
     try:
-        run = Run(
-            id=run_id,  # pk used by Central
-            user_id=user_id,
-            email=params["email"],
-            submission_id=params["submission_id"],
-            upload_task_id=params["upload_task_id"],
-            output_endpoint=params["output_endpoint"],
-            output_dir=params["output_dir"],
-            status="uploading",
-        )
+        run = Run(session, **params)
     except Exception as error:
         return failure(error)
-    try:
-        session.add(run)
-        session.commit()
-    except Exception as error:
-        session.rollback()
-        return failure(error)
-    return success()
+    else:
+        return success(run.status)
 
 
 def get_task_log(params, session):
     """Retrieve task log from database"""
+    logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
         tasks = TaskLog(session)
         result = tasks.get_task_log(params["run_id"])
@@ -164,6 +116,7 @@ def get_task_status(params, session):
     """
     Retrieve the current status of each task.
     """
+    logger.info(f"User {params['user_id']}: Task-status Run {params['run_id']}")
     try:
         tasks = TaskLog(session)
         result = tasks.get_task_status(params["run_id"])

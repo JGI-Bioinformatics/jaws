@@ -1,29 +1,24 @@
 # Changelog
 
-## v2.2.0rc-3 (2021-04-05)
-Release addresses error messaging and bugs in the jaws_rpc module
-
-### Minor core changes
-- RPC log messages were not written to their log files, fix includes adding logger to jaws_rpc (!725)
-- Unbound local error with jaws_rpc fix (!726)
-- Improve messaging of error with inputs. No longer rejects bad paths in inputs.json but warns the user (!712)
-
-## v2.2.0rc-2 (2021-03-24)
-Release that addresses the stuck in "uploading" issue (#797, #781, #790, #603, #407). Jobs were stuck in
-uploading due to slow processing of the messages from RMQ. MR !702 adds improvement in message processing.
-
-### Minor Core Changes
-Changes include fixes to regressions that took place after updates to staging (!717, !716)
- - Change install path location of Central back to /opt/jaws (!717)
- - Add log rotation back to JTM  (!716)
- - Rsync uses flags `-rLtq` and also allows `chmod` of the input files (!707)
- - Moves origin unmodified JSON to the output directory (!710)
- - Check permissions of wdl and inputs json in cromwell output directory (!709)
-
-## v2.2.0rc-1 (2021-03-05)
-Minor release that includes Globus client authentication support. Users no longer need to activate an endpoint
+## 2.2.0 (2021-04-09)
+Minor release includes Globus client authentication support. Users no longer need to activate an endpoint
 which required users to have an account at a compute site. This now uses a shared endpoint and service account to 
 do Globus transfers on behalf of the user. 
+
+Addresses error messaging and bugs in the jaws_rpc module
+
+Addresses the stuck in "uploading" issue (#797, #781, #790, #603, #407). Jobs were stuck in
+uploading due to slow processing of the messages from RMQ. MR !702 adds improvement in message processing.
+
+When running and observing the job using `jaws queue` the run would show the 
+status as `queued` even though running `jaws run task-status` would show that the
+some tasks are running. MR !749 fixes this issue
+
+Includes fixes the inconsistent status between run and task-status.
+
+When running and observing the job using `jaws queue` the run would show the 
+status as `queued` even though running `jaws run task-status` would show that the
+some tasks are running. MR !749 fixes this issue
 
 ### Major Core Changes
 - Globus endpoints are now set to shared endpoints for NERSC, LRC and EMSL (!560, !586)
@@ -33,6 +28,18 @@ do Globus transfers on behalf of the user.
 - WDLS and JSON sent to output directory for reproducibility (!667, !669)
 - Input files are no longer symlinked to output directory but are copied over (!679) 
 - Cromwell caching is turned on (!569)
+
+### Minor core changes
+- RPC log messages were not written to their log files, fix includes adding logger to jaws_rpc (!725)
+- Unbound local error with jaws_rpc fix (!726)
+- Improve messaging of error with inputs. No longer rejects bad paths in inputs.json but warns the user (!712)
+
+Changes include fixes to regressions that took place after updates to staging (!717, !716)
+ - Change install path location of Central back to /opt/jaws (!717)
+ - Add log rotation back to JTM  (!716)
+ - Rsync uses flags `-rLtq` and also allows `chmod` of the input files (!707)
+ - Moves origin unmodified JSON to the output directory (!710)
+ - Check permissions of wdl and inputs json in cromwell output directory (!709)
 
 ### Deployment changes
 - Staging directory is now created by deployment scripts and has setgid set for genome group. Output directories are also created by deployment script (!562)
@@ -47,7 +54,7 @@ do Globus transfers on behalf of the user.
 ### CLI changes
 - User no longer specifies the output directory, instead there is a shared output directory where JAWS will transfer
 data files upon completion. (!562)
-- Users can retrieve files using the new `jaws get` command. This allows users to set the permissions to the original
+- Users can retrieve files using the new `jaws run get` command. This allows users to set the permissions to the original
 owner who submitted rather than owned by the `jaws` service account user. (!638)
 
 

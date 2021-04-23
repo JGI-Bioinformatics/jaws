@@ -13,7 +13,7 @@ you can pass the variable to one or more tasks.
     "<workflow name>.<variable name>": "<value>"
    }
 
-Alternatively, you can pass a variable just to a individual task
+Alternatively, you can pass a variable to an individual task
 
 .. code-block:: text 
 

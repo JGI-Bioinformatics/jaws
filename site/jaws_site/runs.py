@@ -1,0 +1,509 @@
+"""
+JAWS Daemon process periodically checks on runs and performs actions to usher
+them to the next state.
+"""
+
+import shutil
+import os
+import globus_sdk
+import logging
+from datetime import datetime
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from jaws_site import models
+from jaws_site import config
+from jaws_site import tasks
+from jaws_site.cromwell import Cromwell
+from jaws_site.globus import GlobusService
+from jaws_rpc import rpc_client
+
+logger = logging.getLogger(__package__)
+
+cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
+
+globus = GlobusService()
+
+
+def file_size(file_path: str):
+    """
+    Checks if a file exists and is a file; if it does, check it's size.
+
+    :param file_path: path to file
+    :type file_path: str
+    :return: Size in bytes if file exists; else None
+    :rtype: int
+    """
+    if os.path.isfile(file_path):
+        return os.path.getsize(file_path)
+    else:
+        return None
+
+
+class RunDbError(Exception):
+    pass
+
+
+class RunNotFound(Exception):
+    pass
+
+
+class DataError(Exception):
+    pass
+
+
+class Run:
+    """Class representing a single Run"""
+
+    def __init__(self, session, **kwargs):
+        self.session = session
+        self.operations = {
+            "uploading": self.check_if_upload_complete,
+            "upload complete": self.submit_run,
+            "submitted": self.check_run_cromwell_status,
+            "queued": self.check_run_cromwell_status,
+            "running": self.check_run_cromwell_status,
+            "succeeded": self.transfer_results,
+            "failed": self.transfer_results,
+            "downloading": self.check_if_download_complete,
+        }
+
+        if "submission_id" in kwargs:
+            self._insert_run(**kwargs)
+        elif "run_id" in kwargs:
+            self._select_run(kwargs["run_id"])
+        elif "model" in kwargs:
+            model = kwargs["model"]
+            assert model.id is not None
+            self.model = model
+
+    def _insert_run(self, **kwargs) -> None:
+        """Insert run record into rdb"""
+        try:
+            self.model = models.Run(
+                id=int(kwargs["run_id"]),
+                user_id=kwargs["user_id"],
+                email=kwargs["email"],
+                submission_id=kwargs["submission_id"],
+                upload_task_id=kwargs["upload_task_id"],
+                output_endpoint=kwargs["output_endpoint"],
+                output_dir=kwargs["output_dir"],
+                status="uploading",
+            )
+        except SQLAlchemyError as error:
+            raise (f"Error creating model for new Run {kwargs['run_id']}: {error}")
+        try:
+            self.session.add(self.model)
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            raise (error)
+
+    def _select_run(self, run_id):
+        """Select run record from rdb"""
+        try:
+            self.model = self.session.query(models.Run).get(run_id)
+        except IntegrityError as error:
+            logger.warn(f"Run {run_id} not found: {error}")
+            raise RunNotFound(f"Run {run_id} not found")
+        except SQLAlchemyError as error:
+            err_msg = f"Unable to select run, {run_id}: {error}"
+            logger.error(err_msg)
+            raise RunDbError(err_msg)
+
+    @property
+    def status(self) -> str:
+        """Return the current state of the run."""
+        return self.model.status
+
+    def check_status(self) -> None:
+        """Check the run's status, promote to next state if ready"""
+        status = self.model.status
+        if status in self.operations:
+            return self.operations[status]()
+
+    def cancel(self) -> None:
+        """Cancel a run, instruct Cromwell to abort if required."""
+        self.update_run_status("cancelled")
+        if self.model.cromwell_run_id and self.model.status in [
+            "submitted",
+            "queued",
+            "running",
+        ]:
+            try:
+                cromwell.abort(self.model.cromwell_run_id)
+            except cromwell.CromwellException as error:
+                logger.warn(f"Cromwell error cancelling Run {self.model.id}: {error}")
+                raise
+
+    def metadata(self) -> str:
+        """
+        Get metadata from Cromwell and return it, if available.
+        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        """
+        if self.model.cromwell_run_id:
+            return cromwell.get_all_metadata(self.model.cromwell_run_id)
+        else:
+            return None
+
+    def errors(self) -> str:
+        """Get errors report from Cromwell service"""
+        if self.model.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.model.cromwell_run_id)
+            return metadata.errors()
+        else:
+            return None
+
+    def upload_status(self) -> str:
+        try:
+            status = globus.transfer_status(self.model.upload_task_id)
+        except globus_sdk.GlobusError as error:
+            logger.exception(
+                f"Failed to check upload {self.model.upload_task_id}: {error}"
+            )
+        else:
+            return status
+
+    def download_status(self) -> str:
+        try:
+            status = globus.transfer_status(self.model.download_task_id)
+        except globus_sdk.GlobusError as error:
+            logger.exception(
+                f"Failed to check download {self.model.download_task_id}: {error}"
+            )
+        else:
+            return status
+
+    def check_if_upload_complete(self) -> None:
+        """
+        If the upload is complete, update the run's status.
+        """
+        logger.debug(f"Run {self.model.id}: Check upload status")
+        globus_status = self.upload_status()
+        if globus_status == "FAILED":
+            self.update_run_status("upload failed")
+        elif globus_status == "INACTIVE":
+            self.update_run_status(
+                "upload inactive", "The JAWS endpoint authorization has expired"
+            )
+        elif globus_status == "SUCCEEDED":
+            self.update_run_status("upload complete")
+
+    def uploads_file_path(self):
+        uploads_dir = config.conf.get("SITE", "uploads_dir")
+        return os.path.join(uploads_dir, self.model.user_id, self.model.submission_id)
+
+    def get_run_input(self) -> list:
+        """
+        Check if the input files are valid and return a list of their paths.
+        The list contains wdl_file, json_file, and optionally zip_file.
+        Raise on error.
+
+        :return: list of [wdl,json,zip] file paths
+        :rtype: list
+        """
+        suffixes_and_required = [("wdl", True), ("json", True), ("zip", False), ("options.json", False)]
+        files = []
+        file_path = self.uploads_file_path()
+        for (suffix, required) in suffixes_and_required:
+            a_file = f"{file_path}.{suffix}"
+            a_file_size = file_size(a_file)
+            if required:
+                if a_file_size is None:
+                    raise DataError(f"Input {suffix} file not found: {a_file}")
+                elif a_file_size == 0:
+                    raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
+            elif a_file_size is not None and a_file_size == 0:
+                raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
+            if a_file_size:
+                files.append(a_file)
+            else:
+                files.append(None)
+        return files
+
+    def submit_run(self) -> None:
+        """
+        Submit a run to Cromwell.
+        """
+        logger.debug(f"Run {self.model.id}: Submit to Cromwell")
+        try:
+            infiles = self.get_run_input()
+        except DataError as error:
+            logger.error(f"Run {self.model.id}: {error}")
+            self.update_run_status("submission failed", f"Bad input: {error}")
+            return
+        try:
+            cromwell_run_id = cromwell.submit(*infiles)
+        except cromwell.CromwellException as error:
+            logger.error(f"Run {self.model.id} submission failed: {error}")
+            self.update_run_status("submission failed", f"{error}")
+        else:
+            self.model.cromwell_run_id = cromwell_run_id
+            self.update_run_status("submitted", f"cromwell_run_id={cromwell_run_id}")
+
+    def check_run_cromwell_status(self) -> None:
+        """
+        Check Cromwell for the status of the Run.
+        """
+        logger.debug(f"Run {self.model.id}: Check Cromwell status")
+        try:
+            cromwell_status = cromwell.get_status(self.model.cromwell_run_id)
+        except cromwell.CromwellException as error:
+            logger.error(
+                f"Unable to check Cromwell status of Run {self.model.id}: {error}"
+            )
+            raise
+
+        # check if state has changed; allowed states and transitions for a successful run are:
+        # submitted -> queued -> running -> succeeded (with no skipping of states allowed)
+        # Additionally, any state can transition directly to cancelled or failed.
+        logger.debug(f"Run {self.model.id}: Cromwell status is {cromwell_status}")
+        if cromwell_status == "Running":
+            # no skips allowed, so there may be more than one transition
+            if self.model.status == "submitted":
+                self.update_run_status("queued")
+            elif self.model.status == "queued":
+                # although Cromwell may consider a Run to be "Running", since it does not distinguish between
+                # "queued" and "running", we check the task-log to see if any task is "running"; only once any
+                # task is running does the Run transition to the "running" state.
+                tasks_status = tasks.get_run_status(self.session, self.model.id)
+                if tasks_status == "running":
+                    self.update_run_status("running")
+        elif cromwell_status == "Failed":
+            self.update_run_status("failed")
+        elif cromwell_status == "Succeeded":
+            # no skips allowed, so there may be more than one transition
+            if self.model.status == "submitted":
+                self.update_run_status("queued")
+            if self.model.status == "queued":
+                self.update_run_status("running")
+            self.update_run_status("succeeded")
+        elif cromwell_status == "Aborted":
+            self.update_run_status("cancelled")
+
+    @staticmethod
+    def _cp_infile_to_outdir(src_root_path, src_suffix, dest_dir, required=True) -> None:
+        """
+        Copy an input file to the output dir.  If not required, no exception thrown if the file doesn't exist.
+        :param src_root_path: dir and basename of file
+        :type src_root_path: str
+        :param src_suffix: suffix of the file
+        :type src_suffix: str
+        :param dest_dir: folder to copy to
+        :type dest_dir: str
+        :param required: If False then don't complain if the src file doesn't exist
+        :type required: bool
+        :return:
+        """
+        src_file = f"{src_root_path}.{src_suffix}"
+        if required or os.path.exists(src_file):
+            try:
+                shutil.copy(src_file, dest_dir)
+            except IOError as error:
+                logger.error(
+                    f"Error copying {src_suffix} from {src_file}->{dest_dir}: {error}"
+                )
+                raise
+
+    def transfer_results(self) -> None:
+        """
+        Send run output via Globus
+        """
+        logger.debug(f"Run {self.model.id}: Download output")
+        try:
+            metadata = cromwell.get_metadata(self.model.cromwell_run_id)
+        except cromwell.CromwellException as error:
+            logger.error(
+                f"Unable to get Cromwell metadata of Run {self.model.id}: {error}"
+            )
+            raise
+        cromwell_workflow_dir = metadata.workflow_root()
+        if not cromwell_workflow_dir:
+            # This run failed before a folder was created; nothing to xfer
+            self.update_run_status("download complete", "No run folder was created")
+            return
+
+        file_path = self.uploads_file_path()
+        self._cp_infile_to_outdir(file_path, "wdl", cromwell_workflow_dir)
+        self._cp_infile_to_outdir(file_path, "json", cromwell_workflow_dir)
+        self._cp_infile_to_outdir(file_path, "orig.json", cromwell_workflow_dir)
+        self._cp_infile_to_outdir(file_path, "zip", cromwell_workflow_dir, False)
+
+        # Recursively change file permission for cromwell workflow dir.
+        self._fix_perms(cromwell_workflow_dir, 0o0755)
+
+        try:
+            transfer_task_id = globus.submit_transfer(
+                f"Run {self.model.id}",
+                self.model.output_endpoint,
+                cromwell_workflow_dir,
+                self.model.output_dir,
+            )
+        except globus_sdk.GlobusError as error:
+            logger.error(f"error while submitting transfer: {error}")
+            raise
+        else:
+            self.model.download_task_id = transfer_task_id
+            self.update_run_status(
+                "downloading", f"download_task_id={self.model.download_task_id}"
+            )
+
+    def check_if_download_complete(self) -> None:
+        """
+        If download is complete, change state.
+        """
+        logger.debug(f"Run {self.model.id}: Check download status")
+        globus_status = self.download_status()
+        if globus_status == "SUCCEEDED":
+            self.update_run_status("download complete")
+        elif globus_status == "FAILED":
+            self.update_run_status("download failed")
+
+    def update_run_status(self, new_status, reason=None) -> None:
+        """
+        Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
+        """
+        logger.info(f"Run {self.model.id}: now {new_status}")
+        timestamp = datetime.utcnow()
+        self._update_run_status(new_status, timestamp)
+        self._insert_run_log(self.model.status, new_status, timestamp, reason)
+
+    def _update_run_status(self, new_status, timestamp) -> None:
+        """
+        Update Run's current status in 'runs' table
+        """
+        try:
+            self.model.status = new_status
+            self.model.updated = timestamp
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            logger.exception(f"Unable to update Run {self.model.id}: {error}")
+            raise
+
+    def _insert_run_log(self, status_from, status_to, timestamp, reason) -> None:
+        """
+        Save record of state transition in 'run_logs' table
+        """
+        try:
+            log_entry = models.Run_Log(
+                run_id=self.model.id,
+                status_from=status_from,
+                status_to=status_to,
+                timestamp=timestamp,
+                reason=reason,
+            )
+            self.session.add(log_entry)
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            logger.exception(
+                f"Failed to insert log for Run {self.model.id} ({status_to}): {error}"
+            )
+            raise
+
+    def _fix_perms(self, path, mode=0o0755):
+        """Recursively chmod input directory.
+
+        :param path: Root dir
+        :type dirname: str
+        :param mode: file permission mode
+        :type mode: octal
+        :return:
+        """
+        os.chmod(path, mode)
+        for dirpath, dirnames, filenames in os.walk(path):
+            for dname in dirnames:
+                os.chmod(os.path.join(dirpath, dname), mode)
+            for fname in filenames:
+                fullpath = os.path.join(dirpath, fname)
+                os.chmod(fullpath, mode)
+
+
+def check_active_runs(session) -> None:
+    """
+    Get active runs from db and have each check and update their status.
+    """
+    rows = _select_active_runs(session)
+    for model in rows:
+        run = Run(session, model=model)
+        run.check_status()
+
+
+def _select_active_runs(session) -> list:
+    """
+    Select runs in particular states from db.
+    """
+    active_states = [
+        "uploading",
+        "upload complete",
+        "submitted",
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "downloading",
+    ]
+    try:
+        rows = (
+            session.query(models.Run).filter(models.Run.status.in_(active_states)).all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(f"Failed to select active runs from db: {error}", exc_info=True)
+        return []
+    return rows
+
+
+def send_run_status_logs(session) -> None:
+    """Send run logs to Central"""
+
+    # get updates from datbase
+    try:
+        query = (
+            session.query(models.Run_Log).filter(models.Run_Log.sent.is_(False)).all()
+        )
+    except SQLAlchemyError as error:
+        logger.exception(f"Unable to select from run_logs: {error}")
+        return
+    num_logs = len(query)
+    if not num_logs:
+        return
+    logger.debug(f"Sending {num_logs} run logs")
+
+    try:
+        central_rpc_client = rpc_client.RpcClient(
+            config.conf.get_section("CENTRAL_RPC_CLIENT")
+        )
+    except Exception as error:
+        logger.exception(f"Unable to init central rpc client: {error}")
+        raise
+
+    # send logs via RPC
+    for log in query:
+        data = {
+            "site_id": config.conf.get("SITE", "id"),
+            "run_id": log.run_id,
+            "status_from": log.status_from,
+            "status_to": log.status_to,
+            "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "reason": log.reason,
+        }
+        # add special fields
+        if log.status_to == "submitted":
+            run = session.query(models.Run).get(log.run_id)
+            data["cromwell_run_id"] = run.cromwell_run_id
+        elif log.status_to == "downloading":
+            run = session.query(models.Run).get(log.run_id)
+            data["download_task_id"] = run.download_task_id
+        try:
+            response = central_rpc_client.request("update_run_logs", data)
+        except Exception as error:
+            logger.exception(f"RPC update_run_logs error: {error}")
+            continue
+        if "error" in response:
+            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
+            continue
+        log.sent = True
+        try:
+            session.commit()
+        except Exception as error:
+            session.rollback()
+            logger.exception(f"Error updating run_logs as sent: {error}")

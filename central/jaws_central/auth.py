@@ -3,11 +3,13 @@ from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
 import secrets
 from jaws_central.models_fsa import db, User
+import requests
+import json
 
 logger = logging.getLogger(__package__)
 
 
-OAUTH_TOKEN_LENGTH = 255
+OAUTH_TOKEN_LENGTH = 127
 
 
 def _get_bearer_token():
@@ -62,7 +64,20 @@ def _get_user_by_email(email):
     return user
 
 
-def get_user_token(user, email):
+def _get_json_from_sso(hash_code):
+    base = "https://signon.jgi.doe.gov/api/sessions/"
+    response = None
+    try:
+        response = requests.get(base + hash_code + ".json", allow_redirects=True)
+    except Exception as err:
+        logger.error(err)
+        abort(500, f"Error: {err}")
+    if response is None:
+        abort(401, "Response object is NoneType")
+    return json.loads(response.content)
+
+
+def get_user_token(user, hash_code):
     """
     Return the JAWS token for the queried user' globus ID.
     This is restricted to 'dashboard' scope.
@@ -74,8 +89,13 @@ def get_user_token(user, email):
     :return: The user's JAWS access token.
     :rtype: str
     """
-    query_user = _get_user_by_email(email)
-    return {"jaws_token": query_user.jaws_token}
+    json_obj = _get_json_from_sso(hash_code)
+
+    if "user" not in json_obj or "email" not in json_obj["user"]:
+        abort(401, "No user or email information found in the JSON")
+
+    query_user = _get_user_by_email(json_obj["user"]["email"])
+    return {"jaws_token": query_user.jaws_token, "sso_json": json_obj}
 
 
 def get_user(user):
@@ -97,16 +117,21 @@ def get_user(user):
     return result
 
 
-def add_user(
-    user: str, session, uid: str, name: str, email: str, admin: bool = False
-) -> None:
+def add_user(user) -> None:
     """
     Add user and return an OAuth2 token.
     """
-    uid = uid.lower()
+    uid = request.form.get("uid", None).lower()
+    name = request.form.get("name")
+    email = request.form.get("email")
+    admin = True if request.form.get("admin") == "True" else False
+
     a_user = db.session.query(User).get(uid)
     if a_user is not None:
-        abort(400, f"Cannot add user {uid}; user.id already taken.")
+        abort(400, "Cannot add user; uid already taken.")
+    a_user = db.session.query(User).filter(User.email == email).one_or_none()
+    if a_user is not None:
+        abort(400, "Cannot add user; email already taken.")
 
     token = secrets.token_urlsafe(OAUTH_TOKEN_LENGTH)
     try:
@@ -120,7 +145,7 @@ def add_user(
         )
         db.session.add(new_user)
         db.session.commit()
-        logger.info(f"Added new user {uid} ({email})")
+        logger.info(f"{user} added new user {uid} ({email})")
     except Exception as error:
         db.session.rollback()
         logger.error(f"Failed to add user, {uid}: {error}")

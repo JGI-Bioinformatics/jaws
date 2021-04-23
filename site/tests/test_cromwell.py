@@ -769,6 +769,7 @@ METADATA = {
                     "inputs": {
                         "infile": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
                     },
+                    "jobId": "9999",
                     "retryableFailure": False,
                     "runtimeAttributes": {
                         "account": "fungalp",
@@ -864,7 +865,10 @@ def test_task():
     assert task.is_subworkflow() is False
     assert task.calls[0]["attempt"] == 1
     assert task.calls[0]["jobId"] == "30"
-    assert task.get("callRoot", 1) == "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs"  # noqa
+    assert (
+        task.get("callRoot", 1)
+        == "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs"  # noqa
+    )  # noqa
 
 
 def test_task_subworkflow():
@@ -920,12 +924,33 @@ def test_get_all_metadata():
 
 def test_get_errors():
     """Given workflow UUID, extract errors."""
+
+    expected_failures_message = "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"  # noqa
+    expected_runtime_attributes = {
+        "account": "fungalp",
+        "cluster": "cori",
+        "constraint": "haswell",
+        "continueOnReturnCode": "0",
+        "cpu": "1",
+        "failOnStderr": "false",
+        "maxRetries": "0",
+        "mem": "10G",
+        "node": "1",
+        "nwpn": "1",
+        "poolname": "test_small",
+        "qos": "genepool_special",
+        "shared": "0",
+        "time": "00:10:00",
+    }
+
     crom = cromwell.Cromwell("localhost:8000")
     metadata = crom.get_metadata(WORKFLOW_ID_EX3, METADATA[WORKFLOW_ID_EX3])
     status = metadata.execution_status()
     errors = metadata.errors()
     assert status["fq_count.count_seqs"] == "Failed"
-    assert errors["fq_count.count_seqs"] == "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"  # noqa
+    assert errors["fq_count.count_seqs"]["failures"] == expected_failures_message
+    assert errors["fq_count.count_seqs"]["runtime"] == expected_runtime_attributes
+    assert errors["fq_count.count_seqs"]["cromwell_job_id"] == "9999"
 
     # test for no errors
     metadata = crom.get_metadata(WORKFLOW_ID_EX1, METADATA[WORKFLOW_ID_EX1])
@@ -955,7 +980,7 @@ def test_task_summary():
         "localhost:8000", WORKFLOW_ID_EX2_MAIN, METADATA[WORKFLOW_ID_EX2_MAIN], METADATA
     )
     result = metadata.task_summary()
-    EXPECTED = [
+    expected = [
         [WORKFLOW_ID_EX2_MAIN, "main_workflow.goodbye", 1, "5480"],
         [WORKFLOW_ID_EX2_MAIN, "main_workflow.hello", 1, "5481"],
         [WORKFLOW_ID_EX2_SUB2, "hello_and_goodbye.goodbye", 1, "5483"],
@@ -963,14 +988,44 @@ def test_task_summary():
         [WORKFLOW_ID_EX2_SUB1, "hello_and_goodbye.goodbye", 1, "5482"],
         [WORKFLOW_ID_EX2_SUB1, "hello_and_goodbye.hello", 1, "5484"],
     ]
-    assert bool(DeepDiff(result, EXPECTED, ignore_order=True)) is False
+    assert bool(DeepDiff(result, expected, ignore_order=True)) is False
 
 
 def test_task_stdout():
-    metadata = cromwell.Metadata("localhost:8000", WORKFLOW_ID_EX1, METADATA[WORKFLOW_ID_EX1], METADATA)
+    metadata = cromwell.Metadata(
+        "localhost:8000", WORKFLOW_ID_EX1, METADATA[WORKFLOW_ID_EX1], METADATA
+    )
     expected_stderr = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stderr"  # noqa
     expected_stdout = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stdout"  # noqa
     assert len(metadata.tasks) == 1
     task = metadata.tasks[0]
     assert task.stderr() == expected_stderr
     assert task.stdout() == expected_stdout
+
+
+def test_get_failed_task_runtime_attributes():
+    expected_runtime = {
+        "account": "fungalp",
+        "cluster": "cori",
+        "constraint": "haswell",
+        "continueOnReturnCode": "0",
+        "cpu": "1",
+        "failOnStderr": "false",
+        "maxRetries": "0",
+        "mem": "10G",
+        "node": "1",
+        "nwpn": "1",
+        "poolname": "test_small",
+        "qos": "genepool_special",
+        "shared": "0",
+        "time": "00:10:00",
+    }
+
+    crom = cromwell.Cromwell("localhost:8000")
+    metadata = crom.get_metadata(WORKFLOW_ID_EX3, METADATA[WORKFLOW_ID_EX3])
+    for task in metadata.tasks:
+        failures = task.failures()
+        if failures:
+            assert task.name == "fq_count.count_seqs"
+            runtime = task.runtime()
+            assert bool(DeepDiff(runtime, expected_runtime, ignore_order=True)) is False

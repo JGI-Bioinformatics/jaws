@@ -7,6 +7,8 @@ google sheet: https://docs.google.com/spreadsheets/d/1eBWvk4FSPpbFclTuzu0o77aPAx
 This library of tests uses "fixtures" from conftest.py which should be located in the same directory. 
 There is no need to import conftest.py as it is done automatically.
 
+This test checks that expected resources are available. For example, are the large memory machines available (e.g. skylake) on cori?
+
 Author: Jeff Froula <jlfroula@lbl.gov>
 Updated: 02/23/21
 """
@@ -18,8 +20,10 @@ import submission_utils as util
 #########################
 ###     Functions     ###
 #########################
-def test_skylake_250G(env, submit_skylake_250):
-    """ tests that the jaws run history command has the run id in the stdout."""
+def test_skylake_250G(submit_skylake_250):
+    """ tests that the jaws run history command has the run id in the stdout.
+        This test will be skipped if the 'env' is not cori.
+    """
     run_id = str(submit_skylake_250['run_id'])
 
     # Run: jaws run status
@@ -31,7 +35,9 @@ def test_skylake_250G(env, submit_skylake_250):
     assert status_info['result'] == "succeeded"
 
 def test_skylake_500G(env, submit_skylake_500):
-    """ tests that the jaws run history command has the run id in the stdout."""
+    """ tests that the jaws run history command has the run id in the stdout.
+        This test will be skipped if the 'env' is not cori.
+    """
     run_id = str(submit_skylake_500['run_id'])
 
     # Run: jaws run status
