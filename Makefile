@@ -68,7 +68,7 @@ test-jtm: test-requirements
 .PHONY: test-parsl
 test-parsl: test-requirements
 	$Q flake8 parsl
-	$Q cd parsl && python -m pytest tests/
+	$Q cd parsl && python -m pytest --cov=jaws_parsl --junitxml=parsl.xml tests/ && coverage xml
 
 .PHONY: test
 test: test-rpc test-site test-central test-client test-jtm test-parsl
