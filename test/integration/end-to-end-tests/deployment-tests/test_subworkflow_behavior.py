@@ -43,9 +43,9 @@ def test_task_status(env,submit_subworkflow_alignment):
     """
 
     time.sleep(120)  # wait some time before running task-status since there is some lag between 
-                     # when "jaws run status" calls success and when "jaws run task-status" calls success.
+                     # when "jaws status" calls success and when "jaws task-status" calls success.
     run_id = submit_subworkflow_alignment['run_id']
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s | tail -n+2" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-status %s | tail -n+2" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     # put the table into a dictionary
@@ -98,10 +98,10 @@ def test_task_log(env,submit_subworkflow_alignment):
     """
 
     time.sleep(120)  # wait some time before running task-status since there is some lag between 
-                     # when "jaws run status" calls success and when "jaws run task-status" calls success.
+                     # when "jaws status" calls success and when "jaws task-status" calls success.
 
     run_id = submit_subworkflow_alignment['run_id']
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s | tail -n+2" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-log %s | tail -n+2" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     # put the table into a dictionary
@@ -145,7 +145,7 @@ def test_saved_subwdl(env,submit_subworkflow_alignment):
     outdir        = submit_subworkflow_alignment['output_dir']
 
     # need to get the submission_id from the status
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     assert not r
     data = json.loads(o)
@@ -165,7 +165,7 @@ def test_subworkflow_metadata(env,submit_subworkflow_alignment):
     metadata command also returns cromwell metadata for subworkflows
     """
     run_id        = submit_subworkflow_alignment['run_id']
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run metadata %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws metadata %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     meta_output = json.loads(o)
 

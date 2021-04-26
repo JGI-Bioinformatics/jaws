@@ -70,12 +70,12 @@ def test_jaws_status():
 
 
 def test_jaws_run_queue(submit_fq_count_wdl):
-    """ tests that the jaws run queue command has the run id in the stdout."""
+    """ tests that the jaws queue command has the run id in the stdout."""
 
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
 
-    cmd = "jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','"
+    cmd = "jaws queue | grep '\"id\":' | awk '{print $2}' | tr -d ','"
     (r,o,e) = util.run(cmd)
     ids=o.split()
     assert run_id in ids
