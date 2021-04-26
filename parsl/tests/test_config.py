@@ -11,10 +11,32 @@ def test_check_rmq_values(config_file):
         ("password", "p455w0rd"),
         ("host", "rmq.server.com"),
         ("vhost", "jaws"),
-        ("port", 5678)
+        ("port", 5678),
+        ("queue", "high-prio"),
+        ("exchange", "exch")
     ]
 
     actual_parameters = cfg.get_rmq_params()
 
     for key, expected in expected_rmq_parameters:
+        assert actual_parameters[key] == expected
+
+
+def test_check_rpc_values(config_file):
+
+    config_path = config_file
+    cfg = jaws_parsl.config.Configuration(config_path)
+
+    expected_rpc_parameters = [
+        ("user", "jaws"),
+        ("password", "p4s5w0rd"),
+        ("host", "rpc.server.com"),
+        ("vhost", "j4w5"),
+        ("port", 56789),
+        ("queue", "high-prio")
+    ]
+
+    actual_parameters = cfg.get_rpc_params()
+
+    for key, expected in expected_rpc_parameters:
         assert actual_parameters[key] == expected
