@@ -17,7 +17,7 @@ task count_seqs {
     runtime {
         poolname: "skylake_test"
 		time: "00:10:00"
-        mem: "450G"
+        memory: "450G"
 		node: 1
 		nwpn: 1
         shared: 0

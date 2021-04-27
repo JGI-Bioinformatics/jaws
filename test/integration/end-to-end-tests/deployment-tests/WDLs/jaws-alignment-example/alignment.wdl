@@ -138,7 +138,7 @@ task merge_bams {
         shared: 0
         node: 1
         nwpn: 1
-        mem: "5G"
+        memory: "5G"
         time: "00:10:00"
    }
 }

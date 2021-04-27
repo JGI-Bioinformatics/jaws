@@ -13,10 +13,9 @@ import zipfile
 import logging
 import pathlib
 import warnings
-from jaws_client.config import Configuration
 
-
-config = Configuration()
+from jaws_client import config
+from jaws_client.wdl_runtime_validator import ( validate_wdl_runtime, WdlRuntimeError, WdlRuntimeMemoryError, WdlRuntimeTimeError,) # noqa
 
 
 def pretty_warning(message, category, filename, lineno, line=None):
@@ -78,7 +77,7 @@ def womtool(*args):
     :param args: WOMTool arguments
     :return: stdout and stderr of WOMTool completed process
     """
-    womtool_cmd = config.get("JAWS", "womtool").split()
+    womtool_cmd = config.conf.get("JAWS", "womtool").split()
     womtool_cmd.extend(list(args))
     proc = subprocess.run(womtool_cmd, capture_output=True, text=True)
     return proc.stdout, proc.stderr
@@ -173,6 +172,7 @@ class WdlFile:
         :param submission_id:  a uuid.uuid4() generated string
         """
 
+        self.logger = logging.getLogger(__package__)
         self.file_location = os.path.abspath(wdl_file_location)
         self.name = self._get_wdl_name(wdl_file_location)
         self.submission_id = submission_id
@@ -183,7 +183,7 @@ class WdlFile:
         self._subworkflows = None
         self._max_ram_gb = None
 
-    def _set_subworkflows(self, output):
+    def _filter_subworkflows(self, output):
         """
         Filters the output of WOMTool inputs -l so that it can parse through and grab the paths to the sub-workflows.
 
@@ -208,7 +208,7 @@ class WdlFile:
                 sub_wdl = WdlFile(sub, self.submission_id)
                 sub_wdl.verify_wdl_has_no_backend_tags()
                 subworkflows.add(sub_wdl)
-        self._subworkflows = list(subworkflows)
+        return subworkflows
 
     @property
     def subworkflows(self):
@@ -242,14 +242,15 @@ class WdlFile:
         WdlFile objects and we wish to avoid running womtool multiple times unnecessarily.
         :return:
         """
-        logger = logging.getLogger(__package__)
-        logger.debug(f"Validating WDL, {self.file_location}")
+        self.logger.info(f"Validating WDL, {self.file_location}")
         stdout, stderr = womtool("validate", "-l", self.file_location)
-        self._set_subworkflows(stdout)
+        self._subworkflows = self._filter_subworkflows(stdout)
         if stderr:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
         self.verify_wdl_has_no_backend_tags()
+
+        validate_wdl_runtime(self.contents)
 
     @staticmethod
     def _get_wdl_name(file_location):
@@ -298,8 +299,7 @@ class WdlFile:
                 if subworkflow_file.max_ram_gb > self._max_ram_gb:
                     self._max_ram_gb = subworkflow_file.max_ram_gb
 
-        logger = logging.getLogger(__package__)
-        logger.debug(f"Maximum RAM requested is {self._max_ram_gb}Gb")
+        self.logger.info(f"Maximum RAM requested is {self._max_ram_gb}Gb")
         return self._max_ram_gb
 
     def copy_to(self, destination, permissions=0o664):
@@ -461,7 +461,11 @@ class WorkflowInputs:
             # as a result of the gid sticky bit and acl rules on the inputs dir.
             rsync_params = ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"]
             try:
-                result = rsync(original_path, dest, rsync_params,)
+                result = rsync(
+                    original_path,
+                    dest,
+                    rsync_params,
+                )
             except OSError as error:
                 raise (f"rsync executable not found: {error}")
             except ValueError as error:
@@ -524,6 +528,7 @@ class Manifest:
     """
 
     def __init__(self, staging_dir, dest_dir):
+        self.logger = logging.getLogger(__package__)
         self.staging_dir = staging_dir
         self.dest_dir = dest_dir
         self.manifest = []
@@ -551,8 +556,8 @@ class Manifest:
         :param write_location: a file path
         :return:
         """
-        logger = logging.getLogger(__package__)
-        logger.debug(f"Writing manifest file: {write_location}")
+        self.logger.info(f"Writing file manifest to {write_location}")
+        self.logger.debug(f"Writing manifest file: {write_location}")
         with open(write_location, "w") as f:
             for src, dest, inode_type in self.manifest:
                 f.write(f"{src}\t{dest}\t{inode_type}\n")
