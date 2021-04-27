@@ -44,7 +44,7 @@ def test_input_file_is_not_json_format(env, dir, site):
 
     # check for the correct error message
     # TODO figure out the correct error message
-    assert "Not JSON format:" in e
+    assert "is not a valid JSON file" in e
 
 
 def test_json_bad_path_to_input_file_msg(env, dir, site):
@@ -78,7 +78,7 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
 
     # check for the correct error message
     # TODO - figure out where the cromwell error message is displayed
-    assert False
+    assert "fq_count.fastq_file not found" in e
 
 
 def test_bad_input_file_permissions_msg(env, dir, site):
