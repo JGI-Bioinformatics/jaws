@@ -1,6 +1,6 @@
 import logging
 from urllib.parse import quote_plus
-from sqlalchemy import create_engine, Metadata
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import TimeoutError
@@ -26,5 +26,5 @@ except TimeoutError as error:
 
 Session = sessionmaker(bind=engine)
 
-metadata = Metadata()
+metadata = MetaData()
 Base = declarative_base(metadata=metadata)
