@@ -33,8 +33,8 @@ def test_json_file_does_not_exist(env, test_dir, site):
     assert "No such file or directory:" in e
 
 
-def test_input_file_is_not_json_format(env, test_dir, site):
-    wdl = os.path.join(test_dir, "WDLs/fq_count.wdl")
+def test_input_file_is_not_json_format(env, dir, site):
+    wdl = os.path.join(dir, "WDLs/fq_count.wdl")
     # testing for message when inputs file is not json, so using wdl again instead of a json file
     inputs = wdl
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
@@ -47,14 +47,14 @@ def test_input_file_is_not_json_format(env, test_dir, site):
     assert "Not JSON format:" in e
 
 
-def test_json_bad_path_to_input_file_msg(env, test_dir, site):
+def test_json_bad_path_to_input_file_msg(env, dir, site):
     # TESTCASE-5a
     # Submit job with json that contains a path to a non-existent input file
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    wdl = os.path.join(test_dir, "WDLs/fq_count.wdl")
+    wdl = os.path.join(dir, "WDLs/fq_count.wdl")
 
     # Can't use  submission_utils submit_wdl here because it exits if submission not successful
-    inputs = os.path.join(test_dir, "test-inputs/bad_path_inputs.json")
+    inputs = os.path.join(dir, "test-inputs/bad_path_inputs.json")
     submit_cmd = "jaws run submit %s %s %s" % (wdl, inputs, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
@@ -63,13 +63,13 @@ def test_json_bad_path_to_input_file_msg(env, test_dir, site):
     assert "UserWarning: Input path not found:" in e
 
 
-def test_misspelled_variable_in_input_file_msg(env, test_dir, site):
+def test_misspelled_variable_in_input_file_msg(env, dir, site):
     # TESTCASE-5b
     # Submit job with json that contains a misspelled variable name
-    wdl = os.path.join(test_dir, "WDLs/fq_count.wdl")
+    wdl = os.path.join(dir, "WDLs/fq_count.wdl")
 
     # Can't use  submission_utils submit_wdl here because it exits if submission not successful
-    input_json = os.path.join(test_dir, "test-inputs/misspelled_variable.json")
+    input_json = os.path.join(dir, "test-inputs/misspelled_variable.json")
     data = util.submit_wdl(env, wdl, input_json, site)
 
     # wait for run to complete
@@ -81,15 +81,15 @@ def test_misspelled_variable_in_input_file_msg(env, test_dir, site):
     assert False
 
 
-def test_bad_input_file_permissions_msg(env, test_dir, site):
+def test_bad_input_file_permissions_msg(env, dir, site):
     # TESTCASE-6
     # Submit json that contains a path to a file with bad permissions
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    wdl = os.path.join(test_dir, "WDLs/fq_count.wdl")
+    wdl = os.path.join(dir, "WDLs/fq_count.wdl")
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     # TODO add the bad_permission.json and the file it points to
-    inputs = os.path.join(test_dir, "test-inputs/bad_permissions.json")
+    inputs = os.path.join(dir, "test-inputs/bad_permissions.json")
     submit_cmd = "jaws run submit %s %s %s" % (wdl, inputs, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
@@ -98,16 +98,16 @@ def test_bad_input_file_permissions_msg(env, test_dir, site):
     assert "Permission denied" in e
 
 
-def test_invalid_wdl_syntax_msg(env, test_dir, site):
+def test_invalid_wdl_syntax_msg(env, dir, site):
     # TESTCASE-7
     # Submit invalid WDL syntax
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
     # TODO add invalid syntax wdl
-    wdl = os.path.join(test_dir, "WDLs/bad_syntax.wdl")
+    wdl = os.path.join(dir, "WDLs/bad_syntax.wdl")
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     # TODO add the bad_permission.json and the file it points to
-    inputs = os.path.join(test_dir, "test-inputs/fq_count.json")
+    inputs = os.path.join(dir, "test-inputs/fq_count.json")
     submit_cmd = "jaws run submit %s %s %s" % (wdl, inputs, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
@@ -116,16 +116,16 @@ def test_invalid_wdl_syntax_msg(env, test_dir, site):
     assert "ERROR: Unexpected symbol" in e
 
 
-def test_invalid_wdl_semantics_msg(env, test_dir, site):
+def test_invalid_wdl_semantics_msg(env, dir, site):
     # TESTCASE-8
     # Submit invalid WDL semantics
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
     # TODO add invalid semantics wdl
-    wdl = os.path.join(test_dir, "WDLs/bad_semantics.wdl")
+    wdl = os.path.join(dir, "WDLs/bad_semantics.wdl")
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     # TODO add the bad_permission.json and the file it points to
-    inputs = os.path.join(test_dir, "test-inputs/fq_count.json")
+    inputs = os.path.join(dir, "test-inputs/fq_count.json")
     submit_cmd = "jaws run submit %s %s %s" % (wdl, inputs, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
