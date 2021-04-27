@@ -11,7 +11,7 @@ from urllib.parse import quote_plus
 from sqlalchemy.pool import QueuePool
 from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config, log
-from jaws_central.models_fsa import db
+from jaws_central.flask_db import db
 from jaws_rpc import rpc_index, rpc_server
 
 

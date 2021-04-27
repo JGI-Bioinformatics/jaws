@@ -1,4 +1,4 @@
-from jaws_central import models_sa as models
+from jaws_central import models
 
 
 class User:

@@ -2,8 +2,9 @@ import logging
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
 import secrets
-from jaws_central.models_fsa import db, User
 import re
+from jaws_central.flask_db import db
+from jaws_central.models import User
 import requests
 import json
 

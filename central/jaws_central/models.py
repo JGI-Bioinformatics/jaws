@@ -1,5 +1,3 @@
-"""Vanilla Sqlalchemy ORM models, used by rpc_operations"""
-
 import datetime
 from sqlalchemy import (
     Column,
@@ -9,7 +7,7 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
 )
-from jaws_central.database import Base
+from jaws_central.db import Base
 
 
 def same_as(column_name: str):

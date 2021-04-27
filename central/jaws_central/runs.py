@@ -12,9 +12,7 @@ from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
 from jaws_central.user import User
-
-# from jaws_central.models_fsa import Run, User
-from jaws_central import models_fsa as models
+from jaws_central import models
 
 
 logger = logging.getLogger(__package__)
@@ -329,30 +327,40 @@ class Run:
     def _submission_failed(self, reason):
         """Cancel upload and update run status"""
         globus.cancel_transfer(self.model.upload_task_id)
-        self._update_run_status("submission failed", reason)
+        self._update_status("submission failed", reason)
 
-    def _update_run_status(self, new_status, reason=None):
+
+    def update_status(self, status_from: str, status_to: str, timestamp: datetime.utcnow(), reason: str, **kwargs) -> None:
+
+        if self.status == status_to:
+            # ignore redundant state change (i.e. duplicate message)
+            logger.warn(f"Ignoring duplicate run state change for run {self.model.run_id} to {status_to}")
+            return
+
+        self._update_status(status_to, timestamp, reason)
+
+        # each transition is also recorded in the Run Log
+        run_log = Run_Log(self.session, self.model.run_id)
+        run_log.add_log(status_from, status_to, timestamp, reason)
+
+    def _update_status(self, new_status, timestamp, reason, **kwargs):
         """Update run table and insert run_logs entry."""
         status_from = self.model.status
         self.model.status = new_status
+        self.model.updated = timestamp
+        if status_to == "submitted":
+            self.model.cromwell_run_id = kwargs["cromwell_run_id"]
+        elif status_to == "downloading":
+            self.model.download_task_id = kwargs["download_task_id"]
+        elif status_to == "succeeded":
+            self.model.result = "succeeded"
+        elif status_to == "failed":
+            self.model.result == "failed"
         try:
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(f"Error updating run status in db: {error}")
-        log = RunLog(
-            run_id=self.id,
-            status_from=status_from,
-            status_to=new_status,
-            timestamp=self.model.updated,
-            reason=reason,
-        )
-        try:
-            self.session.add(log)
-            self.session.commit()
-        except SQLAlchemyError as error:
-            self.session.rollback()
-            logger.error(f"Error insert run log entry: {error}")
 
     @property
     def pre_cromwell(self):
