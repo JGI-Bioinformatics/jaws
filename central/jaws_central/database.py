@@ -3,6 +3,7 @@ from urllib.parse import quote_plus
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import TimeoutError
 from jaws_central import config
 
 
@@ -19,7 +20,7 @@ url = "%s://%s:%s@%s:%s/%s" % (
     params.get("db"))
 try:
     engine = create_engine(url, pool_size=5, max_overflow=10, pool_recycle=3600, pool_timeout=30, pool_pre_ping=True)
-except Exception as error:
+except TimeoutError as error:
     logger.exception(error)
     raise
 

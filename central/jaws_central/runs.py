@@ -164,7 +164,7 @@ class Run:
             raise
         try:
             self.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             err_msg = f"Unable to insert new run in db: {error}"
             logger.exception(err_msg)
@@ -210,14 +210,14 @@ class Run:
         # TODO: Think of a better way to do this
         try:
             self.model.output_dir = virtual_output_path
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             err_msg = f"Unable to update output_dir in db: {error}"
             logger.exception(err_msg)
             abort(500, err_msg)
         try:
             self.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             err_msg = f"Unable to update output_dir in db: {error}"
             logger.exception(err_msg)
@@ -280,12 +280,12 @@ class Run:
         )
         try:
             self.session.add(log)
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(f"Error inserting run log for Run {self.id}: {error}")
         try:
             self.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             err_msg = f"Error inserting run log for Run {self.id}: {error}"
             logger.exception(err_msg)
@@ -337,7 +337,7 @@ class Run:
         self.model.status = new_status
         try:
             self.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(f"Error updating run status in db: {error}")
         log = RunLog(
@@ -350,7 +350,7 @@ class Run:
         try:
             self.session.add(log)
             self.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             logger.error(f"Error insert run log entry: {error}")
 
@@ -503,7 +503,7 @@ class Run:
         self.model.result = "cancelled"
         try:
             self.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(f"Error while updating run to 'cancelled': {error}")
         log = RunLog(self.id)
@@ -548,7 +548,7 @@ class RunLog:
         try:
             self.session.add(log_entry)
             self.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             logger.error(
                 f"Error while adding run log entry to cancel run {self.id}: {error}"

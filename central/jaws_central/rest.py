@@ -1,5 +1,5 @@
 """
-JAWS-Central REST endpoints.
+JAWS-Central REST interface; also see swagger.rest.yml
 """
 
 import logging
@@ -27,19 +27,11 @@ def list_sites(user):
 
     :param user: current user's ID
     :type user: str
-    :return: list of valid Site IDs
-    :rtype: list
+    :return: available sites and max ram of each
+    :rtype: dict
     """
     logger.info(f"User {user}: List sites")
-    result = []
-    for site_id in config.conf.sites.keys():
-        max_ram_gb = config.conf.get_site(site_id, "max_ram_gb")
-        record = {
-            "site_id": site_id,
-            "max_ram_gb": max_ram_gb,
-        }
-        result.append(record)
-    return result, 200
+    return config.conf.available_sites(), 200
 
 
 def get_site(user, site_id):
@@ -53,11 +45,11 @@ def get_site(user, site_id):
     :rtype: dict
     """
     logger.debug(f"User {user}: Get info for site {site_id}")
-    result = config.conf.get_site_info(site_id)
-    if result is None:
+    site_info = config.conf.get_site_info(site_id)
+    if site_info is None:
         abort(404, f'Unknown Site ID; "{site_id}" is not one of our sites')
-    result["uploads_dir"] = f'{result["uploads_dir"]}/{user}'
-    return result, 200
+    site_info["uploads_dir"] = f'{site_info["uploads_dir"]}/{user}'
+    return site_info, 200
 
 
 def submit_run(user):
@@ -86,12 +78,12 @@ def submit_run(user):
         logger.error(error)
         abort(500, f"Db error; {error}")
     logger.debug(f"User {user}: New run {run.id} to {run.model.site_id}")
-    result = {
+    run_submission = {
         "run_id": run.id,
         "site_id": run.model.site_id,
         "tag": run.model.tag,
     }
-    return result, 201
+    return run_submission, 201
 
 
 def run_status(user, run_id):
@@ -113,8 +105,8 @@ def run_status(user, run_id):
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
-    result = {"run_id": run_id, "status": run.status}
-    return result, 200
+    current_status = {"run_id": run_id, "status": run.status}
+    return current_status, 200
 
 
 def task_status(user, run_id):
@@ -200,13 +192,13 @@ def run_metadata(user, run_id):
     logger.info(f"User {user}: Get metadata for Run {run_id}")
     try:
         run = Run(db.session, user, run_id=run_id)
-        metadata = run.metadata()
+        cromwell_metadata = run.metadata()
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
-    return metadata, 200
+    return cromwell_metadata, 200
 
 
 def get_errors(user, run_id):
@@ -223,13 +215,13 @@ def get_errors(user, run_id):
     logger.info(f"User {user}: Get errors for Run {run_id}")
     try:
         run = Run(db.session, user, run_id=run_id)
-        result = run.errors()
+        errors_report = run.errors()
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
-    return result, 200
+    return errors_report, 200
 
 
 def cancel_run(user, run_id):
@@ -247,12 +239,12 @@ def cancel_run(user, run_id):
     try:
         run = Run(db.session, user, run_id=run_id)
         run.cancel()
-        return {"cancel": "OK"}, 201
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
     except RunNotFoundError as error:
         abort(404, f"Run {run_id}: {error}")
+    return {"cancel": "OK"}, 201
 
 
 def cancel_all(user):
@@ -261,13 +253,13 @@ def cancel_all(user):
 
     :param user: current user's ID
     :type user: str
-    :return: run ids and results
+    :return: runs that were cancelled
     :rtype: dict
     """
     logger.info(f"User {user}: Cancel-all")
     try:
-        result = runs.cancel_all(db.session, user)
-        return result, 201
+        runs_cancelled = runs.cancel_all(db.session, user)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, f"Db error; {error}")
+    return runs_cancelled, 201

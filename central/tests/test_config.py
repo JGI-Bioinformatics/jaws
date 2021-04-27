@@ -85,3 +85,17 @@ def test_config_overwrite_partial_values(partial_config):
 
     check_section("DB", expected_db_sections, cfg)
     check_section("GLOBUS", expected_globus_sections, cfg)
+
+
+def test_available_sites(configuration):
+    config_path = configuration
+    config = jaws_central.config.Configuration(config_path)
+    result = config.available_sites()
+    expected_sites = ["JGI", "NERSC"]
+    assert isinstance(result, dict)
+    for site_id in result:
+        assert site_id in expected_sites
+        assert isinstance(result[site_id], dict)
+        assert "max_ram_gb" in result[site_id]
+
+

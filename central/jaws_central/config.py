@@ -77,7 +77,7 @@ class Configuration(metaclass=Singleton):
         self.config.read_dict(self.defaults)
         try:
             self.config.read(config_file)
-        except Exception as error:
+        except configparser.ParsingError as error:
             logger.exception(f"Unable to load config file {config_file}: {error}")
             raise
 
@@ -210,3 +210,13 @@ class Configuration(metaclass=Singleton):
         for site_id in self.sites:
             sites[site_id] = self.get_site_rpc_params(site_id)
         return sites
+
+    def available_sites(self) -> Dict[str, Dict]:
+        """Return dict of available sites and their maximum available RAM"""
+        site_info = {}
+        for site_id in self.sites.keys():
+            max_ram_gb = self.get_site(site_id, "max_ram_gb")
+            site_info[site_id] = {
+                "max_ram_gb": max_ram_gb,
+            }
+        return site_info

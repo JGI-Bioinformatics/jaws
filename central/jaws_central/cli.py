@@ -9,6 +9,7 @@ import connexion
 from flask_cors import CORS
 from urllib.parse import quote_plus
 from sqlalchemy.pool import QueuePool
+from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config, log
 from jaws_central.models_fsa import db
 from jaws_rpc import rpc_index, rpc_server
@@ -72,7 +73,7 @@ def auth() -> None:
         try:
             db.create_all()
             db.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             db.session.rollback()
             logger.exception(f"Failed to create tables: {error}")
             raise
@@ -127,7 +128,7 @@ def rest() -> None:
         try:
             db.create_all()
             db.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             db.session.rollback()
             logger.exception(f"Failed to create tables: {error}")
             raise

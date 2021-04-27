@@ -61,7 +61,7 @@ def _rmq_server_status(params):
                 virtual_host=params["vhost"],
             ) as connection:
                 connection.check_for_errors()
-        except Exception:
+        except amqpstorm.AMQPConnectionError:
             return "DOWN"
     else:
         try:
@@ -69,6 +69,6 @@ def _rmq_server_status(params):
                 params["host"], params["user"], params["password"]
             ) as connection:
                 connection.check_for_errors()
-        except Exception:
+        except amqpstorm.AMQPConnectionError:
             return "DOWN"
     return "UP"
