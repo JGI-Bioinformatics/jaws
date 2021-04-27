@@ -17,12 +17,12 @@ check_tries = 50  # try this many times when waiting for a JAWS run to complete.
 check_sleep = 30  # wait for this amount of time between tries.
 
 
-def test_json_file_does_not_exist(env, test_dir, site):
+def test_json_file_does_not_exist(env, dir, site):
     # TESTCASE-4
     # Submit job with path to json file that does not exist
     # Can't use submission_utils submit_wdl function here because it exits if submission not successful
-    wdl = os.path.join(test_dir, "WDLs/fq_count.wdl")
-    inputs = os.path.join(test_dir, "./FileDoesNotExist.json")
+    wdl = os.path.join(dir, "WDLs/fq_count.wdl")
+    inputs = os.path.join(dir, "./FileDoesNotExist.json")
 
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
     submit_cmd = "jaws run submit %s %s %s" % (wdl, inputs, site)
@@ -77,8 +77,11 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
     util.wait_for_run(run_id, env, check_tries, check_sleep)
 
     # check for the correct error message
-    # TODO - figure out where the cromwell error message is displayed
-    assert "fq_count.fastq_file not found" in e
+    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
+    errors_cmd = "jaws run errors %s" % (run_id)
+    cmd = source_cmd + errors_cmd
+    (r, o, e) = util.run(cmd)
+    assert "Required workflow input 'fq_count.fastq_file' not specified" in o
 
 
 def test_bad_input_file_permissions_msg(env, dir, site):
