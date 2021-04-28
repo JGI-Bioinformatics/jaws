@@ -358,7 +358,6 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     except workflow.WdlError as error:
         raise SystemExit(error)
     max_ram_gb = wdl.max_ram_gb
-    click.echo("Maximum RAM requested was {max_ram_gb} GB")
     if max_ram_gb > compute_max_ram_gb:
         raise SystemExit(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
@@ -436,6 +435,8 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     url = f'{config.get("JAWS", "url")}/run'
     logger.debug(f"Submitting run: {data}")
     result = _request("POST", url, data, files)
+    result["max_ram_gb"] = max_ram_gb
+    del result["output_dir"]
     _print_json(result)
 
 
