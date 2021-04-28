@@ -74,7 +74,7 @@ def health() -> None:
     if r.status_code != 200:
         raise SystemExit(r.text)
     result = r.json()
-    print(json.dumps(result, indent=4, sort_keys=True))
+    _print_json(result)
 
 
 @main.command()
@@ -88,7 +88,7 @@ def info() -> None:
     if r.status_code != 200:
         raise SystemExit(r.text)
     result = r.json()
-    print(json.dumps(result, indent=4, sort_keys=True))
+    _print_json(result)
 
 
 @main.command()
@@ -139,7 +139,7 @@ def _request(rest_op, url, data={}, files={}):
 
 
 def _print_json(j):
-    print(json.dumps(j, indent=4, sort_keys=True))
+    click.echo(json.dumps(j, indent=4, sort_keys=True))
 
 
 @main.command()
@@ -211,13 +211,13 @@ def task_status(run_id: int, fmt: str) -> None:
     if fmt == "json":
         _print_json(result)
     else:
-        print(
+        click.echo(
             "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
         for row in result:
             row[2] = str(row[2])
             row[3] = str(row[3])
-            print("\t".join(row))
+            click.echo("\t".join(row))
 
 
 @main.command()
@@ -241,9 +241,9 @@ def log(run_id: int, fmt: str) -> None:
     if fmt == "json":
         _print_json(result)
     else:
-        print("#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON")
+        click.echo("#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON")
         for log_entry in result:
-            print("\t".join(log_entry))
+            click.echo("\t".join(log_entry))
 
 
 @main.command()
@@ -257,13 +257,13 @@ def task_log(run_id: int, fmt: str) -> None:
     if fmt == "json":
         _print_json(result)
     else:
-        print(
+        click.echo(
             "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
         for row in result:
             row[2] = str(row[2])
             row[3] = str(row[3])
-            print("\t".join(row))
+            click.echo("\t".join(row))
 
 
 @main.command()
@@ -278,9 +278,9 @@ def errors(run_id: int, fmt: str) -> None:
         _print_json(result)
     else:
         for task_name in result:
-            print(f"{task_name}:")
-            print(result[task_name])
-            print("\n")
+            click.echo(f"{task_name}:")
+            click.echo(result[task_name])
+            click.echo("\n")
 
 
 @main.command()
@@ -306,9 +306,7 @@ def _list_sites() -> None:
 
     url = f'{config.get("JAWS", "url")}/site'
     result = _request("GET", url)
-    print("Available Sites:")
-    for a_site_id in result:
-        print(f"  - {a_site_id}")
+    _print_json(result)
 
 
 @main.command()
@@ -360,6 +358,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     except workflow.WdlError as error:
         raise SystemExit(error)
     max_ram_gb = wdl.max_ram_gb
+    click.echo("Maximum RAM requested was {max_ram_gb} GB")
     if max_ram_gb > compute_max_ram_gb:
         raise SystemExit(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
@@ -437,11 +436,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     url = f'{config.get("JAWS", "url")}/run'
     logger.debug(f"Submitting run: {data}")
     result = _request("POST", url, data, files)
-    if "run_id" not in result:
-        raise SystemExit(f"Run submission failed: {result}")
-    run_id = result["run_id"]
-    logger.info(f"Submitted run {run_id}: {data}")
-    print(f"Submitted run {run_id}")
+    _print_json(result)
 
 
 @main.command()
@@ -456,7 +451,7 @@ def inputs(wdl_file: str) -> None:
     stdout, stderr = workflow.womtool("inputs", wdl_file)
     if stderr:
         raise SystemExit(stderr)
-    print(stdout.strip())
+    click.echo(stdout.strip())
 
 
 @main.command()
@@ -472,7 +467,7 @@ def validate(wdl_file: str) -> None:
     if stderr:
         raise SystemExit(stderr)
     else:
-        print("Workflow is OK")
+        click.echo("Workflow is OK")
 
 
 @main.command()
