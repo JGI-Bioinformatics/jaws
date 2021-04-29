@@ -117,7 +117,7 @@ class Configuration:
             user_config.read(user_config_file)
         except configparser.Error as error:
             logger.exception(f"Invalid config file, {user_config_file}: {error}")
-            raise SystemExit(f"Invalid config file, {user_config_file}: {error}")
+            raise ConfigurationError(f"Invalid config file, {user_config_file}: {error}")
         for section in self.required_user_params:
             self.config[section] = {}
             if section not in user_config:

@@ -2,6 +2,7 @@
 JAWS CLI
 """
 
+import sys
 import click
 import os
 import requests
@@ -70,9 +71,9 @@ def health() -> None:
     try:
         r = requests.get(url)
     except requests.exceptions.RequestException:
-        raise SystemExit("JAWS Central is DOWN")
+        sys.exit("JAWS Central is DOWN")
     if r.status_code != 200:
-        raise SystemExit(r.text)
+        sys.exit(r.text)
     result = r.json()
     _print_json(result)
 
@@ -84,9 +85,9 @@ def info() -> None:
     try:
         r = requests.get(url)
     except requests.exceptions.RequestException:
-        raise SystemExit("JAWS Central is DOWN")
+        sys.exit("JAWS Central is DOWN")
     if r.status_code != 200:
-        raise SystemExit(r.text)
+        sys.exit(r.text)
     result = r.json()
     _print_json(result)
 
@@ -104,7 +105,7 @@ def _request(rest_op, url, data={}, files={}):
     """Perform specified REST operation.  A JSON response is expected."""
     access_token = config.get("USER", "token")
     if not access_token:
-        raise SystemExit("User access token required; contact an admin to get yours.")
+        sys.exit("User access token required; contact an admin to get yours.")
     header = {"Authorization": f"Bearer {access_token}"}
     response = None
     try:
@@ -115,26 +116,26 @@ def _request(rest_op, url, data={}, files={}):
         elif rest_op == "POST":
             response = requests.post(url, data=data, files=files, headers=header)
         else:
-            raise ValueError(f"Unsupported REST request type: {rest_op}")
+            sys.exit(f"Unsupported REST request type: {rest_op}")
     except requests.exceptions.Timeout as err:
-        raise SystemExit("Unable to communicate with JAWS server (timeout)", err)
+        sys.exit("Unable to communicate with JAWS server (timeout)", err)
     except requests.exceptions.TooManyRedirects as err:
-        raise SystemExit(
+        sys.exit(
             "Unable to communicate with JAWS server (too many redirects; bad url?)", err
         )
     except requests.exceptions.HTTPError as err:
-        raise SystemExit("Unable to communicate with JAWS server (http error)", err)
+        sys.exit("Unable to communicate with JAWS server (http error)", err)
     except requests.exceptions.RequestException as err:
-        raise SystemExit("Unable to communicate with JAWS server", err)
+        sys.exit("Unable to communicate with JAWS server", err)
     if response.status_code < 200 or response.status_code > 299:
         try:
             result = response.json()
         except Exception:
-            raise SystemExit(response.text)
+            sys.exit(response.text)
         if "error" in result:
-            raise SystemExit(result["error"])
+            sys.exit(result["error"])
         else:
-            raise SystemExit(result)
+            sys.exit(result)
     return response.json()
 
 
@@ -170,7 +171,7 @@ def queue(site: str) -> None:
 def history(days: int, site: str, result: str) -> None:
     """Print a list of the user's past runs."""
     if days < 1:
-        raise SystemExit("User error: --days must be a positive integer")
+        sys.exit("User error: --days must be a positive integer")
     if site:
         site = site.upper()
     data = {
@@ -352,14 +353,14 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     try:
         wdl = workflow.WdlFile(wdl_file, submission_id)
     except workflow.WdlError as error:
-        raise SystemExit(f"There is a problem with your workflow:\n{error}")
+        sys.exit(f"There is a problem with your workflow:\n{error}")
     try:
         wdl.validate()
     except workflow.WdlError as error:
-        raise SystemExit(error)
+        sys.exit(error)
     max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
-        raise SystemExit(
+        sys.exit(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
         )
 
@@ -367,13 +368,13 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     try:
         staged_wdl, zip_file = wdl.compress_wdls(local_staging_endpoint)
     except IOError as error:
-        raise SystemExit(f"Unable to copy WDLs to inputs dir: {error}")
+        sys.exit(f"Unable to copy WDLs to inputs dir: {error}")
 
     # VALIDATE INPUTS JSON
     try:
         inputs_json = workflow.WorkflowInputs(json_file, submission_id)
     except json.JSONDecodeError as error:
-        raise SystemExit(f"Your file, {json_file}, is not a valid JSON file: {error}")
+        sys.exit(f"Your file, {json_file}, is not a valid JSON file: {error}")
 
     staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
     site_subdir = workflow.join_path(local_staging_endpoint, input_site_id)
@@ -395,11 +396,11 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     try:
         shutil.copy(json_file, orig_json)
     except IOError as error:
-        raise SystemExit(f"Error copying JSON to {orig_json}: {error}")
+        sys.exit(f"Error copying JSON to {orig_json}: {error}")
     try:
         os.chmod(orig_json, 0o0664)
     except PermissionError as error:
-        raise SystemExit(f"Unable to chmod {orig_json}: {error}")
+        sys.exit(f"Unable to chmod {orig_json}: {error}")
 
     # turning off call-caching requires a Cromwell options json file be created
     options_json_file = None
@@ -448,10 +449,10 @@ def inputs(wdl_file: str) -> None:
     from jaws_client import workflow
 
     if not os.path.isfile(wdl_file):
-        raise IOError(f"File not found: {wdl_file}")
+        sys.exit(f"File not found: {wdl_file}")
     stdout, stderr = workflow.womtool("inputs", wdl_file)
     if stderr:
-        raise SystemExit(stderr)
+        sys.exit(stderr)
     click.echo(stdout.strip())
 
 
@@ -463,10 +464,10 @@ def validate(wdl_file: str) -> None:
     from jaws_client import workflow
 
     if not os.path.isfile(wdl_file):
-        raise IOError(f"File not found: {wdl_file}")
+        sys.exit(f"File not found: {wdl_file}")
     stdout, stderr = workflow.womtool("inputs", wdl_file)
     if stderr:
-        raise SystemExit(stderr)
+        sys.exit(stderr)
     else:
         click.echo("Workflow is OK")
 
@@ -484,13 +485,13 @@ def get(run_id: int, dest: str) -> None:
     src = result["output_dir"]
 
     if status != "download complete":
-        raise SystemExit(
+        sys.exit(
             f"Run {run_id} output is not yet available; status is {status}"
         )
 
     if src is None:
         logger.error(f"Run {run_id} doesn't have an output_dir defined")
-        raise SystemExit(f"Run {run_id} doesn't have an output_dir defined")
+        sys.exit(f"Run {run_id} doesn't have an output_dir defined")
 
     try:
         result = workflow.rsync(
@@ -505,10 +506,10 @@ def get(run_id: int, dest: str) -> None:
         )
     except IOError as error:
         logger.error(f"Rsync output failed for run {run_id}: {error}")
-        raise SystemExit(f"Error getting output for run {run_id}: {error}")
+        sys.exit(f"Error getting output for run {run_id}: {error}")
     if result.returncode != 0:
         err_msg = f"Failed to rsync {src}->{dest}: {result.stdout}; {result.stderr}"
-        raise SystemExit(err_msg)
+        sys.exit(err_msg)
 
 
 @main.command()
