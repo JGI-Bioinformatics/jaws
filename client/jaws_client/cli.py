@@ -320,6 +320,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     Available sites can be found by running 'jaws run list-sites'.
     """
     from jaws_client import workflow
+    from jaws_client.workflow import WdlError, WorkflowInputsError
 
     wdl_file = os.path.abspath(wdl_file)
     json_file = os.path.abspath(json_file)
@@ -348,13 +349,10 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     submission_id = str(uuid.uuid4())
     try:
         wdl = workflow.WdlFile(wdl_file, submission_id)
-    except workflow.WdlError as error:
-        sys.exit(f"There is a problem with your workflow:\n{error}")
-    try:
         wdl.validate()
-    except workflow.WdlError as error:
+        max_ram_gb = wdl.max_ram_gb
+    except WdlError as error:
         sys.exit(error)
-    max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
         sys.exit(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
@@ -369,7 +367,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     # VALIDATE INPUTS JSON
     try:
         inputs_json = workflow.WorkflowInputs(json_file, submission_id)
-    except json.JSONDecodeError as error:
+    except WorkflowInputsError as error:
         sys.exit(f"Your file, {json_file}, is not a valid JSON file: {error}")
 
     staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
@@ -381,7 +379,10 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
 
     # copy infiles in inputs json to site's inputs dir so they may be read by jaws user and
     # transferred to the compute site via globus
-    moved_files = inputs_json.move_input_files(site_subdir)
+    try:
+        moved_files = inputs_json.move_input_files(site_subdir)
+    except WorkflowInputsError as error:
+        sys.exit(error)
 
     # the paths in the inputs json file are changed to their paths at the compute site
     modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)

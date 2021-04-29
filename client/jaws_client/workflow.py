@@ -406,9 +406,12 @@ class WorkflowInputs:
         self.submission_id = submission_id
         self.inputs_location = os.path.abspath(inputs_loc)
         self.basedir = os.path.dirname(self.inputs_location)
-        inputs_json = (
-            json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
-        )
+        try:
+            inputs_json = (
+                json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
+            )
+        except json.JSONDecodeError as error:
+            raise WorkflowInputsError(error)
         self.inputs_json = {}
         self.src_file_inputs = set()
         for k in inputs_json:
@@ -463,16 +466,16 @@ class WorkflowInputs:
             try:
                 result = rsync(original_path, dest, rsync_params,)
             except OSError as error:
-                raise (f"rsync executable not found: {error}")
+                raise WorkflowInputsError(f"rsync executable not found: {error}")
             except ValueError as error:
-                raise (
+                raise WorkflowInputsError(
                     f"Invalid rsync options, {rsync_params}, for {original_path}->{dest}: {error}"
                 )
             if result.returncode != 0:
                 err_msg = (
                     f"Failed to rsync {original_path}: {result.stdout}; {result.stderr}"
                 )
-                raise IOError(err_msg)
+                raise WorkflowInputsError(err_msg)
 
         return moved_files
 
@@ -559,15 +562,12 @@ class Manifest:
 
 
 class WorkflowError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+    pass
 
 
-class WdlError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+class WdlError(WorkflowError):
+    pass
 
 
-class WorkflowInputsError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+class WorkflowInputsError(WorkflowError):
+    pass
