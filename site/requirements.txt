@@ -3,7 +3,7 @@ amqpstorm==2.7.2
 certifi==2019.11.28
 cffi==1.13.2
 chardet==3.0.4
-Click==7.0
+Click==7.1.2
 configobj==5.0.6
 configparser==4.0.2
 cryptography==2.8
