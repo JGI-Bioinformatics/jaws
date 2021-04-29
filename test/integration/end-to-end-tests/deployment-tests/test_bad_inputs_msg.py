@@ -81,6 +81,9 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
     errors_cmd = "jaws run errors %s" % (run_id)
     cmd = source_cmd + errors_cmd
     (r, o, e) = util.run(cmd)
+
+    # in 2.2 this error is seen in the metadata
+    # I think that in 2.3 the error should also be displayed by the error command output
     assert "Required workflow input 'fq_count.fastq_file' not specified" in o
 
 
