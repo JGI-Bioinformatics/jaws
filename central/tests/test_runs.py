@@ -1,9 +1,7 @@
 import pytest
-import globus_sdk
 from datetime import datetime
 
-import jaws_central.analysis
-import jaws_central.models_fsa
+import jaws_central.runs
 import jaws_central.config
 import jaws_central.globus
 
