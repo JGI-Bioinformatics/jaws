@@ -321,6 +321,9 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     """
     from jaws_client import workflow
 
+    wdl_file = os.path.abspath(wdl_file)
+    json_file = os.path.abspath(json_file)
+
     # the users' jaws id may not match the linux uid where the client is installed
     url = f'{config.get("JAWS", "url")}/user'
     result = _request("GET", url)
