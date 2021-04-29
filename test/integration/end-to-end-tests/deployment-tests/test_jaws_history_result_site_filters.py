@@ -3,9 +3,7 @@ import pytest
 import json
 import submission_utils as util
 
-#########################
-###     Functions     ###
-#########################
+
 def test_jaws_history_site_filter(env, site):
     """
     jaws history --site [CORI, JGI, CASCADE]
@@ -14,8 +12,9 @@ def test_jaws_history_site_filter(env, site):
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
 
-    for d in data:
-        assert d["site_id"] == site
+    if data:
+        for d in data:
+            assert d["site_id"] == site
 
 
 def test_jaws_history_result_filter(env):
@@ -28,7 +27,7 @@ def test_jaws_history_result_filter(env):
         (r, o, e) = util.run(cmd)
         data = json.loads(o)
 
-        # result = succeeded
-        for d in data:
-            assert d["result"] == k
+        if data:
+            for d in data:
+                assert d["result"] == k
 
