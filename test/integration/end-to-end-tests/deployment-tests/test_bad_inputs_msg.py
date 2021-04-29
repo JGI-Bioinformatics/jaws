@@ -59,7 +59,7 @@ def test_json_bad_path_to_input_file_msg(env, dir, site):
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
-    assert "UserWarning: Input path not found:" in e
+    assert "Input path not found:" in e
 
 
 def test_misspelled_variable_in_input_file_msg(env, dir, site):
