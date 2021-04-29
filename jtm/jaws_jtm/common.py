@@ -64,7 +64,7 @@ def setup_custom_logger(
             datetime_str = worker_id + '_' + datetime_str
 
         assert log_dest_dir
-        worker_log_dir_name = os.path.join(log_dest_dir, "worker")
+        worker_log_dir_name = log_dest_dir
 
         make_dir(worker_log_dir_name)
         try:
