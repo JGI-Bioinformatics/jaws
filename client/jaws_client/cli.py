@@ -269,19 +269,12 @@ def task_log(run_id: int, fmt: str) -> None:
 
 @main.command()
 @click.argument("run_id")
-@click.option("--fmt", default="text", help="the desired output format: [text|json]")
-def errors(run_id: int, fmt: str) -> None:
+def errors(run_id: int) -> None:
     """View error messages and stderr for failed Tasks."""
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/errors'
-    result = _request("GET", url)
-    if fmt == "json":
-        _print_json(result)
-    else:
-        for task_name in result:
-            click.echo(f"{task_name}:")
-            click.echo(result[task_name])
-            click.echo("\n")
+    errors_report = _request("GET", url)
+    _print_json(errors_report)
 
 
 @main.command()

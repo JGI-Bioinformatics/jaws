@@ -359,7 +359,7 @@ def _select_task_log_error_messages(session, cromwell_job_id: str) -> list:
             session.query(Job_Log)
             .filter_by(cromwell_job_id=cromwell_job_id)
             .filter(Job_Log.reason.isnot(None))
-            .filter(Job_Log.reason.isnot(""))
+            .filter(Job_Log.reason != "")
             .all()
         )
     except SQLAlchemyError as error:
