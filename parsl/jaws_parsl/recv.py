@@ -3,6 +3,7 @@ import datetime
 import logging
 import time
 import os
+import re
 import json
 from functools import partial
 
@@ -25,7 +26,19 @@ cpus = 0
 mem = ''
 
 
-def on_task_callback(task_id, future):
+def get_cromwell_run_id(msg_cmd):
+    cromwell_id_regex = r"[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}"
+    try:
+        srch = re.search(cromwell_id_regex, msg_cmd)
+        run_id = srch.group()
+        logger.debug(f"[Cromwell Run ID: {run_id}")
+    except Exception as e:
+        logger.exception(f"Failed to get Cromwell run ID for task: {e}")
+        raise
+    return run_id
+
+
+def on_task_callback(task_id, run_id, future):
     logger.debug(f"[Task:{task_id}] Received callback")
     global G_UPDATES_CHANNEL
 
@@ -34,10 +47,12 @@ def on_task_callback(task_id, future):
     except Exception as e:
         logger.exception(f"[Task:{task_id}] failed with exception : {e}")
         G_UPDATES_CHANNEL.push_task_status(task_id, 'FAILED')
+        update_site('LAUNCHED', 'FAILED', task_id, run_id)
     else:
         logger.info(f"[Task:{task_id}] completed successfully")
         logger.info(f"Result: {result}")
         G_UPDATES_CHANNEL.push_task_status(task_id, 'COMPLETED')
+        update_site('LAUNCHED', 'COMPLETED', task_id, run_id)
 
 
 def on_message_callback(ch, method, properties, body):
@@ -90,21 +105,21 @@ def on_message_callback(ch, method, properties, body):
                              'received_at': time.time(),
                              'completed_at': None}
 
-    future.add_done_callback(partial(on_task_callback, task_id))
-
-    update_site('LAUNCHED', task_id)
+    run_id = get_cromwell_run_id(message['command'])
+    future.add_done_callback(partial(on_task_callback, task_id, run_id))
+    update_site('', 'LAUNCHED', task_id, run_id)
 
     logger.debug("Done")
 
 
-def update_site(status, task_id):
+def update_site(status_from, status_to, task_id, run_id):
     global rpc_params
     now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     data = {
-        "cromwell_run_id": "",  # not needed w/Parsl backend
+        "cromwell_run_id": run_id,
         "cromwell_job_id": task_id,
-        "status_from": "",
-        "status_to": status,
+        "status_from": status_from,
+        "status_to": status_to,
         "timestamp": now,
     }
 
