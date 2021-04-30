@@ -320,6 +320,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     Available sites can be found by running 'jaws run list-sites'.
     """
     from jaws_client import workflow
+    from jaws_client.workflow import WdlError
 
     wdl_file = os.path.abspath(wdl_file)
     json_file = os.path.abspath(json_file)
@@ -348,13 +349,10 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     submission_id = str(uuid.uuid4())
     try:
         wdl = workflow.WdlFile(wdl_file, submission_id)
-    except workflow.WdlError as error:
-        sys.exit(f"There is a problem with your workflow:\n{error}")
-    try:
         wdl.validate()
-    except workflow.WdlError as error:
+        max_ram_gb = wdl.max_ram_gb
+    except WdlError as error:
         sys.exit(error)
-    max_ram_gb = wdl.max_ram_gb
     if max_ram_gb > compute_max_ram_gb:
         sys.exit(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
