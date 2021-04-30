@@ -41,12 +41,12 @@ def test_should_fail_status(env,submit_bad_task):
     """
 
     # test status
-    id = str(submit_bad_task['run_id'])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,id)
+    run_id = str(submit_bad_task['run_id'])
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     data = json.loads(o) 
 
-    assert data["result"] == 'failed'
+    assert data["result"] == 'failed', "jaws-status should say run failed"
 
 def test_should_fail_task_status(env,submit_bad_task):
     """
@@ -101,7 +101,7 @@ def test_should_fail_log(env,submit_bad_task):
         if line: 
             a.append(line.split()[1])
     
-    assert 'failed' in a
+    assert 'failed' in a, "jaws-log should say run failed"
 
 def test_invalid_site(env,site):
     """
@@ -112,19 +112,21 @@ def test_invalid_site(env,site):
     - {'max_ram_gb': '2048', 'site_id': 'CORI'}
     - {'max_ram_gb': '250', 'site_id': 'JGI'}
 
+    example error output 
+    {'detail': {'error': 'Unknown Site ID; "BOSUG" is not one of our sites'}, 'status': 404, 'title': 'Not Found', 'type': 'about:blank'}
     """
 
     wdl="WDLs/fq_count.wdl"
     input_json="test-inputs/fq_count.json"
     outdir="./should-fail"
 
-    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws submit %s %s %s" % (env, wdl, input_json, "bogus")
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws submit --no-cache %s %s %s" % (env, wdl, input_json, "bogus")
     output = Popen(cmd, stdout=PIPE,
              stderr=PIPE, shell=True,
              universal_newlines=True)
 
     stdout,stderr=output.communicate()
-    assert 'BOGUS is not a valid Site ID' in stdout
+    assert 'Unknown Site ID; "BOGUS"' in stderr, "bogus is not an acceptable site, run should fail"
 
 def test_invalid_docker_a(env,submit_bad_docker):
     """
@@ -136,7 +138,7 @@ def test_invalid_docker_a(env,submit_bad_docker):
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws log %s" % (env,id)
     (r,o,e) = util.run(cmd)
 
-    assert 'failed' in o
+    assert 'failed' in o, "jaws-log should say run failed"
 
 def test_invalid_docker_b(env,submit_bad_docker):
     """
@@ -156,5 +158,5 @@ def test_invalid_docker_b(env,submit_bad_docker):
     (r,o,e) = util.run(cmd)
     data = json.loads(o) 
     error_msg = data[cromwell_id]['failures'][0]['causedBy'][0]['message']
-    assert 'docker not found' in error_msg
+    assert 'docker not found' in error_msg, "There should be a message saying docker was not found"
 

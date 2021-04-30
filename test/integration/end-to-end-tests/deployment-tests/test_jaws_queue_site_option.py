@@ -4,7 +4,7 @@ import json
 import submission_utils as util
 
 
-def test_jaws_queue_site_filter(env, site):
+def test_jaws_queue_site_filter(env, site, submit_fq_count_wdl):
     """
     jaws queue --site [CORI, JGI, CASCADE]
     """
@@ -14,6 +14,7 @@ def test_jaws_queue_site_filter(env, site):
 
     if data:
         for d in data:
-            assert d["site_id"] == site
-
+            assert d["site_id"].lower() == site
+    else:
+        pytest.exit(f"no runs were found in the queue for site: {site}")
 

@@ -58,7 +58,7 @@ def test_jaws_status(env):
     }
     """
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status" % (env)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws health" % (env)
     (r,o,e) = util.run(cmd)
     data = json.loads(o)
 
@@ -72,8 +72,7 @@ def test_jaws_status(env):
 def test_jaws_run_queue(env, submit_fq_count_wdl):
     """ tests that the jaws queue command has the run id in the stdout."""
 
-    data = submit_fq_count_wdl
-    run_id = str(data['run_id'])
+    run_id = str(submit_fq_count_wdl['run_id'])
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
     (r,o,e) = util.run(cmd)
@@ -126,7 +125,7 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
-    time.sleep(120)  # wait an additional amount of time to make sure everything is updated
+    #time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-status %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
@@ -137,7 +136,7 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     assert len(a) == 2
 
     # output line should have this string
-    assert 'fq_count.count_seqs' in a[1],
+    assert 'fq_count.count_seqs' in a[1]
 
 def test_jaws_wdl_log(env, submit_fq_count_wdl):
     """Check that the first line of jaws log returns something like this:
@@ -146,7 +145,7 @@ def test_jaws_wdl_log(env, submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
-    time.sleep(120)  # wait an additional amount of time to make sure everything is updated
+    #time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws log %s " % (env,run_id)
     (r,o,e) = util.run(cmd)
@@ -169,14 +168,14 @@ def test_jaws_wdl_task_log(env, submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
-    time.sleep(120)  # wait an aditional amount of time to make sure everything is updated
+    #time.sleep(120)  # wait an aditional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-log %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     a=o.split("\n")
     a = list(filter(None,a)) # remove empty elements
 
-    assert 'fq_count.count_seqs' in a[1],
+    assert 'fq_count.count_seqs' in a[1]
 
     # there should be 8 columns of output 
     assert len(a[1].split()) == 8
@@ -199,7 +198,11 @@ def test_wfcopy(env,dir,submit_fq_count_wdl):
         assert not r
 
     run_id = str(submit_fq_count_wdl['run_id'])
-    outdir = submit_fq_count_wdl['output_dir']
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,run_id)
+    (r,o,e) = util.run(cmd)
+    data = json.loads(o)
+    outdir = data['output_dir']
+
     util.wait_for_run(run_id,env,check_tries,check_sleep)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wfcopy --flatten %s %s" % (env,outdir,mycopy)
