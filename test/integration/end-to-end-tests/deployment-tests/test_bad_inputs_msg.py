@@ -66,9 +66,10 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
     # TESTCASE-5b
     # Submit job with json that contains a misspelled variable name
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
-
-    # Can't use  submission_utils submit_wdl here because it exits if submission not successful
     input_json = os.path.join(dir, "test-inputs/misspelled_variable.json")
+
+    # we CAN use submission utils here because this job submits successfully
+    # error isn't seen until the run fails
     data = util.submit_wdl(env, wdl, input_json, site)
 
     # wait for run to complete
