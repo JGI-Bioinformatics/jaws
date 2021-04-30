@@ -106,6 +106,29 @@ class Task:
         else:
             return None
 
+    def failure_messages(self, attempt=None):
+        """
+        Concatenate failure messages.
+        :param attempt: attempt number (first=1; default=last)
+        :type attempt: int
+        :return: error messages
+        :rtype: str
+        """
+        failures = self.failures(attempt)
+        if not failures:
+            return None
+        failure_msgs = []
+        for failure in failures:
+            a_msg = failure["message"]
+            # remove path from error message because the contents of the file will be
+            # included separately instead by error() method
+            if a_msg.startswith(
+                "Unable to start job. Check the stderr file for possible errors:"
+            ):
+                a_msg = "Unable to start job. Check the stderr for possible errors"
+            failure_msgs.append(a_msg)
+        return "\n".join(failure_msgs)
+
     def error(self, attempt=None):
         """
         Return user friendly error message plus stderr file contents.
@@ -118,15 +141,11 @@ class Task:
         if not failures:
             return None
 
-        report = {}
-
-        failure_msgs = []
-        for failure in failures:
-            msg = failure["message"]
-            failure_msgs.append(msg)
-            for cause in failure["causedBy"]:
-                failure_msgs.append(cause["message"])
-        report["failures"] = "\n".join(failure_msgs)
+        report = {
+            "failures": self.failure_messages(attempt),
+            "runtime": self.get("runtimeAttributes", attempt, ""),
+            "cromwell_job_id": self.get("jobId", attempt, None),
+        }
 
         stderr_file = self.stderr(attempt)
         if stderr_file and os.path.isfile(stderr_file):
@@ -137,11 +156,6 @@ class Task:
         if submit_stderr_file and os.path.isfile(submit_stderr_file):
             with open(submit_stderr_file, "r") as file:
                 report["stderr.submit"] = file.read()
-
-        report["runtime"] = self.get("runtimeAttributes", None, "")
-
-        cromwell_job_id = self.get("jobId", None, None)
-        report["cromwell_job_id"] = cromwell_job_id
 
         return report
 
@@ -305,16 +319,64 @@ class Metadata:
             result[task.name] = task.execution_status()
         return result
 
+    def failure_reason(self):
+        """
+        Return standard message of reason for failure, without detail.
+        If there is more than one failure, only the first is returned.
+        Example messages are:
+        - "Workflow failed" (a Task had failde)
+        - "Workflow input processing failed" (an infile was not found)
+        """
+        reason = None
+        failures = self.get("failures")
+        if failures:
+            reason = failures[0]["message"]
+        return reason
+
+    def failure_messages(self, **kwargs):
+        """
+        Concatenate the failure messages; optionally exclude those which are not of
+        type "Workflow failed", as those failures are duplicated in the Tasks.
+        :param exclude_tasks: Optional argument to exclude "Workflow failed" failures
+        :type exclude_tasks: bool
+        :return: concatenated failure message
+        :rtype: str
+        """
+        failures = self.get("failures")
+        if not failures:
+            return None
+        failure_msgs = []
+        for failure in failures:
+            if kwargs["exclude_tasks"] is True and failure["message"] == "Workflow failed":
+                next
+            for cause in failure["causedBy"]:
+                failure_msgs.append(cause["message"])
+        return "\n".join(failure_msgs)
+
     def errors(self):
         """
-        Return dict of task name to error messages, for last attempt of each task.
+        Return JSON errors report.
         """
-        result = {}
+        failures = self.get("failures")
+        if not failures:
+            return None
+        report = {}
+
+        # failure report for each failed Task; the Task object returns more than just what
+        # info Cromwell metadata has (e.g. includes contents of stderr and stderr.submit files)
         for task in self.tasks:
             an_error = task.error()
             if an_error:
-                result[task.name] = an_error
-        return result
+                report[task.name] = an_error
+
+        # Other failures (e.g. "Workflow input processing failed") may exist
+        other_failures = self.failure_messages(exclude_tasks=True)
+        if other_failures:
+            report[self.workflow_id] = {
+                "failures": other_failures,
+                "inputs": self.get("inputs"),
+            }
+        return report
 
     def task_summary(self):
         """
@@ -397,7 +459,13 @@ class Cromwell:
             raise error
         response.raise_for_status()
 
-    def submit(self, wdl_file: str, json_file: str, zip_file: str = None, options_file: str = None) -> int:
+    def submit(
+        self,
+        wdl_file: str,
+        json_file: str,
+        zip_file: str = None,
+        options_file: str = None,
+    ) -> int:
         """
         Submit a run to Cromwell.
         :param wdl_file: Path to WDL file
