@@ -347,7 +347,11 @@ class Metadata:
             return None
         failure_msgs = []
         for failure in failures:
-            if kwargs["exclude_tasks"] is True and failure["message"] == "Workflow failed":
+            if (
+                "exclude_tasks" in kwargs
+                and kwargs["exclude_tasks"] is True
+                and failure["message"] == "Workflow failed"
+            ):
                 next
             for cause in failure["causedBy"]:
                 failure_msgs.append(cause["message"])

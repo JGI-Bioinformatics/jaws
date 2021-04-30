@@ -972,6 +972,23 @@ def test_get_all_metadata():
     )
 
 
+def test_task_failure_messages():
+    crom = cromwell.Cromwell("localhost:8000")
+    metadata = crom.get_metadata(WORKFLOW_ID_EX3, METADATA[WORKFLOW_ID_EX3])
+    task = metadata.tasks[0]
+    actual_msg = task.failure_messages()
+    expected_msg = "Unable to start job. Check the stderr for possible errors"
+    assert actual_msg == expected_msg
+
+
+def test_metadata_failure_messages():
+    crom = cromwell.Cromwell("localhost:8000")
+    metadata = crom.get_metadata(WORKFLOW_ID_EX4, METADATA[WORKFLOW_ID_EX4])
+    actual_msg = metadata.failure_messages()
+    expected_msg = "Required workflow input 'fq_count.fastq_file' not specified"
+    assert actual_msg == expected_msg
+
+
 def test_get_errors():
     """Given workflow UUID, extract errors."""
 
