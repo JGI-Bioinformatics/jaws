@@ -13,11 +13,11 @@ def test_jaws_history_site_filter(env, site):
     data = json.loads(o)
 
     if data:
-      for d in data:
-          assert d["site_id"] == site
-      else:
-          print("No output from jaws history command")
-          assert 1 == 1
+        for d in data:
+            assert d["site_id"] == site
+    else:
+       print("No output from jaws history command")
+       assert 1 == 1
 
 
 def test_jaws_history_result_filter(env):
@@ -32,7 +32,7 @@ def test_jaws_history_result_filter(env):
 
         if data:
             for d in data:
-              assert d["result"] == k
+                assert d["result"] == k
         else:
             print("No output from jaws history command")
             assert 1 == 1

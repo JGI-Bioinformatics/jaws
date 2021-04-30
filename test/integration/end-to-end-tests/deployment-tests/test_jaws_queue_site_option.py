@@ -14,7 +14,7 @@ def test_jaws_queue_site_filter(env, site):
 
     if data:
         for d in data:
-          assert d["site_id"] == site
+            assert d["site_id"] == site
     else:
         print("No output from jaws queue command")
         assert 1 == 1
