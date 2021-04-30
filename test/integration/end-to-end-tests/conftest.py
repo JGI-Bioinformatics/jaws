@@ -1,20 +1,19 @@
-import os
-import json
 import pytest
-import smtplib
-import time
 import submission_utils as util
-import socket
 
-check_tries=50
-check_sleep=30
+check_tries = 50
+check_sleep = 30
 
-#@pytest.fixture(scope="session",autouse=True)
-#def test_for_all_args(request):
-#    target_dir = request.config.getoption("--dir")
-#    site = request.config.getoption("--site")
-#    if not target_dir or not site: 
-#       pytest.exit("Error: You are missing some arguments?\nUsage: pytest -n <number of tests in parallel> --capture=<[yes|no]> --verbose --dir <directory with tests> --site <[cori|jgi]> <directory or file>")
+
+# @pytest.fixture(scope="session",autouse=True)
+# def test_for_all_args(request):
+#     target_dir = request.config.getoption("--dir")
+#     site = request.config.getoption("--site")
+#     if not target_dir or not site:
+#         pytest.exit("Error: You are missing some arguments?\nUsage: \
+#         pytest -n <number of tests in parallel> --capture=<[yes|no]> --verbose --dir <directory with tests> \
+#         --site <[cori|jgi]> <directory or file>")
+
 
 @pytest.fixture(scope="session")
 def submit_fq_count_wdl(request):
@@ -39,6 +38,7 @@ def submit_fq_count_wdl(request):
     data = util.submit_wdl(env, wdl, input_json, site)
     return data
 
+
 @pytest.fixture(scope="session")
 def submit_subworkflow_alignment(request):
     # allow user to pass variables into the test functions via command line
@@ -50,11 +50,12 @@ def submit_subworkflow_alignment(request):
     input_json = target_dir + "/WDLs/jaws-alignment-example/inputs.json"
 
     data = util.submit_wdl(env, wdl, input_json, site)
-    #data = {'output_dir': '/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/JGI/6766', 'run_id': 6766, 'site_id': 'JGI', 'status': 'uploading'}
+    # data = {'output_dir': '/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/JGI/6766', \
+    # 'run_id': 6766, 'site_id': 'JGI', 'status': 'uploading'}
 
     # wait for run to complete
-    id = data['run_id']
-    util.wait_for_run(id,env,check_tries,check_sleep)
+    id = data["run_id"]
+    util.wait_for_run(id, env, check_tries, check_sleep)
     return data
 
 
@@ -80,10 +81,10 @@ def submit_bad_task(request):
     }
     """
 
-    id = data['run_id']
+    id = data["run_id"]
 
     # wait for run to complete
-    util.wait_for_run(id,env,check_tries,check_sleep)
+    util.wait_for_run(id, env, check_tries, check_sleep)
     return data
 
 
@@ -100,11 +101,12 @@ def submit_bad_docker(request):
     data = util.submit_wdl(env, wdl, input_json, site)
 
     # wait for run to complete
-    id = data['run_id']
-    util.wait_for_run(id,env,check_tries,check_sleep)
+    id = data["run_id"]
+    util.wait_for_run(id, env, check_tries, check_sleep)
 
     # print(data)  # used for debugging
     return data
+
 
 @pytest.fixture(scope="session")
 def submit_skylake_250(request):
@@ -115,20 +117,21 @@ def submit_skylake_250(request):
     env = request.config.getoption("--env")
 
     # skip this fixture if not run on cori
-    if 'cori' not in site.lower():
+    if "cori" not in site.lower():
         pytest.skip("needs to run on cori only")
 
     wdl = target_dir + "/WDLs/skylake_test_250.wdl"
     input_json = target_dir + "/test-inputs/fq_count.json"
-    site="cori"
+    site = "cori"
 
     data = util.submit_wdl(env, wdl, input_json, site)
 
     # wait for run to complete
-    id = data['run_id']
-    util.wait_for_run(id,env,check_tries,check_sleep)
+    id = data["run_id"]
+    util.wait_for_run(id, env, check_tries, check_sleep)
 
     return data
+
 
 @pytest.fixture(scope="session")
 def submit_skylake_500(request):
@@ -138,7 +141,7 @@ def submit_skylake_500(request):
     env = request.config.getoption("--env")
 
     # skip this fixture if not run on cori
-    if 'cori' not in site.lower():
+    if "cori" not in site.lower():
         pytest.skip("needs to run on cori only")
 
     wdl = target_dir + "/WDLs/skylake_test_500.wdl"
@@ -147,16 +150,19 @@ def submit_skylake_500(request):
     data = util.submit_wdl(env, wdl, input_json, site)
 
     # wait for run to complete
-    id = data['run_id']
-    util.wait_for_run(id,env,check_tries,check_sleep)
+    id = data["run_id"]
+    util.wait_for_run(id, env, check_tries, check_sleep)
 
     return data
+
 
 @pytest.fixture(scope="session")
 def clone_tutorials_repo(request):
     # clone the jaws-tutorial-examples repo
-    cmd = "git clone " \
-          "https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git"
+    cmd = (
+        "git clone "
+        "https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git"
+    )
     util.run(cmd)
 
     yield
@@ -176,7 +182,7 @@ def pytest_addoption(parser):
         "--dir",
         action="store",
         default=["."],
-        help="this is the path to where the WDLs and input.json files are."
+        help="this is the path to where the WDLs and input.json files are.",
     )
     parser.addoption(
         "--site",
@@ -189,14 +195,17 @@ def pytest_addoption(parser):
         help="the JAWS environment [dev|staging|prod] that will be used during submission",
     )
 
+
 # These functions allows an argument to be passed into the test functions
 @pytest.fixture
 def dir(request):
     return request.config.getoption("--dir")
 
+
 @pytest.fixture
 def site(request):
     return request.config.getoption("--site")
+
 
 @pytest.fixture
 def env(request):
