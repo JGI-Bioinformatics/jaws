@@ -352,7 +352,7 @@ class Metadata:
                 and kwargs["exclude_tasks"] is True
                 and failure["message"] == "Workflow failed"
             ):
-                next
+                continue
             for cause in failure["causedBy"]:
                 failure_msgs.append(cause["message"])
         return "\n".join(failure_msgs)
