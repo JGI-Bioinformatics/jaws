@@ -21,7 +21,7 @@ task count_seqs {
         memory: "10G"
         time: "00:30:00"
         shared: 0
-	docker: "freakonomics:1.0"
+        docker: "freakonomics:1.0"
     }
 }
 
