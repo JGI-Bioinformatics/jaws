@@ -41,28 +41,28 @@ def test_should_fail_status(env,submit_bad_task):
     """
 
     # test status
-    id = str(submit_bad_task['run_id'])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,id)
+    run_id = str(submit_bad_task['run_id'])
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     data = json.loads(o) 
 
-    assert data["result"] == 'failed'
+    assert data["result"] == 'failed', "jaws-status should say run failed"
 
 def test_should_fail_task_status(env,submit_bad_task):
     """
-    jaws run task-status 17028
+    jaws task-status 17028
     #TASK_NAME	ATTEMPT	CROMWELL_JOB_ID	STATUS_FROM	STATUS_TO	TIMESTAMP	REASON	STATUS_DETAIL
     fq_count.count_seqs	1	77273	running	failed	2021-02-23 22:45:04	failed with input file or command not found	The job has failed
     """
     # test task-status
     id = str(submit_bad_task['run_id'])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s" % (env,id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-status %s" % (env,id)
     (r,o,e) = util.run(cmd)
     assert 'failed with input file or command not found' in o.replace('\n',' ')
 
 def test_should_fail_task_log(env,submit_bad_task):
     """
-    jaws run task-log 17028
+    jaws task-log 17028
     #TASK_NAME	ATTEMPT	CROMWELL_JOB_ID	STATUS_FROM	STATUS_TO	TIMESTAMP	REASON
     fq_count.count_seqs	1	77273	created	ready	2021-02-23 22:44:10
     fq_count.count_seqs	1	77273	ready	queued	2021-02-23 22:44:10
@@ -73,13 +73,13 @@ def test_should_fail_task_log(env,submit_bad_task):
 
     # test task-log
     id = str(submit_bad_task['run_id'])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s" % (env,id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-log %s" % (env,id)
     (r,o,e) = util.run(cmd)
     assert 'failed with input file or command not found' in o.replace('\n',' ')
 
 def test_should_fail_log(env,submit_bad_task):
     """
-    jaws run log 17028
+    jaws log 17028
     #STATUS_FROM	STATUS_TO	TIMESTAMP	REASON
     created	uploading	2021-02-23 22:43:45	upload_task_id=967e420e-7628-11eb-8fff-01b9e52ec1df
     uploading	upload complete	2021-02-23 22:43:54
@@ -93,7 +93,7 @@ def test_should_fail_log(env,submit_bad_task):
 
     # test log
     id = str(submit_bad_task['run_id'])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run log %s | tail -n+2" % (env,id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws log %s | tail -n+2" % (env,id)
     (r,o,e) = util.run(cmd)
 
     a=[]
@@ -101,30 +101,32 @@ def test_should_fail_log(env,submit_bad_task):
         if line: 
             a.append(line.split()[1])
     
-    assert 'failed' in a
+    assert 'failed' in a, "jaws-log should say run failed"
 
 def test_invalid_site(env,site):
     """
-    jaws run submit WDLs/fq_count.wdl test-inputs/fq_count.json o smo
+    jaws submit WDLs/fq_count.wdl test-inputs/fq_count.json o smo
 
     SMO is not a valid Site ID.
     Available Sites:
     - {'max_ram_gb': '2048', 'site_id': 'CORI'}
     - {'max_ram_gb': '250', 'site_id': 'JGI'}
 
+    example error output 
+    {'detail': {'error': 'Unknown Site ID; "BOSUG" is not one of our sites'}, 'status': 404, 'title': 'Not Found', 'type': 'about:blank'}
     """
 
     wdl="WDLs/fq_count.wdl"
     input_json="test-inputs/fq_count.json"
     outdir="./should-fail"
 
-    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws run submit %s %s %s" % (env, wdl, input_json, "bogus")
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws submit --no-cache %s %s %s" % (env, wdl, input_json, "bogus")
     output = Popen(cmd, stdout=PIPE,
              stderr=PIPE, shell=True,
              universal_newlines=True)
 
     stdout,stderr=output.communicate()
-    assert 'BOGUS is not a valid Site ID' in stdout
+    assert 'Unknown Site ID; "BOGUS"' in stderr, "bogus is not an acceptable site, run should fail"
 
 def test_invalid_docker_a(env,submit_bad_docker):
     """
@@ -133,10 +135,10 @@ def test_invalid_docker_a(env,submit_bad_docker):
     a) Job status should go to transition to failed
     """
     id = str(submit_bad_docker['run_id'])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run log %s" % (env,id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws log %s" % (env,id)
     (r,o,e) = util.run(cmd)
 
-    assert 'failed' in o
+    assert 'failed' in o, "jaws-log should say run failed"
 
 def test_invalid_docker_b(env,submit_bad_docker):
     """
@@ -146,15 +148,15 @@ def test_invalid_docker_b(env,submit_bad_docker):
     """
     # get cromwell id from status
     id = str(submit_bad_docker['run_id'])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,id)
     (r,o,e) = util.run(cmd)
     data = json.loads(o) 
     cromwell_id = data['cromwell_run_id']
 
     # check the metadata
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run metadata %s" % (env,id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws metadata %s" % (env,id)
     (r,o,e) = util.run(cmd)
     data = json.loads(o) 
     error_msg = data[cromwell_id]['failures'][0]['causedBy'][0]['message']
-    assert 'docker not found' in error_msg
+    assert 'docker not found' in error_msg, "There should be a message saying docker was not found"
 
