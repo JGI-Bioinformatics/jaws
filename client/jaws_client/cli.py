@@ -185,19 +185,23 @@ def history(days: int, site: str, result: str) -> None:
     _print_json(result)
 
 
-def _run_status(run_id: int) -> Dict[str, str]:
+def _run_status(run_id: int, verbose=False) -> Dict[str, str]:
     """Return the status of a run in JSON format."""
 
-    url = f'{config.get("JAWS", "url")}/run/{run_id}'
+    if verbose is True:
+        url = f'{config.get("JAWS", "url")}/run/{run_id}/complete'
+    else:
+        url = f'{config.get("JAWS", "url")}/run/{run_id}'
     return _request("GET", url)
 
 
 @main.command()
 @click.argument("run_id")
-def status(run_id: int) -> None:
+@click.option("--verbose", is_flag=True, help="Return all fields")
+def status(run_id: int, verbose: bool) -> None:
     """Print the current status of a run."""
 
-    result = _run_status(run_id)
+    result = _run_status(run_id, verbose)
     _print_json(result)
 
 
@@ -483,7 +487,7 @@ def get(run_id: int, dest: str) -> None:
 
     from jaws_client import workflow
 
-    result = _run_status(run_id)
+    result = _run_status(run_id, True)
     status = result["status"]
     src = result["output_dir"]
 

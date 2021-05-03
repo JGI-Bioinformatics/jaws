@@ -277,13 +277,22 @@ def test_cli_status(monkeypatch, configuration):
         run id, submission date, submission id, upload id
         """
         job_status = {"status": "Running"}
+        if url.endswith('/complete'):
+            job_status["output_dir"] = "/foo/bar"
         return MockResponse(job_status, 200)
 
     monkeypatch.setattr(requests, "get", mock_status_get)
     runner = click.testing.CliRunner()
+
+    result = runner.invoke(cli.main, ["status", "36", "--verbose"])
+    assert result.exit_code == 0
+    assert "Running" in result.output
+    assert "/foo/bar" in result.output
+
     result = runner.invoke(cli.main, ["status", "36"])
     assert result.exit_code == 0
     assert "Running" in result.output
+    assert "/foo/bar" not in result.output
 
 
 def test_cli_metadata(monkeypatch, configuration):
@@ -336,7 +345,7 @@ def test_cli_submit(configuration, monkeypatch, sample_workflow):
 
 
 def test_get(configuration, monkeypatch):
-    def mock__run_status(run_id):
+    def mock__run_status(run_id, verbose):
         if run_id == "1":
             return {
                 "status": "download complete",
