@@ -309,13 +309,19 @@ def test_run_info():
         "json_file",
     ]
 
-    complete_results = jaws_central.analysis._run_info(test_run, True)
+    complete_results = jaws_central.analysis._run_info(test_run, False, True)
     for key in complete_results:
         assert key in expected_fields_complete
     for key in expected_fields_complete:
         assert key in complete_results
 
-    partial_results = jaws_central.analysis._run_info(test_run, False)
+    complete_results = jaws_central.analysis._run_info(test_run, True, False)
+    for key in complete_results:
+        assert key in expected_fields_complete
+    for key in expected_fields_complete:
+        assert key in complete_results
+
+    partial_results = jaws_central.analysis._run_info(test_run, False, False)
     for key in partial_results:
         assert key in expected_fields_partial
     for key in expected_fields_partial:

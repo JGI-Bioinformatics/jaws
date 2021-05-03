@@ -68,7 +68,10 @@ def _rpc_call(user, run_id, method, params={}):
     if not run:
         abort(404, {"error": "Run not found; please check your run_id"})
     if run.user_id != user and not _is_admin(user):
-        abort(401, {"error": "Access denied; you cannot access to another user's workflow"})
+        abort(
+            401,
+            {"error": "Access denied; you cannot access to another user's workflow"},
+        )
     a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
     params["user_id"] = user
     params["run_id"] = run_id
@@ -99,17 +102,20 @@ def _is_admin(user):
     return True if current_user.is_admin else False
 
 
-def _run_info(run, complete=False):
+def _run_info(run, is_admin: bool, verbose: bool):
     """
     Given a SQLAlchemy model for a Run, create a dict with the desired fields.
     :param run: Run object
     :type run: model
-    :param complete: True if all fields desired
-    :type complete: bool
+    :param is_admin: True if current user is an administrator
+    :type is_admin: bool
+    :param verbose: True if all fields desired
+    :type verbose: bool
     :return: selected fields
     :rtype: dict
     """
     info = {}
+    complete = True if (is_admin or verbose) else False
     if complete:
         info = {
             "id": run.id,
@@ -164,7 +170,9 @@ def search_runs(user):
     return runs, 200
 
 
-def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str, result: str):
+def _select_runs(
+    user: str, active_only: bool, delta_days: int, site_id: str, result: str
+):
     """Select runs from db.
 
     :param user: current user's ID
@@ -256,7 +264,10 @@ def submit_run(user):
         logger.error(
             f"Received run submission from {user} with invalid computing site ID: {site_id}"
         )
-        abort(404, {"error": f'Unknown Site ID, "{site_id}"; try the "list-sites" command'})
+        abort(
+            404,
+            {"error": f'Unknown Site ID, "{site_id}"; try the "list-sites" command'},
+        )
     logger.info(f"User {user}: New run submission {submission_id} to {site_id}")
 
     # INSERT INTO RDB TO GET RUN ID
@@ -340,11 +351,13 @@ def submit_run(user):
             )
             abort(
                 401,
-                {"error": error.message
+                {
+                    "error": error.message
                     + " -- Your access to the Globus endpoint has expired.  "
                     + "To reactivate, log-in to https://app.globus.org, go to Endpoints (left), "
                     + "search for the endpoint by name (if not shown), click on the endpoint, "
-                    + "and use the button on the right to activate your credentials."},
+                    + "and use the button on the right to activate your credentials."
+                },
             )
         else:
             logger.exception(
@@ -494,11 +507,14 @@ def _abort_if_pre_cromwell(run):
     """
     if run.status in run_pre_cromwell_states:
         abort(
-            404, {"error": "No data available as the Run hasn't been submitted to Cromwell yet."}
+            404,
+            {
+                "error": "No data available as the Run hasn't been submitted to Cromwell yet."
+            },
         )
 
 
-def run_status(user, run_id):
+def run_status(user, run_id, verbose=False):
     """
     Retrieve the current status of a run.
 
@@ -512,8 +528,22 @@ def run_status(user, run_id):
     run = _get_run(user, run_id)
     logger.info(f"User {user}: Get status of Run {run.id}")
     is_admin = _is_admin(user)
-    info = _run_info(run, is_admin)
+    info = _run_info(run, is_admin, verbose)
     return info, 200
+
+
+def run_status_complete(user, run_id):
+    """
+    Retrieve the current status of a run.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: The status of the run, if found; abort otherwise
+    :rtype: dict
+    """
+    return run_status(user, run_id, True)
 
 
 def task_status(user, run_id):
