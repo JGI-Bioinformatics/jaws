@@ -96,9 +96,6 @@ for VAR in $USER_DIRECTORIES; do
     set_site_var "$JAWS_SITE" "$VAR"
 done
 
-SITE_STAGING_USER_DIR=$SITE_STAGING_USER_BASEDIR/jaws-$DEPLOYMENT_NAME/inputs
-SITE_DATA_REPO_DIR=$SITE_DATA_REPO_BASEDIR/data-repository-$DEPLOYMENT_NAME
-
 cat << EOM > $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 [JAWS]
 site_id = $JAWS_SITE
@@ -117,15 +114,6 @@ EOM
 chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 chmod 644 $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 cp "$CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf" "$SITE_CLIENT_INSTALL_DIR"
-
-
-# Finally setup the user directories for staging and storing data
-if [[ ! -z "$SITE_STAGING_USER_DIR" ]]; then
-    setup_dir "$SITE_STAGING_USER_DIR" "$SITE_CLIENT_GROUP" 2775
-fi
-if [[ ! -z "$SITE_DATA_REPO_DIR" ]]; then
-    setup_dir "$SITE_DATA_REPO_DIR" "$SITE_CLIENT_GROUP" 2775
-fi
 
 # at this point, jaws-client is not usable due to permissions, but changing group and permissions via the gitlab-runner
 # does not work for parallel-FS for some reason.  The solution is to add such commands to one of the shims so that the
