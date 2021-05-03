@@ -157,6 +157,7 @@ def search_runs(user):
     result = request.form.get("result", "any").lower()
     logger.info(f"User {user}: Search runs")
     is_admin = _is_admin(user)
+    """Now passes is_admin to _select_runs"""
     rows = _select_runs(user, active_only, delta_days, site_id, result, is_admin)
     runs = []
     for run in rows:
