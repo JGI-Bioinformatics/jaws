@@ -141,8 +141,16 @@ class Task:
         if not failures:
             return None
 
+        call_caching = self.get("callCaching", attempt, None)
+        call_caching_summary = {}
+        if call_caching:
+            call_caching_summary["allowResultReuse"] = call_caching["allowResultReuse"]
+            if call_caching["allowResultReuse"] is True:
+                call_caching_summary["hit"] = call_caching["hit"]
+
         report = {
             "failures": self.failure_messages(attempt),
+            "callCaching": call_caching_summary,
             "runtime": self.get("runtimeAttributes", attempt, ""),
             "cromwell_job_id": self.get("jobId", attempt, None),
         }

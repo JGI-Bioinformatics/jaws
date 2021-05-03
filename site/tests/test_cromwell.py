@@ -1018,6 +1018,7 @@ def test_get_errors():
     assert errors["fq_count.count_seqs"]["failures"] == expected_failures_message
     assert errors["fq_count.count_seqs"]["runtime"] == expected_runtime_attributes
     assert errors["fq_count.count_seqs"]["cromwell_job_id"] == "9999"
+    assert errors["fq_count.count_seqs"]["callCaching"]["allowResultReuse"] is False
     assert WORKFLOW_ID_EX3 not in errors
 
     # test for no errors
