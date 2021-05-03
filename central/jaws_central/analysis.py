@@ -156,15 +156,15 @@ def search_runs(user):
     delta_days = int(request.form.get("delta_days", 0))
     result = request.form.get("result", "any").lower()
     logger.info(f"User {user}: Search runs")
-    rows = _select_runs(user, active_only, delta_days, site_id, result)
-    runs = []
     is_admin = _is_admin(user)
+    rows = _select_runs(user, active_only, delta_days, site_id, result, is_admin)
+    runs = []
     for run in rows:
         runs.append(_run_info(run, is_admin))
     return runs, 200
 
 
-def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str, result: str):
+def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str, result: str, is_admin: bool):
     """Select runs from db.
 
     :param user: current user's ID
@@ -180,7 +180,10 @@ def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str, re
     :return: Runs matching search criteria
     :rtype: list
     """
-    query = db.session.query(Run).filter(Run.user_id == user)
+    if not is_admin:
+        query = db.session.query(Run).filter(Run.user_id == user)
+    else:
+        query = db.session.query(Run)
     if active_only:
         query = query.filter(Run.status.in_(run_active_states))
     if site_id != "ALL":
