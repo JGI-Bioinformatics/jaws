@@ -155,17 +155,18 @@ def search_runs(user):
     active_only = True if request.form.get("active_only") == "True" else False
     delta_days = int(request.form.get("delta_days", 0))
     result = request.form.get("result", "any").lower()
+    all_users = True if request.form.get("all") == "True" else False
     logger.info(f"User {user}: Search runs")
     is_admin = _is_admin(user)
     """Now passes is_admin to _select_runs"""
-    rows = _select_runs(user, active_only, delta_days, site_id, result, is_admin)
+    rows = _select_runs(user, active_only, delta_days, site_id, result, is_admin, all_users)
     runs = []
     for run in rows:
         runs.append(_run_info(run, is_admin))
     return runs, 200
 
 
-def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str, result: str, is_admin: bool):
+def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str, result: str, is_admin: bool, all_users: bool):
     """Select runs from db.
 
     :param user: current user's ID
@@ -181,10 +182,11 @@ def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str, re
     :return: Runs matching search criteria
     :rtype: list
     """
-    if not is_admin:
-        query = db.session.query(Run).filter(Run.user_id == user)
+    query = db.session.query(Run)
+    if all_users and is_admin:
+        pass
     else:
-        query = db.session.query(Run)
+        query = query.filter(Run.user_id == user)
     if active_only:
         query = query.filter(Run.status.in_(run_active_states))
     if site_id != "ALL":

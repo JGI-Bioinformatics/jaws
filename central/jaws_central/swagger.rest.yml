@@ -143,6 +143,11 @@ paths:
           type: string
           in: formData
           required: True
+        - name: all
+          description: List runs from all users
+          type: boolean
+          in: formData
+          required: False
       responses:
         200:
           description: OK
