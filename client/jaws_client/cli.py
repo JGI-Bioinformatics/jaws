@@ -233,18 +233,27 @@ def metadata(run_id: int) -> None:
 
 @main.command()
 @click.argument("run_id")
-@click.option("--fmt", default="text", help="the desired output format: [text|json]")
+@click.option("--fmt", default="text", help="the desired output format: [text|json|tab]")
 def log(run_id: int, fmt: str) -> None:
     """View the log of Run state transitions for the workflow as a whole."""
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/run_log'
     result = _request("GET", url)
+    header = ["#STATUS_FROM", "STATUS_TO", "TIMESTAMP", "REASON"]
     if fmt == "json":
         _print_json(result)
-    else:
-        click.echo("#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON")
+    elif fmt == "tab":
+        click.echo("\t".join(header))
         for log_entry in result:
             click.echo("\t".join(log_entry))
+    else:
+        result.insert(0, header)
+        col_widths = []
+        """Get the max length of element in every col and add padding (2)"""
+        for idx in range(len(header)):
+            col_widths.append(max(len(log_entry[idx]) for log_entry in result) + 2)
+        for log_entry in result:
+            print("".join(cell.ljust(col_widths[col_idx]) for col_idx, cell in enumerate(log_entry)))
 
 
 @main.command()
