@@ -159,14 +159,17 @@ def search_runs(user):
     logger.info(f"User {user}: Search runs")
     is_admin = _is_admin(user)
     """Now passes is_admin to _select_runs"""
-    rows = _select_runs(user, active_only, delta_days, site_id, result, is_admin, all_users)
+    rows = _select_runs(user, active_only, delta_days, site_id, 
+        result, is_admin, all_users)
     runs = []
     for run in rows:
         runs.append(_run_info(run, is_admin))
     return runs, 200
 
 
-def _select_runs(user: str, active_only: bool, delta_days: int, site_id: str, result: str, is_admin: bool, all_users: bool):
+def _select_runs(
+        user: str, active_only: bool, delta_days: int, site_id: str, 
+        result: str, is_admin: bool, all_users: bool):
     """Select runs from db.
 
     :param user: current user's ID
