@@ -102,7 +102,7 @@ def _is_admin(user):
     return True if current_user.is_admin else False
 
 
-def _run_info(run, is_admin: bool, verbose: bool):
+def _run_info(run, is_admin: bool = False, verbose: bool = False):
     """
     Given a SQLAlchemy model for a Run, create a dict with the desired fields.
     :param run: Run object
