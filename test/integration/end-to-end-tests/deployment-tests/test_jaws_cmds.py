@@ -70,7 +70,23 @@ def test_jaws_status(env):
 
 
 def test_jaws_run_queue(env, submit_fq_count_wdl):
-    """ tests that the jaws queue command has the run id in the stdout."""
+    """ tests that the jaws queue command has the run id in the stdout.
+    [
+    {
+        "id": 5759,
+        "input_site_id": "CORI",
+        "json_file": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/deployment-tests/test-inputs/fq_count.json",
+        "result": null,
+        "site_id": "CORI",
+        "status": "submitted",
+        "status_detail": "The run has been submitted to Cromwell and tasks should start to queue within moments",
+        "submitted": "2021-05-04 01:44:36",
+        "tag": null,
+        "updated": "2021-05-04 01:45:03",
+        "wdl_file": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/deployment-tests/WDLs/fq_count.wdl"
+    }
+    ]
+    """
 
     run_id = str(submit_fq_count_wdl['run_id'])
 
@@ -184,7 +200,7 @@ def test_jaws_wdl_task_log(env, submit_fq_count_wdl):
     assert len(a) == 6
 
 
-def test_wfcopy(env,dir,submit_fq_count_wdl):
+def mtest_wfcopy(env,dir,submit_fq_count_wdl):
     """ 
     Check that wfcopy works and can flatten the directory
 
@@ -198,7 +214,7 @@ def test_wfcopy(env,dir,submit_fq_count_wdl):
         assert not r
 
     run_id = str(submit_fq_count_wdl['run_id'])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     data = json.loads(o)
     outdir = data['output_dir']
@@ -211,4 +227,73 @@ def test_wfcopy(env,dir,submit_fq_count_wdl):
 
     # does this path exist
     assert os.path.exists(os.path.join(mycopy,"count_seqs/num_seqs.txt"))
+
+
+def test_jaws_queue_site_filter(env, site, submit_fq_count_wdl):
+    """
+    jaws queue --site [CORI, JGI, CASCADE]
+    """
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws queue --site %s" % (env, site)
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+
+    if data:
+        for d in data:
+            assert d["site_id"].lower() == site
+    else:
+        pytest.exit(f"no runs were found in the queue for site: {site}")
+
+
+def test_jaws_history_site_filter(env, site, submit_fq_count_wdl):
+    """
+    jaws history --site [CORI, JGI, CASCADE]
+    """
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws history --site %s" % (env, site)
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+
+    if data:
+        for d in data:
+            assert d["site_id"].lower() == site
+    else:
+        pytest.exit(f"no runs were found in the history for site: {site}")
+
+
+def test_jaws_history_result_filter_succeeded(env,submit_fq_count_wdl):
+    """
+    jaws history --result [succeeded, failed]
+    Checking the output only with "succeeded" and "failed"
+    """
+
+    run_id = submit_fq_count_wdl['run_id']
+    util.wait_for_run(run_id,env,check_tries,check_sleep)
+
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws history --result succeeded" % (env)
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+
+    if data:
+        for d in data:
+            assert d["result"] == 'succeeded'
+    else:
+        pytest.exit(f"no runs were found in the history that have result: succeeded")
+
+
+def test_jaws_history_result_filter_failed(env,submit_bad_task):
+    """
+    jaws history --result failed
+    Checking the output only with "succeeded" and "failed"
+    """
+    run_id = submit_bad_task['run_id']
+    util.wait_for_run(run_id,env,check_tries,check_sleep)
+
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws history --result failed" % (env)
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+
+    if data:
+        for d in data:
+            assert d["result"] == 'failed'
+    else:
+        pytest.exit(f"no runs were found in the history that have result: failed")
 
