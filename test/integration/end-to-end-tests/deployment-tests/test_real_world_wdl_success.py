@@ -18,6 +18,6 @@ class TestRealWorldWdlSuccess(tts.TestRunSuccess):
 
         )
     )
-    def test_tutorial_success(self, site, wdl, input_json):
+    def test_tutorial_success(self, env, site, wdl, input_json):
         # run the test against all the wdl/json in the @pytest.mark.parametrize
-        self.run_success(site, wdl, input_json)
+        self.run_success(env, site, wdl, input_json)
