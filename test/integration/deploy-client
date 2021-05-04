@@ -88,14 +88,6 @@ EOM
 chgrp $SITE_JAWS_GROUP $SITE_CLIENT_INSTALL_DIR/jaws.conf
 chmod 775 $SITE_CLIENT_INSTALL_DIR/jaws.conf
 
-# Directories should only be required where client is deployed.
-# Client needs these destinations to be present somewhere on the filesystem
-USER_DIRECTORIES="STAGING_USER_BASEDIR DATA_REPO_BASEDIR"
-
-for VAR in $USER_DIRECTORIES; do
-    set_site_var "$JAWS_SITE" "$VAR"
-done
-
 cat << EOM > $CONFIG_DIR/jaws-$DEPLOYMENT_NAME.conf
 [JAWS]
 site_id = $JAWS_SITE
