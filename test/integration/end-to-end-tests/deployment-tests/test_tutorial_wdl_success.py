@@ -10,14 +10,15 @@ class TestRunSuccess:
     check_sleep = 30  # wait for this amount of time between tries.
 
     @staticmethod
-    def run_success(site, wdl, input_json):
+    def run_success(env, site, wdl, input_json):
 
-        jaws_output = util.submit_wdl(wdl, input_json, site)
+        jaws_output = util.submit_wdl(env, wdl, input_json, site)
         run_id = str(jaws_output['run_id'])
 
-        util.wait_for_run(run_id, TestRunSuccess.check_tries, TestRunSuccess.check_sleep)
+        util.wait_for_run(run_id, env, TestRunSuccess.check_tries, TestRunSuccess.check_sleep)
 
-        cmd = "jaws status --verbose %s" % run_id
+        cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % run_id
+
         (rc, stdout, stderr) = util.run(cmd)
         print("status cmd:", cmd)
         print("rc: ", rc)
@@ -53,6 +54,6 @@ class TestTutorialSuccess(TestRunSuccess):
         )
     )
 
-    def test_tutorial_success(self, clone_tutorials_repo, site, wdl, input_json):
+    def test_tutorial_success(self, clone_tutorials_repo, env, site, wdl, input_json):
         # run the test against all the wdl/json in the @pytest.mark.parametrize
-        self.run_success(site, wdl, input_json)
+        self.run_success(env, site, wdl, input_json)
