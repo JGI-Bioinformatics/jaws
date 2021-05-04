@@ -71,7 +71,7 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
   CONTAINER_EXPORT="out=\$(shifterimg lookup \${docker} || shifterimg pull \${docker})
 ret=\$?
 if [[ \$ret != 0 || \$(echo \$out | grep \"FAILURE\") ]]; then
-  echo \"Invalid container name or failed to pull container, \${docker!\"
+  echo \"Invalid container name or failed to pull container, \${docker!\" >&2
   exit \$ret
 else
   echo \"Successfully pulled \${docker}!\"
@@ -111,7 +111,7 @@ else
     if [[ \$(echo \$out | grep \"exists\" ) ]]; then
         echo \"Image file already exists, \${docker}!\"
     else
-        echo \"Failed to pull \${docker}!\"
+        echo \"Failed to pull \${docker}!\" >&2
         exit \$ret
     fi
 fi
