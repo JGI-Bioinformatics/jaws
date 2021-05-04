@@ -166,11 +166,6 @@ def clone_tutorials_repo(request):
     cmd = "rm -rf jaws-tutorial-examples/"
     util.run(cmd)
 
-    yield
-
-    cmd = "rm -rf jaws-tutorial-examples/"
-    util.run(cmd)
-
 
 # The addoption functions allows us to use flags to capture arguments on the command line.
 def pytest_addoption(parser):
