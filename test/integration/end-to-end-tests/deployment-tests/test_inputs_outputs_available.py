@@ -40,7 +40,7 @@ def test_jaws_run_task_log(env,submit_fq_count_wdl):
     util.wait_for_run(run_id,env,check_tries,check_sleep)
 
     # grab submission_id from "jaws status" command so we can construct name of output files
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     status_data = json.loads(o)
     submission_id = status_data['submission_id']

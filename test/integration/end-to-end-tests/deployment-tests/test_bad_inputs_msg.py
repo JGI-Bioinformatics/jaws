@@ -25,7 +25,7 @@ def test_json_file_does_not_exist(env, dir, site):
     inputs = os.path.join(dir, "./FileDoesNotExist.json")
 
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    submit_cmd = "jaws submit %s %s %s" % (wdl, inputs, site)
+    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
 
@@ -38,7 +38,7 @@ def test_input_file_is_not_json_format(env, dir, site):
     # testing for message when inputs file is not json, so using wdl again instead of a json file
     inputs = wdl
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    submit_cmd = "jaws submit %s %s %s" % (wdl, inputs, site)
+    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
 
@@ -54,7 +54,7 @@ def test_json_bad_path_to_input_file_msg(env, dir, site):
 
     # Can't use  submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/bad_path_inputs.json")
-    submit_cmd = "jaws submit %s %s %s" % (wdl, inputs, site)
+    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
 
@@ -95,12 +95,12 @@ def test_bad_input_file_permissions_msg(env, dir, site):
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/bad_permissions.json")
-    submit_cmd = "jaws submit %s %s %s" % (wdl, inputs, site)
+    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
-    assert "Permission denied" in e
+    assert "Input path not found or inaccessible" in e
 
 
 def test_invalid_wdl_syntax_msg(env, dir, site):
@@ -111,7 +111,7 @@ def test_invalid_wdl_syntax_msg(env, dir, site):
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/fq_count.json")
-    submit_cmd = "jaws submit %s %s %s" % (wdl, inputs, site)
+    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
 
@@ -127,7 +127,7 @@ def test_invalid_wdl_semantics_msg(env, dir, site):
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/fq_count.json")
-    submit_cmd = "jaws submit %s %s %s" % (wdl, inputs, site)
+    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
     cmd = source_cmd + submit_cmd
     (r, o, e) = util.run(cmd)
 

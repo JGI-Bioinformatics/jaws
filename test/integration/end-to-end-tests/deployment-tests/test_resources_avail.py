@@ -27,7 +27,7 @@ def test_skylake_250G(env,submit_skylake_250):
     run_id = str(submit_skylake_250['run_id'])
 
     # Run: jaws status
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, run_id)
     (r,o,e) = util.run(cmd)
 
     status_info = json.loads(o)
@@ -41,7 +41,7 @@ def test_skylake_500G(env, submit_skylake_500):
     run_id = str(submit_skylake_500['run_id'])
 
     # Run: jaws status
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, run_id)
     (r,o,e) = util.run(cmd)
 
     status_info = json.loads(o)

@@ -128,7 +128,7 @@ def test_for_raw_cromwell_files(env,submit_subworkflow_alignment):
     """
     run_id = submit_subworkflow_alignment['run_id']
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     data = json.loads(o)
     outdir = data['output_dir']
@@ -148,7 +148,7 @@ def test_saved_subwdl(env,submit_subworkflow_alignment):
     run_id        = submit_subworkflow_alignment['run_id']
 
     # need to get the submission_id from the status
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     assert not r
     data = json.loads(o)

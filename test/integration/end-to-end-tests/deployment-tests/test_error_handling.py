@@ -42,7 +42,7 @@ def test_should_fail_status(env,submit_bad_task):
 
     # test status
     run_id = str(submit_bad_task['run_id'])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     data = json.loads(o) 
 
@@ -148,15 +148,15 @@ def test_invalid_docker_b(env,submit_bad_docker):
     """
     # get cromwell id from status
     id = str(submit_bad_docker['run_id'])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env,id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env,id)
     (r,o,e) = util.run(cmd)
     data = json.loads(o) 
     cromwell_id = data['cromwell_run_id']
 
     # check the metadata
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws metadata %s" % (env,id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws errors %s" % (env,id)
     (r,o,e) = util.run(cmd)
     data = json.loads(o) 
-    error_msg = data[cromwell_id]['failures'][0]['causedBy'][0]['message']
-    assert 'docker not found' in error_msg, "There should be a message saying docker was not found"
+    error_msg = data['fq_count.count_seqs']['task-log']
+    assert 'FAILED to lookup docker image' in error_msg, "There should be a message saying docker was not found"
 
