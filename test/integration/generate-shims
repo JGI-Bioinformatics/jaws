@@ -61,6 +61,14 @@ function fix_perms() {
     find "\$DIR" -type d -exec chmod g+s '{}' \;
 }
 
+function set_jaws_acl() {
+    local DIR="\$1"
+    chmod 2775 \$DIR
+    setfacl -m g:$SITE_JAWS_GROUP:rwx \$DIR
+    setfacl -m g:$SITE_JTM_GROUP:rwx \$DIR
+    setfacl -m g:$SITE_CLIENT_GROUP:rwx \$DIR
+}
+
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
@@ -69,6 +77,9 @@ test -d "$SITE_JAWS_SCRATCH_DIR" || mkdir "$SITE_JAWS_SCRATCH_DIR"
 chmod 2775 "$SITE_JAWS_SCRATCH_DIR"
 
 $FIX_PERMS_CLIENT
+
+set_jaws_acl $SITE_UPLOADS_DIR
+set_jaws_acl $SITE_DATA_REPO_DIR
 
 source $INSTALL_DIR/site/bin/activate
 exec jaws-site --log $LOGS_DIR/site-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL daemon
