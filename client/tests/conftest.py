@@ -1,4 +1,5 @@
 import pytest
+import os
 import jaws_client.config
 
 
@@ -6,11 +7,10 @@ import jaws_client.config
 
 @pytest.fixture()
 def configuration(tmp_path):
-
-    jaws_client.config.Configuration._destructor()
-
     config_path = tmp_path / "jaws_client.ini"
     user_config_path = tmp_path / "jaws_user.ini"
+    os.environ["JAWS_CLIENT_CONFIG"] = config_path.as_posix()
+    os.environ["JAWS_USER_CONFIG"] = user_config_path.as_posix()
 
     globus_basedir = tmp_path / "globus_basedir"
     staging_dir = globus_basedir / "staging"
@@ -36,13 +36,10 @@ host_path = {0}/globus
     user_contents = """
 [USER]
 token = "xasdasdasfasdasdasfas"
-staging_dir = {0}/globus/staging
-
-""".format(tmp_path.as_posix())
+"""
     user_config_path.write_text(user_contents)
 
-    config = jaws_client.config.Configuration(config_path.as_posix(), user_config_path.as_posix())
-    return config
+    return (config_path.as_posix(), user_config_path.as_posix())
 
 
 @pytest.fixture
@@ -297,7 +294,6 @@ task findPeaks {
         time: "00:00:00"
         cpu: 1
         memory: "0G"
-        backend: "JTM"
     }
     command {
         shifter --image=leobaumgart/dap_py2:2.0 find_peaks.sh \
@@ -330,7 +326,6 @@ task motifInputs {
         time: "00:00:00"
         cpu: 1
         memory: "0G"
-        backend: "JTM"
     }
     command {
         shifter --image=leobaumgart/dap_py3:2.0 /bin/bash -c \
@@ -375,7 +370,6 @@ task findMotifs {
         memory: "5G"
         poolname: "test"
         poolsize: 1
-        backend: "JTM"
     }
     command {
         shifter --image=leobaumgart/dap_py2:2.0 find_motifs.sh \
@@ -490,7 +484,7 @@ task run_task1 {
         shared: 1
         node: 1
         nwpn: 1
-        mem: "4G"
+        memory: "4G"
         time: "00:10:00"
     }
 }
@@ -521,7 +515,7 @@ task run_task2 {
         shared: 1
         node: 1
         nwpn: 1
-        mem: "6G"
+        memory: "6G"
         time: "00:10:00"
     }
 }
@@ -795,7 +789,7 @@ task bam_stats {
         shared: 1
         node: 1
         nwpn: 1
-        mem: "5G"
+        memory: "5G"
         time: "00:10:00"
     }
 }
@@ -803,3 +797,52 @@ task bam_stats {
 """
     wdl.write_text(contents)
     return wdl
+
+
+@pytest.fixture()
+def output_example(tmp_path):
+    run_dir = tmp_path / "run1"
+    run_dir.mkdir()
+    task_dir = run_dir / "task1"
+    task_dir.mkdir()
+    task_inputs = task_dir / "inputs"
+    task_inputs.mkdir()
+    task_infile = task_inputs / "infile"
+    infile_contents = "EXAMPLE INPUT"
+    task_infile.write_text(infile_contents)
+    task_execution = task_dir / "execution"
+    task_execution.mkdir()
+    task_outfile = task_execution / "stdout"
+    outfile_contents = "EXAMPLE OUTPUT"
+    task_outfile.write_text(outfile_contents)
+    return tmp_path.as_posix()
+
+
+@pytest.fixture()
+def deprecated_mem_example(tmp_path):
+    wdl_file = tmp_path / "deprecated_mem.wdl"
+    wdl_contents = """
+workflow fq_count {
+    File fastq_file
+    call count_seqs { input: infile = fastq_file }
+    output {
+        File outfile = count_seqs.outfile
+    }
+}
+
+task count_seqs {
+    File infile
+    command <<<
+        wc -l ${infile} | perl -ne 'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, " sequences\\n"} else {print STDERR "Invalid Fastq file\\n"}' > num_seqs.txt
+    >>>
+    output {
+        File outfile = "num_seqs.txt"
+    }
+    runtime {
+        mem: "1G"
+        time: "00:10:00"
+    }
+}
+    """
+    wdl_file.write_text(wdl_contents)
+    return tmp_path.as_posix()

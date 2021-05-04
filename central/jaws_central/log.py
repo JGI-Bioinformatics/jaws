@@ -1,5 +1,5 @@
 import logging
-from logging import handlers
+from logging.handlers import RotatingFileHandler
 
 
 def setup_logger(name: str, log_file=None, log_level="INFO") -> logging:
@@ -29,7 +29,7 @@ def setup_logger(name: str, log_file=None, log_level="INFO") -> logging:
     handler_stderr.setFormatter(formatter)
 
     # Rotational log: 100MB each, total 4 log files
-    handler_file = handlers.RotatingFileHandler(
+    handler_file = RotatingFileHandler(
         log_file, maxBytes=100000000, backupCount=3
     )
     handler_file.setFormatter(formatter)

@@ -8,6 +8,7 @@ WORKFLOW_ID_EX2_MAIN = (
 WORKFLOW_ID_EX2_SUB1 = "7408a4f1-bc85-49ba-8d5f-c886261ab6a0"
 WORKFLOW_ID_EX2_SUB2 = "89d86efc-dd04-48aa-a65f-21fb9d0c8be3"
 WORKFLOW_ID_EX3 = "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"  # simple failed run
+WORKFLOW_ID_EX4 = "469bcdd6-d67f-455f-9475-438349f41631"  # missing infile
 
 METADATA = {
     "ee30d68f-39d4-4fde-85c2-afdecce2bad3": {  # METADATA FOR WORKFLOW_ID_EX1
@@ -769,6 +770,7 @@ METADATA = {
                     "inputs": {
                         "infile": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq"  # noqa
                     },
+                    "jobId": "9999",
                     "retryableFailure": False,
                     "runtimeAttributes": {
                         "account": "fungalp",
@@ -842,6 +844,55 @@ METADATA = {
         ],
         "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15",  # noqa
     },
+    "469bcdd6-d67f-455f-9475-438349f41631": {
+        "actualWorkflowLanguage": "WDL",
+        "actualWorkflowLanguageVersion": "draft-2",
+        "calls": {},
+        "end": "2021-04-29T20:09:52.523Z",
+        "failures": [
+            {
+                "causedBy": [
+                    {
+                        "causedBy": [],
+                        "message": "Required workflow input 'fq_count.fastq_file' not specified",
+                    }
+                ],
+                "message": "Workflow input processing failed",
+            }
+        ],
+        "id": "469bcdd6-d67f-455f-9475-438349f41631",
+        "inputs": {},
+        "labels": {
+            "cromwell-workflow-id": "cromwell-469bcdd6-d67f-455f-9475-438349f41631"
+        },
+        "metadataSource": "Unarchived",
+        "outputs": {},
+        "start": "2021-04-29T20:09:52.505Z",
+        "status": "Failed",
+        "submission": "2021-04-29T20:09:51.961Z",
+        "submittedFiles": {
+            "inputs": '{"fq_count.fastq_file_misspelled":"/global/cscratch1/sd/jaws/jaws-dev/inputs/akollmer/CORI/global/cfs/projectdirs/jaws/test/tutorial_test_data/sample.fastq"}',  # noqa
+            "labels": "{}",
+            "options": "{\n\n}",
+            "root": "",
+            "workflow": 'workflow fq_count {\n    File fastq_file\n    call count_seqs { input: infile = fastq_file }\n    output {\n        File outfile = count_seqs.outfile\n    }\n}\n\ntask count_seqs {\n    File infile\n    command <<<\n        wc -l ${infile} | perl -ne \'if (/^\\s*(\\d+)/ and !($1%4)) {print $1/4, " sequences\\n"} else {print STDERR "Invalid Fastq file\\n"}\' > num_seqs.txt\n    >>>\n    output {\n        File outfile = "num_seqs.txt"\n    }\n    runtime {\n        poolname: "test_small"\n        node: 1\n        nwpn: 1\n        memory: "10G"\n        time: "00:30:00"\n        shared: 0\n    }\n}\n\n',  # noqa
+            "workflowUrl": "",
+        },
+        "workflowProcessingEvents": [
+            {
+                "cromwellId": "cromid-13146b2",
+                "cromwellVersion": "52",
+                "description": "PickedUp",
+                "timestamp": "2021-04-29T20:09:52.504Z",
+            },
+            {
+                "cromwellId": "cromid-13146b2",
+                "cromwellVersion": "52",
+                "description": "Finished",
+                "timestamp": "2021-04-29T20:09:52.524Z",
+            },
+        ],
+    }
 }
 
 
@@ -864,7 +915,10 @@ def test_task():
     assert task.is_subworkflow() is False
     assert task.calls[0]["attempt"] == 1
     assert task.calls[0]["jobId"] == "30"
-    assert task.get("callRoot", 1) == "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs"  # noqa
+    assert (
+        task.get("callRoot", 1)
+        == "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs"  # noqa
+    )  # noqa
 
 
 def test_task_subworkflow():
@@ -918,20 +972,68 @@ def test_get_all_metadata():
     )
 
 
+def test_task_failure_messages():
+    crom = cromwell.Cromwell("localhost:8000")
+    metadata = crom.get_metadata(WORKFLOW_ID_EX3, METADATA[WORKFLOW_ID_EX3])
+    task = metadata.tasks[0]
+    actual_msg = task.failure_messages()
+    expected_msg = "Unable to start job. Check the stderr for possible errors"
+    assert actual_msg == expected_msg
+
+
+def test_metadata_failure_messages():
+    crom = cromwell.Cromwell("localhost:8000")
+    metadata = crom.get_metadata(WORKFLOW_ID_EX4, METADATA[WORKFLOW_ID_EX4])
+    actual_msg = metadata.failure_messages()
+    expected_msg = "Required workflow input 'fq_count.fastq_file' not specified"
+    assert actual_msg == expected_msg
+
+
 def test_get_errors():
     """Given workflow UUID, extract errors."""
+
+    expected_failures_message = "Unable to start job. Check the stderr for possible errors"
+    expected_runtime_attributes = {
+        "account": "fungalp",
+        "cluster": "cori",
+        "constraint": "haswell",
+        "continueOnReturnCode": "0",
+        "cpu": "1",
+        "failOnStderr": "false",
+        "maxRetries": "0",
+        "mem": "10G",
+        "node": "1",
+        "nwpn": "1",
+        "poolname": "test_small",
+        "qos": "genepool_special",
+        "shared": "0",
+        "time": "00:10:00",
+    }
+
     crom = cromwell.Cromwell("localhost:8000")
     metadata = crom.get_metadata(WORKFLOW_ID_EX3, METADATA[WORKFLOW_ID_EX3])
     status = metadata.execution_status()
     errors = metadata.errors()
     assert status["fq_count.count_seqs"] == "Failed"
-    assert errors["fq_count.count_seqs"] == "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"  # noqa
+    assert errors["fq_count.count_seqs"]["failures"] == expected_failures_message
+    assert errors["fq_count.count_seqs"]["runtime"] == expected_runtime_attributes
+    assert errors["fq_count.count_seqs"]["cromwell_job_id"] == "9999"
+    assert errors["fq_count.count_seqs"]["callCaching"]["allowResultReuse"] is False
+    assert WORKFLOW_ID_EX3 not in errors
 
     # test for no errors
     metadata = crom.get_metadata(WORKFLOW_ID_EX1, METADATA[WORKFLOW_ID_EX1])
     status = metadata.execution_status()
     errors = metadata.errors()
-    assert errors == {}
+    assert errors is None
+
+    # test for run-level errors
+    expected_run_failure_message = "Required workflow input 'fq_count.fastq_file' not specified"
+    metadata = crom.get_metadata(WORKFLOW_ID_EX4, METADATA[WORKFLOW_ID_EX4])
+    errors = metadata.errors()
+    assert WORKFLOW_ID_EX4 in errors
+    assert errors[WORKFLOW_ID_EX4]["failures"] == expected_run_failure_message
+    assert errors[WORKFLOW_ID_EX4]["inputs"] == {}
 
 
 def test_metadata_tasks():
@@ -955,7 +1057,7 @@ def test_task_summary():
         "localhost:8000", WORKFLOW_ID_EX2_MAIN, METADATA[WORKFLOW_ID_EX2_MAIN], METADATA
     )
     result = metadata.task_summary()
-    EXPECTED = [
+    expected = [
         [WORKFLOW_ID_EX2_MAIN, "main_workflow.goodbye", 1, "5480"],
         [WORKFLOW_ID_EX2_MAIN, "main_workflow.hello", 1, "5481"],
         [WORKFLOW_ID_EX2_SUB2, "hello_and_goodbye.goodbye", 1, "5483"],
@@ -963,14 +1065,44 @@ def test_task_summary():
         [WORKFLOW_ID_EX2_SUB1, "hello_and_goodbye.goodbye", 1, "5482"],
         [WORKFLOW_ID_EX2_SUB1, "hello_and_goodbye.hello", 1, "5484"],
     ]
-    assert bool(DeepDiff(result, EXPECTED, ignore_order=True)) is False
+    assert bool(DeepDiff(result, expected, ignore_order=True)) is False
 
 
 def test_task_stdout():
-    metadata = cromwell.Metadata("localhost:8000", WORKFLOW_ID_EX1, METADATA[WORKFLOW_ID_EX1], METADATA)
+    metadata = cromwell.Metadata(
+        "localhost:8000", WORKFLOW_ID_EX1, METADATA[WORKFLOW_ID_EX1], METADATA
+    )
     expected_stderr = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stderr"  # noqa
     expected_stdout = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stdout"  # noqa
     assert len(metadata.tasks) == 1
     task = metadata.tasks[0]
     assert task.stderr() == expected_stderr
     assert task.stdout() == expected_stdout
+
+
+def test_get_failed_task_runtime_attributes():
+    expected_runtime = {
+        "account": "fungalp",
+        "cluster": "cori",
+        "constraint": "haswell",
+        "continueOnReturnCode": "0",
+        "cpu": "1",
+        "failOnStderr": "false",
+        "maxRetries": "0",
+        "mem": "10G",
+        "node": "1",
+        "nwpn": "1",
+        "poolname": "test_small",
+        "qos": "genepool_special",
+        "shared": "0",
+        "time": "00:10:00",
+    }
+
+    crom = cromwell.Cromwell("localhost:8000")
+    metadata = crom.get_metadata(WORKFLOW_ID_EX3, METADATA[WORKFLOW_ID_EX3])
+    for task in metadata.tasks:
+        failures = task.failures()
+        if failures:
+            assert task.name == "fq_count.count_seqs"
+            runtime = task.runtime()
+            assert bool(DeepDiff(runtime, expected_runtime, ignore_order=True)) is False

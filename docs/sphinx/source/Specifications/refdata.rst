@@ -24,8 +24,12 @@ Now let's say you want to run blastn. The required nt database can be accessed w
 
 Adding Something to the Repository
 ----------------------------------
-If your required reference data is not already in the repository, you would need to contact a JAWS admin by one of the following methods. They will then add the data to the CORI's repository and sync it up with the other sites. You should recieve a reply when everything is complete.
+If your required reference data is not already in the repository, you will need to contact a JAWS administrator by one of the following methods. They will then add the data to the CORI's repository which will be automatically sync'd up with the other sites. You should recieve a reply when everything is complete.
 
 * email: jaws-support@lbl.gov 
 * slack: #jaws channel 
 * JIRA:  https://intranet.lbl.gov/jgi/services/computers-networking/jaws/
+
+Requirements:
+
+* No symlinks (e.g. latest -> v10.4). Symlinks will not be maintained when the data files are sync'd between sites.

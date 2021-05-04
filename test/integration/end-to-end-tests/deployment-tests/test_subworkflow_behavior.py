@@ -42,10 +42,10 @@ def test_task_status(env,submit_subworkflow_alignment):
     main_wdl.bam_stats	                              1	46810	running	success	2021-02-08 20:56:36  The job completed successfully
     """
 
-    time.sleep(120)  # wait some time before running task-status since there is some lag between 
-                     # when "jaws run status" calls success and when "jaws run task-status" calls success.
+    #time.sleep(120)  # wait some time before running task-status since there is some lag between 
+    #                 # when "jaws status" calls success and when "jaws task-status" calls success.
     run_id = submit_subworkflow_alignment['run_id']
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s | tail -n+2" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-status %s | tail -n+2" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     # put the table into a dictionary
@@ -97,11 +97,11 @@ def test_task_log(env,submit_subworkflow_alignment):
     main_wdl.bam_stats	1	46892	running	success	2021-02-09 22:07:31
     """
 
-    time.sleep(120)  # wait some time before running task-status since there is some lag between 
-                     # when "jaws run status" calls success and when "jaws run task-status" calls success.
+    #time.sleep(120)  # wait some time before running task-status since there is some lag between 
+    #                 # when "jaws status" calls success and when "jaws task-status" calls success.
 
     run_id = submit_subworkflow_alignment['run_id']
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s | tail -n+2" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-log %s | tail -n+2" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     # put the table into a dictionary
@@ -127,7 +127,11 @@ def test_for_raw_cromwell_files(env,submit_subworkflow_alignment):
         out/call-bbmap_shard_wf/align.bbmap_shard_wf/c9f67f71-1acd-4d8c-8879-14b7b1a28b54/call-shard/execution/rc
     """
     run_id = submit_subworkflow_alignment['run_id']
-    outdir = submit_subworkflow_alignment['output_dir']
+
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env,run_id)
+    (r,o,e) = util.run(cmd)
+    data = json.loads(o)
+    outdir = data['output_dir']
 
     cmd = "find %s/call-bbmap_shard_wf/align.bbmap_shard_wf -name rc -exec cat {} \\; | grep -c 0" % (outdir)
     (r,o,e) = util.run(cmd)
@@ -142,14 +146,14 @@ def test_saved_subwdl(env,submit_subworkflow_alignment):
 
     """
     run_id        = submit_subworkflow_alignment['run_id']
-    outdir        = submit_subworkflow_alignment['output_dir']
 
     # need to get the submission_id from the status
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     assert not r
     data = json.loads(o)
     submission_id = data['submission_id']
+    outdir        = data['output_dir']
 
     zip_file = os.path.join(outdir,submission_id + ".zip")
 
@@ -165,7 +169,7 @@ def test_subworkflow_metadata(env,submit_subworkflow_alignment):
     metadata command also returns cromwell metadata for subworkflows
     """
     run_id        = submit_subworkflow_alignment['run_id']
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run metadata %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws metadata %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     meta_output = json.loads(o)
 

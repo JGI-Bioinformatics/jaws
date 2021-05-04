@@ -58,7 +58,7 @@ def test_jaws_status(env):
     }
     """
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status" % (env)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws health" % (env)
     (r,o,e) = util.run(cmd)
     data = json.loads(o)
 
@@ -70,124 +70,62 @@ def test_jaws_status(env):
 
 
 def test_jaws_run_queue(env, submit_fq_count_wdl):
-    """ tests that the jaws run queue command has the run id in the stdout."""
+    """ tests that the jaws queue command has the run id in the stdout.
+    [
+    {
+        "id": 5759,
+        "input_site_id": "CORI",
+        "json_file": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/deployment-tests/test-inputs/fq_count.json",
+        "result": null,
+        "site_id": "CORI",
+        "status": "submitted",
+        "status_detail": "The run has been submitted to Cromwell and tasks should start to queue within moments",
+        "submitted": "2021-05-04 01:44:36",
+        "tag": null,
+        "updated": "2021-05-04 01:45:03",
+        "wdl_file": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/deployment-tests/WDLs/fq_count.wdl"
+    }
+    ]
+    """
 
-    data = submit_fq_count_wdl
-    run_id = str(data['run_id'])
+    run_id = str(submit_fq_count_wdl['run_id'])
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws queue | grep '\"id\":' | awk '{print $2}' | tr -d ','" % (env)
     (r,o,e) = util.run(cmd)
     ids=o.split()
     assert run_id in ids
 
 
 def test_jaws_run_history(env, submit_fq_count_wdl):
-    """ tests that the jaws run history command has the run id in the stdout."""
+    """ tests that the jaws history command has the run id in the stdout."""
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run history | grep '\"id\": %s' | awk '{print $2}' | tr -d ','" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws history | grep '\"id\": %s' | awk '{print $2}' | tr -d ','" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     # if there was something in stdout, then grep found "id": <run_id>
     assert o
 
-def test_jaws_wdl_update_readme(env,dir):
-    """This tests for multiple things 
-        1) adding a WDL to the catalog, 
-        2) updating it's readme,  
-        3) updating the WDL. 
-        4) deleted the WDL. 
-    """
-    ori_wdl=os.path.join(dir,"WDLs",released_wdl_catalog_wdl)
-    ori_readme = os.path.join(dir,"test-inputs/fq_count.md")
-    changed_wdl=os.path.join(dir,"WDLs/fq_count_changed.wdl")
-
-    with open(changed_readme,"w") as f:
-        f.write('this readme has been changed')
-
-    # make sure wdl doesn't already exist in the catalog
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl list" % (env)
-    (r,o,e) = util.run(cmd)
-    if 'uniq_version' in o:
-        cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl delete %s uniq_version" % (env,released_wdl_catalog_name)
-        (r,o,e) = util.run(cmd)
-        assert not r
-
-    # add to catalog
-    # this command returns a rc > 0 even upon success, so I can't test for rc, but use "result" from stderr.
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl add %s uniq_version %s %s" % (env,released_wdl_catalog_name,ori_wdl,ori_readme)
-    (r,o,e) = util.run(cmd)
-    data = json.loads(e)
-    assert data['result'] == 'OK'
-
-    # update-doc
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl update-doc %s uniq_version %s" % (env,released_wdl_catalog_name,changed_readme)
-    (r,o,e) = util.run(cmd)
-    data = json.loads(o)
-    assert data['result'] == 'OK'
-    
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl about %s uniq_version" % (env,released_wdl_catalog_name)
-    (r,o,e) = util.run(cmd)
-    assert 'changed' in o
-
-    # update-wdl
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl update-wdl %s uniq_version %s" % (env,released_wdl_catalog_name,changed_wdl)
-    (r,o,e) = util.run(cmd)
-    data = json.loads(o)
-    assert data['result'] == 'OK'
-    
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl get %s uniq_version " % (env,released_wdl_catalog_name)
-    (r,o,e) = util.run(cmd)
-    assert 'fq_count_changed' in o
-
-    # delete WDL
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl delete %s uniq_version" % (env,released_wdl_catalog_name)
-    (r,o,e) = util.run(cmd)
-    assert not r
-
-def test_jaws_wdl_update_released_wdl(env,dir):
-    """You should not be able to change a WDL that has been released"""
-    changed_wdl=os.path.join(dir,"WDLs/fq_count_changed.wdl")
-
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl update-wdl %s 1.0.0 %s" % (env,released_wdl_catalog_name,changed_wdl)
-    (r,o,e) = util.run(cmd)
-    assert "Action not allowed" in e
-
-def test_jaws_wdl_versions(env):
-    """Test that we can get the version for a given WDL
-    "fq_count:1.0.0": {
-        "created": "2020-11-04T22:24:11Z",
-        "last_updated": "2020-11-04T22:24:11Z",
-        "name": "fq_count",
-        "owner": "jfroula",
-        "production_release": "no",
-        "version": "1.0.0"
-        }
-    """
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws wdl versions %s | grep version | awk '{print $2}' " % (env,released_wdl_catalog_name)
-    (r,o,e) = util.run(cmd)
-    assert o.strip() == '\"1.0.0\"'
-
 def test_jaws_wdl_metadata(env, submit_fq_count_wdl):
-    """Check that a jaws run metadata returns workflowRoot has a value"""
+    """Check that a jaws metadata returns workflowRoot has a value"""
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run metadata %s | grep workflowRoot | awk '{print $2}' | tr -d '\"'" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws metadata %s | grep workflowRoot | awk '{print $2}' | tr -d '\"'" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     assert o 
 
 def test_jaws_wdl_errors(env, submit_fq_count_wdl):
-    """Check that a jaws run metadata returns workflowRoot has a value"""
+    """Check that a jaws metadata returns workflowRoot has a value"""
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
     util.wait_for_run(run_id,env,check_tries,check_sleep)
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run errors %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws errors %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     # we don't have any errors in our wdl so the errors command should't return anything.
@@ -195,7 +133,7 @@ def test_jaws_wdl_errors(env, submit_fq_count_wdl):
     assert r == 0
         
 def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
-    """Check that jaws run task-status returns something like this:
+    """Check that jaws task-status returns something like this:
      fq_count.count_seqs 1   25177   running success 2021-01-13 12:37:45     The job completed successfully
 
      It should have only one line.
@@ -205,7 +143,7 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     util.wait_for_run(run_id,env,check_tries,check_sleep)
     #time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-status %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-status %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
 
     # make sure there is only 1 output line (not including header)
@@ -217,7 +155,7 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     assert 'fq_count.count_seqs' in a[1]
 
 def test_jaws_wdl_log(env, submit_fq_count_wdl):
-    """Check that the first line of jaws run log returns something like this:
+    """Check that the first line of jaws log returns something like this:
        created uploading 2021-04-06 02:56:49 upload_task_id=bbbc09c2-9683-11eb-955a-752ba7b88ebe
     """
     data = submit_fq_count_wdl
@@ -225,7 +163,7 @@ def test_jaws_wdl_log(env, submit_fq_count_wdl):
     util.wait_for_run(run_id,env,check_tries,check_sleep)
     #time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run log %s " % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws log %s " % (env,run_id)
     (r,o,e) = util.run(cmd)
     a=o.split("\n")
     a = list(filter(None,a)) # remove empty elements
@@ -239,8 +177,8 @@ def test_jaws_wdl_log(env, submit_fq_count_wdl):
     assert len(a) == 9
 
 
-def mtest_jaws_wdl_task_log(env, submit_fq_count_wdl):
-    """Check that the first line of jaws run task-log returns something like this:
+def test_jaws_wdl_task_log(env, submit_fq_count_wdl):
+    """Check that the first line of jaws task-log returns something like this:
        f0b7fd65-1620-4765-8b62-55d0bec74a8d  fq_count.count_seqs 1 16948  running failed 2021-04-06 03:46:26
     """
     data = submit_fq_count_wdl
@@ -248,7 +186,7 @@ def mtest_jaws_wdl_task_log(env, submit_fq_count_wdl):
     util.wait_for_run(run_id,env,check_tries,check_sleep)
     #time.sleep(120)  # wait an aditional amount of time to make sure everything is updated
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run task-log %s" % (env,run_id)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-log %s" % (env,run_id)
     (r,o,e) = util.run(cmd)
     a=o.split("\n")
     a = list(filter(None,a)) # remove empty elements
@@ -262,7 +200,7 @@ def mtest_jaws_wdl_task_log(env, submit_fq_count_wdl):
     assert len(a) == 6
 
 
-def test_wfcopy(env,dir,submit_fq_count_wdl):
+def mtest_wfcopy(env,dir,submit_fq_count_wdl):
     """ 
     Check that wfcopy works and can flatten the directory
 
@@ -276,7 +214,11 @@ def test_wfcopy(env,dir,submit_fq_count_wdl):
         assert not r
 
     run_id = str(submit_fq_count_wdl['run_id'])
-    outdir = submit_fq_count_wdl['output_dir']
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env,run_id)
+    (r,o,e) = util.run(cmd)
+    data = json.loads(o)
+    outdir = data['output_dir']
+
     util.wait_for_run(run_id,env,check_tries,check_sleep)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws wfcopy --flatten %s %s" % (env,outdir,mycopy)
@@ -285,4 +227,73 @@ def test_wfcopy(env,dir,submit_fq_count_wdl):
 
     # does this path exist
     assert os.path.exists(os.path.join(mycopy,"count_seqs/num_seqs.txt"))
+
+
+def test_jaws_queue_site_filter(env, site, submit_fq_count_wdl):
+    """
+    jaws queue --site [CORI, JGI, CASCADE]
+    """
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws queue --site %s" % (env, site)
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+
+    if data:
+        for d in data:
+            assert d["site_id"].lower() == site
+    else:
+        pytest.exit(f"no runs were found in the queue for site: {site}")
+
+
+def test_jaws_history_site_filter(env, site, submit_fq_count_wdl):
+    """
+    jaws history --site [CORI, JGI, CASCADE]
+    """
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws history --site %s" % (env, site)
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+
+    if data:
+        for d in data:
+            assert d["site_id"].lower() == site
+    else:
+        pytest.exit(f"no runs were found in the history for site: {site}")
+
+
+def test_jaws_history_result_filter_succeeded(env,submit_fq_count_wdl):
+    """
+    jaws history --result [succeeded, failed]
+    Checking the output only with "succeeded" and "failed"
+    """
+
+    run_id = submit_fq_count_wdl['run_id']
+    util.wait_for_run(run_id,env,check_tries,check_sleep)
+
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws history --result succeeded" % (env)
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+
+    if data:
+        for d in data:
+            assert d["result"] == 'succeeded'
+    else:
+        pytest.exit(f"no runs were found in the history that have result: succeeded")
+
+
+def test_jaws_history_result_filter_failed(env,submit_bad_task):
+    """
+    jaws history --result failed
+    Checking the output only with "succeeded" and "failed"
+    """
+    run_id = submit_bad_task['run_id']
+    util.wait_for_run(run_id,env,check_tries,check_sleep)
+
+    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws history --result failed" % (env)
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+
+    if data:
+        for d in data:
+            assert d["result"] == 'failed'
+    else:
+        pytest.exit(f"no runs were found in the history that have result: failed")
 

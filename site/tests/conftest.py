@@ -450,6 +450,9 @@ class MockSession:
     def commit(self):
         return
 
+    def close(self):
+        return
+
     def close_all(self):
         return
 
@@ -465,15 +468,15 @@ class MockDb:
         return MockSession()
 
 
-class MockRun:
-    """Mock Run object with useable defaults."""
+class MockRunModel:
+    """Mock Run sqlalchemy orm model object with useable defaults."""
 
     def __init__(self, **kwargs):
         self.user_id = kwargs.get("user_id", "jaws")
         self.upload_task_id = kwargs.get("upload_task_id", "1")
         self.submission_id = kwargs.get("submission_id", "XXXX")
         self.cromwell_run_id = kwargs.get("cromwell_run_id", "myid")
-        self.status = kwargs.get("status", "running")
+        self._status = kwargs.get("status", "running")
         self.id = kwargs.get("id", "99")
         self.output_endpoint = kwargs.get(
             "output_endpoint", "EXAMPLE_OUTPUT_ENDPOINT_ID"
@@ -484,6 +487,14 @@ class MockRun:
         self.cromwell_workflow_dir = (
             "/global/scratch/jaws/dev/cromwell-executions/test_wdl/myid"
         )
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, new_status: str):
+        self._status = new_status
 
 
 class MockTransferClientWithCopy:

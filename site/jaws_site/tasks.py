@@ -6,7 +6,8 @@ import logging
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jaws_site.models import Job_Log, Run
 from jaws_site import config
-from jaws_site.cromwell import Cromwell
+from jaws_site import cromwell
+from jaws_site.cromwell import CromwellException
 
 
 logger = logging.getLogger(__package__)
@@ -25,17 +26,16 @@ job_status_value = {
 
 class TaskLogDbError(Exception):
     """This is raised on database errors."""
-
     pass
 
 
 class TaskLogRunNotFoundError(Exception):
     """This is raised when the requested JAWS run_id is not found in the rdb."""
-
     pass
 
 
 class TaskLogError(Exception):
+    """This is raised on db errors"""
     pass
 
 
@@ -45,7 +45,7 @@ class TaskLog:
     """
 
     def __init__(self, session):
-        self.cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
+        self.cromwell = cromwell.Cromwell(config.conf.get("CROMWELL", "url"))
         self.session = session
 
     def _save_job_log(self, job_log):
@@ -67,7 +67,7 @@ class TaskLog:
             logger.warning(
                 f"Job {job_log.cromwell_job_id} status is duplicate; ignored"
             )
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
             raise TaskLogDbError(
                 f"Error saving job log, {job_log.cromwell_job_id}:{job_log.status_to}, in db: {error}"
@@ -95,7 +95,7 @@ class TaskLog:
                 timestamp=timestamp,
                 reason=reason,
             )
-        except Exception as error:
+        except SQLAlchemyError as error:
             raise TaskLogError(
                 f"Error initializing job_log {cromwell_job_id}:{status_to}: {error}"
             )
@@ -118,7 +118,7 @@ class TaskLog:
             raise TaskLogError(
                 f"SQLAlchemy error retrieving task logs from db for run {cromwell_run_ids}: {error}"
             )
-        except Exception as error:
+        except SQLAlchemyError as error:
             raise TaskLogError(
                 f"Unknown error retrieving task logs from db for run {cromwell_run_ids}: {error}"
             )
@@ -137,10 +137,10 @@ class TaskLog:
 
     def get_job_logs(self, cromwell_run_ids):
         """
-        Get all job logs for a run, with entries organized by job id and ordered by status_from.
+        Get all job state transition logs for a run, with entries organized by job id and ordered by status_from.
         :param cromwell_run_ids: List of Cromwell run IDs (main and any subworkflows)
         :type cromwell_run_ids: list
-        :return: job ids and ordered list of log entries (status from, status to, timestamp, reason)
+        :return: job ids and ordered list of log entries
         :rtype: dict
         """
         jobs = {}
@@ -156,16 +156,25 @@ class TaskLog:
             cromwell_job_id = str(cromwell_job_id)
             if cromwell_job_id not in jobs:
                 jobs[cromwell_job_id] = {}
+            # since job state transition logs come from the backend service, we cannot guarantee every transition is
+            # represented in the log, so save in a dict instead of a list, using ordinal value of status_from as key
             index = job_status_value[status_from]
-            jobs[cromwell_job_id][index] = [status_from, status_to, timestamp, reason]
+            jobs[cromwell_job_id][index] = [
+                cromwell_run_id,
+                status_from,
+                status_to,
+                timestamp,
+                reason,
+            ]
 
-        result = {}
+        # for each job, create sorted list of it's state transitions
+        sorted_logs = {}
         for cromwell_job_id in jobs:
-            result[cromwell_job_id] = []
+            sorted_logs[cromwell_job_id] = []
             for index in sorted(jobs[cromwell_job_id].keys()):
                 row = jobs[cromwell_job_id][index]
-                result[cromwell_job_id].append(row)
-        return result
+                sorted_logs[cromwell_job_id].append(row)
+        return sorted_logs
 
     def _get_cromwell_run_id(self, run_id: int):
         """Get the cromwell_run_id associated with the jaws run_id from the RDb.
@@ -178,7 +187,7 @@ class TaskLog:
         """
         try:
             run = self.session.query(Run).filter_by(id=run_id).one_or_none()
-        except Exception as error:
+        except SQLAlchemyError as error:
             raise TaskLogDbError(
                 f"Task log service was unable to query the db to get the cromwell_run_id for run {run_id}: {error}"
             )
@@ -187,7 +196,7 @@ class TaskLog:
         else:
             raise TaskLogRunNotFoundError(f"The run {run_id} was not found")
 
-    def _get_task_summary(self, cromwell_run_id: str):
+    def _get_cromwell_task_summary(self, cromwell_run_id: str):
         """Retrieve all tasks from Cromwell metadata for a run.
         :param cromwell_run_id: Cromwell's UUID for a run
         :type cromwell_run_id: str
@@ -196,52 +205,86 @@ class TaskLog:
         """
         try:
             metadata = self.cromwell.get_metadata(cromwell_run_id)
-        except Exception as error:
+        except CromwellException as error:
             err_msg = f"The task log service was unable to retrieve run metadata from Cromwell: {error}"
             self.logger.error(err_msg)
             raise (err_msg)
-        summary = metadata.task_summary()
-        return summary
+        return metadata.task_summary()
 
-    def _get_cromwell_run_ids_from_task_summary(self, summary):
-        """Given cromwell metadata task summary table, extract list of cromwell_run_ids"""
+    def get_job_metadata(self, cromwell_run_id: str):
+        """Retrieve all jobs from Cromwell metadata for a run and reorganize by cromwell_job_id.
+        :param cromwell_run_id: Cromwell's UUID for the run
+        :type cromwell_run_id: str
+        :return: cromwell_job_id and task metadata
+        :rtype: dict
+        """
+        tasks = self._get_cromwell_task_summary(cromwell_run_id)
+        jobs = {}
+        for (cromwell_run_id, task_name, attempt, cromwell_job_id) in tasks:
+            cromwell_job_id = str(cromwell_job_id)
+            jobs[cromwell_job_id] = [cromwell_run_id, task_name, attempt]
+        return jobs
+
+    def _get_cromwell_run_ids_from_job_metadata(self, jobs):
+        """Given jobs, return list (without duplicates) of cromwell_run_ids.
+        :param jobs: cromwell_job_id and associated metadata
+        :type jobs: dict
+        :return: unique list of cromwell_run_ids
+        :rtype: list
+        """
         cromwell_run_ids = set()
-        for row in summary:
-            cromwell_run_id = row[0]
+        for cromwell_job_id in jobs.keys():
+            cromwell_run_id = jobs[cromwell_job_id][0]
             cromwell_run_ids.add(cromwell_run_id)
         return list(cromwell_run_ids)
 
     def get_task_log(self, run_id: int):
-        """Retrieve complete task log for a run.  This adds task_name and attempt information to the job log."""
+        """Retrieve complete task log for a run.  This adds task_name and attempt information to the job log.
+        :param run_id: JAWS Run ID
+        :type run_id: int
+        :return: table of task state transitions for the run, including subworkflows
+        :rtype: list
+        """
+        # job logs and cromwell task logs are referenced by cromwell_run_id, so we need to look this up in db
         main_cromwell_run_id = self._get_cromwell_run_id(run_id)
         if not main_cromwell_run_id:
-            raise TaskLogRunNotFoundError(
-                f"Run {run_id} does not have a Cromwell run id (yet)"
-            )
-        tasks = self._get_task_summary(main_cromwell_run_id)
-        all_cromwell_run_ids = self._get_cromwell_run_ids_from_task_summary(tasks)
-        all_job_logs = self.get_job_logs(all_cromwell_run_ids)
+            # run exists but hasn't been submitted to Cromwell yet (e.g. uploading)
+            return []
 
-        tasks_and_logs = []
-        for (cromwell_run_id, task_name, attempt, cromwell_job_id) in tasks:
-            cromwell_job_id = str(cromwell_job_id)
-            if cromwell_job_id not in all_job_logs:
-                tasks_and_logs.append(
-                    [
-                        cromwell_run_id,
-                        task_name,
-                        attempt,
-                        cromwell_job_id,
-                        "",
-                        "",
-                        "",
-                        "",
-                    ]
-                )
-                continue
-            job_logs = all_job_logs[cromwell_job_id]
-            for (status_from, status_to, timestamp, reason) in job_logs:
-                tasks_and_logs.append(
+        # Cromwell metadata contains cromwell_job_id, task_name, and attempt, but does not
+        # contain detailed state transitions.  There can be a delay between job submission
+        # and when the job appears in the Cromwell metadata, so some items may be missing.
+        job_metadata = self.get_job_metadata(main_cromwell_run_id)
+
+        # While we have the cromwell_run_id of the main workflow in the Runs db,
+        # if a run has subworkflows, we need to get their cromwell_run_ids from the
+        # Cromwell metadata.
+        cromwell_run_ids = self._get_cromwell_run_ids_from_job_metadata(job_metadata)
+
+        # Select all logs for the main run and any subworkflows from the Task_Log table.
+        # The db contains all job state transitions and is current, but the records do not
+        # have "task_name" or "attempt" metadata (only Cromwell metadata has those fields)
+        job_logs = self.get_job_logs(cromwell_run_ids)
+
+        # Combine the job metadata (which include task names) with the logs (i.e. state
+        # transitions) to produce the final, complete record, which is returned in a table.
+        merged_logs = []
+        for cromwell_job_id in sorted(job_logs.keys()):
+            state_transitions = job_logs[cromwell_job_id]
+            # default values are required because a job many not appear in the Cromwell
+            # metadata immediately
+            task_name = "<pending>"
+            attempt = "?"
+            if cromwell_job_id in job_metadata:
+                cromwell_run_id, task_name, attempt = job_metadata[cromwell_job_id]
+            for (
+                cromwell_run_id,
+                status_from,
+                status_to,
+                timestamp,
+                reason,
+            ) in state_transitions:
+                merged_logs.append(
                     [
                         cromwell_run_id,
                         task_name,
@@ -253,16 +296,16 @@ class TaskLog:
                         reason,
                     ]
                 )
-        return tasks_and_logs
+        return merged_logs
 
     def get_task_status(self, run_id: int):
         """
         Retrieve the current status of each task by filtering the log to include only the latest state per task.
         """
-        tasks_and_logs = self.get_task_log(run_id)
+        merged_logs = self.get_task_log(run_id)
         tasks_and_last_states = []
         last_job_id = 0
-        for row in tasks_and_logs:
+        for row in merged_logs:
             job_id = row[3]
             if job_id == last_job_id:
                 tasks_and_last_states[-1] = row
@@ -289,6 +332,52 @@ def get_run_status(session, run_id: int) -> str:
         return None
     max_task_status_value = 0
     for task in tasks:
-        cromwell_run_id, task_name, attempt, cromwell_job_id, status_from, status_to, timestamp, reason = task
+        (
+            cromwell_run_id,
+            task_name,
+            attempt,
+            cromwell_job_id,
+            status_from,
+            status_to,
+            timestamp,
+            reason,
+        ) = task
         max_task_status_value = max(max_task_status_value, job_status_value[status_to])
     return "queued" if max_task_status_value < 3 else "running"
+
+
+def _select_task_log_error_messages(session, cromwell_job_id: str) -> list:
+    """
+    Get all non-NULL strings from 'reason' column of job logs.
+    :param cromwell_job_id: Cromwell's "jobId" field
+    :type cromwell_job_ids: str
+    :return: list of error messages
+    :rtype: list
+    """
+    try:
+        table = (
+            session.query(Job_Log)
+            .filter_by(cromwell_job_id=cromwell_job_id)
+            .filter(Job_Log.reason.isnot(None))
+            .filter(Job_Log.reason != "")
+            .all()
+        )
+    except SQLAlchemyError as error:
+        raise TaskLogError(
+            f"SQLAlchemy error retrieving task logs from db for run {cromwell_job_id}: {error}"
+        )
+    except Exception as error:
+        raise TaskLogError(
+            f"Unknown error retrieving task logs from db for run {cromwell_job_id}: {error}"
+        )
+    result = []
+    for row in table:
+        result.append(row.reason)
+    return result
+
+
+def get_task_log_error_messages(session, cromwell_job_id):
+    """
+    Query task-log table any return any error messages found in the optional "reason" column.
+    """
+    return _select_task_log_error_messages(session, cromwell_job_id)

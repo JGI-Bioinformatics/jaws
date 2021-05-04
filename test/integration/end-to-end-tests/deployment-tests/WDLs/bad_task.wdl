@@ -9,6 +9,7 @@ workflow fq_count {
 task count_seqs {
     File infile
     command <<<
+		set -euo pipefail
         bad_cmd_name -l ${infile} | perl -ne 'if (/^\s*(\d+)/ and !($1%4)) {print $1/4, " sequences\n"} else {print STDERR "Invalid Fastq file\n"}' > num_seqs.txt
     >>>
     output {
@@ -18,7 +19,7 @@ task count_seqs {
         poolname: "test_small"
         node: 1
         nwpn: 1
-        mem: "10G"
+        memory: "10G"
         time: "00:30:00"
         shared: 0
     }
