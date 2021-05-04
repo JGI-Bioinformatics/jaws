@@ -73,7 +73,7 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
     data = util.submit_wdl(env, wdl, input_json, site)
 
     # wait for run to complete
-    run_id = data['run_id']
+    run_id = data["run_id"]
     util.wait_for_run(run_id, env, check_tries, check_sleep)
 
     # check for the correct error message
