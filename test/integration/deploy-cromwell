@@ -48,12 +48,6 @@ cp "$SITE_CROMWELL_JAR" "$INSTALLED_CROMWELL_JAR" && \
   chgrp "$SITE_JTM_GROUP" "$INSTALLED_CROMWELL_JAR" && \
   chmod 640 "$INSTALLED_CROMWELL_JAR"
 
-CONTAINER_CHECK=""
-if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
-  CONTAINER_CHECK="shifterimg lookup \${docker} || shifterimg pull \${docker}"
-fi
-
-
 # When creating the wrapper scripts the arguments to each script are as follows:
 # For SHIFTER
 # $1 image name
@@ -74,7 +68,15 @@ fi
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
 if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
-  CONTAINER_EXPORT=""
+  CONTAINER_EXPORT="out=\$(shifterimg lookup \${docker} || shifterimg pull \${docker})
+ret=\$?
+if [[ \$ret != 0 || \$(echo \$out | grep \"FAILURE\") ]]; then
+  echo \"Invalid container name or failed to pull container, \${docker!\"
+  exit \$ret
+else
+  echo \"Successfully pulled \${docker}!\"
+fi
+"
   CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
   CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
   cat <<EOM > "$CONTAINER_WRAPPER"
@@ -257,7 +259,6 @@ $CONTAINER_EXPORT
 CONSTRAINT=\${constraint}
 QOS=\${qos}
 PARTITION=\${partition}
-$CONTAINER_CHECK
 [ -z \$QOS ] || QOS="--qos \$QOS"
 [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
 [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
