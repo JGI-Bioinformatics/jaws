@@ -13,6 +13,15 @@ def submit_fq_count_wdl(request):
 
     wdl = target_dir + "/WDLs/fq_count.wdl"
     input_json = target_dir + "/test-inputs/fq_count.json"
+    """
+    data =  {
+    "max_ram_gb": 10,
+    "run_id": 7094,
+    "site_id": "CORI",
+    "status": "uploading",
+    "tag": "null"
+    }
+    """
 
     data = util.submit_wdl(env, wdl, input_json, site)
     return data

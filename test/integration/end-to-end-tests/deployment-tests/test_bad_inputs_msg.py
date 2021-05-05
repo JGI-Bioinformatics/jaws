@@ -59,7 +59,7 @@ def test_json_bad_path_to_input_file_msg(env, dir, site):
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
-    assert "Input path not found:" in e
+    assert "Input path not found or inaccessible:" in e
 
 
 def test_misspelled_variable_in_input_file_msg(env, dir, site):
@@ -73,7 +73,7 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
     data = util.submit_wdl(env, wdl, input_json, site)
 
     # wait for run to complete
-    run_id = data["run_id"]
+    run_id = data['run_id']
     util.wait_for_run(run_id, env, check_tries, check_sleep)
 
     # check for the correct error message
@@ -100,7 +100,7 @@ def test_bad_input_file_permissions_msg(env, dir, site):
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
-    assert "Input path not found or inaccessible" in e
+    assert "Input path not found or inaccessible:" in e
 
 
 def test_invalid_wdl_syntax_msg(env, dir, site):
