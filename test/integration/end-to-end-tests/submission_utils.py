@@ -51,12 +51,6 @@ def submit_wdl_noexit(env, wdl, input_json, site):
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws submit --no-cache %s %s %s" % (env, wdl, input_json, site)
     (rc, stdout, stderr) = run(cmd)
     data = json.loads(stdout)
-    """
-    data={ "id": 17037,
-            "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count_out",
-            "submission_id": "856d97e8-909d-48dd-8e77-c74ac97b9fc1"
-            }
-    """
 
     return data
 
