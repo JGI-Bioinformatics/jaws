@@ -13,17 +13,15 @@ def submit_fq_count_wdl(request):
 
     wdl = target_dir + "/WDLs/fq_count.wdl"
     input_json = target_dir + "/test-inputs/fq_count.json"
-
     """
-    data = {
-    "output_dir": "/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/CORI/6744",
-    "run_id": 6744,
+    data =  {
+    "max_ram_gb": 10,
+    "run_id": 7105,
     "site_id": "CORI",
     "status": "uploading",
-    "tag": ""
+    "tag": "submit_fq_count_wdl"
     }
     """
-
     data = util.submit_wdl(env, wdl, input_json, site)
     return data
 
@@ -39,8 +37,6 @@ def submit_subworkflow_alignment(request):
     input_json = target_dir + "/WDLs/jaws-alignment-example/inputs.json"
 
     data = util.submit_wdl(env, wdl, input_json, site)
-    # data = {'output_dir': '/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/JGI/6766', \
-    # 'run_id': 6766, 'site_id': 'JGI', 'status': 'uploading'}
 
     # wait for run to complete
     id = data["run_id"]
@@ -60,16 +56,6 @@ def submit_bad_task(request):
 
     data = util.submit_wdl_noexit(env, wdl, input_json, site)
 
-    """
-    data = {
-    "output_dir": "/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/CORI/6744",
-    "run_id": 6744,
-    "site_id": "CORI",
-    "status": "uploading",
-    "tag": ""
-    }
-    """
-
     id = data["run_id"]
 
     # wait for run to complete
@@ -88,13 +74,6 @@ def submit_bad_docker(request):
     input_json = target_dir + "/test-inputs/fq_count.json"
 
     data = util.submit_wdl(env, wdl, input_json, site)
-    #data = {
-    #"output_dir": "/global/cfs/projectdirs/jaws/data-repository-staging/jfroula/CORI/6744",
-    #"run_id": 5733,
-    #"site_id": "CORI",
-    #"status": "uploading",
-    #"tag": ""
-    #}
 
     # wait for run to complete
     id = data["run_id"]
@@ -165,7 +144,6 @@ def clone_tutorials_repo(request):
 
     cmd = "rm -rf jaws-tutorial-examples/"
     util.run(cmd)
-
 
 # The addoption functions allows us to use flags to capture arguments on the command line.
 def pytest_addoption(parser):

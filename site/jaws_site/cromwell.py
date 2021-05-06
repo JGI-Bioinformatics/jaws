@@ -85,87 +85,36 @@ class Task:
     def execution_status(self, attempt=None):
         return self.get("executionStatus", attempt)
 
-    def failures(self, attempt=None):
+    def errors(self):
         """
-        Return failures dict for specified attempt (last, if unspecified).
-        :param attempt: attempt number (first is 1; default is last)
-        :type attempt: int
-        :return: failures record
+        Return user friendly errors report for this task.
+        :return: Errors report
         :rtype: dict
         """
-        if attempt is None:
-            index = -1  # last attempt
-        else:
-            attempt = int(attempt)
-            if attempt == 0 or attempt > len(self.calls):
-                raise ValueError("Invalid attempt; of out range")
-            else:
-                index = attempt - 1
-        if "failures" in self.calls[index]:
-            return self.calls[index]["failures"]
-        else:
-            return None
-
-    def failure_messages(self, attempt=None):
-        """
-        Concatenate failure messages.
-        :param attempt: attempt number (first=1; default=last)
-        :type attempt: int
-        :return: error messages
-        :rtype: str
-        """
-        failures = self.failures(attempt)
-        if not failures:
-            return None
-        failure_msgs = []
-        for failure in failures:
-            a_msg = failure["message"]
-            # remove path from error message because the contents of the file will be
-            # included separately instead by error() method
-            if a_msg.startswith(
-                "Unable to start job. Check the stderr file for possible errors:"
-            ):
-                a_msg = "Unable to start job. Check the stderr for possible errors"
-            failure_msgs.append(a_msg)
-        return "\n".join(failure_msgs)
-
-    def error(self, attempt=None):
-        """
-        Return user friendly error message plus stderr file contents.
-        :param attempt: attempt number (first is 1; default is last)
-        :type attempt: int
-        :return: Error messages and stderr
-        :rtype: str
-        """
-        failures = self.failures(attempt)
-        if not failures:
-            return None
-
-        call_caching = self.get("callCaching", attempt, None)
-        call_caching_summary = {}
-        if call_caching:
-            call_caching_summary["allowResultReuse"] = call_caching["allowResultReuse"]
-            if call_caching["allowResultReuse"] is True:
-                call_caching_summary["hit"] = call_caching["hit"]
-
-        report = {
-            "failures": self.failure_messages(attempt),
-            "callCaching": call_caching_summary,
-            "runtime": self.get("runtimeAttributes", attempt, ""),
-            "cromwell_job_id": self.get("jobId", attempt, None),
-        }
-
-        stderr_file = self.stderr(attempt)
-        if stderr_file and os.path.isfile(stderr_file):
-            with open(stderr_file, "r") as file:
-                report["stderr"] = file.read()
-
-        submit_stderr_file = f"{stderr_file}.submit"
-        if submit_stderr_file and os.path.isfile(submit_stderr_file):
-            with open(submit_stderr_file, "r") as file:
-                report["stderr.submit"] = file.read()
-
-        return report
+        full_report = []
+        for call in self.calls:
+            if call.get("executionStatus") == "Failed":
+                report = {}
+                report["attempt"] = call["attempt"]
+                report["callCaching"] = call["callCaching"]
+                report["failures"] = call["failures"]
+                report["jobId"] = call["jobId"]
+                report["runtimeAttributes"] = call["runtimeAttributes"]
+                report["shardIndex"] = call["shardIndex"]
+                stderr_file = call["stderr"]
+                if stderr_file and os.path.isfile(stderr_file):
+                    with open(stderr_file, "r") as file:
+                        report["stderr"] = file.read()
+                else:
+                    report["stderr"] = None
+                stderr_submit_file = f"{stderr_file}.submit"
+                if stderr_submit_file and os.path.isfile(stderr_submit_file):
+                    with open(stderr_submit_file, "r") as file:
+                        report["stderr.submit"] = file.read()
+                else:
+                    report["stderr.submit"] = None
+                full_report.append(report)
+        return full_report
 
     def stdout(self, attempt=None, src=None, dest=None):
         """
@@ -341,53 +290,35 @@ class Metadata:
             reason = failures[0]["message"]
         return reason
 
-    def failure_messages(self, **kwargs):
+    def filtered_failures(self):
         """
-        Concatenate the failure messages; optionally exclude those which are not of
-        type "Workflow failed", as those failures are duplicated in the Tasks.
-        :param exclude_tasks: Optional argument to exclude "Workflow failed" failures
-        :type exclude_tasks: bool
-        :return: concatenated failure message
-        :rtype: str
+        Filter failurs with message "Workflow failed", as those failures are duplicated in the Tasks.
+        :return: list of failures
+        :rtype: list
         """
-        failures = self.get("failures")
-        if not failures:
-            return None
-        failure_msgs = []
+        failures = self.get("failures", [])
+        filtered_failures = []
         for failure in failures:
-            if (
-                "exclude_tasks" in kwargs
-                and kwargs["exclude_tasks"] is True
-                and failure["message"] == "Workflow failed"
-            ):
-                continue
-            for cause in failure["causedBy"]:
-                failure_msgs.append(cause["message"])
-        return "\n".join(failure_msgs)
+            if failure["message"].lower() != "workflow failed":
+                filtered_failures.append(failure)
+        return filtered_failures
 
     def errors(self):
         """
         Return JSON errors report.
         """
-        failures = self.get("failures")
-        if not failures:
-            return None
         report = {}
-
-        # failure report for each failed Task; the Task object returns more than just what
-        # info Cromwell metadata has (e.g. includes contents of stderr and stderr.submit files)
+        task_errors = {}
         for task in self.tasks:
-            an_error = task.error()
-            if an_error:
-                report[task.name] = an_error
-
-        # Other failures (e.g. "Workflow input processing failed") may exist
-        other_failures = self.failure_messages(exclude_tasks=True)
-        if other_failures:
-            report[self.workflow_id] = {
-                "failures": other_failures,
-                "inputs": self.get("inputs"),
-            }
+            task_report = task.errors()
+            if len(task_report):
+                task_errors[task.name] = task_report
+        if len(task_errors):
+            report["calls"] = task_errors
+        other_failures = self.filtered_failures()
+        if len(other_failures):
+            report["failures"] = self.filtered_failures()
+            report["inputs"] = self.get("inputs")
         return report
 
     def task_summary(self):

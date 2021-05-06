@@ -386,7 +386,7 @@ deploy-jaws-cascade-dev:
   only:
     - dev
 
-deploy-jaws-cori-dev-integration-tests:
+deploy-cori-dev-integration-tests:
   stage: integration-test
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -395,12 +395,44 @@ deploy-jaws-cori-dev-integration-tests:
     CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
-  environment:
-    name: "cori/dev"
   script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh single-test
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
-    - when: never
   allow_failure: true
+
+deploy-cori-dev-integration-tests:
+  stage: integration-test
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
+
+deploy-cori-staging-integration-tests:
+  stage: integration-test
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
+

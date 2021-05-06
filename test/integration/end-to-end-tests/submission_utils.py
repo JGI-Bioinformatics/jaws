@@ -25,7 +25,7 @@ def submit_wdl(env, wdl, input_json, site):
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
     # activation command causes an error when we try to do json load later
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws submit --no-cache %s %s %s" % (env, wdl, input_json, site)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws submit --tag submit_fq_count_wdl --no-cache %s %s %s" % (env, wdl, input_json, site)
     (rc, stdout, stderr) = run(cmd)
     if rc > 0:
         if stderr:
@@ -48,15 +48,9 @@ def submit_wdl_noexit(env, wdl, input_json, site):
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
     # activation command causes an error when we try to do json load later
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws submit --no-cache %s %s %s" % (env, wdl, input_json, site)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws submit --tag submit_wdl_noexit --no-cache %s %s %s" % (env, wdl, input_json, site)
     (rc, stdout, stderr) = run(cmd)
     data = json.loads(stdout)
-    """
-    data={ "id": 17037,
-            "output_dir": "/global/cscratch1/sd/jfroula/JAWS/jaws/test/integration/end-to-end-tests/score-card-tests/fq_count_out",
-            "submission_id": "856d97e8-909d-48dd-8e77-c74ac97b9fc1"
-            }
-    """
 
     return data
 
