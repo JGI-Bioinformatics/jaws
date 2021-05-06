@@ -1,0 +1,160 @@
+{
+    "calls": {
+        "hello_and_goodbye.goodbye": [
+            {
+                "attempt": 1,
+                "backend": "JTM",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "callRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-goodbye",
+                "commandLine": "echo 'Goodbye cruel world!'",
+                "end": "2020-09-10T23:08:01.219Z",
+                "executionEvents": [
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2020-09-10T23:08:01.219Z",
+                        "startTime": "2020-09-10T23:08:01.031Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2020-09-10T23:07:38.329Z",
+                        "startTime": "2020-09-10T23:07:37.841Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2020-09-10T23:08:01.031Z",
+                        "startTime": "2020-09-10T23:07:38.336Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2020-09-10T23:07:37.841Z",
+                        "startTime": "2020-09-10T23:07:37.840Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2020-09-10T23:07:38.330Z",
+                        "startTime": "2020-09-10T23:07:38.329Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2020-09-10T23:07:38.336Z",
+                        "startTime": "2020-09-10T23:07:38.330Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {"addressee": "cruel world"},
+                "jobId": "5482",
+                "outputs": {"salutation": "Goodbye cruel world!"},
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "account": "lr_jgicloud",
+                    "cluster": "jgi",
+                    "constraint": "",
+                    "continueOnReturnCode": "0",
+                    "cpu": "1",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "mem": "10G",
+                    "node": "1",
+                    "nwpn": "1",
+                    "poolname": "test_small",
+                    "qos": "condo_jgicloud",
+                    "shared": "0",
+                    "time": "00:10:00"
+                },
+                "shardIndex": -1,
+                "start": "2020-09-10T23:07:37.840Z",
+                "stderr": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-goodbye/execution/stderr",
+                "stdout": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-goodbye/execution/stdout"
+            }
+        ],
+        "hello_and_goodbye.hello": [
+            {
+                "attempt": 1,
+                "backend": "JTM",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "callRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-hello",
+                "commandLine": "echo 'Hello cruel world!'",
+                "end": "2020-09-10T23:08:11.222Z",
+                "executionEvents": [
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2020-09-10T23:08:11.040Z",
+                        "startTime": "2020-09-10T23:07:40.337Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2020-09-10T23:07:37.842Z",
+                        "startTime": "2020-09-10T23:07:37.841Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2020-09-10T23:08:11.222Z",
+                        "startTime": "2020-09-10T23:08:11.040Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2020-09-10T23:07:40.330Z",
+                        "startTime": "2020-09-10T23:07:40.329Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2020-09-10T23:07:40.337Z",
+                        "startTime": "2020-09-10T23:07:40.330Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2020-09-10T23:07:40.329Z",
+                        "startTime": "2020-09-10T23:07:37.842Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {"addressee": "cruel world"},
+                "jobId": "5484",
+                "outputs": {"salutation": "Hello cruel world!"},
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "account": "lr_jgicloud",
+                    "cluster": "jgi",
+                    "constraint": "",
+                    "continueOnReturnCode": "0",
+                    "cpu": "1",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "mem": "10G",
+                    "node": "1",
+                    "nwpn": "1",
+                    "poolname": "test_small",
+                    "qos": "condo_jgicloud",
+                    "shared": "0",
+                    "time": "00:10:00"
+                },
+                "shardIndex": -1,
+                "start": "2020-09-10T23:07:37.841Z",
+                "stderr": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-hello/execution/stderr",
+                "stdout": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a/call-hello_and_goodbye_1/sub.hello_and_goodbye/7408a4f1-bc85-49ba-8d5f-c886261ab6a0/call-hello/execution/stdout"
+            }
+        ]
+    },
+    "end": "2020-09-10T23:08:12.520Z",
+    "id": "7408a4f1-bc85-49ba-8d5f-c886261ab6a0",
+    "inputs": {"hello_and_goodbye_input": "cruel world"},
+    "metadataSource": "Unarchived",
+    "outputs": {
+        "hello_and_goodbye.goodbye_output": "Goodbye cruel world!",
+        "hello_and_goodbye.hello_output": "Hello cruel world!"
+    },
+    "parentWorkflowId": "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a",
+    "rootWorkflowId": "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a",
+    "start": "2020-09-10T23:07:35.805Z",
+    "status": "Succeeded",
+    "workflowName": "hello_and_goodbye_1",
+    "workflowRoot": "/global/scratch/jaws/jaws-dev/cromwell-executions/main_workflow/74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"
+}

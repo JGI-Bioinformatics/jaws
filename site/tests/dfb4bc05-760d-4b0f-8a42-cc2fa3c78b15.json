@@ -1,0 +1,131 @@
+{
+    "actualWorkflowLanguage": "WDL",
+    "actualWorkflowLanguageVersion": "draft-2",
+    "calls": {
+        "fq_count.count_seqs": [
+            {
+                "attempt": 1,
+                "backend": "JTM",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs",
+                "commandLine": "grep -c '^>' /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/inputs/-113930193/tiny.fastq > num_seqs.txt",
+                "end": "2020-09-11T22:30:34.735Z",
+                "executionEvents": [
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2020-09-11T22:30:33.918Z",
+                        "startTime": "2020-09-11T22:30:33.853Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2020-09-11T22:30:34.736Z",
+                        "startTime": "2020-09-11T22:30:34.257Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2020-09-11T22:30:33.566Z",
+                        "startTime": "2020-09-11T22:30:33.554Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2020-09-11T22:30:34.257Z",
+                        "startTime": "2020-09-11T22:30:33.918Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2020-09-11T22:30:33.853Z",
+                        "startTime": "2020-09-11T22:30:33.845Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2020-09-11T22:30:33.845Z",
+                        "startTime": "2020-09-11T22:30:33.566Z"
+                    }
+                ],
+                "executionStatus": "Failed",
+                "failures": [
+                    {
+                        "causedBy": [],
+                        "message": "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"
+                    }
+                ],
+                "inputs": {
+                    "infile": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq"
+                },
+                "jobId": "9999",
+                "retryableFailure": false,
+                "runtimeAttributes": {
+                    "account": "fungalp",
+                    "cluster": "cori",
+                    "constraint": "haswell",
+                    "continueOnReturnCode": "0",
+                    "cpu": "1",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "mem": "10G",
+                    "node": "1",
+                    "nwpn": "1",
+                    "poolname": "test_small",
+                    "qos": "genepool_special",
+                    "shared": "0",
+                    "time": "00:10:00"
+                },
+                "shardIndex": -1,
+                "start": "2020-09-11T22:30:33.535Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stdout"
+            }
+        ]
+    },
+    "end": "2020-09-11T22:30:36.619Z",
+    "failures": [
+        {
+            "causedBy": [
+                {
+                    "causedBy": [],
+                    "message": "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"
+                }
+            ],
+            "message": "Workflow failed"
+        }
+    ],
+    "id": "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15",
+    "inputs": {
+        "fq_count.fastq_file": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq"
+    },
+    "labels": {
+        "cromwell-workflow-id": "cromwell-dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"
+    },
+    "metadataSource": "Unarchived",
+    "outputs": {},
+    "start": "2020-09-11T22:30:30.640Z",
+    "status": "Failed",
+    "submission": "2020-09-11T22:30:29.607Z",
+    "submittedFiles": {
+        "inputs": "{'fq_count.fastq_file':'/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads/ekirton/CORI/global/cfs/projectdirs/jaws/test/tiny.fastq'}",
+        "labels": "{}",
+        "options": "{\n\n}",
+        "root": "",
+        "workflow": "workflow fq_count {\n    File fastq_file\n    call count_seqs { input: infile = fastq_file }\n    output {\n        File outfile = count_seqs.outfile\n    }\n}\n\ntask count_seqs {\n    File infile\n    command <<<\n        grep -c '^>' ${infile} > num_seqs.txt\n    >>>\n    output {\n        File outfile = 'num_seqs.txt'\n    }\n    runtime {\n        poolname: 'test_small'\n        node: 1\n        nwpn: 1\n        mem: '10G'\n        time: '00:10:00'\n    }\n}\n",
+        "workflowUrl": ""
+    },
+    "workflowName": "fq_count",
+    "workflowProcessingEvents": [
+        {
+            "cromwellId": "cromid-41fef60",
+            "cromwellVersion": "52",
+            "description": "PickedUp",
+            "timestamp": "2020-09-11T22:30:30.605Z"
+        },
+        {
+            "cromwellId": "cromid-41fef60",
+            "cromwellVersion": "52",
+            "description": "Finished",
+            "timestamp": "2020-09-11T22:30:36.620Z"
+        }
+    ],
+    "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"
+}

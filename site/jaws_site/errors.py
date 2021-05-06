@@ -24,11 +24,9 @@ def get_errors(session, cromwell_run_id):
     :rtype: dict
     """
     errors_report = _get_cromwell_errors_report(cromwell_run_id)
-    if errors_report:
-        for task_name in errors_report:
-            if task_name == cromwell_run_id:
-                continue
-            cromwell_job_id = errors_report[task_name]["cromwell_job_id"]
-            task_log_err_msgs = get_task_log_error_messages(session, cromwell_job_id)
-            errors_report[task_name]["task-log"] = "\n".join(task_log_err_msgs)
+    if errors_report and "calls" in errors_report:
+        for task_name in errors_report["calls"]:
+            for item in errors_report["calls"][task_name]:
+                cromwell_job_id = item["jobId"]
+                item["taskLog"] = get_task_log_error_messages(session, cromwell_job_id)
     return errors_report
