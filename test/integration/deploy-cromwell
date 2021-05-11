@@ -71,7 +71,7 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
   CONTAINER_EXPORT="out=\$(shifterimg lookup \${docker} || shifterimg pull \${docker})
 ret=\$?
 if [[ \$ret != 0 || \$(echo \$out | grep \"FAILURE\") ]]; then
-  echo \"Invalid container name or failed to pull container, \${docker!\" >&2
+  echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
   exit \$ret
 else
   echo \"Successfully pulled \${docker}!\"
