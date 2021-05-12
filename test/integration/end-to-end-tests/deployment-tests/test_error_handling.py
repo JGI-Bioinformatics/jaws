@@ -170,3 +170,28 @@ def test_invalid_docker_b(env, submit_bad_docker):
     assert (
         "FAILED to lookup docker image" in error_msg
     ), "There should be a message saying docker was not found"
+
+
+
+def test_timeout(env, dir, site):
+    WDL = "/WDLs/timeout.wdl"
+    INP = "/test-inputs/timeout.json"
+    check_sleep = 30
+    check_tries = 50
+    wdl = dir + WDL
+    input_json = dir + INP
+
+    run_id = util.submit_wdl(env, wdl, input_json, site)["run_id"]
+    util.wait_for_run(run_id, env, check_tries, check_sleep)
+
+    time.sleep(60)
+
+    ## get the errors from JAWS for that run
+    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
+    errors_cmd = "jaws errors %s" % (run_id)
+    cmd = source_cmd + errors_cmd
+    r, o, e = util.run(cmd) 
+
+    ## do the check!
+    fail_msg = "error. Keyword absent: \"timeout\" (%s)" % run_id
+    assert "failed with timeout" in o, fail_msg
