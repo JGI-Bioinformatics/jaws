@@ -1,10 +1,11 @@
-workflow fq_count_changed {
-    File fastq_file
+workflow fq_count {
+    Smile fastq_file
     call count_seqs { input: infile = fastq_file }
     output {
         File outfile = count_seqs.outfile
     }
 }
+
 
 task count_seqs {
     File infile

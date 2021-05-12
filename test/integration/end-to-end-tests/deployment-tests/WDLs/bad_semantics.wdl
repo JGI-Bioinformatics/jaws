@@ -1,6 +1,6 @@
-workflow fq_count_changed {
+workflow fq_count {
     File fastq_file
-    call count_seqs { input: infile = fastq_file }
+    call count_seqs { input: infile = xxx_file }
     output {
         File outfile = count_seqs.outfile
     }

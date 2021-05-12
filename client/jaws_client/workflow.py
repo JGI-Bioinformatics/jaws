@@ -444,7 +444,7 @@ class WorkflowInputs:
             # if the path doesn't exist, it may refer to a path in a Docker container, so just
             # warn user and skip, without raising an exception
             if not os.path.exists(original_path):
-                warnings.warn(f"Input path not found: {original_path}")
+                warnings.warn(f"Input path not found or inaccessible: {original_path}")
                 continue
 
             staged_path = pathlib.Path(f"{destination}{original_path}")
