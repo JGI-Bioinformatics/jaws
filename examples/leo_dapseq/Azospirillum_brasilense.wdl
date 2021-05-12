@@ -208,7 +208,7 @@ task mergeBams {
     runtime {
 		docker: "jfroula/dap_py:3.2"
         shared: 0
-        time: "01:20:00"
+        time: "05:00:00"
         memory: "115G"
         poolname: "dapseq_leo"
         node: 2
