@@ -62,13 +62,13 @@ class Run(Base):
     )
     input_site_id = Column(String(8), nullable=False)
     input_endpoint = Column(String(36), nullable=False)
-    upload_task_id = Column(String(36), nullable=True)
+    upload_id = Column(Integer, nullable=True)
     output_endpoint = Column(String(36), nullable=False)
     output_dir = Column(String(256), nullable=False)
     wdl_file = Column(String(256), nullable=False)
     json_file = Column(String(256), nullable=False)
     tag = Column(String(256), nullable=True)
-    download_task_id = Column(String(36), nullable=True)
+    download_id = Column(Integer, nullable=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

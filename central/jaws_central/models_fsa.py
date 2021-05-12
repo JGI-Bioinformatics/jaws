@@ -57,13 +57,13 @@ class Run(db.Model):
     )
     input_site_id = db.Column(db.String(8), nullable=False)
     input_endpoint = db.Column(db.String(36), nullable=False)
-    upload_task_id = db.Column(db.String(36), nullable=True)
+    upload_id = db.Column(db.Integer, nullable=True)
     output_endpoint = db.Column(db.String(36), nullable=False)
     output_dir = db.Column(db.String(256), nullable=False)
     wdl_file = db.Column(db.String(256), nullable=False)
     json_file = db.Column(db.String(256), nullable=False)
     tag = db.Column(db.String(256), nullable=True)
-    download_task_id = db.Column(db.String(36), nullable=True)
+    download_id = db.Column(db.Integer, nullable=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

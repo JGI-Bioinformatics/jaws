@@ -79,7 +79,7 @@ class Run:
                 user_id=kwargs["user_id"],
                 email=kwargs["email"],
                 submission_id=kwargs["submission_id"],
-                upload_task_id=kwargs["upload_task_id"],
+                upload_id=kwargs["upload_id"],
                 output_endpoint=kwargs["output_endpoint"],
                 output_dir=kwargs["output_dir"],
                 status="uploading",
@@ -342,7 +342,7 @@ class Run:
         if "error" in response:
             logger.info(f"RPC submit_transfer failed: {response['error']['message']}")
             return
-        self.model.download_task_id = response["result"]
+        self.model.download_id = response["result"]
         self.update_run_status("downloading", f"download_id={self.model.download_id}")
 
     def check_if_download_complete(self) -> None:
@@ -474,7 +474,7 @@ def send_run_status_logs(session) -> None:
             data["cromwell_run_id"] = run.cromwell_run_id
         elif log.status_to == "downloading":
             run = session.query(models.Run).get(log.run_id)
-            data["download_task_id"] = run.download_task_id
+            data["download_id"] = run.download_id
         try:
             response = central_rpc_client.request("update_run_logs", data)
         except Exception as error:

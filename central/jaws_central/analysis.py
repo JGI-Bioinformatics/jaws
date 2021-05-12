@@ -164,10 +164,10 @@ def _run_info(run, is_admin: bool = False, verbose: bool = False):
             "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
             "input_site_id": run.input_site_id,
             "input_endpoint": run.input_endpoint,
-            "upload_task_id": run.upload_task_id,
+            "upload_id": run.upload_id,
             "output_endpoint": run.output_endpoint,
             "output_dir": run.output_dir,
-            "download_task_id": run.download_task_id,
+            "download_id": run.download_id,
             "user_id": run.user_id,
             "tag": run.tag,
             "wdl_file": run.wdl_file,
@@ -282,7 +282,7 @@ def submit_run(user):
 
     :param user: current user's ID
     :type user: str
-    :return: run_id, upload_task_id
+    :return: run_id, upload_id
     :rtype: dict
     """
     site_id = request.form.get("site_id", None).upper()
@@ -372,7 +372,7 @@ def submit_run(user):
     host_paths["dest"] = config.conf.get_site(site_id, "globus_host_path")
 
     try:
-        upload_task_id = globus.submit_transfer(
+        upload_id = globus.submit_transfer(
             f"Upload run {run.id}",
             host_paths,
             input_endpoint,
@@ -415,10 +415,10 @@ def submit_run(user):
         )
         abort(500, {"error": f"Unexpected error: {error}"})
 
-    logger.debug(f"User {user}: Run {run.id} upload {upload_task_id}")
+    logger.debug(f"User {user}: Run {run.id} upload {upload_id}")
 
     # UPDATE RUN WITH UPLOAD TASK ID AND ADD LOG ENTRY
-    run.upload_task_id = upload_task_id
+    run.upload_id = upload_id
     old_status = run.status
     new_status = run.status = "uploading"
     log = Run_Log(
@@ -426,7 +426,7 @@ def submit_run(user):
         status_to=new_status,
         status_from=old_status,
         timestamp=run.updated,
-        reason=f"upload_task_id={upload_task_id}",
+        reason=f"upload_id={upload_id}",
     )
     try:
         db.session.add(log)
@@ -453,7 +453,7 @@ def submit_run(user):
         "user_id": user,
         "email": current_user.email,
         "submission_id": submission_id,
-        "upload_task_id": upload_task_id,
+        "upload_id": upload_id,
         "output_endpoint": output_endpoint,
         "output_dir": output_dir,
     }

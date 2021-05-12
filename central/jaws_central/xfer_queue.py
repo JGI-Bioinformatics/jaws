@@ -10,14 +10,17 @@ class XferError(Exception):
     pass
 
 
-class XferQueue():
+class XferQueue:
     """
     Central file transfer (xfer) service.  Extends GlobusService with a transfer queue.
     """
-    def __init__(self):
-        self.globus = GlobusService() 
 
-    def submit_transfer(self, label, host_paths, src_endpoint, dest_endpoint, manifest_file):
+    def __init__(self):
+        self.globus = GlobusService()
+
+    def submit_transfer(
+        self, label, host_paths, src_endpoint, dest_endpoint, manifest_file
+    ):
         """
         Queue a transfer to Globus but do not submit.
 
@@ -34,10 +37,12 @@ class XferQueue():
         # TODO
         return xfer.id
 
-    def _insert_xfer(self, src_endpoint, dest_endpoint, manifest, user_id, label, size_gb):
+    def _insert_xfer(
+        self, src_endpoint, dest_endpoint, manifest, user_id, label, size_gb
+    ):
         """
         Insert a xfer into the RDb and return the primary key.
-        
+
         :param src_endpoint: source Globus endpoint ID
         :type src_endpoint: str
         :param dest_endpoint: destination Globus endpoint ID
@@ -65,8 +70,7 @@ class XferQueue():
         :type xfer_id: int
         """
         # TODO
-        return status 
-
+        return status
 
     def virtual_transfer_path(self, full_path, host_path):
         return self.globus.virtual_transfer_path(full_path, host_path)
@@ -87,7 +91,9 @@ class XferQueue():
         """
         active_transfers = self._active_transfers()
 
-        globus_active_transfers = self.globus.task_list(100, status="ACTIVE", type="TRANSFER,DELETE")
+        globus_active_transfers = self.globus.task_list(
+            100, status="ACTIVE", type="TRANSFER,DELETE"
+        )
         for transfer_task in globus_active_transfers:
             task_id = transfer_task["task_id"]
             globus_status = transfer_task["status"]
@@ -96,7 +102,6 @@ class XferQueue():
                 if globus_status != xfer.status:
                     xfer.status = globus_status
                     xfer.updated = utcnow()
-
 
     def _active_transfers(self):
         """

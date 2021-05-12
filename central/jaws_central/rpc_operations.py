@@ -66,7 +66,7 @@ def update_run_logs(params, session):
     if status_to == "submitted":
         run.cromwell_run_id = params["cromwell_run_id"]
     elif status_to == "downloading":
-        run.download_task_id = params["download_task_id"]
+        run.download_id = params["download_id"]
     elif status_to == "succeeded":
         run.result = "succeeded"
     elif status_to == "failed":
