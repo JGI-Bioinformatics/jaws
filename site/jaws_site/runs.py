@@ -5,7 +5,6 @@ them to the next state.
 
 import shutil
 import os
-import globus_sdk
 import logging
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -13,14 +12,11 @@ from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
 from jaws_site.cromwell import Cromwell
-from jaws_site.globus import GlobusService
 from jaws_rpc import rpc_client
 
 logger = logging.getLogger(__package__)
 
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
-
-globus = GlobusService()
 
 
 def file_size(file_path: str):

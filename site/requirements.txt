@@ -8,8 +8,6 @@ configobj==5.0.6
 configparser==4.0.2
 cryptography==2.8
 deepdiff
-globus-cli==1.11.0
-globus-sdk==1.8.0
 idna==2.8
 jmespath==0.9.4
 multidict==4.6.1
