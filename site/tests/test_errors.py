@@ -6,26 +6,26 @@ def test_get_errors(monkeypatch):
 
     example_cromwell_run_id = "AAAA-BBBB"
     example_cromwell_errors_report = {
-        "example_task": {
-            "failures": "example cromwell failure message",
-            "stderr": "example stderr file contents",
-            "stderr.submit": "example stderr.submit file contents",
-            "runtime": {"memory": "6G", "time": "1:00:00"},
-            "cromwell_job_id": "300",
-        },
+        "calls": {
+            "example_task": [
+                {
+                    "jobId": "300",
+                }
+            ],
+        }
     }
     example_task_log_errors = {
         "300": ["Out of time!"],
     }
     expected_errors_report = {
-        "example_task": {
-            "failures": "example cromwell failure message",
-            "stderr": "example stderr file contents",
-            "stderr.submit": "example stderr.submit file contents",
-            "runtime": {"memory": "6G", "time": "1:00:00"},
-            "cromwell_job_id": "300",
-            "task-log": "Out of time!",
-        },
+        "calls": {
+            "example_task": [
+                {
+                    "jobId": "300",
+                    "taskLog": ["Out of time!"],
+                }
+            ],
+        }
     }
 
     def mock_get_cromwell_errors_report(cromwell_run_id):

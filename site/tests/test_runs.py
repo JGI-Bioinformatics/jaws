@@ -197,14 +197,10 @@ def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path):
     def mock_cp_infile_to_outdir(self, path, suffix, dest, required=True):
         pass
 
-    def mock_fix_perms(self, filepath, mode=None):
-        pass
-
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     monkeypatch.setattr(Run, "uploads_file_path", mock_path)
     monkeypatch.setattr(Run, "_cp_infile_to_outdir", mock_cp_infile_to_outdir)
-    monkeypatch.setattr(Run, "_fix_perms", mock_fix_perms)
 
     mock_session = tests.conftest.MockSession()
     mock_model = tests.conftest.MockRunModel(
@@ -226,14 +222,10 @@ def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path)
     def mock_cp_infile_to_outdir(self, path, suffix, dest, required=True):
         pass
 
-    def mock_fix_perms(self, filepath, mode=None):
-        pass
-
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     monkeypatch.setattr(Run, "uploads_file_path", mock_path)
     monkeypatch.setattr(Run, "_cp_infile_to_outdir", mock_cp_infile_to_outdir)
-    monkeypatch.setattr(Run, "_fix_perms", mock_fix_perms)
 
     mock_session = tests.conftest.MockSession()
     mock_model = tests.conftest.MockRunModel(
@@ -363,23 +355,3 @@ def test_check_run_cromwell_status(monkeypatch):
     )
     run.check_run_cromwell_status()
     assert run.status == "failed"
-
-
-def test_fix_perms(cromwell_run_dir):
-
-    mock_session = tests.conftest.MockSession()
-    run = Run(mock_session)
-
-    # Cromwell_run_dir fixture creates dirs and files with 770 permissions.
-    # Set file permissions to 777 for testing.
-    run._fix_perms(cromwell_run_dir, 0o0777)
-
-    for dirpath, dirnames, filenames in os.walk(cromwell_run_dir):
-        for dname in dirnames:
-            stat = os.stat(os.path.join(dirpath, dname))
-            oct_perm = oct(stat.st_mode)
-            assert oct_perm == "0o40777"
-        for fname in filenames:
-            stat = os.stat(os.path.join(dirpath, fname))
-            oct_perm = oct(stat.st_mode)
-            assert oct_perm == "0o100777"

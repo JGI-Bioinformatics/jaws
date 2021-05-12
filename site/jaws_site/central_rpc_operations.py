@@ -85,6 +85,7 @@ def get_errors(params, session):
     try:
         errors_report = errors.get_errors(session, cromwell_run_id)
     except Exception as error:
+        logger.error(f"Error getting errors report for {run_id}: {error}")
         return failure(error)
     return success(errors_report)
 

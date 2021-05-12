@@ -327,9 +327,6 @@ class Run:
         self._cp_infile_to_outdir(file_path, "orig.json", cromwell_workflow_dir)
         self._cp_infile_to_outdir(file_path, "zip", cromwell_workflow_dir, False)
 
-        # Recursively change file permission for cromwell workflow dir.
-        self._fix_perms(cromwell_workflow_dir, 0o0755)
-
         try:
             transfer_task_id = globus.submit_transfer(
                 f"Run {self.model.id}",
@@ -400,23 +397,6 @@ class Run:
             )
             raise
 
-    def _fix_perms(self, path, mode=0o0755):
-        """Recursively chmod input directory.
-
-        :param path: Root dir
-        :type dirname: str
-        :param mode: file permission mode
-        :type mode: octal
-        :return:
-        """
-        os.chmod(path, mode)
-        for dirpath, dirnames, filenames in os.walk(path):
-            for dname in dirnames:
-                os.chmod(os.path.join(dirpath, dname), mode)
-            for fname in filenames:
-                fullpath = os.path.join(dirpath, fname)
-                os.chmod(fullpath, mode)
-
 
 def check_active_runs(session) -> None:
     """
@@ -470,7 +450,8 @@ def send_run_status_logs(session) -> None:
 
     try:
         central_rpc_client = rpc_client.RpcClient(
-            config.conf.get_section("CENTRAL_RPC_CLIENT")
+            config.conf.get_section("CENTRAL_RPC_CLIENT"),
+            logger
         )
     except Exception as error:
         logger.exception(f"Unable to init central rpc client: {error}")

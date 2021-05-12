@@ -2,6 +2,7 @@
 JAWS CLI
 """
 
+import sys
 import click
 import os
 import requests
@@ -70,11 +71,11 @@ def health() -> None:
     try:
         r = requests.get(url)
     except requests.exceptions.RequestException:
-        raise SystemExit("JAWS Central is DOWN")
+        sys.exit("JAWS Central is DOWN")
     if r.status_code != 200:
-        raise SystemExit(r.text)
+        sys.exit(r.text)
     result = r.json()
-    print(json.dumps(result, indent=4, sort_keys=True))
+    _print_json(result)
 
 
 @main.command()
@@ -84,11 +85,11 @@ def info() -> None:
     try:
         r = requests.get(url)
     except requests.exceptions.RequestException:
-        raise SystemExit("JAWS Central is DOWN")
+        sys.exit("JAWS Central is DOWN")
     if r.status_code != 200:
-        raise SystemExit(r.text)
+        sys.exit(r.text)
     result = r.json()
-    print(json.dumps(result, indent=4, sort_keys=True))
+    _print_json(result)
 
 
 @main.command()
@@ -104,7 +105,7 @@ def _request(rest_op, url, data={}, files={}):
     """Perform specified REST operation.  A JSON response is expected."""
     access_token = config.get("USER", "token")
     if not access_token:
-        raise SystemExit("User access token required; contact an admin to get yours.")
+        sys.exit("User access token required; contact an admin to get yours.")
     header = {"Authorization": f"Bearer {access_token}"}
     response = None
     try:
@@ -115,31 +116,31 @@ def _request(rest_op, url, data={}, files={}):
         elif rest_op == "POST":
             response = requests.post(url, data=data, files=files, headers=header)
         else:
-            raise ValueError(f"Unsupported REST request type: {rest_op}")
+            sys.exit(f"Unsupported REST request type: {rest_op}")
     except requests.exceptions.Timeout as err:
-        raise SystemExit("Unable to communicate with JAWS server (timeout)", err)
+        sys.exit("Unable to communicate with JAWS server (timeout)", err)
     except requests.exceptions.TooManyRedirects as err:
-        raise SystemExit(
+        sys.exit(
             "Unable to communicate with JAWS server (too many redirects; bad url?)", err
         )
     except requests.exceptions.HTTPError as err:
-        raise SystemExit("Unable to communicate with JAWS server (http error)", err)
+        sys.exit("Unable to communicate with JAWS server (http error)", err)
     except requests.exceptions.RequestException as err:
-        raise SystemExit("Unable to communicate with JAWS server", err)
+        sys.exit("Unable to communicate with JAWS server", err)
     if response.status_code < 200 or response.status_code > 299:
         try:
             result = response.json()
         except Exception:
-            raise SystemExit(response.text)
+            sys.exit(response.text)
         if "error" in result:
-            raise SystemExit(result["error"])
+            sys.exit(result["error"])
         else:
-            raise SystemExit(result)
+            sys.exit(result)
     return response.json()
 
 
 def _print_json(j):
-    print(json.dumps(j, indent=4, sort_keys=True))
+    click.echo(json.dumps(j, indent=4, sort_keys=True))
 
 
 @main.command()
@@ -170,7 +171,7 @@ def queue(site: str) -> None:
 def history(days: int, site: str, result: str) -> None:
     """Print a list of the user's past runs."""
     if days < 1:
-        raise SystemExit("User error: --days must be a positive integer")
+        sys.exit("User error: --days must be a positive integer")
     if site:
         site = site.upper()
     data = {
@@ -184,19 +185,23 @@ def history(days: int, site: str, result: str) -> None:
     _print_json(result)
 
 
-def _run_status(run_id: int) -> Dict[str, str]:
+def _run_status(run_id: int, verbose=False) -> Dict[str, str]:
     """Return the status of a run in JSON format."""
 
-    url = f'{config.get("JAWS", "url")}/run/{run_id}'
+    if verbose is True:
+        url = f'{config.get("JAWS", "url")}/run/{run_id}/complete'
+    else:
+        url = f'{config.get("JAWS", "url")}/run/{run_id}'
     return _request("GET", url)
 
 
 @main.command()
 @click.argument("run_id")
-def status(run_id: int) -> None:
+@click.option("--verbose", is_flag=True, help="Return all fields")
+def status(run_id: int, verbose: bool) -> None:
     """Print the current status of a run."""
 
-    result = _run_status(run_id)
+    result = _run_status(run_id, verbose)
     _print_json(result)
 
 
@@ -211,13 +216,13 @@ def task_status(run_id: int, fmt: str) -> None:
     if fmt == "json":
         _print_json(result)
     else:
-        print(
+        click.echo(
             "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
         for row in result:
             row[2] = str(row[2])
             row[3] = str(row[3])
-            print("\t".join(row))
+            click.echo("\t".join(row))
 
 
 @main.command()
@@ -232,18 +237,27 @@ def metadata(run_id: int) -> None:
 
 @main.command()
 @click.argument("run_id")
-@click.option("--fmt", default="text", help="the desired output format: [text|json]")
+@click.option("--fmt", default="text", help="the desired output format: [text|json|tab]")
 def log(run_id: int, fmt: str) -> None:
     """View the log of Run state transitions for the workflow as a whole."""
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/run_log'
     result = _request("GET", url)
+    header = ["#STATUS_FROM", "STATUS_TO", "TIMESTAMP", "REASON"]
     if fmt == "json":
         _print_json(result)
-    else:
-        print("#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON")
+    elif fmt == "tab":
+        click.echo("\t".join(header))
         for log_entry in result:
-            print("\t".join(log_entry))
+            click.echo("\t".join(log_entry))
+    else:
+        result.insert(0, header)
+        col_widths = []
+        """Get the max length of element in every col and add padding (2)"""
+        for idx in range(len(header)):
+            col_widths.append(max(len(log_entry[idx]) for log_entry in result) + 2)
+        for log_entry in result:
+            print("".join(cell.ljust(col_widths[col_idx]) for col_idx, cell in enumerate(log_entry)))
 
 
 @main.command()
@@ -257,30 +271,23 @@ def task_log(run_id: int, fmt: str) -> None:
     if fmt == "json":
         _print_json(result)
     else:
-        print(
+        click.echo(
             "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
         for row in result:
             row[2] = str(row[2])
             row[3] = str(row[3])
-            print("\t".join(row))
+            click.echo("\t".join(row))
 
 
 @main.command()
 @click.argument("run_id")
-@click.option("--fmt", default="text", help="the desired output format: [text|json]")
-def errors(run_id: int, fmt: str) -> None:
+def errors(run_id: int) -> None:
     """View error messages and stderr for failed Tasks."""
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/errors'
-    result = _request("GET", url)
-    if fmt == "json":
-        _print_json(result)
-    else:
-        for task_name in result:
-            print(f"{task_name}:")
-            print(result[task_name])
-            print("\n")
+    errors_report = _request("GET", url)
+    _print_json(errors_report)
 
 
 @main.command()
@@ -306,9 +313,7 @@ def _list_sites() -> None:
 
     url = f'{config.get("JAWS", "url")}/site'
     result = _request("GET", url)
-    print("Available Sites:")
-    for a_site_id in result:
-        print(f"  - {a_site_id}")
+    _print_json(result)
 
 
 @main.command()
@@ -328,6 +333,10 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     Available sites can be found by running 'jaws run list-sites'.
     """
     from jaws_client import workflow
+    from jaws_client.workflow import WdlError
+
+    wdl_file = os.path.abspath(wdl_file)
+    json_file = os.path.abspath(json_file)
 
     # the users' jaws id may not match the linux uid where the client is installed
     url = f'{config.get("JAWS", "url")}/user'
@@ -353,15 +362,12 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     submission_id = str(uuid.uuid4())
     try:
         wdl = workflow.WdlFile(wdl_file, submission_id)
-    except workflow.WdlError as error:
-        raise SystemExit(f"There is a problem with your workflow:\n{error}")
-    try:
         wdl.validate()
-    except workflow.WdlError as error:
-        raise SystemExit(error)
-    max_ram_gb = wdl.max_ram_gb
+        max_ram_gb = wdl.max_ram_gb
+    except WdlError as error:
+        sys.exit(error)
     if max_ram_gb > compute_max_ram_gb:
-        raise SystemExit(
+        sys.exit(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
         )
 
@@ -369,13 +375,13 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     try:
         staged_wdl, zip_file = wdl.compress_wdls(local_staging_endpoint)
     except IOError as error:
-        raise SystemExit(f"Unable to copy WDLs to inputs dir: {error}")
+        sys.exit(f"Unable to copy WDLs to inputs dir: {error}")
 
     # VALIDATE INPUTS JSON
     try:
         inputs_json = workflow.WorkflowInputs(json_file, submission_id)
     except json.JSONDecodeError as error:
-        raise SystemExit(f"Your file, {json_file}, is not a valid JSON file: {error}")
+        sys.exit(f"Your file, {json_file}, is not a valid JSON file: {error}")
 
     staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
     site_subdir = workflow.join_path(local_staging_endpoint, input_site_id)
@@ -397,11 +403,11 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     try:
         shutil.copy(json_file, orig_json)
     except IOError as error:
-        raise SystemExit(f"Error copying JSON to {orig_json}: {error}")
+        sys.exit(f"Error copying JSON to {orig_json}: {error}")
     try:
         os.chmod(orig_json, 0o0664)
     except PermissionError as error:
-        raise SystemExit(f"Unable to chmod {orig_json}: {error}")
+        sys.exit(f"Unable to chmod {orig_json}: {error}")
 
     # turning off call-caching requires a Cromwell options json file be created
     options_json_file = None
@@ -437,11 +443,9 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     url = f'{config.get("JAWS", "url")}/run'
     logger.debug(f"Submitting run: {data}")
     result = _request("POST", url, data, files)
-    if "run_id" not in result:
-        raise SystemExit(f"Run submission failed: {result}")
-    run_id = result["run_id"]
-    logger.info(f"Submitted run {run_id}: {data}")
-    print(f"Submitted run {run_id}")
+    result["max_ram_gb"] = max_ram_gb
+    del result["output_dir"]
+    _print_json(result)
 
 
 @main.command()
@@ -452,11 +456,11 @@ def inputs(wdl_file: str) -> None:
     from jaws_client import workflow
 
     if not os.path.isfile(wdl_file):
-        raise IOError(f"File not found: {wdl_file}")
+        sys.exit(f"File not found: {wdl_file}")
     stdout, stderr = workflow.womtool("inputs", wdl_file)
     if stderr:
-        raise SystemExit(stderr)
-    print(stdout.strip())
+        sys.exit(stderr)
+    click.echo(stdout.strip())
 
 
 @main.command()
@@ -467,12 +471,12 @@ def validate(wdl_file: str) -> None:
     from jaws_client import workflow
 
     if not os.path.isfile(wdl_file):
-        raise IOError(f"File not found: {wdl_file}")
+        sys.exit(f"File not found: {wdl_file}")
     stdout, stderr = workflow.womtool("inputs", wdl_file)
     if stderr:
-        raise SystemExit(stderr)
+        sys.exit(stderr)
     else:
-        print("Workflow is OK")
+        click.echo("Workflow is OK")
 
 
 @main.command()
@@ -483,18 +487,18 @@ def get(run_id: int, dest: str) -> None:
 
     from jaws_client import workflow
 
-    result = _run_status(run_id)
+    result = _run_status(run_id, True)
     status = result["status"]
     src = result["output_dir"]
 
     if status != "download complete":
-        raise SystemExit(
+        sys.exit(
             f"Run {run_id} output is not yet available; status is {status}"
         )
 
     if src is None:
         logger.error(f"Run {run_id} doesn't have an output_dir defined")
-        raise SystemExit(f"Run {run_id} doesn't have an output_dir defined")
+        sys.exit(f"Run {run_id} doesn't have an output_dir defined")
 
     try:
         result = workflow.rsync(
@@ -509,10 +513,10 @@ def get(run_id: int, dest: str) -> None:
         )
     except IOError as error:
         logger.error(f"Rsync output failed for run {run_id}: {error}")
-        raise SystemExit(f"Error getting output for run {run_id}: {error}")
+        sys.exit(f"Error getting output for run {run_id}: {error}")
     if result.returncode != 0:
         err_msg = f"Failed to rsync {src}->{dest}: {result.stdout}; {result.stderr}"
-        raise SystemExit(err_msg)
+        sys.exit(err_msg)
 
 
 @main.command()

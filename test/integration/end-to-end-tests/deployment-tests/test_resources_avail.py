@@ -20,30 +20,31 @@ import submission_utils as util
 #########################
 ###     Functions     ###
 #########################
-def test_skylake_250G(submit_skylake_250):
-    """ tests that the jaws run history command has the run id in the stdout.
-        This test will be skipped if the 'env' is not cori.
+def test_skylake_250G(env, submit_skylake_250):
+    """tests that the jaws history command has the run id in the stdout.
+    This test will be skipped if the 'env' is not cori.
     """
-    run_id = str(submit_skylake_250['run_id'])
+    run_id = str(submit_skylake_250["run_id"])
 
-    # Run: jaws run status
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env, run_id)
-    (r,o,e) = util.run(cmd)
+    # Run: jaws status
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, run_id)
+    (r, o, e) = util.run(cmd)
 
     status_info = json.loads(o)
-    assert status_info['status'] == "download complete"
-    assert status_info['result'] == "succeeded"
+    assert status_info["status"] == "download complete"
+    assert status_info["result"] == "succeeded"
+
 
 def test_skylake_500G(env, submit_skylake_500):
-    """ tests that the jaws run history command has the run id in the stdout.
-        This test will be skipped if the 'env' is not cori.
+    """tests that the jaws history command has the run id in the stdout.
+    This test will be skipped if the 'env' is not cori.
     """
-    run_id = str(submit_skylake_500['run_id'])
+    run_id = str(submit_skylake_500["run_id"])
 
-    # Run: jaws run status
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws run status %s" % (env, run_id)
-    (r,o,e) = util.run(cmd)
+    # Run: jaws status
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, run_id)
+    (r, o, e) = util.run(cmd)
 
     status_info = json.loads(o)
-    assert status_info['status'] == "download complete"
-    assert status_info['result'] == "succeeded"
+    assert status_info["status"] == "download complete"
+    assert status_info["result"] == "succeeded"

@@ -237,7 +237,6 @@ class MockResponse:
 
 
 def test_cli_queue(monkeypatch, configuration):
-
     def post_queue(url, data={}, files={}, headers=None):
         result = [
             [
@@ -253,19 +252,18 @@ def test_cli_queue(monkeypatch, configuration):
     monkeypatch.setattr(requests, "post", post_queue)
 
     runner = click.testing.CliRunner()
-    result = runner.invoke(cli.main, [ "queue"])
+    result = runner.invoke(cli.main, ["queue"])
     assert result.exit_code == 0
     assert "running" in result.output
 
 
 def test_cli_history(monkeypatch, configuration):
-
     def post_history(url, data={}, files={}, headers=None):
         return MockResponse(HISTORY, 200)
 
     monkeypatch.setattr(requests, "post", post_history)
     runner = click.testing.CliRunner()
-    result = runner.invoke(cli.main, [ "history"])
+    result = runner.invoke(cli.main, ["history"])
     assert result.exit_code == 0
 
     for task_id in ["33", "34", "35", "36"]:
@@ -279,13 +277,22 @@ def test_cli_status(monkeypatch, configuration):
         run id, submission date, submission id, upload id
         """
         job_status = {"status": "Running"}
+        if url.endswith('/complete'):
+            job_status["output_dir"] = "/foo/bar"
         return MockResponse(job_status, 200)
 
     monkeypatch.setattr(requests, "get", mock_status_get)
     runner = click.testing.CliRunner()
+
+    result = runner.invoke(cli.main, ["status", "36", "--verbose"])
+    assert result.exit_code == 0
+    assert "Running" in result.output
+    assert "/foo/bar" in result.output
+
     result = runner.invoke(cli.main, ["status", "36"])
     assert result.exit_code == 0
     assert "Running" in result.output
+    assert "/foo/bar" not in result.output
 
 
 def test_cli_metadata(monkeypatch, configuration):
@@ -294,7 +301,7 @@ def test_cli_metadata(monkeypatch, configuration):
 
     monkeypatch.setattr(requests, "get", get_metadata)
     runner = click.testing.CliRunner()
-    result = runner.invoke(cli.main, [ "metadata", "36"])
+    result = runner.invoke(cli.main, ["metadata", "36"])
     assert "workflowName" in result.output
 
     def get_tasks(url, headers=None):
@@ -324,18 +331,21 @@ def test_cli_submit(configuration, monkeypatch, sample_workflow):
         return MockResponse(result, 200)
 
     def mock_post(url, data=None, files=None, headers={}):
-        return MockResponse({"run_id": "36"}, 201)
+        return MockResponse(
+            {"run_id": "36", "site_id": "CORI", "tag": None, "output_dir": "/a/b/c"},
+            201,
+        )
 
     monkeypatch.setattr(requests, "get", mock_get)
     monkeypatch.setattr(requests, "post", mock_post)
 
     runner = click.testing.CliRunner()
-    result = runner.invoke(cli.main, [ "submit", wdl, inputs, "CORI"])
+    result = runner.invoke(cli.main, ["submit", wdl, inputs, "CORI"])
     assert result.exit_code == 0
 
 
 def test_get(configuration, monkeypatch):
-    def mock__run_status(run_id):
+    def mock__run_status(run_id, verbose):
         if run_id == "1":
             return {
                 "status": "download complete",
@@ -360,41 +370,45 @@ def test_get(configuration, monkeypatch):
     monkeypatch.setattr(subprocess, "run", mock_run)
     monkeypatch.setattr(cli, "_run_status", mock__run_status)
     from jaws_client import workflow
+
     monkeypatch.setattr(workflow, "rsync", mock_rsync)
 
     runner = click.testing.CliRunner()
 
     # a completed run
-    result = runner.invoke(cli.main, [ "get", "1", "/home/mockuser/mydir"])
+    result = runner.invoke(cli.main, ["get", "1", "/home/mockuser/mydir"])
     assert result.exit_code == 0
 
     # an incomplete run
-    result = runner.invoke(cli.main, [ "get", "2", "/home/mockuser/mydir"])
+    result = runner.invoke(cli.main, ["get", "2", "/home/mockuser/mydir"])
     assert result.exit_code != 0
 
 
 def test_cancel_OK(monkeypatch, configuration):
     """Check if cancel run producs expected JSON output in case of a successful cancel."""
+
     def put_cancel(url, data={}, files={}, headers={}):
-        return MockResponse({"cancel":"OK"}, 200)
+        return MockResponse({"cancel": "OK"}, 200)
 
     monkeypatch.setattr(requests, "put", put_cancel)
     runner = click.testing.CliRunner()
-    result = runner.invoke(cli.main, [ "cancel", "35"])
+    result = runner.invoke(cli.main, ["cancel", "35"])
     assert result.exit_code == 0
 
 
 def test_cancel_ERR(monkeypatch, configuration):
     """Check if cancel run producs expected JSON output in case of an error in cancel run."""
+
     def put_cancel(url, headers={}):
         err = {
-            "error": 'That Run had already been cancelled',
+            "error": "That Run had already been cancelled",
             "status": 400,
             "title": "Bad Request",
-            "type": "about:blank"}
+            "type": "about:blank",
+        }
         return MockResponse(err, 400)
 
     monkeypatch.setattr(requests, "put", put_cancel)
     runner = click.testing.CliRunner()
-    result = runner.invoke(cli.main, [ "cancel", "35"])
+    result = runner.invoke(cli.main, ["cancel", "35"])
     assert result.exit_code == 1

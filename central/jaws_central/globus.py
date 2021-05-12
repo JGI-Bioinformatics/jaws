@@ -90,7 +90,7 @@ class GlobusService:
             src_endpoint,
             dest_endpoint,
             label=label,
-            sync_level="checksum",
+            sync_level="mtime",
             verify_checksum=True,
             preserve_timestamp=True,
             notify_on_succeeded=False,

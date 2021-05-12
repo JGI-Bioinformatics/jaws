@@ -85,65 +85,35 @@ class Task:
     def execution_status(self, attempt=None):
         return self.get("executionStatus", attempt)
 
-    def failures(self, attempt=None):
+    def errors(self):
         """
-        Return failures dict for specified attempt (last, if unspecified).
-        :param attempt: attempt number (first is 1; default is last)
-        :type attempt: int
-        :return: failures record
+        Return user friendly errors report for this task.
+        :return: Errors report
         :rtype: dict
         """
-        if attempt is None:
-            index = -1  # last attempt
-        else:
-            attempt = int(attempt)
-            if attempt == 0 or attempt > len(self.calls):
-                raise ValueError("Invalid attempt; of out range")
-            else:
-                index = attempt - 1
-        if "failures" in self.calls[index]:
-            return self.calls[index]["failures"]
-        else:
-            return None
-
-    def error(self, attempt=None):
-        """
-        Return user friendly error message plus stderr file contents.
-        :param attempt: attempt number (first is 1; default is last)
-        :type attempt: int
-        :return: Error messages and stderr
-        :rtype: str
-        """
-        failures = self.failures(attempt)
-        if not failures:
-            return None
-
-        report = {}
-
-        failure_msgs = []
-        for failure in failures:
-            msg = failure["message"]
-            failure_msgs.append(msg)
-            for cause in failure["causedBy"]:
-                failure_msgs.append(cause["message"])
-        report["failures"] = "\n".join(failure_msgs)
-
-        stderr_file = self.stderr(attempt)
-        if stderr_file and os.path.isfile(stderr_file):
-            with open(stderr_file, "r") as file:
-                report["stderr"] = file.read()
-
-        submit_stderr_file = f"{stderr_file}.submit"
-        if submit_stderr_file and os.path.isfile(submit_stderr_file):
-            with open(submit_stderr_file, "r") as file:
-                report["stderr.submit"] = file.read()
-
-        report["runtime"] = self.get("runtimeAttributes", None, "")
-
-        cromwell_job_id = self.get("jobId", None, None)
-        report["cromwell_job_id"] = cromwell_job_id
-
-        return report
+        full_report = []
+        for call in self.calls:
+            if call.get("executionStatus") == "Failed":
+                report = {}
+                report["attempt"] = call["attempt"]
+                report["callCaching"] = call["callCaching"]
+                report["failures"] = call["failures"]
+                if "jobId" in call:
+                    report["jobId"] = call["jobId"]
+                if "runtimeAttributes" in call:
+                    report["runtimeAttributes"] = call["runtimeAttributes"]
+                report["shardIndex"] = call["shardIndex"]
+                if "stderr" in call:
+                    stderr_file = call["stderr"]
+                    if os.path.isfile(stderr_file):
+                        with open(stderr_file, "r") as file:
+                            report["stderr"] = file.read()
+                    stderr_submit_file = f"{stderr_file}.submit"
+                    if os.path.isfile(stderr_submit_file):
+                        with open(stderr_submit_file, "r") as file:
+                            report["stderr.submit"] = file.read()
+                full_report.append(report)
+        return full_report
 
     def stdout(self, attempt=None, src=None, dest=None):
         """
@@ -305,16 +275,50 @@ class Metadata:
             result[task.name] = task.execution_status()
         return result
 
+    def failure_reason(self):
+        """
+        Return standard message of reason for failure, without detail.
+        If there is more than one failure, only the first is returned.
+        Example messages are:
+        - "Workflow failed" (a Task had failde)
+        - "Workflow input processing failed" (an infile was not found)
+        """
+        reason = None
+        failures = self.get("failures")
+        if failures:
+            reason = failures[0]["message"]
+        return reason
+
+    def filtered_failures(self):
+        """
+        Filter failurs with message "Workflow failed", as those failures are duplicated in the Tasks.
+        :return: list of failures
+        :rtype: list
+        """
+        failures = self.get("failures", [])
+        filtered_failures = []
+        for failure in failures:
+            if failure["message"].lower() != "workflow failed":
+                filtered_failures.append(failure)
+        return filtered_failures
+
     def errors(self):
         """
-        Return dict of task name to error messages, for last attempt of each task.
+        Return JSON errors report.
         """
-        result = {}
+        report = {}
+        task_errors = {}
         for task in self.tasks:
-            an_error = task.error()
-            if an_error:
-                result[task.name] = an_error
-        return result
+            task_report = task.errors()
+            if len(task_report):
+                task_errors[task.name] = task_report
+        if len(task_errors):
+            report["calls"] = task_errors
+        other_failures = self.filtered_failures()
+        if len(other_failures):
+            report["failures"] = self.filtered_failures()
+            report["inputs"] = self.get("inputs")
+        return report
 
     def task_summary(self):
         """
@@ -397,7 +401,13 @@ class Cromwell:
             raise error
         response.raise_for_status()
 
-    def submit(self, wdl_file: str, json_file: str, zip_file: str = None, options_file: str = None) -> int:
+    def submit(
+        self,
+        wdl_file: str,
+        json_file: str,
+        zip_file: str = None,
+        options_file: str = None,
+    ) -> int:
         """
         Submit a run to Cromwell.
         :param wdl_file: Path to WDL file

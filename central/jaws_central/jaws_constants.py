@@ -16,5 +16,5 @@ run_status_msg = {
     "downloading": "The run output is being sent via Globus",
     "download failed": "Globus failed to return the results to the user",
     "download inactive": "Globus transfer stalled; try reactivating the endpoint. Please go to https://app.globus.org/file-manager, on the left side of the page, select ENDPOINTS, click the > icon to the right of the NERSC DTN endpoint, then click Activate.",  # noqa",
-    "download complete": "The run output (suceeded or failed) has been returned to the user.",
+    "download complete": "The run output (succeeded or failed) has been returned to the user.",
 }
