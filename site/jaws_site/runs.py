@@ -148,39 +148,37 @@ class Run:
         else:
             return None
 
-    def upload_status(self) -> str:
-        try:
-            status = globus.transfer_status(self.model.upload_task_id)
-        except globus_sdk.GlobusError as error:
-            logger.exception(
-                f"Failed to check upload {self.model.upload_task_id}: {error}"
-            )
+    def _transfer_status(self, xfer_id: int):
+        central_rpc_client = rpc_client.RpcClient(
+            config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
+        )
+        data = {"xfer_id": xfer_id}
+        response = central_rpc_client.request("transfer_status", data)
+        if "error" in response:
+            logger.info(f"RPC transfer_status failed: {response['error']['message']}")
+            return None
         else:
-            return status
+            return response["result"]
+
+    def upload_status(self) -> str:
+        return self._transfer_status(self.model.upload_id)
 
     def download_status(self) -> str:
-        try:
-            status = globus.transfer_status(self.model.download_task_id)
-        except globus_sdk.GlobusError as error:
-            logger.exception(
-                f"Failed to check download {self.model.download_task_id}: {error}"
-            )
-        else:
-            return status
+        return self._transfer_status(self.model.download_id)
 
     def check_if_upload_complete(self) -> None:
         """
         If the upload is complete, update the run's status.
         """
         logger.debug(f"Run {self.model.id}: Check upload status")
-        globus_status = self.upload_status()
-        if globus_status == "FAILED":
+        xfer_status = self.upload_status()
+        if xfer_status == "FAILED":
             self.update_run_status("upload failed")
-        elif globus_status == "INACTIVE":
+        elif xfer_status == "INACTIVE":
             self.update_run_status(
                 "upload inactive", "The JAWS endpoint authorization has expired"
             )
-        elif globus_status == "SUCCEEDED":
+        elif xfer_status == "SUCCEEDED":
             self.update_run_status("upload complete")
 
     def uploads_file_path(self):
@@ -196,7 +194,12 @@ class Run:
         :return: list of [wdl,json,zip] file paths
         :rtype: list
         """
-        suffixes_and_required = [("wdl", True), ("json", True), ("zip", False), ("options.json", False)]
+        suffixes_and_required = [
+            ("wdl", True),
+            ("json", True),
+            ("zip", False),
+            ("options.json", False),
+        ]
         files = []
         file_path = self.uploads_file_path()
         for (suffix, required) in suffixes_and_required:
@@ -276,7 +279,9 @@ class Run:
             self.update_run_status("cancelled")
 
     @staticmethod
-    def _cp_infile_to_outdir(src_root_path, src_suffix, dest_dir, required=True) -> None:
+    def _cp_infile_to_outdir(
+        src_root_path, src_suffix, dest_dir, required=True
+    ) -> None:
         """
         Copy an input file to the output dir.  If not required, no exception thrown if the file doesn't exist.
         :param src_root_path: dir and basename of file
@@ -323,31 +328,32 @@ class Run:
         self._cp_infile_to_outdir(file_path, "orig.json", cromwell_workflow_dir)
         self._cp_infile_to_outdir(file_path, "zip", cromwell_workflow_dir, False)
 
-        try:
-            transfer_task_id = globus.submit_transfer(
-                f"Run {self.model.id}",
-                self.model.output_endpoint,
-                cromwell_workflow_dir,
-                self.model.output_dir,
-            )
-        except globus_sdk.GlobusError as error:
-            logger.error(f"error while submitting transfer: {error}")
-            raise
-        else:
-            self.model.download_task_id = transfer_task_id
-            self.update_run_status(
-                "downloading", f"download_task_id={self.model.download_task_id}"
-            )
+        central_rpc_client = rpc_client.RpcClient(
+            config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
+        )
+        data = {
+            "label": f"Download Run {self.model.id}",
+            "src_endpoint": config.conf.get("GLOBUS", "endpoint_id"),
+            "dest_endpoint": self.model.output_endpoint,
+            "manifest": [[cromwell_workflow_dir, self.model.output_dir]],
+            "user": self.model.user_id,
+        }
+        response = central_rpc_client.request("submit_transfer", data)
+        if "error" in response:
+            logger.info(f"RPC submit_transfer failed: {response['error']['message']}")
+            return
+        self.model.download_task_id = response["result"]
+        self.update_run_status("downloading", f"download_id={self.model.download_id}")
 
     def check_if_download_complete(self) -> None:
         """
         If download is complete, change state.
         """
         logger.debug(f"Run {self.model.id}: Check download status")
-        globus_status = self.download_status()
-        if globus_status == "SUCCEEDED":
+        xfer_status = self.download_status()
+        if xfer_status == "SUCCEEDED":
             self.update_run_status("download complete")
-        elif globus_status == "FAILED":
+        elif xfer_status == "FAILED":
             self.update_run_status("download failed")
 
     def update_run_status(self, new_status, reason=None) -> None:
@@ -446,8 +452,7 @@ def send_run_status_logs(session) -> None:
 
     try:
         central_rpc_client = rpc_client.RpcClient(
-            config.conf.get_section("CENTRAL_RPC_CLIENT"),
-            logger
+            config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
         )
     except Exception as error:
         logger.exception(f"Unable to init central rpc client: {error}")
