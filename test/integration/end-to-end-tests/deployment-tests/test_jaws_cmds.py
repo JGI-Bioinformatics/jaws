@@ -317,3 +317,54 @@ def test_jaws_history_result_filter_failed(env, submit_bad_task):
             assert d["result"] == "failed"
     else:
         assert 1, f"no runs were found in the history that have result: failed"
+
+
+
+
+VALID_STATES = [ "queued", "running","download complete"]
+@pytest.mark.parametrize("state", VALID_STATES)
+def test_cancel(env, dir, site, state):
+    WDL = "/WDLs/fq_count.wdl"
+    INP = "/test-inputs/fq_count.json"
+    FINAL_STATE = "download complete"
+    CHECK_TRIES = 20
+    CHECK_SLEEP = 30
+
+    wdl = dir + WDL
+    input_json = dir + INP
+    run_id = util.submit_wdl(env, wdl, input_json, site)["run_id"]
+
+    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
+    status_cmd = source_cmd + "jaws status %s" % run_id
+    cancel_cmd = source_cmd + "jaws cancel %s" % run_id
+
+    ## get to the state we are testing
+    floating_state = ""
+    tries = 0
+    while floating_state != state:
+        r_sts, o_sts, e_sts = util.run(status_cmd)
+        floating_state = json.loads(o_sts)["status"]
+        if floating_state == FINAL_STATE:
+            break
+
+        if tries < CHECK_TRIES:
+            time.sleep(CHECK_SLEEP)
+        else:
+            assert 0, "\n**Run took too long; last state: %s. (%s)" % (floating_state, run_id)
+            return
+        tries += 1
+
+    if floating_state != state and floating_state == FINAL_STATE:
+        print("\n** This state was not observed: %s" % state)
+        return
+
+    ## submit cancel command to JAWS and gather output
+    r_can, o_can, e_can = util.run(cancel_cmd)
+    if state == FINAL_STATE:
+        assert r_can == 1, "\n** Return code is not 1. (%s)" % (run_id)
+        assert "error" in e_can, "\n** Error keyword absent. (%s)" % (run_id)
+        return
+
+    assert r_can == 0, "\n** Return Code is not 0. (%s)" % (run_id)
+    assert "error" not in e_can, "\n** Error keyword present. (%s)" % (run_id)
+    return
