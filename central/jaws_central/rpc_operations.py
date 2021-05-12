@@ -78,6 +78,29 @@ def update_run_logs(params, session):
     return success()
 
 
+def transfer_status(params, session):
+    """Query XferQueue for status of a transfer"""
+    try:
+        xfer = XferQueue(session)
+        status = xfer.transfer_status(params["xfer_id"])
+    except Exception as error:
+        return failure(error)
+    else:
+        return success(status) 
+
+
+def submit_transfer(params, session):
+    """Submit transfer task to XferQueue and return xfer_id"""
+    try:
+        xfer = XferQueue(session)
+        xfer_id = xfer.submit_transfer(**params)
+    except Exception as error:
+        session.rollback()
+        return failure(error)
+    else:
+        return success(xfer_id) 
+
+
 # all RPC operations are defined in this dispatch table
 operations = {
     "update_run_logs": {
@@ -88,6 +111,22 @@ operations = {
             "status_from",
             "status_to",
             "timestamp",
+        ],
+    },
+    "transfer_status": {
+        "function": transfer_status,
+        "required_parameters": [
+            "xfer_id",
+        ],
+    },
+    "submit_transfer": {
+        "function": submit_transfer,
+        "required_parameters": [
+            "src_endpoint",
+            "dest_endpoint",
+            "manifest",
+            "label",
+            "user",
         ],
     },
 }
