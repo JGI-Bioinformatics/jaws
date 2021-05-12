@@ -5,7 +5,6 @@ Analysis (AKA Run) REST endpoints.
 import logging
 from datetime import datetime, timedelta
 from flask import abort, request
-from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 import globus_sdk
 
@@ -44,7 +43,15 @@ run_pre_cromwell_states = [
 ]
 
 
-def _rpc_call(user, run_id, method, params={}):
+class RunNotFoundError(Exception):
+    pass
+
+
+class RunAccessDeniedError(Exception):
+    pass
+
+
+def rpc_call(user, run_id, method, params={}):
     """This is not a Flask endpoint, but a helper used by several endpoints.
     It checks a user's permission to access a run, perform the specified RPC function,
     and returns result if OK, aborts if error.
@@ -61,16 +68,45 @@ def _rpc_call(user, run_id, method, params={}):
     :rtype: dict or list
     """
     try:
+        response = _rpc_call(user, run_id, method, params)
+    except RunNotFoundError as error:
+        abort(404, {"error": f"{error}"})
+    except RunAccessDeniedError as error:
+        abort(401, {"error": f"{error}"})
+    except Exception as error:
+        abort(500, {"error": f"{error}"})
+    if "error" in response:
+        abort(response["error"]["code"], {"error": response["error"]["message"]})
+    else:
+        return response["result"], 200
+
+
+def _rpc_call(user, run_id, method, params={}):
+    """
+    It checks a user's permission to access a run, perform the specified RPC function, and
+    returns the response, which may indicate success or failure, to be processed by the caller.
+
+    :param user: current user's id
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :param method: the method to execute remotely
+    :type method: string
+    :param params: parameters for the remote method, depends on method
+    :type params: dict
+    :return: response in JSON-RPC2 format
+    :rtype: dict or list
+    """
+    try:
         run = db.session.query(Run).get(run_id)
     except SQLAlchemyError as e:
         logger.error(e)
-        abort(500, {"error": f"Db error; {e}"})
+        raise
     if not run:
-        abort(404, {"error": "Run not found; please check your run_id"})
+        raise RunNotFoundError("Run not found; please check your run_id")
     if run.user_id != user and not _is_admin(user):
-        abort(
-            401,
-            {"error": "Access denied; you cannot access to another user's workflow"},
+        raise RunAccessDeniedError(
+            "Access denied; you cannot access to another user's workflow"
         )
     a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
     params["user_id"] = user
@@ -78,12 +114,11 @@ def _rpc_call(user, run_id, method, params={}):
     params["cromwell_run_id"] = run.cromwell_run_id
     logger.info(f"User {user} RPC {method} params {params}")
     try:
-        result = a_site_rpc_client.request(method, params)
+        response = a_site_rpc_client.request(method, params)
     except Exception as error:
-        logger.exception(f"RPC {method} failed: {error}")
-    if "error" in result:
-        abort(result["error"]["code"], {"error": result["error"]["message"]})
-    return result["result"], 200
+        logger.error(f"RPC {method} failed: {error}")
+        raise
+    return response
 
 
 def _is_admin(user):
@@ -162,42 +197,44 @@ def search_runs(user):
     delta_days = int(request.form.get("delta_days", 0))
     result = request.form.get("result", "any").lower()
     logger.info(f"User {user}: Search runs")
-    rows = _select_runs(user, active_only, delta_days, site_id, result)
+    rows = _select_runs(
+        user,
+        active_only=active_only,
+        delta_days=delta_days,
+        site_id=site_id,
+        result=result,
+    )
     runs = []
-    is_admin = _is_admin(user)
+    verbose = _is_admin(user)
     for run in rows:
-        runs.append(_run_info(run, is_admin))
+        runs.append(_run_info(run, verbose))
     return runs, 200
 
 
-def _select_runs(
-    user: str, active_only: bool, delta_days: int, site_id: str, result: str
-):
+def _select_runs(user: str, **kwargs):
     """Select runs from db.
 
     :param user: current user's ID
     :type user: str
-    :param active_only: Select only active runs
-    :type active_only: bool
-    :param delta_days: Limit to this many recent days
-    :type delta_days: int
-    :param site_id: Limit to this compute-site
-    :type site_id: str
-    :param result: Limit to this result
-    :type result: str
     :return: Runs matching search criteria
     :rtype: list
     """
     query = db.session.query(Run).filter(Run.user_id == user)
-    if active_only:
+    if "active_only" in kwargs and kwargs["active_only"] is True:
         query = query.filter(Run.status.in_(run_active_states))
-    if site_id != "ALL":
-        query = query.filter(Run.site_id == site_id)
-    if delta_days > 0:
-        start_date = datetime.today() - timedelta(int(delta_days))
-        query = query.filter(Run.submitted >= start_date)
-    if result != "any":
-        query = query.filter(Run.result == result)
+    if "site_id" in kwargs:
+        site_id = kwargs["site_id"].upper()
+        if site_id != "ALL":
+            query = query.filter(Run.site_id == site_id)
+    if "delta_days" in kwargs:
+        delta_days = int(kwargs["delta_days"])
+        if delta_days > 0:
+            start_date = datetime.today() - timedelta(delta_days)
+            query = query.filter(Run.submitted >= start_date)
+    if "result" in kwargs:
+        result = kwargs["result"].lower()
+        if result != "any":
+            query = query.filter(Run.result == result)
     return query.all()
 
 
@@ -449,7 +486,7 @@ def submit_run(user):
 
 def _submission_failed(user, run, reason):
     """Cancel upload and update run status"""
-    _cancel_transfer(user, run.upload_task_id, run.id)
+    _cancel_transfer(run.upload_task_id)
     _update_run_status(run, "submission failed", reason)
 
 
@@ -560,7 +597,7 @@ def task_status(user, run_id):
     logger.info(f"User {user}: Get task-status of Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "get_task_status")
+    return rpc_call(user, run_id, "get_task_status")
 
 
 def run_log(user: str, run_id: int):
@@ -612,7 +649,7 @@ def task_log(user, run_id):
     logger.info(f"User {user}: Get task-log for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "get_task_log")
+    return rpc_call(user, run_id, "get_task_log")
 
 
 def run_metadata(user, run_id):
@@ -629,7 +666,7 @@ def run_metadata(user, run_id):
     logger.info(f"User {user}: Get metadata for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "run_metadata")
+    return rpc_call(user, run_id, "run_metadata")
 
 
 def get_errors(user, run_id):
@@ -646,12 +683,12 @@ def get_errors(user, run_id):
     logger.info(f"User {user}: Get errors for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return _rpc_call(user, run_id, "get_errors")
+    return rpc_call(user, run_id, "get_errors")
 
 
 def cancel_run(user, run_id):
     """
-    Cancel a run.  It doesn't cancel Globus transfers, just Cromwell runs.
+    Cancel a run.
 
     :param user: current user's ID
     :type user: str
@@ -662,83 +699,55 @@ def cancel_run(user, run_id):
     """
     logger.info(f"User {user}: Cancel Run {run_id}")
 
-    # get run record
     run = _get_run(user, run_id)
     status = run.status
-
-    # check if run can be cancelled
     if status == "cancelled":
         abort(400, {"error": "That Run had already been cancelled"})
     elif status == "download complete":
         abort(400, {"error": "It's too late to cancel; run is finished."})
+    cancelled = _cancel_run(user, run)
+    return {run_id: cancelled}, 201
 
-    # mark as cancelled
-    _cancel_run(run)
 
-    # cancel active transfers
+def _cancel_run(user, run, reason="Cancelled by user"):
+    """
+    Cancel a Run.
+
+    :param run: Run SqlAlchemy ORM object
+    :type run: obj
+    """
+    status = run.status
     if status.startswith("upload"):
-        _cancel_transfer(user, run.upload_task_id, run_id)
+        _cancel_transfer(run.upload_task_id)
     elif status.startswith("download"):
-        _cancel_transfer(user, run.download_task_id, run_id)
-
-    # tell Site to cancel
-    return _rpc_call(user, run_id, "cancel_run")
-
-
-def _cancel_run(run, reason="Cancelled by user"):
-    """Update database record."""
-    logger.debug(f"Run {run.id}: updating runs table to cancelled")
-    status_from = run.status
-    run.status = "cancelled"
-    run.result = "cancelled"
+        _cancel_transfer(run.download_task_id)
     try:
-        db.session.commit()
+        _rpc_call(user, run.id, "cancel_run")
     except Exception as error:
-        db.session.rollback()
-        logger.exception(f"Error while updating run to 'cancelled': {error}")
-    log = Run_Log(
-        run_id=run.id,
-        status_from=status_from,
-        status_to=run.status,
-        timestamp=run.updated,
-        reason=reason,
-    )
+        logger.error(f"Error canceling run {run.id}: {error}")
+        # ignore error, cancel anyway
     try:
-        db.session.add(log)
-        db.session.commit()
+        _update_run_status(run, "cancelled", reason)
     except Exception as error:
-        db.session.rollback()
-        logger.error(
-            f"Error while adding run log entry to cancel run {run.id}: {error}"
-        )
+        return f"cancel failed; {error}"
+    else:
+        return "cancelled"
 
 
-def _cancel_transfer(user: str, transfer_task_id: str, run_id: int) -> None:
+def _cancel_transfer(transfer_task_id: str) -> None:
     """Cancel a Globus transfer.
 
-    :param user: user id
-    :type user: str
     :param transfer_task_id: Globus transfer task id
     :type transfer_task_id: str
-    :return: None; aborts on error.
     """
-    logger.debug(f"Run {run_id}: Cancel transfer {transfer_task_id}")
     try:
         transfer_client = authorize_transfer_client()
-    except globus_sdk.GlobusAPIError as error:
-        logger.error(f"Error getting Globus transfer client: {error}")
-        abort(500, {"error": "Globus error: {error}"})
-    try:
         transfer_response = transfer_client.cancel_task(transfer_task_id)
-        logger.debug(
-            f"User {user} cancel upload {transfer_task_id} for run {run_id}: {transfer_response}"
-        )
     except globus_sdk.GlobusAPIError as error:
-        logger.exception(
-            f"Failed to cancel {user}'s Globus transfer, {transfer_task_id}: {error}",
-            exc_info=True,
-        )
-        abort(500, {"error": f"Globus error: {error}"})
+        logger.error(f"Error cancelling Globus transfer, {transfer_task_id}: {error}")
+        return f"{error}"
+    else:
+        return transfer_response
 
 
 def cancel_all(user):
@@ -752,31 +761,14 @@ def cancel_all(user):
     """
     logger.info(f"User {user}: Cancel-all")
     try:
-        queue = (
-            db.session.query(Run)
-            .filter(and_(Run.user_id == user, Run.status.in_(run_active_states)))
-            .all()
-        )
+        active_runs = _select_runs(user, active_only=True)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, {"error": f"Db error; {error}"})
-    result = {}
-    for run in queue:
-        status = run.status
-        if status == "cancelled":
-            result[run.id] = "Already cancelled"
-            continue
-        elif status == "download complete":
-            result[run.id] = "Too late to cancel; download complete"
-            continue
-        _cancel_run(run)
-        if status.startswith("upload"):
-            _cancel_transfer(user, run.upload_task_id, run.id)
-        elif status.startswith("download"):
-            _cancel_transfer(user, run.download_task_id, run.id)
-        _rpc_call(user, run.id, "cancel_run")
-        result[run.id] = "Cancelled"
-    return result, 201
+    cancelled = {}
+    for run in active_runs:
+        cancelled[run.id] = _cancel_run(user, run)
+    return cancelled, 201
 
 
 def authorize_transfer_client():

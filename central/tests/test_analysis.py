@@ -131,10 +131,8 @@ def test_list_sites(configuration):
 
 
 def test_cancel_transfer(configuration, mock_database, mock_globus):
-    user = "test_user"
     transfer_id = "without_error"
-    run_id = 99
-    jaws_central.analysis._cancel_transfer(user, transfer_id, run_id)
+    jaws_central.analysis._cancel_transfer(transfer_id)
 
 
 def test_cancel_run(monkeypatch):
@@ -149,12 +147,12 @@ def test_cancel_run(monkeypatch):
         run.status = "running"
         return run
 
-    def mock_cancel_run(run):
+    def mock_cancel_run(user, run):
         run.status = "cancelled"
         run.result = "cancelled"
         return run
 
-    def mock_cancel_transfer(user_id, transfer_task_id, run_id):
+    def mock_cancel_transfer(transfer_task_id):
         pass
 
     def mock_rpc_call_cancel(user_id, run_id, method, params={}):
@@ -163,7 +161,7 @@ def test_cancel_run(monkeypatch):
         assert method == "cancel_run"
 
     """Check if an exception is raised in case run is already cancelled"""
-    monkeypatch.setattr(jaws_central.analysis, "_rpc_call", mock_rpc_call_cancel)
+    monkeypatch.setattr(jaws_central.analysis, "rpc_call", mock_rpc_call_cancel)
     monkeypatch.setattr(jaws_central.analysis, "_get_run", get_run_cancelled)
     monkeypatch.setattr(jaws_central.analysis, "_cancel_run", mock_cancel_run)
     monkeypatch.setattr(jaws_central.analysis, "_cancel_transfer", mock_cancel_transfer)
@@ -209,7 +207,7 @@ def test_run_metadata(monkeypatch):
     monkeypatch.setattr(
         jaws_central.analysis, "_abort_if_pre_cromwell", mock_abort_if_pre_cromwell
     )
-    monkeypatch.setattr(jaws_central.analysis, "_rpc_call", mock_rpc_call)
+    monkeypatch.setattr(jaws_central.analysis, "rpc_call", mock_rpc_call)
     jaws_central.analysis.run_metadata("test_user", 123)
 
 
