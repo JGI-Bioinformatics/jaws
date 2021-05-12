@@ -7,6 +7,7 @@ import sqlalchemy.exc
 from datetime import datetime
 from jaws_central.models_sa import Run, Run_Log
 from jaws_rpc.responses import success, failure
+from jaws_central.xfer_queue import XferQueue
 
 
 logger = logging.getLogger(__package__)

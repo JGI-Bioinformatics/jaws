@@ -5,7 +5,7 @@ JAWS Daemon process periodically queries Globus to update xfer status and submit
 import schedule
 import time
 import logging
-from jaws_central.xfer import XferQueue
+from jaws_central.xfer_queue import XferQueue
 
 
 logger = logging.getLogger(__package__)
