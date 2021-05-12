@@ -226,6 +226,17 @@ exec jaws-central --log $LOGS_DIR/central-rpc.log --config $CONFIG_DIR/jaws-cent
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
+SHIM_FILE="$SHIM_DIR/jaws-central-daemon-$DEPLOYMENT_NAME"
+cat <<EOM > "$SHIM_FILE"
+#!/usr/bin/env bash
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+source $INSTALL_DIR/central/bin/activate
+exec jaws-central --log $LOGS_DIR/central-daemon.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL daemon
+EOM
+chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
+
 
 ### SUPERVISORD
 echo "DEPLOY SUPERVISORD"
@@ -311,8 +322,15 @@ startsecs=3
 startretries=10
 autorestart=unexpected
 
+[program:daemon]
+command=$SHIM_DIR/jaws-central-daemon-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=10
+autorestart=unexpected
+
 [group:jaws-central-$DEPLOYMENT_NAME]
-programs=auth,rest,rpc
+programs=auth,rest,rpc,daemon
 priority=999
 EOM
 

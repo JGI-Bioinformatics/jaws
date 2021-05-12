@@ -154,6 +154,14 @@ def rpc() -> None:
     app.start_server()
 
 
+@cli.command()
+def daemon() -> None:
+    """Start daemon."""
+    from jaws_central import daemon
+    jawsd = daemon.Daemon()
+    jawsd.start_daemon()
+
+
 def jaws():
     """Entrypoint for jaws-server app."""
     cli()
