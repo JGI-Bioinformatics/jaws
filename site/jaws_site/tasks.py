@@ -380,4 +380,10 @@ def get_task_log_error_messages(session, cromwell_job_id):
     """
     Query task-log table any return any error messages found in the optional "reason" column.
     """
-    return _select_task_log_error_messages(session, cromwell_job_id)
+    try:
+        error_messages = _select_task_log_error_messages(session, cromwell_job_id)
+    except Exception as error:
+        logger.error(f"Error retrieving task log error messages for {cromwell_job_id}: {error}")
+        return None
+    else:
+        return error_messages

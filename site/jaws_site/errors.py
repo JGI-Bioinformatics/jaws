@@ -1,6 +1,10 @@
+import logging
 from jaws_site import config
-from jaws_site.cromwell import Cromwell
+from jaws_site.cromwell import Cromwell, CromwellException
 from jaws_site.tasks import get_task_log_error_messages
+
+
+logger = logging.getLogger(__package__)
 
 
 def _get_cromwell_errors_report(cromwell_run_id):
@@ -23,10 +27,15 @@ def get_errors(session, cromwell_run_id):
     :return: error report
     :rtype: dict
     """
-    errors_report = _get_cromwell_errors_report(cromwell_run_id)
+    try:
+        errors_report = _get_cromwell_errors_report(cromwell_run_id)
+    except CromwellException as error:
+        logger.error(f"Failed to retrieve Cromwell errors report for {cromwell_run_id}: {error}")
+        return {}
     if errors_report and "calls" in errors_report:
         for task_name in errors_report["calls"]:
             for item in errors_report["calls"][task_name]:
-                cromwell_job_id = item["jobId"]
-                item["taskLog"] = get_task_log_error_messages(session, cromwell_job_id)
+                if "jobId" in item:
+                    cromwell_job_id = item["jobId"]
+                    item["taskLog"] = get_task_log_error_messages(session, cromwell_job_id)
     return errors_report
