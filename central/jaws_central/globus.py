@@ -113,3 +113,17 @@ class GlobusService:
 
         transfer_result = transfer_client.submit_transfer(tdata)
         return transfer_result["task_id"]
+
+    def task_list(self, num_results: int = 10, **kwargs):
+        """
+        Query Globus for transfer tasks.
+
+        :param num_results: Number of transfer tasks to return (default 10)
+        :type num_results: int
+        :param kwargs: optional parameters; see: https://docs.globus.org/api/transfer/task/#get_task_list
+        :type kwargs: dict
+        :return: Transfer task information (list of dictionaries)
+        :type: list
+        """
+        transfer_client = self._create_transfer_client()
+        return transfer_client.task_list(num_results, kwargs)
