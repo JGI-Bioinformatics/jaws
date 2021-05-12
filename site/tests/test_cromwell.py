@@ -24,6 +24,7 @@ example_cromwell_run_id_4 = (
 example_cromwell_run_id_5 = (
     "36f86fab-830c-4022-86be-a175c61989d7"  # failed run, with scatter
 )
+example_cromwell_run_id_6 = "cbbbc75f-8920-495c-a290-0a1a5f0d1c20"  # failed run
 
 
 def __load_example_metadata_from_file(cromwell_run_id):
@@ -245,6 +246,10 @@ def test_errors(requests_mock):
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_5}/metadata",
         json=__load_example_metadata_from_file(example_cromwell_run_id_5),
     )
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_6}/metadata",
+        json=__load_example_metadata_from_file(example_cromwell_run_id_6),
+    )
 
     expected_errors_report_1 = {}
 
@@ -281,8 +286,6 @@ def test_errors(requests_mock):
                         "time": "00:10:00",
                     },
                     "shardIndex": -1,
-                    "stderr": None,
-                    "stderr.submit": None,
                 }
             ]
         }
@@ -338,8 +341,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 1,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -373,8 +374,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 70,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
             ],
             "jgi_dap_leo.copyOutput_expt": [
@@ -409,8 +408,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 11,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -443,8 +440,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 15,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -477,8 +472,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 21,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -511,8 +504,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 84,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -545,8 +536,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 88,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
             ],
             "jgi_dap_leo.dapStats": [
@@ -582,8 +571,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 50,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -617,8 +604,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 52,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -652,8 +637,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 55,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
             ],
             "jgi_dap_leo.findPeaks": [
@@ -689,8 +672,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 59,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -724,8 +705,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 83,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -759,8 +738,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 87,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -794,8 +771,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 89,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -829,8 +804,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 91,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
             ],
             "jgi_dap_leo.trimAlign_expt": [
@@ -866,8 +839,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 4,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -901,8 +872,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 24,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -936,8 +905,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 61,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -971,8 +938,6 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 63,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
                 {
                     "attempt": 1,
@@ -1006,11 +971,50 @@ def test_errors(requests_mock):
                         "time": "05:00:00",
                     },
                     "shardIndex": 69,
-                    "stderr": None,
-                    "stderr.submit": None,
                 },
             ],
         }
+    }
+
+    expected_errors_report_6 = {
+        "calls": {
+            "bbmap_shard_wf.bbmap_indexing": [
+                {
+                    "attempt": 1,
+                    "callCaching": {
+                        "allowResultReuse": False,
+                        "effectiveCallCachingMode": "CallCachingOff",
+                        "hit": False,
+                        "result": "Cache Miss",
+                    },
+                    "failures": [
+                        {
+                            "causedBy": [],
+                            "message": "No backend job for bbmap_shard_wf.bbmap_indexing:NA:1 could be found. The status of the underlying job cannot be known.",  # noqa
+                        }
+                    ],
+                    "shardIndex": -1,
+                }
+            ],
+            "bbmap_shard_wf.shard": [
+                {
+                    "attempt": 1,
+                    "callCaching": {
+                        "allowResultReuse": False,
+                        "effectiveCallCachingMode": "CallCachingOff",
+                        "hit": False,
+                        "result": "Cache Miss",
+                    },
+                    "failures": [
+                        {
+                            "causedBy": [],
+                            "message": "No backend job for bbmap_shard_wf.shard:NA:1 could be found. The status of the underlying job cannot be known.",  # noqa
+                        }
+                    ],
+                    "shardIndex": -1,
+                }
+            ],
+        },
     }
 
     metadata_1 = crom.get_metadata(example_cromwell_run_id_1)
@@ -1052,6 +1056,17 @@ def test_errors(requests_mock):
         bool(
             DeepDiff(
                 actual_errors_report_5, expected_errors_report_5, ignore_order=True
+            )
+        )
+        is False
+    )
+
+    metadata_6 = crom.get_metadata(example_cromwell_run_id_6)
+    actual_errors_report_6 = metadata_6.errors()
+    assert (
+        bool(
+            DeepDiff(
+                actual_errors_report_6, expected_errors_report_6, ignore_order=True
             )
         )
         is False

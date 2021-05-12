@@ -98,21 +98,20 @@ class Task:
                 report["attempt"] = call["attempt"]
                 report["callCaching"] = call["callCaching"]
                 report["failures"] = call["failures"]
-                report["jobId"] = call["jobId"]
-                report["runtimeAttributes"] = call["runtimeAttributes"]
+                if "jobId" in call:
+                    report["jobId"] = call["jobId"]
+                if "runtimeAttributes" in call:
+                    report["runtimeAttributes"] = call["runtimeAttributes"]
                 report["shardIndex"] = call["shardIndex"]
-                stderr_file = call["stderr"]
-                if stderr_file and os.path.isfile(stderr_file):
-                    with open(stderr_file, "r") as file:
-                        report["stderr"] = file.read()
-                else:
-                    report["stderr"] = None
-                stderr_submit_file = f"{stderr_file}.submit"
-                if stderr_submit_file and os.path.isfile(stderr_submit_file):
-                    with open(stderr_submit_file, "r") as file:
-                        report["stderr.submit"] = file.read()
-                else:
-                    report["stderr.submit"] = None
+                if "stderr" in call:
+                    stderr_file = call["stderr"]
+                    if os.path.isfile(stderr_file):
+                        with open(stderr_file, "r") as file:
+                            report["stderr"] = file.read()
+                    stderr_submit_file = f"{stderr_file}.submit"
+                    if os.path.isfile(stderr_submit_file):
+                        with open(stderr_submit_file, "r") as file:
+                            report["stderr.submit"] = file.read()
                 full_report.append(report)
         return full_report
 
