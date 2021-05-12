@@ -86,7 +86,7 @@ def transfer_status(params, session):
     except Exception as error:
         return failure(error)
     else:
-        return success(status) 
+        return success(status)
 
 
 def submit_transfer(params, session):
@@ -98,7 +98,7 @@ def submit_transfer(params, session):
         session.rollback()
         return failure(error)
     else:
-        return success(xfer_id) 
+        return success(xfer_id)
 
 
 # all RPC operations are defined in this dispatch table
