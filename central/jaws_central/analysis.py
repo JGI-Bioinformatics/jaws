@@ -6,10 +6,7 @@ import logging
 from datetime import datetime, timedelta
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
-import globus_sdk
-
-import jaws_central.globus
-
+from jaws_central.xfer_queue import XferQueue
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
@@ -295,7 +292,6 @@ def submit_run(user):
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
     compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
-    globus = jaws_central.globus.GlobusService()
 
     if compute_endpoint is None:
         logger.error(
@@ -344,7 +340,8 @@ def submit_run(user):
 
     # We modify the output dir path since we know the endpoint of the returning source site. From here
     # a compute site can simply query the output directory and send.
-    virtual_output_path = globus.virtual_transfer_path(output_dir, src_host_path)
+    xq = XferQueue(db.session)
+    virtual_output_path = xq.virtual_transfer_path(output_dir, src_host_path)
 
     # Due to how the current database schema is setup, we have to update the output
     # directory from the model object itself immediately after insert.
@@ -365,55 +362,32 @@ def submit_run(user):
         abort(500, {"error": err_msg})
     logger.debug(f"Updating output dir for run_id={run.id}")
 
-    # SUBMIT GLOBUS TRANSFER
+    # SUBMIT TRANSFER
+    manifest = []
     manifest_file = request.files["manifest"]
-    host_paths = {}
-    host_paths["src"] = src_host_path
-    host_paths["dest"] = config.conf.get_site(site_id, "globus_host_path")
+    with open(manifest_file, "r") as fh:
+        for line in fh:
+            line = line.decode("UTF-8").strip()
+            source_path, dest_path, inode_type = line.split("\t")
+            manifest.append([source_path, dest_path, inode_type])
+    dest_host_path = config.conf.get_site(site_id, "globus_host_path")
 
     try:
-        upload_id = globus.submit_transfer(
-            f"Upload run {run.id}",
-            host_paths,
-            input_endpoint,
-            compute_endpoint,
-            manifest_file,
+        upload_id = xq.submit_transfer(
+            user=user,
+            label=f"Upload run {run.id}",
+            src_host_path=src_host_path,
+            dest_host_path=dest_host_path,
+            src_endpoint=input_endpoint,
+            dest_endpoint=compute_endpoint,
+            manifest=manifest,
         )
-    except globus_sdk.GlobusAPIError as error:
+    except XferQueueError as error:
         run.status = "upload failed"
         db.session.commit()
-        if error.code == "NoCredException":
-            logger.warning(
-                f"{user} submission {run.id} failed due to Globus {error.code}"
-            )
-            abort(
-                401,
-                {
-                    "error": error.message
-                    + " -- Your access to the Globus endpoint has expired.  "
-                    + "To reactivate, log-in to https://app.globus.org, go to Endpoints (left), "
-                    + "search for the endpoint by name (if not shown), click on the endpoint, "
-                    + "and use the button on the right to activate your credentials."
-                },
-            )
-        else:
-            logger.exception(
-                f"{user} submission {run.id} failed for GlobusAPIError: {error}",
-                exc_info=True,
-            )
-            abort(error.code, {"error": error.message})
-    except globus_sdk.NetworkError as error:
-        logger.exception(
-            f"{user} submission {run.id} failed due to NetworkError: {error}",
-            exc_info=True,
-        )
-        abort(500, {"error": f"Network Error: {error}"})
-    except globus_sdk.GlobusError as error:
-        logger.exception(
-            f"{user} submission {run.id} failed for unknown error: {error}",
-            exc_info=True,
-        )
-        abort(500, {"error": f"Unexpected error: {error}"})
+        logger.error(f"User {user} Run {run.id} xfer failed: {error}")
+        abort(error.code, {"error": error.message})
+        abort(500, {"error": f"XferQueue service down; please try again later"})
 
     logger.debug(f"User {user}: Run {run.id} upload {upload_id}")
 
