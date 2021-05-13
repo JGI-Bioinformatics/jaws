@@ -273,7 +273,7 @@ def test_jaws_history_site_filter(env, site, submit_fq_count_wdl):
 
     if data:
         for d in data:
-            assert d["site_id"].lower() == site
+            assert d["site_id"].lower() == site.lower()
     else:
         assert 0, f"no runs were found in the history for site: {site}"
 
