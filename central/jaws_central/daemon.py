@@ -37,6 +37,6 @@ class Daemon:
         Query Globus for transfer task status updates and submit new xfers.
         """
         session = database.Session()
-        xfer = XferQueue()
-        xfer.update(session)
+        xfer = XferQueue(session)
+        xfer.update()
         session.close()

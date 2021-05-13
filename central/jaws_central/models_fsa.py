@@ -1,6 +1,6 @@
 """Flask-SQLAlchemy db and models, used by Connexion/Flask servers."""
 
-import datetime
+from  import utcnow
 from flask_sqlalchemy import SQLAlchemy
 
 
@@ -51,9 +51,9 @@ class Run(db.Model):
     status = db.Column(db.String(32), nullable=False)
     user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
     site_id = db.Column(db.String(8), nullable=False)
-    submitted = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    submitted = db.Column(db.DateTime, nullable=False, default=utcnow)
     updated = db.Column(
-        db.DateTime, default=same_as("submitted"), onupdate=datetime.datetime.utcnow,
+        db.DateTime, default=same_as("submitted"), onupdate=utcnow,
     )
     input_site_id = db.Column(db.String(8), nullable=False)
     input_endpoint = db.Column(db.String(36), nullable=False)
@@ -79,7 +79,7 @@ class Run_Log(db.Model):
     run_id = db.Column(db.Integer, db.ForeignKey("runs.id"), primary_key=True)
     status_from = db.Column(db.String(32), primary_key=True)
     status_to = db.Column(db.String(32), primary_key=True)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    timestamp = db.Column(db.DateTime, nullable=False, default=utcnow)
     reason = db.Column(db.String(1024), nullable=True)
 
     def __init__(self, *args, **kwargs):
@@ -87,3 +87,27 @@ class Run_Log(db.Model):
 
     def __repr__(self):
         return f"<Run_Log {self.run_id}:{self.status_from}:{self.status_to}>"
+
+
+class Xfer(db.Model):
+    """Transfer tasks used by XferQueue class"""
+
+    ___tablename__ = "xfers"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
+    label = db.Column(db.String(32), nullable=True)
+    src_endpoint = db.Column(db.String(36), nullable=False)
+    dest_endpoint = db.Column(db.String(36), nullable=False)
+    manifest = db.Column(db.Text, nullable=False)
+    size_gb = db.Column(db.Float, nullable=False)
+    priority_a = db.Column(db.Integer, nullable=False, default=1)
+    priority_b = db.Column(db.Integer, nullable=False, default=1)
+    status = db.column(db.String(16), nullable=False, default="created")
+    submitted = db.column(db.DateTime, nullable=False, default=utcnow)
+    updated = db.column(db.DateTime, nullable=False, default=utcnow)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return f"<Xfer {self.id}>"
