@@ -21,14 +21,18 @@ class XferQueue:
     Central file transfer (xfer) service.  Extends GlobusService with a transfer queue.
     """
 
-    def __init__(self, session):
+    def __init__(self, session, globus_service=None):
         """
         Constructor
         :param session: database handle
         :type session: sqlalchemy.session
+        :param globus_service: obj for interacting with Globus REST API
+        :type globus_service: jaws_central.globus.GlobusService
         """
         self.session = session
-        self.globus = GlobusService()
+        if globus_service is None:
+            globus_service = GlobusService()
+        self.globus = globus_service
         self.max_globus_queue_size = config.conf.get("GLOBUS", "max_queue_size", 10)
 
     def _insert_xfer(self, xfer):
@@ -133,10 +137,9 @@ class XferQueue:
         xfer = self._select_xfer(xfer_id)
         if xfer.status in active_states:
             self.globus.cancel_transfer(xfer.transfer_task_id)
-        self._update_xfer_status(xfer, "cancelled")
         xfer.status = "cancelled"
         xfer.updated = utcnow()
-        self._update_xfer(xfer)
+        self._update_xfer()
 
     def update(self):
         """
@@ -152,11 +155,7 @@ class XferQueue:
         """
         Query Globus and update the status of transfer tasks.  This should be called periodically (e.g. every 10s).
         """
-        active_transfers = self._active_transfers()
-
-        globus_active_transfers = self.globus.task_list(
-            100, status="ACTIVE", type="TRANSFER"
-        )
+        globus_transfers = self._active_transfers()
         for transfer_task in globus_active_transfers:
             task_id = transfer_task["task_id"]
             globus_status = transfer_task["status"]
@@ -166,11 +165,11 @@ class XferQueue:
                     xfer.status = globus_status
                     xfer.updated = utcnow()
 
-    def _active_transfers(self):
+    def _globus_transfers(self):
         """
-        Query db for all active transfers.
+        Query db for all unfinished transfers which have been submitted to Globus.
 
-        :return: Active transfers, where { globus_transfer_task_id : xfer model }
+        :return: Globus transfer tasks, where { globus_transfer_task_id : xfer model }
         :rtype: dict
         """
         return self.session.query(Xfer).filter(Xfer.status == "transferring").all()
