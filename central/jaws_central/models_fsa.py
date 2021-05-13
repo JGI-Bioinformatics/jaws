@@ -1,6 +1,6 @@
 """Flask-SQLAlchemy db and models, used by Connexion/Flask servers."""
 
-from  import utcnow
+from datetime.datetime import utcnow
 from flask_sqlalchemy import SQLAlchemy
 
 
@@ -87,27 +87,3 @@ class Run_Log(db.Model):
 
     def __repr__(self):
         return f"<Run_Log {self.run_id}:{self.status_from}:{self.status_to}>"
-
-
-class Xfer(db.Model):
-    """Transfer tasks used by XferQueue class"""
-
-    ___tablename__ = "xfers"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
-    label = db.Column(db.String(32), nullable=True)
-    src_endpoint = db.Column(db.String(36), nullable=False)
-    dest_endpoint = db.Column(db.String(36), nullable=False)
-    manifest = db.Column(db.Text, nullable=False)
-    size_gb = db.Column(db.Float, nullable=False)
-    priority_a = db.Column(db.Integer, nullable=False, default=1)
-    priority_b = db.Column(db.Integer, nullable=False, default=1)
-    status = db.column(db.String(16), nullable=False, default="created")
-    submitted = db.column(db.DateTime, nullable=False, default=utcnow)
-    updated = db.column(db.DateTime, nullable=False, default=utcnow)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def __repr__(self):
-        return f"<Xfer {self.id}>"

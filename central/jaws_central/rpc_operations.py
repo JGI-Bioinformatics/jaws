@@ -127,6 +127,7 @@ operations = {
             "manifest",
             "label",
             "user",
+            "size_gb",
         ],
     },
 }
