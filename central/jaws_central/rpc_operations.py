@@ -82,8 +82,8 @@ def update_run_logs(params, session):
 def transfer_status(params, session):
     """Query XferQueue for status of a transfer"""
     try:
-        xfer = XferQueue(session)
-        status = xfer.transfer_status(params["xfer_id"])
+        xq = XferQueue(session)
+        status = xq.transfer_status(params["xfer_id"])
     except Exception as error:
         return failure(error)
     else:
@@ -93,10 +93,9 @@ def transfer_status(params, session):
 def submit_transfer(params, session):
     """Submit transfer task to XferQueue and return xfer_id"""
     try:
-        xfer = XferQueue(session)
-        xfer_id = xfer.submit_transfer(**params)
+        xq = XferQueue(session)
+        xfer_id = xq.submit_transfer(**params)
     except Exception as error:
-        session.rollback()
         return failure(error)
     else:
         return success(xfer_id)

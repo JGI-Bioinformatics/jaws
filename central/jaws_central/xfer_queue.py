@@ -1,12 +1,18 @@
 import logging
 import jaws_central.config
+from datetime.datetime import utcnow
+from sqlalchemy.exc import SQLAlchemyError
 from jaws_central.globus import GlobusService
 
 
 logger = logging.getLogger(__package__)
 
 
-class XferError(Exception):
+class XferQueueError(Exception):
+    pass
+
+
+class XferNotFoundError(XferQueueError):
     pass
 
 
@@ -25,44 +31,22 @@ class XferQueue:
         self.globus = GlobusService()
         self.max_globus_queue_size = config.conf.get("GLOBUS", "max_queue_size", 10)
 
-    def submit_transfer(
-        self, label, host_paths, src_endpoint, dest_endpoint, manifest_file
-    ):
-        """
-        Queue a transfer to Globus but do not submit.
-
-        :param label: label for the data transfer
-        :param host_paths: a dictionary that includes source host path and compute host path. This is used to modify
-        the paths and create virtual transfer paths.
-        :param src_endpoint: globus source endpoint UUID
-        :param dest_endpoint: destination endpoint UUID
-        :param manifest_file: manifest of all the files to be transferred
-        :return: xfer_id (primary key)
-        :rtype: int
-        """
-        logger.debug(f"Globus xfer {label}")
-        xfer = Xfer(
-            run_id=run_id,
-            status_from=status_from,
-            status_to=status_to,
-            timestamp=timestamp,
-            reason=reason,
-        )
-        return self._insert_xfer(xfer)
-
     def _insert_xfer(self, xfer):
         """
-        Insert a xfer into the RDb and return the primary key.
+        Insert an xfer into the RDb and return the primary key.
         :param xfer: xfer ORM model
         :type xfer: sqlalchemy.model
         """
         try:
             self.session.add(xfer)
             self.session.commit()
-        except Exception as error:
+        except SQLAlchemyError as error:
             self.session.rollback()
-            return None
-        return xfer.id
+            logger.error(error)
+            raise
+        else:
+            self.session.commit()
+            return xfer.id
 
     def _select_xfer(self, xfer_id):
         """
@@ -76,22 +60,64 @@ class XferQueue:
             xfer = self.session.query(Xfer).get(xfer_id)
         except SQLAlchemyError as error:
             logger.error(error)
-            return None
-        return xfer
+            raise
+        if xfer:
+            return xfer
+        else:
+            raise XferNotFoundError(f"Xfer {xfer_id} not found")
+
+    def _update_xfer(self, xfer):
+        """
+        Update an xfer record in the RDb.
+        :param xfer: ORM model for a transfer task
+        :type xfer: sqlalchemy.model
+        """
+        try:
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            logger.error(error)
+            raise
+
+    def submit_transfer(
+        self, user_id, label, host_paths, src_endpoint, dest_endpoint, manifest
+    ):
+        """
+        Queue a transfer to Globus but do not submit.
+
+        :param label: label for the data transfer
+        :param host_paths: a dictionary that includes source host path and compute host path. This is used to modify
+        the paths and create virtual transfer paths.
+        :param src_endpoint: globus source endpoint UUID
+        :param dest_endpoint: destination endpoint UUID
+        :param manifest: list of items to transfer where item is tuple of src, dest, type
+        :type manifest: list
+        :return: xfer_id (primary key)
+        :rtype: int
+        """
+        logger.debug(f"Submit xfer {user_id}:{label}")
+        xfer = Xfer(
+            user_id=user_id,
+            label=label,
+            src_endpoint_id=src_endpoint_id,
+            dest_endpoint_id=dest_endpoint_id,
+            manifest=manifest,
+            created=utcnow(),
+        )
+        return self._insert_xfer(xfer)
 
     def transfer_status(self, xfer_id):
         """
         Get the status a transfer.  It returns the status from the object's db, rather than querying Globus, as
         it is assumed this object is periodically updated via the update method.
 
-        :param xfer_id: XferQueue's PK of the xfer task
+        :param xfer_id: primary key for transfer task
         :type xfer_id: int
+        :return: status
+        :rtype: str
         """
         xfer = self._select_xfer(xfer_id)
-        if xfer:
-            return xfer.status
-        else:
-            return None
+        return xfer.status
 
     def virtual_transfer_path(self, full_path, host_path):
         return self.globus.virtual_transfer_path(full_path, host_path)
@@ -106,12 +132,16 @@ class XferQueue:
         """
         xfer = self._select_xfer(xfer_id)
         if xfer.status in active_states:
-            self._cancel_globus_transfer(xfer)
+            self.globus.cancel_transfer(xfer.transfer_task_id)
+        self._update_xfer_status(xfer, "cancelled")
+        xfer.status = "cancelled"
+        xfer.updated = utcnow()
+        self._update_xfer(xfer)
 
     def update(self):
         """
         Update status of active transfers, determine queue size, and submit the appropriate number of new transfers to Globus.
-        This is called by the jaws_central.daemon periodically (e.g. every 10 sec).
+        This is called by the daemon periodically (e.g. every 10 sec).
         """
         self.update_status()
         delta = self.max_globus_queue_size - self.num_active_transfers()
@@ -164,32 +194,17 @@ class XferQueue:
         xfer.transfer_task_id = self.globus.submit_transfer()
         self.session.commit()
 
-    def _select_highest_priority_xfers(self, num_xfers: int):
+    def _select_highest_priority_xfers(self, limit: int):
         """
-        Return the indicated number of transfer tasks with the highest priority.
-        Intra-site uploads are always processed first (because they are no-op).
-        Otherwise, the queue is FIFO, where the earliest tasks have highest priority.
-        :param num_xfers: Number of transfer tasks to return
-        :type num_xfers: int
+        Return the indicated number of transfer tasks with the highest priority,
+        where the earliest xfers have the highest priority (i.e. FIFO).
+        :param limit: Maximum number of transfer tasks to return
+        :type limit: int
         """
-        xfers = (
+        return (
             self.session.query(Xfer)
-            .filter(Xfer.src_endpoint_id == Xfer.dest_endpoint_id)
             .filter(Xfer.status == "created")
-            .filter(Xfer.type == "upload")
             .order_by(Xfer.submitted)
-            .limit(num_xfers)
+            .limit(limit)
             .all()
         )
-        n = num_xfers - len(xfers)
-        if n > 0:
-            query = (
-                self.session.query(Xfer)
-                .filter(Xfer.src_endpoint_id != Xfer.dest_endpoint_id)
-                .filter(Xfer.status == "created")
-                .order_by(Xfer.submitted)
-                .limit(n)
-                .all()
-            )
-            xfers.extend(query)
-        return xfers

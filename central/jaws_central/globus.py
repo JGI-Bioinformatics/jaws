@@ -114,6 +114,23 @@ class GlobusService:
         transfer_result = transfer_client.submit_transfer(tdata)
         return transfer_result["task_id"]
 
+    def cancel_transfer(self, transfer_task_id: str) -> dict:
+        """Cancel a transfer.
+
+        :param transfer_task_id: Globus' transfer task id
+        :type transfer_task_id: str
+        :return: transfer response
+        :rtype: dict
+        """
+        transfer_client = self._create_transfer_client()
+        try:
+            transfer_response = transfer_client.cancel_task(transfer_task_id)
+        except globus_sdk.GlobusAPIError as error:
+            logger.error(f"Error cancelling Globus transfer, {transfer_task_id}: {error}")
+            raise
+        else:
+            return transfer_response
+
     def task_list(self, num_results: int = 10, **kwargs):
         """
         Query Globus for transfer tasks.
