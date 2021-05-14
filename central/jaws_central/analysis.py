@@ -660,20 +660,14 @@ def _cancel_run(user, run, reason="Cancelled by user"):
         return "cancelled"
 
 
-def _cancel_transfer(transfer_task_id: str) -> None:
-    """Cancel a Globus transfer.
+def _cancel_transfer(xfer_id: int): -> None
+    """Cancel a transfer.
 
-    :param transfer_task_id: Globus transfer task id
-    :type transfer_task_id: str
+    :param xfer_id: Transfer's unique identifier
+    :type xfer_id: int
     """
-    try:
-        transfer_client = authorize_transfer_client()
-        transfer_response = transfer_client.cancel_task(transfer_task_id)
-    except globus_sdk.GlobusAPIError as error:
-        logger.error(f"Error cancelling Globus transfer, {transfer_task_id}: {error}")
-        return f"{error}"
-    else:
-        return transfer_response
+    xq = XferQueue(db.session)
+    xq.cancel_transfer(xfer_id)
 
 
 def cancel_all(user):
@@ -695,26 +689,3 @@ def cancel_all(user):
     for run in active_runs:
         cancelled[run.id] = _cancel_run(user, run)
     return cancelled, 201
-
-
-def authorize_transfer_client():
-    """
-    Create a globus transfer client using client id and client secret for credentials. More information
-    can be found via Globus documentation:
-
-    https://globus-sdk-python.readthedocs.io/en/stable/examples/client_credentials.html?highlight=secret
-
-    :return: globus_sdk.TransferClient
-    """
-    client_id = config.conf.get("GLOBUS", "client_id")
-    client_secret = config.conf.get("GLOBUS", "client_secret")
-    try:
-        client = globus_sdk.ConfidentialAppAuthClient(client_id, client_secret)
-    except globus_sdk.GlobusAPIError as error:
-        raise error
-    scopes = "urn:globus:auth:scope:transfer.api.globus.org:all"
-    try:
-        authorizer = globus_sdk.ClientCredentialsAuthorizer(client, scopes)
-    except globus_sdk.GlobusAPIError as error:
-        raise error
-    return globus_sdk.TransferClient(authorizer=authorizer)
