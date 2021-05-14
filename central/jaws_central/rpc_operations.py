@@ -124,10 +124,8 @@ operations = {
         "required_parameters": [
             "user",
             "label",
-            "src_endpoint",
-            "src_host_path",
-            "dest_endpoint",
-            "dest_host_path",
+            "src_site",
+            "dest_site",
             "manifest",
         ],
     },

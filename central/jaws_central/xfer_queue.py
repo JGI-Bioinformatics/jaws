@@ -188,20 +188,14 @@ class XferQueue:
             raise ValueError(f"Path, {full_path}, is not accessible via Globus endpoint")
         return os.path.join("/", os.path.relpath(full_path, host_path))
 
-    def submit_transfer(
-        self, user_id, label, src_endpoint, src_host_path, dest_endpoint, dest_host_path, manifest
-    ):
+    def submit_transfer(self, user_id, label, src_site, dest_site, manifest):
         """
-        Queue a transfer to Globus but do not submit.
+        Add a transfer to the queue.  Automatically look up sites' globus id and host path.
 
         :param label: label for the data transfer
-        :param host_path: source host path and compute host path. This is used to modify
-        the paths and create virtual transfer paths.
-        :param src_endpoint: globus source endpoint UUID
-        :param src_host_path: host path (basepath) of the endpoint, used to construct virtual paths
-        :param dest_endpoint: destination endpoint UUID
-        :param dest_host_path: host path (basepath) of the endpoint, used to construct virtual paths
-        :param manifest: list of items to transfer where item is tuple of src, dest, type
+        :param src_site_id: name of jaws-site sending data
+        :param dest_site_id: name of jaws-site receiving data
+        :param manifest: list of items (type, path) to transfer
         :type manifest: list
         :return: xfer_id (primary key)
         :rtype: int
@@ -210,12 +204,27 @@ class XferQueue:
         xfer = Xfer(
             user_id=user_id,
             label=label,
-            src_endpoint_id=src_endpoint_id,
-            dest_endpoint_id=dest_endpoint_id,
+            src_site_id=src_site_id,
+            dest_site_id=dest_site_id,
             manifest=manifest_virtual_paths,
             created=utcnow(),
         )
         return self._db_insert_xfer(xfer)
+
+    def _get_site_info(site_id: str, user_id: str = None),:
+        """
+        Get a JAWS-Site's information, which includes Globus parameters required to do a transfer.
+        :param site_id:
+        :type site_id:
+        :return: Site information, includes globus_endpoint_id, globus_host_path
+        :rtype: dict
+        """
+        site_info = config.conf.get_site_info(site_id)
+        if site_info is None:
+            abort(404, {"error": f'Unknown Site ID; "{site_id}" is not one of our sites'})
+        if user_id:
+            site_info["uploads_dir"] = f'{site_info["uploads_dir"]}/{user_id}'
+        return site_info
 
     def transfer_status(self, xfer_id):
         """

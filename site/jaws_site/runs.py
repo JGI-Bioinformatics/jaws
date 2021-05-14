@@ -340,11 +340,11 @@ class Run:
             config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
         )
         data = {
+            "user_id": self.model.user_id,
             "label": f"Download Run {self.model.id}",
             "src_site_id": config.conf.get("SITE", "id"),
             "dest_site_id": self.model.output_site_id,
             "manifest": [[cromwell_workflow_dir, self.model.output_dir]],
-            "user_id": self.model.user_id,
         }
         response = central_rpc_client.request("submit_transfer", data)
         if "error" in response:
