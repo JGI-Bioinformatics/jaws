@@ -26,6 +26,10 @@ example_cromwell_run_id_5 = (
 )
 example_cromwell_run_id_6 = "cbbbc75f-8920-495c-a290-0a1a5f0d1c20"  # failed run
 
+example_cromwell_run_id_7_main = "ed88743a-a87e-4087-b4a9-7706a95bb501"
+example_cromwell_run_id_7_sub_1 = "c03502fe-d727-4cc5-b032-e2fd560dcec5"
+example_cromwell_run_id_7_sub_2 = "62a74b3f-2891-48da-ac49-895a00bcd575"
+
 
 def __load_example_metadata_from_file(cromwell_run_id):
     with open(f"{tests_dir}/{cromwell_run_id}.json", "r") as fh:
@@ -1067,6 +1071,188 @@ def test_errors(requests_mock):
         bool(
             DeepDiff(
                 actual_errors_report_6, expected_errors_report_6, ignore_order=True
+            )
+        )
+        is False
+    )
+
+
+def test_all_errors(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7_main}/metadata",
+        json=__load_example_metadata_from_file(example_cromwell_run_id_7_main),
+    )
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7_sub_1}/metadata",
+        json=__load_example_metadata_from_file(example_cromwell_run_id_7_sub_1),
+    )
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7_sub_2}/metadata",
+        json=__load_example_metadata_from_file(example_cromwell_run_id_7_sub_2),
+    )
+
+    expected_errors_report_7 = {
+        "ed88743a-a87e-4087-b4a9-7706a95bb501": {
+            "calls": {
+                "main.echo1": [
+                    {
+                        "attempt": 1,
+                        "failures": [
+                            {
+                                "causedBy": [
+                                    {
+                                        "causedBy": [],
+                                        "message": "Job sub_workflow.echo:NA:1 exited with return code 127 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details.",  # noqa
+                                    }
+                                ],
+                                "message": "Workflow failed",
+                            }
+                        ],
+                        "shardIndex": -1,
+                    }
+                ],
+                "main.echo2": [
+                    {
+                        "attempt": 1,
+                        "failures": [
+                            {
+                                "causedBy": [
+                                    {
+                                        "causedBy": [],
+                                        "message": "Job sub_workflow.echo:NA:1 exited with return code 127 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details.",  # noqa
+                                    }
+                                ],
+                                "message": "Workflow failed",
+                            }
+                        ],
+                        "shardIndex": -1,
+                    }
+                ],
+            }
+        },
+        "62a74b3f-2891-48da-ac49-895a00bcd575": {
+            "calls": {
+                "sub_workflow.echo": [
+                    {
+                        "attempt": 1,
+                        "callCaching": {
+                            "allowResultReuse": False,
+                            "effectiveCallCachingMode": "ReadAndWriteCache",
+                            "hashes": {
+                                "backend name": "6D3086C75F2DB761A86B2F982F10D384",
+                                "command template": "34F43F5B443A337D5DAC2A2A6EDB2623",
+                                "input": {
+                                    "String outFile": "41C42298DB3FF49DF37316F0774BB586",
+                                    "String text": "21B8E88DE4297DACD77F253F3A971D4D",
+                                },
+                                "input count": "C81E728D9D4C2F636F067F89CC14862C",
+                                "output count": "C4CA4238A0B923820DCC509A6F75849B",
+                                "output expression": {
+                                    "File out": "317FE0D1774A8AB92FA2FF958E6FE576"
+                                },
+                                "runtime attribute": {
+                                    "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
+                                    "docker": "N/A",
+                                    "failOnStderr": "68934A3E9455FA72420237EB05902327",
+                                },
+                            },
+                            "hit": False,
+                            "result": "Cache Miss",
+                        },
+                        "failures": [
+                            {
+                                "causedBy": [],
+                                "message": "Job sub_workflow.echo:NA:1 exited with return code 127 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details.",  # noqa
+                            }
+                        ],
+                        "jobId": "19653",
+                        "runtimeAttributes": {
+                            "account": "fungalp",
+                            "cluster": "cori",
+                            "constraint": "haswell",
+                            "continueOnReturnCode": "0",
+                            "cpu": "32",
+                            "failOnStderr": "false",
+                            "maxRetries": "0",
+                            "memory": "5 GB",
+                            "node": "1",
+                            "nwpn": "1",
+                            "partition": "",
+                            "poolname": "alksub",
+                            "qos": "genepool_special",
+                            "shared": "0",
+                            "time": "0:20:00",
+                        },
+                        "shardIndex": -1
+                    }
+                ]
+            }
+        },
+        "c03502fe-d727-4cc5-b032-e2fd560dcec5": {
+            "calls": {
+                "sub_workflow.echo": [
+                    {
+                        "attempt": 1,
+                        "callCaching": {
+                            "allowResultReuse": False,
+                            "effectiveCallCachingMode": "ReadAndWriteCache",
+                            "hashes": {
+                                "backend name": "6D3086C75F2DB761A86B2F982F10D384",
+                                "command template": "34F43F5B443A337D5DAC2A2A6EDB2623",
+                                "input": {
+                                    "String outFile": "8A1A4212C8B83258F2022000CAF70749",
+                                    "String text": "2CA1401729167302D0297F9000405B26",
+                                },
+                                "input count": "C81E728D9D4C2F636F067F89CC14862C",
+                                "output count": "C4CA4238A0B923820DCC509A6F75849B",
+                                "output expression": {
+                                    "File out": "317FE0D1774A8AB92FA2FF958E6FE576"
+                                },
+                                "runtime attribute": {
+                                    "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
+                                    "docker": "N/A",
+                                    "failOnStderr": "68934A3E9455FA72420237EB05902327",
+                                },
+                            },
+                            "hit": False,
+                            "result": "Cache Miss",
+                        },
+                        "failures": [
+                            {
+                                "causedBy": [],
+                                "message": "Job sub_workflow.echo:NA:1 exited with return code 127 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details.",  # noqa
+                            }
+                        ],
+                        "jobId": "19654",
+                        "runtimeAttributes": {
+                            "account": "fungalp",
+                            "cluster": "cori",
+                            "constraint": "haswell",
+                            "continueOnReturnCode": "0",
+                            "cpu": "32",
+                            "failOnStderr": "false",
+                            "maxRetries": "0",
+                            "memory": "5 GB",
+                            "node": "1",
+                            "nwpn": "1",
+                            "partition": "",
+                            "poolname": "alksub",
+                            "qos": "genepool_special",
+                            "shared": "0",
+                            "time": "0:20:00",
+                        },
+                        "shardIndex": -1
+                    }
+                ]
+            }
+        },
+    }
+
+    actual_errors_report_7 = crom.get_all_errors(example_cromwell_run_id_7_main)
+    assert (
+        bool(
+            DeepDiff(
+                actual_errors_report_7, expected_errors_report_7, ignore_order=True
             )
         )
         is False
