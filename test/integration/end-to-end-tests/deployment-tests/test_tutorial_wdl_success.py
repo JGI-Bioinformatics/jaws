@@ -19,7 +19,7 @@ class TestRunSuccess:
             run_id, env, TestRunSuccess.check_tries, TestRunSuccess.check_sleep
         )
 
-        cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s"  % (env, run_id)
+        cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
 
         (rc, stdout, stderr) = util.run(cmd)
         print("status cmd:", cmd)
