@@ -300,7 +300,7 @@ def submit_run(user):
         )
     logger.info(f"User {user}: New run submission {submission_id} to {site_id}")
 
-    # INSERT INTO RDB TO GET RUN ID
+    # insert into RDb to get a Run ID
     run = Run(
         user_id=user,
         submission_id=submission_id,
@@ -326,19 +326,20 @@ def submit_run(user):
         abort(500, {"error": err_msg})
     logger.debug(f"User {user}: New run {run.id}")
 
-    # SUBMIT TRANSFER
+    # The destination paths are determined, then
+    # submit transfer to XferQueue to get an upload_id
     manifest = []
     manifest_file = request.files["manifest"]
     with open(manifest_file, "r") as fh:
         for line in fh:
             line = line.decode("UTF-8").strip()
-            source_path, dest_path, inode_type = line.split("\t")
+            inode_type, src_path = line.split("\t")
+            dest_path = _set_dest_path(user, src_site_id, src_path, dest_site_id)  # TODO or move this to XferQueue
             manifest.append([source_path, dest_path, inode_type])
-
     try:
         upload_id = xq.submit_transfer(
             user=user,
-            label=f"Upload run {run.id}",
+            label=f"Upload Run {run.id}",
             src_site_id=input_site_id,
             dest_site_id=compute_site_id,
             manifest=manifest,

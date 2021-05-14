@@ -218,6 +218,14 @@ class Run:
                 files.append(None)
         return files
 
+    def generate_valid_inputs_json(self):
+        """
+        The provided inputs-json file has paths that are valid at the input-site.
+        The paths need to be translated to valid paths at this jaws-site and
+        written to a file for Cromwell.
+        """
+        # TODO
+
     def submit_run(self) -> None:
         """
         Submit a run to Cromwell.
