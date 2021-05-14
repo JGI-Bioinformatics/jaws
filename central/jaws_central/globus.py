@@ -66,7 +66,7 @@ class GlobusService:
             raise ValueError(f"Path, {full_path}, is not accessible via Globus endpoint")
         return os.path.join("/", os.path.relpath(full_path, host_path))
 
-    def submit_transfer(self, label, host_paths, src_endpoint, dest_endpoint, manifest_file):
+    def submit_transfer(self, label, src_endpoint, src_host_path, dest_endpoint, dest_host_path, manifest):
         """
         Submit a transfer to Globus
 
@@ -75,16 +75,12 @@ class GlobusService:
         the paths and create virtual transfer paths.
         :param src_endpoint: globus source endpoint UUID
         :param dest_endpoint: destination endpoint UUID
-        :param manifest_file: manifest of all the files to be transferred
+        :param manifest: all the files to be transferred (src, dest, type)
+        :type manifest: list
         :return:
         """
         logger.debug(f"Globus xfer {label}")
-
-        src_host_path = host_paths["src"]
-        dest_host_path = host_paths["dest"]
-
         transfer_client = self._create_transfer_client()
-
         tdata = globus_sdk.TransferData(
             transfer_client,
             src_endpoint,
@@ -98,19 +94,15 @@ class GlobusService:
             notify_on_inactive=True,
             skip_activation_check=False,
         )
-
-        for line in manifest_file:
-            line = line.decode("UTF-8")
-            source_path, dest_path, inode_type = line.split("\t")
-            logger.debug(f"add transfer: {source_path} -> {dest_path}")
-            virtual_src_path = self.virtual_transfer_path(source_path, src_host_path)
+        for row in manifest:
+            src_path, dest_path, inode_type = row
+            logger.debug(f"add transfer: {src_path} -> {dest_path}")
+            virtual_src_path = self.virtual_transfer_path(src_path, src_host_path)
             virtual_dest_path = self.virtual_transfer_path(dest_path, dest_host_path)
-
             if inode_type == "D":
                 tdata.add_item(virtual_src_path, virtual_dest_path, recursive=True)
             else:
                 tdata.add_item(virtual_src_path, virtual_dest_path, recursive=False)
-
         transfer_result = transfer_client.submit_transfer(tdata)
         return transfer_result["task_id"]
 

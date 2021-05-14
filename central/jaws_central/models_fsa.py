@@ -45,24 +45,21 @@ class Run(db.Model):
 
     __tablename__ = "runs"
     id = db.Column(db.Integer, primary_key=True)
-    submission_id = db.Column(db.String(36), nullable=False)
-    cromwell_run_id = db.Column(db.String(36), nullable=True)
-    result = db.Column(db.String(32), nullable=True)
-    status = db.Column(db.String(32), nullable=False)
     user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
-    site_id = db.Column(db.String(8), nullable=False)
+    submission_id = db.Column(db.String(36), nullable=False)
+    input_site_id = db.Column(db.String(8), nullable=False)
+    compute_site_id = db.Column(db.String(8), nullable=False)
+    wdl_file = db.Column(db.String(256), nullable=False)
+    json_file = db.Column(db.String(256), nullable=False)
+    tag = db.Column(db.String(256), nullable=True)
+    status = db.Column(db.String(32), nullable=False)
     submitted = db.Column(db.DateTime, nullable=False, default=utcnow)
     updated = db.Column(
         db.DateTime, default=same_as("submitted"), onupdate=utcnow,
     )
-    input_site_id = db.Column(db.String(8), nullable=False)
-    input_endpoint = db.Column(db.String(36), nullable=False)
+    cromwell_run_id = db.Column(db.String(36), nullable=True)
+    result = db.Column(db.String(32), nullable=True)
     upload_id = db.Column(db.Integer, nullable=True)
-    output_endpoint = db.Column(db.String(36), nullable=False)
-    output_dir = db.Column(db.String(256), nullable=False)
-    wdl_file = db.Column(db.String(256), nullable=False)
-    json_file = db.Column(db.String(256), nullable=False)
-    tag = db.Column(db.String(256), nullable=True)
     download_id = db.Column(db.Integer, nullable=True)
 
     def __init__(self, *args, **kwargs):

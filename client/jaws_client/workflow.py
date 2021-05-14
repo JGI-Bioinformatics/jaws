@@ -427,9 +427,9 @@ class WorkflowInputs:
             self.src_file_inputs.add(element)
         return element
 
-    def move_input_files(self, destination):
+    def copy_input_files(self, destination):
         """
-        Moves the input files defined in a JSON file to a destination.
+        Copies the input files defined in a JSON file to a destination.
 
         It will make any directories that are needed in the staging path and then copy the files.
 
@@ -523,26 +523,23 @@ class Manifest:
     It is a TSV (tab-separate value) file.
     """
 
-    def __init__(self, staging_dir, dest_dir):
+    def __init__(self, staging_dir):
         self.staging_dir = staging_dir
-        self.dest_dir = dest_dir
         self.manifest = []
 
     def add(self, *args):
         """
-        Adds the specified filepath to the manifest TSV. It will include the source path, the destination path
-        and its inode type (file or directory).
+        Adds the specified path to the file transfer manifest list.
+        The path will be checked to determine it's inode type (file or directory).
 
         :param filepath: path of the file to add to TSV
         :return:
         """
         for filepath in args:
-            if filepath is None:
-                continue  # zip file may be none
-            inode_type = "D" if os.path.isdir(filepath) else "F"
-            src_rel_path = os.path.relpath(filepath, self.staging_dir)
-            dest_rel_path = f"{self.dest_dir}/{src_rel_path}"
-            self.manifest.append([filepath, dest_rel_path, inode_type])
+            # check because zip file may be None
+            if filepath:
+                inode_type = "dir" if os.path.isdir(filepath) else "file"
+                self.manifest.append([inode_type, filepath])
 
     def write_to(self, write_location):
         """
@@ -551,11 +548,9 @@ class Manifest:
         :param write_location: a file path
         :return:
         """
-        logger = logging.getLogger(__package__)
-        logger.debug(f"Writing manifest file: {write_location}")
         with open(write_location, "w") as f:
-            for src, dest, inode_type in self.manifest:
-                f.write(f"{src}\t{dest}\t{inode_type}\n")
+            for inode_type, filepath in self.manifest:
+                f.write(f"{inode_type}\t{filepath}\n")
 
 
 class WorkflowError(Exception):

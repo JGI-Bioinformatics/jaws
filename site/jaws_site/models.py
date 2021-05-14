@@ -22,11 +22,9 @@ class Run(Base):
     user_id = Column(String(32), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    output_site_id = Column(String(8), nullable=False)
     upload_id = Column(Integer, nullable=False)
-    output_endpoint = Column(String(36), nullable=False)
-    output_dir = Column(String(256), nullable=False)
     download_id = Column(Integer, nullable=True)
-    email = Column(String(64), nullable=False)
 
 
 class Run_Log(Base):

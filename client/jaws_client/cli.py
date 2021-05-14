@@ -322,6 +322,30 @@ def list_sites() -> None:
     _list_sites()
 
 
+def get_uid() -> str:
+    """
+    Retrieve the current user's JAWS UID (using user's token in their ~/jaws.conf file).
+    """
+    # the users' jaws uid may not match the linux uid where the client is installed
+    url = f'{config.get("JAWS", "url")}/user'
+    result = _request("GET", url)
+    return result["uid"]
+
+
+def get_site_max_avail_ram(site_id: str) -> int:
+    """
+    Query JAWS-Central to determine how much RAM the specified JAWS-Site has available.
+    :param site_id: JAWS-Site's ID
+    :type site_id: str
+    :return: maximum requestable RAM in gigabytes
+    :rtype: int
+    """
+    site_id = site_id.upper()
+    url = f'{config.get("JAWS", "url")}/site/{site_id}'
+    result = _request("GET", url)
+    return int(result["max_ram_gb"])
+
+
 @main.command()
 @click.argument("wdl_file", nargs=1)
 @click.argument("json_file", nargs=1)
@@ -333,39 +357,30 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     Available sites can be found by running 'jaws run list-sites'.
     """
     from jaws_client import workflow
-    from jaws_client.workflow import WdlError
+    from jaws_client.workflow import Manifest, WdlError
 
     wdl_file = os.path.abspath(wdl_file)
     json_file = os.path.abspath(json_file)
-
-    # the users' jaws id may not match the linux uid where the client is installed
-    url = f'{config.get("JAWS", "url")}/user'
-    result = _request("GET", url)
-    uid = result["uid"]
-
-    staging_subdir = config.get("JAWS", "staging_dir")
-    staging_user_subdir = os.path.join(staging_subdir, uid)
-    globus_host_path = config.get("GLOBUS", "host_path")
-    output_directory = config.get("JAWS", "data_repo_basedir")
-    input_site_id = config.get("JAWS", "site_id")
-    local_staging_endpoint = workflow.join_path(globus_host_path, staging_user_subdir)
-
-    # GET SITE INFO
     compute_site_id = site.upper()
-    url = f'{config.get("JAWS", "url")}/site/{compute_site_id}'
-    result = _request("GET", url)
-    compute_basedir = result["globus_host_path"]
-    compute_uploads_subdir = result["uploads_dir"]
-    compute_max_ram_gb = int(result["max_ram_gb"])
+    input_site_id = config.get("JAWS", "site_id")
+    uid = get_uid()
 
-    # VALIDATE WORKFLOW WDLs
+    # each user has their own submission dir, named after their jaws uid
+    staging_dir = config.get("JAWS", "staging_dir")
+    submission_dir = os.path.join(staging_dir, uid)
+
+    # we need a unique ID to name files because we don't have a Run ID yet
     submission_id = str(uuid.uuid4())
+
+    # validate WDL, determine max RAM it requires, and
+    # check if specified compute site has enough RAM available
     try:
         wdl = workflow.WdlFile(wdl_file, submission_id)
         wdl.validate()
         max_ram_gb = wdl.max_ram_gb
     except WdlError as error:
         sys.exit(error)
+    compute_max_ram_gb = get_site_max_avail_ram(compute_site_id)
     if max_ram_gb > compute_max_ram_gb:
         sys.exit(
             f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
@@ -373,7 +388,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
 
     # any and all subworkflow WDL files must be supplied to Cromwell in a single ZIP archive
     try:
-        staged_wdl, zip_file = wdl.compress_wdls(local_staging_endpoint)
+        staged_wdl, staged_zip = wdl.compress_wdls(submission_dir)
     except IOError as error:
         sys.exit(f"Unable to copy WDLs to inputs dir: {error}")
 
@@ -383,23 +398,23 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     except json.JSONDecodeError as error:
         sys.exit(f"Your file, {json_file}, is not a valid JSON file: {error}")
 
-    staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
-    site_subdir = workflow.join_path(local_staging_endpoint, input_site_id)
-    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
-    jaws_site_staging_site_subdir = workflow.join_path(
-        jaws_site_staging_dir, input_site_id
-    )
+    # input files are copied to a staging dir named after the input site,
+    # so as to avoid path collisions at the compute site
+    staged_infiles_dir = workflow.join_path(submission_dir, input_site_id)
 
-    # copy infiles in inputs json to site's inputs dir so they may be read by jaws user and
-    # transferred to the compute site via globus
-    moved_files = inputs_json.move_input_files(site_subdir)
+    # Copy infiles (specified in inputs-json) to the submission dir and ensure they may be read by "jaws" user.
+    staged_infiles = inputs_json.copy_input_files(staged_infiles_dir)
 
-    # the paths in the inputs json file are changed to their paths at the compute site
-    modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
+    # The paths in the inputs json file are changed to point to the staged copies of the infiles.
+    # This modified version of the inputs-json file is valid at the input jaws-site; if the
+    # computation is to be done at another site, jaws-central will translate the paths and generate a
+    # new inputs-json before transferring the files via Globus.
+    staged_json = workflow.join_path(submission_dir, f"{submission_id}.json")
+    modified_json = inputs_json.prepend_paths_to_json(staged_infiles_dir)
     modified_json.write_to(staged_json)
 
-    # the original inputs json file is kept with the run submission for record-keeping only
-    orig_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.orig.json")
+    # the original inputs json file is kept with the run submission for user convenience only
+    orig_json = workflow.join_path(submission_dir, f"{submission_id}.orig.json")
     try:
         shutil.copy(json_file, orig_json)
     except IOError as error:
@@ -413,28 +428,23 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     options_json_file = None
     if no_cache is True:
         options_json_file = workflow.join_path(
-            local_staging_endpoint, f"{submission_id}.options.json"
+            submission_dir, f"{submission_id}.options.json"
         )
         with open(options_json_file, "w") as fh:
             fh.write('{"read_from_cache": false, "write_to_cache": false}')
 
-    # write the file transfer manifest; jaws-central shall submit the transfer to globus
-    manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
-    manifest_file.add(staged_wdl, zip_file, staged_json, orig_json, *moved_files)
-    if options_json_file:
-        manifest_file.add(options_json_file)
-    staged_manifest = workflow.join_path(staging_user_subdir, f"{submission_id}.tsv")
-    manifest_file.write_to(staged_manifest)
+    # write the file transfer manifest, a list of all files to xfer to the compute-site;
+    # jaws-central's XferQueue shall determine the destination path and submit the transfer to Globus
+    transfer_manifest = Manifest(submission_dir)
+    transfer_manifest.add(staged_wdl, staged_zip, staged_json, orig_json, options_json_file, *staged_infiles)
+    staged_manifest = workflow.join_path(submission_dir, f"{submission_id}.tsv")
+    transfer_manifest.write_to(staged_manifest)
 
-    # SUBMIT RUN TO CENTRAL
-    local_endpoint_id = config.get("GLOBUS", "endpoint_id")
+    # the wdl_file, json_file, and tag aren't used by JAWS; they are only included for users' convenience
     data = {
-        "site_id": compute_site_id,
         "submission_id": submission_id,
         "input_site_id": input_site_id,
-        "input_endpoint": local_endpoint_id,
-        "output_endpoint": local_endpoint_id,  # return to original submission site
-        "output_dir": output_directory,  # jaws-writable dir to initially receive results
+        "compute_site_id": compute_site_id,
         "wdl_file": wdl_file,
         "json_file": json_file,
         "tag": tag,
@@ -443,8 +453,9 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
     url = f'{config.get("JAWS", "url")}/run'
     logger.debug(f"Submitting run: {data}")
     result = _request("POST", url, data, files)
+
+    # include the max_ram_db in the result, for user convience
     result["max_ram_gb"] = max_ram_gb
-    del result["output_dir"]
     _print_json(result)
 
 

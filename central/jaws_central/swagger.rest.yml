@@ -159,7 +159,7 @@ paths:
       summary: Begin run run process
       description: Returns site information to send infiles.
       parameters:
-        - name: site_id
+        - name: compute_site_id
           description: computing site to use
           type: string
           in: formData
@@ -171,21 +171,6 @@ paths:
           required: True
         - name: input_site_id
           description: ID of the Site where the input data is stored
-          type: string
-          in: formData
-          required: True
-        - name: input_endpoint
-          description: Globus endpoint ID where the input data is stored
-          type: string
-          in: formData
-          required: True
-        - name: output_endpoint
-          description: Globus endpoint ID where to send results
-          type: string
-          in: formData
-          required: True
-        - name: output_dir
-          description: Folder to write results
           type: string
           in: formData
           required: True

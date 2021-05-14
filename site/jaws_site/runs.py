@@ -306,7 +306,7 @@ class Run:
 
     def transfer_results(self) -> None:
         """
-        Send run output via Globus
+        Send run output via JAWS XferQueue (which uses Globus)
         """
         logger.debug(f"Run {self.model.id}: Download output")
         try:
@@ -333,10 +333,10 @@ class Run:
         )
         data = {
             "label": f"Download Run {self.model.id}",
-            "src_endpoint": config.conf.get("GLOBUS", "endpoint_id"),
-            "dest_endpoint": self.model.output_endpoint,
+            "src_site_id": config.conf.get("SITE", "id"),
+            "dest_site_id": self.model.output_site_id,
             "manifest": [[cromwell_workflow_dir, self.model.output_dir]],
-            "user": self.model.user_id,
+            "user_id": self.model.user_id,
         }
         response = central_rpc_client.request("submit_transfer", data)
         if "error" in response:

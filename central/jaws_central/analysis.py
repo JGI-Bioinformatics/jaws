@@ -282,17 +282,14 @@ def submit_run(user):
     :return: run_id, upload_id
     :rtype: dict
     """
-    site_id = request.form.get("site_id", None).upper()
     submission_id = request.form.get("submission_id")
     input_site_id = request.form.get("input_site_id", None).upper()
-    input_endpoint = request.form.get("input_endpoint", None)
-    output_endpoint = request.form.get("output_endpoint")
-    output_dir = request.form.get("output_dir")
+    compute_site_id = request.form.get("compute_site_id", None).upper()
     wdl_file = request.form.get("wdl_file")
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
-    compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
 
+    compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
     if compute_endpoint is None:
         logger.error(
             f"Received run submission from {user} with invalid computing site ID: {site_id}"
@@ -306,12 +303,9 @@ def submit_run(user):
     # INSERT INTO RDB TO GET RUN ID
     run = Run(
         user_id=user,
-        site_id=site_id,
         submission_id=submission_id,
         input_site_id=input_site_id,
-        input_endpoint=input_endpoint,
-        output_endpoint=output_endpoint,
-        output_dir=output_dir,
+        compute_site_id=compute_site_id,
         wdl_file=wdl_file,
         json_file=json_file,
         tag=tag,
@@ -332,36 +326,6 @@ def submit_run(user):
         abort(500, {"error": err_msg})
     logger.debug(f"User {user}: New run {run.id}")
 
-    # Output directory is a subdirectory that includes the user id, site id and run id.
-    # These are all placed in a common location with setgid sticky bits so that all
-    # submitting users have access.
-    output_dir += f"/{user}/{site_id}/{run.id}"
-    src_host_path = config.conf.get_site(input_site_id, "globus_host_path")
-
-    # We modify the output dir path since we know the endpoint of the returning source site. From here
-    # a compute site can simply query the output directory and send.
-    xq = XferQueue(db.session)
-    virtual_output_path = xq.virtual_transfer_path(output_dir, src_host_path)
-
-    # Due to how the current database schema is setup, we have to update the output
-    # directory from the model object itself immediately after insert.
-    # TODO: Think of a better way to do this
-    try:
-        run.output_dir = virtual_output_path
-    except Exception as error:
-        db.session.rollback()
-        err_msg = f"Unable to update output_dir in db: {error}"
-        logger.exception(err_msg)
-        abort(500, {"error": err_msg})
-    try:
-        db.session.commit()
-    except Exception as error:
-        db.session.rollback()
-        err_msg = f"Unable to update output_dir in db: {error}"
-        logger.exception(err_msg)
-        abort(500, {"error": err_msg})
-    logger.debug(f"Updating output dir for run_id={run.id}")
-
     # SUBMIT TRANSFER
     manifest = []
     manifest_file = request.files["manifest"]
@@ -370,16 +334,13 @@ def submit_run(user):
             line = line.decode("UTF-8").strip()
             source_path, dest_path, inode_type = line.split("\t")
             manifest.append([source_path, dest_path, inode_type])
-    dest_host_path = config.conf.get_site(site_id, "globus_host_path")
 
     try:
         upload_id = xq.submit_transfer(
             user=user,
             label=f"Upload run {run.id}",
-            src_host_path=src_host_path,
-            dest_host_path=dest_host_path,
-            src_endpoint=input_endpoint,
-            dest_endpoint=compute_endpoint,
+            src_site_id=input_site_id,
+            dest_site_id=compute_site_id,
             manifest=manifest,
         )
     except XferQueueError as error:
@@ -414,22 +375,14 @@ def submit_run(user):
         err_msg = f"Error inserting run log for Run {run.id}: {error}"
         logger.exception(err_msg)
 
-    # GET CURRENT USER INFO
-    try:
-        current_user = db.session.query(User).get(user)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, {"error": f"Db error; {e}"})
-
-    # SEND TO SITE
+    # SEND TO SITE.  Currently there is no option to specify a different output site,
+    # so the results are always sent back to the input site.
     params = {
         "run_id": run.id,
         "user_id": user,
-        "email": current_user.email,
         "submission_id": submission_id,
         "upload_id": upload_id,
-        "output_endpoint": output_endpoint,
-        "output_dir": output_dir,
+        "output_site_id": input_site_id,
     }
     a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
     logger.debug(f"User {user}: submit run: {params}")
@@ -450,8 +403,7 @@ def submit_run(user):
     result = {
         "run_id": run.id,
         "status": run.status,
-        "site_id": site_id,
-        "output_dir": output_dir,
+        "compute_site_id": compute_site_id,
         "tag": tag,
     }
     logger.info(f"User {user}: New run: {result}")

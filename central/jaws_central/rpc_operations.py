@@ -122,12 +122,13 @@ operations = {
     "submit_transfer": {
         "function": submit_transfer,
         "required_parameters": [
-            "src_endpoint",
-            "dest_endpoint",
-            "manifest",
-            "label",
             "user",
-            "size_gb",
+            "label",
+            "src_endpoint",
+            "src_host_path",
+            "dest_endpoint",
+            "dest_host_path",
+            "manifest",
         ],
     },
 }

@@ -50,24 +50,21 @@ class Run(Base):
 
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)
-    submission_id = Column(String(36), nullable=False)
-    cromwell_run_id = Column(String(36), nullable=True)
-    result = Column(String(32), nullable=True)
-    status = Column(String(32), nullable=False)
     user_id = Column(String(32), ForeignKey("users.id"), nullable=False)
-    site_id = Column(String(8), nullable=False)
+    submission_id = Column(String(36), nullable=False)
+    input_site_id = Column(String(8), nullable=False)
+    compute_site_id = Column(String(8), nullable=False)
+    wdl_file = Column(String(256), nullable=False)
+    json_file = Column(String(256), nullable=False)
+    tag = Column(String(256), nullable=True)
+    status = Column(String(32), nullable=False)
     submitted = Column(DateTime, nullable=False, default=utcnow)
     updated = Column(
         DateTime, default=same_as("submitted"), onupdate=utcnow,
     )
-    input_site_id = Column(String(8), nullable=False)
-    input_endpoint = Column(String(36), nullable=False)
+    cromwell_run_id = Column(String(36), nullable=True)
+    result = Column(String(32), nullable=True)
     upload_id = Column(Integer, nullable=True)
-    output_endpoint = Column(String(36), nullable=False)
-    output_dir = Column(String(256), nullable=False)
-    wdl_file = Column(String(256), nullable=False)
-    json_file = Column(String(256), nullable=False)
-    tag = Column(String(256), nullable=True)
     download_id = Column(Integer, nullable=True)
 
     def __init__(self, *args, **kwargs):
