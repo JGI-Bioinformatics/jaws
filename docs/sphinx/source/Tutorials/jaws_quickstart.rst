@@ -36,12 +36,9 @@ Begin Setup
 .. note::
     Before you can complete the JAWS setup, you need to get a **JAWS token** from JAWS admin jaws-support@lbl.gov 
 
-*********************************
-Activate JAWS Virtual Environment
-*********************************
-
-To set up JAWS: 
----------------
+***********
+Set up JAWS
+***********
 
 1. Set up the config file that  has the JAWS token in it.
 
@@ -96,9 +93,9 @@ When submitting a JAWS run, you must specify the resource to use (i.e. CORI or J
     cd jaws-tutorial-examples/quickstart
 
     # you should see all the sites available to JAWS
-    jaws run list-sites  
+    jaws list-sites  
 
-    jaws run submit --tag metagenome_alignment align.wdl inputs.json cori  # note that case doesn't matter for sites. CORI and cori both work.
+    jaws submit --tag metagenome_alignment align.wdl inputs.json cori  # note that case doesn't matter for sites. CORI and cori both work.
 
     # you should see something like this
     2020-11-13 17:51:20,444 - INFO - workflow - Validating WDL, /global/cscratch1/sd/jfroula/JAWS/jaws-tutorial-examples/quickstart/align.wdl
@@ -122,33 +119,35 @@ From the output above, we see that the run_id was 1367.
 
     # make sure you remember the id of the job submission,
     # if you didn't you can run this to see your run's id
-    jaws run queue
+    jaws queue
     
     # check jaws status
-    jaws run status 1367
+    jaws status 1367
 
     # check status of the tasks (the last command has the most detail)
-    jaws run task-status 1367
-    jaws run task-log 1367
+    jaws task-status 1367
+    jaws task-log 1367
 
 ***************
 Get the results
 ***************
 
-Once the run status has changed to "download complete", you can write the output to a folder of your choice using:
+Once the run status has changed to "download complete", you can write the output to a folder of your choice. This command does not copy the "input" files.
 
 .. code-block:: text
 
     # copy the output of run 1367 to a folder of your choice
-    jaws run get 1367 $SCRATCH/my-test-run
+    jaws get 1367 $SCRATCH/my-test-run
 
-Alternatively, these two commands will display the directory where JAWS has saved the results.
+Alternatively, this command will display the directory where JAWS has saved the results. It represents all the files from Cromwell, including the "input" files.
 
 .. code-block:: text
 
-    jaws run status 1367
+    jaws status --verbose 1367
+
     or
-    jaws run history
+
+    jaws history
 
 
 ******************************
@@ -167,7 +166,7 @@ So for our theoretical submission
 
 .. code-block:: text
 
-    jaws run submit align.wdl inputs.json cori  
+    jaws submit align.wdl inputs.json cori  
 
 We should see an output folder that looks like this:
 
@@ -178,39 +177,28 @@ We should see an output folder that looks like this:
 Further Debugging Ideas
 -----------------------
 
-1) The :bash:`metadata` command will show you the output from the Cromwell server which may have additional debugging information.  Look for "causedBy" message as shown below. This error doesn't tell you much so the next step would be 2) below.
+1) Use the :bash:`errors` command. This should show the contents of the stderr and stdout files created per task from Cromwell. It should only show content when there is an error code >0. 
+Sometimes a script will write errors to stdout which will be caught, but sometimes it will correctly write to stderr but return an error code of 0, in which case this command won't show anything.
 
 .. code-block:: text
 
-    jaws run metadata 80
-
-    "causedBy": [],
-        "message": "Job jgi_dap_leo.assignGenes:4:1 exited with return code 79 which has not been declared as 
-        a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
-    }
-
-2) Use the :bash:`errors` command. This should show the contents of the stderr file, but only when there was an error code >0. 
-Sometimes a script will write to stderr but return an error code of 0, so this command won't show anything.
-
-.. code-block:: text
-
-    jaws run errors 1186
+    jaws errors 1186
 
 
-3) Check the contents of the stderr, stdout files that are created within each task's working directory (saved in your specified output directory). Following the above example, your stderr/stdout files would be in:
+2) If there is no error from the errors command or it is not clear, you can manually check the contents of the stderr, stdout, script and script.submit files that are created within each task's working directory (saved in your specified output directory). Following the above example, these files would be in:
 
 .. code-block:: text
 
     out/call-setup/execution/stderr
 
-It is also useful to examine the file called :bash:`script` since this is exactly what cromwell ran.
+The :bash:`script.submit` file is what cromwell used to run the :bash:`script` file.
 
 
-4) Use the :bash:`task-log` command to show errors that JTM catches, like timeout errors that occur when your task's runtime section didn't request enough time. We are aware of an issue with this command having a long delay, so please be patient until we can re-design the way task-log (and task-status) works.
+3) The :bash:`task-log` command can show errors created by the backend (i.e. JTM), like timeout errors that occur when your task's runtime section didn't request enough time. 
 
 .. code-block:: text
 
-    jaws run task-log 1186
+    jaws task-log 1186
     
     "jgi_dap_leo.assignGenes 1   5132    running failed  2020-10-28 21:11:14 failed with timeout"
 
