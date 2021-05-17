@@ -15,8 +15,7 @@ def _get_cromwell_errors_report(cromwell_run_id):
     :rtype: dict
     """
     cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
-    metadata = cromwell.get_metadata(cromwell_run_id)
-    return metadata.errors()
+    return cromwell.get_all_errors(cromwell_run_id)
 
 
 def get_errors(session, cromwell_run_id):
@@ -28,14 +27,15 @@ def get_errors(session, cromwell_run_id):
     :rtype: dict
     """
     try:
-        errors_report = _get_cromwell_errors_report(cromwell_run_id)
+        full_errors_report = _get_cromwell_errors_report(cromwell_run_id)
     except CromwellException as error:
         logger.error(f"Failed to retrieve Cromwell errors report for {cromwell_run_id}: {error}")
         return {}
-    if errors_report and "calls" in errors_report:
-        for task_name in errors_report["calls"]:
-            for item in errors_report["calls"][task_name]:
-                if "jobId" in item:
-                    cromwell_job_id = item["jobId"]
-                    item["taskLog"] = get_task_log_error_messages(session, cromwell_job_id)
-    return errors_report
+    for a_cromwell_run_id, errors_report in full_errors_report.items():
+        if "calls" in errors_report:
+            for task_name in errors_report["calls"]:
+                for item in errors_report["calls"][task_name]:
+                    if "jobId" in item:
+                        cromwell_job_id = item["jobId"]
+                        item["taskLog"] = get_task_log_error_messages(session, cromwell_job_id)
+    return full_errors_report

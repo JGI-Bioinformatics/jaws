@@ -1,0 +1,171 @@
+{ 
+    "actualWorkflowLanguage": "WDL",
+    "actualWorkflowLanguageVersion": "draft-2",
+    "calls": {
+        "main.echo1": [
+    	{
+    	    "attempt": 1,
+    	    "end": "2021-05-13T22:56:57.691Z",
+    	    "executionEvents": [
+    		{
+    		    "description": "SubWorkflowRunningState",
+    		    "endTime": "2021-05-13T22:56:57.691Z",
+    		    "startTime": "2021-05-13T22:56:29.135Z"
+    		},
+    		{
+    		    "description": "SubWorkflowPendingState",
+    		    "endTime": "2021-05-13T22:56:29.132Z",
+    		    "startTime": "2021-05-13T22:56:29.132Z"
+    		},
+    		{
+    		    "description": "SubWorkflowPreparingState",
+    		    "endTime": "2021-05-13T22:56:29.135Z",
+    		    "startTime": "2021-05-13T22:56:29.132Z"
+    		},
+    		{
+    		    "description": "WaitingForValueStore",
+    		    "endTime": "2021-05-13T22:56:29.132Z",
+    		    "startTime": "2021-05-13T22:56:29.132Z"
+    		}
+    	    ],
+    	    "executionStatus": "Failed",
+    	    "failures": [
+    		{
+    		    "causedBy": [
+    			{
+    			    "causedBy": [],
+    			    "message": "Job sub_workflow.echo:NA:1 exited with return code 127 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
+    			}
+    		    ],
+    		    "message": "Workflow failed"
+    		}
+    	    ],
+    	    "inputs": {
+    		"in": "Charlie",
+    		"out": "out1File"
+    	    },
+    	    "retryableFailure": false,
+    	    "shardIndex": -1,
+    	    "start": "2021-05-13T22:56:29.132Z",
+    	    "subWorkflowId": "62a74b3f-2891-48da-ac49-895a00bcd575"
+    	}
+        ],
+        "main.echo2": [
+    	{
+    	    "attempt": 1,
+    	    "end": "2021-05-13T22:56:55.651Z",
+    	    "executionEvents": [
+    		{
+    		    "description": "SubWorkflowPendingState",
+    		    "endTime": "2021-05-13T22:56:29.132Z",
+    		    "startTime": "2021-05-13T22:56:29.132Z"
+    		},
+    		{
+    		    "description": "WaitingForValueStore",
+    		    "endTime": "2021-05-13T22:56:29.132Z",
+    		    "startTime": "2021-05-13T22:56:29.132Z"
+    		},
+    		{
+    		    "description": "SubWorkflowPreparingState",
+    		    "endTime": "2021-05-13T22:56:29.135Z",
+    		    "startTime": "2021-05-13T22:56:29.132Z"
+    		},
+    		{
+    		    "description": "SubWorkflowRunningState",
+    		    "endTime": "2021-05-13T22:56:55.651Z",
+    		    "startTime": "2021-05-13T22:56:29.135Z"
+    		}
+    	    ],
+    	    "executionStatus": "Failed",
+    	    "failures": [
+    		{
+    		    "causedBy": [
+    			{
+    			    "causedBy": [],
+    			    "message": "Job sub_workflow.echo:NA:1 exited with return code 127 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
+    			}
+    		    ],
+    		    "message": "Workflow failed"
+    		}
+    	    ],
+    	    "inputs": {
+    		"in": "is a wonder dog!",
+    		"out": "out2File"
+    	    },
+    	    "retryableFailure": false,
+    	    "shardIndex": -1,
+    	    "start": "2021-05-13T22:56:29.132Z",
+    	    "subWorkflowId": "c03502fe-d727-4cc5-b032-e2fd560dcec5"
+    	}
+        ]
+    },
+    "end": "2021-05-13T22:57:01.772Z",
+    "failures": [
+        {
+    	"causedBy": [
+    	    {
+    		"causedBy": [
+    		    {
+    			"causedBy": [],
+    			"message": "Job sub_workflow.echo:NA:1 exited with return code 127 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
+    		    }
+    		],
+    		"message": "Workflow failed"
+    	    },
+    	    {
+    		"causedBy": [
+    		    {
+    			"causedBy": [],
+    			"message": "Job sub_workflow.echo:NA:1 exited with return code 127 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
+    		    }
+    		],
+    		"message": "Workflow failed"
+    	    }
+    	],
+    	"message": "Workflow failed"
+        }
+    ],
+    "id": "ed88743a-a87e-4087-b4a9-7706a95bb501",
+    "inputs": {
+        "main.in1": "Charlie",
+        "main.in2": "is a wonder dog!",
+        "main.out1": "out1File",
+        "main.out2": "out2File",
+        "main.out3": "out3File"
+    },
+    "labels": {
+        "cromwell-workflow-id": "cromwell-ed88743a-a87e-4087-b4a9-7706a95bb501"
+    },
+    "metadataSource": "Unarchived",
+    "outputs": {},
+    "start": "2021-05-13T22:56:27.041Z",
+    "status": "Failed",
+    "submission": "2021-05-13T22:56:26.923Z",
+    "submittedFiles": {
+        "imports": {
+    	"sub_echooo.wdl": "task echo {\n    String text\n    String outFile\n    command {\n        echo \"echo task in sub, msg to STDOUT\" \n        1>&2 echo \"echo task in sub, msg to STDERR\"\n        echoooo ${text} > ${outFile}.txt\n    }\n    runtime {\n      poolname: \"alksub\"\n      shared: 0\n      time: \"0:20:00\"\n      memory: \"5G\"\n      node: 1\n      nwpn: 1\n    }\n    output {\n        File out = \"${outFile}.txt\"\n    }\n}\n\nworkflow sub_workflow {\n    String in\n    String out\n    \n    call echo {\n      input: text=in,\n          outFile=out\n    }\n    \n    output{\n      File sub_out=echo.out\n    }\n}\n\n"
+        },
+        "inputs": "{\"main.in1\":\"Charlie\",\"main.in2\":\"is a wonder dog!\",\"main.out1\":\"out1File\",\"main.out2\":\"out2File\",\"main.out3\":\"out3File\"}",
+        "labels": "{}",
+        "options": "{\n\n}",
+        "root": "",
+        "workflow": "import \"sub_echooo.wdl\" as sub\n\nworkflow main {\n    String in1\n    String out1\n    String in2\n    String out2\n    String out3\n    \n    call sub.sub_workflow as echo1 {\n      input: in=in1,\n          out=out1\n    }\n    \n    call sub.sub_workflow as echo2 {\n      input: in=in2,\n          out=out2\n    }\n    \n    call cat {\n        input: file1=echo1.sub_out,\n            file2=echo2.sub_out,\n            outFile=out3\n    }\n}\n\ntask cat {\n    File file1\n    File file2\n    String outFile\n    command {\n      echo  \"cat task msg to STDOUT\"\n      1>&2 echo \"cat task msg to STDERR\"  \n      cat ${file1} ${file2} >> ${outFile}.txt\n    }\n    runtime {\n      poolname: \"alkmain\"\n      shared: 0\n      time: \"0:20:00\"\n      memory: \"5G\"\n      node: 1\n      nwpn: 1\n    }\n    output {\n        File out = \"${outFile}.txt\"\n    }\n}\n\n",
+        "workflowUrl": ""
+    },
+    "workflowName": "main",
+    "workflowProcessingEvents": [
+        {
+    	"cromwellId": "cromid-99dd2b6",
+    	"cromwellVersion": "52",
+    	"description": "Finished",
+    	"timestamp": "2021-05-13T22:57:01.772Z"
+        },
+        {
+    	"cromwellId": "cromid-99dd2b6",
+    	"cromwellVersion": "52",
+    	"description": "PickedUp",
+    	"timestamp": "2021-05-13T22:56:27.040Z"
+        }
+    ],
+    "workflowRoot": "/global/cscratch1/sd/jaws/cromwell-executions/main/ed88743a-a87e-4087-b4a9-7706a95bb501"
+}

@@ -73,11 +73,11 @@ def test_jaws_status(env):
         assert k in actual_keys
 
 
-def test_jaws_run_queue(env,site):
+def test_jaws_run_queue(env,site,dir):
     """tests that the jaws queue command has the correct site in the output when --site is used."""
 
-    wdl = './WDLs/fq_count.wdl'
-    myjson = './test-inputs/fq_count.json'
+    wdl = dir + '/WDLs/fq_count.wdl'
+    myjson = dir + '/test-inputs/fq_count.json'
     cmd = (
         "source ~/jaws-%s.sh > /dev/null && jaws submit --no-cache %s %s %s" 
         % (env, wdl, myjson, site)
@@ -157,7 +157,7 @@ def test_jaws_wdl_errors(env, submit_bad_task):
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
 
-    assert 'bad_cmd_name: command not found' in data['fq_count.count_seqs']['stderr']
+    assert 'bad_cmd_name: command not found' in data['calls']['fq_count.count_seqs'][0]['stderr']
 
 
 def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
@@ -273,7 +273,7 @@ def test_jaws_history_site_filter(env, site, submit_fq_count_wdl):
 
     if data:
         for d in data:
-            assert d["site_id"].lower() == site
+            assert d["site_id"].lower() == site.lower()
     else:
         assert 0, f"no runs were found in the history for site: {site}"
 
