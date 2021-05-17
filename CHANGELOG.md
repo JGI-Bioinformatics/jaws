@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.3.0 (2021-05-17)
+A major release that simplifies the command structure for JAWS.  All the subcommands under `jaws wdl` are eleminated. This means there is no interaction with the jaws catalog. Instead, WDLs are stored in two gitlab repositories; 1) [public WDLs](https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories), maintained by the public; 2) and [sub-WDLs](https://code.jgi.doe.gov/official-jgi-workflows/jgi-wdl-tasks) maintained by JAWS staff.  
+
+Also `jaws run` is simplified to `jaws`.  For example, `jaws run submit` becomes `jaws submit`. See jaws --help
+
+Some minor changes include:
+- `jaws get` which copies Run output now excludes Cromwell inputs and tmp folders
+- `jaws submit` will print a warning, but not fail, if a path-like input is in the inputs.json file but doesn't exist on the filesystem (i.e. if you had /opt/img/data in the inputs.json and it only exists in the docker container).
+- `jaws errors` command now includes a) backend stderr, b) task runtime parameters, c) task-log error messages; stdout was removed
+- `jaws errors` now includes errors from subworkflows
+- `jaws errors` format was changed to multi-level dictionary for improved readability.
+- add `--no-cache` option to `jaws submit` to disable Cromwell result-caching for a Run
+- include user's original WDL and JSON file paths in the Run records (e.g. `jaws status`, `jaws history`)
+- add `--tag` option to `jaws submit` so users may add metadata (e.g. title, external ID, description) to runs; these are included in the Run records (e.g. `jaws status`, `jaws history`)
+- add `--site` filter to `jaws queue` and `jaws history` commands
+- add `--result` filter to `jaws history` command
+- simplified `jaws status`, `jaws queue`, `jaws history` output
+- `jaws task-status` now provides real-time results
+- add `cromwell_run_id` and `cromwell_job_id` columns to `task-status` output so as not to collapse status messages when task-names are not unique (e.g. in scatter or subworkflow)
+- add `jaws cancel-all` command
+- fixed run input validation bug where URLs were mistaken for file paths
+- faster file staging when compute-site is same as submission-site for a run
+- fixed bug where transitioning Run status was delayed when there were many Task Logs to process
+- corrected `jaws cancel` return code (now 0 for success)
+- fix formatting of jaws cli-client help screens
+- improvements to online documentation
+
+
 ## 2.2.0 (2021-04-09)
 Minor release includes Globus client authentication support. Users no longer need to activate an endpoint
 which required users to have an account at a compute site. This now uses a shared endpoint and service account to 
