@@ -113,4 +113,4 @@ Create another file called :bash:`inputs.json` with the inputs and run...
 .. code-block:: text
 
     source activate /global/cfs/projectdirs/jaws/prod/cli/
-    jaws run submit alignment.wdl inputs.json
+    jaws submit alignment.wdl inputs.json
