@@ -99,7 +99,7 @@ def test_jaws_run_queue(env,site,dir):
     ids=[]
     if data:
         for d in data:
-            if d["site_id"].lower() == site:
+            if d["site_id"].lower() == site.lower():
                 result = True
                 ids.append(d["id"])
     else:
@@ -155,6 +155,7 @@ def test_jaws_wdl_errors(env, submit_bad_task):
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws errors %s" % (env, run_id)
     (r, o, e) = util.run(cmd)
+    data = json.loads(o)
 
     assert 'bad_cmd_name: command not found' in o
 
