@@ -85,6 +85,7 @@ def test_jaws_run_queue(env,site,dir):
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
     run_id = data["run_id"]
+    print(f"JOB output {o}\n {e}\n {r}\n")
 
     # jaws queue --site [CORI, JGI, CASCADE]
     cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws queue --site %s" % (env, site)
@@ -97,6 +98,7 @@ def test_jaws_run_queue(env,site,dir):
     result = False
     has_id = False
     ids=[]
+    print(f"Do We have data: {data}")
     if data:
         print(f"We have data: {data}")
         for d in data:
