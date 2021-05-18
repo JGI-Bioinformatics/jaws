@@ -100,7 +100,7 @@ def test_jaws_run_queue(env,site,dir):
     ids=[]
     if data:
         for d in data:
-            print(f"DDDD {d["site_id"].lower()} {site}")
+            print(f"DDDD {d['site_id'].lower()} {site}")
             if d["site_id"].lower() == site:
                 result = True
                 ids.append(d["id"])
