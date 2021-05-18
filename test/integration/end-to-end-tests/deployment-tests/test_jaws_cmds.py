@@ -98,7 +98,7 @@ def test_jaws_run_queue(env,site,dir):
     result = False
     has_id = False
     ids=[]
-    print(f"Do We have data: {data}")
+    print(f"Do We have data: {data[0]['input_site_id'].lower()}")
     if data:
         print(f"We have data: {data}")
         for d in data:
