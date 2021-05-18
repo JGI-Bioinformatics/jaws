@@ -29,9 +29,8 @@ def submit(num_submissions, wdl, inputs, site):
         out_json = json.loads(output)
 
         run_id = str(out_json["run_id"])
-        out_dir = str(out_json["output_dir"])
         run_ids.append(run_id)
-        print(f'Loop: {i}   run_id: {run_id}   site: {site}   output_dir: {out_dir}')
+        print(f'Loop: {i}   run_id: {run_id}   site: {site}')
 
         i += 1
         time.sleep(SUBMIT_SLEEP)
