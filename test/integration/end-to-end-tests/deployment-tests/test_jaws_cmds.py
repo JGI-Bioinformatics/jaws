@@ -155,9 +155,8 @@ def test_jaws_wdl_errors(env, submit_bad_task):
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws errors %s" % (env, run_id)
     (r, o, e) = util.run(cmd)
-    data = json.loads(o)
 
-    assert 'bad_cmd_name: command not found' in data['calls']['fq_count.count_seqs'][0]['stderr']
+    assert 'bad_cmd_name: command not found' in o
 
 
 def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
