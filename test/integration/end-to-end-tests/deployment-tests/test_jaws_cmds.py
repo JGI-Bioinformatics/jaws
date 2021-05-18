@@ -100,15 +100,12 @@ def test_jaws_run_queue(env,site,dir):
     ids=[]
     if data:
         for d in data:
-            print(f"DDDD {d['site_id'].lower()} {site}")
-            if d["site_id"].lower() == site:
+            if d["site_id"].lower() == site.lower():
                 result = True
                 ids.append(d["id"])
-                print(f"SITE: {d['site_id'].lower()}")
     else:
         assert result, f"no runs were found in the queue for site: {site}"
 
-    print(f"IDDS : {ids} has {run_id}")
     if run_id in ids:
         has_id=True
 
@@ -118,7 +115,7 @@ def test_jaws_run_queue(env,site,dir):
     )
     (r, o, e) = util.run(cmd)
     
-    #assert result and has_id
+    assert result and has_id
 
 
 def mtest_jaws_run_history(env, submit_fq_count_wdl):
