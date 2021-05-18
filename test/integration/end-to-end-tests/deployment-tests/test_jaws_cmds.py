@@ -103,10 +103,10 @@ def test_jaws_run_queue(env,site,dir):
         print(f"We have data: {data}")
         for d in data:
             print(f"DDDD {d}")
-            if d["site_id"].lower() == site:
+            if d["input_site_id"].lower() == site:
                 result = True
                 ids.append(d["id"])
-                print(f"SITE: {d['site_id'].lower()}")
+                print(f"SITE: {d['input_site_id'].lower()}")
     else:
         assert result, f"no runs were found in the queue for site: {site}"
 
