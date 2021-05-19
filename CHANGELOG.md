@@ -1,7 +1,7 @@
 # Changelog
 
-## 2.3.0 (2021-05-17)
-A major release that simplifies the command structure for JAWS.  All the subcommands under `jaws wdl` are eleminated. This means there is no interaction with the jaws catalog. Instead, WDLs are stored in two gitlab repositories:  
+## 2.3.0 (2021-05-17) Summary
+This is a major release that simplifies the command structure for JAWS.  All the subcommands under `jaws wdl` are eleminated. This means there is no interaction with the jaws catalog. Instead, WDLs are stored in two gitlab repositories:  
 
 1) [public WDLs](https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories), maintained by the public.  
 2) [sub-WDLs](https://code.jgi.doe.gov/official-jgi-workflows/jgi-wdl-tasks) maintained by JAWS staff.  
@@ -9,7 +9,8 @@ A major release that simplifies the command structure for JAWS.  All the subcomm
 Also `jaws run` is simplified to `jaws`.  For example, `jaws run submit` becomes `jaws submit`. See jaws --help.
 
 Output from JAWS runs are now retrieved by running the `jaws get` command which copies results to your local folder or by running `jaws status --verbose` which will show the path to saved results on the JAWS scratch (you should copy files to your local folder).
-You can turn off caching (jaws submit --no-cache), the jaws errors command is more comprehensive in what it covers, and there are various flags added to the subcommands (see below).
+
+Also, you can turn off caching (jaws submit --no-cache), the jaws errors command is more comprehensive in what it covers, and there are various flags added to the subcommands (see below).
 
 ### Major CLI changes
 - `jaws get` which copies Run output now excludes Cromwell inputs and tmp folders
