@@ -8,6 +8,7 @@ A major release that simplifies the command structure for JAWS.  All the subcomm
 
 Also `jaws run` is simplified to `jaws`.  For example, `jaws run submit` becomes `jaws submit`. See jaws --help.
 
+Output from JAWS runs are now retrieved by running the `jaws get` command which copies results to your local folder or by running `jaws status --verbose` which will show the path to saved results on the JAWS scratch (you should copy files to your local folder).
 You can turn off caching (jaws submit --no-cache), the jaws errors command is more comprehensive in what it covers, and there are various flags added to the subcommands (see below).
 
 ### Major CLI changes
