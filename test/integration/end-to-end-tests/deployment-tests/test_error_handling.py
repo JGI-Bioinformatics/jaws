@@ -14,6 +14,7 @@ Updated: 02/23/21
 """
 
 import json
+import time
 from subprocess import Popen, PIPE
 import submission_utils as util
 
@@ -149,7 +150,7 @@ def test_invalid_docker_a(env, submit_bad_docker):
     assert "failed" in o, "jaws-log should say run failed"
 
 
-def test_invalid_docker_b(env, submit_bad_docker):
+def test_invalid_docker_b(env, site, submit_bad_docker):
     """
     TESTCASE-33
     When user submits a wdl with a reference to a docker container that does not exist in the docker hub then:
@@ -166,10 +167,16 @@ def test_invalid_docker_b(env, submit_bad_docker):
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws errors %s" % (env, id)
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
-    error_msg = data["fq_count.count_seqs"]["task-log"]
-    assert (
-        "FAILED to lookup docker image" in error_msg
-    ), "There should be a message saying docker was not found"
+    if site.lower() == 'cori':
+        assert (
+            "Invalid container name or failed to pull container" in o
+        ), "There should be a message saying docker was not found"
+    elif site.lower() == 'jgi':
+        assert (
+            "Failed to pull" in o
+        ), "There should be a message saying docker was not found"
+    else:
+        assert 0, f"Expected site to be cori or jgi but found {site}"
 
 
 

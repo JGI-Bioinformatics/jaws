@@ -7,7 +7,7 @@ import submission_utils as util
 
 class TestRunSuccess:
     check_tries = 100  # try this many times when waiting for a JAWS run to complete.
-    check_sleep = 30  # wait for this amount of time between tries.
+    check_sleep = 60  # wait for this amount of time between tries.
 
     @staticmethod
     def run_success(env, site, wdl, input_json):
@@ -19,7 +19,7 @@ class TestRunSuccess:
             run_id, env, TestRunSuccess.check_tries, TestRunSuccess.check_sleep
         )
 
-        cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % run_id
+        cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
 
         (rc, stdout, stderr) = util.run(cmd)
         print("status cmd:", cmd)

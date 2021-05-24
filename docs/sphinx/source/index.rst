@@ -50,6 +50,7 @@ Some Definitions
    What is JAWS <Intro/how_jaws>
    JAWS Video Library<Intro/videos>
    FAQ <Intro/faq>
+   Known Issues <Intro/known_issues>
    Contact Us <Intro/contact_us>
 
 .. toctree::
@@ -72,7 +73,6 @@ Some Definitions
    Subworkflows <Tutorials/subworkflows>
    Current JGI Workflows </Specifications/current_workflows>
    Using Reference Data </Specifications/refdata>
-   Known Issues </Specifications/known_issues>
 
 .. toctree::
    :hidden:

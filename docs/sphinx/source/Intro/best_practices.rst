@@ -90,7 +90,7 @@ There are opportunities to participate in code reviews with other WDL developers
     <br><br>
     The WDL should be expected to handle minimal logic.  Use wrapper scripts to deal with logic if need be.
 
-    Also, scripts should return a code of 0 if it was successfull. And don't write anything but errors to stderr. Cromwell depends on seeing a return code of 0 on success and JAWS depends on seeing errors written to stderr. Sometimes, scripts write errors to stdout and these will be missed if you try and see the errors via running the JAWS command (jaws run errors).
+    Also, scripts should return a code of 0 if it was successfull. And don't write anything but errors to stderr. Cromwell depends on seeing a return code of 0 on success and JAWS depends on seeing errors written to stderr. Sometimes, scripts write errors to stdout and these will be missed if you try and see the errors via running the JAWS command (jaws errors).
    </p>
    
    Example

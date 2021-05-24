@@ -1,0 +1,118 @@
+{
+	"calls": {
+		"sub_workflow.echo": [{
+			"attempt": 1,
+			"backend": "JTM",
+			"backendStatus": "Done",
+			"callCaching": {
+				"allowResultReuse": false,
+				"effectiveCallCachingMode": "ReadAndWriteCache",
+				"hashes": {
+					"backend name": "6D3086C75F2DB761A86B2F982F10D384",
+					"command template": "34F43F5B443A337D5DAC2A2A6EDB2623",
+					"input": {
+						"String outFile": "41C42298DB3FF49DF37316F0774BB586",
+						"String text": "21B8E88DE4297DACD77F253F3A971D4D"
+					},
+					"input count": "C81E728D9D4C2F636F067F89CC14862C",
+					"output count": "C4CA4238A0B923820DCC509A6F75849B",
+					"output expression": {
+						"File out": "317FE0D1774A8AB92FA2FF958E6FE576"
+					},
+					"runtime attribute": {
+						"continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
+						"docker": "N/A",
+						"failOnStderr": "68934A3E9455FA72420237EB05902327"
+					}
+				},
+				"hit": false,
+				"result": "Cache Miss"
+			},
+			"callRoot": "/global/cscratch1/sd/jaws/cromwell-executions/main/ed88743a-a87e-4087-b4a9-7706a95bb501/call-echo1/sub.sub_workflow/62a74b3f-2891-48da-ac49-895a00bcd575/call-echo",
+			"commandLine": "echo \"echo task in sub, msg to STDOUT\" \n1>&2 echo \"echo task in sub, msg to STDERR\"\nechoooo Charlie > out1File.txt",
+			"end": "2021-05-13T22:56:56.596Z",
+			"executionEvents": [{
+					"description": "PreparingJob",
+					"endTime": "2021-05-13T22:56:31.588Z",
+					"startTime": "2021-05-13T22:56:31.551Z"
+				},
+				{
+					"description": "UpdatingJobStore",
+					"endTime": "2021-05-13T22:56:56.596Z",
+					"startTime": "2021-05-13T22:56:56.155Z"
+				},
+				{
+					"description": "CallCacheReading",
+					"endTime": "2021-05-13T22:56:31.621Z",
+					"startTime": "2021-05-13T22:56:31.588Z"
+				},
+				{
+					"description": "WaitingForValueStore",
+					"endTime": "2021-05-13T22:56:31.551Z",
+					"startTime": "2021-05-13T22:56:31.551Z"
+				},
+				{
+					"description": "RunningJob",
+					"endTime": "2021-05-13T22:56:56.155Z",
+					"startTime": "2021-05-13T22:56:31.621Z"
+				},
+				{
+					"description": "RequestingExecutionToken",
+					"endTime": "2021-05-13T22:56:31.551Z",
+					"startTime": "2021-05-13T22:56:31.173Z"
+				},
+				{
+					"description": "Pending",
+					"endTime": "2021-05-13T22:56:31.173Z",
+					"startTime": "2021-05-13T22:56:31.173Z"
+				}
+			],
+			"executionStatus": "Failed",
+			"failures": [{
+				"causedBy": [],
+				"message": "Job sub_workflow.echo:NA:1 exited with return code 127 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
+			}],
+			"inputs": {
+				"outFile": "out1File",
+				"text": "Charlie"
+			},
+			"jobId": "19653",
+			"retryableFailure": false,
+			"returnCode": 127,
+			"runtimeAttributes": {
+				"account": "fungalp",
+				"cluster": "cori",
+				"constraint": "haswell",
+				"continueOnReturnCode": "0",
+				"cpu": "32",
+				"failOnStderr": "false",
+				"maxRetries": "0",
+				"memory": "5 GB",
+				"node": "1",
+				"nwpn": "1",
+				"partition": "",
+				"poolname": "alksub",
+				"qos": "genepool_special",
+				"shared": "0",
+				"time": "0:20:00"
+			},
+			"shardIndex": -1,
+			"start": "2021-05-13T22:56:31.173Z",
+			"stderr": "/global/cscratch1/sd/jaws/cromwell-executions/main/ed88743a-a87e-4087-b4a9-7706a95bb501/call-echo1/sub.sub_workflow/62a74b3f-2891-48da-ac49-895a00bcd575/call-echo/execution/stderr",
+			"stdout": "/global/cscratch1/sd/jaws/cromwell-executions/main/ed88743a-a87e-4087-b4a9-7706a95bb501/call-echo1/sub.sub_workflow/62a74b3f-2891-48da-ac49-895a00bcd575/call-echo/execution/stdout"
+		}]
+	},
+	"end": "2021-05-13T22:56:57.691Z",
+	"id": "62a74b3f-2891-48da-ac49-895a00bcd575",
+	"inputs": {
+		"in": "Charlie",
+		"out": "out1File"
+	},
+	"metadataSource": "Unarchived",
+	"parentWorkflowId": "ed88743a-a87e-4087-b4a9-7706a95bb501",
+	"rootWorkflowId": "ed88743a-a87e-4087-b4a9-7706a95bb501",
+	"start": "2021-05-13T22:56:29.132Z",
+	"status": "Failed",
+	"workflowName": "echo1",
+	"workflowRoot": "/global/cscratch1/sd/jaws/cromwell-executions/main/ed88743a-a87e-4087-b4a9-7706a95bb501"
+}
