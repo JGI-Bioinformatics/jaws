@@ -30,9 +30,9 @@ You can create an inputs file by scratch or you can build a template based on th
 
 .. code-block:: text 
 
-   jaws run inputs <path to your.wdl>
+   jaws inputs <path to your.wdl>
 
-This command should output a template for the inputs.json file. You can then fill in the vaules of each key.
+This command should output a template for the inputs.json file. You can then fill in the values of each key.
 
 .. code-block:: text 
 
@@ -42,7 +42,7 @@ This command should output a template for the inputs.json file. You can then fil
    }
 
 .. warning::
-    File paths may be absolute or relative paths, but must start with `./`, `../`, or `/` to be recognized as a path.
+    File paths may be absolute or relative paths, but must start with `./`, `../`, or `/` to be recognized as a path. Globus requires this syntax to ensure the file is copied to the working directory, however, we will changes this so JAWS is in alignment with the practices accepted by openWDL.
 
 To include lists or dictionaries in your input.json files, you would do something like:
 

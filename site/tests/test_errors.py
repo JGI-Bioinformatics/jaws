@@ -6,25 +6,29 @@ def test_get_errors(monkeypatch):
 
     example_cromwell_run_id = "AAAA-BBBB"
     example_cromwell_errors_report = {
-        "calls": {
-            "example_task": [
-                {
-                    "jobId": "300",
-                }
-            ],
+        "AAAA-BBBB": {
+            "calls": {
+                "example_task": [
+                    {
+                        "jobId": "300",
+                    }
+                ],
+            }
         }
     }
     example_task_log_errors = {
         "300": ["Out of time!"],
     }
     expected_errors_report = {
-        "calls": {
-            "example_task": [
-                {
-                    "jobId": "300",
-                    "taskLog": ["Out of time!"],
-                }
-            ],
+        "AAAA-BBBB": {
+            "calls": {
+                "example_task": [
+                    {
+                        "jobId": "300",
+                        "taskLog": ["Out of time!"],
+                    }
+                ],
+            },
         }
     }
 

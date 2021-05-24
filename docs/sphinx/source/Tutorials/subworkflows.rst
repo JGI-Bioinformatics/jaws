@@ -44,5 +44,5 @@ You can try running this example
 
     cd jaws-tutorial-examples/subworkflow
 
-    # run jaws run submit <workflow> <inputs> <site>
-    jaws run submit main.wdl inputs.json cori
+    # run jaws submit <workflow> <inputs> <site>
+    jaws submit main.wdl inputs.json cori

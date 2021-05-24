@@ -99,7 +99,7 @@ def test_jaws_run_queue(env,site,dir):
     ids=[]
     if data:
         for d in data:
-            if d["site_id"].lower() == site:
+            if d["site_id"].lower() == site.lower():
                 result = True
                 ids.append(d["id"])
     else:
@@ -157,7 +157,7 @@ def test_jaws_wdl_errors(env, submit_bad_task):
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
 
-    assert 'bad_cmd_name: command not found' in data['calls']['fq_count.count_seqs'][0]['stderr']
+    assert 'bad_cmd_name: command not found' in o
 
 
 def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
@@ -273,7 +273,7 @@ def test_jaws_history_site_filter(env, site, submit_fq_count_wdl):
 
     if data:
         for d in data:
-            assert d["site_id"].lower() == site
+            assert d["site_id"].lower() == site.lower()
     else:
         assert 0, f"no runs were found in the history for site: {site}"
 

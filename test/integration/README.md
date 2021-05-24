@@ -110,22 +110,35 @@ user workloads: one for JAWS and one for JTM/Cromwell.
 
 ## Common Commands
 
-To see this in action see .gitlab-ci.yml .
+### Summary
+Below we describe how supervisor related services are restarted for JAWS. 
 
-Each instance (dev, staging, prod) will have its own supervisors. You will want to use the
-appropriate executable depending on which instance you want to work with.  
+The step by step instructions are in a [wiki document](https://code.jgi.doe.gov/advanced-analysis/jaws/-/wikis/Re-starting-JAWS-after-Maintenance) that outlines what to do to restart things after a scheduled maintenance of cori or jgi. Essentailly, there are re-start scripts that need to be run on CORI, JGI & Cascade for dev,staging & prod.    
 
-Start the supervisors. Only necessary once, after startup of the machine hosting the services: 
+The scripts can be seen under `jaws/test/integration/start_supervisor_services`
+
+* start_central_services.sh
+* start_jaws_cori_services.sh
+* start_jaws_jgi_services.sh
+* start_jtm_cori_services.sh
+ 
+
+The steps you take after a scheduled maintenance or during a CI/CD deployment are roughly the same. During deployment, the supervisord is run in the .gitlab-ci.yml. You can go there to see these commands in action.
+
+### Background of Restarting Services
+Again, each instance (dev, staging, prod) will have its own supervisors. You will want to use the appropriate executable depending on which instance you want to work with.  
+
+Starting the supervisors is only necessary once, after startup of the machine hosting the services. These are examples only; the paths to the executables can be seen in the re-start scripts listed above, or in the .gitlab-ci.yml.
 
     $ <command> <jaws_user>
-    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisord -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jaws.conf 
+    $ jaws-supervisord-<INSTANCE>/bin/supervisord -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf 
 
     $ logout
 
     $ <command> <jtm_user>
-    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisord -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jtm.conf
+    $ jaws-supervisord-<INSTANCE>/bin/supervisord -c jaws-supervisord-<INSTANCE>/supervisord-jtm.conf
 
-The following users map to the following sites:  
+where the <command> is one of the following... 
 
 CORI:
     - command: collabsu   
@@ -145,23 +158,20 @@ into the user.
 
 Check the status of JAWS services:
 
-    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisorctl -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jaws.conf status
-    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisorctl -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jtm.conf status
+    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf status
+    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jtm.conf status
 
 Start the JAWS services:
 
-    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisorctl -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jaws.conf start
-    $ /tmp/jaws-supervisord-<INSTANCE>/bin/supervisorctl -c /tmp/jaws-supervisord-<INSTANCE>/supervisord-jtm.conf start
+    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf start
+    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jtm.conf start
 
 Note: there exists two supervisord processes, one for jaws and one for jtm,  even if there are not two
 separate jaws and jtm users in use at the deployment site.  
 
-Note: For starting and checking services on `cori`, you will want to first login to
-Cori and then `ssh cori20` since the supervisor files are located in `/tmp` which is
-a local filesystem rather than a shared filesystem like $CSCRATCH and $PROJECTDIR.  
-
 
 ## Starting the gitlab-runner on Cori20
+(These instructions are also part of the re-start script described in [wiki document](https://code.jgi.doe.gov/advanced-analysis/jaws/-/wikis/Re-starting-JAWS-after-Maintenance).
 
 After a maintenance, it is very likely that the runner will need to be restarted
 in order to accomplish this use the following steps:
