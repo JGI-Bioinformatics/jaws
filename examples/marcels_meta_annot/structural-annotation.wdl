@@ -9,109 +9,75 @@ workflow s_annotate {
   File    imgap_input_fasta
   String  imgap_project_id
   String  imgap_project_type
-  String  output_dir
   Int     additional_threads
-  Boolean pre_qc_execute
-  String  pre_qc_bin
-  String  pre_qc_rename
-  String  post_qc_bin
-  Boolean trnascan_se_execute
-  String  trnascan_se_bin
-  String  trnascan_pick_and_transform_to_gff_bin
-  Boolean rfam_execute
-  String  rfam_cmsearch_bin
-  String  rfam_clan_filter_bin
-  String  rfam_cm
-  String  rfam_claninfo_tsv
-  String  rfam_feature_lookup_tsv
-  Boolean crt_execute
-  String  crt_transform_bin
-  Boolean prodigal_execute
-  String  prodigal_bin
-  String  unify_bin
-  Boolean genemark_execute
-  String  genemark_iso_bin
-  String  genemark_meta_bin
-  File    genemark_meta_model
-  String  gff_merge_bin
-  String  fasta_merge_bin
-  Boolean gff_and_fasta_stats_execute
-  String  gff_and_fasta_stats_bin
+  Boolean pre_qc_execute=false
+  Boolean trnascan_se_execute=true
+  Boolean rfam_execute=true
+  Boolean crt_execute=true
+  Boolean prodigal_execute=true
+  Boolean genemark_execute=true
+  Boolean gff_and_fasta_stats_execute=true
+  String  database_location
+  String  container
 
   if(pre_qc_execute) {
     call pre_qc {
       input:
-        bin = pre_qc_bin,
         project_type = imgap_project_type,
         input_fasta = imgap_input_fasta,
         project_id = imgap_project_id,
-        rename = pre_qc_rename,
-		output_dir = output_dir
+        container=container
     }
   }
   if(trnascan_se_execute) {
     call trnascan.trnascan {
       input:
-        trnascan_se_bin = trnascan_se_bin,
-        pick_and_transform_to_gff_bin = trnascan_pick_and_transform_to_gff_bin,
         imgap_input_fasta = imgap_input_fasta,
         imgap_project_id = imgap_project_id,
         imgap_project_type = imgap_project_type,
         additional_threads = additional_threads,
-        output_dir = output_dir
+        container=container
     }
   }
   if(rfam_execute) {
     call rfam.rfam {
       input:
-        cmsearch_bin = rfam_cmsearch_bin,
-        clan_filter_bin = rfam_clan_filter_bin,
         imgap_input_fasta = imgap_input_fasta,
         imgap_project_id = imgap_project_id,
         imgap_project_type = imgap_project_type,
-        cm = rfam_cm,
-        claninfo_tsv = rfam_claninfo_tsv,
-        feature_lookup_tsv = rfam_feature_lookup_tsv,
+        database_location = database_location,
         additional_threads = additional_threads,
-        output_dir = output_dir
+        container=container
     }
   }
   if(crt_execute) {
     call crt.crt {
       input:
-        crt_transform_bin = crt_transform_bin,
         imgap_input_fasta = imgap_input_fasta,
         imgap_project_id = imgap_project_id,
-        output_dir = output_dir
+        container=container
     }
   }
   if(prodigal_execute) {
     call prodigal.prodigal {
       input:
-        prodigal_bin = prodigal_bin,
-        prodigal_unify_bin = unify_bin,
         imgap_input_fasta = imgap_input_fasta,
         imgap_project_id = imgap_project_id,
         imgap_project_type = imgap_project_type,
-        output_dir = output_dir
+        container=container
     }
   }
   if(genemark_execute) {
     call genemark.genemark {
       input:
-        genemark_iso_bin = genemark_iso_bin,
-        genemark_meta_bin = genemark_meta_bin,
-        genemark_meta_model = genemark_meta_model,
-        genemark_unify_bin = unify_bin,
         imgap_input_fasta = imgap_input_fasta,
         imgap_project_id = imgap_project_id,
         imgap_project_type = imgap_project_type,
-        output_dir = output_dir
+        container=container
     }
   }
   call gff_merge {
     input:
-      bin = gff_merge_bin,
       input_fasta = imgap_input_fasta,
       project_id = imgap_project_id,
       misc_and_regulatory_gff = rfam.misc_bind_misc_feature_regulatory_gff,
@@ -121,12 +87,11 @@ workflow s_annotate {
       crt_gff = crt.gff, 
       genemark_gff = genemark.gff,
       prodigal_gff = prodigal.gff,
-      output_dir = output_dir
+      container=container
   }
   if(prodigal_execute || genemark_execute) {
     call fasta_merge {
       input:
-        bin = fasta_merge_bin,
         input_fasta = imgap_input_fasta,
         project_id = imgap_project_id,
         final_gff = gff_merge.final_gff,
@@ -134,38 +99,38 @@ workflow s_annotate {
         genemark_proteins = genemark.proteins,
         prodigal_genes = prodigal.genes,
         prodigal_proteins = prodigal.proteins,
-        output_dir = output_dir
+        container=container
     }
   }
   if(gff_and_fasta_stats_execute) {
     call gff_and_fasta_stats {
       input:
-        bin = gff_and_fasta_stats_bin,
         input_fasta = imgap_input_fasta,
         project_id = imgap_project_id,
-        final_gff = gff_merge.final_gff
+        final_gff = gff_merge.final_gff,
+        container=container
     }
   }
   if(imgap_project_type == "isolate") {
     call post_qc {
       input:
-        qc_bin = post_qc_bin,
         input_fasta = imgap_input_fasta,
         project_id = imgap_project_id,
-        output_dir = output_dir
+        container=container
     }
   }
   output {
-	#File  gff = "${output_dir}"+"/"+"${imgap_project_id}_structural_annotation.gff"
-	File  gff = gff_merge.final_gff
-	#File  gff = post_qc.out
+    #File  gff = "${output_dir}"+"/"+"${imgap_project_id}_structural_annotation.gff"
+    #File  gff = gff_merge.final_gff
+    #File  gff = post_qc.out
+    File?  gff = fasta_merge.final_modified_gff
+    File? crisprs = crt.crisprs 
     File? proteins = fasta_merge.final_proteins 
   }
 }
 
 task pre_qc {
-
-  String bin
+  String bin="/opt/omics/bin/qc/pre-annotation/fasta_sanity.py"
   String project_type
   File   input_fasta
   String project_id
@@ -173,9 +138,10 @@ task pre_qc {
   Float  n_ratio_cutoff = 0.5
   Int    seqs_per_million_bp_cutoff = 500
   Int    min_seq_length = 150
-  String output_dir
+  String container
 
   command <<<
+    set -euo pipefail
     tmp_fasta="${input_fasta}.tmp"
     qced_fasta="${project_id}_contigs.fna"
     grep -v '^\s*$' ${input_fasta} | tr -d '\r' | \
@@ -211,23 +177,23 @@ task pre_qc {
     if [[ ${rename} == "yes" ]]
     then
         fasta_sanity_cmd="$fasta_sanity_cmd -p ${project_id}"
-	fi
+    fi
     fasta_sanity_cmd="$fasta_sanity_cmd -l ${min_seq_length}"
     $fasta_sanity_cmd
     rm $tmp_fasta
-    #cp ${project_id}_contigs.fna ${output_dir}
   >>>
 
   runtime {
-    time: "02:00:00"
-    memory: "115G"
-    poolname: "catalan"
-    node: 5
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
     shared: 1
+    memory: "115G"
+    poolname: "struct"
+    node: 1
+    nwpn: 1
   }
-	
+    
   output {
     File fasta = "${project_id}_contigs.fna"
   }
@@ -235,7 +201,7 @@ task pre_qc {
 
 task gff_merge {
 
-  String bin
+  String bin="/opt/omics/bin/structural_annotation/gff_files_merger.py"
   File   input_fasta
   String project_id
   File?  misc_and_regulatory_gff
@@ -245,24 +211,24 @@ task gff_merge {
   File?  crt_gff
   File?  genemark_gff
   File?  prodigal_gff
-  String output_dir
+  String container
 
   command {
+    set -euo pipefail
     ${bin} -f ${input_fasta} ${"-a " + misc_and_regulatory_gff + " " + rrna_gff} \
     ${trna_gff} ${ncrna_tmrna_gff} ${crt_gff} \
     ${genemark_gff} ${prodigal_gff} 1> ${project_id}_structural_annotation.gff
-    #cp ./${project_id}_structural_annotation.gff ${output_dir}
   }
 
   runtime {
-    time: "02:00:00"
-    memory: "115G"
-    poolname: "catalan"
-    node: 5
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
     shared: 1
-	
+    memory: "115G"
+    poolname: "struct"
+    node: 1
+    nwpn: 1
   }
 
   output {
@@ -272,7 +238,7 @@ task gff_merge {
 
 task fasta_merge {
 
-  String bin
+  String bin="/opt/omics/bin/structural_annotation/fasta_files_merger.py"
   File   input_fasta
   String project_id
   File   final_gff
@@ -280,75 +246,82 @@ task fasta_merge {
   File?  genemark_proteins
   File?  prodigal_genes
   File?  prodigal_proteins
-  String output_dir
+  String dollar="$"
+  String container
 
   command {
+    set -euo pipefail
     ${bin} ${final_gff} ${genemark_genes} ${prodigal_genes} 1> ${project_id}_genes.fna
     ${bin} ${final_gff} ${genemark_proteins} ${prodigal_proteins} 1> ${project_id}_proteins.faa
-    #cp ./${project_id}_genes.fna ./${project_id}_proteins.faa ${output_dir}
+    cp ${final_gff} ${dollar}(basename ${final_gff}) 
+    echo ${dollar}(basename ${final_gff}) > final_gff_file.txt
   }
 
   runtime {
-    time: "02:00:00"
-    memory: "115G"
-    poolname: "catalan"
-    node: 5
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
     shared: 1
+    memory: "115G"
+    poolname: "struct"
+    node: 1
+    nwpn: 1
   }
-	
+    
   output {
     File final_genes = "${project_id}_genes.fna"
     File final_proteins = "${project_id}_proteins.faa"
+    File final_modified_gff = read_string("final_gff_file.txt")
   }
 }
 
 task gff_and_fasta_stats {
 
-  String bin
+  String bin="/opt/omics/bin/structural_annotation/gff_and_final_fasta_stats.py"
   File   input_fasta
   String project_id
   File   final_gff
+  String container
 
   command {
     ${bin} ${input_fasta} ${final_gff}
   }
 
   runtime {
-    time: "02:00:00"
-    memory: "115G"
-    poolname: "catalan"
-    node: 5
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
     shared: 1
+    memory: "115G"
+    poolname: "struct"
+    node: 1
+    nwpn: 1
   }
-	
+    
 }
 
 task post_qc {
 
-  String qc_bin
+  String qc_bin="/opt/omics/bin/qc/post-annotation/genome_structural_annotation_sanity.py"
   File   input_fasta
   String project_id
-  String output_dir
+  String container
 
   command {
     ${qc_bin} ${input_fasta} "${project_id}_structural_annotation.gff"
-    #cp ./${project_id}_structural_annotation.gff ${output_dir}
   }
 
   runtime {
-    time: "02:00:00"
-    memory: "115G"
-    poolname: "catalan"
-    node: 5
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
     shared: 1
+    memory: "115G"
+    poolname: "struct"
+    node: 1
+    nwpn: 1
   }
-	
+    
   output {
     File out = "${project_id}_structural_annotation.gff"
   }
