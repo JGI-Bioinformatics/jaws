@@ -327,7 +327,7 @@ function set_jaws_acl() {
     local DIR="\$1"
     setfacl -R -m d:g:$SITE_JAWS_GROUP:rwx \$DIR
     setfacl -R -m d:g:$SITE_JTM_GROUP:rwx \$DIR
-    chmod -R g+w+s \$DIR
+    chmod -R g+w \$DIR
 }
 
 
