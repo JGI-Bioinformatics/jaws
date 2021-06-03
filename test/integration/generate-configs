@@ -226,6 +226,7 @@ jtm_inner_main_exch = jgi_jtm_inner_main_exch_\${JTM:run_mode}_\${SITE:instance_
 jtm_worker_hb_exch = jgi_jtm_worker_hb_exch_\${JTM:run_mode}_\${SITE:instance_name}
 jtm_task_kill_exch = jgi_jtm_task_kill_exch_\${JTM:run_mode}_\${SITE:instance_name}
 jtm_worker_poison_exch = jgi_jtm_poison_exch_\${JTM:run_mode}_\${SITE:instance_name}
+max_retries = 3
 EOM
 
 
