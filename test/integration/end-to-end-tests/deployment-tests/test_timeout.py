@@ -30,12 +30,25 @@ def test_timeout(env, dir, site):
 
     time.sleep(60)
 
-    ## get the errors from JAWS for that run
+    # get the errors from JAWS for that run
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
     errors_cmd = "jaws errors %s" % (run_id)
     cmd = source_cmd + errors_cmd
     r, o, e = util.run(cmd) 
 
-    ## do the check!
+    # do the check!
     fail_msg = "error. Keyword absent: \"timeout\" (%s)" % run_id
     assert "failed with timeout" in o, fail_msg
+
+
+def test_scatter_timeout(env, submit_scatter_timeout):
+    """
+    TESTCASE-44
+    When user submits a wdl with a scatter function and a timeout occurs in the scatter function
+    then the timeout message should appear in the output from the errors command
+    """
+    run_id = str(submit_scatter_timeout["run_id"])
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws errors %s" % (env, run_id)
+    (r, o, e) = util.run(cmd)
+
+    assert "failed with timeout" in o, "scatter timeout error should appear in errors"

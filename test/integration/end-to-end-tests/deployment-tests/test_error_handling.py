@@ -202,3 +202,16 @@ def test_timeout(env, dir, site):
     ## do the check!
     fail_msg = "error. Keyword absent: \"timeout\" (%s)" % run_id
     assert "failed with timeout" in o, fail_msg
+
+
+def test_bad_sub_workflow_error_msg(env, submit_bad_sub_task):
+    """
+    TESTCASE-42
+    When user submits a wdl with a subworkflow that has a command error then
+    the errors command should display error message
+    """
+    id = str(submit_bad_sub_task["run_id"])
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws errors %s" % (env, id)
+    (r, o, e) = util.run(cmd)
+
+    assert "echoooo: command not found" in o, "sub workflow command error should appear in errors"
