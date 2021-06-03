@@ -238,7 +238,7 @@ class TaskRunner(JtmAmqpstormBase):
         logger.info("Received a task, %r" % (msg_unzipped,))
         logger.debug("Return queue = %s", message.reply_to)
 
-        result_dict = run_user_task(msg_unzipped)
+        result_dict = run_user_task(msg_unzipped, self.connection)
 
         json_data = json.dumps(result_dict)
         logger.debug("Reply msg with result: %s" % str(json_data))
@@ -291,12 +291,12 @@ class TaskRunner(JtmAmqpstormBase):
 
 
 # -------------------------------------------------------------------------------
-def run_user_task(msg_unzipped):
+def run_user_task(msg_unzipped, conn):
     """
     Run a user command in msg_zipped_to_send
 
     :param msg_unzipped: uncompressed msg from client
-    :param return_msg: msg to return
+    :param conn: rmq connection for sleep
     :return:
     """
     return_msg = {}
@@ -305,7 +305,6 @@ def run_user_task(msg_unzipped):
     logger.info(f"User task to run: {msg_unzipped}")
     task_id = msg_unzipped["task_id"]
     user_task_cmd = msg_unzipped["user_cmd"]
-    out_files = msg_unzipped["output_files"]
     task_type = msg_unzipped["task_type"]
 
     return_msg["task_id"] = task_id
@@ -338,7 +337,10 @@ def run_user_task(msg_unzipped):
                     return_msg["done_flag"] = str(done_f["failed with timeout"])
                     return_msg["ret_msg"] = "User task timeout"
                     return return_msg
-                time.sleep(1)
+                if conn:
+                    conn.sleep(1)
+                else:
+                    time.sleep(1)
                 limit += 1
 
         # ex) WORKER_LIFE_LEFT_IN_MINUTE = 20min and TASK_KILL_TIMEOUT_MINUTE = 10min
@@ -412,7 +414,6 @@ def run_user_task(msg_unzipped):
         logger.error("subprocess call failed")
 
     # Prepare result to send back
-    return_msg["out_files"] = out_files
     return_msg["worker_id"] = UNIQ_WORKER_ID
     return_msg["host_name"] = socket.gethostname()
 
@@ -436,39 +437,8 @@ def run_user_task(msg_unzipped):
             return_msg["ret_msg"] = "Input file or command not found."
         elif proc_return_code == 0:  # system code
             logger.info("Task# %s completed!" % (str(task_id)))
-
-            # Output file checking
-            if out_files:
-                ofs = out_files.split(",")
-                logger.debug("Number of output files = %d.", len(ofs))
-                out_file_list = []
-
-                for i in range(len(ofs)):
-                    out_file_list.append(ofs[i])
-
-                ret, file_size = check_output(
-                    out_file_list,
-                    CONFIG.configparser.getfloat("JTM", "file_check_interval"),
-                    CONFIG.configparser.getint("JTM", "file_checking_max_trial"),
-                    CONFIG.configparser.getfloat("JTM", "file_check_int_inc"),
-                )
-
-                if not ret:
-                    ret_msg_str = (
-                        "Failed to check output file(s): %s, file size = %s."
-                        % (ofs, file_size)
-                    )
-                    logger.critical(ret_msg_str)
-                    return_msg["done_flag"] = done_f["failed to check output file(s)"]
-                    return_msg["ret_msg"] = ret_msg_str
-                else:
-                    return_msg["done_flag"] = done_f[
-                        "success with correct output file(s)"
-                    ]
-                    return_msg["ret_msg"] = "Output file checking is OK."
-            else:
-                return_msg["done_flag"] = done_f["success"]
-                return_msg["ret_msg"] = ""
+            return_msg["done_flag"] = done_f["success"]
+            return_msg["ret_msg"] = ""
         else:
             logger.critical(
                 "Failed to execute a task, %s. Non-zero exit code. stdout = %s."
@@ -480,64 +450,6 @@ def run_user_task(msg_unzipped):
     logger.info("Reply msg prepared with result: %s" % str(return_msg))
 
     return return_msg
-
-
-# -------------------------------------------------------------------------------
-def check_output(
-    out_files,
-    out_file_check_wait_time=3,
-    max_trial=3,
-    out_file_check_wait_time_increase=1.5,
-):
-    """
-    Check 1) existence, 2) size>0 for each file in out_files
-
-    :param out_files: list of absolute paths to the output files to check
-    :param out_file_check_wait_time: sleep time between output file checking before retiral
-    :param max_trial: max trial for checking
-    :param out_file_check_wait_time_increase: wait time increase for retrial
-    :return:
-    """
-    file_size = 0
-    b_is_file_found = False
-    trial = 1
-
-    for a_file in out_files:
-        logger.info("Output file check: %s", a_file)
-        logger.debug("Output file check: %s", os.path.expandvars(a_file))
-        a_file = os.path.expandvars(a_file)
-
-        file_size = 0
-        b_is_file_found = False
-
-        while trial < max_trial:
-            logger.info("Output file checking. Trial# = %d", trial)
-
-            # First, check file existence
-            # os.path.exists returns if it is a valid path(check for directory or file, both)
-            # and os.path.isfile(checks for only file, not directory) returns if it is a file
-            b_is_file_exist = os.path.isfile(a_file)
-
-            # If exist, check file size
-            if b_is_file_exist:
-                file_size = os.path.getsize(a_file)
-                if file_size == 0:
-                    logger.warning("File, %s is zero size.", a_file)
-                if file_size > 0:
-                    b_is_file_found = True
-                    logger.info("Output file '%s' is OK.", a_file)
-                    break
-            else:
-                logger.info("Outout file not found.")
-
-            # Wait for initial wait time
-            time.sleep(out_file_check_wait_time)
-
-            # Increase the wait time
-            out_file_check_wait_time *= out_file_check_wait_time_increase
-            trial += 1
-
-    return b_is_file_found, file_size
 
 
 # -------------------------------------------------------------------------------
@@ -778,7 +690,7 @@ def send_hb_to_client_proc(
                     logger.exception("Failed to send hb to manager: {}".format(e))
                     raise
 
-                time.sleep(interval)
+                conn.sleep(interval)
 
 
 # -------------------------------------------------------------------------------
@@ -986,7 +898,11 @@ def worker(
 
     # This available memory validation needs to executed on a compute node
     # not on a MOM node.
-    if worker_type_param != "manual" and num_workers_per_node > 1 and not charging_account_param:
+    if (
+        worker_type_param != "manual"
+        and num_workers_per_node > 1
+        and not charging_account_param
+    ):
         try:
             mem_per_node_to_request_byte = (
                 int(mem_per_node_to_request.lower().replace("gb", "").replace("g", ""))
@@ -1502,8 +1418,11 @@ wait
     signal.signal(signal.SIGTERM, signal_handler)
 
     # Start task termination proc
+    max_retries = CONFIG.configparser.getint("JTM", "max_retries")
     try:
-        task_kill_proc_hdl = mp.Process(target=TaskTerminator(config=CONFIG).start)
+        task_kill_proc_hdl = mp.Process(
+            target=TaskTerminator(config=CONFIG, max_retries=max_retries).start
+        )
         task_kill_proc_hdl.start()
         pid_list.append(task_kill_proc_hdl)
     except Exception as e:
@@ -1542,7 +1461,8 @@ wait
     # Start task runner proc
     try:
         process_task_proc_hdl = mp.Process(
-            target=TaskRunner(config=CONFIG).start, args=(inner_task_request_queue,)
+            target=TaskRunner(config=CONFIG, max_retries=max_retries).start,
+            args=(inner_task_request_queue,),
         )
         process_task_proc_hdl.start()
         pid_list.append(process_task_proc_hdl)
