@@ -200,7 +200,12 @@ class Run:
         :return: list of [wdl,json,zip] file paths
         :rtype: list
         """
-        suffixes_and_required = [("wdl", True), ("json", True), ("zip", False), ("options.json", False)]
+        suffixes_and_required = [
+            ("wdl", True),
+            ("json", True),
+            ("zip", False),
+            ("options.json", False),
+        ]
         files = []
         file_path = self.uploads_file_path()
         for (suffix, required) in suffixes_and_required:
@@ -280,7 +285,9 @@ class Run:
             self.update_run_status("cancelled")
 
     @staticmethod
-    def _cp_infile_to_outdir(src_root_path, src_suffix, dest_dir, required=True) -> None:
+    def _cp_infile_to_outdir(
+        src_root_path, src_suffix, dest_dir, required=True
+    ) -> None:
         """
         Copy an input file to the output dir.  If not required, no exception thrown if the file doesn't exist.
         :param src_root_path: dir and basename of file
@@ -354,14 +361,15 @@ class Run:
         elif globus_status == "FAILED":
             self.update_run_status("download failed")
 
-    def update_run_status(self, new_status, reason=None) -> None:
+    def update_run_status(self, status_to, reason=None) -> None:
         """
         Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
         """
-        logger.info(f"Run {self.model.id}: now {new_status}")
+        status_from = self.model.status
+        logger.info(f"Run {self.model.id}: now {status_to}")
         timestamp = datetime.utcnow()
-        self._update_run_status(new_status, timestamp)
-        self._insert_run_log(self.model.status, new_status, timestamp, reason)
+        self._update_run_status(status_to, timestamp)
+        self._insert_run_log(status_from, status_to, timestamp, reason)
 
     def _update_run_status(self, new_status, timestamp) -> None:
         """
@@ -450,8 +458,7 @@ def send_run_status_logs(session) -> None:
 
     try:
         central_rpc_client = rpc_client.RpcClient(
-            config.conf.get_section("CENTRAL_RPC_CLIENT"),
-            logger
+            config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
         )
     except Exception as error:
         logger.exception(f"Unable to init central rpc client: {error}")
