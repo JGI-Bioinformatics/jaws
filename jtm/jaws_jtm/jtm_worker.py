@@ -686,7 +686,7 @@ def send_hb_to_client_proc(
                     logger.exception("Failed to send hb to manager: {}".format(e))
                     raise
 
-                conn.sleep(interval)
+                time.sleep(interval)
 
 
 # -------------------------------------------------------------------------------
