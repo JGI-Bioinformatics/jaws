@@ -238,7 +238,7 @@ class TaskRunner(JtmAmqpstormBase):
         logger.info("Received a task, %r" % (msg_unzipped,))
         logger.debug("Return queue = %s", message.reply_to)
 
-        result_dict = run_user_task(msg_unzipped, self.connection)
+        result_dict = run_user_task(msg_unzipped)
 
         json_data = json.dumps(result_dict)
         logger.debug("Reply msg with result: %s" % str(json_data))
@@ -291,12 +291,11 @@ class TaskRunner(JtmAmqpstormBase):
 
 
 # -------------------------------------------------------------------------------
-def run_user_task(msg_unzipped, conn):
+def run_user_task(msg_unzipped):
     """
     Run a user command in msg_zipped_to_send
 
     :param msg_unzipped: uncompressed msg from client
-    :param conn: rmq connection for sleep
     :return:
     """
     return_msg = {}
@@ -337,10 +336,7 @@ def run_user_task(msg_unzipped, conn):
                     return_msg["done_flag"] = str(done_f["failed with timeout"])
                     return_msg["ret_msg"] = "User task timeout"
                     return return_msg
-                if conn:
-                    conn.sleep(1)
-                else:
-                    time.sleep(1)
+                time.sleep(1)
                 limit += 1
 
         # ex) WORKER_LIFE_LEFT_IN_MINUTE = 20min and TASK_KILL_TIMEOUT_MINUTE = 10min
