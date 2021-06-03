@@ -701,8 +701,17 @@ def proc_clean_exit(pid_list):
     :return:
     """
     for p in pid_list:
-        if p is not None and p.is_alive():
-            p.terminate()
+        try:
+            if p is not None and p.is_alive():
+                p.terminate()
+        except AssertionError:
+            # is_alive() raises AssertionError
+            # if assert self._parent_pid != os.getpid()
+            logger.warning("Skipping is_alive() checking for the parent process.")
+        except Exception as e:
+            # print log and just pass
+            logger.exception(f"Failed to terminate a child process: {e}")
+
     os._exit(1)
 
 
