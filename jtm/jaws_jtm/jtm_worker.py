@@ -524,9 +524,7 @@ def send_hb_to_client_proc2(
             except ValueError:
                 logger.warning("ValueError: Failed to collect VM memory usage.")
             except UnboundLocalError:
-                logger.warning(
-                    "UnboundLocalError: No entry in process id list."
-                )
+                logger.warning("UnboundLocalError: No entry in process id list.")
             else:
                 vmem_usage_list.append(vmem)
 
@@ -535,23 +533,15 @@ def send_hb_to_client_proc2(
             try:
                 rmem = get_resident_memory_usage(pid, 0.0, False)
             except ValueError:
-                logger.warning(
-                    "ValueError: Failed to collect RES memory usage."
-                )
+                logger.warning("ValueError: Failed to collect RES memory usage.")
             except UnboundLocalError:
-                logger.warning(
-                    "UnboundLocalError: No entry in process id list."
-                )
+                logger.warning("UnboundLocalError: No entry in process id list.")
             else:
                 rmem_usage_list.append(rmem)
 
         # Collect mem_usages for all pids in the tree and get sum()
-        rmem_usage = (
-            "%.1f" % sum(rmem_usage_list) if len(rmem_usage_list) > 0 else 0.0
-        )
-        vmem_usage = (
-            "%.1f" % sum(vmem_usage_list) if len(vmem_usage_list) > 0 else 0.0
-        )
+        rmem_usage = "%.1f" % sum(rmem_usage_list) if len(rmem_usage_list) > 0 else 0.0
+        vmem_usage = "%.1f" % sum(vmem_usage_list) if len(vmem_usage_list) > 0 else 0.0
 
         # Collect cpu_usages for all pids in the tree and get max()
         for pid in proc_id_list_merged:
@@ -582,9 +572,7 @@ def send_hb_to_client_proc2(
         try:
             perc_used_mem = "%.1f" % get_total_mem_usage_per_node()
         except Exception as e:
-            logger.warning(
-                "get_total_mem_usage_per_node() exception: {}".format(e)
-            )
+            logger.warning("get_total_mem_usage_per_node() exception: {}".format(e))
             perc_used_mem = 0.0
 
         # Check if there is any task id in the ipc pipe
@@ -596,9 +584,9 @@ def send_hb_to_client_proc2(
             try:
                 # hh:mm:ss --> seconds
                 job_runtime_in_sec = (
-                        int(job_time.split(":")[0]) * 3600
-                        + int(job_time.split(":")[1]) * 60
-                        + int(job_time.split(":")[2])
+                    int(job_time.split(":")[0]) * 3600
+                    + int(job_time.split(":")[1]) * 60
+                    + int(job_time.split(":")[2])
                 )
                 end_date_time = WORKER_START_TIME + datetime.timedelta(
                     seconds=int(job_runtime_in_sec)
@@ -621,12 +609,8 @@ def send_hb_to_client_proc2(
             hb_msg["end_date"]: today,
             hb_msg["host_name"]: host_name,
             hb_msg["ip_address"]: ip_address,
-            hb_msg["job_time"]: job_time
-            if w_type[THIS_WORKER_TYPE] > 0
-            else None,
-            hb_msg["jtm_host_name"]: CONFIG.configparser.get(
-                "SITE", "jtm_host_name"
-            ),
+            hb_msg["job_time"]: job_time if w_type[THIS_WORKER_TYPE] > 0 else None,
+            hb_msg["jtm_host_name"]: CONFIG.configparser.get("SITE", "jtm_host_name"),
             hb_msg["life_left"]: WORKER_LIFE_LEFT_IN_MINUTE.value,
             hb_msg["mem_per_core"]: mem_per_core
             if w_type[THIS_WORKER_TYPE] > 0
@@ -678,7 +662,9 @@ def send_hb_to_client_proc2(
                     except amqpstorm.AMQPError as why:
                         logger.exception(why)
                         if attempts > max_retries:
-                            logger.critical(f"Failed to send a heartbeat to the manageer: message = {msg_dict_to_send}")
+                            logger.critical(
+                                f"Failed to send a heartbeat to the manageer: message = {msg_dict_to_send}"
+                            )
                             raise amqpstorm.AMQPError
                         time.sleep(min(attempts * 2, 30))
                     except Exception as e:
