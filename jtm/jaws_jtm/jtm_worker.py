@@ -661,7 +661,9 @@ def send_hb_to_client_proc2(
                         break
                     except amqpstorm.AMQPError as why:
                         logger.exception(why)
-                        logger.warning(f"Retry to send a heartbeat to the manager: trial #{attempts}")
+                        logger.warning(
+                            f"Retry to send a heartbeat to the manager: trial #{attempts}"
+                        )
                         if attempts > max_retries:
                             logger.critical(
                                 f"Failed to send a heartbeat to the manageer: message = {msg_dict_to_send}"
