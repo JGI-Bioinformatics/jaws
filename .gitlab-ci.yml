@@ -385,22 +385,6 @@ deploy-jaws-cascade-dev:
   only:
     - dev
 
-deploy-cori-dev-integration-tests:
-  stage: integration-test
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      when: manual
-  allow_failure: true
-
 deploy-cori-smoke-tests:
   stage: smoke-tests
   variables:
