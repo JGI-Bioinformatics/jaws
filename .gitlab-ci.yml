@@ -1,11 +1,10 @@
 stages:
-  - .pre
   - unit-test
   - package
   - deploy-jaws
-  - integration-test
-  - nightly-tests
-  - .post
+  - smoke-tests
+  - deployment-tests
+  - stress-tests
 
 variables:
   GIT_STRATEGY: clone
@@ -402,8 +401,8 @@ deploy-cori-dev-integration-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-dev-integration-tests:
-  stage: integration-test
+deploy-cori-smoke-tests:
+  stage: smoke-tests
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
@@ -414,15 +413,15 @@ deploy-cori-dev-integration-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
       when: manual
   allow_failure: true
 
-deploy-cori-staging-integration-tests:
-  stage: integration-test
+deploy-jgi-smoke-tests:
+  stage: smoke-tests
   variables:
-    DEPLOYMENT_NAME: "staging"
-    JAWS_SITE: "CORI"
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "JGI"
     CORI_INSTALL_BASEDIR: "/tmp"
     CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
@@ -430,9 +429,7 @@ deploy-cori-staging-integration-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
-      when: always
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
       when: manual
   allow_failure: true
 
