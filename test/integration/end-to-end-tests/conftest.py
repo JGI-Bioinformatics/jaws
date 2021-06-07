@@ -4,8 +4,17 @@ import submission_utils as util
 check_tries = 50
 check_sleep = 30
 
+
 @pytest.fixture(scope="session")
 def submit_fq_count_wdl(request):
+    """ This will submit fq_count.wdl and fq_count.json and NOT wait for it to complete.
+
+    :param a request object for capturing CLI arguments
+    :type object 
+    :rtype dictionary 
+    :return output from jaws submit 
+    """
+
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
@@ -28,6 +37,13 @@ def submit_fq_count_wdl(request):
 
 @pytest.fixture(scope="session")
 def submit_subworkflow_alignment(request):
+    """ This will submit a simple WDL that includes a subworkflow.
+
+    :param a request object for capturing CLI arguments
+    :type object 
+    :rtype dictionary 
+    :return output from jaws submit 
+    """
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
@@ -46,6 +62,13 @@ def submit_subworkflow_alignment(request):
 
 @pytest.fixture(scope="session")
 def submit_bad_task(request):
+    """ This will submit a fq_count.wdl WDL that has a bad bash command in the command{} section. This is for testing the error logs.
+
+    :param a request object for capturing CLI arguments
+    :type object 
+    :rtype dictionary 
+    :return output from jaws submit 
+    """
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
@@ -65,6 +88,13 @@ def submit_bad_task(request):
 
 @pytest.fixture(scope="session")
 def submit_bad_docker(request):
+    """ This will submit a fq_count.wdl WDL that has a non-existent docker image name in the runtime{} section. This is for testing the error logs.
+
+    :param a request object for capturing CLI arguments
+    :type object 
+    :rtype dictionary 
+    :return output from jaws submit 
+    """
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
@@ -84,7 +114,52 @@ def submit_bad_docker(request):
 
 
 @pytest.fixture(scope="session")
+def submit_bad_sub_task(request):
+    # allow user to pass variables into the test functions via command line
+    target_dir = request.config.getoption("--dir")
+    site = request.config.getoption("--site")
+    env = request.config.getoption("--env")
+
+    wdl = target_dir + "/WDLs/main_bad_sub_task.wdl"
+    input_json = target_dir + "/test-inputs/main_bad_sub_task.json"
+
+    data = util.submit_wdl_noexit(env, wdl, input_json, site)
+
+    id = data["run_id"]
+
+    # wait for run to complete
+    util.wait_for_run(id, env, check_tries, check_sleep)
+    return data
+
+
+@pytest.fixture(scope="session")
+def submit_scatter_timeout(request):
+    # allow user to pass variables into the test functions via command line
+    target_dir = request.config.getoption("--dir")
+    site = request.config.getoption("--site")
+    env = request.config.getoption("--env")
+
+    wdl = target_dir + "/../../../../examples/leo_dapseq/leo_15_min.wdl"
+    input_json = target_dir + "/../../../../examples/leo_dapseq/shortened-100.json"
+
+    data = util.submit_wdl_noexit(env, wdl, input_json, site)
+
+    id = data["run_id"]
+
+    # wait for run to complete
+    util.wait_for_run(id, env, check_tries, check_sleep)
+    return data
+
+
+@pytest.fixture(scope="session")
 def submit_skylake_250(request):
+    """ This will submit to the large memory skylake machine on cori. The fixture will be skipped if run on anything other than cori.
+
+    :param a request object for capturing CLI arguments
+    :type object 
+    :rtype dictionary 
+    :return output from jaws submit 
+    """
 
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
@@ -110,6 +185,13 @@ def submit_skylake_250(request):
 
 @pytest.fixture(scope="session")
 def submit_skylake_500(request):
+    """ This will submit to the large memory skylake machine on cori. The fixture will be skipped if run on anything other than cori.
+
+    :param a request object for capturing CLI arguments
+    :type object 
+    :rtype dictionary 
+    :return output from jaws submit 
+    """
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
@@ -133,6 +215,13 @@ def submit_skylake_500(request):
 
 @pytest.fixture(scope="session")
 def clone_tutorials_repo(request):
+    """ Clones https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples.
+
+    :param a request object for capturing CLI arguments
+    :type object 
+    :rtype none 
+    :return none
+    """
     # clone the jaws-tutorial-examples repo
     cmd = (
         "git clone "
@@ -145,8 +234,16 @@ def clone_tutorials_repo(request):
     cmd = "rm -rf jaws-tutorial-examples/"
     util.run(cmd)
 
+
 # The addoption functions allows us to use flags to capture arguments on the command line.
 def pytest_addoption(parser):
+    """ The parser.addoption function allows us to use flags to capture CLI arguments that can then be used in our test functions as if they were fixtures. 
+
+    :param a request object for capturing CLI arguments
+    :type object 
+    :rtype none 
+    :return none
+    """
     parser.addoption(
         "--dir",
         action="store",
@@ -168,14 +265,17 @@ def pytest_addoption(parser):
 # These functions allows an argument to be passed into the test functions
 @pytest.fixture
 def dir(request):
+    """ This CLI argument is for the parent directory in which the WDL & input.json files live."""
     return request.config.getoption("--dir")
 
 
 @pytest.fixture
 def site(request):
+    """ The --site CLI argument is for passing the site [cori|jgi] to test the functions"""
     return request.config.getoption("--site")
 
 
 @pytest.fixture
 def env(request):
+    """ The --env CLI argument is for passing the environment [dev|staging|prod] to the test functions"""
     return request.config.getoption("--env")

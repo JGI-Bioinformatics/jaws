@@ -325,16 +325,16 @@ $SITE_LOAD_JAVA
 
 function set_jaws_acl() {
     local DIR="\$1"
-    chmod 2775 \$DIR
-    setfacl -m d:g:$SITE_JAWS_GROUP:rwx \$DIR
-    setfacl -m d:g:$SITE_JTM_GROUP:rwx \$DIR
+    setfacl -R -m d:g:$SITE_JAWS_GROUP:rwx \$DIR
+    setfacl -R -m d:g:$SITE_JTM_GROUP:rwx \$DIR
+    chmod -R g+w+s \$DIR
 }
 
-set_jaws_acl $CROMWELL_EXECUTIONS_DIR
 
 test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
 chgrp $SITE_JTM_GROUP $SITE_JTM_SCRATCH_DIR
 chmod 2775 $SITE_JTM_SCRATCH_DIR
+set_jaws_acl $CROMWELL_EXECUTIONS_DIR
 cd $SITE_JTM_SCRATCH_DIR
 exec java -Xmx5g -Dconfig.file="$CONFIG_DIR/cromwell.conf" -Djava.io.tmpdir="$SITE_CROMWELL_TMPDIR" -jar "$INSTALL_DIR/cromwell.jar" server >"$CROM_STDOUT" 2>"$CROM_STDERR"
 EOM

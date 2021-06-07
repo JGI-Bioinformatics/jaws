@@ -99,7 +99,7 @@ def test_jaws_run_queue(env,site,dir):
     ids=[]
     if data:
         for d in data:
-            if d["site_id"].lower() == site:
+            if d["site_id"].lower() == site.lower():
                 result = True
                 ids.append(d["id"])
     else:
@@ -133,7 +133,7 @@ def test_jaws_run_history(env, submit_fq_count_wdl):
     assert o
 
 
-def test_jaws_wdl_metadata(env, submit_fq_count_wdl):
+def test_jaws_metadata(env, submit_fq_count_wdl):
     """Check that a jaws metadata returns workflowRoot has a value"""
     data = submit_fq_count_wdl
     run_id = str(data["run_id"])
@@ -148,7 +148,7 @@ def test_jaws_wdl_metadata(env, submit_fq_count_wdl):
     assert o
 
 
-def test_jaws_wdl_errors(env, submit_bad_task):
+def test_jaws_errors(env, submit_bad_task):
     """Check that a jaws errors catches the stderr error"""
     run_id = str(submit_bad_task["run_id"])
     util.wait_for_run(run_id, env, check_tries, check_sleep)
@@ -157,10 +157,10 @@ def test_jaws_wdl_errors(env, submit_bad_task):
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
 
-    assert 'bad_cmd_name: command not found' in data['calls']['fq_count.count_seqs'][0]['stderr']
+    assert 'bad_cmd_name: command not found' in o
 
 
-def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
+def test_jaws_task_status(env, submit_fq_count_wdl):
     """Check that jaws task-status returns something like this:
     fq_count.count_seqs 1   25177   running success 2021-01-13 12:37:45     The job completed successfully
 
@@ -168,7 +168,6 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     """
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, env, check_tries, check_sleep)
-    # time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-status %s" % (env, run_id)
     (r, o, e) = util.run(cmd)
@@ -182,13 +181,20 @@ def test_jaws_wdl_task_status(env, submit_fq_count_wdl):
     assert "fq_count.count_seqs" in a[1]
 
 
-def test_jaws_wdl_log(env, submit_fq_count_wdl):
+def test_jaws_log(env, submit_fq_count_wdl):
     """Check that the first line of jaws log returns something like this:
-    created uploading 2021-04-06 02:56:49 upload_task_id=bbbc09c2-9683-11eb-955a-752ba7b88ebe
+    #STATUS_FROM       STATUS_TO          TIMESTAMP            REASON                                                 
+    created            uploading          2021-05-20 17:00:10  upload_task_id=d6bf4064-b98c-11eb-b98a-5534f09633d1    
+    upload complete    upload complete    2021-05-20 17:00:18                                                         
+    submitted          submitted          2021-05-20 17:00:29  cromwell_run_id=f5503790-5a63-49b4-9b81-19963c0161ed   
+    queued             queued             2021-05-20 17:00:39                                                         
+    running            running            2021-05-20 17:00:39                                                         
+    succeeded          succeeded          2021-05-20 17:00:40                                                         
+    downloading        downloading        2021-05-20 17:00:52  download_task_id=ef0b52c0-b98c-11eb-82a1-e31f0402e917  
+    download complete  download complete  2021-05-20 17:01:38              
     """
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, env, check_tries, check_sleep)
-    # time.sleep(120)  # wait an additional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws log %s " % (env, run_id)
     (r, o, e) = util.run(cmd)
@@ -204,13 +210,12 @@ def test_jaws_wdl_log(env, submit_fq_count_wdl):
     assert len(a) == 9
 
 
-def test_jaws_wdl_task_log(env, submit_fq_count_wdl):
+def test_jaws_task_log(env, submit_fq_count_wdl):
     """Check that the first line of jaws task-log returns something like this:
     f0b7fd65-1620-4765-8b62-55d0bec74a8d  fq_count.count_seqs 1 16948  running failed 2021-04-06 03:46:26
     """
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, env, check_tries, check_sleep)
-    # time.sleep(120)  # wait an aditional amount of time to make sure everything is updated
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-log %s" % (env, run_id)
     (r, o, e) = util.run(cmd)

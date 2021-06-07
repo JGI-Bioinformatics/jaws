@@ -1,8 +1,0 @@
-{
-  "crt.crt_cli_jar": "CRT-CLI.jar",
-  "crt.imgap_project_id": "GGa0394140",
-  "crt.output_dir": "output_dir",
-  "crt.imgap_input_fasta": "/global/cfs/cdirs/jaws/test/tutorial_test_data/MarcelsData/splits_compare_source/1/Ga0394140_contigs.fna",
-  "crt.crt_transform_bin": "transform_crt_output.py"
-}
-

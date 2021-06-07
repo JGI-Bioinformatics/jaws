@@ -3,9 +3,7 @@ workflow prodigal {
   String imgap_input_fasta
   String imgap_project_id
   String imgap_project_type
-  String output_dir
-  String prodigal_bin
-  String prodigal_unify_bin
+  String container
 
   if(imgap_project_type == "isolate") {
     call fasta_len {
@@ -16,25 +14,25 @@ workflow prodigal {
   if(imgap_project_type == "isolate" && fasta_len.wc >= 20000) {
     call iso_big {
       input:
-        bin = prodigal_bin,
         input_fasta = imgap_input_fasta,
-        project_id = imgap_project_id
+        project_id = imgap_project_id,
+        container=container
     }
   }
   if(imgap_project_type == "isolate" && fasta_len.wc < 20000) {
     call iso_small {
       input:
-        bin = prodigal_bin,
         input_fasta = imgap_input_fasta,
-        project_id = imgap_project_id
+        project_id = imgap_project_id,
+        container=container
     }
   }
   if(imgap_project_type == "metagenome") {
     call metag {
       input:
-        bin = prodigal_bin,
         input_fasta = imgap_input_fasta,
-        project_id = imgap_project_id
+        project_id = imgap_project_id,
+        container=container
     }
   }
 
@@ -49,9 +47,8 @@ workflow prodigal {
       iso_big_gff = iso_big.gff,
       iso_small_gff = iso_small.gff,
       meta_gff = metag.gff,
-      unify_bin = prodigal_unify_bin,
       project_id = imgap_project_id,
-      out_dir = output_dir
+      container=container
   }
 
   output {
@@ -70,13 +67,13 @@ task fasta_len {
   }
 
   runtime {
-    time: "02:00:00"
-    memory: "115G"
-    poolname: "catalan"
-    node: 5
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
+    time: "1:00:00"
+    memory: "86G"
     shared: 1
+    memory: "115G"
+    poolname: "prodigal"
+    node: 1
+    nwpn: 1
   }
 
   output {
@@ -86,13 +83,15 @@ task fasta_len {
 
 task iso_big {
 
-  String bin
+  String bin="/opt/omics/bin/prodigal"
   File   input_fasta
   Int?   translation_table = 11
   String project_id
   File   train = "${project_id}_prodigal.trn"
+  String container
 
   command {
+    set -euo pipefail
     ${bin} -i ${input_fasta} -t ${train} -g ${translation_table} -q
     ${bin} -f gff -g ${translation_table} -p single -m -i ${input_fasta} \
     -t ${train} -o ${project_id}_prodigal.gff \
@@ -100,13 +99,14 @@ task iso_big {
   }
 
   runtime {
-    time: "02:00:00"
-    memory: "115G"
-    poolname: "catalan"
-    node: 5
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
     shared: 1
+    memory: "115G"
+    poolname: "prodigal"
+    node: 1
+    nwpn: 1
   }
 
   output {
@@ -118,9 +118,10 @@ task iso_big {
 
 task iso_small {
 
-  String bin
+  String bin="/opt/omics/bin/prodigal"
   File   input_fasta
   String project_id
+  String container
 
   command {
     ${bin} -f gff -p meta -m -i ${input_fasta} \
@@ -129,13 +130,14 @@ task iso_small {
   }
 
   runtime {
-    time: "02:00:00"
-    memory: "115G"
-    poolname: "catalan"
-    node: 5
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
     shared: 1
+    memory: "115G"
+    poolname: "prodigal"
+    node: 1
+    nwpn: 1
   }
 
   output {
@@ -147,9 +149,10 @@ task iso_small {
 
 task metag {
 
-  String bin
+  String bin="/opt/omics/bin/prodigal"
   File   input_fasta
   String project_id
+  String container
 
   command {
     ${bin} -f gff -p meta -m -i ${input_fasta} \
@@ -158,13 +161,14 @@ task metag {
   }
 
   runtime {
-    time: "02:00:00"
-    memory: "115G"
-    poolname: "catalan"
-    node: 5
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
     shared: 1
+    memory: "115G"
+    poolname: "prodigal"
+    node: 1
+    nwpn: 1
   }
 
   output {
@@ -185,9 +189,9 @@ task clean_and_unify {
   File?  iso_big_gff
   File?  iso_small_gff
   File?  meta_gff
-  String unify_bin
+  String unify_bin="/opt/omics/bin/structural_annotation/unify_gene_ids.py"
   String project_id
-  String out_dir
+  String container
 
   command {
     sed -i 's/\*$//g' ${iso_big_proteins_fasta} ${iso_small_proteins_fasta} ${meta_proteins_fasta}
@@ -204,17 +208,17 @@ task clean_and_unify {
     mv ${iso_big_gff} . 2> /dev/null
     mv ${iso_small_gff} . 2> /dev/null
     mv ${meta_gff} . 2> /dev/null
-    #cp -r ./${project_id}_prodigal* ${out_dir}
   }
 
   runtime {
-    time: "02:00:00"
-    memory: "115G"
-    poolname: "catalan"
-    node: 5
-    nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
     shared: 1
+    memory: "115G"
+    poolname: "prodigal"
+    node: 1
+    nwpn: 1
   }
 
   output {
