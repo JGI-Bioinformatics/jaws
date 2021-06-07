@@ -385,7 +385,7 @@ deploy-jaws-cascade-dev:
   only:
     - dev
 
-deploy-cori-dev-smoke-tests:
+cori-dev-smoke-tests:
   stage: smoke-tests
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -401,7 +401,7 @@ deploy-cori-dev-smoke-tests:
       when: manual
   allow_failure: true
 
-deploy-jgi-dev-smoke-tests:
+jgi-dev-smoke-tests:
   stage: smoke-tests
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -417,7 +417,7 @@ deploy-jgi-dev-smoke-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-dev-deployment-tests:
+cori-dev-deployment-tests:
   stage: deployment-tests
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -433,7 +433,7 @@ deploy-cori-dev-deployment-tests:
       when: manual
   allow_failure: true
 
-deploy-jgi-dev-deployment-tests:
+jgi-dev-deployment-tests:
   stage: deployment-tests
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -449,7 +449,7 @@ deploy-jgi-dev-deployment-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-dev-stress-tests:
+cori-dev-stress-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -465,7 +465,7 @@ deploy-cori-dev-stress-tests:
       when: manual
   allow_failure: true
 
-deploy-jgi-dev-stress-tests:
+jgi-dev-stress-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -481,7 +481,7 @@ deploy-jgi-dev-stress-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-staging-smoke-tests:
+cori-staging-smoke-tests:
   stage: smoke-tests
   variables:
     DEPLOYMENT_NAME: "staging"
@@ -497,7 +497,7 @@ deploy-cori-staging-smoke-tests:
       when: manual
   allow_failure: true
 
-deploy-jgi-staging-smoke-tests:
+jgi-staging-smoke-tests:
   stage: smoke-tests
   variables:
     DEPLOYMENT_NAME: "staging"
@@ -513,7 +513,7 @@ deploy-jgi-staging-smoke-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-deployment-smoke-tests:
+cori-staging-deployment-tests:
   stage: deployment-tests
   variables:
     DEPLOYMENT_NAME: "staging"
@@ -529,7 +529,7 @@ deploy-cori-deployment-smoke-tests:
       when: manual
   allow_failure: true
 
-deploy-jgi-staging-deployment-tests:
+jgi-staging-deployment-tests:
   stage: deployment-tests
   variables:
     DEPLOYMENT_NAME: "staging"
@@ -545,7 +545,7 @@ deploy-jgi-staging-deployment-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-staging-stress-tests:
+cori-staging-stress-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "staging"
@@ -561,7 +561,7 @@ deploy-cori-staging-stress-tests:
       when: manual
   allow_failure: true
 
-deploy-jgi-staging-stress-tests:
+jgi-staging-stress-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "staging"
@@ -577,7 +577,7 @@ deploy-jgi-staging-stress-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-prod-smoke-tests:
+cori-prod-smoke-tests:
   stage: smoke-tests
   variables:
     DEPLOYMENT_NAME: "prod"
@@ -593,7 +593,7 @@ deploy-cori-prod-smoke-tests:
       when: manual
   allow_failure: true
 
-deploy-jgi-prod-smoke-tests:
+jgi-prod-smoke-tests:
   stage: smoke-tests
   variables:
     DEPLOYMENT_NAME: "prod"
@@ -609,7 +609,7 @@ deploy-jgi-prod-smoke-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-prod-deployment-tests:
+cori-prod-deployment-tests:
   stage: deployment-tests
   variables:
     DEPLOYMENT_NAME: "prod"
@@ -625,7 +625,7 @@ deploy-cori-prod-deployment-tests:
       when: manual
   allow_failure: true
 
-deploy-jgi-prod-deployment-tests:
+jgi-prod-deployment-tests:
   stage: deployment-tests
   variables:
     DEPLOYMENT_NAME: "prod"
@@ -641,7 +641,7 @@ deploy-jgi-prod-deployment-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-prod-stress-tests:
+cori-prod-stress-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "prod"
@@ -657,7 +657,7 @@ deploy-cori-prod-stress-tests:
       when: manual
   allow_failure: true
 
-deploy-jgi-prod-stress-tests:
+jgi-prod-stress-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "prod"
