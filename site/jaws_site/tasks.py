@@ -26,16 +26,19 @@ job_status_value = {
 
 class TaskLogDbError(Exception):
     """This is raised on database errors."""
+
     pass
 
 
 class TaskLogRunNotFoundError(Exception):
     """This is raised when the requested JAWS run_id is not found in the rdb."""
+
     pass
 
 
 class TaskLogError(Exception):
     """This is raised on db errors"""
+
     pass
 
 
@@ -342,7 +345,14 @@ def get_run_status(session, run_id: int) -> str:
             timestamp,
             reason,
         ) = task
-        max_task_status_value = max(max_task_status_value, job_status_value[status_to])
+        if status_to and status_to in job_status_value:
+            max_task_status_value = max(
+                max_task_status_value, job_status_value[status_to]
+            )
+        else:
+            logger.warn(
+                f"Run {run_id} get task status, job {cromwell_job_id} has unknown status: {status_to}"
+            )
     return "queued" if max_task_status_value < 4 else "running"
 
 
@@ -383,7 +393,9 @@ def get_task_log_error_messages(session, cromwell_job_id):
     try:
         error_messages = _select_task_log_error_messages(session, cromwell_job_id)
     except Exception as error:
-        logger.error(f"Error retrieving task log error messages for {cromwell_job_id}: {error}")
+        logger.error(
+            f"Error retrieving task log error messages for {cromwell_job_id}: {error}"
+        )
         return None
     else:
         return error_messages
