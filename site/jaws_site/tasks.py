@@ -343,7 +343,7 @@ def get_run_status(session, run_id: int) -> str:
             reason,
         ) = task
         max_task_status_value = max(max_task_status_value, job_status_value[status_to])
-    return "queued" if max_task_status_value < 3 else "running"
+    return "queued" if max_task_status_value < 4 else "running"
 
 
 def _select_task_log_error_messages(session, cromwell_job_id: str) -> list:

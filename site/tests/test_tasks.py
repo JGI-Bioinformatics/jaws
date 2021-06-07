@@ -260,7 +260,7 @@ def test_get_run_status(monkeypatch):
         101: None,
         102: "queued",
         103: "queued",
-        104: "running",
+        104: "queued",
         105: "running",
         106: "running",
     }
