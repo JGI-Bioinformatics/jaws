@@ -188,6 +188,7 @@ numprocs=1
 startsecs=10
 startretries=10
 autorestart=unexpected
+stopwaitsecs=3600
 
 [group:jaws-$DEPLOYMENT_NAME]
 programs=jaws-jtm,jaws-cromwell
