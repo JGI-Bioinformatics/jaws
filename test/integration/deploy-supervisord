@@ -59,9 +59,10 @@ prog=$1
 cat <<EOM > $SUPERVISOR_DIR/bin/$prog
 #!/usr/bin/env bash
 
+$SITE_LOAD_PYTHON
 source $SUPERVISOR_DIR/venv/bin/activate
 
-$prog \$@
+exec $prog \$@
 EOM
 chmod +x $SUPERVISOR_DIR/bin/$prog
 }
