@@ -35,6 +35,7 @@ fi
 
 
 # stop services
+module unload python
 $SITE_LOAD_PYTHON
 test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
 test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf stop jaws-$DEPLOYMENT_NAME:*
