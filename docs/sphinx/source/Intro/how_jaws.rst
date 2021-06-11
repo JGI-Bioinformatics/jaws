@@ -11,29 +11,31 @@ JAWS is a multi-site workflow manager that uses the `Cromwell <https://Cromwell.
 
 JAWS is composed of four main parts:
   
-	1) a command line interface (:bash:`jaws-client`) 
-	2) a centralized orchestration service (:bash:`jaws-central`), managing N sites.
-	3) a site service wrapping the workflow engine (:bash:`jaws-site`)
-	4) job submission manager which submits jobs to worker pools (:bash:`jaws-jtm`). It is designed to efficiently use the high performance computing (HPC) resources.
+	1) a command line interface: "Jaws Client") 
+	2) a centralized orchestration service: "Jaws Central", administering runs to multiple sites.
+	3) a site service that wraps the workflow engine, like Cromwell, and is installed on a compute Site.
+	4) a job submission manager which submits jobs to worker pools: "JTM" and is designed to efficiently use the high performance computing (HPC) resources.
 
 
 
 #########################
 Diagram of how JAWS works
 #########################
-Below is a diagram of JAWS. Note that there is some duplication of processes that is meant to demonstrate that "site" can be installed at multiple sites.   
+Below is a diagram of the JAWS architecture. Note that there is some duplication of processes that is meant to demonstrate that "site" can be installed at multiple sites.   
 
 The main takeaways here are 
 
-  * All the commands are from the command line and handled by (:bash:`jaws-client`).
-  * The :bash:`jaws-central` is a server that coordinates which site (e.g. JGI or CORI) the pipeline is run. 
+  * All the commands are from the command line and handled by (:bash:`Jaws Client`).
+  * The :bash:`Jaws Central` is a server that coordinates which compute-site (e.g. LabIT or NERSC) the pipeline is run. 
   * `GLOBUS <https://globus.org/>`_ transfers all your files from your data source to the computing-site where Cromwell will actually run. 
-  * Cromwell will run the pipeline at the compute-site.
-  * The JTM (JGI Task Manager) (:bash:`jaws-jtm`) serves as the backend to Cromwell and handles the running of the jobs. 
+  * Cromwell is the workflow engine that will run the pipeline at the compute-site.
+  * The JTM (JGI Task Manager) (:bash:`JTM`) serves as the backend to Cromwell and handles the running of the jobs on a HPC cluster. 
 
 
-.. figure:: /Figures/JAWS-Arch.svg
+.. figure:: /Figures/jaws_architecture_2.0-Architecture.svg
    :scale: 100%
+
+click on the image to enlarge   
 
 |
 |
