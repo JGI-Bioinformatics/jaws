@@ -1,54 +1,21 @@
 ===================================
-How to Register and Share Workflows 
+How to Share Workflows 
 ===================================
 
 .. role:: bash(code)
    :language: bash
 
+You can share JGI workflows with the scientific community by adding them to the JGI maintained gitlab group `JGI WDL Pipelines <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories>`_. A gitlab group is just a collection of repositories that share permissions. 
 
-****************************
-Registering your WDL to JAWS
-****************************
-By adding your workflow to the JAWS catalog, you are making it available to all JAWS users.  This also archives workflows so people can point to older versions for data reproducibility reasons.
+There are two options: 
+  1. you can just create a link in this group to your existing repository 
+  2. you can create the repository under this group.
 
-There are two required files
+Directions are under the readme `How to Add Projects to this Group <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/how-to-add-projects>`_
 
-   1. README.md file describing the workflow
-   2. WDL 
+| 
 
-
-The README.md
--------------
-
-The purpose of the README.md will be to allow the public to run and understand your workflow and even take it to modify for their own purposes. 
-
-The README.md should include things like:
-
-    1. **what does workflow accomplish.**
-
-    2. **description of important tasks/stages.**
-       The first two points need to help a potential user understand if they should use this workflow.
-
-    3. **how to recreate running environment.**
-       We want to encourage the re-use of code so if docker images were used in the WDL, the location of the dockerfile should be provided (e.g. in hub.docker.com) or a Dockerfile saved inside the developers git repository. Otherwise, explain how the running environment can be re-created so a potential developer could take this WDL and modify it. 
-    4. **description of the inputs.**
-    5. **how to interpret the outputs.**
-    6. **Owner of the workflow.** 
-       Who will be responsible for updating this workflow and what is their email.   
-
-
-
-Add your WDL to the catalog
+The Group's Page Looks Like
 ---------------------------
 
-.. code-block:: text
-
-    jaws wdl add <wdl name> <my.wdl> <version> <readme.md>
-
-
-Use this command to see if your WDL was registered with JAWS 
-
-.. code-block:: text
-
-   jaws wdl list
-
+.. figure:: /Figures/jgi-wdl-pipelines.png

@@ -1,6 +1,0 @@
-{
-  "annotation.num_splits": 1,
-  "annotation.imgap_input_dir": "/global/scratch/jfroula/JAWS/img-omics-wdl/splits",
-  "annotation.imgap_input_fasta": "Ga0399893_contigs.fna",
-  "annotation.imgap_project_id": "Ga0399893"
-}

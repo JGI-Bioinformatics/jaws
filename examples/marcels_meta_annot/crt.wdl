@@ -2,22 +2,20 @@ workflow crt {
 
   String imgap_input_fasta
   String imgap_project_id
-  String output_dir
-  String crt_transform_bin
+  String container
 
   call run {
     input:
       input_fasta = imgap_input_fasta,
       project_id = imgap_project_id,
-      out_dir = output_dir
+      container=container
   }
 
   call transform {
     input:
-      transform_bin = crt_transform_bin,
       project_id = imgap_project_id,
       crt_out = run.out,
-      out_dir = output_dir
+      container=container
   }
 
   output {
@@ -28,22 +26,24 @@ workflow crt {
 
 task run {
 
+  String jar="java -Xmx1536m -jar /opt/omics/bin/CRT-CLI.jar"
   File   input_fasta
   String project_id
-  String out_dir
+  String container
 
   command {
-    java -Xmx1536m -jar /opt/omics/bin/CRT-CLI.jar ${input_fasta} ${project_id}_crt.out
+    ${jar} ${input_fasta} ${project_id}_crt.out
   }
 
   runtime {
-    time: "02:00:00"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
+    shared: 1
     memory: "115G"
-    poolname: "catalan-crt"
-    node: 5
+    poolname: "crt"
+    node: 1
     nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
-	shared: 1
   }
 
   output {
@@ -53,26 +53,29 @@ task run {
 
 task transform {
 
-  String transform_bin
+  String jar="java -Xmx1536m -jar /opt/omics/bin/CRT-CLI.jar"
+  String transform_bin="/opt/omics/bin/structural_annotation/transform_crt_output.py"
   File   crt_out
   String project_id
   String crt_out_local = basename(crt_out)
-  String out_dir
+  String container
 
   command {
+    set -uo pipefail  # java returns error code 1 even apon success so remove set -e
     mv ${crt_out} ./${crt_out_local}
-    tool_and_version=$(java -Xmx1536m -jar /opt/omics/bin/CRT-CLI.jar -version | cut -d' ' -f1,6)
+    tool_and_version=$(${jar} -version | cut -d' ' -f1,6)
     ${transform_bin} ${crt_out_local} "$tool_and_version"
   }
 
   runtime {
-    time: "02:00:00"
+    time: "1:00:00"
+    memory: "86G"
+    docker: container
+    shared: 1
     memory: "115G"
-    poolname: "catalan-crt"
-    node: 5
+    poolname: "crt"
+    node: 1
     nwpn: 1
-    docker: "jfroula/img-omics:0.1.1"
-	shared: 1
   }
 
   output{

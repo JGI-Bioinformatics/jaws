@@ -80,8 +80,12 @@ class JtmAmqpstormBase(object):
             except amqpstorm.AMQPError as why:
                 logger.exception(why)
                 if self.max_retries and attempts > self.max_retries:
+                    logger.critical(
+                        "Failed to create a rmq connection."
+                    )
                     break
                 time.sleep(min(attempts * 2, 30))
+                logger.warning(f"Retry to send a heartbeat to the manager: trial #{attempts}")
             except KeyboardInterrupt:
                 break
 
