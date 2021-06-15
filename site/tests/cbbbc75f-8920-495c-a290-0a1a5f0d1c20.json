@@ -1,0 +1,196 @@
+{
+    "actualWorkflowLanguage": "WDL",
+    "actualWorkflowLanguageVersion": "draft-2",
+    "calls": {
+        "bbmap_shard_wf.bbmap_indexing": [
+    	{
+    	    "attempt": 1,
+    	    "backend": "JTM",
+    	    "callCaching": {
+    		"allowResultReuse": false,
+    		"effectiveCallCachingMode": "CallCachingOff",
+    		"hit": false,
+    		"result": "Cache Miss"
+    	    },
+    	    "end": "2021-05-11T19:21:12.908Z",
+    	    "executionEvents": [
+    		{
+    		    "description": "PreparingJob",
+    		    "endTime": "2021-05-11T19:21:12.120Z",
+    		    "startTime": "2021-05-11T19:21:12.045Z"
+    		},
+    		{
+    		    "description": "CheckingJobStore",
+    		    "endTime": "2021-05-11T19:21:11.998Z",
+    		    "startTime": "2021-05-11T19:21:11.945Z"
+    		},
+    		{
+    		    "description": "CallCacheReading",
+    		    "endTime": "2021-05-11T19:21:12.039Z",
+    		    "startTime": "2021-05-11T19:21:11.998Z"
+    		},
+    		{
+    		    "description": "RequestingExecutionToken",
+    		    "endTime": "2021-05-11T19:21:11.945Z",
+    		    "startTime": "2021-05-11T19:21:11.331Z"
+    		},
+    		{
+    		    "description": "Pending",
+    		    "endTime": "2021-05-11T19:21:11.331Z",
+    		    "startTime": "2021-05-11T19:21:11.318Z"
+    		},
+    		{
+    		    "description": "UpdatingJobStore",
+    		    "endTime": "2021-05-11T19:21:12.909Z",
+    		    "startTime": "2021-05-11T19:21:12.165Z"
+    		},
+    		{
+    		    "description": "WaitingForValueStore",
+    		    "endTime": "2021-05-11T19:21:12.045Z",
+    		    "startTime": "2021-05-11T19:21:12.039Z"
+    		},
+    		{
+    		    "description": "RunningJob",
+    		    "endTime": "2021-05-11T19:21:12.165Z",
+    		    "startTime": "2021-05-11T19:21:12.120Z"
+    		}
+    	    ],
+    	    "executionStatus": "Failed",
+    	    "failures": [
+    		{
+    		    "causedBy": [],
+    		    "message": "No backend job for bbmap_shard_wf.bbmap_indexing:NA:1 could be found. The status of the underlying job cannot be known."
+    		}
+    	    ],
+    	    "inputs": {
+    		"reference": "/global/cscratch1/sd/jaws/jaws-dev/inputs/ekirton/CORI/global/cscratch1/sd/ekirton/jaws-tutorial-examples/data/sample.fasta"
+    	    },
+    	    "retryableFailure": false,
+    	    "shardIndex": -1,
+    	    "start": "2021-05-11T19:21:11.310Z"
+    	}
+        ],
+        "bbmap_shard_wf.shard": [
+    	{
+    	    "attempt": 1,
+    	    "backend": "JTM",
+    	    "callCaching": {
+    		"allowResultReuse": false,
+    		"effectiveCallCachingMode": "CallCachingOff",
+    		"hit": false,
+    		"result": "Cache Miss"
+    	    },
+    	    "end": "2021-05-11T19:21:14.872Z",
+    	    "executionEvents": [
+    		{
+    		    "description": "WaitingForValueStore",
+    		    "endTime": "2021-05-11T19:21:13.999Z",
+    		    "startTime": "2021-05-11T19:21:13.998Z"
+    		},
+    		{
+    		    "description": "UpdatingJobStore",
+    		    "endTime": "2021-05-11T19:21:14.872Z",
+    		    "startTime": "2021-05-11T19:21:14.065Z"
+    		},
+    		{
+    		    "description": "RunningJob",
+    		    "endTime": "2021-05-11T19:21:14.065Z",
+    		    "startTime": "2021-05-11T19:21:14.036Z"
+    		},
+    		{
+    		    "description": "PreparingJob",
+    		    "endTime": "2021-05-11T19:21:14.036Z",
+    		    "startTime": "2021-05-11T19:21:13.999Z"
+    		},
+    		{
+    		    "description": "RequestingExecutionToken",
+    		    "endTime": "2021-05-11T19:21:13.935Z",
+    		    "startTime": "2021-05-11T19:21:11.331Z"
+    		},
+    		{
+    		    "description": "Pending",
+    		    "endTime": "2021-05-11T19:21:11.331Z",
+    		    "startTime": "2021-05-11T19:21:11.318Z"
+    		},
+    		{
+    		    "description": "CallCacheReading",
+    		    "endTime": "2021-05-11T19:21:13.998Z",
+    		    "startTime": "2021-05-11T19:21:13.968Z"
+    		},
+    		{
+    		    "description": "CheckingJobStore",
+    		    "endTime": "2021-05-11T19:21:13.968Z",
+    		    "startTime": "2021-05-11T19:21:13.935Z"
+    		}
+    	    ],
+    	    "executionStatus": "Failed",
+    	    "failures": [
+    		{
+    		    "causedBy": [],
+    		    "message": "No backend job for bbmap_shard_wf.shard:NA:1 could be found. The status of the underlying job cannot be known."
+    		}
+    	    ],
+    	    "inputs": {
+    		"bname": "sample.fastq.bz2",
+    		"chunk_size": 100000000,
+    		"reads": "/global/cscratch1/sd/jaws/jaws-dev/inputs/ekirton/CORI/global/cscratch1/sd/ekirton/jaws-tutorial-examples/data/sample.fastq.bz2"
+    	    },
+    	    "retryableFailure": false,
+    	    "shardIndex": -1,
+    	    "start": "2021-05-11T19:21:11.305Z"
+    	}
+        ]
+    },
+    "end": "2021-05-11T19:21:21.506Z",
+    "id": "cbbbc75f-8920-495c-a290-0a1a5f0d1c20",
+    "inputs": {
+        "bbmap_shard_wf.alignment.threads": 4,
+        "bbmap_shard_wf.chunk_size": 100000000,
+        "bbmap_shard_wf.reads": "/global/cscratch1/sd/jaws/jaws-dev/inputs/ekirton/CORI/global/cscratch1/sd/ekirton/jaws-tutorial-examples/data/sample.fastq.bz2",
+        "bbmap_shard_wf.reference": "/global/cscratch1/sd/jaws/jaws-dev/inputs/ekirton/CORI/global/cscratch1/sd/ekirton/jaws-tutorial-examples/data/sample.fasta"
+    },
+    "labels": {
+        "cromwell-workflow-id": "cromwell-cbbbc75f-8920-495c-a290-0a1a5f0d1c20"
+    },
+    "metadataSource": "Unarchived",
+    "outputs": {},
+    "start": "2021-05-11T19:21:08.370Z",
+    "status": "Aborted",
+    "submission": "2021-05-11T19:18:23.968Z",
+    "submittedFiles": {
+        "inputs": "{\"bbmap_shard_wf.reads\":\"/global/cscratch1/sd/jaws/jaws-dev/inputs/ekirton/CORI/global/cscratch1/sd/ekirton/jaws-tutorial-examples/data/sample.fastq.bz2\",\"bbmap_shard_wf.reference\":\"/global/cscratch1/sd/jaws/jaws-dev/inputs/ekirton/CORI/global/cscratch1/sd/ekirton/jaws-tutorial-examples/data/sample.fasta\"}",
+        "labels": "{}",
+        "options": "{\n\n}",
+        "root": "",
+        "workflow": "workflow bbmap_shard_wf {\n    meta {\n        version: '0.1.0'\n        author: 'Jeff Froula <jlfroula@lbl.gov>'\n    }\n\n    File reads\n    File reference\n    Int chunk_size=100000000\n\n    call shard {\n        input: reads = reads,\n        chunk_size=chunk_size\n    }\n    call bbmap_indexing {\n        input: reference = reference\n    }\n\n    Array[String] shard_array = shard.shards\n\n    scatter(coords in shard_array) {\n        call alignment {\n        input: reads = reads,\n               ref = bbmap_indexing.ref,\n               coords = coords\n        }\n    }\n\n    call merge_bams {\n      input: bams = alignment.bam\n    }\n\n    # this is the final output that will accessable to any workflows\n    # that calls this as a sub-workflow.\n    output {\n       File merged_bam_file = merge_bams.merged\n    }\n}\n\n### -------------------- ###\ntask shard {\n    File reads\n    String bname = basename(reads)\n    Int chunk_size\n\n    command {\n        set -e -o pipefail\n        fastq_indexer.py --input ${reads} --output ${bname}.index\n        create_blocks.py -if ${bname}.index -ff ${reads} -of ${bname}.sharded -bs ${chunk_size}\n    }\n\n    output {\n        Array[String] shards = read_lines(\"${bname}.sharded\")\n    }\n\n    runtime {\n        docker: \"jfroula/jaws-sharding:1.0.10\"\n        poolname: \"extrasmall\"\n        shared: 0\n        node: 1\n        nwpn: 1\n        memory: \"5G\"\n        time: \"00:10:00\"\n    }\n}\n\ntask bbmap_indexing {\n    File reference\n\n    command {\n        bbmap.sh ref=${reference} \n    }\n\n    output {\n        File ref = \"ref\"\n    }\n\n    runtime {\n        docker: \"jfroula/aligner-bbmap:1.1.9\"\n\t    poolname: \"extrasmall\"\n        shared: 0\n        node: 1\n        nwpn: 1\n        memory: \"5G\"\n        time: \"00:10:00\"\n    }\n}\n\ntask alignment {\n    File reads\n    File ref\n    String coords\n    Int threads=4\n    String bname = basename(reads)\n    String path_to_ref = sub(ref, \"/ref\", \"\")\n\n    command<<<\n        start=$(echo ${coords} | awk '{print $1}')\n        end=$(echo ${coords} | awk '{print $2}')\n\n        # we are piping a block of the fastq sequence to the aligner \n        shard_reader.py -i ${reads} -s $start -e $end | \\\n        bbmap.sh int in=stdin.fq path=${path_to_ref} out=${bname}.sam overwrite keepnames mappedonly threads=${threads}\n\n        # create a sorted bam file from the sam file\n        samtools view -uS ${bname}.sam | \\\n        samtools sort - -o ${bname}.sorted.bam\n    >>>\n\n    output {\n        File bam = \"${bname}.sorted.bam\"\n    }\n\n    runtime {\n        docker: \"jfroula/aligner-bbmap:1.1.9\"\n        poolname: \"extrasmall\"\n        shared: 0\n        node: 1\n        nwpn: 1\n        memory: \"5G\"\n        time: \"00:10:00\"\n    }\n}\ntask merge_bams {\n    Array[File] bams\n\n    command {\n        picard MergeSamFiles I=${sep=' I=' bams} OUTPUT=merged.sorted.bam SORT_ORDER=coordinate ASSUME_SORTED=true USE_THREADING=true\n    }\n\n    output {\n       File merged = \"merged.sorted.bam\"\n    }\n\n    runtime {\n        docker: \"jfroula/aligner-bbmap:1.1.9\"\n        poolname: \"extrasmall\"\n        shared: 0\n        node: 1\n        nwpn: 1\n        memory: \"5G\"\n        time: \"00:10:00\"\n   }\n}\n\n",
+        "workflowUrl": ""
+    },
+    "workflowName": "bbmap_shard_wf",
+    "workflowProcessingEvents": [
+        {
+    	"cromwellId": "cromid-89d1c3d",
+    	"cromwellVersion": "52",
+    	"description": "PickedUp",
+    	"timestamp": "2021-05-11T19:21:08.327Z"
+        },
+        {
+    	"cromwellId": "cromid-8bba36a",
+    	"cromwellVersion": "52",
+    	"description": "PickedUp",
+    	"timestamp": "2021-05-11T19:18:24.394Z"
+        },
+        {
+    	"cromwellId": "cromid-8bba36a",
+    	"cromwellVersion": "52",
+    	"description": "Released",
+    	"timestamp": "2021-05-11T19:20:46.260Z"
+        },
+        {
+    	"cromwellId": "cromid-89d1c3d",
+    	"cromwellVersion": "52",
+    	"description": "Finished",
+    	"timestamp": "2021-05-11T19:21:21.507Z"
+        }
+    ],
+    "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/bbmap_shard_wf/cbbbc75f-8920-495c-a290-0a1a5f0d1c20"
+}

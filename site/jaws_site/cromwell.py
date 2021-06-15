@@ -85,58 +85,36 @@ class Task:
     def execution_status(self, attempt=None):
         return self.get("executionStatus", attempt)
 
-    def failures(self, attempt=None):
+    def errors(self):
         """
-        Return failures dict for specified attempt (last, if unspecified).
-        :param attempt: attempt number (first is 1; default is last)
-        :type attempt: int
-        :return: failures record
+        Return user friendly errors report for this task.
+        :return: Errors report
         :rtype: dict
         """
-        if attempt is None:
-            index = -1  # last attempt
-        else:
-            attempt = int(attempt)
-            if attempt == 0 or attempt > len(self.calls):
-                raise ValueError("Invalid attempt; of out range")
-            else:
-                index = attempt - 1
-        if "failures" in self.calls[index]:
-            return self.calls[index]["failures"]
-        else:
-            return None
-
-    def error(self, attempt=None):
-        """
-        Return user friendly error message plus stderr file contents.
-        :param attempt: attempt number (first is 1; default is last)
-        :type attempt: int
-        :return: Error messages and stderr
-        :rtype: str
-        """
-        failures = self.failures(attempt)
-        if not failures:
-            return None
-        msgs = []
-        for failure in failures:
-            msg = failure["message"]
-            msgs.append(msg)
-            for cause in failure["causedBy"]:
-                msgs.append(cause["message"])
-        msg = "\n".join(msgs)
-
-        # append standard error (if exists)
-        stderr_file = self.stderr(attempt)
-        if stderr_file and os.path.isfile(stderr_file):
-            with open(stderr_file, "r") as file:
-                msg = f"{msg}\nstderr:\n" + file.read()
-
-        # append standard output (if exists)
-        stdout_file = self.stdout(attempt)
-        if stdout_file and os.path.isfile(stdout_file):
-            with open(stdout_file, "r") as file:
-                msg = f"{msg}\nstdout:\n" + file.read()
-        return msg
+        full_report = []
+        for call in self.calls:
+            if call.get("executionStatus") == "Failed":
+                report = {}
+                report["attempt"] = call["attempt"]
+                if "callCaching" in call:
+                    report["callCaching"] = call["callCaching"]
+                report["failures"] = call["failures"]
+                if "jobId" in call:
+                    report["jobId"] = call["jobId"]
+                if "runtimeAttributes" in call:
+                    report["runtimeAttributes"] = call["runtimeAttributes"]
+                report["shardIndex"] = call["shardIndex"]
+                if "stderr" in call:
+                    stderr_file = call["stderr"]
+                    if os.path.isfile(stderr_file):
+                        with open(stderr_file, "r") as file:
+                            report["stderr"] = file.read()
+                    stderr_submit_file = f"{stderr_file}.submit"
+                    if os.path.isfile(stderr_submit_file):
+                        with open(stderr_submit_file, "r") as file:
+                            report["stderr.submit"] = file.read()
+                full_report.append(report)
+        return full_report
 
     def stdout(self, attempt=None, src=None, dest=None):
         """
@@ -175,6 +153,9 @@ class Task:
         if src and dest:
             path = os.path.join(dest, os.path.relpath(src, path))
         return path
+
+    def runtime(self, attempt=None):
+        return self.get("runtimeAttributes", attempt, {})
 
 
 class CromwellException(Exception):
@@ -280,6 +261,9 @@ class Metadata:
         """
         return self.data.get(param, default)
 
+    def workflow_root(self):
+        return self.get("workflowRoot", None)
+
     def is_subworkflow(self):
         return True if "parentWorkflowId" in self.data else False
 
@@ -292,16 +276,50 @@ class Metadata:
             result[task.name] = task.execution_status()
         return result
 
+    def failure_reason(self):
+        """
+        Return standard message of reason for failure, without detail.
+        If there is more than one failure, only the first is returned.
+        Example messages are:
+        - "Workflow failed" (a Task had failde)
+        - "Workflow input processing failed" (an infile was not found)
+        """
+        reason = None
+        failures = self.get("failures")
+        if failures:
+            reason = failures[0]["message"]
+        return reason
+
+    def filtered_failures(self):
+        """
+        Filter failurs with message "Workflow failed", as those failures are duplicated in the Tasks.
+        :return: list of failures
+        :rtype: list
+        """
+        failures = self.get("failures", [])
+        filtered_failures = []
+        for failure in failures:
+            if failure["message"].lower() != "workflow failed":
+                filtered_failures.append(failure)
+        return filtered_failures
+
     def errors(self):
         """
-        Return dict of task name to error messages, for last attempt of each task.
+        Return JSON errors report.
         """
-        result = {}
+        report = {}
+        task_errors = {}
         for task in self.tasks:
-            an_error = task.error()
-            if an_error:
-                result[task.name] = an_error
-        return result
+            task_report = task.errors()
+            if len(task_report):
+                task_errors[task.name] = task_report
+        if len(task_errors):
+            report["calls"] = task_errors
+        other_failures = self.filtered_failures()
+        if len(other_failures):
+            report["failures"] = self.filtered_failures()
+            report["inputs"] = self.get("inputs")
+        return report
 
     def task_summary(self):
         """
@@ -311,7 +329,9 @@ class Metadata:
         for task in self.tasks:
             for call in task.calls:
                 if "jobId" in call:
-                    summary.append([self.workflow_id, task.name, call["attempt"], call["jobId"]])
+                    summary.append(
+                        [self.workflow_id, task.name, call["attempt"], call["jobId"]]
+                    )
                 elif "subWorkflowId" in call:
                     subworkflow_id = call["subWorkflowId"]
                     subworkflow = task.subworkflows[subworkflow_id]
@@ -364,6 +384,21 @@ class Cromwell:
             result[sub_id] = sub_meta.data
         return result
 
+    def get_all_errors(self, workflow_id: str, cache: dict = {}):
+        """Get dict of all runs => errors json for run and all subworkflows.
+
+        :param workflow_id: primary key used by Cromwell
+        :type workflow_id: str
+        :return: all errors docs { workflow_id => errors obj }
+        :rtype: dict
+        """
+        result = {}
+        metadata = Metadata(self.workflows_url, workflow_id, None, cache)
+        result[workflow_id] = metadata.errors()
+        for sub_id, sub_meta in metadata.subworkflows.items():
+            result[sub_id] = sub_meta.errors()
+        return result
+
     def status(self):
         """Check if Cromwell is available"""
         try:
@@ -382,7 +417,13 @@ class Cromwell:
             raise error
         response.raise_for_status()
 
-    def submit(self, wdl_file: str, json_file: str, zip_file: str = None) -> int:
+    def submit(
+        self,
+        wdl_file: str,
+        json_file: str,
+        zip_file: str = None,
+        options_file: str = None,
+    ) -> int:
         """
         Submit a run to Cromwell.
         :param wdl_file: Path to WDL file
@@ -391,6 +432,8 @@ class Cromwell:
         :type json_file: str
         :param zip_file: Path to subworkflows ZIP file (optional)
         :type zip_file: str
+        :param options_file: Path to options JSON file (optional)
+        :type options_file: str
         :return: Cromwell workflow uuid
         :rtype: str
         """
@@ -423,6 +466,16 @@ class Cromwell:
                 )
             except Exception as error:
                 raise IOError(f"Unable to open file, {zip_file}: {error}")
+        if options_file:
+            try:
+                files["workflowOptions"] = (
+                    "workflowOptions",
+                    open(options_file, "r"),
+                    "application/json",
+                )
+            except Exception as error:
+                logger.exception(f"Unable to open file, {options_file}: {error}")
+                raise IOError(f"Unable to open file, {options_file}: {error}")
         try:
             response = requests.post(self.workflows_url, files=files)
         except requests.ConnectionError as error:

@@ -18,7 +18,7 @@ The `Joint Genome Institute <https://jgi.doe.gov>`_ has developed JAWS (JGI Anal
 
 
 Some Definitions
-----------------
+-----------------
 
 +---------------------+------------------------------------------------------------------------------+
 |:chocolate:`WDL`     | | The Workflow Description Language is essentially a                         |
@@ -50,6 +50,7 @@ Some Definitions
    What is JAWS <Intro/how_jaws>
    JAWS Video Library<Intro/videos>
    FAQ <Intro/faq>
+   Known Issues <Intro/known_issues>
    Contact Us <Intro/contact_us>
 
 .. toctree::
@@ -72,7 +73,6 @@ Some Definitions
    Subworkflows <Tutorials/subworkflows>
    Current JGI Workflows </Specifications/current_workflows>
    Using Reference Data </Specifications/refdata>
-   Known Issues </Specifications/known_issues>
 
 .. toctree::
    :hidden:
@@ -86,5 +86,6 @@ Some Definitions
    Write a WDL <Tutorials/building_wdls>
    Best Practices for WDLs <Intro/best_practices>
    Runtime Options <Specifications/configuringJTM_in_wdls>
+   Code Snippets  <Tutorials/snippets>
    Registering your Workflow <Tutorials/register_wdl>
 

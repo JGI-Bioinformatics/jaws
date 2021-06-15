@@ -12,7 +12,7 @@ variables:
 
   ## GLOBAL INSTALL VARIABLES:
   JAWS_SITES: "CORI JGI"
-  JAWS_VERSION: "2.2.0"
+  JAWS_VERSION: "2.3.0"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_CENTRAL_RMQ_HOST: "rmq.lbl.gov"
@@ -90,7 +90,6 @@ variables:
   CORI_CLUSTER_CONSTRAINT: "haswell"
   CORI_MAX_RAM_GB: 2048
   CORI_LOAD_JAVA: ""
-  CORI_STAGING_USER_BASEDIR: "/global/cscratch1/sd/jaws"
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
 
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
@@ -120,7 +119,6 @@ variables:
   JGI_CLUSTER_CONSTRAINT: ""
   JGI_MAX_RAM_GB: 250
   JGI_LOAD_JAVA: "module load java"
-  JGI_STAGING_USER_BASEDIR: "/global/scratch/jaws"
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
 
   CASCADE_INSTALL_BASEDIR: "/tmp"
@@ -150,6 +148,7 @@ variables:
   CASCADE_CLUSTER_CONSTRAINT: ""
   CASCADE_MAX_RAM_GB: 1024  #TODO: Find a more accurate number
   CASCADE_LOAD_JAVA: ":"  # no-op
+  CASCADE_DATA_REPO_BASEDIR: "/dtemp/mscjgi"
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
@@ -170,9 +169,12 @@ test-rpc:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
     - pip install -r rpc/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip install flake8 pytest pytest-cov
     - make test-rpc
+  artifacts:
+    reports:
+      junit: rpc/rpc.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
 test-site:
   <<: *only-default
   stage: unit-test
@@ -181,9 +183,12 @@ test-site:
     - source test-venv/bin/activate
     - pip install rpc/
     - pip install -r site/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip install flake8 pytest pytest-cov
     - make test-site
+  artifacts:
+    reports:
+      junit: site/site.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
 test-central:
   <<: *only-default
   stage: unit-test
@@ -192,9 +197,12 @@ test-central:
     - source test-venv/bin/activate
     - pip install rpc/
     - pip install -r central/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip install flake8 pytest pytest-cov
     - make test-central
+  artifacts:
+    reports:
+      junit: central/central.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
 test-client:
   <<: *only-default
   stage: unit-test
@@ -204,9 +212,12 @@ test-client:
     - python3 -m venv test-venv
     - source test-venv/bin/activate
     - pip install -r client/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip install flake8 pytest pytest-cov
     - make test-client
+  artifacts:
+    reports:
+      junit: client/client.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
 test-jtm:
   <<: *only-default
   stage: unit-test
@@ -215,9 +226,13 @@ test-jtm:
     - source test-venv/bin/activate
     - pip install rpc/
     - pip install -r jtm/requirements.txt
-    - pip install flake8
-    - pip install pytest
+    - pip install flake8 pytest pytest-cov
     - make test-jtm
+  artifacts:
+    reports:
+      junit: jtm/jtm.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+
 package:
   <<: *only-default
   stage: package
@@ -371,7 +386,7 @@ deploy-jaws-cascade-dev:
   only:
     - dev
 
-deploy-jaws-cori-dev-integration-tests:
+deploy-cori-dev-integration-tests:
   stage: integration-test
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -380,12 +395,44 @@ deploy-jaws-cori-dev-integration-tests:
     CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
-  environment:
-    name: "cori/dev"
   script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh single-test
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
-    - when: never
   allow_failure: true
+
+deploy-cori-dev-integration-tests:
+  stage: integration-test
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
+
+deploy-cori-staging-integration-tests:
+  stage: integration-test
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
+

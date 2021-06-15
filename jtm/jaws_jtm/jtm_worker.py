@@ -296,7 +296,6 @@ def run_user_task(msg_unzipped):
     Run a user command in msg_zipped_to_send
 
     :param msg_unzipped: uncompressed msg from client
-    :param return_msg: msg to return
     :return:
     """
     return_msg = {}
@@ -305,7 +304,6 @@ def run_user_task(msg_unzipped):
     logger.info(f"User task to run: {msg_unzipped}")
     task_id = msg_unzipped["task_id"]
     user_task_cmd = msg_unzipped["user_cmd"]
-    out_files = msg_unzipped["output_files"]
     task_type = msg_unzipped["task_type"]
 
     return_msg["task_id"] = task_id
@@ -412,7 +410,6 @@ def run_user_task(msg_unzipped):
         logger.error("subprocess call failed")
 
     # Prepare result to send back
-    return_msg["out_files"] = out_files
     return_msg["worker_id"] = UNIQ_WORKER_ID
     return_msg["host_name"] = socket.gethostname()
 
@@ -436,39 +433,8 @@ def run_user_task(msg_unzipped):
             return_msg["ret_msg"] = "Input file or command not found."
         elif proc_return_code == 0:  # system code
             logger.info("Task# %s completed!" % (str(task_id)))
-
-            # Output file checking
-            if out_files:
-                ofs = out_files.split(",")
-                logger.debug("Number of output files = %d.", len(ofs))
-                out_file_list = []
-
-                for i in range(len(ofs)):
-                    out_file_list.append(ofs[i])
-
-                ret, file_size = check_output(
-                    out_file_list,
-                    CONFIG.configparser.getfloat("JTM", "file_check_interval"),
-                    CONFIG.configparser.getint("JTM", "file_checking_max_trial"),
-                    CONFIG.configparser.getfloat("JTM", "file_check_int_inc"),
-                )
-
-                if not ret:
-                    ret_msg_str = (
-                        "Failed to check output file(s): %s, file size = %s."
-                        % (ofs, file_size)
-                    )
-                    logger.critical(ret_msg_str)
-                    return_msg["done_flag"] = done_f["failed to check output file(s)"]
-                    return_msg["ret_msg"] = ret_msg_str
-                else:
-                    return_msg["done_flag"] = done_f[
-                        "success with correct output file(s)"
-                    ]
-                    return_msg["ret_msg"] = "Output file checking is OK."
-            else:
-                return_msg["done_flag"] = done_f["success"]
-                return_msg["ret_msg"] = ""
+            return_msg["done_flag"] = done_f["success"]
+            return_msg["ret_msg"] = ""
         else:
             logger.critical(
                 "Failed to execute a task, %s. Non-zero exit code. stdout = %s."
@@ -480,64 +446,6 @@ def run_user_task(msg_unzipped):
     logger.info("Reply msg prepared with result: %s" % str(return_msg))
 
     return return_msg
-
-
-# -------------------------------------------------------------------------------
-def check_output(
-    out_files,
-    out_file_check_wait_time=3,
-    max_trial=3,
-    out_file_check_wait_time_increase=1.5,
-):
-    """
-    Check 1) existence, 2) size>0 for each file in out_files
-
-    :param out_files: list of absolute paths to the output files to check
-    :param out_file_check_wait_time: sleep time between output file checking before retiral
-    :param max_trial: max trial for checking
-    :param out_file_check_wait_time_increase: wait time increase for retrial
-    :return:
-    """
-    file_size = 0
-    b_is_file_found = False
-    trial = 1
-
-    for a_file in out_files:
-        logger.info("Output file check: %s", a_file)
-        logger.debug("Output file check: %s", os.path.expandvars(a_file))
-        a_file = os.path.expandvars(a_file)
-
-        file_size = 0
-        b_is_file_found = False
-
-        while trial < max_trial:
-            logger.info("Output file checking. Trial# = %d", trial)
-
-            # First, check file existence
-            # os.path.exists returns if it is a valid path(check for directory or file, both)
-            # and os.path.isfile(checks for only file, not directory) returns if it is a file
-            b_is_file_exist = os.path.isfile(a_file)
-
-            # If exist, check file size
-            if b_is_file_exist:
-                file_size = os.path.getsize(a_file)
-                if file_size == 0:
-                    logger.warning("File, %s is zero size.", a_file)
-                if file_size > 0:
-                    b_is_file_found = True
-                    logger.info("Output file '%s' is OK.", a_file)
-                    break
-            else:
-                logger.info("Outout file not found.")
-
-            # Wait for initial wait time
-            time.sleep(out_file_check_wait_time)
-
-            # Increase the wait time
-            out_file_check_wait_time *= out_file_check_wait_time_increase
-            trial += 1
-
-    return b_is_file_found, file_size
 
 
 # -------------------------------------------------------------------------------
@@ -578,207 +486,195 @@ def send_hb_to_client_proc(
         ncore_param = num_cores
     hb_msg = CONFIG.constants.HB_MSG
     w_type = CONFIG.constants.WORKER_TYPE
+    task_id = 0
+    proc_id_list_merged = list()
+    vmem_usage_list = list()
+    rmem_usage_list = list()
+    cpu_load_list = list()
+    end_date_time = None
+    while True:
+        # NOTE: must cope with the fast mem consumption at the begining of the process
+        if USER_PROC_PROC_ID.value == 0:
+            child_pid = PARENT_PROCESS_ID
+        else:
+            child_pid = int(USER_PROC_PROC_ID.value)
 
-    # Expiration set to 6000ms
-    def publish_message(channel, body, queue, expiration="6000"):
-        # Create the message with a expiration (time to live).
-        # default 6000ms.
-        message = amqpstorm.Message.create(
-            channel, body, properties={"expiration": expiration}
-        )
-        # Publish the message to a queue.
-        message.publish(queue)
-
-    with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
-        with conn.channel() as ch:
-            ch.exchange.declare(
-                exchange=exch_name,
-                exchange_type="direct",
-                durable=False,
-                auto_delete=False,
-            )
-            task_id = 0
-            proc_id_list_merged = list()
-            vmem_usage_list = list()
-            rmem_usage_list = list()
-            cpu_load_list = list()
-            end_date_time = None
-
-            while True:
-                # NOTE: must cope with the fast mem consumption at the begining of the process
-                if USER_PROC_PROC_ID.value == 0:
+        # Collect pids from process tree
+        try:
+            root_pid_num = get_pid_tree(PARENT_PROCESS_ID)
+            if PARENT_PROCESS_ID != child_pid:
+                if child_pid == -9:  # if it's terminated by "kill"
                     child_pid = PARENT_PROCESS_ID
+                pid_list_child = get_pid_tree(child_pid)
+                if len(pid_list_child) > 0:
+                    proc_id_list_merged = root_pid_num + pid_list_child[1:]
                 else:
-                    child_pid = int(USER_PROC_PROC_ID.value)
+                    # NOTE: be careful on this resetting! Might lose child pid
+                    # USER_PROC_PROC_ID.value = 0
+                    proc_id_list_merged = root_pid_num
+            else:
+                proc_id_list_merged = root_pid_num
+        except Exception as e:
+            logger.warning("get_pid_tree error: {}".format(e))
 
-                # Collect pids from process tree
-                try:
-                    root_pid_num = get_pid_tree(PARENT_PROCESS_ID)
-                    if PARENT_PROCESS_ID != child_pid:
-                        if child_pid == -9:  # if it's terminated by "kill"
-                            child_pid = PARENT_PROCESS_ID
-                        pid_list_child = get_pid_tree(child_pid)
-                        if len(pid_list_child) > 0:
-                            proc_id_list_merged = root_pid_num + pid_list_child[1:]
-                        else:
-                            # NOTE: be careful on this resetting! Might lose child pid
-                            # USER_PROC_PROC_ID.value = 0
-                            proc_id_list_merged = root_pid_num
-                    else:
-                        proc_id_list_merged = root_pid_num
-                except Exception as e:
-                    logger.warning("get_pid_tree error: {}".format(e))
+        # Collect vmem usage from process tree
+        for pid in proc_id_list_merged:
+            try:
+                vmem = get_virtual_memory_usage(pid, 0.0, False)
+            except ValueError:
+                logger.warning("ValueError: Failed to collect VM memory usage.")
+            except UnboundLocalError:
+                logger.warning("UnboundLocalError: No entry in process id list.")
+            else:
+                vmem_usage_list.append(vmem)
 
-                # Collect vmem usage from process tree
-                for pid in proc_id_list_merged:
-                    try:
-                        vmem = get_virtual_memory_usage(pid, 0.0, False)
-                    except ValueError:
-                        logger.warning("ValueError: Failed to collect VM memory usage.")
-                    except UnboundLocalError:
-                        logger.warning(
-                            "UnboundLocalError: No entry in process id list."
-                        )
-                    else:
-                        vmem_usage_list.append(vmem)
+        # Collect rss mem usage from process tree
+        for pid in proc_id_list_merged:
+            try:
+                rmem = get_resident_memory_usage(pid, 0.0, False)
+            except ValueError:
+                logger.warning("ValueError: Failed to collect RES memory usage.")
+            except UnboundLocalError:
+                logger.warning("UnboundLocalError: No entry in process id list.")
+            else:
+                rmem_usage_list.append(rmem)
 
-                # Collect rss mem usage from process tree
-                for pid in proc_id_list_merged:
-                    try:
-                        rmem = get_resident_memory_usage(pid, 0.0, False)
-                    except ValueError:
-                        logger.warning(
-                            "ValueError: Failed to collect RES memory usage."
-                        )
-                    except UnboundLocalError:
-                        logger.warning(
-                            "UnboundLocalError: No entry in process id list."
-                        )
-                    else:
-                        rmem_usage_list.append(rmem)
+        # Collect mem_usages for all pids in the tree and get sum()
+        rmem_usage = "%.1f" % sum(rmem_usage_list) if len(rmem_usage_list) > 0 else 0.0
+        vmem_usage = "%.1f" % sum(vmem_usage_list) if len(vmem_usage_list) > 0 else 0.0
 
-                # Collect mem_usages for all pids in the tree and get sum()
-                rmem_usage = (
-                    "%.1f" % sum(rmem_usage_list) if len(rmem_usage_list) > 0 else 0.0
+        # Collect cpu_usages for all pids in the tree and get max()
+        for pid in proc_id_list_merged:
+            try:
+                cload = get_cpu_load(pid)
+            except Exception as e:
+                logger.warning("get_cpu_load() exception: {}".format(e))
+            else:
+                cpu_load_list.append(cload)
+
+        max_cpu_load = max(cpu_load_list) if len(cpu_load_list) > 0 else 0.0
+
+        # Only get the run time of child_pid
+        if sys.platform.lower() == "darwin":
+            # Todo: Add a method to get etime on Mac OS
+            proc_run_time = ""
+        else:
+            proc_run_time = get_runtime(child_pid)
+
+        if max_cpu_load == "":
+            max_cpu_load = 0.0
+
+        if proc_run_time == "":
+            proc_run_time = 0
+
+        # Get % mem used per node
+        # This is for node-based scheduling
+        try:
+            perc_used_mem = "%.1f" % get_total_mem_usage_per_node()
+        except Exception as e:
+            logger.warning("get_total_mem_usage_per_node() exception: {}".format(e))
+            perc_used_mem = 0.0
+
+        # Check if there is any task id in the ipc pipe
+        if PIPE_TASK_ID_RECV.poll():
+            task_id = PIPE_TASK_ID_RECV.recv()
+
+        if slurm_job_id:
+            temp = WORKER_LIFE_LEFT_IN_MINUTE.value
+            try:
+                # hh:mm:ss --> seconds
+                job_runtime_in_sec = (
+                    int(job_time.split(":")[0]) * 3600
+                    + int(job_time.split(":")[1]) * 60
+                    + int(job_time.split(":")[2])
                 )
-                vmem_usage = (
-                    "%.1f" % sum(vmem_usage_list) if len(vmem_usage_list) > 0 else 0.0
+                end_date_time = WORKER_START_TIME + datetime.timedelta(
+                    seconds=int(job_runtime_in_sec)
                 )
+                delta = end_date_time - datetime.datetime.now()
+                WORKER_LIFE_LEFT_IN_MINUTE.value = int(
+                    divmod(delta.total_seconds(), 60)[0]
+                )
+            except Exception as e:
+                logger.warning(
+                    "Something wrong in computing remaining wall clock time: %s",
+                    e,
+                )
+                WORKER_LIFE_LEFT_IN_MINUTE.value = temp
 
-                # Collect cpu_usages for all pids in the tree and get max()
-                for pid in proc_id_list_merged:
-                    try:
-                        cload = get_cpu_load(pid)
-                    except Exception as e:
-                        logger.warning("get_cpu_load() exception: {}".format(e))
-                    else:
-                        cpu_load_list.append(cload)
+        msg_dict_to_send = {
+            hb_msg["child_pid"]: child_pid,
+            hb_msg["clone_time_rate"]: 0.0,  # OBSOLETE
+            hb_msg["cpu_load"]: max_cpu_load,
+            hb_msg["end_date"]: today,
+            hb_msg["host_name"]: host_name,
+            hb_msg["ip_address"]: ip_address,
+            hb_msg["job_time"]: job_time if w_type[THIS_WORKER_TYPE] > 0 else None,
+            hb_msg["jtm_host_name"]: CONFIG.configparser.get("SITE", "jtm_host_name"),
+            hb_msg["life_left"]: WORKER_LIFE_LEFT_IN_MINUTE.value,
+            hb_msg["mem_per_core"]: mem_per_core
+            if w_type[THIS_WORKER_TYPE] > 0
+            else "",
+            hb_msg["mem_per_node"]: mem_per_node
+            if w_type[THIS_WORKER_TYPE] > 0
+            else "",
+            hb_msg["num_cores"]: ncore_param,
+            hb_msg["num_tasks"]: 0,
+            hb_msg["num_workers_on_node"]: 1,  # not used
+            hb_msg["perc_mem_used"]: perc_used_mem,
+            hb_msg["pool_name"]: pool_name,
+            hb_msg["ret_msg"]: "hb",
+            hb_msg["rmem_usage"]: rmem_usage,
+            hb_msg["root_pid"]: PARENT_PROCESS_ID,
+            hb_msg["run_time"]: proc_run_time,
+            hb_msg["slurm_jobid"]: slurm_job_id,
+            hb_msg["task_id"]: task_id,
+            hb_msg["vmem_usage"]: vmem_usage,
+            hb_msg["worker_id"]: UNIQ_WORKER_ID,
+            hb_msg["worker_type"]: w_type[THIS_WORKER_TYPE],
+            hb_msg["nwpn"]: nwpn,  # not used
+        }
 
-                max_cpu_load = max(cpu_load_list) if len(cpu_load_list) > 0 else 0.0
+        msg_zipped_to_send = zdumps(json.dumps(msg_dict_to_send))
 
-                # Only get the run time of child_pid
-                if sys.platform.lower() == "darwin":
-                    # Todo: Add a method to get etime on Mac OS
-                    proc_run_time = ""
-                else:
-                    proc_run_time = get_runtime(child_pid)
+        if show_resource_log:
+            logger.info(msg_dict_to_send)
 
-                if max_cpu_load == "":
-                    max_cpu_load = 0.0
-
-                if proc_run_time == "":
-                    proc_run_time = 0
-
-                # Get % mem used per node
-                # This is for node-based scheduling
-                try:
-                    perc_used_mem = "%.1f" % get_total_mem_usage_per_node()
-                except Exception as e:
-                    logger.warning(
-                        "get_total_mem_usage_per_node() exception: {}".format(e)
+        max_retries = CONFIG.configparser.getint("JTM", "max_retries")
+        exp = CONFIG.configparser.get("JTM", "worker_s_hb_expiration")
+        attempts = 0
+        while True:
+            attempts += 1
+            with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
+                with conn.channel() as ch:
+                    ch.exchange.declare(
+                        exchange=exch_name,
+                        exchange_type="direct",
+                        durable=False,
+                        auto_delete=False,
                     )
-                    perc_used_mem = 0.0
-
-                # Check if there is any task id in the ipc pipe
-                if PIPE_TASK_ID_RECV.poll():
-                    task_id = PIPE_TASK_ID_RECV.recv()
-
-                if slurm_job_id:
-                    temp = WORKER_LIFE_LEFT_IN_MINUTE.value
+                    message = amqpstorm.Message.create(
+                        ch, msg_zipped_to_send, properties={"expiration": exp}
+                    )
                     try:
-                        # hh:mm:ss --> seconds
-                        job_runtime_in_sec = (
-                            int(job_time.split(":")[0]) * 3600
-                            + int(job_time.split(":")[1]) * 60
-                            + int(job_time.split(":")[2])
-                        )
-                        end_date_time = WORKER_START_TIME + datetime.timedelta(
-                            seconds=int(job_runtime_in_sec)
-                        )
-                        delta = end_date_time - datetime.datetime.now()
-                        WORKER_LIFE_LEFT_IN_MINUTE.value = int(
-                            divmod(delta.total_seconds(), 60)[0]
-                        )
-                    except Exception as e:
+                        message.publish(worker_hb_queue)
+                        break
+                    except amqpstorm.AMQPError as why:
+                        logger.exception(why)
                         logger.warning(
-                            "Something wrong in computing remaining wall clock time: %s",
-                            e,
+                            f"Retry to send a heartbeat to the manager: trial #{attempts}"
                         )
-                        WORKER_LIFE_LEFT_IN_MINUTE.value = temp
+                        if attempts > max_retries:
+                            logger.critical(
+                                f"Failed to send a heartbeat to the manageer: message = {msg_dict_to_send}"
+                            )
+                            raise amqpstorm.AMQPError
+                        time.sleep(min(attempts * 2, 30))
+                    except Exception as e:
+                        logger.exception(e)
+                        raise
 
-                msg_dict_to_send = {
-                    hb_msg["child_pid"]: child_pid,
-                    hb_msg["clone_time_rate"]: 0.0,  # OBSOLETE
-                    hb_msg["cpu_load"]: max_cpu_load,
-                    hb_msg["end_date"]: today,
-                    hb_msg["host_name"]: host_name,
-                    hb_msg["ip_address"]: ip_address,
-                    hb_msg["job_time"]: job_time
-                    if w_type[THIS_WORKER_TYPE] > 0
-                    else None,
-                    hb_msg["jtm_host_name"]: CONFIG.configparser.get(
-                        "SITE", "jtm_host_name"
-                    ),
-                    hb_msg["life_left"]: WORKER_LIFE_LEFT_IN_MINUTE.value,
-                    hb_msg["mem_per_core"]: mem_per_core
-                    if w_type[THIS_WORKER_TYPE] > 0
-                    else "",
-                    hb_msg["mem_per_node"]: mem_per_node
-                    if w_type[THIS_WORKER_TYPE] > 0
-                    else "",
-                    hb_msg["num_cores"]: ncore_param,
-                    hb_msg["num_tasks"]: 0,
-                    hb_msg["num_workers_on_node"]: 1,  # not used
-                    hb_msg["perc_mem_used"]: perc_used_mem,
-                    hb_msg["pool_name"]: pool_name,
-                    hb_msg["ret_msg"]: "hb",
-                    hb_msg["rmem_usage"]: rmem_usage,
-                    hb_msg["root_pid"]: PARENT_PROCESS_ID,
-                    hb_msg["run_time"]: proc_run_time,
-                    hb_msg["slurm_jobid"]: slurm_job_id,
-                    hb_msg["task_id"]: task_id,
-                    hb_msg["vmem_usage"]: vmem_usage,
-                    hb_msg["worker_id"]: UNIQ_WORKER_ID,
-                    hb_msg["worker_type"]: w_type[THIS_WORKER_TYPE],
-                    hb_msg["nwpn"]: nwpn,  # not used
-                }
-
-                msg_zipped_to_send = zdumps(json.dumps(msg_dict_to_send))
-
-                if show_resource_log:
-                    logger.info(msg_dict_to_send)
-                try:
-                    publish_message(
-                        ch,
-                        msg_zipped_to_send,
-                        worker_hb_queue,
-                        CONFIG.configparser.get("JTM", "worker_s_hb_expiration"),
-                    )
-                except Exception as e:
-                    logger.exception("Failed to send hb to manager: {}".format(e))
-                    raise
-
-                time.sleep(interval)
+        time.sleep(interval)
 
 
 # -------------------------------------------------------------------------------
@@ -789,8 +685,17 @@ def proc_clean_exit(pid_list):
     :return:
     """
     for p in pid_list:
-        if p is not None and p.is_alive():
-            p.terminate()
+        try:
+            if p is not None and p.is_alive():
+                p.terminate()
+        except AssertionError:
+            # is_alive() raises AssertionError
+            # if assert self._parent_pid != os.getpid()
+            logger.warning("Skipping is_alive() checking for the parent process.")
+        except Exception as e:
+            # print log and just pass
+            logger.exception(f"Failed to terminate a child process: {e}")
+
     os._exit(1)
 
 
@@ -986,7 +891,11 @@ def worker(
 
     # This available memory validation needs to executed on a compute node
     # not on a MOM node.
-    if worker_type_param != "manual" and num_workers_per_node > 1 and not charging_account_param:
+    if (
+        worker_type_param != "manual"
+        and num_workers_per_node > 1
+        and not charging_account_param
+    ):
         try:
             mem_per_node_to_request_byte = (
                 int(mem_per_node_to_request.lower().replace("gb", "").replace("g", ""))
@@ -1502,8 +1411,11 @@ wait
     signal.signal(signal.SIGTERM, signal_handler)
 
     # Start task termination proc
+    max_retries = CONFIG.configparser.getint("JTM", "max_retries")
     try:
-        task_kill_proc_hdl = mp.Process(target=TaskTerminator(config=CONFIG).start)
+        task_kill_proc_hdl = mp.Process(
+            target=TaskTerminator(config=CONFIG, max_retries=max_retries).start
+        )
         task_kill_proc_hdl.start()
         pid_list.append(task_kill_proc_hdl)
     except Exception as e:
@@ -1542,7 +1454,8 @@ wait
     # Start task runner proc
     try:
         process_task_proc_hdl = mp.Process(
-            target=TaskRunner(config=CONFIG).start, args=(inner_task_request_queue,)
+            target=TaskRunner(config=CONFIG, max_retries=max_retries).start,
+            args=(inner_task_request_queue,),
         )
         process_task_proc_hdl.start()
         pid_list.append(process_task_proc_hdl)

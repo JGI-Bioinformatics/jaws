@@ -1,5 +1,5 @@
 import logging
-from logging import handlers
+from logging.handlers import RotatingFileHandler
 
 
 def setup_logger(name: str, log_file=None, log_level="INFO") -> logging:
@@ -29,7 +29,7 @@ def setup_logger(name: str, log_file=None, log_level="INFO") -> logging:
     handler_stderr = logging.StreamHandler()
     handler_stderr.setFormatter(formatter)
 
-    handler_file = handlers.RotatingFileHandler(log_file, maxBytes=512, backupCount=2, mode="a")
+    handler_file = RotatingFileHandler(log_file, maxBytes=1024, backupCount=1, mode="a")
     handler_file.setFormatter(formatter)
 
     logger = logging.getLogger(name)

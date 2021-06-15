@@ -9,7 +9,7 @@ import json
 logger = logging.getLogger(__package__)
 
 
-OAUTH_TOKEN_LENGTH = 255
+OAUTH_TOKEN_LENGTH = 127
 
 
 def _get_bearer_token():
@@ -65,7 +65,7 @@ def _get_user_by_email(email):
 
 
 def _get_json_from_sso(hash_code):
-    base = "https://signon.jgi.doe.gov"
+    base = "https://signon.jgi.doe.gov/api/sessions/"
     response = None
     try:
         response = requests.get(base + hash_code + ".json", allow_redirects=True)
@@ -117,16 +117,21 @@ def get_user(user):
     return result
 
 
-def add_user(
-    user: str, session, uid: str, name: str, email: str, admin: bool = False
-) -> None:
+def add_user(user) -> None:
     """
     Add user and return an OAuth2 token.
     """
-    uid = uid.lower()
+    uid = request.form.get("uid", None).lower()
+    name = request.form.get("name")
+    email = request.form.get("email")
+    admin = True if request.form.get("admin") == "True" else False
+
     a_user = db.session.query(User).get(uid)
     if a_user is not None:
-        abort(400, f"Cannot add user {uid}; user.id already taken.")
+        abort(400, "Cannot add user; uid already taken.")
+    a_user = db.session.query(User).filter(User.email == email).one_or_none()
+    if a_user is not None:
+        abort(400, "Cannot add user; email already taken.")
 
     token = secrets.token_urlsafe(OAUTH_TOKEN_LENGTH)
     try:
@@ -140,7 +145,7 @@ def add_user(
         )
         db.session.add(new_user)
         db.session.commit()
-        logger.info(f"Added new user {uid} ({email})")
+        logger.info(f"{user} added new user {uid} ({email})")
     except Exception as error:
         db.session.rollback()
         logger.error(f"Failed to add user, {uid}: {error}")

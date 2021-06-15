@@ -110,52 +110,68 @@ user workloads: one for JAWS and one for JTM/Cromwell.
 
 ## Common Commands
 
-To see this in action see .gitlab-ci.yml .
+### Summary
+Below we describe how supervisor related services are restarted for JAWS. 
 
-Start the supervisors. Only necessary once, after startup of the machine hosting the services: 
+The step by step instructions are in a [wiki document](https://code.jgi.doe.gov/advanced-analysis/jaws/-/wikis/Re-starting-JAWS-after-Maintenance) that outlines what to do to restart things after a scheduled maintenance of cori or jgi. Essentailly, there are re-start scripts that need to be run on CORI, JGI & Cascade for dev,staging & prod.    
+
+The scripts can be seen under `jaws/test/integration/start_supervisor_services`
+
+* start_central_services.sh
+* start_jaws_cori_services.sh
+* start_jaws_jgi_services.sh
+* start_jtm_cori_services.sh
+ 
+
+The steps you take after a scheduled maintenance or during a CI/CD deployment are roughly the same. During deployment, the supervisord is run in the .gitlab-ci.yml. You can go there to see these commands in action.
+
+### Background of Restarting Services
+Again, each instance (dev, staging, prod) will have its own supervisors. You will want to use the appropriate executable depending on which instance you want to work with.  
+
+Starting the supervisors is only necessary once, after startup of the machine hosting the services. These are examples only; the paths to the executables can be seen in the re-start scripts listed above, or in the .gitlab-ci.yml.
 
     $ <command> <jaws_user>
-    $ /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf 
+    $ jaws-supervisord-<INSTANCE>/bin/supervisord -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf 
 
     $ logout
 
     $ <command> <jtm_user>
-    $ /tmp/jaws-supervisord-dev/bin/supervisord -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf
+    $ jaws-supervisord-<INSTANCE>/bin/supervisord -c jaws-supervisord-<INSTANCE>/supervisord-jtm.conf
 
-The following users map to the following sites:  
+where the <command> is one of the following... 
 
 CORI:
-    - command: collabsu 
+    - command: collabsu   
     - user: jaws | jaws_jtm
 
 LRC:
-    - command: sudo -u <user> -i
-    - user: jaws | ja
+    - command: sudo -u <user> -i  
+    - user: jaws | jaws
 
 CASCADE:
-    - command: sudo -u <user> -i
+    - command: sudo -u <user> -i  
     - user: svc-jtm-manager | svc-jtm-user
 
 
-Note for cascade you will need to ssh to the host `gwf1.emsl.pnl.gov` before you attempt to change
+Note: For cascade you will need to ssh to the host `gwf1.emsl.pnl.gov` before you attempt to change
 into the user. 
-
 
 Check the status of JAWS services:
 
-    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf status
-    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf status
+    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf status
+    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jtm.conf status
 
 Start the JAWS services:
 
-    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jaws.conf start
-    $ /tmp/jaws-supervisord-dev/bin/supervisorctl -c /tmp/jaws-supervisord-dev/supervisord-jtm.conf start
+    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf start
+    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jtm.conf start
 
 Note: there exists two supervisord processes, one for jaws and one for jtm,  even if there are not two
-separate jaws and jtm users in use at the deployment site.
+separate jaws and jtm users in use at the deployment site.  
 
 
 ## Starting the gitlab-runner on Cori20
+(These instructions are also part of the re-start script described in [wiki document](https://code.jgi.doe.gov/advanced-analysis/jaws/-/wikis/Re-starting-JAWS-after-Maintenance).
 
 After a maintenance, it is very likely that the runner will need to be restarted
 in order to accomplish this use the following steps:
@@ -180,7 +196,30 @@ since it'll pick up the system python instead.
     $ cd /global/home/groups-sw/lr_jgicloud/jaws_ci_runner
     $ nohup ./usr/bin/gitlab-runner run -c configuration/config.toml &
 
+## Starting the gitlab-runner on Central
+This is a special case since the gitlab runner on jaws.lbl.gov is auto started by systemd as root.  Therefore, no intervention is required for re-starting it.
+The below commands are what systemd runs:
+    
+    $ cd /usr/lib/gitlab-runner
+    $ ./gitlab-runner run --working-directory /home/jaws --config /etc/gitlab-runner/config.toml --service gitlab-runner --syslog --user jaws
+
 ## Starting the gitlab-runner on CASCADE 
 
 Currently the gitlab runner is being managed by EMSL. To contact them, join the #emsl-jgi-coordination channel on the JGI slack. 
 
+
+## File cleanup (cron)
+
+The input files and cromwell-executions folders must be purged regularly by cron at each compute-site.
+
+`inputs` folder:
+
+    0 2 * * 0 find $SCRATCH/jaws-dev/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 2 * * 5 find $SCRATCH/jaws-staging/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 2 * * 6 find $SCRATCH/jaws-prod/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+
+`cromwell-executions` (outputs) folder:
+
+    0 5 * * 0 find $SCRATCH/jaws-dev/cromwell-executions -mindepth 2 -maxdepth 2 -type d -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 5 * * 5 find $SCRATCH/jaws-staging/cromwell-executions -mindepth 2 -maxdepth 2 -type d -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 5 * * 6 find $SCRATCH/jaws-prod/cromwell-executions -mindepth 2 -maxdepth 2 -type d -mtime +14 -exec rm -rf {} \; 2>/dev/null

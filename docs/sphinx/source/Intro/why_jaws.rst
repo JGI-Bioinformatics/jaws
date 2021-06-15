@@ -5,11 +5,11 @@ WHY Use JAWS
 .. role:: bash(code)
   :language: bash
 
-| * With a simple command :bash:`jaws run submit` you can submit a workflow. Running pipelines is made easier by conveniently masking the details of how and where the jobs run.
+| * With a simple command :bash:`jaws submit` you can submit a workflow. Running pipelines is made easier by conveniently masking the details of how and where the jobs run.
 | 
-| * You can monitor your jobs with simple commands, like :bash:`jaws run log`. 
+| * You can monitor your jobs with simple commands, like :bash:`jaws log`. 
 | 
-| * You have access to multiple compute sites. For example, to submit to cori, the command would be :bash:`jaws run submit <wdl> <inputs.json> <outdir> cori`  
+| * You have access to multiple compute sites. For example, to submit to cori, the command would be :bash:`jaws submit <wdl> <inputs.json> <compute-site>`  
 | 
 | * Your workflows are easily scalable. If you have tasks that can be run in parallal, you can select multiple nodes and multiple workers per node. 
 | 

@@ -96,7 +96,7 @@ def test_get_user_token(monkeypatch):
         jaws_central.auth, "_get_json_from_sso", mock__get_json_from_sso
     )
     user = MockUser()
-    hash_code = "/api/session/abcde"
+    hash_code = "abcde"
     result = jaws_central.auth.get_user_token(user, hash_code)
 
     assert result["jaws_token"] == "EEEEFFFFGGGG"

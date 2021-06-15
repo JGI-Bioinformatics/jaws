@@ -13,8 +13,17 @@ import zipfile
 import logging
 import pathlib
 import warnings
+from jaws_client.config import Configuration
 
-from jaws_client import config
+
+config = Configuration()
+
+
+def pretty_warning(message, category, filename, lineno, line=None):
+    return f"WARNING: {message}\n"
+
+
+warnings.formatwarning = pretty_warning
 
 
 def join_path(*args):
@@ -69,7 +78,7 @@ def womtool(*args):
     :param args: WOMTool arguments
     :return: stdout and stderr of WOMTool completed process
     """
-    womtool_cmd = config.conf.get("JAWS", "womtool").split()
+    womtool_cmd = config.get("JAWS", "womtool").split()
     womtool_cmd.extend(list(args))
     proc = subprocess.run(womtool_cmd, capture_output=True, text=True)
     return proc.stdout, proc.stderr
@@ -147,56 +156,6 @@ def apply_filepath_op(obj, operation):
         )
 
 
-def compress_wdls(main_wdl, staging_dir="."):
-    """
-    Create a new staging WDL and compress any subworkflow files into a ZIP file.
-
-    The WDL is named based off of the submission ID and moved to a staging location that is specified in a
-    configuration file. Then any subworkflow WDLs that are associated with that WDL are moved to a zip file and
-    compressed.
-    If there are no subworkflows, the zipfile is not produced..
-
-    :param main_wdl: a WDL file
-    :param staging_dir: path where files will be compressed to. Default is current directory.
-    :return: paths to the main wdl and the compressed file (latter may be None)
-    """
-    if not os.path.isdir(staging_dir):
-        os.makedirs(staging_dir)
-
-    # COPY MAIN WDL
-    staged_wdl_filename = join_path(staging_dir, f"{main_wdl.submission_id}.wdl")
-    main_wdl.copy_to(staged_wdl_filename)
-
-    # IF NO SUBWORKFLOWS, DONE
-    if not len(main_wdl.subworkflows):
-        return staged_wdl_filename, None
-
-    # ZIP SUBWORKFLOWS
-    compressed_file_format = ".zip"
-    compression_dir = pathlib.Path(os.path.join(staging_dir, main_wdl.submission_id))
-    compression_dir.mkdir(parents=True, exist_ok=True)
-    compressed_file = join_path(
-        staging_dir, main_wdl.submission_id + compressed_file_format
-    )
-
-    for subworkflow in main_wdl.subworkflows:
-        staged_sub_wdl = join_path(compression_dir, subworkflow.name)
-        subworkflow.copy_to(staged_sub_wdl)
-
-    try:
-        os.remove(compressed_file)
-    except FileNotFoundError:
-        pass
-
-    with zipfile.ZipFile(compressed_file, "w") as z:
-        for sub_wdl in main_wdl.subworkflows:
-            staged_sub_wdl = join_path(compression_dir, sub_wdl.name)
-            z.write(staged_sub_wdl, arcname=sub_wdl.name)
-
-    shutil.rmtree(compression_dir)
-    return staged_wdl_filename, compressed_file
-
-
 class WdlFile:
     """
     A WDL object that can be queried for subworkflows, memory requirements and can also validate itself.
@@ -214,7 +173,6 @@ class WdlFile:
         :param submission_id:  a uuid.uuid4() generated string
         """
 
-        self.logger = logging.getLogger(__package__)
         self.file_location = os.path.abspath(wdl_file_location)
         self.name = self._get_wdl_name(wdl_file_location)
         self.submission_id = submission_id
@@ -225,7 +183,7 @@ class WdlFile:
         self._subworkflows = None
         self._max_ram_gb = None
 
-    def _filter_subworkflows(self, output):
+    def _set_subworkflows(self, output):
         """
         Filters the output of WOMTool inputs -l so that it can parse through and grab the paths to the sub-workflows.
 
@@ -250,7 +208,7 @@ class WdlFile:
                 sub_wdl = WdlFile(sub, self.submission_id)
                 sub_wdl.verify_wdl_has_no_backend_tags()
                 subworkflows.add(sub_wdl)
-        return subworkflows
+        self._subworkflows = list(subworkflows)
 
     @property
     def subworkflows(self):
@@ -264,8 +222,7 @@ class WdlFile:
         :return: set of WdlFiles
         """
         if self._subworkflows is None:
-            stdout, stderr = womtool("validate", "-l", self.file_location)
-            self._subworkflows = self._filter_subworkflows(stdout)
+            self.validate()
         return self._subworkflows
 
     @staticmethod
@@ -285,8 +242,10 @@ class WdlFile:
         WdlFile objects and we wish to avoid running womtool multiple times unnecessarily.
         :return:
         """
-        self.logger.info(f"Validating WDL, {self.file_location}")
-        _, stderr = womtool("validate", "-l", self.file_location)
+        logger = logging.getLogger(__package__)
+        logger.debug(f"Validating WDL, {self.file_location}")
+        stdout, stderr = womtool("validate", "-l", self.file_location)
+        self._set_subworkflows(stdout)
         if stderr:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
@@ -309,11 +268,17 @@ class WdlFile:
                     r"^\s+(mem|memory)\s*[:=]\s*\"?(\d+\.?\d*)([kKmMgGtT])\"?", line
                 )
                 if m:
-                    mem = int(m.group(2))
-                    prefix = m.group(3).lower()
-                    mem = convert_to_gb(mem, prefix)
-                    if mem > max_ram:
-                        max_ram = mem
+                    g = m.groups()
+                    if g[0] == "memory":
+                        mem = int(m.group(2))
+                        prefix = m.group(3).lower()
+                        mem = convert_to_gb(mem, prefix)
+                        if mem > max_ram:
+                            max_ram = mem
+                    else:
+                        raise WdlError(
+                            "The 'mem' tag is deprecated; please use 'memory' instead"
+                        )
         return max_ram
 
     @property
@@ -333,7 +298,8 @@ class WdlFile:
                 if subworkflow_file.max_ram_gb > self._max_ram_gb:
                     self._max_ram_gb = subworkflow_file.max_ram_gb
 
-        self.logger.info(f"Maximum RAM requested is {self._max_ram_gb}Gb")
+        logger = logging.getLogger(__package__)
+        logger.debug(f"Maximum RAM requested is {self._max_ram_gb}Gb")
         return self._max_ram_gb
 
     def copy_to(self, destination, permissions=0o664):
@@ -359,6 +325,57 @@ class WdlFile:
                 m = re.match(r"^\s*backend", line)
                 if m:
                     raise WdlError("ERROR: WDLs may not contain 'backend' tag")
+
+    def compress_wdls(self, staging_dir="."):
+        """
+        Create a new staging WDL and compress any subworkflow files into a ZIP file.
+
+        The WDL is named based off of the submission ID and moved to a staging location that is specified in a
+        configuration file. Then any subworkflow WDLs that are associated with that WDL are moved to a zip file and
+        compressed.
+
+        This method should be called on the main WDL object and shall include the subworkflows.
+        If there are no subworkflows, the zipfile is not produced.
+
+        :param staging_dir: path where files will be compressed to. Default is current directory.
+        :type staging_dir: str
+        :return: paths to the main wdl and the compressed file (latter may be None)
+        """
+        if not os.path.isdir(staging_dir):
+            os.makedirs(staging_dir)
+
+        # COPY MAIN WDL
+        staged_wdl_filename = join_path(staging_dir, f"{self.submission_id}.wdl")
+        self.copy_to(staged_wdl_filename)
+
+        # IF NO SUBWORKFLOWS, DONE
+        if not len(self.subworkflows):
+            return staged_wdl_filename, None
+
+        # ZIP SUBWORKFLOWS
+        compressed_file_format = ".zip"
+        compression_dir = pathlib.Path(os.path.join(staging_dir, self.submission_id))
+        compression_dir.mkdir(parents=True, exist_ok=True)
+        compressed_file = join_path(
+            staging_dir, self.submission_id + compressed_file_format
+        )
+
+        for subworkflow in self.subworkflows:
+            staged_sub_wdl = join_path(compression_dir, subworkflow.name)
+            subworkflow.copy_to(staged_sub_wdl)
+
+        try:
+            os.remove(compressed_file)
+        except FileNotFoundError:
+            pass
+
+        with zipfile.ZipFile(compressed_file, "w") as z:
+            for sub_wdl in self.subworkflows:
+                staged_sub_wdl = join_path(compression_dir, sub_wdl.name)
+                z.write(staged_sub_wdl, arcname=sub_wdl.name)
+
+        shutil.rmtree(compression_dir)
+        return staged_wdl_filename, compressed_file
 
     def __eq__(self, other):
         return self.file_location == other.file_location
@@ -427,7 +444,7 @@ class WorkflowInputs:
             # if the path doesn't exist, it may refer to a path in a Docker container, so just
             # warn user and skip, without raising an exception
             if not os.path.exists(original_path):
-                warnings.warn(f"Input path not found: {original_path}")
+                warnings.warn(f"Input path not found or inaccessible: {original_path}")
                 continue
 
             staged_path = pathlib.Path(f"{destination}{original_path}")
@@ -444,15 +461,13 @@ class WorkflowInputs:
             # as a result of the gid sticky bit and acl rules on the inputs dir.
             rsync_params = ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"]
             try:
-                result = rsync(
-                    original_path,
-                    dest,
-                    rsync_params,
-                )
+                result = rsync(original_path, dest, rsync_params,)
             except OSError as error:
                 raise (f"rsync executable not found: {error}")
             except ValueError as error:
-                raise (f"Invalid rsync options, {rsync_params}, for {original_path}->{dest}: {error}")
+                raise (
+                    f"Invalid rsync options, {rsync_params}, for {original_path}->{dest}: {error}"
+                )
             if result.returncode != 0:
                 err_msg = (
                     f"Failed to rsync {original_path}: {result.stdout}; {result.stderr}"
@@ -482,10 +497,12 @@ class WorkflowInputs:
         Only paths which exist are modified because these are the only files which are transferred; the other
         paths presumably refer to files in a Docker container.
         """
+
         def func(path):
             if looks_like_file_path(path) and os.path.exists(path):
                 return f"{path_to_prepend}{path}"
             return path
+
         return func
 
     def write_to(self, json_location):
@@ -507,7 +524,6 @@ class Manifest:
     """
 
     def __init__(self, staging_dir, dest_dir):
-        self.logger = logging.getLogger(__package__)
         self.staging_dir = staging_dir
         self.dest_dir = dest_dir
         self.manifest = []
@@ -535,8 +551,8 @@ class Manifest:
         :param write_location: a file path
         :return:
         """
-        self.logger.info(f"Writing file manifest to {write_location}")
-        self.logger.debug(f"Writing manifest file: {write_location}")
+        logger = logging.getLogger(__package__)
+        logger.debug(f"Writing manifest file: {write_location}")
         with open(write_location, "w") as f:
             for src, dest, inode_type in self.manifest:
                 f.write(f"{src}\t{dest}\t{inode_type}\n")
