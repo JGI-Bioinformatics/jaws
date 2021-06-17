@@ -12,7 +12,7 @@ WDL = '/global/homes/a/akollmer/jaws/examples/bfoster_meta_assem/jgi_meta.jaws.w
 NUM_TASKS_IN_WDL = 4
 INPUTS = '/global/homes/a/akollmer/jaws/examples/bfoster_meta_assem/inputs.json'
 SITE = 'jgi'
-VERIFY_TASK_LOG_STATUS = True
+VERIFY_TASK_LOG_STATUS = False
 
 # submit jobs to jaws
 RUNS = submit_loop.submit(NUM_SUBMISSIONS, WDL, INPUTS, SITE)

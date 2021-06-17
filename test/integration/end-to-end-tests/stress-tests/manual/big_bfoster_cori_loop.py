@@ -7,12 +7,12 @@ import subprocess
 import submit_loop
 import verify_task_log
 
-NUM_SUBMISSIONS = 2
+NUM_SUBMISSIONS = 5
 WDL = '/global/homes/a/akollmer/jaws/examples/bfoster_meta_assem/jgi_meta.jaws.wdl'
 NUM_TASKS_IN_WDL = 4
 INPUTS = '/global/homes/a/akollmer/jaws/examples/bfoster_meta_assem/big_inputs.json'
 SITE = 'cori'
-VERIFY_TASK_LOG_STATUS = True
+VERIFY_TASK_LOG_STATUS = False
 
 # submit jobs to jaws
 RUNS = submit_loop.submit(NUM_SUBMISSIONS, WDL, INPUTS, SITE)
