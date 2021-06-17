@@ -72,32 +72,6 @@ class JawsClient:
         global config
         config = Configuration(jaws_config_file, user_config_file)
 
-    def health(self) -> dict:
-        """Current system status."""
-        url = f'{config.get("JAWS", "url")}/status'
-        try:
-            r = requests.get(url)
-        except requests.exceptions.RequestException:
-            raise JawsServiceError("JAWS Central is DOWN")
-        if r.status_code != 200:
-            raise JawsServiceError(r.text)
-        return r.json()
-
-    def info(self) -> dict:
-        """JAWS version and info."""
-        url = f'{config.get("JAWS", "url")}/info'
-        try:
-            r = requests.get(url)
-        except requests.exceptions.RequestException:
-            raise JawsServiceError("JAWS Central is DOWN")
-        if r.status_code != 200:
-            raise JawsServiceError(r.text)
-        return r.json()
-
-    def wfcopy(self, src_dir: str, dest_dir: str, flatten: bool = False) -> None:
-        """Simplify Cromwell output."""
-        wfc.wfcopy(src_dir, dest_dir, flatten)
-
     def _request(self, rest_op, url, data={}, files={}) -> dict:
         """Perform specified REST operation.  A JSON response is expected."""
         access_token = config.get("USER", "token")
@@ -141,6 +115,32 @@ class JawsClient:
             else:
                 raise JawsServiceError(result)
         return response.json()
+
+    def health(self) -> dict:
+        """Current system status."""
+        url = f'{config.get("JAWS", "url")}/status'
+        try:
+            r = requests.get(url)
+        except requests.exceptions.RequestException:
+            raise JawsServiceError("JAWS Central is DOWN")
+        if r.status_code != 200:
+            raise JawsServiceError(r.text)
+        return r.json()
+
+    def info(self) -> dict:
+        """JAWS version and info."""
+        url = f'{config.get("JAWS", "url")}/info'
+        try:
+            r = requests.get(url)
+        except requests.exceptions.RequestException:
+            raise JawsServiceError("JAWS Central is DOWN")
+        if r.status_code != 200:
+            raise JawsServiceError(r.text)
+        return r.json()
+
+    def wfcopy(self, src_dir: str, dest_dir: str, flatten: bool = False) -> None:
+        """Simplify Cromwell output."""
+        wfc.wfcopy(src_dir, dest_dir, flatten)
 
     def queue(self, site: str = "ALL") -> dict:
         """List of user's current runs"""
