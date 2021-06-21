@@ -69,7 +69,7 @@ pip install pytest
 pip install pytest-cov
 
 # inside the jaws repo 
-# RPC
+# RPC (do this first)
 pip install -r rpc/requirements.txt 
 cd rpc && python setup.py develop
 
@@ -84,6 +84,10 @@ cd central && python setup.py develop
 # Site
 cd ../ && pip install -r site/requirements.txt
 cd site && python setup.py develop
+
+# JTM
+cd ../ && pip install -r jtm/requirements.txt
+cd jtm && python setup.py develop
 
 # create a file called womtool in ~/venv/jaws-test/bin
  
