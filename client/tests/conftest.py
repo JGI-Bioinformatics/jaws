@@ -291,7 +291,7 @@ task findPeaks {
 
     runtime {
         cluster: "cori"
-        time: "00:00:00"
+        time: "01:00:00"
         cpu: 1
         memory: "0G"
     }
@@ -323,7 +323,7 @@ task motifInputs {
 
     runtime {
         cluster: "cori"
-        time: "00:00:00"
+        time: "01:00:00"
         cpu: 1
         memory: "0G"
     }
