@@ -14,6 +14,7 @@ import logging
 import pathlib
 import warnings
 from jaws_client.config import Configuration
+from jaws_client.wdl_runtime_validator import validate_wdl_runtime
 
 
 config = Configuration()
@@ -250,6 +251,7 @@ class WdlFile:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
         self.verify_wdl_has_no_backend_tags()
+        validate_wdl_runtime(self.contents)
 
     @staticmethod
     def _get_wdl_name(file_location):
@@ -461,7 +463,11 @@ class WorkflowInputs:
             # as a result of the gid sticky bit and acl rules on the inputs dir.
             rsync_params = ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"]
             try:
-                result = rsync(original_path, dest, rsync_params,)
+                result = rsync(
+                    original_path,
+                    dest,
+                    rsync_params,
+                )
             except OSError as error:
                 raise (f"rsync executable not found: {error}")
             except ValueError as error:
