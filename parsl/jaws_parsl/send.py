@@ -1,5 +1,5 @@
 # run like:
-# python send.py -c <# of CPUs> -m <memory> -cmd $(pwd)/hello.sh
+# python send.py -c <# of CPUs> -m <memory> -s <site> -cmd $(pwd)/hello.sh
 
 import click
 import pika
@@ -11,12 +11,14 @@ from jaws_parsl import config
 @click.command()
 @click.option("-c", "--cpus", help="Number of CPUs needed")
 @click.option("-m", "--memory", help="Amount of memory needed")
+@click.option("-s", "--site", help="Compute site")
 @click.option("-cmd", "--command", help="Command script")
-def send(cpus, memory, command):
+def send(cpus, memory, site, command):
     job_info = {
         "cpus": cpus,
         "memory": memory,
-        "command": command
+        "command": command,
+        "site": site
     }
 
     rmq_params = config.conf.get_rmq_params()

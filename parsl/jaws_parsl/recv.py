@@ -13,7 +13,6 @@ from parsl import bash_app, AUTO_LOGNAME
 
 import jaws_parsl
 from jaws_rpc.rpc_client import RpcClient
-from jaws_rpc import rpc_index
 
 logger = None
 
@@ -24,6 +23,7 @@ rpc_params = {}
 executor = ''
 cpus = 0
 mem = ''
+site = ''
 
 
 def get_cromwell_run_id(msg_cmd):
@@ -69,31 +69,20 @@ def on_message_callback(ch, method, properties, body):
 
     global G_TASK_TABLE
 
-    global cpus, mem
+    global cpus, mem, site, executor
     cpus = message['cpus']
     mem = message['memory']
+    site = message['site']
 
-    # choose and set executor based on available resources
-    machines_up = []
-    rpci = rpc_index.rpc_index
-    for site_id in rpci.get_sites():
-        client = rpci.get_client(site_id)
-        response = client.request("server_status")
-        if "error" not in response:
-            machines_up.append(site_id)
-
-    # choose first available machine in dict as executor
-    # throw error if all machines down
-    #
-    # note: parsl chooses an executor "at random" if one not specified
-    # this happens in parsl/dataflow/dflow.py
-    global executor
-    if len(machines_up) == 0:
-        msg = "All machines currently offline."
-        logger.exception(msg)
-        raise Exception(msg)
-    else:
-        executor = machines_up[0]
+    # assume memory is spec'd in GB with "G" (e.g., "128G")
+    # check memory request and route on Cori accordingly
+    if site == "CORI":
+        if int(mem[:-1]) <= 128:
+            executor = 'cori_genepool'
+        else:
+            executor = 'cori_exvivo'
+    elif site == "JGI":
+        executor = 'lbl'
 
     future = run_script(message['command'])
     task_id = future.tid
