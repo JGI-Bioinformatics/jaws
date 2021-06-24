@@ -28,3 +28,9 @@ source ./setEnv.sh
 # This wrapper is usually run by .gitlab-ci.yml as jaws user.
 # It takes one argument, the directory that contains the pytests to run.
 test/integration/end-to-end-tests/pytest_wrapper.sh single-test
+
+
+# You can also run pytests directly:
+pytest --capture=no --verbose --env dev --site cori --dir . <test.py>
+
+- the dir argument points to the root dir where the "WDL" and "test-inputs" are.

@@ -1,11 +1,10 @@
 stages:
-  - .pre
   - unit-test
   - package
   - deploy-jaws
-  - integration-test
-  - nightly-tests
-  - .post
+  - smoke-tests
+  - deployment-tests
+  - stress-tests
 
 variables:
   GIT_STRATEGY: clone
@@ -386,8 +385,40 @@ deploy-jaws-cascade-dev:
   only:
     - dev
 
-deploy-cori-dev-integration-tests:
-  stage: integration-test
+cori-dev-smoke-tests:
+  stage: smoke-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
+
+jgi-dev-smoke-tests:
+  stage: smoke-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "JGI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
+
+cori-dev-deployment-tests:
+  stage: deployment-tests
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
@@ -402,11 +433,11 @@ deploy-cori-dev-integration-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-dev-integration-tests:
-  stage: integration-test
+jgi-dev-deployment-tests:
+  stage: deployment-tests
   variables:
     DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CORI"
+    JAWS_SITE: "JGI"
     CORI_INSTALL_BASEDIR: "/tmp"
     CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
@@ -418,8 +449,72 @@ deploy-cori-dev-integration-tests:
       when: manual
   allow_failure: true
 
-deploy-cori-staging-integration-tests:
-  stage: integration-test
+cori-dev-stress-tests:
+  stage: stress-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
+
+jgi-dev-stress-tests:
+  stage: stress-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "JGI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
+
+cori-staging-smoke-tests:
+  stage: smoke-tests
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+      when: manual
+  allow_failure: true
+
+jgi-staging-smoke-tests:
+  stage: smoke-tests
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "JGI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+      when: manual
+  allow_failure: true
+
+cori-staging-deployment-tests:
+  stage: deployment-tests
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
@@ -431,8 +526,150 @@ deploy-cori-staging-integration-tests:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
-      when: always
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
+
+jgi-staging-deployment-tests:
+  stage: deployment-tests
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "JGI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+      when: manual
+  allow_failure: true
+
+cori-staging-stress-tests:
+  stage: stress-tests
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+      when: manual
+  allow_failure: true
+
+jgi-staging-stress-tests:
+  stage: stress-tests
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "JGI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+      when: manual
+  allow_failure: true
+
+cori-prod-smoke-tests:
+  stage: smoke-tests
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
+      when: manual
+  allow_failure: true
+
+jgi-prod-smoke-tests:
+  stage: smoke-tests
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: "JGI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
+      when: manual
+  allow_failure: true
+
+cori-prod-deployment-tests:
+  stage: deployment-tests
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
+      when: manual
+  allow_failure: true
+
+jgi-prod-deployment-tests:
+  stage: deployment-tests
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: "JGI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
+      when: manual
+  allow_failure: true
+
+cori-prod-stress-tests:
+  stage: stress-tests
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: "CORI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
+      when: manual
+  allow_failure: true
+
+jgi-prod-stress-tests:
+  stage: stress-tests
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: "JGI"
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
       when: manual
   allow_failure: true
 
