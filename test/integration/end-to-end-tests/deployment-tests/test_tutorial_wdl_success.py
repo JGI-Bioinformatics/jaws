@@ -6,7 +6,7 @@ import submission_utils as util
 
 
 class TestRunSuccess:
-    check_tries = 100  # try this many times when waiting for a JAWS run to complete.
+    check_tries = 360  # try this many times when waiting for a JAWS run to complete.
     check_sleep = 60  # wait for this amount of time between tries.
 
     @staticmethod
