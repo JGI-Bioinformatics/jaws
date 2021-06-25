@@ -13,8 +13,8 @@ Updated: 03/04/21
 import os
 import submission_utils as util
 
-check_tries = 50  # try this many times when waiting for a JAWS run to complete.
-check_sleep = 30  # wait for this amount of time between tries.
+check_tries = 360  # try this many times when waiting for a JAWS run to complete.
+check_sleep = 60  # wait for this amount of time between tries.
 
 
 def test_json_file_does_not_exist(env, dir, site):

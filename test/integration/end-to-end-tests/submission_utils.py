@@ -73,6 +73,10 @@ def wait_for_run(id,env,check_tries,check_sleep):
         tries += 1
         time.sleep(check_sleep)
 
+    # if we got here then the number of tries has been exceeded, but the run is still not finished
+    error_message = "The test has timed out while waiting for run %s to complete" % id
+    raise Exception(error_message)
+
 def timestamp_dir(dir):
     # create timestamp string to make output directory unique
     ts = str(time.time()).replace(".", "")
