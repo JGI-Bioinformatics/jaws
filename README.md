@@ -138,6 +138,7 @@ Developers
 * Seung-jin Sul
 * Stephan Trong
 * Kelly Rowland
+* Nick Tyler
 
 Documentation and WDL authoring
 * Jeff Froula
