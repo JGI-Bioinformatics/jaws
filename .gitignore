@@ -126,3 +126,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# coverage
+client/client.xml
+central/central.xml
+site/site.xml
+rpc/rpc.xml
+jtm/jtm.xml
