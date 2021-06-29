@@ -86,44 +86,44 @@ _jaws_completions()
 {
 	local cur prev opts
 	COMPREPLY=()
-	cur="${COMP_WORDS[COMP_CWORD]}"
-	prev="${COMP_WORDS[COMP_CWORD-1]}"
-	opts="add-user cancel cancel-all errors get health history info inputs \
-		list-sites log metadata queue status submit task-log \
+	cur="\${COMP_WORDS[COMP_CWORD]}"
+	prev="\${COMP_WORDS[COMP_CWORD-1]}"
+	opts="add-user cancel cancel-all errors get health history info inputs \\
+		list-sites log metadata queue status submit task-log \\
 		task-status validate wfcopy"
 
 	# Commands looking for wdl files
-	if [[ ${prev} == "submit" || ${prev} == "validate" || ${prev} == "inputs" ]] ; then
+	if [[ \${prev} == "submit" || \${prev} == "validate" || \${prev} == "inputs" ]] ; then
 		local files
-		files=$(ls *.wdl 2>/dev/null)
-		COMPREPLY=( $(compgen -W "${files}" -- ${cur}) )
+		files=\$(ls *.wdl 2>/dev/null)
+		COMPREPLY=( \$(compgen -W "\${files}" -- \${cur}) )
 		return 0
 	# Specificaly for jaws submit *.wdl
-	elif [[ ${prev} =~ .*"wdl".* ]] ; then
+	elif [[ \${prev} =~ .*"wdl".* ]] ; then
 		local files
-                files=$(ls *.json 2>/dev/null)
-                COMPREPLY=( $(compgen -W "${files}" -- ${cur}) )
+                files=\$(ls *.json 2>/dev/null)
+                COMPREPLY=( \$(compgen -W "\${files}" -- \${cur}) )
                 return 0
 	# Specificaly for jaws submit *.wdl *.json
-	elif [[ ${prev} =~ .*"json".* ]] ; then
+	elif [[ \${prev} =~ .*"json".* ]] ; then
 		local sites
                 sites="cori jgi"
-                COMPREPLY=( $(compgen -W "${sites}" -- ${cur}) )
+                COMPREPLY=( \$(compgen -W "\${sites}" -- \${cur}) )
                 return 0
 	# Anything looking for a run id
-	elif [[ ${prev} == "cancel" \
-		|| ${prev} == "get" \
-		|| ${prev} == "log" \
-		|| ${prev} == "task-status" \
-		|| ${prev} == "metadata" \
-		|| ${prev} == "status" \
-		|| ${prev} = "task-log" ]] ; then
+	elif [[ \${prev} == "cancel" \\
+		|| \${prev} == "get" \\
+		|| \${prev} == "log" \\
+		|| \${prev} == "task-status" \\
+		|| \${prev} == "metadata" \\
+		|| \${prev} == "status" \\
+		|| \${prev} = "task-log" ]] ; then
 		local jobs
-		jobs=$(jaws history | grep \"id\" | awk '{print $2}' | tr "," " " | tac )
-		COMPREPLY=( $(compgen -W "${jobs}" -- ${cur}) )
+		jobs=\$(jaws history | grep \"id\" | awk '{print \$2}' | tr "," " " | tail -n 10 )
+		COMPREPLY=( \$(compgen -W "\${jobs}" -- \${cur}) )
                 return 0
 	else
-		COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+		COMPREPLY=( \$(compgen -W "\${opts}" -- \${cur}) )
 		return 0
 	fi
 }
