@@ -384,6 +384,7 @@ deploy-jaws-cascade-dev:
     - ./test/integration/deploy-jaws
   only:
     - dev
+    - branches
 
 cori-dev-smoke-tests:
   stage: smoke-tests
