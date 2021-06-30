@@ -35,7 +35,7 @@ task bam_stats {
         node: 1
         nwpn: 1
         memory: "5G"
-        time: "00:10:00"
+        time: "00:30:00"
     }
 }
 
