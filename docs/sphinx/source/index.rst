@@ -60,7 +60,7 @@ Getting Started
    Step 1: create docker container <Tutorials/create_env>
    Step 2: development environment <Tutorials/wdl_development>
    Step 3: write a WDL <Tutorials/building_wdls>
-   Step 3: making WDL work in JAWS <Tutorials/running_env>
+   Step 4: making WDL work in JAWS <Tutorials/running_env>
 
 
 .. toctree::
