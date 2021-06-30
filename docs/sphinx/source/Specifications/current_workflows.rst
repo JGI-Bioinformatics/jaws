@@ -1,59 +1,34 @@
-#####################
-Current JGI Workflows 
-#####################
+==================
+Official JGI WDLs
+==================
+A few of JGI's workflows have been ported over to WDL. Here you can find a list of them.  
 
-The official catalog of JGI workflows is located in the `JGI WDL Catalog <https://code.jgi.doe.gov/advanced-analysis/jgi-wdl-catalog>`_.  The README.md should help you find the repositories of the below completed workflows.
+`JGI WDL Pipelines <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories>`_.  
 
-------------------------------------------
+See the tabs 
 
-===================
-Completed Workflows
-===================
-
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|Workflow                                                                                           |Group (owning Workflow)  |Lead Developer  |
-+===================================================================================================+=========================+================+
-|Metagenome annotation (KBase)                                                                      |JGI-KBase                |Jeff Froula     |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|Metagenome assembly                                                                                |Assembly                 |Brian Foster    |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|DAP-Seq, prokaryote                                                                                |Sequencing Technologies  |Leo Baumgart    |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
+1. Subgroups and Projects (projects created under this repository).  
+2. Shared Projects (projects created under some other repository).  
 
 
-========================
-In Development Workflows
-========================
+=======================================
+JAWS Maintained Sub-workflows and Tasks
+=======================================
+These are sub-workflows and tasks that are maintained by the JAWS team that can be used when developing your own WDLs.  
 
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|Workflow                                                                                           |Group (owning Workflow)  |Lead Developer  |
-+===================================================================================================+=========================+================+
-|Fungal minimal-assembly QC                                                                         |Assembly                 |Stephan Trong   |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|Metatlas                                                                                           |Metabolomics             |Ben Bowen       |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|IMG Annotation                                                                                     |IMG Pipelines            |Marcel Huntemann|
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
+`JGI Subworkflows and Tasks <https://code.jgi.doe.gov/official-jgi-workflows/jgi-wdl-tasks>`_
 
+There are two ways to import a subworkflow into your main.wdl
 
-=================
-In Planning Stage
-=================
+1. You can import the URL from your main WDL like
 
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|Workflow                                                                                           |Group (owning Workflow)  |Lead Developer  |
-+===================================================================================================+=========================+================+
-|Metagenome Binning QC                                                                              |JGI-KBase, IMG           |Edward Kirton   |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|SNP-calling pipeline                                                                               |Resequencing             |Shijie Yao      |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|Read QC                                                                                            |Automation               |Alex Copeland   |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|name?                                                                                              |Functional Genomics      |Lisa Simirenko  |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|Secondary metabolites annotation                                                                   |Secondary Metabolites Grp|Dan Udwary      |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
-|DAP-Seq (fungal)                                                                                   |Resequencing             |Matt Mingay     |
-+---------------------------------------------------------------------------------------------------+-------------------------+----------------+
+.. code-block:: text
+
+	import "https://raw.githubusercontent.com/HumanCellAtlas/skylab/optimus_v2.0.0/library/tasks/FastqToUBam.wdl" as FastqToUBam
 
 
+2. or using a file path,
+
+.. code-block:: text
+	
+	import ./FastqToUBam.wdl as FastqToUBam
