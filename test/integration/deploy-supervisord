@@ -41,7 +41,8 @@ test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
 chgrp $SITE_JTM_GROUP $SUPERVISOR_DIR
 chmod 770 $SUPERVISOR_DIR
 
-module unload python
+# TODO: This is hardcoded and module command will not be available in env
+# module unload python
 $SITE_LOAD_PYTHON
 [[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
 [[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
