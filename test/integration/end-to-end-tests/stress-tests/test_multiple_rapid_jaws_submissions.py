@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import json
+from datetime import datetime
+
 import pytest
 import submission_utils as util
 
@@ -11,34 +13,51 @@ import submission_utils as util
 
 
 class TestMultipleRapidJawsSubmissions:
+    FILE_DIR = '/global/cscratch1/sd/jaws/stress_tests'
 
     @pytest.mark.parametrize(
-        "wdl, input_json, tag, check_tries, check_sleep",
+        "wdl, input_json, tag, num_of_submissions, check_tries, check_sleep",
         [
             (
                 "../../../examples/jaws-alignment-example/alignment.wdl",
                 "../../../examples/jaws-alignment-example/inputs.align.json",
                 "alignment-stress-test",
-                360, 100,
+                2, 360, 100,
             )
         ]
     )
-    def test_rapid_submissions(self, env, site, wdl, input_json, tag, check_tries, check_sleep):
-        # run the test against all the wdl/json in the @pytest.mark.parametrize
+    def test_rapid_submissions(
+            self, env, site, wdl, input_json, tag, num_of_submissions, check_tries, check_sleep):
 
-        jaws_output = util.submit_wdl(env, wdl, input_json, site, tag)
-        run_id = str(jaws_output["run_id"])
+        # create a file named with the tag value plus a timestamp that will be used to record the
+        # run_ids created by this test
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        filename = '%s/%s_%s.txt' % (TestMultipleRapidJawsSubmissions.FILE_DIR, tag, timestamp)
 
-        util.wait_for_run(
-            run_id, env, check_tries, check_sleep
-        )
+        # submit the wdl/json to JAWS num_of_submissions times and write the run ids to a file
+        with open(filename, "w") as file:
+            submitted = 0
+            while submitted < num_of_submissions:
+                jaws_output = util.submit_wdl(env, wdl, input_json, site, tag)
+                run_id = str(jaws_output["run_id"])
+                submitted += 1
+                file.write('%s\n' % run_id)
 
-        cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
+        # read the file of run ids and check whether each run has completed
+        with open(filename, "r") as file:
+            lines = file.readlines()
+            for line in lines:
+                run_id = line.strip()
+                util.wait_for_run(
+                    run_id, env, check_tries, check_sleep
+                )
 
-        (rc, stdout, stderr) = util.run(cmd)
+                cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
 
-        status_info = json.loads(stdout)
-        assert status_info["status"] == "download complete", \
-            "\n**Run %s took too long - last state seen: %s" % (run_id, status_info["status"])
-        assert status_info["result"] == "succeeded", \
-            "\n**Run %s did not succeed - status was: %s" % (run_id, status_info["result"])
+                (rc, stdout, stderr) = util.run(cmd)
+
+                status_info = json.loads(stdout)
+                assert status_info["status"] == "download complete", \
+                    "\n**Run %s took too long - last state seen: %s" % (run_id, status_info["status"])
+                assert status_info["result"] == "succeeded", \
+                    "\n**Run %s did not succeed - status was: %s" % (run_id, status_info["result"])
