@@ -120,34 +120,34 @@ variables:
   JGI_LOAD_JAVA: "module load java"
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
 
-  CASCADE_INSTALL_BASEDIR: "/tmp"
-  CASCADE_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
-  CASCADE_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
-  CASCADE_RMQ_HOST: "localhost"
-  CASCADE_RMQ_PORT: 5672
-  CASCADE_JTM_RMQ_HOST: "localhost"
-  CASCADE_JTM_RMQ_PORT: 5672
-  CASCADE_PYTHON: "python3.6"
-  CASCADE_LOAD_PYTHON: ". /opt/rh/rh-python36/enable"
-  CASCADE_JAWS_GROUP: "svc-jtm-manager"
-  CASCADE_JTM_GROUP: "svc-jtm-user"
-  CASCADE_CLIENT_GROUP: "svc-jtm-manager"
-  CASCADE_JAWS_SCRATCH_BASEDIR: "/dtemp/mscjgi"
-  CASCADE_JTM_SCRATCH_BASEDIR: "/dtemp/mscjgi"
-  CASCADE_JAWS_SW_BASEDIR: "/dtemp/mscjgi"
-  CASCADE_JTM_SW_BASEDIR: "/dtemp/mscjgi"
-  CASCADE_REF_DATA_DIR: "/dtemp/mscjgi/refdata" # TODO: Needs to be rsync'd
-  CASCADE_SUPERVISOR_HOST: "http://localhost"
-  CASCADE_CONTAINER_TYPE: "singularity"
-  CASCADE_DB_HOST: "localhost"
-  CASCADE_DB_PORT: 3306
-  CASCADE_CLUSTER_QOS: ""
-  CASCADE_CLUSTER_PARTITION: ""
-  CASCADE_CLUSTER_ACCOUNT: "mscjgi"
-  CASCADE_CLUSTER_CONSTRAINT: ""
-  CASCADE_MAX_RAM_GB: 1024  #TODO: Find a more accurate number
-  CASCADE_LOAD_JAVA: ":"  # no-op
-  CASCADE_DATA_REPO_BASEDIR: "/dtemp/mscjgi"
+  TAHOMA_INSTALL_BASEDIR: "/tmp"
+  TAHOMA_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
+  TAHOMA_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
+  TAHOMA_RMQ_HOST: "rmq.lbl.gov"
+  TAHOMA_RMQ_PORT: 5672
+  TAHOMA_JTM_RMQ_HOST: "rmq.lbl.gov"
+  TAHOMA_JTM_RMQ_PORT: 5672
+  TAHOMA_PYTHON: "python3.6"
+  TAHOMA_LOAD_PYTHON: ". /opt/rh/rh-python36/enable"
+  TAHOMA_JAWS_GROUP: "svc-jtm-manager"
+  TAHOMA_JTM_GROUP: "svc-jtm-user"
+  TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
+  TAHOMA_JAWS_SCRATCH_BASEDIR: "/dtemp/mscjgi"
+  TAHOMA_JTM_SCRATCH_BASEDIR: "/dtemp/mscjgi"
+  TAHOMA_JAWS_SW_BASEDIR: "/dtemp/mscjgi"
+  TAHOMA_JTM_SW_BASEDIR: "/dtemp/mscjgi"
+  TAHOMA_REF_DATA_DIR: "/dtemp/mscjgi/refdata" # TODO: Needs to be rsync'd
+  TAHOMA_SUPERVISOR_HOST: "http://localhost"
+  TAHOMA_CONTAINER_TYPE: "singularity"
+  TAHOMA_DB_HOST: "jaws-db.lbl.gov"
+  TAHOMA_DB_PORT: 3306
+  TAHOMA_CLUSTER_QOS: ""
+  TAHOMA_CLUSTER_PARTITION: ""
+  TAHOMA_CLUSTER_ACCOUNT: "mscjgi"
+  TAHOMA_CLUSTER_CONSTRAINT: ""
+  TAHOMA_MAX_RAM_GB: 1024  #TODO: Find a more accurate number
+  TAHOMA_LOAD_JAVA: ":"  # no-op
+  TAHOMA_DATA_REPO_BASEDIR: "/dtemp/mscjgi"
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
@@ -371,15 +371,15 @@ deploy-jaws-jgi-prod:
   only:
   - master
 
-deploy-jaws-cascade-dev:
+deploy-jaws-tahoma-dev:
   stage: deploy-jaws
   tags:
     - cascade
   variables:
     DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CASCADE"
+    JAWS_SITE: "TAHOMA"
   environment:
-    name: "cascade/dev"
+    name: "tahoma/dev"
   script:
     - ./test/integration/deploy-jaws
   only:
