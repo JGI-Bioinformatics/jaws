@@ -17,7 +17,7 @@ def run(cmd):
     return rc,stdout,stderr
 
 
-def submit_wdl(env, wdl, input_json, site):
+def submit_wdl(env, wdl, input_json, site, tag="submit_fq_count_wdl"):
     """
     This is a fixture that will submit a wdl for all functions to use.
     This function returns the output of a wdl submission.
@@ -25,7 +25,7 @@ def submit_wdl(env, wdl, input_json, site):
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
     # activation command causes an error when we try to do json load later
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws submit --tag submit_fq_count_wdl --no-cache %s %s %s" % (env, wdl, input_json, site)
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws submit --tag %s --no-cache %s %s %s" % (env, tag, wdl, input_json, site)
     (rc, stdout, stderr) = run(cmd)
     if rc > 0:
         if stderr:
