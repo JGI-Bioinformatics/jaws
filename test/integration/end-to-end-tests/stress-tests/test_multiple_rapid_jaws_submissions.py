@@ -48,16 +48,6 @@ class TestMultipleRapidJawsSubmissions:
             lines = file.readlines()
             for line in lines:
                 run_id = line.strip()
-                util.wait_for_run(
+                util.wait_for_run_and_check_for_success(
                     run_id, env, check_tries, check_sleep
                 )
-
-                cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
-
-                (rc, stdout, stderr) = util.run(cmd)
-
-                status_info = json.loads(stdout)
-                assert status_info["status"] == "download complete", \
-                    "\n**Run %s took too long - last state seen: %s" % (run_id, status_info["status"])
-                assert status_info["result"] == "succeeded", \
-                    "\n**Run %s did not succeed - status was: %s" % (run_id, status_info["result"])
