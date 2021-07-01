@@ -4,46 +4,40 @@ import json
 import pytest
 import submission_utils as util
 
+# Note that in order for this test to do all the submissions at the same time, it MUST be run with
+# pytest -n option with a value equal to the number of parameterized wdl/json combos.
+# This means that increasing the number of wdl/json combinations will require updating -n value for
+# the gitlab-ci.yml entries for this test
 
-class TestRunSuccess:
-    check_tries = 360  # try this many times when waiting for a JAWS run to complete.
-    check_sleep = 100  # wait for this amount of time between tries.
+class TestMultipleRapidJawsSubmissions:
 
-    @staticmethod
-    def run_success(env, site, wdl, input_json):
+    @pytest.mark.parametrize(
+        "wdl, input_json", "tag", "check_tries", "check_sleep",
+        (
+            (
+                "../../../examples/jaws-alignment-example/alignment.wdl",
+                "../../../examples/jaws-alignment-example/inputs.align.json",
+                "alignment-stress-test",
+                360, 100,
+            ),
+        ),
+    )
+    def test_tutorial_success(self, env, site, wdl, input_json, tag, check_tries, check_sleep):
+        # run the test against all the wdl/json in the @pytest.mark.parametrize
 
-        jaws_output = util.submit_wdl(env, wdl, input_json, site)
+        jaws_output = util.submit_wdl(env, wdl, input_json, site, tag)
         run_id = str(jaws_output["run_id"])
 
         util.wait_for_run(
-            run_id, env, TestRunSuccess.check_tries, TestRunSuccess.check_sleep
+            run_id, env, check_tries, check_sleep
         )
 
         cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
 
         (rc, stdout, stderr) = util.run(cmd)
-        # print("status cmd:", cmd)
-        # print("rc: ", rc)
-        # print("stderr: ", stderr)
-        # print("stdout: ", stdout)
 
         status_info = json.loads(stdout)
-        assert status_info["status"] == "download complete",  \
+        assert status_info["status"] == "download complete", \
             "\n**Run %s took too long - last state seen: %s" % (run_id, status_info["status"])
         assert status_info["result"] == "succeeded", \
             "\n**Run %s did not succeed - status was: %s" % (run_id, status_info["result"])
-
-
-class TestMultipleRapidJawsSubmissions(TestRunSuccess):
-    @pytest.mark.parametrize(
-        "wdl, input_json",
-        (
-            (
-                "../../../examples/jaws-alignment-example/alignment.wdl",
-                "../../../examples/jaws-alignment-example/inputs.align.json",
-            ),
-        ),
-    )
-    def test_tutorial_success(self, clone_tutorials_repo, env, site, wdl, input_json):
-        # run the test against all the wdl/json in the @pytest.mark.parametrize
-        self.run_success(env, site, wdl, input_json)
