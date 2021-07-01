@@ -81,7 +81,7 @@ def wait_for_run(id, env, check_tries, check_sleep):
 
 def wait_for_run_and_check_for_success(run_id, env, check_tries, check_sleep):
 
-    wait_for_run(id, env, check_tries, check_sleep)
+    wait_for_run(run_id, env, check_tries, check_sleep)
 
     cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
     (rc, stdout, stderr) = run(cmd)
