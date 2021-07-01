@@ -13,7 +13,7 @@ import submission_utils as util
 class TestMultipleRapidJawsSubmissions:
 
     @pytest.mark.parametrize(
-        "wdl, input_json", "tag", "check_tries", "check_sleep",
+        "wdl, input_json, tag, check_tries, check_sleep",
         [
             (
                 "../../../examples/jaws-alignment-example/alignment.wdl",
