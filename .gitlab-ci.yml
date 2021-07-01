@@ -127,8 +127,8 @@ variables:
   TAHOMA_RMQ_PORT: 5672
   TAHOMA_JTM_RMQ_HOST: "rmq.lbl.gov"
   TAHOMA_JTM_RMQ_PORT: 5672
-  TAHOMA_PYTHON: "python3.6"
-  TAHOMA_LOAD_PYTHON: ". /opt/rh/rh-python36/enable"
+  TAHOMA_PYTHON: "python"
+  TAHOMA_LOAD_PYTHON: "module load python/3.8.1"
   TAHOMA_JAWS_GROUP: "svc-jtm-manager"
   TAHOMA_JTM_GROUP: "svc-jtm-user"
   TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
