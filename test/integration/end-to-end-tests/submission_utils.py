@@ -1,4 +1,4 @@
-import os,sys
+import os, sys
 import json
 import pytest
 import time
@@ -54,8 +54,9 @@ def submit_wdl_noexit(env, wdl, input_json, site):
 
     return data
 
-def wait_for_run(id,env,check_tries,check_sleep):
-    """ Wait for all the runs in ids list to finish."""
+
+def wait_for_run(id, env, check_tries, check_sleep):
+    """ Wait for the run to finish."""
     tries = 1 
     while tries <= check_tries:
         # check whether the run has finished every 60 seconds
@@ -76,6 +77,21 @@ def wait_for_run(id,env,check_tries,check_sleep):
     # if we got here then the number of tries has been exceeded, but the run is still not finished
     error_message = "The test has timed out while waiting for run %s to complete" % id
     raise Exception(error_message)
+
+
+def wait_for_run_and_check_for_success(run_id, env, check_tries, check_sleep):
+
+    wait_for_run(id, env, check_tries, check_sleep)
+
+    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
+    (rc, stdout, stderr) = run(cmd)
+
+    status_info = json.loads(stdout)
+    assert status_info["status"] == "download complete", \
+        "\n** Run %s took too long - last state seen: %s" % (run_id, status_info["status"])
+    assert status_info["result"] == "succeeded", \
+        "\n** Run %s did not succeed - status was: %s" % (run_id, status_info["result"])
+
 
 def timestamp_dir(dir):
     # create timestamp string to make output directory unique
