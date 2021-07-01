@@ -374,7 +374,8 @@ deploy-jaws-jgi-prod:
 deploy-jaws-tahoma-dev:
   stage: deploy-jaws
   tags:
-    - cascade
+    - tahoma
+    - pnnl
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "TAHOMA"
