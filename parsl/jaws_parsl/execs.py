@@ -2,7 +2,8 @@ from parsl.config import Config
 from parsl.providers import SlurmProvider
 from parsl.launchers import SrunLauncher
 from parsl.executors import HighThroughputExecutor
-from parsl.addresses import address_by_interface
+from parsl.addresses import address_by_interface, address_by_hostname
+from parsl.monitoring.monitoring import MonitoringHub
 
 cori_hsw_opts = '#SBATCH -C haswell'
 cori_hsw_opts += '\n#SBATCH -A m342'
@@ -111,6 +112,11 @@ config = Config(
                 cmd_timeout=120,
             ),
         ),
-
-    ]
+    ],
+    monitoring=MonitoringHub(
+       hub_address=address_by_hostname(),
+       hub_port=55055,
+       monitoring_debug=False,
+       resource_monitoring_interval=10,
+    )
 )

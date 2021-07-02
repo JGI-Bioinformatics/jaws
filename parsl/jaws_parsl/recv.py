@@ -87,7 +87,7 @@ def on_message_callback(ch, method, properties, body):
     future = run_script(message['command'])
     task_id = future.tid
     logger.debug(f"[Task:{task_id} Launched")
-    print(f"Task id: {task_id}")
+    print(f"Task ID: {task_id}")
     G_UPDATES_CHANNEL.push_task_status(task_id, 'LAUNCHED')
 
     G_TASK_TABLE[task_id] = {'future': future,
@@ -247,6 +247,7 @@ def cli():
     config.retries = 3
     dfk = parsl.load(config)
     parsl_run_dir = dfk.run_dir
+    print(dfk.run_id)
 
     args = parser.parse_args()
 
