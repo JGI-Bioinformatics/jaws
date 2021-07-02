@@ -15,21 +15,9 @@ class TestRunSuccess:
         jaws_output = util.submit_wdl(env, wdl, input_json, site)
         run_id = str(jaws_output["run_id"])
 
-        util.wait_for_run(
+        util.wait_for_run_and_check_for_success(
             run_id, env, TestRunSuccess.check_tries, TestRunSuccess.check_sleep
         )
-
-        cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
-
-        (rc, stdout, stderr) = util.run(cmd)
-        print("status cmd:", cmd)
-        print("rc: ", rc)
-        print("stderr: ", stderr)
-        print("stdout: ", stdout)
-
-        status_info = json.loads(stdout)
-        assert status_info["status"] == "download complete"
-        assert status_info["result"] == "succeeded"
 
 
 class TestTutorialSuccess(TestRunSuccess):
