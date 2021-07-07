@@ -2,7 +2,12 @@ import sys
 import json
 import pytest
 import time
+import functools
 from subprocess import Popen, PIPE
+
+# flush the printstream so that the output can be redirected to a file to prevent
+# loss of test results if the ssh connection is lost
+print = functools.partial(print, flush=True)
 
 
 def run(cmd):
@@ -93,7 +98,7 @@ def wait_for_run(run_id, env, check_tries, check_sleep):
 
     # if we got here then the number of tries has been exceeded, but the run is still not finished
     error_message = "The test has timed out while waiting for run %s to complete" % run_id
-    raise Exception(error_message)
+    pytest.exit(error_message)
 
 
 def wait_for_run_and_check_for_success(run_id, env, check_tries, check_sleep):
