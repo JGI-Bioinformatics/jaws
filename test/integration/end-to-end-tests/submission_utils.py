@@ -64,8 +64,11 @@ def submit_wdl_noexit(env, wdl, input_json, site):
 def wait_for_run(run_id, env, check_tries, check_sleep):
     """ Wait for the run to finish."""
     tries = 1
+    run_status = "unknown"
     while tries <= check_tries:
-        # check whether the run has finished every 60 seconds
+        previous_status = run_status
+
+        # check whether the run has finished
         cmd = "source ~/jaws-%s.sh > /dev/null && jaws status %s" % (env, run_id)
         (r, o, e) = run(cmd)
         if r > 0:
@@ -74,10 +77,18 @@ def wait_for_run(run_id, env, check_tries, check_sleep):
         status_output = json.loads(o)
         run_status = status_output["status"]
 
+        # if the run has finished we are done waiting
         if run_status == "download complete":
             return
 
-        tries += 1
+        # if the run status has changed, reset the tries counter to 1
+        if run_status != previous_status:
+            tries = 1
+        # otherwise the run status is the same as last time, so increment the runs counter
+        else:
+            tries += 1
+
+        # sleep for awhile before checking the status again
         time.sleep(check_sleep)
 
     # if we got here then the number of tries has been exceeded, but the run is still not finished

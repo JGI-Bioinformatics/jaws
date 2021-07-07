@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import json
+import os
 from datetime import datetime
 
 import pytest
@@ -42,6 +43,10 @@ class TestMultipleRapidJawsSubmissions:
                 run_id = str(jaws_output["run_id"])
                 submitted += 1
                 file.write('%s\n' % run_id)
+
+        # change the file permissions to 775, so that it can be read by anyone later
+        # not just the ci/cd test runner user, or the person who kicked tests off manually
+        os.chmod(filename, 0o775)
 
         # read the file of run ids and check whether each run has completed
         with open(filename, "r") as file:
