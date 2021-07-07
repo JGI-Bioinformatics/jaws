@@ -268,16 +268,24 @@ def task_log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
     result = _request("GET", url)
+    header = ["#CROMWELL_RUN_ID", "TASK_NAME", "ATTEMPT", "CROMWELL_JOB_ID", \
+        "STATUS_FROM", "STATUS_TO", "TIMESTAMP", "REASON"]
     if fmt == "json":
         _print_json(result)
-    else:
-        click.echo(
-            "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
-        )
+    elif fmt == "tab":
+        click.echo("\t".join(header))
         for row in result:
             row[2] = str(row[2])
             row[3] = str(row[3])
             click.echo("\t".join(row))
+    else:
+        result.insert(0, header)
+        col_widths = []
+        """Get the max length of element in every col and add padding (2)"""
+        for idx in range(len(header)):
+            col_widths.append(max(len(log_entry[idx]) for log_entry in result) + 2)
+        for log_entry in result:
+            print("".join(cell.ljust(col_widths[col_idx]) for col_idx, cell in enumerate(log_entry)))
 
 
 @main.command()
