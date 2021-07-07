@@ -139,8 +139,8 @@ def submit_scatter_timeout(request):
     site = request.config.getoption("--site")
     env = request.config.getoption("--env")
 
-    wdl = target_dir + "/../../../../examples/leo_dapseq/leo_15_min.wdl"
-    input_json = target_dir + "/../../../../examples/leo_dapseq/shortened-100.json"
+    wdl = target_dir + "/../../../examples/leo_dapseq/leo_15_min.wdl"
+    input_json = target_dir + "/../../../examples/leo_dapseq/shortened-100.json"
 
     data = util.submit_wdl_noexit(env, wdl, input_json, site)
 
