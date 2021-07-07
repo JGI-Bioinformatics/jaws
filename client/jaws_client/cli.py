@@ -268,8 +268,7 @@ def task_log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
     result = _request("GET", url)
-    header = ["#CROMWELL_RUN_ID", "TASK_NAME", "ATTEMPT", "CROMWELL_JOB_ID", \
-        "STATUS_FROM", "STATUS_TO", "TIMESTAMP", "REASON"]
+    header = ["#CROMWELL_RUN_ID", "TASK_NAME", "ATTEMPT", "CROMWELL_JOB_ID", "STATUS_FROM", "STATUS_TO", "TIMESTAMP", "REASON"]
     if fmt == "json":
         _print_json(result)
     elif fmt == "tab":
