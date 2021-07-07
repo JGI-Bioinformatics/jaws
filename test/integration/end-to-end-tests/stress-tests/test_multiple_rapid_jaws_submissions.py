@@ -20,10 +20,16 @@ class TestMultipleRapidJawsSubmissions:
         "wdl, input_json, tag, num_of_submissions, check_tries, check_sleep",
         [
             (
-                "../../../examples/jaws-alignment-example/alignment.wdl",
-                "../../../examples/jaws-alignment-example/inputs.align.json",
-                "alignment-stress-test",
-                2, 360, 100,
+                "../../../examples/bfoster_meta_assem/jgi_meta.jaws.wdl",
+                "../../../examples/bfoster_meta_assem/inputs.json",
+                "bfoster-short-stress-test",
+                2, 360, 120,
+            ),
+            (
+                "../../../examples/leo_dapseq/Azospirillum_brasilense.wdl",
+                "../../../examples/leo_dapseq/shortened.json",
+                "leo-short-stress-test",
+                2, 360, 120,
             )
         ]
     )
