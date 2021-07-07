@@ -23,7 +23,7 @@ def run(cmd):
     return rc, stdout, stderr
 
 
-def submit_wdl(env, wdl, input_json, site, tag="submit_fq_count_wdl"):
+def submit_wdl(env, wdl, input_json, site, tag="integration-test"):
     """
     This is a fixture that will submit a wdl for all functions to use.
     This function returns the output of a wdl submission.
