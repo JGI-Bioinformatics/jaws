@@ -34,7 +34,11 @@ class TestMultipleRapidJawsSubmissions:
         ]
     )
     def test_rapid_submissions(
-            self, env, site, wdl, input_json, tag, num_of_submissions, check_tries, check_sleep):
+            self, env, site_list, wdl, input_json, tag, num_of_submissions, check_tries, check_sleep):
+
+        # site_list will be comma seperated string, like "cori, jgi"
+        # make it a python list with no blanks
+        sites = [x.strip() for x in site_list.split(',')]
 
         # create a file named with the tag value plus a timestamp that will be used to record the
         # run_ids created by this test
@@ -43,15 +47,18 @@ class TestMultipleRapidJawsSubmissions:
 
         # submit the wdl/json to JAWS num_of_submissions times and write the run ids to a file
         with open(filename, "w") as file:
+            # submit to each site in site_list
             submitted = 0
             while submitted < num_of_submissions:
-                jaws_output = util.submit_wdl(env, wdl, input_json, site, tag)
-                run_id = str(jaws_output["run_id"])
+                for site in sites:
+                    jaws_output = util.submit_wdl(env, wdl, input_json, site, tag)
+                    run_id = str(jaws_output["run_id"])
+                    file.write('%s\n' % run_id)
+
                 submitted += 1
-                file.write('%s\n' % run_id)
 
         # change the file permissions to 775, so that it can be read by anyone later
-        # not just the ci/cd test runner user, or the person who kicked tests off manually
+        # not just the ci/cd test runner user or the person who kicked tests off manually
         os.chmod(filename, 0o775)
 
         # read the file of run ids and check whether each run has completed
