@@ -38,7 +38,7 @@ def _request(rest_op, url, data={}, files={}) -> dict:
     """Perform specified REST operation.  A JSON response is expected."""
     if config is None:
         raise JawsClientError(
-            f"The config obj must be initialized before using this function"
+            "The config obj must be initialized before using this function"
         )
     access_token = config.get("USER", "token")
     if not access_token:
