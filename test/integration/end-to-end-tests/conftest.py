@@ -261,7 +261,7 @@ def pytest_addoption(parser):
         help="the JAWS environment [dev|staging|prod] that will be used during submission",
     )
     parser.addoption(
-        "--site_list",
+        "--site-list",
         action="store",
         help="a list of JAWS sites [cori, jgi] that will be used during submission",
     )
@@ -284,3 +284,9 @@ def site(request):
 def env(request):
     """ The --env CLI argument is for passing the environment [dev|staging|prod] to the test functions"""
     return request.config.getoption("--env")
+
+
+@pytest.fixture
+def site_list(request):
+    """ The --site CLI argument is for passing the site [cori|jgi] to test the functions"""
+    return request.config.getoption("--site-list")
