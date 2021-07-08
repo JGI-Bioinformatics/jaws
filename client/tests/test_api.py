@@ -324,7 +324,7 @@ def test_submit(configuration, monkeypatch, sample_workflow):
 
 
 def test_get(configuration, monkeypatch):
-    def mock__run_status(run_id, verbose):
+    def mock_status(self, run_id: int, verbose: bool = False) -> dict:
         if run_id == "1":
             return {
                 "status": "download complete",
@@ -333,34 +333,25 @@ def test_get(configuration, monkeypatch):
         else:
             return {"status": "submitted", "output_dir": "/data/repo/dir/mockuser/run1"}
 
-    def mock_run(args, **kwargs):
-        if args[0] == "rsync" and args[1] == "-a" and len(args) == 4:
-            return
-        else:
-            raise ValueError
+    monkeypatch.setattr(api.JawsClient, "status", mock_status)
 
     def mock_rsync(src, dest, options):
         class Result:
             def __init__(self):
                 self.returncode = 0
-
         return Result()
 
-    monkeypatch.setattr(subprocess, "run", mock_run)
-    monkeypatch.setattr(cli, "_run_status", mock__run_status)
     from jaws_client import workflow
-
     monkeypatch.setattr(workflow, "rsync", mock_rsync)
 
     jaws = JawsClient()
 
     # a completed run
     result = jaws.get("1", "/home/mockuser/mydir")
-    assert result.exit_code == 0
 
     # an incomplete run
-    result = jaws.get("2", "/home/mockuser/mydir")
-    assert result.exit_code != 0
+    with pytest.raises(api.JawsClientError):
+        result = jaws.get("2", "/home/mockuser/mydir")
 
 
 def test_cancel_OK(monkeypatch, configuration):
