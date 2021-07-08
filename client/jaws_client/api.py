@@ -38,6 +38,53 @@ class JawsServiceError(JawsClientError):
     pass
 
 
+def _request(rest_op, url, data={}, files={}) -> dict:
+    """Perform specified REST operation.  A JSON response is expected."""
+    if config is None:
+        raise JawsClientError(f"The config obj must be initialized before using this function")
+    access_token = config.get("USER", "token")
+    if not access_token:
+        raise JawsServiceError(
+            "User access token required; contact an admin to get yours."
+        )
+    header = {"Authorization": f"Bearer {access_token}"}
+    response = None
+    try:
+        if rest_op == "GET":
+            response = requests.get(url, headers=header)
+        elif rest_op == "PUT":
+            response = requests.put(url, headers=header)
+        elif rest_op == "POST":
+            response = requests.post(url, data=data, files=files, headers=header)
+        else:
+            raise JawsServiceError(f"Unsupported REST request type: {rest_op}")
+    except requests.exceptions.Timeout as err:
+        raise JawsServiceError(
+            "Unable to communicate with JAWS server (timeout)", err
+        )
+    except requests.exceptions.TooManyRedirects as err:
+        raise JawsServiceError(
+            "Unable to communicate with JAWS server (too many redirects; bad url?)",
+            err,
+        )
+    except requests.exceptions.HTTPError as err:
+        raise JawsServiceError(
+            "Unable to communicate with JAWS server (http error)", err
+        )
+    except requests.exceptions.RequestException as err:
+        raise JawsServiceError("Unable to communicate with JAWS server", err)
+    if response.status_code < 200 or response.status_code > 299:
+        try:
+            result = response.json()
+        except Exception:
+            raise JawsServiceError(response.text)
+        if "error" in result:
+            raise JawsServiceError(result["error"])
+        else:
+            raise JawsServiceError(result)
+    return response.json()
+
+
 class JawsClient:
     def __init__(
         self,
@@ -71,50 +118,6 @@ class JawsClient:
         os.environ[JAWS_USER_CONFIG_ENV] = user_config_file
         global config
         config = Configuration(jaws_config_file, user_config_file)
-
-    def _request(self, rest_op, url, data={}, files={}) -> dict:
-        """Perform specified REST operation.  A JSON response is expected."""
-        access_token = config.get("USER", "token")
-        if not access_token:
-            raise JawsServiceError(
-                "User access token required; contact an admin to get yours."
-            )
-        header = {"Authorization": f"Bearer {access_token}"}
-        response = None
-        try:
-            if rest_op == "GET":
-                response = requests.get(url, headers=header)
-            elif rest_op == "PUT":
-                response = requests.put(url, headers=header)
-            elif rest_op == "POST":
-                response = requests.post(url, data=data, files=files, headers=header)
-            else:
-                raise JawsServiceError(f"Unsupported REST request type: {rest_op}")
-        except requests.exceptions.Timeout as err:
-            raise JawsServiceError(
-                "Unable to communicate with JAWS server (timeout)", err
-            )
-        except requests.exceptions.TooManyRedirects as err:
-            raise JawsServiceError(
-                "Unable to communicate with JAWS server (too many redirects; bad url?)",
-                err,
-            )
-        except requests.exceptions.HTTPError as err:
-            raise JawsServiceError(
-                "Unable to communicate with JAWS server (http error)", err
-            )
-        except requests.exceptions.RequestException as err:
-            raise JawsServiceError("Unable to communicate with JAWS server", err)
-        if response.status_code < 200 or response.status_code > 299:
-            try:
-                result = response.json()
-            except Exception:
-                raise JawsServiceError(response.text)
-            if "error" in result:
-                raise JawsServiceError(result["error"])
-            else:
-                raise JawsServiceError(result)
-        return response.json()
 
     def health(self) -> dict:
         """Current system status."""
@@ -151,7 +154,7 @@ class JawsClient:
             "result": "any",
         }
         url = f'{config.get("JAWS", "url")}/search'
-        return self._request("POST", url, data)
+        return _request("POST", url, data)
 
     def history(self, days: int = 1, site: str = "ALL", result: str = "any") -> dict:
         """Print a list of the user's past runs."""
@@ -166,7 +169,7 @@ class JawsClient:
             "result": result.lower(),
         }
         url = f'{config.get("JAWS", "url")}/search'
-        return self._request("POST", url, data)
+        return _request("POST", url, data)
 
     def status(self, run_id: int, verbose: bool = False) -> dict:
         """Print the current status of a run."""
@@ -175,53 +178,53 @@ class JawsClient:
             url = f'{config.get("JAWS", "url")}/run/{run_id}/complete'
         else:
             url = f'{config.get("JAWS", "url")}/run/{run_id}'
-        return self._request("GET", url)
+        return _request("GET", url)
 
     def task_status(self, run_id: int) -> dict:
         """Show the current status of each Task."""
 
         url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
-        return self._request("GET", url)
+        return _request("GET", url)
 
     def metadata(self, run_id: int) -> dict:
         """Print detailed metadata for a run, generated by cromwell."""
 
         url = f'{config.get("JAWS", "url")}/run/{run_id}/metadata'
-        return self._request("GET", url)
+        return _request("GET", url)
 
     def log(self, run_id: int) -> dict:
         """View the log of Run state transitions for the workflow as a whole."""
 
         url = f'{config.get("JAWS", "url")}/run/{run_id}/run_log'
-        return self._request("GET", url)
+        return _request("GET", url)
 
     def task_log(self, run_id: int, fmt: str) -> dict:
         """Get log of each Task's state transitions."""
 
         url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
-        return self._request("GET", url)
+        return _request("GET", url)
 
     def errors(self, run_id: int) -> dict:
         """View error messages and stderr for failed Tasks."""
 
         url = f'{config.get("JAWS", "url")}/run/{run_id}/errors'
-        return self._request("GET", url)
+        return _request("GET", url)
 
     def cancel(self, run_id: int) -> dict:
         """Cancel a run; returns whether aborting was successful or not."""
 
         url = f'{config.get("JAWS", "url")}/run/{run_id}/cancel'
-        return self._request("PUT", url)
+        return _request("PUT", url)
 
     def cancel_all(self) -> dict:
         """Cancel all active runs."""
         url = f'{config.get("JAWS", "url")}/run/cancel-all'
-        return self._request("PUT", url)
+        return _request("PUT", url)
 
     def list_sites(self) -> dict:
         """List available compute Sites"""
         url = f'{config.get("JAWS", "url")}/site'
-        return self._request("GET", url)
+        return _request("GET", url)
 
     def submit(
         self,
@@ -242,7 +245,7 @@ class JawsClient:
 
         # the users' jaws id may not match the linux uid where the client is installed
         url = f'{config.get("JAWS", "url")}/user'
-        result = self._request("GET", url)
+        result = _request("GET", url)
         uid = result["uid"]
 
         staging_subdir = config.get("JAWS", "staging_dir")
@@ -257,7 +260,7 @@ class JawsClient:
         # GET SITE INFO
         compute_site_id = site.upper()
         url = f'{config.get("JAWS", "url")}/site/{compute_site_id}'
-        result = self._request("GET", url)
+        result = _request("GET", url)
         compute_basedir = result["globus_host_path"]
         compute_uploads_subdir = result["uploads_dir"]
         compute_max_ram_gb = int(result["max_ram_gb"])
@@ -358,7 +361,7 @@ class JawsClient:
         files = {"manifest": open(staged_manifest, "r")}
         url = f'{config.get("JAWS", "url")}/run'
         logger.debug(f"Submitting run: {data}")
-        result = self._request("POST", url, data, files)
+        result = _request("POST", url, data, files)
         result["max_ram_gb"] = max_ram_gb
         del result["output_dir"]
         return result
@@ -426,4 +429,4 @@ class JawsClient:
         """Add new user and get JAWS OAuth access token (restricted)."""
         data = {"uid": uid, "email": email, "name": name, "admin": admin}
         url = f'{config.get("JAWS", "url")}/user'
-        return self._request("POST", url, data)
+        return _request("POST", url, data)
