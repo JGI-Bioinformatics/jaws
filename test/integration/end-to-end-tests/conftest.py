@@ -260,6 +260,11 @@ def pytest_addoption(parser):
         action="store",
         help="the JAWS environment [dev|staging|prod] that will be used during submission",
     )
+    parser.addoption(
+        "--site_list",
+        action="store",
+        help="a list of JAWS sites [cori, jgi] that will be used during submission",
+    )
 
 
 # These functions allows an argument to be passed into the test functions
