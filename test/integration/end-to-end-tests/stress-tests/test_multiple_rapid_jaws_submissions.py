@@ -12,24 +12,44 @@ import submission_utils as util
 # This means that increasing the number of wdl/json combinations will require updating -n value for
 # the gitlab-ci.yml entries for this test
 
+# Also note that this test takes a --site-list parameter, rather than --site (so that submissions
+# to all sites takes place simultaneously).  Here is an example of how to run this test from
+# the command line:
+# > pytest -n 4 --capture=no --verbose --dir . --site-list "cori, jgi" --env staging
+#   stress-tests/test_multiple_rapid_jaws_submissions.py
 
 class TestMultipleRapidJawsSubmissions:
     FILE_DIR = '/global/cscratch1/sd/jaws/stress_tests'
 
+    # note that the num_of_submissions is the number of submissions to EACH site in the
+    # site-list param, so, if there are 2 sites in the list the total number of submissions to
+    # jaws will be 2 * (the sum of all the num_of_submissions in the list)
     @pytest.mark.parametrize(
         "wdl, input_json, tag, num_of_submissions, check_tries, check_sleep",
         [
             (
                 "../../../examples/bfoster_meta_assem/jgi_meta.jaws.wdl",
                 "../../../examples/bfoster_meta_assem/inputs.json",
-                "bfoster-short-stress-test",
-                2, 360, 120,
+                "bfoster-small-job-stress-test",
+                30, 360, 120,
             ),
             (
                 "../../../examples/leo_dapseq/Azospirillum_brasilense.wdl",
                 "../../../examples/leo_dapseq/shortened.json",
-                "leo-short-stress-test",
-                2, 360, 120,
+                "leo-small-job-stress-test",
+                10, 360, 120,
+            ),
+            (
+                "../../../examples/bfoster_meta_assem/jgi_meta.jaws.wdl",
+                "../../../examples/bfoster_meta_assem/big_inputs.json",
+                "bfoster-big-job-stress-test",
+                5, 360, 120,
+            ),
+            (
+                "../../../examples/leo_dapseq/Azospirillum_brasilense.wdl",
+                "../../../examples/leo_dapseq/shortened-100.json",
+                "leo-medium-job-stress-test",
+                5, 360, 120,
             )
         ]
     )
