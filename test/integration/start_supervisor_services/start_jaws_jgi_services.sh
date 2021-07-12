@@ -2,6 +2,7 @@
 
 set -o pipefail
 
+module rm python
 module load python/3.8.2-dll
 jaws_install="/global/home/groups-sw/lr_jgicloud/jaws-install"
 gitlab_install="/global/home/groups-sw/lr_jgicloud/jaws_ci_runner"
