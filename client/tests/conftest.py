@@ -11,6 +11,7 @@ def configuration(tmp_path):
     user_config_path = tmp_path / "jaws_user.ini"
     os.environ["JAWS_CLIENT_CONFIG"] = config_path.as_posix()
     os.environ["JAWS_USER_CONFIG"] = user_config_path.as_posix()
+    os.environ["JAWS_TZ"] = "US/PACIFIC"
 
     globus_basedir = tmp_path / "globus_basedir"
     staging_dir = globus_basedir / "staging"

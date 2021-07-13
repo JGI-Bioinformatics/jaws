@@ -13,28 +13,28 @@ from jaws_client import cli
 HISTORY = [
     [
         "33",
-        "2020-04-03T22:19:45Z",
+        "2020-04-03 22:19:45",
         "upload failed",
         "c49043b3-4ec7-4874-b09d-c0ca54a74870",
         "null",
     ],
     [
         "34",
-        "2020-04-03T22:27:00Z",
+        "2020-04-03 22:27:00",
         "upload failed",
         "64864a67-04d3-47c9-8cf0-4cb6e0ab020a",
         "null",
     ],
     [
         "35",
-        "2020-04-04T16:55:35Z",
+        "2020-04-04 16:55:35",
         "failed",
         "65f2f4df-2a6c-4881-a3b0-3141107ac668",
         "1aba54ac-7695-11ea-9615-0afc9e7dd773",
     ],
     [
         "36",
-        "2020-04-04T17:56:52Z",
+        "2020-04-04 17:56:52",
         "running",
         "bafa20aa-59b3-4d33-9f4c-fb30696e324f",
         "aa791756-769d-11ea-af53-0201714f6eab",
@@ -241,7 +241,7 @@ def test_cli_queue(monkeypatch, configuration):
         result = [
             [
                 "36",
-                "2020-04-04T17:56:52Z",
+                "2020-04-04 17:56:52",
                 "running",
                 "bafa20aa-59b3-4d33-9f4c-fb30696e324f",
                 "aa791756-769d-11ea-af53-0201714f6eab",
@@ -253,8 +253,10 @@ def test_cli_queue(monkeypatch, configuration):
 
     runner = click.testing.CliRunner()
     result = runner.invoke(cli.main, ["queue"])
+    print(f"RESULT FROM TEST_CLI.py {result.output}")
     assert result.exit_code == 0
     assert "running" in result.output
+    assert('2020-04-04 10:56:52' in result.output or '2020-04-04 09:56:52' in result.output)
 
 
 def test_cli_history(monkeypatch, configuration):
@@ -269,6 +271,8 @@ def test_cli_history(monkeypatch, configuration):
     for task_id in ["33", "34", "35", "36"]:
         assert task_id in result.output
 
+    assert('2020-04-04 10:56:52' in result.output or '2020-04-04 09:56:52' in result.output)
+
 
 def test_cli_status(monkeypatch, configuration):
     def mock_status_get(url, headers={}):
@@ -276,7 +280,7 @@ def test_cli_status(monkeypatch, configuration):
         Returns a list of attributes from a run ordered as the following:
         run id, submission date, submission id, upload id
         """
-        job_status = {"status": "Running"}
+        job_status = {"status": "Running",'submitted': '2021-07-06 22:40:04', 'tag': None, 'updated': '2021-07-06 22:42:55'}
         if url.endswith('/complete'):
             job_status["output_dir"] = "/foo/bar"
         return MockResponse(job_status, 200)
@@ -293,6 +297,8 @@ def test_cli_status(monkeypatch, configuration):
     assert result.exit_code == 0
     assert "Running" in result.output
     assert "/foo/bar" not in result.output
+
+    assert('2021-07-06 15:40:04' in result.output or '2021-07-06 14:40:04' in result.output)
 
 
 def test_cli_metadata(monkeypatch, configuration):
@@ -412,3 +418,8 @@ def test_cancel_ERR(monkeypatch, configuration):
     runner = click.testing.CliRunner()
     result = runner.invoke(cli.main, ["cancel", "35"])
     assert result.exit_code == 1
+
+def test_utc_to_local(monkeypatch):
+    from pytz import timezone
+    local_time = cli._utc_to_local('2021-07-06 22:42:55')
+    assert '2021-07-06 15:42:55' in local_time

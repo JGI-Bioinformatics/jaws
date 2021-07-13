@@ -67,6 +67,7 @@ pip install black
 pip install flake8
 pip install pytest
 pip install pytest-cov
+pip install pytz
 
 # inside the jaws repo 
 # RPC (do this first)
