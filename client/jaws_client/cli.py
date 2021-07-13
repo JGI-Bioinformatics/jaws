@@ -186,7 +186,8 @@ def history(days: int, site: str, result: str) -> None:
     url = f'{config.get("JAWS", "url")}/search'
     result = _request("POST", url, data)
     for a in result:
-        a[1] = _utc_to_local(a[1])
+        a["submitted"] = _utc_to_local(a["submitted"])
+        a["updated"] = _utc_to_local(a["updated"])
     _print_json(result)
 
 
@@ -539,9 +540,14 @@ def _utc_to_local(utc_datetime):
     from datetime import datetime, timezone
     import pytz
 
+    # The timezone can be overwritten with a environmental variable.
     # JAWS_TZ should be set to a timezone in a similar format to 'US/Pacific'
     local_tz = os.environ.get("JAWS_TZ", None)
-    local_tz_obj = pytz.timezone(local_tz)
+    local_tz_obj = ''
+    if local_tz is None:
+        local_tz_obj = datetime.now().astimezone().tzinfo
+    else:
+        local_tz_obj = pytz.timezone(local_tz)
 
     fmt = "%Y-%m-%d %H:%M:%S"
     datetime_obj = datetime.strptime(utc_datetime, fmt)
