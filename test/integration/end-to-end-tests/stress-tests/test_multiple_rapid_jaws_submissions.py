@@ -31,25 +31,25 @@ class TestMultipleRapidJawsSubmissions:
                 "../../../examples/bfoster_meta_assem/jgi_meta.jaws.wdl",
                 "../../../examples/bfoster_meta_assem/inputs.json",
                 "bfoster-small-job-stress-test",
-                30, 360, 120,
+                1, 360, 120,
             ),
             (
                 "../../../examples/leo_dapseq/Azospirillum_brasilense.wdl",
                 "../../../examples/leo_dapseq/shortened.json",
                 "leo-small-job-stress-test",
-                10, 360, 120,
+                1, 360, 120,
             ),
             (
                 "../../../examples/bfoster_meta_assem/jgi_meta.jaws.wdl",
                 "../../../examples/bfoster_meta_assem/big_inputs.json",
                 "bfoster-big-job-stress-test",
-                5, 360, 120,
+                1, 360, 120,
             ),
             (
                 "../../../examples/leo_dapseq/Azospirillum_brasilense.wdl",
                 "../../../examples/leo_dapseq/shortened-100.json",
                 "leo-medium-job-stress-test",
-                5, 360, 120,
+                1, 360, 120,
             )
         ]
     )
