@@ -30,7 +30,9 @@ class RpcClient(object):
                 raise ConfigurationError(f"{required_param} required")
             self.params[required_param] = params[required_param]
         self.params["port"] = int(params.get("port", DEFAULT_PORT))
-        self.wait_interval = float(params.get("rpc_wait_interval", DEFAULT_WAIT_INTERVAL))
+        self.wait_interval = float(
+            params.get("rpc_wait_interval", DEFAULT_WAIT_INTERVAL)
+        )
         self.max_wait = int(params.get("rpc_max_wait", DEFAULT_MAX_WAIT))
         self.message_ttl = int(params.get("rpc_message_ttl", DEFAULT_MESSAGE_TTL))
         if self.message_ttl > self.max_wait:
@@ -62,20 +64,24 @@ class RpcClient(object):
 
     def open(self):
         """Open connection to RabbitMQ"""
-        self.logger.debug(f"Open connection to {self.params['host']}:{self.params['queue']}")
+        self.logger.debug(
+            f"Open connection to {self.params['host']}:{self.params['queue']}"
+        )
         try:
             self.connection = amqpstorm.Connection(
                 self.params["host"],
                 self.params["user"],
                 self.params["password"],
                 int(self.params["port"]),
-                virtual_host=self.params["vhost"]
+                virtual_host=self.params["vhost"],
             )
         except Exception as error:
             raise ConnectionError(error)
         self.channel = self.connection.channel()
         self.channel.queue.declare(self.params["queue"])
-        result = self.channel.queue.declare(exclusive=True)
+        result = self.channel.queue.declare(
+            durable=False, exclusive=False, auto_delete=True
+        )
         self.callback_queue = result["queue"]
         self.channel.basic.consume(
             self._on_response, no_ack=True, queue=self.callback_queue
@@ -84,7 +90,7 @@ class RpcClient(object):
 
     def _create_process_thread(self):
         """Create a thread responsible for consuming messages in response
-         to RPC requests.
+        to RPC requests.
         """
         thread = threading.Thread(target=self._process_data_events)
         thread.setDaemon(True)
@@ -96,7 +102,7 @@ class RpcClient(object):
 
     def _on_response(self, message):
         """On Response store the message with the correlation id in a local
-         dictionary.
+        dictionary.
         """
         self.queue[message.correlation_id] = message.body
 
@@ -131,7 +137,9 @@ class RpcClient(object):
         self.queue[message.correlation_id] = None
 
         # Publish the RPC request.
-        self.logger.debug(f"Publishing message {message.correlation_id} to {self.params['queue']}")
+        self.logger.debug(
+            f"Publishing message {message.correlation_id} to {self.params['queue']}"
+        )
         try:
             message.publish(routing_key=self.params["queue"])
         except Exception as error:
