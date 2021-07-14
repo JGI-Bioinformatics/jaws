@@ -1,6 +1,6 @@
 #!/bin/bash
 # This is a wrapper to set the required variables so that we can source the appropriate 
-# JAWS environmental file (i.e jaws-dev.sh) so that the pytests that use jaws client will work.
+# JAWS environmental file (i.e jaws-dev.sh) so that the pytest(s) that use jaws client will work.
 # After the vars are all set, the pytest(s) are run.
 #
 # Assumptions:
@@ -11,12 +11,14 @@
 # JAWS_SITE
 # CORI_BASEDIR
 # JAWS_TEST_TOKEN
+# 
+# note that JAWS_SITE may be a list of sites (i.e. JAWS_SITE="cori jgi")
 
-TEST_FOLDER=$1
+TEST_SCRIPT=$1
 
 # check we have all arguments and environmental variables set
-if [[ ! $TEST_FOLDER ]]; then
-	echo "Usage: $0 <folder-with-tests>"
+if [[ ! $TEST_SCRIPT ]]; then
+	echo "Usage: $0 <pytest script>"
 	exit 1
 fi
 
@@ -29,6 +31,7 @@ JAWS_SITE
 CORI_BASEDIR
 JAWS_TEST_TOKEN
 "
+
 RESULT=0
 echo "VALIDATING REQUIRED VARS"
 for VAR in $REQUIRED_VARS; do
@@ -40,9 +43,6 @@ for VAR in $REQUIRED_VARS; do
 done
 [ $RESULT -eq 0 ] || exit $RESULT
 
-# source venv
-echo "source $CORI_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
-      source $CORI_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh
 
 # write token to jaws.conf
 # [USER]
@@ -50,8 +50,9 @@ echo "source $CORI_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
 echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN" > ~/jaws.conf
 chmod 600 ~/jaws.conf
 
-# this script is being called from where .gitlab-ci.yml lives, which is "jaws" parent. 
-# So we need to cd down to end-to-end-tests before running pytests.
+SITE=($(echo $JAWS_SITE | tr ", " "\n"))
+echo "source $CORI_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
 cd test/integration/end-to-end-tests
-pytest --verbose --dir . --env ${DEPLOYMENT_NAME} --site ${JAWS_SITE} ${TEST_FOLDER}
+echo pytest --verbose --env ${DEPLOYMENT_NAME} --site-list \"${SITE[@]}\" ${TEST_SCRIPT}
+	 pytest --verbose --env ${DEPLOYMENT_NAME} --site-list \"${SITE[@]}\" ${TEST_SCRIPT}
 
