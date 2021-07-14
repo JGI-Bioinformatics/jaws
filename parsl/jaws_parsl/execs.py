@@ -8,9 +8,10 @@ from parsl.monitoring.monitoring import MonitoringHub
 cori_hsw_opts = '#SBATCH -C haswell'
 cori_hsw_opts += '\n#SBATCH -A m342'
 
-cori_gp_opts = ''
+cori_gp_opts = '#SBATCH -A genother'
 
 cori_ev_opts = '#SBATCH -M escori'
+cori_ev_opts += '\n#SBATCH -A genother'
 
 lbl_sched_opts = '#SBATCH -A jgicloud'
 

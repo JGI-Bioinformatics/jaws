@@ -247,7 +247,6 @@ def cli():
     config.retries = 3
     dfk = parsl.load(config)
     parsl_run_dir = dfk.run_dir
-    print(dfk.run_id)
 
     args = parser.parse_args()
 
