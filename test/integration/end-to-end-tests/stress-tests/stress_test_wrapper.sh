@@ -50,9 +50,9 @@ done
 echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN" > ~/jaws.conf
 chmod 600 ~/jaws.conf
 
-SITE=($(echo $JAWS_SITE | tr ", " "\n"))
+#SITE=($(echo $JAWS_SITE | tr ", " "\n"))
 echo "source $CORI_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
 cd test/integration/end-to-end-tests
-echo pytest --verbose --env ${DEPLOYMENT_NAME} --site-list \"${SITE[@]}\" ${TEST_SCRIPT}
-	 pytest --verbose --env ${DEPLOYMENT_NAME} --site-list \"${SITE[@]}\" ${TEST_SCRIPT}
+echo pytest --verbose --env ${DEPLOYMENT_NAME} --site-list \"${JAWS_SITE}\" ${TEST_SCRIPT}
+	 pytest --verbose --env ${DEPLOYMENT_NAME} --site-list \"${JAWS_SITE}\" ${TEST_SCRIPT}
 

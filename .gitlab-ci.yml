@@ -677,7 +677,7 @@ all-sites-dev-stress-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CORI JGI"
+    JAWS_SITE: "CORI, JGI"
     CORI_INSTALL_BASEDIR: "/tmp"
     CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
