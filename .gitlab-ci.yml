@@ -390,8 +390,7 @@ cori-dev-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -406,8 +405,7 @@ jgi-dev-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -422,8 +420,7 @@ cori-dev-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -438,8 +435,7 @@ jgi-dev-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -454,8 +450,7 @@ cori-dev-stress-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -470,8 +465,7 @@ jgi-dev-stress-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -486,8 +480,7 @@ cori-staging-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -502,8 +495,7 @@ jgi-staging-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -518,8 +510,7 @@ cori-staging-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -534,8 +525,7 @@ jgi-staging-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -550,8 +540,7 @@ cori-staging-stress-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -566,8 +555,7 @@ jgi-staging-stress-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -582,8 +570,7 @@ cori-prod-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -598,8 +585,7 @@ jgi-prod-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -614,8 +600,7 @@ cori-prod-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -630,8 +615,7 @@ jgi-prod-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -646,8 +630,7 @@ cori-prod-stress-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -662,8 +645,7 @@ jgi-prod-stress-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -673,13 +655,12 @@ jgi-prod-stress-tests:
       when: manual
   allow_failure: true
 
-all-sites-dev-stress-tests:
+all-sites-dev:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI, JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
