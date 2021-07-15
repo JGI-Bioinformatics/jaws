@@ -14,14 +14,10 @@ echo 'hello'
 @pytest.fixture
 def config_file(tmp_path):
     cfg = tmp_path / "parsl.ini"
-    content = """[RMQ]
-user = j4w5
+    content = """[MP]
 password = p455w0rd
-host = rmq.server.com
-vhost = jaws
+host = mp.server.com
 port = 5678
-queue = high-prio
-exchange = exch
 
 [SITE_RPC_CLIENT]
 user = jaws

@@ -37,22 +37,18 @@ class Configuration():
         global conf
         conf = self
 
-    def get_rmq_params(self):
-        """Returns RMQ connection info.
+    def get_mp_params(self):
+        """Returns multiprocessing connection info.
 
-        :return: RabbitMQ parameters.
+        :return: Multiprocessing parameters.
         :rtype: dict
         """
-        section = "RMQ"
+        section = "MP"
         s = self.config[section]
         params = {
-            "user": s["user"],
             "password": s["password"],
             "host": s["host"],
-            "vhost": s["vhost"],
-            "port": int(s["port"]),
-            "queue": s["queue"],
-            "exchange": s["exchange"]
+            "port": int(s["port"])
         }
         print(params)
         return params

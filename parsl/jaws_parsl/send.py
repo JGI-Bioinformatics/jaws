@@ -2,10 +2,10 @@
 # python send.py -c <# of CPUs> -m <memory> -s <site> -cmd $(pwd)/hello.sh
 
 import click
-import pika
 import json
 import logging
 from jaws_parsl import config
+from multiprocessing.connection import Client
 
 
 @click.command()
@@ -21,24 +21,13 @@ def send(cpus, memory, site, command):
         "site": site
     }
 
-    rmq_params = config.conf.get_rmq_params()
+    mp_params = config.conf.get_mp_params()
+    mp_password = mp_params["password"]
+    mp_host = mp_params["host"]
+    mp_port = mp_params["port"]
 
-    rmq_user = rmq_params["user"]
-    rmq_password = rmq_params["password"]
-    rmq_host = rmq_params["host"]
-    rmq_vhost = rmq_params["vhost"]
-    rmq_port = rmq_params["port"]
-    rmq_queue = rmq_params["queue"]
-    rmq_exch = rmq_params["exchange"]
+    conn = Client((mp_host, mp_port), authkey=bytes(mp_password, encoding='utf-8'))
+    conn.send(json.dumps(job_info))
+    conn.close()
 
-    creds = pika.PlainCredentials(rmq_user, rmq_password)
-    params = pika.ConnectionParameters(credentials=creds,
-                                       host=rmq_host,
-                                       virtual_host=rmq_vhost,
-                                       port=rmq_port)
-    connection = pika.BlockingConnection(params)
-    channel = connection.channel()
-    channel.basic_publish(exchange=rmq_exch,
-                          routing_key=rmq_queue,
-                          body=json.dumps(job_info))
-    logging.debug(" [x] Sent job info to RMQ server.")
+    logging.debug(" [x] Sent job info.")

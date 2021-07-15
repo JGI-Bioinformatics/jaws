@@ -1,24 +1,20 @@
 import jaws_parsl.config
 
 
-def test_check_rmq_values(config_file):
+def test_check_mp_values(config_file):
 
     config_path = config_file
     cfg = jaws_parsl.config.Configuration(config_path)
 
-    expected_rmq_parameters = [
-        ("user", "j4w5"),
+    expected_mp_parameters = [
         ("password", "p455w0rd"),
-        ("host", "rmq.server.com"),
-        ("vhost", "jaws"),
-        ("port", 5678),
-        ("queue", "high-prio"),
-        ("exchange", "exch")
+        ("host", "mp.server.com"),
+        ("port", 5678)
     ]
 
-    actual_parameters = cfg.get_rmq_params()
+    actual_parameters = cfg.get_mp_params()
 
-    for key, expected in expected_rmq_parameters:
+    for key, expected in expected_mp_parameters:
         assert actual_parameters[key] == expected
 
 
