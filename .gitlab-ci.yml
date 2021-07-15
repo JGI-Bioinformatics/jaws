@@ -459,7 +459,7 @@ cori-dev-stress-tests:
   tags:
     - cori
   script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+    - ./test/integration/end-to-end-tests/stress-tests/stress_test_wrapper.sh stress-tests/test_multiple_rapid_jaws_submissions.py
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
@@ -475,7 +475,7 @@ jgi-dev-stress-tests:
   tags:
     - cori
   script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+    - ./test/integration/end-to-end-tests/stress-tests/stress_test_wrapper.sh stress-tests/test_multiple_rapid_jaws_submissions.py
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
@@ -555,7 +555,7 @@ cori-staging-stress-tests:
   tags:
     - cori
   script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+    - ./test/integration/end-to-end-tests/stress-tests/stress_test_wrapper.sh stress-tests/test_multiple_rapid_jaws_submissions.py
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
       when: manual
@@ -571,7 +571,7 @@ jgi-staging-stress-tests:
   tags:
     - cori
   script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+    - ./test/integration/end-to-end-tests/stress-tests/stress_test_wrapper.sh stress-tests/test_multiple_rapid_jaws_submissions.py
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
       when: manual
