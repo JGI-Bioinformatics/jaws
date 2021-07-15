@@ -52,6 +52,6 @@ chmod 600 ~/jaws.conf
 
 echo "source $CORI_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
 cd test/integration/end-to-end-tests
-echo pytest --verbose --env ${DEPLOYMENT_NAME} --site-list \"${JAWS_SITE}\" ${TEST_SCRIPT}
-	 pytest --verbose --env ${DEPLOYMENT_NAME} --site-list \"${JAWS_SITE}\" ${TEST_SCRIPT}
+echo /global/cfs/projectdirs/jaws/jaws-dev/bin/pytest --verbose --env ${DEPLOYMENT_NAME} --site-list \"${JAWS_SITE}\" ${TEST_SCRIPT}
+	 /global/cfs/projectdirs/jaws/jaws-dev/bin/pytest --verbose --env ${DEPLOYMENT_NAME} --site-list \"${JAWS_SITE}\" ${TEST_SCRIPT}
 
