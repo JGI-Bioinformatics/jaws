@@ -31,3 +31,7 @@ def send(cpus, memory, site, command):
     conn.close()
 
     logging.debug(" [x] Sent job info.")
+
+
+if __name__ == "__main__":
+    send()
