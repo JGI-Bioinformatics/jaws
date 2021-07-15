@@ -29,37 +29,38 @@ class TestMultipleRapidJawsSubmissions:
         "wdl, input_json, tag, num_of_submissions, check_tries, check_sleep",
         [
             (
-                "../../../examples/bfoster_meta_assem/jgi_meta.jaws.wdl",
-                "../../../examples/bfoster_meta_assem/inputs.json",
+                "WDLs/jgi_meta.jaws.wdl",
+                "test-inputs/jgi_meta.jaws.json",
                 "bfoster-small-job-stress-test",
-                1, 360, 120,
+                30, 360, 120,
             ),
             (
-                "../../../examples/leo_dapseq/Azospirillum_brasilense.wdl",
-                "../../../examples/leo_dapseq/shortened.json",
+                "WDLs/Azospirillum_brasilense.wdl",
+                "test-inputs/Azospirillum_brasilense.json",
                 "leo-small-job-stress-test",
-                1, 360, 120,
+                10, 360, 120,
             ),
             (
-                "../../../examples/bfoster_meta_assem/jgi_meta.jaws.wdl",
-                "../../../examples/bfoster_meta_assem/big_inputs.json",
+                "WDLs/jgi_meta.jaws.wdl",
+                "test-inputs/bfoster_meta_assem_big_inputs.json",
                 "bfoster-big-job-stress-test",
-                1, 360, 120,
+                5, 360, 120,
             ),
             (
-                "../../../examples/leo_dapseq/Azospirillum_brasilense.wdl",
-                "../../../examples/leo_dapseq/shortened-100.json",
+                "WDLs/Azospirillum_brasilense.wdl",
+                "test-inputs/Azospirillum_brasilense-100.json",
                 "leo-medium-job-stress-test",
-                1, 360, 120,
+                5, 360, 120,
             )
         ]
     )
     def test_rapid_submissions(
-            self, env, site_list, wdl, input_json, tag, num_of_submissions, check_tries, check_sleep):
+            self, env, dir, site_list, wdl, input_json, tag, num_of_submissions, check_tries, check_sleep):
+        wdl        = os.path.join(dir,wdl)
+        input_json = os.path.join(dir,input_json)
 
-        # site_list will be comma seperated string, like "cori, jgi"
+        # site_list will be comma or space seperated string, like "cori, jgi" or "cori jgi"
         # make it a python list with no blanks
-        #sites = [x.strip() for x in site_list.split(',\s*|\s+')]
         sites = re.split('\s*,\s*|\s+',site_list)
 
         # create a file named with the tag value plus a timestamp that will be used to record the
