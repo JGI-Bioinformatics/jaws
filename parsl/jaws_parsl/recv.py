@@ -1,29 +1,28 @@
 import argparse
-import datetime
 import logging
-import time
 import os
 import re
-import json
+import time
+import datetime
+import parsl
+import jaws_parsl
+from parsl import bash_app, AUTO_LOGNAME
+from jaws_rpc.rpc_client import RpcClient
+from multiprocessing.connection import Listener
 from functools import partial
 
-import pika
-import parsl
-from parsl import bash_app, AUTO_LOGNAME
-
-import jaws_parsl
-from jaws_rpc.rpc_client import RpcClient
-
 logger = None
-
-G_TASK_COUNTER = 0
-G_TASK_TABLE = {}
-G_UPDATES_CHANNEL = None
 rpc_params = {}
 executor = ''
 cpus = 0
 mem = ''
 site = ''
+
+
+@bash_app(executors=[executor])
+def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME):
+    cmd = 'bash ' + script
+    return cmd
 
 
 def get_cromwell_run_id(msg_cmd):
@@ -38,67 +37,43 @@ def get_cromwell_run_id(msg_cmd):
     return run_id
 
 
+def start_file_logger(filename, name='jaws-parsl-recv.log', level=logging.DEBUG, format_string=None):
+    """Add a stream log handler.
+
+    Args:
+        - filename (string): Name of the file to write logs to
+        - name (string): Logger name
+        - level (logging.LEVEL): Set the logging level.
+        - format_string (string): Set the format string
+
+    Returns:
+       -  None
+    """
+    if format_string is None:
+        format_string = "%(asctime)s.%(msecs)03d %(name)s:%(lineno)d [%(levelname)s]  %(message)s"
+
+    global logger
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    handler = logging.FileHandler(filename)
+    handler.setLevel(level)
+    formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+
 def on_task_callback(task_id, run_id, future):
     logger.debug(f"[Task:{task_id}] Received callback")
-    global G_UPDATES_CHANNEL
 
     try:
         result = future.result()
     except Exception as e:
         logger.exception(f"[Task:{task_id}] failed with exception : {e}")
-        G_UPDATES_CHANNEL.push_task_status(task_id, 'FAILED')
         update_site('LAUNCHED', 'FAILED', task_id, run_id)
     else:
         logger.info(f"[Task:{task_id}] completed successfully")
         logger.info(f"Result: {result}")
-        G_UPDATES_CHANNEL.push_task_status(task_id, 'COMPLETED')
         update_site('LAUNCHED', 'COMPLETED', task_id, run_id)
-
-
-def on_message_callback(ch, method, properties, body):
-
-    logger.debug("Received message script.")
-    logger.debug(f" Body : {body}")
-    global G_UPDATES_CHANNEL
-
-    try:
-        message = json.loads(body)
-    except Exception:
-        logger.exception(f"Failed to decode message: {message}")
-        return
-
-    global G_TASK_TABLE
-
-    global cpus, mem, site, executor
-    cpus = message['cpus']
-    mem = message['memory']
-    site = message['site']
-
-    # assume memory is spec'd in GB with "G" (e.g., "128G")
-    # check memory request and route on Cori accordingly
-    if site == "CORI":
-        if int(mem[:-1]) <= 128:
-            executor = 'cori_genepool'
-        else:
-            executor = 'cori_exvivo'
-    elif site == "JGI":
-        executor = 'lbl'
-
-    future = run_script(message['command'])
-    task_id = future.tid
-    logger.debug(f"[Task:{task_id} Launched")
-    print(f"Task ID: {task_id}")
-    G_UPDATES_CHANNEL.push_task_status(task_id, 'LAUNCHED')
-
-    G_TASK_TABLE[task_id] = {'future': future,
-                             'received_at': time.time(),
-                             'completed_at': None}
-
-    run_id = get_cromwell_run_id(message['command'])
-    future.add_done_callback(partial(on_task_callback, task_id, run_id))
-    update_site('', 'LAUNCHED', task_id, run_id)
-
-    logger.debug("Done")
 
 
 def update_site(status_from, status_to, task_id, run_id):
@@ -138,88 +113,42 @@ def update_site(status_from, status_to, task_id, run_id):
         raise
 
 
-@bash_app(executors=[executor])
-def run_script(script, stdout=AUTO_LOGNAME, stderr=AUTO_LOGNAME):
-    cmd = 'bash ' + script
-    return cmd
-
-
-class UpdatesChannel():
-
-    def __init__(self, address, qname):
-        self.address = address
-        self.qname = qname
-        self.connection = None
-        self.channel = None
-        self.connect()
-
-    def connect(self):
-        if not self.connection or self.connection.is_closed:
-            self.connection = pika.BlockingConnection(pika.ConnectionParameters(self.address))
-            self.channel = self.connection.channel()
-            self.channel.queue_declare(queue=self.qname)
-            logger.debug(f"Task updates on {self.address}:{self.qname}")
-
-    def _publish(self, message):
-        logger.debug(f"Sending message {message}")
-        self.channel.basic_publish(exchange='',
-                                   routing_key=self.qname,
-                                   body=message)
-
-    def push_task_status(self, task_id, status):
-        status_message = {'task_id': task_id,
-                          'timestamp': str(datetime.datetime.now()),
-                          'status': status}
-        self._publish(json.dumps(status_message))
-
-
 class TasksChannel():
 
-    def __init__(self, address, qname):
-
-        self.address = address
-        self.qname = qname
-        connection = pika.BlockingConnection(pika.ConnectionParameters(address))
-        channel = connection.channel()
-        channel.queue_declare(queue=qname)
-        channel.basic_consume(queue=qname,
-                              auto_ack=True,
-                              on_message_callback=on_message_callback)
-        self.channel = channel
+    def __init__(self, host, port, password):
+        self.listener = Listener((host, port), authkey=bytes(password, encoding='utf-8'))
 
     def listen(self):
         logger.info(' [*] Waiting for messages. To exit press CTRL+C')
-        try:
-            self.channel.start_consuming()
-        except Exception:
-            logger.exception("Caught exception while waiting for RMQ")
-            logger.info("Ignoring error and continuing")
-            pass
+        running = True
+        while running:
+            conn = self.listener.accept()
+            msg = conn.recv()
+            try:
+                global cpus, mem, site, executor
+                cpus = msg['cpus']
+                mem = msg['memory']
+                site = msg['site']
 
-
-def start_file_logger(filename, name='parsl-rabbitmq', level=logging.DEBUG, format_string=None):
-    """Add a stream log handler.
-
-    Args:
-        - filename (string): Name of the file to write logs to
-        - name (string): Logger name
-        - level (logging.LEVEL): Set the logging level.
-        - format_string (string): Set the format string
-
-    Returns:
-       -  None
-    """
-    if format_string is None:
-        format_string = "%(asctime)s.%(msecs)03d %(name)s:%(lineno)d [%(levelname)s]  %(message)s"
-
-    global logger
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename)
-    handler.setLevel(level)
-    formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+                # assume memory is spec'd in GB with "G" (e.g., "128G")
+                # check memory request and route on Cori accordingly
+                if site == "CORI":
+                    if int(mem[:-1]) <= 128:
+                        executor = 'cori_genepool'
+                    else:
+                        executor = 'cori_exvivo'
+                elif site == "JGI":
+                    executor = 'lbl'
+                future = run_script(msg)
+                task_id = future.tid
+                logger.debug(f"[Task:{task_id} Launched")
+                run_id = get_cromwell_run_id(msg)
+                future.add_done_callback(partial(on_task_callback, task_id, run_id))
+                update_site('', 'LAUNCHED', task_id, run_id)
+            except Exception as e:
+                logger.exception(f"Caught exception while waiting for message: {e}")
+                running = False
+        self.listener.close()
 
 
 def cli():
@@ -227,14 +156,6 @@ def cli():
     rpc_params = jaws_parsl.config.conf.get_rpc_params()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--port", default=8080,
-                        help="Port at which the service will listen on")
-    parser.add_argument("-a", "--address", default=rpc_params["host"],
-                        help="RabbitMQ address to connect to")
-    parser.add_argument("-q", "--qname", default=rpc_params["queue"],
-                        help="RabbitMQ queue to listen on")
-    parser.add_argument("--tasks_qname", default=rpc_params["exchange"],
-                        help="RabbitMQ queue to publish task updates on")
     parser.add_argument("-c", "--config", default=None,
                         help="Config file")
     parser.add_argument("-l", "--logfile", default=None,
@@ -247,22 +168,26 @@ def cli():
     config.retries = 3
     dfk = parsl.load(config)
     parsl_run_dir = dfk.run_dir
+    # parsl_run_id = dfk.run_id
 
     args = parser.parse_args()
 
     if args.logfile:
         logfile_path = args.logfile
     else:
-        logfile_path = f'{parsl_run_dir}/parsl-RabbitMQ.log'
+        logfile_path = f'{parsl_run_dir}/jaws-parsl-recv.log'
 
     os.makedirs(os.path.dirname(logfile_path), exist_ok=True)
 
     start_file_logger(logfile_path, level=logging.DEBUG if args.debug else logging.INFO)
     logger.info("Starting")
 
-    global G_UPDATES_CHANNEL
-    G_UPDATES_CHANNEL = UpdatesChannel(args.address, args.tasks_qname)
-    tasks_channel = TasksChannel(args.address, args.qname)
+    mp_params = jaws_parsl.config.conf.get_mp_params()
+    mp_password = mp_params["password"]
+    mp_host = mp_params["host"]
+    mp_port = mp_params["port"]
+
+    tasks_channel = TasksChannel(mp_host, mp_port, mp_password)
     tasks_channel.listen()
 
     logger.info("Exiting")
