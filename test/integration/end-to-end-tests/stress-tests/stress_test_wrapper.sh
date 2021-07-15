@@ -51,8 +51,7 @@ echo -e "[USER]\ntoken = $JAWS_TEST_TOKEN" > ~/jaws.conf
 chmod 600 ~/jaws.conf
 
 echo "source $CORI_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
-which pytest
 cd test/integration/end-to-end-tests
 echo /global/cfs/projectdirs/jaws/jaws-dev/bin/pytest --verbose --env ${DEPLOYMENT_NAME} --dir . --site-list \"${JAWS_SITE}\" ${TEST_SCRIPT}
-#	 /global/cfs/projectdirs/jaws/jaws-dev/bin/pytest --verbose --env ${DEPLOYMENT_NAME} --dir . --site-list \"${JAWS_SITE}\" ${TEST_SCRIPT}
+	 /global/cfs/projectdirs/jaws/jaws-dev/bin/pytest --verbose --env ${DEPLOYMENT_NAME} --dir . --site-list \"${JAWS_SITE}\" ${TEST_SCRIPT}
 
