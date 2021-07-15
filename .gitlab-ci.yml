@@ -475,6 +475,21 @@ jgi-dev-stress-tests:
       when: manual
   allow_failure: true
 
+all-sites-dev-stress-tests:
+  stage: stress-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "CORI, JGI"
+    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/stress-tests/stress_test_wrapper.sh stress-tests/test_multiple_rapid_jaws_submissions.py
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
+
 cori-staging-smoke-tests:
   stage: smoke-tests
   variables:
@@ -625,7 +640,7 @@ jgi-prod-deployment-tests:
       when: manual
   allow_failure: true
 
-cori-prod-mo-tests:
+cori-prod-stress-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -636,11 +651,11 @@ cori-prod-mo-tests:
   script:
     - ./test/integration/end-to-end-tests/stress-tests/stress_test_wrapper.sh stress-tests/test_multiple_rapid_jaws_submissions.py
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
       when: manual
   allow_failure: true
 
-jgi-prod-mo-tests:
+jgi-prod-stress-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -651,22 +666,8 @@ jgi-prod-mo-tests:
   script:
     - ./test/integration/end-to-end-tests/stress-tests/stress_test_wrapper.sh stress-tests/test_multiple_rapid_jaws_submissions.py
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
       when: manual
   allow_failure: true
 
-all-sites-dev:
-  stage: stress-tests
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CORI, JGI"
-    CORI_BASEDIR: "/global/cfs/projectdirs/jaws"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/stress-tests/stress_test_wrapper.sh stress-tests/test_multiple_rapid_jaws_submissions.py
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
-      when: manual
-  allow_failure: true
 
