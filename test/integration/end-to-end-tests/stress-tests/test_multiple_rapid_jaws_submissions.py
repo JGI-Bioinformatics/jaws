@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from datetime import datetime
 
 import pytest
@@ -58,7 +59,8 @@ class TestMultipleRapidJawsSubmissions:
 
         # site_list will be comma seperated string, like "cori, jgi"
         # make it a python list with no blanks
-        sites = [x.strip() for x in site_list.split(',')]
+        #sites = [x.strip() for x in site_list.split(',\s*|\s+')]
+        sites = re.split('\s*,\s*|\s+',site_list)
 
         # create a file named with the tag value plus a timestamp that will be used to record the
         # run_ids created by this test

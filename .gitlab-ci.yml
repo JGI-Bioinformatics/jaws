@@ -625,7 +625,7 @@ jgi-prod-deployment-tests:
       when: manual
   allow_failure: true
 
-cori-prod-stress-tests:
+cori-prod-mo-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "dev"
@@ -640,7 +640,7 @@ cori-prod-stress-tests:
       when: manual
   allow_failure: true
 
-jgi-prod-stress-tests:
+jgi-prod-mo-tests:
   stage: stress-tests
   variables:
     DEPLOYMENT_NAME: "dev"
