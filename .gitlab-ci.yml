@@ -62,7 +62,7 @@ variables:
   CENTRAL_DB_PORT: 3306
 
   ## SITE-SPECIFIC VARIABLES:
-  CORI_INSTALL_BASEDIR: "/tmp"
+  CORI_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
   CORI_GLOBUS_HOST_PATH: "/"
   CORI_RMQ_HOST: "rmq.lbl.gov"
