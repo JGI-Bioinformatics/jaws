@@ -22,6 +22,8 @@ cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 
 globus = GlobusService()
 
+central_rpc_client = None
+
 
 def file_size(file_path: str):
     """
@@ -443,6 +445,16 @@ def _select_active_runs(session) -> list:
 def send_run_status_logs(session) -> None:
     """Send run logs to Central"""
 
+    global central_rpc_client
+    if central_rpc_client is None:
+        try:
+            central_rpc_client = rpc_client.RpcClient(
+                config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
+            )
+        except Exception as error:
+            logger.exception(f"Unable to init central rpc client: {error}")
+            raise
+
     # get updates from datbase
     try:
         query = (
@@ -455,14 +467,6 @@ def send_run_status_logs(session) -> None:
     if not num_logs:
         return
     logger.debug(f"Sending {num_logs} run logs")
-
-    try:
-        central_rpc_client = rpc_client.RpcClient(
-            config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
-        )
-    except Exception as error:
-        logger.exception(f"Unable to init central rpc client: {error}")
-        raise
 
     # send logs via RPC
     for log in query:
