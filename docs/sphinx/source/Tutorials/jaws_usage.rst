@@ -1,6 +1,6 @@
-======================== 
-How to Run a WDL in JAWS
-========================
+=============
+JAWS Commands
+=============
 
 .. role:: bash(code)
    :language: bash
@@ -14,10 +14,6 @@ Example submitting a workflow:
 
 :bash:`jaws submit <wdl> <inputs json> <site>` 
 
-
-*************
-JAWS commands
-*************
 
 Usage: jaws [OPTIONS] COMMAND [ARGS]...
 ---------------------------------------
@@ -170,15 +166,13 @@ The commands with an asterik have additional options. Expand the below commands 
 
 .. code-block:: text
 
-    Usage: jaws history [OPTIONS]
+    Usage: jaws wfcopy [OPTIONS] SRC_DIR DEST_DIR
 
-    Print a list of the user's past runs.
+    Simplify Cromwell output.
 
-    Options:
-    --days INTEGER  history going back this many days; default=1
-    --site TEXT     limit results to this compute-site; default=all
-    --result TEXT   limit results to this result; default=any
-    -h, --help      Show this message and exit.
+	Options:
+  	--flatten   Flatten shard dirs
+  	-h, --help  Show this message and exit.
 
 .. raw:: html
 
