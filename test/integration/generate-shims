@@ -143,20 +143,8 @@ export JTM_CONFIG_FILE=$CONFIG_DIR/jaws-jtm.conf
 exec jtm --config=$CONFIG_DIR/jaws-jtm.conf --debug manager -ld $LOGS_DIR
 EOM
 
-# TODO: Need to create executable scripts for running send.py and recv.py
-# Otherwise we need to know the location of the scripts which may not be best practice
-
-### parsl-send shim script
-cat <<EOM > "$SHIM_DIR/jaws-parsl-send-$DEPLOYMENT_NAME"
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-
-source $INSTALL_DIR/parsl/bin/activate
-exec python send.py
-
-EOM
+# TODO: Need to create executable scripts for running recv.py
+# Otherwise we need to know the location of the script which may not be best practice
 
 ## parsl-recv shim script
 cat <<EOM > "$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME"
