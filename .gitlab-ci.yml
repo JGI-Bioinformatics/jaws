@@ -673,3 +673,15 @@ jgi-prod-stress-tests:
       when: manual
   allow_failure: true
 
+git-clone-docs:
+  stage: stress-tests
+    CORI_INSTALL_BASEDIR: "/tmp"
+    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
+  tags:
+    - cori
+  script:
+    - git clone https://gitlab.com/jfroula/jaws-docs.git
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
