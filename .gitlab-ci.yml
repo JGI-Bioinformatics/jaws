@@ -172,8 +172,7 @@ test-rpc:
     - make test-rpc
   artifacts:
     reports:
-      junit: rpc/rpc.xml
-  coverage: '/TOTAL.*\s+(\d+%)$/'
+      cobertura: rpc/coverage.xml
 test-site:
   <<: *only-default
   stage: unit-test
@@ -186,8 +185,7 @@ test-site:
     - make test-site
   artifacts:
     reports:
-      junit: site/site.xml
-  coverage: '/TOTAL.*\s+(\d+%)$/'
+      cobertura: site/coverage.xml
 test-central:
   <<: *only-default
   stage: unit-test
@@ -200,8 +198,7 @@ test-central:
     - make test-central
   artifacts:
     reports:
-      junit: central/central.xml
-  coverage: '/TOTAL.*\s+(\d+%)$/'
+      cobertura: central/coverage.xml
 test-client:
   <<: *only-default
   stage: unit-test
@@ -215,8 +212,7 @@ test-client:
     - make test-client
   artifacts:
     reports:
-      junit: client/client.xml
-  coverage: '/TOTAL.*\s+(\d+%)$/'
+      cobertura: client/coverage.xml
 test-jtm:
   <<: *only-default
   stage: unit-test
@@ -229,8 +225,7 @@ test-jtm:
     - make test-jtm
   artifacts:
     reports:
-      junit: jtm/jtm.xml
-  coverage: '/TOTAL.*\s+(\d+%)$/'
+      cobertura: jtm/coverage.xml
 
 package:
   <<: *only-default
