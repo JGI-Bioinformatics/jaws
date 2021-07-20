@@ -683,7 +683,7 @@ git-clone-docs:
     - cori
   script:
     - git clone https://gitlab.com/jfroula/jaws-docs.git
-    - cp -r docs/sphinx/source/* jaws-docs/docs/source/*
+    - cp -r docs/sphinx/source/* jaws-docs/docs/source/
     - cd jaws-docs && echo "mo better blues" > itts
     - git add . && git commit -m 'syncing docs' 
     - git push
