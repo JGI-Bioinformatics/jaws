@@ -14,7 +14,7 @@ from jaws_site import config
 from jaws_site import tasks
 from jaws_site.cromwell import Cromwell
 from jaws_site.globus import GlobusService
-from jaws_rpc import rpc_client
+from jaws_rpc import rpc_client_simple
 
 logger = logging.getLogger(__package__)
 
@@ -456,7 +456,7 @@ def send_run_status_logs(session) -> None:
         return
     logger.debug(f"Sending {num_logs} run logs")
 
-    with rpc_client.RpcClient(
+    with rpc_client_simple.RpcClientSimple(
         config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
     ) as central_rpc_client:
         for log in query:
