@@ -668,3 +668,17 @@ jgi-prod-stress-tests:
       when: manual
   allow_failure: true
 
+deploy-jaws-docs:
+  stage: .post
+  tags:
+    - cori
+  script:
+    - git clone git@gitlab.com:jfroula/jaws-docs.git
+    - cp -r docs/sphinx/source/* jaws-docs/docs/source/
+    - cd jaws-docs
+    - git commit -a -m 'syncing docs' || echo "nothing to commit"
+    - git push || echo "nothing to push"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
+  allow_failure: true
