@@ -1,5 +1,4 @@
 stages:
-  - .pre
   - unit-test
   - package
   - deploy-jaws
@@ -674,23 +673,19 @@ jgi-prod-stress-tests:
       when: manual
   allow_failure: true
 
-git-clone-docs:
-  stage: .pre
-  variables:
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
-  tags:
-    - cori
-  script:
-    - git clone https://gitlab.com/jfroula/jaws-docs.git
-    - cp -r docs/sphinx/source/* jaws-docs/docs/source/
-    - cd jaws-docs && echo "mo better blues" > itts
-    - git add . && git commit -m 'syncing docs' 
-    - git remote set-url --push origin git@gitlab:jfroula/jaws-docs.git
-    - git config user.name  "jfroula"
-    - git config user.email "jlfroula@lbl.gov"
+stages:
+  - build-docs
 
-    - git push 
+git-clone-docs:
+  stage: build-docs
+  tags:
+    - jaws-docs
+  script:
+    - git clone git@gitlab.com:jfroula/jaws-docs.git
+    - cp -r docs/sphinx/source/* jaws-docs/docs/source/
+    - cd jaws-docs
+    - git commit -a -m 'syncing docs'
+    - git push
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
