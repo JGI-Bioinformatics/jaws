@@ -82,14 +82,7 @@ class Client:
         header = {"Authorization": f"Bearer {access_token}"}
         response = None
         try:
-            if rest_op == "GET":
-                response = requests.get(url, headers=header)
-            elif rest_op == "PUT":
-                response = requests.put(url, headers=header)
-            elif rest_op == "POST":
-                response = requests.post(url, data=data, files=files, headers=header)
-            else:
-                raise JawsServiceError(f"Unsupported REST request type: {rest_op}")
+            response = requests.request(rest_op, url, headers=header, data=data, files=files)
         except requests.exceptions.Timeout as err:
             raise JawsServiceError("Unable to communicate with JAWS server (timeout)", err)
         except requests.exceptions.TooManyRedirects as err:
