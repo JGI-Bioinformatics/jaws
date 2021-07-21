@@ -1,11 +1,10 @@
 import json
-from datetime import datetime, timezone
-import pytz
 import os
 import copy
+from jaws_client.model import Model
 
 
-class TaskLog:
+class TaskLog(Model):
     """
     A Task log/status.
     """
@@ -16,6 +15,9 @@ class TaskLog:
         """
         Return log in desired format.
         """
+        log = copy.deepcopy(self.log)
+        for row in log:
+            row[6] = self._utc_to_local(row[6])
         header = [
             "#CROMWELL_RUN_ID",
             "TASK_NAME",
@@ -27,17 +29,16 @@ class TaskLog:
             "REASON",
         ]
         if fmt == "json":
-            return self.log
+            return log
         elif fmt == "tab":
             table = "\t".join(header)
-            for row in self.log:
+            for row in log:
                 row[2] = str(row[2])
                 row[3] = str(row[3])
                 table += "\t".join(row)
             return table
         else:
             """Get the max length of element in every col and add padding (2)"""
-            log = copy.deepcopy(self.log)
             log.insert(0, header)
             col_widths = []
             for idx in range(len(header)):

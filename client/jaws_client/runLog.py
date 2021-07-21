@@ -1,32 +1,34 @@
 import json
-from datetime import datetime, timezone
-import pytz
 import os
 import copy
+from jaws_client.model import Model
 
 
-class RunLog:
+class RunLog(Model):
     """
     A Run log.
     """
-    def __init__(self, log: list):
+    def __init__(self, log: list, local_tz: string = None):
         self.log = log
+        self.local_tz = local_tz
 
-    def output(self, fmt = "text"):
+    def output(self, fmt = "text", local_tz: str = None):
         """
         Return log in desired format.
         """
+        log = copy.deepcopy(self.log)
+        for row in log:
+            row[2] = self._utc_to_local(row[2])
         header = ["#STATUS_FROM", "STATUS_TO", "TIMESTAMP", "REASON"]
         if fmt == "json":
-            return self.log
+            return log
         elif fmt == "tab":
             table = "\t".join(header)
-            for log_entry in self.log:
+            for log_entry in log:
                 table += "\t".join(log_entry)
             return table
         else:
             """Get the max length of element in every col and add padding (2)"""
-            log = copy.deepcopy(self.log)
             log.insert(0, header)
             col_widths = []
             for idx in range(len(header)):
