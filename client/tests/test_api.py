@@ -2,7 +2,7 @@ import pytest
 import os
 import shutil
 from jaws_client import api
-from jaws_client.api import JawsClient
+from jaws_client.api import Client
 
 
 HISTORY = [
@@ -219,7 +219,7 @@ TASK_STATUS_TEXT = (
 
 
 def test_queue(monkeypatch, configuration):
-    def mock_request(rest_op, url, data={}, files={}) -> dict:
+    def mock_request(self, rest_op, url, data={}, files={}) -> dict:
         result = [
             [
                 "36",
@@ -231,20 +231,20 @@ def test_queue(monkeypatch, configuration):
         ]
         return result
 
-    monkeypatch.setattr(api, "_request", mock_request)
+    monkeypatch.setattr(api.Client, "_request", mock_request)
 
-    jaws = JawsClient()
+    jaws = Client()
     result = jaws.queue()
     assert result[0][2] == "running"
 
 
 def test_history(monkeypatch, configuration):
-    def mock_request(rest_op, url, data={}, files={}) -> dict:
+    def mock_request(self, rest_op, url, data={}, files={}) -> dict:
         return HISTORY
 
-    monkeypatch.setattr(api, "_request", mock_request)
+    monkeypatch.setattr(api.Client, "_request", mock_request)
 
-    jaws = JawsClient()
+    jaws = Client()
     result = jaws.history()
 
     expected = {0: "33", 1: "34", 2: "35", 3: "36"}
@@ -254,15 +254,15 @@ def test_history(monkeypatch, configuration):
 
 
 def test_status(monkeypatch, configuration):
-    def mock_request(rest_op, url, data={}, files={}) -> dict:
+    def mock_request(self, rest_op, url, data={}, files={}) -> dict:
         job_status = {"status": "Running"}
         if url.endswith("/complete"):
             job_status["output_dir"] = "/foo/bar"
         return job_status
 
-    monkeypatch.setattr(api, "_request", mock_request)
+    monkeypatch.setattr(api.Client, "_request", mock_request)
 
-    jaws = JawsClient()
+    jaws = Client()
 
     result = jaws.status("36", True)
     assert result["status"] == "Running"
@@ -274,12 +274,12 @@ def test_status(monkeypatch, configuration):
 
 
 def test_metadata(monkeypatch, configuration):
-    def mock_request(rest_op, url, data={}, files={}) -> dict:
+    def mock_request(self, rest_op, url, data={}, files={}) -> dict:
         return WORKFLOW_METADATA
 
-    monkeypatch.setattr(api, "_request", mock_request)
+    monkeypatch.setattr(api.Client, "_request", mock_request)
 
-    jaws = JawsClient()
+    jaws = Client()
     result = jaws.metadata("36")
     assert "workflowName" in result
 
@@ -293,7 +293,7 @@ def test_submit(configuration, monkeypatch, sample_workflow):
     wdl = os.path.join(root, "workflow", "sample.wdl")
     inputs = os.path.join(root, "workflow", "sample.json")
 
-    def mock_request(rest_op, url, data={}, files={}) -> dict:
+    def mock_request(self, rest_op, url, data={}, files={}) -> dict:
         if rest_op == "GET":
             if "user" in url:
                 return {"email": "joe@lbl.gov", "uid": "jdoe", "name": "John Doe"}
@@ -313,9 +313,9 @@ def test_submit(configuration, monkeypatch, sample_workflow):
                 "output_dir": "/a/b/c",
             }
 
-    monkeypatch.setattr(api, "_request", mock_request)
+    monkeypatch.setattr(api.Client, "_request", mock_request)
 
-    jaws = JawsClient()
+    jaws = Client()
     result = jaws.submit(wdl, inputs, "CORI")
     assert "run_id" in result
 
@@ -330,7 +330,7 @@ def test_get(configuration, monkeypatch):
         else:
             return {"status": "submitted", "output_dir": "/data/repo/dir/mockuser/run1"}
 
-    monkeypatch.setattr(api.JawsClient, "status", mock_status)
+    monkeypatch.setattr(api.Client, "status", mock_status)
 
     def mock_rsync(src, dest, options):
         class Result:
@@ -343,7 +343,7 @@ def test_get(configuration, monkeypatch):
 
     monkeypatch.setattr(workflow, "rsync", mock_rsync)
 
-    jaws = JawsClient()
+    jaws = Client()
 
     # a completed run
     jaws.get("1", "/home/mockuser/mydir")
@@ -356,12 +356,12 @@ def test_get(configuration, monkeypatch):
 def test_cancel_OK(monkeypatch, configuration):
     """Check if cancel run producs expected JSON output in case of a successful cancel."""
 
-    def mock_request(rest_op, url, data={}, files={}) -> dict:
+    def mock_request(self, rest_op, url, data={}, files={}) -> dict:
         return {"cancel": "OK"}
 
-    monkeypatch.setattr(api, "_request", mock_request)
+    monkeypatch.setattr(api.Client, "_request", mock_request)
 
-    jaws = JawsClient()
+    jaws = Client()
     result = jaws.cancel("35")
     assert result["cancel"] == "OK"
 
@@ -369,7 +369,7 @@ def test_cancel_OK(monkeypatch, configuration):
 def test_cancel_ERR(monkeypatch, configuration):
     """Check if cancel run producs expected JSON output in case of an error in cancel run."""
 
-    def mock_request(rest_op, url, data={}, files={}) -> dict:
+    def mock_request(self, rest_op, url, data={}, files={}) -> dict:
         return {
             "error": "That Run had already been cancelled",
             "status": 400,
@@ -377,8 +377,8 @@ def test_cancel_ERR(monkeypatch, configuration):
             "type": "about:blank",
         }
 
-    monkeypatch.setattr(api, "_request", mock_request)
+    monkeypatch.setattr(api.Client, "_request", mock_request)
 
-    jaws = JawsClient()
+    jaws = Client()
     result = jaws.cancel("35")
     assert "error" in result

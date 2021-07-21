@@ -5,9 +5,10 @@ JAWS CLI
 import sys
 import click
 import json
+import os
 from jaws_client import wfcopy as wfc
 from jaws_client import deprecated
-from jaws_client.api import JawsClient
+from jaws_client.api import Client
 
 
 jaws_client = None
@@ -31,7 +32,7 @@ def main(jaws_config_file: str, user_config_file: str, log_file: str, log_level:
     """JGI Analysis Workflows Service"""
     global jaws_client
     try:
-        jaws_client = JawsClient(
+        jaws_client = Client(
             jaws_config_file, user_config_file, log_file, log_level
         )
     except Exception as error:
