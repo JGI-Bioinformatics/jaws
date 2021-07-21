@@ -686,10 +686,11 @@ git-clone-docs:
     - cp -r docs/sphinx/source/* jaws-docs/docs/source/
     - cd jaws-docs && echo "mo better blues" > itts
     - git add . && git commit -m 'syncing docs' 
-    - git remote show origin
-    - git remote set-url --push origin git@gitlab:$CI_PROJECT_PATH
-    - git remote show origin
-    - git push --follow-tags origin HEAD:$CI_COMMIT_REF_NAME
+    - git remote set-url --push origin git@gitlab:jfroula/jaws-docs.git
+    - git config user.name  "jfroula"
+    - git config user.email "jlfroula@lbl.gov"
+
+    - git push 
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
