@@ -673,13 +673,10 @@ jgi-prod-stress-tests:
       when: manual
   allow_failure: true
 
-stages:
-  - build-docs
-
 git-clone-docs:
-  stage: build-docs
+  stage: .pre
   tags:
-    - jaws-docs
+    - cori
   script:
     - git clone git@gitlab.com:jfroula/jaws-docs.git
     - cp -r docs/sphinx/source/* jaws-docs/docs/source/
