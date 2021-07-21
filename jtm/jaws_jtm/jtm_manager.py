@@ -44,7 +44,7 @@ from jaws_jtm.lib.run import (
     extract_cromwell_id,
 )
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_rpc import rpc_client, rpc_server, responses
+from jaws_rpc import rpc_client_simple, rpc_server, responses
 
 
 # --------------------------------------------------------------------------------------------------
@@ -667,7 +667,7 @@ def send_update_task_status_msg(
 
     # send message to Site
     try:
-        with rpc_client.RpcClient(
+        with rpc_client_simple.RpcClientSimple(
             {
                 "host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
                 "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
