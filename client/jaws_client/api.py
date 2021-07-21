@@ -8,18 +8,12 @@ import json
 import uuid
 import shutil
 from jaws_client import log as logging
-from jaws_client.config import Configuration
 
 JAWS_LOG_ENV = "JAWS_CLIENT_LOG"
 JAWS_USER_LOG = os.path.expanduser("~/jaws.log")
-JAWS_CONFIG_ENV = "JAWS_CLIENT_CONFIG"
-JAWS_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws-client.conf")
-JAWS_USER_CONFIG_ENV = "JAWS_USER_CONFIG"
-JAWS_USER_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws.conf")
 
 
 logger = None
-config = None
 
 
 class JawsClientError(Exception):
@@ -35,52 +29,40 @@ class JawsServiceError(JawsClientError):
 
 
 class Client:
-    def __init__(
-        self,
-        jaws_config_file: str = None,
-        user_config_file: str = None,
-        log_file: str = None,
-        log_level: str = "INFO",
-    ):
+    def __init__(self, **params):
+        for required in ("jaws_url", "access_token"):
+            if required not in params:
+                raise JawsUserError(f"The {required} parameter is required")
+        self.jaws_url = params.get("jaws_url")
+        self.access_token = params.get("access_token", None)
+        self.site_id = params.get("site_id", None)
+        if self.site_id:
+            for required in ("staging_dir", "output_dir", "globus_host_path", "globus_endpoint_id"):
+                if required not in params:
+                    raise JawsUserError(f"The {required} parameter is required if site_id is defined")
+            self.staging_dir = params.get("staging_dir")
+            self.output_dir = params.get("output_dir")
+            self.globus_host_path = params.get("globus_host_path")
+            self.globus_endpoint_id = params.get("globus_endpoint_id")
+        log_file = params.get("log_file", None)
         if log_file is None:
             log_file = (
                 os.environ[JAWS_LOG_ENV]
                 if JAWS_LOG_ENV in os.environ
                 else JAWS_USER_LOG
             )
+        log_level = params.get("log_level", "INFO")
         global logger
         logger = logging.setup_logger(__package__, log_file, log_level)
 
-        if jaws_config_file is None:
-            jaws_config_file = (
-                os.environ[JAWS_CONFIG_ENV]
-                if JAWS_CONFIG_ENV in os.environ
-                else JAWS_CONFIG_DEFAULT_FILE
-            )
-        os.environ[JAWS_CONFIG_ENV] = jaws_config_file
-        if user_config_file is None:
-            user_config_file = (
-                os.environ[JAWS_USER_CONFIG_ENV]
-                if JAWS_USER_CONFIG_ENV in os.environ
-                else JAWS_USER_CONFIG_DEFAULT_FILE
-            )
-        os.environ[JAWS_USER_CONFIG_ENV] = user_config_file
-        global config
-        config = Configuration(jaws_config_file, user_config_file)
-
     def _request(self, rest_op, urn, data={}, files={}) -> dict:
         """Perform specified REST operation.  A JSON response is expected."""
-        if config is None:
-            raise JawsClientError(
-                "The config obj must be initialized before using this function"
-            )
-        access_token = config.get("USER", "token")
-        if not access_token:
+        if not self.access_token:
             raise JawsServiceError(
                 "User access token required; contact an admin to get yours."
             )
-        header = {"Authorization": f"Bearer {access_token}"}
-        url = f'{config.get("JAWS", "url")}/{urn}'
+        header = {"Authorization": f"Bearer {self.access_token}"}
+        url = f"{self.jaws_url}/{urn}"
         response = None
         try:
             response = requests.request(rest_op, url, headers=header, data=data, files=files)
@@ -110,7 +92,7 @@ class Client:
 
     def health(self) -> dict:
         """Current system status."""
-        url = f'{config.get("JAWS", "url")}/status'
+        url = f"{self.jaws_url}/status"
         try:
             r = requests.get(url)
         except requests.exceptions.RequestException:
@@ -121,7 +103,7 @@ class Client:
 
     def info(self) -> dict:
         """JAWS version and info."""
-        url = f'{config.get("JAWS", "url")}/info'
+        url = f"{self.jaws_url}/info"
         try:
             r = requests.get(url)
         except requests.exceptions.RequestException:
@@ -301,13 +283,12 @@ class Client:
         result = self._request("GET", "user")
         uid = result["uid"]
 
-        staging_subdir = config.get("JAWS", "staging_dir")
-        staging_user_subdir = os.path.join(staging_subdir, uid)
-        globus_host_path = config.get("GLOBUS", "host_path")
-        output_directory = config.get("JAWS", "data_repo_basedir")
-        input_site_id = config.get("JAWS", "site_id")
+        user_staging_dir = os.path.join(self.staging_dir, uid)
+        globus_host_path = self.globus_host_path
+        output_directory = self.output_dir
+        input_site_id = self.site_id
         local_staging_endpoint = workflow.join_path(
-            globus_host_path, staging_user_subdir
+            globus_host_path, user_staging_dir
         )
 
         # GET SITE INFO
@@ -394,12 +375,12 @@ class Client:
         if options_json_file:
             manifest_file.add(options_json_file)
         staged_manifest = workflow.join_path(
-            staging_user_subdir, f"{submission_id}.tsv"
+            user_staging_dir, f"{submission_id}.tsv"
         )
         manifest_file.write_to(staged_manifest)
 
         # SUBMIT RUN TO CENTRAL
-        local_endpoint_id = config.get("GLOBUS", "endpoint_id")
+        local_endpoint_id = self.globus_endpoint_id
         data = {
             "site_id": compute_site_id,
             "submission_id": submission_id,

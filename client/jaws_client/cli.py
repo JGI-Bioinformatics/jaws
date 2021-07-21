@@ -9,7 +9,14 @@ import os
 from jaws_client import wfcopy as wfc
 from jaws_client import deprecated
 from jaws_client.api import Client
+from jaws_client.config import Configuration
 
+JAWS_LOG_ENV = "JAWS_CLIENT_LOG"
+JAWS_USER_LOG = os.path.expanduser("~/jaws.log")
+JAWS_CONFIG_ENV = "JAWS_CLIENT_CONFIG"
+JAWS_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws-client.conf")
+JAWS_USER_CONFIG_ENV = "JAWS_USER_CONFIG"
+JAWS_USER_CONFIG_DEFAULT_FILE = os.path.expanduser("~/jaws.conf")
 
 jaws_client = None
 
@@ -30,11 +37,37 @@ def _print_json(j):
 )
 def main(jaws_config_file: str, user_config_file: str, log_file: str, log_level: str):
     """JGI Analysis Workflows Service"""
+    if jaws_config_file is None:
+        jaws_config_file = (
+            os.environ[JAWS_CONFIG_ENV]
+            if JAWS_CONFIG_ENV in os.environ
+            else JAWS_CONFIG_DEFAULT_FILE
+        )
+    os.environ[JAWS_CONFIG_ENV] = jaws_config_file
+    if user_config_file is None:
+        user_config_file = (
+            os.environ[JAWS_USER_CONFIG_ENV]
+            if JAWS_USER_CONFIG_ENV in os.environ
+            else JAWS_USER_CONFIG_DEFAULT_FILE
+        )
+    os.environ[JAWS_USER_CONFIG_ENV] = user_config_file
+    config = Configuration(jaws_config_file, user_config_file)
+    if log_level is None:
+        log_level = "INFO"
+    params = {
+        "log_file": log_file,
+        "log_level": log_level,
+        "jaws_url": config.get("JAWS", "url"),
+        "access_token": config.get("USER", "access_token"),
+        "site_id": config.get("JAWS", "site_id"),
+        "staging_dir": config.get("JAWS", "staging_dir"),
+        "output_dir": config.get("JAWS", "data_repo_basedir"),
+        "globus_host_path": config.get("GLOBUS", "host_path"),
+        "globus_endpoint_id": config.get("GLOBUS", "endpoint_id"),
+    }
     global jaws_client
     try:
-        jaws_client = Client(
-            jaws_config_file, user_config_file, log_file, log_level
-        )
+        jaws_client = Client(**params)
     except Exception as error:
         sys.exit(error)
 
