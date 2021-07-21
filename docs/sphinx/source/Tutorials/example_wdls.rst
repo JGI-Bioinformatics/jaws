@@ -15,7 +15,7 @@ To run the following examples, click on an example link and clone the repo. For 
 
     git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
 
-    # you can see the directory you are in by the URL so cd into that
+    # If you clicked on the subworkflow link below, you can see the directory name is subworkflows_and_conditionals 
     cd subworkflows_and_conditionals
 
 And then follow the command in the README.md of that example.

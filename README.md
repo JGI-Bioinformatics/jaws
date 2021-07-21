@@ -60,14 +60,47 @@ Example commands using develop:
 
 ```
 git clone https://code.jgi.doe.gov/advanced-analysis/jaws.git
-module load python
-python -m venv ~/venv/jaws-test  # do this once
+module load python/3.8-anaconda-2020.11
+python3 -m venv ~/venv/jaws-test
 source ~/venv/jaws-test/bin/activate
-cd jaws/client && python setup.py develop
-cd ../site && python setup.py develop
-cd ../central && python setup.py develop
-cd ../jtm && python setup.py develop
-#To deactivate the venv:
+pip install black
+pip install flake8
+pip install pytest
+pip install pytest-cov
+pip install pytz
+
+# inside the jaws repo 
+# RPC (do this first)
+pip install -r rpc/requirements.txt 
+cd rpc && python setup.py develop
+
+# Client
+cd ../ && pip install -r client/requirements.txt
+cd client && python setup.py develop
+
+# Central
+cd ../ && pip install -r central/requirements.txt
+cd central && python setup.py develop
+
+# Site
+cd ../ && pip install -r site/requirements.txt
+cd site && python setup.py develop
+
+# JTM
+cd ../ && pip install -r jtm/requirements.txt
+cd jtm && python setup.py develop
+
+# create a file called womtool in ~/venv/jaws-test/bin
+ 
+  #!/bin/bash
+  java -jar /global/cfs/projectdirs/jaws/cromwell/womtool.jar $*
+
+chmod 755 ~/venv/jaws-test/bin/womtool
+
+# test that environment is set up correctly
+make test
+
+# To deactivate the venv:
 deactivate
 ```
 
@@ -75,16 +108,9 @@ Example commands using build:
 
 ```
 git clone https://code.jgi.doe.gov/advanced-analysis/jaws.git
-module load python
-python -m venv ~/venv/jaws-test  # do this once
-source ~/venv/jaws-test/bin/activate
-cd jaws/client && python setup.py build && pip install .
-cd ../site && python setup.py build && pip install .
-cd ../central && python setup.py build && pip install .
-cd ../jtm && python setup.py build && pip install .
+# repeat the same steps as above, except use "build" instead of "develop"
+#   python setup.py develop
 
-#To deactivate the venv:
-deactivate
 ```
 
 ### cromwell-utils
@@ -113,6 +139,7 @@ Developers
 * Seung-jin Sul
 * Stephan Trong
 * Kelly Rowland
+* Nick Tyler
 
 Documentation and WDL authoring
 * Jeff Froula

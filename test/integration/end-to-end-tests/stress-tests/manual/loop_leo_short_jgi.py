@@ -7,7 +7,7 @@ import subprocess
 import submit_loop
 import verify_task_log
 
-NUM_SUBMISSIONS = 15
+NUM_SUBMISSIONS = 10
 WDL = '/global/homes/a/akollmer/jaws/examples/leo_dapseq/Azospirillum_brasilense.wdl'
 NUM_TASKS_IN_WDL = 15
 INPUTS = '/global/homes/a/akollmer/jaws/examples/leo_dapseq/shortened.json'

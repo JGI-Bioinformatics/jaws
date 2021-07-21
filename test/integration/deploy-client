@@ -72,11 +72,65 @@ source "$SITE_CLIENT_INSTALL_DIR/bin/activate"
 export JAWS_CLIENT_CONFIG=$SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.conf
 export JAWS_USER_CONFIG=~/jaws.conf
 
+source $SITE_CLIENT_INSTALL_DIR/jaws-autocomplete-$DEPLOYMENT_NAME.sh
+
 echo "jaws-$DEPLOYMENT_NAME activated; see \"jaws --help\" for more."
 EOM
 
 chgrp $SITE_JAWS_GROUP $SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.sh
 chmod 775 $SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.sh
+
+cat << EOM > "$SITE_CLIENT_INSTALL_DIR/jaws-autocomplete-$DEPLOYMENT_NAME.sh"
+#!/usr/bin/env bash
+_jaws_completions()
+{
+	local cur prev opts
+	COMPREPLY=()
+	cur="\${COMP_WORDS[COMP_CWORD]}"
+	prev="\${COMP_WORDS[COMP_CWORD-1]}"
+	opts="add-user cancel cancel-all errors get health history info inputs \\
+		list-sites log metadata queue status submit task-log \\
+		task-status validate wfcopy"
+
+	# Commands looking for wdl files
+	if [[ \${prev} == "submit" || \${prev} == "validate" || \${prev} == "inputs" ]] ; then
+		local files
+		files=\$(ls *.wdl 2>/dev/null)
+		COMPREPLY=( \$(compgen -W "\${files}" -- \${cur}) )
+		return 0
+	# Specificaly for jaws submit *.wdl
+	elif [[ \${prev} =~ .*"wdl".* ]] ; then
+		local files
+                files=\$(ls *.json 2>/dev/null)
+                COMPREPLY=( \$(compgen -W "\${files}" -- \${cur}) )
+                return 0
+	# Specificaly for jaws submit *.wdl *.json
+	elif [[ \${prev} =~ .*"json".* ]] ; then
+		local sites
+                sites="cori jgi"
+                COMPREPLY=( \$(compgen -W "\${sites}" -- \${cur}) )
+                return 0
+	# Anything looking for a run id
+	elif [[ \${prev} == "cancel" \\
+		|| \${prev} == "get" \\
+		|| \${prev} == "log" \\
+		|| \${prev} == "task-status" \\
+		|| \${prev} == "metadata" \\
+		|| \${prev} == "status" \\
+		|| \${prev} = "task-log" ]] ; then
+		local jobs
+		jobs=\$(jaws history | grep \"id\" | awk '{print \$2}' | tr "," " " | tail -n 10 )
+		COMPREPLY=( \$(compgen -W "\${jobs}" -- \${cur}) )
+                return 0
+	else
+		COMPREPLY=( \$(compgen -W "\${opts}" -- \${cur}) )
+		return 0
+	fi
+}
+
+complete -F _jaws_completions jaws
+EOM
+chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-autocomplete-$DEPLOYMENT_NAME.sh
 
 ## GENERATE CONFIGS
 cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws.conf

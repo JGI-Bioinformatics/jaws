@@ -13,8 +13,8 @@ Updated: 03/04/21
 import os
 import submission_utils as util
 
-check_tries = 50  # try this many times when waiting for a JAWS run to complete.
-check_sleep = 30  # wait for this amount of time between tries.
+check_tries = 360  # try this many times when waiting for a JAWS run to complete.
+check_sleep = 60  # wait for this amount of time between tries.
 
 
 def test_json_file_does_not_exist(env, dir, site):
@@ -90,6 +90,12 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
 def test_bad_input_file_permissions_msg(env, dir, site):
     # TESTCASE-6
     # Submit json that contains a path to a file with bad permissions
+    # This test uses the bad_permissions.json which points to a file that has no read permissions
+    # set for owner, group or user
+    # ls -l /global/cfs/projectdirs/jaws/test/tutorial_test_data/no_read_perms.fastq
+    # ---------- 1 jfroula genome 3470 Apr 27 17:01 /global/cfs/projectdirs/jaws/test/tutorial_test_data/no_read_perms.fastq
+    # JAWS should show user an error message that explains the problem to the user
+    
     source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
 
@@ -100,7 +106,8 @@ def test_bad_input_file_permissions_msg(env, dir, site):
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
-    assert "Input path not found or inaccessible:" in e
+    assert "no_read_perms.fastq" in e, "file name should be in error message"
+    assert "Permission denied" in e, "permissions problem should be explained in error message"
 
 
 def test_invalid_wdl_syntax_msg(env, dir, site):
