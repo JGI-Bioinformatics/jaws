@@ -114,7 +114,7 @@ paths:
       security:
         - oauth2: ['admin']
 
-  /search:
+  /run/search:
     post:
       operationId: jaws_central.analysis.search_runs
       tags:
