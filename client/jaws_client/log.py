@@ -1,5 +1,4 @@
 import logging
-from logging.handlers import RotatingFileHandler
 
 
 def setup_logger(name: str, log_file=None, log_level="INFO") -> logging:
@@ -19,22 +18,19 @@ def setup_logger(name: str, log_file=None, log_level="INFO") -> logging:
         raise ValueError(
             f"Invalid log level: {log_level}; valid levels are {valid_log_levels}"
         )
-
-    if log_file is None:
-        log_file = f"{name}.log"
     formatter = logging.Formatter(
         fmt="%(asctime)s - %(levelname)s - %(module)s - %(message)s"
     )
-
     handler_stderr = logging.StreamHandler()
     handler_stderr.setFormatter(formatter)
-
-    handler_file = RotatingFileHandler(log_file, maxBytes=1024, backupCount=1, mode="a")
-    handler_file.setFormatter(formatter)
 
     logger = logging.getLogger(name)
     logger.setLevel(log_level)
     logger.addHandler(handler_stderr)
-    logger.addHandler(handler_file)
 
+    if log_file:
+        from logging.handlers import RotatingFileHandler
+        handler_file = RotatingFileHandler(log_file, maxBytes=1024, backupCount=1, mode="a")
+        handler_file.setFormatter(formatter)
+        logger.addHandler(handler_file)
     return logger

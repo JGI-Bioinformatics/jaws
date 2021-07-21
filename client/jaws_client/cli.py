@@ -52,6 +52,10 @@ def main(jaws_config_file: str, user_config_file: str, log_file: str, log_level:
         )
     os.environ[JAWS_USER_CONFIG_ENV] = user_config_file
     config = Configuration(jaws_config_file, user_config_file)
+    if log_file is None:
+        log_file = (
+            os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_USER_LOG
+        )
     if log_level is None:
         log_level = "INFO"
     params = {
@@ -67,7 +71,7 @@ def main(jaws_config_file: str, user_config_file: str, log_file: str, log_level:
     }
     global jaws_client
     try:
-        jaws_client = Client(**params)
+        jaws_client = Client(params)
     except Exception as error:
         sys.exit(error)
 
@@ -297,27 +301,6 @@ def get(run_id: int, dest: str) -> None:
         jaws_client.get(run_id, dest)
     except Exception as error:
         sys.exit(error)
-
-
-def _utc_to_local(utc_datetime):
-    """Convert UTC time to the local time zone. This should handle daylight savings.
-       Param:: utc_datetime: a string of date and time "2021-07-06 11:15:17".
-    """
-    from datetime import datetime, timezone
-    import pytz
-
-    # The timezone can be overwritten with a environmental variable.
-    # JAWS_TZ should be set to a timezone in a similar format to 'US/Pacific'
-    local_tz = os.environ.get("JAWS_TZ", None)
-    local_tz_obj = ''
-    if local_tz is None:
-        local_tz_obj = datetime.now().astimezone().tzinfo
-    else:
-        local_tz_obj = pytz.timezone(local_tz)
-
-    fmt = "%Y-%m-%d %H:%M:%S"
-    datetime_obj = datetime.strptime(utc_datetime, fmt)
-    return datetime_obj.replace(tzinfo=timezone.utc).astimezone(tz=local_tz_obj).strftime(fmt)
 
 
 @main.command()
