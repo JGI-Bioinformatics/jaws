@@ -2,7 +2,7 @@
 
 echo "BEGIN generate-venvs"
 
-set -eo pipefail
+set -ex
 
 ## VERIFY REQUIRED VARS ARE DEFINED
 # If any env are undefined, try sourcing the setup script and check again.
