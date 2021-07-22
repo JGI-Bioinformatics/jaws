@@ -8,23 +8,23 @@ pkg-requirements:
 
 .PHONY: pkg-rpc
 pkg-rpc: pkg-requirements
-	$Q cd rpc && python3 --version && python3 setup.py bdist_wheel
+	$Q cd rpc && echo $(value PATH) && python setup.py bdist_wheel
 
 .PHONY: pkg-site
 pkg-site: pkg-requirements
-	$Q cd rpc && python3 setup.py bdist_wheel && cd ../site && python3 setup.py bdist_wheel
+	$Q cd rpc && python setup.py bdist_wheel && cd ../site && python setup.py bdist_wheel
 
 .PHONY: pkg-central
 pkg-central: pkg-requirements
-	$Q cd rpc && python3 setup.py bdist_wheel && cd ../central && python3 setup.py bdist_wheel
+	$Q cd rpc && python setup.py bdist_wheel && cd ../central && python setup.py bdist_wheel
 
 .PHONY: pkg-client
 pkg-client: pkg-requirements
-	$Q cd client && python3 setup.py bdist_wheel
+	$Q cd client && python setup.py bdist_wheel
 
 .PHONY: pkg-jtm
 pkg-jtm: pkg-requirements
-	$Q cd rpc && python3 setup.py bdist_wheel && cd ../jtm && python3 setup.py bdist_wheel
+	$Q cd rpc && python setup.py bdist_wheel && cd ../jtm && python setup.py bdist_wheel
 
 .PHONY: pkg
 pkg: pkg-rpc pkg-site pkg-central pkg-client pkg-jtm
