@@ -156,10 +156,10 @@ variables:
     - aws
     - jaws
   only:
-    - master
-    - branches
+    #- master
+    #- branches
     - merge_requests
-    - tags
+    #- tags
 
 test-rpc:
   <<: *only-default
