@@ -120,7 +120,7 @@ variables:
   JGI_LOAD_JAVA: "module load java"
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
 
-  TAHOMA_INSTALL_BASEDIR: "/tmp"
+  TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws_install"
   TAHOMA_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
   TAHOMA_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
   TAHOMA_RMQ_HOST: "rmq.lbl.gov"
