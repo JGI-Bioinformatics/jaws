@@ -53,6 +53,13 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# pytest-cov reports
+central/central.xml
+client/client.xml
+jtm/jtm.xml
+rpc/rpc.xml
+site/site.xml
+
 # Translations
 *.mo
 *.pot
