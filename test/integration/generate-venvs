@@ -45,7 +45,9 @@ test -d "$INSTALL_DIR/jtm" && rm -rf "$INSTALL_DIR/jtm"
 test -d "$SITE_JTM_WORKER_INSTALL_DIR" && rm -rf "$SITE_JTM_WORKER_INSTALL_DIR"
 
 ## MAKE VENVS
-[[ -n "$SITE_LOAD_PYTHON" ]] && $SITE_LOAD_PYTHON
+if [[ -n "$SITE_LOAD_PYTHON" ]]; then
+    $SITE_LOAD_PYTHON
+fi
 echo $SITE_LOAD_PYTHON
 #module avail
 #module load python/3.8.1 && \
