@@ -1,6 +1,17 @@
 import jaws_parsl.config
 
 
+def test_get_site_id(config_file):
+
+    config_path = config_file
+    cfg = jaws_parsl.config.Configuration(config_path)
+
+    expected_site_id = "SHARK"
+    actual_site_id = cfg.get_site_id()
+
+    assert actual_site_id == expected_site_id
+
+
 def test_check_mp_values(config_file):
 
     config_path = config_file

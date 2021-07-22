@@ -15,7 +15,7 @@ cori_ev_opts += '\n#SBATCH -A genother'
 
 lbl_sched_opts = '#SBATCH -A jgicloud'
 
-config = Config(
+config_cori = Config(
     executors=[
         HighThroughputExecutor(
             label='cori_haswell',
@@ -32,7 +32,7 @@ config = Config(
                 # *** NOTE *** worker_init must be setup
                 # Command to be run before starting a worker, such as:
                 # 'module load Anaconda; source activate parsl_env'.
-                worker_init='module load python; source activate parsl-env',
+                # worker_init='module load python; source activate parsl-env',
                 # We request all hyperthreads on a node.
                 launcher=SrunLauncher(),
                 walltime='48:00:00',
@@ -56,7 +56,7 @@ config = Config(
                 # *** NOTE *** worker_init must be setup
                 # Command to be run before starting a worker, such as:
                 # 'module load Anaconda; source activate parsl_env'.
-                worker_init='module load python; source activate parsl-env',
+                # worker_init='module load python; source activate parsl-env',
                 # We request all hyperthreads on a node.
                 launcher=SrunLauncher(),
                 walltime='48:00:00',
@@ -80,7 +80,7 @@ config = Config(
                 # *** NOTE *** worker_init must be setup
                 # Command to be run before starting a worker, such as:
                 # 'module load Anaconda; source activate parsl_env'.
-                worker_init='module load python; source activate parsl-env',
+                # worker_init='module load python; source activate parsl-env',
                 # We request all hyperthreads on a node.
                 launcher=SrunLauncher(),
                 walltime='48:00:00',
@@ -89,6 +89,17 @@ config = Config(
                 cmd_timeout=120,
             ),
         ),
+    ],
+    monitoring=MonitoringHub(
+       hub_address=address_by_hostname(),
+       hub_port=55055,
+       monitoring_debug=False,
+       resource_monitoring_interval=10,
+    )
+)
+
+config_lbl = Config(
+    executors=[
         HighThroughputExecutor(
             label='lbl',
             # This is the network interface on the login node to
@@ -104,7 +115,7 @@ config = Config(
                 # *** NOTE *** worker_init must be setup
                 # Command to be run before starting a worker, such as:
                 # 'module load Anaconda; source activate parsl_env'.
-                worker_init='module load python; source activate parsl-env',
+                # worker_init='module load python; source activate parsl-env',
                 # We request all hyperthreads on a node.
                 launcher=SrunLauncher(),
                 walltime='48:00:00',

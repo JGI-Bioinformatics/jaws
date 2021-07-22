@@ -1,5 +1,5 @@
 # run like:
-# python send.py -c <# of CPUs> -m <memory> -s <site> -cmd $(pwd)/hello.sh
+# python send.py -c <# of CPUs> -m <memory [GB]> -cmd $(pwd)/hello.sh
 
 import click
 import logging
@@ -38,16 +38,14 @@ def start_file_logger(filename, name='jaws-parsl-send.log', level=logging.DEBUG,
 @click.command()
 @click.option("-c", "--cpus", help="Number of CPUs needed")
 @click.option("-m", "--memory", help="Amount of memory needed")
-@click.option("-s", "--site", help="Compute site")
 @click.option("-cmd", "--command", help="Command script")
 @click.option("-l", "--loglevel", default="debug", help="Logging level ('debug' or 'info')")
 @click.option("-f", "--logfile", default=None, help="Path to logfile")
-def send(cpus, memory, site, command, loglevel, logfile):
+def send(cpus, memory, command, loglevel, logfile):
     job_info = {
         "cpus": cpus,
         "memory": memory,
-        "command": command,
-        "site": site
+        "command": command
     }
 
     if logfile:

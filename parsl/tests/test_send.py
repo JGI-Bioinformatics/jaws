@@ -9,5 +9,5 @@ def test_send(monkeypatch, script):
     mocked_mp.Client.return_value = multiprocessing.Client()
     monkeypatch.setattr('jaws_parsl.send.Client', mocked_mp)
     runner = CliRunner()
-    result = runner.invoke(jaws_parsl.send.send, ['-c', 4, '-m', '2G', '-s', 'cori', '-cmd', script])
+    result = runner.invoke(jaws_parsl.send.send, ['-c', 4, '-m', '2', '-cmd', script])
     assert result.exit_code == 0

@@ -37,6 +37,16 @@ class Configuration():
         global conf
         conf = self
 
+    def get_site_id(self):
+        """Returns multiprocessing connection info.
+
+        :return: Multiprocessing parameters.
+        :rtype: dict
+        """
+        section = "SITE"
+        s = self.config[section]
+        return s["site_id"]
+
     def get_mp_params(self):
         """Returns multiprocessing connection info.
 

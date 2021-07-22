@@ -14,7 +14,10 @@ echo 'hello'
 @pytest.fixture
 def config_file(tmp_path):
     cfg = tmp_path / "parsl.ini"
-    content = """[MP]
+    content = """[SITE]
+site_id = SHARK
+
+[MP]
 password = p455w0rd
 host = mp.server.com
 port = 5678

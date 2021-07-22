@@ -16,7 +16,6 @@ rpc_params = {}
 executor = ''
 cpus = 0
 mem = ''
-site = ''
 
 
 @bash_app(executors=[executor])
@@ -128,12 +127,11 @@ class TasksChannel():
                 global cpus, mem, site, executor
                 cpus = msg['cpus']
                 mem = msg['memory']
-                site = msg['site']
 
-                # assume memory is spec'd in GB with "G" (e.g., "128G")
+                # assume memory is spec'd in GB via memory_gb in WDL
                 # check memory request and route on Cori accordingly
                 if site == "CORI":
-                    if int(mem[:-1]) <= 128:
+                    if int(mem) <= 128:
                         executor = 'cori_genepool'
                     else:
                         executor = 'cori_exvivo'
@@ -163,8 +161,15 @@ def cli():
     parser.add_argument("-d", "--debug", action='store_true',
                         help="Enables debug logging")
 
-    # from parsl.configs.htex_local import config
-    from execs import config
+    site_id = rpc_params = jaws_parsl.config.conf.get_site_id()
+    if site_id == "CORI":
+        from execs import config_cori as config
+    elif site_id == "LBL":
+        from execs import config_lbl as config
+    else:
+        e = "Unknown site_id specified in Parsl backend config"
+        raise ValueError(e)
+
     config.retries = 3
     dfk = parsl.load(config)
     parsl_run_dir = dfk.run_dir
