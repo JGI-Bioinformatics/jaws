@@ -8,7 +8,7 @@ pkg-requirements:
 
 .PHONY: pkg-rpc
 pkg-rpc: pkg-requirements
-	$Q cd rpc && python setup.py bdist_wheel
+	$Q cd rpc && pip list && python --version && python setup.py bdist_wheel
 
 .PHONY: pkg-site
 pkg-site: pkg-requirements
