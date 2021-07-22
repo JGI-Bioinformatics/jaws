@@ -46,7 +46,9 @@ test -d "$SITE_JTM_WORKER_INSTALL_DIR" && rm -rf "$SITE_JTM_WORKER_INSTALL_DIR"
 
 ## MAKE VENVS
 [[ -n "$SITE_LOAD_PYTHON" ]] && $SITE_LOAD_PYTHON
+echo $SITE_LOAD_PYTHON
 module avail
+module load python/3.8.1 && \
 make pkg
 $SITE_PYTHON -m venv "$INSTALL_DIR/site" && \
   . "$INSTALL_DIR/site/bin/activate" && \
