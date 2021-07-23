@@ -1,5 +1,5 @@
 Click==7.0
-parsl==1.0.0
+parsl[monitoring]
 pytest
 jaws_rpc
 
