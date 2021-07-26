@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -l
+#!/bin/env bash -l
 
 echo "BEGIN generate-shims"
 
@@ -50,7 +50,7 @@ fi
 FIX_PERMS_CLIENT=""
 [[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && FIX_PERMS_CLIENT="fix_perms $SITE_CLIENT_GROUP $SITE_CLIENT_INSTALL_DIR"
 cat <<EOM > $SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME
-#!/usr/bin/env bash -l
+#!/bin/bash -l
 
 function fix_perms() {
     local GROUP="\$1"
@@ -87,7 +87,7 @@ EOM
 
 ## central rpc shim script
 cat <<EOM > "$SHIM_DIR/jaws-site-central-rpc-$DEPLOYMENT_NAME"
-#!/usr/bin/env bash
+#!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
@@ -100,7 +100,7 @@ EOM
 
 ## site rpc shim script
 cat <<EOM > "$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME"
-#!/usr/bin/env bash -l
+#!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
@@ -112,7 +112,7 @@ EOM
 
 ## jtm shim script
 cat <<EOM > "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
-#!/usr/bin/env bash -l
+#!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
