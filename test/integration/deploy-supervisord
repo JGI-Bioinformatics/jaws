@@ -59,7 +59,7 @@ not_available "supervisord" || pip install supervisor
 function generate_shim() {
 prog=$1
 cat <<EOM > $SUPERVISOR_DIR/bin/$prog
-#!/usr/bin/env bash -l
+#!/bin/bash -l
 
 $SITE_LOAD_PYTHON
 source $SUPERVISOR_DIR/venv/bin/activate
