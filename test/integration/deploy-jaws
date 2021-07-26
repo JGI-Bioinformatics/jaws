@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+!/usr/bin/env bash -l
 
 set -e
 
@@ -35,9 +35,8 @@ fi
 
 
 # stop services
-# module unload python
-#$TAHOMA_LOAD_ENVIRONMENT
-#$SITE_LOAD_PYTHON
+module unload python
+$SITE_LOAD_PYTHON
 #test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
 #test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf stop jaws-$DEPLOYMENT_NAME:*
 

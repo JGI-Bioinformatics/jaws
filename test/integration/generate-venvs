@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 
 echo "BEGIN generate-venvs"
 
@@ -45,11 +45,7 @@ test -d "$INSTALL_DIR/jtm" && rm -rf "$INSTALL_DIR/jtm"
 test -d "$SITE_JTM_WORKER_INSTALL_DIR" && rm -rf "$SITE_JTM_WORKER_INSTALL_DIR"
 
 ## MAKE VENVS
-$TAHOMA_LOAD_ENVIRONMENT
 [[ -n "$SITE_LOAD_PYTHON" ]] && $SITE_LOAD_PYTHON
-echo $SITE_LOAD_PYTHON
-#module avail
-#module load python/3.8.1 && \
 make pkg
 $SITE_PYTHON -m venv "$INSTALL_DIR/site" && \
   . "$INSTALL_DIR/site/bin/activate" && \
