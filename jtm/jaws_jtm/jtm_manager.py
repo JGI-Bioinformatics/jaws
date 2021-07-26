@@ -1501,7 +1501,7 @@ def process_task_request(msg):
                             last_task_id,
                             status_now,
                             TASK_STATUS["pending"],
-                            reason=slurm_job_id,
+                            reason="slurm_jid=%d" % (slurm_job_id) if slurm_job_id > 0 else "",
                         )
 
                 # Note: only when the previous status == queued
