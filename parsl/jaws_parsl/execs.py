@@ -1,6 +1,6 @@
 from parsl.config import Config
 from parsl.providers import SlurmProvider
-from parsl.launchers import SrunLauncher
+from parsl.launchers import SrunLauncher, SingleNodeLauncher
 from parsl.executors import HighThroughputExecutor
 from parsl.addresses import address_by_interface, address_by_hostname
 from parsl.monitoring.monitoring import MonitoringHub
@@ -102,12 +102,10 @@ config_lbl = Config(
     executors=[
         HighThroughputExecutor(
             label='lbl',
-            # This is the network interface on the login node to
-            # which compute nodes can communicate
-            address=address_by_interface('bond0.144'),
+            address=address_by_hostname(),
             provider=SlurmProvider(
-                'jgi',  # Partition / QOS
-                nodes_per_block=2,
+                partition='jgi',  # Partition / QOS
+                nodes_per_block=1,
                 init_blocks=1,
                 # string to prepend to #SBATCH blocks in the submit
                 # script to the scheduler eg: '#SBATCH --constraint=knl,quad,cache'
@@ -116,12 +114,10 @@ config_lbl = Config(
                 # Command to be run before starting a worker, such as:
                 # 'module load Anaconda; source activate parsl_env'.
                 # worker_init='module load python; source activate parsl-env',
-                # We request all hyperthreads on a node.
-                launcher=SrunLauncher(),
+                launcher=SingleNodeLauncher(),
                 walltime='48:00:00',
-                # Slurm scheduler on Cori can be slow at times,
-                # increase the command timeouts
                 cmd_timeout=120,
+                exclusive=False
             ),
         ),
     ],
