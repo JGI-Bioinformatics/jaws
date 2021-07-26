@@ -675,7 +675,8 @@ def send_update_task_status_msg(
                 "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
                 "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
                 "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password"),
-            }, logger
+            },
+            logger,
         ) as rpc_cl:
             wait_count = 0
             response = rpc_cl.request("update_job_status", data)
@@ -1501,7 +1502,9 @@ def process_task_request(msg):
                             last_task_id,
                             status_now,
                             TASK_STATUS["pending"],
-                            reason="slurm_jid=%d" % (slurm_job_id) if slurm_job_id > 0 else "",
+                            reason="slurm_jid=%d" % (slurm_job_id)
+                            if slurm_job_id > 0
+                            else "",
                         )
 
                 # Note: only when the previous status == queued
