@@ -2,7 +2,7 @@
 
 echo "BEGIN generate-venvs"
 
-set -ex
+set -e
 
 ## VERIFY REQUIRED VARS ARE DEFINED
 # If any env are undefined, try sourcing the setup script and check again.
