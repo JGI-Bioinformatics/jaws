@@ -39,6 +39,36 @@ HISTORY = [
 ]
 
 
+QUEUE = [
+        {
+        "id": "33",
+        "input_site_id": "CORI",
+        "json_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.json",
+        "result": "succeeded",
+        "site_id": "CORI",
+        "status": "download complete",
+        "status_detail": "The run output (succeeded or failed) has been returned to the user.",
+        "submitted": "2021-01-01 11:00:00",
+        "tag": "none",
+        "updated": "2021-01-01 12:00:00",
+        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl"
+        },
+        {
+        "id": "34",
+        "input_site_id": "CORI",
+        "json_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.json",
+        "result": "succeeded",
+        "site_id": "CORI",
+        "status": "download complete",
+        "status_detail": "The run output (succeeded or failed) has been returned to the user.",
+        "submitted": "2021-07-13 14:00:00",
+        "tag": "none",
+        "updated": "2021-07-13 14:51:55",
+        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl"
+        }
+]
+
+
 WORKFLOW_METADATA = {
     "run_id": "36",
     "actualWorkflowLanguage": "WDL",
@@ -200,16 +230,6 @@ SUBMISSION = {
 }
 
 
-QUEUE = [
-    [
-        35,
-        "2020-04-04T16:55:35Z",
-        "running",
-        "65f2f4df-2a6c-4881-a3b0-3141107ac668",
-        "1aba54ac-7695-11ea-9615-0afc9e7dd773",
-    ]
-]
-
 TASK_STATUS_JSON = [
     ["bbtools.alignment", 1, 432, "Queued", "Running", "2020-04-03 20:32:52", ""]
 ]
@@ -235,24 +255,23 @@ class MockResponse:
 
 def test_cli_queue(monkeypatch, configuration):
     def post_queue(url, data={}, files={}, headers=None):
-        result = [
-            [
-                "36",
-                "2020-04-04 17:56:52",
-                "running",
-                "bafa20aa-59b3-4d33-9f4c-fb30696e324f",
-                "aa791756-769d-11ea-af53-0201714f6eab",
-            ],
-        ]
-        return MockResponse(result, 200)
+        return MockResponse(QUEUE, 200)
 
     monkeypatch.setattr(requests, "post", post_queue)
 
     runner = click.testing.CliRunner()
     result = runner.invoke(cli.main, ["queue"])
     assert result.exit_code == 0
-    assert "running" in result.output
-    assert('2020-04-04 10:56:52' in result.output or '2020-04-04 09:56:52' in result.output)
+    for task_id in ["33", "34"]:
+        assert task_id in result.output
+
+    # this checks that there is 8hrs difference when we are not in daylight savings (nov 8 - march 13)
+    # utc: 2021-01-01 11:00:00
+    assert('2021-01-01 03:00:00' in result.output)
+
+    # this checks that there is 7hrs difference when we are in daylight savings(march 14 - nov 7)
+    # utc: 2021-07-13 14:00:00
+    assert('2021-07-13 07:00:00' in result.output)
 
 
 def test_cli_history(monkeypatch, configuration):
@@ -274,7 +293,6 @@ def test_cli_history(monkeypatch, configuration):
     # this checks that there is 7hrs difference when we are in daylight savings(march 14 - nov 7)
     # utc: 2021-07-13 14:00:00
     assert('2021-07-13 07:00:00' in result.output)
-
 
 
 def test_cli_status(monkeypatch, configuration):
