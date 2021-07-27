@@ -77,6 +77,7 @@ cd rpc && python setup.py develop
 # Client
 cd ../ && pip install -r client/requirements.txt
 cd client && python setup.py develop
+export JAWS_CLIENT_CONFIG=/global/cfs/projectdirs/jaws/jaws-dev/jaws-dev.conf
 
 # Central
 cd ../ && pip install -r central/requirements.txt
