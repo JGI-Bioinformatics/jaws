@@ -40,8 +40,8 @@ def test_jaws_info(env):
     assert data["version"] is not None
 
 
-def test_jaws_status(env):
-    """tests that the jaws status is working. We don't care if some services are down.
+def test_jaws_health(env):
+    """tests that the jaws health is working. We don't care if some services are down.
         Just test that all below services are shown, regardless of status.
     {
         "CORI-Cromwell": "UP",
@@ -73,7 +73,19 @@ def test_jaws_status(env):
         assert k in actual_keys
 
 
-def test_jaws_run_queue(env,site,dir):
+def test_jaws_status(env,submit_fq_count_wdl):
+    """test that the jaws status --verbose command has an output directory defined in its stdout"""
+    data = submit_fq_count_wdl
+    run_id = str(data["run_id"])
+    cmd = (
+        "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" 
+        % (env, run_id)
+    )
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+    assert "output_dir" in data
+
+def test_jaws_queue(env,site,dir):
     """tests that the jaws queue command has the correct site in the output when --site is used."""
 
     wdl = dir + '/WDLs/fq_count.wdl'
@@ -117,7 +129,7 @@ def test_jaws_run_queue(env,site,dir):
     assert result and has_id
 
 
-def test_jaws_run_history(env, submit_fq_count_wdl):
+def test_jaws_history(env, submit_fq_count_wdl):
     """ tests that the jaws history command has the run id in the stdout."""
     data = submit_fq_count_wdl
     run_id = str(data["run_id"])
