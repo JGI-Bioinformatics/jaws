@@ -393,7 +393,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
 
     # VALIDATE INPUTS JSON
     try:
-        inputs_json = workflow.WorkflowInputs(json_file, submission_id)
+        inputs_json = workflow.WorkflowInputs(json_file, submission_id, wdl_loc=wdl_file)
     except json.JSONDecodeError as error:
         sys.exit(f"Your file, {json_file}, is not a valid JSON file: {error}")
 
