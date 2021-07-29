@@ -148,13 +148,15 @@ LRC:
     - command: sudo -u <user> -i  
     - user: jaws | jaws
 
-CASCADE:
+TAHOMA:
     - command: sudo -u <user> -i  
     - user: svc-jtm-manager | svc-jtm-user
 
 
-Note: For cascade you will need to ssh to the host `gwf1.emsl.pnl.gov` before you attempt to change
-into the user. 
+Note: For cascade you will need to ssh to the host `twf1.emsl.pnl.gov` before you attempt to change
+into the user. If you are logged into tahoma, a simple `ssh twf1` should work fine. `svc-jtm-manager` maps to
+`jaws` and `svc-jtm-user` maps to `jaws_jtm` so any services that need to run as the user that submits jobs
+will be `svc-jtm-user`. 
 
 Check the status of JAWS services:
 
@@ -203,7 +205,7 @@ The below commands are what systemd runs:
     $ cd /usr/lib/gitlab-runner
     $ ./gitlab-runner run --working-directory /home/jaws --config /etc/gitlab-runner/config.toml --service gitlab-runner --syslog --user jaws
 
-## Starting the gitlab-runner on CASCADE 
+## Starting the gitlab-runner on TAHOMA
 
 Currently the gitlab runner is being managed by EMSL. To contact them, join the #emsl-jgi-coordination channel on the JGI slack. 
 

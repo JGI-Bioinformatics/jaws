@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -l
 
 # import helper functionn from any location
 # taken from https://stackoverflow.com/questions/192292/how-best-to-include-other-scripts

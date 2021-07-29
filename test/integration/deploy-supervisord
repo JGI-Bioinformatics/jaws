@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash -l
 
 echo "BEGIN deploy-supervisord"
 
@@ -41,6 +41,7 @@ test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
 chgrp $SITE_JTM_GROUP $SUPERVISOR_DIR
 chmod 770 $SUPERVISOR_DIR
 
+# TODO: This is hardcoded and module command will not be available in env
 module unload python
 $SITE_LOAD_PYTHON
 [[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
@@ -58,7 +59,7 @@ not_available "supervisord" || pip install supervisor
 function generate_shim() {
 prog=$1
 cat <<EOM > $SUPERVISOR_DIR/bin/$prog
-#!/usr/bin/env bash
+#!/bin/bash -l
 
 $SITE_LOAD_PYTHON
 source $SUPERVISOR_DIR/venv/bin/activate

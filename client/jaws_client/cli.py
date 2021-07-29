@@ -157,9 +157,9 @@ def queue(site: str) -> None:
     }
     url = f'{config.get("JAWS", "url")}/search'
     result = _request("POST", url, data)
-    print(f"RESULT FROM CLI.PY {result}")
     for a in result:
-        a[1] = _utc_to_local(a[1])
+        a["submitted"] = _utc_to_local(a["submitted"])
+        a["updated"] = _utc_to_local(a["updated"])
     _print_json(result)
 
 
