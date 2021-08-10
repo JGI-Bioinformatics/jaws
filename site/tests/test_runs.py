@@ -65,6 +65,19 @@ class MockCromwellMetadata:
         return "/example/workflow/output"
 
 
+class MockRpcClient:
+    def __init__(self, params=None, logger=None):
+        pass
+
+    def request(self, method, params={}):
+        response = {"result": None}
+        return response
+
+
+def mock_rpc_client(run):
+    return MockRpcClient()
+
+
 @pytest.mark.parametrize(
     "status",
     [

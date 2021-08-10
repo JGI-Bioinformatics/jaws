@@ -2,9 +2,12 @@ import pytest
 import os
 import shutil
 import uuid
-
+import json
 
 # flake8: noqa
+
+def join_path(*args):
+    return os.path.join(*args)
 
 def recur_dict_comparison(expected_val, actual_val):
     if isinstance(actual_val, str) or isinstance(actual_val, int):
@@ -23,33 +26,35 @@ def dict_comparison(expected_dict, actual_dict):
         recur_dict_comparison(expected_dict[k], actual_dict[k])
 
 def test_create_destination_json(configuration, input_file):
-
     root_dir = input_file
     staging_dir = os.path.join(root_dir, "test_user", "CORI")
-
     expected = {
-        "file1": f"{staging_dir}{root_dir}/test.fasta"
+        "test.file1": f"{staging_dir}{root_dir}/test.fasta"
     }
 
     uuid = "12345"
     json_filepath = os.path.join(root_dir, "test.json")
+    wdl_filepath = os.path.join(root_dir, "test.wdl")
     import jaws_client.workflow
-    wf_inputs = jaws_client.workflow.WorkflowInputs(json_filepath, uuid)
+    wf_inputs = jaws_client.workflow.WorkflowInputs(json_filepath, uuid, \
+        wdl_loc=wdl_filepath)
     actual = wf_inputs.prepend_paths_to_json(staging_dir)
     assert actual
     dict_comparison(expected, actual.inputs_json)
 
-def test_src_json_inputs(configuration, inputs_json):
+def test_files_inputs(configuration, files_inputs):
     uuid = "1234"
     import jaws_client.workflow
-    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, uuid)
-    expected = ["/path/to/file1", "/path/to/file2"]
-
-    assert 2 == len(inputs.src_file_inputs)
-
+    inputs_json = os.path.join(files_inputs, "files.json")
+    wdl = os.path.join(files_inputs, "files.wdl")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, uuid, wdl_loc = wdl)
+    expected = ["/path/1", "2", "/path/3", "https://path4", "5", \
+        "6", "/path/7", "/path/8", "9", "/path/10", "http://abf", "ftp://xyz"]
+    assert 12 == len(inputs.src_file_inputs)
     for expect in expected:
+        if not expect.startswith(("/", "http://", "ftp://", "https://")):
+            expect = os.path.abspath(join_path(inputs.basedir, expect))
         assert expect in inputs.src_file_inputs
-
 
 @pytest.mark.skipif(
     shutil.which("womtool") is None, reason="WOMTool needs to be installed."
@@ -174,9 +179,11 @@ def test_fail_invalid_backend(wdl_with_invalid_backend):
 
 def test_move_input_files_to_destination(configuration, sample_workflow):
     inputs = os.path.join(sample_workflow, "workflow", "sample.json")
+    wdl = os.path.join(sample_workflow, "workflow", "sample.wdl")
     staging_dir = os.path.join(sample_workflow, "staging")
     import jaws_client.workflow
-    inputs_json = jaws_client.workflow.WorkflowInputs(inputs, uuid.uuid4())
+    inputs_json = jaws_client.workflow.WorkflowInputs(inputs, uuid.uuid4(), \
+        wdl_loc=wdl)
     inputs_json.move_input_files(os.path.join(staging_dir, "NERSC"))
 
 
@@ -245,47 +252,55 @@ def test_same_submission_id_in_workflow_files(subworkflows_example):
     assert os.path.basename(zip_wdl).strip(".wdl") == submission_id
 
 
-def test_refdata_not_translated(refdata_inputs):
+def test_refdata_not_translated(refdata_inputs, refdata_wdl):
     inputs_json = os.path.join(refdata_inputs, "inputs.json")
     text_file = os.path.join(refdata_inputs, "file1.txt")
+    wdl = os.path.join(refdata_wdl, "refdata.wdl")
     import jaws_client.workflow
-    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231", wdl_loc=wdl)
     modified_json = inputs.prepend_paths_to_json("/remote/uploads/NERSC/staging")
-    expected = {"file1": "/remote/uploads/NERSC/staging" + text_file,
-                "runblastplus_sub.ncbi_nt": "/refdata/nt"}
+    expected = {"refdata.file1": "/remote/uploads/NERSC/staging" + text_file,
+                "refdata.runblastplus_sub.ncbi_nt": "/refdata/nt"}
     dict_comparison(modified_json.inputs_json, expected)
 
 
-def test_refdata_in_different_form(refdata_inputs_missing_slash):
+def test_refdata_in_different_form(refdata_inputs_missing_slash, refdata_wdl):
     inputs_json = os.path.join(refdata_inputs_missing_slash, "inputs.json")
     text_file = os.path.join(refdata_inputs_missing_slash, "file1.txt")
+    wdl = os.path.join(refdata_wdl, "refdata.wdl")
     import jaws_client.workflow
-    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "1231231", wdl_loc=wdl)
     modified_json = inputs.prepend_paths_to_json("/remote/uploads/NERSC/staging")
-    expected = {"file1": "/remote/uploads/NERSC/staging" + text_file,
-                "runblastplus_sub.ncbi_nt": "/refdata"}
+    expected = {"refdata.file1": "/remote/uploads/NERSC/staging" + text_file,
+                "refdata.runblastplus_sub.ncbi_nt": "/refdata"}
     dict_comparison(modified_json.inputs_json, expected)
 
 
-def test_refdata_in_inputs_json(refdata_inputs, monkeypatch):
+def test_refdata_in_inputs_json(refdata_inputs, monkeypatch, refdata_wdl):
     inputs_json = os.path.join(refdata_inputs, "inputs.json")
+    wdl = os.path.join(refdata_wdl, "refdata.wdl")
     import jaws_client.workflow
-    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "12312")
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, "12312", wdl_loc=wdl)
     assert "/refdata/nt" in inputs.src_file_inputs
 
 
-def test_rel_path_in_input_files():
-    test_json = {
+def test_rel_path_in_input_files(relative_inputs):
+    """test_json = {
         "fileX": "./fileX.txt",
         "fileY": "../fileY.txt",
         "fileZ": "/home/profx/fileZ.txt"
-    }
+    }"""
+    root_dir = relative_inputs
+    inputs_json = os.path.join(root_dir, "test", "relative.json")
+    wdl = os.path.join(root_dir, "test", "relative.wdl")
     import jaws_client.workflow
-    wf_inputs = jaws_client.workflow.WorkflowInputs('/home/profx/test/test.json', 'ABCDEF', test_json)
-    for path in wf_inputs.src_file_inputs:
-        assert path.startswith('/home/profx/')
+    inputs = jaws_client.workflow.WorkflowInputs(inputs_json, 'ABCDEF', wdl_loc=wdl)
+    for path in inputs.src_file_inputs:
+        assert path.startswith(root_dir)
 
 
+"""
+# commented out because nested file feature is being checked in test_src_json_inputs
 def test_nested_files_are_in_src_file_inputs():
     test_json = {
         "jgi_dap_leo.adapters": "/global/cfs/cdirs/jaws/test/tutorial_test_data/LeosData/adapters.fa",
@@ -354,6 +369,7 @@ def test_nested_files_are_in_src_file_inputs():
     for src_file in wf_inputs.src_file_inputs:
         assert src_file in expected_file_paths
 
+# commented out because looks_like_file_path function no longer exists
 def test_looks_like_file_path():
     test_inputs = [
         ("./fileX", True),
@@ -365,6 +381,7 @@ def test_looks_like_file_path():
     import jaws_client.workflow
     for (input, expected) in test_inputs:
         assert jaws_client.workflow.looks_like_file_path(input) is expected
+"""
 
 
 def test_rsync_excludes(configuration, output_example):

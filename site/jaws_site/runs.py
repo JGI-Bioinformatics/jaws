@@ -12,9 +12,9 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
-from jaws_site.cromwell import Cromwell
+from jaws_site.cromwell import Cromwell, CromwellException
 from jaws_site.globus import GlobusService
-from jaws_rpc import rpc_client
+from jaws_rpc import rpc_client_simple
 
 logger = logging.getLogger(__package__)
 
@@ -130,7 +130,7 @@ class Run:
         ]:
             try:
                 cromwell.abort(self.model.cromwell_run_id)
-            except cromwell.CromwellException as error:
+            except CromwellException as error:
                 logger.warn(f"Cromwell error cancelling Run {self.model.id}: {error}")
                 raise
 
@@ -237,7 +237,7 @@ class Run:
             return
         try:
             cromwell_run_id = cromwell.submit(*infiles)
-        except cromwell.CromwellException as error:
+        except CromwellException as error:
             logger.error(f"Run {self.model.id} submission failed: {error}")
             self.update_run_status("submission failed", f"{error}")
         else:
@@ -251,7 +251,7 @@ class Run:
         logger.debug(f"Run {self.model.id}: Check Cromwell status")
         try:
             cromwell_status = cromwell.get_status(self.model.cromwell_run_id)
-        except cromwell.CromwellException as error:
+        except CromwellException as error:
             logger.error(
                 f"Unable to check Cromwell status of Run {self.model.id}: {error}"
             )
@@ -317,7 +317,7 @@ class Run:
         logger.debug(f"Run {self.model.id}: Download output")
         try:
             metadata = cromwell.get_metadata(self.model.cromwell_run_id)
-        except cromwell.CromwellException as error:
+        except CromwellException as error:
             logger.error(
                 f"Unable to get Cromwell metadata of Run {self.model.id}: {error}"
             )
@@ -456,42 +456,38 @@ def send_run_status_logs(session) -> None:
         return
     logger.debug(f"Sending {num_logs} run logs")
 
-    try:
-        central_rpc_client = rpc_client.RpcClient(
-            config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
-        )
-    except Exception as error:
-        logger.exception(f"Unable to init central rpc client: {error}")
-        raise
-
-    # send logs via RPC
-    for log in query:
-        data = {
-            "site_id": config.conf.get("SITE", "id"),
-            "run_id": log.run_id,
-            "status_from": log.status_from,
-            "status_to": log.status_to,
-            "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            "reason": log.reason,
-        }
-        # add special fields
-        if log.status_to == "submitted":
-            run = session.query(models.Run).get(log.run_id)
-            data["cromwell_run_id"] = run.cromwell_run_id
-        elif log.status_to == "downloading":
-            run = session.query(models.Run).get(log.run_id)
-            data["download_task_id"] = run.download_task_id
-        try:
-            response = central_rpc_client.request("update_run_logs", data)
-        except Exception as error:
-            logger.exception(f"RPC update_run_logs error: {error}")
-            continue
-        if "error" in response:
-            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
-            continue
-        log.sent = True
-        try:
-            session.commit()
-        except Exception as error:
-            session.rollback()
-            logger.exception(f"Error updating run_logs as sent: {error}")
+    with rpc_client_simple.RpcClientSimple(
+        config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
+    ) as central_rpc_client:
+        for log in query:
+            data = {
+                "site_id": config.conf.get("SITE", "id"),
+                "run_id": log.run_id,
+                "status_from": log.status_from,
+                "status_to": log.status_to,
+                "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                "reason": log.reason,
+            }
+            # add special fields
+            if log.status_to == "submitted":
+                run = session.query(models.Run).get(log.run_id)
+                data["cromwell_run_id"] = run.cromwell_run_id
+            elif log.status_to == "downloading":
+                run = session.query(models.Run).get(log.run_id)
+                data["download_task_id"] = run.download_task_id
+            try:
+                response = central_rpc_client.request("update_run_logs", data)
+            except Exception as error:
+                logger.exception(f"RPC update_run_logs error: {error}")
+                continue
+            if "error" in response:
+                logger.info(
+                    f"RPC update_run_status failed: {response['error']['message']}"
+                )
+                continue
+            log.sent = True
+            try:
+                session.commit()
+            except Exception as error:
+                session.rollback()
+                logger.exception(f"Error updating run_logs as sent: {error}")

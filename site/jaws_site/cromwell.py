@@ -95,15 +95,18 @@ class Task:
         for call in self.calls:
             if call.get("executionStatus") == "Failed":
                 report = {}
-                report["attempt"] = call["attempt"]
-                if "callCaching" in call:
-                    report["callCaching"] = call["callCaching"]
                 report["failures"] = call["failures"]
                 if "jobId" in call:
                     report["jobId"] = call["jobId"]
                 if "runtimeAttributes" in call:
-                    report["runtimeAttributes"] = call["runtimeAttributes"]
-                report["shardIndex"] = call["shardIndex"]
+                    report["runtimeAttributes"] = {}
+                    runtime_attr = call["runtimeAttributes"]
+                    if "memory" in runtime_attr:
+                        report["runtimeAttributes"]["memory"] = runtime_attr["memory"]
+                    if "cpu" in runtime_attr:
+                        report["runtimeAttributes"]["cpu"] = runtime_attr["cpu"]
+                    if "time" in runtime_attr:
+                        report["runtimeAttributes"]["time"] = runtime_attr["time"]
                 if "stderr" in call:
                     stderr_file = call["stderr"]
                     if os.path.isfile(stderr_file):

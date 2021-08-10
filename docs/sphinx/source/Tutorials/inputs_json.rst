@@ -41,8 +41,8 @@ This command should output a template for the inputs.json file. You can then fil
      "bbtools.ref": "File"
    }
 
-.. warning::
-    File paths may be absolute or relative paths, but must start with `./`, `../`, or `/` to be recognized as a path. Globus requires this syntax to ensure the file is copied to the working directory, however, we will changes this so JAWS is in alignment with the practices accepted by openWDL.
+.. note::
+    File paths may be absolute or relative paths. Any string in the inputs json file is accepted as a file as long as it has been declared as a `File` type in the corresponding WDL. File paths that start with `http` and `ftp` are recognized as URLs.
 
 To include lists or dictionaries in your input.json files, you would do something like:
 

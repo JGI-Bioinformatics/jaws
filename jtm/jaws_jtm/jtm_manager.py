@@ -44,7 +44,7 @@ from jaws_jtm.lib.run import (
     extract_cromwell_id,
 )
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_rpc import rpc_client, rpc_server, responses
+from jaws_rpc import rpc_client_simple, rpc_server, responses
 
 
 # --------------------------------------------------------------------------------------------------
@@ -667,7 +667,7 @@ def send_update_task_status_msg(
 
     # send message to Site
     try:
-        with rpc_client.RpcClient(
+        with rpc_client_simple.RpcClientSimple(
             {
                 "host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
                 "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
@@ -675,7 +675,8 @@ def send_update_task_status_msg(
                 "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
                 "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
                 "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password"),
-            }, logger
+            },
+            logger,
         ) as rpc_cl:
             wait_count = 0
             response = rpc_cl.request("update_job_status", data)
@@ -1501,7 +1502,9 @@ def process_task_request(msg):
                             last_task_id,
                             status_now,
                             TASK_STATUS["pending"],
-                            reason=slurm_job_id,
+                            reason="slurm_jid=%d" % (slurm_job_id)
+                            if slurm_job_id > 0
+                            else "",
                         )
 
                 # Note: only when the previous status == queued

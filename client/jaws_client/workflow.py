@@ -14,6 +14,7 @@ import logging
 import pathlib
 import warnings
 from jaws_client.config import Configuration
+from jaws_client.wdl_runtime_validator import validate_wdl_runtime
 
 
 config = Configuration()
@@ -131,25 +132,72 @@ def looks_like_file_path(input):
     return True if isinstance(input, str) and re.match(".{0,2}/.+", input) else False
 
 
-def apply_filepath_op(obj, operation):
+def recurse_list_type(inp_type):
+    """With every recursion level crossed, the obj type is recursed as well.
+       Eg. Array[Array[File]] -> Array[File] -> File.
+       Eg. Array[Map[Int, String]] -> Map[Int, String]
+       (will move to recurse_dict_type fuction to process this map further)"""
+    return inp_type[inp_type.find('[') + 1: len(inp_type) - 1]
+
+
+def recurse_dict_type(inp_type, dict_type):
+    """
+    Processes Map type and Pair type.
+    Finds the positon of ',' that separates key, value (map) and left, right (pair)
+    Returns corresponding types of key, values or left, right
+    Eg. Map[Array[Array[File]], Pair[Int, String]] will return:
+    key = Array[Array[File]] and value = Pair[Int, String]
+    """
+    start_idx = inp_type.find(dict_type) + len(dict_type)
+    bracket_stack = []
+    for idx in range(start_idx, len(inp_type)):
+        if inp_type[idx] == '[':
+            bracket_stack.append('[')
+        if inp_type[idx] == ',' and bracket_stack == []:
+            break
+        if inp_type[idx] == ']':
+            bracket_stack.pop()
+    key = inp_type[start_idx: idx]
+    value = inp_type[idx + 2: len(inp_type) - 1]
+    return key, value
+
+
+def apply_filepath_op(obj, inp_type, operation):
     """
     Traverses the values of a dictionary and performs an operation on the value.
 
     :param obj: a python data structure (eg. list, dict, set, etc)
-    :param operation: an operation to perform on the values of a python data structure
+    :param inp_type: object type (eg. Map[Int, String], Array[Array[File]], etc)
+    :param operation: an operation to perform on the values of a py data structure
     :return: output of the operation applied
+
+    Note: Whenever operation is called a Boolean value is passed along with obj.
+    This boolean values represents the flag is_file. It indicates if obj is a File.
     """
     if isinstance(obj, str):
-        return operation(obj)
+        if "File" in inp_type:
+            return operation(obj, True)
+        else:
+            return operation(obj, False)
     if isinstance(obj, int):
         return obj
     elif isinstance(obj, list):
-        return [apply_filepath_op(i, operation) for i in obj]
+        return [apply_filepath_op(i, recurse_list_type(inp_type), operation)
+                for i in obj]
     elif isinstance(obj, dict):
-        return {
-            apply_filepath_op(k, operation): apply_filepath_op(obj[k], operation)
-            for k in obj
-        }
+        if 'Pair[' in inp_type:
+            left_type, right_type = recurse_dict_type(inp_type, 'Pair[')
+            return {
+                "Left": apply_filepath_op(obj["Left"], left_type, operation),
+                "Right": apply_filepath_op(obj["Right"], right_type, operation)
+            }
+        if 'Map[' in inp_type:
+            key_type, value_type = recurse_dict_type(inp_type, 'Map[')
+            return {
+                apply_filepath_op(k, key_type, operation):
+                apply_filepath_op(obj[k], value_type, operation)
+                for k in obj
+            }
     else:
         raise ValueError(
             f"cannot perform op={operation.__name__} to object of type {type(obj)}"
@@ -179,7 +227,6 @@ class WdlFile:
         self.contents = (
             contents if contents is not None else open(wdl_file_location, "r").read()
         )
-
         self._subworkflows = None
         self._max_ram_gb = None
 
@@ -250,6 +297,7 @@ class WdlFile:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
         self.verify_wdl_has_no_backend_tags()
+        validate_wdl_runtime(self.contents)
 
     @staticmethod
     def _get_wdl_name(file_location):
@@ -397,7 +445,7 @@ class WorkflowInputs:
 
     """
 
-    def __init__(self, inputs_loc, submission_id, inputs_json=None):
+    def __init__(self, inputs_loc, submission_id, inputs_json=None, wdl_loc=None):
         """
         This class represents the inputs JSON which may contain both path and non-path elements.
         Inputs that look like relative paths and converted to absolute paths.
@@ -411,18 +459,31 @@ class WorkflowInputs:
         )
         self.inputs_json = {}
         self.src_file_inputs = set()
+        self.wdl_file_location = os.path.abspath(wdl_loc)
+        self.wom_input_types = json.loads(self._get_inputs())
         for k in inputs_json:
             self.inputs_json[k] = apply_filepath_op(
-                inputs_json[k], self._gather_absolute_paths
+                inputs_json[k], self.wom_input_types[k], self._gather_absolute_paths
             )
 
-    def _gather_absolute_paths(self, element):
+    def _get_inputs(self):
+        """
+        processes the associated wdl and returns the variable types for the workflow
+        inputs through WOMTOOL's inputs command
+        """
+        stdout, stderr = womtool("inputs", self.wdl_file_location)
+        if stderr:
+            raise WdlError(stderr)
+        return stdout
+
+    def _gather_absolute_paths(self, element, is_file):
         """
         Helper method that recognizes file-like elements, converts relative to absolute paths,
         and adds them to the object's set of files.
+        If element is a file and contains "http", do not get absolute paths
         """
-        if looks_like_file_path(element):
-            if not os.path.isabs(element):
+        if is_file:
+            if not element.startswith(("http://", "ftp://", "https://")) and not os.path.isabs(element):
                 element = os.path.abspath(join_path(self.basedir, element))
             self.src_file_inputs.add(element)
         return element
@@ -461,7 +522,11 @@ class WorkflowInputs:
             # as a result of the gid sticky bit and acl rules on the inputs dir.
             rsync_params = ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"]
             try:
-                result = rsync(original_path, dest, rsync_params,)
+                result = rsync(
+                    original_path,
+                    dest,
+                    rsync_params,
+                )
             except OSError as error:
                 raise (f"rsync executable not found: {error}")
             except ValueError as error:
@@ -484,10 +549,10 @@ class WorkflowInputs:
         destination_json = {}
         for k in self.inputs_json:
             destination_json[k] = apply_filepath_op(
-                self.inputs_json[k], self._prepend_path(staging_dir)
+                self.inputs_json[k], self.wom_input_types[k], self._prepend_path(staging_dir)
             )
 
-        return WorkflowInputs(staging_dir, self.submission_id, destination_json)
+        return WorkflowInputs(staging_dir, self.submission_id, destination_json, wdl_loc=self.wdl_file_location)
 
     @staticmethod
     def _prepend_path(path_to_prepend):
@@ -496,11 +561,13 @@ class WorkflowInputs:
         updated to reflect the new location by prepending the site's uploads basedir.
         Only paths which exist are modified because these are the only files which are transferred; the other
         paths presumably refer to files in a Docker container.
+        If element is a file and contains "http", do not prepend given path to it
         """
 
-        def func(path):
-            if looks_like_file_path(path) and os.path.exists(path):
-                return f"{path_to_prepend}{path}"
+        def func(path, is_file):
+            if is_file:
+                if not path.startswith(("http://", "ftp://", "https://")) and os.path.exists(path):
+                    return f"{path_to_prepend}{path}"
             return path
 
         return func

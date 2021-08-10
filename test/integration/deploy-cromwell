@@ -16,7 +16,7 @@ SITE_JTM_GROUP
 SITE_CONTAINER_TYPE
 SITE_JTM_SCRATCH_DIR
 SITE_JTM_WORKER_INSTALL_DIR
-CROMWELL_TMPDIR
+SITE_CROMWELL_TMPDIR
 CROMWELL_WORKFLOW_LOGS_DIR
 CROMWELL_EXECUTIONS_DIR
 JTM_CONFIG_FILE
@@ -140,6 +140,7 @@ include required(classpath("application"))
 webservice
 {
   port = $CROMWELL_PORT
+  interface = 127.0.0.1
 }
 system
 {
@@ -219,6 +220,7 @@ backend
               duplication-strategy: [ "soft-link", "copy" ]
               hashing-strategy: "path+modtime"
             }
+            http {}
           }
         }
 

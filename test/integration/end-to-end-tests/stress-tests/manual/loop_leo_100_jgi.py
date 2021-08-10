@@ -12,7 +12,7 @@ WDL = '/global/homes/a/akollmer/jaws/examples/leo_dapseq/Azospirillum_brasilense
 NUM_TASKS_IN_WDL = 505
 INPUTS = '/global/homes/a/akollmer/jaws/examples/leo_dapseq/shortened-100.json'
 SITE = 'jgi'
-VERIFY_TASK_LOG_STATUS = True
+VERIFY_TASK_LOG_STATUS = False
 
 # submit jobs to jaws
 RUNS = submit_loop.submit(NUM_SUBMISSIONS, WDL, INPUTS, SITE)

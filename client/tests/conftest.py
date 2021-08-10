@@ -11,6 +11,7 @@ def configuration(tmp_path):
     user_config_path = tmp_path / "jaws_user.ini"
     os.environ["JAWS_CLIENT_CONFIG"] = config_path.as_posix()
     os.environ["JAWS_USER_CONFIG"] = user_config_path.as_posix()
+    os.environ["JAWS_TZ"] = "US/PACIFIC"
 
     globus_basedir = tmp_path / "globus_basedir"
     staging_dir = globus_basedir / "staging"
@@ -56,13 +57,16 @@ def input_file(wdl_path):
     path = wdl_dir.as_posix()
     contents = """
 {
-    "file1": "%s/test.fasta"
+    "test.file1": "%s/test.fasta"
 }"""
     inputs.write_text(contents % path)
     test_wdl = wdl_dir / "test.wdl"
     test_wdl.write_text("""
+workflow test {
+  File file1
+  call hello_world
+}
 task hello_world {
-
   String hi = "Hello world"
 
   command {
@@ -291,7 +295,7 @@ task findPeaks {
 
     runtime {
         cluster: "cori"
-        time: "00:00:00"
+        time: "01:00:00"
         cpu: 1
         memory: "0G"
     }
@@ -323,7 +327,7 @@ task motifInputs {
 
     runtime {
         cluster: "cori"
-        time: "00:00:00"
+        time: "01:00:00"
         cpu: 1
         memory: "0G"
     }
@@ -646,13 +650,34 @@ task print {
 
 
 @pytest.fixture()
-def inputs_json(tmp_path):
-    inputs = tmp_path / "inputs.json"
-    contents = """{
-    "workflow1.file": "/path/to/file1", "workflow2.file": "/path/to/file2"
-}"""
+def files_inputs(tmp_path):
+    inputs = tmp_path / "files.json"
+    wdl = tmp_path / "files.wdl"
+    wdl_contents = """
+version 1.0
+workflow workflow_files {
+    input {
+        File one
+        Array[File] two
+        Array[Array[File]] three
+        Pair[String, Array[File]] four
+        Map[String, Int] five
+        Map[String, Array[File]] six
+        String seven
+        File url
+    }
+    call task_files
+}
+task task_files {
+    command <<<
+        echo "Hello!"
+    >>>
+}
+"""
+    wdl.write_text(wdl_contents)
+    contents = """{"workflow_files.two": ["/path/1", "2"], "workflow_files.six": {"foo": ["/path/3", "https://path4"], "bar": ["5", "6"]}, "workflow_files.seven": "abc", "workflow_files.one": "ftp://xyz", "workflow_files.three": [["/path/7", "/path/8"], ["9"]], "workflow_files.five": {"bob": 1234, "ali": 3457}, "workflow_files.four": {"Left": "elk", "Right": ["/path/10"]}, "workflow_files.url": "http://abf"}"""
     inputs.write_text(contents)
-    return inputs.as_posix()
+    return tmp_path.as_posix()
 
 
 @pytest.fixture()
@@ -672,19 +697,78 @@ def staged_files(tmp_path):
 
 
 @pytest.fixture()
+def refdata_wdl(tmp_path):
+    wdl = tmp_path / "refdata.wdl"
+    wdl_contents = """
+workflow refdata {
+    File file1
+    call runblastplus_sub
+}
+
+task runblastplus_sub {
+    File ncbi_nt
+    command <<<
+        echo "hi!"
+    >>>
+}
+"""
+    wdl.write_text(wdl_contents)
+    return tmp_path.as_posix()
+
+
+@pytest.fixture()
 def refdata_inputs(tmp_path):
     inputs = tmp_path / "inputs.json"
     text_file = tmp_path / "file1.txt"
     text_file.write_text("This is a file.")
 
     contents = """{{
-    "file1": "{0}",
-      "runblastplus_sub.ncbi_nt": "/refdata/nt"
+    "refdata.file1": "{0}",
+    "refdata.runblastplus_sub.ncbi_nt": "/refdata/nt"
 }}
 """.format(text_file)
 
     inputs.write_text(contents)
     return tmp_path.as_posix()
+
+
+@pytest.fixture()
+def relative_inputs(tmp_path):
+    rel_dir = tmp_path / "test"
+    rel_dir.mkdir()
+    inputs = rel_dir / "relative.json"
+    fileX = rel_dir / "fileX.txt"
+    fileX.write_text("This is fileX.")
+    fileY = tmp_path / "fileY.txt"
+    fileY.write_text("This is fileY.")
+    fileZ = tmp_path / "fileZ.txt"
+    fileZ.write_text("This is fileZ.")
+    contents = """{{
+    "relative.fileX": "./fileX.txt",
+    "relative.fileY": "../fileY.txt",
+    "relative.fileZ": "{0}"
+}}
+""".format(fileZ)
+
+    inputs.write_text(contents)
+    wdl = rel_dir / "relative.wdl"
+    wdl_contents = """
+workflow relative {
+    File fileX
+    File fileY
+    File fileZ
+    call task_relative
+}
+
+task task_relative {
+    command <<<
+        echo "hi!"
+    >>>
+}
+"""
+    wdl.write_text(wdl_contents)
+    return tmp_path.as_posix()
+
 
 
 @pytest.fixture()
@@ -694,8 +778,8 @@ def refdata_inputs_missing_slash(tmp_path):
     text_file.write_text("This is a file.")
 
     contents = """{{
-    "file1": "{0}",
-      "runblastplus_sub.ncbi_nt": "/refdata"
+    "refdata.file1": "{0}",
+    "refdata.runblastplus_sub.ncbi_nt": "/refdata"
 }}
 """.format(text_file)
 

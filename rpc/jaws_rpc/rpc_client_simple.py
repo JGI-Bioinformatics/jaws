@@ -1,6 +1,5 @@
 """RpcClient sends JSON-RPC2 messages to an RpcServer."""
 
-import threading
 import amqpstorm
 from amqpstorm import Message
 import json
@@ -14,7 +13,7 @@ DEFAULT_MAX_WAIT = 10
 DEFAULT_MESSAGE_TTL = 10  # expires in seconds or 0=doesn't expire
 
 
-class RpcClient(object):
+class RpcClientSimple(object):
     """Asynchronous remote procedure call (RPC) client class."""
 
     def __init__(self, params, logger):
@@ -86,18 +85,6 @@ class RpcClient(object):
         self.channel.basic.consume(
             self._on_response, no_ack=True, queue=self.callback_queue
         )
-        self._create_process_thread()
-
-    def _create_process_thread(self):
-        """Create a thread responsible for consuming messages in response
-        to RPC requests.
-        """
-        thread = threading.Thread(target=self._process_data_events)
-        thread.setDaemon(True)
-        thread.start()
-
-    def _process_data_events(self):
-        """Process Data Events using the Process Thread."""
         self.channel.start_consuming()
 
     def _on_response(self, message):
