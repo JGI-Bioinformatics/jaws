@@ -5,6 +5,7 @@ stages:
   - smoke-tests
   - deployment-tests
   - stress-tests
+  - deploy-docs
 
 variables:
   GIT_STRATEGY: clone
@@ -634,7 +635,7 @@ jgi-prod-stress-tests:
   allow_failure: true
 
 deploy-jaws-docs:
-  stage: .post
+  stage: deploy-docs
   tags:
     - cori
   script:
