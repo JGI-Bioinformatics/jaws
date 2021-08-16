@@ -185,7 +185,7 @@ def test_run_status_inactive_upload(monkeypatch):
     monkeypatch.setattr(jaws_central.analysis, "_get_run", get_failed_run)
     monkeypatch.setattr(jaws_central.analysis, "_is_admin", mock_is_admin)
 
-    comments = r"Globus transfer stalled; try reactivating the endpoint. Please go to https://app.globus.org/file-manager, on the left side of the page, select ENDPOINTS, click the > icon to the right of the NERSC DTN endpoint, then click Activate."  # noqa"
+    comments = r"Globus transfer stalled."
 
     out_json, status = jaws_central.analysis.run_status("user", 123)
     assert out_json["status_detail"] == comments
