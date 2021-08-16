@@ -78,7 +78,7 @@ variables:
   CORI_JAWS_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws"
   CORI_JTM_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws_jtm"
   CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
-  CORI_JTM_SW_BASEDIR: "/global/cfs/projectdirs/jaws_jtm"
+  CORI_JTM_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_REF_DATA_DIR: " /global/dna/shared/databases/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
