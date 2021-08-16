@@ -196,13 +196,17 @@ def search_runs(user):
     active_only = True if request.form.get("active_only") == "True" else False
     delta_days = int(request.form.get("delta_days", 0))
     result = request.form.get("result", "any").lower()
+    all_users = True if request.form.get("all") == "True" else False
     logger.info(f"User {user}: Search runs")
+    is_admin = _is_admin(user)
     rows = _select_runs(
         user,
         active_only=active_only,
         delta_days=delta_days,
         site_id=site_id,
         result=result,
+        is_admin=is_admin,
+        all_users=all_users,
     )
     runs = []
     verbose = _is_admin(user)
@@ -219,7 +223,14 @@ def _select_runs(user: str, **kwargs):
     :return: Runs matching search criteria
     :rtype: list
     """
-    query = db.session.query(Run).filter(Run.user_id == user)
+    query = db.session.query(Run)
+    if ("all_users" in kwargs
+            and kwargs["all_users"] is True
+            and "is_admin" in kwargs
+            and kwargs["is_admin"] is True):
+        pass
+    else:
+        query = query.filter(Run.user_id == user)
     if "active_only" in kwargs and kwargs["active_only"] is True:
         query = query.filter(Run.status.in_(run_active_states))
     if "site_id" in kwargs:
