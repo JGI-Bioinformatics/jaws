@@ -140,6 +140,7 @@ include required(classpath("application"))
 webservice
 {
   port = $CROMWELL_PORT
+  interface = 127.0.0.1
 }
 system
 {
