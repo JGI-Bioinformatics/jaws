@@ -130,7 +130,7 @@ _jaws_completions()
 
 complete -F _jaws_completions jaws
 EOM
-chgrp $SITE_JAWS_GROUP $CONFIG_DIR/jaws-autocomplete-$DEPLOYMENT_NAME.sh
+chgrp $SITE_JAWS_GROUP $SITE_CLIENT_INSTALL_DIR/jaws-autocomplete-$DEPLOYMENT_NAME.sh
 
 ## GENERATE CONFIGS
 cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws.conf
