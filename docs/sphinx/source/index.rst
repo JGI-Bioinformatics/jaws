@@ -57,8 +57,8 @@ Getting Started
    :maxdepth: 2
    :caption: Developing your own WDLs
 
-   Step 1: create docker container <Tutorials/create_env>
-   Step 2: development environment <Tutorials/wdl_development>
+   Step 1: development environment <Tutorials/wdl_development>
+   Step 2: create docker container <Tutorials/create_env>
    Step 3: write a WDL <Tutorials/building_wdls>
    Step 4: making WDL work in JAWS <Tutorials/running_env>
 
