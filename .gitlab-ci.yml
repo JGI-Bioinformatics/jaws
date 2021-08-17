@@ -165,10 +165,10 @@ test-rpc:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install -r rpc/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install -r rpc/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-rpc
   artifacts:
     reports:
@@ -177,11 +177,11 @@ test-site:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r site/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install rpc/
+    - pip3.8 install -r site/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-site
   artifacts:
     reports:
@@ -190,11 +190,11 @@ test-central:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r central/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install rpc/
+    - pip3.8 install -r central/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-central
   artifacts:
     reports:
@@ -205,10 +205,10 @@ test-client:
   script:
       # some unit tests for client require 'womtool' to be in the PATH
     - export PATH=/jaws-ci/bin:$PATH
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install -r client/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install -r client/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-client
   artifacts:
     reports:
@@ -217,11 +217,11 @@ test-jtm:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r jtm/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install rpc/
+    - pip3.8 install -r jtm/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-jtm
   artifacts:
     reports:
@@ -231,9 +231,9 @@ package:
   <<: *only-default
   stage: package
   script:
-    - python3 -m venv pkg-venv
+    - python3.8 -m venv pkg-venv
     - source pkg-venv/bin/activate
-    - pip install wheel
+    - pip3.8 install wheel
     - make pkg
 
 ## integration tests - only run on merge request
