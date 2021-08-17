@@ -210,6 +210,8 @@ test-client:
     - pip3.8 install -r client/requirements.txt
     - pip3.8 install flake8 pytest pytest-cov
     - make test-client
+  rules:
+    allow_failure: true
   artifacts:
     reports:
       cobertura: client/coverage.xml
