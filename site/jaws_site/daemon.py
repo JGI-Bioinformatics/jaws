@@ -41,5 +41,5 @@ class Daemon:
         """
         session = database.Session()
         runs.check_active_runs(session)
-        runs.send_run_status_logs(session)
+        runs.send_run_status_logs(session, self.central_rpc_client)
         session.close()
