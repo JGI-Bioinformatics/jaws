@@ -147,13 +147,16 @@ def _print_json(j):
 @click.option(
     "--site", default="ALL", help="limit results to this compute-site; default=all"
 )
-def queue(site: str) -> None:
+@click.option(
+    "--all", is_flag=True, default=False, help="List runs from all users; default=False")
+def queue(site: str, all: bool) -> None:
     """List of user's current runs"""
     data = {
         "delta_days": 0,
         "site_id": site.upper(),
         "active_only": True,
         "result": "any",
+        "all": all
     }
     url = f'{config.get("JAWS", "url")}/search'
     result = _request("POST", url, data)
@@ -171,7 +174,9 @@ def queue(site: str) -> None:
 @click.option(
     "--result", default="any", help="limit results to this result; default=any"
 )
-def history(days: int, site: str, result: str) -> None:
+@click.option(
+    "--all", is_flag=True, default=False, help="List runs from all users;d default=False")
+def history(days: int, site: str, result: str, all: bool) -> None:
     """Print a list of the user's past runs."""
     if days < 1:
         sys.exit("User error: --days must be a positive integer")
@@ -182,6 +187,7 @@ def history(days: int, site: str, result: str) -> None:
         "site_id": site.upper(),
         "active_only": False,
         "result": result.lower(),
+        "all": all
     }
     url = f'{config.get("JAWS", "url")}/search'
     result = _request("POST", url, data)

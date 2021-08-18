@@ -5,6 +5,7 @@ stages:
   - smoke-tests
   - deployment-tests
   - stress-tests
+  - deploy-docs
 
 variables:
   GIT_STRATEGY: clone
@@ -62,7 +63,7 @@ variables:
   CENTRAL_DB_PORT: 3306
 
   ## SITE-SPECIFIC VARIABLES:
-  CORI_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws/jaws_install"
+  CORI_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws/jaws-install"
   CORI_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
   CORI_GLOBUS_HOST_PATH: "/"
   CORI_RMQ_HOST: "rmq.lbl.gov"
@@ -77,7 +78,7 @@ variables:
   CORI_JAWS_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws"
   CORI_JTM_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws_jtm"
   CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
-  CORI_JTM_SW_BASEDIR: "/global/cfs/projectdirs/jaws_jtm"
+  CORI_JTM_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_REF_DATA_DIR: " /global/dna/shared/databases/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
@@ -120,7 +121,7 @@ variables:
   JGI_LOAD_JAVA: "module load java"
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
 
-  TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws_install"
+  TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
   TAHOMA_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
   TAHOMA_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
   TAHOMA_RMQ_HOST: "rmq.lbl.gov"
@@ -153,8 +154,7 @@ variables:
 # run in any case and not only when pushing a merge request.
 .only-default: &only-default
   tags:
-    - aws
-    - jaws
+    - shared-shell
   only:
     - master
     - branches
@@ -165,10 +165,10 @@ test-rpc:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install -r rpc/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install -r rpc/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-rpc
   artifacts:
     reports:
@@ -177,11 +177,11 @@ test-site:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r site/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install rpc/
+    - pip3.8 install -r site/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-site
   artifacts:
     reports:
@@ -190,11 +190,11 @@ test-central:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r central/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install rpc/
+    - pip3.8 install -r central/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-central
   artifacts:
     reports:
@@ -205,23 +205,24 @@ test-client:
   script:
       # some unit tests for client require 'womtool' to be in the PATH
     - export PATH=/jaws-ci/bin:$PATH
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install -r client/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install -r client/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-client
   artifacts:
     reports:
       cobertura: client/coverage.xml
+  allow_failure: true
 test-jtm:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r jtm/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install rpc/
+    - pip3.8 install -r jtm/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-jtm
   artifacts:
     reports:
@@ -231,9 +232,9 @@ package:
   <<: *only-default
   stage: package
   script:
-    - python3 -m venv pkg-venv
+    - python3.8 -m venv pkg-venv
     - source pkg-venv/bin/activate
-    - pip install wheel
+    - pip3.8 install wheel
     - make pkg
 
 ## integration tests - only run on merge request
@@ -386,8 +387,6 @@ cori-dev-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -402,8 +401,6 @@ jgi-dev-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -418,8 +415,6 @@ cori-dev-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -434,8 +429,6 @@ jgi-dev-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -450,8 +443,6 @@ cori-dev-stress-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -466,8 +457,6 @@ jgi-dev-stress-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -482,8 +471,6 @@ cori-staging-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -498,8 +485,6 @@ jgi-staging-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -514,8 +499,6 @@ cori-staging-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -530,8 +513,6 @@ jgi-staging-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -546,8 +527,6 @@ cori-staging-stress-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -562,8 +541,6 @@ jgi-staging-stress-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -578,8 +555,6 @@ cori-prod-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -594,8 +569,6 @@ jgi-prod-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -610,8 +583,6 @@ cori-prod-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -626,8 +597,6 @@ jgi-prod-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -642,8 +611,6 @@ cori-prod-stress-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -658,8 +625,6 @@ jgi-prod-stress-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -670,7 +635,7 @@ jgi-prod-stress-tests:
   allow_failure: true
 
 deploy-jaws-docs:
-  stage: .post
+  stage: deploy-docs
   tags:
     - cori
   script:
