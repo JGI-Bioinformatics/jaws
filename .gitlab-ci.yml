@@ -231,11 +231,11 @@ test-parsl:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r parsl/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install rpc/
+    - pip3.8 install -r parsl/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-parsl
   artifacts:
     reports:
