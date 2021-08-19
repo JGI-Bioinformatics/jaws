@@ -48,7 +48,7 @@ fi
 # solution is to have the jaws user perform these commands in one of the shims (under supervsiord), so it's executed before one
 # of the required services is executed.  This is a hack.
 FIX_PERMS_CLIENT=""
-[[ -n "$SITE_CLIENT_INSTALL_DIR" ]] && FIX_PERMS_CLIENT="fix_perms $SITE_CLIENT_GROUP $SITE_CLIENT_INSTALL_DIR"
+[[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && FIX_PERMS_CLIENT="fix_perms $SITE_CLIENT_GROUP $SITE_CLIENT_INSTALL_DIR"
 cat <<EOM > $SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME
 #!/bin/bash -l
 
