@@ -18,7 +18,9 @@ variables:
   JAWS_CENTRAL_RMQ_HOST: "rmq.lbl.gov"
   JAWS_CENTRAL_RMQ_PORT: 5672
   JAWS_GLOBUS_CLIENT_ID: "1a130a01-48bc-489b-a729-9ab858de1755"
-  CROMWELL_VERSION: "52"
+  CROMWELL_VERSION: "66"
+  CROMWELL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/66/cromwell-66.jar"
+  WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/66/womtool-66.jar"
 
   ## CENTRAL-SPECIFIC VARIABLES:
   JAWS_CENTRAL_DB_HOST: "jaws-db.lbl.gov"
@@ -77,8 +79,6 @@ variables:
   CORI_CLIENT_GROUP: "genome"
   CORI_JAWS_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws"
   CORI_JTM_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws_jtm"
-  CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
-  CORI_JTM_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_REF_DATA_DIR: " /global/dna/shared/databases/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
@@ -106,8 +106,6 @@ variables:
   JGI_CLIENT_GROUP: "jgi"
   JGI_JAWS_SCRATCH_BASEDIR: "/global/scratch/jaws"
   JGI_JTM_SCRATCH_BASEDIR: "/global/scratch/jaws"
-  JGI_JAWS_SW_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
-  JGI_JTM_SW_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_REF_DATA_DIR: "/global/home/groups/lr_jgicloud/refdata"
   JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
   JGI_CONTAINER_TYPE: "singularity"
@@ -135,8 +133,6 @@ variables:
   TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
   TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi"
-  TAHOMA_JAWS_SW_BASEDIR: "/tahoma/mscjgi"
-  TAHOMA_JTM_SW_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata" # TODO: Needs to be rsync'd
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
