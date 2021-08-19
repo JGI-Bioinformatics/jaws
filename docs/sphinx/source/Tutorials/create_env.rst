@@ -232,12 +232,12 @@ Run with Docker Inside the runtime{}
 
 To run again you have to use a slightly different command which overwrites the default :bash:`dockerRoot` path so it points to your current working directory. 
 
-This also has to be run on cori since the config file uses shifter to run the container. This could instead be configured with the docker command if you wanted to test on your laptop.  Here's an example of a `docker configuration <https://github.com/broadinstitute/cromwell/blob/develop/cromwell.example.backends/Docker.conf>`_
+This also has to be run on **cori** since the config file uses shifter to run the container. This could instead be configured with the docker command if you wanted to test on your laptop.  Here's an example of a `docker configuration <https://github.com/broadinstitute/cromwell/blob/develop/cromwell.example.backends/Docker.conf>`_
 
 
 .. code-block:: text
 
-    java -Dconfig.file=cromwell_shifter.conf \
+    java -Dconfig.file=cromwell_cori.conf \
          -Dbackend.providers.Local.config.dockerRoot=$(pwd)/cromwell-executions \
          -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run jgi_meta.jaws.wdl -i inputs.json
 
@@ -247,6 +247,6 @@ where
     points to a cromwell conf file that is used to overwrite the default configurations
 
     :bash:`-Dbackend.providers.Local.config.dockerRoot`
-    this overwrites a variable 'dockerRoot' that is in cromwell_shifter.conf so that cromwell will use your own current working directory to place its output.
+    this overwrites a variable 'dockerRoot' that is in cromwell_cori.conf so that cromwell will use your own current working directory to place its output.
 
 
