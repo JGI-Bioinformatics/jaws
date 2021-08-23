@@ -371,6 +371,7 @@ deploy-jaws-tahoma-dev:
     - ./test/integration/deploy-jaws
   only:
     - dev
+  allow_failure: true
 
 cori-dev-smoke-tests:
   stage: smoke-tests
