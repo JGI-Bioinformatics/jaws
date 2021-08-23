@@ -65,6 +65,7 @@ variables:
   CENTRAL_DB_PORT: 3306
 
   ## SITE-SPECIFIC VARIABLES:
+  CORI_CLIENT_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws/jaws-install"
   CORI_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
   CORI_GLOBUS_HOST_PATH: "/"
@@ -92,6 +93,7 @@ variables:
   CORI_LOAD_JAVA: ""
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
 
+  JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
   JGI_GLOBUS_EP: "e8b18c38-36cd-11eb-b54c-02d9497ca481"
   JGI_GLOBUS_HOST_PATH: "/global/scratch/jaws"
@@ -119,6 +121,7 @@ variables:
   JGI_LOAD_JAVA: "module load java"
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
 
+  TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
   TAHOMA_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
   TAHOMA_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
@@ -241,7 +244,6 @@ deploy-jaws-central-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CENTRAL"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "central/dev"
   script:
@@ -255,7 +257,6 @@ deploy-jaws-central-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CENTRAL"
-    DEPLOY_JAWS_CLIENT: 0
   environment:
     name: "central/staging"
   script:
@@ -269,7 +270,6 @@ deploy-jaws-central-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CENTRAL"
-    DEPLOY_JAWS_CLIENT: 0
   environment:
     name: "central/production"
   script:
@@ -284,7 +284,6 @@ deploy-jaws-cori-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/dev"
   script:
@@ -298,7 +297,6 @@ deploy-jaws-cori-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/staging"
   script:
@@ -312,7 +310,6 @@ deploy-jaws-cori-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/production"
   script:
@@ -327,7 +324,6 @@ deploy-jaws-jgi-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/dev"
   script:
@@ -341,7 +337,6 @@ deploy-jaws-jgi-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/staging"
   script:
@@ -355,7 +350,6 @@ deploy-jaws-jgi-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/production"
   script:
