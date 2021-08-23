@@ -47,6 +47,7 @@ fi
 ## COPY CROMWELL JAR
 wget "$CROMWELL_JAR_URL" -O "$SITE_CROMWELL_JAR"
 chmod 640 "$SITE_CROMWELL_JAR"
+chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
 
 # When creating the wrapper scripts the arguments to each script are as follows:
 # For SHIFTER
