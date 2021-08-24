@@ -49,8 +49,6 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_REF_DATA_DIR: Location of JGI ref data  
 - [SITE]_SUPERVISOR_HOST: Supervisor hostname for site  
 - [SITE]_CONTAINER_TYPE: Container type the site uses (shifter, singularity etc)  
-- [SITE]_DB_HOST: db hostname site will be using  
-- [SITE]_DB_PORT: port number for db that site will use  
 - [SITE]_CLUSTER_QOS: quality of service to use for a particular cluster  
 - [SITE]_CLUSTER_PARTITION: Slurm partition name of the cluster  
 - [SITE]_CLUSTER_ACCOUNT: Slurm cluster account to use for job submission  
