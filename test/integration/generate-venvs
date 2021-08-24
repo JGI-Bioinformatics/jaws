@@ -12,7 +12,8 @@ INSTALL_DIR
 CONFIG_DIR
 SITE_JAWS_GROUP
 SITE_JTM_GROUP
-SITE_JTM_WORKER_INSTALL_DIR
+INSTALL_DIR
+SITE_LOAD_PYTHON
 SITE_PYTHON
 "
 RESULT=0
@@ -42,7 +43,7 @@ rm -rf ./*/dist/*
 ## DELETE OLD VENVS
 test -d "$INSTALL_DIR/site" && rm -rf "$INSTALL_DIR/site"
 test -d "$INSTALL_DIR/jtm" && rm -rf "$INSTALL_DIR/jtm"
-test -d "$SITE_JTM_WORKER_INSTALL_DIR" && rm -rf "$SITE_JTM_WORKER_INSTALL_DIR"
+test -d "$INSTALL_DIR" && rm -rf "$INSTALL_DIR"
 
 ## MAKE VENVS
 [[ -n "$SITE_LOAD_PYTHON" ]] && $SITE_LOAD_PYTHON
@@ -59,8 +60,8 @@ $SITE_PYTHON -m venv "$INSTALL_DIR/jtm" &&
   pip install rpc/dist/* && \
   pip install jtm/dist/* && \
   deactivate
-$SITE_PYTHON -m venv "$SITE_JTM_WORKER_INSTALL_DIR" && \
-  . "$SITE_JTM_WORKER_INSTALL_DIR/bin/activate" && \
+$SITE_PYTHON -m venv "$INSTALL_DIR" && \
+  . "$INSTALL_DIR/bin/activate" && \
   pip install --upgrade pip && \
   pip install rpc/dist/* && \
   pip install jtm/dist/* && \

@@ -15,13 +15,12 @@ CROMWELL_JAR_URL
 SITE_CROMWELL_JAR
 SITE_JTM_GROUP
 SITE_CONTAINER_TYPE
+SITE_CONTAINERS_DIR
 SITE_JTM_SCRATCH_DIR
-SITE_JTM_WORKER_INSTALL_DIR
 SITE_CROMWELL_TMPDIR
 CROMWELL_WORKFLOW_LOGS_DIR
 CROMWELL_EXECUTIONS_DIR
 JTM_CONFIG_FILE
-INSTALLED_CROMWELL_JAR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -78,14 +77,14 @@ else
   echo \"Successfully pulled \${docker}!\"
 fi
 "
-  CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
+  CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
   CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
   cat <<EOM > "$CONTAINER_WRAPPER"
 #!/usr/bin/env bash
 shifter --image=\$1 -V \$2:\$3 \$4 \$5
 EOM
-  chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
-  chmod 775 "$SITE_JTM_WORKER_INSTALL_DIR/shifter_exec.sh"
+  chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
+  chmod 775 "$INSTALL_DIR/shifter_exec.sh"
 
 elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
   CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_DIR
@@ -117,7 +116,7 @@ else
     fi
 fi
 "
-  CONTAINER_WRAPPER="$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
+  CONTAINER_WRAPPER="$INSTALL_DIR/singularity_exec.sh"
   CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
   cat <<EOM > "$CONTAINER_WRAPPER"
 #!/usr/bin/env bash
@@ -131,8 +130,8 @@ SCRIPT=\$7
 singularity exec --bind \$REMOTE_REF:\$LOCAL_REF --bind \$CWD:\$DOCKER_CWD \$IMAGE \$JOB_SHELL \$SCRIPT
 exit $?
 EOM
-  chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
-  chmod 775 "$SITE_JTM_WORKER_INSTALL_DIR/singularity_exec.sh"
+  chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/singularity_exec.sh"
+  chmod 775 "$INSTALL_DIR/singularity_exec.sh"
 fi
 
 ## GENERATE CONFIG

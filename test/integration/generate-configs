@@ -29,7 +29,7 @@ SITE_GLOBUS_HOST_PATH
 SITE_JAWS_GROUP
 SITE_JTM_GROUP
 SITE_JTM_SCRATCH_DIR
-SITE_JTM_WORKER_INSTALL_DIR
+INSTALL_DIR
 SITE_RMQ_HOST
 SITE_RMQ_PORT
 SITE_RMQ_PW
@@ -164,8 +164,8 @@ clone_time_rate = 0.2
 num_workers_per_node = 1
 log_dir = \${SITE:scratch}/jtm
 # config file location of worker
-worker_config_file = $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
-env_activation = source $SITE_JTM_WORKER_INSTALL_DIR/bin/activate
+worker_config_file = $INSTALL_DIR/jaws-jtm.conf
+env_activation = source $INSTALL_DIR/bin/activate
 pool_name = small
 # Worker setting
 # worker's hb expiration (ms)
@@ -236,8 +236,8 @@ chgrp $SITE_JTM_GROUP $CONFIG_DIR/jaws-jtm.conf
 chmod 660 $CONFIG_DIR/*
 
 # Copy the jaws-jtm config to NFS dir since workers will be on cluster node
-cp "$CONFIG_DIR/jaws-jtm.conf" "$SITE_JTM_WORKER_INSTALL_DIR/"
-chgrp "$SITE_JTM_GROUP" "$SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf"
-chmod 660 "$SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf"
+cp "$CONFIG_DIR/jaws-jtm.conf" "$INSTALL_DIR/"
+chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/jaws-jtm.conf"
+chmod 660 "$INSTALL_DIR/jaws-jtm.conf"
 
 printf "END generate-configs\n\n"
