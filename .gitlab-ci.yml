@@ -21,10 +21,8 @@ variables:
   CROMWELL_VERSION: "66"
   CROMWELL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/66/cromwell-66.jar"
   WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/66/womtool-66.jar"
-
-  ## CENTRAL-SPECIFIC VARIABLES:
-  JAWS_CENTRAL_DB_HOST: "jaws-db.lbl.gov"
-  JAWS_CENTRAL_DB_PORT: 3306
+  JAWS_DB_HOST: "jaws-db.lbl.gov"
+  JAWS_DB_PORT: 3306
 
   ## DEPLOYMENT-SPECIFIC VARIABLES:
   dev_LOG_LEVEL: "DEBUG"
@@ -59,8 +57,6 @@ variables:
   CENTRAL_JAWS_GROUP: "jaws"
   CENTRAL_JAWS_SCRATCH_BASEDIR: "/tmp/jaws-tmp"
   CENTRAL_SUPERVISOR_HOST: "http://jaws.lbl.gov"
-  CENTRAL_DB_HOST: "jaws-db.lbl.gov"
-  CENTRAL_DB_PORT: 3306
 
   ## SITE-SPECIFIC VARIABLES:
   CORI_CLIENT_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws"
@@ -77,8 +73,6 @@ variables:
   CORI_REF_DATA_DIR: "/global/dna/shared/databases/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
-  CORI_DB_HOST: "jaws-db.lbl.gov"
-  CORI_DB_PORT: 3306
   CORI_CLUSTER_QOS: "genepool_special"
   CORI_CLUSTER_PARTITION: ""
   CORI_CLUSTER_ACCOUNT: "fungalp"
@@ -101,8 +95,6 @@ variables:
   JGI_REF_DATA_DIR: "/global/home/groups/lr_jgicloud/refdata"
   JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
   JGI_CONTAINER_TYPE: "singularity"
-  JGI_DB_HOST: "jaws-db.lbl.gov"
-  JGI_DB_PORT: 3306
   JGI_CLUSTER_QOS: "normal"
   JGI_CLUSTER_PARTITION: "jgi"
   JGI_CLUSTER_ACCOUNT: "jgi"
@@ -125,8 +117,6 @@ variables:
   TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata" # TODO: Needs to be rsync'd
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
-  TAHOMA_DB_HOST: "jaws-db.lbl.gov"
-  TAHOMA_DB_PORT: 3306
   TAHOMA_CLUSTER_QOS: ""
   TAHOMA_CLUSTER_PARTITION: ""
   TAHOMA_CLUSTER_ACCOUNT: "mscjgi"
