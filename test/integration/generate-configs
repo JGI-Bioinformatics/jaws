@@ -11,9 +11,9 @@ REQUIRED_VARS="
 CONFIG_DIR
 CROMWELL_PORT
 DEPLOYMENT_NAME
-JAWS_CENTRAL_RMQ_HOST
-JAWS_CENTRAL_RMQ_PORT
-JAWS_CENTRAL_RMQ_PW
+JAWS_RMQ_HOST
+JAWS_RMQ_PORT
+JAWS_RMQ_PW
 JAWS_GLOBUS_CLIENT_ID
 JAWS_GLOBUS_CLIENT_SECRET
 JAWS_SITE
@@ -21,21 +21,15 @@ SITE_CLUSTER_ACCOUNT
 SITE_CLUSTER_CONSTRAINT
 SITE_CLUSTER_PARTITION
 SITE_CLUSTER_QOS
-SITE_DB_HOST
-SITE_DB_PORT
-SITE_DB_PW
+JAWS_DB_HOST
+JAWS_DB_PORT
+JAWS_DB_PW
 SITE_GLOBUS_EP
 SITE_GLOBUS_HOST_PATH
 SITE_JAWS_GROUP
 SITE_JTM_GROUP
 SITE_JTM_SCRATCH_DIR
 INSTALL_DIR
-SITE_RMQ_HOST
-SITE_RMQ_PORT
-SITE_RMQ_PW
-SITE_JTM_RMQ_HOST
-SITE_JTM_RMQ_PORT
-SITE_JTM_RMQ_PW
 SITE_UPLOADS_DIR
 "
 RESULT=0
@@ -62,34 +56,34 @@ fi
 cat << EOM > $CONFIG_DIR/jaws-site.conf
 [DB]
 dialect = mysql+mysqlconnector
-host = $SITE_DB_HOST
-port = $SITE_DB_PORT
+host = $JAWS_DB_HOST
+port = $JAWS_DB_PORT
 user = jaws
-password = $SITE_DB_PW
+password = $JAWS_DB_PW
 db = jaws_${JAWS_SITE,,}_$DEPLOYMENT_NAME
 [LOCAL_RPC_SERVER]
 user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
+password = $JAWS_RMQ_PW
+host = $JAWS_RMQ_HOST
+port = $JAWS_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = SITE_$JAWS_SITE
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_SERVER]
 user = jaws
-password = $JAWS_CENTRAL_RMQ_PW
-host = $JAWS_CENTRAL_RMQ_HOST
-port = $JAWS_CENTRAL_RMQ_PORT
+password = $JAWS_RMQ_PW
+host = $JAWS_RMQ_HOST
+port = $JAWS_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JAWS_$JAWS_SITE
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
 user = jaws
-password = $JAWS_CENTRAL_RMQ_PW
-host = $JAWS_CENTRAL_RMQ_HOST
-port = $JAWS_CENTRAL_RMQ_PORT
+password = $JAWS_RMQ_PW
+host = $JAWS_RMQ_HOST
+port = $JAWS_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = CENTRAL
 [GLOBUS]
@@ -113,31 +107,31 @@ scratch = $SITE_JTM_SCRATCH_DIR
 debug = 1
 [RMQ]
 user = jaws
-host = $SITE_JTM_RMQ_HOST
-port = $SITE_JTM_RMQ_PORT
-password = $SITE_JTM_RMQ_PW
+host = $JAWS_RMQ_HOST
+port = $JAWS_RMQ_PORT
+password = $JAWS_RMQ_PW
 vhost = jtm_$DEPLOYMENT_NAME
 [SITE_RPC_CLIENT]
 user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
+password = $JAWS_RMQ_PW
+host = $JAWS_RMQ_HOST
+port = $JAWS_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = SITE_$JAWS_SITE
 [JTM_RPC_SERVER]
 user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
+password = $JAWS_RMQ_PW
+host = $JAWS_RMQ_HOST
+port = $JAWS_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JTM_RPC_$JAWS_SITE
 num_threads = 5
 max_retries = 3
 [MYSQL]
-host = $SITE_DB_HOST
-port = $SITE_DB_PORT
+host = $JAWS_DB_HOST
+port = $JAWS_DB_PORT
 user = jaws
-password = $SITE_DB_PW
+password = $JAWS_DB_PW
 db = jtm_${JAWS_SITE,,}_$DEPLOYMENT_NAME
 [SLURM]
 # number of nodes for the pool
@@ -164,8 +158,8 @@ clone_time_rate = 0.2
 num_workers_per_node = 1
 log_dir = \${SITE:scratch}/jtm
 # config file location of worker
-worker_config_file = $INSTALL_DIR/jaws-jtm.conf
-env_activation = source $INSTALL_DIR/bin/activate
+worker_config_file = $CONFIG_DIR/jaws-jtm.conf
+env_activation = source $INSTALL_DIR/jaws-jtm//bin/activate
 pool_name = small
 # Worker setting
 # worker's hb expiration (ms)
@@ -234,10 +228,4 @@ EOM
 chgrp $SITE_JAWS_GROUP $CONFIG_DIR/*.conf
 chgrp $SITE_JTM_GROUP $CONFIG_DIR/jaws-jtm.conf
 chmod 660 $CONFIG_DIR/*
-
-# Copy the jaws-jtm config to NFS dir since workers will be on cluster node
-cp "$CONFIG_DIR/jaws-jtm.conf" "$INSTALL_DIR/"
-chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/jaws-jtm.conf"
-chmod 660 "$INSTALL_DIR/jaws-jtm.conf"
-
 printf "END generate-configs\n\n"

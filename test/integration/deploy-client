@@ -15,8 +15,6 @@ echo "BEGIN deploy-client"
 # Exits if any required var is undefined.
 REQUIRED_VARS="
 DEPLOYMENT_NAME
-INSTALL_DIR
-LOGS_DIR
 CONFIG_DIR
 WOMTOOL_JAR_URL
 JAWS_GLOBUS_CLIENT_ID

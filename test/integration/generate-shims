@@ -124,22 +124,22 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
+test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
+test -d $SITE_UPLOADS_DIR || mkdir $SITE_UPLOADS_DIR
+chgrp $SITE_JTM_GROUP $SITE_JTM_SCRATCH_DIR
+chgrp $SITE_JTM_GROUP $SITE_UPLOADS_DIR
+chmod 2770 $SITE_JTM_SCRATCH_DIR
+chmod 2775 $SITE_UPLOADS_DIR
 
 # DEPLOY TO NFS DIR
 # HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
 
-test -d $INSTALL_DIR || mkdir $INSTALL_DIR
-test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
-test -d $SITE_UPLOADS_DIR || mkdir $SITE_UPLOADS_DIR
+#test -d $INSTALL_DIR || mkdir $INSTALL_DIR
+#chmod 2770 $INSTALL_DIR
 
-cp $CONFIG_DIR/jaws-jtm.conf $INSTALL_DIR/
-chgrp $SITE_JTM_GROUP $INSTALL_DIR/jaws-jtm.conf
-chgrp $SITE_JTM_GROUP $SITE_JTM_SCRATCH_DIR
-chgrp $SITE_JTM_GROUP $SITE_UPLOADS_DIR
-chmod 2770 $INSTALL_DIR
-chmod 0640 $INSTALL_DIR/jaws-jtm.conf
-chmod 2770 $SITE_JTM_SCRATCH_DIR
-chmod 2775 $SITE_UPLOADS_DIR
+#cp $CONFIG_DIR/jaws-jtm.conf $CONFIG_DIR/
+#chgrp $SITE_JTM_GROUP $JTM_CONFIG_FILE
+#chmod 0640 $CONFIG_DIR/jaws-jtm.conf
 
 # RUN JTM
 

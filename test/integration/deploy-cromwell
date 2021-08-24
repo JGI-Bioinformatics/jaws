@@ -297,9 +297,9 @@ database
   db
   {
     driver = "com.mysql.cj.jdbc.Driver"
-    url = "jdbc:mysql://$SITE_DB_HOST:$SITE_DB_PORT/cromwell_${JAWS_SITE,,}_$DEPLOYMENT_NAME?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
+    url = "jdbc:mysql://$JAWS_DB_HOST:$JAWS_DB_PORT/cromwell_${JAWS_SITE,,}_$DEPLOYMENT_NAME?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
     user = "jaws"
-    password = "$SITE_DB_PW"
+    password = "$JAWS_DB_PW"
     connectionTimeout = 5000
   }
   insert-batch-size = 2000
