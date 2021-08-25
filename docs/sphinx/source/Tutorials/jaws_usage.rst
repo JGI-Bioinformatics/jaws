@@ -169,9 +169,9 @@ The commands with an asterik have additional options. Expand the below commands 
 
     Simplify Cromwell output.
 
-	Options:
-  	--flatten   Flatten shard dirs
-  	-h, --help  Show this message and exit.
+    Options:
+    --flatten   Flatten shard dirs
+    -h, --help  Show this message and exit.
 
 .. raw:: html
 
@@ -272,18 +272,24 @@ These are the possible states, in order, that a JAWS run passes through.
 
 .. code-block:: text
 
-   uploading            # input data are being copied to scratch by Globus
-   missing input        # run was uploaded but some of the required files were missing
-   upload complete      # Globus finished copying all your files to scratch
-   submitted            # job submitted to JTM and worker pools have been requested
-   queued               # waiting for worker pools to be reserved from cluster
-   running              # the run is being executed by Cromwell
-   succeeded            # Cromwell completed the run but results need to be transfered
-   ready                # results are ready for Globus transfer off of site scratch
-   downloading          # results are being copied by Globus
-   download complete    # results have been copied to your output directory. signifies end of run
-   failed               # runing error from either jaws or user's wdl
-   canceled             # run was cancelled by user or JTM issue
+   uploading:           Your run inputs are being sent to the compute site via Globus.
+   upload failed:       The Globus transfer of your run to the compute-site failed.
+   upload inactive:     Globus transfer stalled.
+   upload complete:     Your run inputs have been transferred and are ready to submit to Cromwell.
+   missing input:       The run was uploaded but some of the required files were missing.
+   submitted:           The run has been submitted to Cromwell and tasks should start to queue within moments.
+   submission failed:   The run was submitted to Cromwell but rejected due to invalid input.
+   queued:              At least one task has requested resources but no tasks have started running yet.
+   running:             The run is being executed by Cromwell; you can check `task-status` for more detail.
+   succeeded:           Cromwell has completed successfully and is waiting for the output to be downloaded.
+   failed:              The run has failed; see: `errors` and `metadata` for more detail.
+   aborting:            Your run is in the process of being canceled.
+   aborted:             The run was cancelled.
+   downloading:         The run output is being sent via Globus.
+   download failed:     Globus failed to return the results to the user.
+   download inactive:   Globus transfer stalled.
+   download complete:   The run output, whether succeeded or failed, has been returned to the user.
+
 
 
 **Get current or old history of jobs owned by you**
@@ -291,10 +297,10 @@ These are the possible states, in order, that a JAWS run passes through.
 .. code-block:: text
 
    # get list of your currently running jobs
-   jaws queue                                      
+   jaws queue
    
-   # view history of your jobs for last 7 days 
-   jaws history 
+   # view history of your jobs for last 7 days
+   jaws history
 
    There are options to use with history
    --days <number of days to include>
