@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/bash -l
 
 set -o pipefail
 
-supervisor_jaws="/tmp"
+supervisor_jaws="/global/cfs/projectdirs/jaws/jaws-install"
 supervisor_monitor="/global/cfs/projectdirs/jaws"
 gitlab_runner="/global/cfs/cdirs/m342/jaws_runner/usr/bin/gitlab-runner"
 

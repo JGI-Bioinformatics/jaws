@@ -1,8 +1,9 @@
-#!/bin/bash
+#!/bin/bash -l
 
 set -o pipefail
 
-supervisor_install="/tmp"
+module load modules
+supervisor_install="/global/cfs/projectdirs/jaws/jaws-install"
 
 myhost=$(hostname)
 me=$(whoami)
