@@ -95,14 +95,11 @@ JTM_SCRATCH_BASEDIR
 REF_DATA_DIR
 SUPERVISOR_HOST
 CONTAINER_TYPE
-DB_HOST
-DB_PORT
 CLUSTER_QOS
 CLUSTER_PARTITION
 CLUSTER_ACCOUNT
 CLUSTER_CONSTRAINT
 MAX_RAM_GB
-DB_PW
 LOAD_JAVA
 "
 for SITE_VAR in $SITE_VARS; do
@@ -138,6 +135,10 @@ export JTM_CONFIG_FILE="$CONFIG_DIR/jaws-jtm.conf"
 
 # Globus has some rules about how paths are interpreted, depending on how the endpoint is configured.
 [[ ${SITE_GLOBUS_ROOT_DIR: -1} == "/" ]] || SITE_GLOBUS_ROOT_DIR="$SITE_GLOBUS_ROOT_DIR/"
+
+# virtual envs
+export JTM_VENV_DIR="$INSTALL_DIR/jtm"
+export SITE_VENV_DIR="$INSTALL_DIR/site"
 
 
 ## CREATE DIRS AND SET GROUP AND PERMISSIONS

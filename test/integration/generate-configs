@@ -29,8 +29,8 @@ SITE_GLOBUS_HOST_PATH
 SITE_JAWS_GROUP
 SITE_JTM_GROUP
 SITE_JTM_SCRATCH_DIR
-INSTALL_DIR
 SITE_UPLOADS_DIR
+JTM_VENV_DIR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -159,7 +159,7 @@ num_workers_per_node = 1
 log_dir = \${SITE:scratch}/jtm
 # config file location of worker
 worker_config_file = $CONFIG_DIR/jaws-jtm.conf
-env_activation = source $INSTALL_DIR/jaws-jtm//bin/activate
+env_activation = source $JTM_VENV_DIR/bin/activate
 pool_name = small
 # Worker setting
 # worker's hb expiration (ms)

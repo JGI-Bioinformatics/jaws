@@ -10,12 +10,10 @@ echo "BEGIN generate-shims"
 REQUIRED_VARS="
 DEPLOYMENT_NAME
 CONFIG_DIR
-INSTALL_DIR
 SHIM_DIR
 LOGS_DIR
 LOG_LEVEL
 JTM_CONFIG_FILE
-INSTALL_DIR
 SITE_JTM_SCRATCH_DIR
 SITE_JTM_GROUP
 SITE_CLIENT_GROUP
@@ -25,6 +23,8 @@ SITE_REF_DATA_DIR
 SITE_CONTAINER_TYPE
 SITE_CROMWELL_TMPDIR
 SITE_LOAD_JAVA
+JTM_VENV_DIR
+SITE_VENV_DIR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -87,7 +87,7 @@ $FIX_PERMS_CLIENT
 set_jaws_acl $SITE_UPLOADS_DIR
 set_jaws_acl $SITE_DATA_REPO_DIR
 
-source $INSTALL_DIR/site/bin/activate
+source $SITE_VENV_DIR/bin/activate
 exec jaws-site --log $LOGS_DIR/site-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL daemon
 EOM
 
@@ -100,7 +100,7 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
 # START RPC SERVER
-source $INSTALL_DIR/site/bin/activate
+source $SITE_VENV_DIR/bin/activate
 exec jaws-site --log $LOGS_DIR/site-central-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL central-rpc
 EOM
 
@@ -112,7 +112,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-source $INSTALL_DIR/site/bin/activate
+source $SITE_VENV_DIR/bin/activate
 exec jaws-site --log $LOGS_DIR/site-jtm-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level DEBUG jtm-rpc
 EOM
 
@@ -134,8 +134,8 @@ chmod 2775 $SITE_UPLOADS_DIR
 # DEPLOY TO NFS DIR
 # HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
 
-#test -d $INSTALL_DIR || mkdir $INSTALL_DIR
-#chmod 2770 $INSTALL_DIR
+#test -d $JTM_VENV_DIR || mkdir -p $JTM_VENV_DIR
+#chmod 2770 $JTM_VENV_DIR
 
 #cp $CONFIG_DIR/jaws-jtm.conf $CONFIG_DIR/
 #chgrp $SITE_JTM_GROUP $JTM_CONFIG_FILE
@@ -143,7 +143,7 @@ chmod 2775 $SITE_UPLOADS_DIR
 
 # RUN JTM
 
-source $INSTALL_DIR/jtm/bin/activate
+source $JTM_VENV_DIR/bin/activate
 export JTM_CONFIG_FILE=$JTM_CONFIG_FILE
 
 exec jtm --config=$CONFIG_DIR/jaws-jtm.conf --debug manager -ld $LOGS_DIR
