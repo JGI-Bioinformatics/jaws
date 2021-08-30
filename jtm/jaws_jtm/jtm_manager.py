@@ -2210,13 +2210,12 @@ def manager(
         STANDALONE = False
 
     # Log dir setting
-    datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
     log_dir_name = CONFIG.configparser.get("JTM", "log_dir")
     if custom_log_dir_name:
         log_dir_name = custom_log_dir_name
     log_dir_name = os.path.join(log_dir_name, "manager")
     make_dir(log_dir_name)
-    log_file_name = "%s/jtm_%s.log" % (log_dir_name, datetime_str)
+    log_file_name = "%s/jtm.log" % (log_dir_name)
 
     log_level = "info"
     if DEBUG:
