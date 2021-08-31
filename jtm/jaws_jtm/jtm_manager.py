@@ -686,9 +686,7 @@ def send_update_task_status_msg(
         wait_count = 0
         response = g_rpc_client.request("update_job_status", data)
         logger.debug(f"Return msg from JAWS Site: {response}")
-        while (
-            "error" in response and response["error"]["message"] == "Server timeout"
-        ):
+        while "error" in response and response["error"]["message"] == "Server timeout":
             wait_count += 1
             if wait_count == 60:  # try for 1min
                 logger.error("RPC reply timeout!")
