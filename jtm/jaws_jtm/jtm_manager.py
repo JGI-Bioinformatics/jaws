@@ -52,7 +52,7 @@ from jaws_rpc import rpc_server, responses, rpc_client
 # --------------------------------------------------------------------------------------------------
 NUM_TOTAL_WORKERS = mp.Value("i", 0)
 # global instance for rpc_client
-g_rpc_client = None
+RPC_CLIENT = None
 
 
 class WorkerResultReceiver(JtmAmqpstormBase):
@@ -668,9 +668,9 @@ def send_update_task_status_msg(
     }
 
     # send message to Site
-    global g_rpc_client
-    if g_rpc_client is None:
-        g_rpc_client = rpc_client.RpcClient(
+    global RPC_CLIENT
+    if RPC_CLIENT is None:
+        RPC_CLIENT = rpc_client.RpcClient(
             {
                 "host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
                 "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
@@ -684,7 +684,7 @@ def send_update_task_status_msg(
 
     try:
         wait_count = 0
-        response = g_rpc_client.request("update_job_status", data)
+        response = RPC_CLIENT.request("update_job_status", data)
         logger.debug(f"Return msg from JAWS Site: {response}")
         while "error" in response and response["error"]["message"] == "Server timeout":
             wait_count += 1
@@ -695,7 +695,7 @@ def send_update_task_status_msg(
                 f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}"
             )
             time.sleep(1.0)
-            response = g_rpc_client.request("update_job_status", data)
+            response = RPC_CLIENT.request("update_job_status", data)
     except Exception as error:
         logger.error(f"RPC call failed: {error}")
         raise
