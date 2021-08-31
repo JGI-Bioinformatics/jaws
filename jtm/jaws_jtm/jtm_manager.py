@@ -44,13 +44,15 @@ from jaws_jtm.lib.run import (
     extract_cromwell_id,
 )
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_rpc import rpc_client_simple, rpc_server, responses
+from jaws_rpc import rpc_server, responses, rpc_client
 
 
 # --------------------------------------------------------------------------------------------------
 # Globals
 # --------------------------------------------------------------------------------------------------
 NUM_TOTAL_WORKERS = mp.Value("i", 0)
+# global instance for rpc_client
+g_rpc_client = None
 
 
 class WorkerResultReceiver(JtmAmqpstormBase):
@@ -666,8 +668,9 @@ def send_update_task_status_msg(
     }
 
     # send message to Site
-    try:
-        with rpc_client_simple.RpcClientSimple(
+    global g_rpc_client
+    if g_rpc_client is None:
+        g_rpc_client = rpc_client.RpcClient(
             {
                 "host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
                 "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
@@ -677,22 +680,24 @@ def send_update_task_status_msg(
                 "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password"),
             },
             logger,
-        ) as rpc_cl:
-            wait_count = 0
-            response = rpc_cl.request("update_job_status", data)
-            logger.debug(f"Return msg from JAWS Site: {response}")
-            while (
-                "error" in response and response["error"]["message"] == "Server timeout"
-            ):
-                wait_count += 1
-                if wait_count == 60:  # try for 1min
-                    logger.error("RPC reply timeout!")
-                    break
-                logger.debug(
-                    f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}"
-                )
-                time.sleep(1.0)
-                response = rpc_cl.request("update_job_status", data)
+        )
+
+    try:
+        wait_count = 0
+        response = g_rpc_client.request("update_job_status", data)
+        logger.debug(f"Return msg from JAWS Site: {response}")
+        while (
+            "error" in response and response["error"]["message"] == "Server timeout"
+        ):
+            wait_count += 1
+            if wait_count == 60:  # try for 1min
+                logger.error("RPC reply timeout!")
+                break
+            logger.debug(
+                f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}"
+            )
+            time.sleep(1.0)
+            response = g_rpc_client.request("update_job_status", data)
     except Exception as error:
         logger.error(f"RPC call failed: {error}")
         raise
