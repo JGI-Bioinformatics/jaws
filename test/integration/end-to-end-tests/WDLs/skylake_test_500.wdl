@@ -22,7 +22,7 @@ task count_seqs {
         nwpn: 1
         shared: 0
         constraint: "skylake"
-        qos: "jgi_shared"
+        qos: "jgi_exvivo""
         account: "fungalp"
     }
 }

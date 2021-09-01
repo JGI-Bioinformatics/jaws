@@ -16,12 +16,12 @@ variables that must be set for the deployment to be successful:
 - JAWS_VERSION: version of JAWS  
 - JAWS_DOCS_URL: URL where readthedocs is hosted ("https://jaws-docs.readthedocs.io/en/latest/")  
 - JAWS_CENTRAL_HOST: hostname of JAWS central server  
-- JAWS_CENTRAL_RMQ_HOST: hostname of RabbitMQ server that Central will use
-- JAWS_CENTRAL_RMQ_PORT: port for RabbitMQ server  that Central will use
+- JAWS_RMQ_HOST: hostname of RabbitMQ server that all JAWS services will use
+- JAWS_RMQ_PORT: port for RabbitMQ server that all JAWS services will use
 - JAWS_GLOBUS_CLIENT_ID: Globus Confidential Application Client ID
 - CROMWELL_VERSION: version of Cromwell
-- JAWS_CENTRAL_DB_HOST: hostname for the MYSQL database 
-- JAWS_CENTRAL_DB_PORT: port for the MYSQL database 
+- JAWS_DB_HOST: hostname for the MYSQL database 
+- JAWS_DB_PORT: port for the MYSQL database 
 
 These are deployment specific. The deployment placeholder stands for either
 dev, staging or prod.  
@@ -37,8 +37,6 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_GLOBUS_EP: Globus endpoint id   
 - [SITE]_GLOBUS_ROOT_DIR: Root path where globus will upload files   
 - [SITE]_GLOBUS_DEFAULT_DIR: Default directory for globus upload  
-- [SITE]_RMQ_HOST: hostname for RabbitMQ that site will use  
-- [SITE]_RMQ_PORT: port number for RabbitMQ that site will use  
 - [SITE]_PYTHON: The name of the python executable (eg python, python3)  
 - [SITE]_LOAD_PYTHON: The module command for loading python. Can be "" (ie - no modules)  
 - [SITE]_JAWS_GROUP: Linux group name for JAWS  
@@ -51,8 +49,6 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_REF_DATA_DIR: Location of JGI ref data  
 - [SITE]_SUPERVISOR_HOST: Supervisor hostname for site  
 - [SITE]_CONTAINER_TYPE: Container type the site uses (shifter, singularity etc)  
-- [SITE]_DB_HOST: db hostname site will be using  
-- [SITE]_DB_PORT: port number for db that site will use  
 - [SITE]_CLUSTER_QOS: quality of service to use for a particular cluster  
 - [SITE]_CLUSTER_PARTITION: Slurm partition name of the cluster  
 - [SITE]_CLUSTER_ACCOUNT: Slurm cluster account to use for job submission  

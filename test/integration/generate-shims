@@ -9,16 +9,22 @@ echo "BEGIN generate-shims"
 # Exits if any required var is undefined.
 REQUIRED_VARS="
 DEPLOYMENT_NAME
-INSTALL_DIR
-SITE_JTM_WORKER_INSTALL_DIR
+CONFIG_DIR
+SHIM_DIR
+LOGS_DIR
+LOG_LEVEL
+JTM_CONFIG_FILE
 SITE_JTM_SCRATCH_DIR
 SITE_JTM_GROUP
+SITE_CLIENT_GROUP
 SITE_JAWS_GROUP
+SITE_CLIENT_INSTALL_DIR
 SITE_REF_DATA_DIR
-LOG_LEVEL
 SITE_CONTAINER_TYPE
 SITE_CROMWELL_TMPDIR
 SITE_LOAD_JAVA
+JTM_VENV_DIR
+SITE_VENV_DIR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -48,7 +54,7 @@ fi
 # solution is to have the jaws user perform these commands in one of the shims (under supervsiord), so it's executed before one
 # of the required services is executed.  This is a hack.
 FIX_PERMS_CLIENT=""
-[[ -n "$DEPLOY_JAWS_CLIENT" ]] && [[ "$DEPLOY_JAWS_CLIENT" -eq 1 ]] && FIX_PERMS_CLIENT="fix_perms $SITE_CLIENT_GROUP $SITE_CLIENT_INSTALL_DIR"
+[[ -n "$SITE_CLIENT_INSTALL_DIR" ]] && FIX_PERMS_CLIENT="fix_perms $SITE_CLIENT_GROUP $SITE_CLIENT_INSTALL_DIR"
 cat <<EOM > $SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME
 #!/bin/bash -l
 
@@ -81,7 +87,7 @@ $FIX_PERMS_CLIENT
 set_jaws_acl $SITE_UPLOADS_DIR
 set_jaws_acl $SITE_DATA_REPO_DIR
 
-source $INSTALL_DIR/site/bin/activate
+source $SITE_VENV_DIR/bin/activate
 exec jaws-site --log $LOGS_DIR/site-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL daemon
 EOM
 
@@ -94,7 +100,7 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
 # START RPC SERVER
-source $INSTALL_DIR/site/bin/activate
+source $SITE_VENV_DIR/bin/activate
 exec jaws-site --log $LOGS_DIR/site-central-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL central-rpc
 EOM
 
@@ -106,7 +112,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-source $INSTALL_DIR/site/bin/activate
+source $SITE_VENV_DIR/bin/activate
 exec jaws-site --log $LOGS_DIR/site-jtm-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level DEBUG jtm-rpc
 EOM
 
@@ -118,27 +124,27 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
+test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
+test -d $SITE_UPLOADS_DIR || mkdir $SITE_UPLOADS_DIR
+chgrp $SITE_JTM_GROUP $SITE_JTM_SCRATCH_DIR
+chgrp $SITE_JTM_GROUP $SITE_UPLOADS_DIR
+chmod 2770 $SITE_JTM_SCRATCH_DIR
+chmod 2775 $SITE_UPLOADS_DIR
 
 # DEPLOY TO NFS DIR
 # HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
 
-test -d $SITE_JTM_WORKER_INSTALL_DIR || mkdir $SITE_JTM_WORKER_INSTALL_DIR
-test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
-test -d $SITE_UPLOADS_DIR || mkdir $SITE_UPLOADS_DIR
+#test -d $JTM_VENV_DIR || mkdir -p $JTM_VENV_DIR
+#chmod 2770 $JTM_VENV_DIR
 
-cp $CONFIG_DIR/jaws-jtm.conf $SITE_JTM_WORKER_INSTALL_DIR/
-chgrp $SITE_JTM_GROUP $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
-chgrp $SITE_JTM_GROUP $SITE_JTM_SCRATCH_DIR
-chgrp $SITE_JTM_GROUP $SITE_UPLOADS_DIR
-chmod 2770 $SITE_JTM_WORKER_INSTALL_DIR
-chmod 0640 $SITE_JTM_WORKER_INSTALL_DIR/jaws-jtm.conf
-chmod 2770 $SITE_JTM_SCRATCH_DIR
-chmod 2775 $SITE_UPLOADS_DIR
+#cp $CONFIG_DIR/jaws-jtm.conf $CONFIG_DIR/
+#chgrp $SITE_JTM_GROUP $JTM_CONFIG_FILE
+#chmod 0640 $CONFIG_DIR/jaws-jtm.conf
 
 # RUN JTM
 
-source $INSTALL_DIR/jtm/bin/activate
-export JTM_CONFIG_FILE=$CONFIG_DIR/jaws-jtm.conf
+source $JTM_VENV_DIR/bin/activate
+export JTM_CONFIG_FILE=$JTM_CONFIG_FILE
 
 exec jtm --config=$CONFIG_DIR/jaws-jtm.conf --debug manager -ld $LOGS_DIR
 EOM

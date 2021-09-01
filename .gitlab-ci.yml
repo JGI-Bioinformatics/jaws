@@ -5,6 +5,7 @@ stages:
   - smoke-tests
   - deployment-tests
   - stress-tests
+  - deploy-docs
 
 variables:
   GIT_STRATEGY: clone
@@ -14,14 +15,14 @@ variables:
   JAWS_VERSION: "2.3.1"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
-  JAWS_CENTRAL_RMQ_HOST: "rmq.lbl.gov"
-  JAWS_CENTRAL_RMQ_PORT: 5672
+  JAWS_RMQ_HOST: "rmq.lbl.gov"
+  JAWS_RMQ_PORT: 5672
   JAWS_GLOBUS_CLIENT_ID: "1a130a01-48bc-489b-a729-9ab858de1755"
-  CROMWELL_VERSION: "52"
-
-  ## CENTRAL-SPECIFIC VARIABLES:
-  JAWS_CENTRAL_DB_HOST: "jaws-db.lbl.gov"
-  JAWS_CENTRAL_DB_PORT: 3306
+  CROMWELL_VERSION: "59"
+  CROMWELL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/59/cromwell-59.jar"
+  WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/59/womtool-59.jar"
+  JAWS_DB_HOST: "jaws-db.lbl.gov"
+  JAWS_DB_PORT: 3306
 
   ## DEPLOYMENT-SPECIFIC VARIABLES:
   dev_LOG_LEVEL: "DEBUG"
@@ -48,27 +49,17 @@ variables:
 
   ## CENTRAL-SPECIFIC VARIABLES:
   CENTRAL_INSTALL_BASEDIR: "/opt/jaws"
-  CENTRAL_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
-  CENTRAL_GLOBUS_ROOT_DIR: "/"
-  CENTRAL_GLOBUS_DEFAULT_DIR: "~"
-  CENTRAL_RMQ_HOST: "rmq.lbl.gov"
-  CENTRAL_RMQ_PORT: 5672
   CENTRAL_PYTHON: "python3"
   CENTRAL_LOAD_PYTHON: ""
   CENTRAL_JAWS_GROUP: "jaws"
   CENTRAL_JAWS_SCRATCH_BASEDIR: "/tmp/jaws-tmp"
   CENTRAL_SUPERVISOR_HOST: "http://jaws.lbl.gov"
-  CENTRAL_DB_HOST: "jaws-db.lbl.gov"
-  CENTRAL_DB_PORT: 3306
 
   ## SITE-SPECIFIC VARIABLES:
-  CORI_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws/jaws_install"
+  CORI_CLIENT_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws"
+  CORI_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws/jaws-install"
   CORI_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
   CORI_GLOBUS_HOST_PATH: "/"
-  CORI_RMQ_HOST: "rmq.lbl.gov"
-  CORI_RMQ_PORT: 5672
-  CORI_JTM_RMQ_HOST: "rmq.lbl.gov"
-  CORI_JTM_RMQ_PORT: 5672
   CORI_PYTHON: "python3"
   CORI_LOAD_PYTHON: "module load python/3.8-anaconda-2020.11"
   CORI_JAWS_GROUP: "jaws"
@@ -76,13 +67,9 @@ variables:
   CORI_CLIENT_GROUP: "genome"
   CORI_JAWS_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws"
   CORI_JTM_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws_jtm"
-  CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
-  CORI_JTM_SW_BASEDIR: "/global/cfs/projectdirs/jaws_jtm"
-  CORI_REF_DATA_DIR: " /global/dna/shared/databases/jaws/refdata"
+  CORI_REF_DATA_DIR: "/global/dna/shared/databases/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
-  CORI_DB_HOST: "jaws-db.lbl.gov"
-  CORI_DB_PORT: 3306
   CORI_CLUSTER_QOS: "genepool_special"
   CORI_CLUSTER_PARTITION: ""
   CORI_CLUSTER_ACCOUNT: "fungalp"
@@ -91,13 +78,10 @@ variables:
   CORI_LOAD_JAVA: ""
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
 
+  JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
   JGI_GLOBUS_EP: "e8b18c38-36cd-11eb-b54c-02d9497ca481"
   JGI_GLOBUS_HOST_PATH: "/global/scratch/jaws"
-  JGI_RMQ_HOST: "rmq.lbl.gov"
-  JGI_RMQ_PORT: 5672
-  JGI_JTM_RMQ_HOST: "rmq.lbl.gov"
-  JGI_JTM_RMQ_PORT: 5672
   JGI_PYTHON: "python"
   JGI_LOAD_PYTHON: "module load python/3.8.2-dll"
   JGI_JAWS_GROUP: "jaws"
@@ -105,13 +89,9 @@ variables:
   JGI_CLIENT_GROUP: "jgi"
   JGI_JAWS_SCRATCH_BASEDIR: "/global/scratch/jaws"
   JGI_JTM_SCRATCH_BASEDIR: "/global/scratch/jaws"
-  JGI_JAWS_SW_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
-  JGI_JTM_SW_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_REF_DATA_DIR: "/global/home/groups/lr_jgicloud/refdata"
   JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
   JGI_CONTAINER_TYPE: "singularity"
-  JGI_DB_HOST: "jaws-db.lbl.gov"
-  JGI_DB_PORT: 3306
   JGI_CLUSTER_QOS: "normal"
   JGI_CLUSTER_PARTITION: "jgi"
   JGI_CLUSTER_ACCOUNT: "jgi"
@@ -120,13 +100,9 @@ variables:
   JGI_LOAD_JAVA: "module load java"
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
 
-  TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws_install"
+  TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
   TAHOMA_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
   TAHOMA_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
-  TAHOMA_RMQ_HOST: "rmq.lbl.gov"
-  TAHOMA_RMQ_PORT: 5672
-  TAHOMA_JTM_RMQ_HOST: "rmq.lbl.gov"
-  TAHOMA_JTM_RMQ_PORT: 5672
   TAHOMA_PYTHON: "python"
   TAHOMA_LOAD_PYTHON: "module load python/3.8.1"
   TAHOMA_JAWS_GROUP: "svc-jtm-manager"
@@ -134,13 +110,9 @@ variables:
   TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
   TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi"
-  TAHOMA_JAWS_SW_BASEDIR: "/tahoma/mscjgi"
-  TAHOMA_JTM_SW_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata" # TODO: Needs to be rsync'd
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
-  TAHOMA_DB_HOST: "jaws-db.lbl.gov"
-  TAHOMA_DB_PORT: 3306
   TAHOMA_CLUSTER_QOS: ""
   TAHOMA_CLUSTER_PARTITION: ""
   TAHOMA_CLUSTER_ACCOUNT: "mscjgi"
@@ -153,8 +125,7 @@ variables:
 # run in any case and not only when pushing a merge request.
 .only-default: &only-default
   tags:
-    - aws
-    - jaws
+    - shared-shell
   only:
     - master
     - branches
@@ -165,10 +136,10 @@ test-rpc:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install -r rpc/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install -r rpc/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-rpc
   artifacts:
     reports:
@@ -177,11 +148,11 @@ test-site:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r site/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install rpc/
+    - pip3.8 install -r site/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-site
   artifacts:
     reports:
@@ -190,11 +161,11 @@ test-central:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r central/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install rpc/
+    - pip3.8 install -r central/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-central
   artifacts:
     reports:
@@ -205,23 +176,24 @@ test-client:
   script:
       # some unit tests for client require 'womtool' to be in the PATH
     - export PATH=/jaws-ci/bin:$PATH
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install -r client/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install -r client/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-client
   artifacts:
     reports:
       cobertura: client/coverage.xml
+  allow_failure: true
 test-jtm:
   <<: *only-default
   stage: unit-test
   script:
-    - python3 -m venv test-venv
+    - python3.8 -m venv test-venv
     - source test-venv/bin/activate
-    - pip install rpc/
-    - pip install -r jtm/requirements.txt
-    - pip install flake8 pytest pytest-cov
+    - pip3.8 install rpc/
+    - pip3.8 install -r jtm/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
     - make test-jtm
   artifacts:
     reports:
@@ -231,9 +203,9 @@ package:
   <<: *only-default
   stage: package
   script:
-    - python3 -m venv pkg-venv
+    - python3.8 -m venv pkg-venv
     - source pkg-venv/bin/activate
-    - pip install wheel
+    - pip3.8 install wheel
     - make pkg
 
 ## integration tests - only run on merge request
@@ -244,7 +216,6 @@ deploy-jaws-central-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CENTRAL"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "central/dev"
   script:
@@ -258,7 +229,6 @@ deploy-jaws-central-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CENTRAL"
-    DEPLOY_JAWS_CLIENT: 0
   environment:
     name: "central/staging"
   script:
@@ -272,7 +242,6 @@ deploy-jaws-central-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CENTRAL"
-    DEPLOY_JAWS_CLIENT: 0
   environment:
     name: "central/production"
   script:
@@ -287,7 +256,6 @@ deploy-jaws-cori-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/dev"
   script:
@@ -301,7 +269,6 @@ deploy-jaws-cori-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/staging"
   script:
@@ -315,7 +282,6 @@ deploy-jaws-cori-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "cori/production"
   script:
@@ -330,7 +296,6 @@ deploy-jaws-jgi-dev:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/dev"
   script:
@@ -344,7 +309,6 @@ deploy-jaws-jgi-staging:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/staging"
   script:
@@ -358,7 +322,6 @@ deploy-jaws-jgi-prod:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    DEPLOY_JAWS_CLIENT: 1
   environment:
     name: "jgi/production"
   script:
@@ -380,14 +343,13 @@ deploy-jaws-tahoma-dev:
     - ./test/integration/deploy-jaws
   only:
     - dev
+  allow_failure: true
 
 cori-dev-smoke-tests:
   stage: smoke-tests
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -402,8 +364,6 @@ jgi-dev-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -418,8 +378,6 @@ cori-dev-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -434,8 +392,6 @@ jgi-dev-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -450,8 +406,6 @@ cori-dev-stress-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -466,8 +420,6 @@ jgi-dev-stress-tests:
   variables:
     DEPLOYMENT_NAME: "dev"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -482,8 +434,6 @@ cori-staging-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -498,8 +448,6 @@ jgi-staging-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -514,8 +462,6 @@ cori-staging-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -530,8 +476,6 @@ jgi-staging-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -546,8 +490,6 @@ cori-staging-stress-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -562,8 +504,6 @@ jgi-staging-stress-tests:
   variables:
     DEPLOYMENT_NAME: "staging"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -578,8 +518,6 @@ cori-prod-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -594,8 +532,6 @@ jgi-prod-smoke-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -610,8 +546,6 @@ cori-prod-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -626,8 +560,6 @@ jgi-prod-deployment-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -642,8 +574,6 @@ cori-prod-stress-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "CORI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -658,8 +588,6 @@ jgi-prod-stress-tests:
   variables:
     DEPLOYMENT_NAME: "prod"
     JAWS_SITE: "JGI"
-    CORI_INSTALL_BASEDIR: "/tmp"
-    CORI_JAWS_SW_BASEDIR: "/global/cfs/projectdirs/jaws"
   tags:
     - cori
   script:
@@ -670,7 +598,7 @@ jgi-prod-stress-tests:
   allow_failure: true
 
 deploy-jaws-docs:
-  stage: .post
+  stage: deploy-docs
   tags:
     - cori
   script:

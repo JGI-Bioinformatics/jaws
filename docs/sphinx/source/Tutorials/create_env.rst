@@ -1,26 +1,28 @@
 ======================================================
-Using Docker Images to Define your Running Environment
+Create a Running Environment Using a Docker Container
 ======================================================
 
 .. role:: bash(code)
    :language: bash
 
+*******
+Summary
+*******
+
 In this tutorial, I will describe one way docker images can be created and used in your WDL. If you are unfamiliar with docker, please see `docker tutorial <https://scotch.io/tutorials/getting-started-with-docker>`_ or search for the many YouTube tutorials.
 
 .. note::
-    As a pre-requisite, you will need a computer with docker installed (Docker Engine - Community).  Installation instructions can be found at `docs.docker.com/install <https://docs.docker.com/install/>`_ or if you have conda installed :bash:`conda install -c conda-forge docker-py`.
+    As a pre-requisite, you will need a computer with docker installed (Docker Engine - Community).  Installation instructions can be found at `docs.docker.com/install <https://docs.docker.com/install/>`_ or if you have conda installed :bash:`conda install -c conda-forge docker-py`.  
 
 
 Here are the steps we're going to take for this tutorial:
-
-   1. first create an environment with conda - good for testing
-   2. make a docker image from conda commands - to be used in the WDL
-   3. test a WDL running with the docker containers added
+   1. make a docker image from the same commands you used for the conda environment (last tutorial)
+   2. run a WDL that is using your docker container
 
 
-********************************
+****************************
 Clone the Example Repository
-********************************
+****************************
 For this tutorial, I will be using the example code from `jaws-tutorial-examples <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git>`_.
 To follow along, do...
 
@@ -30,92 +32,80 @@ To follow along, do...
    cd jaws-tutorial-example/5min_example
    
 
+*******************
+Create docker image
+*******************
 
-1) Create your environment
---------------------------
+Next we'll describe how to create a Dockerfile and register it with `hub.docker.com <https://docs.docker.com/docker-hub/>`_.
 
-If you haven't done so in the last section, create the conda environment :bash:`bbtools`
+.. note::
+    you'll have to create an account and an empty repository with hub.docker.com first.
 
-.. code-block:: text
+To make the Dockerfile, you can use the same commands you used for the conda environment.  Notice that it is good practice to specify the versions for each software like I have done in the example Dockerfile. Of course, you can drop the versions altogether to get the latest version but the Dockerfile may not work out-of-the-box in the future due to version conflicts.
 
-   # create bbtools env
-   conda create --name bbtools
 
-   # Now activate your environment.
-   source activate bbtools
-
-Install necessary dependencies into your environment
+The Dockerfile (provided in example) looks like 
 
 .. code-block:: text
 
-   # install dependencies
-   conda install -y -c bioconda bbmap==38.49
-   conda install -y -c bioconda samtools==1.9
+    FROM ubuntu:16.04
 
-3) Testing your environment
----------------------------
+    # install stuff with apt-get
+    RUN apt-get update && apt-get install -y wget bzip2
+    
+    # Install miniconda
+    # There is a good reason to install miniconda in a path other than its default.
+    # The default intallation directory is /root/miniconda3 but this path will not be
+    # accessible by shifter or singularity so we'll install under /usr/local/bin/miniconda3.
+    RUN wget https://repo.continuum.io/miniconda/Miniconda3-4.5.11-Linux-x86_64.sh \
+        && bash ./Miniconda3-4.5.11-Linux-x86_64.sh -b -p /usr/local/bin/miniconda3 \
+        && rm Miniconda3-4.5.11-Linux-x86_64.sh
+    
+    # point to all the future conda installations you are going to do
+    ENV PATH=/usr/local/bin/miniconda3/bin:$PATH
+    
+    # install software
+    RUN conda install -c bioconda bbmap==38.84
+    RUN conda install -c bioconda samtools==1.11
+    
+    # this will give us a workingdir within the container (e.g. a place we can mount data to) 
+    WORKDIR /bbmap
+    
+    # move script into container
+    COPY script.sh /usr/local/bin/script.sh
 
-For our tutorial, we have a sample wrapper that will become a "task" in the WDL, script.sh. 
-
-.. note :: 
-   Each wrapper should write its output to the **current working directory**. You can copy files to other directories after the pipeline has finished.
 
 
-Try running the script to test environment. You need to be in this directory <your_repo_clone>/jaws-tutorial-examples/create_wdl_tutorial/. Also, make sure you activated the bbtools environment.
-
-.. code-block:: text
-   
-   ./script.sh ../data/sample.fastq.bz2 ../data/sample.fasta
-
-This should create a bam file (test.sorted.bam).
-
-4) Create docker image
-----------------------
-
-   Next we'll describe how to create a Dockerfile and register it with `hub.docker.com <https://docs.docker.com/docker-hub/>`_. (you'll have to create a repository there first).  Follow this link if you need more information on how to `building dockerfiles <https://docs.docker.com/get-started/>`_.
-
-   To make the Dockerfile, you can use the same commands you used for the conda environment.  Notice that it is good practice to specify the versions for each software like I have done in the Dockerfile. There may be different versions of a conda package for different operating systems, so don't assume the versions I used will work for your operating system. Of course, you can drop the versions altogether to get the latest version.
-
-The Dockerfile looks like
-
-.. code-block:: text
-
-   FROM continuumio/miniconda2
-
-   # install software
-   RUN conda install -c bioconda bbmap
-   RUN conda install -c bioconda samtools
-
-   # this will give us a workingdir within the container (e.g. a place we can mount data to)
-   WORKDIR /bbmap
-
-   # move script into container
-   COPY script.sh /usr/local/bin/script.sh
-
-Build the image and upload to hub.docker.com. You need to use your docker hub user name to tag the image when you are building it.
+| **Build the image and upload to hub.docker.com**
+| You need to use your docker hub user name to tag the image when you are building it (see below).
 
 .. code-block:: text
 
    # create a "Build" directory and create docker container from there so its a small image. Its good practice to always create an image in 
-   # a directory containing only the required files.
-   mkdir Build 
-   cp script.sh Dockerfile Build/
-   cd Build
+   # a directory containing only the required files, otherwise the container will also include them and could be very large.
+   mkdir build 
+   cp script.sh Dockerfile build/
+   cd build
    docker build --tag <your_docker_hub_user_name>/bbtools:1.0.0 .
    cd ../
 
 
-Test that the script runs in the docker container
+**Test that the script runs in the docker container**
 
 .. code-block:: text
 
+   # use your image name
    docker run jfroula/bbtools:1.0.0 script.sh
  
-   # if you are in the directory where the data is, this should produce a bam file
-   docker run --volume="$(pwd):/bbmap" jfroula/bbtools:1.0.0 script.sh reads.fq reference.fasta
+   # if you are in the root of the 5min_example directory, then try re-running the script with data.
+   docker run --volume="$(pwd)/../data:/bbmap" jfroula/bbtools:1.0.0 script.sh sample.fastq.bz2 sample.fasta
+
+   # Notice script.sh is found because it was set in PATH in the Dockerfile and
+   # the two inputs are found because the data directory is mounted to /bbmap (inside container) where the script runs.
 
 
-When you are convinced the docker image is good, you can register it with `hub.docker.com <hub.docker.com>`_  (you need to make an account first).  When you run a WDL in JAWS, the docker images will be pulled from hub.docker.com. 
+
+When you are convinced the docker image is good, you can register it with `hub.docker.com <hub.docker.com>`_  (remember to make an account first).  When you run a WDL in JAWS, the docker images will be pulled from hub.docker.com. 
 
 .. code-block:: text
 
@@ -123,8 +113,9 @@ When you are convinced the docker image is good, you can register it with `hub.d
    docker push <your_docker_hub_user_name>/bbtools:1.0.0
 
 
-5) Test your image on cori
---------------------------
+***********************
+Test your image on cori
+***********************
 
 Test the docker container on cori.NERSC.gov. You'll need to use the shifter command instead of docker to run your workflow, but the image is the same. More about `shifter at NERSC <https://docs.NERSC.gov/programming/shifter/how-to-use/>`_.
 
@@ -135,17 +126,18 @@ example:
    # pull image from hub.docker.com
    shifterimg pull jfroula/bbtools:1.0.0
 
+   # clone the repo on cori
+   git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
+   cd jaws-tutorial-example/5min_example
+
    # run your wrapper script. notice we are running the script.sh that was saved inside the image
-   shifter --image=jfroula/bbtools:1.0.0 script.sh
+   shifter --image=<your_docker_hub_user_name>/bbtools:1.0.0 ./script.sh ../data/sample.fastq.bz2 ../data/sample.fasta
 
 
-6) Using the Docker Image in a WDL when Testing
------------------------------------------------
-
-This subject is handled in more detail on the next page but I will briefly cover it for now. 
-Continueing with our :bash:`script.sh` example...
-
-The script.sh that is supplied with the repo has two essential commands: 
+*******************
+Add Docker to a WDL
+*******************
+The :bash:`script.sh` that is supplied with the repo has two essential commands: 
 
 .. code-block:: text
  
@@ -155,12 +147,12 @@ The script.sh that is supplied with the repo has two essential commands:
     # create a bam file from alignment
     samtools view -b -F0x4 test.sam | samtools sort - > test.sorted.bam
 
-And it has two inputs :bash:`READS` and :bash:`REF`
+It would make sense to have both commands inside one task of the WDL because they logically should be run together.  However, for an excersise, we will have the two commands become two tasks.  The output from the first command is used in the second command, so in our WDL example, we can see how tasks pass information.
 
-.. note:: 
-  For testing our WDL, we will inlude the shifter command within the command line section (see below); 
-  however, when we are ready to run the WDL in JAWS, the docker image will be removed from the :bash:`command {}` 
-  block and added to the :bash:`runtime {}` block, as described in the next section.
+The docker command (or shifter if you are on cori) can be appended to each command for testing. This wouldn't be appropriate for a finished "JAWSified" WDL because you loose portability.  The final WDL should have the docker image name put inside the :bash:`runtime {}` section.
+
+
+See file align_with_shifter.sh
 
 .. code-block:: text
 
@@ -201,26 +193,60 @@ And it has two inputs :bash:`READS` and :bash:`REF`
      }
    }
 
-Note that in the above code, shifter is in the command block. Since shifter only runs on Cori, this WDL will not be portable to other sites; for example, JGI machines run singularity instead of shifter.  By adding the docker image to the runtime section, all the code in the command block will run inside the docker container, regardless of what environment you are using.
 
-After shifter is removed from the :bash:`command{}` block, you would add :bash:`docker:` inside the :bash:`runtime{}` block to each of the tasks above:
+
+*****************************
+Running the WDL Using Shifter
+*****************************
+
+| Now when you run align_with_shifter.wdl, you don't need your conda environment.
+| (this will only work on cori which supports shifter)
+
+.. code-block:: text
+
+    java -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run align_with_shifter.wdl -i inputs.json
+
+
+**********************************************
+Move the Docker Image to the runtime{} Section
+**********************************************
+
+.. note::
+    To get a description of the runtime section, see :ref:`requesting-workers`.
+
+After shifter is removed from the :bash:`command{}` block, add :bash:`docker:` inside the :bash:`runtime{}` block to each of the tasks in the WDL. Now, all the code inside :bash:`commands{}` will be run inside a container.
+
+See align.wdl
 
 .. code-block:: text
 
     runtime {
         docker: "jfroula/bbtools:1.2.1"
-        time: "00:30:00"
-        memory: "5G"
-        poolname: "small"
-        node: 1
-        nwpn: 1
-        cpu: 1
-        constraint: "haswell"
     }
 
+.. _run with conf:
 
-To get a description of the runtime section, see Requesting workers :ref:`requesting-workers`.
+*************************************
+Run with Docker Inside the runtime{}
+*************************************
 
-For more on WDLs, see the official page `openwdl.org <https://openwdl.org>`_.
+To run again you have to use a slightly different command which overwrites the default :bash:`dockerRoot` path so it points to your current working directory. 
 
-Or see the playlist on `youtube <https://www.youtube.com/playlist?list=PL4Q4HssKcxYv5syJKUKRrD8Fbd-_CnxTM>`_
+This also has to be run on **cori** since the config file uses shifter to run the container. This could instead be configured with the docker command if you wanted to test on your laptop.  Here's an example of a `docker configuration <https://github.com/broadinstitute/cromwell/blob/develop/cromwell.example.backends/Docker.conf>`_
+
+
+.. code-block:: text
+
+    java -Dconfig.file=cromwell_cori.conf \
+         -Dbackend.providers.Local.config.dockerRoot=$(pwd)/cromwell-executions \
+         -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run jgi_meta.jaws.wdl -i inputs.json
+
+where 
+
+    :bash:`-Dconfig.file` 
+    points to a cromwell conf file that is used to overwrite the default configurations
+
+    :bash:`-Dbackend.providers.Local.config.dockerRoot`
+    this overwrites a variable 'dockerRoot' that is in cromwell_cori.conf so that cromwell will use your own current working directory to place its output.
+
+

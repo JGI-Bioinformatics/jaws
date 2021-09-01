@@ -20,14 +20,14 @@ import submission_utils as util
 #########################
 ###     Functions     ###
 #########################
-def test_skylake_250G(env, submit_skylake_250):
+def test_skylake_250G(submit_skylake_250):
     """tests that the jaws history command has the run id in the stdout.
-    This test will be skipped if the 'env' is not cori.
+    This test will be skipped if the '--site' is not cori.
     """
     run_id = str(submit_skylake_250["run_id"])
 
     # Run: jaws status
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, run_id)
+    cmd = "jaws status --verbose %s" % (run_id)
     (r, o, e) = util.run(cmd)
 
     status_info = json.loads(o)
@@ -35,14 +35,14 @@ def test_skylake_250G(env, submit_skylake_250):
     assert status_info["result"] == "succeeded"
 
 
-def test_skylake_500G(env, submit_skylake_500):
+def test_skylake_500G(submit_skylake_500):
     """tests that the jaws history command has the run id in the stdout.
-    This test will be skipped if the 'env' is not cori.
+    This test will be skipped if the '--site' is not cori.
     """
     run_id = str(submit_skylake_500["run_id"])
 
     # Run: jaws status
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, run_id)
+    cmd = "jaws status --verbose %s" % (run_id)
     (r, o, e) = util.run(cmd)
 
     status_info = json.loads(o)

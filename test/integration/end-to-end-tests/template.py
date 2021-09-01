@@ -30,14 +30,13 @@ check_sleep=30
 #########################
 # This test requires a fixture "submit_fq_count_wdl" which is inside the conftest.py file.
 # This variable contains the json stdout that is created when you do a WDL JAWS submission.
-# Also, " --env prod" on the command line passes "prod" to this env variable.
-def test_jaws_run_history(env, submit_fq_count_wdl):
+def test_jaws_run_history(submit_fq_count_wdl):
     """ tests that the jaws history command has the run id in the stdout."""
     data = submit_fq_count_wdl
     run_id = str(data['run_id'])
-    util.wait_for_run(env,run_id,check_tries,check_sleep)
+    util.wait_for_run(run_id,check_tries,check_sleep)
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws history | grep '\"id\": %s' | awk '{print $2}' | tr -d ','" % (env,run_id)
+    cmd = "jaws history | grep '\"id\": %s' | awk '{print $2}' | tr -d ','" % (run_id)
     (r,o,e) = util.run(cmd)
 
     # if there was something in stdout, then grep found "id": <run_id>
