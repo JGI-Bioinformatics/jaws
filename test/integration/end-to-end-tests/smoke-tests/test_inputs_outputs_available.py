@@ -23,7 +23,7 @@ check_sleep = 30
 #########################
 #
 #
-def test_jaws_run_task_log(env, submit_fq_count_wdl):
+def test_jaws_run_task_log(submit_fq_count_wdl):
     """
     1) I will check that the input WDL and json file are saved in the output dir.
        (70f82d8f-352f-48ce-a21d-3e4ede4daef3.orig.json  70f82d8f-352f-48ce-a21d-3e4ede4daef3.wdl)
@@ -37,10 +37,10 @@ def test_jaws_run_task_log(env, submit_fq_count_wdl):
     """
     run_id = str(submit_fq_count_wdl["run_id"])
 
-    util.wait_for_run(run_id, env, check_tries, check_sleep)
+    util.wait_for_run(run_id, check_tries, check_sleep)
 
     # grab submission_id from "jaws status" command so we can construct name of output files
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, run_id)
+    cmd = "jaws status --verbose %s" % (run_id)
     (r, o, e) = util.run(cmd)
     status_data = json.loads(o)
     submission_id = status_data["submission_id"]

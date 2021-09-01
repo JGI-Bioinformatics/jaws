@@ -1,6 +1,6 @@
 {
-  "main_wdl.fastq": "../bad_path_does_not_exist/sample.fastq.bz2",
-  "main_wdl.reference": "../bad_path_does_not_exist/sample.fasta",
-  "main_wdl.bbmap_shard_wf.chunk_size": "100000000"
+  "fq_count.fastq": "../bad_path_does_not_exist/sample.fastq.bz2",
+  "fq_count.reference": "../bad_path_does_not_exist/sample.fasta",
+  "fq_count.bbmap_shard_wf.chunk_size": "100000000"
 }
 

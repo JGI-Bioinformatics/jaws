@@ -17,7 +17,7 @@ check_tries = 360  # try this many times when waiting for a JAWS run to complete
 check_sleep = 60  # wait for this amount of time between tries.
 
 
-def test_json_file_does_not_exist(env, dir, site):
+def test_json_file_does_not_exist(dir, site):
     # TESTCASE-4
     # Submit job with path to json file that does not exist
     # Can't use submission_utils submit_wdl function here because it exits if submission not successful
@@ -31,7 +31,7 @@ def test_json_file_does_not_exist(env, dir, site):
     assert "No such file or directory:" in e
 
 
-def test_input_file_is_not_json_format(env, dir, site):
+def test_input_file_is_not_json_format(dir, site):
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
     # testing for message when inputs file is not json, so using wdl again instead of a json file
     inputs = wdl
@@ -41,8 +41,7 @@ def test_input_file_is_not_json_format(env, dir, site):
     # check for the correct error message
     assert "is not a valid JSON file" in e
 
-
-def test_json_bad_path_to_input_file_msg(env, dir, site):
+def xtest_json_bad_path_to_input_file_msg(dir, site):
     # TESTCASE-5a
     # Submit job with json that contains a path to a non-existent input file
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
@@ -57,7 +56,7 @@ def test_json_bad_path_to_input_file_msg(env, dir, site):
     assert "Input path not found or inaccessible:" in e
 
 
-def test_misspelled_variable_in_input_file_msg(env, dir, site):
+def xtest_misspelled_variable_in_input_file_msg(dir, site):
     # TESTCASE-5b
     # Submit job with json that contains a misspelled variable name
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
@@ -65,11 +64,11 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
 
     # we CAN use submission utils here because this job submits successfully
     # error isn't seen until the run fails
-    data = util.submit_wdl(env, wdl, input_json, site)
+    data = util.submit_wdl(wdl, input_json, site)
 
     # wait for run to complete
     run_id = data["run_id"]
-    util.wait_for_run(run_id, env, check_tries, check_sleep)
+    util.wait_for_run(run_id, check_tries, check_sleep)
 
     # check for the correct error message
     cmd = "jaws errors %s" % (run_id)
@@ -80,7 +79,7 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
     assert "Required workflow input 'fq_count.fastq_file' not specified" in o
 
 
-def test_bad_input_file_permissions_msg(env, dir, site):
+def test_bad_input_file_permissions_msg(dir, site):
     # TESTCASE-6
     # Submit json that contains a path to a file with bad permissions
     # This test uses the bad_permissions.json which points to a file that has no read permissions
@@ -103,7 +102,7 @@ def test_bad_input_file_permissions_msg(env, dir, site):
     ), "permissions problem should be explained in error message"
 
 
-def test_invalid_wdl_syntax_msg(env, dir, site):
+def test_invalid_wdl_syntax_msg(dir, site):
     # TESTCASE-7
     # Submit invalid WDL syntax
     wdl = os.path.join(dir, "WDLs/bad_syntax.wdl")
@@ -117,7 +116,7 @@ def test_invalid_wdl_syntax_msg(env, dir, site):
     assert "ERROR: Unexpected symbol" in e
 
 
-def test_invalid_wdl_semantics_msg(env, dir, site):
+def test_invalid_wdl_semantics_msg(dir, site):
     # TESTCASE-8
     # Submit invalid WDL semantics
     wdl = os.path.join(dir, "WDLs/bad_semantics.wdl")
