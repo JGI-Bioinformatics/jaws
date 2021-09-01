@@ -1773,7 +1773,7 @@ def process_task_kill(task_id):
             logger.debug("child_proc_id = {}".format(child_proc_id))
             db.close()
 
-            if child_proc_id > 0 and worker_id_list is not None:
+            if child_proc_id is not None and child_proc_id > 0 and worker_id_list is not None:
                 # Send task id and process id to worker id
                 logger.info(
                     "Send task kill command: {} {} {}".format(
@@ -1996,7 +1996,6 @@ def task_kill_proc():
                 logger.debug("child_proc_id = {}".format(child_proc_id))
                 db.close()
 
-                assert child_proc_id > 0
                 assert worker_id_list is not None
 
                 # Send task id and process id to worker id
