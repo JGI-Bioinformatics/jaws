@@ -47,7 +47,7 @@ test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorct
 ./test/integration/generate-configs
 ./test/integration/generate-shims
 ./test/integration/deploy-cromwell
-[[ -n "$SITE_CLIENT_INSTALL_DIR" ]] && ./test/integration/deploy-client
+[[ "$SITE_CLIENT_INSTALL_DIR" ]] && ./test/integration/deploy-client
 ./test/integration/deploy-supervisord
 
 ## start services
