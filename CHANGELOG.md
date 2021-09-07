@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.4.0 (2021-08-30) Summary
+This release contains various bugfixes and deployment changes. It also
+addresses a security issue associated with Cromwell deployments at HPC sites.
+Admin commands were also added to view runs and queues of all users.
+
+### Deployment
+- JAWS readthedocs is deployed using the Gitlab CI/CD pipeline (!894)
+- JAWS software is no longer installed in `/tmp` but on paths located on cluster parallel filesystems (!881, !886, !912)
+- Client now deploys bash autocomplete for autocompletion of jaws cmds (!871, !913)
+- Cromwell configuration changes to allow for URLs in inputs JSON file (!877)
+- Cromwell and womtool JARS are retrieved using wget (!935)
+- Cromwell binds to localhost to address security concerns (!909)
+- Tahoma deployment initiated. To be completed at a later release (!905, !923)
+- Versions of JAWS dependencies updated (!895, !897, !891)
+
+### Bug fixes
+- Fixed a bug in client for a function that converts UTC to localtime (!904)
+- JAWS site catches and recognizes CromwellException (!896)
+- JAWS site would create a new subprocess for every client message. This would create hundreds of 
+  processes. JAWS was switched to use a single RPC client. (!889, !890, !911, !916, !917)
+- RMQ queue property changed to remove temporary queues (!884)
+- State descriptions updated (!914)
+
+### WDL and Inputs validation
+- JAWS now validates a WDLs runtime (!782)
+- JAWS can intelligently parse and validate filepaths specified in the inputs.json file (!899)
+
+### JAWS Admin commands
+- Admins can now list all active jobs and see the run history and queue of all users (!901, !910)
+
 ## 2.3.0 (2021-05-17) Summary
 This is a major release that simplifies the command structure for JAWS.  All the subcommands under `jaws wdl` are eleminated. This means there is no interaction with the jaws catalog. Instead, WDLs are stored in two gitlab repositories:  
 
