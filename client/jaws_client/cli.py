@@ -147,16 +147,22 @@ def _print_json(j):
 @click.option(
     "--site", default="ALL", help="limit results to this compute-site; default=all"
 )
-def queue(site: str) -> None:
+@click.option(
+    "--all", is_flag=True, default=False, help="List runs from all users; default=False")
+def queue(site: str, all: bool) -> None:
     """List of user's current runs"""
     data = {
         "delta_days": 0,
         "site_id": site.upper(),
         "active_only": True,
         "result": "any",
+        "all": all
     }
     url = f'{config.get("JAWS", "url")}/search'
     result = _request("POST", url, data)
+    for a in result:
+        a["submitted"] = _utc_to_local(a["submitted"])
+        a["updated"] = _utc_to_local(a["updated"])
     _print_json(result)
 
 
@@ -168,7 +174,9 @@ def queue(site: str) -> None:
 @click.option(
     "--result", default="any", help="limit results to this result; default=any"
 )
-def history(days: int, site: str, result: str) -> None:
+@click.option(
+    "--all", is_flag=True, default=False, help="List runs from all users;d default=False")
+def history(days: int, site: str, result: str, all: bool) -> None:
     """Print a list of the user's past runs."""
     if days < 1:
         sys.exit("User error: --days must be a positive integer")
@@ -179,9 +187,13 @@ def history(days: int, site: str, result: str) -> None:
         "site_id": site.upper(),
         "active_only": False,
         "result": result.lower(),
+        "all": all
     }
     url = f'{config.get("JAWS", "url")}/search'
     result = _request("POST", url, data)
+    for a in result:
+        a["submitted"] = _utc_to_local(a["submitted"])
+        a["updated"] = _utc_to_local(a["updated"])
     _print_json(result)
 
 
@@ -202,6 +214,8 @@ def status(run_id: int, verbose: bool) -> None:
     """Print the current status of a run."""
 
     result = _run_status(run_id, verbose)
+    result["submitted"] = _utc_to_local(result["submitted"])
+    result["updated"] = _utc_to_local(result["updated"])
     _print_json(result)
 
 
@@ -213,6 +227,8 @@ def task_status(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
     result = _request("GET", url)
+    for a in result:
+        a[6] = _utc_to_local(a[6])
     if fmt == "json":
         _print_json(result)
     else:
@@ -243,6 +259,8 @@ def log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/run_log'
     result = _request("GET", url)
+    for a in result:
+        a[2] = _utc_to_local(a[2])
     header = ["#STATUS_FROM", "STATUS_TO", "TIMESTAMP", "REASON"]
     if fmt == "json":
         _print_json(result)
@@ -268,6 +286,8 @@ def task_log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
     result = _request("GET", url)
+    for a in result:
+        a[6] = _utc_to_local(a[6])
     if fmt == "json":
         _print_json(result)
     else:
@@ -379,7 +399,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
 
     # VALIDATE INPUTS JSON
     try:
-        inputs_json = workflow.WorkflowInputs(json_file, submission_id)
+        inputs_json = workflow.WorkflowInputs(json_file, submission_id, wdl_loc=wdl_file)
     except json.JSONDecodeError as error:
         sys.exit(f"Your file, {json_file}, is not a valid JSON file: {error}")
 
@@ -517,6 +537,27 @@ def get(run_id: int, dest: str) -> None:
     if result.returncode != 0:
         err_msg = f"Failed to rsync {src}->{dest}: {result.stdout}; {result.stderr}"
         sys.exit(err_msg)
+
+
+def _utc_to_local(utc_datetime):
+    """Convert UTC time to the local time zone. This should handle daylight savings.
+       Param:: utc_datetime: a string of date and time "2021-07-06 11:15:17".
+    """
+    from datetime import datetime, timezone
+    import pytz
+
+    # The timezone can be overwritten with a environmental variable.
+    # JAWS_TZ should be set to a timezone in a similar format to 'US/Pacific'
+    local_tz = os.environ.get("JAWS_TZ", None)
+    local_tz_obj = ''
+    if local_tz is None:
+        local_tz_obj = datetime.now().astimezone().tzinfo
+    else:
+        local_tz_obj = pytz.timezone(local_tz)
+
+    fmt = "%Y-%m-%d %H:%M:%S"
+    datetime_obj = datetime.strptime(utc_datetime, fmt)
+    return datetime_obj.replace(tzinfo=timezone.utc).astimezone(tz=local_tz_obj).strftime(fmt)
 
 
 @main.command()

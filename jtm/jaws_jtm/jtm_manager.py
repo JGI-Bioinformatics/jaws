@@ -44,13 +44,15 @@ from jaws_jtm.lib.run import (
     extract_cromwell_id,
 )
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_rpc import rpc_client, rpc_server, responses
+from jaws_rpc import rpc_server, responses, rpc_client
 
 
 # --------------------------------------------------------------------------------------------------
 # Globals
 # --------------------------------------------------------------------------------------------------
 NUM_TOTAL_WORKERS = mp.Value("i", 0)
+# global instance for rpc_client
+RPC_CLIENT = None
 
 
 class WorkerResultReceiver(JtmAmqpstormBase):
@@ -666,8 +668,9 @@ def send_update_task_status_msg(
     }
 
     # send message to Site
-    try:
-        with rpc_client.RpcClient(
+    global RPC_CLIENT
+    if RPC_CLIENT is None:
+        RPC_CLIENT = rpc_client.RpcClient(
             {
                 "host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
                 "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
@@ -675,23 +678,24 @@ def send_update_task_status_msg(
                 "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
                 "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
                 "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password"),
-            }, logger
-        ) as rpc_cl:
-            wait_count = 0
-            response = rpc_cl.request("update_job_status", data)
-            logger.debug(f"Return msg from JAWS Site: {response}")
-            while (
-                "error" in response and response["error"]["message"] == "Server timeout"
-            ):
-                wait_count += 1
-                if wait_count == 60:  # try for 1min
-                    logger.error("RPC reply timeout!")
-                    break
-                logger.debug(
-                    f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}"
-                )
-                time.sleep(1.0)
-                response = rpc_cl.request("update_job_status", data)
+            },
+            logger,
+        )
+
+    try:
+        wait_count = 0
+        response = RPC_CLIENT.request("update_job_status", data)
+        logger.debug(f"Return msg from JAWS Site: {response}")
+        while "error" in response and response["error"]["message"] == "Server timeout":
+            wait_count += 1
+            if wait_count == 60:  # try for 1min
+                logger.error("RPC reply timeout!")
+                break
+            logger.debug(
+                f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}"
+            )
+            time.sleep(1.0)
+            response = RPC_CLIENT.request("update_job_status", data)
     except Exception as error:
         logger.error(f"RPC call failed: {error}")
         raise
@@ -1501,7 +1505,9 @@ def process_task_request(msg):
                             last_task_id,
                             status_now,
                             TASK_STATUS["pending"],
-                            reason=slurm_job_id,
+                            reason="slurm_jid=%d" % (slurm_job_id)
+                            if slurm_job_id > 0
+                            else "",
                         )
 
                 # Note: only when the previous status == queued
@@ -1767,7 +1773,7 @@ def process_task_kill(task_id):
             logger.debug("child_proc_id = {}".format(child_proc_id))
             db.close()
 
-            if child_proc_id > 0 and worker_id_list is not None:
+            if child_proc_id is not None and child_proc_id > 0 and worker_id_list is not None:
                 # Send task id and process id to worker id
                 logger.info(
                     "Send task kill command: {} {} {}".format(
@@ -1990,7 +1996,6 @@ def task_kill_proc():
                 logger.debug("child_proc_id = {}".format(child_proc_id))
                 db.close()
 
-                assert child_proc_id > 0
                 assert worker_id_list is not None
 
                 # Send task id and process id to worker id
@@ -2207,13 +2212,12 @@ def manager(
         STANDALONE = False
 
     # Log dir setting
-    datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
     log_dir_name = CONFIG.configparser.get("JTM", "log_dir")
     if custom_log_dir_name:
         log_dir_name = custom_log_dir_name
     log_dir_name = os.path.join(log_dir_name, "manager")
     make_dir(log_dir_name)
-    log_file_name = "%s/jtm_%s.log" % (log_dir_name, datetime_str)
+    log_file_name = "%s/jtm.log" % (log_dir_name)
 
     log_level = "info"
     if DEBUG:

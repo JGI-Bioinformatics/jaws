@@ -4,8 +4,8 @@ TEST_FOLDER=$1
 
 # check we have all arguments and environmental variables set
 if [[ ! $TEST_FOLDER ]]; then
-	echo "Usage: $0 <folder-with-tests>"
-	exit 1
+    echo "Usage: $0 <folder-with-tests>"
+    exit 1
 fi
 
 
@@ -26,7 +26,7 @@ for VAR in $REQUIRED_VARS; do
     echo "Missing env var: $VAR">&2
     RESULT=1
   else
-  	echo "... $VAR: ${!VAR}"
+    echo "... $VAR: ${!VAR}"
   fi
 done
 [ $RESULT -eq 0 ] || exit $RESULT
@@ -51,9 +51,10 @@ function set_site_var {
   printf -v "$SITE_VAR_NAME" "%s" "$VALUE"
 }
 SITE_VARS="
-INSTALL_BASEDIR
-JAWS_SW_BASEDIR
+CLIENT_INSTALL_BASEDIR
 "
+
+# function adds site name to "SITE_VARS", i.e. SITE_CLIENT_INSTALL_BASEDIR gets set.
 for SITE_VAR in $SITE_VARS; do
   set_site_var $SITE_VAR
 done
@@ -61,26 +62,19 @@ done
 
 ## DEFINE VARS FROM OTHER VARS
 echo "DEFINING PATHS"
-export INSTALL_DIR="$SITE_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
-export SITE_CLIENT_INSTALL_DIR="$SITE_JAWS_SW_BASEDIR/jaws-$DEPLOYMENT_NAME"
-if [[ ! -d $INSTALL_DIR ]]; then
-	echo "INSTALL_DIR does not exist ($INSTALL_DIR)"
-	exit 1
-else
-	echo "... INSTALL_DIR: $INSTALL_DIR"
-fi
+export SITE_CLIENT_INSTALL_DIR="$SITE_CLIENT_INSTALL_BASEDIR/jaws-$DEPLOYMENT_NAME"
 
 if [[ ! -d $SITE_CLIENT_INSTALL_DIR ]]; then
-	echo "SITE_CLIENT_INSTALL_DIR does not exist ($SITE_CLIENT_INSTALL_DIR)"
-	exit 1
+    echo "SITE_CLIENT_INSTALL_DIR does not exist ($SITE_CLIENT_INSTALL_DIR)"
+    exit 1
 else
-	echo "... SITE_CLIENT_INSTALL_DIR: $SITE_CLIENT_INSTALL_DIR"
+    echo "... SITE_CLIENT_INSTALL_DIR: $SITE_CLIENT_INSTALL_DIR"
 fi
 
 
 # source venv
-echo "source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh"
-      source $CORI_JAWS_SW_BASEDIR/jaws-${DEPLOYMENT_NAME}/jaws-${DEPLOYMENT_NAME}.sh
+echo "source $SITE_CLIENT_INSTALL_DIR/jaws-${DEPLOYMENT_NAME}.sh"
+      source $SITE_CLIENT_INSTALL_DIR/jaws-${DEPLOYMENT_NAME}.sh
 
 # write token to jaws.conf
 # [USER]
@@ -91,4 +85,5 @@ chmod 600 ~/jaws.conf
 # this script is being called from where .gitlab-ci.yml lives, which is "jaws" parent. 
 # So we need to cd down to end-to-end-tests before running pytests.
 cd test/integration/end-to-end-tests
-pytest --verbose --dir ${TEST_FOLDER} --env ${DEPLOYMENT_NAME} --site ${JAWS_SITE} ${TEST_FOLDER}/test_jaws_cmds.py
+echo "pytest --verbose --dir . --site ${JAWS_SITE} ${TEST_FOLDER}"
+	  pytest --verbose --dir . --site ${JAWS_SITE} ${TEST_FOLDER}

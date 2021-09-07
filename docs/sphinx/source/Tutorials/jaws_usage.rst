@@ -1,6 +1,6 @@
-======================== 
-How to Run a WDL in JAWS
-========================
+=============
+JAWS Commands
+=============
 
 .. role:: bash(code)
    :language: bash
@@ -12,15 +12,7 @@ How to Run a WDL in JAWS
 
 Example submitting a workflow:
 
-:bash:`jaws submit --tag <give this workflow a name> <wdl> <inputs json> <site>` 
-
-.. note:: 
-    using :bash:`--tag` is useful to keep track of things when you have multiple runs. The tag identifier you give will show up with the various monitoring commands.
-
-
-*************
-JAWS commands
-*************
+:bash:`jaws submit <wdl> <inputs json> <site>` 
 
 Usage: jaws [OPTIONS] COMMAND [ARGS]...
 ---------------------------------------
@@ -56,7 +48,7 @@ Run a command with --help to see it's options.
       validate     Validate a WDL using Cromwell's WOMTool.
     * wfcopy       Simplify Cromwell output.
 
-The commands with a '*' have options.
+The commands with an asterik have additional options. Expand the below commands to see them.
 
 .. raw:: html
  
@@ -114,6 +106,25 @@ The commands with a '*' have options.
     </details>
 
     <details>
+    <summary style="color: #448ecf";>submit</summary>
+    
+.. code-block:: text
+
+    Usage: jaws submit [OPTIONS] WDL_FILE JSON_FILE SITE
+
+    Submit a run for execution at a JAWS-Site. Available sites can be found by
+    running 'jaws run list-sites'.
+
+    Options:
+    --tag TEXT  identifier for the run
+    --no-cache  Disable call-caching for this run
+    -h, --help  Show this message and exit.
+
+.. raw:: html
+
+    </details>
+
+    <details>
     <summary style="color: #448ecf";>task-log</summary>
     
 .. code-block:: text
@@ -134,7 +145,7 @@ The commands with a '*' have options.
  
     <details>
     <summary style="color: #448ecf";>task-status</summary>
-    
+
 .. code-block:: text
 
     Usage: jaws task-status [OPTIONS] RUN_ID
@@ -151,18 +162,16 @@ The commands with a '*' have options.
 
     <details>
     <summary style="color: #448ecf";>wfcopy</summary>
-    
+
 .. code-block:: text
 
-    Usage: jaws history [OPTIONS]
+    Usage: jaws wfcopy [OPTIONS] SRC_DIR DEST_DIR
 
-    Print a list of the user's past runs.
+    Simplify Cromwell output.
 
     Options:
-    --days INTEGER  history going back this many days; default=1
-    --site TEXT     limit results to this compute-site; default=all
-    --result TEXT   limit results to this result; default=any
-    -h, --help      Show this message and exit.
+    --flatten   Flatten shard dirs
+    -h, --help  Show this message and exit.
 
 .. raw:: html
 
@@ -181,9 +190,9 @@ Examples
 
     {
       "JAWS-Central": "UP",
-      "JGI-Cromwell": "Unknown",
+      "JGI-Cromwell": "UP",
       "JGI-RMQ": "UP",
-      "JGI-Site": "DOWN",
+      "JGI-Site": "UP",
       "CORI-Cromwell": "UP",
       "CORI-RMQ": "UP",
       "CORI-Site": "UP"
@@ -194,9 +203,21 @@ Examples
 
 **To run a wdl**
 
+One of the two required files is an inputs(json) file. You can generate one from scratch by running :bash:`jaws inputs <WDL>` which will print out a template based on the WDL, you just need to fill out the values.
+
+A simple example template would look like:
+
 .. code-block:: text
 
-  jaws submit --tag 'some useful info' my.wdl my.json cori
+    {
+      "fq_count.fastq_file": "File"
+    }
+
+To submit a run
+
+.. code-block:: text
+
+  jaws submit my.wdl my.json cori
 
   # output looks like
   {
@@ -204,11 +225,23 @@ Examples
     "run_id": 7235,
     "site_id": "CORI",
     "status": "uploading",
-    "tag": "some useful info"
+    "tag": ""
   }
 
+Include a tag for your run to help keep track of things. :bash:`jaws status` will display the tag.
 
-**See the status of a Run using job ID**
+.. code-block:: text
+
+  jaws submit --tag 'some useful info' my.wdl my.json cori
+
+Run with Cromwell's call-caching off. Call-caching will allow you to re-run JAWS submissions without re-running tasks that completed successfully. However, this is not always desirable and you can turn caching off.
+
+.. code-block:: text
+
+  jaws submit --no-cache my.wdl my.json cori
+
+
+**Monitor your Run**
 
 The examples are in order of verbosity.
 
@@ -239,18 +272,24 @@ These are the possible states, in order, that a JAWS run passes through.
 
 .. code-block:: text
 
-   uploading            # input data are being copied to scratch by Globus
-   missing input        # run was uploaded but some of the required files were missing
-   upload complete      # Globus finished copying all your files to scratch
-   submitted            # job submitted to JTM and worker pools have been requested
-   queued               # waiting for worker pools to be reserved from cluster
-   running              # the run is being executed by Cromwell
-   succeeded            # Cromwell completed the run but results need to be transfered
-   ready                # results are ready for Globus transfer off of site scratch
-   downloading          # results are being copied by Globus
-   download complete    # results have been copied to your output directory. signifies end of run
-   failed               # runing error from either jaws or user's wdl
-   canceled             # run was cancelled by user or JTM issue
+   uploading:           Your run inputs are being sent to the compute site via Globus.
+   upload failed:       The Globus transfer of your run to the compute-site failed.
+   upload inactive:     Globus transfer stalled.
+   upload complete:     Your run inputs have been transferred and are ready to submit to Cromwell.
+   missing input:       The run was uploaded but some of the required files were missing.
+   submitted:           The run has been submitted to Cromwell and tasks should start to queue within moments.
+   submission failed:   The run was submitted to Cromwell but rejected due to invalid input.
+   queued:              At least one task has requested resources but no tasks have started running yet.
+   running:             The run is being executed by Cromwell; you can check `task-status` for more detail.
+   succeeded:           Cromwell has completed successfully and is waiting for the output to be downloaded.
+   failed:              The run has failed; see: `errors` and `metadata` for more detail.
+   aborting:            Your run is in the process of being canceled.
+   aborted:             The run was cancelled.
+   downloading:         The run output is being sent via Globus.
+   download failed:     Globus failed to return the results to the user.
+   download inactive:   Globus transfer stalled.
+   download complete:   The run output, whether succeeded or failed, has been returned to the user.
+
 
 
 **Get current or old history of jobs owned by you**
@@ -258,52 +297,62 @@ These are the possible states, in order, that a JAWS run passes through.
 .. code-block:: text
 
    # get list of your currently running jobs
-   jaws queue                                      
+   jaws queue
    
-   # view history of your jobs for last 7 days 
-   # options for --result [succeeded, failed]
-   # options for --site (see jaws list-sites)
-   jaws history --days 7 --result succeeded --site jgi
+   # view history of your jobs for last 7 days
+   jaws history
+
+   There are options to use with history
+   --days <number of days to include>
+   --result [succeeded, failed]
+   --site [jgi|cori] (see jaws list-sites)
 
 
 **Debugging**
 
+:bash:`jaws errors` is a catch-all command for viewing errors.
+
+This command should capture errors from
+
+1. cromwell 
+2. the WDL tasks
+3. JTM backend
+4. Slurm
+
+You can see these same errors when running other commands like 
+
 .. code-block:: text
 
-    # The errors command should capture most errors from cromwell & the WDL tasks. 
-    # Each task creates a stderr and stdout file, both are included in the errors output.
-    jaws errors 7235
-    
     # Some errors are generated by the backend (i.e. JTM) like timeout errors & bad docker image names.
     # You can see these with the task-log command
     jaws task-log 7235
 
-If these two commands fail to give you a credible error message, you may have to inspect the files created by cromwell. To do this, see the next section
+.. code-block:: text
+
+    # metadata shows cromwell server log
+    jaws metadata 7235
+
+
+.. note::
+    Cromwell will created a stderr, stdout, script and script.submit file for each task. These are handy for debugging. See the next section to find these files.
 
 
 **Getting your output**
 
-Your output is saved to a scratch space allocated and owned by JAWS. You should have read permissions to these files which are in a path called output_dir and is displayed with the :bash:`jaws status --verbose 7235` command.  This directory represents the raw output from Cromwell and includes all the temp files like :bash:`inputs` folder.
+The preferable way to get your results is by using the "get" command.  The benifits of this method is that many of the temp files are not copied, only the files in the :bash:`execution` directory are copied. Also, you don't have to worry about loosing your results due to the scheduled purge of the staging directory.
+
+.. code-block:: text
+
+    jaws get 7235 myresults
+
+As alluded to above, JAWS will save your output to a staging directory that is owned by JAWS. You should have read permissions to these files which are in a path called output_dir and is displayed with the :bash:`jaws status --verbose 7235` command.  This directory represents the raw output from Cromwell and includes all the temp files like :bash:`inputs` folder. Note that the path only exists on the :bash:`site` that you submitted to, i.e. jgi or cori.
 
 .. code-block:: text
 
     jaws status --verbose 7235
     
 
-Preferably, you can copy your results by using the "get" command.  The benifits of this method is that many of the temp files are not copied, only the files in the :bash:`execution` dir are copied.
-
-.. code-block:: text
-
-    jaws get 7235 myresults
-
-
 **Specialty Commands**
-
-This command is for the JAWS administrators to create tokens for new users and is not a public command. 
-
-.. code-block:: text
-    
-    jaws add-user
 
 This command uses the womtool.jar (developed by same people as cromwell.jar) as a linter for your WDLs. You would use this when developing a WDL.
 

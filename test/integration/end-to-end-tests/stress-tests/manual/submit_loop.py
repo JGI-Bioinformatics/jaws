@@ -5,9 +5,14 @@ and another that waits for all runs in a list to finish."""
 import subprocess
 import json
 import time
+import functools
+
+# flush the printstream so that the output can be redirected to a file to prevent 
+# loss of test results if the ssh connection is lost
+print = functools.partial(print, flush=True)
 
 SUBMIT_SLEEP = 1
-CHECK_SLEEP = 120
+CHECK_SLEEP = 360
 CHECK_TRIES = 100
 
 def submit(num_submissions, wdl, inputs, site):
@@ -19,7 +24,7 @@ def submit(num_submissions, wdl, inputs, site):
     # loop to do the submissions
     i = 1
     while i <= num_submissions:
-        data = subprocess.run(['jaws', 'submit', wdl, inputs, site],
+        data = subprocess.run(['jaws', 'submit', '--no-cache', wdl, inputs, site],
                               capture_output=True, text=True)
         output = data.stdout
 

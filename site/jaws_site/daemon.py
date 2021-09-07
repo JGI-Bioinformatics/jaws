@@ -6,7 +6,8 @@ them to the next state.
 import schedule
 import time
 import logging
-from jaws_site import database, runs
+from jaws_site import database, runs, config
+from jaws_rpc import rpc_client
 
 
 logger = logging.getLogger(__package__)
@@ -23,6 +24,7 @@ class Daemon:
 
     def __init__(self):
         logger.info("Initializing daemon")
+        self.central_rpc_client = rpc_client.RpcClient(config.conf.get_section("CENTRAL_RPC_CLIENT"), logger)
 
     def start_daemon(self):
         """
@@ -39,5 +41,5 @@ class Daemon:
         """
         session = database.Session()
         runs.check_active_runs(session)
-        runs.send_run_status_logs(session)
+        runs.send_run_status_logs(session, self.central_rpc_client)
         session.close()

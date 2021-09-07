@@ -9,36 +9,63 @@ from jaws_client import cli
 
 
 # flake8: noqa
-
 HISTORY = [
-    [
-        "33",
-        "2020-04-03T22:19:45Z",
-        "upload failed",
-        "c49043b3-4ec7-4874-b09d-c0ca54a74870",
-        "null",
-    ],
-    [
-        "34",
-        "2020-04-03T22:27:00Z",
-        "upload failed",
-        "64864a67-04d3-47c9-8cf0-4cb6e0ab020a",
-        "null",
-    ],
-    [
-        "35",
-        "2020-04-04T16:55:35Z",
-        "failed",
-        "65f2f4df-2a6c-4881-a3b0-3141107ac668",
-        "1aba54ac-7695-11ea-9615-0afc9e7dd773",
-    ],
-    [
-        "36",
-        "2020-04-04T17:56:52Z",
-        "running",
-        "bafa20aa-59b3-4d33-9f4c-fb30696e324f",
-        "aa791756-769d-11ea-af53-0201714f6eab",
-    ],
+        {
+        "id": "33",
+        "input_site_id": "CORI",
+        "json_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.json",
+        "result": "succeeded",
+        "site_id": "CORI",
+        "status": "download complete",
+        "status_detail": "The run output (succeeded or failed) has been returned to the user.",
+        "submitted": "2021-01-01 11:00:00",
+        "tag": "none",
+        "updated": "2021-01-01 12:00:00",
+        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl"
+        },
+        {
+        "id": "34",
+        "input_site_id": "CORI",
+        "json_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.json",
+        "result": "succeeded",
+        "site_id": "CORI",
+        "status": "download complete",
+        "status_detail": "The run output (succeeded or failed) has been returned to the user.",
+        "submitted": "2021-07-13 14:00:00",
+        "tag": "none",
+        "updated": "2021-07-13 14:51:55",
+        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl"
+        }
+]
+
+
+QUEUE = [
+        {
+        "id": "33",
+        "input_site_id": "CORI",
+        "json_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.json",
+        "result": "succeeded",
+        "site_id": "CORI",
+        "status": "download complete",
+        "status_detail": "The run output (succeeded or failed) has been returned to the user.",
+        "submitted": "2021-01-01 11:00:00",
+        "tag": "none",
+        "updated": "2021-01-01 12:00:00",
+        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl"
+        },
+        {
+        "id": "34",
+        "input_site_id": "CORI",
+        "json_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.json",
+        "result": "succeeded",
+        "site_id": "CORI",
+        "status": "download complete",
+        "status_detail": "The run output (succeeded or failed) has been returned to the user.",
+        "submitted": "2021-07-13 14:00:00",
+        "tag": "none",
+        "updated": "2021-07-13 14:51:55",
+        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl"
+        }
 ]
 
 
@@ -203,16 +230,6 @@ SUBMISSION = {
 }
 
 
-QUEUE = [
-    [
-        35,
-        "2020-04-04T16:55:35Z",
-        "running",
-        "65f2f4df-2a6c-4881-a3b0-3141107ac668",
-        "1aba54ac-7695-11ea-9615-0afc9e7dd773",
-    ]
-]
-
 TASK_STATUS_JSON = [
     ["bbtools.alignment", 1, 432, "Queued", "Running", "2020-04-03 20:32:52", ""]
 ]
@@ -238,23 +255,23 @@ class MockResponse:
 
 def test_cli_queue(monkeypatch, configuration):
     def post_queue(url, data={}, files={}, headers=None):
-        result = [
-            [
-                "36",
-                "2020-04-04T17:56:52Z",
-                "running",
-                "bafa20aa-59b3-4d33-9f4c-fb30696e324f",
-                "aa791756-769d-11ea-af53-0201714f6eab",
-            ],
-        ]
-        return MockResponse(result, 200)
+        return MockResponse(QUEUE, 200)
 
     monkeypatch.setattr(requests, "post", post_queue)
 
     runner = click.testing.CliRunner()
     result = runner.invoke(cli.main, ["queue"])
     assert result.exit_code == 0
-    assert "running" in result.output
+    for task_id in ["33", "34"]:
+        assert task_id in result.output
+
+    # this checks that there is 8hrs difference when we are not in daylight savings (nov 8 - march 13)
+    # utc: 2021-01-01 11:00:00
+    assert('2021-01-01 03:00:00' in result.output)
+
+    # this checks that there is 7hrs difference when we are in daylight savings(march 14 - nov 7)
+    # utc: 2021-07-13 14:00:00
+    assert('2021-07-13 07:00:00' in result.output)
 
 
 def test_cli_history(monkeypatch, configuration):
@@ -266,8 +283,16 @@ def test_cli_history(monkeypatch, configuration):
     result = runner.invoke(cli.main, ["history"])
     assert result.exit_code == 0
 
-    for task_id in ["33", "34", "35", "36"]:
+    for task_id in ["33", "34"]:
         assert task_id in result.output
+
+    # this checks that there is 8hrs difference when we are not in daylight savings (nov 8 - march 13)
+    # utc: 2021-01-01 11:00:00
+    assert('2021-01-01 03:00:00' in result.output)
+
+    # this checks that there is 7hrs difference when we are in daylight savings(march 14 - nov 7)
+    # utc: 2021-07-13 14:00:00
+    assert('2021-07-13 07:00:00' in result.output)
 
 
 def test_cli_status(monkeypatch, configuration):
@@ -276,7 +301,7 @@ def test_cli_status(monkeypatch, configuration):
         Returns a list of attributes from a run ordered as the following:
         run id, submission date, submission id, upload id
         """
-        job_status = {"status": "Running"}
+        job_status = {"status": "Running",'submitted': '2021-07-06 22:40:04', 'tag': None, 'updated': '2021-07-06 22:42:55'}
         if url.endswith('/complete'):
             job_status["output_dir"] = "/foo/bar"
         return MockResponse(job_status, 200)
@@ -293,6 +318,8 @@ def test_cli_status(monkeypatch, configuration):
     assert result.exit_code == 0
     assert "Running" in result.output
     assert "/foo/bar" not in result.output
+
+    assert('2021-07-06 15:40:04' in result.output or '2021-07-06 14:40:04' in result.output)
 
 
 def test_cli_metadata(monkeypatch, configuration):
@@ -412,3 +439,8 @@ def test_cancel_ERR(monkeypatch, configuration):
     runner = click.testing.CliRunner()
     result = runner.invoke(cli.main, ["cancel", "35"])
     assert result.exit_code == 1
+
+def test_utc_to_local(monkeypatch):
+    from pytz import timezone
+    local_time = cli._utc_to_local('2021-07-06 22:42:55')
+    assert '2021-07-06 15:42:55' in local_time

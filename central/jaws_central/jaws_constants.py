@@ -1,8 +1,8 @@
 # states should use concise names, all lowercase, and uses spaces (no camelCase, CAPS, or under_scores)
 run_status_msg = {
     "uploading": "Your run inputs are being sent to the compute site via Globus.",
-    "upload failed": "The Globus transfer of your run to the compute-site failed.  Possible cause may be due to inactive globus enpoint.  Please go to https://app.globus.org/file-manager, on the left side of the page, select ENDPOINTS, click the > icon to the right of the NERSC DTN endpoint, then click Activate.",  # noqa
-    "upload inactive": "Globus transfer stalled; try reactivating the endpoint. Please go to https://app.globus.org/file-manager, on the left side of the page, select ENDPOINTS, click the > icon to the right of the NERSC DTN endpoint, then click Activate.",  # noqa",
+    "upload failed": "The Globus transfer of your run to the compute-site failed.",
+    "upload inactive": "Globus transfer stalled.",
     "upload complete": "Your run inputs have been transferred and are ready to submit to Cromwell",
     "missing input": "The run was uploaded but some of the required files were missing..",
     "submitted": "The run has been submitted to Cromwell and tasks should start to queue within moments",
@@ -15,6 +15,6 @@ run_status_msg = {
     "aborted": "The run was cancelled",
     "downloading": "The run output is being sent via Globus",
     "download failed": "Globus failed to return the results to the user",
-    "download inactive": "Globus transfer stalled; try reactivating the endpoint. Please go to https://app.globus.org/file-manager, on the left side of the page, select ENDPOINTS, click the > icon to the right of the NERSC DTN endpoint, then click Activate.",  # noqa",
+    "download inactive": "Globus transfer stalled.",
     "download complete": "The run output (succeeded or failed) has been returned to the user.",
 }

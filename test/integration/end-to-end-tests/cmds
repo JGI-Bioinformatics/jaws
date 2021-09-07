@@ -22,9 +22,14 @@ collabsu jaws
 deactivate any venv
 cd <your-repo>/jaws
 
-# this env simulates what .gitlab-ci.yml does when you do a merge.
-source ./setEnv.sh
-
 # This wrapper is usually run by .gitlab-ci.yml as jaws user.
 # It takes one argument, the directory that contains the pytests to run.
+source ./setEnv.sh # this env simulates what .gitlab-ci.yml does when you do a merge.
 test/integration/end-to-end-tests/pytest_wrapper.sh single-test
+
+
+# You can also run pytests directly:
+source ~/jaws-dev.sh  # use prod or staging dir as desired.
+pytest --capture=no --verbose --site cori --dir . <test.py>
+
+- the dir argument points to the root dir where the "WDL" and "test-inputs" are.

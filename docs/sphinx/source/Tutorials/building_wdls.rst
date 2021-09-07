@@ -5,25 +5,39 @@ How to build WDLs
 .. role:: bash(code)
    :language: bash
 
-Below is a step-by-step example of creating a WDL from bash code and running it in `Cromwell <https://cromwell.readthedocs.io/en/stable/>`_. 
+In this tutorial, we will see how a bash wrapper (script.sh) can be made into a WDL.
 
 .. note::
     To really learn WDLs you should follow the official `WDL site <https://software.broadinstitute.org/wdl/documentation/>`_.  However, to get
     and idea of what its all about, continue...
     
 
-* start with the official `WDL site <https://software.broadinstitute.org/wdl/documentation/>`_
+Some useful links
 
-* link to `real world examples <https://software.broadinstitute.org/wdl/documentation/topic?name=wdl-scripts>`_.
+    * start with the official `WDL site <https://software.broadinstitute.org/wdl/documentation/>`_
+    * `real world examples <https://software.broadinstitute.org/wdl/documentation/topic?name=wdl-scripts>`_.
 
 
-#########################################
+****************************
+Clone the Example Repository
+****************************
+
+.. code-block:: text
+
+   git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
+   cd jaws-tutorial-example/5min_example
+
+
+*************************************
 Converting Example Bash Code to a WDL
-#########################################
+*************************************
 
+If we have a workflow represented as a script (i.e. script.sh), we can parse it up into WDL tasks.
 
-If we have a mini bash pipeline
--------------------------------
+.. note ::
+    Each script you create should execute in and write output to the **current working directory**.
+
+Our script.sh has two steps:
 
 .. code-block:: text
 
@@ -36,12 +50,10 @@ If we have a mini bash pipeline
    samtools view -b -F0x4 test.sam | samtools sort - > test.sorted.bam
 
 
-The corresponding WDL would look like this (call it alignment.wdl)
-------------------------------------------------------------------
-Notice that I am running all the commands inside a docker container :bash:`jfroula/bbtools:1.2.1` 
-which should exist in hub.docker.com and will therefore be pulled localy by the :bash:`shifterimg pull` command.
 
-Example should be run on CORI.
+The corresponding WDL would look like this (call it align.wdl).
+
+Notice that I am running all the commands inside a docker container :bash:`jfroula/bbtools:1.2.1`.  The image of which should exist in hub.docker.com and will therefore be pulled localy by cromwell, assuming the backend was configured correctly.
 
 .. code-block:: text
 
@@ -63,9 +75,13 @@ Example should be run on CORI.
         File fasta
 
         command {
-            shifterimg pull jfroula/bbtools:1.2.1 && \
-            shifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=${fastq} ref=${fasta} out=test.sam
+            bbmap.sh in=${fastq} ref=${fasta} out=test.sam
         }
+
+        runtime {
+            docker: "jfroula/aligner-bbmap:2.0.1"
+        }
+
         output {
             File sam = "test.sam"
         }
@@ -75,8 +91,13 @@ Example should be run on CORI.
         File sam
 
         command {
-           shifter --image=jfroula/bbtools:1.2.1 samtools view -b -F0x4 ${sam} | samtools sort - > test.sorted.bam
+           samtools view -b -F0x4 ${sam} | samtools sort - > test.sorted.bam
         }
+
+        runtime {
+           docker: "jfroula/bbtools:1.2.1"
+        }
+
         output {
            File bam = "test.sorted.bam"
         }
@@ -91,7 +112,7 @@ Refer to the official WDL website for deeper description and examples.  I'll jus
 
   3) How to pass the output of one task as input to another:  In this example, each of the two tasks has an output section that defines the name of the output.  The name of the output for the alignment task is "sam" (e.g. :bash:`File sam = \"test.sam\"`). Now the second task :bash:`samtools` can access this output by refering to it as "alignment.sam" (<task><dot><output variable>). See the line :bash:`input: sam=alignment.sam`.
 
-  5) Note that each command, in the "command" stanza, is run in a docker container using shifter.
+  5) Note that each command, in the "command" stanza, is run in a docker container. 
 
 
 The input file ("inputs.json") would look like this
@@ -104,13 +125,7 @@ The input file ("inputs.json") would look like this
     "bbtools.ref": "<full_path>/reference.fasta"
    }
 
-Test the WDL Using Cromwell
----------------------------
-Create a file called :bash:`alignment.wdl` with the WDL code from above.  
 
-Create another file called :bash:`inputs.json` with the inputs and run...
+An example of running this WDL was described in the last section :ref:`Run with Docker Inside the runtime{} <run with conf>`
 
-.. code-block:: text
 
-    source activate /global/cfs/projectdirs/jaws/prod/cli/
-    jaws submit alignment.wdl inputs.json

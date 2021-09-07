@@ -261,11 +261,6 @@ def test_errors(requests_mock):
         "calls": {
             "fq_count.count_seqs": [
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -274,22 +269,9 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "9999",
                     "runtimeAttributes": {
-                        "account": "fungalp",
-                        "cluster": "cori",
-                        "constraint": "haswell",
-                        "continueOnReturnCode": "0",
                         "cpu": "1",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
-                        "mem": "10G",
-                        "node": "1",
-                        "nwpn": "1",
-                        "poolname": "test_small",
-                        "qos": "genepool_special",
-                        "shared": "0",
                         "time": "00:10:00",
                     },
-                    "shardIndex": -1,
                 }
             ]
         }
@@ -314,11 +296,6 @@ def test_errors(requests_mock):
         "calls": {
             "jgi_dap_leo.assignGenes": [
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -327,31 +304,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69550",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:3.2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 1,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -360,33 +318,14 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69454",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:3.2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 70,
                 },
             ],
             "jgi_dap_leo.copyOutput_expt": [
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -395,30 +334,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69694",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 11,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -427,30 +348,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69670",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 15,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -459,30 +362,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69646",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 21,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -491,30 +376,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69502",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 84,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -523,32 +390,14 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69622",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 88,
                 },
             ],
             "jgi_dap_leo.dapStats": [
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -557,31 +406,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69526",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:3.2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 50,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -590,31 +420,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69574",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:3.2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 52,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -623,33 +434,14 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69598",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:3.2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 55,
                 },
             ],
             "jgi_dap_leo.findPeaks": [
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -658,31 +450,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69382",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 59,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -691,31 +464,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69406",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 83,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -724,31 +478,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69478",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 87,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -757,31 +492,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69358",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 89,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -790,33 +506,14 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69430",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 91,
                 },
             ],
             "jgi_dap_leo.trimAlign_expt": [
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -825,31 +522,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69238",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:3.2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 4,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -858,31 +536,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69310",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:3.2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 24,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -891,31 +550,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69262",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:3.2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 61,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -924,31 +564,12 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69286",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:3.2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 63,
                 },
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
@@ -957,24 +578,10 @@ def test_errors(requests_mock):
                     ],
                     "jobId": "69334",
                     "runtimeAttributes": {
-                        "account": "jgi",
-                        "cluster": "jgi",
-                        "constraint": "",
-                        "continueOnReturnCode": "0",
                         "cpu": "32",
-                        "docker": "jfroula/dap_py:3.2",
-                        "failOnStderr": "false",
-                        "maxRetries": "0",
                         "memory": "115 GB",
-                        "node": "2",
-                        "nwpn": "12",
-                        "partition": "jgi",
-                        "poolname": "dapseq_leo",
-                        "qos": "normal",
-                        "shared": "0",
                         "time": "05:00:00",
                     },
-                    "shardIndex": 69,
                 },
             ],
         }
@@ -984,38 +591,22 @@ def test_errors(requests_mock):
         "calls": {
             "bbmap_shard_wf.bbmap_indexing": [
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                        "hit": False,
-                        "result": "Cache Miss",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
                             "message": "No backend job for bbmap_shard_wf.bbmap_indexing:NA:1 could be found. The status of the underlying job cannot be known.",  # noqa
                         }
                     ],
-                    "shardIndex": -1,
                 }
             ],
             "bbmap_shard_wf.shard": [
                 {
-                    "attempt": 1,
-                    "callCaching": {
-                        "allowResultReuse": False,
-                        "effectiveCallCachingMode": "CallCachingOff",
-                        "hit": False,
-                        "result": "Cache Miss",
-                    },
                     "failures": [
                         {
                             "causedBy": [],
                             "message": "No backend job for bbmap_shard_wf.shard:NA:1 could be found. The status of the underlying job cannot be known.",  # noqa
                         }
                     ],
-                    "shardIndex": -1,
                 }
             ],
         },
@@ -1096,7 +687,6 @@ def test_all_errors(requests_mock):
             "calls": {
                 "main.echo1": [
                     {
-                        "attempt": 1,
                         "failures": [
                             {
                                 "causedBy": [
@@ -1108,12 +698,10 @@ def test_all_errors(requests_mock):
                                 "message": "Workflow failed",
                             }
                         ],
-                        "shardIndex": -1,
                     }
                 ],
                 "main.echo2": [
                     {
-                        "attempt": 1,
                         "failures": [
                             {
                                 "causedBy": [
@@ -1125,7 +713,6 @@ def test_all_errors(requests_mock):
                                 "message": "Workflow failed",
                             }
                         ],
-                        "shardIndex": -1,
                     }
                 ],
             }
@@ -1134,31 +721,6 @@ def test_all_errors(requests_mock):
             "calls": {
                 "sub_workflow.echo": [
                     {
-                        "attempt": 1,
-                        "callCaching": {
-                            "allowResultReuse": False,
-                            "effectiveCallCachingMode": "ReadAndWriteCache",
-                            "hashes": {
-                                "backend name": "6D3086C75F2DB761A86B2F982F10D384",
-                                "command template": "34F43F5B443A337D5DAC2A2A6EDB2623",
-                                "input": {
-                                    "String outFile": "41C42298DB3FF49DF37316F0774BB586",
-                                    "String text": "21B8E88DE4297DACD77F253F3A971D4D",
-                                },
-                                "input count": "C81E728D9D4C2F636F067F89CC14862C",
-                                "output count": "C4CA4238A0B923820DCC509A6F75849B",
-                                "output expression": {
-                                    "File out": "317FE0D1774A8AB92FA2FF958E6FE576"
-                                },
-                                "runtime attribute": {
-                                    "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
-                                    "docker": "N/A",
-                                    "failOnStderr": "68934A3E9455FA72420237EB05902327",
-                                },
-                            },
-                            "hit": False,
-                            "result": "Cache Miss",
-                        },
                         "failures": [
                             {
                                 "causedBy": [],
@@ -1167,23 +729,10 @@ def test_all_errors(requests_mock):
                         ],
                         "jobId": "19653",
                         "runtimeAttributes": {
-                            "account": "fungalp",
-                            "cluster": "cori",
-                            "constraint": "haswell",
-                            "continueOnReturnCode": "0",
                             "cpu": "32",
-                            "failOnStderr": "false",
-                            "maxRetries": "0",
                             "memory": "5 GB",
-                            "node": "1",
-                            "nwpn": "1",
-                            "partition": "",
-                            "poolname": "alksub",
-                            "qos": "genepool_special",
-                            "shared": "0",
                             "time": "0:20:00",
                         },
-                        "shardIndex": -1
                     }
                 ]
             }
@@ -1192,31 +741,6 @@ def test_all_errors(requests_mock):
             "calls": {
                 "sub_workflow.echo": [
                     {
-                        "attempt": 1,
-                        "callCaching": {
-                            "allowResultReuse": False,
-                            "effectiveCallCachingMode": "ReadAndWriteCache",
-                            "hashes": {
-                                "backend name": "6D3086C75F2DB761A86B2F982F10D384",
-                                "command template": "34F43F5B443A337D5DAC2A2A6EDB2623",
-                                "input": {
-                                    "String outFile": "8A1A4212C8B83258F2022000CAF70749",
-                                    "String text": "2CA1401729167302D0297F9000405B26",
-                                },
-                                "input count": "C81E728D9D4C2F636F067F89CC14862C",
-                                "output count": "C4CA4238A0B923820DCC509A6F75849B",
-                                "output expression": {
-                                    "File out": "317FE0D1774A8AB92FA2FF958E6FE576"
-                                },
-                                "runtime attribute": {
-                                    "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
-                                    "docker": "N/A",
-                                    "failOnStderr": "68934A3E9455FA72420237EB05902327",
-                                },
-                            },
-                            "hit": False,
-                            "result": "Cache Miss",
-                        },
                         "failures": [
                             {
                                 "causedBy": [],
@@ -1225,23 +749,10 @@ def test_all_errors(requests_mock):
                         ],
                         "jobId": "19654",
                         "runtimeAttributes": {
-                            "account": "fungalp",
-                            "cluster": "cori",
-                            "constraint": "haswell",
-                            "continueOnReturnCode": "0",
                             "cpu": "32",
-                            "failOnStderr": "false",
-                            "maxRetries": "0",
                             "memory": "5 GB",
-                            "node": "1",
-                            "nwpn": "1",
-                            "partition": "",
-                            "poolname": "alksub",
-                            "qos": "genepool_special",
-                            "shared": "0",
                             "time": "0:20:00",
                         },
-                        "shardIndex": -1
                     }
                 ]
             }

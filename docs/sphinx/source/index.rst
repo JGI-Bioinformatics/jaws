@@ -9,35 +9,22 @@ Documentation for JAWS
 
 The `Joint Genome Institute <https://jgi.doe.gov>`_ has developed JAWS (JGI Analysis Workflow Service) as a framework to run computational workflows. Its purpose is to improve the re-usability and robustness of workflows in a high performance computing (`HPC <https://www.nics.tennessee.edu/computing-resources/what-is-hpc>`_), cluster, and cloud environments.
 
-.. topic:: In Short...
+Summary of JAWS
+---------------
 
-   * JAWS should simplify your workflow submissions because it takes care of resource configuration and scheduling
-   * Before using JAWS, workflows need to be wrapped in an easy-to-understand `Workflow Definition Language (WDL) <https://software.broadinstitute.org/wdl/>`_
-   * JAWS presents the user with many commands to manage your jobs. 
+* JAWS should simplify your workflow submissions because it takes care of resource configuration and scheduling
 
+* Before using JAWS, workflows need to be wrapped in the human readable `Workflow Definition Language (WDL) <https://software.broadinstitute.org/wdl/>`_
 
+* JAWS commands can be integrated into larger workflows since everything is CLI based.
 
-Some Definitions
------------------
+Getting Started
+---------------
 
-+---------------------+------------------------------------------------------------------------------+
-|:chocolate:`WDL`     | | The Workflow Description Language is essentially a                         |
-|                     | | wrapper around the commands in your pipeline code.                         |
-+---------------------+------------------------------------------------------------------------------+
-|:chocolate:`Cromwell`| | A workflow engine which takes a WDL and converts it                        |
-|                     | | to bash commands that can be run on a "backend".                           |
-+---------------------+------------------------------------------------------------------------------+
-|:chocolate:`Backend` | | Any compute resource like a private labtop, or a public                    |
-|                     | | compute cluster like Cori. In our case we use JTM as a backend.            |
-+---------------------+------------------------------------------------------------------------------+
-|:chocolate:`JTM`     | | A customized backend that uses different compute sites (i.e. Cori, and JGI)|
-|                     | | and is responsible for reserving workers on the cluster.                   |
-+---------------------+------------------------------------------------------------------------------+
-|:chocolate:`Workers` | | Workers are "processes" that run the Cromwell commands.                    |
-|                     | | They can be part of a "worker pool" to process parallel tasks.             |
-+---------------------+------------------------------------------------------------------------------+
-|:chocolate:`Tasks`   | | Each WDL or run is composed of multiple tasks.                             |
-+---------------------+------------------------------------------------------------------------------+
+`Create your own WDLs <Tutorials/create_env.html>`_
+
+`Run an existing WDL in JAWS <Tutorials/jaws_quickstart.html>`_
+
 
 
 .. toctree::
@@ -51,7 +38,7 @@ Some Definitions
    JAWS Video Library<Intro/videos>
    FAQ <Intro/faq>
    Known Issues <Intro/known_issues>
-   Contact Us <Intro/contact_us>
+   Getting Help <Intro/contact_us>
 
 .. toctree::
    :hidden:
@@ -63,16 +50,6 @@ Some Definitions
    JAWS Commands <Tutorials/jaws_usage>
    Defining the Input Data <Tutorials/inputs_json>
 
-.. toctree::
-   :hidden:
-   :name: specsdoc
-   :maxdepth: 1
-   :caption: General Resources
-
-   Working Examples <Tutorials/example_wdls>
-   Subworkflows <Tutorials/subworkflows>
-   Current JGI Workflows </Specifications/current_workflows>
-   Using Reference Data </Specifications/refdata>
 
 .. toctree::
    :hidden:
@@ -80,12 +57,23 @@ Some Definitions
    :maxdepth: 2
    :caption: Developing your own WDLs
 
-   Conda for WDL Development <Tutorials/wdl_development>
-   Docker Images Part I <Tutorials/create_env>
-   Docker Images Part II <Tutorials/running_env>
-   Write a WDL <Tutorials/building_wdls>
+   Step 1: development environment <Tutorials/wdl_development>
+   Step 2: create docker container <Tutorials/create_env>
+   Step 3: write a WDL <Tutorials/building_wdls>
+   Step 4: making WDL work in JAWS <Tutorials/running_env>
+
+
+.. toctree::
+   :hidden:
+   :name: specsdoc
+   :maxdepth: 1
+   :caption: General Resources
+
    Best Practices for WDLs <Intro/best_practices>
    Runtime Options <Specifications/configuringJTM_in_wdls>
    Code Snippets  <Tutorials/snippets>
    Registering your Workflow <Tutorials/register_wdl>
-
+   Working Examples <Tutorials/example_wdls>
+   Subworkflows <Tutorials/subworkflows>
+   Current JGI Workflows </Specifications/current_workflows>
+   Using Reference Data </Specifications/refdata>

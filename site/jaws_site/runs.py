@@ -12,9 +12,8 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
-from jaws_site.cromwell import Cromwell
+from jaws_site.cromwell import Cromwell, CromwellException
 from jaws_site.globus import GlobusService
-from jaws_rpc import rpc_client
 
 logger = logging.getLogger(__package__)
 
@@ -130,7 +129,7 @@ class Run:
         ]:
             try:
                 cromwell.abort(self.model.cromwell_run_id)
-            except cromwell.CromwellException as error:
+            except CromwellException as error:
                 logger.warn(f"Cromwell error cancelling Run {self.model.id}: {error}")
                 raise
 
@@ -237,7 +236,7 @@ class Run:
             return
         try:
             cromwell_run_id = cromwell.submit(*infiles)
-        except cromwell.CromwellException as error:
+        except CromwellException as error:
             logger.error(f"Run {self.model.id} submission failed: {error}")
             self.update_run_status("submission failed", f"{error}")
         else:
@@ -251,7 +250,7 @@ class Run:
         logger.debug(f"Run {self.model.id}: Check Cromwell status")
         try:
             cromwell_status = cromwell.get_status(self.model.cromwell_run_id)
-        except cromwell.CromwellException as error:
+        except CromwellException as error:
             logger.error(
                 f"Unable to check Cromwell status of Run {self.model.id}: {error}"
             )
@@ -317,7 +316,7 @@ class Run:
         logger.debug(f"Run {self.model.id}: Download output")
         try:
             metadata = cromwell.get_metadata(self.model.cromwell_run_id)
-        except cromwell.CromwellException as error:
+        except CromwellException as error:
             logger.error(
                 f"Unable to get Cromwell metadata of Run {self.model.id}: {error}"
             )
@@ -440,7 +439,7 @@ def _select_active_runs(session) -> list:
     return rows
 
 
-def send_run_status_logs(session) -> None:
+def send_run_status_logs(session, central_rpc_client) -> None:
     """Send run logs to Central"""
 
     # get updates from datbase
@@ -456,15 +455,6 @@ def send_run_status_logs(session) -> None:
         return
     logger.debug(f"Sending {num_logs} run logs")
 
-    try:
-        central_rpc_client = rpc_client.RpcClient(
-            config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
-        )
-    except Exception as error:
-        logger.exception(f"Unable to init central rpc client: {error}")
-        raise
-
-    # send logs via RPC
     for log in query:
         data = {
             "site_id": config.conf.get("SITE", "id"),
@@ -487,7 +477,9 @@ def send_run_status_logs(session) -> None:
             logger.exception(f"RPC update_run_logs error: {error}")
             continue
         if "error" in response:
-            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
+            logger.info(
+                f"RPC update_run_status failed: {response['error']['message']}"
+            )
             continue
         log.sent = True
         try:

@@ -37,7 +37,7 @@ function start_gitlab_runner() {
         echo gitlab-runner failed to re-start
         exit
     fi
-    cmd="nohup $gitlab_runner run &"
+    cmd="nohup ./$gitlab_runner run &"
     if is_gitlab_runner_running; then
         echo gitlab runner is already running
     else

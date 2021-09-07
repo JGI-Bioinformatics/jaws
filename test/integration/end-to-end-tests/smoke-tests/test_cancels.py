@@ -21,19 +21,18 @@ VALID_STATES = [
     "queued",
     "running",
     "download complete"]
-CHECK_TRIES = 20
-CHECK_SLEEP = 10
+CHECK_TRIES = 2000
+CHECK_SLEEP = 30
 
 
 @pytest.mark.parametrize("state", VALID_STATES)
-def test_cancel(env, dir, site, state):
+def test_cancel(dir, site, state):
     wdl = dir + WDL
     input_json = dir + INP
-    run_id = util.submit_wdl(env, wdl, input_json, site)["run_id"]
+    run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
 
-    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    status_cmd = source_cmd + "jaws status %s" % run_id
-    cancel_cmd = source_cmd + "jaws cancel %s" % run_id
+    status_cmd = "jaws status %s" % run_id
+    cancel_cmd = "jaws cancel %s" % run_id
 
     ## get to the state we are testing
     floating_state = ""
@@ -41,8 +40,12 @@ def test_cancel(env, dir, site, state):
     while floating_state != state:
         r_sts, o_sts, e_sts = util.run(status_cmd)
         floating_state = json.loads(o_sts)["status"]
-        if floating_state == FINAL_STATE:
+        if state == FINAL_STATE and floating_state == FINAL_STATE:
             break
+
+        if floating_state == FINAL_STATE:
+            error_message = "This state was not observed: %s" % state
+            raise Exception(error_message)
 
         if tries < CHECK_TRIES:
             time.sleep(CHECK_SLEEP)
@@ -51,9 +54,6 @@ def test_cancel(env, dir, site, state):
             return
         tries += 1
 
-    if floating_state != state and floating_state == FINAL_STATE:
-        print("\n** This state was not observed: %s" % state)
-        return
 
     ## submit cancel command to JAWS and gather output
     r_can, o_can, e_can = util.run(cancel_cmd)
