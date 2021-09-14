@@ -22,7 +22,7 @@ import submission_utils as util
 #########################
 ###     Functions     ###
 #########################
-def test_should_fail_status(env, submit_bad_task):
+def test_should_fail_status(submit_bad_task):
     """
     When a user submits a WDL to site {param:site} and one of the tasks fail (for instance, due to a typo in a user-supplied command):
     the job needs to have result = failed (reflected by cmds: status, log, task-log, task-status)
@@ -41,14 +41,14 @@ def test_should_fail_status(env, submit_bad_task):
 
     # test status
     run_id = str(submit_bad_task["run_id"])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, run_id)
+    cmd = "jaws status --verbose %s" % (run_id)
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
 
     assert data["result"] == "failed", "jaws-status should say run failed"
 
 
-def test_should_fail_task_status(env, submit_bad_task):
+def test_should_fail_task_status(submit_bad_task):
     """
     jaws task-status 17028
     #TASK_NAME  ATTEMPT CROMWELL_JOB_ID STATUS_FROM     STATUS_TO       TIMESTAMP       REASON  STATUS_DETAIL
@@ -56,12 +56,12 @@ def test_should_fail_task_status(env, submit_bad_task):
     """
     # test task-status
     id = str(submit_bad_task["run_id"])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-status %s" % (env, id)
+    cmd = "jaws task-status %s" % (id)
     (r, o, e) = util.run(cmd)
     assert "failed with input file or command not found" in o.replace("\n", " ")
 
 
-def test_should_fail_task_log(env, submit_bad_task):
+def test_should_fail_task_log(submit_bad_task):
     """
     jaws task-log 17028
     #TASK_NAME  ATTEMPT CROMWELL_JOB_ID STATUS_FROM     STATUS_TO       TIMESTAMP       REASON
@@ -74,12 +74,12 @@ def test_should_fail_task_log(env, submit_bad_task):
 
     # test task-log
     id = str(submit_bad_task["run_id"])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-log %s" % (env, id)
+    cmd = "jaws task-log %s" % (id)
     (r, o, e) = util.run(cmd)
     assert "failed with input file or command not found" in o.replace("\n", " ")
 
 
-def test_should_fail_log(env, submit_bad_task):
+def test_should_fail_log(submit_bad_task):
     """
     jaws log 17028
     #STATUS_FROM        STATUS_TO       TIMESTAMP       REASON
@@ -95,7 +95,7 @@ def test_should_fail_log(env, submit_bad_task):
 
     # test log
     id = str(submit_bad_task["run_id"])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws log %s | tail -n+2" % (env, id)
+    cmd = "jaws log %s | tail -n+2" % (id)
     (r, o, e) = util.run(cmd)
 
     a = []
@@ -106,7 +106,7 @@ def test_should_fail_log(env, submit_bad_task):
     assert "failed" in a, "jaws-log should say run failed"
 
 
-def test_invalid_site(env, site):
+def test_invalid_site(site):
     """
     jaws submit WDLs/fq_count.wdl test-inputs/fq_count.json o smo
 
@@ -123,8 +123,7 @@ def test_invalid_site(env, site):
     input_json = "test-inputs/fq_count.json"
     outdir = "./should-fail"
 
-    cmd = "source ~/jaws-%s.sh > /dev/null 2>&1 && jaws submit --no-cache %s %s %s" % (
-        env,
+    cmd = "jaws submit --no-cache %s %s %s" % (
         wdl,
         input_json,
         "bogus",
@@ -137,20 +136,20 @@ def test_invalid_site(env, site):
     ), "bogus is not an acceptable site, run should fail"
 
 
-def test_invalid_docker_a(env, submit_bad_docker):
+def test_invalid_docker_a(submit_bad_docker):
     """
     TESTCASE-33
     When user submits a wdl with a reference to a docker container that does not exist in the docker hub then:
     a) Job status should go to transition to failed
     """
     id = str(submit_bad_docker["run_id"])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws log %s" % (env, id)
+    cmd = "jaws log %s" % (id)
     (r, o, e) = util.run(cmd)
 
     assert "failed" in o, "jaws-log should say run failed"
 
 
-def test_invalid_docker_b(env, site, submit_bad_docker):
+def test_invalid_docker_b(site, submit_bad_docker):
     """
     TESTCASE-33
     When user submits a wdl with a reference to a docker container that does not exist in the docker hub then:
@@ -158,13 +157,13 @@ def test_invalid_docker_b(env, site, submit_bad_docker):
     """
     # get cromwell id from status
     id = str(submit_bad_docker["run_id"])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, id)
+    cmd = "jaws status --verbose %s" % (id)
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
     cromwell_id = data["cromwell_run_id"]
 
     # check the metadata
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws errors %s" % (env, id)
+    cmd = "jaws errors %s" % (id)
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
     if site.lower() == 'cori':
@@ -179,8 +178,7 @@ def test_invalid_docker_b(env, site, submit_bad_docker):
         assert 0, f"Expected site to be cori or jgi but found {site}"
 
 
-
-def test_timeout(env, dir, site):
+def test_timeout(dir, site):
     WDL = "/WDLs/timeout.wdl"
     INP = "/test-inputs/timeout.json"
     check_sleep = 30
@@ -188,15 +186,13 @@ def test_timeout(env, dir, site):
     wdl = dir + WDL
     input_json = dir + INP
 
-    run_id = util.submit_wdl(env, wdl, input_json, site)["run_id"]
-    util.wait_for_run(run_id, env, check_tries, check_sleep)
+    run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
+    util.wait_for_run(run_id, check_tries, check_sleep)
 
     time.sleep(60)
 
     ## get the errors from JAWS for that run
-    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    errors_cmd = "jaws errors %s" % (run_id)
-    cmd = source_cmd + errors_cmd
+    cmd = "jaws errors %s" % (run_id)
     r, o, e = util.run(cmd) 
 
     ## do the check!
@@ -204,14 +200,42 @@ def test_timeout(env, dir, site):
     assert "failed with timeout" in o, fail_msg
 
 
-def test_bad_sub_workflow_error_msg(env, submit_bad_sub_task):
+def test_bad_sub_workflow_error_msg(submit_bad_sub_task):
     """
     TESTCASE-42
     When user submits a wdl with a subworkflow that has a command error then
     the errors command should display error message
     """
     id = str(submit_bad_sub_task["run_id"])
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws errors %s" % (env, id)
+    cmd = "jaws errors %s" % (id)
     (r, o, e) = util.run(cmd)
 
     assert "echoooo: command not found" in o, "sub workflow command error should appear in errors"
+
+def test_timeout(dir, site):
+    """
+    TESTCASE-44
+    When user submits a wdl and a timeout occurs, the 
+    timeout message should appear in the output from the errors command
+    """
+    WDL = "/WDLs/timeout.wdl"
+    INP = "/test-inputs/timeout.json"
+    check_sleep = 30
+    check_tries = 50
+
+    wdl = dir + WDL
+    input_json = dir + INP
+
+    run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
+    util.wait_for_run(run_id, check_tries, check_sleep)
+
+    time.sleep(60)
+
+    # get the errors from JAWS for that run
+    cmd = "jaws errors %s" % (run_id)
+    r, o, e = util.run(cmd) 
+
+    # do the check!
+    fail_msg = "error. Keyword absent: \"timeout\" (%s)" % run_id
+    assert "failed with timeout" in o, fail_msg
+

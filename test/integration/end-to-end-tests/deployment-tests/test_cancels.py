@@ -22,18 +22,17 @@ VALID_STATES = [
     "running",
     "download complete"]
 CHECK_TRIES = 2000
-CHECK_SLEEP = 10
+CHECK_SLEEP = 30
 
 
 @pytest.mark.parametrize("state", VALID_STATES)
-def test_cancel(env, dir, site, state):
+def test_cancel(dir, site, state):
     wdl = dir + WDL
     input_json = dir + INP
-    run_id = util.submit_wdl(env, wdl, input_json, site)["run_id"]
+    run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
 
-    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    status_cmd = source_cmd + "jaws status %s" % run_id
-    cancel_cmd = source_cmd + "jaws cancel %s" % run_id
+    status_cmd = "jaws status %s" % run_id
+    cancel_cmd = "jaws cancel %s" % run_id
 
     ## get to the state we are testing
     floating_state = ""

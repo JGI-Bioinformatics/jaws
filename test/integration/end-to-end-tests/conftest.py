@@ -1,8 +1,16 @@
 import pytest
 import submission_utils as util
 
-check_tries = 360
-check_sleep = 60
+#@pytest.fixture(scope="session")
+#def check_tries():
+#    return 360
+#    
+#@pytest.fixture(scope="session")
+#def check_sleep():
+#    return 60
+
+check_sleep = 360
+check_tries = 60
 
 
 @pytest.fixture(scope="session")
@@ -18,7 +26,6 @@ def submit_fq_count_wdl(request):
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
-    env = request.config.getoption("--env")
 
     wdl = target_dir + "/WDLs/fq_count.wdl"
     input_json = target_dir + "/test-inputs/fq_count.json"
@@ -31,7 +38,7 @@ def submit_fq_count_wdl(request):
     "tag": "submit_fq_count_wdl"
     }
     """
-    data = util.submit_wdl(env, wdl, input_json, site)
+    data = util.submit_wdl(wdl, input_json, site)
     return data
 
 
@@ -47,16 +54,15 @@ def submit_subworkflow_alignment(request):
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
-    env = request.config.getoption("--env")
 
     wdl = target_dir + "/WDLs/jaws-alignment-example/main.wdl"
     input_json = target_dir + "/WDLs/jaws-alignment-example/inputs.json"
 
-    data = util.submit_wdl(env, wdl, input_json, site)
+    data = util.submit_wdl(wdl, input_json, site)
 
     # wait for run to complete
     id = data["run_id"]
-    util.wait_for_run(id, env, check_tries, check_sleep)
+    util.wait_for_run(id, check_tries, check_sleep)
     return data
 
 
@@ -72,17 +78,16 @@ def submit_bad_task(request):
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
-    env = request.config.getoption("--env")
 
     wdl = target_dir + "/WDLs/bad_task.wdl"
     input_json = target_dir + "/test-inputs/fq_count.json"
 
-    data = util.submit_wdl_noexit(env, wdl, input_json, site)
+    data = util.submit_wdl_noexit(wdl, input_json, site)
 
     id = data["run_id"]
 
     # wait for run to complete
-    util.wait_for_run(id, env, check_tries, check_sleep)
+    util.wait_for_run(id, check_tries, check_sleep)
     return data
 
 
@@ -98,16 +103,15 @@ def submit_bad_docker(request):
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
-    env = request.config.getoption("--env")
 
     wdl = target_dir + "/WDLs/bad_docker.wdl"
     input_json = target_dir + "/test-inputs/fq_count.json"
 
-    data = util.submit_wdl(env, wdl, input_json, site)
+    data = util.submit_wdl( wdl, input_json, site)
 
     # wait for run to complete
     id = data["run_id"]
-    util.wait_for_run(id, env, check_tries, check_sleep)
+    util.wait_for_run(id, check_tries, check_sleep)
 
     # print(data)  # used for debugging
     return data
@@ -118,17 +122,16 @@ def submit_bad_sub_task(request):
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
-    env = request.config.getoption("--env")
 
     wdl = target_dir + "/WDLs/main_bad_sub_task.wdl"
     input_json = target_dir + "/test-inputs/main_bad_sub_task.json"
 
-    data = util.submit_wdl_noexit(env, wdl, input_json, site)
+    data = util.submit_wdl_noexit(wdl, input_json, site)
 
     id = data["run_id"]
 
     # wait for run to complete
-    util.wait_for_run(id, env, check_tries, check_sleep)
+    util.wait_for_run(id, check_tries, check_sleep)
     return data
 
 
@@ -137,17 +140,16 @@ def submit_scatter_timeout(request):
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
-    env = request.config.getoption("--env")
 
     wdl = target_dir + "/../../../../examples/leo_dapseq/leo_15_min.wdl"
     input_json = target_dir + "/../../../../examples/leo_dapseq/shortened-100.json"
 
-    data = util.submit_wdl_noexit(env, wdl, input_json, site)
+    data = util.submit_wdl_noexit(wdl, input_json, site)
 
     id = data["run_id"]
 
     # wait for run to complete
-    util.wait_for_run(id, env, check_tries, check_sleep)
+    util.wait_for_run(id, check_tries, check_sleep)
     return data
 
 
@@ -164,7 +166,6 @@ def submit_skylake_250(request):
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
-    env = request.config.getoption("--env")
 
     # skip this fixture if not run on cori
     if "cori" not in site.lower():
@@ -174,11 +175,11 @@ def submit_skylake_250(request):
     input_json = target_dir + "/test-inputs/fq_count.json"
     site = "cori"
 
-    data = util.submit_wdl(env, wdl, input_json, site)
+    data = util.submit_wdl( wdl, input_json, site)
 
     # wait for run to complete
     id = data["run_id"]
-    util.wait_for_run(id, env, check_tries, check_sleep)
+    util.wait_for_run(id, check_tries, check_sleep)
 
     return data
 
@@ -195,7 +196,6 @@ def submit_skylake_500(request):
     # allow user to pass variables into the test functions via command line
     target_dir = request.config.getoption("--dir")
     site = request.config.getoption("--site")
-    env = request.config.getoption("--env")
 
     # skip this fixture if not run on cori
     if "cori" not in site.lower():
@@ -204,11 +204,11 @@ def submit_skylake_500(request):
     wdl = target_dir + "/WDLs/skylake_test_500.wdl"
     input_json = target_dir + "/test-inputs/fq_count.json"
 
-    data = util.submit_wdl(env, wdl, input_json, site)
+    data = util.submit_wdl(wdl, input_json, site)
 
     # wait for run to complete
     id = data["run_id"]
-    util.wait_for_run(id, env, check_tries, check_sleep)
+    util.wait_for_run(id, check_tries, check_sleep)
 
     return data
 
@@ -255,12 +255,6 @@ def pytest_addoption(parser):
         action="store",
         help="the JAWS site [cori|jgi] that will be used during submission",
     )
-    parser.addoption(
-        "--env",
-        action="store",
-        help="the JAWS environment [dev|staging|prod] that will be used during submission",
-    )
-
 
 # These functions allows an argument to be passed into the test functions
 @pytest.fixture
@@ -274,8 +268,3 @@ def site(request):
     """ The --site CLI argument is for passing the site [cori|jgi] to test the functions"""
     return request.config.getoption("--site")
 
-
-@pytest.fixture
-def env(request):
-    """ The --env CLI argument is for passing the environment [dev|staging|prod] to the test functions"""
-    return request.config.getoption("--env")

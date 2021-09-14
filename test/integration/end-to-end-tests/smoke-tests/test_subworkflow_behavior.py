@@ -31,7 +31,7 @@ check_sleep = 60
 #########################
 
 
-def test_task_status(env, submit_subworkflow_alignment):
+def test_task_status(submit_subworkflow_alignment):
     """
     # task-status verifies all subworkflows task status was shown
     #
@@ -46,10 +46,7 @@ def test_task_status(env, submit_subworkflow_alignment):
     # time.sleep(120)  # wait some time before running task-status since there is some lag between
     #                 # when "jaws status" calls success and when "jaws task-status" calls success.
     run_id = submit_subworkflow_alignment["run_id"]
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-status %s | tail -n+2" % (
-        env,
-        run_id,
-    )
+    cmd = "jaws task-status %s | tail -n+2" % (run_id)
     (r, o, e) = util.run(cmd)
 
     # put the table into a dictionary
@@ -70,7 +67,7 @@ def test_task_status(env, submit_subworkflow_alignment):
     assert len(list(filter(lambda x: (x == "success"), status_to))) == 5
 
 
-def test_task_log(env, submit_subworkflow_alignment):
+def test_task_log(submit_subworkflow_alignment):
     """
     Test that all subworkflow tasks are represented by the task-log command
 
@@ -106,10 +103,7 @@ def test_task_log(env, submit_subworkflow_alignment):
     #                 # when "jaws status" calls success and when "jaws task-status" calls success.
 
     run_id = submit_subworkflow_alignment["run_id"]
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws task-log %s | tail -n+2" % (
-        env,
-        run_id,
-    )
+    cmd = "jaws task-log %s | tail -n+2" % (run_id)
     (r, o, e) = util.run(cmd)
 
     # put the table into a dictionary
@@ -123,7 +117,7 @@ def test_task_log(env, submit_subworkflow_alignment):
     assert len(task_names) == 25
 
 
-def test_for_raw_cromwell_files(env, submit_subworkflow_alignment):
+def test_for_raw_cromwell_files(submit_subworkflow_alignment):
     """
     test that raw cromwell subworkflow files are returned to user defined output dir.
 
@@ -137,7 +131,7 @@ def test_for_raw_cromwell_files(env, submit_subworkflow_alignment):
     """
     run_id = submit_subworkflow_alignment["run_id"]
 
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, run_id)
+    cmd = "jaws status --verbose %s" % (run_id)
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
     outdir = data["output_dir"]
@@ -152,7 +146,7 @@ def test_for_raw_cromwell_files(env, submit_subworkflow_alignment):
     assert int(o.strip()) == 4
 
 
-def test_saved_subwdl(env, submit_subworkflow_alignment):
+def test_saved_subwdl(submit_subworkflow_alignment):
     """
     subworkflow WDLs are saved in the user defined output dir
 
@@ -160,7 +154,7 @@ def test_saved_subwdl(env, submit_subworkflow_alignment):
     run_id = submit_subworkflow_alignment["run_id"]
 
     # need to get the submission_id from the status
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws status --verbose %s" % (env, run_id)
+    cmd = "jaws status --verbose %s" % (run_id)
     (r, o, e) = util.run(cmd)
     assert not r
     data = json.loads(o)
@@ -176,12 +170,12 @@ def test_saved_subwdl(env, submit_subworkflow_alignment):
     assert "alignment.wdl" in o
 
 
-def test_subworkflow_metadata(env, submit_subworkflow_alignment):
+def test_subworkflow_metadata(submit_subworkflow_alignment):
     """
     metadata command also returns cromwell metadata for subworkflows
     """
     run_id = submit_subworkflow_alignment["run_id"]
-    cmd = "source ~/jaws-%s.sh > /dev/null && jaws metadata %s" % (env, run_id)
+    cmd = "jaws metadata %s" % (run_id)
     (r, o, e) = util.run(cmd)
     meta_output = json.loads(o)
 
