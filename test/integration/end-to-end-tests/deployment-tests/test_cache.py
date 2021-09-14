@@ -26,20 +26,13 @@ check_sleep = 30
 ###     Functions     ###
 #########################
 
-def get_submission_id(env,cmd):
+def get_submission_id(cmd):
+    print("running the command")
     (r, o, e) = util.run(cmd)
     if r != 0: 
         print("jaws submit command failed %s" % cmd)
         assert 0
-
-#    o="""
-#    test_cache.py::test_cache MY OUT: {
-#    "max_ram_gb": 10,
-#    "run_id": 7615,
-#    "site_id": "CORI",
-#    "status": "uploading",
-#    "tag": null
-#}"""
+    print(f"command was submitted with rc {r}")
 
     # The stdout from a submission looks like
     #
@@ -59,76 +52,63 @@ def get_submission_id(env,cmd):
     else:
         pytest.exit(f"there was no json in the output for the submit command: {cmd}")
 
-    util.wait_for_run(run_id, env, check_tries, check_sleep)
+    print(f"waiting for {run_id}")
+    util.wait_for_run(run_id, check_tries, check_sleep)
 
     cmd = (
-        "source ~/jaws-%s.sh > /dev/null && jaws metadata %s" 
-        % (env, run_id)
+        "jaws metadata %s" 
+        % (run_id)
     )
+    print(f"Metadata command: {cmd}")
     (r, o, e) = util.run(cmd)
     if r != 0: 
         print("jaws metadata command failed %s" % cmd)
         assert 0
     data = json.loads(o)
+    print(f"{data=}")
     return data,run_id
 
-def test_cache(env,site,dir):
+def test_cache(site,dir):
     """make sure cromwell's cache'ing feature works and can be turned off with jaws submit --no-cache."""
 
     wdl = dir + '/WDLs/fq_count.wdl'
-    input_json_file = dir + '/test_cache.json'
+    input_json_file = dir + '/test-inputs/fq_count.json'
 
-    # By creating a unique name for the inputs json file, we should force Cromwell to not use a cached result.
-    # We should see the callCaching: hit equal to false
-    # i.e. data['submission_id']['calls']['fq_count.count_seqs'][0]['callCaching']['hit'] == false
-    randstring = tempfile.NamedTemporaryFile(prefix='sample.',dir='.')
-    temp_json_path = "%s.fastq" % randstring.name
-    myhost = socket.gethostname()
-    if 'cori' in myhost:
-        os.symlink('/global/cfs/projectdirs/jaws/test/tutorial_test_data/sample.fastq', temp_json_path)
-    elif 'lrc' in myhost:
-        os.symlink('/global/home/groups-sw/lr_jgicloud/examples_data/sample.fastq', temp_json_path)
-    else:
-        sys.exit('Error: hostname unidentified')
-
-    content="{\"fq_count.fastq_file\": \"%s\"}" % temp_json_path
-    with open(input_json_file,'w') as mj:
-        mj.write(content)
-        
     cmd = (
-        "source ~/jaws-%s.sh > /dev/null && jaws submit %s %s %s" 
-        % (env, wdl, input_json_file, site)
+        "jaws submit --no-cache %s %s %s" 
+        % (wdl, input_json_file, site)
     )
+    print(f"{cmd=}")
 
-    (data,run_id) = get_submission_id(env,cmd)
+    (data,run_id) = get_submission_id(cmd)
     submission_id = list(data.keys())[0]
 
     # we should not see caching with this submission
-    assert data[submission_id]['calls']['fq_count.count_seqs'][0]['callCaching']['hit'] is False, "This run \"%s\" should not be cached but was." % run_id
+    assert data[submission_id]['calls']['fq_count.count_seqs'][0]['callCaching']['allowResultReuse'] is False, "This run \"%s\" should not be cached but was." % run_id
 
 
     ### ------------------------------------------------- ###    
     # Running again with the same input should use the cached result.
     cmd = (
-        "source ~/jaws-%s.sh > /dev/null && jaws submit %s %s %s" 
-        % (env, wdl, input_json_file, site)
+        "jaws submit %s %s %s" 
+        % (wdl, input_json_file, site)
     )
 
-    (data,run_id) = get_submission_id(env,cmd)
+    (data,run_id) = get_submission_id(cmd)
     submission_id = list(data.keys())[0]
 
     # we should not see caching with this submission
-    assert data[submission_id]['calls']['fq_count.count_seqs'][0]['callCaching']['hit'] is True, "This run \"%s\" should be cached but was not." % run_id
+    assert data[submission_id]['calls']['fq_count.count_seqs'][0]['callCaching']['allowResultReuse'] is True, "This run \"%s\" should be cached but was not." % run_id
 
 
     ### ------------------------------------------------- ###    
     # Test that --no-cache works with same input
     cmd = (
-        "source ~/jaws-%s.sh > /dev/null && jaws submit --no-cache %s %s %s" 
-        % (env, wdl, input_json_file, site)
+        "jaws submit --no-cache %s %s %s" 
+        % (wdl, input_json_file, site)
     )
 
-    (data,run_id) = get_submission_id(env,cmd)
+    (data,run_id) = get_submission_id(cmd)
     submission_id = list(data.keys())[0]
 
     # we should not see caching with this submission

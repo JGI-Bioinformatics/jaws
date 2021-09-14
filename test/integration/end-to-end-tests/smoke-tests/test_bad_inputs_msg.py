@@ -17,52 +17,46 @@ check_tries = 360  # try this many times when waiting for a JAWS run to complete
 check_sleep = 60  # wait for this amount of time between tries.
 
 
-def test_json_file_does_not_exist(env, dir, site):
+def test_json_file_does_not_exist(dir, site):
     # TESTCASE-4
     # Submit job with path to json file that does not exist
     # Can't use submission_utils submit_wdl function here because it exits if submission not successful
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
     inputs = os.path.join(dir, "./FileDoesNotExist.json")
 
-    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
-    cmd = source_cmd + submit_cmd
+    cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
     assert "No such file or directory:" in e
 
 
-def test_input_file_is_not_json_format(env, dir, site):
+def test_input_file_is_not_json_format(dir, site):
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
     # testing for message when inputs file is not json, so using wdl again instead of a json file
     inputs = wdl
-    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
-    cmd = source_cmd + submit_cmd
+    cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
     assert "is not a valid JSON file" in e
 
-
-def test_json_bad_path_to_input_file_msg(env, dir, site):
+def xtest_json_bad_path_to_input_file_msg(dir, site):
     # TESTCASE-5a
     # Submit job with json that contains a path to a non-existent input file
-    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
 
     # Can't use  submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/bad_path_inputs.json")
     submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
-    cmd = source_cmd + submit_cmd
+    cmd = submit_cmd
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
     assert "Input path not found or inaccessible:" in e
 
 
-def test_misspelled_variable_in_input_file_msg(env, dir, site):
+def xtest_misspelled_variable_in_input_file_msg(dir, site):
     # TESTCASE-5b
     # Submit job with json that contains a misspelled variable name
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
@@ -70,16 +64,14 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
 
     # we CAN use submission utils here because this job submits successfully
     # error isn't seen until the run fails
-    data = util.submit_wdl(env, wdl, input_json, site)
+    data = util.submit_wdl(wdl, input_json, site)
 
     # wait for run to complete
-    run_id = data['run_id']
-    util.wait_for_run(run_id, env, check_tries, check_sleep)
+    run_id = data["run_id"]
+    util.wait_for_run(run_id, check_tries, check_sleep)
 
     # check for the correct error message
-    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
-    errors_cmd = "jaws errors %s" % (run_id)
-    cmd = source_cmd + errors_cmd
+    cmd = "jaws errors %s" % (run_id)
     (r, o, e) = util.run(cmd)
 
     # in 2.2 this error is seen in the metadata
@@ -87,7 +79,7 @@ def test_misspelled_variable_in_input_file_msg(env, dir, site):
     assert "Required workflow input 'fq_count.fastq_file' not specified" in o
 
 
-def test_bad_input_file_permissions_msg(env, dir, site):
+def test_bad_input_file_permissions_msg(dir, site):
     # TESTCASE-6
     # Submit json that contains a path to a file with bad permissions
     # This test uses the bad_permissions.json which points to a file that has no read permissions
@@ -95,47 +87,43 @@ def test_bad_input_file_permissions_msg(env, dir, site):
     # ls -l /global/cfs/projectdirs/jaws/test/tutorial_test_data/no_read_perms.fastq
     # ---------- 1 jfroula genome 3470 Apr 27 17:01 /global/cfs/projectdirs/jaws/test/tutorial_test_data/no_read_perms.fastq
     # JAWS should show user an error message that explains the problem to the user
-    
-    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
+
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/bad_permissions.json")
     submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
-    cmd = source_cmd + submit_cmd
-    (r, o, e) = util.run(cmd)
+    (r, o, e) = util.run(submit_cmd)
 
     # check for the correct error message
     assert "no_read_perms.fastq" in e, "file name should be in error message"
-    assert "Permission denied" in e, "permissions problem should be explained in error message"
+    assert (
+        "Permission denied" in e
+    ), "permissions problem should be explained in error message"
 
 
-def test_invalid_wdl_syntax_msg(env, dir, site):
+def test_invalid_wdl_syntax_msg(dir, site):
     # TESTCASE-7
     # Submit invalid WDL syntax
-    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
     wdl = os.path.join(dir, "WDLs/bad_syntax.wdl")
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/fq_count.json")
-    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
-    cmd = source_cmd + submit_cmd
+    cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
     assert "ERROR: Unexpected symbol" in e
 
 
-def test_invalid_wdl_semantics_msg(env, dir, site):
+def test_invalid_wdl_semantics_msg(dir, site):
     # TESTCASE-8
     # Submit invalid WDL semantics
-    source_cmd = "source ~/jaws-%s.sh > /dev/null && " % env
     wdl = os.path.join(dir, "WDLs/bad_semantics.wdl")
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/fq_count.json")
-    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
-    cmd = source_cmd + submit_cmd
+    cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message

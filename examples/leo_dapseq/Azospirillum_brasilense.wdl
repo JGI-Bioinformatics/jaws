@@ -12,7 +12,6 @@ workflow jgi_dap_leo {
     File bgmodel
     Map[File, String] library_names_map
     Map[File, String] sample_names_map
-    File outdir
     String amplified
     Int maxfrags
     Boolean find_motifs
@@ -44,7 +43,7 @@ workflow jgi_dap_leo {
                         bigwig=trimAlign_ctl.bw,
                         trim_stats=trimAlign_ctl.trim_stats,
                         align_stats=trimAlign_ctl.align_stats,
-                        destination=outdir+"/"+ctl_basename
+                        destination=ctl_basename
             }
         }
 
@@ -136,7 +135,7 @@ workflow jgi_dap_leo {
                     macs2_stats=findPeaks.macs2_stats,
                     overlap_genes=assignGenes.overlap_genes,
                     assigned_genes=assignGenes.assigned_genes,
-                    destination=outdir+"/"+basename
+                    destination=basename
         }
     }
 }
