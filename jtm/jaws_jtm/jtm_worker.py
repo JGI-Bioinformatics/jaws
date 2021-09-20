@@ -1036,7 +1036,7 @@ def worker(
         if CONFIG.configparser.get("JTM", "worker_config_file"):
             worker_config = CONFIG.configparser.get("JTM", "worker_config_file")
 
-        if cluster_name in ("cori", "jgi", "cascade"):
+        if cluster_name in ("cori", "jgi", "tahoma"):
 
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
@@ -1327,7 +1327,7 @@ wait
                         set_jtm_config_file="--config=%s" % worker_config,
                     )
 
-                elif cluster_name in ("pnnl", "pnl", "emsl", "cascade"):
+                elif cluster_name in ("pnnl", "pnl", "emsl", "tahoma"):
                     if worker_id_param:
                         batch_job_misc_params += " -wi %(worker_id)s_${i}" % dict(
                             worker_id=UNIQ_WORKER_ID
