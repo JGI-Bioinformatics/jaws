@@ -102,7 +102,7 @@ variables:
 
   TAHOMA_CLIENT_INSTALL_BASEDIR: ""
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
-  TAHOMA_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
+  TAHOMA_GLOBUS_EP: "8e65719e-1a53-11ec-a09f-6b21ca6daf73"
   TAHOMA_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
   TAHOMA_PYTHON: "python"
   TAHOMA_LOAD_PYTHON: "module load python/3.8.1"
