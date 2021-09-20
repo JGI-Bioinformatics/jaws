@@ -19,8 +19,8 @@ variables:
   JAWS_RMQ_PORT: 5672
   JAWS_GLOBUS_CLIENT_ID: "1a130a01-48bc-489b-a729-9ab858de1755"
   CROMWELL_VERSION: "58"
-  CROMWELL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/59/cromwell-59.jar"
-  WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/59/womtool-59.jar"
+  CROMWELL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/58/cromwell-58.jar"
+  WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/58/womtool-58.jar"
   JAWS_DB_HOST: "jaws-db.lbl.gov"
   JAWS_DB_PORT: 3306
 
