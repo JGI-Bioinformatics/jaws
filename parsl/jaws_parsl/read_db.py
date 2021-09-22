@@ -53,17 +53,19 @@ def read_db(taskid, db):
     cursor.execute(query)
     r = cursor.fetchone()
     if r is None:
+        cursor.close()
+        conn.close()
         raise ValueError("Task {} not found in Parsl monitoring DB.".format(taskid))
     print("Task status: " + r[0])
+
+    cursor.close()
+    conn.close()
 
     # setting exit code for cromwell check-alive
     # if still running, exit code 0
     # else (finished or failed), exit code 1
     if r[0] == 'exec_done' or r[0] == 'failed':
         sys.exit(1)
-
-    cursor.close()
-    conn.close()
 
 
 if __name__ == "__main__":

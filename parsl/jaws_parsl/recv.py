@@ -139,7 +139,7 @@ class TasksChannel():
                     executor = 'lbl'
                 future = run_script(msg)
                 task_id = future.tid
-                logger.debug(f"[Task:{task_id} Launched")
+                logger.debug(f"Task:{task_id} Launched")
                 run_id = get_cromwell_run_id(msg)
                 future.add_done_callback(partial(on_task_callback, task_id, run_id))
                 update_site('', 'LAUNCHED', task_id, run_id)
