@@ -37,7 +37,8 @@ def get_cromwell_run_id(msg_cmd):
 
 
 def start_file_logger(filename, name='jaws-parsl-recv.log', level=logging.DEBUG, format_string=None):
-    """Add a stream log handler.
+    """
+    Add a stream log handler.
 
     Args:
         - filename (string): Name of the file to write logs to
@@ -113,8 +114,30 @@ def update_site(status_from, status_to, task_id, run_id):
 
 
 class TasksChannel():
+    """
+    Set up a tasks channel to listen for multiprocessing messages and launch
+    work upon message acceptance.
 
+    At initialization, a multiprocessing connection Listener is instantiated
+    with the host, port, and password specified in the RPC config file. The
+    "listen" function opens the connection Listener to receive and accept
+    messages, which come in from the send.py file function "send". Based on the
+    task parameters specified in a given message, "listen" chooses an executor
+    for the task and sends the relevant information to the "run_script"
+    function for task execution via Parsl.
+
+    Attributes:
+        listener: multiprocessing connection Listener instance
+    """
     def __init__(self, host, port, password):
+        """
+        Inits TaskChannel with listener tuned to host:port connection.
+
+        Args:
+            host (string): multiproc connect host from which to recv msgs
+            port (int): multiproc connect host port
+            password (string): multiprocessing connection password
+        """
         self.listener = Listener((host, port), authkey=bytes(password, encoding='utf-8'))
 
     def listen(self):
