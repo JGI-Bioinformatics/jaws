@@ -519,6 +519,10 @@ def get(run_id: int, dest: str, complete: bool) -> None:
         logger.error(f"Run {run_id} doesn't have an output_dir defined")
         sys.exit(f"Run {run_id} doesn't have an output_dir defined")
 
+    if os.path.exists(dest) and os.path.isfile(dest):
+        sys.exit(f"Error destination path is a file: {dest}")
+    os.makedirs(dest, exist_ok=True)
+
     if complete is True:
         _get_complete(run_id, src, dest)
     else:
@@ -528,6 +532,7 @@ def get(run_id: int, dest: str, complete: bool) -> None:
 def _get_complete(run_id: int, src: str, dest: str) -> None:
     """Copy the complete cromwell output dir"""
     from jaws_client import workflow
+    src = f"{src}/"  # so rsync won't make an extra dir
     try:
         result = workflow.rsync(
             src,
