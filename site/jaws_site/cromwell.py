@@ -353,7 +353,7 @@ class Metadata:
             outputs = relpath_outputs
         if "outfile" in kwargs:
             with open(kwargs["outfile"], 'w') as fh:
-                fh.write(json.dumps(outputs))
+                fh.write(json.dumps(outputs, sort_keys=True, indent=4))
         else:
             return outputs
 

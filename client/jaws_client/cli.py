@@ -575,8 +575,8 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str) -> None:
     with open(outputs_file, 'r') as fh:
         outputs = json.load(fh)
     for (key, value) in outputs.items():
-        src_file = os.path.normpath(os.path.join(src_dir), value)
-        dest_file = os.path.join(dest_dir, os.path.basename(value))
+        src_file = os.path.normpath(os.path.join(src_dir, value))
+        dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(value)))
         if os.path.isfile(src_file):
             shutil.copy(src_file, dest_file)
             os.chmod(dest_file, 0o0664)
