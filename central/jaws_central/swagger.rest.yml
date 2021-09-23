@@ -43,7 +43,7 @@ paths:
           description: OK
       security: []
 
-  /auth/{hash_code}:
+  /auth:
     get:
       operationId: jaws_central.auth.get_user_token
       tags:
@@ -51,11 +51,16 @@ paths:
       summary: Get a user's JAWS access token
       description: Allows the dashboard to retrieve a logged-in user's JAWS token.
       parameters:
-        - name: hash_code
+        - name: 
           in: path
           description: User's JGI SSO session hash code
           type: string
-          required: True
+          required: False
+        - name: 
+          in: formData
+          description: User's email address
+          type: string
+          required: False
       responses:
         200:
           description: OK
@@ -63,6 +68,8 @@ paths:
           description: Access denied
         404:
           description: User not found
+        500:
+          description: Internal server error
       security:
         - oauth2: ['dashboard']
 
