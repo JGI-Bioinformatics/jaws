@@ -399,11 +399,16 @@ def test_get(configuration, monkeypatch):
 
     def mock_get_complete(run_id, src, dest):
         pass
+
+    def mock_makedirs(path):
+        pass
     
     monkeypatch.setattr(subprocess, "run", mock_run)
     monkeypatch.setattr(cli, "_run_status", mock__run_status)
     monkeypatch.setattr(cli, "_get_outputs", mock_get_outputs)
     monkeypatch.setattr(cli, "_get_complete", mock_get_complete)
+    monkeypatch.setattr(os, "makedirs", mock_makedirs)
+
     from jaws_client import workflow
 
     monkeypatch.setattr(workflow, "rsync", mock_rsync)
