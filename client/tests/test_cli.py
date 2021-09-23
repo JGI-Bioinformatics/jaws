@@ -400,7 +400,7 @@ def test_get(configuration, monkeypatch):
     def mock_get_complete(run_id, src, dest):
         pass
 
-    def mock_makedirs(path):
+    def mock_makedirs(path, **kwargs):
         pass
     
     monkeypatch.setattr(subprocess, "run", mock_run)
