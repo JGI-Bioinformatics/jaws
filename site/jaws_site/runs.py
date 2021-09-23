@@ -342,7 +342,7 @@ class Run:
             return
 
         outputs_file = os.path.join(cromwell_workflow_dir, "outputs.json")
-        metadata.outputs(outputs_file, relpath=True)
+        metadata.outputs(outfile=outputs_file, relpath=True)
 
         self.copy_metadata_files(cromwell_workflow_dir)
 
