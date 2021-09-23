@@ -44,19 +44,19 @@ paths:
       security: []
 
   /auth:
-    get:
+    post:
       operationId: jaws_central.auth.get_user_token
       tags:
         - user
       summary: Get a user's JAWS access token
       description: Allows the dashboard to retrieve a logged-in user's JAWS token.
       parameters:
-        - name: 
-          in: path
+        - name: sso_hash
+          in: formData
           description: User's JGI SSO session hash code
           type: string
           required: False
-        - name: 
+        - name: email
           in: formData
           description: User's email address
           type: string
