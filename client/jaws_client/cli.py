@@ -14,6 +14,7 @@ from jaws_client import log as logging
 from jaws_client import deprecated
 from jaws_client import wfcopy as wfc
 from jaws_client.config import Configuration
+from jaws_client.copy_progress import copy_with_progress_bar
 
 JAWS_LOG_ENV = "JAWS_CLIENT_LOG"
 JAWS_USER_LOG = os.path.expanduser("~/jaws.log")
@@ -583,7 +584,7 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str) -> None:
         src_file = os.path.normpath(os.path.join(src_dir, value))
         dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(value)))
         if os.path.isfile(src_file):
-            shutil.copy(src_file, dest_file)
+            copy_with_progress_bar(src_file, dest_file)
             os.chmod(dest_file, 0o0664)
 
 
