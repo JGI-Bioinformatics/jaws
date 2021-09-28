@@ -413,7 +413,6 @@ class WdlFile:
 
         for subworkflow in self.subworkflows:
             relative_path = os.path.relpath(subworkflow.file_location)
-            rel_dir_name = os.path.dirname(relative_path)
             staged_sub_wdl = join_path(compression_dir, relative_path)
             try:
                 os.mkdir(os.path.dirname(staged_sub_wdl), 0o774)
