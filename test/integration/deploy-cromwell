@@ -2,6 +2,12 @@
 
 echo "BEGIN deploy-cromwell"
 
+# import helper functionn from any location
+# taken from https://stackoverflow.com/questions/192292/how-best-to-include-other-scripts
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+. "$DIR/utils.sh"
+
 ## VERIFY REQUIRED VARS ARE DEFINED
 # If any env are undefined, try sourcing the setup script and check again.
 # Exits if any required var is undefined.
@@ -18,6 +24,7 @@ SITE_CONTAINER_TYPE
 SITE_CONTAINERS_DIR
 SITE_JTM_SCRATCH_DIR
 SITE_CROMWELL_TMPDIR
+SITE_REF_DATA_DIR
 CROMWELL_WORKFLOW_LOGS_DIR
 CROMWELL_EXECUTIONS_DIR
 JTM_CONFIG_FILE
@@ -41,6 +48,13 @@ if [[ $RESULT -ne 0 ]]; then
   done
 fi
 [ $RESULT -eq 0 ] || exit 1
+
+
+## CREATE SITE_REF_DATA_DIR DIR
+if [ ! -d "$SITE_REF_DATA_DIR" ]; then
+  mkdir -p "$SITE_REF_DATA_DIR"
+  fix_perms $SITE_JTM_GROUP "$SITE_REF_DATA_DIR"
+fi
 
 
 ## COPY CROMWELL JAR
