@@ -493,7 +493,7 @@ class WorkflowInputs:
             self.src_file_inputs.add(element)
         return element
 
-    def move_input_files(self, destination):
+    def move_input_files(self, destination, quiet=False):
         """
         Moves the input files defined in a JSON file to a destination.
 
@@ -527,7 +527,10 @@ class WorkflowInputs:
 
             # Files must be copied in to ensure they are readable by the jaws and jtm users.  The group
             # will be set correctly as a result of the gid sticky bit and acl rules on the inputs dir.
-            copy_with_progress_bar(original_path, dest_path)
+            if quiet:
+                shutil.copyfile(original_path, dest_path)
+            else:
+                copy_with_progress_bar(original_path, dest_path)
             os.chmod(dest_path, 0o0660)
 
         return copied_files
