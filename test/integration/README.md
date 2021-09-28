@@ -154,12 +154,12 @@ into the user. If you are logged into tahoma, a simple `ssh twf1` should work fi
 `jaws` and `svc-jtm-user` maps to `jaws_jtm` so any services that need to run as the user that submits jobs
 will be `svc-jtm-user`. 
 
-### Check the status of JAWS services:
+Check the status of JAWS services:
 
     $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf status
     $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jtm.conf status
 
-### Start the JAWS services:
+Start the JAWS services:
 
     $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf start
     $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jtm.conf start
@@ -195,15 +195,11 @@ since it'll pick up the system python instead.
     $ nohup ./usr/bin/gitlab-runner run -c configuration/config.toml &
 
 ## Starting the gitlab-runner on Central
-This is a special case since the gitlab runner on jaws.lbl.gov is a VM and is auto started by systemd as root.  Therefore, no intervention is required for re-starting it.
+This is a special case since the gitlab runner on jaws.lbl.gov is auto started by systemd as root.  Therefore, no intervention is required for re-starting it.
 The below commands are what systemd runs:
     
     $ cd /usr/lib/gitlab-runner
     $ ./gitlab-runner run --working-directory /home/jaws --config /etc/gitlab-runner/config.toml --service gitlab-runner --syslog --user jaws
-
-If necessary, use systemctl to check the status of the runner or to start/restart/stop the service:
-
-    $ sudo systemctl [status|restart|stop|start] gitlab-runner.service
 
 ## Starting the gitlab-runner on TAHOMA
 
