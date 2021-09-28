@@ -11,6 +11,7 @@ import pathlib
 import shutil
 import time
 from tqdm import tqdm
+import sys
 
 # how many bytes to read at once?
 # shutil.copy uses 1024 * 1024 if _WINDOWS else 64 * 1024
@@ -140,7 +141,7 @@ def copy_with_progress_bar(srcfile, destfile, **kwargs):
     size = os.stat(srcfile).st_size
     start_t = time.time()
     with tqdm(total=size) as bar:
-        dest = _copy_with_callback(
+        _copy_with_callback(
             srcfile,
             destfile,
             follow_symlinks=follow_symlinks,
@@ -149,4 +150,4 @@ def copy_with_progress_bar(srcfile, destfile, **kwargs):
         )
     stop_t = time.time()
     delta_t = stop_t - start_t
-    print(f"Done: copied {size} bytes to {dest} in {delta_t:.3f} seconds.")
+    sys.stderr.write(f"Copied {size} bytes in {delta_t:.1f} seconds.")
