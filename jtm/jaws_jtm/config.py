@@ -17,7 +17,7 @@ class JtmConstants():
     # Supported cluster
     COMPUTE_RESOURCES = ["CORI",  # NERSC @ LBNL
                          "JGI",  # LBL IT @ LBNL
-                         "CASCADE",  # EMSL @ PNNL
+                         "TAHOMA",  # EMSL @ PNNL
                          "LOCAL"  # for testing
                          ]
 

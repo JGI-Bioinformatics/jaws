@@ -3,6 +3,7 @@ from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
 import secrets
 from jaws_central.models_fsa import db, User
+import re
 import requests
 import json
 
@@ -58,9 +59,9 @@ def _get_user_by_email(email):
     try:
         user = db.session.query(User).filter(User.email == email).one_or_none()
     except SQLAlchemyError as e:
-        abort(500, f"Db error: {e}")
+        abort(500, f"Internal Database Error: {e}.")
     if user is None:
-        abort(404, "User not found")
+        abort(404, "User Not Found.")
     return user
 
 
@@ -71,31 +72,42 @@ def _get_json_from_sso(hash_code):
         response = requests.get(base + hash_code + ".json", allow_redirects=True)
     except Exception as err:
         logger.error(err)
-        abort(500, f"Error: {err}")
+        abort(response.status_code, f"{err}")
     if response is None:
-        abort(401, "Response object is NoneType")
+        abort(500, "Internal Error: Response object is NoneType.")
     return json.loads(response.content)
 
 
-def get_user_token(user, hash_code):
+def _check_email_validity(email):
+    regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    if re.fullmatch(regex, email):
+        return True
+    return False
+
+
+def get_user_token(user, email=None, sso_hash=None):
     """
     Return the JAWS token for the queried user' globus ID.
     This is restricted to 'dashboard' scope.
 
     :param user: user ID (i.e. dashboard user)
     :type user: str
-    :param email: The email of the user logged into the dashboard
-    :type email: str
-    :return: The user's JAWS access token.
-    :rtype: str
+    :param verify: either email id or sso token for authentication
+    :type verify: str
+    :return: The user's JAWS access token and/or sso json
+    :rtype: dict
     """
-    json_obj = _get_json_from_sso(hash_code)
-
-    if "user" not in json_obj or "email" not in json_obj["user"]:
-        abort(401, "No user or email information found in the JSON")
-
-    query_user = _get_user_by_email(json_obj["user"]["email"])
-    return {"jaws_token": query_user.jaws_token, "sso_json": json_obj}
+    sso_json = {}
+    if email is not None:
+        if not _check_email_validity(email):
+            abort(401, f"Bad email address: {email}")
+    elif sso_hash is not None:
+        sso_json = _get_json_from_sso(sso_hash)
+        if "user" not in sso_json or "email" not in sso_json["user"]:
+            abort(401, f"No user information found for authentication: {json.dumps(sso_json)}")
+        email = sso_json["user"]["email"]
+    query_user = _get_user_by_email(email)
+    return {"jaws_token": query_user.jaws_token, "sso_json": sso_json}
 
 
 def get_user(user):

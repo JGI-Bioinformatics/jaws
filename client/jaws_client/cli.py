@@ -14,6 +14,7 @@ from jaws_client import log as logging
 from jaws_client import deprecated
 from jaws_client import wfcopy as wfc
 from jaws_client.config import Configuration
+from jaws_client.copy_progress import copy_with_progress_bar
 
 JAWS_LOG_ENV = "JAWS_CLIENT_LOG"
 JAWS_USER_LOG = os.path.expanduser("~/jaws.log")
@@ -348,7 +349,8 @@ def list_sites() -> None:
 @click.argument("site", nargs=1)
 @click.option("--tag", help="identifier for the run")
 @click.option("--no-cache", is_flag=True, help="Disable call-caching for this run")
-def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
+@click.option("--quiet", is_flag=True, help="Don't print copy progress bar")
+def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool, quiet: bool):
     """Submit a run for execution at a JAWS-Site.
     Available sites can be found by running 'jaws run list-sites'.
     """
@@ -412,7 +414,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
 
     # copy infiles in inputs json to site's inputs dir so they may be read by jaws user and
     # transferred to the compute site via globus
-    moved_files = inputs_json.move_input_files(site_subdir)
+    moved_files = inputs_json.move_input_files(site_subdir, quiet)
 
     # the paths in the inputs json file are changed to their paths at the compute site
     modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
@@ -502,10 +504,10 @@ def validate(wdl_file: str) -> None:
 @main.command()
 @click.argument("run_id")
 @click.argument("dest")
-def get(run_id: int, dest: str) -> None:
+@click.option("--complete", is_flag=True, default=False, help="Get complete cromwell output")
+@click.option("--quiet", is_flag=True, default=False, help="Don't print copy progress bar")
+def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
     """Copy the output of a run to the specified folder."""
-
-    from jaws_client import workflow
 
     result = _run_status(run_id, True)
     status = result["status"]
@@ -520,6 +522,20 @@ def get(run_id: int, dest: str) -> None:
         logger.error(f"Run {run_id} doesn't have an output_dir defined")
         sys.exit(f"Run {run_id} doesn't have an output_dir defined")
 
+    if os.path.exists(dest) and os.path.isfile(dest):
+        sys.exit(f"Error destination path is a file: {dest}")
+    os.makedirs(dest, exist_ok=True)
+
+    if complete is True:
+        _get_complete(run_id, src, dest)
+    else:
+        _get_outputs(run_id, src, dest, quiet)
+
+
+def _get_complete(run_id: int, src: str, dest: str) -> None:
+    """Copy the complete cromwell output dir"""
+    from jaws_client import workflow
+    src = f"{src}/"  # so rsync won't make an extra dir
     try:
         result = workflow.rsync(
             src,
@@ -558,6 +574,23 @@ def _utc_to_local(utc_datetime):
     fmt = "%Y-%m-%d %H:%M:%S"
     datetime_obj = datetime.strptime(utc_datetime, fmt)
     return datetime_obj.replace(tzinfo=timezone.utc).astimezone(tz=local_tz_obj).strftime(fmt)
+
+
+def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
+    """Copy workflow outputs"""
+    outputs_file = f"{src_dir}/outputs.json"
+    outputs = {}
+    with open(outputs_file, 'r') as fh:
+        outputs = json.load(fh)
+    for (key, value) in outputs.items():
+        src_file = os.path.normpath(os.path.join(src_dir, value))
+        dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(value)))
+        if os.path.isfile(src_file):
+            if quiet:
+                shutil.copyfile(src_file, dest_file)
+            else:
+                copy_with_progress_bar(src_file, dest_file)
+            os.chmod(dest_file, 0o0664)
 
 
 @main.command()

@@ -1,13 +1,17 @@
-#!/bin/bash
+#!/bin/bash -l
 
 set -o pipefail
 
-supervisor_jaws="/tmp"
+module load modules
+supervisor_jaws="/global/cfs/projectdirs/jaws/jaws-install"
 supervisor_monitor="/global/cfs/projectdirs/jaws"
 gitlab_runner="/global/cfs/cdirs/m342/jaws_runner/usr/bin/gitlab-runner"
+graylog="/global/project/projectdirs/jaws/graylog/run_sidecar.sh"
 
 myhost=$(hostname)
 me=$(whoami)
+_now=$(date +"%Y_%m_%d_%I_%M_%p")
+echo "JAWS service checking & restarting started at $_now"
 
 if [[ $myhost != 'cori20' ]];then
     echo "Host must be cori20. You are on $myhost. Please run \"ssh cori20\"."
@@ -18,11 +22,22 @@ if [[ $me != 'jaws' ]];then
     exit
 fi
 
-## Function to get supervisord pid
 function is_gitlab_runner_running() {
-    cmd="ps -ef | grep jaws | grep gitlab-runner | grep -v grep | awk '{print \$2}'"
+    local cmd="ps -ef | grep jaws | grep gitlab-runner | grep -v grep | awk '{print \$2}'"
     echo "$cmd"
-    pid=$(eval "$cmd")
+    local pid=$(eval "$cmd")
+    if [[ $pid ]]; then
+        return 0
+    else
+        return 1
+    fi
+
+}
+
+function is_graylog_running() {
+    local cmd="ps -ef | grep jaws | grep graylog | grep -v grep | awk '{print \$2}'"
+    echo "$cmd"
+    local pid=$(eval "$cmd")
     if [[ $pid ]]; then
         return 0
     else
@@ -37,14 +52,14 @@ function start_gitlab_runner() {
         echo gitlab-runner failed to re-start
         exit
     fi
-    cmd="nohup ./$gitlab_runner run &"
+    local cmd="nohup $gitlab_runner run &"
     if is_gitlab_runner_running; then
         echo gitlab runner is already running
     else
         echo re-starting gitlab runner 
         echo "$cmd"
         eval "$cmd"
-
+        sleep 3 # give graylog a few seconds to start up
         if is_gitlab_runner_running; then
             echo gitlab runner started successfully
         else
@@ -54,12 +69,11 @@ function start_gitlab_runner() {
     fi
 }
 
-
 ## Function to get supervisord pid
 function is_supervisord_running() {
     local config_file=$1
     local supervisor_dir=$2
-    cmd="$supervisor_dir/bin/supervisorctl -c $config_file status"
+    local cmd="$supervisor_dir/bin/supervisorctl -c $config_file status"
     eval "$cmd"
     if [[ $? == 4 ]]; then
         return 1
@@ -68,7 +82,6 @@ function is_supervisord_running() {
     fi
 }
 
-
 ## Function to start supervisord
 function start_supervisord() {
     local config_file=$1
@@ -76,8 +89,8 @@ function start_supervisord() {
     if is_supervisord_running "$config_file" "$supervisor_dir"; then
         echo supervisord already running
     else
+        local cmd="$supervisor_dir/bin/supervisord -c $config_file"
         echo "Starting supervisord ..."
-        cmd="$supervisor_dir/bin/supervisord -c $config_file"
         echo "$cmd"
         eval "$cmd"
 
@@ -89,8 +102,30 @@ function start_supervisord() {
     fi
 }
 
+function start_graylog() {
+    if [[ ! -e $graylog ]]; then
+        echo file missing or empty: $graylog
+        echo graylog failed to re-start
+        exit
+    fi
+    if is_graylog_running; then
+        echo graylog is already running
+    else
+        local cmd="$graylog"
+        echo re-starting graylog
+        echo "$cmd"
+        eval "$cmd"
+        sleep 3 # give graylog a few seconds to start up
+        if is_graylog_running; then
+            echo graylog started successfully
+        else
+            echo graylog failed to restart!!!!
+        fi
+    fi
+}
+
 # starting services for jaws on cori
-for branch in dev staging prod; do
+for branch in staging prod; do
     echo "------------------------"
     echo ON BRANCH $branch jaws-site
     config_file="$supervisor_jaws/jaws-supervisord-${branch}/supervisord-jaws.conf"
@@ -108,3 +143,7 @@ done
 # start gitlab runner on cori 
 echo "------------------------"
 start_gitlab_runner
+
+# start graylog on cori
+echo "------------------------"
+start_graylog

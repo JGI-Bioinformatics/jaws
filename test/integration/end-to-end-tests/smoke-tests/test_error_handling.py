@@ -178,7 +178,6 @@ def test_invalid_docker_b(site, submit_bad_docker):
         assert 0, f"Expected site to be cori or jgi but found {site}"
 
 
-
 def test_timeout(dir, site):
     WDL = "/WDLs/timeout.wdl"
     INP = "/test-inputs/timeout.json"
@@ -212,3 +211,31 @@ def test_bad_sub_workflow_error_msg(submit_bad_sub_task):
     (r, o, e) = util.run(cmd)
 
     assert "echoooo: command not found" in o, "sub workflow command error should appear in errors"
+
+def test_timeout(dir, site):
+    """
+    TESTCASE-44
+    When user submits a wdl and a timeout occurs, the 
+    timeout message should appear in the output from the errors command
+    """
+    WDL = "/WDLs/timeout.wdl"
+    INP = "/test-inputs/timeout.json"
+    check_sleep = 30
+    check_tries = 50
+
+    wdl = dir + WDL
+    input_json = dir + INP
+
+    run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
+    util.wait_for_run(run_id, check_tries, check_sleep)
+
+    time.sleep(60)
+
+    # get the errors from JAWS for that run
+    cmd = "jaws errors %s" % (run_id)
+    r, o, e = util.run(cmd) 
+
+    # do the check!
+    fail_msg = "error. Keyword absent: \"timeout\" (%s)" % run_id
+    assert "failed with timeout" in o, fail_msg
+

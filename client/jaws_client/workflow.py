@@ -15,6 +15,7 @@ import pathlib
 import warnings
 from jaws_client.config import Configuration
 from jaws_client.wdl_runtime_validator import validate_wdl_runtime
+from jaws_client.copy_progress import copy_with_progress_bar
 
 
 config = Configuration()
@@ -134,10 +135,10 @@ def looks_like_file_path(input):
 
 def recurse_list_type(inp_type):
     """With every recursion level crossed, the obj type is recursed as well.
-       Eg. Array[Array[File]] -> Array[File] -> File.
-       Eg. Array[Map[Int, String]] -> Map[Int, String]
-       (will move to recurse_dict_type fuction to process this map further)"""
-    return inp_type[inp_type.find('[') + 1: len(inp_type) - 1]
+    Eg. Array[Array[File]] -> Array[File] -> File.
+    Eg. Array[Map[Int, String]] -> Map[Int, String]
+    (will move to recurse_dict_type fuction to process this map further)"""
+    return inp_type[inp_type.find("[") + 1: len(inp_type) - 1]
 
 
 def recurse_dict_type(inp_type, dict_type):
@@ -151,13 +152,13 @@ def recurse_dict_type(inp_type, dict_type):
     start_idx = inp_type.find(dict_type) + len(dict_type)
     bracket_stack = []
     for idx in range(start_idx, len(inp_type)):
-        if inp_type[idx] == '[':
-            bracket_stack.append('[')
-        if inp_type[idx] == ',' and bracket_stack == []:
+        if inp_type[idx] == "[":
+            bracket_stack.append("[")
+        if inp_type[idx] == "," and bracket_stack == []:
             break
-        if inp_type[idx] == ']':
+        if inp_type[idx] == "]":
             bracket_stack.pop()
-    key = inp_type[start_idx: idx]
+    key = inp_type[start_idx:idx]
     value = inp_type[idx + 2: len(inp_type) - 1]
     return key, value
 
@@ -182,20 +183,22 @@ def apply_filepath_op(obj, inp_type, operation):
     if isinstance(obj, int):
         return obj
     elif isinstance(obj, list):
-        return [apply_filepath_op(i, recurse_list_type(inp_type), operation)
-                for i in obj]
+        return [
+            apply_filepath_op(i, recurse_list_type(inp_type), operation) for i in obj
+        ]
     elif isinstance(obj, dict):
-        if 'Pair[' in inp_type:
-            left_type, right_type = recurse_dict_type(inp_type, 'Pair[')
+        if "Pair[" in inp_type:
+            left_type, right_type = recurse_dict_type(inp_type, "Pair[")
             return {
                 "Left": apply_filepath_op(obj["Left"], left_type, operation),
-                "Right": apply_filepath_op(obj["Right"], right_type, operation)
+                "Right": apply_filepath_op(obj["Right"], right_type, operation),
             }
-        if 'Map[' in inp_type:
-            key_type, value_type = recurse_dict_type(inp_type, 'Map[')
+        if "Map[" in inp_type:
+            key_type, value_type = recurse_dict_type(inp_type, "Map[")
             return {
-                apply_filepath_op(k, key_type, operation):
-                apply_filepath_op(obj[k], value_type, operation)
+                apply_filepath_op(k, key_type, operation): apply_filepath_op(
+                    obj[k], value_type, operation
+                )
                 for k in obj
             }
     else:
@@ -483,12 +486,14 @@ class WorkflowInputs:
         If element is a file and contains "http", do not get absolute paths
         """
         if is_file:
-            if not element.startswith(("http://", "ftp://", "https://")) and not os.path.isabs(element):
+            if not element.startswith(
+                ("http://", "ftp://", "https://")
+            ) and not os.path.isabs(element):
                 element = os.path.abspath(join_path(self.basedir, element))
             self.src_file_inputs.add(element)
         return element
 
-    def move_input_files(self, destination):
+    def move_input_files(self, destination, quiet=False):
         """
         Moves the input files defined in a JSON file to a destination.
 
@@ -496,9 +501,9 @@ class WorkflowInputs:
 
         :param workflow_inputs: JSON file where inputs are specified.
         :param destination: path to where to moved the input files
-        :return: list of the moved_files
+        :return: list of the copied_files
         """
-        moved_files = []
+        copied_files = []
 
         for original_path in self.src_file_inputs:
 
@@ -509,37 +514,26 @@ class WorkflowInputs:
                 continue
 
             staged_path = pathlib.Path(f"{destination}{original_path}")
-            dest = staged_path.as_posix()
-            moved_files.append(dest)
+            dest_path = staged_path.as_posix()
+            copied_files.append(dest_path)
 
             if os.path.isdir(original_path):
-                staged_path.mkdir(mode=0o0770, parents=True, exist_ok=True)
+                raise ValueError(
+                    f"Invalid {original_path}; directories not supported for File types; use a tarball/zip instead."
+                )
+
+            dirname = pathlib.Path(os.path.dirname(staged_path))
+            dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
+
+            # Files must be copied in to ensure they are readable by the jaws and jtm users.  The group
+            # will be set correctly as a result of the gid sticky bit and acl rules on the inputs dir.
+            if quiet:
+                shutil.copyfile(original_path, dest_path)
             else:
-                dirname = pathlib.Path(os.path.dirname(staged_path))
-                dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
+                copy_with_progress_bar(original_path, dest_path)
+            os.chmod(dest_path, 0o0660)
 
-            # files must be copied in to ensure they are readable by the jaws and jtm users,
-            # as a result of the gid sticky bit and acl rules on the inputs dir.
-            rsync_params = ["-rLtq", "--chmod=Du=rwx,Dg=rwx,Do=rx,Fu=rw,Fg=rw,Fo=r"]
-            try:
-                result = rsync(
-                    original_path,
-                    dest,
-                    rsync_params,
-                )
-            except OSError as error:
-                raise (f"rsync executable not found: {error}")
-            except ValueError as error:
-                raise (
-                    f"Invalid rsync options, {rsync_params}, for {original_path}->{dest}: {error}"
-                )
-            if result.returncode != 0:
-                err_msg = (
-                    f"Failed to rsync {original_path}: {result.stdout}; {result.stderr}"
-                )
-                raise IOError(err_msg)
-
-        return moved_files
+        return copied_files
 
     def prepend_paths_to_json(self, staging_dir):
         """
@@ -549,10 +543,17 @@ class WorkflowInputs:
         destination_json = {}
         for k in self.inputs_json:
             destination_json[k] = apply_filepath_op(
-                self.inputs_json[k], self.wom_input_types[k], self._prepend_path(staging_dir)
+                self.inputs_json[k],
+                self.wom_input_types[k],
+                self._prepend_path(staging_dir),
             )
 
-        return WorkflowInputs(staging_dir, self.submission_id, destination_json, wdl_loc=self.wdl_file_location)
+        return WorkflowInputs(
+            staging_dir,
+            self.submission_id,
+            destination_json,
+            wdl_loc=self.wdl_file_location,
+        )
 
     @staticmethod
     def _prepend_path(path_to_prepend):
@@ -566,7 +567,9 @@ class WorkflowInputs:
 
         def func(path, is_file):
             if is_file:
-                if not path.startswith(("http://", "ftp://", "https://")) and os.path.exists(path):
+                if not path.startswith(
+                    ("http://", "ftp://", "https://")
+                ) and os.path.exists(path):
                     return f"{path_to_prepend}{path}"
             return path
 

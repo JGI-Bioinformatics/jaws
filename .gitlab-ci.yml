@@ -18,9 +18,9 @@ variables:
   JAWS_RMQ_HOST: "rmq.lbl.gov"
   JAWS_RMQ_PORT: 5672
   JAWS_GLOBUS_CLIENT_ID: "1a130a01-48bc-489b-a729-9ab858de1755"
-  CROMWELL_VERSION: "59"
-  CROMWELL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/59/cromwell-59.jar"
-  WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/59/womtool-59.jar"
+  CROMWELL_VERSION: "58"
+  CROMWELL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/58/cromwell-58.jar"
+  WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/58/womtool-58.jar"
   JAWS_DB_HOST: "jaws-db.lbl.gov"
   JAWS_DB_PORT: 3306
 
@@ -70,6 +70,7 @@ variables:
   CORI_REF_DATA_DIR: "/global/dna/shared/databases/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
+  CORI_CONTAINER_TMPDIR: "/global/cscratch1/sd/jaws_jtm"
   CORI_CLUSTER_QOS: "genepool_special"
   CORI_CLUSTER_PARTITION: ""
   CORI_CLUSTER_ACCOUNT: "fungalp"
@@ -77,6 +78,8 @@ variables:
   CORI_MAX_RAM_GB: 2048
   CORI_LOAD_JAVA: ""
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
+  CORI_RMQ_HOST: "rmq.lbl.gov"
+  CORI_RMQ_PORT: 5672
 
   JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
@@ -92,6 +95,7 @@ variables:
   JGI_REF_DATA_DIR: "/global/home/groups/lr_jgicloud/refdata"
   JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
   JGI_CONTAINER_TYPE: "singularity"
+  JGI_CONTAINER_TMPDIR: "/global/scratch/jaws"
   JGI_CLUSTER_QOS: "normal"
   JGI_CLUSTER_PARTITION: "jgi"
   JGI_CLUSTER_ACCOUNT: "jgi"
@@ -99,11 +103,13 @@ variables:
   JGI_MAX_RAM_GB: 250
   JGI_LOAD_JAVA: "module load java"
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
+  JGI_RMQ_HOST: "rmq.lbl.gov"
+  JGI_RMQ_PORT: 5672
 
   TAHOMA_CLIENT_INSTALL_BASEDIR: ""
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
-  TAHOMA_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
-  TAHOMA_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
+  TAHOMA_GLOBUS_EP: "8e65719e-1a53-11ec-a09f-6b21ca6daf73"
+  TAHOMA_GLOBUS_HOST_PATH: "/tahoma/mscjgi"
   TAHOMA_PYTHON: "python"
   TAHOMA_LOAD_PYTHON: "module load python/3.8.1"
   TAHOMA_JAWS_GROUP: "svc-jtm-manager"
@@ -114,6 +120,7 @@ variables:
   TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata" # TODO: Needs to be rsync'd
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
+  TAHOMA_CONTAINER_TMPDIR: "/big_scratch"
   TAHOMA_CLUSTER_QOS: ""
   TAHOMA_CLUSTER_PARTITION: ""
   TAHOMA_CLUSTER_ACCOUNT: "mscjgi"
@@ -121,6 +128,8 @@ variables:
   TAHOMA_MAX_RAM_GB: 1024  #TODO: Find a more accurate number
   TAHOMA_LOAD_JAVA: ""
   TAHOMA_DATA_REPO_BASEDIR: "/tahoma/mscjgi"
+  TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
+  TAHOMA_RMQ_PORT: 5672
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
@@ -356,7 +365,7 @@ cori-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -370,7 +379,7 @@ jgi-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -384,7 +393,7 @@ cori-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -398,7 +407,7 @@ jgi-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -412,7 +421,7 @@ cori-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -426,7 +435,7 @@ jgi-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 

@@ -23,4 +23,4 @@ def test_real_world_success(site, wdl, input_json):
     # run the test against all the wdl/json in the @pytest.mark.parametrize
     check_tries = 60
     check_sleep = 360
-    util.run_success(site, wdl, input_json, check_tries, check_sleep)
+    util.run_success(site, wdl, input_json)

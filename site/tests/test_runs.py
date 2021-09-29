@@ -64,6 +64,9 @@ class MockCromwellMetadata:
     def workflow_root(self):
         return "/example/workflow/output"
 
+    def outputs(self, outfile, **kwargs):
+        return{}
+
 
 class MockRpcClient:
     def __init__(self, params=None, logger=None):
@@ -207,7 +210,7 @@ def mock_path(tmp_path):
 
 
 def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path):
-    def mock_cp_infile_to_outdir(self, path, suffix, dest, required=True):
+    def mock_cp_infile_to_outdir(self, path, suffix, dest_dir, dest_file, required=True):
         pass
 
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
@@ -232,7 +235,7 @@ def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path):
 
 
 def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path):
-    def mock_cp_infile_to_outdir(self, path, suffix, dest, required=True):
+    def mock_cp_infile_to_outdir(self, path, suffix, dest_dir, dest_file, required=True):
         pass
 
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
