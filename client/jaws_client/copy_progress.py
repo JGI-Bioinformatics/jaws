@@ -150,4 +150,4 @@ def copy_with_progress_bar(srcfile, destfile, **kwargs):
         )
     stop_t = time.time()
     delta_t = stop_t - start_t
-    sys.stderr.write(f"Copied {size} bytes in {delta_t:.1f} seconds.")
+    sys.stderr.write(f"Copied {size} bytes in {delta_t:.1f} seconds.\n")
