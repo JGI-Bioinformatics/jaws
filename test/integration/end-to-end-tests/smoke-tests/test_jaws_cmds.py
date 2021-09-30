@@ -78,7 +78,7 @@ def test_jaws_status(submit_fq_count_wdl):
     data = submit_fq_count_wdl
     run_id = str(data["run_id"])
     cmd = (
-        "jaws status --verbose %s" 
+        "jaws status --verbose %s"
         % (run_id)
     )
     (r, o, e) = util.run(cmd)
@@ -91,7 +91,7 @@ def test_jaws_queue(site,dir):
     wdl = dir + '/WDLs/fq_count.wdl'
     myjson = dir + '/test-inputs/fq_count.json'
     cmd = (
-        "jaws submit --no-cache %s %s %s" 
+        "jaws submit --quiet --no-cache %s %s %s"
         % (wdl, myjson, site)
     )
     (r, o, e) = util.run(cmd)
@@ -103,8 +103,8 @@ def test_jaws_queue(site,dir):
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
 
-    # if the site_id is found in the jaws queue output, I don't want to 
-    # assert true yet, I want to cancel the run and then I can use assert. So 
+    # if the site_id is found in the jaws queue output, I don't want to
+    # assert true yet, I want to cancel the run and then I can use assert. So
     # just save the boolean in 'result' for now.
     result = False
     has_id = False
@@ -121,11 +121,11 @@ def test_jaws_queue(site,dir):
         has_id=True
 
     cmd = (
-        "jaws cancel %s" 
+        "jaws cancel --quiet %s"
         % (run_id)
     )
     (r, o, e) = util.run(cmd)
-    
+
     assert result and has_id
 
 
@@ -195,15 +195,15 @@ def test_jaws_task_status(submit_fq_count_wdl):
 
 def test_jaws_log(submit_fq_count_wdl):
     """Check that the first line of jaws log returns something like this:
-    #STATUS_FROM       STATUS_TO          TIMESTAMP            REASON                                                 
-    created            uploading          2021-05-20 17:00:10  upload_task_id=d6bf4064-b98c-11eb-b98a-5534f09633d1    
-    upload complete    upload complete    2021-05-20 17:00:18                                                         
-    submitted          submitted          2021-05-20 17:00:29  cromwell_run_id=f5503790-5a63-49b4-9b81-19963c0161ed   
-    queued             queued             2021-05-20 17:00:39                                                         
-    running            running            2021-05-20 17:00:39                                                         
-    succeeded          succeeded          2021-05-20 17:00:40                                                         
-    downloading        downloading        2021-05-20 17:00:52  download_task_id=ef0b52c0-b98c-11eb-82a1-e31f0402e917  
-    download complete  download complete  2021-05-20 17:01:38              
+    #STATUS_FROM       STATUS_TO          TIMESTAMP            REASON
+    created            uploading          2021-05-20 17:00:10  upload_task_id=d6bf4064-b98c-11eb-b98a-5534f09633d1
+    upload complete    upload complete    2021-05-20 17:00:18
+    submitted          submitted          2021-05-20 17:00:29  cromwell_run_id=f5503790-5a63-49b4-9b81-19963c0161ed
+    queued             queued             2021-05-20 17:00:39
+    running            running            2021-05-20 17:00:39
+    succeeded          succeeded          2021-05-20 17:00:40
+    downloading        downloading        2021-05-20 17:00:52  download_task_id=ef0b52c0-b98c-11eb-82a1-e31f0402e917
+    download complete  download complete  2021-05-20 17:01:38
     """
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
@@ -257,7 +257,7 @@ def test_jaws_get(submit_fq_count_wdl):
         (r, o, e) = util.run(cmd)
         assert not r
 
-    cmd = "jaws get %s %s" % (run_id, mycopy)
+    cmd = "jaws get --quiet --complete %s %s" % (run_id, mycopy)
     (r, o, e) = util.run(cmd)
     assert r == 0
 
