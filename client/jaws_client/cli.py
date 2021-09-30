@@ -566,7 +566,7 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
             shutil.copyfile(outputs_file, dest_file)
         else:
             copy_with_progress_bar(outputs_file, dest_file)
-        os.chmod(outputs_file, 0o0664)
+        os.chmod(dest_file, 0o0664)
 
     # the paths of workflow output files are listed in the outputs_file
     outputs = {}
