@@ -574,7 +574,9 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
         outputs = json.load(fh)
     for (key, value) in outputs.items():
         src_file = os.path.normpath(os.path.join(src_dir, value))
-        dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(value)))
+        dest_file = os.path.normpath(os.path.join(dest_dir, value))
+        a_dest_dir = os.path.dirname(dest_file)
+        os.makedirs(a_dest_dir, exist_ok=True)
         if os.path.isfile(src_file):
             if quiet:
                 shutil.copyfile(src_file, dest_file)
