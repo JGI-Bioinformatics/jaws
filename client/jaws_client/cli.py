@@ -349,7 +349,8 @@ def list_sites() -> None:
 @click.argument("site", nargs=1)
 @click.option("--tag", help="identifier for the run")
 @click.option("--no-cache", is_flag=True, help="Disable call-caching for this run")
-def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
+@click.option("--quiet", is_flag=True, help="Don't print copy progress bar")
+def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool, quiet: bool):
     """Submit a run for execution at a JAWS-Site.
     Available sites can be found by running 'jaws run list-sites'.
     """
@@ -413,7 +414,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool):
 
     # copy infiles in inputs json to site's inputs dir so they may be read by jaws user and
     # transferred to the compute site via globus
-    moved_files = inputs_json.move_input_files(site_subdir)
+    moved_files = inputs_json.move_input_files(site_subdir, quiet)
 
     # the paths in the inputs json file are changed to their paths at the compute site
     modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
@@ -504,7 +505,8 @@ def validate(wdl_file: str) -> None:
 @click.argument("run_id")
 @click.argument("dest")
 @click.option("--complete", is_flag=True, default=False, help="Get complete cromwell output")
-def get(run_id: int, dest: str, complete: bool) -> None:
+@click.option("--quiet", is_flag=True, default=False, help="Don't print copy progress bar")
+def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
     """Copy the output of a run to the specified folder."""
 
     result = _run_status(run_id, True)
@@ -527,7 +529,7 @@ def get(run_id: int, dest: str, complete: bool) -> None:
     if complete is True:
         _get_complete(run_id, src, dest)
     else:
-        _get_outputs(run_id, src, dest)
+        _get_outputs(run_id, src, dest, quiet)
 
 
 def _get_complete(run_id: int, src: str, dest: str) -> None:
@@ -553,6 +555,36 @@ def _get_complete(run_id: int, src: str, dest: str) -> None:
         sys.exit(err_msg)
 
 
+def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
+    """Copy workflow outputs"""
+    outputs_file = f"{src_dir}/outputs.json"
+
+    # cp the "outputs.json" file because it contains non-file outputs (e.g. numbers)
+    dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(outputs_file)))
+    if os.path.isfile(outputs_file):
+        if quiet:
+            shutil.copyfile(outputs_file, dest_file)
+        else:
+            copy_with_progress_bar(outputs_file, dest_file)
+        os.chmod(dest_file, 0o0664)
+
+    # the paths of workflow output files are listed in the outputs_file
+    outputs = {}
+    with open(outputs_file, 'r') as fh:
+        outputs = json.load(fh)
+    for (key, value) in outputs.items():
+        src_file = os.path.normpath(os.path.join(src_dir, value))
+        dest_file = os.path.normpath(os.path.join(dest_dir, value))
+        a_dest_dir = os.path.dirname(dest_file)
+        os.makedirs(a_dest_dir, exist_ok=True)
+        if os.path.isfile(src_file):
+            if quiet:
+                shutil.copyfile(src_file, dest_file)
+            else:
+                copy_with_progress_bar(src_file, dest_file)
+            os.chmod(dest_file, 0o0664)
+
+
 def _utc_to_local(utc_datetime):
     """Convert UTC time to the local time zone. This should handle daylight savings.
        Param:: utc_datetime: a string of date and time "2021-07-06 11:15:17".
@@ -572,20 +604,6 @@ def _utc_to_local(utc_datetime):
     fmt = "%Y-%m-%d %H:%M:%S"
     datetime_obj = datetime.strptime(utc_datetime, fmt)
     return datetime_obj.replace(tzinfo=timezone.utc).astimezone(tz=local_tz_obj).strftime(fmt)
-
-
-def _get_outputs(run_id: int, src_dir: str, dest_dir: str) -> None:
-    """Copy workflow outputs"""
-    outputs_file = f"{src_dir}/outputs.json"
-    outputs = {}
-    with open(outputs_file, 'r') as fh:
-        outputs = json.load(fh)
-    for (key, value) in outputs.items():
-        src_file = os.path.normpath(os.path.join(src_dir, value))
-        dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(value)))
-        if os.path.isfile(src_file):
-            copy_with_progress_bar(src_file, dest_file)
-            os.chmod(dest_file, 0o0664)
 
 
 @main.command()

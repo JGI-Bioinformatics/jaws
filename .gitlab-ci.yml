@@ -70,6 +70,7 @@ variables:
   CORI_REF_DATA_DIR: "/global/dna/shared/databases/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
+  CORI_CONTAINER_TMPDIR: "/global/cscratch1/sd/jaws_jtm"
   CORI_CLUSTER_QOS: "genepool_special"
   CORI_CLUSTER_PARTITION: ""
   CORI_CLUSTER_ACCOUNT: "fungalp"
@@ -94,6 +95,7 @@ variables:
   JGI_REF_DATA_DIR: "/global/home/groups/lr_jgicloud/refdata"
   JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
   JGI_CONTAINER_TYPE: "singularity"
+  JGI_CONTAINER_TMPDIR: "/global/scratch/jaws"
   JGI_CLUSTER_QOS: "normal"
   JGI_CLUSTER_PARTITION: "jgi"
   JGI_CLUSTER_ACCOUNT: "jgi"
@@ -118,6 +120,7 @@ variables:
   TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata" # TODO: Needs to be rsync'd
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
+  TAHOMA_CONTAINER_TMPDIR: "/big_scratch"
   TAHOMA_CLUSTER_QOS: ""
   TAHOMA_CLUSTER_PARTITION: ""
   TAHOMA_CLUSTER_ACCOUNT: "mscjgi"

@@ -394,7 +394,7 @@ def test_get(configuration, monkeypatch):
 
         return Result()
 
-    def mock_get_outputs(run_id, src, dest):
+    def mock_get_outputs(run_id, src, dest, quiet):
         pass
 
     def mock_get_complete(run_id, src, dest):
