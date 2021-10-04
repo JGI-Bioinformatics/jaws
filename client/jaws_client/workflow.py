@@ -410,17 +410,16 @@ class WdlFile:
         compressed_file = join_path(
             staging_dir, self.submission_id + compressed_file_format
         )
+        main_wdl_dir = os.path.dirname(self.file_location)
 
         for subworkflow in self.subworkflows:
-            relative_path = os.path.relpath(subworkflow.file_location)
-            staged_sub_wdl = join_path(compression_dir, relative_path)
-            try:
-                os.mkdir(os.path.dirname(staged_sub_wdl), 0o774)
-            except FileExistsError:
-                pass
-
+            sub_wdl_dir = os.path.dirname(subworkflow.file_location)
+            sub_wdl_relative_path = os.path.relpath(sub_wdl_dir, start = main_wdl_dir)
+            sub_filename = os.path.join(sub_wdl_relative_path,subworkflow.name)
+            dirname = pathlib.Path(os.path.join(compression_dir,sub_wdl_relative_path))
+            dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
+            staged_sub_wdl = join_path(compression_dir, sub_filename)
             subworkflow.copy_to(staged_sub_wdl)
-
         try:
             os.remove(compressed_file)
         except FileNotFoundError:
@@ -428,11 +427,17 @@ class WdlFile:
 
         with zipfile.ZipFile(compressed_file, "w") as z:
             for sub_wdl in self.subworkflows:
-                relative_path = os.path.relpath(sub_wdl.file_location)
-                staged_sub_wdl = join_path(compression_dir, relative_path)
-                z.write(staged_sub_wdl, arcname=relative_path)
+                sub_wdl_dir = os.path.dirname(subworkflow.file_location)
+                sub_wdl_relative_path = os.path.relpath(sub_wdl_dir, start = main_wdl_dir)
+                sub_filename = os.path.join(sub_wdl_relative_path,subworkflow.name)
+                staged_sub_wdl = join_path(compression_dir, sub_filename)
+                print(f"zipping sub {staged_sub_wdl}")
+                #z.write(staged_sub_wdl)
+                z.write(staged_sub_wdl, arcname=sub_filename)
 
-        shutil.rmtree(compression_dir)
+        import sys
+        sys.exit()
+        #shutil.rmtree(compression_dir)
         return staged_wdl_filename, compressed_file
 
     def __eq__(self, other):
