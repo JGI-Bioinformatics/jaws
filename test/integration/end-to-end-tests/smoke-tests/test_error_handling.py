@@ -108,7 +108,7 @@ def test_should_fail_log(submit_bad_task):
 
 def test_invalid_site(site):
     """
-    jaws submit WDLs/fq_count.wdl test-inputs/fq_count.json o smo
+    jaws submit --no-cache --quiet WDLs/fq_count.wdl test-inputs/fq_count.json o smo
 
     SMO is not a valid Site ID.
     Available Sites:
@@ -123,7 +123,7 @@ def test_invalid_site(site):
     input_json = "test-inputs/fq_count.json"
     outdir = "./should-fail"
 
-    cmd = "jaws submit --no-cache %s %s %s" % (
+    cmd = "jaws submit --quiet --no-cache %s %s %s" % (
         wdl,
         input_json,
         "bogus",
@@ -170,7 +170,7 @@ def test_invalid_docker_b(site, submit_bad_docker):
         assert (
             "Invalid container name or failed to pull container" in o
         ), "There should be a message saying docker was not found"
-    elif site.lower() == 'jgi':
+    elif site.lower() == 'jgi' or site.lower() == 'tahoma':
         assert (
             "Failed to pull" in o
         ), "There should be a message saying docker was not found"

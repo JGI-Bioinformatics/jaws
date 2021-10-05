@@ -9,10 +9,6 @@ import submission_utils as util
     "wdl, input_json",
     (
         (
-            "./jaws-tutorial-examples/fq_count/fq_count.wdl",
-            "./jaws-tutorial-examples/fq_count/fq_count.json",
-        ),
-        (
             "./jaws-tutorial-examples/jaws-alignment-example/main.wdl",
             "./jaws-tutorial-examples/jaws-alignment-example/inputs.json",
         ),

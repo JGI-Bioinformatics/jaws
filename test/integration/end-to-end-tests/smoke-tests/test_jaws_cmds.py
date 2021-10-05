@@ -261,7 +261,7 @@ def test_jaws_get(submit_fq_count_wdl):
     (r, o, e) = util.run(cmd)
     assert r == 0
 
-    assert os.path.exists(os.path.join(mycopy,run_id, "call-count_seqs/execution/num_seqs.txt"))
+    assert os.path.exists(os.path.join(mycopy, "call-count_seqs/execution/num_seqs.txt"))
 
 
 def test_tag(submit_fq_count_wdl):
