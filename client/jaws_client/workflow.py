@@ -429,15 +429,11 @@ class WdlFile:
             for sub_wdl in self.subworkflows:
                 sub_wdl_dir = os.path.dirname(subworkflow.file_location)
                 sub_wdl_relative_path = os.path.relpath(sub_wdl_dir, start = main_wdl_dir)
-                sub_filename = os.path.join(sub_wdl_relative_path,subworkflow.name)
+                sub_filename = os.path.join(sub_wdl_relative_path,sub_wdl.name)
                 staged_sub_wdl = join_path(compression_dir, sub_filename)
-                print(f"zipping sub {staged_sub_wdl}")
-                #z.write(staged_sub_wdl)
                 z.write(staged_sub_wdl, arcname=sub_filename)
 
-        import sys
-        sys.exit()
-        #shutil.rmtree(compression_dir)
+        shutil.rmtree(compression_dir)
         return staged_wdl_filename, compressed_file
 
     def __eq__(self, other):
