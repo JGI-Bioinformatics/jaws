@@ -414,9 +414,9 @@ class WdlFile:
 
         for subworkflow in self.subworkflows:
             sub_wdl_dir = os.path.dirname(subworkflow.file_location)
-            sub_wdl_relative_path = os.path.relpath(sub_wdl_dir, start = main_wdl_dir)
-            sub_filename = os.path.join(sub_wdl_relative_path,subworkflow.name)
-            dirname = pathlib.Path(os.path.join(compression_dir,sub_wdl_relative_path))
+            sub_wdl_relative_path = os.path.relpath(sub_wdl_dir, start=main_wdl_dir)
+            sub_filename = os.path.join(sub_wdl_relative_path, subworkflow.name)
+            dirname = pathlib.Path(os.path.join(compression_dir, sub_wdl_relative_path))
             dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
             staged_sub_wdl = join_path(compression_dir, sub_filename)
             subworkflow.copy_to(staged_sub_wdl)
@@ -428,8 +428,8 @@ class WdlFile:
         with zipfile.ZipFile(compressed_file, "w") as z:
             for sub_wdl in self.subworkflows:
                 sub_wdl_dir = os.path.dirname(subworkflow.file_location)
-                sub_wdl_relative_path = os.path.relpath(sub_wdl_dir, start = main_wdl_dir)
-                sub_filename = os.path.join(sub_wdl_relative_path,sub_wdl.name)
+                sub_wdl_relative_path = os.path.relpath(sub_wdl_dir, start=main_wdl_dir)
+                sub_filename = os.path.join(sub_wdl_relative_path, sub_wdl.name)
                 staged_sub_wdl = join_path(compression_dir, sub_filename)
                 z.write(staged_sub_wdl, arcname=sub_filename)
 
