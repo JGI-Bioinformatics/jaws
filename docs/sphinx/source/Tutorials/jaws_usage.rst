@@ -12,27 +12,27 @@ JAWS Commands
 
 Example submitting a workflow:
 
-:bash:`jaws submit <wdl> <inputs json> <site>` 
+:bash:`jaws submit <wdl> <inputs json> <site>`
 
 Usage: jaws [OPTIONS] COMMAND [ARGS]...
 ---------------------------------------
 Run a command with --help to see it's options.
 
 .. code-block:: text
-    
+
     Options:
       --config TEXT     JAWS config file
       --user TEXT       User config file
       --log TEXT        Log file
       --log-level TEXT  Logging level [debug|info|warning|error|critical]
       -h, --help        Show this message and exit.
-    
+
     Commands:
       add-user     Add new user and get JAWS OAuth access token (restricted).
       cancel       Cancel a run; prints whether aborting was successful or not.
       cancel-all   Cancel all active runs.
       errors       View error messages and stderr for failed Tasks.
-      get          Copy the output of a run to the specified folder.
+    * get          Copy the output of a run to the specified folder.
       health       Current system status.
     * history      Print a list of the user's past runs.
       info         JAWS version and info.
@@ -50,11 +50,32 @@ Run a command with --help to see it's options.
 
 The commands with an asterik have additional options. Expand the below commands to see them.
 
+
 .. raw:: html
- 
+
+    <details>
+    <summary style="color: #448ecf";>get</summary>
+
+.. code-block:: text
+
+    Usage: jaws get [OPTIONS] RUN_ID DEST
+
+    Copy the output of a run to the specified folder.
+
+    Options:
+    --complete  Get complete cromwell output
+    --quiet     Don't print copy progress bar
+    -h, --help  Show this message and exit.
+
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
     <details>
     <summary style="color: #448ecf";>history</summary>
-    
+
 .. code-block:: text
 
     Usage: jaws history [OPTIONS]
@@ -118,6 +139,7 @@ The commands with an asterik have additional options. Expand the below commands 
     Options:
     --tag TEXT  identifier for the run
     --no-cache  Disable call-caching for this run
+    --quiet     Don't print copy progress bar
     -h, --help  Show this message and exit.
 
 .. raw:: html
@@ -189,13 +211,16 @@ Examples
     jaws health
 
     {
-      "JAWS-Central": "UP",
-      "JGI-Cromwell": "UP",
-      "JGI-RMQ": "UP",
-      "JGI-Site": "UP",
-      "CORI-Cromwell": "UP",
-      "CORI-RMQ": "UP",
-      "CORI-Site": "UP"
+    "CORI-Cromwell": "UP",
+    "CORI-RMQ": "UP",
+    "CORI-Site": "UP",
+    "JAWS-Central": "UP",
+    "JGI-Cromwell": "UP",
+    "JGI-RMQ": "UP",
+    "JGI-Site": "UP",
+    "TAHOMA-Cromwell": "UP",
+    "TAHOMA-RMQ": "UP",
+    "TAHOMA-Site": "UP"
     }
 
 
@@ -339,18 +364,26 @@ You can see these same errors when running other commands like
 
 **Getting your output**
 
-The preferable way to get your results is by using the "get" command.  The benifits of this method is that many of the temp files are not copied, only the files in the :bash:`execution` directory are copied. Also, you don't have to worry about loosing your results due to the scheduled purge of the staging directory.
+The preferable way to get your results is by using the "get" command.  The benifits of this method is that you can opt to not copy many of the temp files but only copy the files that you've listed in the :bash:`outputs` section in the main section of the WDL. If you want everything in the :bash:`execution` directory, then use the --complete flag.  Remember, if you don't get your files, they will be subject to the scheduled purge of the staging directory.
+
+Note that the :bash:`--complete` flag will also give you your original main.wdl, the inputs.json, and a zip file of any sub-wdls you may of had.
 
 .. code-block:: text
 
     jaws get 7235 myresults
+	or
+    jaws get 7235 --complete myresults
 
-As alluded to above, JAWS will save your output to a staging directory that is owned by JAWS. You should have read permissions to these files which are in a path called output_dir and is displayed with the :bash:`jaws status --verbose 7235` command.  This directory represents the raw output from Cromwell and includes all the temp files like :bash:`inputs` folder. Note that the path only exists on the :bash:`site` that you submitted to, i.e. jgi or cori.
+The second way to find your results would be to run the status command and look for the path for :bash:`output_dir`.  However, this path only should exist on the SITE that you ran on.  The results should include all raw cromwell output.
+
+The input files will also be in this output_dir, and thus uneccessarily copied over if you chose to use this path.
 
 .. code-block:: text
 
-    jaws status --verbose 7235
-    
+    jaws status --verbose 7235 | grep output_dir
+
+    "output_dir": "/global/cfs/projectdirs/jaws/data-repository-prod/jfroula/CORI/7235",
+
 
 **Specialty Commands**
 
