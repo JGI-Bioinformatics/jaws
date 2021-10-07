@@ -162,3 +162,21 @@ Using Conditionals
             File outfile = "wc.txt"
           }
         }
+
+
+Calculate available memory on a node
+
+    Here is a pure bash method
+
+    .. code-block:: text
+
+        formula="($kmer_count * 0.00000002962 + 16.3) * 1.1"
+        predicted_mem=${dollar}(awk "BEGIN {printf \"%.14f\n\", $formula}")
+
+
+    Here is a method which does the calculation in cromwell.  You can write the unique kmer count to a file and then add this to the outputs section:  
+
+    .. code-block:: text
+
+        Int predicted_mem = ceil((read_float(kmerfile) * 0.00000002962 + 16.3) * 1.05 )
+
