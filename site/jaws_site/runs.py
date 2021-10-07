@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
-from jaws_site.cromwell import Cromwell, CromwellException
+from jaws_site import Cromwell, CromwellError, CromwellServiceError, CromwellRunError
 from jaws_site.globus import GlobusService
 
 logger = logging.getLogger(__package__)
@@ -129,7 +129,7 @@ class Run:
         ]:
             try:
                 cromwell.abort(self.model.cromwell_run_id)
-            except CromwellException as error:
+            except CromwellError as error:
                 logger.warn(f"Cromwell error cancelling Run {self.model.id}: {error}")
                 raise
 
@@ -236,7 +236,7 @@ class Run:
             return
         try:
             cromwell_run_id = cromwell.submit(*infiles)
-        except CromwellException as error:
+        except CromwellError as error:
             logger.error(f"Run {self.model.id} submission failed: {error}")
             self.update_run_status("submission failed", f"{error}")
         else:
@@ -250,7 +250,7 @@ class Run:
         logger.debug(f"Run {self.model.id}: Check Cromwell status")
         try:
             cromwell_status = cromwell.get_status(self.model.cromwell_run_id)
-        except CromwellException as error:
+        except CromwellError as error:
             logger.error(
                 f"Unable to check Cromwell status of Run {self.model.id}: {error}"
             )
@@ -330,11 +330,15 @@ class Run:
         logger.debug(f"Run {self.model.id}: Download output")
         try:
             metadata = cromwell.get_metadata(self.model.cromwell_run_id)
-        except CromwellException as error:
-            logger.error(
-                f"Unable to get Cromwell metadata of Run {self.model.id}: {error}"
-            )
-            raise
+        except CromwellServiceError as error:
+            # if Cromwell service not available, do not fail run and try again later
+            logger.debug(f"Cromwell service error: {error}")
+            return
+        except CromwellRunError as error:
+            # if there's something wrong with this particular (failed) run, promote to next state
+            logger.debug(f"Run {self.model.id}: {error}")
+            self.update_run_status("download complete", f"Cromwell run error: {error}")
+            return
         cromwell_workflow_dir = metadata.workflow_root()
         if not cromwell_workflow_dir:
             # This run failed before a folder was created; nothing to xfer
