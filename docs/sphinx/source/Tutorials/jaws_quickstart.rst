@@ -34,7 +34,7 @@ Begin Setup
 ***********
 
 .. note::
-    Before you can complete the JAWS setup, you need to get a **JAWS token** from JAWS admin jaws-support@lbl.gov 
+    Before you can complete the JAWS setup, you need to get a **JAWS token** from JAWS admin jaws-support@lbl.gov
 
 ***********
 Set up JAWS
@@ -132,12 +132,14 @@ From the output above, we see that the run_id was 1367.
 Get the results
 ***************
 
-Once the run status has changed to "download complete", you can write the output to a folder of your choice. This command does not copy the "input" files.
+Once the run status has changed to "download complete", you can write the output to a folder of your choice. This command run without the :bash:`--complete` flag does not copy all the files in the cromwell :bash:`execution` directory, but only the files listed in the :bash:`output{}` section of the WDL. 
 
 .. code-block:: text
 
     # copy the output of run 1367 to a folder of your choice
-    jaws get 1367 $SCRATCH/my-test-run
+    jaws get 1367 my-test-run
+    or
+    jaws get --complete my-test-run-complete
 
 Alternatively, this command will display the directory where JAWS has saved the results. It represents all the files from Cromwell, including the "input" files.
 
