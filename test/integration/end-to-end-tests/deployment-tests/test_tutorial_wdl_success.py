@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# The purpose of this test is more to make sure the tutorials are working than to
+# test that JAWS is working.  However, there are some tests in here that are usefull
+# to test JAWS components like making sure we can access the /refdata (referencing_db_and_shifter)
 
 import json
 import pytest
