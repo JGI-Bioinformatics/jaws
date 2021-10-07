@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
-from jaws_site import Cromwell, CromwellError, CromwellServiceError, CromwellRunError
+from jaws_site.cromwell import Cromwell, CromwellError, CromwellServiceError, CromwellRunError
 from jaws_site.globus import GlobusService
 
 logger = logging.getLogger(__package__)
