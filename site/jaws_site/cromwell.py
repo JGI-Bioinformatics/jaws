@@ -161,9 +161,28 @@ class Task:
         return self.get("runtimeAttributes", attempt, {})
 
 
-class CromwellException(Exception):
-    """Generic exception when Cromwell does not return metadata."""
+class CromwellError(Exception):
+    """Base class for all Cromwell exceptions."""
+    pass
 
+
+class CromwellServiceError(CromwellError):
+    """Base class for all Cromwell service errors; such errors do not indicate a problem with the run"""
+    pass
+
+
+class CromwellServiceConnectionError(CromwellServiceError):
+    """Cromwell is not responding"""
+    pass
+
+
+class CromwellRunError(CromwellError):
+    """Base class for all errors that are specific to a run."""
+    pass
+
+
+class CromwellRunNotFoundError(CromwellRunError):
+    """The specified run does not exist"""
     pass
 
 
@@ -228,7 +247,9 @@ class Metadata:
         try:
             response = requests.get(url)
         except requests.ConnectionError as error:
-            raise error
+            raise CromwellServiceConnectionError(f"Cromwell temporarily inaccessible: {error}")
+        if response.status_code == 404:
+            raise CromwellRunNotFoundError("Run not found")
         response.raise_for_status()
         self.data = response.json()
 
