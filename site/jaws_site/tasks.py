@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jaws_site.models import Job_Log, Run
 from jaws_site import config
 from jaws_site import cromwell
-from jaws_site.cromwell import CromwellException
+from jaws_site.cromwell import CromwellError
 
 
 logger = logging.getLogger(__package__)
@@ -208,7 +208,7 @@ class TaskLog:
         """
         try:
             metadata = self.cromwell.get_metadata(cromwell_run_id)
-        except CromwellException as error:
+        except CromwellError as error:
             err_msg = f"The task log service was unable to retrieve run metadata from Cromwell: {error}"
             self.logger.error(err_msg)
             raise (err_msg)
