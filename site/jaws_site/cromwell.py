@@ -370,7 +370,12 @@ class Metadata:
             workflowRoot = self.get("workflowRoot")
             relpath_outputs = {}
             for key, value in outputs.items():
-                relpath_outputs[key] = value.replace(workflowRoot, '.', 1)
+                if type(value) is list:
+                    relpath_outputs[key] = []
+                    for item in value:
+                        relpath_outputs[key].append(item.replace(workflowRoot, '.', 1))
+                else:
+                    relpath_outputs[key] = value.replace(workflowRoot, '.', 1)
             outputs = relpath_outputs
         if "outfile" in kwargs:
             with open(kwargs["outfile"], 'w') as fh:
