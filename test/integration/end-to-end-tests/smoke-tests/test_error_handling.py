@@ -174,6 +174,10 @@ def test_invalid_docker_b(site, submit_bad_docker):
         assert (
             "Failed to pull" in o
         ), "There should be a message saying docker was not found"
+    elif site.lower() == 'tahoma':
+        assert (
+            "Failed to pull" in o
+        ), "There should be a message saying docker was not found"
     else:
         assert 0, f"Expected site to be cori or jgi but found {site}"
 
