@@ -27,12 +27,10 @@ check_sleep = 30
 #########################
 
 def get_submission_id(cmd):
-    print("running the command")
     (r, o, e) = util.run(cmd)
-    if r != 0: 
+    if r != 0:
         print("jaws submit command failed %s" % cmd)
         assert 0
-    print(f"command was submitted with rc {r}")
 
     # The stdout from a submission looks like
     #
@@ -52,20 +50,16 @@ def get_submission_id(cmd):
     else:
         pytest.exit(f"there was no json in the output for the submit command: {cmd}")
 
-    print(f"waiting for {run_id}")
     util.wait_for_run(run_id, check_tries, check_sleep)
 
     cmd = (
         "jaws metadata %s" 
         % (run_id)
     )
-    print(f"Metadata command: {cmd}")
     (r, o, e) = util.run(cmd)
     if r != 0: 
-        print("jaws metadata command failed %s" % cmd)
         assert 0
     data = json.loads(o)
-    print(f"{data=}")
     return data,run_id
 
 def test_cache(site,dir):
@@ -75,10 +69,9 @@ def test_cache(site,dir):
     input_json_file = dir + '/test-inputs/fq_count.json'
 
     cmd = (
-        "jaws submit --no-cache %s %s %s" 
+        "jaws submit --quiet --no-cache %s %s %s"
         % (wdl, input_json_file, site)
     )
-    print(f"{cmd=}")
 
     (data,run_id) = get_submission_id(cmd)
     submission_id = list(data.keys())[0]
@@ -87,10 +80,10 @@ def test_cache(site,dir):
     assert data[submission_id]['calls']['fq_count.count_seqs'][0]['callCaching']['allowResultReuse'] is False, "This run \"%s\" should not be cached but was." % run_id
 
 
-    ### ------------------------------------------------- ###    
+    ### ------------------------------------------------- ###
     # Running again with the same input should use the cached result.
     cmd = (
-        "jaws submit %s %s %s" 
+        "jaws submit --quiet %s %s %s"
         % (wdl, input_json_file, site)
     )
 
@@ -101,10 +94,10 @@ def test_cache(site,dir):
     assert data[submission_id]['calls']['fq_count.count_seqs'][0]['callCaching']['allowResultReuse'] is True, "This run \"%s\" should be cached but was not." % run_id
 
 
-    ### ------------------------------------------------- ###    
+    ### ------------------------------------------------- ###
     # Test that --no-cache works with same input
     cmd = (
-        "jaws submit --no-cache %s %s %s" 
+        "jaws submit --quiet --no-cache %s %s %s"
         % (wdl, input_json_file, site)
     )
 

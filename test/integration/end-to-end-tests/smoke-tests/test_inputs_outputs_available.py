@@ -35,18 +35,16 @@ def test_jaws_run_task_log(submit_fq_count_wdl):
         fq_count_out/call-count_seqs/execution/
             num_seqs.txt  rc  script  script.submit  stderr  stderr.submit      stdout  stdout.submit
     """
-    run_id = str(submit_fq_count_wdl["run_id"])
+    input_wdl = "main.wdl"
+    input_json = "inputs.json"
+    output_dir = "output_dir"
 
+    run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
 
-    # grab submission_id from "jaws status" command so we can construct name of output files
-    cmd = "jaws status --verbose %s" % (run_id)
+    cmd = "jaws get --quiet --complete %s %s" % (run_id, output_dir)
     (r, o, e) = util.run(cmd)
-    status_data = json.loads(o)
-    submission_id = status_data["submission_id"]
-    input_wdl = submission_id + ".wdl"
-    input_json = submission_id + ".json"
-    output_dir = status_data["output_dir"]
+    assert r == 0
 
     # check that we have the initial WDL saved to the output_dir
     # using the full path (output_dir and input_wdl), we are essentially testing that the output_dir
