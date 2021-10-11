@@ -558,31 +558,44 @@ def _get_complete(run_id: int, src: str, dest: str) -> None:
 def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
     """Copy workflow outputs"""
     outputs_file = f"{src_dir}/outputs.json"
+    if not os.path.isfile(outputs_file):
+        # the "outputs.json" file does not exist, presumably because this run failed too early
+        return
 
     # cp the "outputs.json" file because it contains non-file outputs (e.g. numbers)
     dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(outputs_file)))
-    if os.path.isfile(outputs_file):
-        if quiet:
-            shutil.copyfile(outputs_file, dest_file)
-        else:
-            copy_with_progress_bar(outputs_file, dest_file)
-        os.chmod(dest_file, 0o0664)
+    if quiet:
+        shutil.copyfile(outputs_file, dest_file)
+    else:
+        copy_with_progress_bar(outputs_file, dest_file)
+    os.chmod(dest_file, 0o0664)
 
     # the paths of workflow output files are listed in the outputs_file
     outputs = {}
     with open(outputs_file, 'r') as fh:
         outputs = json.load(fh)
     for (key, value) in outputs.items():
-        src_file = os.path.normpath(os.path.join(src_dir, value))
-        dest_file = os.path.normpath(os.path.join(dest_dir, value))
-        a_dest_dir = os.path.dirname(dest_file)
-        os.makedirs(a_dest_dir, exist_ok=True)
-        if os.path.isfile(src_file):
-            if quiet:
-                shutil.copyfile(src_file, dest_file)
-            else:
-                copy_with_progress_bar(src_file, dest_file)
-            os.chmod(dest_file, 0o0664)
+        if type(value) is list:
+            for an_output in value:
+                _copy_outfile(an_output, src_dir, dest_dir, quiet)
+        else:
+            _copy_outfile(value, src_dir, dest_dir, quiet)
+
+
+def _copy_outfile(rel_path, src_dir, dest_dir, quiet=False):
+    """Copy one output if it is a file"""
+    src_file = os.path.normpath(os.path.join(src_dir, rel_path))
+    if not os.path.isfile(src_file):
+        # not all of a workflow's "outputs" are files (may be string or number)
+        return
+    dest_file = os.path.normpath(os.path.join(dest_dir, rel_path))
+    a_dest_dir = os.path.dirname(dest_file)
+    os.makedirs(a_dest_dir, exist_ok=True)
+    if quiet:
+        shutil.copyfile(src_file, dest_file)
+    else:
+        copy_with_progress_bar(src_file, dest_file)
+    os.chmod(dest_file, 0o0664)
 
 
 def _utc_to_local(utc_datetime):
