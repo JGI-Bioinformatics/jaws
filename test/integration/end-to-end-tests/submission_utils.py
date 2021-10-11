@@ -26,7 +26,7 @@ def submit_wdl(wdl, input_json, site):
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
     # activation command causes an error when we try to do json load later
 
-    cmd = "jaws submit --tag submit_fq_count_wdl --no-cache %s %s %s" % (wdl, input_json, site)
+    cmd = "jaws submit --quiet --tag submit_fq_count_wdl --no-cache %s %s %s" % (wdl, input_json, site)
     (rc, stdout, stderr) = run(cmd)
     if rc > 0:
         if stderr:
@@ -42,14 +42,14 @@ def submit_wdl(wdl, input_json, site):
 
 def submit_wdl_noexit(wdl, input_json, site):
     """
-    This is a fixture that will submit a wdl that is expected to error out. 
+    This is a fixture that will submit a wdl that is expected to error out.
     I will not exit the function if there is an error, but will just return the stderr, stdout, and rc.
     """
 
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
     # activation command causes an error when we try to do json load later
 
-    cmd = "jaws submit --tag submit_wdl_noexit --no-cache %s %s %s" % (wdl, input_json, site)
+    cmd = "jaws submit --quiet --tag submit_wdl_noexit --no-cache %s %s %s" % (wdl, input_json, site)
     (rc, stdout, stderr) = run(cmd)
     data = json.loads(stdout)
 
@@ -57,7 +57,7 @@ def submit_wdl_noexit(wdl, input_json, site):
 
 def wait_for_run(id,check_tries,check_sleep):
     """ Wait for all the runs in ids list to finish."""
-    tries = 1 
+    tries = 1
     while tries <= int(check_tries):
         # check whether the run has finished every 60 seconds
         cmd = "jaws status %s" % (id)
