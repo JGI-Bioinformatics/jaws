@@ -21,8 +21,8 @@ VALID_STATES = [
     "queued",
     "running",
     "download complete"]
-CHECK_TRIES = 2000
-CHECK_SLEEP = 30
+CHECK_TRIES = 20000
+CHECK_SLEEP = 5 
 
 
 @pytest.mark.parametrize("state", VALID_STATES)

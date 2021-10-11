@@ -152,17 +152,12 @@ def test_saved_subwdl(submit_subworkflow_alignment):
 
     """
     run_id = submit_subworkflow_alignment["run_id"]
-
-    # need to get the submission_id from the status
-    cmd = "jaws status --verbose %s" % (run_id)
+    outdir = "Subworkflow-output"
+    cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
     (r, o, e) = util.run(cmd)
     assert not r
-    data = json.loads(o)
-    submission_id = data["submission_id"]
-    outdir = data["output_dir"]
 
-    zip_file = os.path.join(outdir, submission_id + ".zip")
-
+    zip_file = os.path.join(outdir, "subworkflows.zip")
     assert os.path.exists(zip_file)
 
     cmd = "unzip -l %s" % (zip_file)
