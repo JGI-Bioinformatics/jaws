@@ -365,7 +365,7 @@ cori-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
       when: manual
   allow_failure: true
 
@@ -379,7 +379,21 @@ jgi-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: manual
+  allow_failure: true
+
+tahoma-dev-smoke-tests:
+  stage: smoke-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "TAHOMA"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
       when: manual
   allow_failure: true
 
@@ -393,7 +407,7 @@ cori-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
       when: manual
   allow_failure: true
 
@@ -407,7 +421,21 @@ jgi-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: manual
+  allow_failure: true
+
+tahoma-dev-deployment-tests:
+  stage: deployment-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "TAHOMA"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
       when: manual
   allow_failure: true
 
@@ -421,7 +449,7 @@ cori-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
       when: manual
   allow_failure: true
 
@@ -435,7 +463,21 @@ jgi-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: manual
+  allow_failure: true
+
+tahoma-dev-stress-tests:
+  stage: stress-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "TAHOMA"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
       when: manual
   allow_failure: true
 
@@ -449,7 +491,7 @@ cori-staging-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
@@ -463,7 +505,21 @@ jgi-staging-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+      when: manual
+  allow_failure: true
+
+tahoma-staging-smoke-tests:
+  stage: smoke-tests
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "TAHOMA"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
@@ -477,7 +533,7 @@ cori-staging-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
@@ -491,7 +547,21 @@ jgi-staging-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+      when: manual
+  allow_failure: true
+
+tahoma-staging-deployment-tests:
+  stage: deployment-tests
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "TAHOMA"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
@@ -505,7 +575,7 @@ cori-staging-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
@@ -519,91 +589,21 @@ jgi-staging-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
-cori-prod-smoke-tests:
-  stage: smoke-tests
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "CORI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
-      when: manual
-  allow_failure: true
-
-jgi-prod-smoke-tests:
-  stage: smoke-tests
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "JGI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
-      when: manual
-  allow_failure: true
-
-cori-prod-deployment-tests:
-  stage: deployment-tests
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "CORI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
-      when: manual
-  allow_failure: true
-
-jgi-prod-deployment-tests:
-  stage: deployment-tests
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "JGI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
-      when: manual
-  allow_failure: true
-
-cori-prod-stress-tests:
+tahoma-staging-stress-tests:
   stage: stress-tests
   variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "CORI"
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "TAHOMA"
   tags:
     - cori
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
-      when: manual
-  allow_failure: true
-
-jgi-prod-stress-tests:
-  stage: stress-tests
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "JGI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
