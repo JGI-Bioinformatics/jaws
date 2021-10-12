@@ -106,7 +106,7 @@ variables:
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
 
-  TAHOMA_CLIENT_INSTALL_BASEDIR: ""
+  TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install/jaws-client/"
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
   TAHOMA_GLOBUS_EP: "8e65719e-1a53-11ec-a09f-6b21ca6daf73"
   TAHOMA_GLOBUS_HOST_PATH: "/tahoma/mscjgi"
