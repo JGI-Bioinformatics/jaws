@@ -387,21 +387,6 @@ class Cromwell:
         """
         return Metadata(self.workflows_url, workflow_id, data, cache)
 
-    def get_all_metadata(self, workflow_id: str, cache: dict = {}):
-        """Get dict of all runs => metadata json for run and all subworkflows.
-
-        :param workflow_id: primary key used by Cromwell
-        :type workflow_id: str
-        :return: all metadata docs { workflow_id => metadata obj }
-        :rtype: dict
-        """
-        result = {}
-        metadata = Metadata(self.workflows_url, workflow_id, None, cache)
-        result[workflow_id] = metadata.data
-        for sub_id, sub_meta in metadata.subworkflows.items():
-            result[sub_id] = sub_meta.data
-        return result
-
     def get_all_errors(self, workflow_id: str, cache: dict = {}):
         """Get dict of all runs => errors json for run and all subworkflows.
 

@@ -139,7 +139,7 @@ class Run:
         If the run hasn't been submitted to Cromwell yet, the result shall be None.
         """
         if self.model.cromwell_run_id:
-            return cromwell.get_all_metadata(self.model.cromwell_run_id)
+            return cromwell.get_metadata(self.model.cromwell_run_id)
         else:
             return None
 
