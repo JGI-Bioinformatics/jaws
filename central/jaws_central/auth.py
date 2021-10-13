@@ -75,8 +75,8 @@ def _get_json_from_sso(hash_code):
         abort(response.status_code, f"{err}")
     try:
         sso_json = json.loads(response.content)
-    except:
-        abort(403, "SSO Hash was invalid.")
+    except Exception as err:
+        abort(403, f"SSO Hash was invalid: {err}")
     return sso_json
 
 
