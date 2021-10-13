@@ -584,6 +584,8 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
 
 def _copy_outfile(rel_path, src_dir, dest_dir, quiet=False):
     """Copy one output if it is a file"""
+    if rel_path is None:
+        return
     src_file = os.path.normpath(os.path.join(src_dir, rel_path))
     if not os.path.isfile(src_file):
         # not all of a workflow's "outputs" are files (may be string or number)
