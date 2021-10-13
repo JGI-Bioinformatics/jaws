@@ -35,7 +35,7 @@ class Task:
     If a Task is a subworkflow, it will contain a Metadata object.
     """
 
-    def __init__(self, workflows_url, name, calls, cache={}):
+    def __init__(self, workflows_url, name, calls):
         """
         Initialize a Task object, which may contain a subworkflow.
 
@@ -45,8 +45,6 @@ class Task:
         :type name: str
         :param calls: A task's calls (AKA attempts) section of the Cromwell metadata.
         :type calls: list
-        :param cache: cached {workflow_id => metadata}; avoids need to GET from Cromwell (optional)
-        :type cache: dict
         """
         logger = logging.getLogger(__package__)
         self.workflows_url = workflows_url
@@ -60,7 +58,7 @@ class Task:
                 logger.debug(
                     f"Task {self.name} is a subworkflow; getting metadata {workflow_id}"
                 )
-                metadata = Metadata(self.workflows_url, workflow_id, None, cache)
+                metadata = Metadata(self.workflows_url, workflow_id, None)
                 # a subworkflow task has a workflow id for each attempt
                 self.subworkflows[workflow_id] = metadata
 
@@ -192,7 +190,7 @@ class Metadata:
     # "workflowProcessingEvents" =>  list
     # "workflowRoot" =>  str (path)
 
-    def __init__(self, workflows_url, workflow_id, data=None, cache={}):
+    def __init__(self, workflows_url, workflow_id, data=None):
         """
         Initialize Metadata object by retrieving metadata from Cromwell,
         including subworkflows, and initialize Task objects.
@@ -202,8 +200,6 @@ class Metadata:
         :type workflow_id: str
         :param data: optionally provide metadata JSON to avoid GET from Cromwell
         :type dict:
-        :param cache: optionally provide multiple metadata to avoid GET from Cromwell
-        :type cache: dict
         """
         logger = logging.getLogger(__package__)
         self.workflows_url = workflows_url
@@ -212,15 +208,10 @@ class Metadata:
         self.data = None
         if data:
             self.data = data
-        elif cache and workflow_id in cache:
-            # cache dict uses workflow_id as keys and metadata as values;
-            # it can be used to avoid unnecessary GETs and is currently
-            # used by tests/test_cromwell.py
-            self.data = cache[workflow_id]
         else:
             logger.debug(f"Get metadata for {workflow_id}")
             self._get_data()
-        self._init_tasks(cache)
+        self._init_tasks()
 
     def _get_data(self):
         """GET record from Cromwell REST server."""
@@ -238,11 +229,8 @@ class Metadata:
         except Exception as error:
             raise ValueError(f"Not valid json: {error}")
 
-    def _init_tasks(self, cache):
-        """Initialize and save Task objects.
-        :param cache: Cached {workflow_id=>metadata} avoids unnecessary GET (optional)
-        :type cache: dict
-        """
+    def _init_tasks(self):
+        """Initialize and save Task objects."""
         logger = logging.getLogger(__package__)
         self.tasks = []  # Task objects
         self.subworkflows = {}  # workflow_id => metadata obj
@@ -250,7 +238,7 @@ class Metadata:
             calls = self.data["calls"]
             for task_name in calls.keys():
                 logger.debug(f"Workflow {self.workflow_id}: Init task {task_name}")
-                task = Task(self.workflows_url, task_name, calls[task_name], cache)
+                task = Task(self.workflows_url, task_name, calls[task_name])
                 self.tasks.append(task)
                 if task.is_subworkflow:
                     for sub_id, sub_meta in task.subworkflows.items():
@@ -375,7 +363,7 @@ class Cromwell:
         self.workflows_url = f"{url}/api/workflows/v1"
         self.engine_url = f"{url}/engine/v1/status"
 
-    def get_metadata(self, workflow_id: str, data=None, cache={}):
+    def get_metadata(self, workflow_id: str, data=None):
         """Get Metadata object for a workflow-run.
 
         :param workflow_id: primary key used by Cromwell
@@ -385,9 +373,9 @@ class Cromwell:
         :return: Metadata object
         :rtype: cromwell.Metadata
         """
-        return Metadata(self.workflows_url, workflow_id, data, cache)
+        return Metadata(self.workflows_url, workflow_id, data)
 
-    def get_all_errors(self, workflow_id: str, cache: dict = {}):
+    def get_all_errors(self, workflow_id: str):
         """Get dict of all runs => errors json for run and all subworkflows.
 
         :param workflow_id: primary key used by Cromwell
@@ -396,7 +384,7 @@ class Cromwell:
         :rtype: dict
         """
         result = {}
-        metadata = Metadata(self.workflows_url, workflow_id, None, cache)
+        metadata = Metadata(self.workflows_url, workflow_id, None)
         result[workflow_id] = metadata.errors()
         for sub_id, sub_meta in metadata.subworkflows.items():
             result[sub_id] = sub_meta.errors()
