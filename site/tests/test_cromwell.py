@@ -769,6 +769,7 @@ def test_all_errors(requests_mock):
         is False
     )
 
+
 def test_get_outputs(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
@@ -780,10 +781,5 @@ def test_get_outputs(requests_mock):
     ex_1 = crom.get_metadata(example_cromwell_run_id_1)
     actual_outputs_1 = ex_1.outputs(relpath=True)
     assert (
-        bool(
-            DeepDiff(
-                actual_outputs_1, expected_outputs_1, ignore_order=True
-            )
-        )
-        is False
+        bool(DeepDiff(actual_outputs_1, expected_outputs_1, ignore_order=True)) is False
     )
