@@ -110,5 +110,5 @@ def test_get_user_token(monkeypatch):
 
     email = "abc.def@ghe@xyz"
     with pytest.raises(Exception) as e_info:
-        result = jaws_central.auth.get_user_token(user, email=email)
+        result = jaws_central.auth.get_user_token(user, email)
     assert "Bad email address" in str(e_info.value)
