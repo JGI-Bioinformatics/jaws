@@ -15,7 +15,8 @@ def _get_cromwell_errors_report(cromwell_run_id):
     :rtype: dict
     """
     cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
-    return cromwell.get_all_errors(cromwell_run_id)
+    metadata = cromwell.get_metadata(cromwell_run_id)
+    return metadata.errors()
 
 
 def get_errors(session, cromwell_run_id):

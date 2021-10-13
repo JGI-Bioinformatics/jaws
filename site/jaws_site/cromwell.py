@@ -35,30 +35,27 @@ class Task:
     If a Task is a subworkflow, it will contain a Metadata object.
     """
 
-    def __init__(self, workflows_url, name, calls):
+    def __init__(self, name, calls):
         """
         Initialize a Task object, which may contain a subworkflow.
 
-        :param workflows_url: The Cromwell URL to GET workflow metadata
-        :type workflows_url: str
         :param name: Task name
         :type name: str
         :param calls: A task's calls (AKA attempts) section of the Cromwell metadata.
         :type calls: list
         """
         logger = logging.getLogger(__package__)
-        self.workflows_url = workflows_url
         self.name = name
         self.calls = calls
         self.subworkflows = {}  # subworkflow_id => Metadata obj
 
         for call in calls:
-            if "subWorkflowId" in call:
-                workflow_id = call["subWorkflowId"]
+            if "subWorkflowMetadata" in call:
+                workflow_id = call["subWorkflowMetadata"]["id"]
                 logger.debug(
-                    f"Task {self.name} is a subworkflow; getting metadata {workflow_id}"
+                    f"Task {self.name} is a subworkflow; id={workflow_id}"
                 )
-                metadata = Metadata(self.workflows_url, workflow_id, None)
+                metadata = Metadata(workflow_id, call["subWorkflowMetadata"])
                 # a subworkflow task has a workflow id for each attempt
                 self.subworkflows[workflow_id] = metadata
 
@@ -190,50 +187,20 @@ class Metadata:
     # "workflowProcessingEvents" =>  list
     # "workflowRoot" =>  str (path)
 
-    def __init__(self, workflows_url, workflow_id, data=None):
+    def __init__(self, data):
         """
         Initialize Metadata object by retrieving metadata from Cromwell,
         including subworkflows, and initialize Task objects.
-        :param workflows_url: URL for Cromwell
-        :type workflows_url: str
         :param workflow_id: Cromwell's UUID for the workflow (AKA run)
         :type workflow_id: str
-        :param data: optionally provide metadata JSON to avoid GET from Cromwell
+        :param data: cromwell metadata JSON record
         :type dict:
         """
         logger = logging.getLogger(__package__)
-        self.workflows_url = workflows_url
-        self.workflow_id = workflow_id
-        self.tasks = None
-        self.data = None
-        if data:
-            self.data = data
-        else:
-            logger.debug(f"Get metadata for {workflow_id}")
-            self._get_data()
-        self._init_tasks()
-
-    def _get_data(self):
-        """GET record from Cromwell REST server."""
-        url = f"{self.workflows_url}/{self.workflow_id}/metadata"
-        try:
-            response = requests.get(url)
-        except requests.ConnectionError as error:
-            raise error
-        response.raise_for_status()
-        self.data = response.json()
-
-    def init_with_json_str(self, json_str):
-        try:
-            self.data = json.loads(json_str)
-        except Exception as error:
-            raise ValueError(f"Not valid json: {error}")
-
-    def _init_tasks(self):
-        """Initialize and save Task objects."""
-        logger = logging.getLogger(__package__)
+        self.data = data
+        self.workflow_id = data["id"]
         self.tasks = []  # Task objects
-        self.subworkflows = {}  # workflow_id => metadata obj
+        self.subworkflows = {}  # workflow_id => metadata obj  # ECCE
         if "calls" in self.data:
             calls = self.data["calls"]
             for task_name in calls.keys():
@@ -373,22 +340,14 @@ class Cromwell:
         :return: Metadata object
         :rtype: cromwell.Metadata
         """
-        return Metadata(self.workflows_url, workflow_id, data)
-
-    def get_all_errors(self, workflow_id: str):
-        """Get dict of all runs => errors json for run and all subworkflows.
-
-        :param workflow_id: primary key used by Cromwell
-        :type workflow_id: str
-        :return: all errors docs { workflow_id => errors obj }
-        :rtype: dict
-        """
-        result = {}
-        metadata = Metadata(self.workflows_url, workflow_id, None)
-        result[workflow_id] = metadata.errors()
-        for sub_id, sub_meta in metadata.subworkflows.items():
-            result[sub_id] = sub_meta.errors()
-        return result
+        url = f"{self.workflows_url}/{workflow_id}/metadata"
+        try:
+            response = requests.get(url)
+        except requests.ConnectionError as error:
+            raise error
+        response.raise_for_status()
+        data = response.json()
+        return Metadata(data)
 
     def status(self):
         """Check if Cromwell is available"""
