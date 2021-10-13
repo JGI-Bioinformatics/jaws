@@ -9,26 +9,26 @@ example_cromwell_url = "http://localhost:8000"
 example_workflows_url = f"{example_cromwell_url}/api/workflows/v1"
 crom = cromwell.Cromwell(example_cromwell_url)
 
-example_cromwell_run_id_1 = (
-    "ee30d68f-39d4-4fde-85c2-afdecce2bad3"  # simple successful run
-)
-example_cromwell_run_id_2_main = (
-    "74a0bf98-5bf3-4416-84bc-2fca6f4ed21a"  # successful run, with subs
-)
-example_cromwell_run_id_2_sub_1 = "7408a4f1-bc85-49ba-8d5f-c886261ab6a0"
-example_cromwell_run_id_2_sub_2 = "89d86efc-dd04-48aa-a65f-21fb9d0c8be3"
-example_cromwell_run_id_3 = "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"  # simple failed run
-example_cromwell_run_id_4 = (
-    "469bcdd6-d67f-455f-9475-438349f41631"  # failed, missing infile
-)
-example_cromwell_run_id_5 = (
-    "36f86fab-830c-4022-86be-a175c61989d7"  # failed run, with scatter
-)
-example_cromwell_run_id_6 = "cbbbc75f-8920-495c-a290-0a1a5f0d1c20"  # failed run
+# simple successful run
+example_cromwell_run_id_1 = "ee30d68f-39d4-4fde-85c2-afdecce2bad3"
 
-example_cromwell_run_id_7_main = "ed88743a-a87e-4087-b4a9-7706a95bb501"
-example_cromwell_run_id_7_sub_1 = "c03502fe-d727-4cc5-b032-e2fd560dcec5"
-example_cromwell_run_id_7_sub_2 = "62a74b3f-2891-48da-ac49-895a00bcd575"
+# successful run with subs
+example_cromwell_run_id_2 = "c720836c-0931-4ddc-8366-774160e05531"
+
+# simple failed run
+example_cromwell_run_id_3 = "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"
+
+# failed, missing infile
+example_cromwell_run_id_4 = "469bcdd6-d67f-455f-9475-438349f41631"
+
+# failed run, with scatter
+example_cromwell_run_id_5 = "36f86fab-830c-4022-86be-a175c61989d7"
+
+# failed simple run
+example_cromwell_run_id_6 = "cbbbc75f-8920-495c-a290-0a1a5f0d1c20"
+
+# failed run, with subs (sub's docker container not found)
+example_cromwell_run_id_7 = "dcb85c55-bf74-4f63-bce3-fe61f7b84ebb"
 
 
 def __load_example_metadata_from_file(cromwell_run_id):
@@ -37,7 +37,9 @@ def __load_example_metadata_from_file(cromwell_run_id):
     return metadata
 
 
-def test_metadata(requests_mock):
+def test_get_metadata(requests_mock):
+
+    # simple run
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
         json=__load_example_metadata_from_file(example_cromwell_run_id_1),
@@ -47,6 +49,32 @@ def test_metadata(requests_mock):
     metadata = crom.get_metadata(example_cromwell_run_id_1)
     workflowRoot = metadata.get("workflowRoot")
     assert workflowRoot == expectedWorkflowRoot
+
+
+    # TODO
+    # wdl with subworkflows
+    example_metadata = __load_example_metadata_from_file(example_cromwell_run_id_2)
+
+    assert example_metadata
+
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
+        json=example_metadata,
+    )
+
+    c = cromwell.Cromwell(example_cromwell_url)
+    result = c.get_metadata(example_cromwell_run_id_2)
+    assert (
+        bool(
+            DeepDiff(
+                result[example_cromwell_run_id_2],
+                example_metadata,
+                ignore_order=True,
+            )
+        )
+        is False
+    )
+
 
 
 def test_task(requests_mock):
@@ -70,98 +98,22 @@ def test_task(requests_mock):
 
 
 def test_task_subworkflow(requests_mock):
-    example_metadata = __load_example_metadata_from_file(example_cromwell_run_id_2_main)
-    example_metadata_sub_1 = __load_example_metadata_from_file(
-        example_cromwell_run_id_2_sub_1
-    )
-    example_metadata_sub_2 = __load_example_metadata_from_file(
-        example_cromwell_run_id_2_sub_2
-    )
+    example_metadata = __load_example_metadata_from_file(example_cromwell_run_id_2)
+
     assert example_metadata
-    assert example_metadata_sub_1
-    assert example_metadata_sub_2
     requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2_main}/metadata",
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
         json=example_metadata,
-    )
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2_sub_1}/metadata",
-        json=example_metadata_sub_1,
-    )
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2_sub_2}/metadata",
-        json=example_metadata_sub_2,
     )
 
     example_task_name = "main_workflow.hello_and_goodbye_1"  # task in sub
     example_calls = example_metadata["calls"][example_task_name]
 
     task = cromwell.Task(example_workflows_url, example_task_name, example_calls)
-    expected_subworkflow_job_ids = (5482, 5484)
+    expected_subworkflow_job_ids = (12134, 12133)
     for call in task.calls:
         if "jobId" in call:
             assert call["jobId"] in expected_subworkflow_job_ids
-        else:
-            assert call["subWorkflowId"] == example_cromwell_run_id_2_sub_1
-
-
-def test_get_all_metadata(requests_mock):
-    """Given the uuid of a workflow with a subworkflow, we expect a dict with { uuid => metadata }"""
-    example_metadata = __load_example_metadata_from_file(example_cromwell_run_id_2_main)
-    example_metadata_sub_1 = __load_example_metadata_from_file(
-        example_cromwell_run_id_2_sub_1
-    )
-    example_metadata_sub_2 = __load_example_metadata_from_file(
-        example_cromwell_run_id_2_sub_2
-    )
-    assert example_metadata
-    assert example_metadata_sub_1
-    assert example_metadata_sub_2
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2_main}/metadata",
-        json=example_metadata,
-    )
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2_sub_1}/metadata",
-        json=example_metadata_sub_1,
-    )
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2_sub_2}/metadata",
-        json=example_metadata_sub_2,
-    )
-
-    c = cromwell.Cromwell(example_cromwell_url)
-    result = c.get_all_metadata(example_cromwell_run_id_2_main)
-    assert (
-        bool(
-            DeepDiff(
-                result[example_cromwell_run_id_2_main],
-                example_metadata,
-                ignore_order=True,
-            )
-        )
-        is False
-    )
-    assert (
-        bool(
-            DeepDiff(
-                result[example_cromwell_run_id_2_sub_1],
-                example_metadata_sub_1,
-                ignore_order=True,
-            )
-        )
-        is False
-    )
-    assert (
-        bool(
-            DeepDiff(
-                result[example_cromwell_run_id_2_sub_2],
-                example_metadata_sub_2,
-                ignore_order=True,
-            )
-        )
-        is False
-    )
 
 
 def test_task_summary(requests_mock):
@@ -208,29 +160,21 @@ def test_task_stdout(requests_mock):
 
 def test_metadata_tasks(requests_mock):
     requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2_main}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_2_main),
-    )
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2_sub_1}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_2_sub_1),
-    )
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2_sub_2}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_2_sub_2),
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
+        json=__load_example_metadata_from_file(example_cromwell_run_id_2),
     )
 
-    metadata = crom.get_metadata(example_cromwell_run_id_2_main)
-    assert metadata.is_subworkflow() is False
+    metadata = crom.get_metadata(example_cromwell_run_id_2)
     for task in metadata.tasks:
         assert task.name is not None
         assert len(task.calls) > 0
         for call in task.calls:
             assert "attempt" in call
             assert call["attempt"] == 1
-            assert "jobId" in call or "subWorkflowId" in call
-            if "subWorkflowId" in call:
-                assert call["subWorkflowId"] in task.subworkflows
+            assert "jobId" in call or "subWorkflowMetadata" in call
+#            if "subWorkflowMetadata" in call:
+#                assert call["subWorkflowId"] in task.subworkflows
+# TODO
 
 
 def test_errors(requests_mock):
@@ -670,16 +614,8 @@ def test_errors(requests_mock):
 
 def test_all_errors(requests_mock):
     requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7_main}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_7_main),
-    )
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7_sub_1}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_7_sub_1),
-    )
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7_sub_2}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_7_sub_2),
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7}/metadata",
+        json=__load_example_metadata_from_file(example_cromwell_run_id_7),
     )
 
     expected_errors_report_7 = {
@@ -759,7 +695,7 @@ def test_all_errors(requests_mock):
         },
     }
 
-    actual_errors_report_7 = crom.get_all_errors(example_cromwell_run_id_7_main)
+    actual_errors_report_7 = crom.get_all_errors(example_cromwell_run_id_7)
     assert (
         bool(
             DeepDiff(

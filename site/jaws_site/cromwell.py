@@ -47,22 +47,25 @@ class Task:
         logger = logging.getLogger(__package__)
         self.name = name
         self.calls = calls
-        self.subworkflows = {}  # subworkflow_id => Metadata obj
+        self.isSubWorkflow = False
 
         for call in calls:
             if "subWorkflowMetadata" in call:
-                workflow_id = call["subWorkflowMetadata"]["id"]
-                logger.debug(
-                    f"Task {self.name} is a subworkflow; id={workflow_id}"
-                )
-                metadata = Metadata(workflow_id, call["subWorkflowMetadata"])
-                # a subworkflow task has a workflow id for each attempt
-                self.subworkflows[workflow_id] = metadata
-
-    def is_subworkflow(self):
-        return bool(self.subworkflows)
+                self.isSubWorkflow = True
+                call["subWorkflowMetadataObj"] = Metadata(call["subWorkflowMetadata"])
 
     def get(self, key, attempt=None, default=None):
+        """
+        Get an item from the list of calls dictionaries (e.g. "executionStatus");
+        by default, get the item from the last attempt.
+        :param key: Dictionary key (e.g. "executionStatus")
+        :type key: str
+        :param attempt: Attempt number (first=1; default=last).
+        :type attempt: int
+        :param default: Default value to return if key not found (default=None).
+        :return: value of the specified key, for specified attempt number.
+        """
+        # first attempt is 1, convert to 0-based index if in valid range
         index = None
         if attempt is None:
             index = -1  # last attempt
@@ -74,45 +77,52 @@ class Task:
                 index = attempt - 1
         return self.calls[index].get(key, default)
 
-    def call_root_dir(self, attempt=None):
-        return self.get("callRoot", attempt)
-
-    def execution_status(self, attempt=None):
-        return self.get("executionStatus", attempt)
-
     def errors(self):
         """
-        Return user friendly errors report for this task.
-        :return: Errors report
+        Return user friendly errors report for this task/subworkflow.
+        This is a copy of the call data with only pertinent elements of the last
+        attempt included, for brevity (and understandability).
+        The contents of the stderr and stderr.submit files are also added.
+        :return: Errors report (filtered task call data)
         :rtype: dict
         """
-        full_report = []
-        for call in self.calls:
-            if call.get("executionStatus") == "Failed":
-                report = {}
-                report["failures"] = call["failures"]
-                if "jobId" in call:
-                    report["jobId"] = call["jobId"]
-                if "runtimeAttributes" in call:
-                    report["runtimeAttributes"] = {}
-                    runtime_attr = call["runtimeAttributes"]
-                    if "memory" in runtime_attr:
-                        report["runtimeAttributes"]["memory"] = runtime_attr["memory"]
-                    if "cpu" in runtime_attr:
-                        report["runtimeAttributes"]["cpu"] = runtime_attr["cpu"]
-                    if "time" in runtime_attr:
-                        report["runtimeAttributes"]["time"] = runtime_attr["time"]
-                if "stderr" in call:
-                    stderr_file = call["stderr"]
-                    if os.path.isfile(stderr_file):
-                        with open(stderr_file, "r") as file:
-                            report["stderr"] = file.read()
-                    stderr_submit_file = f"{stderr_file}.submit"
-                    if os.path.isfile(stderr_submit_file):
-                        with open(stderr_submit_file, "r") as file:
-                            report["stderr.submit"] = file.read()
-                full_report.append(report)
-        return full_report
+        if self.get("executionStatus") != "Failed":
+            # There is only error information if this task actually failed
+            return []
+        filteredCall = {}
+        call = self.calls[-1]  # only the last attempt is relevant
+        if self.isSubWorkflow:
+            # include any errors from the subworkflow's tasks
+            filteredCall["subWorkflowMetadata"] = subWorkflowMetadataObj.errors()
+        else:
+            # simple task (not a subworkflow)
+            filteredCall["failures"] = call["failures"]
+            if "jobId" in call:
+                filteredCall["jobId"] = call["jobId"]
+            if "runtimeAttributes" in call:
+                # for brevity, include only main parameters (memory, cpu, time)
+                filteredCall["runtimeAttributes"] = {}
+                runtimeAttributes = call["runtimeAttributes"]
+                if "memory" in runtimeAttributes:
+                    filteredCall["runtimeAttributes"]["memory"] = runtimeAttributes["memory"]
+                if "cpu" in runtimeAttributes:
+                    filteredCall["runtimeAttributes"]["cpu"] = runtimeAttributes["cpu"]
+                if "time" in runtimeAttributes:
+                    filteredCall["runtimeAttributes"]["time"] = runtimeAttributes["time"]
+            if "stderr" in call:
+                # include *contents* of stderr files, instead of file paths
+                stderrFilePath = call["stderr"]
+                if os.path.isfile(stderrFilePath):
+                    with open(stderrFilePath, "r") as file:
+                        filteredCall["stderr"] = file.read()
+                stderrSubmitFilePath = f"{stderrFilePath}.submit"
+                if os.path.isfile(stderrSubmitFilePath):
+                    with open(stderrSubmitFilePath, "r") as file:
+                        filteredCall["stderr.submit"] = file.read()
+        # the result follows the structure of the original metadata,
+        # so make a list corresponding to attempts
+        filteredCalls = [ filteredCall ]
+        return filteredCalls
 
     def stdout(self, attempt=None, src=None, dest=None):
         """
@@ -205,7 +215,7 @@ class Metadata:
             calls = self.data["calls"]
             for task_name in calls.keys():
                 logger.debug(f"Workflow {self.workflow_id}: Init task {task_name}")
-                task = Task(self.workflows_url, task_name, calls[task_name])
+                task = Task(task_name, calls[task_name])
                 self.tasks.append(task)
                 if task.is_subworkflow:
                     for sub_id, sub_meta in task.subworkflows.items():
@@ -250,7 +260,7 @@ class Metadata:
 
     def filtered_failures(self):
         """
-        Filter failurs with message "Workflow failed", as those failures are duplicated in the Tasks.
+        Filter failures with message "Workflow failed", as those failures are duplicated in the Tasks.
         :return: list of failures
         :rtype: list
         """
