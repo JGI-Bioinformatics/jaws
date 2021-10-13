@@ -263,6 +263,8 @@ def test_jaws_get(submit_fq_count_wdl):
 
     assert os.path.exists(os.path.join(mycopy, "call-count_seqs/execution/num_seqs.txt"))
 
+    if os.path.exists(mycopy):
+        cmd = "rm -rf %s" % mycopy
 
 def test_tag(submit_fq_count_wdl):
     """
