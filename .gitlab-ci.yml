@@ -180,6 +180,7 @@ test-central:
   artifacts:
     reports:
       cobertura: central/coverage.xml
+
 test-client:
   <<: *only-default
   stage: unit-test
@@ -195,6 +196,7 @@ test-client:
     reports:
       cobertura: client/coverage.xml
   allow_failure: true
+
 test-jtm:
   <<: *only-default
   stage: unit-test
@@ -232,6 +234,7 @@ deploy-jaws-central-dev:
     - ./test/integration/deploy-central
   only:
   - dev
+
 deploy-jaws-central-staging:
   stage: deploy-jaws
   tags:
@@ -245,6 +248,7 @@ deploy-jaws-central-staging:
     - ./test/integration/deploy-central
   only:
   - staging
+
 deploy-jaws-central-prod:
   stage: deploy-jaws
   tags:
@@ -272,6 +276,7 @@ deploy-jaws-cori-dev:
     - ./test/integration/deploy-jaws
   only:
   - dev
+
 deploy-jaws-cori-staging:
   stage: deploy-jaws
   tags:
@@ -285,6 +290,7 @@ deploy-jaws-cori-staging:
     - ./test/integration/deploy-jaws
   only:
   - staging
+
 deploy-jaws-cori-prod:
   stage: deploy-jaws
   tags:
@@ -312,6 +318,7 @@ deploy-jaws-jgi-dev:
     - ./test/integration/deploy-jaws
   only:
   - dev
+
 deploy-jaws-jgi-staging:
   stage: deploy-jaws
   tags:
@@ -325,6 +332,7 @@ deploy-jaws-jgi-staging:
     - ./test/integration/deploy-jaws
   only:
   - staging
+
 deploy-jaws-jgi-prod:
   stage: deploy-jaws
   tags:
@@ -353,6 +361,38 @@ deploy-jaws-tahoma-dev:
     - ./test/integration/deploy-jaws
   only:
     - dev
+  allow_failure: true
+
+deploy-jaws-tahoma-staging:
+  stage: deploy-jaws
+  tags:
+    - tahoma
+    - pnnl
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "TAHOMA"
+  environment:
+    name: "tahoma/staging"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+    - staging
+  allow_failure: true
+
+deploy-jaws-tahoma-prod:
+  stage: deploy-jaws
+  tags:
+    - tahoma
+    - pnnl
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: "TAHOMA"
+  environment:
+    name: "tahoma/prod"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+    - master
   allow_failure: true
 
 cori-dev-smoke-tests:
