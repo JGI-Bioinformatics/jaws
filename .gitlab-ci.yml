@@ -92,7 +92,7 @@ variables:
   JGI_CLIENT_GROUP: "jgi"
   JGI_JAWS_SCRATCH_BASEDIR: "/global/scratch/jaws"
   JGI_JTM_SCRATCH_BASEDIR: "/global/scratch/jaws"
-  JGI_REF_DATA_DIR: "/global/home/groups/lr_jgicloud/refdata"
+  JGI_REF_DATA_DIR: "/global/scratch/jaws/refdata"
   JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
   JGI_CONTAINER_TYPE: "singularity"
   JGI_CONTAINER_TMPDIR: "/global/scratch/jaws"
