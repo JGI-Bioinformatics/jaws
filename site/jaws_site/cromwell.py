@@ -377,7 +377,8 @@ class Metadata:
                     # a sharded task may produce a list of outputs, one per shard
                     relpath_outputs[key] = []
                     for item in value:
-                        relpath_outputs[key].append(item.replace(workflowRoot, '.', 1))
+                        if item is not None:
+                            relpath_outputs[key].append(item.replace(workflowRoot, '.', 1))
                 else:
                     # a typical task produces outputs which may be a file path
                     relpath_outputs[key] = value.replace(workflowRoot, '.', 1)
