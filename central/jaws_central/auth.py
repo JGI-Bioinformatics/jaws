@@ -104,6 +104,8 @@ def get_user_token(user, auth_key):
         abort(401, f"Authorization information missing: {auth_key}")
     if _check_email_validity(auth_key):
         email = auth_key
+    elif not auth_key.isalnum():
+        abort(401, f"Bad email address: {auth_key}.")
     else:
         sso_json = _get_json_from_sso(auth_key)
         if "user" not in sso_json or "email" not in sso_json["user"]:
