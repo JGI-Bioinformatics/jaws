@@ -30,6 +30,9 @@ example_cromwell_run_id_6 = "cbbbc75f-8920-495c-a290-0a1a5f0d1c20"
 # failed run, with subs (sub's docker container not found)
 example_cromwell_run_id_7 = "dcb85c55-bf74-4f63-bce3-fe61f7b84ebb"
 
+# successful wdl with many shards
+example_cromwell_run_id_8 = "db053c86-9c2c-44df-ac74-240c49de5bf1"
+
 
 def __load_example_metadata_from_file(cromwell_run_id):
     with open(f"{tests_dir}/{cromwell_run_id}.json", "r") as fh:
