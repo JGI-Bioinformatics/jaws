@@ -73,9 +73,11 @@ def _get_json_from_sso(hash_code):
     except Exception as err:
         logger.error(err)
         abort(response.status_code, f"{err}")
-    if response is None:
-        abort(500, "Internal Error: Response object is NoneType.")
-    return json.loads(response.content)
+    try:
+        sso_json = json.loads(response.content)
+    except Exception as err:
+        abort(403, f"SSO Hash was invalid: {err}")
+    return sso_json
 
 
 def _check_email_validity(email):
@@ -85,7 +87,7 @@ def _check_email_validity(email):
     return False
 
 
-def get_user_token(user, email=None, sso_hash=None):
+def get_user_token(user, auth_key):
     """
     Return the JAWS token for the queried user' globus ID.
     This is restricted to 'dashboard' scope.
@@ -98,13 +100,16 @@ def get_user_token(user, email=None, sso_hash=None):
     :rtype: dict
     """
     sso_json = {}
-    if email is not None:
-        if not _check_email_validity(email):
-            abort(401, f"Bad email address: {email}")
-    elif sso_hash is not None:
-        sso_json = _get_json_from_sso(sso_hash)
+    if auth_key is None:
+        abort(401, f"Authorization information missing: {auth_key}")
+    if _check_email_validity(auth_key):
+        email = auth_key
+    elif not auth_key.isalnum():
+        abort(401, f"Bad email address: {auth_key}.")
+    else:
+        sso_json = _get_json_from_sso(auth_key)
         if "user" not in sso_json or "email" not in sso_json["user"]:
-            abort(401, f"No user information found for authentication: {json.dumps(sso_json)}")
+            abort(401, f"No email address found in SSO JSON: {json.dumps(sso_json)}")
         email = sso_json["user"]["email"]
     query_user = _get_user_by_email(email)
     return {"jaws_token": query_user.jaws_token, "sso_json": sso_json}
