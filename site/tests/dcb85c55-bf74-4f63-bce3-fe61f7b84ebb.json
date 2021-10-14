@@ -1,0 +1,797 @@
+{
+  "workflowName": "main_workflow",
+  "workflowProcessingEvents": [
+    {
+      "cromwellId": "cromid-ea85a27",
+      "description": "PickedUp",
+      "timestamp": "2021-10-12T17:53:08.266Z",
+      "cromwellVersion": "58"
+    },
+    {
+      "cromwellId": "cromid-ea85a27",
+      "description": "Finished",
+      "timestamp": "2021-10-12T17:53:53.106Z",
+      "cromwellVersion": "58"
+    }
+  ],
+  "metadataSource": "Unarchived",
+  "actualWorkflowLanguageVersion": "draft-2",
+  "submittedFiles": {
+    "workflow": "import \"sub_wdl.bad_docker.wdl\" as sub\n\nworkflow main_workflow {\n\n    call hello {input: addressee = \"World\" }\n    call goodbye {input: addressee = \"World\" }\n\n    call sub.hello_and_goodbye as hello_and_goodbye_1 { input: hello_and_goodbye_input = \"cruel world\" }\n    call sub.hello_and_goodbye as hello_and_goodbye_2 { input: hello_and_goodbye_input = \"beautiful world\" }\n\n    # call myTask { input: hello_and_goodbye.hello_output }\n\n    output {\n        String main_output_1 = hello_and_goodbye_1.hello_output\n        String main_output_2 = hello_and_goodbye_2.hello_output\n    }\n}\n\ntask hello {\n  String addressee\n  command {\n    echo \"Hello ${addressee}!\"\n  }\n  runtime {\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      memory: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\ntask goodbye {\n  String addressee\n  command {\n    echo \"Goodbye ${addressee}!\"\n  }\n  runtime {\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      memory: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n",
+    "root": "",
+    "options": "{\n\n}",
+    "inputs": "{}",
+    "workflowUrl": "",
+    "labels": "{}",
+    "imports": {
+      "sub_wdl.bad_docker.wdl": "task hello {\n  String addressee\n  command {\n    echo \"Hello ${addressee}!\"\n  }\n  runtime {\n      docker: \"noone/nonexistant_container:9.9.9\"\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      memory: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\ntask goodbye {\n  String addressee\n  command {\n    echo \"Goodbye ${addressee}!\"\n  }\n  runtime {\n      docker: \"noone/nonexistant_container:9.9.9\"\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      memory: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\nworkflow hello_and_goodbye {\n  String hello_and_goodbye_input\n\n  call hello {input: addressee = hello_and_goodbye_input }\n  call goodbye {input: addressee = hello_and_goodbye_input }\n\n  output {\n    String hello_output = hello.salutation\n    String goodbye_output = goodbye.salutation\n  }\n}\n"
+    }
+  },
+  "calls": {
+    "main_workflow.hello_and_goodbye_1": [
+      {
+        "retryableFailure": false,
+        "executionStatus": "Failed",
+        "subWorkflowMetadata": {
+          "workflowName": "hello_and_goodbye_1",
+          "rootWorkflowId": "dcb85c55-bf74-4f63-bce3-fe61f7b84ebb",
+          "calls": {
+            "hello_and_goodbye.goodbye": [
+              {
+                "retryableFailure": false,
+                "executionStatus": "Failed",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stdout",
+                "commandLine": "echo \"Goodbye cruel world!\"",
+                "shardIndex": -1,
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "docker": "noone/nonexistant_container:9.9.9",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "callCaching": {
+                  "allowResultReuse": false,
+                  "effectiveCallCachingMode": "CallCachingOff",
+                  "result": "Cache Miss",
+                  "hit": false
+                },
+                "inputs": {
+                  "addressee": "cruel world"
+                },
+                "failures": [
+                  {
+                    "causedBy": [
+                      {
+                        "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stderr.submit",
+                        "causedBy": []
+                      }
+                    ],
+                    "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stderr.submit"
+                  }
+                ],
+                "backend": "JTM",
+                "end": "2021-10-12T17:53:17.733Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stderr",
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye",
+                "attempt": 1,
+                "executionEvents": [
+                  {
+                    "startTime": "2021-10-12T17:53:13.325Z",
+                    "description": "Pending",
+                    "endTime": "2021-10-12T17:53:13.325Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:13.325Z",
+                    "description": "RequestingExecutionToken",
+                    "endTime": "2021-10-12T17:53:16.813Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:16.821Z",
+                    "description": "RunningJob",
+                    "endTime": "2021-10-12T17:53:17.472Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:16.813Z",
+                    "description": "PreparingJob",
+                    "endTime": "2021-10-12T17:53:16.821Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:16.813Z",
+                    "description": "WaitingForValueStore",
+                    "endTime": "2021-10-12T17:53:16.813Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:17.472Z",
+                    "description": "UpdatingJobStore",
+                    "endTime": "2021-10-12T17:53:17.733Z"
+                  }
+                ],
+                "start": "2021-10-12T17:53:13.325Z"
+              }
+            ],
+            "hello_and_goodbye.hello": [
+              {
+                "retryableFailure": false,
+                "executionStatus": "Failed",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stdout",
+                "commandLine": "echo \"Hello cruel world!\"",
+                "shardIndex": -1,
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "docker": "noone/nonexistant_container:9.9.9",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "callCaching": {
+                  "allowResultReuse": false,
+                  "effectiveCallCachingMode": "CallCachingOff",
+                  "result": "Cache Miss",
+                  "hit": false
+                },
+                "inputs": {
+                  "addressee": "cruel world"
+                },
+                "failures": [
+                  {
+                    "causedBy": [
+                      {
+                        "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stderr.submit",
+                        "causedBy": []
+                      }
+                    ],
+                    "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stderr.submit"
+                  }
+                ],
+                "backend": "JTM",
+                "end": "2021-10-12T17:53:15.746Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stderr",
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello",
+                "attempt": 1,
+                "executionEvents": [
+                  {
+                    "startTime": "2021-10-12T17:53:13.827Z",
+                    "description": "RunningJob",
+                    "endTime": "2021-10-12T17:53:15.063Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:13.814Z",
+                    "description": "WaitingForValueStore",
+                    "endTime": "2021-10-12T17:53:13.814Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:15.063Z",
+                    "description": "UpdatingJobStore",
+                    "endTime": "2021-10-12T17:53:15.747Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:13.325Z",
+                    "description": "Pending",
+                    "endTime": "2021-10-12T17:53:13.325Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:13.325Z",
+                    "description": "RequestingExecutionToken",
+                    "endTime": "2021-10-12T17:53:13.814Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:13.814Z",
+                    "description": "PreparingJob",
+                    "endTime": "2021-10-12T17:53:13.827Z"
+                  }
+                ],
+                "start": "2021-10-12T17:53:13.324Z"
+              }
+            ]
+          },
+          "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb",
+          "id": "86deab66-3ead-4565-9c67-bf529b78a073",
+          "inputs": {
+            "hello_and_goodbye_input": "cruel world"
+          },
+          "status": "Failed",
+          "parentWorkflowId": "dcb85c55-bf74-4f63-bce3-fe61f7b84ebb",
+          "end": "2021-10-12T17:53:19.443Z",
+          "start": "2021-10-12T17:53:11.269Z"
+        },
+        "shardIndex": -1,
+        "inputs": {
+          "hello_and_goodbye_input": "cruel world"
+        },
+        "failures": [
+          {
+            "causedBy": [
+              {
+                "causedBy": [
+                  {
+                    "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stderr.submit",
+                    "causedBy": []
+                  }
+                ],
+                "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stderr.submit"
+              },
+              {
+                "causedBy": [
+                  {
+                    "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stderr.submit",
+                    "causedBy": []
+                  }
+                ],
+                "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stderr.submit"
+              }
+            ],
+            "message": "Workflow failed"
+          }
+        ],
+        "end": "2021-10-12T17:53:19.443Z",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2021-10-12T17:53:11.270Z",
+            "description": "SubWorkflowPreparingState",
+            "endTime": "2021-10-12T17:53:11.296Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.258Z",
+            "description": "SubWorkflowPendingState",
+            "endTime": "2021-10-12T17:53:11.263Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.296Z",
+            "description": "SubWorkflowRunningState",
+            "endTime": "2021-10-12T17:53:19.444Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.263Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2021-10-12T17:53:11.270Z"
+          }
+        ],
+        "start": "2021-10-12T17:53:11.255Z"
+      }
+    ],
+    "main_workflow.hello": [
+      {
+        "executionStatus": "Done",
+        "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello/execution/stdout",
+        "backendStatus": "Done",
+        "commandLine": "echo \"Hello World!\"",
+        "shardIndex": -1,
+        "outputs": {
+          "salutation": "Hello World!"
+        },
+        "runtimeAttributes": {
+          "poolname": "test_small",
+          "shared": "0",
+          "failOnStderr": "false",
+          "partition": "",
+          "nwpn": "1",
+          "continueOnReturnCode": "0",
+          "cluster": "cori",
+          "maxRetries": "0",
+          "cpu": "32",
+          "constraint": "haswell",
+          "node": "1",
+          "account": "fungalp",
+          "time": "00:10:00",
+          "qos": "genepool_special",
+          "memory": "10 GB"
+        },
+        "callCaching": {
+          "allowResultReuse": true,
+          "hit": false,
+          "result": "Cache Miss",
+          "hashes": {
+            "output count": "C4CA4238A0B923820DCC509A6F75849B",
+            "runtime attribute": {
+              "docker": "N/A",
+              "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
+              "failOnStderr": "68934A3E9455FA72420237EB05902327"
+            },
+            "output expression": {
+              "String salutation": "0183144CF6617D5341681C6B2F756046"
+            },
+            "input count": "C4CA4238A0B923820DCC509A6F75849B",
+            "backend name": "6D3086C75F2DB761A86B2F982F10D384",
+            "command template": "4EAADE3CD5D558C5A6CFA4FD101A1486",
+            "input": {
+              "String addressee": "362DC0726AA6A2A62E9F7773FD901DF1"
+            }
+          },
+          "effectiveCallCachingMode": "ReadAndWriteCache"
+        },
+        "inputs": {
+          "addressee": "World"
+        },
+        "returnCode": 0,
+        "jobId": "12207",
+        "backend": "JTM",
+        "end": "2021-10-12T17:53:52.739Z",
+        "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello/execution/stderr",
+        "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2021-10-12T17:53:49.409Z",
+            "description": "UpdatingCallCache",
+            "endTime": "2021-10-12T17:53:51.773Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.279Z",
+            "description": "Pending",
+            "endTime": "2021-10-12T17:53:11.293Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:12.813Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2021-10-12T17:53:12.814Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:12.822Z",
+            "description": "CallCacheReading",
+            "endTime": "2021-10-12T17:53:12.872Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:12.814Z",
+            "description": "PreparingJob",
+            "endTime": "2021-10-12T17:53:12.822Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:51.773Z",
+            "description": "UpdatingJobStore",
+            "endTime": "2021-10-12T17:53:52.739Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:12.872Z",
+            "description": "RunningJob",
+            "endTime": "2021-10-12T17:53:49.409Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.293Z",
+            "description": "RequestingExecutionToken",
+            "endTime": "2021-10-12T17:53:12.813Z"
+          }
+        ],
+        "start": "2021-10-12T17:53:11.264Z"
+      }
+    ],
+    "main_workflow.goodbye": [
+      {
+        "executionStatus": "Done",
+        "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-goodbye/execution/stdout",
+        "backendStatus": "Done",
+        "commandLine": "echo \"Goodbye World!\"",
+        "shardIndex": -1,
+        "outputs": {
+          "salutation": "Goodbye World!"
+        },
+        "runtimeAttributes": {
+          "poolname": "test_small",
+          "shared": "0",
+          "failOnStderr": "false",
+          "partition": "",
+          "nwpn": "1",
+          "continueOnReturnCode": "0",
+          "cluster": "cori",
+          "maxRetries": "0",
+          "cpu": "32",
+          "constraint": "haswell",
+          "node": "1",
+          "account": "fungalp",
+          "time": "00:10:00",
+          "qos": "genepool_special",
+          "memory": "10 GB"
+        },
+        "callCaching": {
+          "allowResultReuse": true,
+          "hit": false,
+          "result": "Cache Miss",
+          "hashes": {
+            "output count": "C4CA4238A0B923820DCC509A6F75849B",
+            "runtime attribute": {
+              "docker": "N/A",
+              "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
+              "failOnStderr": "68934A3E9455FA72420237EB05902327"
+            },
+            "output expression": {
+              "String salutation": "0183144CF6617D5341681C6B2F756046"
+            },
+            "input count": "C4CA4238A0B923820DCC509A6F75849B",
+            "backend name": "6D3086C75F2DB761A86B2F982F10D384",
+            "command template": "ABFF2C1CC753BB668C97E9560BBDAF14",
+            "input": {
+              "String addressee": "362DC0726AA6A2A62E9F7773FD901DF1"
+            }
+          },
+          "effectiveCallCachingMode": "ReadAndWriteCache"
+        },
+        "inputs": {
+          "addressee": "World"
+        },
+        "returnCode": 0,
+        "jobId": "12206",
+        "backend": "JTM",
+        "end": "2021-10-12T17:53:52.743Z",
+        "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-goodbye/execution/stderr",
+        "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-goodbye",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2021-10-12T17:53:49.402Z",
+            "description": "UpdatingCallCache",
+            "endTime": "2021-10-12T17:53:51.773Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.293Z",
+            "description": "RequestingExecutionToken",
+            "endTime": "2021-10-12T17:53:11.824Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:51.773Z",
+            "description": "UpdatingJobStore",
+            "endTime": "2021-10-12T17:53:52.739Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:12.045Z",
+            "description": "RunningJob",
+            "endTime": "2021-10-12T17:53:49.402Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.279Z",
+            "description": "Pending",
+            "endTime": "2021-10-12T17:53:11.293Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.824Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2021-10-12T17:53:11.829Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.881Z",
+            "description": "CallCacheReading",
+            "endTime": "2021-10-12T17:53:12.045Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.829Z",
+            "description": "PreparingJob",
+            "endTime": "2021-10-12T17:53:11.881Z"
+          }
+        ],
+        "start": "2021-10-12T17:53:11.263Z"
+      }
+    ],
+    "main_workflow.hello_and_goodbye_2": [
+      {
+        "retryableFailure": false,
+        "executionStatus": "Failed",
+        "subWorkflowMetadata": {
+          "workflowName": "hello_and_goodbye_2",
+          "rootWorkflowId": "dcb85c55-bf74-4f63-bce3-fe61f7b84ebb",
+          "calls": {
+            "hello_and_goodbye.hello": [
+              {
+                "retryableFailure": false,
+                "executionStatus": "Failed",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stdout",
+                "commandLine": "echo \"Hello beautiful world!\"",
+                "shardIndex": -1,
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "docker": "noone/nonexistant_container:9.9.9",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "callCaching": {
+                  "allowResultReuse": false,
+                  "effectiveCallCachingMode": "CallCachingOff",
+                  "result": "Cache Miss",
+                  "hit": false
+                },
+                "inputs": {
+                  "addressee": "beautiful world"
+                },
+                "failures": [
+                  {
+                    "causedBy": [
+                      {
+                        "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stderr.submit",
+                        "causedBy": []
+                      }
+                    ],
+                    "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stderr.submit"
+                  }
+                ],
+                "backend": "JTM",
+                "end": "2021-10-12T17:53:16.733Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stderr",
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello",
+                "attempt": 1,
+                "executionEvents": [
+                  {
+                    "startTime": "2021-10-12T17:53:15.821Z",
+                    "description": "RunningJob",
+                    "endTime": "2021-10-12T17:53:16.471Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:15.814Z",
+                    "description": "PreparingJob",
+                    "endTime": "2021-10-12T17:53:15.821Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:13.325Z",
+                    "description": "RequestingExecutionToken",
+                    "endTime": "2021-10-12T17:53:15.813Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:16.471Z",
+                    "description": "UpdatingJobStore",
+                    "endTime": "2021-10-12T17:53:16.733Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:13.325Z",
+                    "description": "Pending",
+                    "endTime": "2021-10-12T17:53:13.325Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:15.813Z",
+                    "description": "WaitingForValueStore",
+                    "endTime": "2021-10-12T17:53:15.814Z"
+                  }
+                ],
+                "start": "2021-10-12T17:53:13.325Z"
+              }
+            ],
+            "hello_and_goodbye.goodbye": [
+              {
+                "retryableFailure": false,
+                "executionStatus": "Failed",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stdout",
+                "commandLine": "echo \"Goodbye beautiful world!\"",
+                "shardIndex": -1,
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "docker": "noone/nonexistant_container:9.9.9",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "callCaching": {
+                  "allowResultReuse": false,
+                  "effectiveCallCachingMode": "CallCachingOff",
+                  "result": "Cache Miss",
+                  "hit": false
+                },
+                "inputs": {
+                  "addressee": "beautiful world"
+                },
+                "failures": [
+                  {
+                    "causedBy": [
+                      {
+                        "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stderr.submit",
+                        "causedBy": []
+                      }
+                    ],
+                    "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stderr.submit"
+                  }
+                ],
+                "backend": "JTM",
+                "end": "2021-10-12T17:53:15.746Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stderr",
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye",
+                "attempt": 1,
+                "executionEvents": [
+                  {
+                    "startTime": "2021-10-12T17:53:14.814Z",
+                    "description": "WaitingForValueStore",
+                    "endTime": "2021-10-12T17:53:14.815Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:14.815Z",
+                    "description": "PreparingJob",
+                    "endTime": "2021-10-12T17:53:14.822Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:14.822Z",
+                    "description": "RunningJob",
+                    "endTime": "2021-10-12T17:53:15.473Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:15.473Z",
+                    "description": "UpdatingJobStore",
+                    "endTime": "2021-10-12T17:53:15.747Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:13.325Z",
+                    "description": "RequestingExecutionToken",
+                    "endTime": "2021-10-12T17:53:14.814Z"
+                  },
+                  {
+                    "startTime": "2021-10-12T17:53:13.325Z",
+                    "description": "Pending",
+                    "endTime": "2021-10-12T17:53:13.325Z"
+                  }
+                ],
+                "start": "2021-10-12T17:53:13.324Z"
+              }
+            ]
+          },
+          "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb",
+          "id": "0d64de21-a643-4212-a713-d3e666c27108",
+          "inputs": {
+            "hello_and_goodbye_input": "beautiful world"
+          },
+          "status": "Failed",
+          "parentWorkflowId": "dcb85c55-bf74-4f63-bce3-fe61f7b84ebb",
+          "end": "2021-10-12T17:53:18.426Z",
+          "start": "2021-10-12T17:53:11.269Z"
+        },
+        "shardIndex": -1,
+        "inputs": {
+          "hello_and_goodbye_input": "beautiful world"
+        },
+        "failures": [
+          {
+            "causedBy": [
+              {
+                "causedBy": [
+                  {
+                    "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stderr.submit",
+                    "causedBy": []
+                  }
+                ],
+                "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stderr.submit"
+              },
+              {
+                "causedBy": [
+                  {
+                    "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stderr.submit",
+                    "causedBy": []
+                  }
+                ],
+                "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stderr.submit"
+              }
+            ],
+            "message": "Workflow failed"
+          }
+        ],
+        "end": "2021-10-12T17:53:18.426Z",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2021-10-12T17:53:11.264Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2021-10-12T17:53:11.270Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.264Z",
+            "description": "SubWorkflowPendingState",
+            "endTime": "2021-10-12T17:53:11.264Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.270Z",
+            "description": "SubWorkflowPreparingState",
+            "endTime": "2021-10-12T17:53:11.296Z"
+          },
+          {
+            "startTime": "2021-10-12T17:53:11.296Z",
+            "description": "SubWorkflowRunningState",
+            "endTime": "2021-10-12T17:53:18.426Z"
+          }
+        ],
+        "start": "2021-10-12T17:53:11.264Z"
+      }
+    ]
+  },
+  "outputs": {},
+  "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb",
+  "actualWorkflowLanguage": "WDL",
+  "id": "dcb85c55-bf74-4f63-bce3-fe61f7b84ebb",
+  "inputs": {},
+  "labels": {
+    "cromwell-workflow-id": "cromwell-dcb85c55-bf74-4f63-bce3-fe61f7b84ebb"
+  },
+  "submission": "2021-10-12T17:53:07.639Z",
+  "status": "Failed",
+  "failures": [
+    {
+      "causedBy": [
+        {
+          "causedBy": [
+            {
+              "causedBy": [
+                {
+                  "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stderr.submit",
+                  "causedBy": []
+                }
+              ],
+              "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stderr.submit"
+            },
+            {
+              "causedBy": [
+                {
+                  "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stderr.submit",
+                  "causedBy": []
+                }
+              ],
+              "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stderr.submit"
+            }
+          ],
+          "message": "Workflow failed"
+        },
+        {
+          "causedBy": [
+            {
+              "causedBy": [
+                {
+                  "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stderr.submit",
+                  "causedBy": []
+                }
+              ],
+              "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stderr.submit"
+            },
+            {
+              "causedBy": [
+                {
+                  "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stderr.submit",
+                  "causedBy": []
+                }
+              ],
+              "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stderr.submit"
+            }
+          ],
+          "message": "Workflow failed"
+        }
+      ],
+      "message": "Workflow failed"
+    }
+  ],
+  "end": "2021-10-12T17:53:53.105Z",
+  "start": "2021-10-12T17:53:08.306Z"
+}

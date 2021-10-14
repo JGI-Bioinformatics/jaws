@@ -128,7 +128,6 @@ class TaskLog:
         result = []
         for row in table:
             log_entry = [
-                row.cromwell_run_id,
                 row.cromwell_job_id,
                 row.status_from,
                 row.status_to,
@@ -149,7 +148,6 @@ class TaskLog:
         jobs = {}
         job_logs = self._get_job_logs(cromwell_run_ids)
         for (
-            cromwell_run_id,
             cromwell_job_id,
             status_from,
             status_to,
@@ -163,7 +161,6 @@ class TaskLog:
             # represented in the log, so save in a dict instead of a list, using ordinal value of status_from as key
             index = job_status_value[status_from]
             jobs[cromwell_job_id][index] = [
-                cromwell_run_id,
                 status_from,
                 status_to,
                 timestamp,
@@ -218,14 +215,14 @@ class TaskLog:
         """Retrieve all jobs from Cromwell metadata for a run and reorganize by cromwell_job_id.
         :param cromwell_run_id: Cromwell's UUID for the run
         :type cromwell_run_id: str
-        :return: cromwell_job_id and task metadata
+        :return: cromwell_job_id and task_name
         :rtype: dict
         """
         tasks = self._get_cromwell_task_summary(cromwell_run_id)
         jobs = {}
-        for (cromwell_run_id, task_name, attempt, cromwell_job_id) in tasks:
+        for (task_name, cromwell_job_id) in tasks:
             cromwell_job_id = str(cromwell_job_id)
-            jobs[cromwell_job_id] = [cromwell_run_id, task_name, attempt]
+            jobs[cromwell_job_id] = task_name
         return jobs
 
     def _get_cromwell_run_ids_from_job_metadata(self, jobs):

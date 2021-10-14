@@ -1,0 +1,13 @@
+{
+    "failures": [
+        {
+            "causedBy": [
+                {
+                    "causedBy": [],
+                    "message": "Required workflow input 'fq_count.fastq_file' not specified"
+                }
+            ],
+            "message": "Workflow input processing failed"
+        }
+    ]
+}

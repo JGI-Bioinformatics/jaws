@@ -5,7 +5,6 @@ from deepdiff import DeepDiff
 
 def test_save_job_log(monkeypatch):
     example_log = [
-        "AAAA-BBBB-CCCC",
         2345,
         "queued",
         "running",
@@ -29,7 +28,6 @@ def test_get_job_logs(monkeypatch):
     test_cromwell_job_id = "2345"
     test_job_logs = [
         [
-            test_cromwell_run_id,
             test_cromwell_job_id,
             "created",
             "ready",
@@ -37,7 +35,6 @@ def test_get_job_logs(monkeypatch):
             None,
         ],
         [
-            test_cromwell_run_id,
             test_cromwell_job_id,
             "ready",
             "queued",
@@ -45,7 +42,6 @@ def test_get_job_logs(monkeypatch):
             None,
         ],
         [
-            test_cromwell_run_id,
             test_cromwell_job_id,
             "queued",
             "running",
@@ -64,7 +60,7 @@ def test_get_job_logs(monkeypatch):
     job_logs = tasks.get_job_logs([test_cromwell_run_id])
     assert test_cromwell_job_id in job_logs
     assert len(job_logs[test_cromwell_job_id]) == len(test_job_logs)
-    assert job_logs[test_cromwell_job_id][0][1] == "created"
+    assert job_logs[test_cromwell_job_id][0][0] == "created"
 
 
 def test_task_status(monkeypatch):
@@ -275,12 +271,12 @@ def test_get_run_status(monkeypatch):
 def test_get_job_metadata(monkeypatch):
     def mock_get_cromwell_task_summary(self, cromwell_run_id):
         example_task_summary = [
-            ["WORKFLOW_ID_MAIN", "main_workflow.goodbye", 1, "5480"],
-            ["WORKFLOW_ID_MAIN", "main_workflow.hello", 1, "5481"],
-            ["WORKFLOW_ID_SUB2", "hello_and_goodbye.goodbye", 1, "5483"],
-            ["WORKFLOW_ID_SUB2", "hello_and_goodbye.hello", 1, "5485"],
-            ["WORKFLOW_ID_SUB1", "hello_and_goodbye.goodbye", 1, "5482"],
-            ["WORKFLOW_ID_SUB1", "hello_and_goodbye.hello", 1, "5484"],
+            ["main_workflow.goodbye", "12129"],
+            ["main_workflow.hello", "12130"],
+            ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "12134"],
+            ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "12133"],
+            ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131"],
+            ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132"],
         ]
         return example_task_summary
 
@@ -289,12 +285,12 @@ def test_get_job_metadata(monkeypatch):
     )
 
     expected = {
-        "5480": ["WORKFLOW_ID_MAIN", "main_workflow.goodbye", 1],
-        "5481": ["WORKFLOW_ID_MAIN", "main_workflow.hello", 1],
-        "5483": ["WORKFLOW_ID_SUB2", "hello_and_goodbye.goodbye", 1],
-        "5485": ["WORKFLOW_ID_SUB2", "hello_and_goodbye.hello", 1],
-        "5482": ["WORKFLOW_ID_SUB1", "hello_and_goodbye.goodbye", 1],
-        "5484": ["WORKFLOW_ID_SUB1", "hello_and_goodbye.hello", 1],
+        "12129": "main_workflow.goodbye",
+        "12130": "main_workflow.hello",
+        "12134": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
+        "12133": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+        "12131": "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
+        "12132": "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
     }
 
     mock_session = None

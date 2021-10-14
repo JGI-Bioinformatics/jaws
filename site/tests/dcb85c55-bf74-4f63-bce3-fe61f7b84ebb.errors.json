@@ -1,0 +1,152 @@
+{
+  "calls": {
+    "main_workflow.hello_and_goodbye_1": [
+      {
+        "subWorkflowMetadata": {
+          "calls": {
+            "hello_and_goodbye.goodbye": [
+              {
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "docker": "noone/nonexistant_container:9.9.9",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "failures": [
+                  {
+                    "causedBy": [
+                      {
+                        "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stderr.submit",
+                        "causedBy": []
+                      }
+                    ],
+                    "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stderr.submit"
+                  }
+                ]
+              }
+            ],
+            "hello_and_goodbye.hello": [
+              {
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "docker": "noone/nonexistant_container:9.9.9",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "failures": [
+                  {
+                    "causedBy": [
+                      {
+                        "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stderr.submit",
+                        "causedBy": []
+                      }
+                    ],
+                    "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stderr.submit"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "main_workflow.hello_and_goodbye_2": [
+      {
+        "subWorkflowMetadata": {
+          "calls": {
+            "hello_and_goodbye.hello": [
+              {
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "docker": "noone/nonexistant_container:9.9.9",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "failures": [
+                  {
+                    "causedBy": [
+                      {
+                        "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stderr.submit",
+                        "causedBy": []
+                      }
+                    ],
+                    "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stderr.submit"
+                  }
+                ]
+              }
+            ],
+            "hello_and_goodbye.goodbye": [
+              {
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "docker": "noone/nonexistant_container:9.9.9",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "failures": [
+                  {
+                    "causedBy": [
+                      {
+                        "message": "Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stderr.submit",
+                        "causedBy": []
+                      }
+                    ],
+                    "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stderr.submit"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
