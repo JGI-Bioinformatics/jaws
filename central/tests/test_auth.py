@@ -98,17 +98,17 @@ def test_get_user_token(monkeypatch):
     user = MockUser()
     # check if sending only email works and returns an empty SSO_JSON
     email = "ijklmn@foo.gov"
-    result = jaws_central.auth.get_user_token(user, email=email)
+    result = jaws_central.auth.get_user_token(user, email)
     assert result["jaws_token"] == "EEEEFFFFGGGG"
     assert result["sso_json"] == {}
 
     sso_hash = "abcde"
-    result = jaws_central.auth.get_user_token(user, sso_hash=sso_hash)
+    result = jaws_central.auth.get_user_token(user, sso_hash)
     assert result["jaws_token"] == "EEEEFFFFGGGG"
     assert result["sso_json"] == MOCK_JSON
     assert result["sso_json"]["user"]["first_name"] == "Jane"
 
     email = "abc.def@ghe@xyz"
     with pytest.raises(Exception) as e_info:
-        result = jaws_central.auth.get_user_token(user, email=email)
+        result = jaws_central.auth.get_user_token(user, email)
     assert "Bad email address" in str(e_info.value)

@@ -43,33 +43,26 @@ paths:
           description: OK
       security: []
 
-  /auth:
-    post:
+  /auth/{auth_key}:
+    get:
       operationId: jaws_central.auth.get_user_token
       tags:
         - user
-      summary: Get a user's JAWS access token
-      description: Allows the dashboard to retrieve a logged-in user's JAWS token.
+      summary: Confirm email corresponds to valid JAWS user for JAWS Dashboard
+      description: Dashboard can send SSO Hash or User Email Address
       parameters:
-        - name: sso_hash
-          in: formData
-          description: User's JGI SSO session hash code
+        - name: auth_key
+          in: path
+          description: email or sso hash
           type: string
-          required: False
-        - name: email
-          in: formData
-          description: User's email address
-          type: string
-          required: False
+          required: True
       responses:
         200:
           description: OK
         401:
-          description: Access denied
+          description: Authorization information is missing or invalid.
         404:
-          description: User not found
-        500:
-          description: Internal server error
+          description: The specified record does not exist
       security:
         - oauth2: ['dashboard']
 
