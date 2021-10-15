@@ -93,6 +93,7 @@ class GlobusService:
             notify_on_failed=False,
             notify_on_inactive=False,
             skip_activation_check=True,
+            skip_source_errors=True,
         )
 
         virtual_src_path = self.virtual_transfer_path(src_dir, self.host_path)
