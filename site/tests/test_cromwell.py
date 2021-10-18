@@ -110,14 +110,15 @@ def test_metadata_tasks(requests_mock):
 
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     for task_name, task in metadata.tasks.items():
-        assert len(task.calls) > 0
-        for call in task.calls:
-            assert "attempt" in call
-            assert call["attempt"] == 1
-            assert "jobId" in call or "subWorkflowMetadata" in call
-            if "subWorkflowMetadata" in call:
-                task_metadata = call["subWorkflowMetadata"]
-                assert isinstance(task_metadata, cromwell.Metadata)
+        assert len(task.data) > 0
+        index = len(task.data) - 1
+        call = task.data[index]
+        assert "attempt" in call
+        assert call["attempt"] == 1
+        assert "jobId" in call or "subWorkflowMetadata" in call
+        if "subWorkflowMetadata" in call:
+            subworkflow = task.subworkflows[index]
+            assert isinstance(subworkflow, cromwell.Metadata)
 
 
 def test_errors(requests_mock):

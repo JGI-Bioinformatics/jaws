@@ -35,24 +35,46 @@ class Task:
     If a Task is a subworkflow, it will contain a Metadata object.
     """
 
-    def __init__(self, name, calls):
+    def __init__(self, name, data):
         """
         Initialize a Task object, which may contain a subworkflow.
 
         :param name: Task name
         :type name: str
-        :param calls: A task's calls (AKA attempts) section of the Cromwell metadata.
-        :type calls: list
+        :param data: A task's calls (AKA attempts) section of the Cromwell metadata.
+        :type data: list
         """
         self.name = name
-        self.calls = calls
-        self.isSubWorkflow = False
+        self.data = data
+        self.is_subworkflow = False
+        self.subworkflows = []
 
-        for call in calls:
+        for call in data:
             if "subWorkflowMetadata" in call:
-                self.isSubWorkflow = True
+                self.is_subworkflow = True
                 metadata = Metadata(call["subWorkflowMetadata"])
-                call["subWorkflowMetadata"] = metadata
+                self.subworkflows.append(metadata)
+
+    def subworkflow(self, attempt=None):
+        """
+        If a task is a subworkflow, return the Metadata object for the specified attempt.
+        :param attempt: Attempt number (first=1; default=last).
+        :type attempt: int
+        :return: Metadata object if this is a subworkflow; else None.
+        :rtype: cromwell.Metadata
+        """
+        if not self.is_subworkflow:
+            return None
+        index = None
+        if attempt is None:
+            index = -1  # last attempt
+        else:
+            attempt = int(attempt)
+            if attempt == 0 or attempt > len(self.data):
+                raise ValueError("Invalid attempt; of out range")
+            else:
+                index = attempt - 1
+        return self.subworkflows[index]
 
     def get(self, key, attempt=None, default=None):
         """
@@ -71,11 +93,11 @@ class Task:
             index = -1  # last attempt
         else:
             attempt = int(attempt)
-            if attempt == 0 or attempt > len(self.calls):
+            if attempt == 0 or attempt > len(self.data):
                 raise ValueError("Invalid attempt; of out range")
             else:
                 index = attempt - 1
-        return self.calls[index].get(key, default)
+        return self.data[index].get(key, default)
 
     def errors(self):
         """
@@ -90,10 +112,12 @@ class Task:
             # There is only error information if this task actually failed
             return []
         filteredCall = {}
-        call = self.calls[-1]  # only the last attempt is relevant
-        if self.isSubWorkflow:
+        index = len(self.data) - 1
+        call = self.data[index]  # only the last attempt is relevant
+        if self.is_subworkflow:
             # include any errors from the subworkflow's tasks
-            filteredCall["subWorkflowMetadata"] = call["subWorkflowMetadata"].errors()
+            subworkflow = self.subworkflows[index]
+            filteredCall["subWorkflowMetadata"] = subworkflow.errors()
         else:
             # simple task (not a subworkflow)
             if "failures" in call:
@@ -267,7 +291,6 @@ class Metadata:
         other_failures = self.filtered_failures()
         if len(other_failures):
             filtered_metadata["failures"] = other_failures
-            # filtered_metadata["inputs"] = self.get("inputs")
         return filtered_metadata
 
     def task_summary(self):
@@ -276,13 +299,14 @@ class Metadata:
         """
         summary = []
         for task_name, task in self.tasks.items():
-            if len(task.calls):
+            if len(task.data):
                 # include last attempt only
-                call = task.calls[-1]
+                index = len(task.data) - 1
+                call = task.data[index]
                 if "jobId" in call:
                     summary.append([task_name, call["jobId"]])
                 elif "subWorkflowMetadata" in call:
-                    subworkflow = call["subWorkflowMetadata"]
+                    subworkflow = task.subworkflows[index]
                     sub_summary = subworkflow.task_summary()
                     for (sub_task_name, job_id) in sub_summary:
                         summary.append([f"{task_name}:{sub_task_name}", job_id])
