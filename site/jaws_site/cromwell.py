@@ -25,7 +25,6 @@ elsewhere in JAWS/JTM, as clarified below:
 
 
 import requests
-import json
 import logging
 import os
 

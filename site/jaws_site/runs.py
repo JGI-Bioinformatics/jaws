@@ -9,6 +9,7 @@ import globus_sdk
 import logging
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+import json
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
@@ -304,13 +305,7 @@ class Run:
         src_file = f"{src_root_path}.{src_suffix}"
         dest = os.path.join(dest_dir, dest_file)
         if required or os.path.exists(src_file):
-            try:
-                shutil.copy(src_file, dest)
-            except IOError as error:
-                logger.error(
-                    f"Error copying {src_suffix} from {src_file}->{dest}: {error}"
-                )
-                raise
+            shutil.copy(src_file, dest)
 
     def copy_metadata_files(self, dest_dir: str):
         """
@@ -352,9 +347,17 @@ class Run:
                 fh.write(json.dumps(outputs, sort_keys=True, indent=4))
         except PermissionError as error:
             logger.error(f"Run {self.model.id}: Cannot write outputs json: {error}")
+            # don't change state; keep trying as admins will eventually fix perms
             return
 
-        self.copy_metadata_files(cromwell_workflow_dir)
+        try:
+            self.copy_metadata_files(cromwell_workflow_dir)
+        except PermissionError as error:
+            logger.error(
+                f"Run {self.model.id}: Cannot write to {cromwell_workflow_dir}: {error}"
+            )
+            # don't change state; keep trying as admins will eventually fix perms
+            return
 
         try:
             transfer_task_id = globus.submit_transfer(
