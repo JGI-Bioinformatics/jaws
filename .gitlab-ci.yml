@@ -405,7 +405,7 @@ cori-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -419,7 +419,7 @@ jgi-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -433,7 +433,7 @@ tahoma-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -447,7 +447,7 @@ cori-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -461,7 +461,7 @@ jgi-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -475,7 +475,7 @@ tahoma-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -489,7 +489,7 @@ cori-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -503,7 +503,7 @@ jgi-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -517,7 +517,7 @@ tahoma-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
