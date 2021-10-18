@@ -65,7 +65,7 @@ class MockCromwellMetadata:
         return "/example/cromwell-outputs/wdlName/workflowRoot"
 
     def outputs(self, **kwargs):
-        return{}
+        return {}
 
 
 class MockRpcClient:
@@ -210,8 +210,11 @@ def mock_path(tmp_path):
 
 
 def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path):
-    def mock_cp_infile_to_outdir(self, path, suffix, dest_dir, dest_file, required=True):
+    def mock_cp_infile_to_outdir(
+        self, path, suffix, dest_dir, dest_file, required=True
+    ):
         pass
+
     def mock_write_outputs_json(self, metadata):
         pass
 
@@ -238,8 +241,11 @@ def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path):
 
 
 def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path):
-    def mock_cp_infile_to_outdir(self, path, suffix, dest_dir, dest_file, required=True):
+    def mock_cp_infile_to_outdir(
+        self, path, suffix, dest_dir, dest_file, required=True
+    ):
         pass
+
     def mock_write_outputs_json(self, metadata):
         pass
 

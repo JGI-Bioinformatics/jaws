@@ -13,7 +13,12 @@ import json
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
-from jaws_site.cromwell import Cromwell, CromwellError, CromwellServiceError, CromwellRunError
+from jaws_site.cromwell import (
+    Cromwell,
+    CromwellError,
+    CromwellServiceError,
+    CromwellRunError,
+)
 from jaws_site.globus import GlobusService
 
 logger = logging.getLogger(__package__)
@@ -325,7 +330,6 @@ class Run:
         outputs = metadata.outputs(relpath=True)
         with open(outputs_file, "w") as fh:
             fh.write(json.dumps(outputs, sort_keys=True, indent=4))
-        
 
     def transfer_results(self) -> None:
         """
@@ -509,9 +513,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             logger.exception(f"RPC update_run_logs error: {error}")
             continue
         if "error" in response:
-            logger.info(
-                f"RPC update_run_status failed: {response['error']['message']}"
-            )
+            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
             continue
         log.sent = True
         try:
