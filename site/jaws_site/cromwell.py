@@ -382,11 +382,7 @@ class Metadata:
                     # a typical task produces outputs which may be a file path
                     relpath_outputs[key] = value.replace(workflowRoot, ".", 1)
             outputs = relpath_outputs
-        if "outfile" in kwargs:
-            with open(kwargs["outfile"], "w") as fh:
-                fh.write(json.dumps(outputs, sort_keys=True, indent=4))
-        else:
-            return outputs
+        return outputs
 
 
 class Cromwell:

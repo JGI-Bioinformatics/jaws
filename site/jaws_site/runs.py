@@ -346,7 +346,13 @@ class Run:
             return
 
         outputs_file = os.path.join(cromwell_workflow_dir, "outputs.json")
-        metadata.outputs(outfile=outputs_file, relpath=True)
+        outputs = metadata.outputs(relpath=True)
+        try:
+            with open(outputs_file, "w") as fh:
+                fh.write(json.dumps(outputs, sort_keys=True, indent=4))
+        except PermissionError as error:
+            logger.error(f"Run {self.model.id}: Cannot write outputs json: {error}")
+            return
 
         self.copy_metadata_files(cromwell_workflow_dir)
 
