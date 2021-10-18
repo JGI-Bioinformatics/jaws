@@ -318,6 +318,15 @@ class Run:
         self._cp_infile_to_outdir(file_path, "orig.json", dest_dir, "inputs.json")
         self._cp_infile_to_outdir(file_path, "zip", dest_dir, "subworkflows.zip", False)
 
+    def _write_outputs_json(self, metadata):
+        """Write outputs.json to workflow_root dir"""
+        cromwell_workflow_dir = metadata.workflow_root()
+        outputs_file = os.path.join(cromwell_workflow_dir, "outputs.json")
+        outputs = metadata.outputs(relpath=True)
+        with open(outputs_file, "w") as fh:
+            fh.write(json.dumps(outputs, sort_keys=True, indent=4))
+        
+
     def transfer_results(self) -> None:
         """
         Send run output via Globus
@@ -340,11 +349,8 @@ class Run:
             self.update_run_status("download complete", "No run folder was created")
             return
 
-        outputs_file = os.path.join(cromwell_workflow_dir, "outputs.json")
-        outputs = metadata.outputs(relpath=True)
         try:
-            with open(outputs_file, "w") as fh:
-                fh.write(json.dumps(outputs, sort_keys=True, indent=4))
+            self._write_outputs_json(metadata)
         except PermissionError as error:
             logger.error(f"Run {self.model.id}: Cannot write outputs json: {error}")
             # don't change state; keep trying as admins will eventually fix perms
