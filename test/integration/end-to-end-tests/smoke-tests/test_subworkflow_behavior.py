@@ -131,10 +131,10 @@ def test_for_raw_cromwell_files(submit_subworkflow_alignment):
     """
     run_id = submit_subworkflow_alignment["run_id"]
 
-    cmd = "jaws status --verbose %s" % (run_id)
+    outdir = "cromwell_file_test"
+    cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
     (r, o, e) = util.run(cmd)
-    data = json.loads(o)
-    outdir = data["output_dir"]
+    assert not r
 
     cmd = (
         "find %s/call-bbmap_shard_wf/align.bbmap_shard_wf -name rc -exec cat {} \\; | grep -c 0"
@@ -145,6 +145,10 @@ def test_for_raw_cromwell_files(submit_subworkflow_alignment):
     # make sure all 4 of our "rc" files returned 0
     assert int(o.strip()) == 4
 
+    try:
+        os.rmdir(outdir)
+    except OSError as e:
+        print("Error: %s : %s" % (outdir, e.strerror))
 
 def test_saved_subwdl(submit_subworkflow_alignment):
     """
@@ -163,6 +167,11 @@ def test_saved_subwdl(submit_subworkflow_alignment):
     cmd = "unzip -l %s" % (zip_file)
     (r, o, e) = util.run(cmd)
     assert "alignment.wdl" in o
+
+    try:
+        os.rmdir(outdir)
+    except OSError as e:
+        print("Error: %s : %s" % (outdir, e.strerror))
 
 
 def test_subworkflow_metadata(submit_subworkflow_alignment):

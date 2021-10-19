@@ -4,7 +4,7 @@ These functions are to test the "testcases" from the "score_card" integration te
 google doc: https://docs.google.com/document/d/1nXuPDVZ3dXl0AetyU5Imdbi0Gvc5sUhAR0OfYxss2uI/edit#heading=h.rmy1jmsa0m7n
 google sheet: https://docs.google.com/spreadsheets/d/1eBWvk4FSPpbFclTuzu0o77aPAxcZ78C_mVKCnHoMMAo/edit#gid=1883830451
 
-This library of tests uses "fixtures" from conftest.py which should be located in the same directory. 
+This library of tests uses "fixtures" from conftest.py which should be located in the same directory.
 There is no need to import conftest.py as it is done automatically.
 
 These test will cover issues that pertain to user debugging. 
@@ -58,7 +58,7 @@ def test_should_fail_task_status(submit_bad_task):
     id = str(submit_bad_task["run_id"])
     cmd = "jaws task-status %s" % (id)
     (r, o, e) = util.run(cmd)
-    assert "failed with input file or command not found" in o.replace("\n", " ")
+    assert "bad_cmd_name: command not found" in o.replace("\n", " ")
 
 
 def test_should_fail_task_log(submit_bad_task):
@@ -76,7 +76,7 @@ def test_should_fail_task_log(submit_bad_task):
     id = str(submit_bad_task["run_id"])
     cmd = "jaws task-log %s" % (id)
     (r, o, e) = util.run(cmd)
-    assert "failed with input file or command not found" in o.replace("\n", " ")
+    assert "bad_cmd_name: command not found" in o.replace("\n", " ")
 
 
 def test_should_fail_log(submit_bad_task):
@@ -176,28 +176,6 @@ def test_invalid_docker_b(site, submit_bad_docker):
         ), "There should be a message saying docker was not found"
     else:
         assert 0, f"Expected site to be cori or jgi but found {site}"
-
-
-def test_timeout(dir, site):
-    WDL = "/WDLs/timeout.wdl"
-    INP = "/test-inputs/timeout.json"
-    check_sleep = 30
-    check_tries = 50
-    wdl = dir + WDL
-    input_json = dir + INP
-
-    run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
-    util.wait_for_run(run_id, check_tries, check_sleep)
-
-    time.sleep(60)
-
-    ## get the errors from JAWS for that run
-    cmd = "jaws errors %s" % (run_id)
-    r, o, e = util.run(cmd) 
-
-    ## do the check!
-    fail_msg = "error. Keyword absent: \"timeout\" (%s)" % run_id
-    assert "failed with timeout" in o, fail_msg
 
 
 def test_bad_sub_workflow_error_msg(submit_bad_sub_task):

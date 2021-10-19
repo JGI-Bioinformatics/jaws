@@ -243,12 +243,11 @@ def test_jaws_task_log(submit_fq_count_wdl):
     assert len(a) == 6
 
 
-def test_jaws_get(submit_fq_count_wdl):
+def test_jaws_get(submit_bad_task):
     """
-    Check that the 'get' cmd works.
+    Check that the 'get' cmd works, even when a run fails.
     """
-    run_id = str(submit_fq_count_wdl["run_id"])
-    util.wait_for_run(run_id, check_tries, check_sleep)
+    run_id = str(submit_bad_task["run_id"])
 
     # remove any old copy of the temp dir if exists
     mycopy = "./Mycopy"
@@ -267,6 +266,7 @@ def test_jaws_get(submit_fq_count_wdl):
         os.rmdir(mycopy)
     except OSError as e:
         print("Error: %s : %s" % (mycopy, e.strerror))
+
 
 def test_tag(submit_fq_count_wdl):
     """
