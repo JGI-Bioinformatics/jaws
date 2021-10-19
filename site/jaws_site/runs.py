@@ -310,7 +310,11 @@ class Run:
         src_file = f"{src_root_path}.{src_suffix}"
         dest = os.path.join(dest_dir, dest_file)
         if required or os.path.exists(src_file):
-            shutil.copy(src_file, dest)
+            try:
+                shutil.copy(src_file, dest)
+            except OSError as error:
+                logger.error(f"Unable to copy {src_file}->{dest}: {error}")
+                raise error
 
     def copy_metadata_files(self, dest_dir: str):
         """
@@ -318,10 +322,13 @@ class Run:
         Files are renamed in the process to something more sensible to user.
         """
         file_path = self.uploads_file_path()
-        self._cp_infile_to_outdir(file_path, "wdl", dest_dir, "main.wdl")
-        self._cp_infile_to_outdir(file_path, "json", dest_dir, "jaws.inputs.json")
-        self._cp_infile_to_outdir(file_path, "orig.json", dest_dir, "inputs.json")
-        self._cp_infile_to_outdir(file_path, "zip", dest_dir, "subworkflows.zip", False)
+        try:
+            self._cp_infile_to_outdir(file_path, "wdl", dest_dir, "main.wdl")
+            self._cp_infile_to_outdir(file_path, "json", dest_dir, "jaws.inputs.json")
+            self._cp_infile_to_outdir(file_path, "orig.json", dest_dir, "inputs.json")
+            self._cp_infile_to_outdir(file_path, "zip", dest_dir, "subworkflows.zip", False)
+        except OSError as error:
+            raise error
 
     def _write_outputs_json(self, metadata):
         """Write outputs.json to workflow_root dir"""
