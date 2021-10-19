@@ -117,7 +117,7 @@ variables:
   TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
   TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi"
-  TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata" # TODO: Needs to be rsync'd
+  TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata"
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
   TAHOMA_CONTAINER_TMPDIR: "/big_scratch"

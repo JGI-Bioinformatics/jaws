@@ -24,7 +24,9 @@
                     "qos": "genepool_special",
                     "shared": "0",
                     "time": "00:10:00"
-                }
+                },
+                "stderrContents": null,
+                "stderrSubmitContents": null
             }
         ]
     }

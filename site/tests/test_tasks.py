@@ -168,9 +168,7 @@ def test_get_run_status(monkeypatch):
         if run_id == 102:
             example_status = [
                 [
-                    "EX_RUN_ID",
                     "main.ex_task_1",
-                    1,
                     "2222",
                     "created",
                     "ready",
@@ -181,9 +179,7 @@ def test_get_run_status(monkeypatch):
         elif run_id == 103:
             example_status = [
                 [
-                    "EX_RUN_ID",
                     "main.ex_task_2",
-                    1,
                     "2222",
                     "ready",
                     "queued",
@@ -194,9 +190,7 @@ def test_get_run_status(monkeypatch):
         elif run_id == 104:
             example_status = [
                 [
-                    "EX_RUN_ID",
                     "main.ex_task_2",
-                    1,
                     "2222",
                     "ready",
                     "queued",
@@ -204,9 +198,7 @@ def test_get_run_status(monkeypatch):
                     None,
                 ],
                 [
-                    "EX_RUN_ID",
                     "main.ex_task_3",
-                    1,
                     "2222",
                     "queued",
                     "pending",
@@ -217,9 +209,7 @@ def test_get_run_status(monkeypatch):
         elif run_id == 105:
             example_status = [
                 [
-                    "EX_RUN_ID",
                     "main.ex_task_4",
-                    1,
                     "2222",
                     "pending",
                     "running",
@@ -227,9 +217,7 @@ def test_get_run_status(monkeypatch):
                     None,
                 ],
                 [
-                    "EX_RUN_ID",
                     "main.ex_task_5",
-                    1,
                     "2223",
                     "created",
                     "ready",
@@ -240,9 +228,7 @@ def test_get_run_status(monkeypatch):
         elif run_id == 106:
             example_status = [
                 [
-                    "EX_RUN_ID",
                     "main.ex_task_6",
-                    1,
                     "2223",
                     "running",
                     "success",
@@ -284,7 +270,7 @@ def test_get_job_metadata(monkeypatch):
         TaskLog, "_get_cromwell_task_summary", mock_get_cromwell_task_summary
     )
 
-    expected = {
+    expected_names = {
         "12129": "main_workflow.goodbye",
         "12130": "main_workflow.hello",
         "12134": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
@@ -295,8 +281,8 @@ def test_get_job_metadata(monkeypatch):
 
     mock_session = None
     tasks = TaskLog(mock_session)
-    job_metadata = tasks.get_job_metadata("WORKFLOW_ID_MAIN")
-    assert bool(DeepDiff(job_metadata, expected, ignore_order=True)) is False
+    task_names = tasks.get_task_names("WORKFLOW_ID_MAIN")
+    assert bool(DeepDiff(task_names, expected_names, ignore_order=True)) is False
 
 
 def test_get_task_log(monkeypatch):
@@ -309,45 +295,33 @@ def test_get_task_log(monkeypatch):
 
     monkeypatch.setattr(TaskLog, "_get_cromwell_run_id", mock_get_cromwell_run_id)
 
-    def mock_get_job_metadata(self, cromwell_run_id):
+    def mock_get_task_names(self, cromwell_run_id):
         assert cromwell_run_id == "AAAA"
-        example_metadata = {
-            "5480": ["WORKFLOW_ID_MAIN", "main_workflow.goodbye", 1],
-            "5481": ["WORKFLOW_ID_MAIN", "main_workflow.hello", 1],
-            "5482": ["WORKFLOW_ID_SUB1", "hello_and_goodbye.goodbye", 1],
-            "5484": ["WORKFLOW_ID_SUB1", "hello_and_goodbye.hello", 1],
+        example_task_names = {
+            "5480": "main_workflow.goodbye",
+            "5481": "main_workflow.hello",
+            "5482": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
+            "5484": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
         }
-        return example_metadata
+        return example_task_names
 
-    monkeypatch.setattr(TaskLog, "get_job_metadata", mock_get_job_metadata)
+    monkeypatch.setattr(TaskLog, "get_task_names", mock_get_task_names)
 
-    def mock_get_cromwell_run_ids_from_job_metadata(self, job_metadata):
-        assert "5480" in job_metadata
-        cromwell_run_ids = ["WORKFLOW_ID_MAIN", "WORKFLOW_ID_SUB1"]
-        return cromwell_run_ids
-
-    monkeypatch.setattr(
-        TaskLog,
-        "_get_cromwell_run_ids_from_job_metadata",
-        mock_get_cromwell_run_ids_from_job_metadata,
-    )
-
-    def mock_get_job_logs(self, cromwell_run_ids):
-        assert len(cromwell_run_ids) == 2
+    def mock_get_job_logs(self, cromwell_run_id):
         example_logs = {
             "5480": [
-                ["WORKFLOW_ID_MAIN", "created", "ready", "2021-04-15 12:42:08", None],
-                ["WORKFLOW_ID_MAIN", "ready", "queued", "2021-04-15 12:42:28", None],
-                ["WORKFLOW_ID_MAIN", "queued", "pending", "2021-04-15 12:42:29", None],
+                ["created", "ready", "2021-04-15 12:42:08", None],
+                ["ready", "queued", "2021-04-15 12:42:28", None],
+                ["queued", "pending", "2021-04-15 12:42:29", None],
             ],
             "5481": [
-                ["WORKFLOW_ID_MAIN", "created", "queued", "2021-04-15 12:49:95", None]
+                ["created", "queued", "2021-04-15 12:49:95", None]
             ],
             "5482": [
-                ["WORKFLOW_ID_SUB1", "created", "queued", "2021-04-15 01:01:04", None]
+                ["created", "queued", "2021-04-15 01:01:04", None]
             ],
             "5484": [
-                ["WORKFLOW_ID_SUB1", "created", "queued", "2021-04-15 01:11:52", None]
+                ["created", "queued", "2021-04-15 01:11:52", None]
             ],
         }
         return example_logs
@@ -356,9 +330,7 @@ def test_get_task_log(monkeypatch):
 
     expected = [
         [
-            "WORKFLOW_ID_MAIN",
             "main_workflow.goodbye",
-            1,
             "5480",
             "created",
             "ready",
@@ -366,9 +338,7 @@ def test_get_task_log(monkeypatch):
             None,
         ],
         [
-            "WORKFLOW_ID_MAIN",
             "main_workflow.goodbye",
-            1,
             "5480",
             "ready",
             "queued",
@@ -376,9 +346,7 @@ def test_get_task_log(monkeypatch):
             None,
         ],
         [
-            "WORKFLOW_ID_MAIN",
             "main_workflow.goodbye",
-            1,
             "5480",
             "queued",
             "pending",
@@ -386,9 +354,7 @@ def test_get_task_log(monkeypatch):
             None,
         ],
         [
-            "WORKFLOW_ID_MAIN",
             "main_workflow.hello",
-            1,
             "5481",
             "created",
             "queued",
@@ -396,9 +362,7 @@ def test_get_task_log(monkeypatch):
             None,
         ],
         [
-            "WORKFLOW_ID_SUB1",
-            "hello_and_goodbye.goodbye",
-            1,
+            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
             "5482",
             "created",
             "queued",
@@ -406,9 +370,7 @@ def test_get_task_log(monkeypatch):
             None,
         ],
         [
-            "WORKFLOW_ID_SUB1",
-            "hello_and_goodbye.hello",
-            1,
+            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
             "5484",
             "created",
             "queued",

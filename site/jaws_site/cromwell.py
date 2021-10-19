@@ -30,6 +30,21 @@ import logging
 import os
 
 
+def _read_file(path: str):
+    """
+    Read a file and return it's contents.
+    :param path: Path to file
+    :type path: str
+    :return: Contents of the file if it exists, else None.
+    :rtype: str
+    """
+    contents = None
+    if path and os.path.isfile(path):
+        with open(path, "r") as file:
+            contents = file.read()
+    return contents
+
+
 class Task:
     """A Task may have multiple calls, each with a unique job_id.
     If a Task is a subworkflow, it will contain a Metadata object.
@@ -130,14 +145,9 @@ class Task:
                 filteredCall["runtimeAttributes"] = call["runtimeAttributes"]
             if "stderr" in call:
                 # include *contents* of stderr files, instead of file paths
-                stderrFilePath = call["stderr"]
-                if os.path.isfile(stderrFilePath):
-                    with open(stderrFilePath, "r") as file:
-                        filteredCall["stderrContents"] = file.read()
-                stderrSubmitFilePath = f"{stderrFilePath}.submit"
-                if os.path.isfile(stderrSubmitFilePath):
-                    with open(stderrSubmitFilePath, "r") as file:
-                        filteredCall["stderrSubmitContents"] = file.read()
+                stderr_file = call["stderr"]
+                filteredCall["stderrContents"] = _read_file(stderr_file)
+                filteredCall["stderrSubmitContents"] = _read_file(f"{stderr_file}.submit")
         # the result follows the structure of the original metadata,
         # so make a list corresponding to attempts
         filteredCalls = [filteredCall]
@@ -304,8 +314,10 @@ class Metadata:
                 index = len(task.data) - 1
                 call = task.data[index]
                 if "jobId" in call:
+                    # a normal task has an associated jobId
                     summary.append([task_name, call["jobId"]])
                 elif "subWorkflowMetadata" in call:
+                    # while a subworkflow has it's own Metadata (with one or more sub-tasks)
                     subworkflow = task.subworkflows[index]
                     sub_summary = subworkflow.task_summary()
                     for (sub_task_name, job_id) in sub_summary:
@@ -368,7 +380,7 @@ class Cromwell:
         :return: Metadata object
         :rtype: cromwell.Metadata
         """
-        url = f"{self.workflows_url}/{workflow_id}/metadata"
+        url = f"{self.workflows_url}/{workflow_id}/metadata?expandSubWorkflows=1"
         try:
             response = requests.get(url)
         except requests.ConnectionError as error:
