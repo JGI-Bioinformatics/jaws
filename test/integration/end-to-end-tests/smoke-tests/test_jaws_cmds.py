@@ -267,6 +267,7 @@ def test_jaws_get(submit_bad_task):
     except OSError as e:
         print("Error: %s : %s" % (mycopy, e.strerror))
 
+
 def test_tag(submit_fq_count_wdl):
     """
     Check that the '--tag' flag is showing 'submit_fq_count_wdl'.
