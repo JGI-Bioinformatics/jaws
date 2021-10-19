@@ -4,31 +4,43 @@ from deepdiff import DeepDiff
 
 def test_get_errors(monkeypatch):
 
-    example_cromwell_run_id = "AAAA-BBBB"
+    example_cromwell_run_id = "AAAA-BBBB-CCCC"
     example_cromwell_errors_report = {
-        "AAAA-BBBB": {
-            "calls": {
-                "example_task": [
-                    {
-                        "jobId": "300",
+        "calls": {
+            "example_sub": [
+                {
+                    "subWorkflowMetadata": {
+                        "calls": {
+                            "example_task": [
+                                {
+                                    "jobId": "300",
+                                }
+                            ],
+                        }
                     }
-                ],
-            }
+                }
+            ],
         }
     }
     example_task_log_errors = {
         "300": ["Out of time!"],
     }
     expected_errors_report = {
-        "AAAA-BBBB": {
-            "calls": {
-                "example_task": [
-                    {
-                        "jobId": "300",
-                        "taskLog": ["Out of time!"],
+        "calls": {
+            "example_sub": [
+                {
+                    "subWorkflowMetadata": {
+                        "calls": {
+                            "example_task": [
+                                {
+                                    "jobId": "300",
+                                    "taskLog": ["Out of time!"],
+                                }
+                            ],
+                        }
                     }
-                ],
-            },
+                }
+            ],
         }
     }
 
