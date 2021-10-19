@@ -28,12 +28,6 @@ example_cromwell_run_id_6 = "cbbbc75f-8920-495c-a290-0a1a5f0d1c20"
 example_cromwell_run_id_7 = "dcb85c55-bf74-4f63-bce3-fe61f7b84ebb"
 
 
-def __load_example_metadata_from_file(cromwell_run_id):
-    with open(f"{tests_dir}/{cromwell_run_id}.json", "r") as fh:
-        metadata = json.load(fh)
-    return metadata
-
-
 def __load_example_output_from_file(cromwell_run_id, output_type):
     with open(f"{tests_dir}/{cromwell_run_id}.{output_type}.json", "r") as fh:
         output = json.load(fh)
@@ -43,7 +37,7 @@ def __load_example_output_from_file(cromwell_run_id, output_type):
 def test_get_metadata(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_1),
+        json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
     )
     expectedWorkflowRoot = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3"  # noqa
     metadata1 = crom.get_metadata(example_cromwell_run_id_1)
@@ -53,7 +47,7 @@ def test_get_metadata(requests_mock):
 def test_task(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_2)
+        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata")
     )
     metadata2 = crom.get_metadata(example_cromwell_run_id_2)
     task = metadata2.tasks["main_workflow.hello_and_goodbye_1"]
@@ -63,7 +57,7 @@ def test_task(requests_mock):
 def test_task_subworkflow(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_2)
+        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata")
     )
     metadata2 = crom.get_metadata(example_cromwell_run_id_2)
     task = metadata2.tasks["main_workflow.hello_and_goodbye_1"]
@@ -74,7 +68,7 @@ def test_task_subworkflow(requests_mock):
 def test_task_summary(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_2),
+        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
     )
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     actual = metadata.task_summary()
@@ -92,7 +86,7 @@ def test_task_summary(requests_mock):
 def test_task_stdout(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_1),
+        json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
     )
     metadata = crom.get_metadata(example_cromwell_run_id_1)
     task = metadata.tasks["fq_count.count_seqs"]
@@ -105,7 +99,7 @@ def test_task_stdout(requests_mock):
 def test_metadata_tasks(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_2),
+        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
     )
 
     metadata = crom.get_metadata(example_cromwell_run_id_2)
@@ -121,10 +115,16 @@ def test_metadata_tasks(requests_mock):
             assert isinstance(subworkflow, cromwell.Metadata)
 
 
-def test_errors(requests_mock):
+def test_errors(requests_mock, monkeypatch):
+
+    def mock_read_file(path):
+        return None
+
+    monkeypatch.setattr(cromwell, "_read_file", mock_read_file)
+
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_1),
+        json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
     )
     expected_errors_report_1 = {}
     metadata_1 = crom.get_metadata(example_cromwell_run_id_1)
@@ -140,7 +140,7 @@ def test_errors(requests_mock):
 
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_3}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_3),
+        json=__load_example_output_from_file(example_cromwell_run_id_3, "metadata"),
     )
     expected_errors_report_3 = __load_example_output_from_file(example_cromwell_run_id_3, "errors")
     metadata_3 = crom.get_metadata(example_cromwell_run_id_3)
@@ -156,7 +156,7 @@ def test_errors(requests_mock):
 
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_4}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_4),
+        json=__load_example_output_from_file(example_cromwell_run_id_4, "metadata"),
     )
     expected_errors_report_4 = __load_example_output_from_file(example_cromwell_run_id_4, "errors")
     metadata_4 = crom.get_metadata(example_cromwell_run_id_4)
@@ -172,7 +172,7 @@ def test_errors(requests_mock):
 
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_6}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_6),
+        json=__load_example_output_from_file(example_cromwell_run_id_6, "metadata"),
     )
     expected_errors_report_6 = __load_example_output_from_file(example_cromwell_run_id_6, "errors")
     metadata_6 = crom.get_metadata(example_cromwell_run_id_6)
@@ -188,7 +188,7 @@ def test_errors(requests_mock):
 
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_7),
+        json=__load_example_output_from_file(example_cromwell_run_id_7, "metadata"),
     )
     expected_errors_report_7 = __load_example_output_from_file(example_cromwell_run_id_7, "errors")
     metadata_7 = crom.get_metadata(example_cromwell_run_id_7)
@@ -206,7 +206,7 @@ def test_errors(requests_mock):
 def test_get_outputs(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
-        json=__load_example_metadata_from_file(example_cromwell_run_id_1),
+        json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
     )
     expected_outputs_1 = {
         "fq_count.outfile": "./call-count_seqs/execution/num_seqs.txt"
