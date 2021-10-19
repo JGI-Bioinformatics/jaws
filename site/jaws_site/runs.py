@@ -355,18 +355,18 @@ class Run:
 
         try:
             self._write_outputs_json(metadata)
-        except PermissionError as error:
+        except OSError as error:
             logger.error(f"Run {self.model.id}: Cannot write outputs json: {error}")
-            # don't change state; keep trying as admins will eventually fix perms
+            # don't change state; keep trying
             return
 
         try:
             self.copy_metadata_files(cromwell_workflow_dir)
-        except PermissionError as error:
+        except OSError as error:
             logger.error(
                 f"Run {self.model.id}: Cannot write to {cromwell_workflow_dir}: {error}"
             )
-            # don't change state; keep trying as admins will eventually fix perms
+            # don't change state; keep trying
             return
 
         try:
