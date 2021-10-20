@@ -229,12 +229,12 @@ def task_status(run_id: int, fmt: str) -> None:
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
     result = _request("GET", url)
     for a in result:
-        a[6] = _utc_to_local(a[6])
+        a[4] = _utc_to_local(a[4])
     if fmt == "json":
         _print_json(result)
     else:
         click.echo(
-            "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
+            "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
         for row in result:
             row[2] = str(row[2])

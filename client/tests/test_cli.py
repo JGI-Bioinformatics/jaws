@@ -193,7 +193,6 @@ RUN_LOG_TEXT = (
 TASK_LOG_JSON = [
     [
         "runblastplus_sub.task1",
-        1,
         43,
         "ready",
         "queued",
@@ -203,7 +202,6 @@ TASK_LOG_JSON = [
     ],
     [
         "runblastplus_sub.task2",
-        1,
         44,
         "queued",
         "pending",
@@ -214,9 +212,9 @@ TASK_LOG_JSON = [
 ]
 
 TASK_LOG_TEXT = (
-    "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\tSTATUS_DETAIL\n"
-    "runblastplus_sub.task1\t1\t43\tready\tqueued\t2020-06-10 13:42:44\t\tThe job was received by JTM-manager and sent to JTM-worker\n"
-    "runblastplus_sub.task2\t1\t44\tqueued\tpending\t2020-06-10 13:43:36\t\tThe job was receive by JTM-worker and is awaiting resources\n"
+    "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\tSTATUS_DETAIL\n"
+    "runblastplus_sub.task1\t43\tready\tqueued\t2020-06-10 13:42:44\t\tThe job was received by JTM-manager and sent to JTM-worker\n"
+    "runblastplus_sub.task2\t44\tqueued\tpending\t2020-06-10 13:43:36\t\tThe job was receive by JTM-worker and is awaiting resources\n"
 )
 
 SUBMISSION = {
@@ -231,12 +229,12 @@ SUBMISSION = {
 
 
 TASK_STATUS_JSON = [
-    ["bbtools.alignment", 1, 432, "Queued", "Running", "2020-04-03 20:32:52", ""]
+    ["bbtools.alignment", 432, "Queued", "Running", "2020-04-03 20:32:52", ""]
 ]
 
 TASK_STATUS_TEXT = (
-    "#TASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n"
-    "bbtools.alignment\t1\t432\tqueued\trunning\t2020-04-03 20:32:52\t\n"
+    "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n"
+    "bbtools.alignment\t432\tqueued\trunning\t2020-04-03 20:32:52\t\n"
 )
 
 
