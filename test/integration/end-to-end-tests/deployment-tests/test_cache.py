@@ -26,7 +26,7 @@ check_sleep = 30
 ###     Functions     ###
 #########################
 
-def get_submission_id(cmd):
+def return_submit_data(cmd):
     (r, o, e) = util.run(cmd)
     if r != 0:
         print("jaws submit command failed %s" % cmd)
@@ -72,12 +72,10 @@ def test_cache(site,dir):
         "jaws submit --quiet --no-cache %s %s %s"
         % (wdl, input_json_file, site)
     )
-
-    (data,run_id) = get_submission_id(cmd)
-    submission_id = list(data.keys())[0]
+    (data,run_id) = return_submit_data(cmd)
 
     # we should not see caching with this submission
-    assert data[submission_id]['calls']['fq_count.count_seqs'][0]['callCaching']['allowResultReuse'] is False, "This run \"%s\" should not be cached but was." % run_id
+    assert data['calls']['fq_count.count_seqs'][0]['callCaching']['allowResultReuse'] is False, "This run \"%s\" should not be cached but was." % run_id
 
 
     ### ------------------------------------------------- ###
@@ -87,11 +85,10 @@ def test_cache(site,dir):
         % (wdl, input_json_file, site)
     )
 
-    (data,run_id) = get_submission_id(cmd)
-    submission_id = list(data.keys())[0]
+    (data,run_id) = return_submit_data(cmd)
 
     # we should not see caching with this submission
-    assert data[submission_id]['calls']['fq_count.count_seqs'][0]['callCaching']['allowResultReuse'] is True, "This run \"%s\" should be cached but was not." % run_id
+    assert data['calls']['fq_count.count_seqs'][0]['callCaching']['allowResultReuse'] is True, "This run \"%s\" should be cached but was not." % run_id
 
 
     ### ------------------------------------------------- ###
@@ -101,8 +98,7 @@ def test_cache(site,dir):
         % (wdl, input_json_file, site)
     )
 
-    (data,run_id) = get_submission_id(cmd)
-    submission_id = list(data.keys())[0]
+    (data,run_id) = return_submit_data(cmd)
 
     # we should not see caching with this submission
-    assert data[submission_id]['calls']['fq_count.count_seqs'][0]['callCaching']['allowResultReuse'] is False, "This run \"%s\" should not be cached (--no-cache used) but was." % run_id
+    assert data['calls']['fq_count.count_seqs'][0]['callCaching']['allowResultReuse'] is False, "This run \"%s\" should not be cached (--no-cache used) but was." % run_id

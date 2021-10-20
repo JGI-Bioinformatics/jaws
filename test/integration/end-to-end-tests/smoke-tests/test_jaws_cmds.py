@@ -169,7 +169,7 @@ def test_jaws_errors(submit_bad_task):
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
 
-    assert 'bad_cmd_name: command not found' in o
+    assert 'command not found' in o
 
 
 def test_jaws_task_status(submit_fq_count_wdl):
