@@ -190,9 +190,5 @@ def test_subworkflow_metadata(submit_subworkflow_alignment):
         "bbmap_shard_wf.merge_bams",
         "bbmap_shard_wf.shard",
     ]
-    calls = []
-    for key in meta_output:
-        for yek in meta_output[key]["calls"]:
-            calls.append(yek)
-
+    calls = meta_output['calls']['main_wdl.bbmap_shard_wf'][0]['subWorkflowMetadata']['calls'].keys()
     assert len([x for x in expected if x in calls]) == 4

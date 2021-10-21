@@ -195,15 +195,15 @@ def test_jaws_task_status(submit_fq_count_wdl):
 
 def test_jaws_log(submit_fq_count_wdl):
     """Check that the first line of jaws log returns something like this:
-    #STATUS_FROM       STATUS_TO          TIMESTAMP            REASON
-    created            uploading          2021-05-20 17:00:10  upload_task_id=d6bf4064-b98c-11eb-b98a-5534f09633d1
-    upload complete    upload complete    2021-05-20 17:00:18
-    submitted          submitted          2021-05-20 17:00:29  cromwell_run_id=f5503790-5a63-49b4-9b81-19963c0161ed
-    queued             queued             2021-05-20 17:00:39
-    running            running            2021-05-20 17:00:39
-    succeeded          succeeded          2021-05-20 17:00:40
-    downloading        downloading        2021-05-20 17:00:52  download_task_id=ef0b52c0-b98c-11eb-82a1-e31f0402e917
-    download complete  download complete  2021-05-20 17:01:38
+    #STATUS_FROM     STATUS_TO          TIMESTAMP            REASON
+    created          uploading          2021-10-19 18:03:32  upload_task_id=8b9f89b8-3141-11ec-9e4a-3df4ed83d858
+    uploading        upload complete    2021-10-19 18:03:48
+    upload complete  submitted          2021-10-19 18:03:59  cromwell_run_id=caee40c2-a970-4433-8d3d-4572c3a94189
+    submitted        queued             2021-10-19 18:04:09
+    queued           running            2021-10-19 18:19:02
+    running          succeeded          2021-10-19 18:21:23
+    succeeded        downloading        2021-10-19 18:21:34  download_task_id=1007af1c-3144-11ec-b674-7102df104c9e
+    downloading      download complete  2021-10-19 18:22:18
     """
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
@@ -224,7 +224,7 @@ def test_jaws_log(submit_fq_count_wdl):
 
 def test_jaws_task_log(submit_fq_count_wdl):
     """Check that the first line of jaws task-log returns something like this:
-    f0b7fd65-1620-4765-8b62-55d0bec74a8d  fq_count.count_seqs 1 16948  running failed 2021-04-06 03:46:26
+    fq_count.count_seqs	33478	created	ready	2021-10-19 18:04:10
     """
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
@@ -236,8 +236,8 @@ def test_jaws_task_log(submit_fq_count_wdl):
 
     assert "fq_count.count_seqs" in a[1]
 
-    # there should be 8 columns of output
-    assert len(a[1].split()) == 8
+    # there should be 6 columns of output
+    assert len(a[1].split()) == 6
 
     # there should be 6 output rows (including header)
     assert len(a) == 6
