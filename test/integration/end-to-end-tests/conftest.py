@@ -1,14 +1,6 @@
 import pytest
 import submission_utils as util
 
-#@pytest.fixture(scope="session")
-#def check_tries():
-#    return 360
-#    
-#@pytest.fixture(scope="session")
-#def check_sleep():
-#    return 60
-
 check_sleep = 360
 check_tries = 60
 
