@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 
 # These functions are to test the "testcases" from the "score_card" integration tests.
-# google doc: https://docs.google.com/document/d/1nXuPDVZ3dXl0AetyU5Imdbi0Gvc5sUhAR0OfYxss2uI/edit#heading=h.rmy1jmsa0m7n
+# google doc: https://docs.google.com/document/d/1nXuPDVZ3dXl0AetyU5Imdbi0Gvc5sUhAR0OfYxss2uI/edit#heading=h.rmy1jmsa0m7n  # noqa
 # google sheet: https://docs.google.com/spreadsheets/d/1eBWvk4FSPpbFclTuzu0o77aPAxcZ78C_mVKCnHoMMAo/edit#gid=1883830451
 
 # This library of tests uses "fixtures" from conftest.py which should be located in the same directory.
 
 import os
-import pytest
 import json
-import time
 import uuid
 import shutil
 import submission_utils as util
@@ -18,9 +16,9 @@ check_tries = 360
 check_sleep = 60
 
 
-#########################
-###     Functions     ###
-#########################
+#####################
+#     Functions     #
+#####################
 #
 # Test functions for verification of jaws log commands (log,task-log,status,task-status).
 #
@@ -30,7 +28,7 @@ def test_jaws_info():
     "docs_url": "https://jaws-docs.readthedocs.io/en/latest/",
         "name": "prod",
         "version": "2.1"
-    }"""
+    }"""  # noqa
 
     cmd = "jaws info"
     (r, o, e) = util.run(cmd)
@@ -79,23 +77,18 @@ def test_jaws_status(submit_fq_count_wdl):
     """test that the jaws status --verbose command has an output directory defined in its stdout"""
     data = submit_fq_count_wdl
     run_id = str(data["run_id"])
-    cmd = (
-        "jaws status --verbose %s"
-        % (run_id)
-    )
+    cmd = "jaws status --verbose %s" % (run_id)
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
     assert "output_dir" in data
 
-def test_jaws_queue(site,dir):
+
+def test_jaws_queue(site, dir):
     """tests that the jaws queue command has the correct site in the output when --site is used."""
 
-    wdl = dir + '/WDLs/fq_count.wdl'
-    myjson = dir + '/test-inputs/fq_count.json'
-    cmd = (
-        "jaws submit --quiet --no-cache %s %s %s"
-        % (wdl, myjson, site)
-    )
+    wdl = dir + "/WDLs/fq_count.wdl"
+    myjson = dir + "/test-inputs/fq_count.json"
+    cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, myjson, site)
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
     run_id = data["run_id"]
@@ -110,7 +103,7 @@ def test_jaws_queue(site,dir):
     # just save the boolean in 'result' for now.
     result = False
     has_id = False
-    ids=[]
+    ids = []
     if data:
         for d in data:
             if d["site_id"].lower() == site.lower():
@@ -120,27 +113,21 @@ def test_jaws_queue(site,dir):
         assert result, f"no runs were found in the queue for site: {site}"
 
     if run_id in ids:
-        has_id=True
+        has_id = True
 
-    cmd = (
-        "jaws cancel --quiet %s"
-        % (run_id)
-    )
+    cmd = "jaws cancel --quiet %s" % (run_id)
     (r, o, e) = util.run(cmd)
 
     assert result and has_id
 
 
 def test_jaws_history(submit_fq_count_wdl):
-    """ tests that the jaws history command has the run id in the stdout."""
+    """tests that the jaws history command has the run id in the stdout."""
     data = submit_fq_count_wdl
     run_id = str(data["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
 
-    cmd = (
-        "jaws history | grep '\"id\": %s' | awk '{print $2}' | tr -d ','"
-        % (run_id)
-    )
+    cmd = "jaws history | grep '\"id\": %s' | awk '{print $2}' | tr -d ','" % (run_id)
     (r, o, e) = util.run(cmd)
 
     # if there was something in stdout, then grep found "id": <run_id>
@@ -153,9 +140,8 @@ def test_jaws_metadata(submit_fq_count_wdl):
     run_id = str(data["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
 
-    cmd = (
-        "jaws metadata %s | grep workflowRoot | awk '{print $2}' | tr -d '\"'"
-        % (run_id)
+    cmd = "jaws metadata %s | grep workflowRoot | awk '{print $2}' | tr -d '\"'" % (
+        run_id
     )
     (r, o, e) = util.run(cmd)
 
@@ -169,9 +155,8 @@ def test_jaws_errors(submit_bad_task):
 
     cmd = "jaws errors %s" % (run_id)
     (r, o, e) = util.run(cmd)
-    data = json.loads(o)
 
-    assert 'command not found' in o
+    assert "command not found" in o
 
 
 def test_jaws_task_status(submit_fq_count_wdl):
@@ -258,12 +243,15 @@ def test_jaws_get(submit_bad_task):
     (r, o, e) = util.run(cmd)
     assert r == 0
 
-    assert os.path.exists(os.path.join(outdir, "call-count_seqs/execution/num_seqs.txt"))
+    assert os.path.exists(
+        os.path.join(outdir, "call-count_seqs/execution/num_seqs.txt")
+    )
 
     try:
-        shutil.rmtree(outdir) 
-    except OSError as e:
-        print("Error: %s : %s" % (outdir, e.strerror))
+        shutil.rmtree(outdir)
+    except OSError as error:
+        print(f"Error: {outdir}: {error}")
+
 
 def test_tag(submit_fq_count_wdl):
     """
@@ -277,8 +265,7 @@ def test_tag(submit_fq_count_wdl):
     assert r == 0
     data = json.loads(o)
 
-    assert data['tag'] == "submit_fq_count_wdl"
-
+    assert data["tag"] == "submit_fq_count_wdl"
 
 
 def test_jaws_history_site_filter(site, submit_fq_count_wdl):
@@ -313,7 +300,7 @@ def test_jaws_history_result_filter_succeeded(submit_fq_count_wdl):
         for d in data:
             assert d["result"] == "succeeded"
     else:
-        assert 1, f"no runs were found in the history that have result: succeeded"
+        assert 1, "no runs were found in the history that have result: succeeded"
 
 
 def test_jaws_history_result_filter_failed(submit_bad_task):
@@ -332,4 +319,4 @@ def test_jaws_history_result_filter_failed(submit_bad_task):
         for d in data:
             assert d["result"] == "failed"
     else:
-        assert 1, f"no runs were found in the history that have result: failed"
+        assert 1, "no runs were found in the history that have result: failed"

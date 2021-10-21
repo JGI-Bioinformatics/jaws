@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # These functions are to test the "score_card" unit tests.
-# google doc: https://docs.google.com/document/d/1nXuPDVZ3dXl0AetyU5Imdbi0Gvc5sUhAR0OfYxss2uI/edit#heading=h.rmy1jmsa0m7n
+# google doc: https://docs.google.com/document/d/1nXuPDVZ3dXl0AetyU5Imdbi0Gvc5sUhAR0OfYxss2uI/edit#heading=h.rmy1jmsa0m7n # noqa
 # google sheet: https://docs.google.com/spreadsheets/d/1eBWvk4FSPpbFclTuzu0o77aPAxcZ78C_mVKCnHoMMAo/edit#gid=1883830451
 #
 # This library of tests uses "fixtures" from conftest.py which should be located in the same directory.
@@ -13,14 +13,8 @@
 # 4) subworkflow WDLs are saved in the user defined output dir
 # 5) metadata command also returns cromwell metadata for subworkflows
 
-import sys
 import os
 import json
-import re
-import pytest
-import time
-import configparser
-import glob
 import shutil
 import uuid
 import submission_utils as util
@@ -28,9 +22,9 @@ import submission_utils as util
 check_tries = 50
 check_sleep = 60
 
-#########################
-###     Functions     ###
-#########################
+#####################
+#     Functions     #
+#####################
 
 
 def test_task_status(submit_subworkflow_alignment):
@@ -43,7 +37,7 @@ def test_task_status(submit_subworkflow_alignment):
     main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment  1 46808   running success 2021-02-08 20:54:25  The job completed successfully
     main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams 1 46809   running success 2021-02-08 20:54:37  The job completed successfully
     main_wdl.bam_stats                                1 46810   running success 2021-02-08 20:56:36  The job completed successfully
-    """
+    """ # noqa
 
     run_id = submit_subworkflow_alignment["run_id"]
     cmd = "jaws task-status %s | tail -n+2" % (run_id)
@@ -129,7 +123,7 @@ def test_for_raw_cromwell_files(submit_subworkflow_alignment):
     """
     run_id = submit_subworkflow_alignment["run_id"]
 
-    outdir = str(uuid.uuid4()) 
+    outdir = str(uuid.uuid4())
 
     cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
     (r, o, e) = util.run(cmd)
@@ -145,9 +139,10 @@ def test_for_raw_cromwell_files(submit_subworkflow_alignment):
     assert int(o.strip()) == 4
 
     try:
-        shutil.rmtree(outdir) 
-    except OSError as e:
-        print("Error: %s : %s" % (outdir, e.strerror))
+        shutil.rmtree(outdir)
+    except OSError as error:
+        print(f"Error: {outdir}: {error}")
+
 
 def test_saved_subwdl(submit_subworkflow_alignment):
     """
@@ -169,8 +164,8 @@ def test_saved_subwdl(submit_subworkflow_alignment):
 
     try:
         shutil.rmtree(outdir)
-    except OSError as e:
-        print("Error: %s : %s" % (outdir, e.strerror))
+    except OSError as error:
+        print(f"Error: {outdir}: {error}")
 
 
 def test_subworkflow_metadata(submit_subworkflow_alignment):
@@ -189,5 +184,7 @@ def test_subworkflow_metadata(submit_subworkflow_alignment):
         "bbmap_shard_wf.merge_bams",
         "bbmap_shard_wf.shard",
     ]
-    calls = meta_output['calls']['main_wdl.bbmap_shard_wf'][0]['subWorkflowMetadata']['calls'].keys()
+    calls = meta_output["calls"]["main_wdl.bbmap_shard_wf"][0]["subWorkflowMetadata"][
+        "calls"
+    ].keys()
     assert len([x for x in expected if x in calls]) == 4

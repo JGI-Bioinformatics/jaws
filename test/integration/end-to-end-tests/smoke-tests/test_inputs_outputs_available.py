@@ -1,17 +1,13 @@
 #!/usr/bin/env python
 
 # These functions are to test the "testcases" from the "score_card" integration tests.
-# google doc: https://docs.google.com/document/d/1nXuPDVZ3dXl0AetyU5Imdbi0Gvc5sUhAR0OfYxss2uI/edit#heading=h.rmy1jmsa0m7n
+# google doc: https://docs.google.com/document/d/1nXuPDVZ3dXl0AetyU5Imdbi0Gvc5sUhAR0OfYxss2uI/edit#heading=h.rmy1jmsa0m7n  # noqa
 # google sheet: https://docs.google.com/spreadsheets/d/1eBWvk4FSPpbFclTuzu0o77aPAxcZ78C_mVKCnHoMMAo/edit#gid=1883830451
 
-# This library of tests uses "fixtures" from conftest.py which should be located in the same directory. There is no need to import conftest.py as it is done automatically.
+# This library of tests uses "fixtures" from conftest.py which should be located in the same directory.
+# There is no need to import conftest.py as it is done automatically.
 
-import sys
 import os
-import re
-import pytest
-import json
-import time
 import uuid
 import shutil
 import submission_utils as util
@@ -20,11 +16,11 @@ import submission_utils as util
 check_tries = 100
 check_sleep = 30
 
-#########################
-###     Functions     ###
-#########################
-#
-#
+#####################
+#     Functions     #
+#####################
+
+
 def test_jaws_run_task_log(submit_fq_count_wdl):
     """
     1) I will check that the input WDL and json file are saved in the output dir.
@@ -54,13 +50,13 @@ def test_jaws_run_task_log(submit_fq_count_wdl):
 
     # verify it is a valid wdl
     with open(os.path.join(outdir, input_wdl)) as fh:
-        if not "workflow fq_count" in fh.readline():
+        if "workflow fq_count" not in fh.readline():
             assert 0, "This does not look like a valid workflow"
 
     # check that we have a valid inputs json
     with open(os.path.join(outdir, input_json)) as fh:
         expected = '"fq_count.fastq_file":'
-        if not expected in fh.read():
+        if expected not in fh.read():
             assert 0, "This does not look like a valid inputs json file"
 
     expected_files = [
@@ -74,14 +70,12 @@ def test_jaws_run_task_log(submit_fq_count_wdl):
         "stdout.submit",
     ]
     for file in expected_files:
-        if not os.path.exists(
-            os.path.join(outdir, "call-count_seqs/execution/", file)
-        ):
+        if not os.path.exists(os.path.join(outdir, "call-count_seqs/execution/", file)):
             assert (
                 0
             ), f"expected result file not found in: {os.path.join(outdir,'call-count_seqs/execution/',file)}"
 
     try:
         shutil.rmtree(outdir)
-    except OSError as e:
-        print("Error: %s : %s" % (outdir, e.strerror))
+    except OSError as error:
+        print(f"Error: {outdir}: {error}")

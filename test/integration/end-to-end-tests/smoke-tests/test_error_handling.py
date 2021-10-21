@@ -7,7 +7,7 @@ google sheet: https://docs.google.com/spreadsheets/d/1eBWvk4FSPpbFclTuzu0o77aPAx
 This library of tests uses "fixtures" from conftest.py which should be located in the same directory.
 There is no need to import conftest.py as it is done automatically.
 
-These test will cover issues that pertain to user debugging. 
+These test will cover issues that pertain to user debugging.
 
 Author: Jeff Froula <jlfroula@lbl.gov>
 Updated: 02/23/21
@@ -19,12 +19,13 @@ from subprocess import Popen, PIPE
 import submission_utils as util
 
 
-#########################
-###     Functions     ###
-#########################
+#####################
+#     Functions     #
+#####################
 def test_should_fail_status(submit_bad_task):
     """
-    When a user submits a WDL to site {param:site} and one of the tasks fail (for instance, due to a typo in a user-supplied command):
+    When a user submits a WDL to site {param:site} and one of the tasks
+    fail (for instance, due to a typo in a user-supplied command):
     the job needs to have result = failed (reflected by cmds: status, log, task-log, task-status)
 
     {
@@ -53,7 +54,7 @@ def test_should_fail_task_status(submit_bad_task):
     jaws task-status 17028
     #TASK_NAME  ATTEMPT CROMWELL_JOB_ID STATUS_FROM     STATUS_TO       TIMESTAMP       REASON  STATUS_DETAIL
     fq_count.count_seqs 1       77273   running failed  2021-02-23 22:45:04     failed with input file or command not found     The job has failed
-    """
+    """ # noqa
     # test task-status
     id = str(submit_bad_task["run_id"])
     cmd = "jaws task-status %s" % (id)
@@ -70,7 +71,7 @@ def test_should_fail_task_log(submit_bad_task):
     fq_count.count_seqs 1       77273   queued  pending 2021-02-23 22:44:12
     fq_count.count_seqs 1       77273   pending running 2021-02-23 22:45:03
     fq_count.count_seqs 1       77273   running failed  2021-02-23 22:45:04     failed with input file or command not found
-    """
+    """ # noqa
 
     # test task-log
     id = str(submit_bad_task["run_id"])
@@ -117,7 +118,7 @@ def test_invalid_site(site):
 
     example error output
     {'detail': {'error': 'Unknown Site ID; "BOSUG" is not one of our sites'}, 'status': 404, 'title': 'Not Found', 'type': 'about:blank'}
-    """
+    """ # noqa
 
     wdl = "WDLs/fq_count.wdl"
     input_json = "test-inputs/fq_count.json"
@@ -158,13 +159,10 @@ def test_invalid_docker_b(site, submit_bad_docker):
     id = str(submit_bad_docker["run_id"])
     cmd = "jaws status --verbose %s" % (id)
     (r, o, e) = util.run(cmd)
-    data = json.loads(o)
-    cromwell_id = data["cromwell_run_id"]
 
     # check the metadata
     cmd = "jaws errors %s" % (id)
     (r, o, e) = util.run(cmd)
-    data = json.loads(o)
     if site.lower() == 'cori':
         assert (
             "Invalid container name or failed to pull container" in o
@@ -189,10 +187,11 @@ def test_bad_sub_workflow_error_msg(submit_bad_sub_task):
 
     assert "echoooo: command not found" in o, "sub workflow command error should appear in errors"
 
+
 def test_timeout(dir, site):
     """
     TESTCASE-44
-    When user submits a wdl and a timeout occurs, the 
+    When user submits a wdl and a timeout occurs, the
     timeout message should appear in the output from the errors command
     """
     WDL = "/WDLs/timeout.wdl"
@@ -210,11 +209,12 @@ def test_timeout(dir, site):
 
     # get the errors from JAWS for that run
     cmd = "jaws errors %s" % (run_id)
-    r, o, e = util.run(cmd) 
+    r, o, e = util.run(cmd)
 
     # do the check!
     fail_msg = "error. Keyword absent: \"timeout\" (%s)" % run_id
     assert "failed with timeout" in o, fail_msg
+
 
 def test_bad_ref_dir(dir, site):
     """
