@@ -12,6 +12,8 @@ import re
 import pytest
 import json
 import time
+import uuid
+import shutil
 import submission_utils as util
 
 # set variables specific for this series of tests
@@ -37,26 +39,26 @@ def test_jaws_run_task_log(submit_fq_count_wdl):
     """
     input_wdl = "main.wdl"
     input_json = "inputs.json"
-    output_dir = "output_dir"
+    outdir = str(uuid.uuid4())
 
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
 
-    cmd = "jaws get --quiet --complete %s %s" % (run_id, output_dir)
+    cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
     (r, o, e) = util.run(cmd)
     assert r == 0
 
-    # check that we have the initial WDL saved to the output_dir
-    # using the full path (output_dir and input_wdl), we are essentially testing that the output_dir
+    # check that we have the initial WDL saved to the outdir
+    # using the full path (outdir and input_wdl), we are essentially testing that the outdir
     # was correct and that the wdl file got created.
 
     # verify it is a valid wdl
-    with open(os.path.join(output_dir, input_wdl)) as fh:
+    with open(os.path.join(outdir, input_wdl)) as fh:
         if not "workflow fq_count" in fh.readline():
             assert 0, "This does not look like a valid workflow"
 
     # check that we have a valid inputs json
-    with open(os.path.join(output_dir, input_json)) as fh:
+    with open(os.path.join(outdir, input_json)) as fh:
         expected = '"fq_count.fastq_file":'
         if not expected in fh.read():
             assert 0, "This does not look like a valid inputs json file"
@@ -73,8 +75,13 @@ def test_jaws_run_task_log(submit_fq_count_wdl):
     ]
     for file in expected_files:
         if not os.path.exists(
-            os.path.join(output_dir, "call-count_seqs/execution/", file)
+            os.path.join(outdir, "call-count_seqs/execution/", file)
         ):
             assert (
                 0
-            ), f"expected result file not found in: {os.path.join(output_dir,'call-count_seqs/execution/',file)}"
+            ), f"expected result file not found in: {os.path.join(outdir,'call-count_seqs/execution/',file)}"
+
+    try:
+        shutil.rmtree(outdir)
+    except OSError as e:
+        print("Error: %s : %s" % (outdir, e.strerror))

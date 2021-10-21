@@ -121,7 +121,6 @@ def test_invalid_site(site):
 
     wdl = "WDLs/fq_count.wdl"
     input_json = "test-inputs/fq_count.json"
-    outdir = "./should-fail"
 
     cmd = "jaws submit --quiet --no-cache %s %s %s" % (
         wdl,

@@ -21,6 +21,8 @@ import pytest
 import time
 import configparser
 import glob
+import shutil
+import uuid
 import submission_utils as util
 
 check_tries = 50
@@ -43,8 +45,6 @@ def test_task_status(submit_subworkflow_alignment):
     main_wdl.bam_stats                                1 46810   running success 2021-02-08 20:56:36  The job completed successfully
     """
 
-    # time.sleep(120)  # wait some time before running task-status since there is some lag between
-    #                 # when "jaws status" calls success and when "jaws task-status" calls success.
     run_id = submit_subworkflow_alignment["run_id"]
     cmd = "jaws task-status %s | tail -n+2" % (run_id)
     (r, o, e) = util.run(cmd)
@@ -56,9 +56,7 @@ def test_task_status(submit_subworkflow_alignment):
     line_list = list(filter(None, line_list))  # remove empty element
     for i in line_list:
         task_names.append(i.split("\t")[0])
-        status_to.append(i.split("\t")[5])
-
-    # print(f"TASK names: {status_to}")
+        status_to.append(i.split("\t")[3])
 
     # check that the subworkflows tasks are in the list
     assert len(task_names) == 5
@@ -131,7 +129,8 @@ def test_for_raw_cromwell_files(submit_subworkflow_alignment):
     """
     run_id = submit_subworkflow_alignment["run_id"]
 
-    outdir = "cromwell_file_test"
+    outdir = str(uuid.uuid4()) 
+
     cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
     (r, o, e) = util.run(cmd)
     assert not r
@@ -146,7 +145,7 @@ def test_for_raw_cromwell_files(submit_subworkflow_alignment):
     assert int(o.strip()) == 4
 
     try:
-        os.rmdir(outdir)
+        shutil.rmtree(outdir) 
     except OSError as e:
         print("Error: %s : %s" % (outdir, e.strerror))
 
@@ -156,7 +155,7 @@ def test_saved_subwdl(submit_subworkflow_alignment):
 
     """
     run_id = submit_subworkflow_alignment["run_id"]
-    outdir = "Subworkflow-output"
+    outdir = str(uuid.uuid4())
     cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
     (r, o, e) = util.run(cmd)
     assert not r
@@ -169,7 +168,7 @@ def test_saved_subwdl(submit_subworkflow_alignment):
     assert "alignment.wdl" in o
 
     try:
-        os.rmdir(outdir)
+        shutil.rmtree(outdir)
     except OSError as e:
         print("Error: %s : %s" % (outdir, e.strerror))
 

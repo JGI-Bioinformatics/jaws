@@ -10,6 +10,8 @@ import os
 import pytest
 import json
 import time
+import uuid
+import shutil
 import submission_utils as util
 
 check_tries = 360
@@ -250,23 +252,18 @@ def test_jaws_get(submit_bad_task):
     run_id = str(submit_bad_task["run_id"])
 
     # remove any old copy of the temp dir if exists
-    mycopy = "./Mycopy"
-    if os.path.exists(mycopy):
-        cmd = "rm -rf %s" % mycopy
-        (r, o, e) = util.run(cmd)
-        assert not r
+    outdir = str(uuid.uuid4())
 
-    cmd = "jaws get --quiet --complete %s %s" % (run_id, mycopy)
+    cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
     (r, o, e) = util.run(cmd)
     assert r == 0
 
-    assert os.path.exists(os.path.join(mycopy, "call-count_seqs/execution/num_seqs.txt"))
+    assert os.path.exists(os.path.join(outdir, "call-count_seqs/execution/num_seqs.txt"))
 
     try:
-        os.rmdir(mycopy)
+        shutil.rmtree(outdir) 
     except OSError as e:
-        print("Error: %s : %s" % (mycopy, e.strerror))
-
+        print("Error: %s : %s" % (outdir, e.strerror))
 
 def test_tag(submit_fq_count_wdl):
     """
