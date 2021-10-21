@@ -12,15 +12,15 @@ variables:
 
   ## GLOBAL INSTALL VARIABLES:
   JAWS_SITES: "CORI JGI TAHOMA"
-  JAWS_VERSION: "2.4.0"
+  JAWS_VERSION: "2.5.0"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_RMQ_HOST: "rmq.lbl.gov"
   JAWS_RMQ_PORT: 5672
   JAWS_GLOBUS_CLIENT_ID: "1a130a01-48bc-489b-a729-9ab858de1755"
-  CROMWELL_VERSION: "59"
-  CROMWELL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/59/cromwell-59.jar"
-  WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/59/womtool-59.jar"
+  CROMWELL_VERSION: "58"
+  CROMWELL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/58/cromwell-58.jar"
+  WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/58/womtool-58.jar"
   JAWS_DB_HOST: "jaws-db.lbl.gov"
   JAWS_DB_PORT: 3306
 
@@ -70,6 +70,7 @@ variables:
   CORI_REF_DATA_DIR: "/global/dna/shared/databases/jaws/refdata"
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
+  CORI_CONTAINER_TMPDIR: "/global/cscratch1/sd/jaws_jtm"
   CORI_CLUSTER_QOS: "genepool_special"
   CORI_CLUSTER_PARTITION: ""
   CORI_CLUSTER_ACCOUNT: "fungalp"
@@ -77,6 +78,8 @@ variables:
   CORI_MAX_RAM_GB: 2048
   CORI_LOAD_JAVA: ""
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
+  CORI_RMQ_HOST: "rmq.lbl.gov"
+  CORI_RMQ_PORT: 5672
 
   JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
@@ -89,9 +92,10 @@ variables:
   JGI_CLIENT_GROUP: "jgi"
   JGI_JAWS_SCRATCH_BASEDIR: "/global/scratch/jaws"
   JGI_JTM_SCRATCH_BASEDIR: "/global/scratch/jaws"
-  JGI_REF_DATA_DIR: "/global/home/groups/lr_jgicloud/refdata"
+  JGI_REF_DATA_DIR: "/global/scratch/jaws/refdata"
   JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
   JGI_CONTAINER_TYPE: "singularity"
+  JGI_CONTAINER_TMPDIR: "/global/scratch/jaws"
   JGI_CLUSTER_QOS: "normal"
   JGI_CLUSTER_PARTITION: "jgi"
   JGI_CLUSTER_ACCOUNT: "jgi"
@@ -99,11 +103,13 @@ variables:
   JGI_MAX_RAM_GB: 250
   JGI_LOAD_JAVA: "module load java"
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
+  JGI_RMQ_HOST: "rmq.lbl.gov"
+  JGI_RMQ_PORT: 5672
 
-  TAHOMA_CLIENT_INSTALL_BASEDIR: ""
+  TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install/jaws-client/"
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
-  TAHOMA_GLOBUS_EP: "49ebaf40-5773-11eb-a45f-0e095b4c2e55"
-  TAHOMA_GLOBUS_HOST_PATH: "/dtemp/mscjgi"
+  TAHOMA_GLOBUS_EP: "8e65719e-1a53-11ec-a09f-6b21ca6daf73"
+  TAHOMA_GLOBUS_HOST_PATH: "/tahoma/mscjgi"
   TAHOMA_PYTHON: "python"
   TAHOMA_LOAD_PYTHON: "module load python/3.8.1"
   TAHOMA_JAWS_GROUP: "svc-jtm-manager"
@@ -111,9 +117,10 @@ variables:
   TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
   TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi"
-  TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata" # TODO: Needs to be rsync'd
+  TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata"
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
+  TAHOMA_CONTAINER_TMPDIR: "/big_scratch"
   TAHOMA_CLUSTER_QOS: ""
   TAHOMA_CLUSTER_PARTITION: ""
   TAHOMA_CLUSTER_ACCOUNT: "mscjgi"
@@ -121,6 +128,8 @@ variables:
   TAHOMA_MAX_RAM_GB: 1024  #TODO: Find a more accurate number
   TAHOMA_LOAD_JAVA: ""
   TAHOMA_DATA_REPO_BASEDIR: "/tahoma/mscjgi"
+  TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
+  TAHOMA_RMQ_PORT: 5672
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
@@ -171,6 +180,7 @@ test-central:
   artifacts:
     reports:
       cobertura: central/coverage.xml
+
 test-client:
   <<: *only-default
   stage: unit-test
@@ -186,6 +196,7 @@ test-client:
     reports:
       cobertura: client/coverage.xml
   allow_failure: true
+
 test-jtm:
   <<: *only-default
   stage: unit-test
@@ -223,6 +234,7 @@ deploy-jaws-central-dev:
     - ./test/integration/deploy-central
   only:
   - dev
+
 deploy-jaws-central-staging:
   stage: deploy-jaws
   tags:
@@ -236,6 +248,7 @@ deploy-jaws-central-staging:
     - ./test/integration/deploy-central
   only:
   - staging
+
 deploy-jaws-central-prod:
   stage: deploy-jaws
   tags:
@@ -263,6 +276,7 @@ deploy-jaws-cori-dev:
     - ./test/integration/deploy-jaws
   only:
   - dev
+
 deploy-jaws-cori-staging:
   stage: deploy-jaws
   tags:
@@ -276,6 +290,7 @@ deploy-jaws-cori-staging:
     - ./test/integration/deploy-jaws
   only:
   - staging
+
 deploy-jaws-cori-prod:
   stage: deploy-jaws
   tags:
@@ -303,6 +318,7 @@ deploy-jaws-jgi-dev:
     - ./test/integration/deploy-jaws
   only:
   - dev
+
 deploy-jaws-jgi-staging:
   stage: deploy-jaws
   tags:
@@ -316,6 +332,7 @@ deploy-jaws-jgi-staging:
     - ./test/integration/deploy-jaws
   only:
   - staging
+
 deploy-jaws-jgi-prod:
   stage: deploy-jaws
   tags:
@@ -346,6 +363,38 @@ deploy-jaws-tahoma-dev:
     - dev
   allow_failure: true
 
+deploy-jaws-tahoma-staging:
+  stage: deploy-jaws
+  tags:
+    - tahoma
+    - pnnl
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "TAHOMA"
+  environment:
+    name: "tahoma/staging"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+    - staging
+  allow_failure: true
+
+deploy-jaws-tahoma-prod:
+  stage: deploy-jaws
+  tags:
+    - tahoma
+    - pnnl
+  variables:
+    DEPLOYMENT_NAME: "prod"
+    JAWS_SITE: "TAHOMA"
+  environment:
+    name: "tahoma/prod"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+    - master
+  allow_failure: true
+
 cori-dev-smoke-tests:
   stage: smoke-tests
   variables:
@@ -356,7 +405,7 @@ cori-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -370,7 +419,21 @@ jgi-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+      when: manual
+  allow_failure: true
+
+tahoma-dev-smoke-tests:
+  stage: smoke-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "TAHOMA"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -384,7 +447,7 @@ cori-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -398,7 +461,21 @@ jgi-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+      when: manual
+  allow_failure: true
+
+tahoma-dev-deployment-tests:
+  stage: deployment-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "TAHOMA"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -412,7 +489,7 @@ cori-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -426,7 +503,21 @@ jgi-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+      when: manual
+  allow_failure: true
+
+tahoma-dev-stress-tests:
+  stage: stress-tests
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "TAHOMA"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
       when: manual
   allow_failure: true
 
@@ -440,7 +531,7 @@ cori-staging-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
@@ -454,7 +545,21 @@ jgi-staging-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+      when: manual
+  allow_failure: true
+
+tahoma-staging-smoke-tests:
+  stage: smoke-tests
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "TAHOMA"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
@@ -468,7 +573,7 @@ cori-staging-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
@@ -482,7 +587,21 @@ jgi-staging-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+      when: manual
+  allow_failure: true
+
+tahoma-staging-deployment-tests:
+  stage: deployment-tests
+  variables:
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "TAHOMA"
+  tags:
+    - cori
+  script:
+    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
@@ -496,7 +615,7 @@ cori-staging-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
@@ -510,91 +629,21 @@ jgi-staging-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 
-cori-prod-smoke-tests:
-  stage: smoke-tests
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "CORI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
-      when: manual
-  allow_failure: true
-
-jgi-prod-smoke-tests:
-  stage: smoke-tests
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "JGI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
-      when: manual
-  allow_failure: true
-
-cori-prod-deployment-tests:
-  stage: deployment-tests
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "CORI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
-      when: manual
-  allow_failure: true
-
-jgi-prod-deployment-tests:
-  stage: deployment-tests
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "JGI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
-      when: manual
-  allow_failure: true
-
-cori-prod-stress-tests:
+tahoma-staging-stress-tests:
   stage: stress-tests
   variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "CORI"
+    DEPLOYMENT_NAME: "staging"
+    JAWS_SITE: "TAHOMA"
   tags:
     - cori
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
-      when: manual
-  allow_failure: true
-
-jgi-prod-stress-tests:
-  stage: stress-tests
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "JGI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   allow_failure: true
 

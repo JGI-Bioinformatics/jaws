@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+# The purpose of this test is more to make sure the tutorials are working than to
+# test that JAWS is working.  However, there are some tests in here that are usefull
+# to test JAWS components like making sure we can access the /refdata (referencing_db_and_shifter)
 
-import json
 import pytest
 import submission_utils as util
 
@@ -8,10 +10,6 @@ import submission_utils as util
 @pytest.mark.parametrize(
     "wdl, input_json",
     (
-        (
-            "./jaws-tutorial-examples/fq_count/fq_count.wdl",
-            "./jaws-tutorial-examples/fq_count/fq_count.json",
-        ),
         (
             "./jaws-tutorial-examples/jaws-alignment-example/main.wdl",
             "./jaws-tutorial-examples/jaws-alignment-example/inputs.json",

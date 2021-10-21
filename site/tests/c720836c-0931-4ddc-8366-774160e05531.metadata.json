@@ -1,0 +1,617 @@
+{
+  "workflowName": "main_workflow",
+  "workflowProcessingEvents": [
+    {
+      "cromwellId": "cromid-62c9219",
+      "description": "PickedUp",
+      "timestamp": "2021-10-04T21:51:40.948Z",
+      "cromwellVersion": "58"
+    },
+    {
+      "cromwellId": "cromid-62c9219",
+      "description": "Finished",
+      "timestamp": "2021-10-04T21:52:33.001Z",
+      "cromwellVersion": "58"
+    }
+  ],
+  "metadataSource": "Unarchived",
+  "actualWorkflowLanguageVersion": "draft-2",
+  "submittedFiles": {
+    "workflow": "import \"sub_wdl.wdl\" as sub\n\nworkflow main_workflow {\n\n    call hello {input: addressee = \"World\" }\n    call goodbye {input: addressee = \"World\" }\n\n    call sub.hello_and_goodbye as hello_and_goodbye_1 { input: hello_and_goodbye_input = \"cruel world\" }\n    call sub.hello_and_goodbye as hello_and_goodbye_2 { input: hello_and_goodbye_input = \"beautiful world\" }\n\n    # call myTask { input: hello_and_goodbye.hello_output }\n\n    output {\n        String main_output_1 = hello_and_goodbye_1.hello_output\n        String main_output_2 = hello_and_goodbye_2.hello_output\n    }\n}\n\ntask hello {\n  String addressee\n  command {\n    echo \"Hello ${addressee}!\"\n  }\n  runtime {\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      memory: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\ntask goodbye {\n  String addressee\n  command {\n    echo \"Goodbye ${addressee}!\"\n  }\n  runtime {\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      memory: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n",
+    "root": "",
+    "options": "{\n  \"read_from_cache\": false,\n  \"write_to_cache\": false\n}",
+    "inputs": "{}",
+    "workflowUrl": "",
+    "labels": "{}",
+    "imports": {
+      "sub_wdl.wdl": "task hello {\n  String addressee\n  command {\n    echo \"Hello ${addressee}!\"\n  }\n  runtime {\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      memory: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\ntask goodbye {\n  String addressee\n  command {\n    echo \"Goodbye ${addressee}!\"\n  }\n  runtime {\n      poolname: \"test_small\"\n      node: 1\n      nwpn: 1\n      memory: \"10G\"\n      time: \"00:10:00\"\n  }\n  output {\n    String salutation = read_string(stdout())\n  }\n}\n\nworkflow hello_and_goodbye {\n  String hello_and_goodbye_input\n\n  call hello {input: addressee = hello_and_goodbye_input }\n  call goodbye {input: addressee = hello_and_goodbye_input }\n\n  output {\n    String hello_output = hello.salutation\n    String goodbye_output = goodbye.salutation\n  }\n}\n"
+    }
+  },
+  "calls": {
+    "main_workflow.hello_and_goodbye_1": [
+      {
+        "executionStatus": "Done",
+        "subWorkflowMetadata": {
+          "workflowName": "hello_and_goodbye_1",
+          "rootWorkflowId": "c720836c-0931-4ddc-8366-774160e05531",
+          "calls": {
+            "hello_and_goodbye.goodbye": [
+              {
+                "executionStatus": "Done",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-goodbye/execution/stdout",
+                "backendStatus": "Done",
+                "commandLine": "echo \"Goodbye cruel world!\"",
+                "shardIndex": -1,
+                "outputs": {
+                  "salutation": "Goodbye cruel world!"
+                },
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "callCaching": {
+                  "allowResultReuse": false,
+                  "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "inputs": {
+                  "addressee": "cruel world"
+                },
+                "returnCode": 0,
+                "jobId": "12134",
+                "backend": "JTM",
+                "end": "2021-10-04T21:52:29.011Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-goodbye/execution/stderr",
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-goodbye",
+                "attempt": 1,
+                "executionEvents": [
+                  {
+                    "startTime": "2021-10-04T21:52:28.937Z",
+                    "description": "UpdatingJobStore",
+                    "endTime": "2021-10-04T21:52:29.011Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:48.079Z",
+                    "description": "WaitingForValueStore",
+                    "endTime": "2021-10-04T21:51:48.079Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:48.079Z",
+                    "description": "PreparingJob",
+                    "endTime": "2021-10-04T21:51:48.086Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:45.070Z",
+                    "description": "Pending",
+                    "endTime": "2021-10-04T21:51:45.070Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:48.086Z",
+                    "description": "RunningJob",
+                    "endTime": "2021-10-04T21:52:28.937Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:45.070Z",
+                    "description": "RequestingExecutionToken",
+                    "endTime": "2021-10-04T21:51:48.079Z"
+                  }
+                ],
+                "start": "2021-10-04T21:51:45.070Z"
+              }
+            ],
+            "hello_and_goodbye.hello": [
+              {
+                "executionStatus": "Done",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-hello/execution/stdout",
+                "backendStatus": "Done",
+                "commandLine": "echo \"Hello cruel world!\"",
+                "shardIndex": -1,
+                "outputs": {
+                  "salutation": "Hello cruel world!"
+                },
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "callCaching": {
+                  "allowResultReuse": false,
+                  "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "inputs": {
+                  "addressee": "cruel world"
+                },
+                "returnCode": 0,
+                "jobId": "12133",
+                "backend": "JTM",
+                "end": "2021-10-04T21:52:28.011Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-hello/execution/stderr",
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-hello",
+                "attempt": 1,
+                "executionEvents": [
+                  {
+                    "startTime": "2021-10-04T21:51:47.080Z",
+                    "description": "PreparingJob",
+                    "endTime": "2021-10-04T21:51:47.085Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:45.070Z",
+                    "description": "RequestingExecutionToken",
+                    "endTime": "2021-10-04T21:51:47.079Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:52:27.288Z",
+                    "description": "UpdatingJobStore",
+                    "endTime": "2021-10-04T21:52:28.011Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:47.085Z",
+                    "description": "RunningJob",
+                    "endTime": "2021-10-04T21:52:27.288Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:47.079Z",
+                    "description": "WaitingForValueStore",
+                    "endTime": "2021-10-04T21:51:47.080Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:45.070Z",
+                    "description": "Pending",
+                    "endTime": "2021-10-04T21:51:45.070Z"
+                  }
+                ],
+                "start": "2021-10-04T21:51:45.070Z"
+              }
+            ]
+          },
+          "outputs": {
+            "hello_and_goodbye.goodbye_output": "Goodbye cruel world!",
+            "hello_and_goodbye.hello_output": "Hello cruel world!"
+          },
+          "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531",
+          "id": "6870a657-27df-4972-9465-88d769b81e49",
+          "inputs": {
+            "hello_and_goodbye_input": "cruel world"
+          },
+          "status": "Succeeded",
+          "parentWorkflowId": "c720836c-0931-4ddc-8366-774160e05531",
+          "end": "2021-10-04T21:52:30.970Z",
+          "start": "2021-10-04T21:51:43.032Z"
+        },
+        "shardIndex": -1,
+        "outputs": {
+          "goodbye_output": "Goodbye cruel world!",
+          "hello_output": "Hello cruel world!"
+        },
+        "inputs": {
+          "hello_and_goodbye_input": "cruel world"
+        },
+        "end": "2021-10-04T21:52:30.970Z",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2021-10-04T21:51:43.032Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2021-10-04T21:51:43.032Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.032Z",
+            "description": "SubWorkflowPreparingState",
+            "endTime": "2021-10-04T21:51:43.034Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.032Z",
+            "description": "SubWorkflowPendingState",
+            "endTime": "2021-10-04T21:51:43.032Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.034Z",
+            "description": "SubWorkflowRunningState",
+            "endTime": "2021-10-04T21:52:30.970Z"
+          }
+        ],
+        "start": "2021-10-04T21:51:43.032Z"
+      }
+    ],
+    "main_workflow.hello": [
+      {
+        "executionStatus": "Done",
+        "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello/execution/stdout",
+        "backendStatus": "Done",
+        "commandLine": "echo \"Hello World!\"",
+        "shardIndex": -1,
+        "outputs": {
+          "salutation": "Hello World!"
+        },
+        "runtimeAttributes": {
+          "poolname": "test_small",
+          "shared": "0",
+          "failOnStderr": "false",
+          "partition": "",
+          "nwpn": "1",
+          "continueOnReturnCode": "0",
+          "cluster": "cori",
+          "maxRetries": "0",
+          "cpu": "32",
+          "constraint": "haswell",
+          "node": "1",
+          "account": "fungalp",
+          "time": "00:10:00",
+          "qos": "genepool_special",
+          "memory": "10 GB"
+        },
+        "callCaching": {
+          "allowResultReuse": false,
+          "effectiveCallCachingMode": "CallCachingOff"
+        },
+        "inputs": {
+          "addressee": "World"
+        },
+        "returnCode": 0,
+        "jobId": "12130",
+        "backend": "JTM",
+        "end": "2021-10-04T21:52:30.010Z",
+        "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello/execution/stderr",
+        "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2021-10-04T21:51:44.079Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2021-10-04T21:51:44.079Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:44.085Z",
+            "description": "RunningJob",
+            "endTime": "2021-10-04T21:52:29.382Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:44.079Z",
+            "description": "PreparingJob",
+            "endTime": "2021-10-04T21:51:44.085Z"
+          },
+          {
+            "startTime": "2021-10-04T21:52:29.382Z",
+            "description": "UpdatingJobStore",
+            "endTime": "2021-10-04T21:52:30.010Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.032Z",
+            "description": "Pending",
+            "endTime": "2021-10-04T21:51:43.032Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.032Z",
+            "description": "RequestingExecutionToken",
+            "endTime": "2021-10-04T21:51:44.079Z"
+          }
+        ],
+        "start": "2021-10-04T21:51:43.032Z"
+      }
+    ],
+    "main_workflow.goodbye": [
+      {
+        "executionStatus": "Done",
+        "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-goodbye/execution/stdout",
+        "backendStatus": "Done",
+        "commandLine": "echo \"Goodbye World!\"",
+        "shardIndex": -1,
+        "outputs": {
+          "salutation": "Goodbye World!"
+        },
+        "runtimeAttributes": {
+          "poolname": "test_small",
+          "shared": "0",
+          "failOnStderr": "false",
+          "partition": "",
+          "nwpn": "1",
+          "continueOnReturnCode": "0",
+          "cluster": "cori",
+          "maxRetries": "0",
+          "cpu": "32",
+          "constraint": "haswell",
+          "node": "1",
+          "account": "fungalp",
+          "time": "00:10:00",
+          "qos": "genepool_special",
+          "memory": "10 GB"
+        },
+        "callCaching": {
+          "allowResultReuse": false,
+          "effectiveCallCachingMode": "CallCachingOff"
+        },
+        "inputs": {
+          "addressee": "World"
+        },
+        "returnCode": 0,
+        "jobId": "12129",
+        "backend": "JTM",
+        "end": "2021-10-04T21:52:28.011Z",
+        "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-goodbye/execution/stderr",
+        "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-goodbye",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2021-10-04T21:52:27.876Z",
+            "description": "UpdatingJobStore",
+            "endTime": "2021-10-04T21:52:28.011Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.079Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2021-10-04T21:51:43.079Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.079Z",
+            "description": "PreparingJob",
+            "endTime": "2021-10-04T21:51:43.089Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.089Z",
+            "description": "RunningJob",
+            "endTime": "2021-10-04T21:52:27.876Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.032Z",
+            "description": "RequestingExecutionToken",
+            "endTime": "2021-10-04T21:51:43.079Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.032Z",
+            "description": "Pending",
+            "endTime": "2021-10-04T21:51:43.032Z"
+          }
+        ],
+        "start": "2021-10-04T21:51:43.032Z"
+      }
+    ],
+    "main_workflow.hello_and_goodbye_2": [
+      {
+        "executionStatus": "Done",
+        "subWorkflowMetadata": {
+          "workflowName": "hello_and_goodbye_2",
+          "rootWorkflowId": "c720836c-0931-4ddc-8366-774160e05531",
+          "calls": {
+            "hello_and_goodbye.goodbye": [
+              {
+                "executionStatus": "Done",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-goodbye/execution/stdout",
+                "backendStatus": "Done",
+                "commandLine": "echo \"Goodbye beautiful world!\"",
+                "shardIndex": -1,
+                "outputs": {
+                  "salutation": "Goodbye beautiful world!"
+                },
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "callCaching": {
+                  "allowResultReuse": false,
+                  "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "inputs": {
+                  "addressee": "beautiful world"
+                },
+                "returnCode": 0,
+                "jobId": "12131",
+                "backend": "JTM",
+                "end": "2021-10-04T21:52:26.012Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-goodbye/execution/stderr",
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-goodbye",
+                "attempt": 1,
+                "executionEvents": [
+                  {
+                    "startTime": "2021-10-04T21:51:45.085Z",
+                    "description": "RunningJob",
+                    "endTime": "2021-10-04T21:52:25.367Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:45.070Z",
+                    "description": "RequestingExecutionToken",
+                    "endTime": "2021-10-04T21:51:45.079Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:45.070Z",
+                    "description": "Pending",
+                    "endTime": "2021-10-04T21:51:45.070Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:52:25.367Z",
+                    "description": "UpdatingJobStore",
+                    "endTime": "2021-10-04T21:52:26.012Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:45.079Z",
+                    "description": "PreparingJob",
+                    "endTime": "2021-10-04T21:51:45.085Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:45.079Z",
+                    "description": "WaitingForValueStore",
+                    "endTime": "2021-10-04T21:51:45.079Z"
+                  }
+                ],
+                "start": "2021-10-04T21:51:45.070Z"
+              }
+            ],
+            "hello_and_goodbye.hello": [
+              {
+                "executionStatus": "Done",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-hello/execution/stdout",
+                "backendStatus": "Done",
+                "commandLine": "echo \"Hello beautiful world!\"",
+                "shardIndex": -1,
+                "outputs": {
+                  "salutation": "Hello beautiful world!"
+                },
+                "runtimeAttributes": {
+                  "poolname": "test_small",
+                  "shared": "0",
+                  "failOnStderr": "false",
+                  "partition": "",
+                  "nwpn": "1",
+                  "continueOnReturnCode": "0",
+                  "cluster": "cori",
+                  "maxRetries": "0",
+                  "cpu": "32",
+                  "constraint": "haswell",
+                  "node": "1",
+                  "account": "fungalp",
+                  "time": "00:10:00",
+                  "qos": "genepool_special",
+                  "memory": "10 GB"
+                },
+                "callCaching": {
+                  "allowResultReuse": false,
+                  "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "inputs": {
+                  "addressee": "beautiful world"
+                },
+                "returnCode": 0,
+                "jobId": "12132",
+                "backend": "JTM",
+                "end": "2021-10-04T21:52:28.011Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-hello/execution/stderr",
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-hello",
+                "attempt": 1,
+                "executionEvents": [
+                  {
+                    "startTime": "2021-10-04T21:51:46.079Z",
+                    "description": "WaitingForValueStore",
+                    "endTime": "2021-10-04T21:51:46.079Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:52:27.747Z",
+                    "description": "UpdatingJobStore",
+                    "endTime": "2021-10-04T21:52:28.011Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:46.079Z",
+                    "description": "PreparingJob",
+                    "endTime": "2021-10-04T21:51:46.086Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:45.070Z",
+                    "description": "RequestingExecutionToken",
+                    "endTime": "2021-10-04T21:51:46.079Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:45.070Z",
+                    "description": "Pending",
+                    "endTime": "2021-10-04T21:51:45.070Z"
+                  },
+                  {
+                    "startTime": "2021-10-04T21:51:46.086Z",
+                    "description": "RunningJob",
+                    "endTime": "2021-10-04T21:52:27.747Z"
+                  }
+                ],
+                "start": "2021-10-04T21:51:45.070Z"
+              }
+            ]
+          },
+          "outputs": {
+            "hello_and_goodbye.goodbye_output": "Goodbye beautiful world!",
+            "hello_and_goodbye.hello_output": "Hello beautiful world!"
+          },
+          "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531",
+          "id": "5689d65d-51bf-4d7f-b134-cd086ba6195b",
+          "inputs": {
+            "hello_and_goodbye_input": "beautiful world"
+          },
+          "status": "Succeeded",
+          "parentWorkflowId": "c720836c-0931-4ddc-8366-774160e05531",
+          "end": "2021-10-04T21:52:29.950Z",
+          "start": "2021-10-04T21:51:43.032Z"
+        },
+        "shardIndex": -1,
+        "outputs": {
+          "goodbye_output": "Goodbye beautiful world!",
+          "hello_output": "Hello beautiful world!"
+        },
+        "inputs": {
+          "hello_and_goodbye_input": "beautiful world"
+        },
+        "end": "2021-10-04T21:52:29.950Z",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2021-10-04T21:51:43.032Z",
+            "description": "SubWorkflowPendingState",
+            "endTime": "2021-10-04T21:51:43.032Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.032Z",
+            "description": "SubWorkflowPreparingState",
+            "endTime": "2021-10-04T21:51:43.034Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.032Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2021-10-04T21:51:43.032Z"
+          },
+          {
+            "startTime": "2021-10-04T21:51:43.034Z",
+            "description": "SubWorkflowRunningState",
+            "endTime": "2021-10-04T21:52:29.950Z"
+          }
+        ],
+        "start": "2021-10-04T21:51:43.032Z"
+      }
+    ]
+  },
+  "outputs": {
+    "main_workflow.main_output_2": "Hello beautiful world!",
+    "main_workflow.main_output_1": "Hello cruel world!"
+  },
+  "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531",
+  "actualWorkflowLanguage": "WDL",
+  "id": "c720836c-0931-4ddc-8366-774160e05531",
+  "inputs": {},
+  "labels": {
+    "cromwell-workflow-id": "cromwell-c720836c-0931-4ddc-8366-774160e05531"
+  },
+  "submission": "2021-10-04T21:51:40.824Z",
+  "status": "Succeeded",
+  "end": "2021-10-04T21:52:33.001Z",
+  "start": "2021-10-04T21:51:40.948Z"
+}

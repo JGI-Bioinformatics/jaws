@@ -1,0 +1,33 @@
+{
+    "calls": {
+        "fq_count.count_seqs": [
+            {
+                "failures": [
+                    {
+                        "causedBy": [],
+                        "message": "Unable to start job. Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs/execution/stderr.submit"
+                    }
+                ],
+                "jobId": "9999",
+                "runtimeAttributes": {
+                    "account": "fungalp",
+                    "cluster": "cori",
+                    "constraint": "haswell",
+                    "continueOnReturnCode": "0",
+                    "cpu": "1",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "mem": "10G",
+                    "node": "1",
+                    "nwpn": "1",
+                    "poolname": "test_small",
+                    "qos": "genepool_special",
+                    "shared": "0",
+                    "time": "00:10:00"
+                },
+                "stderrContents": null,
+                "stderrSubmitContents": null
+            }
+        ]
+    }
+}

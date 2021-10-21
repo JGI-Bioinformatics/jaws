@@ -19,8 +19,8 @@ task count_seqs {
         poolname: "test_small"
         node: 1
         nwpn: 1
-        memory: "10G"
-        time: "00:30:00"
+        memory: "5G"
+        time: "00:10:00"
         shared: 0
     }
 }
