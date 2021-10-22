@@ -409,7 +409,10 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool, q
 
     # copy infiles in inputs json to site's inputs dir so they may be read by jaws user and
     # transferred to the compute site via globus
-    moved_files = inputs_json.move_input_files(site_subdir, quiet)
+    try:
+        moved_files = inputs_json.move_input_files(site_subdir, quiet)
+    except Exception as error:
+        sys.exit(f"Unable to copy input files: {error}")
 
     # the paths in the inputs json file are changed to their paths at the compute site
     modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
@@ -559,10 +562,13 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
 
     # cp the "outputs.json" file because it contains non-file outputs (e.g. numbers)
     dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(outputs_file)))
-    if quiet:
-        shutil.copyfile(outputs_file, dest_file)
-    else:
-        copy_with_progress_bar(outputs_file, dest_file)
+    try:
+        if quiet:
+            shutil.copyfile(outputs_file, dest_file)
+        else:
+            copy_with_progress_bar(outputs_file, dest_file)
+    except Exception as error:
+        sys.exit(f"Unable to copy outputs: {error}")
     os.chmod(dest_file, 0o0664)
 
     # the paths of workflow output files are listed in the outputs_file
