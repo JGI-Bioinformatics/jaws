@@ -98,7 +98,8 @@ fi
   CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
   cat <<EOM > "$CONTAINER_WRAPPER"
 #!/usr/bin/env bash
-shifter --image=\$1 -V \$2:\$3 \$4 \$5
+echo \"Executing on \$HOSTNAME\" 1>&2
+exec shifter --image=\$1 -V \$2:\$3 \$4 \$5
 EOM
   chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
   chmod 775 "$INSTALL_DIR/shifter_exec.sh"
@@ -144,6 +145,7 @@ DOCKER_CWD=\$4
 IMAGE=\$5
 JOB_SHELL=\$6
 SCRIPT=\$7
+echo \"Executing on \$HOSTNAME\" 1>&2
 singularity exec --bind \$REMOTE_REF:\$LOCAL_REF --bind \$CWD:\$DOCKER_CWD \$IMAGE \$JOB_SHELL \$SCRIPT
 exit $?
 EOM
