@@ -42,12 +42,21 @@ def test_timeParam():
 
 def test_memoryParam():
     """
-    1. If you are using skylake, you must have account: set to fungalp."
-    2. if constraint: skylake, then qos must be jgi_exvivo(250G) or jgi_shared(758G)
-    3. if constraint: knl, then limit is 96G memory
+    These are the max mem values per site that shouldn't be violated by the runtime memory value.
+    jgi=>256G
+    cori=>128G
+    tahoma=>128G
     """
+    # This should throw exception
     with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(BAD_MEMORY_VALUE)
+        validate_wdl_runtime(BAD_MEMORY_VALUE, "cori")
+
+    # This should not throw exception
+    validate_wdl_runtime(BAD_MEMORY_VALUE, "jgi")
+
+    # This should throw exception
+    with pytest.raises(WdlRuntimeError):
+        validate_wdl_runtime(BAD_MEMORY_VALUE, "tahoma")
 
 
 def test_runtimeCombinations():
@@ -56,8 +65,6 @@ def test_runtimeCombinations():
         validate_wdl_runtime(BAD_COMBINATIONS)
 
 
-# TODO no_qa
-#
 BAD_COMBINATIONS = """
 workflow jgi_meta {
     call bbcms {
@@ -109,7 +116,7 @@ task bbcms {
     runtime {
         docker: container
         time: "03:00:00"
-        memory: "118G"
+        memory: "200G"
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
@@ -124,7 +131,7 @@ task assy {
     runtime {
         docker: container
         time: "03:00:00"
-        memory: "118G"
+        memory: "100G"
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
@@ -133,37 +140,6 @@ task assy {
     }
 }
 
-
-task create_agp {
-    runtime {
-        docker: container
-        time: "03:00:00"
-        memory: "800G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-        constraint: "skylake"
-        qos: "jgi_exvivo"
-    }
-
-}
-
-task read_mapping_pairs{
-    runtime {
-        docker: container
-        time: "03:00:00"
-        memory: "300G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-        constraint: "skylake"
-        qos: "jgi_shared"
-
-    }
-
-}
 """
 
 

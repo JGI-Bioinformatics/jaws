@@ -382,7 +382,7 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool, q
     # VALIDATE WORKFLOW WDLs
     submission_id = str(uuid.uuid4())
     try:
-        wdl = workflow.WdlFile(wdl_file, submission_id)
+        wdl = workflow.WdlFile(wdl_file, submission_id, site)
         wdl.validate()
         max_ram_gb = wdl.max_ram_gb
     except WdlError as error:
