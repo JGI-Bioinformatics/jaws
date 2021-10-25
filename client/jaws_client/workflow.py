@@ -231,7 +231,7 @@ class WdlFile:
             contents if contents is not None else open(wdl_file_location, "r").read()
         )
         self._subworkflows = None
-        self._max_ram_gb = None
+        self.compute_max_ram_gb = None
 
     def _set_subworkflows(self, output):
         """
@@ -284,25 +284,28 @@ class WdlFile:
                 missing.add(sub)
             raise WdlError("Subworkflows not found: " + ", ".join(missing))
 
-    def validate(self, compute_max_ram_gb):
+    def validate(self, compute_max_ram_gb=None):
         """
         Validates the WDL file using Cromwell's womtool and runtime validator.
         Any syntax errors from WDL will be raised in a WdlError.
         This is a separate method and not done automatically by the constructor because subworkflows() returns
         WdlFile objects and we wish to avoid running womtool multiple times unnecessarily.
-        :param compute_max_ram_gb: maximum available ram for the site
-        :ptype compute_max_ram_gb: float
         :return:
         """
         logger = logging.getLogger(__package__)
         logger.debug(f"Validating WDL, {self.file_location}")
+        if compute_max_ram_gb: 
+            self.compute_max_ram_gb = compute_max_ram_gb
+
         stdout, stderr = womtool("validate", "-l", self.file_location)
         self._set_subworkflows(stdout)
         if stderr:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
         self.verify_wdl_has_no_backend_tags()
-        validate_wdl_runtime(self.contents, compute_max_ram_gb)
+
+        if self.compute_max_ram_gb: 
+            validate_wdl_runtime(self.contents, self.compute_max_ram_gb)
 
     @staticmethod
     def _get_wdl_name(file_location):
