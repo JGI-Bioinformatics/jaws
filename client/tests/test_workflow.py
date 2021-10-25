@@ -64,7 +64,7 @@ def test_wdl_validation(configuration, simple_wdl_example):
     wdl = jaws_client.workflow.WdlFile(
         os.path.join(simple_wdl_example, "align.wdl"), "1234"
     )
-    wdl.validate()
+    wdl.validate(1000)
 
 
 @pytest.mark.skipif(
@@ -74,7 +74,7 @@ def test_wdl_validation_with_no_subworkflows(configuration, no_subworkflows_pres
     import jaws_client.workflow
     wdl = jaws_client.workflow.WdlFile(no_subworkflows_present, "1234")
     with pytest.raises(jaws_client.workflow.WdlError):
-        wdl.validate()
+        wdl.validate(1000)
 
 
 @pytest.mark.skipif(
@@ -84,7 +84,7 @@ def test_bad_syntax_wdl(configuration, incorrect_wdl):
     import jaws_client.workflow
     wdl = jaws_client.workflow.WdlFile(incorrect_wdl, "1234")
     with pytest.raises(jaws_client.workflow.WdlError):
-        wdl.validate()
+        wdl.validate(1000)
 
 
 @pytest.mark.skipif(
