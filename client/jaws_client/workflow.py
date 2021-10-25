@@ -215,7 +215,7 @@ class WdlFile:
     keep track of any resource requirements (max_memory) required. It will also know its compressed file location.
     """
 
-    def __init__(self, wdl_file_location, submission_id, contents=None):
+    def __init__(self, wdl_file_location, submission_id, site, contents=None):
         """
         Constructor for the WDL file.
 
@@ -232,6 +232,7 @@ class WdlFile:
         )
         self._subworkflows = None
         self._max_ram_gb = None
+        self.site = site
 
     def _set_subworkflows(self, output):
         """
@@ -300,7 +301,7 @@ class WdlFile:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
         self.verify_wdl_has_no_backend_tags()
-        validate_wdl_runtime(self.contents)
+        validate_wdl_runtime(self.contents, self.site)
 
     @staticmethod
     def _get_wdl_name(file_location):

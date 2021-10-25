@@ -28,21 +28,12 @@ class WDLStanzas:
 
     Attributes
     ----------
-    f:  filehandler
-        filehandler of the wdl file
     stanza_dict: dictionary
         this is the main dictionary to which all stanzas will be added.
     """
 
     def __init__(self, wdl):
-        """This just opens a WDL file and saves the filehandler in a variable
-
-        Input: string
-             the path to the wdl
-        Output: filehandler
-             saves a filehandler (f) of the wdl
-        """
-
+        """wdl is the contents of one wdl"""
         self.wdl = wdl
 
     def checkValueSyntax(self, task, key, value):
@@ -258,7 +249,7 @@ def allRequiredParams(task_name, task_dict):
     accepted_qos = ["jgi_shared", "jgi_exvivo", "regular"]
     if "qos" in task_dict and task_dict["qos"] not in accepted_qos:
         raise WdlRuntimeError(
-            "Task: %s Test: memoryParam. The value for qos is not a recognized value for skylake. You had: %s."
+            "Task: %s Test: allRequiredParams. The value for qos is not a recognized value for skylake. You had: %s."
             % (task_name, task_dict["qos"])
         )
 
@@ -329,29 +320,13 @@ def timeParam(task_name, task_dict):
             )
 
 
-def memoryParam(task_name, task_dict):
+def memoryParam(task_name, task_dict, site):
     """
-    check the user hasn't requested too much memory for the specified resource
-    memory: '5G'  # You have get '115G' for all machines j|'500G']
-
-    For JGI
-     lr3                              316        64     32      64      72
-     lr3        lr3_c32,jgi_m256       32       256     32      64      72
-     lr3        lr3_c32,jgi_m512        8       512     32      64      72
-     jgi                               40       256     32      64      72
-
-    For skylake
-    memory: '250G' if qos: 'jgi_shared'
-    memory: '758G' if qos: 'jgi_exvivo'
-
-    For knl
-    memory: 96
-
-    For haswell
-    memory: 128
+    check the user hasn't requested too much memory for the specified site resource.
+    jgi=>256G
+    cori=>128G
+    tahoma=>128G
     """
-
-    # TODO: make checks for jgi
 
     # we've already verified that memory: is a string that include a "G" for gigabytes when the task_dict
     # was created, so grab just the int.
@@ -363,55 +338,15 @@ def memoryParam(task_name, task_dict):
         return
 
     mem = int(re.sub("[gG]", "", task_dict["memory"]))
-
-    # if no constraint, then default is "haswell" which has 128G max
-    if "constraint" not in task_dict:
-        if mem > 128:
-            raise WdlRuntimeMemoryError(
-                "Task: %s Test: memoryParam. You are limited to 128G for haswell, which is the default constraint when non is specified. You had %s"  # noqa: E501,E261
-                % (task_name, task_dict["memory"])
-            )
-
-    # skylake
-    # TODO: can skylake have other values? What about qos in general?
-    if "constraint" in task_dict and task_dict["constraint"] == "skylake":
-        if "account" not in task_dict:
-            raise WdlRuntimeMemoryError(
-                "Task: %s Test: memoryParam. If you are using skylake, you must have account: set to fungalp."  # noqa: E501,E261
-                % (task_name)
-            )
-        if "qos" not in task_dict:
-            raise WdlRuntimeMemoryError(
-                "Task: %s Test: memoryParam. If you are using skylake, you must have qos: set to jgi_exvivo(250G) or jgi_shared(758G)"  # noqa: E501,E261
-                % (task_name)
-            )
-
-        if "qos" in task_dict and re.search(r"[gG]", task_dict["memory"]):
-            if task_dict["qos"] not in ["jgi_shared", "jgi_exvivo"]:
-                raise WdlRuntimeMemoryError(
-                    "Task: %s Test: memoryParam. If you are using skylake, you must have qos: set to jgi_exvivo(250G) or jgi_shared(758G): Your value was %s"  # noqa: E501,E261
-                    % (task_name, task_dict["qos"])
-                )
-
-            mem = re.sub("[gG]", "", task_dict["memory"])
-            if task_dict["qos"] == "jgi_shared" and int(mem) > 250:
-                raise WdlRuntimeMemoryError(
-                    "Task: %s Test: memoryParam. You are limited to 250G for qos: jgi_shared. You had %s"
-                    % (task_name, task_dict["memory"])
-                )
-            elif task_dict["qos"] == "jgi_exvivo" and int(mem) > 758:
-                raise WdlRuntimeMemoryError(
-                    "Task: %s Test: memoryParam. You are limited to 758G for qos: jgi_exvivo. You had %s"
-                    % (task_name, task_dict["memory"])
-                )
-
-    # knl
-    if "constraint" in task_dict and task_dict["constraint"] == "knl":
-        if mem > 96:
-            raise WdlRuntimeMemoryError(
-                "Task: %s Test: memoryParam. You are limited to 96G for knl. You had %s"
-                % (task_name, task_dict["memory"])
-            )
+    resource_table = {
+        "cori": 128,
+        "jgi": 256,
+        "tahoma": 128
+    }
+    if mem > resource_table[site]:
+        raise WdlRuntimeMemoryError(
+            f"Task: {task_name} Test: memoryParam. You are limited to {resource_table[site]}G on {site}. You had {mem}G"
+        )
 
 
 def runtimeCombinations(task_name, task_dict):
@@ -451,7 +386,7 @@ def runtimeCombinations(task_name, task_dict):
     # the skylake combinations have been checked in the memoryParam function.
 
 
-def validate_wdl_runtime(wdl: str) -> None:
+def validate_wdl_runtime(wdl: str, site: str) -> None:
     # Run the validations
     #
     # A dictionary of all the runtime stanzas is created here.
@@ -473,7 +408,7 @@ def validate_wdl_runtime(wdl: str) -> None:
         timeParam(task_name, task_dict)
 
         # check the user hasn't requested too much memory for the specified resource
-        memoryParam(task_name, task_dict)
+        memoryParam(task_name, task_dict, site)
 
         # Some runtime params require other params to be set. Check that the combinations
         # of runtime parameters are correct.
