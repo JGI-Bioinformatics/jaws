@@ -215,7 +215,7 @@ class WdlFile:
     keep track of any resource requirements (max_memory) required. It will also know its compressed file location.
     """
 
-    def __init__(self, wdl_file_location, submission_id, site, contents=None):
+    def __init__(self, wdl_file_location, submission_id, contents=None):
         """
         Constructor for the WDL file.
 
@@ -232,7 +232,6 @@ class WdlFile:
         )
         self._subworkflows = None
         self._max_ram_gb = None
-        self.site = site
 
     def _set_subworkflows(self, output):
         """
@@ -285,12 +284,14 @@ class WdlFile:
                 missing.add(sub)
             raise WdlError("Subworkflows not found: " + ", ".join(missing))
 
-    def validate(self):
+    def validate(self, compute_max_ram_gb):
         """
-        Validates the WDL file using Cromwell's womtool.
+        Validates the WDL file using Cromwell's womtool and runtime validator.
         Any syntax errors from WDL will be raised in a WdlError.
         This is a separate method and not done automatically by the constructor because subworkflows() returns
         WdlFile objects and we wish to avoid running womtool multiple times unnecessarily.
+        :param compute_max_ram_gb: maximum available ram for the site
+        :ptype compute_max_ram_gb: float
         :return:
         """
         logger = logging.getLogger(__package__)
@@ -301,7 +302,7 @@ class WdlFile:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
         self.verify_wdl_has_no_backend_tags()
-        validate_wdl_runtime(self.contents, self.site)
+        validate_wdl_runtime(self.contents, compute_max_ram_gb)
 
     @staticmethod
     def _get_wdl_name(file_location):
