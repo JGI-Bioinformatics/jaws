@@ -231,6 +231,7 @@ class WdlFile:
             contents if contents is not None else open(wdl_file_location, "r").read()
         )
         self._subworkflows = None
+        self._max_ram_gb = None
         self.compute_max_ram_gb = None
 
     def _set_subworkflows(self, output):
@@ -294,7 +295,7 @@ class WdlFile:
         """
         logger = logging.getLogger(__package__)
         logger.debug(f"Validating WDL, {self.file_location}")
-        if compute_max_ram_gb: 
+        if compute_max_ram_gb:
             self.compute_max_ram_gb = compute_max_ram_gb
 
         stdout, stderr = womtool("validate", "-l", self.file_location)
@@ -304,7 +305,7 @@ class WdlFile:
             raise WdlError(stderr)
         self.verify_wdl_has_no_backend_tags()
 
-        if self.compute_max_ram_gb: 
+        if self.compute_max_ram_gb:
             validate_wdl_runtime(self.contents, self.compute_max_ram_gb)
 
     @staticmethod
