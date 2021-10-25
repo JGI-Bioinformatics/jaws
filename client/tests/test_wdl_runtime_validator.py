@@ -17,7 +17,7 @@ from jaws_client.wdl_runtime_validator import (
 
 
 def test_good_wdl():
-    validate_wdl_runtime(GOOD_WDL)
+    validate_wdl_runtime(GOOD_WDL, 500)
 
 
 def test_allRequiredParams():
@@ -26,7 +26,7 @@ def test_allRequiredParams():
     time or memory, which are the minimum settings.
     """
     with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(NO_TIME_AND_MEMORY)
+        validate_wdl_runtime(NO_TIME_AND_MEMORY, 500)
 
 
 def test_timeParam():
@@ -37,32 +37,21 @@ def test_timeParam():
     4. You are limited to 72hrs where constraint=haswell"
     """
     with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(BAD_TIME_LIMITS)
+        validate_wdl_runtime(BAD_TIME_LIMITS, 500)
 
 
 def test_memoryParam():
-    """
-    These are the max mem values per site that shouldn't be violated by the runtime memory value.
-    jgi=>256G
-    cori=>128G
-    tahoma=>128G
-    """
-    # This should throw exception
+    """Does the test for over-memory request give valid user error."""
     with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(BAD_MEMORY_VALUE, "cori")
+        validate_wdl_runtime(BAD_MEMORY_VALUE, 100)
 
-    # This should not throw exception
-    validate_wdl_runtime(BAD_MEMORY_VALUE, "jgi")
-
-    # This should throw exception
-    with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(BAD_MEMORY_VALUE, "tahoma")
+    validate_wdl_runtime(BAD_MEMORY_VALUE, 500)
 
 
 def test_runtimeCombinations():
     """testing the test that validates the user included the correct combination of params for various resource allocations"""  # noqa
     with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(BAD_COMBINATIONS)
+        validate_wdl_runtime(BAD_COMBINATIONS, 500)
 
 
 BAD_COMBINATIONS = """
@@ -121,7 +110,6 @@ task bbcms {
         nwpn: 1
         poolname: "bfostersmall"
         shared: 0
-        constraint: "skylake"
     }
 
 }
@@ -131,12 +119,11 @@ task assy {
     runtime {
         docker: container
         time: "03:00:00"
-        memory: "100G"
+        memory: "300G"
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
         shared: 0
-        constraint: "knl"
     }
 }
 
