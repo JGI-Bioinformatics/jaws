@@ -382,15 +382,11 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool, q
     # VALIDATE WORKFLOW WDLs
     submission_id = str(uuid.uuid4())
     try:
-        wdl = workflow.WdlFile(wdl_file, submission_id, site)
-        wdl.validate()
+        wdl = workflow.WdlFile(wdl_file, submission_id)
+        wdl.validate(compute_max_ram_gb)
         max_ram_gb = wdl.max_ram_gb
     except WdlError as error:
         sys.exit(error)
-    if max_ram_gb > compute_max_ram_gb:
-        sys.exit(
-            f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
-        )
 
     # any and all subworkflow WDL files must be supplied to Cromwell in a single ZIP archive
     try:

@@ -28,12 +28,21 @@ class WDLStanzas:
 
     Attributes
     ----------
+    f:  filehandler
+        filehandler of the wdl file
     stanza_dict: dictionary
         this is the main dictionary to which all stanzas will be added.
     """
 
     def __init__(self, wdl):
-        """wdl is the contents of one wdl"""
+        """This just opens a WDL file and saves the filehandler in a variable
+
+        Input: string
+             the path to the wdl
+        Output: filehandler
+             saves a filehandler (f) of the wdl
+        """
+
         self.wdl = wdl
 
     def checkValueSyntax(self, task, key, value):
@@ -235,13 +244,13 @@ def allRequiredParams(task_name, task_dict):
     """
     if "time" not in task_dict:
         raise WdlRuntimeTimeError(
-            "Task: %s Test: allRequiredParams. %s is a required parameter for runtime"
+            "Task: %s allRequiredParams. %s is a required parameter for runtime"
             % (task_name, "time")
         )
 
     if "memory" not in task_dict:
         raise WdlRuntimeMemoryError(
-            "Task: %s Test: allRequiredParams. %s is a required parameter for runtime"
+            "Task: %s allRequiredParams. %s is a required parameter for runtime"
             % (task_name, "memory")
         )
 
@@ -249,7 +258,7 @@ def allRequiredParams(task_name, task_dict):
     accepted_qos = ["jgi_shared", "jgi_exvivo", "regular"]
     if "qos" in task_dict and task_dict["qos"] not in accepted_qos:
         raise WdlRuntimeError(
-            "Task: %s Test: allRequiredParams. The value for qos is not a recognized value for skylake. You had: %s."
+            "Task: %s memoryParam. The value for qos is not a recognized value for skylake. You had: %s."
             % (task_name, task_dict["qos"])
         )
 
@@ -266,7 +275,7 @@ def allRequiredParams(task_name, task_dict):
         and task_dict["constraint"].lower() not in accepted_constraint
     ):
         raise WdlRuntimeError(
-            'Task: %s Test: timeParam. "constraint" must be one of the following values: %s. We found "%s"'
+            'Task: %s timeParam. "constraint" must be one of the following values: %s. We found "%s"'
             % (task_name, accepted_constraint, task_dict["constraint"].lower())
         )
 
@@ -279,7 +288,7 @@ def timeParam(task_name, task_dict):
     """
     if "time" not in task_dict:
         raise WdlRuntimeError(
-            'Task: %s Test: timeParam. %s is a required parameter for runtime so "timeParam" test has been skipped.'
+            'Task: %s timeParam. %s is a required parameter for runtime so "timeParam" test has been skipped.'
             % (task_name, "time")
         )
         return
@@ -293,14 +302,14 @@ def timeParam(task_name, task_dict):
         if myconstraint == "skylake":
             if int(hours) > 168:
                 raise WdlRuntimeError(
-                    "Task: %s Test: timeParam. You are limited to 168hrs where constraint=%s"
+                    "Task: %s timeParam. You are limited to 168hrs where constraint=%s"
                     % (task_name, myconstraint)
                 )
         # check knl mem
         elif myconstraint == "knl":
             if int(hours) > 48:
                 raise WdlRuntimeError(
-                    "Task: %s Test: timeParam. You are limited to 48hrs where constraint=%s"
+                    "Task: %s timeParam. You are limited to 48hrs where constraint=%s"
                     % (task_name, myconstraint)
                 )
         # check haswell or other mem
@@ -308,44 +317,35 @@ def timeParam(task_name, task_dict):
             # if constraint exists but is not skylake or knl, then it is haswell or jgi?, so limit 72hrs.
             if int(hours) > 72:
                 raise WdlRuntimeError(
-                    "Task: %s Test: timeParam. You are limited to 72hrs where constraint=%s"
+                    "Task: %s timeParam. You are limited to 72hrs where constraint=%s"
                     % (task_name, myconstraint)
                 )
     else:
         # if constraint is not included in the runtime, the default is haswell, so 72hrs limit
         if int(hours) > 72:
             raise WdlRuntimeError(
-                'Task: %s Test: timeParam. You are limited to 72hrs when constraint is the default value("%s")'
+                'Task: %s timeParam. You are limited to 72hrs when constraint is the default value("%s")'
                 % (task_name, "haswell")
             )
 
 
-def memoryParam(task_name, task_dict, site):
-    """
-    check the user hasn't requested too much memory for the specified site resource.
-    jgi=>256G
-    cori=>128G
-    tahoma=>128G
-    """
+def memoryParam(task_name, task_dict, compute_max_ram_gb):
+    """Check that the user hasn't requested too much memory for the specified resource."""
 
     # we've already verified that memory: is a string that include a "G" for gigabytes when the task_dict
     # was created, so grab just the int.
     if "memory" not in task_dict:
         raise WdlRuntimeMemoryError(
-            'Task: %s Test: memoryParam. %s is a required parameter for runtime. The "memoryParam" test has been skipped.'  # noqa: E501,E261
+            'Task: %s memoryParam. %s is a required parameter for runtime. The "memoryParam" test has been skipped.'  # noqa: E501,E261
             % (task_name, "memory")
         )
         return
 
     mem = int(re.sub("[gG]", "", task_dict["memory"]))
-    resource_table = {
-        "cori": 128,
-        "jgi": 256,
-        "tahoma": 128
-    }
-    if mem > resource_table[site]:
+
+    if mem > compute_max_ram_gb:
         raise WdlRuntimeMemoryError(
-            f"Task: {task_name} Test: memoryParam. You are limited to {resource_table[site]}G on {site}. You had {mem}G"
+            f"Task: {task_name} memoryParam. You are limited to {compute_max_ram_gb} for the requested site, you had {mem}" # noqa
         )
 
 
@@ -374,19 +374,19 @@ def runtimeCombinations(task_name, task_dict):
     if "qos" in task_dict and task_dict["qos"] == "regular":
         if "account" not in task_dict:
             raise WdlRuntimeError(
-                "Task %s Test: runtimeCombinations. 'account' is required when qos: 'regular'."
+                "Task %s runtimeCombinations. 'account' is required when qos: 'regular'."
                 % (task_name)
             )
         if task_dict["account"] != "m342":
             raise WdlRuntimeError(
-                "Task %s Test: runtimeCombinations. 'account' needs to be set to 'm342' when qos: 'regular'."
+                "Task %s runtimeCombinations. 'account' needs to be set to 'm342' when qos: 'regular'."
                 % (task_name)
             )
 
     # the skylake combinations have been checked in the memoryParam function.
 
 
-def validate_wdl_runtime(wdl: str, site: str) -> None:
+def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float) -> None:
     # Run the validations
     #
     # A dictionary of all the runtime stanzas is created here.
@@ -408,7 +408,7 @@ def validate_wdl_runtime(wdl: str, site: str) -> None:
         timeParam(task_name, task_dict)
 
         # check the user hasn't requested too much memory for the specified resource
-        memoryParam(task_name, task_dict, site)
+        memoryParam(task_name, task_dict, compute_max_ram_gb)
 
         # Some runtime params require other params to be set. Check that the combinations
         # of runtime parameters are correct.
