@@ -145,6 +145,11 @@ variables:
     - merge_requests
     - tags
 
+test:
+  stage: test
+  script:
+      - echo "Testing"
+
 test-rpc:
   <<: *only-default
   stage: unit-test
