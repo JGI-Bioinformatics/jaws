@@ -12,7 +12,6 @@ import shutil
 from typing import Dict
 from jaws_client import log as logging
 from jaws_client import deprecated
-from jaws_client import wfcopy as wfc
 from jaws_client.config import Configuration
 from jaws_client.copy_progress import copy_with_progress_bar
 
@@ -91,15 +90,6 @@ def info() -> None:
         sys.exit(r.text)
     result = r.json()
     _print_json(result)
-
-
-@main.command()
-@click.argument("src_dir")
-@click.argument("dest_dir")
-@click.option("--flatten", is_flag=True, default=False, help="Flatten shard dirs")
-def wfcopy(src_dir: str, dest_dir: str, flatten) -> None:
-    """Simplify Cromwell output."""
-    wfc.wfcopy(src_dir, dest_dir, flatten)
 
 
 def _request(rest_op, url, data={}, files={}):
