@@ -234,10 +234,10 @@ backend
 
         filesystems {
           local {
-            localization: [ "soft-link", "copy" ]
+            localization: [ "hard-link", "soft-link", "copy" ]
             caching {
-              duplication-strategy: [ "soft-link", "copy" ]
-              hashing-strategy: "path+modtime"
+              duplication-strategy: [ "hard-link", "soft-link", "copy" ]
+              hashing-strategy: "xxh64"
             }
             http {}
           }
