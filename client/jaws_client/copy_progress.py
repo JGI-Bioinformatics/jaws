@@ -67,6 +67,14 @@ def _copy_with_callback(
             f"source file `{src}` and destinaton file `{dest}` are the same file."
         )
 
+    # if dest file looks like a copy of src file, then do nothing
+    if (
+        destfile.exists()
+        and os.stat(srcfile).st_mtime == os.stat(destfile).st_mtime
+        and os.path.getsize(srcfile) == os.path.getsize(destfile)
+    ):
+        return str(destfile)
+
     # check for special files, lifted from shutil.copy source
     for fname in [srcfile, destfile]:
         try:
@@ -92,7 +100,7 @@ def _copy_with_callback(
                 _copyfileobj(
                     fsrc, fdest, callback=callback, total=size, length=buffer_size
                 )
-    shutil.copymode(str(srcfile), str(destfile))
+    shutil.copystat(str(srcfile), str(destfile))
     return str(destfile)
 
 
