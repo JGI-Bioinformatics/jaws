@@ -147,7 +147,9 @@ class Task:
                 # include *contents* of stderr files, instead of file paths
                 stderr_file = call["stderr"]
                 filteredCall["stderrContents"] = _read_file(stderr_file)
-                filteredCall["stderrSubmitContents"] = _read_file(f"{stderr_file}.submit")
+                filteredCall["stderrSubmitContents"] = _read_file(
+                    f"{stderr_file}.submit"
+                )
         # the result follows the structure of the original metadata,
         # so make a list corresponding to attempts
         filteredCalls = [filteredCall]
@@ -313,15 +315,23 @@ class Metadata:
                 # include last attempt only
                 index = len(task.data) - 1
                 call = task.data[index]
+                job_id = None
+                cached = False
                 if "jobId" in call:
                     # a normal task has an associated jobId
-                    summary.append([task_name, call["jobId"]])
+                    job_id = call["jobId"]
+                    summary.append([task_name, job_id, cached])
                 elif "subWorkflowMetadata" in call:
                     # while a subworkflow has it's own Metadata (with one or more sub-tasks)
                     subworkflow = task.subworkflows[index]
                     sub_summary = subworkflow.task_summary()
-                    for (sub_task_name, job_id) in sub_summary:
-                        summary.append([f"{task_name}:{sub_task_name}", job_id])
+                    for (sub_task_name, sub_job_id, sub_cached) in sub_summary:
+                        summary.append(
+                            [f"{task_name}:{sub_task_name}", sub_job_id, sub_cached]
+                        )
+                elif "callCaching" in call and call["callCaching"]["hit"] is True:
+                    cached = True
+                    summary.append([task_name, job_id, cached])
         return summary
 
     def outputs(self, **kwargs):
