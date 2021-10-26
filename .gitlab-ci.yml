@@ -7,6 +7,9 @@ stages:
   - stress-tests
   - deploy-docs
 
+include:
+  - template: Security/SAST.gitlab-ci.yml
+
 variables:
   GIT_STRATEGY: clone
 
