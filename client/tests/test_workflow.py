@@ -171,11 +171,13 @@ def test_appropriate_staging_dir_for_all_wdls(configuration, subworkflows_exampl
         assert os.path.exists(new_path)
 
 
-def test_fail_invalid_backend(wdl_with_invalid_backend):
-    import jaws_client.workflow
-    wdl = jaws_client.workflow.WdlFile(wdl_with_invalid_backend, "1234")
-    with pytest.raises(jaws_client.workflow.WdlError) as e_info:
-        wdl.verify_wdl_has_no_backend_tags()
+#  We are temporarily deactivating this check
+#def test_fail_invalid_backend(wdl_with_invalid_backend):
+#    import jaws_client.workflow
+#    wdl = jaws_client.workflow.WdlFile(wdl_with_invalid_backend, "1234")
+#    with pytest.raises(jaws_client.workflow.WdlError) as e_info:
+#        wdl.verify_wdl_has_no_backend_tags()
+
 
 def test_move_input_files_to_destination(configuration, sample_workflow):
     inputs = os.path.join(sample_workflow, "workflow", "sample.json")

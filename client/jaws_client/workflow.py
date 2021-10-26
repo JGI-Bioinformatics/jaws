@@ -377,6 +377,9 @@ class WdlFile:
         :type wdl: str
         :return:
         """
+        # We are temporarily turning this check off to allow Parsl backend testing;
+        # once complete, delete the following line to disallow "backend" tags once again.
+        return
         with open(self.file_location, "r") as fh:
             for line in fh:
                 m = re.match(r"^\s*backend", line)
