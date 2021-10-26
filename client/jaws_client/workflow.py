@@ -257,7 +257,10 @@ class WdlFile:
             match = re.search(command_line_regex, sub)
             if sub not in filtered_out_lines and not match:
                 sub_wdl = WdlFile(sub, self.submission_id)
-                sub_wdl.verify_wdl_has_no_backend_tags()
+
+                # We are temporarily turning this check off to allow Parsl backend testing;
+                # once complete, uncomment the following line to disallow "backend" tags once again.
+                # sub_wdl.verify_wdl_has_no_backend_tags()
                 subworkflows.add(sub_wdl)
         self._subworkflows = list(subworkflows)
 
