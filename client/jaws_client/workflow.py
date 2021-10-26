@@ -544,10 +544,7 @@ class WorkflowInputs:
 
             # Files must be copied in to ensure they are readable by the jaws and jtm users.  The group
             # will be set correctly as a result of the gid sticky bit and acl rules on the inputs dir.
-            if quiet:
-                shutil.copyfile(original_path, dest_path)
-            else:
-                copy_with_progress_bar(original_path, dest_path)
+            copy_with_progress_bar(original_path, dest_path, quiet=quiet)
             os.chmod(dest_path, 0o0660)
 
         return copied_files
