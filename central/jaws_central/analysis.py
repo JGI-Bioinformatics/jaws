@@ -13,7 +13,8 @@ import jaws_central.globus
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
-from jaws_central.models_fsa import db, Run, User, Run_Log
+from jaws_central import models
+from jaws_central.flask_db import db
 
 
 logger = logging.getLogger(__package__)
@@ -98,7 +99,7 @@ def _rpc_call(user, run_id, method, params={}):
     :rtype: dict or list
     """
     try:
-        run = db.session.query(Run).get(run_id)
+        run = db.session.query(models.Run).get(run_id)
     except SQLAlchemyError as e:
         logger.error(e)
         raise
@@ -130,7 +131,7 @@ def _is_admin(user):
     :rtype: bool
     """
     try:
-        current_user = db.session.query(User).get(user)
+        current_user = db.session.query(models.User).get(user)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, {"error": f"Db error; {error}"})
@@ -223,29 +224,29 @@ def _select_runs(user: str, **kwargs):
     :return: Runs matching search criteria
     :rtype: list
     """
-    query = db.session.query(Run)
+    query = db.session.query(models.Run)
     if ("all_users" in kwargs
             and kwargs["all_users"] is True
             and "is_admin" in kwargs
             and kwargs["is_admin"] is True):
         pass
     else:
-        query = query.filter(Run.user_id == user)
+        query = query.filter(models.Run.user_id == user)
     if "active_only" in kwargs and kwargs["active_only"] is True:
-        query = query.filter(Run.status.in_(run_active_states))
+        query = query.filter(models.Run.status.in_(run_active_states))
     if "site_id" in kwargs:
         site_id = kwargs["site_id"].upper()
         if site_id != "ALL":
-            query = query.filter(Run.site_id == site_id)
+            query = query.filter(models.Run.site_id == site_id)
     if "delta_days" in kwargs:
         delta_days = int(kwargs["delta_days"])
         if delta_days > 0:
             start_date = datetime.today() - timedelta(delta_days)
-            query = query.filter(Run.submitted >= start_date)
+            query = query.filter(models.Run.submitted >= start_date)
     if "result" in kwargs:
         result = kwargs["result"].lower()
         if result != "any":
-            query = query.filter(Run.result == result)
+            query = query.filter(models.Run.result == result)
     return query.all()
 
 
@@ -319,7 +320,7 @@ def submit_run(user):
     logger.info(f"User {user}: New run submission {submission_id} to {site_id}")
 
     # INSERT INTO RDB TO GET RUN ID
-    run = Run(
+    run = models.Run(
         user_id=user,
         site_id=site_id,
         submission_id=submission_id,
@@ -432,7 +433,7 @@ def submit_run(user):
     run.upload_task_id = upload_task_id
     old_status = run.status
     new_status = run.status = "uploading"
-    log = Run_Log(
+    log = models.Run_Log(
         run_id=run.id,
         status_to=new_status,
         status_from=old_status,
@@ -453,7 +454,7 @@ def submit_run(user):
 
     # GET CURRENT USER INFO
     try:
-        current_user = db.session.query(User).get(user)
+        current_user = db.session.query(models.User).get(user)
     except SQLAlchemyError as e:
         logger.error(e)
         abort(500, {"error": f"Db error; {e}"})
@@ -510,7 +511,7 @@ def _update_run_status(run, new_status, reason=None):
     except Exception as error:
         db.session.rollback()
         logger.exception(f"Error updating run status in db: {error}")
-    log = Run_Log(
+    log = models.Run_Log(
         run_id=run.id,
         status_from=status_from,
         status_to=run.status,
@@ -534,7 +535,7 @@ def _get_run(user, run_id):
     :rtype: sqlalchemy.model
     """
     try:
-        run = db.session.query(Run).get(run_id)
+        run = db.session.query(models.Run).get(run_id)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, {"error": f"Db error; {error}"})
@@ -626,9 +627,9 @@ def run_log(user: str, run_id: int):
     logger.info(f"User {user}: Get log of Run {run.id}")
     try:
         query = (
-            db.session.query(Run_Log)
+            db.session.query(models.Run_Log)
             .filter_by(run_id=run_id)
-            .order_by(Run_Log.timestamp)
+            .order_by(models.Run_Log.timestamp)
         )
     except SQLAlchemyError as error:
         logger.exception(f"Error selecting from run_logs: {error}")

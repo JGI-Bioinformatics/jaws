@@ -1,5 +1,3 @@
-"""Vanilla Sqlalchemy ORM models, used by rpc_operations"""
-
 import datetime
 from sqlalchemy import (
     Column,

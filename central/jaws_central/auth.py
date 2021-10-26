@@ -2,7 +2,8 @@ import logging
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
 import secrets
-from jaws_central.models_fsa import db, User
+from jaws_central.flask_db import db
+from jaws_central import models
 import re
 import requests
 import json
@@ -28,7 +29,7 @@ def _get_bearer_token():
 def _get_user_by_token(access_token):
     try:
         user = (
-            db.session.query(User).filter(User.jaws_token == access_token).one_or_none()
+            db.session.query(models.User).filter(models.User.jaws_token == access_token).one_or_none()
         )
     except SQLAlchemyError as e:
         abort(500, f"Db error: {e}")
@@ -57,7 +58,7 @@ def get_tokeninfo() -> dict:
 
 def _get_user_by_email(email):
     try:
-        user = db.session.query(User).filter(User.email == email).one_or_none()
+        user = db.session.query(models.User).filter(models.User.email == email).one_or_none()
     except SQLAlchemyError as e:
         abort(500, f"Internal Database Error: {e}.")
     if user is None:
@@ -120,7 +121,7 @@ def get_user(user):
     Return current user's info.
     """
     try:
-        user_rec = db.session.query(User).get(user)
+        user_rec = db.session.query(models.User).get(user)
     except SQLAlchemyError as e:
         abort(500, f"Db error: {e}")
     if user_rec is None:
@@ -143,16 +144,16 @@ def add_user(user) -> None:
     email = request.form.get("email")
     admin = True if request.form.get("admin") == "True" else False
 
-    a_user = db.session.query(User).get(uid)
+    a_user = db.session.query(models.User).get(uid)
     if a_user is not None:
         abort(400, "Cannot add user; uid already taken.")
-    a_user = db.session.query(User).filter(User.email == email).one_or_none()
+    a_user = db.session.query(models.User).filter(models.User.email == email).one_or_none()
     if a_user is not None:
         abort(400, "Cannot add user; email already taken.")
 
     token = secrets.token_urlsafe(OAUTH_TOKEN_LENGTH)
     try:
-        new_user = User(
+        new_user = models.User(
             id=uid,
             name=name,
             jaws_token=token,

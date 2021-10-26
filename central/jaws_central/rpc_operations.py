@@ -5,7 +5,7 @@ RPC operations by which Sites update Run and Job status.
 import logging
 import sqlalchemy.exc
 from datetime import datetime
-from jaws_central.models_sa import Run, Run_Log
+from jaws_central import models
 from jaws_rpc.responses import success, failure
 
 
@@ -33,7 +33,7 @@ def update_run_logs(params, session):
 
     # DEFINE ROW OBJ
     try:
-        log = Run_Log(
+        log = models.Run_Log(
             run_id=run_id,
             status_from=status_from,
             status_to=status_to,
@@ -56,7 +56,7 @@ def update_run_logs(params, session):
         return failure(error)
 
     # UPDATE RUNS TABLE
-    run = session.query(Run).get(run_id)
+    run = session.query(models.Run).get(run_id)
     if run.status == status_to:
         # ignore redundant state change (duplicate message)
         return success()
