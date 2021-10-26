@@ -553,7 +553,10 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
     # cp the "outputs.json" file because it contains non-file outputs (e.g. numbers)
     dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(outputs_file)))
     try:
-        copy_with_progress_bar(outputs_file, dest_file, quiet=quiet)
+        if quiet:
+            shutil.copyfile(outputs_file, dest_file)
+        else:
+            copy_with_progress_bar(outputs_file, dest_file)
     except Exception as error:
         sys.exit(f"Unable to copy outputs: {error}")
     os.chmod(dest_file, 0o0664)
@@ -581,7 +584,10 @@ def _copy_outfile(rel_path, src_dir, dest_dir, quiet=False):
     dest_file = os.path.normpath(os.path.join(dest_dir, rel_path))
     a_dest_dir = os.path.dirname(dest_file)
     os.makedirs(a_dest_dir, exist_ok=True)
-    copy_with_progress_bar(src_file, dest_file, quiet=quiet)
+    if quiet:
+        shutil.copyfile(src_file, dest_file)
+    else:
+        copy_with_progress_bar(src_file, dest_file)
     os.chmod(dest_file, 0o0664)
 
 

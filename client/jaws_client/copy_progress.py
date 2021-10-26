@@ -29,7 +29,7 @@ class SpecialFileError(OSError):
 
 
 def _copy_with_callback(
-    srcfile, destfile, callback=None, buffer_size=BUFFER_SIZE
+    src, dest, callback=None, follow_symlinks=True, buffer_size=BUFFER_SIZE
 ):
     """Copy file with a callback.
         callback, if provided, must be a callable and will be
@@ -42,6 +42,7 @@ def _copy_with_callback(
         callback: callable to call after every buffer_size bytes are copied
             callback will called as callback(bytes_copied since last callback,
             total bytes copied, total bytes in source file)
+        follow_symlinks: bool; if True, follows symlinks
         buffer_size: how many bytes to copy before each call to the callback, default = 4Mb
 
     Returns:
@@ -53,16 +54,45 @@ def _copy_with_callback(
     Note: Does not copy extended attributes, resource forks or other metadata.
     """
 
+    srcfile = pathlib.Path(src)
+    destpath = pathlib.Path(dest)
+
+    if not srcfile.is_file():
+        raise FileNotFoundError(f"src file `{src}` doesn't exist")
+
+    destfile = destpath / srcfile.name if destpath.is_dir() else destpath
+
+    if destfile.exists() and srcfile.samefile(destfile):
+        raise SameFileError(
+            f"source file `{src}` and destinaton file `{dest}` are the same file."
+        )
+
+    # check for special files, lifted from shutil.copy source
+    for fname in [srcfile, destfile]:
+        try:
+            st = os.stat(str(fname))
+        except OSError:
+            # File most likely does not exist
+            pass
+        else:
+            if shutil.stat.S_ISFIFO(st.st_mode):
+                raise SpecialFileError(f"`{fname}` is a named pipe")
+
     if callback is not None and not callable(callback):
         raise ValueError("callback is not callable")
 
-    size = os.stat(srcfile).st_size
-    with open(srcfile, "rb") as fsrc:
-        with open(destfile, "wb") as fdest:
-            _copyfileobj(
-                fsrc, fdest, callback=callback, total=size, length=buffer_size
-            )
-    shutil.copystat(str(srcfile), str(destfile))
+    if not follow_symlinks and srcfile.is_symlink():
+        if destfile.exists():
+            os.unlink(destfile)
+        os.symlink(os.readlink(str(srcfile)), str(destfile))
+    else:
+        size = os.stat(src).st_size
+        with open(srcfile, "rb") as fsrc:
+            with open(destfile, "wb") as fdest:
+                _copyfileobj(
+                    fsrc, fdest, callback=callback, total=size, length=buffer_size
+                )
+    shutil.copymode(str(srcfile), str(destfile))
     return str(destfile)
 
 
@@ -86,66 +116,38 @@ def _copyfileobj(fsrc, fdest, callback, total, length):
             callback(len(buf), copied, total)
 
 
-def copy_with_progress_bar(src, dest, **kwargs):
+def copy_with_progress_bar(srcfile, destfile, **kwargs):
     """
     Copy a file with a progress bar.
-    :param src: Path to source file; may be link but not a dir
-    :type src: str
-    :param dest: Destination path
-    :type dest: str
+    :param srcfile: Path to source file; may be link but not a dir
+    :type srcfile: str
+    :param destfile: Destination path
+    :type destfile: str
+    :param kwargs["follow_symlinks"]: follow symlinks if True (default)
+    :type kwargs["follow_symlnks"]: bool
     :param kwargs["buffer_size"]: Buffer size for copying
     :type kwargs["buffer_size"]: int
-    :param kwargs["quiet"]: Don't print progress bar if True; default False
-    :type kwargs["quiet"]: bool
     """
+    follow_symlinks = kwargs.get("follow_symlinks", True)
     bufsize = int(kwargs.get("buffer_size", BUFFER_SIZE))
-    quiet = bool(kwargs.get("quiet", False))
-
-    srcfile = pathlib.Path(src)
-    destpath = pathlib.Path(dest)
-
-    destfile = destpath / srcfile.name if destpath.is_dir() else destpath
-
-    if os.path.islink(srcfile):
-        srcfile = pathlib.Path(os.path.realpath(srcfile))
-
     if os.path.isdir(srcfile):
         raise ValueError(f"Copy requires a file but {srcfile} is a dir")
-    elif not os.path.isfile(srcfile):
-        raise FileNotFoundError(f"src file `{srcfile}` doesn't exist")
-    elif destfile.exists() and srcfile.samefile(destfile):
-        raise SameFileError(
-            f"source file `{srcfile}` and destinaton file `{destfile}` are the same file."
-        )
-
-    src_stat = os.stat(str(srcfile))
-
-    # check for special files, lifted from shutil.copy source
-    if shutil.stat.S_ISFIFO(src_stat.st_mode):
-        raise SpecialFileError(f"`{srcfile}` is a named pipe")
-
-    # if dest file looks like a copy of src file, then do nothing
-    src_size = src_stat.st_size
-    if destfile.exists():
-        dest_stat = os.stat(str(destfile))
-        if shutil.stat.S_ISFIFO(dest_stat.st_mode):
-            raise SpecialFileError(f"`{destfile}` is a named pipe")
-        if (src_stat.st_mtime == dest_stat.st_mtime and src_size == dest_stat.st_size):
-            sys.stderr.write(f"Using cached copy of {os.path.basename(srcfile)}\n")
-            return
-
-    if quiet:
-        shutil.copyfile(srcfile, destfile)
-        shutil.copystat(str(srcfile), str(destfile))
+    elif os.path.isfile(srcfile):
+        pass
+    elif os.path.islink(srcfile):
+        pass
     else:
-        start_t = time.time()
-        with tqdm(total=src_size) as bar:
-            _copy_with_callback(
-                srcfile,
-                destfile,
-                callback=lambda copied, total_copied, total: bar.update(copied),
-                buffer_size=bufsize,
-            )
-        stop_t = time.time()
-        delta_t = stop_t - start_t
-        sys.stderr.write(f"Copied {src_size} bytes in {delta_t:.1f} seconds.\n")
+        raise ValueError(f"Invalid source path: {srcfile}")
+    size = os.stat(srcfile).st_size
+    start_t = time.time()
+    with tqdm(total=size) as bar:
+        _copy_with_callback(
+            srcfile,
+            destfile,
+            follow_symlinks=follow_symlinks,
+            callback=lambda copied, total_copied, total: bar.update(copied),
+            buffer_size=bufsize,
+        )
+    stop_t = time.time()
+    delta_t = stop_t - start_t
+    sys.stderr.write(f"Copied {size} bytes in {delta_t:.1f} seconds.\n")
