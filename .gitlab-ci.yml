@@ -147,7 +147,16 @@ variables:
     - tags
 
 test:
+  tags:
+    - docker-build
   stage: test
+  services:
+    - docker:19.03.12-dind
+  variables:
+    ## Configs for docker-executor
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+
   script:
       - echo "Testing"
   artifacts:
