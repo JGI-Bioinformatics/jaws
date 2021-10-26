@@ -258,9 +258,7 @@ class WdlFile:
             if sub not in filtered_out_lines and not match:
                 sub_wdl = WdlFile(sub, self.submission_id)
 
-                # We are temporarily turning this check off to allow Parsl backend testing;
-                # once complete, uncomment the following line to disallow "backend" tags once again.
-                # sub_wdl.verify_wdl_has_no_backend_tags()
+                sub_wdl.verify_wdl_has_no_backend_tags()
                 subworkflows.add(sub_wdl)
         self._subworkflows = list(subworkflows)
 
@@ -380,6 +378,9 @@ class WdlFile:
         :type wdl: str
         :return:
         """
+        # We are temporarily turning this check off to allow Parsl backend testing;
+        # once complete, delete the following line to disallow "backend" tags once again.
+        return
         with open(self.file_location, "r") as fh:
             for line in fh:
                 m = re.match(r"^\s*backend", line)
