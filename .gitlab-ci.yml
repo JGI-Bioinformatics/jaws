@@ -150,6 +150,9 @@ test:
   stage: test
   script:
       - echo "Testing"
+  artifacts:
+    paths:
+      - gl-sast-report.json
 
 test-rpc:
   <<: *only-default
