@@ -1,4 +1,5 @@
 stages:
+  - test
   - unit-test
   - package
   - deploy-jaws
