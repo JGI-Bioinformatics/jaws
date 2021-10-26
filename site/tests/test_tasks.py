@@ -290,11 +290,19 @@ def test_get_task_log(monkeypatch):
     monkeypatch.setattr(TaskLog, "_get_cromwell_run_id", mock_get_cromwell_run_id)
 
     def mock_get_task_summary(self, cromwell_run_id):
-        example_task_summary= [
-            ["main_workflow.goodbye", "5480", False ],
+        example_task_summary = [
+            ["main_workflow.goodbye", "5480", False],
             ["main_workflow.hello", "5481", False],
-            ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "5482", False],
-            ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "5484", False ],
+            [
+                "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
+                "5482",
+                False,
+            ],
+            [
+                "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+                "5484",
+                False,
+            ],
             ["main_workflow.hello_world", None, True],
         ]
         return example_task_summary
@@ -308,29 +316,16 @@ def test_get_task_log(monkeypatch):
                 ["ready", "queued", "2021-04-15 12:42:28", None],
                 ["queued", "pending", "2021-04-15 12:42:29", None],
             ],
-            "5481": [
-                ["created", "queued", "2021-04-15 12:49:95", None]
-            ],
-            "5482": [
-                ["created", "queued", "2021-04-15 01:01:04", None]
-            ],
-            "5484": [
-                ["created", "queued", "2021-04-15 01:11:52", None]
-            ],
+            "5481": [["created", "queued", "2021-04-15 12:49:95", None]],
+            "5482": [["created", "queued", "2021-04-15 01:01:04", None]],
+            "5484": [["created", "queued", "2021-04-15 01:11:52", None]],
         }
         return example_logs
 
     monkeypatch.setattr(TaskLog, "get_job_logs", mock_get_job_logs)
 
     expected = [
-        [
-            "main_workflow.hello_world",
-            None,
-            None,
-            None,
-            None,
-            "Cached call"
-        ],
+        ["main_workflow.hello_world", None, None, None, None, "Cached call"],
         [
             "main_workflow.goodbye",
             "5480",
