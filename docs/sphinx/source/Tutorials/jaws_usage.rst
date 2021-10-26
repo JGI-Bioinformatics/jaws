@@ -46,7 +46,6 @@ Run a command with --help to see it's options.
     * task-log     Get log of each Task's state transitions.
     * task-status  Show the current status of each Task.
       validate     Validate a WDL using Cromwell's WOMTool.
-    * wfcopy       Simplify Cromwell output.
 
 The commands with an asterik have additional options. Expand the below commands to see them.
 
@@ -181,25 +180,6 @@ The commands with an asterik have additional options. Expand the below commands 
 .. raw:: html
 
     </details>
-
-    <details>
-    <summary style="color: #448ecf";>wfcopy</summary>
-
-.. code-block:: text
-
-    Usage: jaws wfcopy [OPTIONS] SRC_DIR DEST_DIR
-
-    Simplify Cromwell output.
-
-    Options:
-    --flatten   Flatten shard dirs
-    -h, --help  Show this message and exit.
-
-.. raw:: html
-
-    </details>
-
-|
 
 Examples
 --------
