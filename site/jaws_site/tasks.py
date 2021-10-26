@@ -196,7 +196,7 @@ class TaskLog:
         else:
             raise TaskLogRunNotFoundError(f"The run {run_id} was not found")
 
-    def _get_cromwell_task_summary(self, cromwell_run_id: str):
+    def _get_task_summary(self, cromwell_run_id: str):
         """Retrieve all tasks from Cromwell metadata for a run.
         :param cromwell_run_id: Cromwell's UUID for a run
         :type cromwell_run_id: str
@@ -211,19 +211,32 @@ class TaskLog:
             raise (err_msg)
         return metadata.task_summary()
 
-    def get_task_names(self, cromwell_run_id: str):
+    def get_task_names(self, tasks: list):
         """Retrieve all jobs from Cromwell metadata for a run and reorganize by cromwell_job_id.
-        :param cromwell_run_id: Cromwell's UUID for the run
-        :type cromwell_run_id: str
+        :param tasks: task summary
+        :type tasks: list
         :return: cromwell_job_id and task_name
         :rtype: dict
         """
-        tasks = self._get_cromwell_task_summary(cromwell_run_id)
         task_names = {}
-        for task_name, cromwell_job_id in tasks:
-            cromwell_job_id = str(cromwell_job_id)
-            task_names[cromwell_job_id] = task_name
+        for task_name, cromwell_job_id, cached in tasks:
+            if cromwell_job_id:
+                cromwell_job_id = str(cromwell_job_id)
+                task_names[cromwell_job_id] = task_name
         return task_names
+
+    def get_cached_tasks(self, tasks: list):
+        """Retrieve all cached tasks from task summary.
+        :param tasks: task summary
+        :type tasks: list
+        :return: names to cached tasks
+        :rtype: list
+        """
+        cached_tasks = []
+        for task_name, cromwell_job_id, cached in tasks:
+            if cached:
+                cached_tasks.append(task_name)
+        return cached_tasks
 
     def get_task_log(self, run_id: int):
         """Retrieve complete task log for a run.  This adds task_name to the job log.
@@ -244,14 +257,21 @@ class TaskLog:
         # Cromwell metadata contains cromwell_job_id and task_name.
         # Note: There can be a delay between job submission and when the job appears in the
         # Cromwell metadata, so some items may be missing.
-        task_names = self.get_task_names(cromwell_run_id)
+        task_summary = self._get_task_summary(cromwell_run_id)
+
+        task_names = self.get_task_names(task_summary)
+
+        # cached tasks don't have job id
+        cached_tasks = self.get_cached_tasks(task_summary)
+        merged_logs = []
+        for task_name in cached_tasks:
+            merged_logs.append([task_name, None, None, None, None, "Cached call"])
 
         # The record of job state transitions is stored in a separate db.
         job_logs = self.get_job_logs(cromwell_run_id)
 
         # Combine the task names with the logs to produce the final table,
         # ordered by job_id (i.e. order of computation).
-        merged_logs = []
         for cromwell_job_id in sorted(job_logs.keys()):
             state_transitions = job_logs[cromwell_job_id]
             # default values are required because a job many not appear in the Cromwell metadata immediately

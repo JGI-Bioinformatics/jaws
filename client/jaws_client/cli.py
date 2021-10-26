@@ -218,8 +218,10 @@ def task_status(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
     result = _request("GET", url)
-    for a in result:
-        a[4] = _utc_to_local(a[4])
+    for row in result:
+        if row[4]:
+            # cached tasks won't have a timestamp
+            row[4] = _utc_to_local(row[4])
     if fmt == "json":
         _print_json(result)
     else:
@@ -227,8 +229,9 @@ def task_status(run_id: int, fmt: str) -> None:
             "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
         for row in result:
-            row[2] = str(row[2])
-            row[3] = str(row[3])
+            # convert None values to empty string "" for printing
+            for index in range(6):
+                row[index] = str(row[index]) if row[index] else ""
             click.echo("\t".join(row))
 
 
@@ -277,8 +280,10 @@ def task_log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
     result = _request("GET", url)
-    for a in result:
-        a[4] = _utc_to_local(a[4])
+    for row in result:
+        if row[4]:
+            # cached tasks won't have a timestamp
+            row[4] = _utc_to_local(row[4])
     if fmt == "json":
         _print_json(result)
     else:
@@ -286,7 +291,9 @@ def task_log(run_id: int, fmt: str) -> None:
             "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
         for row in result:
-            row[1] = str(row[1])
+            # convert None values to empty string "" for printing
+            for index in range(6):
+                row[index] = str(row[index]) if row[index] else ""
             click.echo("\t".join(row))
 
 
