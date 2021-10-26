@@ -255,20 +255,14 @@ def test_get_run_status(monkeypatch):
 
 
 def test_get_job_metadata(monkeypatch):
-    def mock_get_cromwell_task_summary(self, cromwell_run_id):
-        example_task_summary = [
-            ["main_workflow.goodbye", "12129"],
-            ["main_workflow.hello", "12130"],
-            ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "12134"],
-            ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "12133"],
-            ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131"],
-            ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132"],
-        ]
-        return example_task_summary
-
-    monkeypatch.setattr(
-        TaskLog, "_get_cromwell_task_summary", mock_get_cromwell_task_summary
-    )
+    example_task_summary = [
+        ["main_workflow.goodbye", "12129", False],
+        ["main_workflow.hello", "12130", False],
+        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "12134", False],
+        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "12133", False],
+        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131", False],
+        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132", False],
+    ]
 
     expected_names = {
         "12129": "main_workflow.goodbye",
@@ -281,7 +275,7 @@ def test_get_job_metadata(monkeypatch):
 
     mock_session = None
     tasks = TaskLog(mock_session)
-    task_names = tasks.get_task_names("WORKFLOW_ID_MAIN")
+    task_names = tasks.get_task_names(example_task_summary)
     assert bool(DeepDiff(task_names, expected_names, ignore_order=True)) is False
 
 
@@ -295,17 +289,25 @@ def test_get_task_log(monkeypatch):
 
     monkeypatch.setattr(TaskLog, "_get_cromwell_run_id", mock_get_cromwell_run_id)
 
-    def mock_get_task_names(self, cromwell_run_id):
-        assert cromwell_run_id == "AAAA"
-        example_task_names = {
-            "5480": "main_workflow.goodbye",
-            "5481": "main_workflow.hello",
-            "5482": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
-            "5484": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-        }
-        return example_task_names
+    def mock_get_task_summary(self, cromwell_run_id):
+        example_task_summary = [
+            ["main_workflow.goodbye", "5480", False],
+            ["main_workflow.hello", "5481", False],
+            [
+                "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
+                "5482",
+                False,
+            ],
+            [
+                "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+                "5484",
+                False,
+            ],
+            ["main_workflow.hello_world", None, True],
+        ]
+        return example_task_summary
 
-    monkeypatch.setattr(TaskLog, "get_task_names", mock_get_task_names)
+    monkeypatch.setattr(TaskLog, "_get_task_summary", mock_get_task_summary)
 
     def mock_get_job_logs(self, cromwell_run_id):
         example_logs = {
@@ -314,21 +316,16 @@ def test_get_task_log(monkeypatch):
                 ["ready", "queued", "2021-04-15 12:42:28", None],
                 ["queued", "pending", "2021-04-15 12:42:29", None],
             ],
-            "5481": [
-                ["created", "queued", "2021-04-15 12:49:95", None]
-            ],
-            "5482": [
-                ["created", "queued", "2021-04-15 01:01:04", None]
-            ],
-            "5484": [
-                ["created", "queued", "2021-04-15 01:11:52", None]
-            ],
+            "5481": [["created", "queued", "2021-04-15 12:49:95", None]],
+            "5482": [["created", "queued", "2021-04-15 01:01:04", None]],
+            "5484": [["created", "queued", "2021-04-15 01:11:52", None]],
         }
         return example_logs
 
     monkeypatch.setattr(TaskLog, "get_job_logs", mock_get_job_logs)
 
     expected = [
+        ["main_workflow.hello_world", None, None, None, None, "Cached call"],
         [
             "main_workflow.goodbye",
             "5480",
