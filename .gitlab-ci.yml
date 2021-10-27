@@ -1,5 +1,6 @@
 stages:
-  - test
+  - bandit-sast
+  - semgrep-sast
   - unit-test
   - package
   - deploy-jaws
