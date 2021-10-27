@@ -7,7 +7,9 @@
     		    "causedBy": [],
     		    "message": "No backend job for bbmap_shard_wf.bbmap_indexing:NA:1 could be found. The status of the underlying job cannot be known."
     		}
-    	    ]
+    	    ],
+    	    "attempt": 1,
+    	    "shardIndex": -1
     	}
         ],
         "bbmap_shard_wf.shard": [
@@ -17,7 +19,9 @@
     		    "causedBy": [],
     		    "message": "No backend job for bbmap_shard_wf.shard:NA:1 could be found. The status of the underlying job cannot be known."
     		}
-    	    ]
+    	    ],
+    	    "attempt": 1,
+    	    "shardIndex": -1
     	}
         ]
     }

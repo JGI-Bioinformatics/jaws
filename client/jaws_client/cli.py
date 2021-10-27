@@ -218,8 +218,10 @@ def task_status(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
     result = _request("GET", url)
-    for a in result:
-        a[4] = _utc_to_local(a[4])
+    for row in result:
+        if row[4]:
+            # cached tasks won't have a timestamp
+            row[4] = _utc_to_local(row[4])
     if fmt == "json":
         _print_json(result)
     else:
@@ -227,8 +229,9 @@ def task_status(run_id: int, fmt: str) -> None:
             "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
         for row in result:
-            row[2] = str(row[2])
-            row[3] = str(row[3])
+            # convert None values to empty string "" for printing
+            for index in range(6):
+                row[index] = str(row[index]) if row[index] else ""
             click.echo("\t".join(row))
 
 
@@ -277,8 +280,10 @@ def task_log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
     result = _request("GET", url)
-    for a in result:
-        a[4] = _utc_to_local(a[4])
+    for row in result:
+        if row[4]:
+            # cached tasks won't have a timestamp
+            row[4] = _utc_to_local(row[4])
     if fmt == "json":
         _print_json(result)
     else:
@@ -286,7 +291,9 @@ def task_log(run_id: int, fmt: str) -> None:
             "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
         )
         for row in result:
-            row[1] = str(row[1])
+            # convert None values to empty string "" for printing
+            for index in range(6):
+                row[index] = str(row[index]) if row[index] else ""
             click.echo("\t".join(row))
 
 
@@ -553,10 +560,7 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
     # cp the "outputs.json" file because it contains non-file outputs (e.g. numbers)
     dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(outputs_file)))
     try:
-        if quiet:
-            shutil.copyfile(outputs_file, dest_file)
-        else:
-            copy_with_progress_bar(outputs_file, dest_file)
+        copy_with_progress_bar(outputs_file, dest_file, quiet=quiet)
     except Exception as error:
         sys.exit(f"Unable to copy outputs: {error}")
     os.chmod(dest_file, 0o0664)
@@ -584,10 +588,7 @@ def _copy_outfile(rel_path, src_dir, dest_dir, quiet=False):
     dest_file = os.path.normpath(os.path.join(dest_dir, rel_path))
     a_dest_dir = os.path.dirname(dest_file)
     os.makedirs(a_dest_dir, exist_ok=True)
-    if quiet:
-        shutil.copyfile(src_file, dest_file)
-    else:
-        copy_with_progress_bar(src_file, dest_file)
+    copy_with_progress_bar(src_file, dest_file, quiet=quiet)
     os.chmod(dest_file, 0o0664)
 
 
