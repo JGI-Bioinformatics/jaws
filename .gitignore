@@ -133,7 +133,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-# dashboard
-node_modules
-package-lock.json
