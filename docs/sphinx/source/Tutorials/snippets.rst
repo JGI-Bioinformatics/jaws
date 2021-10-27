@@ -5,7 +5,7 @@ Code Snippets to Answer Common WDL Design Problems
 .. role:: bash(code)
     :language: bash
 
-You can refer to the official OpenWDL `specs for version 1.0 <https://github.com/openwdl/wdl/blob/main/versions/1.0/SPEC.md>`_
+OpenWDL provides the WDL functions in `specs for version 1.0 <https://github.com/openwdl/wdl/blob/main/versions/1.0/SPEC.md>`_
 
 #############
 Building WDLs
