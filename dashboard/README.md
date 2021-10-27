@@ -11,16 +11,23 @@ https://nodejs.org/en/download/package-manager/#macos
 note: don't use conda to install nodejs since this won't work
 
 2. go into the dashboard project repository
+```
 git clone https://code.jgi.doe.gov/advanced-analysis/jaws.git
 cd jaws/dashboard
+```
 
 3. source the secrets file (get this file from one of the JAWS react.js developers)
+```
 souce ~/.jaws-dashboard
+```
 
 4. install dependencies (these should not be stored in the repository since they are large files).
+```
 npm install
+```
 
 5. start the localhost server
+```
 npm start
 ```
 
