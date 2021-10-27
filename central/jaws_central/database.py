@@ -9,7 +9,8 @@ from jaws_central import config
 
 logger = logging.getLogger(__package__)
 
-params = config.conf.get_section("DB")
+conf = config.Configuration()
+params = conf.get_section("DB")
 logger.info(f"Connecting to db, {params.get('db')} @ {params.get('host')}")
 url = "%s://%s:%s@%s:%s/%s" % (
     params.get("dialect"),
