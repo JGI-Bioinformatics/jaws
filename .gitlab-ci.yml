@@ -165,6 +165,10 @@ bandit-sast:
   tags:
     - docker-build
 
+semgrep-sast:
+  tags:
+    - docker-build
+
 test-rpc:
   <<: *only-default
   stage: unit-test
