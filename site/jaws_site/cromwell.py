@@ -78,14 +78,19 @@ class Task:
             if self.max_shard_index is None or self.max_shard_index < shard_index:
                 self.max_shard_index = shard_index
 
-            if shard_index not in self.num_attempts or self.num_attempts[shard_index] < attempt:
+            if (
+                shard_index not in self.num_attempts
+                or self.num_attempts[shard_index] < attempt
+            ):
                 self.num_attempts[shard_index] = attempt
 
             if "subWorkflowMetadata" in call:
                 # this task is a subworkflow, with it's own tasks
                 if shard_index not in self.subworkflows:
                     self.subworkflows[shard_index] = {}
-                self.subworkflows[shard_index][attempt] = Metadata(call["subWorkflowMetadata"])
+                self.subworkflows[shard_index][attempt] = Metadata(
+                    call["subWorkflowMetadata"]
+                )
 
     def get(self, key, shard_index: int = -1, attempt: int = 1, default=None):
         """
@@ -97,9 +102,16 @@ class Task:
         :return: value of the specified key, for specified attempt number.
         """
         if shard_index > self.max_shard_index:
-            raise ValueError(f"ShardIndex {shard_index} is invalid for Task {self.name} (max. shardIndex is {self.max_shard_index}")
-        if shard_index not in self.num_attempts or attempt > self.num_attempts[shard_index]:
-            raise ValueError(f"Attempt {attempt} is invalid for Task {self.name} shardIndex {shard_index}")
+            raise ValueError(
+                f"ShardIndex {shard_index} is invalid for Task {self.name} (max. shardIndex is {self.max_shard_index}"
+            )
+        if (
+            shard_index not in self.num_attempts
+            or attempt > self.num_attempts[shard_index]
+        ):
+            raise ValueError(
+                f"Attempt {attempt} is invalid for Task {self.name} shardIndex {shard_index}"
+            )
         for call in self.data:
             if call["shardIndex"] == shard_index and call["attempt"] == attempt:
                 return call.get(key, default)
@@ -190,7 +202,9 @@ class Task:
         :rtype: str
         """
         if file_id not in ("stdout", "stderr"):
-            raise ValueError(f"Invalid file id, {file_id}; allowed values: stdout, stderr")
+            raise ValueError(
+                f"Invalid file id, {file_id}; allowed values: stdout, stderr"
+            )
         path = self.get(file_id)
         if relpath:
             call_root = self.get("callRoot")
