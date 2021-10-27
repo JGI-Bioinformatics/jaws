@@ -1,0 +1,17 @@
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <style>
+    .st1{fill:#ecc19c}.st2{fill:#ddb28d}.st3{fill:#ce350b}.st5{fill:#2a5083}
+  </style>
+  <path d="M60 120C27 120 0 93 0 60S27 0 60 0s60 27 60 60-27 60-60 60z" fill="#6554c0" id="color_x5F_bg"/>
+  <path class="st1" d="M65.5 26.5H55c-13.5 0-24.5 11-24.5 24.5v19.5c0 16 13.5 29.5 30 29.5S90 87 90 70.5V51c-.5-13.5-11.5-24.5-24.5-24.5z"/>
+  <circle class="st2" cx="33.5" cy="66" r="7"/>
+  <circle class="st1" cx="86.5" cy="66" r="7"/>
+  <path class="st2" d="M60 100c-16 0-29.5-13-29.5-29.5V55h29l.5 45z"/>
+  <path class="st3" d="M71 31.5H48.5V25c0-6.5 5.5-11.5 11.5-11.5 6.5 0 11.5 5.5 11.5 11.5l-.5 6.5z"/>
+  <path d="M65.5 26.5H56c-13.5 0-24 11-24 24.5v4h35c1.5 0 3-1 3-3v-2c0-2.5 3.5-3.5 5-2l5 6c.5.5 1.5 1 2 1h8v-4c-.5-13.5-11.5-24.5-24.5-24.5z" fill="#de350b"/>
+  <circle class="st1" cx="60" cy="76" r="4.5"/>
+  <circle class="st5" cx="50" cy="68.5" r="3"/>
+  <circle class="st5" cx="70.5" cy="68.5" r="3"/>
+  <path class="st5" d="M60 92.5c3.5 0 6-2.5 7-5 .5-1-.5-2.5-2-2.5H54.5c-1 0-2.5 1-2 2.5 1.5 3 4.5 5 7.5 5z"/>
+  <path class="st3" d="M59.5 26.5H55c-13.5 0-24.5 11-24.5 24.5v4h29V26.5z"/>
+</svg>
