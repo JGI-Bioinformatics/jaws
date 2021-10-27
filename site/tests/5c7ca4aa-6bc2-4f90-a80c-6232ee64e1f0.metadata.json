@@ -1,0 +1,1972 @@
+{
+    "actualWorkflowLanguage": "WDL",
+    "actualWorkflowLanguageVersion": "draft-2",
+    "calls": {
+        "miseq_libraries.collect_outputs": [
+            {
+                "attempt": 1,
+                "backend": "JTM",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff",
+                    "hit": false,
+                    "result": "Cache Miss"
+                },
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs",
+                "commandLine": "mkdir plots\nmkdir stats\nmkdir distributions\n\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/inputs/753259762/HHCHN_length_distribution.png /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/inputs/-1793581485/HHCHO_length_distribution.png\ndo\n    cp $FILE plots\ndone\n\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/inputs/753259762/HHCHN_spacers_distribution.png /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/inputs/-1793581485/HHCHO_spacers_distribution.png\ndo\n    cp $FILE plots\ndone\n\nfor FILE in  \ndo\n    cp $FILE plots\ndone\n\nfor FILE in  \ndo\n    cp $FILE plots\ndone\n\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/inputs/-1158782263/HHCHN_stats.csv /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/inputs/1264034605/HHCHO_stats.csv\ndo\n    cp $FILE stats\ndone\n\nfor FILE in  \ndo\n    cp $FILE stats\ndone\n\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/inputs/-1585661953/HHCHN_length_distribution.csv /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/inputs/132603931/HHCHO_length_distribution.csv\ndo\n    cp $FILE distributions\ndone",
+                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                "end": "2021-10-27T00:06:02.322Z",
+                "executionEvents": [
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2021-10-27T00:05:59.409Z",
+                        "startTime": "2021-10-27T00:05:58.440Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2021-10-27T00:06:02.095Z",
+                        "startTime": "2021-10-27T00:05:59.416Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2021-10-27T00:05:58.440Z",
+                        "startTime": "2021-10-27T00:05:58.440Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2021-10-27T00:05:59.416Z",
+                        "startTime": "2021-10-27T00:05:59.409Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2021-10-27T00:05:59.409Z",
+                        "startTime": "2021-10-27T00:05:59.409Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2021-10-27T00:06:02.322Z",
+                        "startTime": "2021-10-27T00:06:02.095Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "lengthDistributionCsvs": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/HHCHN_length_distribution.csv",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/HHCHO_length_distribution.csv"
+                    ],
+                    "statsPythonsCsvs": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/execution/HHCHN_stats.csv",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/execution/HHCHO_stats.csv"
+                    ],
+                    "statsSealCsvs": [
+                        null,
+                        null
+                    ],
+                    "visPythonLengthDistributionPngs": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/execution/HHCHN_length_distribution.png",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/execution/HHCHO_length_distribution.png"
+                    ],
+                    "visPythonSpacersDistributionPngs": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/execution/HHCHN_spacers_distribution.png",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/execution/HHCHO_spacers_distribution.png"
+                    ],
+                    "visSealLengthDistributionPngs": [
+                        null,
+                        null
+                    ],
+                    "visSealSpacersDistributionPngs": [
+                        null,
+                        null
+                    ]
+                },
+                "jobId": "151623",
+                "outputs": {
+                    "distributionCsvs": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-3f4e8b712e3c79bf325f3e06d8c51021/HHCHN_length_distribution.csv",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-3f4e8b712e3c79bf325f3e06d8c51021/HHCHO_length_distribution.csv"
+                    ],
+                    "pngPlots": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-e36b42e29a6a9eab1078bdaff1a2b1e9/HHCHN_length_distribution.png",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-e36b42e29a6a9eab1078bdaff1a2b1e9/HHCHN_spacers_distribution.png",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-e36b42e29a6a9eab1078bdaff1a2b1e9/HHCHO_length_distribution.png",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-e36b42e29a6a9eab1078bdaff1a2b1e9/HHCHO_spacers_distribution.png"
+                    ],
+                    "statsCsvs": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-89eafee25f17e4faa04047bcdb20a761/HHCHN_stats.csv",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-89eafee25f17e4faa04047bcdb20a761/HHCHO_stats.csv"
+                    ]
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "account": "fungalp",
+                    "cluster": "cori",
+                    "constraint": "haswell",
+                    "continueOnReturnCode": "0",
+                    "cpu": "32",
+                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "116 GB",
+                    "node": "1",
+                    "nwpn": "5",
+                    "partition": "",
+                    "poolname": "synbio_small",
+                    "qos": "genepool_special",
+                    "shared": "0",
+                    "time": "06:00:00"
+                },
+                "shardIndex": -1,
+                "start": "2021-10-27T00:05:58.440Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/stderr",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/stdout"
+            }
+        ],
+        "miseq_libraries.generate_excel": [
+            {
+                "attempt": 1,
+                "backend": "JTM",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff",
+                    "hit": false,
+                    "result": "Cache Miss"
+                },
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel",
+                "commandLine": "mkdir data\nDATA_DIR=$(realpath data)\n\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel/inputs/2127969419/HHCHN_length_distribution.csv /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel/inputs/2127969419/HHCHO_length_distribution.csv\ndo\n    cp $FILE data\ndone\n\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel/inputs/-336626956/HHCHN_stats.csv /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel/inputs/-336626956/HHCHO_stats.csv\ndo\n    cp $FILE data\ndone\n\npython /usr/src/python/grna_analysis/generate_excel.py -n \"BEEPS_ESE-jaws_02\" -d \"$DATA_DIR\"",
+                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                "end": "2021-10-27T00:06:13.322Z",
+                "executionEvents": [
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2021-10-27T00:06:04.409Z",
+                        "startTime": "2021-10-27T00:06:03.540Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2021-10-27T00:06:04.415Z",
+                        "startTime": "2021-10-27T00:06:04.409Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2021-10-27T00:06:12.320Z",
+                        "startTime": "2021-10-27T00:06:04.415Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2021-10-27T00:06:03.540Z",
+                        "startTime": "2021-10-27T00:06:03.539Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2021-10-27T00:06:13.322Z",
+                        "startTime": "2021-10-27T00:06:12.320Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2021-10-27T00:06:04.409Z",
+                        "startTime": "2021-10-27T00:06:04.409Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "analysisName": "BEEPS_ESE-jaws_02",
+                    "lengthDistributionCsvs": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-3f4e8b712e3c79bf325f3e06d8c51021/HHCHN_length_distribution.csv",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-3f4e8b712e3c79bf325f3e06d8c51021/HHCHO_length_distribution.csv"
+                    ],
+                    "statsCsvs": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-89eafee25f17e4faa04047bcdb20a761/HHCHN_stats.csv",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-89eafee25f17e4faa04047bcdb20a761/HHCHO_stats.csv"
+                    ]
+                },
+                "jobId": "151624",
+                "outputs": {
+                    "excelWorkbook": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel/execution/BEEPS_ESE-jaws_02.xlsx"
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "account": "fungalp",
+                    "cluster": "cori",
+                    "constraint": "haswell",
+                    "continueOnReturnCode": "0",
+                    "cpu": "32",
+                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "116 GB",
+                    "node": "1",
+                    "nwpn": "5",
+                    "partition": "",
+                    "poolname": "synbio_small",
+                    "qos": "genepool_special",
+                    "shared": "0",
+                    "time": "06:00:00"
+                },
+                "shardIndex": -1,
+                "start": "2021-10-27T00:06:03.539Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel/execution/stderr",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel/execution/stdout"
+            }
+        ],
+        "miseq_libraries.generate_html": [
+            {
+                "attempt": 1,
+                "backend": "JTM",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff",
+                    "hit": false,
+                    "result": "Cache Miss"
+                },
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html",
+                "commandLine": "mkdir -p summary/\"BEEPS_ESE-jaws_02\"\nHTML_DIR=$(realpath summary/\"BEEPS_ESE-jaws_02\")\n\nmkdir data\nDATA_DIR=$(realpath data)\n\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/inputs/1341417849/HHCHN_length_distribution.png /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/inputs/1341417849/HHCHN_spacers_distribution.png /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/inputs/1341417849/HHCHO_length_distribution.png /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/inputs/1341417849/HHCHO_spacers_distribution.png\ndo\n    cp $FILE data\ndone\n\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/inputs/2127969419/HHCHN_length_distribution.csv /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/inputs/2127969419/HHCHO_length_distribution.csv\ndo\n    cp $FILE data\ndone\n\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/inputs/-336626956/HHCHN_stats.csv /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/inputs/-336626956/HHCHO_stats.csv\ndo\n    cp $FILE data\ndone\n\ncd \"$HTML_DIR\"  # generate index.html here\n\nif [ -r \"/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/inputs/1763430452/BEEPS_ESE-jaws_02.xlsx\" ]\nthen\n    python /usr/src/python/grna_analysis/generate_html.py -n BEEPS_ESE-jaws_02 -d \"$DATA_DIR\" -e \"/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/inputs/1763430452/BEEPS_ESE-jaws_02.xlsx\"\nelse\n    python /usr/src/python/grna_analysis/generate_html.py -n BEEPS_ESE-jaws_02 -d \"$DATA_DIR\"\nfi\n\n# zip up the HTML dir\ncd .. # cd to summary dir\ntar -czvf \"BEEPS_ESE-jaws_02\".tar.gz \"BEEPS_ESE-jaws_02\"",
+                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                "end": "2021-10-27T00:06:22.321Z",
+                "executionEvents": [
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2021-10-27T00:06:22.321Z",
+                        "startTime": "2021-10-27T00:06:22.145Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2021-10-27T00:06:15.410Z",
+                        "startTime": "2021-10-27T00:06:14.760Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2021-10-27T00:06:15.418Z",
+                        "startTime": "2021-10-27T00:06:15.410Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2021-10-27T00:06:14.760Z",
+                        "startTime": "2021-10-27T00:06:14.760Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2021-10-27T00:06:15.410Z",
+                        "startTime": "2021-10-27T00:06:15.410Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2021-10-27T00:06:22.145Z",
+                        "startTime": "2021-10-27T00:06:15.418Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "analysisName": "BEEPS_ESE-jaws_02",
+                    "excelWorkbook": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel/execution/BEEPS_ESE-jaws_02.xlsx",
+                    "lengthDistributionCsvs": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-3f4e8b712e3c79bf325f3e06d8c51021/HHCHN_length_distribution.csv",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-3f4e8b712e3c79bf325f3e06d8c51021/HHCHO_length_distribution.csv"
+                    ],
+                    "pngPlots": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-e36b42e29a6a9eab1078bdaff1a2b1e9/HHCHN_length_distribution.png",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-e36b42e29a6a9eab1078bdaff1a2b1e9/HHCHN_spacers_distribution.png",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-e36b42e29a6a9eab1078bdaff1a2b1e9/HHCHO_length_distribution.png",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-e36b42e29a6a9eab1078bdaff1a2b1e9/HHCHO_spacers_distribution.png"
+                    ],
+                    "statsCsvs": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-89eafee25f17e4faa04047bcdb20a761/HHCHN_stats.csv",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs/execution/glob-89eafee25f17e4faa04047bcdb20a761/HHCHO_stats.csv"
+                    ]
+                },
+                "jobId": "151625",
+                "outputs": {
+                    "summaryZip": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/execution/summary/BEEPS_ESE-jaws_02.tar.gz"
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "account": "fungalp",
+                    "cluster": "cori",
+                    "constraint": "haswell",
+                    "continueOnReturnCode": "0",
+                    "cpu": "32",
+                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "116 GB",
+                    "node": "1",
+                    "nwpn": "5",
+                    "partition": "",
+                    "poolname": "synbio_small",
+                    "qos": "genepool_special",
+                    "shared": "0",
+                    "time": "06:00:00"
+                },
+                "shardIndex": -1,
+                "start": "2021-10-27T00:06:14.760Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/execution/stderr",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/execution/stdout"
+            }
+        ],
+        "miseq_libraries.miseq_library": [
+            {
+                "attempt": 1,
+                "end": "2021-10-27T00:05:27.840Z",
+                "executionEvents": [
+                    {
+                        "description": "SubWorkflowPendingState",
+                        "endTime": "2021-10-26T23:59:36.959Z",
+                        "startTime": "2021-10-26T23:59:36.959Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2021-10-26T23:59:36.960Z",
+                        "startTime": "2021-10-26T23:59:36.959Z"
+                    },
+                    {
+                        "description": "SubWorkflowRunningState",
+                        "endTime": "2021-10-27T00:05:27.840Z",
+                        "startTime": "2021-10-26T23:59:36.962Z"
+                    },
+                    {
+                        "description": "SubWorkflowPreparingState",
+                        "endTime": "2021-10-26T23:59:36.962Z",
+                        "startTime": "2021-10-26T23:59:36.960Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "flankSeq3P": "TGAAGCTACAGGACT",
+                    "flankSeq5P": "GTGCGTATGTTTGTA",
+                    "libFastq": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/dna/dm_archive/sdm/illumina/05/24/85/52485.1.359430.CAAGCAG-ACTGCTT.fastq.gz",
+                    "libName": "HHCHN",
+                    "referencesFasta": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHN_references.fasta"
+                },
+                "outputs": {
+                    "lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/HHCHN_length_distribution.csv",
+                    "statsPythonCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/execution/HHCHN_stats.csv",
+                    "statsSealCsv": null
+                },
+                "shardIndex": 0,
+                "start": "2021-10-26T23:59:36.959Z",
+                "subWorkflowMetadata": {
+                    "calls": {
+                        "miseq_library.bbduk": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk",
+                                "commandLine": "READS_WITH_5_PRIME_FLANK=reads_with_5_prime_flank.fastq\nREADS_WITH_BOTH_FLANKS=reads_with_both_flanks.fastq\n\nREADS_WITH_5_PRIME_FLANK_TRIMMED=reads_with_5_prime_flank_trimmed.fastq\nREADS_WITH_BOTH_FLANKS_TRIMMED=reads_with_both_flanks_trimmed.fastq\nREADS_WITH_SPACERS_FASTQ=reads_with_spacers.fastq\n\nTRIMMED_READS=trimmed_reads.fastq\n\n# link out_* files produced by earlier tasks into current directory\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/inputs/1130845429/out_five_prime_flank.fq /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/inputs/1130845429/out_five_prime_revcomp_flank.fq /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/inputs/1130845429/out_three_prime_flank.fq\ndo\n    echo linking $FILE\n    ln -s $FILE .\ndone\n\n\n### cleanup\n\n## reads w/ forward-oriented flanks\nif [ -f ./out_three_prime_flank.fq ]\nthen\n    bbduk.sh in=./out_three_prime_flank.fq out=./five_prime_forward_trim.fq ktrim=l k=15 mm=f ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/inputs/-249615313/five_prime_flank.fasta #-Xmx23g\n    bbduk.sh in=./five_prime_forward_trim.fq out=./both_forward_trim.fq ktrim=r k=15 mm=f ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/inputs/-507780751/three_prime_flank.fasta #-Xmx23g\n\n    cat ./both_forward_trim.fq > $TRIMMED_READS\nfi\n\n## reads w/ reverse complemented flanks\nif [ -f ./out_three_prime_flank_revcomp.fq ]\nthen\n    bbduk.sh in=./out_three_prime_flank_revcomp.fq out=./five_prime_revcomp_trim.fq ktrim=r k=15 mm=f ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/inputs/-249615313/five_prime_revcomp_flank.fasta #-Xmx23g\n    bbduk.sh in=./five_prime_revcomp_trim.fq out=./both_revcomp_trim.fq ktrim=l k=15 mm=f ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/inputs/-507780751/three_prime_revcomp_flank.fasta #-Xmx23g\n\n    cat ./both_revcomp_trim.fq >> $TRIMMED_READS\nfi\n\nif [ -f $TRIMMED_READS ]\nthen\n    echo trimmed reads\n    head -10 $TRIMMED_READS\n    ## calculate the # of trimmed reads that are 20bp long\n    bbduk.sh in=$TRIMMED_READS lhist=HHCHN_length_distribution.csv out=$READS_WITH_SPACERS_FASTQ minlen=160 maxlen=160 int=f #-Xmx23g\n    sed -i 's/\\t/,/g' HHCHN_length_distribution.csv\nfi",
+                                "dockerImageUsed": "jfroula/aligner-bbmap:2.0.1",
+                                "end": "2021-10-27T00:04:26.322Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-27T00:03:16.409Z",
+                                        "startTime": "2021-10-27T00:03:16.260Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-27T00:03:16.410Z",
+                                        "startTime": "2021-10-27T00:03:16.409Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-27T00:03:16.260Z",
+                                        "startTime": "2021-10-27T00:03:16.259Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:04:25.382Z",
+                                        "startTime": "2021-10-27T00:03:16.416Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:04:26.322Z",
+                                        "startTime": "2021-10-27T00:04:25.382Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-27T00:03:16.416Z",
+                                        "startTime": "2021-10-27T00:03:16.410Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "filteredReads": [
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_five_prime_flank.fq",
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_five_prime_revcomp_flank.fq",
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_three_prime_flank.fq"
+                                    ],
+                                    "fivePrimeFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_5P/execution/five_prime_flank.fasta",
+                                    "fivePrimeRevcompFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_5P/execution/five_prime_revcomp_flank.fasta",
+                                    "length3PFlank": 15,
+                                    "length5PFlank": 15,
+                                    "libraryName": "HHCHN",
+                                    "spacerLength": 160,
+                                    "threePrimeFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P/execution/three_prime_flank.fasta",
+                                    "threePrimeRevcompFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P/execution/three_prime_revcomp_flank.fasta"
+                                },
+                                "jobId": "151620",
+                                "outputs": {
+                                    "lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/HHCHN_length_distribution.csv",
+                                    "readsWithSpacersFastq": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/reads_with_spacers.fastq",
+                                    "trimmedReads": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/trimmed_reads.fastq"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "jfroula/aligner-bbmap:2.0.1",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-27T00:03:16.259Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.bbmerge": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbmerge",
+                                "commandLine": "# #-Xmx23g threads=20\nbbmerge.sh in=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbmerge/inputs/927758910/52485.1.359430.CAAGCAG-ACTGCTT.fastq.gz out=\"HHCHN_merged.fastq\" outu=\"HHCHN_unmerged.fastq\" #-Xmx23g",
+                                "dockerImageUsed": "jfroula/aligner-bbmap:2.0.1",
+                                "end": "2021-10-27T00:02:00.326Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-26T23:59:44.415Z",
+                                        "startTime": "2021-10-26T23:59:44.409Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-26T23:59:44.409Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-26T23:59:44.409Z",
+                                        "startTime": "2021-10-26T23:59:44.409Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-26T23:59:39.002Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:02:00.326Z",
+                                        "startTime": "2021-10-27T00:01:59.606Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:01:59.606Z",
+                                        "startTime": "2021-10-26T23:59:44.415Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "libFastq": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/dna/dm_archive/sdm/illumina/05/24/85/52485.1.359430.CAAGCAG-ACTGCTT.fastq.gz",
+                                    "libName": "HHCHN"
+                                },
+                                "jobId": "151614",
+                                "outputs": {
+                                    "mergedReads": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbmerge/execution/HHCHN_merged.fastq",
+                                    "unmergedReads": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbmerge/execution/HHCHN_unmerged.fastq"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "jfroula/aligner-bbmap:2.0.1",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-26T23:59:39.002Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbmerge/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbmerge/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.extract_spacer_length": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-extract_spacer_length",
+                                "commandLine": "python /usr/src/python/grna_analysis/extract_spacer_length.py /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-extract_spacer_length/inputs/-762279671/HHCHN_references.fasta",
+                                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                                "end": "2021-10-27T00:00:01.322Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-26T23:59:39.002Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-26T23:59:46.409Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-26T23:59:46.409Z",
+                                        "startTime": "2021-10-26T23:59:46.409Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:00:01.322Z",
+                                        "startTime": "2021-10-27T00:00:00.787Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-26T23:59:46.415Z",
+                                        "startTime": "2021-10-26T23:59:46.409Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:00:00.787Z",
+                                        "startTime": "2021-10-26T23:59:46.415Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "referencesFasta": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHN_references.fasta"
+                                },
+                                "jobId": "151613",
+                                "outputs": {
+                                    "spacerLength": 160
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-26T23:59:39.002Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-extract_spacer_length/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-extract_spacer_length/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.flank_seq_3P": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P",
+                                "commandLine": "python /usr/src/python/grna_analysis/generate_flank_fasta.py -f TGAAGCTACAGGACT -i \"three_prime\" 1>&2\n\nFLANK_LENGTH=$(echo \"TGAAGCTACAGGACT\" | tr -d \" \\n\" | wc -c)\nADJUSTED_FLANK_LENGTH=$(($FLANK_LENGTH > 31 ? 31 : $FLANK_LENGTH))\necho $ADJUSTED_FLANK_LENGTH",
+                                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                                "end": "2021-10-26T23:59:56.322Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-26T23:59:40.409Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-26T23:59:55.358Z",
+                                        "startTime": "2021-10-26T23:59:40.416Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-26T23:59:40.409Z",
+                                        "startTime": "2021-10-26T23:59:40.409Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-26T23:59:56.322Z",
+                                        "startTime": "2021-10-26T23:59:55.358Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-26T23:59:40.416Z",
+                                        "startTime": "2021-10-26T23:59:40.409Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-26T23:59:39.002Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "flankSeq": "TGAAGCTACAGGACT",
+                                    "seqId": "three_prime"
+                                },
+                                "jobId": "151608",
+                                "outputs": {
+                                    "flankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P/execution/three_prime_flank.fasta",
+                                    "flankLength": 15,
+                                    "flanksFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P/execution/three_prime_flanks.fasta",
+                                    "revcompFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P/execution/three_prime_revcomp_flank.fasta"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-26T23:59:39.001Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.flank_seq_5P": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_5P",
+                                "commandLine": "python /usr/src/python/grna_analysis/generate_flank_fasta.py -f GTGCGTATGTTTGTA -i \"five_prime\" 1>&2\n\nFLANK_LENGTH=$(echo \"GTGCGTATGTTTGTA\" | tr -d \" \\n\" | wc -c)\nADJUSTED_FLANK_LENGTH=$(($FLANK_LENGTH > 31 ? 31 : $FLANK_LENGTH))\necho $ADJUSTED_FLANK_LENGTH",
+                                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                                "end": "2021-10-26T23:59:57.321Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-26T23:59:56.618Z",
+                                        "startTime": "2021-10-26T23:59:42.416Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-26T23:59:42.409Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-26T23:59:57.321Z",
+                                        "startTime": "2021-10-26T23:59:56.618Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-26T23:59:42.410Z",
+                                        "startTime": "2021-10-26T23:59:42.409Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-26T23:59:39.002Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-26T23:59:42.416Z",
+                                        "startTime": "2021-10-26T23:59:42.410Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "flankSeq": "GTGCGTATGTTTGTA",
+                                    "seqId": "five_prime"
+                                },
+                                "jobId": "151609",
+                                "outputs": {
+                                    "flankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_5P/execution/five_prime_flank.fasta",
+                                    "flankLength": 15,
+                                    "flanksFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_5P/execution/five_prime_flanks.fasta",
+                                    "revcompFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_5P/execution/five_prime_revcomp_flank.fasta"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-26T23:59:39.002Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_5P/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_5P/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.seal": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal",
+                                "commandLine": "echo using length5PFlank: 15\necho using length3PFlank: 15\n\n## filter by 5' (forward and rev-comp)\necho filtering by 5 prime forward and rev-comp\nseal.sh in=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/inputs/-431562307/HHCHN_merged.fastq  mm=f rcomp=f pattern=out_%.fq  k=15 ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/inputs/-249615313/five_prime_flanks.fasta #-Xmx23g\n\n## filter by 3' (forward)\nif [ -f ./out_five_prime_flank.fq ]\nthen\n    echo filtering by 3 prime forward\n    seal.sh in=./out_five_prime_flank.fq  mm=f rcomp=f pattern=out_%.fq k=15 ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/inputs/-507780751/three_prime_flank.fasta #-Xmx23g\nelse\n    echo not filtering by 3 prime forward\nfi\n\n## filter by 3' (revcomp)\nif [ -f ./out_five_prime_flank_revcomp.fq ]\nthen\n    echo filtering by 3 prime rev-comp\n    seal.sh in=./out_five_prime_flank_revcomp.fq  mm=f rcomp=f pattern=out_%.fq k=15 ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/inputs/-507780751/three_prime_revcomp_flank.fasta #-Xmx23g\nelse\n    echo not filtering by 3 prime rev-comp\nfi",
+                                "dockerImageUsed": "jfroula/aligner-bbmap:2.0.1",
+                                "end": "2021-10-27T00:03:14.322Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:03:14.322Z",
+                                        "startTime": "2021-10-27T00:03:13.907Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-27T00:02:02.415Z",
+                                        "startTime": "2021-10-27T00:02:02.409Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-27T00:02:02.409Z",
+                                        "startTime": "2021-10-27T00:02:02.409Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-27T00:02:01.800Z",
+                                        "startTime": "2021-10-27T00:02:01.799Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:03:13.907Z",
+                                        "startTime": "2021-10-27T00:02:02.415Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-27T00:02:02.409Z",
+                                        "startTime": "2021-10-27T00:02:01.800Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "fivePrimeFlanksFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_5P/execution/five_prime_flanks.fasta",
+                                    "length3PFlank": 15,
+                                    "length5PFlank": 15,
+                                    "mergedReads": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbmerge/execution/HHCHN_merged.fastq",
+                                    "threePrimeFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P/execution/three_prime_flank.fasta",
+                                    "threePrimeRevcompFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P/execution/three_prime_revcomp_flank.fasta"
+                                },
+                                "jobId": "151618",
+                                "outputs": {
+                                    "out": [
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_five_prime_flank.fq",
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_five_prime_revcomp_flank.fq",
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_three_prime_flank.fq"
+                                    ]
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "jfroula/aligner-bbmap:2.0.1",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-27T00:02:01.799Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.stats_python": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python",
+                                "commandLine": "python /usr/src/python/grna_analysis/count_references_occurrences.py /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/inputs/-762279671/HHCHN_references.fasta /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/inputs/-1585661953/reads_with_spacers.fastq\nsed 's/\\t/,/g' stats.csv > \"HHCHN_stats.csv\"",
+                                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                                "end": "2021-10-27T00:05:25.322Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-27T00:04:27.659Z",
+                                        "startTime": "2021-10-27T00:04:27.659Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:05:25.322Z",
+                                        "startTime": "2021-10-27T00:05:24.855Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-27T00:04:28.410Z",
+                                        "startTime": "2021-10-27T00:04:28.409Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-27T00:04:28.417Z",
+                                        "startTime": "2021-10-27T00:04:28.410Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-27T00:04:28.409Z",
+                                        "startTime": "2021-10-27T00:04:27.659Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:05:24.855Z",
+                                        "startTime": "2021-10-27T00:04:28.417Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "libraryName": "HHCHN",
+                                    "readsWithSpacersFastq": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/reads_with_spacers.fastq",
+                                    "referencesFasta": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHN_references.fasta"
+                                },
+                                "jobId": "151621",
+                                "outputs": {
+                                    "statsCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/execution/HHCHN_stats.csv"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-27T00:04:27.659Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/execution/stdout"
+                            }
+                        ]
+                    },
+                    "end": "2021-10-27T00:05:27.840Z",
+                    "id": "2fb7bb1a-3dce-4f93-82c2-c956d2c27a57",
+                    "inputs": {
+                        "flankSeq3P": "TGAAGCTACAGGACT",
+                        "flankSeq5P": "GTGCGTATGTTTGTA",
+                        "libFastq": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/dna/dm_archive/sdm/illumina/05/24/85/52485.1.359430.CAAGCAG-ACTGCTT.fastq.gz",
+                        "libName": "HHCHN",
+                        "referencesFasta": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHN_references.fasta"
+                    },
+                    "outputs": {
+                        "miseq_library.lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/HHCHN_length_distribution.csv",
+                        "miseq_library.statsPythonCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/execution/HHCHN_stats.csv",
+                        "miseq_library.statsSealCsv": null
+                    },
+                    "parentWorkflowId": "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0",
+                    "rootWorkflowId": "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0",
+                    "start": "2021-10-26T23:59:36.959Z",
+                    "status": "Succeeded",
+                    "workflowName": "miseq_library",
+                    "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0"
+                }
+            },
+            {
+                "attempt": 1,
+                "end": "2021-10-27T00:02:56.881Z",
+                "executionEvents": [
+                    {
+                        "description": "SubWorkflowRunningState",
+                        "endTime": "2021-10-27T00:02:56.881Z",
+                        "startTime": "2021-10-26T23:59:36.962Z"
+                    },
+                    {
+                        "description": "SubWorkflowPreparingState",
+                        "endTime": "2021-10-26T23:59:36.962Z",
+                        "startTime": "2021-10-26T23:59:36.960Z"
+                    },
+                    {
+                        "description": "SubWorkflowPendingState",
+                        "endTime": "2021-10-26T23:59:36.959Z",
+                        "startTime": "2021-10-26T23:59:36.959Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2021-10-26T23:59:36.960Z",
+                        "startTime": "2021-10-26T23:59:36.959Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "flankSeq3P": "TGAAGCTACAGGACT",
+                    "flankSeq5P": "GTGCGTATGTTTGTA",
+                    "libFastq": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/dna/dm_archive/sdm/illumina/05/24/85/52485.1.359430.GTGCTTA-GTAAGCA.fastq.gz",
+                    "libName": "HHCHO",
+                    "referencesFasta": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHO_references.fasta"
+                },
+                "outputs": {
+                    "lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/HHCHO_length_distribution.csv",
+                    "statsPythonCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/execution/HHCHO_stats.csv",
+                    "statsSealCsv": null
+                },
+                "shardIndex": 1,
+                "start": "2021-10-26T23:59:36.959Z",
+                "subWorkflowMetadata": {
+                    "calls": {
+                        "miseq_library.bbduk": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk",
+                                "commandLine": "READS_WITH_5_PRIME_FLANK=reads_with_5_prime_flank.fastq\nREADS_WITH_BOTH_FLANKS=reads_with_both_flanks.fastq\n\nREADS_WITH_5_PRIME_FLANK_TRIMMED=reads_with_5_prime_flank_trimmed.fastq\nREADS_WITH_BOTH_FLANKS_TRIMMED=reads_with_both_flanks_trimmed.fastq\nREADS_WITH_SPACERS_FASTQ=reads_with_spacers.fastq\n\nTRIMMED_READS=trimmed_reads.fastq\n\n# link out_* files produced by earlier tasks into current directory\nfor FILE in /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/inputs/1393479257/out_five_prime_flank.fq /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/inputs/1393479257/out_five_prime_revcomp_flank.fq /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/inputs/1393479257/out_three_prime_flank.fq\ndo\n    echo linking $FILE\n    ln -s $FILE .\ndone\n\n\n### cleanup\n\n## reads w/ forward-oriented flanks\nif [ -f ./out_three_prime_flank.fq ]\nthen\n    bbduk.sh in=./out_three_prime_flank.fq out=./five_prime_forward_trim.fq ktrim=l k=15 mm=f ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/inputs/-2121765741/five_prime_flank.fasta #-Xmx23g\n    bbduk.sh in=./five_prime_forward_trim.fq out=./both_forward_trim.fq ktrim=r k=15 mm=f ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/inputs/1915036117/three_prime_flank.fasta #-Xmx23g\n\n    cat ./both_forward_trim.fq > $TRIMMED_READS\nfi\n\n## reads w/ reverse complemented flanks\nif [ -f ./out_three_prime_flank_revcomp.fq ]\nthen\n    bbduk.sh in=./out_three_prime_flank_revcomp.fq out=./five_prime_revcomp_trim.fq ktrim=r k=15 mm=f ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/inputs/-2121765741/five_prime_revcomp_flank.fasta #-Xmx23g\n    bbduk.sh in=./five_prime_revcomp_trim.fq out=./both_revcomp_trim.fq ktrim=l k=15 mm=f ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/inputs/1915036117/three_prime_revcomp_flank.fasta #-Xmx23g\n\n    cat ./both_revcomp_trim.fq >> $TRIMMED_READS\nfi\n\nif [ -f $TRIMMED_READS ]\nthen\n    echo trimmed reads\n    head -10 $TRIMMED_READS\n    ## calculate the # of trimmed reads that are 20bp long\n    bbduk.sh in=$TRIMMED_READS lhist=HHCHO_length_distribution.csv out=$READS_WITH_SPACERS_FASTQ minlen=160 maxlen=160 int=f #-Xmx23g\n    sed -i 's/\\t/,/g' HHCHO_length_distribution.csv\nfi",
+                                "dockerImageUsed": "jfroula/aligner-bbmap:2.0.1",
+                                "end": "2021-10-27T00:02:18.322Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-27T00:01:43.439Z",
+                                        "startTime": "2021-10-27T00:01:43.439Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-27T00:01:44.410Z",
+                                        "startTime": "2021-10-27T00:01:44.410Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:02:18.322Z",
+                                        "startTime": "2021-10-27T00:02:17.838Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-27T00:01:44.410Z",
+                                        "startTime": "2021-10-27T00:01:43.439Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:02:17.838Z",
+                                        "startTime": "2021-10-27T00:01:44.418Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-27T00:01:44.418Z",
+                                        "startTime": "2021-10-27T00:01:44.410Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "filteredReads": [
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_five_prime_flank.fq",
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_five_prime_revcomp_flank.fq",
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_three_prime_flank.fq"
+                                    ],
+                                    "fivePrimeFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_5P/execution/five_prime_flank.fasta",
+                                    "fivePrimeRevcompFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_5P/execution/five_prime_revcomp_flank.fasta",
+                                    "length3PFlank": 15,
+                                    "length5PFlank": 15,
+                                    "libraryName": "HHCHO",
+                                    "spacerLength": 160,
+                                    "threePrimeFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P/execution/three_prime_flank.fasta",
+                                    "threePrimeRevcompFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P/execution/three_prime_revcomp_flank.fasta"
+                                },
+                                "jobId": "151616",
+                                "outputs": {
+                                    "lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/HHCHO_length_distribution.csv",
+                                    "readsWithSpacersFastq": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/reads_with_spacers.fastq",
+                                    "trimmedReads": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/trimmed_reads.fastq"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "jfroula/aligner-bbmap:2.0.1",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-27T00:01:43.439Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.bbmerge": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbmerge",
+                                "commandLine": "# #-Xmx23g threads=20\nbbmerge.sh in=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbmerge/inputs/927758910/52485.1.359430.GTGCTTA-GTAAGCA.fastq.gz out=\"HHCHO_merged.fastq\" outu=\"HHCHO_unmerged.fastq\" #-Xmx23g",
+                                "dockerImageUsed": "jfroula/aligner-bbmap:2.0.1",
+                                "end": "2021-10-27T00:00:41.321Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-26T23:59:41.410Z",
+                                        "startTime": "2021-10-26T23:59:41.410Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:00:41.321Z",
+                                        "startTime": "2021-10-27T00:00:40.545Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-26T23:59:41.410Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-26T23:59:41.415Z",
+                                        "startTime": "2021-10-26T23:59:41.410Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-26T23:59:39.002Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:00:40.545Z",
+                                        "startTime": "2021-10-26T23:59:41.415Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "libFastq": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/dna/dm_archive/sdm/illumina/05/24/85/52485.1.359430.GTGCTTA-GTAAGCA.fastq.gz",
+                                    "libName": "HHCHO"
+                                },
+                                "jobId": "151611",
+                                "outputs": {
+                                    "mergedReads": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbmerge/execution/HHCHO_merged.fastq",
+                                    "unmergedReads": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbmerge/execution/HHCHO_unmerged.fastq"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "jfroula/aligner-bbmap:2.0.1",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-26T23:59:39.002Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbmerge/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbmerge/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.extract_spacer_length": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-extract_spacer_length",
+                                "commandLine": "python /usr/src/python/grna_analysis/extract_spacer_length.py /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-extract_spacer_length/inputs/-762279671/HHCHO_references.fasta",
+                                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                                "end": "2021-10-26T23:59:58.321Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-26T23:59:45.415Z",
+                                        "startTime": "2021-10-26T23:59:45.409Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-26T23:59:45.409Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-26T23:59:45.409Z",
+                                        "startTime": "2021-10-26T23:59:45.409Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-26T23:59:58.321Z",
+                                        "startTime": "2021-10-26T23:59:57.772Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-26T23:59:57.772Z",
+                                        "startTime": "2021-10-26T23:59:45.415Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-26T23:59:39.002Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "referencesFasta": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHO_references.fasta"
+                                },
+                                "jobId": "151612",
+                                "outputs": {
+                                    "spacerLength": 160
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-26T23:59:39.002Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-extract_spacer_length/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-extract_spacer_length/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.flank_seq_3P": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P",
+                                "commandLine": "python /usr/src/python/grna_analysis/generate_flank_fasta.py -f TGAAGCTACAGGACT -i \"three_prime\" 1>&2\n\nFLANK_LENGTH=$(echo \"TGAAGCTACAGGACT\" | tr -d \" \\n\" | wc -c)\nADJUSTED_FLANK_LENGTH=$(($FLANK_LENGTH > 31 ? 31 : $FLANK_LENGTH))\necho $ADJUSTED_FLANK_LENGTH",
+                                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                                "end": "2021-10-26T23:59:52.322Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-26T23:59:39.436Z",
+                                        "startTime": "2021-10-26T23:59:39.409Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-26T23:59:39.409Z",
+                                        "startTime": "2021-10-26T23:59:39.409Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-26T23:59:52.322Z",
+                                        "startTime": "2021-10-26T23:59:51.581Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-26T23:59:51.581Z",
+                                        "startTime": "2021-10-26T23:59:39.436Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-26T23:59:39.409Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-26T23:59:39.002Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "flankSeq": "TGAAGCTACAGGACT",
+                                    "seqId": "three_prime"
+                                },
+                                "jobId": "151607",
+                                "outputs": {
+                                    "flankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P/execution/three_prime_flank.fasta",
+                                    "flankLength": 15,
+                                    "flanksFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P/execution/three_prime_flanks.fasta",
+                                    "revcompFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P/execution/three_prime_revcomp_flank.fasta"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-26T23:59:39.001Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.flank_seq_5P": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_5P",
+                                "commandLine": "python /usr/src/python/grna_analysis/generate_flank_fasta.py -f GTGCGTATGTTTGTA -i \"five_prime\" 1>&2\n\nFLANK_LENGTH=$(echo \"GTGCGTATGTTTGTA\" | tr -d \" \\n\" | wc -c)\nADJUSTED_FLANK_LENGTH=$(($FLANK_LENGTH > 31 ? 31 : $FLANK_LENGTH))\necho $ADJUSTED_FLANK_LENGTH",
+                                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                                "end": "2021-10-27T00:00:01.322Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-26T23:59:43.409Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-26T23:59:39.002Z",
+                                        "startTime": "2021-10-26T23:59:39.002Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-26T23:59:43.415Z",
+                                        "startTime": "2021-10-26T23:59:43.409Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:00:01.322Z",
+                                        "startTime": "2021-10-27T00:00:01.286Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:00:01.286Z",
+                                        "startTime": "2021-10-26T23:59:43.415Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-26T23:59:43.409Z",
+                                        "startTime": "2021-10-26T23:59:43.409Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "flankSeq": "GTGCGTATGTTTGTA",
+                                    "seqId": "five_prime"
+                                },
+                                "jobId": "151610",
+                                "outputs": {
+                                    "flankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_5P/execution/five_prime_flank.fasta",
+                                    "flankLength": 15,
+                                    "flanksFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_5P/execution/five_prime_flanks.fasta",
+                                    "revcompFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_5P/execution/five_prime_revcomp_flank.fasta"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-26T23:59:39.002Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_5P/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_5P/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.seal": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal",
+                                "commandLine": "echo using length5PFlank: 15\necho using length3PFlank: 15\n\n## filter by 5' (forward and rev-comp)\necho filtering by 5 prime forward and rev-comp\nseal.sh in=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/inputs/1554510553/HHCHO_merged.fastq  mm=f rcomp=f pattern=out_%.fq  k=15 ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/inputs/-2121765741/five_prime_flanks.fasta #-Xmx23g\n\n## filter by 3' (forward)\nif [ -f ./out_five_prime_flank.fq ]\nthen\n    echo filtering by 3 prime forward\n    seal.sh in=./out_five_prime_flank.fq  mm=f rcomp=f pattern=out_%.fq k=15 ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/inputs/1915036117/three_prime_flank.fasta #-Xmx23g\nelse\n    echo not filtering by 3 prime forward\nfi\n\n## filter by 3' (revcomp)\nif [ -f ./out_five_prime_flank_revcomp.fq ]\nthen\n    echo filtering by 3 prime rev-comp\n    seal.sh in=./out_five_prime_flank_revcomp.fq  mm=f rcomp=f pattern=out_%.fq k=15 ref=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/inputs/1915036117/three_prime_revcomp_flank.fasta #-Xmx23g\nelse\n    echo not filtering by 3 prime rev-comp\nfi",
+                                "dockerImageUsed": "jfroula/aligner-bbmap:2.0.1",
+                                "end": "2021-10-27T00:01:42.321Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-27T00:00:43.410Z",
+                                        "startTime": "2021-10-27T00:00:43.409Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-27T00:00:43.260Z",
+                                        "startTime": "2021-10-27T00:00:43.260Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:01:42.321Z",
+                                        "startTime": "2021-10-27T00:01:41.564Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-27T00:00:43.409Z",
+                                        "startTime": "2021-10-27T00:00:43.260Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-27T00:00:43.416Z",
+                                        "startTime": "2021-10-27T00:00:43.410Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:01:41.564Z",
+                                        "startTime": "2021-10-27T00:00:43.416Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "fivePrimeFlanksFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_5P/execution/five_prime_flanks.fasta",
+                                    "length3PFlank": 15,
+                                    "length5PFlank": 15,
+                                    "mergedReads": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbmerge/execution/HHCHO_merged.fastq",
+                                    "threePrimeFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P/execution/three_prime_flank.fasta",
+                                    "threePrimeRevcompFlankFasta": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P/execution/three_prime_revcomp_flank.fasta"
+                                },
+                                "jobId": "151615",
+                                "outputs": {
+                                    "out": [
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_five_prime_flank.fq",
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_five_prime_revcomp_flank.fq",
+                                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/execution/glob-c5f299e1be42af0b3eccbbdeef1ab5e1/out_three_prime_flank.fq"
+                                    ]
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "jfroula/aligner-bbmap:2.0.1",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-27T00:00:43.260Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal/execution/stdout"
+                            }
+                        ],
+                        "miseq_library.stats_python": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python",
+                                "commandLine": "python /usr/src/python/grna_analysis/count_references_occurrences.py /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/inputs/-762279671/HHCHO_references.fasta /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/inputs/132603931/reads_with_spacers.fastq\nsed 's/\\t/,/g' stats.csv > \"HHCHO_stats.csv\"",
+                                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                                "end": "2021-10-27T00:02:54.321Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:02:54.321Z",
+                                        "startTime": "2021-10-27T00:02:53.465Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-27T00:02:20.409Z",
+                                        "startTime": "2021-10-27T00:02:20.159Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-27T00:02:20.417Z",
+                                        "startTime": "2021-10-27T00:02:20.409Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:02:53.465Z",
+                                        "startTime": "2021-10-27T00:02:20.417Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-27T00:02:20.159Z",
+                                        "startTime": "2021-10-27T00:02:20.159Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-27T00:02:20.409Z",
+                                        "startTime": "2021-10-27T00:02:20.409Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "libraryName": "HHCHO",
+                                    "readsWithSpacersFastq": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/reads_with_spacers.fastq",
+                                    "referencesFasta": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHO_references.fasta"
+                                },
+                                "jobId": "151617",
+                                "outputs": {
+                                    "statsCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/execution/HHCHO_stats.csv"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-27T00:02:20.159Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/execution/stdout"
+                            }
+                        ]
+                    },
+                    "end": "2021-10-27T00:02:56.881Z",
+                    "id": "07790ae1-3481-4710-8e07-4b5f6ca2bfb5",
+                    "inputs": {
+                        "flankSeq3P": "TGAAGCTACAGGACT",
+                        "flankSeq5P": "GTGCGTATGTTTGTA",
+                        "libFastq": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/dna/dm_archive/sdm/illumina/05/24/85/52485.1.359430.GTGCTTA-GTAAGCA.fastq.gz",
+                        "libName": "HHCHO",
+                        "referencesFasta": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHO_references.fasta"
+                    },
+                    "outputs": {
+                        "miseq_library.lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/HHCHO_length_distribution.csv",
+                        "miseq_library.statsPythonCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/execution/HHCHO_stats.csv",
+                        "miseq_library.statsSealCsv": null
+                    },
+                    "parentWorkflowId": "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0",
+                    "rootWorkflowId": "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0",
+                    "start": "2021-10-26T23:59:36.959Z",
+                    "status": "Succeeded",
+                    "workflowName": "miseq_library",
+                    "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0"
+                }
+            }
+        ],
+        "miseq_libraries.vis_python_stats": [
+            {
+                "attempt": 1,
+                "end": "2021-10-27T00:05:54.360Z",
+                "executionEvents": [
+                    {
+                        "description": "SubWorkflowPendingState",
+                        "endTime": "2021-10-27T00:05:31.920Z",
+                        "startTime": "2021-10-27T00:05:31.920Z"
+                    },
+                    {
+                        "description": "SubWorkflowRunningState",
+                        "endTime": "2021-10-27T00:05:54.360Z",
+                        "startTime": "2021-10-27T00:05:31.921Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2021-10-27T00:05:31.920Z",
+                        "startTime": "2021-10-27T00:05:31.920Z"
+                    },
+                    {
+                        "description": "SubWorkflowPreparingState",
+                        "endTime": "2021-10-27T00:05:31.921Z",
+                        "startTime": "2021-10-27T00:05:31.920Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/HHCHN_length_distribution.csv",
+                    "libName": "HHCHN",
+                    "statsCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/execution/HHCHN_stats.csv"
+                },
+                "outputs": {
+                    "lengthDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/execution/HHCHN_length_distribution.png",
+                    "spacersDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/execution/HHCHN_spacers_distribution.png"
+                },
+                "shardIndex": 0,
+                "start": "2021-10-27T00:05:31.920Z",
+                "subWorkflowMetadata": {
+                    "calls": {
+                        "visualize_miseq_library.visualize": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize",
+                                "commandLine": "python /usr/src/python/grna_analysis/visualize_library.py \\\n    -l \"HHCHN\" \\\n    -d \"/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/inputs/-1585661953/HHCHN_length_distribution.csv\" \\\n    -s \"/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/inputs/-1158782263/HHCHN_stats.csv\"",
+                                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                                "end": "2021-10-27T00:05:53.321Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:05:53.321Z",
+                                        "startTime": "2021-10-27T00:05:52.511Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-27T00:05:34.432Z",
+                                        "startTime": "2021-10-27T00:05:34.410Z"
+                                    },
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-27T00:05:34.410Z",
+                                        "startTime": "2021-10-27T00:05:34.409Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-27T00:05:33.960Z",
+                                        "startTime": "2021-10-27T00:05:33.960Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-27T00:05:34.409Z",
+                                        "startTime": "2021-10-27T00:05:33.960Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:05:52.511Z",
+                                        "startTime": "2021-10-27T00:05:34.432Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/HHCHN_length_distribution.csv",
+                                    "libName": "HHCHN",
+                                    "statsCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/execution/HHCHN_stats.csv"
+                                },
+                                "jobId": "151622",
+                                "outputs": {
+                                    "lengthDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/execution/HHCHN_length_distribution.png",
+                                    "spacersDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/execution/HHCHN_spacers_distribution.png"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-27T00:05:33.959Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/execution/stdout"
+                            }
+                        ]
+                    },
+                    "end": "2021-10-27T00:05:54.360Z",
+                    "id": "4df693ad-25f1-4ab7-b180-c328f20696be",
+                    "inputs": {
+                        "lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk/execution/HHCHN_length_distribution.csv",
+                        "libName": "HHCHN",
+                        "statsCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python/execution/HHCHN_stats.csv"
+                    },
+                    "outputs": {
+                        "visualize_miseq_library.lengthDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/execution/HHCHN_length_distribution.png",
+                        "visualize_miseq_library.spacersDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize/execution/HHCHN_spacers_distribution.png"
+                    },
+                    "parentWorkflowId": "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0",
+                    "rootWorkflowId": "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0",
+                    "start": "2021-10-27T00:05:31.920Z",
+                    "status": "Succeeded",
+                    "workflowName": "vis_python_stats",
+                    "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0"
+                }
+            },
+            {
+                "attempt": 1,
+                "end": "2021-10-27T00:03:14.220Z",
+                "executionEvents": [
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2021-10-27T00:03:00.959Z",
+                        "startTime": "2021-10-27T00:03:00.959Z"
+                    },
+                    {
+                        "description": "SubWorkflowPendingState",
+                        "endTime": "2021-10-27T00:03:00.959Z",
+                        "startTime": "2021-10-27T00:03:00.959Z"
+                    },
+                    {
+                        "description": "SubWorkflowRunningState",
+                        "endTime": "2021-10-27T00:03:14.220Z",
+                        "startTime": "2021-10-27T00:03:00.961Z"
+                    },
+                    {
+                        "description": "SubWorkflowPreparingState",
+                        "endTime": "2021-10-27T00:03:00.961Z",
+                        "startTime": "2021-10-27T00:03:00.959Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/HHCHO_length_distribution.csv",
+                    "libName": "HHCHO",
+                    "statsCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/execution/HHCHO_stats.csv"
+                },
+                "outputs": {
+                    "lengthDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/execution/HHCHO_length_distribution.png",
+                    "spacersDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/execution/HHCHO_spacers_distribution.png"
+                },
+                "shardIndex": 1,
+                "start": "2021-10-27T00:03:00.959Z",
+                "subWorkflowMetadata": {
+                    "calls": {
+                        "visualize_miseq_library.visualize": [
+                            {
+                                "attempt": 1,
+                                "backend": "JTM",
+                                "backendStatus": "Done",
+                                "callCaching": {
+                                    "allowResultReuse": false,
+                                    "effectiveCallCachingMode": "CallCachingOff",
+                                    "hit": false,
+                                    "result": "Cache Miss"
+                                },
+                                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize",
+                                "commandLine": "python /usr/src/python/grna_analysis/visualize_library.py \\\n    -l \"HHCHO\" \\\n    -d \"/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/inputs/132603931/HHCHO_length_distribution.csv\" \\\n    -s \"/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/inputs/1264034605/HHCHO_stats.csv\"",
+                                "dockerImageUsed": "doejgi/synbioqc-libqc:0.2.2",
+                                "end": "2021-10-27T00:03:12.321Z",
+                                "executionEvents": [
+                                    {
+                                        "description": "WaitingForValueStore",
+                                        "endTime": "2021-10-27T00:03:03.409Z",
+                                        "startTime": "2021-10-27T00:03:03.409Z"
+                                    },
+                                    {
+                                        "description": "RunningJob",
+                                        "endTime": "2021-10-27T00:03:12.205Z",
+                                        "startTime": "2021-10-27T00:03:03.425Z"
+                                    },
+                                    {
+                                        "description": "RequestingExecutionToken",
+                                        "endTime": "2021-10-27T00:03:03.409Z",
+                                        "startTime": "2021-10-27T00:03:03.000Z"
+                                    },
+                                    {
+                                        "description": "Pending",
+                                        "endTime": "2021-10-27T00:03:03.000Z",
+                                        "startTime": "2021-10-27T00:03:03.000Z"
+                                    },
+                                    {
+                                        "description": "UpdatingJobStore",
+                                        "endTime": "2021-10-27T00:03:12.321Z",
+                                        "startTime": "2021-10-27T00:03:12.205Z"
+                                    },
+                                    {
+                                        "description": "PreparingJob",
+                                        "endTime": "2021-10-27T00:03:03.425Z",
+                                        "startTime": "2021-10-27T00:03:03.409Z"
+                                    }
+                                ],
+                                "executionStatus": "Done",
+                                "inputs": {
+                                    "lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/HHCHO_length_distribution.csv",
+                                    "libName": "HHCHO",
+                                    "statsCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/execution/HHCHO_stats.csv"
+                                },
+                                "jobId": "151619",
+                                "outputs": {
+                                    "lengthDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/execution/HHCHO_length_distribution.png",
+                                    "spacersDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/execution/HHCHO_spacers_distribution.png"
+                                },
+                                "returnCode": 0,
+                                "runtimeAttributes": {
+                                    "account": "fungalp",
+                                    "cluster": "cori",
+                                    "constraint": "haswell",
+                                    "continueOnReturnCode": "0",
+                                    "cpu": "32",
+                                    "docker": "doejgi/synbioqc-libqc:0.2.2",
+                                    "failOnStderr": "false",
+                                    "maxRetries": "0",
+                                    "memory": "116 GB",
+                                    "node": "1",
+                                    "nwpn": "5",
+                                    "partition": "",
+                                    "poolname": "synbio_small",
+                                    "qos": "genepool_special",
+                                    "shared": "0",
+                                    "time": "06:00:00"
+                                },
+                                "shardIndex": -1,
+                                "start": "2021-10-27T00:03:03.000Z",
+                                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/execution/stderr",
+                                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/execution/stdout"
+                            }
+                        ]
+                    },
+                    "end": "2021-10-27T00:03:14.220Z",
+                    "id": "f29dadf4-f642-450a-8f8d-cd5b34f886cd",
+                    "inputs": {
+                        "lengthDistributionCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk/execution/HHCHO_length_distribution.csv",
+                        "libName": "HHCHO",
+                        "statsCsv": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python/execution/HHCHO_stats.csv"
+                    },
+                    "outputs": {
+                        "visualize_miseq_library.lengthDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/execution/HHCHO_length_distribution.png",
+                        "visualize_miseq_library.spacersDistributionPng": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize/execution/HHCHO_spacers_distribution.png"
+                    },
+                    "parentWorkflowId": "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0",
+                    "rootWorkflowId": "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0",
+                    "start": "2021-10-27T00:03:00.959Z",
+                    "status": "Succeeded",
+                    "workflowName": "vis_python_stats",
+                    "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0"
+                }
+            }
+        ]
+    },
+    "end": "2021-10-27T00:06:23.941Z",
+    "id": "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0",
+    "inputs": {
+        "miseq_libraries.analysisName": "BEEPS_ESE-jaws_02",
+        "miseq_libraries.libNameFastq": {
+            "HHCHN": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/dna/dm_archive/sdm/illumina/05/24/85/52485.1.359430.CAAGCAG-ACTGCTT.fastq.gz",
+            "HHCHO": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/dna/dm_archive/sdm/illumina/05/24/85/52485.1.359430.GTGCTTA-GTAAGCA.fastq.gz"
+        },
+        "miseq_libraries.libNameReferencesFasta": {
+            "HHCHN": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHN_references.fasta",
+            "HHCHO": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHO_references.fasta"
+        },
+        "miseq_libraries.libraryFlanksTsv": "/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/library_flanks.tsv"
+    },
+    "labels": {
+        "cromwell-workflow-id": "cromwell-5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0"
+    },
+    "metadataSource": "Unarchived",
+    "outputs": {
+        "miseq_libraries.excelWorkbook": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel/execution/BEEPS_ESE-jaws_02.xlsx",
+        "miseq_libraries.summaryZip": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html/execution/summary/BEEPS_ESE-jaws_02.tar.gz"
+    },
+    "start": "2021-10-26T23:59:31.631Z",
+    "status": "Succeeded",
+    "submission": "2021-10-26T23:59:31.300Z",
+    "submittedFiles": {
+        "imports": {
+            "generate_miseq_excel.wdl": "workflow generate_miseq_excel {\n\n    String analysisName\n    Array[File] lengthDistributionCsvs\n    Array[File] statsCsvs\n\n    call generate_excel {\n        input:\n            analysisName=analysisName,\n            lengthDistributionCsvs=lengthDistributionCsvs,\n            statsCsvs=statsCsvs\n    }\n\n    output {\n        File excelWorkbook = generate_excel.excelWorkbook\n    }\n}\n\n\ntask generate_excel {\n\n    String analysisName\n    Array[File] lengthDistributionCsvs\n    Array[File] statsCsvs\n\n    command {\n        mkdir data\n        DATA_DIR=$(realpath data)\n\n        for FILE in ${sep=' ' lengthDistributionCsvs}\n        do\n            cp $FILE data\n        done\n\n        for FILE in ${sep=' ' statsCsvs}\n        do\n            cp $FILE data\n        done\n\n        python /usr/src/python/grna_analysis/generate_excel.py -n \"${analysisName}\" -d \"$DATA_DIR\"\n    }\n\n    output {\n        File excelWorkbook=\"${analysisName}.xlsx\"\n    }\n\n    runtime {\n        docker: \"doejgi/synbioqc-libqc:0.2.2\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n}",
+            "generate_miseq_html.wdl": "workflow generate_miseq_html {\n\n    String analysisName\n    Array[File] pngPlots\n    Array[File] lengthDistributionCsvs\n    Array[File] statsCsvs\n    File? excelWorkbook\n\n    call generate_html {\n        input:\n            analysisName=analysisName,\n            pngPlots=pngPlots,\n            lengthDistributionCsvs=lengthDistributionCsvs,\n            statsCsvs=statsCsvs,\n            excelWorkbook=excelWorkbook\n    }\n\n    output {\n        File summaryZip = generate_html.summaryZip\n    }\n}\n\n\ntask generate_html {\n\n    String analysisName\n    Array[File] pngPlots\n    Array[File] lengthDistributionCsvs\n    Array[File] statsCsvs\n    File? excelWorkbook\n\n    command {\n        mkdir -p summary/\"${analysisName}\"\n        HTML_DIR=$(realpath summary/\"${analysisName}\")\n\n        mkdir data\n        DATA_DIR=$(realpath data)\n\n        for FILE in ${sep=' ' pngPlots}\n        do\n            cp $FILE data\n        done\n\n        for FILE in ${sep=' ' lengthDistributionCsvs}\n        do\n            cp $FILE data\n        done\n\n        for FILE in ${sep=' ' statsCsvs}\n        do\n            cp $FILE data\n        done\n\n        cd \"$HTML_DIR\"  # generate index.html here\n\n        if [ -r \"${excelWorkbook}\" ]\n        then\n            python /usr/src/python/grna_analysis/generate_html.py -n ${analysisName} -d \"$DATA_DIR\" -e \"${excelWorkbook}\"\n        else\n            python /usr/src/python/grna_analysis/generate_html.py -n ${analysisName} -d \"$DATA_DIR\"\n        fi\n\n        # zip up the HTML dir\n        cd .. # cd to summary dir\n        tar -czvf \"${analysisName}\".tar.gz \"${analysisName}\"\n    }\n\n    output {\n        File summaryZip=\"summary/${analysisName}.tar.gz\"\n    }\n\n    runtime {\n        docker: \"doejgi/synbioqc-libqc:0.2.2\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n}",
+            "miseq_library.wdl": "workflow miseq_library {\n\n    String libName\n    File libFastq\n    File referencesFasta\n\n    String flankSeq5P\n    String flankSeq3P\n\n\n    call flank_fasta as flank_seq_3P {\n        input: flankSeq = flankSeq3P, seqId = \"three_prime\"\n    }\n\n    call flank_fasta as flank_seq_5P {\n        input: flankSeq = flankSeq5P, seqId = \"five_prime\"\n    }\n\n    call extract_spacer_length {\n        input: referencesFasta=referencesFasta\n    }\n\n    call bbmerge {\n        input:\n            libName=libName,\n            libFastq=libFastq\n    }\n\n    call seal {\n        input:\n            mergedReads=bbmerge.mergedReads,\n            threePrimeFlankFasta=flank_seq_3P.flankFasta,\n            fivePrimeFlanksFasta=flank_seq_5P.flanksFasta,\n            threePrimeRevcompFlankFasta=flank_seq_3P.revcompFlankFasta,\n            length3PFlank=flank_seq_3P.flankLength,\n            length5PFlank=flank_seq_5P.flankLength\n    }\n\n    call bbduk {\n        input:\n            libraryName=libName,\n            spacerLength=extract_spacer_length.spacerLength,\n            length3PFlank=flank_seq_3P.flankLength,\n            length5PFlank=flank_seq_5P.flankLength,\n            fivePrimeFlankFasta=flank_seq_5P.flankFasta,\n            fivePrimeRevcompFlankFasta=flank_seq_5P.revcompFlankFasta,\n            threePrimeFlankFasta=flank_seq_3P.flankFasta,\n            threePrimeRevcompFlankFasta=flank_seq_3P.revcompFlankFasta,\n            filteredReads=seal.out\n    }\n\n    if (extract_spacer_length.spacerLength > 31) {\n        call stats_python {\n            input:\n                libraryName=libName,\n                referencesFasta=referencesFasta,\n                readsWithSpacersFastq=bbduk.readsWithSpacersFastq\n        }\n    }\n\n    if (extract_spacer_length.spacerLength <= 31) {\n        call stats_seal {\n            input:\n                libraryName=libName,\n                spacerLength=extract_spacer_length.spacerLength,\n                referencesFasta=referencesFasta,\n                readsWithSpacersFastq=bbduk.readsWithSpacersFastq\n        }\n    }\n\n    output {\n        File? lengthDistributionCsv = bbduk.lengthDistributionCsv\n        File? statsSealCsv = stats_seal.statsCsv\n        File? statsPythonCsv = stats_python.statsCsv\n    }\n\n}\n\n\ntask extract_spacer_length {\n\n    File referencesFasta\n\n    command {\n        python /usr/src/python/grna_analysis/extract_spacer_length.py ${referencesFasta}\n    }\n\n    output {\n        Int spacerLength = read_int(stdout())\n    }\n\n    runtime {\n        docker: \"doejgi/synbioqc-libqc:0.2.2\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n}\n\ntask flank_fasta {\n\n    String flankSeq\n    String seqId\n\n    command {\n        python /usr/src/python/grna_analysis/generate_flank_fasta.py -f ${flankSeq} -i \"${seqId}\" 1>&2\n\n        FLANK_LENGTH=$(echo \"${flankSeq}\" | tr -d \" \\n\" | wc -c)\n        ADJUSTED_FLANK_LENGTH=$(($FLANK_LENGTH > 31 ? 31 : $FLANK_LENGTH))\n        echo $ADJUSTED_FLANK_LENGTH\n    }\n\n    output {\n        Int flankLength=read_int(stdout())\n        File flankFasta='${seqId}_flank.fasta'\n        File revcompFlankFasta='${seqId}_revcomp_flank.fasta'\n        File flanksFasta='${seqId}_flanks.fasta'\n    }\n\n    runtime {\n        docker: \"doejgi/synbioqc-libqc:0.2.2\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n}\n\n\ntask bbmerge {\n\n    String libName\n    File libFastq\n\n    command {\n        # #-Xmx23g threads=20\n        bbmerge.sh in=${libFastq} out=\"${libName}_merged.fastq\" outu=\"${libName}_unmerged.fastq\" #-Xmx23g\n    }\n\n    output {\n        File mergedReads=\"${libName}_merged.fastq\"\n        File unmergedReads=\"${libName}_unmerged.fastq\"\n    }\n\n    runtime {\n        docker: \"jfroula/aligner-bbmap:2.0.1\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n}\n\ntask seal {\n\n    Int length3PFlank\n    Int length5PFlank\n\n    File mergedReads\n\n    File threePrimeFlankFasta\n    File threePrimeRevcompFlankFasta\n\n    File fivePrimeFlanksFasta\n\n    command {\n        echo using length5PFlank: ${length5PFlank}\n        echo using length3PFlank: ${length3PFlank}\n\n        ## filter by 5' (forward and rev-comp)\n        echo filtering by 5 prime forward and rev-comp\n        seal.sh in=${mergedReads}  mm=f rcomp=f pattern=out_%.fq  k=${length5PFlank} ref=${fivePrimeFlanksFasta} #-Xmx23g\n\n        ## filter by 3' (forward)\n        if [ -f ./out_five_prime_flank.fq ]\n        then\n            echo filtering by 3 prime forward\n            seal.sh in=./out_five_prime_flank.fq  mm=f rcomp=f pattern=out_%.fq k=${length3PFlank} ref=${threePrimeFlankFasta} #-Xmx23g\n        else\n            echo not filtering by 3 prime forward\n        fi\n\n        ## filter by 3' (revcomp)\n        if [ -f ./out_five_prime_flank_revcomp.fq ]\n        then\n            echo filtering by 3 prime rev-comp\n            seal.sh in=./out_five_prime_flank_revcomp.fq  mm=f rcomp=f pattern=out_%.fq k=${length3PFlank} ref=${threePrimeRevcompFlankFasta} #-Xmx23g\n        else\n            echo not filtering by 3 prime rev-comp\n        fi\n    }\n\n    # https://github.com/openwdl/wdl/blob/main/versions/development/SPEC.md#file-directory-and-optional-outputs\n    output {\n        Array[File] out=glob('out_*')\n    }\n\n    runtime {\n        docker: \"jfroula/aligner-bbmap:2.0.1\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n}\n\ntask bbduk {\n\n    String libraryName\n\n    Int spacerLength\n    Int length3PFlank\n    Int length5PFlank\n\n    File fivePrimeFlankFasta\n\n    File threePrimeFlankFasta\n    File threePrimeRevcompFlankFasta\n    File fivePrimeRevcompFlankFasta\n\n    Array[File] filteredReads\n\n    command {\n        READS_WITH_5_PRIME_FLANK=reads_with_5_prime_flank.fastq\n        READS_WITH_BOTH_FLANKS=reads_with_both_flanks.fastq\n\n        READS_WITH_5_PRIME_FLANK_TRIMMED=reads_with_5_prime_flank_trimmed.fastq\n        READS_WITH_BOTH_FLANKS_TRIMMED=reads_with_both_flanks_trimmed.fastq\n        READS_WITH_SPACERS_FASTQ=reads_with_spacers.fastq\n\n        TRIMMED_READS=trimmed_reads.fastq\n\n        # link out_* files produced by earlier tasks into current directory\n        for FILE in ${sep=' ' filteredReads}\n        do\n            echo linking $FILE\n            ln -s $FILE .\n        done\n\n\n        ### cleanup\n\n        ## reads w/ forward-oriented flanks\n        if [ -f ./out_three_prime_flank.fq ]\n        then\n            bbduk.sh in=./out_three_prime_flank.fq out=./five_prime_forward_trim.fq ktrim=l k=${length3PFlank} mm=f ref=${fivePrimeFlankFasta} #-Xmx23g\n            bbduk.sh in=./five_prime_forward_trim.fq out=./both_forward_trim.fq ktrim=r k=${length5PFlank} mm=f ref=${threePrimeFlankFasta} #-Xmx23g\n\n            cat ./both_forward_trim.fq > $TRIMMED_READS\n        fi\n\n        ## reads w/ reverse complemented flanks\n        if [ -f ./out_three_prime_flank_revcomp.fq ]\n        then\n            bbduk.sh in=./out_three_prime_flank_revcomp.fq out=./five_prime_revcomp_trim.fq ktrim=r k=${length5PFlank} mm=f ref=${fivePrimeRevcompFlankFasta} #-Xmx23g\n            bbduk.sh in=./five_prime_revcomp_trim.fq out=./both_revcomp_trim.fq ktrim=l k=${length3PFlank} mm=f ref=${threePrimeRevcompFlankFasta} #-Xmx23g\n\n            cat ./both_revcomp_trim.fq >> $TRIMMED_READS\n        fi\n\n        if [ -f $TRIMMED_READS ]\n        then\n            echo trimmed reads\n            head -10 $TRIMMED_READS\n            ## calculate the # of trimmed reads that are 20bp long\n            bbduk.sh in=$TRIMMED_READS lhist=${libraryName}_length_distribution.csv out=$READS_WITH_SPACERS_FASTQ minlen=${spacerLength} maxlen=${spacerLength} int=f #-Xmx23g\n            sed -i 's/\\t/,/g' ${libraryName}_length_distribution.csv\n        fi\n    }\n\n    output {\n        File? trimmedReads = \"trimmed_reads.fastq\"\n        File? readsWithSpacersFastq = \"reads_with_spacers.fastq\"\n        File? lengthDistributionCsv = \"${libraryName}_length_distribution.csv\"\n    }\n\n    runtime {\n        docker: \"jfroula/aligner-bbmap:2.0.1\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n\n}\n\ntask stats_seal {\n\n    String libraryName\n    Int spacerLength\n    File referencesFasta\n    File readsWithSpacersFastq\n\n    command {\n        seal.sh in=${readsWithSpacersFastq} stats=stats.csv ref=${referencesFasta} k=${spacerLength} mm=f nzo=f #-Xmx23g\n        sed 's/\\t/,/g' stats.csv > \"${libraryName}_stats.csv\"\n    }\n\n    runtime {\n        docker: \"jfroula/aligner-bbmap:2.0.1\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n\n    output {\n        File statsCsv = \"${libraryName}_stats.csv\"\n    }\n\n}\n\ntask stats_python {\n\n    String libraryName\n    File referencesFasta\n    File readsWithSpacersFastq\n\n    command {\n        python /usr/src/python/grna_analysis/count_references_occurrences.py ${referencesFasta} ${readsWithSpacersFastq}\n        sed 's/\\t/,/g' stats.csv > \"${libraryName}_stats.csv\"\n    }\n\n    output {\n        File statsCsv = \"${libraryName}_stats.csv\"\n    }\n\n    runtime {\n        docker: \"doejgi/synbioqc-libqc:0.2.2\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n}",
+            "visualize_miseq_library.wdl": "workflow visualize_miseq_library {\n\n    String libName\n    File lengthDistributionCsv\n    File statsCsv\n\n    call visualize {\n        input:\n            libName=libName,\n            lengthDistributionCsv=lengthDistributionCsv,\n            statsCsv=statsCsv\n    }\n\n    output {\n        File lengthDistributionPng = visualize.lengthDistributionPng\n        File spacersDistributionPng = visualize.spacersDistributionPng\n    }\n}\n\ntask visualize {\n\n    String libName\n    File lengthDistributionCsv\n    File statsCsv\n\n    command {\n        python /usr/src/python/grna_analysis/visualize_library.py \\\n            -l \"${libName}\" \\\n            -d \"${lengthDistributionCsv}\" \\\n            -s \"${statsCsv}\"\n    }\n\n    output {\n        File lengthDistributionPng = \"${libName}_length_distribution.png\"\n        File spacersDistributionPng = \"${libName}_spacers_distribution.png\"\n    }\n\n    runtime {\n        docker: \"doejgi/synbioqc-libqc:0.2.2\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n}"
+        },
+        "inputs": "{\"miseq_libraries.analysisName\":\"BEEPS_ESE-jaws_02\",\"miseq_libraries.libNameFastq\":{\"HHCHN\":\"/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/dna/dm_archive/sdm/illumina/05/24/85/52485.1.359430.CAAGCAG-ACTGCTT.fastq.gz\",\"HHCHO\":\"/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/dna/dm_archive/sdm/illumina/05/24/85/52485.1.359430.GTGCTTA-GTAAGCA.fastq.gz\"},\"miseq_libraries.libNameReferencesFasta\":{\"HHCHN\":\"/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHN_references.fasta\",\"HHCHO\":\"/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/HHCHO_references.fasta\"},\"miseq_libraries.libraryFlanksTsv\":\"/global/cscratch1/sd/jaws/jaws-prod/inputs/scott/CORI/global/cscratch1/sd/scott/serval-out/miseq-20211026-165841-018-jaws-46285/conf/library_flanks.tsv\"}",
+        "labels": "{}",
+        "options": "{\n\n}",
+        "root": "",
+        "workflow": "import \"miseq_library.wdl\" as miseq_library\nimport \"visualize_miseq_library.wdl\" as visualize_miseq_library\nimport \"generate_miseq_html.wdl\" as generate_miseq_html\nimport \"generate_miseq_excel.wdl\" as generate_miseq_excel\n\nworkflow miseq_libraries {\n\n    String analysisName\n\n    # TSV file has three columns:\n    # library_name, 5P flank, 3P flank.\n    File libraryFlanksTsv\n\n    # keys of these maps are the library names in the first column of libraryFlanksTsv\n    Map[String, File] libNameFastq\n    Map[String, File] libNameReferencesFasta\n\n    scatter (libFlanks in read_tsv(libraryFlanksTsv)) {\n        String libName = libFlanks[0]\n        String flank5P = libFlanks[1]\n        String flank3P = libFlanks[2]\n\n        call miseq_library.miseq_library {\n            input:\n                libName=libName,\n                libFastq=libNameFastq[libName],\n                referencesFasta=libNameReferencesFasta[libName],\n                flankSeq5P=flank5P,\n                flankSeq3P=flank3P\n        }\n        if (defined(miseq_library.statsPythonCsv) && defined(miseq_library.lengthDistributionCsv)) {\n            call visualize_miseq_library.visualize_miseq_library as vis_python_stats {\n                input:\n                    libName=libName,\n                    lengthDistributionCsv=miseq_library.lengthDistributionCsv,\n                    statsCsv=miseq_library.statsPythonCsv\n            }\n        }\n        if (defined(miseq_library.statsSealCsv) && defined(miseq_library.lengthDistributionCsv)) {\n            call visualize_miseq_library.visualize_miseq_library as vis_seal_stats {\n                input:\n                    libName=libName,\n                    lengthDistributionCsv=miseq_library.lengthDistributionCsv,\n                    statsCsv=miseq_library.statsSealCsv\n            }\n        }\n    }\n    call collect_outputs {\n        input:\n            visPythonLengthDistributionPngs=vis_python_stats.lengthDistributionPng,\n            visPythonSpacersDistributionPngs=vis_python_stats.spacersDistributionPng,\n            visSealLengthDistributionPngs=vis_seal_stats.lengthDistributionPng,\n            visSealSpacersDistributionPngs=vis_seal_stats.spacersDistributionPng,\n            statsPythonsCsvs=miseq_library.statsPythonCsv,\n            statsSealCsvs=miseq_library.statsSealCsv,\n            lengthDistributionCsvs=miseq_library.lengthDistributionCsv\n    }\n\n    call generate_miseq_excel.generate_excel {\n        input:\n            analysisName=analysisName,\n            lengthDistributionCsvs=collect_outputs.distributionCsvs,\n            statsCsvs=collect_outputs.statsCsvs\n    }\n\n    call generate_miseq_html.generate_html {\n        input:\n            analysisName=analysisName,\n            pngPlots=collect_outputs.pngPlots,\n            lengthDistributionCsvs=collect_outputs.distributionCsvs,\n            statsCsvs=collect_outputs.statsCsvs,\n            excelWorkbook=generate_excel.excelWorkbook\n    }\n\n    output {\n        File summaryZip=generate_html.summaryZip\n        File excelWorkbook = generate_excel.excelWorkbook\n    }\n\n}\ntask collect_outputs {\n\n    Array[File?] visPythonLengthDistributionPngs\n    Array[File?] visPythonSpacersDistributionPngs\n\n    Array[File?] visSealLengthDistributionPngs\n    Array[File?] visSealSpacersDistributionPngs\n\n    Array[File?] statsPythonsCsvs\n    Array[File?] statsSealCsvs\n\n    Array[File?] lengthDistributionCsvs\n\n    command {\n        mkdir plots\n        mkdir stats\n        mkdir distributions\n        \n        for FILE in ${sep=' ' visPythonLengthDistributionPngs}\n        do\n            cp $FILE plots\n        done\n\n        for FILE in ${sep=' ' visPythonSpacersDistributionPngs}\n        do\n            cp $FILE plots\n        done\n\n        for FILE in ${sep=' ' visSealLengthDistributionPngs}\n        do\n            cp $FILE plots\n        done\n\n        for FILE in ${sep=' ' visSealSpacersDistributionPngs}\n        do\n            cp $FILE plots\n        done\n\n        for FILE in ${sep=' ' statsPythonsCsvs}\n        do\n            cp $FILE stats\n        done\n\n        for FILE in ${sep=' ' statsSealCsvs}\n        do\n            cp $FILE stats\n        done\n\n        for FILE in ${sep=' ' lengthDistributionCsvs}\n        do\n            cp $FILE distributions\n        done\n    }\n\n    output {\n        Array[File] pngPlots=glob('plots/*.png')\n        Array[File] statsCsvs=glob('stats/*.csv')\n        Array[File] distributionCsvs=glob('distributions/*.csv')\n    }\n\n    runtime {\n        docker: \"doejgi/synbioqc-libqc:0.2.2\"\n        poolname: \"synbio_small\"\n        shared: 0\n        node: 1\n        nwpn: 5\n        memory: \"116G\"\n        time: \"06:00:00\"\n    }\n\n}\n",
+        "workflowUrl": ""
+    },
+    "workflowName": "miseq_libraries",
+    "workflowProcessingEvents": [
+        {
+            "cromwellId": "cromid-14a19e0",
+            "cromwellVersion": "58",
+            "description": "Finished",
+            "timestamp": "2021-10-27T00:06:23.942Z"
+        },
+        {
+            "cromwellId": "cromid-14a19e0",
+            "cromwellVersion": "58",
+            "description": "PickedUp",
+            "timestamp": "2021-10-26T23:59:31.630Z"
+        }
+    ],
+    "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0"
+}

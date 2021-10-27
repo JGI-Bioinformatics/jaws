@@ -2,6 +2,8 @@
     "calls": {
         "fq_count.count_seqs": [
             {
+                "attempt": 1,
+                "shardIndex": -1,
                 "failures": [
                     {
                         "causedBy": [],
