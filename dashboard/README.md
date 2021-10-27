@@ -15,6 +15,7 @@ git clone https://code.jgi.doe.gov/advanced-analysis/jaws.git
 cd jaws/dashboard
 
 3. source the secrets file (get this file from one of the JAWS react.js developers)
+chmod 700 ~/.jaws-dashboard
 souce ~/.jaws-dashboard
 
 4. install dependencies (these should not be stored in the repository since they are large files).
