@@ -156,12 +156,10 @@ variables:
     - tags
 
 test:
-  tags:
-    - docker-build
   stage: test
 
   script:
-      - echo "Testing"
+      - echo "I'm needed for the SAST jobs"
 
 bandit-sast:
   tags:
