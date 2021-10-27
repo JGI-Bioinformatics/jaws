@@ -5,7 +5,7 @@ As you change the react.js code, you can have a browser open (localhost:3000) an
 You need to first follow these steps.
 
 Do this on your **laptop** since you'll be using localhost.
-
+```
 1. Install node.js which will include npx and npm.  Here is an example for macOS.
 https://nodejs.org/en/download/package-manager/#macos
 note: don't use conda to install nodejs since this won't work
@@ -22,6 +22,7 @@ npm install
 
 5. start the localhost server
 npm start
+```
 
 # Some General Notes About npm Usage
 
