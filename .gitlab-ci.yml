@@ -1,4 +1,5 @@
 stages:
+  - test
   - bandit-sast
   - semgrep-sast
   - unit-test
