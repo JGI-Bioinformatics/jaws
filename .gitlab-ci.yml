@@ -2,6 +2,8 @@ stages:
   - test
   - bandit-sast
   - semgrep-sast
+  - eslint-sast
+  - nodejs-scan-sast
   - unit-test
   - package
   - deploy-jaws
@@ -166,6 +168,14 @@ bandit-sast:
     - docker-build
 
 semgrep-sast:
+  tags:
+    - docker-build
+
+eslint-sast:
+  tags:
+    - docker-build
+
+nodejs-scan-sast:
   tags:
     - docker-build
 
