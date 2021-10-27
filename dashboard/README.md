@@ -1,19 +1,30 @@
 # This project (directory) was bootstrapped with [Create React App](https://github.com/facebook/create-react-app). 
 
-### How to start localhost:3000 when developing the react.js code
-Since this is a react-app based repository, you'll have to create & activate a reactjs conda environment
+### Setting up the development environment
+As you change the react.js code, you can have a browser open (localhost:3000) and changes will automatically be updated there. 
+You need to first follow these steps.
 
-```
-conda create --name reactjs
-conda activate reactjs
-conda install -y nodejs
-```
+Do this on your **laptop** since you'll be using localhost.
 
-Then inside the jaws/dashboard directory, run
-```
+1. Install node.js which will include npx and npm.  Here is an example for macOS.
+https://nodejs.org/en/download/package-manager/#macos
+note: don't use conda to install nodejs since this won't work
+
+2. go into the dashboard project repository
+git clone https://code.jgi.doe.gov/advanced-analysis/jaws.git
+cd jaws/dashboard
+
+3. source the secrets file (get this file from one of the JAWS react.js developers)
+souce ~/.jaws-dashboard
+
+4. install dependencies (these should not be stored in the repository since they are large files).
 npm install
+
+5. start the localhost server
 npm start
 ```
+
+# Some General Notes About npm Usage
 
 ## Available Scripts
 
