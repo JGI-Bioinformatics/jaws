@@ -52,9 +52,9 @@ def test_task(requests_mock):
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata")
     )
-    metadata2 = crom.get_metadata(example_cromwell_run_id_2)
-    task = metadata2.tasks["main_workflow.hello_and_goodbye_1"]
-    assert task.get("executionStatus") == "Done"
+    metadata = crom.get_metadata(example_cromwell_run_id_2)
+    task = metadata.tasks["main_workflow.hello_and_goodbye_1"]
+    assert task.get("executionStatus", -1, 1) == "Done"
 
 
 def test_task_subworkflow(requests_mock):
@@ -119,14 +119,14 @@ def test_metadata_tasks(requests_mock):
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     for task_name, task in metadata.tasks.items():
         assert len(task.data) > 0
-        index = len(task.data) - 1
-        call = task.data[index]
-        assert "attempt" in call
-        assert call["attempt"] == 1
-        assert "jobId" in call or "subWorkflowMetadata" in call
+        call = task.data[0]
+        shard_index = call["shardIndex"]
+        attempt = call["attempt"]
         if "subWorkflowMetadata" in call:
-            subworkflow = task.subworkflows[index]
+            subworkflow = task.subworkflows[shard_index][attempt]
             assert isinstance(subworkflow, cromwell.Metadata)
+        else:
+            assert "jobId" in call
 
 
 def test_errors(requests_mock, monkeypatch):
