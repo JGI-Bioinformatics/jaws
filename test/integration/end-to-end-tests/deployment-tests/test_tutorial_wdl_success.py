@@ -27,8 +27,12 @@ import submission_utils as util
             "./jaws-tutorial-examples/referencing_db_and_shifter/inputs.json",
         ),
         (
-            "./jaws-tutorial-examples/scatter_gather_example/test.wdl",
-            "./jaws-tutorial-examples/scatter_gather_example/input.json",
+            "./jaws-tutorial-examples/scatter_gather_example/array_scatter.wdl",
+            "./jaws-tutorial-examples/scatter_gather_example/array_scatter.json",
+        ),
+        (
+            "./jaws-tutorial-examples/scatter_gather_example/map_scatter.wdl",
+            "./jaws-tutorial-examples/scatter_gather_example/map_scatter.json",
         ),
         (
             "./jaws-tutorial-examples/subworkflow/main.wdl",
