@@ -21,6 +21,9 @@ example_cromwell_run_id_3 = "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"
 # failed, missing infile
 example_cromwell_run_id_4 = "469bcdd6-d67f-455f-9475-438349f41631"
 
+# successful run with subs
+example_cromwell_run_id_5 = "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0"
+
 # failed simple run
 example_cromwell_run_id_6 = "cbbbc75f-8920-495c-a290-0a1a5f0d1c20"
 
@@ -80,6 +83,17 @@ def test_task_summary(requests_mock):
         ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131", False],
         ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132", False],
     ]
+    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
+
+
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_5}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_5, "metadata"),
+    )
+    metadata = crom.get_metadata(example_cromwell_run_id_5)
+    actual = metadata.task_summary()
+    print(json.dumps(actual, indent=4, sort_keys=True))  # DEBUG
+    expected = __load_example_output_from_file(example_cromwell_run_id_5, "task-summary")
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
