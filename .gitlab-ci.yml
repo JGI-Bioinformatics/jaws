@@ -13,7 +13,9 @@ stages:
   - deploy-docs
 
 include:
-  - template: Security/SAST.gitlab-ci.yml
+  - project: 'advanced-analysis/ci-templates'
+    ref: 'master'
+    file: 'SAST.gitlab-ci.yml'
 
 services:
   - docker:19.03.12-dind
