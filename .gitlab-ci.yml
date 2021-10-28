@@ -14,7 +14,7 @@ stages:
 
 include:
   - project: 'advanced-analysis/ci-templates'
-    ref: 'master'
+    ref: 'main'
     file: 'SAST.gitlab-ci.yml'
 
 services:
