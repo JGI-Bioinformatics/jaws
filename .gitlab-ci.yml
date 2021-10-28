@@ -17,14 +17,7 @@ include:
     ref: 'main'
     file: 'SAST.gitlab-ci.yml'
 
-services:
-  - docker:19.03.12-dind
-
 variables:
-  ## Configs for docker-executor
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
-
   GIT_STRATEGY: clone
 
   ## GLOBAL INSTALL VARIABLES:
@@ -164,22 +157,6 @@ test:
 
   script:
       - echo "I'm needed for the SAST jobs"
-
-bandit-sast:
-  tags:
-    - docker-build
-
-semgrep-sast:
-  tags:
-    - docker-build
-
-eslint-sast:
-  tags:
-    - docker-build
-
-nodejs-scan-sast:
-  tags:
-    - docker-build
 
 test-rpc:
   <<: *only-default
