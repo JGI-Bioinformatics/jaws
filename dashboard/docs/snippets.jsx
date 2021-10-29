@@ -10,7 +10,7 @@ class BlastDB extends Component {
 
   }
   render() { 
-    return (undefined);
+    return (undefined); // Explicitly return undefined, clears semgrep error as well as avscode warning
   }
 }
  
