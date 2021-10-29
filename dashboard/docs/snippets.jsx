@@ -10,7 +10,7 @@ class BlastDB extends Component {
 
   }
   render() { 
-    return (  );
+    return (undefined);
   }
 }
  
