@@ -1,4 +1,9 @@
 stages:
+  - test
+  - bandit-sast
+  - semgrep-sast
+  - eslint-sast
+  - nodejs-scan-sast
   - unit-test
   - package
   - deploy-jaws
@@ -6,6 +11,11 @@ stages:
   - deployment-tests
   - stress-tests
   - deploy-docs
+
+include:
+  - project: 'advanced-analysis/ci-templates'
+    ref: 'main'
+    file: 'SAST.gitlab-ci.yml'
 
 variables:
   GIT_STRATEGY: clone
@@ -141,6 +151,12 @@ variables:
     - branches
     - merge_requests
     - tags
+
+test:
+  stage: test
+
+  script:
+      - echo "I'm needed for the SAST jobs"
 
 test-rpc:
   <<: *only-default
