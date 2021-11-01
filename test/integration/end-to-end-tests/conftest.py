@@ -60,8 +60,7 @@ def submit_subworkflow_alignment(request):
 
 @pytest.fixture(scope="session")
 def submit_bad_task(request):
-    """ This will submit a fq_count.wdl WDL that has a bad bash command in the command{} section.
-     This is for testing the error logs.
+    """ This will submit a fq_count.wdl WDL that has a bad bash command in the command{} section. This is for testing the error logs.
 
     :param a request object for capturing CLI arguments
     :type object 
@@ -153,7 +152,7 @@ def submit_skylake_250(request):
     :param a request object for capturing CLI arguments
     :type object
     :rtype dictionary
-    :return output from jaws submit 
+    :return output from jaws submit
     """
 
     # allow user to pass variables into the test functions via command line
@@ -230,12 +229,11 @@ def clone_tutorials_repo(request):
 
 # The addoption functions allows us to use flags to capture arguments on the command line.
 def pytest_addoption(parser):
-    """ The parser.addoption function allows us to use flags to capture CLI arguments that can
-    then be used in our test functions as if they were fixtures.
+    """ The parser.addoption function allows us to use flags to capture CLI arguments that can then be used in our test functions as if they were fixtures. 
 
     :param a request object for capturing CLI arguments
     :type object
-    :rtype none 
+    :rtype none
     :return none
     """
     parser.addoption(
@@ -249,4 +247,16 @@ def pytest_addoption(parser):
         action="store",
         help="the JAWS site [cori|jgi] that will be used during submission",
     )
+
+# These functions allows an argument to be passed into the test functions
+@pytest.fixture
+def dir(request):
+    """ This CLI argument is for the parent directory in which the WDL & input.json files live."""
+    return request.config.getoption("--dir")
+
+
+@pytest.fixture
+def site(request):
+    """ The --site CLI argument is for passing the site [cori|jgi] to test the functions"""
+    return request.config.getoption("--site")
 
