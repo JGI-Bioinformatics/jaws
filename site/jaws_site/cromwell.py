@@ -27,6 +27,8 @@ elsewhere in JAWS/JTM, as clarified below:
 import requests
 import logging
 import os
+from datetime import datetime
+from dateutil import parser
 
 
 def _read_file(path: str):
@@ -135,13 +137,27 @@ class Task:
             job_id = None
             if "jobId" in call:
                 job_id = call["jobId"]
+            run_time = None
+            if "executionEvents" in call:
+                for event in call["executionEvents"]:
+                    if (
+                        event["description"] == "RunningJob"
+                        and "startTime" in event["description"]
+                        and "endTime" in event["description"]
+                    ):
+                        start_time = parser.parse(event["startTime"])
+                        end_time = parser.parse(event["endTime"])
+                        delta = end_time - start_time
+                        run_time = delta.strftime("%H:%M:%S")
             if "subWorkflowMetadata" in call:
                 subworkflow = self.subworkflows[shard_index][attempt]
                 sub_task_summary = subworkflow.task_summary()
-                for sub_name, sub_job_id, sub_cached in sub_task_summary:
-                    summary.append([f"{name}:{sub_name}", sub_job_id, sub_cached])
+                for sub_name, sub_job_id, sub_cached, run_time in sub_task_summary:
+                    summary.append(
+                        [f"{name}:{sub_name}", sub_job_id, sub_cached, run_time]
+                    )
             else:
-                summary.append([name, job_id, cached])
+                summary.append([name, job_id, cached, run_time])
         return summary
 
     def errors(self):
