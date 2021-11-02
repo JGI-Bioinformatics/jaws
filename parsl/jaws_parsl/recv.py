@@ -162,10 +162,10 @@ class TasksChannel():
                 elif site == "JGI":
                     executor = 'lbl'
                 elif site == "TAHOMA":
-                	if int(mem) <= 384:
+                    if int(mem) <= 384:
                         executor = 'tahoma_normal'
                     else:
-                    	executor = 'tahoma_analysis'
+                        executor = 'tahoma_analysis'
                 else:
                     raise ValueError(f'{site} is not a valid site.')
                 future = run_script(msg)
