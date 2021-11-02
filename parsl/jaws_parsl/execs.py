@@ -15,7 +15,7 @@ cori_ev_opts += '\n#SBATCH -A genother'
 
 lbl_sched_opts = '#SBATCH -A jgicloud'
 
-tahoma_sched_opts = ''
+tahoma_sched_opts = '#SBATCH -A mscjgi'
 
 config_cori = Config(
     executors=[
