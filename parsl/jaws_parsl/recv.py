@@ -153,7 +153,7 @@ class TasksChannel():
                 mem = msg['memory']
 
                 # assume memory is spec'd in GB via memory_gb in WDL
-                # check memory request and route on Cori accordingly
+                # check memory request and route on Cori or Tahoma accordingly
                 if site == "CORI":
                     if int(mem) <= 128:
                         executor = 'cori_genepool'
@@ -162,7 +162,10 @@ class TasksChannel():
                 elif site == "JGI":
                     executor = 'lbl'
                 elif site == "TAHOMA":
-                    executor = 'tahoma'
+                	if int(mem) <= 384:
+                        executor = 'tahoma_normal'
+                    else:
+                    	executor = 'tahoma_analysis'
                 else:
                     raise ValueError(f'{site} is not a valid site.')
                 future = run_script(msg)
