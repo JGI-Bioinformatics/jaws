@@ -15,6 +15,8 @@ cori_ev_opts += '\n#SBATCH -A genother'
 
 lbl_sched_opts = '#SBATCH -A jgicloud'
 
+tahoma_sched_opts = ''
+
 config_cori = Config(
     executors=[
         HighThroughputExecutor(
@@ -110,6 +112,38 @@ config_lbl = Config(
                 # string to prepend to #SBATCH blocks in the submit
                 # script to the scheduler eg: '#SBATCH --constraint=knl,quad,cache'
                 scheduler_options=lbl_sched_opts,
+                # *** NOTE *** worker_init must be setup
+                # Command to be run before starting a worker, such as:
+                # 'module load Anaconda; source activate parsl_env'.
+                # worker_init='module load python; source activate parsl-env',
+                launcher=SingleNodeLauncher(),
+                walltime='48:00:00',
+                cmd_timeout=120,
+                exclusive=False
+            ),
+        ),
+    ],
+    monitoring=MonitoringHub(
+       hub_address=address_by_hostname(),
+       hub_port=55055,
+       monitoring_debug=False,
+       resource_monitoring_interval=10,
+    )
+)
+
+config_tahoma = Config(
+    executors=[
+        HighThroughputExecutor(
+            label='tahoma',
+            address=address_by_hostname(),
+            provider=SlurmProvider(
+                partition='normal',  # Partition / QOS
+                # https://www.emsl.pnnl.gov/MSC/UserGuide/tahoma/compute_jobs.html
+                nodes_per_block=1,
+                init_blocks=1,
+                # string to prepend to #SBATCH blocks in the submit
+                # script to the scheduler eg: '#SBATCH --constraint=knl,quad,cache'
+                scheduler_options=tahoma_sched_opts,
                 # *** NOTE *** worker_init must be setup
                 # Command to be run before starting a worker, such as:
                 # 'module load Anaconda; source activate parsl_env'.

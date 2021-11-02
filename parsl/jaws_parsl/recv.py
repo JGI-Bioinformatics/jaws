@@ -13,6 +13,7 @@ from functools import partial
 
 logger = None
 rpc_params = {}
+site = ''
 executor = ''
 cpus = 0
 mem = ''
@@ -160,6 +161,10 @@ class TasksChannel():
                         executor = 'cori_exvivo'
                 elif site == "JGI":
                     executor = 'lbl'
+                elif site == "TAHOMA":
+                    executor = 'tahoma'
+                else:
+                    raise ValueError(f'{site} is not a valid site.')
                 future = run_script(msg)
                 task_id = future.tid
                 logger.debug(f"Task:{task_id} Launched")
