@@ -211,6 +211,35 @@ backend
         concurrent-job-limit = 0
       }
     }
+    PARSL
+    {
+      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+      config {
+        run-in-background = true
+        runetime-attributes = """
+        String? docker
+        String? docker_user
+        Int cpus = 2
+        Int memory_gb = 1
+        """
+
+        submit = """
+          python send.py -c \${cpus} -m \${memory_gb} -s \${site} -cmd \${script}
+        """
+
+        submit-docker = """
+          LOOKUP=$(shifterimg lookup \${docker})
+          if [[ ! $LOOKUP ]]; then
+            shifterimg pull \${docker}
+          fi
+
+          python send.py -c \${cpus} -m \${memory_gb} -s \${site} -cmd \${script}
+        """
+        job-id-regex = "Task ID: (\\\d+)"
+        kill = ""
+        check-alive = "python read_db.py -t \${job_id}"  
+      }
+    }
     JTM
     {
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
