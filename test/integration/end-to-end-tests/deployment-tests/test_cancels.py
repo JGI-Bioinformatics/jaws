@@ -7,7 +7,6 @@ google sheet: https://docs.google.com/spreadsheets/d/1eBWvk4FSPpbFclTuzu0o77aPAx
 This library of tests uses "fixtures" from conftest.py which should be located in the same directory.
 """
 
-import os
 import pytest
 import json
 import time
@@ -17,12 +16,9 @@ import submission_utils as util
 WDL = "/WDLs/fq_count.wdl"
 INP = "/test-inputs/fq_count.json"
 FINAL_STATE = "download complete"
-VALID_STATES = [
-    "queued",
-    "running",
-    "download complete"]
-CHECK_TRIES = 2000
-CHECK_SLEEP = 30
+VALID_STATES = ["queued", "running", "download complete"]
+CHECK_TRIES = 20000
+CHECK_SLEEP = 5
 
 
 @pytest.mark.parametrize("state", VALID_STATES)
@@ -34,7 +30,7 @@ def test_cancel(dir, site, state):
     status_cmd = "jaws status %s" % run_id
     cancel_cmd = "jaws cancel %s" % run_id
 
-    ## get to the state we are testing
+    # get to the state we are testing
     floating_state = ""
     tries = 0
     while floating_state != state:
@@ -54,8 +50,7 @@ def test_cancel(dir, site, state):
             return
         tries += 1
 
-
-    ## submit cancel command to JAWS and gather output
+    # submit cancel command to JAWS and gather output
     r_can, o_can, e_can = util.run(cancel_cmd)
     if state == FINAL_STATE:
         assert r_can == 1, "\n** Return code is not 1. (%s)" % (run_id)

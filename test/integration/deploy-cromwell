@@ -2,6 +2,14 @@
 
 echo "BEGIN deploy-cromwell"
 
+
+# import helper functionn from any location
+# taken from https://stackoverflow.com/questions/192292/how-best-to-include-other-scripts
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+. "$DIR/utils.sh"
+
+
 ## VERIFY REQUIRED VARS ARE DEFINED
 # If any env are undefined, try sourcing the setup script and check again.
 # Exits if any required var is undefined.
@@ -15,7 +23,8 @@ CROMWELL_JAR_URL
 SITE_CROMWELL_JAR
 SITE_JTM_GROUP
 SITE_CONTAINER_TYPE
-SITE_CONTAINERS_DIR
+SITE_CONTAINERS_TMPDIR
+SITE_CONTAINERS_PULLDIR
 SITE_JTM_SCRATCH_DIR
 SITE_CROMWELL_TMPDIR
 CROMWELL_WORKFLOW_LOGS_DIR
@@ -43,10 +52,18 @@ fi
 [ $RESULT -eq 0 ] || exit 1
 
 
+## CREATE SITE_REF_DATA_DIR DIR
+if [ ! -d "$SITE_REF_DATA_DIR" ]; then
+  mkdir -p "$SITE_REF_DATA_DIR"
+  fix_perms $SITE_JTM_GROUP "$SITE_REF_DATA_DIR"
+fi
+
+
 ## COPY CROMWELL JAR
 wget --no-verbose "$CROMWELL_JAR_URL" -O "$SITE_CROMWELL_JAR"
 chmod 640 "$SITE_CROMWELL_JAR"
 chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
+
 
 # When creating the wrapper scripts the arguments to each script are as follows:
 # For SHIFTER
@@ -81,23 +98,24 @@ fi
   CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
   cat <<EOM > "$CONTAINER_WRAPPER"
 #!/usr/bin/env bash
-shifter --image=\$1 -V \$2:\$3 \$4 \$5
+echo \"Executing on \$HOSTNAME\" 1>&2
+exec shifter --image=\$1 -V \$2:\$3 \$4 \$5
 EOM
   chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
   chmod 775 "$INSTALL_DIR/shifter_exec.sh"
 
 elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
-  CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_DIR
-export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_DIR
-export SINGULARITY_TMPDIR=$SITE_CONTAINERS_DIR
-export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_DIR
+  CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_TMPDIR
+export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_PULLDIR
+export SINGULARITY_TMPDIR=$SITE_CONTAINERS_TMPDIR
+export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_TMPDIR
 export FLOCK_DIR=/tmp
 
 IMAGE=\$(echo \${docker} | tr '/:' '_').sif
 echo \"\$IMAGE\"
 if [ -z \$SINGULARITY_CACHEDIR ];
     then CACHE_DIR=\$HOME/.singularity/cache
-    else CACHE_DIR=$\SINGULARITY_CACHEDIR
+    else CACHE_DIR=\$SINGULARITY_CACHEDIR
 fi
 # Make sure cache dir exists so lock file can be created by flock
 mkdir -p \$CACHE_DIR
@@ -127,6 +145,7 @@ DOCKER_CWD=\$4
 IMAGE=\$5
 JOB_SHELL=\$6
 SCRIPT=\$7
+echo \"Executing on \$HOSTNAME\" 1>&2
 singularity exec --bind \$REMOTE_REF:\$LOCAL_REF --bind \$CWD:\$DOCKER_CWD \$IMAGE \$JOB_SHELL \$SCRIPT
 exit $?
 EOM
@@ -215,10 +234,10 @@ backend
 
         filesystems {
           local {
-            localization: [ "soft-link", "copy" ]
+            localization: [ "hard-link", "copy" ]
             caching {
-              duplication-strategy: [ "soft-link", "copy" ]
-              hashing-strategy: "path+modtime"
+              duplication-strategy: [ "hard-link", "copy" ]
+              hashing-strategy: "xxh64"
             }
             http {}
           }

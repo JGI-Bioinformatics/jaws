@@ -24,7 +24,7 @@ def test_json_file_does_not_exist(dir, site):
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
     inputs = os.path.join(dir, "./FileDoesNotExist.json")
 
-    cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
+    cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, inputs, site)
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
@@ -35,11 +35,12 @@ def test_input_file_is_not_json_format(dir, site):
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
     # testing for message when inputs file is not json, so using wdl again instead of a json file
     inputs = wdl
-    cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
+    cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, inputs, site)
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
     assert "is not a valid JSON file" in e
+
 
 def xtest_json_bad_path_to_input_file_msg(dir, site):
     # TESTCASE-5a
@@ -48,7 +49,7 @@ def xtest_json_bad_path_to_input_file_msg(dir, site):
 
     # Can't use  submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/bad_path_inputs.json")
-    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
+    submit_cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, inputs, site)
     cmd = submit_cmd
     (r, o, e) = util.run(cmd)
 
@@ -84,15 +85,13 @@ def test_bad_input_file_permissions_msg(dir, site):
     # Submit json that contains a path to a file with bad permissions
     # This test uses the bad_permissions.json which points to a file that has no read permissions
     # set for owner, group or user
-    # ls -l /global/cfs/projectdirs/jaws/test/tutorial_test_data/no_read_perms.fastq
-    # ---------- 1 jfroula genome 3470 Apr 27 17:01 /global/cfs/projectdirs/jaws/test/tutorial_test_data/no_read_perms.fastq
     # JAWS should show user an error message that explains the problem to the user
 
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/bad_permissions.json")
-    submit_cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
+    submit_cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, inputs, site)
     (r, o, e) = util.run(submit_cmd)
 
     # check for the correct error message
@@ -109,7 +108,7 @@ def test_invalid_wdl_syntax_msg(dir, site):
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/fq_count.json")
-    cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
+    cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, inputs, site)
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
@@ -123,7 +122,7 @@ def test_invalid_wdl_semantics_msg(dir, site):
 
     # Can't use submission_utils submit_wdl here because it exits if submission not successful
     inputs = os.path.join(dir, "test-inputs/fq_count.json")
-    cmd = "jaws submit --no-cache %s %s %s" % (wdl, inputs, site)
+    cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, inputs, site)
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message

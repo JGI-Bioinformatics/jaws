@@ -2,89 +2,15 @@
 Code Snippets to Answer Common WDL Design Problems
 ==================================================
 
+.. role:: bash(code)
+    :language: bash
+
+OpenWDL provides the WDL functions in `specs for version 1.0 <https://github.com/openwdl/wdl/blob/main/versions/1.0/SPEC.md>`_
+
 #############
 Building WDLs
 #############
 
-How do I use Arrays and Maps in my WDL. 
-    Specifically, how do I dereference the contents of the array or map so I can use them in my commands?
-    This example was copied from github:gist `scottfrazer/style_guide.md <https://gist.github.com/scottfrazer/aa4ab1945a6a4c331211>`_.  Also, you can see more about the functions used here on the official Broad Institute's `WDL spec.md <https://github.com/openwdl/wdl/blob/main/versions/1.0/SPEC.md>`_.
-    
-    WDL allows compound types like Array[String] or Map[String, Int] or Array[Array[String]]. There are two ways to get these data types into a form that the command can use:
-    
-    1. Serialization by concatenation (only for Array)
-    2. Serialization by write-to-file
-
-    Use WDL functions for common transformations
-    
-    
-    .. code-block:: text
-
-        task example {
-          Array[String] array
-          Map[String, File] map
-          Array[Array[Int]] matrix
-          
-          command {
-            echo ${sep=',' array}
-            cat ${write_lines(array)}
-            python script.py --map=${write_map(map)}
-            python process.py ${write_tsv(matrix)}
-          }
-        }
-        
-        workflow test {
-          call example
-        }
-        {
-          "test.example.array": ["a", "b", "c"],
-          "test.example.map": {
-            "key0": "/path/to/file0",
-            "key1": "/path/to/file1",
-            "key2": "/path/to/file2",
-          },
-          "test.example.matrix": [
-            [0, 1, 2],
-            [3, 4, 5],
-            [6, 7, 8]
-          ]
-        }
-
-        Produces this command:
-        
-        echo a,b,c
-        cat /tmp/array.txt
-        python script.py --map=<cromwell-execution/path>/map_<hash_id>.txt
-        python process.py <cromwell-execution/path>/matrix_<hash_id>.txt
-
-        array.txt would contain
-        a
-        b
-        c
-
-        map.txt would contain
-        key0  /path/to/file0
-        key1  /path/to/file1
-        key2  /path/to/file2
-
-        matrix.txt would contain
-        0 1 2
-        3 4 5
-        6 7 8
-
-        use read_* functions go to from files output by your command into WDL values
-
-        task example {
-          command {
-            echo 'first' > file
-            echo 'second' >> file
-            echo 'third' >> file
-          }
-          output {
-            Array[String] out = read_lines("file")
-          }
-        }
-    
 How can I use bash commands that require curly braces?
     If you ever need to use curly braces in bash to strip a suffix txt or set a default:
 
@@ -108,8 +34,19 @@ How can I use bash commands that require curly braces?
             }
         }
 
+
 How can I output a file that has been named dynamically as a bash variable
     Bash variables created in the command{} block cannot be seen outside the block, for example, in the output {} section. Therefore, you can write the name(s) of any output files to another file which will be read inside the output {} block.
+
+	This is the official WDL way, using glob
+
+    .. code-block:: text
+
+		output {
+  			Array[File] output_bams = glob("*.bam")
+		}
+
+    This is another method
 
     .. code-block:: text
 
@@ -122,6 +59,7 @@ How can I output a file that has been named dynamically as a bash variable
         
 
     To see more about read_lines() and other WDL functions, see `openwdl/wdl <https://github.com/openwdl/wdl/blob/main/versions/1.0/SPEC.md>`_
+
 
 Using Conditionals
 
@@ -162,3 +100,29 @@ Using Conditionals
             File outfile = "wc.txt"
           }
         }
+
+
+How to scatter over arrays and maps
+    Although you can scatter over arrays and maps, there is different syntax for each.
+    You can only scatter over an array with this syntax
+    
+    .. code-block:: text
+
+        Array[String] some_array
+        scatter (e in some_array) {
+            String value = some_array[e]
+			call some_task {input: value = value}
+        }
+
+    But you can iterate over a map by using the :bash:`pair` keyword and then :bash:`.left` and :bash:`.right` as such
+
+    .. code-block:: text
+
+        Map[String,String] some_map
+        scatter (pair in some_map) {
+        	String key= pair.left
+        	String value = pair.right # or String val = some_map[key]
+			call some_task {input: value = value}
+        }
+
+    You can see working examples for `scattering an array and scattering a map <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/tree/master/scatter_gather_example>`_.

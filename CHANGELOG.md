@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.5.0 (2021-10-21) Summary
+This release includes changes necessary to deploy to an additional computing site, tahoma.  Also included are several bug fixes and new features to improve the user experience.
+
+### Deployment
+- A new jaws-site, "tahoma" is deployed at PNNL (!947, !948, !958, !968, !974, !975, !979)
+- JAWS-Sites should now restart automatically after scheduled maintenance (#155).
+
+### End-to-end Tests
+- Improved integration tests (!968, !973, !984)
+
+### Bug Fixes
+- Getting the metadata or errors report for a run with many (e.g. 1000) subworkflows resulted in a timeout error because jaws-site would request the metadata for each subworkflow in a separate request to the Cromwell server, which in rare cases took longer than the jaws-central REST server was willing to wait for a response.  This has been fixed as Cromwell offers an option to retrieve all subworkflow metadata with the main workflow; however, this changes the structure of the metadata JSON document slightly: rather than tasks having a "subWorkflowId", they now contain "subWorkflowMetadata" and the metadata is nested within the task.  The errors report, which is a filtered metadata document has also changed slightly as a result (!980, !982, !986).
+- A workflow task which created a tmpfile could not be transferred by Globus due to file permissions, causing the results of such a run to not be downloadable.  This is resolved by skipping such tmpfiles (!981).
+
+### New Features
+- The client `jaws get` command now retrieves only files tagged as "outputs" in the WDL, by default, skipping intermediate files (e.g. stdout, stderr, rc, etc.) that are often of no use to the user.  The complete cromwell-executions output can still be retrieved by using the `--complete` option (!949, !953, !954, !955, !956, !966).  We also now generate an "outputs.json" file for each run which contains the relative paths to each output file as well as any non-path (e.g. string, integer) outputs (!964, !965, !968, !970, !971, !976, !977).
+- The task-log and task-status tables have been improved for readability.  The cromwell_run_id column (UUID string) that was previously used to distinguish between tasks of the same name in different subworkflow calls has been dropped and, instead, subworkflow names (which are human-readable labels) now prefix the task names.  Additionally the "attempts" column has been dropped as we report only the last attempt of each task and we have actually never seen cromwell make multiple attempts at running a task (!983, !991).
+- A progress bar is now displayed when input and output files are copied by the client, so the user can see the copy progress and see if there is a problem with the file system (!963(
+- Modification to jaws-auth for supporting keycloak and integration with the upcoming jaws-dashboard (!950, !951).
+
 ## 2.4.0 (2021-08-30) Summary
 This release contains various bugfixes and deployment changes. It also
 addresses a security issue associated with Cromwell deployments at HPC sites.

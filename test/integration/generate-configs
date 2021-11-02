@@ -30,6 +30,9 @@ SITE_JAWS_GROUP
 SITE_JTM_GROUP
 SITE_JTM_SCRATCH_DIR
 SITE_UPLOADS_DIR
+SITE_RMQ_HOST
+SITE_RMQ_PORT
+SITE_RMQ_PW
 JTM_VENV_DIR
 "
 RESULT=0
@@ -63,9 +66,9 @@ password = $JAWS_DB_PW
 db = jaws_${JAWS_SITE,,}_$DEPLOYMENT_NAME
 [LOCAL_RPC_SERVER]
 user = jaws
-password = $JAWS_RMQ_PW
-host = $JAWS_RMQ_HOST
-port = $JAWS_RMQ_PORT
+password = $SITE_RMQ_PW
+host = $SITE_RMQ_HOST
+port = $SITE_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = SITE_$JAWS_SITE
 num_threads = 5
@@ -107,22 +110,22 @@ scratch = $SITE_JTM_SCRATCH_DIR
 debug = 1
 [RMQ]
 user = jaws
-host = $JAWS_RMQ_HOST
-port = $JAWS_RMQ_PORT
-password = $JAWS_RMQ_PW
+host = $SITE_RMQ_HOST
+port = $SITE_RMQ_PORT
+password = $SITE_RMQ_PW
 vhost = jtm_$DEPLOYMENT_NAME
 [SITE_RPC_CLIENT]
 user = jaws
-password = $JAWS_RMQ_PW
-host = $JAWS_RMQ_HOST
-port = $JAWS_RMQ_PORT
+password = $SITE_RMQ_PW
+host = $SITE_RMQ_HOST
+port = $SITE_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = SITE_$JAWS_SITE
 [JTM_RPC_SERVER]
 user = jaws
-password = $JAWS_RMQ_PW
-host = $JAWS_RMQ_HOST
-port = $JAWS_RMQ_PORT
+password = $SITE_RMQ_PW
+host = $SITE_RMQ_HOST
+port = $SITE_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JTM_RPC_$JAWS_SITE
 num_threads = 5
