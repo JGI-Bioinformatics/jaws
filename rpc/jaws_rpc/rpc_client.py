@@ -200,7 +200,10 @@ class RpcClient(object):
             waited = waited + self.wait_interval
             if waited > self.max_wait:
                 # timeout error
-                response["error"] = {"code": 500, "message": "Server timeout"}
+                response["error"] = {
+                    "code": 408,
+                    "message": "Server timeout: The service is unable to respond at this time; please try again later.",
+                }
                 return response
             sleep(self.wait_interval)
 

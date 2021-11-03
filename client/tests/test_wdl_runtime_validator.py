@@ -17,7 +17,7 @@ from jaws_client.wdl_runtime_validator import (
 
 
 def test_good_wdl():
-    validate_wdl_runtime(GOOD_WDL)
+    validate_wdl_runtime(GOOD_WDL, 500)
 
 
 def test_allRequiredParams():
@@ -26,7 +26,7 @@ def test_allRequiredParams():
     time or memory, which are the minimum settings.
     """
     with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(NO_TIME_AND_MEMORY)
+        validate_wdl_runtime(NO_TIME_AND_MEMORY, 500)
 
 
 def test_timeParam():
@@ -37,27 +37,23 @@ def test_timeParam():
     4. You are limited to 72hrs where constraint=haswell"
     """
     with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(BAD_TIME_LIMITS)
+        validate_wdl_runtime(BAD_TIME_LIMITS, 500)
 
 
 def test_memoryParam():
-    """
-    1. If you are using skylake, you must have account: set to fungalp."
-    2. if constraint: skylake, then qos must be jgi_exvivo(250G) or jgi_shared(758G)
-    3. if constraint: knl, then limit is 96G memory
-    """
+    """Does the test for over-memory request give valid user error."""
     with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(BAD_MEMORY_VALUE)
+        validate_wdl_runtime(BAD_MEMORY_VALUE, 100)
+
+    validate_wdl_runtime(BAD_MEMORY_VALUE, 500)
 
 
 def test_runtimeCombinations():
     """testing the test that validates the user included the correct combination of params for various resource allocations"""  # noqa
     with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(BAD_COMBINATIONS)
+        validate_wdl_runtime(BAD_COMBINATIONS, 500)
 
 
-# TODO no_qa
-#
 BAD_COMBINATIONS = """
 workflow jgi_meta {
     call bbcms {
@@ -109,12 +105,11 @@ task bbcms {
     runtime {
         docker: container
         time: "03:00:00"
-        memory: "118G"
+        memory: "200G"
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
         shared: 0
-        constraint: "skylake"
     }
 
 }
@@ -124,46 +119,14 @@ task assy {
     runtime {
         docker: container
         time: "03:00:00"
-        memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-        constraint: "knl"
-    }
-}
-
-
-task create_agp {
-    runtime {
-        docker: container
-        time: "03:00:00"
-        memory: "800G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-        constraint: "skylake"
-        qos: "jgi_exvivo"
-    }
-
-}
-
-task read_mapping_pairs{
-    runtime {
-        docker: container
-        time: "03:00:00"
         memory: "300G"
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
         shared: 0
-        constraint: "skylake"
-        qos: "jgi_shared"
-
     }
-
 }
+
 """
 
 

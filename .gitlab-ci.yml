@@ -1,4 +1,9 @@
 stages:
+  - test
+  - bandit-sast
+  - semgrep-sast
+  - eslint-sast
+  - nodejs-scan-sast
   - unit-test
   - package
   - deploy-jaws
@@ -6,6 +11,11 @@ stages:
   - deployment-tests
   - stress-tests
   - deploy-docs
+
+include:
+  - project: 'advanced-analysis/ci-templates'
+    ref: 'main'
+    file: 'SAST.gitlab-ci.yml'
 
 variables:
   GIT_STRATEGY: clone
@@ -108,7 +118,7 @@ variables:
 
   TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install/jaws-client/"
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
-  TAHOMA_GLOBUS_EP: "8e65719e-1a53-11ec-a09f-6b21ca6daf73"
+  TAHOMA_GLOBUS_EP: "f441d224-35cd-11ec-95e9-853490a236f9"
   TAHOMA_GLOBUS_HOST_PATH: "/tahoma/mscjgi"
   TAHOMA_PYTHON: "python"
   TAHOMA_LOAD_PYTHON: "module load python/3.8.1"
@@ -141,6 +151,12 @@ variables:
     - branches
     - merge_requests
     - tags
+
+test:
+  stage: test
+
+  script:
+      - echo "I'm needed for the SAST jobs"
 
 test-rpc:
   <<: *only-default

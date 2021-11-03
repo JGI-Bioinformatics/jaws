@@ -25,9 +25,9 @@ elsewhere in JAWS/JTM, as clarified below:
 
 
 import requests
-import json
 import logging
 import os
+from dateutil import parser
 
 
 def _read_file(path: str):
@@ -46,73 +46,118 @@ def _read_file(path: str):
 
 
 class Task:
-    """A Task may have multiple calls, each with a unique job_id.
+    """
+    A Task may have multiple calls, corresponding to multiple attempts and/or shards.
     If a Task is a subworkflow, it will contain a Metadata object.
     """
 
     def __init__(self, name, data):
         """
         Initialize a Task object, which may contain a subworkflow.
+        A Task may contain multiple calls corresponding to multiple shards, but only the
+        last attempt (of each) is represented by the object.
 
         :param name: Task name
         :type name: str
-        :param data: A task's calls (AKA attempts) section of the Cromwell metadata.
+        :param data: Cromwell's "calls" for a task; this always remains unchanged.
         :type data: list
         """
         self.name = name
         self.data = data
-        self.is_subworkflow = False
-        self.subworkflows = []
+        self.subworkflows = {}
+        self.max_shard_index = None
+        self.num_attempts = {}  # max attempt per shard_index
+
+        if len(data) == 0:
+            return
 
         for call in data:
+            shard_index = call["shardIndex"]
+            attempt = call["attempt"]
+
+            if self.max_shard_index is None or self.max_shard_index < shard_index:
+                self.max_shard_index = shard_index
+
+            if (
+                shard_index not in self.num_attempts
+                or self.num_attempts[shard_index] < attempt
+            ):
+                self.num_attempts[shard_index] = attempt
+
             if "subWorkflowMetadata" in call:
-                self.is_subworkflow = True
-                metadata = Metadata(call["subWorkflowMetadata"])
-                self.subworkflows.append(metadata)
+                # this task is a subworkflow, with it's own tasks
+                if shard_index not in self.subworkflows:
+                    self.subworkflows[shard_index] = {}
+                self.subworkflows[shard_index][attempt] = Metadata(
+                    call["subWorkflowMetadata"]
+                )
 
-    def subworkflow(self, attempt=None):
+    def get(self, key, shard_index: int = -1, attempt: int = 1, default=None):
         """
-        If a task is a subworkflow, return the Metadata object for the specified attempt.
-        :param attempt: Attempt number (first=1; default=last).
-        :type attempt: int
-        :return: Metadata object if this is a subworkflow; else None.
-        :rtype: cromwell.Metadata
-        """
-        if not self.is_subworkflow:
-            return None
-        index = None
-        if attempt is None:
-            index = -1  # last attempt
-        else:
-            attempt = int(attempt)
-            if attempt == 0 or attempt > len(self.data):
-                raise ValueError("Invalid attempt; of out range")
-            else:
-                index = attempt - 1
-        return self.subworkflows[index]
-
-    def get(self, key, attempt=None, default=None):
-        """
-        Get an item from the list of calls dictionaries (e.g. "executionStatus");
-        by default, get the item from the last attempt.
+        Get an item from the call dictionary (e.g. "executionStatus")
+        corresponding to the last attempt.
         :param key: Dictionary key (e.g. "executionStatus")
         :type key: str
-        :param attempt: Attempt number (first=1; default=last).
-        :type attempt: int
         :param default: Default value to return if key not found (default=None).
         :return: value of the specified key, for specified attempt number.
         """
-        # first attempt is 1, convert to 0-based index if in valid range
-        index = None
-        if attempt is None:
-            index = -1  # last attempt
-        else:
-            attempt = int(attempt)
-            if attempt == 0 or attempt > len(self.data):
-                raise ValueError("Invalid attempt; of out range")
+        if shard_index > self.max_shard_index:
+            raise ValueError(
+                f"ShardIndex {shard_index} is invalid for Task {self.name} (max. shardIndex is {self.max_shard_index}"
+            )
+        if (
+            shard_index not in self.num_attempts
+            or attempt > self.num_attempts[shard_index]
+        ):
+            raise ValueError(
+                f"Attempt {attempt} is invalid for Task {self.name} shardIndex {shard_index}"
+            )
+        for call in self.data:
+            if call["shardIndex"] == shard_index and call["attempt"] == attempt:
+                return call.get(key, default)
+        return default
+
+    def summary(self):
+        """
+        Summary of calls, their jobIds, and whether or not they are cached results.
+        """
+        summary = []
+        for call in self.data:
+            name = self.name
+            shard_index = call["shardIndex"]
+            if shard_index > -1:
+                name = f"{name}[{shard_index}]"
+            attempt = call["attempt"]
+            if self.num_attempts[shard_index] > 1:
+                name = f"{name}.{attempt}"
+            cached = False
+            if "callCaching" in call and "hit" in call["callCaching"]:
+                cached = call["callCaching"]["hit"]
+            job_id = None
+            if "jobId" in call:
+                job_id = call["jobId"]
+            run_time = None
+            if "executionEvents" in call:
+                for event in call["executionEvents"]:
+                    if (
+                        event["description"] == "RunningJob"
+                        and "startTime" in event
+                        and "endTime" in event
+                    ):
+                        start_time = parser.parse(event["startTime"])
+                        end_time = parser.parse(event["endTime"])
+                        delta = end_time - start_time
+                        run_time = str(delta)
+            if "subWorkflowMetadata" in call:
+                subworkflow = self.subworkflows[shard_index][attempt]
+                sub_task_summary = subworkflow.task_summary()
+                for sub_name, sub_job_id, sub_cached, run_time in sub_task_summary:
+                    summary.append(
+                        [f"{name}:{sub_name}", sub_job_id, sub_cached, run_time]
+                    )
             else:
-                index = attempt - 1
-        return self.data[index].get(key, default)
+                summary.append([name, job_id, cached, run_time])
+        return summary
 
     def errors(self):
         """
@@ -123,68 +168,83 @@ class Task:
         :return: Errors report (filtered task call data)
         :rtype: dict
         """
-        if self.get("executionStatus") != "Failed":
-            # There is only error information if this task actually failed
-            return []
-        filteredCall = {}
-        index = len(self.data) - 1
-        call = self.data[index]  # only the last attempt is relevant
-        if self.is_subworkflow:
-            # include any errors from the subworkflow's tasks
-            subworkflow = self.subworkflows[index]
-            filteredCall["subWorkflowMetadata"] = subworkflow.errors()
-        else:
-            # simple task (not a subworkflow)
-            if "failures" in call:
-                filteredCall["failures"] = call["failures"]
-            if "jobId" in call:
-                filteredCall["jobId"] = call["jobId"]
-            if "returnCode" in call:
-                filteredCall["returnCode"] = call["returnCode"]
-            if "runtimeAttributes" in call:
-                filteredCall["runtimeAttributes"] = call["runtimeAttributes"]
-            if "stderr" in call:
-                # include *contents* of stderr files, instead of file paths
-                stderr_file = call["stderr"]
-                filteredCall["stderrContents"] = _read_file(stderr_file)
-                filteredCall["stderrSubmitContents"] = _read_file(f"{stderr_file}.submit")
-        # the result follows the structure of the original metadata,
-        # so make a list corresponding to attempts
-        filteredCalls = [filteredCall]
+        filteredCalls = []
+        for call in self.data:
+            shard_index = call["shardIndex"]
+            attempt = call["attempt"]
+            status = call["executionStatus"]
+            if status != "Failed":
+                # There is only error information if this task actually failed
+                continue
+            filteredCall = {
+                "shardIndex": shard_index,
+                "attempt": attempt,
+            }
+            if "subWorkflowMetadata" in call:
+                # include any errors from the subworkflow's tasks
+                subworkflow = self.subworkflows[shard_index][attempt]
+                filteredCall["subWorkflowMetadata"] = subworkflow.errors()
+            else:
+                # simple task (not a subworkflow)
+                if "failures" in call:
+                    filteredCall["failures"] = call["failures"]
+                if "jobId" in call:
+                    filteredCall["jobId"] = call["jobId"]
+                if "returnCode" in call:
+                    filteredCall["returnCode"] = call["returnCode"]
+                if "runtimeAttributes" in call:
+                    filteredCall["runtimeAttributes"] = call["runtimeAttributes"]
+                if "stderr" in call:
+                    # include *contents* of stderr files, instead of file paths
+                    stderr_file = call["stderr"]
+                    filteredCall["stderrContents"] = _read_file(stderr_file)
+                    filteredCall["stderrSubmitContents"] = _read_file(
+                        f"{stderr_file}.submit"
+                    )
+            filteredCalls.append(filteredCall)
         return filteredCalls
 
-    def stdout(self, attempt=None, relpath=False):
+    def _get_file_path(self, file_id, relpath=False):
+        """
+        Return the path to the specified output file, optionally replacing part of the path.
+        :param file_id: either "stdout" or "stderr"
+        :type file_id: str
+        :param relpath: If true then make path relative to callRoot; fullpath by default
+        :type relpath: bool
+        :param dest: Destination root dir
+        :return: Path to specified file
+        :rtype: str
+        """
+        if file_id not in ("stdout", "stderr"):
+            raise ValueError(
+                f"Invalid file id, {file_id}; allowed values: stdout, stderr"
+            )
+        path = self.get(file_id)
+        if relpath:
+            call_root = self.get("callRoot")
+            path = os.path.relpath(call_root, path)
+        return path
+
+    def stdout(self, relpath=False):
         """
         Return the path to the standard output file, optionally replacing part of the path.
-        :param attempt: attempt number (first is 1; default is last)
-        :type attempt: int
         :param relpath: If true then make path relative to callRoot; fullpath by default
         :type relpath: bool
         :param dest: Destination root dir
         :return: Path to stdout file
         :rtype: str
         """
-        path = self.get("stdout", attempt)
-        if relpath:
-            call_root = self.get("callRoot", attempt)
-            path = os.path.relpath(call_root, path)
-        return path
+        return self._get_file_path("stdout", relpath)
 
-    def stderr(self, attempt=None, relpath=False):
+    def stderr(self, relpath=False):
         """
         Return the path to the standard err file, optionally replacing part of the path.
-        :param attempt: attempt number (first is 1; default is last)
-        :type attempt: int
         :param relpath: If true then make path relative to callRoot; fullpath by default
         :type relpath: bool
         :return: Path to stdout file
         :rtype: str
         """
-        path = self.get("stderr", attempt)
-        if relpath:
-            call_root = self.get("callRoot", attempt)
-            path = os.path.relpath(call_root, path)
-        return path
+        return self._get_file_path("stderr", relpath)
 
 
 class CromwellError(Exception):
@@ -257,9 +317,9 @@ class Metadata:
         self.tasks = {}  # Task objects
         if "calls" in self.data:
             calls = self.data["calls"]
-            for task_name in calls.keys():
+            for task_name, task_data in calls.items():
                 logger.debug(f"Workflow {self.workflow_id}: Init task {task_name}")
-                self.tasks[task_name] = Task(task_name, calls[task_name])
+                self.tasks[task_name] = Task(task_name, task_data)
 
     def get(self, param, default=None):
         """
@@ -309,19 +369,9 @@ class Metadata:
         """
         summary = []
         for task_name, task in self.tasks.items():
-            if len(task.data):
-                # include last attempt only
-                index = len(task.data) - 1
-                call = task.data[index]
-                if "jobId" in call:
-                    # a normal task has an associated jobId
-                    summary.append([task_name, call["jobId"]])
-                elif "subWorkflowMetadata" in call:
-                    # while a subworkflow has it's own Metadata (with one or more sub-tasks)
-                    subworkflow = task.subworkflows[index]
-                    sub_summary = subworkflow.task_summary()
-                    for (sub_task_name, job_id) in sub_summary:
-                        summary.append([f"{task_name}:{sub_task_name}", job_id])
+            task_summary = task.summary()
+            for name, job_id, cached, run_time in task_summary:
+                summary.append([name, job_id, cached, run_time])
         return summary
 
     def outputs(self, **kwargs):
@@ -346,11 +396,7 @@ class Metadata:
                     # a typical task produces outputs which may be a file path
                     relpath_outputs[key] = value.replace(workflowRoot, ".", 1)
             outputs = relpath_outputs
-        if "outfile" in kwargs:
-            with open(kwargs["outfile"], "w") as fh:
-                fh.write(json.dumps(outputs, sort_keys=True, indent=4))
-        else:
-            return outputs
+        return outputs
 
 
 class Cromwell:
