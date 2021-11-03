@@ -9,6 +9,7 @@ importlib-metadata==4.6.1
 mysql-connector-python==8.0.26
 pamqp==2.3.0
 pycparser==2.20
+python-dateutil==2.8.2
 requests==2.26.0
 requests-mock==1.9.3
 schedule==1.1.0
