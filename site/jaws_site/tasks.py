@@ -285,7 +285,7 @@ class TaskLog:
                 timestamp,
                 reason,
             ) in state_transitions:
-                if status_to == "succeeded" and run_time:
+                if status_to == "success" and run_time:
                     if reason:
                         reason = f"{reason}; run_time={run_time}"
                     else:
