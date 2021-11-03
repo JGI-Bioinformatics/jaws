@@ -915,7 +915,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                             task_id,
                                             status_now,
                                             TASK_STATUS["running"],
-                                            reason=slurm_job_id,
+                                            reason="slurm_jid=%d" % (slurm_job_id),
                                         )
 
                                 db.execute(
