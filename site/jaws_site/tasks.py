@@ -219,10 +219,10 @@ class TaskLog:
         :rtype: dict
         """
         task_names = {}
-        for task_name, cromwell_job_id, cached in tasks:
+        for task_name, cromwell_job_id, cached, run_time in tasks:
             if cromwell_job_id:
                 cromwell_job_id = str(cromwell_job_id)
-                task_names[cromwell_job_id] = task_name
+                task_names[cromwell_job_id] = [task_name, run_time]
         return task_names
 
     def get_cached_tasks(self, tasks: list):
@@ -233,7 +233,7 @@ class TaskLog:
         :rtype: list
         """
         cached_tasks = []
-        for task_name, cromwell_job_id, cached in tasks:
+        for task_name, cromwell_job_id, cached, run_time in tasks:
             if cached:
                 cached_tasks.append(task_name)
         return cached_tasks
@@ -265,7 +265,7 @@ class TaskLog:
         cached_tasks = self.get_cached_tasks(task_summary)
         merged_logs = []
         for task_name in cached_tasks:
-            merged_logs.append([task_name, None, None, None, None, "Cached call"])
+            merged_logs.append([task_name, None, None, None, None, None, "Cached call"])
 
         # The record of job state transitions is stored in a separate db.
         job_logs = self.get_job_logs(cromwell_run_id)
@@ -276,8 +276,9 @@ class TaskLog:
             state_transitions = job_logs[cromwell_job_id]
             # default values are required because a job many not appear in the Cromwell metadata immediately
             task_name = "<pending>"
+            run_time = None
             if cromwell_job_id in task_names:
-                task_name = task_names[cromwell_job_id]
+                task_name, run_time = task_names[cromwell_job_id]
             for (
                 status_from,
                 status_to,
@@ -291,6 +292,7 @@ class TaskLog:
                         status_from,
                         status_to,
                         timestamp,
+                        run_time,
                         reason,
                     ]
                 )

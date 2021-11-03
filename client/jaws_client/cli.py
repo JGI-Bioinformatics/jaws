@@ -288,11 +288,11 @@ def task_log(run_id: int, fmt: str) -> None:
         _print_json(result)
     else:
         click.echo(
-            "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
+            "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tRUN_TIME\tREASON"
         )
         for row in result:
             # convert None values to empty string "" for printing
-            for index in range(6):
+            for index in range(7):
                 row[index] = str(row[index]) if row[index] else ""
             click.echo("\t".join(row))
 

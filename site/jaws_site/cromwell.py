@@ -142,13 +142,13 @@ class Task:
                 for event in call["executionEvents"]:
                     if (
                         event["description"] == "RunningJob"
-                        and "startTime" in event["description"]
-                        and "endTime" in event["description"]
+                        and "startTime" in event
+                        and "endTime" in event
                     ):
                         start_time = parser.parse(event["startTime"])
                         end_time = parser.parse(event["endTime"])
                         delta = end_time - start_time
-                        run_time = delta.strftime("%H:%M:%S")
+                        run_time = str(delta)
             if "subWorkflowMetadata" in call:
                 subworkflow = self.subworkflows[shard_index][attempt]
                 sub_task_summary = subworkflow.task_summary()
@@ -371,8 +371,8 @@ class Metadata:
         summary = []
         for task_name, task in self.tasks.items():
             task_summary = task.summary()
-            for name, job_id, cached in task_summary:
-                summary.append([name, job_id, cached])
+            for name, job_id, cached, run_time in task_summary:
+                summary.append([name, job_id, cached, run_time])
         return summary
 
     def outputs(self, **kwargs):
