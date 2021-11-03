@@ -325,7 +325,7 @@ def test_get_task_log(monkeypatch):
                 ["ready", "queued", "2021-04-15 12:42:28", None],
                 ["queued", "pending", "2021-04-15 12:42:29", None],
                 ["pending", "running", "2021-04-15 12:43:44", None],
-                ["running", "succeeded", "2021-04-15 12:45:01", None],
+                ["running", "success", "2021-04-15 12:45:01", None],
             ],
             "5481": [["created", "queued", "2021-04-15 12:49:95", None]],
             "5482": [["created", "queued", "2021-04-15 01:01:04", None]],
@@ -373,7 +373,7 @@ def test_get_task_log(monkeypatch):
             "main_workflow.goodbye",
             "5480",
             "running",
-            "succeeded",
+            "success",
             "2021-04-15 12:45:01",
             "run_time=0:00:44.787000",
         ],
@@ -406,6 +406,4 @@ def test_get_task_log(monkeypatch):
     mock_session = None
     tasks = TaskLog(mock_session)
     actual = tasks.get_task_log(example_run_id)
-    print(actual)  # DEBUG
-    print(expected)  # DEBUG
     assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
