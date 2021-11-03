@@ -232,6 +232,7 @@ class WdlFile:
         )
         self._subworkflows = None
         self._max_ram_gb = None
+        self.compute_max_ram_gb = None
 
     def _set_subworkflows(self, output):
         """
@@ -284,9 +285,9 @@ class WdlFile:
                 missing.add(sub)
             raise WdlError("Subworkflows not found: " + ", ".join(missing))
 
-    def validate(self):
+    def validate(self, compute_max_ram_gb=None):
         """
-        Validates the WDL file using Cromwell's womtool.
+        Validates the WDL file using Cromwell's womtool and runtime validator.
         Any syntax errors from WDL will be raised in a WdlError.
         This is a separate method and not done automatically by the constructor because subworkflows() returns
         WdlFile objects and we wish to avoid running womtool multiple times unnecessarily.
@@ -294,13 +295,18 @@ class WdlFile:
         """
         logger = logging.getLogger(__package__)
         logger.debug(f"Validating WDL, {self.file_location}")
+        if compute_max_ram_gb:
+            self.compute_max_ram_gb = compute_max_ram_gb
+
         stdout, stderr = womtool("validate", "-l", self.file_location)
         self._set_subworkflows(stdout)
         if stderr:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
         self.verify_wdl_has_no_backend_tags()
-        validate_wdl_runtime(self.contents)
+
+        if self.compute_max_ram_gb:
+            validate_wdl_runtime(self.contents, self.compute_max_ram_gb)
 
     @staticmethod
     def _get_wdl_name(file_location):
@@ -371,6 +377,9 @@ class WdlFile:
         :type wdl: str
         :return:
         """
+        # We are temporarily turning this check off to allow Parsl backend testing;
+        # once complete, delete the following line to disallow "backend" tags once again.
+        return
         with open(self.file_location, "r") as fh:
             for line in fh:
                 m = re.match(r"^\s*backend", line)
@@ -535,10 +544,7 @@ class WorkflowInputs:
 
             # Files must be copied in to ensure they are readable by the jaws and jtm users.  The group
             # will be set correctly as a result of the gid sticky bit and acl rules on the inputs dir.
-            if quiet:
-                shutil.copyfile(original_path, dest_path)
-            else:
-                copy_with_progress_bar(original_path, dest_path)
+            copy_with_progress_bar(original_path, dest_path, quiet=quiet)
             os.chmod(dest_path, 0o0660)
 
         return copied_files

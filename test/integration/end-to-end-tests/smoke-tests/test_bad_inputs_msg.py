@@ -41,6 +41,7 @@ def test_input_file_is_not_json_format(dir, site):
     # check for the correct error message
     assert "is not a valid JSON file" in e
 
+
 def xtest_json_bad_path_to_input_file_msg(dir, site):
     # TESTCASE-5a
     # Submit job with json that contains a path to a non-existent input file
@@ -84,8 +85,6 @@ def test_bad_input_file_permissions_msg(dir, site):
     # Submit json that contains a path to a file with bad permissions
     # This test uses the bad_permissions.json which points to a file that has no read permissions
     # set for owner, group or user
-    # ls -l /global/cfs/projectdirs/jaws/test/tutorial_test_data/no_read_perms.fastq
-    # ---------- 1 jfroula genome 3470 Apr 27 17:01 /global/cfs/projectdirs/jaws/test/tutorial_test_data/no_read_perms.fastq
     # JAWS should show user an error message that explains the problem to the user
 
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")

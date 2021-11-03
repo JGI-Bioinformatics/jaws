@@ -12,7 +12,6 @@ import shutil
 from typing import Dict
 from jaws_client import log as logging
 from jaws_client import deprecated
-from jaws_client import wfcopy as wfc
 from jaws_client.config import Configuration
 from jaws_client.copy_progress import copy_with_progress_bar
 
@@ -91,15 +90,6 @@ def info() -> None:
         sys.exit(r.text)
     result = r.json()
     _print_json(result)
-
-
-@main.command()
-@click.argument("src_dir")
-@click.argument("dest_dir")
-@click.option("--flatten", is_flag=True, default=False, help="Flatten shard dirs")
-def wfcopy(src_dir: str, dest_dir: str, flatten) -> None:
-    """Simplify Cromwell output."""
-    wfc.wfcopy(src_dir, dest_dir, flatten)
 
 
 def _request(rest_op, url, data={}, files={}):
@@ -228,17 +218,20 @@ def task_status(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
     result = _request("GET", url)
-    for a in result:
-        a[6] = _utc_to_local(a[6])
+    for row in result:
+        if row[3]:
+            # cached tasks won't have a timestamp
+            row[3] = _utc_to_local(row[3])
     if fmt == "json":
         _print_json(result)
     else:
         click.echo(
-            "#CROMWELL_RUN_ID\tTASK_NAME\tATTEMPT\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
+            "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS\tTIMESTAMP\tCOMMENT"
         )
         for row in result:
-            row[2] = str(row[2])
-            row[3] = str(row[3])
+            # convert None values to empty string "" for printing
+            for index in range(5):
+                row[index] = str(row[index]) if row[index] else ""
             click.echo("\t".join(row))
 
 
@@ -262,7 +255,7 @@ def log(run_id: int, fmt: str) -> None:
     result = _request("GET", url)
     for a in result:
         a[2] = _utc_to_local(a[2])
-    header = ["#STATUS_FROM", "STATUS_TO", "TIMESTAMP", "REASON"]
+    header = ["#STATUS_FROM", "STATUS_TO", "TIMESTAMP", "COMMENT"]
     if fmt == "json":
         _print_json(result)
     elif fmt == "tab":
@@ -287,16 +280,20 @@ def task_log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
     result = _request("GET", url)
-    for a in result:
-        a[4] = _utc_to_local(a[4])
+    for row in result:
+        if row[4]:
+            # cached tasks won't have a timestamp
+            row[4] = _utc_to_local(row[4])
     if fmt == "json":
         _print_json(result)
     else:
         click.echo(
-            "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON"
+            "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tCOMMENT"
         )
         for row in result:
-            row[1] = str(row[1])
+            # convert None values to empty string "" for printing
+            for index in range(6):
+                row[index] = str(row[index]) if row[index] else ""
             click.echo("\t".join(row))
 
 
@@ -383,14 +380,10 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool, q
     submission_id = str(uuid.uuid4())
     try:
         wdl = workflow.WdlFile(wdl_file, submission_id)
-        wdl.validate()
+        wdl.validate(compute_max_ram_gb)
         max_ram_gb = wdl.max_ram_gb
     except WdlError as error:
         sys.exit(error)
-    if max_ram_gb > compute_max_ram_gb:
-        sys.exit(
-            f"The workflow requires {max_ram_gb}GB but {compute_site_id} has only {compute_max_ram_gb}GB available"
-        )
 
     # any and all subworkflow WDL files must be supplied to Cromwell in a single ZIP archive
     try:
@@ -413,7 +406,10 @@ def submit(wdl_file: str, json_file: str, site: str, tag: str, no_cache: bool, q
 
     # copy infiles in inputs json to site's inputs dir so they may be read by jaws user and
     # transferred to the compute site via globus
-    moved_files = inputs_json.move_input_files(site_subdir, quiet)
+    try:
+        moved_files = inputs_json.move_input_files(site_subdir, quiet)
+    except Exception as error:
+        sys.exit(f"Unable to copy input files: {error}")
 
     # the paths in the inputs json file are changed to their paths at the compute site
     modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
@@ -563,10 +559,10 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
 
     # cp the "outputs.json" file because it contains non-file outputs (e.g. numbers)
     dest_file = os.path.normpath(os.path.join(dest_dir, os.path.basename(outputs_file)))
-    if quiet:
-        shutil.copyfile(outputs_file, dest_file)
-    else:
-        copy_with_progress_bar(outputs_file, dest_file)
+    try:
+        copy_with_progress_bar(outputs_file, dest_file, quiet=quiet)
+    except Exception as error:
+        sys.exit(f"Unable to copy outputs: {error}")
     os.chmod(dest_file, 0o0664)
 
     # the paths of workflow output files are listed in the outputs_file
@@ -592,10 +588,7 @@ def _copy_outfile(rel_path, src_dir, dest_dir, quiet=False):
     dest_file = os.path.normpath(os.path.join(dest_dir, rel_path))
     a_dest_dir = os.path.dirname(dest_file)
     os.makedirs(a_dest_dir, exist_ok=True)
-    if quiet:
-        shutil.copyfile(src_file, dest_file)
-    else:
-        copy_with_progress_bar(src_file, dest_file)
+    copy_with_progress_bar(src_file, dest_file, quiet=quiet)
     os.chmod(dest_file, 0o0664)
 
 

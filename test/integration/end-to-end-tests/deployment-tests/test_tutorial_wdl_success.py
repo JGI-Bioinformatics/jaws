@@ -3,7 +3,6 @@
 # test that JAWS is working.  However, there are some tests in here that are usefull
 # to test JAWS components like making sure we can access the /refdata (referencing_db_and_shifter)
 
-import json
 import pytest
 import submission_utils as util
 
@@ -28,8 +27,12 @@ import submission_utils as util
             "./jaws-tutorial-examples/referencing_db_and_shifter/inputs.json",
         ),
         (
-            "./jaws-tutorial-examples/scatter_gather_example/test.wdl",
-            "./jaws-tutorial-examples/scatter_gather_example/input.json",
+            "./jaws-tutorial-examples/scatter_gather_example/array_scatter.wdl",
+            "./jaws-tutorial-examples/scatter_gather_example/array_scatter.json",
+        ),
+        (
+            "./jaws-tutorial-examples/scatter_gather_example/map_scatter.wdl",
+            "./jaws-tutorial-examples/scatter_gather_example/map_scatter.json",
         ),
         (
             "./jaws-tutorial-examples/subworkflow/main.wdl",

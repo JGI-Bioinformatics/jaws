@@ -9,10 +9,16 @@ import globus_sdk
 import logging
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+import json
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
-from jaws_site.cromwell import Cromwell, CromwellError, CromwellServiceError, CromwellRunError
+from jaws_site.cromwell import (
+    Cromwell,
+    CromwellError,
+    CromwellServiceError,
+    CromwellRunError,
+)
 from jaws_site.globus import GlobusService
 
 logger = logging.getLogger(__package__)
@@ -306,11 +312,9 @@ class Run:
         if required or os.path.exists(src_file):
             try:
                 shutil.copy(src_file, dest)
-            except IOError as error:
-                logger.error(
-                    f"Error copying {src_suffix} from {src_file}->{dest}: {error}"
-                )
-                raise
+            except OSError as error:
+                logger.error(f"Unable to copy {src_file}->{dest}: {error}")
+                raise error
 
     def copy_metadata_files(self, dest_dir: str):
         """
@@ -318,10 +322,21 @@ class Run:
         Files are renamed in the process to something more sensible to user.
         """
         file_path = self.uploads_file_path()
-        self._cp_infile_to_outdir(file_path, "wdl", dest_dir, "main.wdl")
-        self._cp_infile_to_outdir(file_path, "json", dest_dir, "jaws.inputs.json")
-        self._cp_infile_to_outdir(file_path, "orig.json", dest_dir, "inputs.json")
-        self._cp_infile_to_outdir(file_path, "zip", dest_dir, "subworkflows.zip", False)
+        try:
+            self._cp_infile_to_outdir(file_path, "wdl", dest_dir, "main.wdl")
+            self._cp_infile_to_outdir(file_path, "json", dest_dir, "jaws.inputs.json")
+            self._cp_infile_to_outdir(file_path, "orig.json", dest_dir, "inputs.json")
+            self._cp_infile_to_outdir(file_path, "zip", dest_dir, "subworkflows.zip", False)
+        except OSError as error:
+            raise error
+
+    def _write_outputs_json(self, metadata):
+        """Write outputs.json to workflow_root dir"""
+        cromwell_workflow_dir = metadata.workflow_root()
+        outputs_file = os.path.join(cromwell_workflow_dir, "outputs.json")
+        outputs = metadata.outputs(relpath=True)
+        with open(outputs_file, "w") as fh:
+            fh.write(json.dumps(outputs, sort_keys=True, indent=4))
 
     def transfer_results(self) -> None:
         """
@@ -345,10 +360,21 @@ class Run:
             self.update_run_status("download complete", "No run folder was created")
             return
 
-        outputs_file = os.path.join(cromwell_workflow_dir, "outputs.json")
-        metadata.outputs(outfile=outputs_file, relpath=True)
+        try:
+            self._write_outputs_json(metadata)
+        except OSError as error:
+            logger.error(f"Run {self.model.id}: Cannot write outputs json: {error}")
+            # don't change state; keep trying
+            return
 
-        self.copy_metadata_files(cromwell_workflow_dir)
+        try:
+            self.copy_metadata_files(cromwell_workflow_dir)
+        except OSError as error:
+            logger.error(
+                f"Run {self.model.id}: Cannot write to {cromwell_workflow_dir}: {error}"
+            )
+            # don't change state; keep trying
+            return
 
         try:
             transfer_task_id = globus.submit_transfer(
@@ -494,9 +520,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             logger.exception(f"RPC update_run_logs error: {error}")
             continue
         if "error" in response:
-            logger.info(
-                f"RPC update_run_status failed: {response['error']['message']}"
-            )
+            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
             continue
         log.sent = True
         try:
