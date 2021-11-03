@@ -183,6 +183,7 @@ numprocs=1
 startsecs=3
 startretries=10
 autorestart=unexpected
+priority=1
 
 [program:jaws-cromwell]
 command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
@@ -191,6 +192,7 @@ startsecs=10
 startretries=10
 autorestart=unexpected
 stopwaitsecs=3600
+priority=9
 
 [group:jaws-$DEPLOYMENT_NAME]
 programs=jaws-jtm,jaws-cromwell
