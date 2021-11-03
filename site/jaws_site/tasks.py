@@ -211,19 +211,19 @@ class TaskLog:
             raise (err_msg)
         return metadata.task_summary()
 
-    def get_task_names(self, tasks: list):
+    def get_task_info(self, tasks: list):
         """Retrieve all jobs from Cromwell metadata for a run and reorganize by cromwell_job_id.
         :param tasks: task summary
         :type tasks: list
         :return: cromwell_job_id and task_name
         :rtype: dict
         """
-        task_names = {}
+        task_info = {}
         for task_name, cromwell_job_id, cached, run_time in tasks:
             if cromwell_job_id:
                 cromwell_job_id = str(cromwell_job_id)
-                task_names[cromwell_job_id] = [task_name, run_time]
-        return task_names
+                task_info[cromwell_job_id] = [task_name, run_time]
+        return task_info
 
     def get_cached_tasks(self, tasks: list):
         """Retrieve all cached tasks from task summary.
@@ -259,13 +259,13 @@ class TaskLog:
         # Cromwell metadata, so some items may be missing.
         task_summary = self._get_task_summary(cromwell_run_id)
 
-        task_names = self.get_task_names(task_summary)
+        task_info = self.get_task_info(task_summary)
 
         # cached tasks don't have job id
         cached_tasks = self.get_cached_tasks(task_summary)
         merged_logs = []
         for task_name in cached_tasks:
-            merged_logs.append([task_name, None, None, None, None, None, "Cached call"])
+            merged_logs.append([task_name, None, None, None, None, "Cached call"])
 
         # The record of job state transitions is stored in a separate db.
         job_logs = self.get_job_logs(cromwell_run_id)
@@ -277,14 +277,19 @@ class TaskLog:
             # default values are required because a job many not appear in the Cromwell metadata immediately
             task_name = "<pending>"
             run_time = None
-            if cromwell_job_id in task_names:
-                task_name, run_time = task_names[cromwell_job_id]
+            if cromwell_job_id in task_info:
+                task_name, run_time = task_info[cromwell_job_id]
             for (
                 status_from,
                 status_to,
                 timestamp,
                 reason,
             ) in state_transitions:
+                if status_to == "succeeded" and run_time:
+                    if reason:
+                        reason = f"{reason}; run_time={run_time}"
+                    else:
+                        reason = f"run_time={run_time}"
                 merged_logs.append(
                     [
                         task_name,
@@ -292,7 +297,6 @@ class TaskLog:
                         status_from,
                         status_to,
                         timestamp,
-                        run_time,
                         reason,
                     ]
                 )
@@ -305,8 +309,9 @@ class TaskLog:
         merged_logs = self.get_task_log(run_id)
         tasks_and_last_states = []
         last_job_id = 0
-        for row in merged_logs:
-            job_id = row[1]
+        for task_name, job_id, status_from, status_to, timestamp, reason in merged_logs:
+            # task-status excludes status_from
+            row = [task_name, job_id, status_to, timestamp, reason]
             if job_id == last_job_id:
                 # state transitions are ordered, so we just keep the last state transition
                 tasks_and_last_states[-1] = row
@@ -332,22 +337,12 @@ def get_run_status(session, run_id: int) -> str:
     if len(tasks) == 0:
         return None
     max_task_status_value = 0
-    for task in tasks:
-        (
-            task_name,
-            cromwell_job_id,
-            status_from,
-            status_to,
-            timestamp,
-            reason,
-        ) = task
-        if status_to and status_to in job_status_value:
-            max_task_status_value = max(
-                max_task_status_value, job_status_value[status_to]
-            )
+    for task_name, job_id, status, timestamp, reason in tasks:
+        if status and status in job_status_value:
+            max_task_status_value = max(max_task_status_value, job_status_value[status])
         else:
             logger.warn(
-                f"Run {run_id} get task status, job {cromwell_job_id} has unknown status: {status_to}"
+                f"Run {run_id} get task status, job {job_id} has unknown status: {status}"
             )
     return "queued" if max_task_status_value < 4 else "running"
 

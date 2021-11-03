@@ -27,7 +27,6 @@ elsewhere in JAWS/JTM, as clarified below:
 import requests
 import logging
 import os
-from datetime import datetime
 from dateutil import parser
 
 

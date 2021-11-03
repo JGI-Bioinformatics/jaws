@@ -178,7 +178,7 @@ RUN_LOG_JSON = [
 ]
 
 RUN_LOG_TEXT = (
-    "#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tREASON\n"
+    "#STATUS_FROM\tSTATUS_TO\tTIMESTAMP\tCOMMENT\n"
     "created\tuploading\t2020-06-08 06:28:36\tupload_task_id=4884e9a8-a951-11ea-9a3b-0255d23c44ef\n"
     "uploading\tupload complete\t2020-06-08 06:28:50\t\n"
     "upload complete\tsubmitted\t2020-06-08 06:29:01\tcromwell_run_id=5d1ba0bd-ef40-42dd-b33b-0c4c31174b76\n"
@@ -197,7 +197,6 @@ TASK_LOG_JSON = [
         "ready",
         "queued",
         "2020-06-10 13:42:44",
-        None,
         "",
     ],
     [
@@ -206,15 +205,14 @@ TASK_LOG_JSON = [
         "queued",
         "pending",
         "2020-06-10 13:43:36",
-        None,
         "",
     ],
 ]
 
 TASK_LOG_TEXT = (
-    "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tRUN_TIME\tCOMMENT\n"
-    "runblastplus_sub.task1\t43\tready\tqueued\t2020-06-10 13:42:44\t\t\n",
-    "runblastplus_sub.task2\t44\tqueued\tpending\t2020-06-10 13:43:36\t\t\n"
+    "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tCOMMENT\n"
+    "runblastplus_sub.task1\t43\tready\tqueued\t2020-06-10 13:42:44\t\n",
+    "runblastplus_sub.task2\t44\tqueued\tpending\t2020-06-10 13:43:36\t\n"
 )
 
 SUBMISSION = {
