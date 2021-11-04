@@ -280,21 +280,30 @@ def task_log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
     result = _request("GET", url)
+    header = ["TASK_NAME", "CROMWELL_JOB_ID", "STATUS_FROM", "STATUS_TO", "TIMESTAMP", "COMMENT"]
     for row in result:
         if row[4]:
             # cached tasks won't have a timestamp
             row[4] = _utc_to_local(row[4])
     if fmt == "json":
         _print_json(result)
-    else:
-        click.echo(
-            "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tCOMMENT"
-        )
+    elif fmt == "tab":
+        click.echo("\t".join(header))
         for row in result:
             # convert None values to empty string "" for printing
             for index in range(6):
                 row[index] = str(row[index]) if row[index] else ""
             click.echo("\t".join(row))
+    else:
+        result.insert(0, header)
+        col_widths = []
+        """
+        Get the max length of element in every col and add padding of 2 spaces
+        """
+        for index in range(len(header)):
+            col_widths.append(max(len(log_entry[index] for log_entry in result) + 2))
+        for log_entry in result:
+            print("".join(cell.ljust(col_widths[col_index])for col_index, cell in enumerate(log_entry)))
 
 
 @main.command()
