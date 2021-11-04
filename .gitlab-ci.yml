@@ -22,7 +22,7 @@ variables:
 
   ## GLOBAL INSTALL VARIABLES:
   JAWS_SITES: "CORI JGI TAHOMA"
-  JAWS_VERSION: "2.5.0"
+  JAWS_VERSION: "2.6.0"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_RMQ_HOST: "rmq.lbl.gov"
@@ -135,7 +135,7 @@ variables:
   TAHOMA_CLUSTER_PARTITION: ""
   TAHOMA_CLUSTER_ACCOUNT: "mscjgi"
   TAHOMA_CLUSTER_CONSTRAINT: ""
-  TAHOMA_MAX_RAM_GB: 1024  #TODO: Find a more accurate number
+  TAHOMA_MAX_RAM_GB: 1500
   TAHOMA_LOAD_JAVA: ""
   TAHOMA_DATA_REPO_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
