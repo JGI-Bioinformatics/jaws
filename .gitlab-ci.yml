@@ -226,6 +226,19 @@ test-jtm:
   artifacts:
     reports:
       cobertura: jtm/coverage.xml
+test-parsl:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3.8 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip3.8 install rpc/
+    - pip3.8 install -r parsl/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
+    - make test-parsl
+  artifacts:
+    reports:
+      cobertura: parsl/coverage.xml
 
 package:
   <<: *only-default
