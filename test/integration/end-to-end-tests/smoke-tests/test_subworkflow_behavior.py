@@ -91,9 +91,6 @@ def test_task_log(submit_subworkflow_alignment):
     main_wdl.bam_stats  46892   running success 2021-02-09 22:07:31
     """
 
-    # time.sleep(120)  # wait some time before running task-status since there is some lag between
-    #                 # when "jaws status" calls success and when "jaws task-status" calls success.
-
     run_id = submit_subworkflow_alignment["run_id"]
     cmd = "jaws task-log %s | tail -n+2" % (run_id)
     (r, o, e) = util.run(cmd)
