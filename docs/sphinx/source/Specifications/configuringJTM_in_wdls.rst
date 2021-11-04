@@ -17,7 +17,9 @@ Table of available resources
 
 Use the following tables to help figure out how many jobs (i.e. workers) you can run per node and how many total nodes you can expect to get.
 
-On Cori, JAWS runs on a dedicated cluster.
+Cori
+----
+JAWS runs on a dedicated cluster.
 
 +----------+-----+----------+----------------+-----+-------+--------------+
 |constraint|nodes| ram (G)  | qos            |cores|threads|max time (hrs)|
@@ -33,9 +35,10 @@ On Cori, JAWS runs on a dedicated cluster.
 | skylake  |  20 |250 (230*)| jgi_shared     | 32  |   32  | 168          |
 +----------+-----+----------+----------------+-----+-------+--------------+
 
- * note: If you have many jobs to submit(>10), use qos: "genepool" and not genepool_special which is a priority node.
+ \* the actual number of gigabytes you can use to reserve memory space for system processes.
 
- * the actual number of gigabytes you can use to reserve memory space for system processes.
+ \** The "genepool" qos is appropriate to use when you have many jobs to submit(>10)
+ and not "genepool_special" which is a priority node.
 
 .. raw:: html
 
@@ -59,8 +62,8 @@ On Cori, JAWS runs on a dedicated cluster.
     }
 	</pre>
   </code>
-    
-    
+
+
   Using 700G machines
   <br>
   <code>
@@ -77,11 +80,11 @@ On Cori, JAWS runs on a dedicated cluster.
     }
 	</pre>
   </code>
-    
+
   Using non-priority queue ("genepool")
   <br>
   <code>
-    <pre>
+  <pre>
     runtime {
       poolname: "some-unique-name"
       node: 1
@@ -93,12 +96,13 @@ On Cori, JAWS runs on a dedicated cluster.
     }
 	</pre>
   </code>
-   </details>
-
+  </details>
 
 |
 
-At JGI, JAWS runs on a dedicated clusters LR3 and JGI
+JGI
+---
+JAWS runs on a dedicated clusters LR3 and JGI
 
 +---------+------------------+-----+----------+-----+-------+--------------+
 |partition|    constraint    |nodes| ram (G)  |cores|threads|max time (hrs)|
@@ -112,30 +116,35 @@ At JGI, JAWS runs on a dedicated clusters LR3 and JGI
 |     jgi |                  |  40 |256 (236*)|  32 |  64   |      72      |
 +---------+------------------+-----+----------+-----+-------+--------------+
 
- * the actual number of gigabytes you can use to reserve memory space for system processes.
+\* the actual number of gigabytes you can use to reserve memory space for system processes.
 
 |
 
-
-At Pacific Northwest National Labs, JAWS runs on the Tahoma cluster: `PNNL <https://www.emsl.pnnl.gov/MSC/UserGuide/compute_resources/cascade_overview.html>`_
+Pacific Northwest National Labs
+-------------------------------
+JAWS runs on the Tahoma
+cluster: `PNNL <https://www.emsl.pnnl.gov/MSC/UserGuide/compute_resources/cascade_overview.html>`_
 
 +----------+------------------+-----+------------+-----+-------+--------------+
-|partition |    constraint    |nodes| ram (G)   |cores|threads|max time (hrs)|
+|partition |    constraint    |nodes| ram (G)    |cores|threads|max time (hrs)|
 +==========+==================+=====+============+=====+=======+==============+
 |          |                  | 160 |  384 (364*)|  36 |  36   |      72      |
 +----------+------------------+-----+------------+-----+-------+--------------+
 | analysis |                  |  24 |1500 (1480*)|  36 |  36   |      72      |
 +----------+------------------+-----+------------+-----+-------+--------------+
 
- * the actual number of gigabytes you can use to reserve memory space for system processes.
+\* the actual number of gigabytes you can use to reserve memory space for system processes.
 
 
- Example of requesting high-mem nodes from Tahoma
+.. raw:: html
+
+  <details>
+  <summary><a>Example of requesting high-mem nodes from Tahoma</a></summary>
 
   Using 1500G memory machines
-
-.. code-block:: text
-
+  <br>
+  <code>
+	<pre>
     runtime {
       partition: "analysis"
       time: "00:30:00"
@@ -144,8 +153,11 @@ At Pacific Northwest National Labs, JAWS runs on the Tahoma cluster: `PNNL <http
       node: 1
       nwpn: 1
     }
+  </pre>
+  </code>
+  </details>
 
-
+|
 
 .. _requesting-workers:
 
