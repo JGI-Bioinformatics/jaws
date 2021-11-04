@@ -161,7 +161,7 @@ def test_jaws_errors(submit_bad_task):
 
 def test_jaws_task_status(submit_fq_count_wdl):
     """Check that jaws task-status returns something like this:
-    fq_count.count_seqs 1   25177   running success 2021-01-13 12:37:45     The job completed successfully
+    fq_count.count_seqs 25177   success 2021-01-13 12:37:45     run_time=0:00:13.293
 
     It should have only one line.
     """
