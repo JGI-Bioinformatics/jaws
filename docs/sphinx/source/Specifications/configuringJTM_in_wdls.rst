@@ -1,5 +1,5 @@
 ###########################################
-JTM Configuration options when creating WDL
+JTM Backend Configuration Options When Creating WDL
 ###########################################
 
 .. role:: bash(code)
@@ -10,9 +10,6 @@ JTM Configuration options when creating WDL
    A **worker** is what runs your tasks. You can have many workers on multiple nodes which together is a **worker pool**. The pool size is determined by specifying the number of nodes (node) and number-of-workers-per-node (nwpn).  For example,  :bash:`#workers = node * nwpn`.
    The maximum number for nwpn is 32 on cori since this is the number of threads.  Other machines will have a different number of threads.
 
-.. Warning::
-
-    Having multiple workers only makes sense if you are running a task in parallel via "scattering".
 
 ****************************
 Table of available resources
@@ -20,7 +17,9 @@ Table of available resources
 
 Use the following tables to help figure out how many jobs (i.e. workers) you can run per node and how many total nodes you can expect to get.
 
-On Cori, JAWS runs on a dedicated cluster.
+Cori
+----
+JAWS runs on a dedicated cluster.
 
 +----------+-----+----------+----------------+-----+-------+--------------+
 |constraint|nodes| ram (G)  | qos            |cores|threads|max time (hrs)|
@@ -36,7 +35,10 @@ On Cori, JAWS runs on a dedicated cluster.
 | skylake  |  20 |250 (230*)| jgi_shared     | 32  |   32  | 168          |
 +----------+-----+----------+----------------+-----+-------+--------------+
 
-**note: If you have many jobs to submit(>10), use qos: "genepool" and not genepool_special which is a priority node. 
+ \* the actual number of gigabytes you can use to reserve memory space for system processes.
+
+ \** The "genepool" qos is appropriate to use when you have many jobs to submit(>10)
+ and not "genepool_special" which is a priority node.
 
 .. raw:: html
 
@@ -51,7 +53,6 @@ On Cori, JAWS runs on a dedicated cluster.
       time: "00:30:00"
       memory: "250G"
       poolname: "some-unique-name"
-      shared: 0
       node: 1
       nwpn: 1
       constraint: "skylake"
@@ -61,8 +62,8 @@ On Cori, JAWS runs on a dedicated cluster.
     }
 	</pre>
   </code>
-    
-    
+
+
   Using 700G machines
   <br>
   <code>
@@ -71,7 +72,6 @@ On Cori, JAWS runs on a dedicated cluster.
       time: "00:30:00"
       memory: "700G"
       poolname: "some-unique-name"
-      shared: 0
       node: 1
       nwpn: 1
       constraint: "skylake"
@@ -80,55 +80,84 @@ On Cori, JAWS runs on a dedicated cluster.
     }
 	</pre>
   </code>
-    
+
   Using non-priority queue ("genepool")
   <br>
   <code>
-    <pre>
+  <pre>
     runtime {
       poolname: "some-unique-name"
       node: 1
       nwpn: 1
       memory: "10G"
       time: "00:10:00"
-      shared: 0
       qos: "regular"
       account: "m342"
     }
 	</pre>
   </code>
-   </details>
-
+  </details>
 
 |
 
-At JGI, JAWS runs on a dedicated clusters LR3 and JGI
+JGI
+---
+JAWS runs on a dedicated clusters LR3 and JGI
 
 +---------+------------------+-----+----------+-----+-------+--------------+
 |partition|    constraint    |nodes| ram (G)  |cores|threads|max time (hrs)|
 +=========+==================+=====+==========+=====+=======+==============+
 |     lr3 |                  | 316 |  64 (45*)|  32 |  64   |      72      |
 +---------+------------------+-----+----------+-----+-------+--------------+
-|     lr3 | lr3_c32,jgi_m256 | 32  |256 (236*)|  32 |  64   |      72      |
+|     lr3 | lr3_c32,jgi_m256 |  32 |256 (236*)|  32 |  64   |      72      |
 +---------+------------------+-----+----------+-----+-------+--------------+
-|     lr3 | lr3_c32,jgi_m512 | 8   |512 (492*)|  32 |  64   |      72      |
+|     lr3 | lr3_c32,jgi_m512 |   8 |512 (492*)|  32 |  64   |      72      |
 +---------+------------------+-----+----------+-----+-------+--------------+
-|     jgi |                  | 40  |256 (236*)|  32 |  64   |      72      |
+|     jgi |                  |  40 |256 (236*)|  32 |  64   |      72      |
 +---------+------------------+-----+----------+-----+-------+--------------+
+
+\* the actual number of gigabytes you can use to reserve memory space for system processes.
 
 |
 
+Pacific Northwest National Labs
+-------------------------------
+JAWS runs on the Tahoma
+cluster: `PNNL <https://www.emsl.pnnl.gov/MSC/UserGuide/compute_resources/cascade_overview.html>`_
 
-At Pacific Northwest National Labs: `PNNL <https://www.emsl.pnnl.gov/MSC/UserGuide/compute_resources/cascade_overview.html>`_
++----------+------------------+-----+------------+-----+-------+--------------+
+|partition |    constraint    |nodes| ram (G)    |cores|threads|max time (hrs)|
++==========+==================+=====+============+=====+=======+==============+
+|          |                  | 160 |  384 (364*)|  36 |  36   |      72      |
++----------+------------------+-----+------------+-----+-------+--------------+
+| analysis |                  |  24 |1500 (1480*)|  36 |  36   |      72      |
++----------+------------------+-----+------------+-----+-------+--------------+
 
-+-----------+-----+----------+-----+-------+--------------+
-|constraint |nodes| ram (G)  |cores|threads|max time (hrs)|
-+===========+=====+==========+=====+=======+==============+
-| n.a.      | 960 |128 (118*)|  16 |   16  | 168          |
-+-----------+-----+----------+-----+-------+--------------+
+\* the actual number of gigabytes you can use to reserve memory space for system processes.
 
-| * the actual number of gigabytes you should request (remember there is overhead).
 
+.. raw:: html
+
+  <details>
+  <summary><a>Example of requesting high-mem nodes from Tahoma</a></summary>
+
+  Using 1500G memory machines
+  <br>
+  <code>
+	<pre>
+    runtime {
+      partition: "analysis"
+      time: "00:30:00"
+      memory: "1480G"
+      poolname: "highmem_test"
+      node: 1
+      nwpn: 1
+    }
+  </pre>
+  </code>
+  </details>
+
+|
 
 .. _requesting-workers:
 
@@ -141,7 +170,7 @@ You request resources in a similar manner as for sbatch jobs. The default option
 
    runtime {
        time: "00:30:00"         # up to 72hrs
-       memory: "5G"                # you get a exclusive machine no matter what this setting is. You have two choices: ["115G"|"500G"]
+       memory: "5G"             # you get a exclusive machine no matter what this setting is. You have two choices: ["115G"|"500G"]
        poolname: "small"        # your choice.
        node: 1                  # number of nodes in the pool. You only need to set this higher when you are scattering a job.
        nwpn: 1                  # number of workers per node (max is number of threads).  This depends on the job's memory & thread requirements.
