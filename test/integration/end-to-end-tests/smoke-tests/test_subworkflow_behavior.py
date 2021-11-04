@@ -31,12 +31,12 @@ def test_task_status(submit_subworkflow_alignment):
     """
     # task-status verifies all subworkflows task status was shown
     #
-    #TASK_NAME  ATTEMPT CROMWELL_JOB_ID STATUS_FROM     STATUS_TO       TIMESTAMP       REASON  STATUS_DETAIL
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard      1 46806   running success 2021-02-08 20:53:55  The job completed successfully
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       1       46807   running success 2021-02-08 20:53:58  The job completed successfully
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment  1 46808   running success 2021-02-08 20:54:25  The job completed successfully
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams 1 46809   running success 2021-02-08 20:54:37  The job completed successfully
-    main_wdl.bam_stats                                1 46810   running success 2021-02-08 20:56:36  The job completed successfully
+    #TASK_NAME  CROMWELL_JOB_ID STATUS       TIMESTAMP       REASON  STATUS_DETAIL
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard      46806   success 2021-02-08 20:53:55  The job completed successfully
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       46807   success 2021-02-08 20:53:58  The job completed successfully
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment  46808   success 2021-02-08 20:54:25  The job completed successfully
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams 46809   success 2021-02-08 20:54:37  The job completed successfully
+    main_wdl.bam_stats                                46810   success 2021-02-08 20:56:36  The job completed successfully
     """ # noqa
 
     run_id = submit_subworkflow_alignment["run_id"]
@@ -50,7 +50,7 @@ def test_task_status(submit_subworkflow_alignment):
     line_list = list(filter(None, line_list))  # remove empty element
     for i in line_list:
         task_names.append(i.split("\t")[0])
-        status_to.append(i.split("\t")[3])
+        status_to.append(i.split("\t")[2])
 
     # check that the subworkflows tasks are in the list
     assert len(task_names) == 5
@@ -64,35 +64,32 @@ def test_task_log(submit_subworkflow_alignment):
     Test that all subworkflow tasks are represented by the task-log command
 
     #TASK_NAME  ATTEMPT CROMWELL_JOB_ID STATUS_FROM     STATUS_TO       TIMESTAMP       REASON
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard        1       46888   created ready   2021-02-09 22:04:14
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard        1       46888   ready   queued  2021-02-09 22:04:16
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard        1       46888   queued  pending 2021-02-09 22:04:17
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard        1       46888   pending running 2021-02-09 22:05:30
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard        1       46888   running success 2021-02-09 22:05:32
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       1       46889   created ready   2021-02-09 22:04:20
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       1       46889   ready   queued  2021-02-09 22:04:22
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       1       46889   queued  pending 2021-02-09 22:04:23
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       1       46889   pending running 2021-02-09 22:05:34
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       1       46889   running success 2021-02-09 22:05:35
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment    1       46890   created ready   2021-02-09 22:05:56
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment    1       46890   ready   queued  2021-02-09 22:05:57
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment    1       46890   queued  pending 2021-02-09 22:05:59
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment    1       46890   pending running 2021-02-09 22:06:03
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment    1       46890   running success 2021-02-09 22:06:06
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams   1       46891   created ready   2021-02-09 22:06:11
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams   1       46891   ready   queued  2021-02-09 22:06:12
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams   1       46891   queued  pending 2021-02-09 22:06:14
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams   1       46891   pending running 2021-02-09 22:06:18
-    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams   1       46891   running success 2021-02-09 22:06:19
-    main_wdl.bam_stats  1       46892   created ready   2021-02-09 22:06:29
-    main_wdl.bam_stats  1       46892   ready   queued  2021-02-09 22:06:31
-    main_wdl.bam_stats  1       46892   queued  pending 2021-02-09 22:06:32
-    main_wdl.bam_stats  1       46892   pending running 2021-02-09 22:07:30
-    main_wdl.bam_stats  1       46892   running success 2021-02-09 22:07:31
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard        46888   created ready   2021-02-09 22:04:14
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard        46888   ready   queued  2021-02-09 22:04:16
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard        46888   queued  pending 2021-02-09 22:04:17
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard        46888   pending running 2021-02-09 22:05:30
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.shard        46888   running success 2021-02-09 22:05:32
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       46889   created ready   2021-02-09 22:04:20
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       46889   ready   queued  2021-02-09 22:04:22
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       46889   queued  pending 2021-02-09 22:04:23
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       46889   pending running 2021-02-09 22:05:34
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.bbmap_indexing       46889   running success 2021-02-09 22:05:35
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment    46890   created ready   2021-02-09 22:05:56
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment    46890   ready   queued  2021-02-09 22:05:57
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment    46890   queued  pending 2021-02-09 22:05:59
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment    46890   pending running 2021-02-09 22:06:03
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.alignment    46890   running success 2021-02-09 22:06:06
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams   46891   created ready   2021-02-09 22:06:11
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams   46891   ready   queued  2021-02-09 22:06:12
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams   46891   queued  pending 2021-02-09 22:06:14
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams   46891   pending running 2021-02-09 22:06:18
+    main_wdl.bbmap_shard_wf.bbmap_shard_wf.merge_bams   46891   running success 2021-02-09 22:06:19
+    main_wdl.bam_stats  46892   created ready   2021-02-09 22:06:29
+    main_wdl.bam_stats  46892   ready   queued  2021-02-09 22:06:31
+    main_wdl.bam_stats  46892   queued  pending 2021-02-09 22:06:32
+    main_wdl.bam_stats  46892   pending running 2021-02-09 22:07:30
+    main_wdl.bam_stats  46892   running success 2021-02-09 22:07:31
     """
-
-    # time.sleep(120)  # wait some time before running task-status since there is some lag between
-    #                 # when "jaws status" calls success and when "jaws task-status" calls success.
 
     run_id = submit_subworkflow_alignment["run_id"]
     cmd = "jaws task-log %s | tail -n+2" % (run_id)
