@@ -1280,6 +1280,8 @@ wait
                         batch_job_script_str += f"""
 #SBATCH --partition={partition_param}"""
 
+                    mnode_param = f"#SBATCH --mem={mem_per_node_to_request}"
+
                     batch_job_script_str += """
 #SBATCH --account=%(charging_account)s
 #SBATCH --nodes=%(num_nodes_to_request)d

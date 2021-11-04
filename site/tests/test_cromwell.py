@@ -76,12 +76,12 @@ def test_task_summary(requests_mock):
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     actual = metadata.task_summary()
     expected = [
-        ["main_workflow.goodbye", "12129", False],
-        ["main_workflow.hello", "12130", False],
-        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "12134", False],
-        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "12133", False],
-        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131", False],
-        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132", False],
+        ["main_workflow.goodbye", "12129", False, "0:00:44.787000"],
+        ["main_workflow.hello", "12130", False, "0:00:45.297000"],
+        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "12134", False, "0:00:40.851000"],
+        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "12133", False, "0:00:40.203000"],
+        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131", False, "0:00:40.282000"],
+        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132", False, "0:00:41.661000"],
     ]
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
@@ -91,7 +91,6 @@ def test_task_summary(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_5)
     actual = metadata.task_summary()
-    print(json.dumps(actual, indent=4, sort_keys=True))  # DEBUG
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
     )
