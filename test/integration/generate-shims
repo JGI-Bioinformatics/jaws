@@ -23,7 +23,7 @@ SITE_REF_DATA_DIR
 SITE_CONTAINER_TYPE
 SITE_CROMWELL_TMPDIR
 SITE_LOAD_JAVA
-JTM_VENV_DIR
+BACKEND_VENV_DIR
 SITE_VENV_DIR
 "
 RESULT=0
@@ -134,8 +134,8 @@ chmod 2775 $SITE_UPLOADS_DIR
 # DEPLOY TO NFS DIR
 # HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
 
-#test -d $JTM_VENV_DIR || mkdir -p $JTM_VENV_DIR
-#chmod 2770 $JTM_VENV_DIR
+#test -d $BACKEND_VENV_DIR || mkdir -p $BACKEND_VENV_DIR
+#chmod 2770 $BACKEND_VENV_DIR
 
 #cp $CONFIG_DIR/jaws-jtm.conf $CONFIG_DIR/
 #chgrp $SITE_JTM_GROUP $JTM_CONFIG_FILE
@@ -143,7 +143,7 @@ chmod 2775 $SITE_UPLOADS_DIR
 
 # RUN JTM
 
-source $JTM_VENV_DIR/bin/activate
+source $BACKEND_VENV_DIR/bin/activate
 export JTM_CONFIG_FILE=$JTM_CONFIG_FILE
 
 exec jtm --config=$CONFIG_DIR/jaws-jtm.conf --debug manager -ld $LOGS_DIR
@@ -159,7 +159,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-source $INSTALL_DIR/parsl/bin/activate
+source $BACKEND_VENV_DIR/bin/activate
 exec python recv.py
 EOM
 

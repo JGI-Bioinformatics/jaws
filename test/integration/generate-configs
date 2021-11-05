@@ -33,7 +33,7 @@ SITE_UPLOADS_DIR
 SITE_RMQ_HOST
 SITE_RMQ_PORT
 SITE_RMQ_PW
-JTM_VENV_DIR
+BACKEND_VENV_DIR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -162,7 +162,7 @@ num_workers_per_node = 1
 log_dir = \${SITE:scratch}/jtm
 # config file location of worker
 worker_config_file = $CONFIG_DIR/jaws-jtm.conf
-env_activation = source $JTM_VENV_DIR/bin/activate
+env_activation = source $BACKEND_VENV_DIR/bin/activate
 pool_name = small
 # Worker setting
 # worker's hb expiration (ms)

@@ -146,7 +146,7 @@ export JTM_CONFIG_FILE="$CONFIG_DIR/jaws-jtm.conf"
 [[ ${SITE_GLOBUS_ROOT_DIR: -1} == "/" ]] || SITE_GLOBUS_ROOT_DIR="$SITE_GLOBUS_ROOT_DIR/"
 
 # virtual envs
-export JTM_VENV_DIR="$INSTALL_DIR/jtm"
+export BACKEND_VENV_DIR="$INSTALL_DIR/backends"
 export SITE_VENV_DIR="$INSTALL_DIR/site"
 export PARSL_VENV_DIR="$INSTALL_DIR/parsl"
 
