@@ -148,6 +148,7 @@ export JTM_CONFIG_FILE="$CONFIG_DIR/jaws-jtm.conf"
 # virtual envs
 export JTM_VENV_DIR="$INSTALL_DIR/jtm"
 export SITE_VENV_DIR="$INSTALL_DIR/site"
+export PARSL_VENV_DIR="$INSTALL_DIR/parsl"
 
 
 ## CREATE DIRS AND SET GROUP AND PERMISSIONS
