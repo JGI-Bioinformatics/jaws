@@ -24,3 +24,8 @@ Why didn't call caching work for me?
 
 Can I copy only a select set of output files so I'm not copying uneccessary files.
     When JAWS is finished (i.e. "download-complete") you should be able to copy your output files using the 'jaws get' command. When you use the command without the --complete flag, you will only get the files that were listed in the output{} section of the WDL.  The --complete flag will get you all the files in cromwell's 'execution' directory.
+
+|
+
+What flavor of linux is used on the compute nodes?
+    JAWS makes multiple computing resources available and they may use a variety of linux distros, so we recommend specifying the container to use for every task.  If not specified, the default container is Debian.
