@@ -226,6 +226,28 @@ jtm_worker_poison_exch = jgi_jtm_poison_exch_\${JTM:run_mode}_\${SITE:instance_n
 max_retries = 3
 EOM
 
+cat << EOM > $CONFIG_DIR/parsl.ini
+[SITE]
+site_id = $JAWS_SITE
+
+[MP]
+host = $SITE_RMQ_HOST
+vhost = jtm_$DEPLOYMENT_NAME
+user = jaws
+password = $SITE_RMQ_PW
+port = $SITE_RMQ_PORT
+queue = SITE_$JAWS_SITE
+exchange = SITE_$JAWS_SITE
+
+[SITE_RPC_CLIENT]
+host = $SITE_RMQ_HOST
+vhost = jtm_$DEPLOYMENT_NAME
+user = jaws
+password = $SITE_RMQ_PW
+port = $SITE_RMQ_PORT
+queue = SITE_$JAWS_SITE
+EOM
+
 
 ## SET PERMISSIONS
 chgrp $SITE_JAWS_GROUP $CONFIG_DIR/*.conf
