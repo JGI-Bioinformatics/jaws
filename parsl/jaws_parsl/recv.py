@@ -6,6 +6,8 @@ import time
 import datetime
 import parsl
 import jaws_parsl
+import jaws_parsl.config
+import jaws_parsl.parsl_configs
 from parsl import bash_app, AUTO_LOGNAME
 from jaws_rpc.rpc_client import RpcClient
 from multiprocessing.connection import Listener
@@ -182,7 +184,6 @@ class TasksChannel():
 
 def cli():
     global rpc_params
-    rpc_params = jaws_parsl.config.conf.get_rpc_params()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", default=None,
@@ -192,21 +193,27 @@ def cli():
     parser.add_argument("-d", "--debug", action='store_true',
                         help="Enables debug logging")
 
+    args = parser.parse_args()
+
+    jaws_parsl.config.Configuration(args.config)
+
     site_id = rpc_params = jaws_parsl.config.conf.get_site_id()
+    rpc_params = jaws_parsl.config.conf.get_rpc_params()
+
     if site_id == "CORI":
-        from execs import config_cori as config
-    elif site_id == "LBL":
-        from execs import config_lbl as config
+        from jaws_parsl.parsl_configs.cori_config import CONFIG_CORI as config
+    elif site_id == "JGI":
+        from jaws_parsl.parsl_configs.lrc_config import CONFIG_LBL as config
+    elif site_id == "TAHOMA":
+        from jaws_parsl.parsl_configs.tahoma_config import CONFIG_TAHOMA as config
+    elif site_id == "LOCAL":
+        from jaws_parsl.parsl_configs.local_config import CONFIG_LOCAL as config
     else:
-        e = "Unknown site_id specified in Parsl backend config"
-        raise ValueError(e)
+        raise ValueError("Unknown side_id specified in Parsl backend config")
 
     config.retries = 3
     dfk = parsl.load(config)
     parsl_run_dir = dfk.run_dir
-    # parsl_run_id = dfk.run_id
-
-    args = parser.parse_args()
 
     if args.logfile:
         logfile_path = args.logfile
@@ -227,7 +234,3 @@ def cli():
     tasks_channel.listen()
 
     logger.info("Exiting")
-
-
-if __name__ == "__main__":
-    cli()
