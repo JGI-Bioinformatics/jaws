@@ -142,24 +142,24 @@ priority=999
 EOM
 
 
-## JTM SUPERVISOR CONF
+## BACKEND SUPERVISOR CONF
 
-cat << EOM > $SUPERVISOR_DIR/supervisord-jtm.conf
+cat << EOM > $SUPERVISOR_DIR/supervisord-cwl-backend.conf
 [inet_http_server]
 port=0.0.0.0:$JTM_SUPERVISOR_PORT
 username=jaws
 password=$JAWS_SUPERVISORD_PW
 
 [supervisord]
-logfile=$SUPERVISOR_DIR/jtm-log
+logfile=$SUPERVISOR_DIR/cwl-backend-log
 logfile_maxbytes=50MB
 logfile_backups=2
 loglevel=info
-pidfile=$SUPERVISOR_DIR/jtm-pidfile
+pidfile=$SUPERVISOR_DIR/cwl-backend-pidfile
 nodaemon=false
 minfds=1024
 minprocs=200
-identifier=supervisor-jtm-$DEPLOYMENT_NAME
+identifier=supervisor-backend-$DEPLOYMENT_NAME
 directory=$SUPERVISOR_DIR
 
 ; The rpcinterface:supervisor section must remain in the config file for
@@ -173,7 +173,7 @@ supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 serverurl=$SITE_SUPERVISOR_HOST:$JTM_SUPERVISOR_PORT
 username=jaws
 password=$JAWS_SUPERVISORD_PW
-prompt=supervisor-jtm-$DEPLOYMENT_NAME
+prompt=supervisor-cwl-backend-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
@@ -185,6 +185,13 @@ startretries=10
 autorestart=unexpected
 priority=1
 
+[program:jaws-parsl-recv]
+command=$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=10
+autorestart=unexpected
+
 [program:jaws-cromwell]
 command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
 numprocs=1
@@ -195,13 +202,13 @@ stopwaitsecs=120
 priority=9
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-jtm,jaws-cromwell
+programs=jaws-jtm,jaws-parsl-recv,jaws-cromwell
 priority=999
 EOM
 
 chgrp "$SITE_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
-chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-jtm.conf"
-chmod 660 "$SUPERVISOR_DIR/supervisord-jtm.conf"
+chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-cwl-backend.conf"
+chmod 660 "$SUPERVISOR_DIR/supervisord-cwl-backend.conf"
 
 printf "END deploy-supervisord\n\n"

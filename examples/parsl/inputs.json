@@ -1,0 +1,5 @@
+{
+    "bbtools.reads": "./sample.fastq.bz2",
+    "bbtools.ref": "./sample.fasta"
+}
+
