@@ -160,7 +160,7 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
 source $INSTALL_DIR/parsl/bin/activate
-exec python recv.py
+exec jaws-parsl-recv --config=$CONFIG_DIR/parsl.ini
 EOM
 
 ## SET PERMISSIONS
