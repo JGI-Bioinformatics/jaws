@@ -78,10 +78,10 @@ cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.sh
 
 $SITE_LOAD_JAVA
 
-if [[ "$SITE_LOAD_PYTHON" == module* ]]; then
+if [[ "\$SITE_LOAD_PYTHON" == module* ]]; then
   module list 2>/dev/null
-  if [ $? == 0 ]; then
-    if [[ ! -z `module list python 2>&1 | grep python` ]]; then
+  if [ \$? == 0 ]; then
+    if [[ ! -z \`module list python 2>&1 | grep python\` ]]; then
       echo "Warning: a python module is already loaded" 1>&2
     fi
   fi
