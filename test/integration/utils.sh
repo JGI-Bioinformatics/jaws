@@ -64,8 +64,10 @@ function set_site_var {
 function fix_perms() {
     local GROUP=$1
     local DIR="$2"
+    local GROUP_PERMS=${3:-rwX}
     chmod -R a+rX "$DIR"
-    chmod -R ug+rwX "$DIR"
+    chmod -R u+rwX "$DIR"
+    chmod -R g=$GROUP_PERMS "$DIR"
     chgrp -R $GROUP "$DIR"
     find "$DIR" -type d -exec chmod g+s '{}' \;
 }

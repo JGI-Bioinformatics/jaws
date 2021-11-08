@@ -39,6 +39,7 @@ There are opportunities to participate in code reviews with other WDL developers
 
    <p class="textborder">
     The running environment and required scripts should be encapsulated in a docker image which is pused to hub.docker.com and have a versioned Dockerfile. Once testing is done, avoid commands that use shifter or singularity, but instead refer to images by adding them to the runtime{} section of the WDL. 
+    JAWS makes multiple computing resources available, using various linux distros.  Thus, we recommend that a docker container be specified for every task; if not, the default container is Debian.
     <br><br>
     Save all versions of your docker images at hub.docker.com. Jaws will pull images from there by default.
    </p>
