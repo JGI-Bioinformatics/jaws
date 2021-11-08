@@ -67,7 +67,7 @@ CONFIG_CORI = Config(
             label='cori_exvivo',
             # This is the network interface on the login node to
             # which compute nodes can communicate
-            address=address_by_interface('bond0.144'),
+            address=address_by_hostname(),
             provider=SlurmProvider(
                 'jgi_exvivo',  # Partition / QOS
                 nodes_per_block=1,
