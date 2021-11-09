@@ -12,7 +12,7 @@ stages:
   - stress-tests
   - deploy-docs
 
-include: # use different branch to test dependency proxy
+include:
   - project: 'advanced-analysis/ci-templates'
     ref: 'use_proxy'
     file: 'SAST.gitlab-ci.yml'
