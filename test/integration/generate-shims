@@ -165,7 +165,7 @@ EOM
 
 ## SET PERMISSIONS
 chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
-chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-parsl"
+chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME"
 chmod +x "$SHIM_DIR"/*
 
 printf "END generate-shims\n\n"
