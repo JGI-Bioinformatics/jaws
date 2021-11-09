@@ -12,7 +12,7 @@ stages:
   - stress-tests
   - deploy-docs
 
-include:
+include: # one more try to verify use of dependency proxy in docker-runner. 
   - project: 'advanced-analysis/ci-templates'
     ref: 'use_proxy'
     file: 'docker-runner.yml'
