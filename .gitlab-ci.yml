@@ -14,7 +14,7 @@ stages:
 
 include:
   - project: 'advanced-analysis/ci-templates'
-    ref: 'main'
+    ref: 'use_proxy'
     file: 'SAST.gitlab-ci.yml'
 
 variables:
