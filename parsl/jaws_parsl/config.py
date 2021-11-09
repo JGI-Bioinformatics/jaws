@@ -60,7 +60,6 @@ class Configuration():
             "host": s["host"],
             "port": int(s["port"])
         }
-        print(params)
         return params
 
     def get_rpc_params(self):
@@ -79,5 +78,4 @@ class Configuration():
             "port": int(s["port"]),
             "queue": s["queue"]
         }
-        print(params)
         return params
