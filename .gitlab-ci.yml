@@ -15,7 +15,12 @@ stages:
 include:
   - project: 'advanced-analysis/ci-templates'
     ref: 'use_proxy'
-    file: 'SAST.gitlab-ci.yml'
+    file: 'docker-runner.yml'
+
+include:
+  - project: 'advanced-analysis/ci-templates'
+    ref: 'use_proxy'
+    file: 'SAST-text.yml'
 
 variables:
   GIT_STRATEGY: clone
