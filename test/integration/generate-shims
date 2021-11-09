@@ -154,6 +154,7 @@ EOM
 
 ## parsl-recv shim script
 cat <<EOM > "$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME"
+#!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
