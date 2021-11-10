@@ -318,11 +318,14 @@ def task_log(run_id: int, fmt: str) -> None:
         Get the max length of element in every col and add padding of 2 spaces
         """
         for index in range(len(header)):
-            col_widths.append(max(len(log_entry[index] for log_entry in result) + 2))
+            col_widths.append(
+                max(
+                    [len(str(log_entry[index])) for log_entry in result]
+                ) + 2)
         for log_entry in result:
             print(
                 "".join(
-                    cell.ljust(col_widths[col_index])
+                    str(cell).ljust(col_widths[col_index])
                     for col_index, cell in enumerate(log_entry)
                 )
             )
