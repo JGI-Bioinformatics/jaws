@@ -39,7 +39,7 @@ curl --header "Accept: application/json" -v "localhost:8088/api/workflows/v1/${w
 ```
 
 ## Client Mode
-For client mode, you need to set up a persistant database:  mysql, sqlite, or in this example, a file-based db. You can configure these databases in a cromwell config which is then part of the submit command. The config examples supplied here (except parsl.conf) use the file-based 'HsqldbProfile' db.  See the cromwell docs for [HsqldbProfile](https://cromwell.readthedocs.io/en/stable/Configuring/)
+For client mode, you need to set up a persistant database:  mysql, or in this example, a file-based db. You can configure these databases in a cromwell config which is then part of the submit command. The config examples supplied here (except parsl.conf) use the file-based 'HsqldbProfile' db.  See the cromwell docs for [HsqldbProfile](https://cromwell.readthedocs.io/en/stable/Configuring/) under the section "Using Cromwell with file-based database (No server required)".
 
 ```
 java -Dconfig.file=cromwell_docker.conf \
