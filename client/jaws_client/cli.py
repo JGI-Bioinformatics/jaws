@@ -380,7 +380,7 @@ def list_sites() -> None:
 @click.option("--tag", help="identifier for the run")
 @click.option("--no-cache", is_flag=True, help="Disable call-caching for this run")
 @click.option("--quiet", is_flag=True, help="Don't print copy progress bar")
-@click.option("--default-container", default="None", help="The default Docker container to use for Tasks")
+@click.option("--default-container", default=None, help="The default Docker container to use for Tasks")
 def submit(
     wdl_file: str,
     json_file: str,
