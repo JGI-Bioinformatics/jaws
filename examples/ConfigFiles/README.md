@@ -50,3 +50,12 @@ run hello.wdl -i hello.json
 ```
 
 Note that you need to overwrite `dockerRoot` and `root` from the config file, to point to your own paths.
+
+## The options.json File
+You can overwrite certain config settings with the options.json file.  For example, you can turn off call-caching or use another backend.
+For example, you can set "backend": [local|slurm].
+
+You can also set the options on the command line with `-D` like 
+```
+java -Dbackend=slurm ...etc.
+```
