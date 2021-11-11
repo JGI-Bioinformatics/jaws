@@ -34,6 +34,9 @@ SITE_RMQ_HOST
 SITE_RMQ_PORT
 SITE_RMQ_PW
 JTM_VENV_DIR
+PARSL_MP_HOST
+PARSL_MP_PORT
+PARSL_MP_PASSWORD
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -231,13 +234,9 @@ cat << EOM > $CONFIG_DIR/parsl.ini
 site_id = $JAWS_SITE
 
 [MP]
-host = $SITE_RMQ_HOST
-vhost = jtm_$DEPLOYMENT_NAME
-user = jaws
-password = $SITE_RMQ_PW
-port = $SITE_RMQ_PORT
-queue = SITE_$JAWS_SITE
-exchange = SITE_$JAWS_SITE
+host = $PARSL_MP_HOST
+password = $PARSL_MP_PASSWORD
+port = $PARSL_MP_PORT
 
 [SITE_RPC_CLIENT]
 host = $SITE_RMQ_HOST

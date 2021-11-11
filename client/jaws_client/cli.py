@@ -318,11 +318,14 @@ def task_log(run_id: int, fmt: str) -> None:
         Get the max length of element in every col and add padding of 2 spaces
         """
         for index in range(len(header)):
-            col_widths.append(max(len(log_entry[index] for log_entry in result) + 2))
+            col_widths.append(
+                max(
+                    [len(str(log_entry[index])) for log_entry in result]
+                ) + 2)
         for log_entry in result:
             print(
                 "".join(
-                    cell.ljust(col_widths[col_index])
+                    str(cell).ljust(col_widths[col_index])
                     for col_index, cell in enumerate(log_entry)
                 )
             )
@@ -377,11 +380,7 @@ def list_sites() -> None:
 @click.option("--tag", help="identifier for the run")
 @click.option("--no-cache", is_flag=True, help="Disable call-caching for this run")
 @click.option("--quiet", is_flag=True, help="Don't print copy progress bar")
-@click.option(
-    "--default-docker",
-    default="debian",
-    help="The default container is Debian unless specified",
-)
+@click.option("--default-container", default="None", help="The default Docker container to use for Tasks")
 def submit(
     wdl_file: str,
     json_file: str,
@@ -389,7 +388,7 @@ def submit(
     tag: str,
     no_cache: bool,
     quiet: bool,
-    default_docker: str,
+    default_container: str,
 ):
     """Submit a run for execution at a JAWS-Site.
     Available sites can be found by running 'jaws run list-sites'.
@@ -473,7 +472,9 @@ def submit(
         sys.exit(f"Unable to chmod {orig_json}: {error}")
 
     # specify Cromwell workflow options
-    workflow_options = {"default_runtime_attributes": {"docker": default_docker}}
+    if default_container is None:
+        default_container = config.get("JAWS", "default_container")
+    workflow_options = {"default_runtime_attributes": {"docker": default_container}}
     if no_cache is True:
         workflow_options["read_from_cache"] = False
         workflow_options["write_to_cache"] = False

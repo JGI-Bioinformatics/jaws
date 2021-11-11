@@ -15,7 +15,7 @@ echo 'hello'
 def config_file(tmp_path):
     cfg = tmp_path / "parsl.ini"
     content = """[SITE]
-site_id = SHARK
+site_id = LOCAL
 
 [MP]
 password = p455w0rd

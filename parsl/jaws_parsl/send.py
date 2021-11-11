@@ -66,7 +66,3 @@ def send(cpus, memory, command, loglevel, logfile):
     conn.close()
 
     logger.debug(" [x] Sent job info.")
-
-
-if __name__ == "__main__":
-    send()
