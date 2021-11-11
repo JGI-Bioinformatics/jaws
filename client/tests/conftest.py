@@ -27,6 +27,7 @@ uploads_subdir = {0}/globus/staging/uploads
 staging_dir = {0}/globus/staging/users
 data_repo_basedir = {0}/globus/data-repository-dev
 shared_endpoint_group = genome
+default_container = debian:latest
 [GLOBUS]
 client_id =
 endpoint_id =
