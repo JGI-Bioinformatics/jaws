@@ -2,6 +2,7 @@
 RPC operations by which Sites update Run and Job status.
 """
 
+import smtplib, ssl, os
 import logging
 import sqlalchemy.exc
 from datetime import datetime
@@ -75,8 +76,50 @@ def update_run_logs(params, session):
     except Exception as error:
         session.rollback()
         return failure(error)
+
+    if run.status_to == "download complete":
+        email = _get_email_address(session, run.user_id)
+
+        port = 587  # For starttls
+        smtp_server = "smtp.gmail.com"
+        #username = jgi.jaws
+        #password = EsU84f9&uwxuZ$R!
+        sender_email = "jfroula@gmail.com"
+        receiver_email = "jfroula@gmail.com"
+        password = os.environ.get('MAIL_PASSWORD')
+        print(f"{email=}")
+        message = f"""\
+        Subject: JAWS Run Complete {run.cromwell_run_id}:
+
+        Your run {run.cromwell_run_id} has completed with {run.result} => status: {run.status}
+        """
+
+        context = ssl.create_default_context()
+        with smtplib.SMTP(smtp_server, port) as server:
+            server.starttls(context=context)
+            server.login(sender_email, password)
+            server.sendmail(sender_email, receiver_email, message)
+
     return success()
 
+def _get_email_address(session, user_id):
+    """
+    Get the email address associated with a given user id.  Raise if not found.
+    :param session: sqlalchemy currently db session
+    :type session:  sqlalchemy.session
+    :param user_id: user id
+    :type user_id: str
+    :return: email address
+    :rtype: str
+    """
+    assert user_id
+    try:
+        user = session.query(User).filter(User.id == user_id).one_or_none()
+    except SQLAlchemyError as e:
+        logger.error(f"Db error: {e}")
+    if user is None:
+        logger.error(f"Could not found user {user_id}")
+    return user.email
 
 # all RPC operations are defined in this dispatch table
 operations = {
