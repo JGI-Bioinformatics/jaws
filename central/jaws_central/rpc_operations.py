@@ -2,13 +2,15 @@
 RPC operations by which Sites update Run and Job status.
 """
 
-import smtplib, ssl, os
+import smtplib
+import ssl
 import logging
 import sqlalchemy.exc
 from datetime import datetime
-from jaws_central.models_sa import Run, Run_Log
+from jaws_central.models_sa import Run, Run_Log, User
+from jaws_central import config
 from jaws_rpc.responses import success, failure
-
+from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__package__)
 
@@ -30,7 +32,7 @@ def update_run_logs(params, session):
     reason = None
     if "reason" in params:
         reason = params["reason"]
-    logger.info(f"Run {run_id} at Site {site_id} now {status_to}")
+    logger.info(f"Run JEFF {run_id} at Site {site_id} now {status_to}")
 
     # DEFINE ROW OBJ
     try:
@@ -78,20 +80,17 @@ def update_run_logs(params, session):
         return failure(error)
 
     if run.status_to == "download complete":
-        email = _get_email_address(session, run.user_id)
+        receiver_email = _get_email_address(session, run.user_id)
+        sender_email = config.conf.get("EMAIL", "user")
+        smtp_server = config.conf.get("EMAIL", "server")
+        port = config.conf.get("EMAIL", "port")
+        password = config.conf.get("EMAIL", "password")
+        logger.info(f"receiver_email: {receiver_email} and sender_email: {sender_email} and run_id {run.id}")
 
-        port = 587  # For starttls
-        smtp_server = "smtp.gmail.com"
-        #username = jgi.jaws
-        #password = EsU84f9&uwxuZ$R!
-        sender_email = "jfroula@gmail.com"
-        receiver_email = "jfroula@gmail.com"
-        password = os.environ.get('MAIL_PASSWORD')
-        print(f"{email=}")
         message = f"""\
-        Subject: JAWS Run Complete {run.cromwell_run_id}:
+        Subject: JAWS Run Complete {run.id}:
 
-        Your run {run.cromwell_run_id} has completed with {run.result} => status: {run.status}
+        Your run {run.id} has completed with \"{run.result}\"
         """
 
         context = ssl.create_default_context()
@@ -101,6 +100,7 @@ def update_run_logs(params, session):
             server.sendmail(sender_email, receiver_email, message)
 
     return success()
+
 
 def _get_email_address(session, user_id):
     """
@@ -120,6 +120,7 @@ def _get_email_address(session, user_id):
     if user is None:
         logger.error(f"Could not found user {user_id}")
     return user.email
+
 
 # all RPC operations are defined in this dispatch table
 operations = {
