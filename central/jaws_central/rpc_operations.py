@@ -32,7 +32,7 @@ def update_run_logs(params, session):
     reason = None
     if "reason" in params:
         reason = params["reason"]
-    logger.info(f"Run JEFF {run_id} at Site {site_id} now {status_to}")
+    logger.info(f"Run {run_id} at Site {site_id} now {status_to}")
 
     # DEFINE ROW OBJ
     try:
@@ -79,7 +79,9 @@ def update_run_logs(params, session):
         session.rollback()
         return failure(error)
 
-    if run.status_to == "download complete":
+    #if run.status_to == "download complete":
+    receiver_email = _get_email_address(session, run.user_id)
+    if status_to == "download complete":
         receiver_email = _get_email_address(session, run.user_id)
         sender_email = config.conf.get("EMAIL", "user")
         smtp_server = config.conf.get("EMAIL", "server")
@@ -119,6 +121,7 @@ def _get_email_address(session, user_id):
         logger.error(f"Db error: {e}")
     if user is None:
         logger.error(f"Could not found user {user_id}")
+    logger.info(f"MOZART II : returning {user.email}")
     return user.email
 
 
