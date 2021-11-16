@@ -220,6 +220,11 @@ Successfully built 808fa3c83056
 Successfully tagged jaws_central:2.0
 ```  
 
+There is a Dockerfile contained within each subdirectory along with a docker-entrypoint.
+The entrypoint scripts are meant to create a configuration file and populate the fields 
+from environment variables. Each container uses supervisord to manage the multiple processes
+needed for each application.  
+
 ## Contributing
 Developers
 * Edward Kirton
