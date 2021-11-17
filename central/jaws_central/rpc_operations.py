@@ -80,18 +80,12 @@ def update_run_logs(params, session):
         return failure(error)
 
     if status_to == "submitted":
-        sender_email = jgi.jaws@gmail.com
-        password = EsU84f9&uwxuZ$R!
-#        receiver_email = _get_email_address(session, run.user_id)
-#        sender_email = config.conf.get("EMAIL", "user")
-#        smtp_server = config.conf.get("EMAIL", "server")
+        receiver_email = _get_email_address(session, run.user_id)
+        sender_email = config.conf.get("EMAIL", "user")
+        smtp_server = config.conf.get("EMAIL", "server")
         port = config.conf.get("EMAIL", "port")
-#        password = config.conf.get("EMAIL", "password")
-        #receiver_email = 'jfroula@gmail.com'
-        receiver_email = 'yyoshinaga1@gmail.com'
-#        sender_email = 'jfroula@gmail.com'
+        password = config.conf.get("EMAIL", "password")
         smtp_server = 'smtp.gmail.com'
-#        password = 'ytjcvdadyfedawdy'
 
         logger.info(f"receiver_email: {receiver_email} and sender_email: {sender_email} and run_id {run.id}")
 
