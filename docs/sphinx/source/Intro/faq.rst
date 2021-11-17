@@ -19,6 +19,8 @@ Why didn't call caching work for me?
     Call caching may have failed if your files are being fed in as String rather than File inputs. The hashes of two identical Files stored in different locations would be the same. The hashes of the String values for the different locations would be different, even though the contents of the file are the same.
 
     Call caching also requires consistency in the outputs of the task, both the count (number of outputs) and the output expressions. If you publish a new version of your WDL that has one extra or one fewer output, it will not be able to benefit from a previously successful run of the same task, even if the inputs are the same.
+    
+    The only things you can change are the (1) filepaths inside the inputs.json if they are declared as "File" and not "String" and (2) hard-coded values inside the runtime{} section (except for docker).
 
 |
 

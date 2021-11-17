@@ -1,6 +1,6 @@
-======================================================
-Create a Running Environment Using a Docker Container
-======================================================
+==============================================
+Creating and Adding Docker Containers to a WDL
+==============================================
 
 .. role:: bash(code)
    :language: bash
@@ -73,8 +73,6 @@ The Dockerfile (provided in example) looks like
     
     # move script into container
     COPY script.sh /usr/local/bin/script.sh
-
-
 
 | **Build the image and upload to hub.docker.com**
 | You need to use your docker hub user name to tag the image when you are building it (see below).
@@ -218,19 +216,60 @@ After shifter is removed from the :bash:`command{}` block, add :bash:`docker:` i
 
 See align.wdl
 
+If you don't care about using `call-caching <https://cromwell.readthedocs.io/en/stable/cromwell_features/CallCaching/>`_, then you could add the docker like this.
+
 .. code-block:: text
 
     runtime {
         docker: "jfroula/bbtools:1.2.1"
     }
 
+If you do want `call-caching <https://cromwell.readthedocs.io/en/stable/cromwell_features/CallCaching/>`_, then use the sha id instead of the label.
+
+.. code-block:: text
+
+    runtime {
+        docker: "jfroula/bbtools@sha256:05cf1fccc3ba8e80e90dd13aaf5b6d6957df8db40be43c97e85a72914a9f8156"
+    }
+
 .. _run with conf:
 
-*************************************
-Run with Docker Inside the runtime{}
-*************************************
+**More on call-caching**
 
-To run again you have to use a slightly different command which overwrites the default :bash:`dockerRoot` path so it points to your current working directory. 
+`call-caching <https://cromwell.readthedocs.io/en/stable/cromwell_features/CallCaching/>`_ is the ability to re-run a WDL without having to re-compute the tasks that completed successfully so only the tasks that failed are run.
+
+call-caching is on by default but it depends on the following conditions:
+
+#. task inputs must be the same. For example, in the inputs.json file
+
+    #. you can change a file path if it is declared as a File and not String in the WDL
+
+    #. you cannot change a variable value other than File
+
+    #. you can change a hard-coded value in the runtime{}. This allows you to re-try your WDL if it failed due to memory or ram
+
+#. both the name and number outputs of a task must remain unchanged
+
+#. any change to the WDL itself (except for hard-coded runtime{} values)
+
+**How to get the sha@256 id for a docker image**
+
+Get the sha by one of these strategies
+
+.. code-block:: text
+
+  1. docker inspect jfroula/bbtools:1.0.0 | grep Id
+  2. docker images --digests
+  3. hub.docker.com also has them under “Digest”
+
+For a discussion of sha ids in the Cromwell docs, see the section "Docker Tags" under the link `call-caching <https://cromwell.readthedocs.io/en/stable/cromwell_features/CallCaching/>`_
+
+
+********************************************
+Run the WDL with Docker Inside the runtime{}
+********************************************
+
+To run again you have to use a slightly different command which overwrites the default :bash:`dockerRoot` path so it points to your current working directory.
 
 This also has to be run on **cori** since the config file uses shifter to run the container. This could instead be configured with the docker command if you wanted to test on your laptop.  Here's an example of a `docker configuration <https://github.com/broadinstitute/cromwell/blob/develop/cromwell.example.backends/Docker.conf>`_
 
@@ -241,9 +280,9 @@ This also has to be run on **cori** since the config file uses shifter to run th
          -Dbackend.providers.Local.config.dockerRoot=$(pwd)/cromwell-executions \
          -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run jgi_meta.jaws.wdl -i inputs.json
 
-where 
+where
 
-    :bash:`-Dconfig.file` 
+    :bash:`-Dconfig.file`
     points to a cromwell conf file that is used to overwrite the default configurations
 
     :bash:`-Dbackend.providers.Local.config.dockerRoot`

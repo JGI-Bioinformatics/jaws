@@ -1,13 +1,16 @@
 ## Repository for JAWS docs
 This content was created by using sphinx and hosted by readthedocs
 
-### I created conda env
+### I created a python venv
 
 ```
-conda create sphinx
-conda activate sphinx
-pip install -y sphinx
+python -m venv  ~/venv/sphinx
+. ~/venv/sphinx/bin/activate
+pip install sphinx
 pip install recommonmark
+pip install sphinxcontrib.confluencebuilder
+pip install sphinx_rtd_theme
+
 ```
   
 ### creating the docs
