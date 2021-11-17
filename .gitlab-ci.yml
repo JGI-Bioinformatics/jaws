@@ -36,6 +36,9 @@ variables:
   PARSL_MP_HOST: "localhost"
   PARSL_MP_PORT: 6000
   JAWS_DEFAULT_CONTAINER: "doejgi/jaws-debian:latest"
+  JAWS_EMAIL_USER: "jgi.jaws@gmail.com"
+  JAWS_EMAIL_SERVER: "smtp.gmail.com"
+  JAWS_EMAIL_PORT: "587"
 
   ## DEPLOYMENT-SPECIFIC VARIABLES:
   dev_LOG_LEVEL: "DEBUG"
