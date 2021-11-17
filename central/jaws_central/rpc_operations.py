@@ -79,14 +79,20 @@ def update_run_logs(params, session):
         session.rollback()
         return failure(error)
 
-    #if run.status_to == "download complete":
-    receiver_email = _get_email_address(session, run.user_id)
-    if status_to == "download complete":
-        receiver_email = _get_email_address(session, run.user_id)
-        sender_email = config.conf.get("EMAIL", "user")
-        smtp_server = config.conf.get("EMAIL", "server")
+    if status_to == "submitted":
+        sender_email = jgi.jaws@gmail.com
+        password = EsU84f9&uwxuZ$R!
+#        receiver_email = _get_email_address(session, run.user_id)
+#        sender_email = config.conf.get("EMAIL", "user")
+#        smtp_server = config.conf.get("EMAIL", "server")
         port = config.conf.get("EMAIL", "port")
-        password = config.conf.get("EMAIL", "password")
+#        password = config.conf.get("EMAIL", "password")
+        #receiver_email = 'jfroula@gmail.com'
+        receiver_email = 'yyoshinaga1@gmail.com'
+#        sender_email = 'jfroula@gmail.com'
+        smtp_server = 'smtp.gmail.com'
+#        password = 'ytjcvdadyfedawdy'
+
         logger.info(f"receiver_email: {receiver_email} and sender_email: {sender_email} and run_id {run.id}")
 
         message = f"""\
@@ -121,7 +127,6 @@ def _get_email_address(session, user_id):
         logger.error(f"Db error: {e}")
     if user is None:
         logger.error(f"Could not found user {user_id}")
-    logger.info(f"MOZART II : returning {user.email}")
     return user.email
 
 
