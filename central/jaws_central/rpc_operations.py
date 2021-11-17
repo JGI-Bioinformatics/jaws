@@ -87,8 +87,7 @@ def update_run_logs(params, session):
         password = config.conf.get("EMAIL", "password")
         smtp_server = 'smtp.gmail.com'
 
-        message = f"""\
-        Subject: JAWS Run Complete {run.id}:
+        message = f"""Subject: JAWS Run Complete {run.id}
 
         Your run {run.id} has completed with \"{run.result}\"
         """
