@@ -79,15 +79,13 @@ def update_run_logs(params, session):
         session.rollback()
         return failure(error)
 
-    if status_to == "submitted":
+    if status_to == "download complete":
         receiver_email = _get_email_address(session, run.user_id)
         sender_email = config.conf.get("EMAIL", "user")
         smtp_server = config.conf.get("EMAIL", "server")
         port = config.conf.get("EMAIL", "port")
         password = config.conf.get("EMAIL", "password")
         smtp_server = 'smtp.gmail.com'
-
-        logger.info(f"receiver_email: {receiver_email} and sender_email: {sender_email} and run_id {run.id}")
 
         message = f"""\
         Subject: JAWS Run Complete {run.id}:
