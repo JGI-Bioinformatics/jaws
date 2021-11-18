@@ -191,6 +191,8 @@ numprocs=1
 startsecs=3
 startretries=10
 autorestart=unexpected
+stopasgroup=true
+killasgroup=true
 
 [program:jaws-cromwell]
 command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
