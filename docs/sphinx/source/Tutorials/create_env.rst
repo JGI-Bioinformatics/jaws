@@ -229,7 +229,7 @@ If you do want `call-caching <https://cromwell.readthedocs.io/en/stable/cromwell
 .. code-block:: text
 
     runtime {
-        docker: "jfroula/bbtools@sha256:05cf1fccc3ba8e80e90dd13aaf5b6d6957df8db40be43c97e85a72914a9f8156"
+	    docker: "jfroula/bbtools@sha256:cf560d21149237feff9210b0cd831dcc532ebdccaaa3f5ede52369f45a23e768"
     }
 
 .. _run with conf:
@@ -258,9 +258,8 @@ Get the sha by one of these strategies
 
 .. code-block:: text
 
-  1. docker inspect jfroula/bbtools:1.0.0 | grep Id
-  2. docker images --digests
-  3. hub.docker.com also has them under “Digest”
+  1. docker inspect jfroula/bbtools:1.2.1 | grep -A 1 RepoDigests
+  2. hub.docker.com also has them under “Digest”
 
 For a discussion of sha ids in the Cromwell docs, see the section "Docker Tags" under the link `call-caching <https://cromwell.readthedocs.io/en/stable/cromwell_features/CallCaching/>`_
 
