@@ -663,6 +663,23 @@ def task_log(user, run_id):
     return rpc_call(user, run_id, "get_task_log")
 
 
+def task_summary(user, run_id):
+    """
+    Retrieve summary of all task state transitions.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: The complete summary of all task state transitions.
+    :rtype: dict
+    """
+    logger.info(f"User {user}: Get task-log for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    return rpc_call(user, run_id, "get_task_summary")
+
+
 def run_metadata(user, run_id):
     """
     Retrieve the metadata of a run.
