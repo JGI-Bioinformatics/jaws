@@ -185,13 +185,6 @@ startretries=10
 autorestart=unexpected
 priority=1
 
-[program:jaws-parsl-recv]
-command=$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME
-numprocs=1
-startsecs=3
-startretries=10
-autorestart=unexpected
-
 [program:jaws-cromwell]
 command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
 numprocs=1
@@ -202,7 +195,7 @@ stopwaitsecs=120
 priority=9
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-jtm,jaws-parsl-recv,jaws-cromwell
+programs=jaws-jtm,jaws-cromwell
 priority=999
 EOM
 
