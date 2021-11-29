@@ -366,7 +366,7 @@ def task_summary(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_summary'
     result = _request("GET", url)
-    header = ["TASK_NAME", "CACHED" "QUEUE-WAIT", "RUNTIME", "RESULT", "MAX_TIME"]
+    header = ["TASK_NAME", "CACHED", "QUEUED", "QUEUE-WAIT", "RUNTIME", "RESULT", "MAX_TIME"]
     if fmt == "json":
         _print_json(result)
     elif fmt == "tab":
