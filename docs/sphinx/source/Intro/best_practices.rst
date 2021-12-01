@@ -33,7 +33,7 @@ There are opportunities to participate in code reviews with other WDL developers
 
    </details>
 
-   <br><font class="listsize">3) Use Docker containers</font>
+   <br><font class="listsize">3) Use Docker containers with SHA256 instead of tags</font>
    <details>
    <summary style="color: #448ecf";>expand</summary>
 
@@ -42,6 +42,8 @@ There are opportunities to participate in code reviews with other WDL developers
     JAWS makes multiple computing resources available, using various linux distros.  Thus, we recommend that a docker container be specified for every task; if not, the default container is Debian.
     <br><br>
     Save all versions of your docker images at hub.docker.com. Jaws will pull images from there by default.
+    <BR>
+    NOTE: It is important to reference containers by their SHA256 instead of tag (e.g. doejgi/jaws-debian@sha256:6408838108595d7a0843a579712ce90d3cf6759b792f20de917f5c2abbd5ea23 instead of doejgi/jaws-debian:latest) for both reproducability (a container can change and have the same tag) and because call-caching only works when the container is referenced by SHA256 version.
    </p>
    
    Example

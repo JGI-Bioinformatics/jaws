@@ -105,8 +105,20 @@ def get_task_log(params, session):
     """Retrieve task log from database"""
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
-        tasks = TaskLog(session)
-        result = tasks.get_task_log(params["run_id"])
+        task_log = TaskLog(session, run_id=params["run_id"])
+        result = task_log.task_log()
+    except Exception as error:
+        return failure(error)
+    else:
+        return success(result)
+
+
+def get_task_summary(params, session):
+    """Retrieve task summary from database"""
+    logger.info(f"User {params['user_id']}: Task-summary Run {params['run_id']}")
+    try:
+        task_log = TaskLog(session, run_id=params["run_id"])
+        result = task_log.task_summary()
     except Exception as error:
         return failure(error)
     else:
@@ -119,8 +131,8 @@ def get_task_status(params, session):
     """
     logger.info(f"User {params['user_id']}: Task-status Run {params['run_id']}")
     try:
-        tasks = TaskLog(session)
-        result = tasks.get_task_status(params["run_id"])
+        task_log = TaskLog(session, run_id=params["run_id"])
+        result = task_log.task_status()
     except Exception as error:
         return failure(error)
     else:
@@ -152,6 +164,10 @@ operations = {
     },
     "get_task_log": {
         "function": get_task_log,
+        "required_params": ["user_id", "run_id"],
+    },
+    "get_task_summary": {
+        "function": get_task_summary,
         "required_params": ["user_id", "run_id"],
     },
     "get_task_status": {

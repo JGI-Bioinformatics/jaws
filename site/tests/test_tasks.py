@@ -18,11 +18,11 @@ def test_save_job_log(monkeypatch):
     monkeypatch.setattr(TaskLog, "_save_job_log", mock_save_job_log)
     mock_session = None
 
-    tasks = TaskLog(mock_session)
+    tasks = TaskLog(mock_session, cromwell_run_id="EXAMPLE-CROMWELL-RUN-ID")
     tasks.save_job_log(*example_log)
 
 
-def test_get_job_logs(monkeypatch):
+def test_job_logs(monkeypatch):
 
     test_cromwell_run_id = "AAAA-BBBB-CCCC"
     test_cromwell_job_id = "2345"
@@ -50,25 +50,26 @@ def test_get_job_logs(monkeypatch):
         ],
     ]
 
-    def mock_get_job_logs(self, cromwell_run_ids):
+    def mock_get_job_logs(self):
         return test_job_logs
 
     monkeypatch.setattr(TaskLog, "_get_job_logs", mock_get_job_logs)
     mock_session = None
 
-    tasks = TaskLog(mock_session)
-    job_logs = tasks.get_job_logs([test_cromwell_run_id])
+    tasks = TaskLog(mock_session, cromwell_run_id=test_cromwell_run_id)
+    job_logs = tasks.job_logs()
     assert test_cromwell_job_id in job_logs
     assert len(job_logs[test_cromwell_job_id]) == len(test_job_logs)
     assert job_logs[test_cromwell_job_id][0][0] == "created"
 
 
 def test_task_status(monkeypatch):
-    def mock_get_task_log(self, run_id):
+    def mock_task_log(self):
         example_log = [
             [
                 "main.ex_task_1",
                 "2222",
+                False,
                 "created",
                 "ready",
                 "2020-03-22 12:47:10",
@@ -77,6 +78,7 @@ def test_task_status(monkeypatch):
             [
                 "main.ex_task_1",
                 "2222",
+                False,
                 "ready",
                 "queued",
                 "2020-03-22 12:47:20",
@@ -85,6 +87,7 @@ def test_task_status(monkeypatch):
             [
                 "main.ex_task_1",
                 "2222",
+                False,
                 "queued",
                 "pending",
                 "2020-03-22 12:47:25",
@@ -93,6 +96,7 @@ def test_task_status(monkeypatch):
             [
                 "main.ex_task_1",
                 "2222",
+                False,
                 "pending",
                 "running",
                 "2020-03-22 12:48:01",
@@ -101,6 +105,7 @@ def test_task_status(monkeypatch):
             [
                 "main.ex_task_2",
                 "2223",
+                False,
                 "created",
                 "ready",
                 "2020-03-22 12:48:11",
@@ -109,6 +114,7 @@ def test_task_status(monkeypatch):
             [
                 "main.ex_task_2",
                 "2223",
+                False,
                 "ready",
                 "queued",
                 "2020-03-22 12:48:16",
@@ -122,6 +128,7 @@ def test_task_status(monkeypatch):
         [
             "main.ex_task_1",
             "2222",
+            False,
             "running",
             "2020-03-22 12:48:01",
             None,
@@ -129,29 +136,30 @@ def test_task_status(monkeypatch):
         [
             "main.ex_task_2",
             "2223",
+            False,
             "queued",
             "2020-03-22 12:48:16",
             None,
         ],
     ]
 
-    monkeypatch.setattr(TaskLog, "get_task_log", mock_get_task_log)
+    monkeypatch.setattr(TaskLog, "task_log", mock_task_log)
     mock_session = None
 
-    tasks = TaskLog(mock_session)
-
-    task_status = tasks.get_task_status(example_run_id)
+    tasks = TaskLog(mock_session, run_id=example_run_id)
+    task_status = tasks.task_status()
     assert bool(DeepDiff(task_status, expected_status, ignore_order=True)) is False
 
 
-def test_get_run_status(monkeypatch):
-    def mock_get_task_status(session, run_id):
+def test_run_status(monkeypatch):
+    def mock_task_status(session):
         example_status = []
         if run_id == 102:
             example_status = [
                 [
                     "main.ex_task_1",
                     "2222",
+                    False,
                     "ready",
                     "2020-03-22 12:47:10",
                     None,
@@ -162,6 +170,7 @@ def test_get_run_status(monkeypatch):
                 [
                     "main.ex_task_2",
                     "2222",
+                    False,
                     "queued",
                     "2020-03-22 12:47:20",
                     None,
@@ -172,6 +181,7 @@ def test_get_run_status(monkeypatch):
                 [
                     "main.ex_task_2",
                     "2222",
+                    False,
                     "queued",
                     "2020-03-22 12:47:20",
                     None,
@@ -179,6 +189,7 @@ def test_get_run_status(monkeypatch):
                 [
                     "main.ex_task_3",
                     "2222",
+                    False,
                     "pending",
                     "2020-03-22 12:47:25",
                     None,
@@ -189,6 +200,7 @@ def test_get_run_status(monkeypatch):
                 [
                     "main.ex_task_4",
                     "2222",
+                    False,
                     "running",
                     "2020-03-22 12:48:01",
                     None,
@@ -196,6 +208,7 @@ def test_get_run_status(monkeypatch):
                 [
                     "main.ex_task_5",
                     "2223",
+                    False,
                     "ready",
                     "2020-03-22 12:48:11",
                     None,
@@ -206,6 +219,7 @@ def test_get_run_status(monkeypatch):
                 [
                     "main.ex_task_6",
                     "2223",
+                    False,
                     "success",
                     "2020-03-22 12:48:16",
                     None,
@@ -222,83 +236,88 @@ def test_get_run_status(monkeypatch):
         106: "running",
     }
 
-    monkeypatch.setattr(TaskLog, "get_task_status", mock_get_task_status)
+    monkeypatch.setattr(TaskLog, "task_status", mock_task_status)
     mock_session = None
 
     for run_id, expected in run_id_and_expected.items():
         assert tasks.get_run_status(mock_session, run_id) == expected
 
 
-def test_get_job_metadata(monkeypatch):
-    example_task_summary = [
-        ["main_workflow.goodbye", "12129", False, "0:00:44.787000"],
-        ["main_workflow.hello", "12130", False, "0:00:45.297000"],
-        [
-            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
-            "12134",
-            False,
-            "0:00:40.851000",
-        ],
-        [
-            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-            "12133",
-            False,
-            "0:00:40.203000",
-        ],
-        [
-            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
-            "12131",
-            False,
-            "0:00:40.282000",
-        ],
-        [
-            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
-            "12132",
-            False,
-            "0:00:41.661000",
-        ],
-    ]
+def test_cromwell_task_info(monkeypatch):
+    example_run_id = 99
+
+    def mock_cromwell_task_summary(self):
+        example_task_summary = [
+            ["main_workflow.goodbye", "12129", False, "0:10:00"],
+            ["main_workflow.hello", "12130", False, "0:10:00"],
+            [
+                "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
+                "12134",
+                False,
+                "0:10:00",
+            ],
+            [
+                "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+                "12133",
+                False,
+                "0:10:00",
+            ],
+            [
+                "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
+                "12131",
+                False,
+                "0:10:00",
+            ],
+            [
+                "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
+                "12132",
+                False,
+                "0:10:00",
+            ],
+        ]
+        return example_task_summary
+
+    monkeypatch.setattr(TaskLog, "cromwell_task_summary", mock_cromwell_task_summary)
 
     expected_task_info = {
-        "12129": ["main_workflow.goodbye", "0:00:44.787000"],
-        "12130": ["main_workflow.hello", "0:00:45.297000"],
+        "12129": ["main_workflow.goodbye", "0:10:00"],
+        "12130": ["main_workflow.hello", "0:10:00"],
         "12134": [
             "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
-            "0:00:40.851000",
+            "0:10:00",
         ],
         "12133": [
             "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-            "0:00:40.203000",
+            "0:10:00",
         ],
         "12131": [
             "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
-            "0:00:40.282000",
+            "0:10:00",
         ],
         "12132": [
             "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
-            "0:00:41.661000",
+            "0:10:00",
         ],
     }
 
     mock_session = None
-    tasks = TaskLog(mock_session)
-    task_info = tasks.get_task_info(example_task_summary)
+    tasks = TaskLog(mock_session, run_id=example_run_id)
+    task_info = tasks.cromwell_task_info()
     assert bool(DeepDiff(task_info, expected_task_info, ignore_order=True)) is False
 
 
-def test_get_task_log(monkeypatch):
+def test_task_log(monkeypatch):
 
     example_run_id = 9
 
     def mock_get_cromwell_run_id(self, run_id):
-        assert run_id == example_run_id
         return "AAAA"
 
     monkeypatch.setattr(TaskLog, "_get_cromwell_run_id", mock_get_cromwell_run_id)
 
-    def mock_get_task_summary(self, cromwell_run_id):
+    def mock_cromwell_task_summary(self):
         example_task_summary = [
-            ["main_workflow.goodbye", "5480", False, "0:00:44.787000"],
+            ["main_workflow.goodbye", "5480", False, "0:10:00"],
             ["main_workflow.hello", "5481", False, None],
             [
                 "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
@@ -316,9 +335,9 @@ def test_get_task_log(monkeypatch):
         ]
         return example_task_summary
 
-    monkeypatch.setattr(TaskLog, "_get_task_summary", mock_get_task_summary)
+    monkeypatch.setattr(TaskLog, "cromwell_task_summary", mock_cromwell_task_summary)
 
-    def mock_get_job_logs(self, cromwell_run_id):
+    def mock_job_logs(self):
         example_logs = {
             "5480": [
                 ["created", "ready", "2021-04-15 12:42:08", None],
@@ -333,13 +352,14 @@ def test_get_task_log(monkeypatch):
         }
         return example_logs
 
-    monkeypatch.setattr(TaskLog, "get_job_logs", mock_get_job_logs)
+    monkeypatch.setattr(TaskLog, "job_logs", mock_job_logs)
 
     expected = [
-        ["main_workflow.hello_world", None, None, None, None, "Cached call"],
+        ["main_workflow.hello_world", None, True, None, None, None, None],
         [
             "main_workflow.goodbye",
             "5480",
+            False,
             "created",
             "ready",
             "2021-04-15 12:42:08",
@@ -348,6 +368,7 @@ def test_get_task_log(monkeypatch):
         [
             "main_workflow.goodbye",
             "5480",
+            False,
             "ready",
             "queued",
             "2021-04-15 12:42:28",
@@ -356,6 +377,7 @@ def test_get_task_log(monkeypatch):
         [
             "main_workflow.goodbye",
             "5480",
+            False,
             "queued",
             "pending",
             "2021-04-15 12:42:29",
@@ -364,6 +386,7 @@ def test_get_task_log(monkeypatch):
         [
             "main_workflow.goodbye",
             "5480",
+            False,
             "pending",
             "running",
             "2021-04-15 12:43:44",
@@ -372,14 +395,16 @@ def test_get_task_log(monkeypatch):
         [
             "main_workflow.goodbye",
             "5480",
+            False,
             "running",
             "success",
             "2021-04-15 12:45:01",
-            "run_time=0:00:44.787000",
+            None,
         ],
         [
             "main_workflow.hello",
             "5481",
+            False,
             "created",
             "queued",
             "2021-04-15 12:49:95",
@@ -388,6 +413,7 @@ def test_get_task_log(monkeypatch):
         [
             "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
             "5482",
+            False,
             "created",
             "queued",
             "2021-04-15 01:01:04",
@@ -396,6 +422,7 @@ def test_get_task_log(monkeypatch):
         [
             "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
             "5484",
+            False,
             "created",
             "queued",
             "2021-04-15 01:11:52",
@@ -404,6 +431,6 @@ def test_get_task_log(monkeypatch):
     ]
 
     mock_session = None
-    tasks = TaskLog(mock_session)
-    actual = tasks.get_task_log(example_run_id)
+    tasks = TaskLog(mock_session, run_id=example_run_id)
+    actual = tasks.task_log()
     assert bool(DeepDiff(actual, expected, ignore_order=False)) is False

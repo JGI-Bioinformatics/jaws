@@ -98,6 +98,10 @@ cd jtm && python setup.py develop
 
 chmod 755 ~/venv/jaws-test/bin/womtool
 
+# Add your credentials. The jaws.conf file will contain your private jaws token
+export JAWS_CLIENT_CONFIG=/global/cfs/projectdirs/jaws/jaws-dev/jaws-dev.conf
+export JAWS_USER_CONFIG=~/jaws.conf
+
 # test that environment is set up correctly
 make test
 

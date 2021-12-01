@@ -224,18 +224,23 @@ def task_status(run_id: int, fmt: str) -> None:
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
     result = _request("GET", url)
     for row in result:
-        if row[3]:
+        if row[4]:
             # cached tasks won't have a timestamp
-            row[3] = _utc_to_local(row[3])
+            row[4] = _utc_to_local(row[4])
+    header = [
+        "TASK_NAME",
+        "CROMWELL_JOB_ID",
+        "CACHED",
+        "STATUS",
+        "TIMESTAMP",
+        "COMMENT",
+    ]
     if fmt == "json":
         _print_json(result)
+    elif fmt == "tab":
+        _print_tab_delimited_table(header, result)
     else:
-        click.echo("#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS\tTIMESTAMP\tCOMMENT")
-        for row in result:
-            # convert None values to empty string "" for printing
-            for index in range(5):
-                row[index] = str(row[index]) if row[index] else ""
-            click.echo("\t".join(row))
+        _print_space_delimited_table(header, result)
 
 
 @main.command()
@@ -260,26 +265,68 @@ def log(run_id: int, fmt: str) -> None:
     result = _request("GET", url)
     for a in result:
         a[2] = _utc_to_local(a[2])
-    header = ["#STATUS_FROM", "STATUS_TO", "TIMESTAMP", "COMMENT"]
+    header = ["STATUS_FROM", "STATUS_TO", "TIMESTAMP", "COMMENT"]
     if fmt == "json":
         _print_json(result)
     elif fmt == "tab":
-        click.echo("\t".join(header))
-        for log_entry in result:
-            click.echo("\t".join(log_entry))
+        _print_tab_delimited_table(header, result)
     else:
-        result.insert(0, header)
-        col_widths = []
-        """Get the max length of element in every col and add padding (2)"""
-        for idx in range(len(header)):
-            col_widths.append(max(len(log_entry[idx]) for log_entry in result) + 2)
-        for log_entry in result:
-            print(
-                "".join(
-                    cell.ljust(col_widths[col_idx])
-                    for col_idx, cell in enumerate(log_entry)
-                )
+        _print_space_delimited_table(header, result)
+
+
+def _make_table_printable(table):
+    """
+    Convert all of a table's data values to printable strings.
+    """
+    for row in table:
+        for index in range(len(row)):
+            if isinstance(row[index], bool):
+                if row[index] is True:
+                    row[index] = "True"
+                elif row[index] is False:
+                    row[index] = "False"
+            if isinstance(row[index], (int, float)):
+                row[index] = str(row[index])
+            if row[index] is None:
+                row[index] = ""
+    return table
+
+
+def _print_tab_delimited_table(header, table):
+    """
+    Print table with tab-separated columns, which is machine-parseable.
+    """
+    assert header
+    assert table
+    table = _make_table_printable(table)
+    header[0] = f"#{header[0]}"
+    for row in table:
+        click.echo("\t".join(header))
+        for row in table:
+            click.echo("\t".join(row))
+
+
+def _print_space_delimited_table(header, table):
+    """
+    Print table with variable number of spaces to line-up columns for human-readability.
+    """
+    assert header
+    assert table
+    table = _make_table_printable(table)
+    header[0] = f"#{header[0]}"
+    table.insert(0, header)
+    col_widths = []
+
+    # Get the max length of element in every col and add padding of 2 spaces
+    for index in range(len(header)):
+        col_widths.append(max([len(str(log_entry[index])) for log_entry in table]) + 2)
+    for log_entry in table:
+        click.echo(
+            "".join(
+                str(cell).ljust(col_widths[col_index])
+                for col_index, cell in enumerate(log_entry)
             )
+        )
 
 
 @main.command()
@@ -293,42 +340,39 @@ def task_log(run_id: int, fmt: str) -> None:
     header = [
         "TASK_NAME",
         "CROMWELL_JOB_ID",
+        "CACHED",
         "STATUS_FROM",
         "STATUS_TO",
         "TIMESTAMP",
         "COMMENT",
     ]
     for row in result:
-        if row[4]:
+        if row[5]:
             # cached tasks won't have a timestamp
-            row[4] = _utc_to_local(row[4])
+            row[5] = _utc_to_local(row[5])
     if fmt == "json":
         _print_json(result)
     elif fmt == "tab":
-        click.echo("\t".join(header))
-        for row in result:
-            # convert None values to empty string "" for printing
-            for index in range(6):
-                row[index] = str(row[index]) if row[index] else ""
-            click.echo("\t".join(row))
+        _print_tab_delimited_table(header, result)
     else:
-        result.insert(0, header)
-        col_widths = []
-        """
-        Get the max length of element in every col and add padding of 2 spaces
-        """
-        for index in range(len(header)):
-            col_widths.append(
-                max(
-                    [len(str(log_entry[index])) for log_entry in result]
-                ) + 2)
-        for log_entry in result:
-            print(
-                "".join(
-                    str(cell).ljust(col_widths[col_index])
-                    for col_index, cell in enumerate(log_entry)
-                )
-            )
+        _print_space_delimited_table(header, result)
+
+
+@main.command()
+@click.argument("run_id")
+@click.option("--fmt", default="text", help="the desired output format: [text|json]")
+def task_summary(run_id: int, fmt: str) -> None:
+    """Get summary of each Task's state durations."""
+
+    url = f'{config.get("JAWS", "url")}/run/{run_id}/task_summary'
+    result = _request("GET", url)
+    header = ["TASK_NAME", "CACHED", "QUEUED", "QUEUE-WAIT", "RUNTIME", "RESULT", "MAX_TIME"]
+    if fmt == "json":
+        _print_json(result)
+    elif fmt == "tab":
+        _print_tab_delimited_table(header, result)
+    else:
+        _print_space_delimited_table(header, result)
 
 
 @main.command()
@@ -380,7 +424,11 @@ def list_sites() -> None:
 @click.option("--tag", help="identifier for the run")
 @click.option("--no-cache", is_flag=True, help="Disable call-caching for this run")
 @click.option("--quiet", is_flag=True, help="Don't print copy progress bar")
-@click.option("--default-container", default="None", help="The default Docker container to use for Tasks")
+@click.option(
+    "--default-container",
+    default=None,
+    help="The default Docker container to use for Tasks",
+)
 def submit(
     wdl_file: str,
     json_file: str,
