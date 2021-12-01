@@ -778,6 +778,14 @@ def worker(
     make_dir(log_dir_name)
     log_file_name = f"{log_dir_name}/jtm_worker_{datetime_str}.log"
 
+    # Job performance dir settings
+    # Make a directory called 'performance' in the log dir
+    job_perf_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "performace")
+    make_dir(job_perf_dir_name)
+    # Job performance filename setting
+    # Make a unique filename similar to the log name
+    performance_file_name = f"{job_perf_dir_name}/jtm_performance_{datetime_str}.csv"
+
     # Logger setting
     log_level = "info"
     if DEBUG:
@@ -1161,6 +1169,11 @@ def worker(
 
 module unload python
 %(env_activation_cmd)s
+
+performance_metrics.py -u $USER -o %(performance_file_name)s
+export PERFORMANCE_PID=$!
+sleep 10
+
 %(export_jtm_config_file)s
 for i in {1..%(num_workers_per_node)d}
 do
@@ -1177,6 +1190,10 @@ do
 sleep 0.5
 done
 wait
+
+kill $PERFORMANCE_PID
+sleep 10
+
 """ % dict(
                             debug="--debug" if DEBUG else "",
                             wall_time=job_time_to_request,
@@ -1196,6 +1213,7 @@ wait
                             export_jtm_config_file="export JTM_CONFIG_FILE=%s"
                             % worker_config,
                             set_jtm_config_file="--config=%s" % worker_config,
+                            performance_file_name=performance_file_name,
                         )
 
                 elif cluster_name in ("jgi"):
