@@ -402,15 +402,17 @@ class TaskLog:
         cromwell_task_info = self.cromwell_task_info()
         for task_name, row in task_timestamps.items():
             (cromwell_job_id, cached, queued, running, completed, result) = row
-            task_summary[task_name] = [cached, None, None, result, None]
+            task_summary[task_name] = [cached, None, None, None, result, None]
+            if queued:
+                task_summary[task_name][1] = queued
             if queued and running:
                 delta = parser.parse(running) - parser.parse(queued)
-                task_summary[task_name][1] = str(delta)
+                task_summary[task_name][2] = str(delta)
             if running and completed:
                 delta = parser.parse(completed) - parser.parse(running)
-                task_summary[task_name][2] = str(delta)
+                task_summary[task_name][3] = str(delta)
             if cromwell_job_id in cromwell_task_info:
-                task_summary[task_name][3] = cromwell_task_info[cromwell_job_id][1]
+                task_summary[task_name][5] = cromwell_task_info[cromwell_job_id][1]
         self._task_summary = task_summary
         return self._task_summary
 
