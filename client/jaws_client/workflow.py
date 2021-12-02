@@ -255,7 +255,7 @@ class WdlFile:
         subworkflows = set()
         for sub in out:
             match = re.search(command_line_regex, sub)
-            if sub not in filtered_out_lines and not match:
+            if sub not in filtered_out_lines and not match and not sub.startswith("http"):
                 sub_wdl = WdlFile(sub, self.submission_id)
                 sub_wdl.verify_wdl_has_no_backend_tags()
                 subworkflows.add(sub_wdl)
