@@ -27,6 +27,7 @@
                     "shared": "0",
                     "time": "00:10:00"
                 },
+                "stdoutContents": null,
                 "stderrContents": null,
                 "stderrSubmitContents": null
             }
