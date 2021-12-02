@@ -39,6 +39,7 @@
                 ],
                 "shardIndex": -1,
                 "attempt": 1,
+                "stdoutContents": null,
                 "stderrContents": null,
                 "stderrSubmitContents": null
               }
@@ -76,6 +77,7 @@
                 ],
                 "shardIndex": -1,
                 "attempt": 1,
+                "stdoutContents": null,
                 "stderrContents": null,
                 "stderrSubmitContents": null
               }
@@ -123,6 +125,7 @@
                 ],
                 "shardIndex": -1,
                 "attempt": 1,
+                "stdoutContents": null,
                 "stderrContents": null,
                 "stderrSubmitContents": null
               }
@@ -160,6 +163,7 @@
                 ],
                 "shardIndex": -1,
                 "attempt": 1,
+                "stdoutContents": null,
                 "stderrContents": null,
                 "stderrSubmitContents": null
               }
