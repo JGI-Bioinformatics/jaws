@@ -16,12 +16,14 @@ except ImportError:
     print("Error: Install psutil to get statistics!", file=sys.stderr)
     exit(0)
 
+
 class GracefulKiller:
     """
     Kills the process graefully when it gets a signal from the OS.
     https://stackoverflow.com/questions/18499497/how-to-process-sigterm-signal-gracefully
     """
     kill_now = False
+
     def __init__(self):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
@@ -43,20 +45,21 @@ def get_all_user_procs(username=None) -> List[int]:
 
     total_procs = [int(p) for p in total_procs]
     for p in total_procs:
-        # In case the process stoped between 
+        # In case the process stoped between
         try:
             user = psutil.Process(p).username()
         except psutil.NoSuchProcess:
             continue
-        
+
         # Add user processes to list to return
         if username == user:
             user_procs.append(p)
 
     return user_procs
 
+
 def get_iocounters(pData):
-    if 'io_counters' in pData and pData['io_counters'] != None:
+    if 'io_counters' in pData and pData['io_counters'] is not None:
         read_count = pData['io_counters'].read_count
         write_count = pData['io_counters'].write_count
         read_chars = pData['io_counters'].read_chars
@@ -68,15 +71,17 @@ def get_iocounters(pData):
         write_chars = "nan"
     return read_count, write_count, read_chars, write_chars
 
+
 def get_meminfo(pData):
     rss = pData['memory_info'].rss
     vms = pData['memory_info'].vms
 
     return rss, vms
 
+
 def get_cputimes(pData):
     # pcputimes(user=0.05, system=0.02, children_user=0.0, children_system=0.0, iowait=0.0)
-    if 'cpu_times' in pData and pData['cpu_times'] != None:
+    if 'cpu_times' in pData and pData['cpu_times'] is not None:
         user = pData['cpu_times'].user
         system = pData['cpu_times'].system
         children_user = pData['cpu_times'].children_user
@@ -89,9 +94,7 @@ def get_cputimes(pData):
         children_system = "nan"
         iowait = "nan"
 
-
     return user, system, children_user, children_system, iowait
-
 
 
 def runner(outfile: str = "stats.csv", poleRate: float = 0.1, username: str = ""):
@@ -109,9 +112,12 @@ def runner(outfile: str = "stats.csv", poleRate: float = 0.1, username: str = ""
 
     stats_file = open(outfile, "w")
 
-    header = ["datetime", "pid", "username", "name", "num_threads", "cpu_percent", "cpu_t_user", "cpu_t_system", "cpu_num",
-                    "user", "system", "children_user", "children_system", "iowait","mem_rss", "mem_vms", 'memory_percent',
-                    'num_fds', "read_count", "write_count", "read_chars", "write_chars"]
+    header = ["datetime", "pid", "username", "name", "num_threads",
+              "cpu_percent", "cpu_t_user", "cpu_t_system", "cpu_num",
+              "user", "system", "children_user", "children_system",
+              "iowait", "mem_rss", "mem_vms", 'memory_percent',
+              'num_fds', "read_count", "write_count", "read_chars",
+              "write_chars"]
     # Make formater based on number of metrics in heased
     ftm_writer = ",".join(["{}" for _ in range(len(header))])
     ftm_writer = ftm_writer + "\n"
