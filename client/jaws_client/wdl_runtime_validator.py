@@ -88,7 +88,10 @@ class WDLStanzas:
             )
 
         if key == "memory":
-            if re.search(r"[gG]", value):
+            if value[0].isalpha():
+                # if the value starts with a letter, it is a variable name
+                return None
+            elif re.search(r"[gG]", value):
                 value = value.upper()
                 return value
             else:
@@ -332,15 +335,17 @@ def timeParam(task_name, task_dict):
 def memoryParam(task_name, task_dict, compute_max_ram_gb):
     """Check that the user hasn't requested too much memory for the specified resource."""
 
-    # we've already verified that memory: is a string that include a "G" for gigabytes when the task_dict
-    # was created, so grab just the int.
     if "memory" not in task_dict:
         raise WdlRuntimeMemoryError(
             'Task: %s memoryParam. %s is a required parameter for runtime. The "memoryParam" test has been skipped.'  # noqa: E501,E261
             % (task_name, "memory")
         )
         return
+    elif task_dict["memory"] is None:
+        # memory is a variable name; nothing to do
+        return
 
+    # memory is a string that include a "G" for gigabytes, so grab just the int
     mem = int(re.sub("[gG]", "", task_dict["memory"]))
 
     if mem > compute_max_ram_gb:
