@@ -60,6 +60,7 @@ class TaskLog:
         self._task_status = None
         self._task_log = None
         self._cached_tasks = None
+        self._task_summary = None
 
         if "cromwell_run_id" in kwargs:
             self._cromwell_run_id = kwargs["cromwell_run_id"]
