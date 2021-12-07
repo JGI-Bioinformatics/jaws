@@ -1,4 +1,5 @@
 stages:
+  - code_quality
   - test
   - bandit-sast
   - semgrep-sast
@@ -16,6 +17,11 @@ include:
   - project: 'advanced-analysis/ci-templates'
     ref: 'main'
     file: 'SAST.gitlab-ci.yml'
+
+include:
+  - project: 'advanced-analysis/ci-templates'
+    ref: 'codequality'
+    file: 'Code-Quality.gitlab-ci.yml'
 
 variables:
   GIT_STRATEGY: clone
