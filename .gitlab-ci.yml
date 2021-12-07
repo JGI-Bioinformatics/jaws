@@ -1,10 +1,10 @@
 stages:
-  - code_quality
   - test
   - bandit-sast
   - semgrep-sast
   - eslint-sast
   - nodejs-scan-sast
+  - code_quality
   - unit-test
   - package
   - deploy-jaws
