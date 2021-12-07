@@ -17,5 +17,6 @@ setup(
             "jtm=jaws_jtm.jtm:jtm",
         ]
     },
+    scripts=['jaws_jtm/performance_metrics.py'],
     zip_safe=False,
 )
