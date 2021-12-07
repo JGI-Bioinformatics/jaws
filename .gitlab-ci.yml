@@ -23,7 +23,6 @@ include:
     ref: 'codequality'
     file: 'Code-Quality.gitlab-ci.yml'
     
-
 variables:
   GIT_STRATEGY: clone
 
