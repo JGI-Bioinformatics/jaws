@@ -1,116 +1,116 @@
 [
-  {
-    "name": "miseq_libraries.collect_outputs",
-    "jobId": "151623",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.generate_excel",
-    "jobId": "151624",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.generate_html",
-    "jobId": "151625",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[0]:miseq_library.bbduk",
-    "jobId": "151620",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[0]:miseq_library.bbmerge",
-    "jobId": "151614",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[0]:miseq_library.extract_spacer_length",
-    "jobId": "151613",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[0]:miseq_library.flank_seq_3P",
-    "jobId": "151608",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[0]:miseq_library.flank_seq_5P",
-    "jobId": "151609",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[0]:miseq_library.seal",
-    "jobId": "151618",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[0]:miseq_library.stats_python",
-    "jobId": "151621",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[1]:miseq_library.bbduk",
-    "jobId": "151616",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[1]:miseq_library.bbmerge",
-    "jobId": "151611",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[1]:miseq_library.extract_spacer_length",
-    "jobId": "151612",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[1]:miseq_library.flank_seq_3P",
-    "jobId": "151607",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[1]:miseq_library.flank_seq_5P",
-    "jobId": "151610",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[1]:miseq_library.seal",
-    "jobId": "151615",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.miseq_library[1]:miseq_library.stats_python",
-    "jobId": "151617",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.vis_python_stats[0]:visualize_miseq_library.visualize",
-    "jobId": "151622",
-    "cached": false,
-    "maxTime": "06:00:00"
-  },
-  {
-    "name": "miseq_libraries.vis_python_stats[1]:visualize_miseq_library.visualize",
-    "jobId": "151619",
-    "cached": false,
-    "maxTime": "06:00:00"
-  }
+  [
+    "miseq_libraries.collect_outputs",
+    "151623",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.generate_excel",
+    "151624",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.generate_html",
+    "151625",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[0]:miseq_library.bbduk",
+    "151620",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[0]:miseq_library.bbmerge",
+    "151614",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[0]:miseq_library.extract_spacer_length",
+    "151613",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[0]:miseq_library.flank_seq_3P",
+    "151608",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[0]:miseq_library.flank_seq_5P",
+    "151609",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[0]:miseq_library.seal",
+    "151618",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[0]:miseq_library.stats_python",
+    "151621",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[1]:miseq_library.bbduk",
+    "151616",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[1]:miseq_library.bbmerge",
+    "151611",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[1]:miseq_library.extract_spacer_length",
+    "151612",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[1]:miseq_library.flank_seq_3P",
+    "151607",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[1]:miseq_library.flank_seq_5P",
+    "151610",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[1]:miseq_library.seal",
+    "151615",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.miseq_library[1]:miseq_library.stats_python",
+    "151617",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.vis_python_stats[0]:visualize_miseq_library.visualize",
+    "151622",
+    false,
+    "06:00:00"
+  ],
+  [
+    "miseq_libraries.vis_python_stats[1]:visualize_miseq_library.visualize",
+    "151619",
+    false,
+    "06:00:00"
+  ]
 ]
