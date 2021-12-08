@@ -266,7 +266,7 @@ class TaskLog:
                 if "jobId" in a_task and a_task["jobId"] is not None:
                     cromwell_job_id = str(a_task["jobId"])
                     cromwell_job_summary[cromwell_job_id] = {
-                        "task_name": a_task["taskName"],
+                        "task_name": a_task["name"],
                         "max_time": a_task["maxTime"],
                     }
             self._cromwell_job_summary = cromwell_job_summary
@@ -344,7 +344,6 @@ class TaskLog:
                     a_merged_log["task_name"] = cromwell_job_summary[cromwell_job_id]["task_name"]
                 merged_logs.append(a_merged_log)
         self._task_log = merged_logs
-        logger.debug(f"MERGED_LOGS = {merged_logs}")
         return merged_logs
 
     def task_summary(self):
