@@ -86,13 +86,13 @@ class TaskLog:
             run = self.session.query(Run).filter_by(id=self._run_id).one_or_none()
         except SQLAlchemyError as error:
             raise TaskLogDbError(
-                f"Task log service was unable to query the db to get the cromwell_run_id for run {run_id}: {error}"
+                f"Task log service was unable to query the db to get the cromwell_run_id for run {self._run_id}: {error}"
             )
         if run:
             self._cromwell_run_id = run.cromwell_run_id  # may be None
             return self._cromwell_run_id
         else:
-            raise TaskLogRunNotFoundError(f"The run {run_id} was not found")
+            raise TaskLogRunNotFoundError(f"The run {self._run_id} was not found")
 
     def run_id(self):
         if not self._run_id:
@@ -103,6 +103,7 @@ class TaskLog:
         """Get the jaws run_id associated with the cromwell_run_id from the RDb.
         An exception is raised if the run is not found in the db.
         """
+        assert self._cromwell_run_id
         try:
             run = (
                 self.session.query(Run)
@@ -111,13 +112,13 @@ class TaskLog:
             )
         except SQLAlchemyError as error:
             raise TaskLogDbError(
-                f"Task log service was unable to query the db to get the run_id for {cromwell_run_id}: {error}"
+                f"Task log service was unable to query the db to get the run_id for {self._cromwell_run_id}: {error}"
             )
         if run:
             self._run_id = run.id
         else:
             raise TaskLogRunNotFoundError(
-                f"The cromwell run {cromwell_run_id} was not found"
+                f"The cromwell run {self._cromwell_run_id} was not found"
             )
 
     def _save_job_log(self, job_log):
