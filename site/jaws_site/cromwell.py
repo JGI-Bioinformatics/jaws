@@ -141,15 +141,12 @@ class Task:
             if "subWorkflowMetadata" in call:
                 subworkflow = self.subworkflows[shard_index][attempt]
                 sub_task_summary = subworkflow.task_summary()
-                for a_task_summary in sub_task_summary:
-                    summary.append({
-                        "name" : f"{name}:{a_task_summary['name']}",
-						"jobId": a_task_summary["jobId"],
-						"cached": a_task_summary["cached"],
-						"maxTime": a_task_summary["maxTime"],
-                    })
+                for sub_name, sub_job_id, sub_cached, max_time in sub_task_summary:
+                    summary.append(
+                        [f"{name}:{sub_name}", sub_job_id, sub_cached, max_time]
+                    )
             else:
-                summary.append({"name": name, "jobId": job_id, "cached": cached, "maxTime": max_time})
+                summary.append([name, job_id, cached, max_time])
         return summary
 
     def errors(self):
@@ -367,7 +364,8 @@ class Metadata:
         summary = []
         for task_name, task in self.tasks.items():
             task_summary = task.summary()
-            summary.extend(task_summary)
+            for name, job_id, cached, max_time in task_summary:
+                summary.append([name, job_id, cached, max_time])
         return summary
 
     def outputs(self, **kwargs):

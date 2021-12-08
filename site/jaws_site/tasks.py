@@ -173,13 +173,8 @@ class TaskLog:
             )
         self._save_job_log(job_log)
 
-    def _get_job_logs(self):
-        """Get all logs associated with the query cromwell run id.
-        :param cromwell_run_id: Cromwell-assigned UUID for the run
-        :type cromwell_run_id: str
-        :return: table of job logs
-        :rtype: list
-        """
+    def _select_job_logs(self):
+        """Select job logs from db"""
         cromwell_run_id = self.cromwell_run_id()
         try:
             table = (
@@ -197,39 +192,50 @@ class TaskLog:
             )
         unsorted_job_logs = []
         for row in table:
-            log_entry = {
-                "cromwell_job_id": str(row.cromwell_job_id),
-                "status_from": row.status_from,
-                "status_to": row.status_to,
-                "timestamp": row.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                "comment": row.reason,
-            }
+            log_entry = [
+                row.cromwell_job_id,
+                row.status_from,
+                row.status_to,
+                row.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                row.reason,
+            ]
             unsorted_job_logs.append(log_entry)
+        return unsorted_job_logs
+
+    def _get_job_logs(self):
+        """Get and sort all logs associated with the query cromwell run id.
+        """
+        unsorted_job_logs = self._select_job_logs()
 
         # sort job logs
         jobs = {}
-        for a_log in unsorted_job_logs:
-            cromwell_job_id = a_log["cromwell_job_id"]
+        for (
+            cromwell_job_id,
+            status_from,
+            status_to,
+            timestamp,
+            reason,
+        ) in unsorted_job_logs:
+            cromwell_job_id = str(cromwell_job_id)
             if cromwell_job_id not in jobs:
                 jobs[cromwell_job_id] = {}
             # since job state transition logs come from the backend service, we cannot guarantee every transition is
             # represented in the log, so save in a dict instead of a list, using ordinal value of status_from as key
-            status_from = a_log["status_from"]
             index = job_status_value[status_from]
-            jobs[cromwell_job_id][index] = {
-                "status_from": status_from,
-                "status_to": a_log["status_to"],
-                "timestamp": a_log["timestamp"],
-                "comment": a_log["comment"],
-            }
+            jobs[cromwell_job_id][index] = [
+                status_from,
+                status_to,
+                timestamp,
+                reason,
+            ]
 
         # for each job, create sorted list of it's state transitions
         sorted_logs = {}
         for cromwell_job_id in jobs:
             sorted_logs[cromwell_job_id] = []
             for index in sorted(jobs[cromwell_job_id].keys()):
-                a_log = jobs[cromwell_job_id][index]
-                sorted_logs[cromwell_job_id].append(a_log)
+                row = jobs[cromwell_job_id][index]
+                sorted_logs[cromwell_job_id].append(row)
         self._job_logs = sorted_logs
 
     def job_logs(self):
@@ -262,13 +268,10 @@ class TaskLog:
         if not self._cromwell_job_summary:
             cromwell_task_summary = self.cromwell_task_summary()
             cromwell_job_summary = {}
-            for a_task in cromwell_task_summary:
-                if "jobId" in a_task and a_task["jobId"] is not None:
-                    cromwell_job_id = str(a_task["jobId"])
-                    cromwell_job_summary[cromwell_job_id] = {
-                        "name": a_task["name"],
-                        "max_time": a_task["maxTime"],
-                    }
+            for task_name, cromwell_job_id, cached, max_time in cromwell_task_summary:
+                if cromwell_job_id:
+                    cromwell_job_id = str(cromwell_job_id)
+                    cromwell_job_summary[cromwell_job_id] = [task_name, max_time]
             self._cromwell_job_summary = cromwell_job_summary
         return self._cromwell_job_summary
 
@@ -279,14 +282,14 @@ class TaskLog:
 
         cromwell_task_summary = self.cromwell_task_summary()
         cached_tasks = []
-        for a_task in cromwell_task_summary:
-            if "cached" in a_task and a_task["cached"] is True:
-                cached_tasks.append(a_task["name"])
+        for task_name, cromwell_job_id, cached, max_time in cromwell_task_summary:
+            if cached:
+                cached_tasks.append(task_name)
         self._cached_tasks = cached_tasks
         return self._cached_tasks
 
     def task_log(self):
-        """Retrieve complete task log for a run.  This adds name to the job log.
+        """Retrieve complete task log for a run.  This adds task_name to the job log.
         :return: table of task state transitions for the run, including subworkflows
         :rtype: list
         """
@@ -302,7 +305,7 @@ class TaskLog:
             self._task_log = []
             return []
 
-        # Cromwell metadata contains cromwell_job_id and name.
+        # Cromwell metadata contains cromwell_job_id and task_name.
         # Note: There can be a delay between job submission and when the job appears in the
         # Cromwell metadata, so some items may be missing.
         cromwell_job_summary = self.cromwell_job_summary()
@@ -310,45 +313,45 @@ class TaskLog:
         # cached tasks don't have job id
         cached_tasks = self.cached_tasks()
         merged_logs = []
-        for name in cached_tasks:
-            a_log = {
-                "name": name,
-                "cached": True,
-                "cromwell_job_id": None,
-                "status_from": None,
-                "status_to": None,
-                "timestamp": None,
-                "comment": None,
-            }
-            merged_logs.append(a_log)
+        for task_name in cached_tasks:
+            merged_logs.append([task_name, None, True, None, None, None, None])
 
         # The record of job state transitions is stored in a separate db.
         job_logs = self.job_logs()
 
         # Combine the task names with the logs to produce the final table,
-        # ordered by cromwell_job_id (i.e. order of computation).
+        # ordered by job_id (i.e. order of computation).
+        cached = False  # none of these tasks were cached
         for cromwell_job_id in sorted(job_logs.keys()):
             state_transitions = job_logs[cromwell_job_id]
-            for a_log in state_transitions:
-                # default name required because a job may not appear in the Cromwell metadata immediately
-                a_merged_log = {
-                    "cached": False,
-                    "cromwell_job_id": cromwell_job_id,
-                    "status_from": a_log["status_from"],
-                    "status_to": a_log["status_to"],
-                    "timestamp": a_log["timestamp"],
-                    "comment": a_log["comment"],
-                    "name": "<pending>",
-                }
-                if cromwell_job_id in cromwell_job_summary:
-                    a_merged_log["name"] = cromwell_job_summary[cromwell_job_id]["name"]
-                merged_logs.append(a_merged_log)
+            # default values are required because a job many not appear in the Cromwell metadata immediately
+            task_name = "<pending>"
+            max_time = None
+            if cromwell_job_id in cromwell_job_summary:
+                task_name, max_time = cromwell_job_summary[cromwell_job_id]
+            for (
+                status_from,
+                status_to,
+                timestamp,
+                reason,
+            ) in state_transitions:
+                merged_logs.append(
+                    [
+                        task_name,
+                        cromwell_job_id,
+                        cached,
+                        status_from,
+                        status_to,
+                        timestamp,
+                        reason,
+                    ]
+                )
         self._task_log = merged_logs
         return merged_logs
 
     def task_summary(self):
         """Retrieve complete task summary for a run.
-        :return: foreach name, return list of is-cached, queue-time, run-time, result
+        :return: foreach task_name, return list of is-cached, queue-time, run-time, result
         :rtype: dict
         """
         run_id = self.run_id()
@@ -358,56 +361,78 @@ class TaskLog:
 
         task_log = self.task_log()
         task_timestamps = {}
-        for a_log in task_log:
-            name = a_log["name"]
-            if name not in task_timestamps:
-                task_timestamps[name] = {
-                    "cromwell_job_id": a_log["cromwell_job_id"],
-                    "cached": a_log["cached"],
-                    "queued": None,
-                    "running": None,
-                    "completed": None,
-                    "result": None,
-                }
-            status_to = a_log["status_to"]
+        # task_timestamps value fields are:
+        # [0] : cromwell_job_id (string)
+        # [1] : cached (bool)
+        # [2] : queued (datetime)
+        # [3] : running (datetime)
+        # [4] : completed (datetime)
+        # [5] : result (string)
+        for row in task_log:
+            (
+                task_name,
+                cromwell_job_id,
+                cached,
+                status_from,
+                status_to,
+                timestamp,
+                comment,
+            ) = row
+            if task_name not in task_timestamps:
+                task_timestamps[task_name] = [
+                    cromwell_job_id,
+                    cached,
+                    None,
+                    None,
+                    None,
+                    None,
+                ]
             if status_to == "queued":
-                task_timestamps[name]["queued"] = a_log["timestamp"]
+                task_timestamps[task_name][2] = timestamp
             elif status_to == "running":
-                task_timestamps[name]["running"] = a_log["timestamp"]
+                task_timestamps[task_name][3] = timestamp
             elif status_to == "success":
-                task_timestamps[name]["completed"] = a_log["timestamp"]
-                task_timestamps[name]["result"] = "success"
+                task_timestamps[task_name][4] = timestamp
+                task_timestamps[task_name][5] = "success"
             elif status_to == "failure":
-                task_timestamps[name]["completed"] = a_log["timestamp"]
-                task_timestamps[name]["result"] = "failure"
-            if a_log["cached"] is True:
-                task_timestamps[name]["result"] = "success"
+                task_timestamps[task_name][4] = timestamp
+                task_timestamps[task_name][5] = "failure"
+            if cached is True:
+                task_timestamps[task_name][5] = "success"
 
         cromwell_job_summary = self.cromwell_job_summary()
-        task_summary = {}
-        for name, a_log in task_timestamps.items():
-            a_summary = {
-                "cromwell_job_id": a_log["cromwell_job_id"],
-                "cached": a_log["cached"],
-                "result": a_log["result"],
-                "queued": a_log["queued"],
-                "queue_wait": None,
-                "wallclock": None,
-                "max_time": None,
-            }
-            if a_log["queued"] and a_log["running"]:
-                delta = parser.parse(a_log["running"]) - parser.parse(a_log["queued"])
-                a_summary["queue_wait"] = str(delta)
-            if a_log["running"] and a_log["completed"]:
-                delta = parser.parse(a_log["completed"]) - parser.parse(
-                    a_log["running"]
-                )
-                a_summary["wallclock"] = str(delta)
-            if a_log["cromwell_job_id"] in cromwell_job_summary:
-                a_summary["max_time"] = cromwell_job_summary[a_log["cromwell_job_id"]][
-                    "max_time"
-                ]
-            task_summary[name] = a_summary
+
+        task_summary = []
+        # task_summary rows' fields are:
+        # [0] : task_name (string)
+        # [1] : cromwell_job_id (string)
+        # [2] : cached (boolean)
+        # [3] : result (string)
+        # [4] : queued (datetime)
+        # [5] : queue-wait (string)
+        # [6] : wallclock (string)
+        # [7] : max_time (string)
+        for task_name, row in task_timestamps.items():
+            (cromwell_job_id, cached, queued, running, completed, result) = row
+            summary_row = [
+                task_name,
+                cromwell_job_id,
+                cached,
+                result,
+                queued,
+                None,
+                None,
+                None,
+            ]
+            if queued and running:
+                delta = parser.parse(running) - parser.parse(queued)
+                summary_row[5] = str(delta)
+            if running and completed:
+                delta = parser.parse(completed) - parser.parse(running)
+                summary_row[6] = str(delta)
+            if cromwell_job_id in cromwell_job_summary:
+                summary_row[7] = cromwell_job_summary[cromwell_job_id][1]
+            task_summary.append(summary_row)
 
         self._task_summary = task_summary
         return self._task_summary
@@ -422,16 +447,25 @@ class TaskLog:
             return self._task_status
 
         task_log = self.task_log()
-        task_status = {}
-        for a_log in task_log:
+        task_status = []
+        last_job_id = 0
+        for (
+            task_name,
+            job_id,
+            cached,
+            status_from,
+            status_to,
+            timestamp,
+            reason,
+        ) in task_log:
             # task-status excludes status_from
-            task_status[a_log["name"]] = {
-                "cromwell_job_id": a_log["cromwell_job_id"],
-                "cached": a_log["cached"],
-                "status_to": a_log["status_to"],
-                "timestamp": a_log["timestamp"],
-                "comment": a_log["comment"],
-            }
+            row = [task_name, job_id, cached, status_to, timestamp, reason]
+            if job_id == last_job_id:
+                # state transitions are ordered, so we just keep the last state transition
+                task_status[-1] = row
+            else:
+                task_status.append(row)
+                last_job_id = job_id
         self._task_status = task_status
         return self._task_status
 
@@ -452,12 +486,12 @@ def get_run_status(session, run_id: int) -> str:
     if len(task_status) == 0:
         return None
     max_task_status_value = 0
-    for name, cromwell_job_id, cached, status, timestamp, reason in task_status:
+    for task_name, job_id, cached, status, timestamp, reason in task_status:
         if status and status in job_status_value:
             max_task_status_value = max(max_task_status_value, job_status_value[status])
         else:
             logger.warn(
-                f"Run {run_id} get task status, job {cromwell_job_id} has unknown status: {status}"
+                f"Run {run_id} get task status, job {job_id} has unknown status: {status}"
             )
     return "queued" if max_task_status_value < 4 else "running"
 

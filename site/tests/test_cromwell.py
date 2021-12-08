@@ -76,12 +76,12 @@ def test_task_summary(requests_mock):
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     actual = metadata.task_summary()
     expected = [
-        {"name": "main_workflow.goodbye", "jobId": "12129", "cached": False, "maxTime": "00:10:00"},
-        {"name": "main_workflow.hello", "jobId": "12130", "cached": False, "maxTime": "00:10:00"},
-        {"name": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "jobId": "12134", "cached": False, "maxTime": "00:10:00"},
-        {"name": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "jobId": "12133", "cached": False, "maxTime": "00:10:00"},
-        {"name": "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "jobId": "12131", "cached": False, "maxTime": "00:10:00"},
-        {"name": "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "jobId": "12132", "cached": False, "maxTime": "00:10:00"},
+        ["main_workflow.goodbye", "12129", False, "00:10:00"],
+        ["main_workflow.hello", "12130", False, "00:10:00"],
+        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "12134", False, "00:10:00"],
+        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "12133", False, "00:10:00"],
+        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131", False, "00:10:00"],
+        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132", False, "00:10:00"],
     ]
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
@@ -91,6 +91,7 @@ def test_task_summary(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_5)
     actual = metadata.task_summary()
+    print(actual)  # DEBUG
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
     )
