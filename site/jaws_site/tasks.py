@@ -86,7 +86,7 @@ class TaskLog:
             run = self.session.query(Run).filter_by(id=self._run_id).one_or_none()
         except SQLAlchemyError as error:
             raise TaskLogDbError(
-                f"Task log service was unable to query the db to get the cromwell_run_id for run {self._run_id}: {error}"
+                f"Task log service unable to query db for cromwell_run_id of run {self._run_id}: {error}"
             )
         if run:
             self._cromwell_run_id = run.cromwell_run_id  # may be None
@@ -204,8 +204,7 @@ class TaskLog:
         return unsorted_job_logs
 
     def _get_job_logs(self):
-        """Get and sort all logs associated with the query cromwell run id.
-        """
+        """Get and sort all logs associated with the query cromwell run id."""
         unsorted_job_logs = self._select_job_logs()
 
         # sort job logs
