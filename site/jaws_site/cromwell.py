@@ -143,7 +143,7 @@ class Task:
                 sub_task_summary = subworkflow.task_summary()
                 for a_task_summary in sub_task_summary:
                     summary.append({
-                        "name" :f"{name}:{a_task_summary['name']}",
+                        "name" : f"{name}:{a_task_summary['name']}",
 						"jobId": a_task_summary["jobId"],
 						"cached": a_task_summary["cached"],
 						"maxTime": a_task_summary["maxTime"],
