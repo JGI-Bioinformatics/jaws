@@ -143,13 +143,13 @@ class Task:
                 sub_task_summary = subworkflow.task_summary()
                 for a_task_summary in sub_task_summary:
                     summary.append({
-                        "task_name" :f"{name}:{a_task_summary['name']}",
-						"job_id": a_task_summary["job_id"],
+                        "taskName" :f"{name}:{a_task_summary['name']}",
+						"jobId": a_task_summary["jobId"],
 						"cached": a_task_summary["cached"],
-						"max_time": a_task_summary["max_time"],
+						"maxTime": a_task_summary["maxTime"],
                     })
             else:
-                summary.append({"task_name": name, "job_id": job_id, "cached": cached, "max_time": max_time})
+                summary.append({"taskName": name, "jobId": job_id, "cached": cached, "maxTime": max_time})
         return summary
 
     def errors(self):

@@ -263,11 +263,11 @@ class TaskLog:
             cromwell_task_summary = self.cromwell_task_summary()
             cromwell_job_summary = {}
             for a_task in cromwell_task_summary:
-                if "job_id" in a_task and a_task["job_id"] is not None:
-                    cromwell_job_id = str(a_task["job_id"])
+                if "jobId" in a_task and a_task["jobId"] is not None:
+                    cromwell_job_id = str(a_task["jobId"])
                     cromwell_job_summary[cromwell_job_id] = {
-                        "task_name": a_task["task_name"],
-                        "max_time": a_task["max_time"],
+                        "task_name": a_task["taskName"],
+                        "max_time": a_task["maxTime"],
                     }
             self._cromwell_job_summary = cromwell_job_summary
         return self._cromwell_job_summary
