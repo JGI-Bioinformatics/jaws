@@ -399,10 +399,14 @@ class TaskLog:
                 delta = parser.parse(a_log["running"]) - parser.parse(a_log["queued"])
                 a_summary["queue_wait"] = str(delta)
             if a_log["running"] and a_log["completed"]:
-                delta = parser.parse(a_log["completed"]) - parser.parse(a_log["running"])
+                delta = parser.parse(a_log["completed"]) - parser.parse(
+                    a_log["running"]
+                )
                 a_summary["wallclock"] = str(delta)
             if a_log["cromwell_job_id"] in cromwell_job_summary:
-                a_summary["max_time"] = cromwell_job_summary[a_log["cromwell_job_id"]]["max_time"]
+                a_summary["max_time"] = cromwell_job_summary[a_log["cromwell_job_id"]][
+                    "max_time"
+                ]
             task_summary[name] = a_summary
 
         self._task_summary = task_summary
@@ -418,25 +422,16 @@ class TaskLog:
             return self._task_status
 
         task_log = self.task_log()
-        task_status = []
-        last_cromwell_job_id = 0
-        for (
-            name,
-            cromwell_job_id,
-            cached,
-            status_from,
-            status_to,
-            timestamp,
-            reason,
-        ) in task_log:
+        task_status = {}
+        for a_log in task_log:
             # task-status excludes status_from
-            row = [name, cromwell_job_id, cached, status_to, timestamp, reason]
-            if cromwell_job_id == last_cromwell_job_id:
-                # state transitions are ordered, so we just keep the last state transition
-                task_status[-1] = row
-            else:
-                task_status.append(row)
-                last_cromwell_job_id = cromwell_job_id
+            task_status[a_log["name"]] = {
+                "cromwell_job_id": a_log["cromwell_job_id"],
+                "cached": a_log["cached"],
+                "status_to": a_log["status_to"],
+                "timestamp": a_log["timestamp"],
+                "comment": a_log["comment"],
+            }
         self._task_status = task_status
         return self._task_status
 
