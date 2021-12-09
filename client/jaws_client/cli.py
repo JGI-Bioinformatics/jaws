@@ -218,7 +218,7 @@ def task_status(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
     result = _request("GET", url)
-    _convert_all_fields_to_localtime(result, columns=[4])
+    result = _convert_all_table_fields_to_localtime(result, columns=[4])
     header = [
         "NAME",
         "CROMWELL_JOB_ID",
@@ -255,7 +255,7 @@ def log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/run_log'
     result = _request("GET", url)
-    _convert_all_fields_to_localtime(result, columns=[2])
+    _convert_all_table_fields_to_localtime(result, columns=[2])
     header = ["STATUS_FROM", "STATUS_TO", "TIMESTAMP", "COMMENT"]
     if fmt == "json":
         _print_json(result)
@@ -337,7 +337,7 @@ def task_log(run_id: int, fmt: str) -> None:
         "TIMESTAMP",
         "COMMENT",
     ]
-    _convert_all_fields_to_localtime(result, columns=[5])
+    _convert_all_table_fields_to_localtime(result, columns=[5])
     if fmt == "json":
         _print_json(result)
     elif fmt == "tab":
@@ -703,17 +703,20 @@ def _copy_outfile(rel_path, src_dir, dest_dir, quiet=False):
     os.chmod(dest_file, 0o0664)
 
 
-def _convert_all_fields_to_localtime(table, **kwargs):
+def _convert_all_table_fields_to_localtime(table, **kwargs):
+    for row in table:
+        _convert_all_fields_to_localtime(row, **kwargs)
+
+
+def _convert_all_fields_to_localtime(rec, **kwargs):
     if "columns" in kwargs:
-        for row in table:
-            for index in kwargs["columns"]:
-                if row[index]:
-                    row[index] = _utc_to_local(row[index])
+        for index in kwargs["columns"]:
+            if rec[index]:
+                rec[index] = _utc_to_local(rec[index])
     elif "keys" in kwargs:
-        for row in table:
-            for key in kwargs["keys"]:
-                if row[key]:
-                    row[key] = _utc_to_local(row[key])
+        for key in kwargs["keys"]:
+            if key in rec and rec[key] is not None:
+                rec[key] = _utc_to_local(rec[key])
 
 
 def _utc_to_local(utc_datetime):
@@ -734,11 +737,8 @@ def _utc_to_local(utc_datetime):
 
     fmt = "%Y-%m-%d %H:%M:%S"
     datetime_obj = datetime.strptime(utc_datetime, fmt)
-    return (
-        datetime_obj.replace(tzinfo=timezone.utc)
-        .astimezone(tz=local_tz_obj)
-        .strftime(fmt)
-    )
+    local_datetime_obj = datetime_obj.replace(tzinfo=timezone.utc).astimezone(tz=local_tz_obj)
+    return local_datetime_obj.strftime(fmt)
 
 
 @main.command()

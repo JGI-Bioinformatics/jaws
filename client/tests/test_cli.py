@@ -260,6 +260,7 @@ def test_cli_queue(monkeypatch, configuration):
     assert result.exit_code == 0
     for task_id in ["33", "34"]:
         assert task_id in result.output
+    print(result.output)  # DEBUG
 
     # this checks that there is 8hrs difference when we are not in daylight savings (nov 8 - march 13)
     # utc: 2021-01-01 11:00:00
