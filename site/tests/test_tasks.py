@@ -484,8 +484,21 @@ def test_task_summary(monkeypatch):
                 None,
             ],
         ]
+        return self._task_log
 
     monkeypatch.setattr(TaskLog, "task_log", mock_task_log)
+
+    def mock_get_cromwell_run_id(self):
+        self._cromwell_run_id = "AAAA"
+        return self._cromwell_run_id
+
+    monkeypatch.setattr(TaskLog, "_get_cromwell_run_id", mock_get_cromwell_run_id)
+
+    def mock_cromwell_job_summary(self):
+        self._cromwell_job_summary = {"8919": ["fq_count.count_seqs", "00:10:00"]}
+        return self._cromwell_job_summary
+
+    monkeypatch.setattr(TaskLog, "cromwell_job_summary", mock_cromwell_job_summary)
 
     expected = [
         [
@@ -493,13 +506,14 @@ def test_task_summary(monkeypatch):
             "8919",
             False,
             "success",
-            "2021-12-08 04:39:09",
+            "2021-12-07 20:39:09",
             "0:00:07",
             "0:00:00",
             "00:10:00",
         ]
     ]
 
+    example_run_id = 1
     mock_session = None
     tasks = TaskLog(mock_session, run_id=example_run_id)
     actual = tasks.task_summary()
