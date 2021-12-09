@@ -434,21 +434,70 @@ def test_task_log(monkeypatch):
     actual = tasks.task_log()
     assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
 
-def test_task_summary(monkeypatch):
 
+def test_task_summary(monkeypatch):
     def mock_task_log(self):
         self._task_log = [
-            ["fq_count.count_seqs", "8919", False, "created", "ready", "2021-12-07 20:39:09", None],
-            ["fq_count.count_seqs", "8919", False, "ready", "queued", "2021-12-07 20:39:09", None],
-            ["fq_count.count_seqs", "8919", False, "queued", "pending", "2021-12-07 20:39:09", "slurm_jid=45352308"],
-            ["fq_count.count_seqs", "8919", False, "pending", "running", "2021-12-07 20:39:16", None],
-            ["fq_count.count_seqs", "8919", False, "running", "success", "2021-12-07 20:39:16", None],
+            [
+                "fq_count.count_seqs",
+                "8919",
+                False,
+                "created",
+                "ready",
+                "2021-12-07 20:39:09",
+                None,
+            ],
+            [
+                "fq_count.count_seqs",
+                "8919",
+                False,
+                "ready",
+                "queued",
+                "2021-12-07 20:39:09",
+                None,
+            ],
+            [
+                "fq_count.count_seqs",
+                "8919",
+                False,
+                "queued",
+                "pending",
+                "2021-12-07 20:39:09",
+                "slurm_jid=45352308",
+            ],
+            [
+                "fq_count.count_seqs",
+                "8919",
+                False,
+                "pending",
+                "running",
+                "2021-12-07 20:39:16",
+                None,
+            ],
+            [
+                "fq_count.count_seqs",
+                "8919",
+                False,
+                "running",
+                "success",
+                "2021-12-07 20:39:16",
+                None,
+            ],
         ]
 
     monkeypatch.setattr(TaskLog, "task_log", mock_task_log)
 
     expected = [
-        [ "fq_count.count_seqs", "8919", False, "success", "2021-12-08 04:39:09", "0:00:07", "0:00:00", "00:10:00" ]
+        [
+            "fq_count.count_seqs",
+            "8919",
+            False,
+            "success",
+            "2021-12-08 04:39:09",
+            "0:00:07",
+            "0:00:00",
+            "00:10:00",
+        ]
     ]
 
     mock_session = None
