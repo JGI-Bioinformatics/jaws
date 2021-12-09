@@ -45,6 +45,7 @@ Run a command with --help to see it's options.
     * submit       Submit a run for execution at a JAWS-Site.
     * task-log     Get log of each Task's state transitions.
     * task-status  Show the current status of each Task.
+      task-summary Get summary of each Task's state durations.
       validate     Validate a WDL using Cromwell's WOMTool.
 
 The commands with an asterik have additional options. Expand the below commands to see them.
@@ -172,6 +173,25 @@ The commands with an asterik have additional options. Expand the below commands 
     Usage: jaws task-status [OPTIONS] RUN_ID
 
     Show the current status of each Task.
+
+    Options:
+    --fmt TEXT  the desired output format: [text|json]
+    -h, --help  Show this message and exit.
+
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+ 
+    <details>
+    <summary style="color: #448ecf";>task-summary</summary>
+
+.. code-block:: text
+
+    Usage: jaws task-summary [OPTIONS] RUN_ID
+
+    Get summary of each Task's state durations.
 
     Options:
     --fmt TEXT  the desired output format: [text|json]
