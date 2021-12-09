@@ -288,7 +288,6 @@ def _print_tab_delimited_table(header, table):
     Print table with tab-separated columns, which is machine-parseable.
     """
     assert header
-    assert table
     table = _make_table_printable(table)
     header[0] = f"#{header[0]}"
     for row in table:
@@ -302,7 +301,6 @@ def _print_space_delimited_table(header, table):
     Print table with variable number of spaces to line-up columns for human-readability.
     """
     assert header
-    assert table
     table = _make_table_printable(table)
     header[0] = f"#{header[0]}"
     table.insert(0, header)
