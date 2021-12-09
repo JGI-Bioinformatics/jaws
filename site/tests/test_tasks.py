@@ -26,40 +26,38 @@ def test_job_logs(monkeypatch):
 
     test_cromwell_run_id = "AAAA-BBBB-CCCC"
     test_cromwell_job_id = "2345"
-    test_job_logs = [
-        [
-            test_cromwell_job_id,
-            "created",
-            "ready",
-            "2021-03-17 12:00:00",
-            None,
-        ],
-        [
-            test_cromwell_job_id,
-            "ready",
-            "queued",
-            "2021-03-17 12:11:11",
-            None,
-        ],
-        [
-            test_cromwell_job_id,
-            "queued",
-            "running",
-            "2021-03-17 12:22:22",
-            None,
-        ],
-    ]
 
-    def mock_get_job_logs(self):
-        return test_job_logs
+    def mock_select_job_logs(self):
+        self._job_logs = [
+            [
+                test_cromwell_job_id,
+                "queued",
+                "running",
+                "2021-03-17 12:22:22",
+                None,
+            ],
+            [
+                test_cromwell_job_id,
+                "created",
+                "ready",
+                "2021-03-17 12:00:00",
+                None,
+            ],
+            [
+                test_cromwell_job_id,
+                "ready",
+                "queued",
+                "2021-03-17 12:11:11",
+                None,
+            ],
+        ]
+        return self._job_logs
 
-    monkeypatch.setattr(TaskLog, "_get_job_logs", mock_get_job_logs)
+    monkeypatch.setattr(TaskLog, "_select_job_logs", mock_select_job_logs)
     mock_session = None
 
     tasks = TaskLog(mock_session, cromwell_run_id=test_cromwell_run_id)
     job_logs = tasks.job_logs()
-    assert test_cromwell_job_id in job_logs
-    assert len(job_logs[test_cromwell_job_id]) == len(test_job_logs)
     assert job_logs[test_cromwell_job_id][0][0] == "created"
 
 
@@ -243,7 +241,7 @@ def test_run_status(monkeypatch):
         assert tasks.get_run_status(mock_session, run_id) == expected
 
 
-def test_cromwell_task_info(monkeypatch):
+def test_cromwell_job_summary(monkeypatch):
     example_run_id = 99
 
     def mock_cromwell_task_summary(self):
@@ -302,7 +300,7 @@ def test_cromwell_task_info(monkeypatch):
 
     mock_session = None
     tasks = TaskLog(mock_session, run_id=example_run_id)
-    task_info = tasks.cromwell_task_info()
+    task_info = tasks.cromwell_job_summary()
     assert bool(DeepDiff(task_info, expected_task_info, ignore_order=True)) is False
 
 
@@ -310,8 +308,9 @@ def test_task_log(monkeypatch):
 
     example_run_id = 9
 
-    def mock_get_cromwell_run_id(self, run_id):
-        return "AAAA"
+    def mock_get_cromwell_run_id(self):
+        self._cromwell_run_id = "AAAA"
+        return self._cromwell_run_id
 
     monkeypatch.setattr(TaskLog, "_get_cromwell_run_id", mock_get_cromwell_run_id)
 
@@ -433,4 +432,89 @@ def test_task_log(monkeypatch):
     mock_session = None
     tasks = TaskLog(mock_session, run_id=example_run_id)
     actual = tasks.task_log()
+    assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
+
+
+def test_task_summary(monkeypatch):
+    def mock_task_log(self):
+        self._task_log = [
+            [
+                "fq_count.count_seqs",
+                "8919",
+                False,
+                "created",
+                "ready",
+                "2021-12-07 20:39:09",
+                None,
+            ],
+            [
+                "fq_count.count_seqs",
+                "8919",
+                False,
+                "ready",
+                "queued",
+                "2021-12-07 20:39:09",
+                None,
+            ],
+            [
+                "fq_count.count_seqs",
+                "8919",
+                False,
+                "queued",
+                "pending",
+                "2021-12-07 20:39:09",
+                "slurm_jid=45352308",
+            ],
+            [
+                "fq_count.count_seqs",
+                "8919",
+                False,
+                "pending",
+                "running",
+                "2021-12-07 20:39:16",
+                None,
+            ],
+            [
+                "fq_count.count_seqs",
+                "8919",
+                False,
+                "running",
+                "success",
+                "2021-12-07 20:39:16",
+                None,
+            ],
+        ]
+        return self._task_log
+
+    monkeypatch.setattr(TaskLog, "task_log", mock_task_log)
+
+    def mock_get_cromwell_run_id(self):
+        self._cromwell_run_id = "AAAA"
+        return self._cromwell_run_id
+
+    monkeypatch.setattr(TaskLog, "_get_cromwell_run_id", mock_get_cromwell_run_id)
+
+    def mock_cromwell_job_summary(self):
+        self._cromwell_job_summary = {"8919": ["fq_count.count_seqs", "00:10:00"]}
+        return self._cromwell_job_summary
+
+    monkeypatch.setattr(TaskLog, "cromwell_job_summary", mock_cromwell_job_summary)
+
+    expected = [
+        [
+            "fq_count.count_seqs",
+            "8919",
+            False,
+            "success",
+            "2021-12-07 20:39:09",
+            "0:00:07",
+            "0:00:00",
+            "00:10:00",
+        ]
+    ]
+
+    example_run_id = 1
+    mock_session = None
+    tasks = TaskLog(mock_session, run_id=example_run_id)
+    actual = tasks.task_summary()
     assert bool(DeepDiff(actual, expected, ignore_order=False)) is False

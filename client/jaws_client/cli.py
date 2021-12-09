@@ -152,9 +152,7 @@ def queue(site: str, all: bool) -> None:
     }
     url = f'{config.get("JAWS", "url")}/search'
     result = _request("POST", url, data)
-    for a in result:
-        a["submitted"] = _utc_to_local(a["submitted"])
-        a["updated"] = _utc_to_local(a["updated"])
+    _convert_all_fields_to_localtime(result, keys=["submitted", "updated"])
     _print_json(result)
 
 
@@ -187,9 +185,7 @@ def history(days: int, site: str, result: str, all: bool) -> None:
     }
     url = f'{config.get("JAWS", "url")}/search'
     result = _request("POST", url, data)
-    for a in result:
-        a["submitted"] = _utc_to_local(a["submitted"])
-        a["updated"] = _utc_to_local(a["updated"])
+    _convert_all_fields_to_localtime(result, keys=["submitted", "updated"])
     _print_json(result)
 
 
@@ -210,8 +206,7 @@ def status(run_id: int, verbose: bool) -> None:
     """Print the current status of a run."""
 
     result = _run_status(run_id, verbose)
-    result["submitted"] = _utc_to_local(result["submitted"])
-    result["updated"] = _utc_to_local(result["updated"])
+    _convert_all_fields_to_localtime(result, keys=["submitted", "updated"])
     _print_json(result)
 
 
@@ -223,12 +218,9 @@ def task_status(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
     result = _request("GET", url)
-    for row in result:
-        if row[4]:
-            # cached tasks won't have a timestamp
-            row[4] = _utc_to_local(row[4])
+    result = _convert_all_table_fields_to_localtime(result, columns=[4])
     header = [
-        "TASK_NAME",
+        "NAME",
         "CROMWELL_JOB_ID",
         "CACHED",
         "STATUS",
@@ -263,8 +255,7 @@ def log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/run_log'
     result = _request("GET", url)
-    for a in result:
-        a[2] = _utc_to_local(a[2])
+    _convert_all_table_fields_to_localtime(result, columns=[2])
     header = ["STATUS_FROM", "STATUS_TO", "TIMESTAMP", "COMMENT"]
     if fmt == "json":
         _print_json(result)
@@ -297,7 +288,6 @@ def _print_tab_delimited_table(header, table):
     Print table with tab-separated columns, which is machine-parseable.
     """
     assert header
-    assert table
     table = _make_table_printable(table)
     header[0] = f"#{header[0]}"
     for row in table:
@@ -311,7 +301,6 @@ def _print_space_delimited_table(header, table):
     Print table with variable number of spaces to line-up columns for human-readability.
     """
     assert header
-    assert table
     table = _make_table_printable(table)
     header[0] = f"#{header[0]}"
     table.insert(0, header)
@@ -338,7 +327,7 @@ def task_log(run_id: int, fmt: str) -> None:
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
     result = _request("GET", url)
     header = [
-        "TASK_NAME",
+        "NAME",
         "CROMWELL_JOB_ID",
         "CACHED",
         "STATUS_FROM",
@@ -346,16 +335,25 @@ def task_log(run_id: int, fmt: str) -> None:
         "TIMESTAMP",
         "COMMENT",
     ]
-    for row in result:
-        if row[5]:
-            # cached tasks won't have a timestamp
-            row[5] = _utc_to_local(row[5])
+    _convert_all_table_fields_to_localtime(result, columns=[5])
     if fmt == "json":
         _print_json(result)
     elif fmt == "tab":
         _print_tab_delimited_table(header, result)
     else:
         _print_space_delimited_table(header, result)
+
+
+def _convert_to_table(header: list, jdoc: dict):
+    """Convert list of dictionaries to list of lists, given list of keys"""
+    table = []
+    for rec in jdoc:
+        row = []
+        for key in header:
+            value = rec.get(key.lc(), None)
+            row.append(value)
+        table.append(row)
+    return table
 
 
 @main.command()
@@ -366,7 +364,16 @@ def task_summary(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_summary'
     result = _request("GET", url)
-    header = ["TASK_NAME", "CACHED", "QUEUED", "QUEUE-WAIT", "RUNTIME", "RESULT", "MAX_TIME"]
+    header = [
+        "NAME",
+        "CROMWELL_JOB_ID",
+        "CACHED",
+        "RESULT",
+        "QUEUED",
+        "QUEUE_WAIT",
+        "RUNTIME",
+        "MAX_TIME",
+    ]
     if fmt == "json":
         _print_json(result)
     elif fmt == "tab":
@@ -694,6 +701,22 @@ def _copy_outfile(rel_path, src_dir, dest_dir, quiet=False):
     os.chmod(dest_file, 0o0664)
 
 
+def _convert_all_table_fields_to_localtime(table, **kwargs):
+    for row in table:
+        _convert_all_fields_to_localtime(row, **kwargs)
+
+
+def _convert_all_fields_to_localtime(rec, **kwargs):
+    if "columns" in kwargs:
+        for index in kwargs["columns"]:
+            if rec[index]:
+                rec[index] = _utc_to_local(rec[index])
+    elif "keys" in kwargs:
+        for key in kwargs["keys"]:
+            if key in rec and rec[key] is not None:
+                rec[key] = _utc_to_local(rec[key])
+
+
 def _utc_to_local(utc_datetime):
     """Convert UTC time to the local time zone. This should handle daylight savings.
     Param:: utc_datetime: a string of date and time "2021-07-06 11:15:17".
@@ -712,11 +735,8 @@ def _utc_to_local(utc_datetime):
 
     fmt = "%Y-%m-%d %H:%M:%S"
     datetime_obj = datetime.strptime(utc_datetime, fmt)
-    return (
-        datetime_obj.replace(tzinfo=timezone.utc)
-        .astimezone(tz=local_tz_obj)
-        .strftime(fmt)
-    )
+    local_datetime_obj = datetime_obj.replace(tzinfo=timezone.utc).astimezone(tz=local_tz_obj)
+    return local_datetime_obj.strftime(fmt)
 
 
 @main.command()
