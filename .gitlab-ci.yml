@@ -91,7 +91,7 @@ variables:
   CORI_CLUSTER_PARTITION: ""
   CORI_CLUSTER_ACCOUNT: "fungalp"
   CORI_CLUSTER_CONSTRAINT: "haswell"
-  CORI_MAX_RAM_GB: 2048
+  CORI_MAX_RAM_GB: 758
   CORI_LOAD_JAVA: ""
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_RMQ_HOST: "rmq.lbl.gov"
@@ -116,7 +116,7 @@ variables:
   JGI_CLUSTER_PARTITION: "jgi"
   JGI_CLUSTER_ACCOUNT: "jgi"
   JGI_CLUSTER_CONSTRAINT: ""
-  JGI_MAX_RAM_GB: 250
+  JGI_MAX_RAM_GB: 512
   JGI_LOAD_JAVA: "module load java"
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
   JGI_RMQ_HOST: "rmq.lbl.gov"
