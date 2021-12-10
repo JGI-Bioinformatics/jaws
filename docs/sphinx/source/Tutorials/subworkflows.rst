@@ -46,3 +46,13 @@ You can try running this example
 
     # run jaws submit <workflow> <inputs> <site>
     jaws submit main.wdl inputs.json cori
+
+##############################
+# How to supply subworkflows #
+##############################
+
+Subworkflows may be imported using relative paths.  The jaws-client app will validate your WDL, find the subworklow files, and prepare a ZIP file automatically.
+Alternatively, if you have a ZIP file of your subworkflows, you can supply it using the --sub option.
+
+Lastly, subworkflows may be imported using HTTP URLs, so long as no login is required, such as a public git repository (use the "Open raw" button in gitlab to get the URL to use).
+However, a compute site's firewall may prevent imports via HTTP.  Currently http imports work at cori and jgi, but are blocked at tahoma.
