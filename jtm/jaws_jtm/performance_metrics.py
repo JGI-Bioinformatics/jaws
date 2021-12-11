@@ -97,6 +97,18 @@ def get_cputimes(pData):
     return user, system, children_user, children_system, iowait
 
 
+def cmd_data(pData):
+    """
+    Gets data from the command line arguments and serilaizes it for csv
+    """
+    cmd = pData['cmdline']
+    if len(cmd) == 0:
+        return "nan"
+    cmd = [c.replace(",", "|") for c in cmd]
+
+    return "|".join(cmd)
+
+
 def runner(outfile: str = "stats.csv", poleRate: float = 0.1, username: str = ""):
     """
     Runs while your executable is still running and logs info
@@ -112,12 +124,11 @@ def runner(outfile: str = "stats.csv", poleRate: float = 0.1, username: str = ""
 
     stats_file = open(outfile, "w")
 
-    header = ["datetime", "pid", "username", "name", "num_threads",
-              "cpu_percent", "cpu_t_user", "cpu_t_system", "cpu_num",
-              "user", "system", "children_user", "children_system",
+    header = ["datetime", "pid", "username", "name", "num_threads", "cpu_num",
+              "cpu_t_user", "cpu_t_system", "children_user", "children_system",
               "iowait", "mem_rss", "mem_vms", 'memory_percent',
               'num_fds', "read_count", "write_count", "read_chars",
-              "write_chars"]
+              "write_chars", "cmdline"]
     # Make formater based on number of metrics in heased
     ftm_writer = ",".join(["{}" for _ in range(len(header))])
     ftm_writer = ftm_writer + "\n"
@@ -140,15 +151,13 @@ def runner(outfile: str = "stats.csv", poleRate: float = 0.1, username: str = ""
                     pData['username'],
                     pData['name'],
                     pData['num_threads'],
-                    pData['cpu_percent'],
-                    pData['cpu_times'].user,
-                    pData['cpu_times'].system,
                     pData['cpu_num'] if 'cpu_times' in pData else "nan",
                     *get_cputimes(pData),
                     *get_meminfo(pData),
                     pData['memory_percent'],
                     pData['num_fds'],
-                    *get_iocounters(pData)
+                    *get_iocounters(pData),
+                    cmd_data(pData)
                 ))
 
             except psutil.NoSuchProcess as e:
