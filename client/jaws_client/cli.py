@@ -431,11 +431,8 @@ def list_sites() -> None:
 @click.option("--tag", help="identifier for the run")
 @click.option("--no-cache", is_flag=True, help="Disable call-caching for this run")
 @click.option("--quiet", is_flag=True, help="Don't print copy progress bar")
-@click.option(
-    "--default-container",
-    default=None,
-    help="The default Docker container to use for Tasks",
-)
+@click.option("--default-container", default=None, help="The default Docker container to use for Tasks")
+@click.option("--sub", default=None, help="Subworkflows zip (optional; by default, auto-generate)")
 def submit(
     wdl_file: str,
     json_file: str,
@@ -444,10 +441,12 @@ def submit(
     no_cache: bool,
     quiet: bool,
     default_container: str,
+    sub: str
 ):
     """Submit a run for execution at a JAWS-Site.
     Available sites can be found by running 'jaws run list-sites'.
     """
+    user_zip_file = sub
     from jaws_client import workflow
     from jaws_client.workflow import WdlError
 
@@ -485,7 +484,7 @@ def submit(
 
     # any and all subworkflow WDL files must be supplied to Cromwell in a single ZIP archive
     try:
-        staged_wdl, zip_file = wdl.compress_wdls(local_staging_endpoint)
+        staged_wdl, zip_file = wdl.prepare_wdls(local_staging_endpoint, user_zip_file)
     except IOError as error:
         sys.exit(f"Unable to copy WDLs to inputs dir: {error}")
 
