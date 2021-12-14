@@ -465,30 +465,31 @@ task read_mapping_pairs{
   }
 }
 """
-TIME_AND_MEMORY_ARE_VARIABLES =  """
+
+TIME_AND_MEMORY_ARE_VARIABLES = """
 workflow jgi_meta {
     String time = "00:30:00"
     String memory = "5G"
     String cpu = 5
 
     call task1 {
-	  input: time=time, memory=memory, cpu=cpu
+        input: time=time, memory=memory, cpu=cpu
     }
 }
 task task1 {
-	String time
-	String memory
-	String cpu
+        String time
+        String memory
+        String cpu
 
     runtime {
-		docker: "doejgi/jaws-debian:latest"
+                docker: "doejgi/jaws-debian:latest"
         node: 1
         nwpn: 1
         poolname: "dashboard_test"
         shared: 0
-		time: time 
-		memory: memory
-		cpu: cpu
+        time: time
+        memory: memory
+        cpu: cpu
     }
 
      command {
@@ -497,7 +498,7 @@ task task1 {
      }
 
      output {
-            File out = "output.txt"
+        File out = "output.txt"
      }
 }
 """
