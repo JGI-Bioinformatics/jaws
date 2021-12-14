@@ -168,7 +168,7 @@ variables:
   AWS_CLUSTER_CONSTRAINT: ""
   AWS_MAX_RAM_GB: 1500
   AWS_LOAD_JAVA: ""
-  AWS_DATA_REPO_BASEDIR: "/tahoma/mscjgi"
+  AWS_DATA_REPO_BASEDIR: "/tmp"
   AWS_RMQ_HOST: "rmq.lbl.gov"
   AWS_RMQ_PORT: 5672
 
