@@ -64,21 +64,26 @@ class WDLStanzas:
 
         # time: "00:30:00"
         if key == "time":
-            time = value.split(":")
-            if len(time) != 3:
-                sys.exit(
-                    'Error in task %s. Time is not in the correct format of "hh:mm:ss"'
-                    % task
-                )
-            z = 0
-            for i in time:
-                i = int(i)
-                z = z + i
-            if z == 0:
-                sys.exit(
-                    "Error in task %s. No time was specified (everything was zero). You had %s"
-                    % (task, value)
-                )
+            if value[0].isalpha():
+                # if the value starts with a letter, it is a variable name
+                return None
+            elif re.search(".+:.+.+", value):
+                print("REGEX")
+                time = value.split(":")
+                if len(time) != 3:
+                    sys.exit(
+                        'Error in task %s. Time is not in the correct format of "hh:mm:ss"'
+                        % task
+                    )
+                z = 0
+                for i in time:
+                    i = int(i)
+                    z = z + i
+                if z == 0:
+                    sys.exit(
+                        "Error in task %s. No time was specified (everything was zero). You had %s"
+                        % (task, value)
+                    )
 
         # memory: "250G"
         if key == "mem":
