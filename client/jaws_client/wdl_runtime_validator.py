@@ -85,7 +85,7 @@ class WDLStanzas:
                     )
             else:
                 sys.exit(
-                    'Error in task %s. "c" should have a "G" to specify gigabytes. You had %s'
+                    'Error in in the runtime section of task %s. "time" should have the format: "hh:mm:ss". You had %s'
                     % (task, value)
                 )
 
@@ -105,7 +105,8 @@ class WDLStanzas:
                 return value
             else:
                 sys.exit(
-                    'Error in task %s. "memory" should have a "G" to specify gigabytes. You had %s'
+                    'Error in the runtime section of task %s. "memory" should have '
+                    'a "G" to specify gigabytes. You had %s'
                     % (task, value)
                 )
 
@@ -304,25 +305,28 @@ def timeParam(task_name, task_dict):
             % (task_name, "time")
         )
         return
-
-    if not task_dict["time"] or task_dict["time"].isalpha():
+    elif task_dict["time"] is None:
+        # time is a variable name; nothing to do
         return
 
-    hours = task_dict["time"].split(":")[0]
+    hours = int(task_dict["time"].split(":")[0])
+    mins = int(task_dict["time"].split(":")[1])
+    if (mins > 0):
+        hours += 1
 
     if "constraint" in task_dict:
         myconstraint = task_dict["constraint"].lower()
 
         # check skylake mem
         if myconstraint == "skylake":
-            if int(hours) > 168:
+            if hours > 168:
                 raise WdlRuntimeError(
                     "Task: %s timeParam. You are limited to 168hrs where constraint=%s"
                     % (task_name, myconstraint)
                 )
         # check knl mem
         elif myconstraint == "knl":
-            if int(hours) > 48:
+            if hours > 48:
                 raise WdlRuntimeError(
                     "Task: %s timeParam. You are limited to 48hrs where constraint=%s"
                     % (task_name, myconstraint)
@@ -330,14 +334,14 @@ def timeParam(task_name, task_dict):
         # check haswell or other mem
         else:
             # if constraint exists but is not skylake or knl, then it is haswell or jgi?, so limit 72hrs.
-            if int(hours) > 72:
+            if hours > 72:
                 raise WdlRuntimeError(
                     "Task: %s timeParam. You are limited to 72hrs where constraint=%s"
                     % (task_name, myconstraint)
                 )
     else:
         # if constraint is not included in the runtime, the default is haswell, so 72hrs limit
-        if int(hours) > 72:
+        if hours > 72:
             raise WdlRuntimeError(
                 'Task: %s timeParam. You are limited to 72hrs when constraint is the default value("%s")'
                 % (task_name, "haswell")
