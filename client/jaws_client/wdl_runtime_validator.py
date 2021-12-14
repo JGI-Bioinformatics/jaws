@@ -64,19 +64,28 @@ class WDLStanzas:
 
         # time: "00:30:00"
         if key == "time":
-            time = value.split(":")
-            if len(time) != 3:
+            if value.isalpha():
+                # if the value starts with a letter, it is a variable name
+                return None
+            elif re.search(r".+:.+:.+", value):
+                time = value.split(":")
+                if len(time) != 3:
+                    sys.exit(
+                        'Error in task %s. Time is not in the correct format of "hh:mm:ss"'
+                        % task
+                    )
+                z = 0
+                for i in time:
+                    i = int(i)
+                    z = z + i
+                if z == 0:
+                    sys.exit(
+                        "Error in task %s. No time was specified (everything was zero). You had %s"
+                        % (task, value)
+                    )
+            else:
                 sys.exit(
-                    'Error in task %s. Time is not in the correct format of "hh:mm:ss"'
-                    % task
-                )
-            z = 0
-            for i in time:
-                i = int(i)
-                z = z + i
-            if z == 0:
-                sys.exit(
-                    "Error in task %s. No time was specified (everything was zero). You had %s"
+                    'Error in task %s. "c" should have a "G" to specify gigabytes. You had %s'
                     % (task, value)
                 )
 
@@ -296,6 +305,9 @@ def timeParam(task_name, task_dict):
         )
         return
 
+    if not task_dict["time"] or task_dict["time"].isalpha():
+        return
+
     hours = task_dict["time"].split(":")[0]
 
     if "constraint" in task_dict:
@@ -400,7 +412,6 @@ def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float) -> None:
     # The parenthesis are removed.
     doc = WDLStanzas(wdl)
     doc.loadStanza("runtime")
-
     for task_name in doc.stanza_dict.keys():
         task_dict = doc.stanza_dict[task_name]
 
