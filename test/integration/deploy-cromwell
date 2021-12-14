@@ -102,6 +102,24 @@ cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
 chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
 chmod 775 "$INSTALL_DIR/shifter_exec.sh"
 
+elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
+  CONTAINER_EXPORT="out=\$(docker pull \${docker})
+ret=\$?
+if [[ \$ret != 0 ]]; then
+  echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
+  exit \$ret
+else
+  echo \"Successfully pulled \${docker}!\"
+fi
+"
+CONTAINER_WRAPPER="$INSTALL_DIR/docker_exec.sh"
+CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script}"
+
+
+cp "$DIR/docker_exec.sh" $CONTAINER_WRAPPER
+chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/docker_exec.sh"
+chmod 775 "$INSTALL_DIR/docker_exec.sh"
+
 elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
   CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_TMPDIR
 export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_PULLDIR
