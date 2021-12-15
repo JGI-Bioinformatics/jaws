@@ -382,7 +382,7 @@ test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
 chgrp $SITE_JTM_GROUP $SITE_JTM_SCRATCH_DIR
 chmod 2775 $SITE_JTM_SCRATCH_DIR
 cd $SITE_JTM_SCRATCH_DIR
-exec java -Xmx5g -Dconfig.file="$CONFIG_DIR/cromwell.conf" -Djava.io.tmpdir="$SITE_CROMWELL_TMPDIR" -jar "$INSTALL_DIR/cromwell.jar" server >"$CROM_STDOUT" 2>"$CROM_STDERR"
+exec java -Xmx5g -Dconfig.file="$CONFIG_DIR/cromwell.conf" -Djava.io.tmpdir="$SITE_CROMWELL_TMPDIR" ‐Dlog4j2.formatMsgNoLookups=True -jar "$INSTALL_DIR/cromwell.jar" server >"$CROM_STDOUT" 2>"$CROM_STDERR"
 EOM
 chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME"
 chmod 770 "$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME"
