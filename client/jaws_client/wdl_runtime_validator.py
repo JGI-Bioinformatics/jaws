@@ -7,6 +7,43 @@ when the runtime dictionary is created.
 
 import sys
 import re
+import math
+from jaws_client.config import Configuration
+
+
+# A hash of an array of hash where 
+# partition
+#    qos
+#       [0] max_ram
+#       [2] cpu
+#       [3] max_time
+CORI_RESOURCE_TABLE = {
+    "haswell": {"genepool_special": [128, 32, 72], "genepool": [128, 32, 72]},
+    "knl":     {"regular": [96, 68, 48]},
+    "skylake": {"jgi_exvivo": [758, 32, 168], "jgi_shared": [250, 32, 168]},
+}
+
+# partition
+#    constraint
+#       [0] max_ram
+#       [2] cpu
+#       [3] max_time
+JGI_RESOURCE_TABLE = {
+    "lr3": {"none": [64, 32, 72],
+           "lr3_c32,jgi_m256": [256, 64, 72],
+           "lr3_c32,jgi_m512": [512, 64, 72]},
+    "jgi": {"none": [256,32,72]},
+}
+
+# partition
+#    constraint
+#       [0] max_ram
+#       [2] cpu
+#       [3] max_time
+PNNL_RESOURCE_TABLE = {
+    "none": {"none": [384, 36, 72]},
+    "analysis": {"none": [1500, 36, 72]},
+}
 
 
 class WdlRuntimeError(Exception):
@@ -348,7 +385,7 @@ def timeParam(task_name, task_dict):
             )
 
 
-def memoryParam(task_name, task_dict, compute_max_ram_gb):
+def memoryParam(task_name, task_dict):
     """Check that the user hasn't requested too much memory for the specified resource."""
 
     if "memory" not in task_dict:
@@ -364,10 +401,54 @@ def memoryParam(task_name, task_dict, compute_max_ram_gb):
     # memory is a string that include a "G" for gigabytes, so grab just the int
     mem = int(re.sub("[gG]", "", task_dict["memory"]))
 
-    if mem > compute_max_ram_gb:
-        raise WdlRuntimeMemoryError(
-            f"Task: {task_name} memoryParam. You are limited to {compute_max_ram_gb} for the requested site, you had {mem}" # noqa
+    # Find the max mem limit from the resource table
+    print(task_dict)
+    if "qos" in task_dict and not "partition" in task_dict:
+        raise WdlRuntimeError(
+            'Task: %s runtime. There should be a partion specified if you specified a qos: ("%s")'
+            % (task_name, task_dict["qos"])
         )
+
+    # catch any default haswell settings
+    if not "partition" in task_dict:
+        partition = "haswell"
+        if "qos" in task_dict:
+            qos = task_dict["qos"]
+        else:
+            # set the default qos
+            qos = "genepool_special"
+    else:
+        partion = task_dict["partition"]
+        if "qos" in task_dict:
+            qos = task_dict["qos"]
+        else:
+            if task_dict["partition"] == 'haswell':
+                qos = "genepool_special"
+            else:
+                raise WdlRuntimeError(
+                    'Task: %s runtime. There should be a qos specified for the partion: ("%s")'
+                    % (task_name, task_dict["partition"])
+                )
+
+
+    # if we get here, there should be a partion and qos set
+    config = Configuration()
+    site = config.get("JAWS", "site_id").split()[0].lower()
+
+    if site == 'cori':
+        usable_mem = int(math.ceil(0.92 * CORI_RESOURCE_TABLE[partition][qos][0]))
+    if site == 'jgi':
+        usable_mem = int(math.ceil(0.92 * CORI_RESOURCE_TABLE[partition][qos][0]))
+    if site == 'tahoma':
+        usable_mem = int(math.ceil(0.92 * CORI_RESOURCE_TABLE[partition][qos][0]))
+
+   
+    print(f'mem usable {mem} {usable_mem}')
+    if mem > usable_mem:
+        raise WdlRuntimeMemoryError(
+            f"Task: {task_name} memoryParam. You are limited to {usable_mem} for the requested site, you had {mem}" # noqa
+        )
+    sys.exit()
 
 
 def runtimeCombinations(task_name, task_dict):
@@ -407,7 +488,7 @@ def runtimeCombinations(task_name, task_dict):
     # the skylake combinations have been checked in the memoryParam function.
 
 
-def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float) -> None:
+def validate_wdl_runtime(wdl: str) -> None:
     # Run the validations
     #
     # A dictionary of all the runtime stanzas is created here.
@@ -428,8 +509,10 @@ def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float) -> None:
         timeParam(task_name, task_dict)
 
         # check the user hasn't requested too much memory for the specified resource
-        memoryParam(task_name, task_dict, compute_max_ram_gb)
+        memoryParam(task_name, task_dict)
 
         # Some runtime params require other params to be set. Check that the combinations
         # of runtime parameters are correct.
         runtimeCombinations(task_name, task_dict)
+
+

@@ -306,7 +306,7 @@ class WdlFile:
         self.verify_wdl_has_no_backend_tags()
 
         if self.compute_max_ram_gb:
-            validate_wdl_runtime(self.contents, self.compute_max_ram_gb)
+            validate_wdl_runtime(self.contents)
 
     @staticmethod
     def _get_wdl_name(file_location):
