@@ -342,6 +342,77 @@ submit \
         dockerRoot = $CROMWELL_EXECUTIONS_DIR
       }
     }
+
+    AWS
+    {
+      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+      
+      config
+      {
+        concurrent-job-limit = 50
+        run-in-background = true
+        
+        # The list of possible runtime custom attributes.
+        runtime-attributes = """
+          String? docker
+          String time = "00:05:00"
+          String mem = "5g"
+          Int? cpu=1
+          String? partition="compute"
+          """
+        
+        # Submit string when there is no "docker" runtime attribute.
+        submit = """
+          /opt/slurm/bin/sbatch \
+          -t \${time}
+          -p \${partition} \
+          \${"-c " + cpu} \
+          --mem=\${mem}
+          --wrap "/bin/bash \${script}" """
+          
+          # Submit string when there is a "docker" runtime attribute.
+          submit-docker = """
+          # Submit the script to SLURM
+          /opt/slurm/bin/sbatch \
+          -J \${job_name} \
+          -D \${cwd} \
+          -o \${cwd}/stdout \
+          -e \${cwd}/stderr \
+          -p \${partition} \
+          -t \${time}
+          \${"-c " + cpu} \
+          --mem=\${mem}
+          --wrap "docker run -v /shared:/shared -v /refdata:/refdata -v /dev/shm:/dev/shm -v /scratch:/scratch \${docker} \${job_shell} \${script}"
+          
+          """
+        root = "/cromwell"
+        
+        # Root directory where Cromwell writes job results in the container. This value
+        # can be used to specify where the execution folder is mounted in the container.
+        # it is used for the construction of the docker_cwd string in the submit-docker
+        # value above AND in the generation of the "script" file.
+        
+        dockerRoot = "/cromwell-executions"
+        
+        kill = "/opt/slurm/bin/scancel \${job_id}"
+        check-alive = "/opt/slurm/bin/squeue -j \${job_id}"
+        job-id-regex = "Submitted batch job (\\d+).*"
+        
+        filesystems
+        {
+          local
+          {
+            localization: [ "hard-link", "soft-link", "copy" ]
+            http {}
+            
+            caching {
+              duplication-strategy: [ "hard-link", "soft-link", "copy" ]
+              hashing-strategy: "file"
+            }
+          }
+        }
+      }
+    }
   }
 }
 database
