@@ -407,7 +407,7 @@ submit \
             
             caching {
               duplication-strategy: [ "hard-link", "soft-link", "copy" ]
-              hashing-strategy: "file"
+              hashing-strategy: "xxh64"
             }
           }
         }
