@@ -191,6 +191,10 @@ class Task:
                     filteredCall["stderrSubmitContents"] = _read_file(
                         f"{stderr_file}.submit"
                     )
+                if "stdout" in call:
+                    # include *contents* of stdout file, instead of file path
+                    stdout_file = call["stdout"]
+                    filteredCall["stdoutContents"] = _read_file(stdout_file)
             filteredCalls.append(filteredCall)
         return filteredCalls
 

@@ -64,19 +64,28 @@ class WDLStanzas:
 
         # time: "00:30:00"
         if key == "time":
-            time = value.split(":")
-            if len(time) != 3:
+            if value.isalpha():
+                # if the value starts with a letter, it is a variable name
+                return None
+            elif re.search(r".+:.+:.+", value):
+                time = value.split(":")
+                if len(time) != 3:
+                    sys.exit(
+                        'Error in task %s. Time is not in the correct format of "hh:mm:ss"'
+                        % task
+                    )
+                z = 0
+                for i in time:
+                    i = int(i)
+                    z = z + i
+                if z == 0:
+                    sys.exit(
+                        "Error in task %s. No time was specified (everything was zero). You had %s"
+                        % (task, value)
+                    )
+            else:
                 sys.exit(
-                    'Error in task %s. Time is not in the correct format of "hh:mm:ss"'
-                    % task
-                )
-            z = 0
-            for i in time:
-                i = int(i)
-                z = z + i
-            if z == 0:
-                sys.exit(
-                    "Error in task %s. No time was specified (everything was zero). You had %s"
+                    'Error in in the runtime section of task %s. "time" should have the format: "hh:mm:ss". You had %s'
                     % (task, value)
                 )
 
@@ -88,12 +97,16 @@ class WDLStanzas:
             )
 
         if key == "memory":
-            if re.search(r"[gG]", value):
+            if value[0].isalpha():
+                # if the value starts with a letter, it is a variable name
+                return None
+            elif re.search(r"[gG]", value):
                 value = value.upper()
                 return value
             else:
                 sys.exit(
-                    'Error in task %s. "memory" should have a "G" to specify gigabytes. You had %s'
+                    'Error in the runtime section of task %s. "memory" should have '
+                    'a "G" to specify gigabytes. You had %s'
                     % (task, value)
                 )
 
@@ -292,22 +305,28 @@ def timeParam(task_name, task_dict):
             % (task_name, "time")
         )
         return
+    elif task_dict["time"] is None:
+        # time is a variable name; nothing to do
+        return
 
-    hours = task_dict["time"].split(":")[0]
+    hours = int(task_dict["time"].split(":")[0])
+    mins = int(task_dict["time"].split(":")[1])
+    if (mins > 0):
+        hours += 1
 
     if "constraint" in task_dict:
         myconstraint = task_dict["constraint"].lower()
 
         # check skylake mem
         if myconstraint == "skylake":
-            if int(hours) > 168:
+            if hours > 168:
                 raise WdlRuntimeError(
                     "Task: %s timeParam. You are limited to 168hrs where constraint=%s"
                     % (task_name, myconstraint)
                 )
         # check knl mem
         elif myconstraint == "knl":
-            if int(hours) > 48:
+            if hours > 48:
                 raise WdlRuntimeError(
                     "Task: %s timeParam. You are limited to 48hrs where constraint=%s"
                     % (task_name, myconstraint)
@@ -315,14 +334,14 @@ def timeParam(task_name, task_dict):
         # check haswell or other mem
         else:
             # if constraint exists but is not skylake or knl, then it is haswell or jgi?, so limit 72hrs.
-            if int(hours) > 72:
+            if hours > 72:
                 raise WdlRuntimeError(
                     "Task: %s timeParam. You are limited to 72hrs where constraint=%s"
                     % (task_name, myconstraint)
                 )
     else:
         # if constraint is not included in the runtime, the default is haswell, so 72hrs limit
-        if int(hours) > 72:
+        if hours > 72:
             raise WdlRuntimeError(
                 'Task: %s timeParam. You are limited to 72hrs when constraint is the default value("%s")'
                 % (task_name, "haswell")
@@ -332,15 +351,17 @@ def timeParam(task_name, task_dict):
 def memoryParam(task_name, task_dict, compute_max_ram_gb):
     """Check that the user hasn't requested too much memory for the specified resource."""
 
-    # we've already verified that memory: is a string that include a "G" for gigabytes when the task_dict
-    # was created, so grab just the int.
     if "memory" not in task_dict:
         raise WdlRuntimeMemoryError(
             'Task: %s memoryParam. %s is a required parameter for runtime. The "memoryParam" test has been skipped.'  # noqa: E501,E261
             % (task_name, "memory")
         )
         return
+    elif task_dict["memory"] is None:
+        # memory is a variable name; nothing to do
+        return
 
+    # memory is a string that include a "G" for gigabytes, so grab just the int
     mem = int(re.sub("[gG]", "", task_dict["memory"]))
 
     if mem > compute_max_ram_gb:
@@ -395,7 +416,6 @@ def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float) -> None:
     # The parenthesis are removed.
     doc = WDLStanzas(wdl)
     doc.loadStanza("runtime")
-
     for task_name in doc.stanza_dict.keys():
         task_dict = doc.stanza_dict[task_name]
 

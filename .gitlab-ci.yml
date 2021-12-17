@@ -21,7 +21,7 @@ variables:
   GIT_STRATEGY: clone
 
   ## GLOBAL INSTALL VARIABLES:
-  JAWS_SITES: "CORI JGI TAHOMA"
+  JAWS_SITES: "CORI JGI TAHOMA AWS"
   JAWS_VERSION: "2.6.0"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
@@ -91,7 +91,7 @@ variables:
   CORI_CLUSTER_PARTITION: ""
   CORI_CLUSTER_ACCOUNT: "fungalp"
   CORI_CLUSTER_CONSTRAINT: "haswell"
-  CORI_MAX_RAM_GB: 2048
+  CORI_MAX_RAM_GB: 758
   CORI_LOAD_JAVA: ""
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_RMQ_HOST: "rmq.lbl.gov"
@@ -116,7 +116,7 @@ variables:
   JGI_CLUSTER_PARTITION: "jgi"
   JGI_CLUSTER_ACCOUNT: "jgi"
   JGI_CLUSTER_CONSTRAINT: ""
-  JGI_MAX_RAM_GB: 250
+  JGI_MAX_RAM_GB: 512
   JGI_LOAD_JAVA: "module load java"
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
   JGI_RMQ_HOST: "rmq.lbl.gov"
@@ -146,6 +146,31 @@ variables:
   TAHOMA_DATA_REPO_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
   TAHOMA_RMQ_PORT: 5672
+
+  AWS_CLIENT_INSTALL_BASEDIR: "/opt/jaws-install/jaws-client/"
+  AWS_INSTALL_BASEDIR: "/opt/jaws-install"
+  AWS_GLOBUS_EP: "f441d224-35cd-11ec-95e9-853490a236f9"
+  AWS_GLOBUS_HOST_PATH: "/tmp"
+  AWS_PYTHON: "python3"
+  AWS_LOAD_PYTHON: ""
+  AWS_JAWS_GROUP: "ec2-user"
+  AWS_JTM_GROUP: "ec2-user"
+  AWS_CLIENT_GROUP: "ec2-user"
+  AWS_JAWS_SCRATCH_BASEDIR: "/tmp"
+  AWS_JTM_SCRATCH_BASEDIR: "/tmp"
+  AWS_REF_DATA_DIR: "/tmp/refdata"
+  AWS_SUPERVISOR_HOST: "http://localhost"
+  AWS_CONTAINER_TYPE: "singularity"
+  AWS_CONTAINER_TMPDIR: "/tmp"
+  AWS_CLUSTER_QOS: ""
+  AWS_CLUSTER_PARTITION: ""
+  AWS_CLUSTER_ACCOUNT: "ec2-user"
+  AWS_CLUSTER_CONSTRAINT: ""
+  AWS_MAX_RAM_GB: 1500
+  AWS_LOAD_JAVA: ""
+  AWS_DATA_REPO_BASEDIR: "/tmp"
+  AWS_RMQ_HOST: "rmq.lbl.gov"
+  AWS_RMQ_PORT: 5672
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
@@ -297,6 +322,21 @@ deploy-jaws-central-prod:
     - ./test/integration/deploy-central
   only:
   - master
+
+deploy-jaws-aws-dev:
+  stage: deploy-jaws
+  tags:
+    - foo
+  variables:
+    DEPLOYMENT_NAME: "dev"
+    JAWS_SITE: "AWS"
+  environment:
+    name: "aws/dev"
+  script:
+    - ./test/integration/deploy-jaws
+  only:
+    - dev
+  allow_failure: true
 
 deploy-jaws-cori-dev:
   stage: deploy-jaws

@@ -28,6 +28,8 @@ def test_allRequiredParams():
     with pytest.raises(WdlRuntimeError):
         validate_wdl_runtime(NO_TIME_AND_MEMORY, 500)
 
+    validate_wdl_runtime(TIME_AND_MEMORY_ARE_VARIABLES, 500)
+
 
 def test_timeParam():
     """
@@ -461,5 +463,42 @@ task read_mapping_pairs{
       File outsamfile = filename_outsam
       File outresources = filename_resources
   }
+}
+"""
+
+TIME_AND_MEMORY_ARE_VARIABLES = """
+workflow jgi_meta {
+    String time = "00:30:00"
+    String memory = "5G"
+    String cpu = 5
+
+    call task1 {
+        input: time=time, memory=memory, cpu=cpu
+    }
+}
+task task1 {
+        String time
+        String memory
+        String cpu
+
+    runtime {
+                docker: "doejgi/jaws-debian:latest"
+        node: 1
+        nwpn: 1
+        poolname: "dashboard_test"
+        shared: 0
+        time: time
+        memory: memory
+        cpu: cpu
+    }
+
+     command {
+        echo "task one gobble-di-gook" > output.txt
+        sleep 50
+     }
+
+     output {
+        File out = "output.txt"
+     }
 }
 """
