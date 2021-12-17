@@ -205,7 +205,6 @@ def search_runs(user):
         delta_days=delta_days,
         site_id=site_id,
         result=result,
-        is_admin=is_admin,
         all_users=all_users,
     )
     runs = []
@@ -224,10 +223,7 @@ def _select_runs(user: str, **kwargs):
     :rtype: list
     """
     query = db.session.query(Run)
-    if ("all_users" in kwargs
-            and kwargs["all_users"] is True
-            and "is_admin" in kwargs
-            and kwargs["is_admin"] is True):
+    if "all_users" in kwargs and kwargs["all_users"] is True:
         pass
     else:
         query = query.filter(Run.user_id == user)
