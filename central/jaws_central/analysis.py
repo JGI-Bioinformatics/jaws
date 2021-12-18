@@ -208,9 +208,8 @@ def search_runs(user):
         all_users=all_users,
     )
     runs = []
-    verbose = _is_admin(user)
     for run in rows:
-        runs.append(_run_info(run, verbose))
+        runs.append(_run_info(run, is_admin))
     return runs, 200
 
 
