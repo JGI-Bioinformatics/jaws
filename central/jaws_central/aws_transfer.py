@@ -2,6 +2,7 @@ import logging
 import os
 from typing import Dict
 from jaws_central import config
+from glob import glob
 
 import threading
 
@@ -60,18 +61,17 @@ class DataTransferS3(DataTransferFactory):
         logger.debug(f"Creating DataTransferS3")
 
         self.host_path = self._config.get("AWS", "host_path")
-        self.s3_bucket = self._config.get("AWS", "s3_bucket")
-
         self.aws_access_key_id = self._config.get("AWS", "aws_access_key_id")
         self.aws_secret_access_key = self._config.get("AWS", "aws_secret_access_key")
 
         # Setup aws clinet based on site configuration
-        self._aws_client = boto3.client(
+        _aws_client = boto3.client(
             "s3",
             aws_access_key_id=self.aws_access_key_id,
             aws_secret_access_key=self.aws_secret_access_key,
         )
-
+        bucket_name = self._config.get("AWS", "s3_bucket")
+        self.s3_bucket = _aws_client.Bucket(bucket_name)
         self._transfer_threads = dict()
 
     def _add_transfer(self) -> str:
@@ -83,19 +83,65 @@ class DataTransferS3(DataTransferFactory):
         """
         return str(uuid.uuid4())
 
-    def submit_transfer(self, label, src_dir, dest_dir, manifest_file) -> Dict:
+    def submit_transfer(self, label, manifest_file) -> Dict:
+        """
+        Submit a transfer to S3
 
-        transfer_id = self._add_transfer()
-        logger.debug(f"S3 Transfer starting for {transfer_id} {label}")
+        :param label: label for the data transfer
+        :param host_paths: a dictionary that includes source host path and compute host path. This is used to modify
+        the paths and create virtual transfer paths.
+        :param manifest_file: manifest of all the files to be transferred
+        :return list: Return list of transfer ID's
+        """
 
-        return dict(transfer_id=transfer_id)
+        transfer_ids = []
 
-    def _submit_transfer(self, transfer_id, filename, src_dir, dest_dir, label):
+        # Get source and destinations from manifest
+        source_paths, dest_paths = self._get_transfer_paths(manifest_file)
+
+        # For each file call _submit_transfer
+        for src, dest in zip(source_paths, dest_paths):
+            transfer_id = self._add_transfer()
+            logger.debug(f"S3 Transfer starting for {transfer_id} {label}")
+            transfer_ids.append(transfer_id)
+            self._submit_transfer(transfer_id, src, dest, label=label)
+
+        return transfer_ids
+
+    def _get_transfer_paths(self, manifest_file):
+        """
+        Given a manifest of a list of:
+            source_path, dest_path, inode_type
+        return these modifed for transfering to S3
+
+        :param manifest_file: manifest of all the files to be transferred
+        """
+        source_paths = []
+        dest_paths = []
+        for line in manifest_file:
+            line = line.decode("UTF-8")
+            source_path, dest_path, inode_type = line.split("\t")
+            if inode_type == "D":
+                # If it's a directory get all the files and transfer them
+                files = glob(f"{source_path}/*")
+                for fil in files:
+                    source_paths.append(f"{source_path}/{fil}")
+                    dest_paths.append(f"{dest_path}/{fil}")
+            else:
+                source_paths.append(f"{source_path}/{fil}")
+                dest_paths.append(f"{dest_path}/{fil}")
+
+        return source_paths, dest_paths
+
+    def _submit_transfer(self, transfer_id, source_path, dest_path, label=None):
+        # Get the filename from the src_path
+        filename = os.path.basename(source_path)
+
         # Object name inside of S3 bucket
         # Can include a folder name inside bucket as dest_dir
-        object_name = f"{dest_dir}/{filename}"
+        object_name = f"{dest_path}/{filename}"
 
-        filename = os.path.basename(src_dir)
+        logger.debug(f"add transfer: {source_path} -> {object_name}")
         extra_args = {"Metadata": {"label": label}}
 
         # Create a thread to transfer data
@@ -103,7 +149,7 @@ class DataTransferS3(DataTransferFactory):
         #   Look into making a queue to start transfers
         self._transfer_threads[transfer_id] = threading.Thread(
             target=self._aws_client.upload_file,
-            args=(src_dir, self.s3_bucket, object_name),
+            args=(source_path, self.s3_bucket, object_name),
             kwargs={"ExtraArgs": extra_args},
         )
 
