@@ -58,7 +58,7 @@ class DataTransferS3(DataTransferFactory):
     def __init__(self) -> None:
         # Init the DataTransfer  Factory to get self._config
         super().__init__(self)
-        logger.debug(f"Creating DataTransferS3")
+        logger.debug("Creating DataTransferS3")
 
         self.host_path = self._config.get("AWS", "host_path")
         self.aws_access_key_id = self._config.get("AWS", "aws_access_key_id")
