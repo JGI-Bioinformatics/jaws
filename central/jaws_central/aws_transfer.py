@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import Dict
-import jaws_site.config
+from jaws_central import config
 
 import threading
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__package__)
 
 class DataTransferFactory:
     def __init__(self) -> None:
-        self._config = jaws_site.config.Configuration()
+        self._config = config.Configuration()
 
     def submit_transfer(self, label, src_site_id, dest_site_id, manifest_file) -> Dict:
         """
