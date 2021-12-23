@@ -358,7 +358,7 @@ submit \
           String time = "00:05:00"
           String mem = "5g"
           Int? cpu=1
-          String? partition="compute"
+          String? partition="jaws-$DEPLOYMENT_NAME"
           """
         
         # Submit string when there is no "docker" runtime attribute.
