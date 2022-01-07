@@ -9,7 +9,7 @@ SCRIPT=$7
 echo "Executing on $HOSTNAME" 1>&2
 
 # Start monitoring running, get monitor pid and sleep
-pagurus -u $USER -o $CWD/stats.csv &
+pagurus -u $USER -o $PWD/stats.csv &
 export PID=$!
 sleep 2
 

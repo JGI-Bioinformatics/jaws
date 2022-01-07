@@ -58,4 +58,18 @@ else
     ID=$1
 fi
 
+# Start monitoring running, get monitor pid and sleep
+pagurus -u $USER -o $PWD/stats.csv &
+export PID=$!
+sleep 2
+
+# Run container script and catch exit code
 shifter --image=$ID -V $2:$3 $4 $5
+export EXIT_CODE=$?
+
+# Kill pagurus monitoring and wait for it to write stats.csv
+kill $PID
+sleep 5
+
+# Return with container exit code
+exit $EXIT_CODE
