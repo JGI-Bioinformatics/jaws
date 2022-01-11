@@ -218,7 +218,7 @@ def task_status(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
     result = _request("GET", url)
-    result = _convert_all_table_fields_to_localtime(result, columns=[4])
+    _convert_all_table_fields_to_localtime(result, columns=[4])
     header = [
         "NAME",
         "CROMWELL_JOB_ID",
