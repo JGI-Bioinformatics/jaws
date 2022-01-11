@@ -12,51 +12,15 @@ import uuid
 import boto3
 from botocore.exceptions import ClientError
 
+from .data_transfer_protocol import DataTransferFactory, DataTransferException
+
 logger = logging.getLogger(__package__)
 
 
-class DataTransferFactory:
+class DataTransferS3:
     def __init__(self) -> None:
+        # Init the DataTransfer Factory to get self._config
         self._config = config.Configuration()
-
-    def submit_transfer(self, label, src_site_id, dest_site_id, manifest_file) -> Dict:
-        """
-        label : human readable label (e.g. "Upload Run 2552") -- optional
-        src_site_id (e.g. "cori", "jgi", "tahoma")
-        dest_site_id (e.g. "aws")
-        manifest_file (list of paths)
-        kwargs
-        "Save the transfer in the queue (database) and return transfer ID (pk)"
-        -> returns dictionary of { input : URI }
-        """
-        pass
-
-    def _add_transfer(self) -> str:
-        """Insert transfer into table with "queued" initial state"""
-        pass
-
-    def _submit_transfer(self, transfer_id):
-        """Submit the transfer and wait until done"""
-        pass
-
-    def complete_transfer(self):
-        """Called via callback (from REST server or via RPC from REST server),
-        update row to change state to "completed" or "failed"""
-        pass
-
-    def transfer_status(self, transfer_id):
-        """Query db and return current state"""
-        pass
-
-    def cancel(self):
-        """Cancel transfer (optional in first version)"""
-        pass
-
-
-class DataTransferS3(DataTransferFactory):
-    def __init__(self) -> None:
-        # Init the DataTransfer  Factory to get self._config
-        super().__init__()
         logger.debug("Creating DataTransferS3")
 
         # self.host_path = self._config.get("AWS", "host_path")
@@ -109,7 +73,7 @@ class DataTransferS3(DataTransferFactory):
             elif src_site_id == "aws":
                 self._submit_download(transfer_id, src, dest, label=label)
             else:
-                raise Exception("Not an AWS transfer")
+                raise DataTransferException("Not an AWS transfer")
 
         return transfer_ids
 
@@ -141,17 +105,17 @@ class DataTransferS3(DataTransferFactory):
         return source_paths, dest_paths
 
     def _submit_upload(self, transfer_id, source_path, dest_path, label=None):
+
+        # Get the filename from the src_path
+        filename = os.path.basename(source_path)
+
+        # Object name inside of S3 bucket
+        # Can include a folder name inside bucket as dest_dir
+        object_name = f"{dest_path}/{filename}"
+
+        logger.debug(f"add transfer: {source_path} -> {object_name}")
+        extra_args = {"Metadata": {"label": label}}
         try:
-            # Get the filename from the src_path
-            filename = os.path.basename(source_path)
-
-            # Object name inside of S3 bucket
-            # Can include a folder name inside bucket as dest_dir
-            object_name = f"{dest_path}/{filename}"
-
-            logger.debug(f"add transfer: {source_path} -> {object_name}")
-            extra_args = {"Metadata": {"label": label}}
-
             # Create a thread to transfer data
             #   Could run into issue with lots of threads transfering data
             #   Look into making a queue to start transfers
