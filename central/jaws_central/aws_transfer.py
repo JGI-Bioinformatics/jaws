@@ -128,22 +128,22 @@ class DataTransferS3:
             # Start thread running and return
             self._transfer_threads[transfer_id].start()
             return True
-        except Exception as e:
+        except RuntimeError as e:
             logger.error("Error uploading to aws", e)
             return False
 
     def _submit_download(self, transfer_id, source_path, dest_path, label=None):
+
+        # Get the filename from the src_path
+        filename = os.path.basename(source_path)
+
+        # Object name inside of S3 bucket
+        # Can include a folder name inside bucket as dest_dir
+        object_name = f"{dest_path}/{filename}"
+
+        logger.debug(f"add transfer: {source_path} -> {object_name}")
+        extra_args = {"Metadata": {"label": label}}
         try:
-            # Get the filename from the src_path
-            filename = os.path.basename(source_path)
-
-            # Object name inside of S3 bucket
-            # Can include a folder name inside bucket as dest_dir
-            object_name = f"{dest_path}/{filename}"
-
-            logger.debug(f"add transfer: {source_path} -> {object_name}")
-            extra_args = {"Metadata": {"label": label}}
-
             # Create a thread to transfer data
             #   Could run into issue with lots of threads transfering data
             #   Look into making a queue to start transfers
@@ -156,7 +156,7 @@ class DataTransferS3:
             # Start thread running and return
             self._transfer_threads[transfer_id].start()
             return True
-        except Exception as e:
+        except RuntimeError as e:
             logger.error("Error uploading to aws", e)
             return False
 
