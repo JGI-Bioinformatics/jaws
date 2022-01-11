@@ -232,6 +232,7 @@ class WdlFile:
         )
         self._subworkflows = None
         self._max_ram_gb = None
+        self.compute_max_ram_gb = None
 
     def _set_subworkflows(self, output):
         """
@@ -254,7 +255,7 @@ class WdlFile:
         subworkflows = set()
         for sub in out:
             match = re.search(command_line_regex, sub)
-            if sub not in filtered_out_lines and not match:
+            if sub not in filtered_out_lines and not match and not sub.startswith("http"):
                 sub_wdl = WdlFile(sub, self.submission_id)
                 sub_wdl.verify_wdl_has_no_backend_tags()
                 subworkflows.add(sub_wdl)
@@ -284,9 +285,9 @@ class WdlFile:
                 missing.add(sub)
             raise WdlError("Subworkflows not found: " + ", ".join(missing))
 
-    def validate(self):
+    def validate(self, compute_max_ram_gb=None):
         """
-        Validates the WDL file using Cromwell's womtool.
+        Validates the WDL file using Cromwell's womtool and runtime validator.
         Any syntax errors from WDL will be raised in a WdlError.
         This is a separate method and not done automatically by the constructor because subworkflows() returns
         WdlFile objects and we wish to avoid running womtool multiple times unnecessarily.
@@ -294,13 +295,18 @@ class WdlFile:
         """
         logger = logging.getLogger(__package__)
         logger.debug(f"Validating WDL, {self.file_location}")
+        if compute_max_ram_gb:
+            self.compute_max_ram_gb = compute_max_ram_gb
+
         stdout, stderr = womtool("validate", "-l", self.file_location)
         self._set_subworkflows(stdout)
         if stderr:
             self._check_missing_subworkflow_msg(stderr)
             raise WdlError(stderr)
         self.verify_wdl_has_no_backend_tags()
-        validate_wdl_runtime(self.contents)
+
+        if self.compute_max_ram_gb:
+            validate_wdl_runtime(self.contents, self.compute_max_ram_gb)
 
     @staticmethod
     def _get_wdl_name(file_location):
@@ -371,13 +377,16 @@ class WdlFile:
         :type wdl: str
         :return:
         """
+        # We are temporarily turning this check off to allow Parsl backend testing;
+        # once complete, delete the following line to disallow "backend" tags once again.
+        return
         with open(self.file_location, "r") as fh:
             for line in fh:
                 m = re.match(r"^\s*backend", line)
                 if m:
                     raise WdlError("ERROR: WDLs may not contain 'backend' tag")
 
-    def compress_wdls(self, staging_dir="."):
+    def prepare_wdls(self, staging_dir=".", user_zip=None):
         """
         Create a new staging WDL and compress any subworkflow files into a ZIP file.
 
@@ -388,28 +397,41 @@ class WdlFile:
         This method should be called on the main WDL object and shall include the subworkflows.
         If there are no subworkflows, the zipfile is not produced.
 
+        The user may supply a prepared zip file, which is copied instead of producing one.
+
         :param staging_dir: path where files will be compressed to. Default is current directory.
         :type staging_dir: str
+        :param user_zip: path to user-supplied subworkflows zip file (optional)
+        :type user_zip: str
         :return: paths to the main wdl and the compressed file (latter may be None)
         """
         if not os.path.isdir(staging_dir):
             os.makedirs(staging_dir)
 
-        # COPY MAIN WDL
+        # the main wdl must be copied to submission path
         staged_wdl_filename = join_path(staging_dir, f"{self.submission_id}.wdl")
         self.copy_to(staged_wdl_filename)
 
-        # IF NO SUBWORKFLOWS, DONE
-        if not len(self.subworkflows):
-            return staged_wdl_filename, None
-
-        # ZIP SUBWORKFLOWS
+        # any subworkflows must be zipped and also copied to submission path
         compressed_file_format = ".zip"
-        compression_dir = pathlib.Path(os.path.join(staging_dir, self.submission_id))
-        compression_dir.mkdir(parents=True, exist_ok=True)
         compressed_file = join_path(
             staging_dir, self.submission_id + compressed_file_format
         )
+        if not len(self.subworkflows):
+            return staged_wdl_filename, None
+        elif user_zip:
+            shutil.copy(user_zip, compressed_file)
+            os.chmod(compressed_file, 0o664)
+        else:
+            self.compress_subworkflows(compressed_file, staging_dir)
+        return staged_wdl_filename, compressed_file
+
+    def compress_subworkflows(self, compressed_file: str, staging_dir: str):
+        """
+        Generate ZIP file of required subworkflows.
+        """
+        compression_dir = pathlib.Path(os.path.join(staging_dir, self.submission_id))
+        compression_dir.mkdir(parents=True, exist_ok=True)
         main_wdl_dir = os.path.dirname(self.file_location)
 
         for subworkflow in self.subworkflows:
@@ -434,7 +456,6 @@ class WdlFile:
                 z.write(staged_sub_wdl, arcname=sub_filename)
 
         shutil.rmtree(compression_dir)
-        return staged_wdl_filename, compressed_file
 
     def __eq__(self, other):
         return self.file_location == other.file_location
@@ -535,10 +556,7 @@ class WorkflowInputs:
 
             # Files must be copied in to ensure they are readable by the jaws and jtm users.  The group
             # will be set correctly as a result of the gid sticky bit and acl rules on the inputs dir.
-            if quiet:
-                shutil.copyfile(original_path, dest_path)
-            else:
-                copy_with_progress_bar(original_path, dest_path)
+            copy_with_progress_bar(original_path, dest_path, quiet=quiet)
             os.chmod(dest_path, 0o0660)
 
         return copied_files

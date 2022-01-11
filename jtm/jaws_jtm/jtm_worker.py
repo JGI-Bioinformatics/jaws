@@ -138,34 +138,28 @@ class TaskTerminator(JtmAmqpstormBase):
                 for i in get_pid_tree(msg_unzipped["child_pid"]):
                     kill_cmd = "kill -9 %d" % i
                     logger.info(
-                        "Executing {} for taskID, {}".format(
-                            kill_cmd, msg_unzipped["task_id"]
-                        )
+                        f"Executing {kill_cmd} for taskID, {msg_unzipped['task_id']}"
                     )
                     _, _, ec = run_sh_command(kill_cmd, log=logger)
                     if ec == 0:
                         logger.info("Successfully terminate a user task process.")
                     else:
                         logger.warning(
-                            "User process not found. Ignore the termination command, %s"
-                            % (kill_cmd)
+                            f"User process not found. Ignore the termination command, {kill_cmd}"
                         )
 
                 # Kill the main child process
                 # Note: can consider to use "pkill -9 -P ppid" to kill the family
-                kill_cmd = "kill -9 %d" % msg_unzipped["child_pid"]
+                kill_cmd = f"kill -9 {msg_unzipped['child_pid']}"
                 logger.info(
-                    "Executing {} for taskID, {}".format(
-                        kill_cmd, msg_unzipped["task_id"]
-                    )
+                    f"Executing {kill_cmd} for taskID, {msg_unzipped['task_id']}"
                 )
                 _, _, ec = run_sh_command(kill_cmd, log=logger)
                 if ec == 0:
                     logger.info("Successfully terminate a user task process.")
                 else:
                     logger.warning(
-                        "User process not found. Failed to execute the command, %s"
-                        % (kill_cmd)
+                        f"User process not found. Failed to execute the command, {kill_cmd}"
                     )
             else:
                 logger.warning("No valid child process id to terminate.")
@@ -236,12 +230,12 @@ class TaskRunner(JtmAmqpstormBase):
         PIPE_TASK_ID_SEND.send(task_id)
 
         logger.info("Received a task, %r" % (msg_unzipped,))
-        logger.debug("Return queue = %s", message.reply_to)
+        logger.debug(f"Return queue = {message.reply_to}")
 
         result_dict = run_user_task(msg_unzipped)
 
         json_data = json.dumps(result_dict)
-        logger.debug("Reply msg with result: %s" % str(json_data))
+        logger.debug(f"Reply msg with result: {str(json_data)}")
         logger.debug(json_data)
         response = zdumps(json_data)
         logger.debug("Send ACK to the manager")
@@ -275,10 +269,9 @@ class TaskRunner(JtmAmqpstormBase):
                     response.publish(self.inner_result_queue_name)
         except Exception as detail:
             logger.exception(
-                "Exception: Failed to send a request to %s",
-                self.inner_result_queue_name,
+                f"Exception: Failed to send a request to {self.inner_result_queue_name}"
             )
-            logger.exception("Detail: %s", str(detail))
+            logger.exception(f"Detail: {detail}")
             raise OSError(2, "Failed to send a request to a worker")
 
         message.ack()
@@ -311,12 +304,12 @@ def run_user_task(msg_unzipped):
     return_msg["task_type"] = task_type
 
     if "stdout" in msg_unzipped:
-        user_task_cmd + " > %s" % (msg_unzipped["stdout"])
+        user_task_cmd + f" > {msg_unzipped['stdout']}"
     if "stderr" in msg_unzipped:
-        user_task_cmd + " 2>%s" % (msg_unzipped["stderr"])
+        user_task_cmd + f" 2>{msg_unzipped['stderr']}"
 
     # Run the task
-    logger.info("Running task ID %d...", task_id)
+    logger.info(f"Running task ID {task_id}...")
 
     p = None
     time_out_in_minute = 0
@@ -328,7 +321,7 @@ def run_user_task(msg_unzipped):
         limit = 0
         if WORKER_LIFE_LEFT_IN_MINUTE.value <= 0:
             while True:
-                logger.debug("worker life: %d", WORKER_LIFE_LEFT_IN_MINUTE.value)
+                logger.debug(f"worker life: {WORKER_LIFE_LEFT_IN_MINUTE.value}")
                 if WORKER_LIFE_LEFT_IN_MINUTE.value > 0:
                     break
                 if limit == w_int * 3:
@@ -345,12 +338,12 @@ def run_user_task(msg_unzipped):
         # terminate a task.
         tkill_time = CONFIG.configparser.getint("JTM", "task_kill_timeout_minute")
         assert tkill_time
-        logger.debug("worker life: %d", WORKER_LIFE_LEFT_IN_MINUTE.value)
+        logger.debug(f"worker life: {WORKER_LIFE_LEFT_IN_MINUTE.value}")
         time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - tkill_time)
-        logger.info("Timeout in minute: %d", time_out_in_minute)
+        logger.info(f"Timeout in minute: {time_out_in_minute}")
 
         if time_out_in_minute <= tkill_time:
-            logger.info("Not enough time to run the task, {}.".format(task_id))
+            logger.info(f"Not enough time to run the task, {task_id}.")
             return_msg["done_flag"] = str(done_f["failed with timeout"])
             return_msg["ret_msg"] = "User task timeout"
             return return_msg
@@ -366,22 +359,22 @@ def run_user_task(msg_unzipped):
             stderr=subprocess.STDOUT,
         )
     except MemoryError:
-        logger.exception("Exception: Out of memory, %s", user_task_cmd)
+        logger.exception(f"Exception: Out of memory, {user_task_cmd}")
         proc_return_code = done_f["failed with out-of-mem"]
     except FileNotFoundError:
-        logger.exception(
-            "Exception: Input file or command not found, %s", user_task_cmd
-        )
+        logger.exception(f"Exception: Input file or command not found, {user_task_cmd}")
         proc_return_code = 2
     except Exception as detail:
-        logger.exception("Exception: Failed to run user command, %s", user_task_cmd)
-        logger.exception("Detail: %s", str(detail))
+        logger.exception(
+            f"Exception: Failed to run user command, {user_task_cmd}",
+        )
+        logger.exception(f"Detail: {detail}")
     else:
         # Set USER_PROC_PROC_ID = forked child process id (this value will be sent
         # to send_hb_to_client function)
         USER_PROC_PROC_ID.value = p.pid
-        logger.debug("USER_PROC_PROC_ID.value %d" % USER_PROC_PROC_ID.value)
-        logger.debug("User command: %s", user_task_cmd)
+        logger.debug(f"USER_PROC_PROC_ID.value {USER_PROC_PROC_ID.value}")
+        logger.debug(f"User command: {user_task_cmd}")
 
     stdout_str = None
     time_out_in_second = None
@@ -432,18 +425,17 @@ def run_user_task(msg_unzipped):
             ]
             return_msg["ret_msg"] = "Input file or command not found."
         elif proc_return_code == 0:  # system code
-            logger.info("Task# %s completed!" % (str(task_id)))
+            logger.info(f"Task# {task_id} completed!")
             return_msg["done_flag"] = done_f["success"]
             return_msg["ret_msg"] = ""
         else:
             logger.critical(
-                "Failed to execute a task, %s. Non-zero exit code. stdout = %s."
-                % (user_task_cmd, stdout_str)
+                f"Failed to execute a task, {user_task_cmd}. Non-zero exit code. stdout = {stdout_str}."
             )
             return_msg["done_flag"] = done_f["failed to run user command"]
             return_msg["ret_msg"] = stdout_str
 
-    logger.info("Reply msg prepared with result: %s" % str(return_msg))
+    logger.info(f"Reply msg prepared with result: {return_msg}")
 
     return return_msg
 
@@ -515,7 +507,7 @@ def send_hb_to_client_proc(
             else:
                 proc_id_list_merged = root_pid_num
         except Exception as e:
-            logger.warning("get_pid_tree error: {}".format(e))
+            logger.warning(f"get_pid_tree error: {e}")
 
         # Collect vmem usage from process tree
         for pid in proc_id_list_merged:
@@ -548,7 +540,7 @@ def send_hb_to_client_proc(
             try:
                 cload = get_cpu_load(pid)
             except Exception as e:
-                logger.warning("get_cpu_load() exception: {}".format(e))
+                logger.warning(f"get_cpu_load() exception: {e}")
             else:
                 cpu_load_list.append(cload)
 
@@ -572,7 +564,7 @@ def send_hb_to_client_proc(
         try:
             perc_used_mem = "%.1f" % get_total_mem_usage_per_node()
         except Exception as e:
-            logger.warning("get_total_mem_usage_per_node() exception: {}".format(e))
+            logger.warning(f"get_total_mem_usage_per_node() exception: {e}")
             perc_used_mem = 0.0
 
         # Check if there is any task id in the ipc pipe
@@ -597,8 +589,7 @@ def send_hb_to_client_proc(
                 )
             except Exception as e:
                 logger.warning(
-                    "Something wrong in computing remaining wall clock time: %s",
-                    e,
+                    f"Something wrong in computing remaining wall clock time: {e}"
                 )
                 WORKER_LIFE_LEFT_IN_MINUTE.value = temp
 
@@ -785,7 +776,7 @@ def worker(
         log_dir_name = custom_log_dir
     log_dir_name = os.path.join(log_dir_name, "worker")
     make_dir(log_dir_name)
-    log_file_name = "%s/jtm_worker_%s.log" % (log_dir_name, datetime_str)
+    log_file_name = f"{log_dir_name}/jtm_worker_{datetime_str}.log"
 
     # Logger setting
     log_level = "info"
@@ -794,7 +785,7 @@ def worker(
 
     setup_custom_logger(log_level, log_dir_name, log_file_name, 1, 1)
 
-    logger.info("JTM Worker, version: {}".format(CONFIG.constants.VERSION))
+    logger.info(f"JTM Worker, version: {CONFIG.constants.VERSION}")
     hearbeat_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_send_interval")
     logger.info(
         "\n*****************\nDebug mode is %s\n*****************"
@@ -867,18 +858,18 @@ def worker(
         else:
             # Note: may need to use num_cpus_to_request outside LBL
             total_cpu_num = psutil.cpu_count()
-            logger.info("Total number of cores available: {}".format(total_cpu_num))
+            logger.info(f"Total number of cores available: {total_cpu_num}")
             split_cpu_num = int(total_cpu_num / num_workers_per_node)
             cpu_affinity_list = list(
                 range(
                     worker_number * split_cpu_num, ((worker_number + 1) * split_cpu_num)
                 )
             )
-            logger.info("Set CPU affinity to use: {}".format(cpu_affinity_list))
+            logger.info(f"Set CPU affinity to use: {cpu_affinity_list}")
             try:
                 proc.cpu_affinity(cpu_affinity_list)
             except Exception as e:
-                logger.exception("Failed to set the CPU usage limit: %s" % (e))
+                logger.exception(f"Failed to set the CPU usage limit: {e}")
                 sys.exit(1)
 
     # Set memory upper limit
@@ -929,7 +920,7 @@ def worker(
             )
         except Exception as e:
             logger.exception(
-                "Failed to compute the memory limit: %s", mem_per_node_to_request
+                f"Failed to compute the memory limit: {mem_per_node_to_request}"
             )
             logger.exception(e)
             sys.exit(1)
@@ -943,7 +934,7 @@ def worker(
             )
         except Exception as e:
             logger.exception(
-                "Failed to set the memory usage limit: %s", mem_per_node_to_request
+                f"Failed to set the memory usage limit: {mem_per_node_to_request}"
             )
             logger.exception(e)
             sys.exit(1)
@@ -1043,57 +1034,35 @@ def worker(
 
                 if cluster_name in ("cori"):
                     if num_nodes_to_request_param:
-                        batch_job_script_str += """
-#SBATCH -N %(num_nodes_to_request)d
-#SBATCH --mem=%(mem)s""" % dict(
-                            num_nodes_to_request=num_nodes_to_request,
-                            mem=mem_per_node_to_request,
-                        )
+                        batch_job_script_str += f"""
+#SBATCH -N {num_nodes_to_request}
+#SBATCH --mem={mem_per_node_to_request}"""
+
                         batch_job_misc_params += (
-                            " -N %(num_nodes_to_request)d -m %(mem)s"
-                            % dict(
-                                num_nodes_to_request=num_nodes_to_request,
-                                mem=mem_per_node_to_request,
-                            )
+                            f" -N {num_nodes_to_request} -m {mem_per_node_to_request} "
                         )
 
                         if num_cores_to_request_param:
-                            batch_job_script_str += """
-#SBATCH -c %(num_cores)d""" % dict(
-                                num_cores=num_cpus_to_request
-                            )
-                            batch_job_misc_params += " -c %(num_cores)d" % dict(
-                                num_cores=num_cpus_to_request
-                            )
+                            batch_job_script_str += f"""
+#SBATCH -c {num_cpus_to_request}"""
+                            batch_job_misc_params += f" -c {num_cpus_to_request} "
 
                     else:
-                        batch_job_script_str += """
-#SBATCH -c %(num_cores)d""" % dict(
-                            num_cores=num_cpus_to_request
-                        )
-                        batch_job_misc_params += " -c %(num_cores)d" % dict(
-                            num_cores=num_cpus_to_request
-                        )
+                        batch_job_script_str += f"""
+#SBATCH -c {num_cpus_to_request}"""
+                        batch_job_misc_params += f" -c {num_cpus_to_request} "
 
                         if mem_per_node_to_request:
-                            batch_job_script_str += """
-#SBATCH --mem=%(mem)s""" % dict(
-                                mem=mem_per_node_to_request
-                            )
-                            batch_job_misc_params += " -m %(mem)s " % dict(
-                                mem=mem_per_node_to_request
-                            )
+                            batch_job_script_str += f"""
+#SBATCH --mem={mem_per_node_to_request}"""
+                            batch_job_misc_params += f" -m {mem_per_node_to_request} "
                         else:
-                            batch_job_script_str += """
-#SBATCH --mem-per-cpu=%(mempercore)s""" % dict(
-                                mempercore=mem_per_cpu_to_request
-                            )
-                            batch_job_misc_params += " -mc %(mempercore)s" % dict(
-                                mempercore=mem_per_cpu_to_request
-                            )
+                            batch_job_script_str += f"""
+#SBATCH --mem-per-cpu={mem_per_cpu_to_request}"""
+                            batch_job_misc_params += f" -mc {mem_per_cpu_to_request} "
 
                         if worker_id_param:
-                            batch_job_misc_params += " -wi %(worker_id)s_${i}" % dict(
+                            batch_job_misc_params += " -wi %(worker_id)s_${i} " % dict(
                                 worker_id=UNIQ_WORKER_ID
                             )
 
@@ -1106,30 +1075,20 @@ def worker(
                         # Note: currently constraint in ["haswell" | "knl"]
                         if constraint == "haswell":
                             if qos_param:
-                                batch_job_script_str += """
-#SBATCH -q %(qosname)s""" % dict(
-                                    qosname=qos
-                                )
-                                batch_job_misc_params += " -q %(qosname)s" % dict(
-                                    qosname=qos
-                                )
-
+                                batch_job_script_str += f"""
+#SBATCH -q {qos}"""
+                                batch_job_misc_params += f" -q {qos} "
                             else:
-                                batch_job_script_str += """
-#SBATCH -q %(qosname)s""" % dict(
-                                    qosname=qos
-                                )
-
+                                batch_job_script_str += f"""
+#SBATCH -q {qos}"""
                             batch_job_script_str += """
 #SBATCH -C haswell"""
 
                             if charging_account == "m342":
-                                batch_job_misc_params += " -A %(sa)s" % dict(sa="m342")
+                                batch_job_misc_params += " -A m342 "
 
-                            batch_job_script_str += """
-#SBATCH -A %(charging_account)s""" % dict(
-                                charging_account=charging_account
-                            )
+                            batch_job_script_str += f"""
+#SBATCH -A {charging_account}"""
 
                         elif constraint == "knl":
                             # Note: Basic KNL setting = "-q regular -A m342 -C knl"
@@ -1145,17 +1104,11 @@ def worker(
                             #
                             # Note: for knl, charging_account can be set via runtime (like lanl, m3408)
                             #
-                            batch_job_script_str += """
+                            batch_job_script_str += f"""
 #SBATCH -C knl
-#SBATCH -A %(charging_account)s
-#SBATCH -q %(qosname)s""" % dict(
-                                charging_account=charging_account, qosname=qos
-                            )
-
-                            batch_job_misc_params += (
-                                " -A %(charging_account)s -q %(qosname)s"
-                                % dict(charging_account=charging_account, qosname=qos)
-                            )
+#SBATCH -A {charging_account}
+#SBATCH -q {qos}"""
+                            batch_job_misc_params += f" -A {charging_account} -q {qos} "
 
                         elif constraint == "skylake":
                             # Example usage with skylakte for Brian F.
@@ -1184,20 +1137,12 @@ def worker(
                             # -C skylake -A pkasmb
                             # -N 1 -t 12:00:00 -D $PWD --wrap=""
 
-                            batch_job_script_str += """
-#SBATCH -N %(num_nodes_to_request)d
+                            batch_job_script_str += f"""
+#SBATCH -N {num_nodes_to_request}
 #SBATCH -C skylake
-#SBATCH -A %(charging_account)s
-#SBATCH -q %(qosname)s""" % dict(
-                                num_nodes_to_request=num_nodes_to_request,
-                                charging_account=charging_account,
-                                qosname=qos,
-                            )
-
-                            batch_job_misc_params += (
-                                " -A %(charging_account)s -q %(qosname)s"
-                                % dict(charging_account=charging_account, qosname=qos)
-                            )
+#SBATCH -A {charging_account}
+#SBATCH -q {qos}"""
+                            batch_job_misc_params += f" -A {charging_account} -q {qos}"
 
                         excl_param = ""
                         if constraint != "skylake":
@@ -1205,7 +1150,7 @@ def worker(
 
                         tq_param = ""
                         if pool_name_param:
-                            tq_param = "-p " + pool_name_param
+                            tq_param = f"-p {pool_name_param}"
 
                         batch_job_script_str += """
 #SBATCH -t %(wall_time)s
@@ -1255,26 +1200,20 @@ wait
 
                 elif cluster_name in ("jgi"):
                     if worker_id_param:
-                        batch_job_misc_params += " -wi %(worker_id)s_${i}" % dict(
+                        batch_job_misc_params += " -wi %(worker_id)s_${i} " % dict(
                             worker_id=UNIQ_WORKER_ID
                         )
 
                     if num_cores_to_request_param:
-                        batch_job_script_str += """
-#SBATCH --cpus-per-task %(num_cores)d""" % dict(
-                            num_cores=num_cpus_to_request
-                        )
-                        batch_job_misc_params += " -c %(num_cores)d" % dict(
-                            num_cores=num_cpus_to_request
-                        )
+                        batch_job_script_str += f"""
+#SBATCH --cpus-per-task {num_cpus_to_request}"""
+                        batch_job_misc_params += f" -c {num_cpus_to_request}"
 
                     tp_param = ""
                     if pool_name_param:
-                        tp_param = "-p " + pool_name_param
+                        tp_param = f"-p {pool_name_param}"
 
-                    mnode_param = "#SBATCH --mem=%(mem)s" % dict(
-                        mem=mem_per_node_to_request
-                    )
+                    mnode_param = f"#SBATCH --mem={mem_per_node_to_request}"
 
                     batch_job_script_str += """
 #SBATCH --time=%(wall_time)s
@@ -1327,14 +1266,21 @@ wait
                         set_jtm_config_file="--config=%s" % worker_config,
                     )
 
-                elif cluster_name in ("pnnl", "pnl", "emsl", "tahoma"):
+                elif cluster_name in ("tahoma"):
                     if worker_id_param:
-                        batch_job_misc_params += " -wi %(worker_id)s_${i}" % dict(
+                        batch_job_misc_params += " -wi %(worker_id)s_${i} " % dict(
                             worker_id=UNIQ_WORKER_ID
                         )
+
                     tp_param = ""
                     if pool_name_param:
-                        tp_param = "-p " + pool_name_param
+                        tp_param = f"-p {pool_name_param}"
+
+                    if partition_param:
+                        batch_job_script_str += f"""
+#SBATCH --partition={partition_param}"""
+
+                    mnode_param = f"#SBATCH --mem={mem_per_node_to_request}"
 
                     batch_job_script_str += """
 #SBATCH --account=%(charging_account)s
@@ -1342,6 +1288,7 @@ wait
 #SBATCH --ntasks-per-node 16
 #SBATCH --time=%(wall_time)s
 #SBATCH --job-name=%(job_name)s
+%(mem_per_node_setting)s
 #SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
 #SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
 
@@ -1371,6 +1318,7 @@ wait
                         job_dir=job_script_dir_name,
                         env_activation_cmd=env_act,
                         num_workers_per_node=num_workers_per_node,
+                        mem_per_node_setting=mnode_param,
                         mem=mem_per_node_to_request,
                         emsl_cluster_name=cluster_name,
                         worker_type=THIS_WORKER_TYPE,
@@ -1390,7 +1338,7 @@ wait
                 print(batch_job_script_str)
                 sys.exit(0)
 
-            sbatch_cmd = "sbatch --parsable %s" % (batch_job_script_file)
+            sbatch_cmd = f"sbatch --parsable {batch_job_script_file}"
             if constraint == "skylake":
                 sbatch_cmd = "module load esslurm; " + sbatch_cmd
                 logger.debug(f"skylake sbatch: {sbatch_cmd}")
@@ -1401,7 +1349,7 @@ wait
             pass
 
     logger.info("Waiting for a request...")
-    logger.debug("Main pid = {}".format(PARENT_PROCESS_ID))
+    logger.debug(f"Main pid = {PARENT_PROCESS_ID}")
 
     pid_list = []
 
@@ -1419,7 +1367,7 @@ wait
         task_kill_proc_hdl.start()
         pid_list.append(task_kill_proc_hdl)
     except Exception as e:
-        logger.exception("recv_task_kill_request_proc: {}".format(e))
+        logger.exception(f"recv_task_kill_request_proc: {e}")
         proc_clean_exit(pid_list)
         raise
 
@@ -1442,7 +1390,7 @@ wait
         send_hb_to_client_proc_hdl.start()
         pid_list.append(send_hb_to_client_proc_hdl)
     except Exception as e:
-        logger.exception("send_hb_to_client_proc: {}".format(e))
+        logger.exception(f"send_hb_to_client_proc: {e}")
         proc_clean_exit(pid_list)
         raise
 
@@ -1460,7 +1408,7 @@ wait
         process_task_proc_hdl.start()
         pid_list.append(process_task_proc_hdl)
     except Exception as e:
-        logger.exception("process_task_proc: {}".format(e))
+        logger.exception(f"process_task_proc: {e}")
         proc_clean_exit(pid_list)
         raise
 

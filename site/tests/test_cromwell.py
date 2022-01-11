@@ -21,6 +21,9 @@ example_cromwell_run_id_3 = "dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15"
 # failed, missing infile
 example_cromwell_run_id_4 = "469bcdd6-d67f-455f-9475-438349f41631"
 
+# successful run with subs
+example_cromwell_run_id_5 = "5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0"
+
 # failed simple run
 example_cromwell_run_id_6 = "cbbbc75f-8920-495c-a290-0a1a5f0d1c20"
 
@@ -47,17 +50,17 @@ def test_get_metadata(requests_mock):
 def test_task(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
-        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata")
+        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
     )
-    metadata2 = crom.get_metadata(example_cromwell_run_id_2)
-    task = metadata2.tasks["main_workflow.hello_and_goodbye_1"]
-    assert task.get("executionStatus") == "Done"
+    metadata = crom.get_metadata(example_cromwell_run_id_2)
+    task = metadata.tasks["main_workflow.hello_and_goodbye_1"]
+    assert task.get("executionStatus", -1, 1) == "Done"
 
 
 def test_task_subworkflow(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
-        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata")
+        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
     )
     metadata2 = crom.get_metadata(example_cromwell_run_id_2)
     task = metadata2.tasks["main_workflow.hello_and_goodbye_1"]
@@ -73,13 +76,25 @@ def test_task_summary(requests_mock):
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     actual = metadata.task_summary()
     expected = [
-        ["main_workflow.goodbye", "12129"],
-        ["main_workflow.hello", "12130"],
-        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "12134"],
-        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "12133"],
-        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131"],
-        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132"],
+        ["main_workflow.goodbye", "12129", False, "00:10:00"],
+        ["main_workflow.hello", "12130", False, "00:10:00"],
+        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "12134", False, "00:10:00"],
+        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "12133", False, "00:10:00"],
+        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131", False, "00:10:00"],
+        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132", False, "00:10:00"],
     ]
+    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
+
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_5}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_5, "metadata"),
+    )
+    metadata = crom.get_metadata(example_cromwell_run_id_5)
+    actual = metadata.task_summary()
+    print(actual)  # DEBUG
+    expected = __load_example_output_from_file(
+        example_cromwell_run_id_5, "task-summary"
+    )
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
@@ -105,18 +120,17 @@ def test_metadata_tasks(requests_mock):
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     for task_name, task in metadata.tasks.items():
         assert len(task.data) > 0
-        index = len(task.data) - 1
-        call = task.data[index]
-        assert "attempt" in call
-        assert call["attempt"] == 1
-        assert "jobId" in call or "subWorkflowMetadata" in call
+        call = task.data[0]
+        shard_index = call["shardIndex"]
+        attempt = call["attempt"]
         if "subWorkflowMetadata" in call:
-            subworkflow = task.subworkflows[index]
+            subworkflow = task.subworkflows[shard_index][attempt]
             assert isinstance(subworkflow, cromwell.Metadata)
+        else:
+            assert "jobId" in call
 
 
 def test_errors(requests_mock, monkeypatch):
-
     def mock_read_file(path):
         return None
 
@@ -142,7 +156,9 @@ def test_errors(requests_mock, monkeypatch):
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_3}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_3, "metadata"),
     )
-    expected_errors_report_3 = __load_example_output_from_file(example_cromwell_run_id_3, "errors")
+    expected_errors_report_3 = __load_example_output_from_file(
+        example_cromwell_run_id_3, "errors"
+    )
     metadata_3 = crom.get_metadata(example_cromwell_run_id_3)
     actual_errors_report_3 = metadata_3.errors()
     assert (
@@ -158,7 +174,9 @@ def test_errors(requests_mock, monkeypatch):
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_4}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_4, "metadata"),
     )
-    expected_errors_report_4 = __load_example_output_from_file(example_cromwell_run_id_4, "errors")
+    expected_errors_report_4 = __load_example_output_from_file(
+        example_cromwell_run_id_4, "errors"
+    )
     metadata_4 = crom.get_metadata(example_cromwell_run_id_4)
     actual_errors_report_4 = metadata_4.errors()
     assert (
@@ -174,7 +192,9 @@ def test_errors(requests_mock, monkeypatch):
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_6}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_6, "metadata"),
     )
-    expected_errors_report_6 = __load_example_output_from_file(example_cromwell_run_id_6, "errors")
+    expected_errors_report_6 = __load_example_output_from_file(
+        example_cromwell_run_id_6, "errors"
+    )
     metadata_6 = crom.get_metadata(example_cromwell_run_id_6)
     actual_errors_report_6 = metadata_6.errors()
     assert (
@@ -190,7 +210,9 @@ def test_errors(requests_mock, monkeypatch):
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_7, "metadata"),
     )
-    expected_errors_report_7 = __load_example_output_from_file(example_cromwell_run_id_7, "errors")
+    expected_errors_report_7 = __load_example_output_from_file(
+        example_cromwell_run_id_7, "errors"
+    )
     metadata_7 = crom.get_metadata(example_cromwell_run_id_7)
     actual_errors_report_7 = metadata_7.errors()
     assert (

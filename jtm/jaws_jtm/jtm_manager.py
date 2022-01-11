@@ -109,7 +109,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
         :return:
         """
         msg_unzipped = json.loads(zloads(message.body))
-        logger.info("New result: {}".format(msg_unzipped))
+        logger.info(f"New result: {msg_unzipped}")
         assert "task_id" in msg_unzipped, "task ID not found from the result package"
         task_id = int(msg_unzipped["task_id"])
         assert task_id >= 0, "Found invalid task ID"
@@ -149,7 +149,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                 elif done_flag == -7:
                     task_status_int = self.task_status["lostconnection"]
                 else:
-                    logger.critical("Unknown return code {}".format(done_flag))
+                    logger.critical(f"Unknown return code {done_flag}")
                     raise OSError(2)
 
             db = DbSqlMysql(config=self.config)
@@ -340,9 +340,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                     db.commit()
                     db.close()
                     logger.debug(
-                        "status {}, worker id {}, taskid {}".format(
-                            task_status_int, a_worker_id_to_check, task_id
-                        )
+                        f"status {task_status_int}, worker id {a_worker_id_to_check}, taskid {task_id}"
                     )
                 except Exception as e:
                     logger.critical(e)
@@ -499,13 +497,13 @@ class JtmCommandRunner(JtmAmqpstormBase):
         :return:
         """
         msg_unzipped = json.loads(zloads(message.body))
-        logger.info("New task: {}".format(msg_unzipped))
+        logger.info(f"New task: {msg_unzipped}")
         task_type = msg_unzipped["task_type"]
 
         if task_type == "task":
             self.send_reply(message, "task", process_task_request(msg_unzipped))
         else:
-            logger.critical("Task type not found: {}".format(task_type))
+            logger.critical(f"Task type not found: {task_type}")
             self.send_reply(message, "Undefined task type", -1)
 
 
@@ -569,7 +567,7 @@ class JtmNonTaskCommandRunner(JtmAmqpstormBase):
         :return:
         """
         msg_unzipped = json.loads(zloads(message.body))
-        logger.info("New task: {}".format(msg_unzipped))
+        logger.info(f"New task: {msg_unzipped}")
         task_type = msg_unzipped["task_type"]
 
         # if task_type == "task":
@@ -595,7 +593,7 @@ class JtmNonTaskCommandRunner(JtmAmqpstormBase):
                 message, "remove_pool", process_remove_pool(msg_unzipped["task_pool"])
             )
         else:
-            logger.critical("Task type not found: {}".format(task_type))
+            logger.critical(f"Task type not found: {task_type}")
             self.send_reply(message, "Undefined task type", -1)
 
 
@@ -917,7 +915,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                             task_id,
                                             status_now,
                                             TASK_STATUS["running"],
-                                            reason=slurm_job_id,
+                                            reason="slurm_jid=%d" % (slurm_job_id),
                                         )
 
                                 db.execute(
@@ -1161,9 +1159,7 @@ def process_task_request(msg):
         db.close()
 
         slurm_jid_list = [i[0] for i in slurm_jid_list]
-        logger.debug(
-            "slurm job id for {}: {}".format(inner_task_request_queue, slurm_jid_list)
-        )
+        logger.debug(f"slurm job id for {inner_task_request_queue}: {slurm_jid_list}")
 
         for jid in slurm_jid_list:
             cmd = "squeue -j %d" % jid
@@ -1237,7 +1233,7 @@ def process_task_request(msg):
                 "-P %s" % pool_partition if pool_partition else "",
             )
 
-            logger.info("Executing sbatch {}".format(sbatch_cmd_str))
+            logger.info(f"Executing sbatch {sbatch_cmd_str}")
 
             # Run sbatch from jtm worker command
             so, _, ec = run_sh_command(sbatch_cmd_str, log=logger)
@@ -1423,7 +1419,7 @@ def process_task_request(msg):
                 corr_id = str(uuid.uuid4())
                 exch_name = CONFIG.configparser.get("JTM", "jtm_inner_main_exch")
                 reply_q = CONFIG.configparser.get("JTM", "jtm_inner_result_q")
-                logger.info("Send a task to {}".format(inner_task_request_queue))
+                logger.info(f"Send a task to {inner_task_request_queue}")
 
                 # Just a little gap b/w ready and queued
                 # time.sleep(CONFIG.configparser.getfloat("JTM", "task_stat_update_interval"))
@@ -1588,9 +1584,7 @@ def process_task_status(task_id):
 
     if ret is not None:
         logger.debug(
-            "Task status from runs table: status, cancelled = {}, "
-            "Task id = {}"
-            "".format(ret, task_id)
+            f"Task status from runs table: status, cancelled = {ret}, Task id = {task_id}"
         )
         if ret[1] == 1:  # cancellation requested
             task_status_int = TASK_STATUS["terminated"]
@@ -1601,7 +1595,7 @@ def process_task_status(task_id):
             # 3 if running
             task_status_int = ret[0]
     else:
-        logger.debug("Task ID not found: {}".format(task_id))
+        logger.debug(f"Task ID not found: {task_id}")
         task_status_int = TASK_STATUS["invalidtask"]  # invalid task id
 
     return task_status_int
@@ -1765,20 +1759,22 @@ def process_task_kill(task_id):
                 JTM_SQL["select_workerid_workers_by_tid"] % dict(task_id=task_id),
                 debug=False,
             )
-            logger.debug("worker list = {}".format(worker_id_list))
+            logger.debug(f"worker list = {worker_id_list}")
             child_proc_id = db.selectScalar(
                 JTM_SQL["select_chilpid_runs_by_tid"] % dict(task_id=task_id),
                 debug=False,
             )
-            logger.debug("child_proc_id = {}".format(child_proc_id))
+            logger.debug(f"child_proc_id = {child_proc_id}")
             db.close()
 
-            if child_proc_id is not None and child_proc_id > 0 and worker_id_list is not None:
+            if (
+                child_proc_id is not None
+                and child_proc_id > 0
+                and worker_id_list is not None
+            ):
                 # Send task id and process id to worker id
                 logger.info(
-                    "Send task kill command: {} {} {}".format(
-                        task_id, worker_id_list, child_proc_id
-                    )
+                    f"Send task kill command: {task_id} {worker_id_list} {child_proc_id}"
                 )
                 for wid in worker_id_list:
                     send_task_kill_request(task_id, wid, child_proc_id)
@@ -1924,7 +1920,7 @@ def process_remove_pool(task_pool_name):
         debug=False,
     )
     db.close()
-    logger.debug("zombie_slurm_job_id_list: {}".format(zombie_slurm_job_id_list))
+    logger.debug(f"zombie_slurm_job_id_list: {zombie_slurm_job_id_list}")
 
     if len(zombie_slurm_job_id_list) > 0:
         for jid in zombie_slurm_job_id_list:
@@ -1988,27 +1984,25 @@ def task_kill_proc():
                     JTM_SQL["select_workerid_workers_by_tid"] % dict(task_id=tid),
                     debug=False,
                 )
-                logger.debug("worker list = {}".format(worker_id_list))
+                logger.debug(f"worker list = {worker_id_list}")
                 child_proc_id = db.selectScalar(
                     JTM_SQL["select_chilpid_runs_by_tid"] % dict(task_id=tid),
                     debug=False,
                 )
-                logger.debug("child_proc_id = {}".format(child_proc_id))
+                logger.debug(f"child_proc_id = {child_proc_id}")
                 db.close()
 
                 assert worker_id_list is not None
 
                 # Send task id and process id to worker id
                 logger.info(
-                    "Send task kill command: {} {} {}".format(
-                        tid, worker_id_list, child_proc_id
-                    )
+                    f"Send task kill command: {tid} {worker_id_list} {child_proc_id}"
                 )
                 for wid in worker_id_list:
                     send_task_kill_request(tid, wid, child_proc_id)
 
                 # Update runs table with "terminated" status
-                logger.debug("Update runs table with terminated for tid {}".format(tid))
+                logger.debug(f"Update runs table with terminated for tid {tid}")
                 db = DbSqlMysql(config=CONFIG)
                 # Here we set cancelled to 2 so that the canceled tids won't be captured
                 # again by select_tids_runs_by_cancelled_and_wid2
@@ -2035,18 +2029,12 @@ def task_kill_proc():
                     )
 
             except IndexError as e:
-                logger.exception(
-                    "Failed to call send_task_kill_request(): {}".format(e)
-                )
+                logger.exception(f"Failed to call send_task_kill_request(): {e}")
                 logger.debug(
-                    "tid, worker_id_list, child_proc_id: {} {} {}".format(
-                        tid, worker_id_list, child_proc_id
-                    )
+                    f"tid, worker_id_list, child_proc_id: {tid} {worker_id_list} {child_proc_id}"
                 )
             except Exception as e:
-                logger.exception(
-                    "Something goes wrong in task_kill_proc(): {}".format(e)
-                )
+                logger.exception(f"Something goes wrong in task_kill_proc(): {e}")
                 raise
 
         time.sleep(CONFIG.configparser.getfloat("JTM", "task_kill_interval"))
@@ -2100,7 +2088,7 @@ def slurm_worker_cleanup_proc():
                     db.commit()
                     db.close()
                 else:
-                    logger.debug("Job id {} is alive.".format(j))
+                    logger.debug(f"Job id {j} is alive.")
 
                 time.sleep(1)
 
@@ -2146,7 +2134,7 @@ def kill_child_proc(ppid):
                 if sys.platform == "win32":
                     process.terminate()
                 else:
-                    os.system("kill -9 {0}".format(_pid))
+                    os.system(f"kill -9 {_pid}")
     except Exception as e:
         logger.exception(f"Failed to terminate a child process: {e}")
         raise
@@ -2225,7 +2213,7 @@ def manager(
 
     setup_custom_logger(log_level, log_dir_name, log_file_name, 1, 1)
 
-    logger.info("JTM Manager, version: {}".format(CONFIG.constants.VERSION))
+    logger.info(f"JTM Manager, version: {CONFIG.constants.VERSION}")
     logger.info(
         "\n*****************\nDebug mode is %s\n*****************"
         % ("ON" if DEBUG else "OFF")
@@ -2287,7 +2275,7 @@ def manager(
             f"recv_hb_from_worker_proc pid = {recv_hb_from_worker_proc_hdl.pid}"
         )
     except Exception as e:
-        logger.exception("recv_hb_from_worker_proc: {}".format(e))
+        logger.exception(f"recv_hb_from_worker_proc: {e}")
         proc_clean_exit(plist)
         raise
 
@@ -2298,7 +2286,7 @@ def manager(
         plist.append(task_kill_proc_hdl)
         logger.debug(f"task_kill_proc pid = {task_kill_proc_hdl.pid}")
     except Exception as e:
-        logger.exception("task_kill_proc: {}".format(e))
+        logger.exception(f"task_kill_proc: {e}")
         proc_clean_exit(plist)
         raise
 
@@ -2309,7 +2297,7 @@ def manager(
         plist.append(worker_cleanup_proc_hdl)
         logger.debug(f"worker_cleanup_proc pid = {worker_cleanup_proc_hdl.pid}")
     except Exception as e:
-        logger.exception("slurm_worker_cleanup_proc: {}".format(e))
+        logger.exception(f"slurm_worker_cleanup_proc: {e}")
         proc_clean_exit(plist)
         raise
 
@@ -2324,7 +2312,7 @@ def manager(
             f"recv_result_from_worker_proc pid = {recv_result_from_worker_proc_hdl.pid}"
         )
     except Exception as e:
-        logger.exception("WorkerResultReceiver: {}".format(e))
+        logger.exception(f"WorkerResultReceiver: {e}")
         proc_clean_exit(plist)
         raise
 
@@ -2339,7 +2327,7 @@ def manager(
             f"process_jtminterface_taskcommand_proc pid = {process_jtminterface_command_proc_hdl.pid}"
         )
     except Exception as e:
-        logger.exception("JtmCommandRunner: {}".format(e))
+        logger.exception(f"JtmCommandRunner: {e}")
         proc_clean_exit(plist)
         raise
 
@@ -2354,7 +2342,7 @@ def manager(
             f"process_jtminterface_nontaskcommand_proc pid = {process_jtminterface_nontaskcommand_proc_hdl.pid}"
         )
     except Exception as e:
-        logger.exception("JtmNonTaskCommandRunner: {}".format(e))
+        logger.exception(f"JtmNonTaskCommandRunner: {e}")
         proc_clean_exit(plist)
         raise
 

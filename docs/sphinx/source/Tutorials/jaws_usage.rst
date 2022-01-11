@@ -45,8 +45,8 @@ Run a command with --help to see it's options.
     * submit       Submit a run for execution at a JAWS-Site.
     * task-log     Get log of each Task's state transitions.
     * task-status  Show the current status of each Task.
+      task-summary Get summary of each Task's state durations.
       validate     Validate a WDL using Cromwell's WOMTool.
-    * wfcopy       Simplify Cromwell output.
 
 The commands with an asterik have additional options. Expand the below commands to see them.
 
@@ -182,24 +182,24 @@ The commands with an asterik have additional options. Expand the below commands 
 
     </details>
 
+.. raw:: html
+ 
     <details>
-    <summary style="color: #448ecf";>wfcopy</summary>
+    <summary style="color: #448ecf";>task-summary</summary>
 
 .. code-block:: text
 
-    Usage: jaws wfcopy [OPTIONS] SRC_DIR DEST_DIR
+    Usage: jaws task-summary [OPTIONS] RUN_ID
 
-    Simplify Cromwell output.
+    Get summary of each Task's state durations.
 
     Options:
-    --flatten   Flatten shard dirs
+    --fmt TEXT  the desired output format: [text|json]
     -h, --help  Show this message and exit.
 
 .. raw:: html
 
     </details>
-
-|
 
 Examples
 --------

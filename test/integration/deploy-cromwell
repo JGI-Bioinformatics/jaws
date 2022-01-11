@@ -68,10 +68,10 @@ chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
 # When creating the wrapper scripts the arguments to each script are as follows:
 # For SHIFTER
 # $1 image name
-# $2 shell name (eg - bash, csh)
-# $3 script name
-# $4 the location of the refdata directory location at the site
-# $5 the name of the directory $SITE_REF_DATA_DIR will be mounted on inside container
+# $2 the location of the refdata directory location at the site
+# $3 the name of the directory $SITE_REF_DATA_DIR will be mounted inside container
+# $4 shell name (eg - bash, csh)
+# $5 script name
 #
 # For SINGULARITY
 # $1 the location of the refdata directory location at the site
@@ -94,14 +94,31 @@ else
   echo \"Successfully pulled \${docker}!\"
 fi
 "
-  CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
-  CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
-  cat <<EOM > "$CONTAINER_WRAPPER"
-#!/usr/bin/env bash
-shifter --image=\$1 -V \$2:\$3 \$4 \$5
-EOM
-  chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
-  chmod 775 "$INSTALL_DIR/shifter_exec.sh"
+CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
+CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
+
+
+cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
+chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
+chmod 775 "$INSTALL_DIR/shifter_exec.sh"
+
+elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
+  CONTAINER_EXPORT="out=\$(docker pull \${docker})
+ret=\$?
+if [[ \$ret != 0 ]]; then
+  echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
+  exit \$ret
+else
+  echo \"Successfully pulled \${docker}!\"
+fi
+"
+CONTAINER_WRAPPER="$INSTALL_DIR/docker_exec.sh"
+CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script}"
+
+
+cp "$DIR/docker_exec.sh" $CONTAINER_WRAPPER
+chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/docker_exec.sh"
+chmod 775 "$INSTALL_DIR/docker_exec.sh"
 
 elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
   CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_TMPDIR
@@ -135,18 +152,8 @@ fi
 "
   CONTAINER_WRAPPER="$INSTALL_DIR/singularity_exec.sh"
   CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
-  cat <<EOM > "$CONTAINER_WRAPPER"
-#!/usr/bin/env bash
-REMOTE_REF=\$1
-LOCAL_REF=\$2
-CWD=\$3
-DOCKER_CWD=\$4
-IMAGE=\$5
-JOB_SHELL=\$6
-SCRIPT=\$7
-singularity exec --bind \$REMOTE_REF:\$LOCAL_REF --bind \$CWD:\$DOCKER_CWD \$IMAGE \$JOB_SHELL \$SCRIPT
-exit $?
-EOM
+
+  cp "$DIR/singularity_exec.sh" $CONTAINER_WRAPPER
   chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/singularity_exec.sh"
   chmod 775 "$INSTALL_DIR/singularity_exec.sh"
 fi
@@ -209,6 +216,35 @@ backend
         concurrent-job-limit = 0
       }
     }
+    PARSL
+    {
+      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+      config {
+        run-in-background = true
+        runetime-attributes = """
+        String? docker
+        String? docker_user
+        Int cpus = 2
+        Int memory_gb = 1
+        """
+
+        submit = """
+          python send.py -c \${cpus} -m \${memory_gb} -s \${site} -cmd \${script}
+        """
+
+        submit-docker = """
+          LOOKUP=$(shifterimg lookup \${docker})
+          if [[ ! $LOOKUP ]]; then
+            shifterimg pull \${docker}
+          fi
+
+          python send.py -c \${cpus} -m \${memory_gb} -s \${site} -cmd \${script}
+        """
+        job-id-regex = "Task ID: (\\\d+)"
+        kill = ""
+        check-alive = "python read_db.py -t \${job_id}"  
+      }
+    }
     JTM
     {
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
@@ -232,10 +268,10 @@ backend
 
         filesystems {
           local {
-            localization: [ "soft-link", "copy" ]
+            localization: [ "hard-link", "copy" ]
             caching {
-              duplication-strategy: [ "soft-link", "copy" ]
-              hashing-strategy: "path+modtime"
+              duplication-strategy: [ "hard-link", "copy" ]
+              hashing-strategy: "xxh64"
             }
             http {}
           }

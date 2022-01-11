@@ -52,8 +52,8 @@ def test_should_fail_status(submit_bad_task):
 def test_should_fail_task_status(submit_bad_task):
     """
     jaws task-status 17028
-    #TASK_NAME  ATTEMPT CROMWELL_JOB_ID STATUS_FROM     STATUS_TO       TIMESTAMP       REASON  STATUS_DETAIL
-    fq_count.count_seqs 1       77273   running failed  2021-02-23 22:45:04     failed with input file or command not found     The job has failed
+    #TASK_NAME  CROMWELL_JOB_ID STATUS       TIMESTAMP       REASON
+    fq_count.count_seqs 77273   failed  2021-02-23 22:45:04     failed with input file or command not found
     """ # noqa
     # test task-status
     id = str(submit_bad_task["run_id"])
@@ -65,12 +65,12 @@ def test_should_fail_task_status(submit_bad_task):
 def test_should_fail_task_log(submit_bad_task):
     """
     jaws task-log 17028
-    #TASK_NAME  ATTEMPT CROMWELL_JOB_ID STATUS_FROM     STATUS_TO       TIMESTAMP       REASON
-    fq_count.count_seqs 1       77273   created ready   2021-02-23 22:44:10
-    fq_count.count_seqs 1       77273   ready   queued  2021-02-23 22:44:10
-    fq_count.count_seqs 1       77273   queued  pending 2021-02-23 22:44:12
-    fq_count.count_seqs 1       77273   pending running 2021-02-23 22:45:03
-    fq_count.count_seqs 1       77273   running failed  2021-02-23 22:45:04     failed with input file or command not found
+    #TASK_NAME  CROMWELL_JOB_ID STATUS_FROM     STATUS_TO       TIMESTAMP       REASON
+    fq_count.count_seqs 77273   created ready   2021-02-23 22:44:10
+    fq_count.count_seqs 77273   ready   queued  2021-02-23 22:44:10
+    fq_count.count_seqs 77273   queued  pending 2021-02-23 22:44:12
+    fq_count.count_seqs 77273   pending running 2021-02-23 22:45:03
+    fq_count.count_seqs 77273   running failed  2021-02-23 22:45:04     failed with input file or command not found
     """ # noqa
 
     # test task-log

@@ -64,7 +64,7 @@ def test_wdl_validation(configuration, simple_wdl_example):
     wdl = jaws_client.workflow.WdlFile(
         os.path.join(simple_wdl_example, "align.wdl"), "1234"
     )
-    wdl.validate()
+    wdl.validate(1000)
 
 
 @pytest.mark.skipif(
@@ -74,7 +74,7 @@ def test_wdl_validation_with_no_subworkflows(configuration, no_subworkflows_pres
     import jaws_client.workflow
     wdl = jaws_client.workflow.WdlFile(no_subworkflows_present, "1234")
     with pytest.raises(jaws_client.workflow.WdlError):
-        wdl.validate()
+        wdl.validate(1000)
 
 
 @pytest.mark.skipif(
@@ -84,7 +84,7 @@ def test_bad_syntax_wdl(configuration, incorrect_wdl):
     import jaws_client.workflow
     wdl = jaws_client.workflow.WdlFile(incorrect_wdl, "1234")
     with pytest.raises(jaws_client.workflow.WdlError):
-        wdl.validate()
+        wdl.validate(1000)
 
 
 @pytest.mark.skipif(
@@ -171,11 +171,13 @@ def test_appropriate_staging_dir_for_all_wdls(configuration, subworkflows_exampl
         assert os.path.exists(new_path)
 
 
-def test_fail_invalid_backend(wdl_with_invalid_backend):
-    import jaws_client.workflow
-    wdl = jaws_client.workflow.WdlFile(wdl_with_invalid_backend, "1234")
-    with pytest.raises(jaws_client.workflow.WdlError) as e_info:
-        wdl.verify_wdl_has_no_backend_tags()
+#  We are temporarily deactivating this check
+#def test_fail_invalid_backend(wdl_with_invalid_backend):
+#    import jaws_client.workflow
+#    wdl = jaws_client.workflow.WdlFile(wdl_with_invalid_backend, "1234")
+#    with pytest.raises(jaws_client.workflow.WdlError) as e_info:
+#        wdl.verify_wdl_has_no_backend_tags()
+
 
 def test_move_input_files_to_destination(configuration, sample_workflow):
     inputs = os.path.join(sample_workflow, "workflow", "sample.json")
@@ -196,7 +198,7 @@ def test_zipping_up_of_subworkflow_files(configuration, subworkflows_example):
     staging_dir = os.path.join(basedir, "staging")
     import jaws_client.workflow
     wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "main.wdl"), "1234")
-    staged_wdl, zip_file = wdl.compress_wdls(staging_dir)
+    staged_wdl, zip_file = wdl.prepare_wdls(staging_dir)
     #assert os.path.exists(staged_wdl)
     #assert os.path.exists(zip_file)
 
@@ -208,7 +210,7 @@ def test_no_zip_file_in_manifest_if_no_subworkflows(simple_wdl_example):
 
     import jaws_client.workflow
     wdl = jaws_client.workflow.WdlFile(os.path.join(basedir, "align.wdl"), "1234")
-    staged_wdl, zip_file = wdl.compress_wdls(basedir)
+    staged_wdl, zip_file = wdl.prepare_wdls(basedir)
     manifest_file = jaws_client.workflow.Manifest(staging_dir, compute_dir)
     manifest_file.add(staged_wdl, zip_file)
 
@@ -251,7 +253,7 @@ def test_same_submission_id_in_workflow_files(subworkflows_example):
     import jaws_client.workflow
     wdl = jaws_client.workflow.WdlFile(wdl_file, submission_id)
     zip_path = os.path.join(subworkflows_example, "zip_directory")
-    zip_wdl, _ = wdl.compress_wdls(zip_path)
+    zip_wdl, _ = wdl.prepare_wdls(zip_path)
     assert os.path.basename(zip_wdl).strip(".wdl") == submission_id
 
 

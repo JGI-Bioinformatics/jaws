@@ -36,9 +36,15 @@ fi
 [ $RESULT -eq 0 ] || exit 1
 
 
-# stop services
-module unload python
+# check if SITE_LOAD_PYTHON is set. This implies
+# that modules are present on host though deployment
+# should be smarter about module detection.
+if [[ ! -z $SITE_LOAD_PYTHON ]]; then
+  module unload python 
+fi
 $SITE_LOAD_PYTHON
+
+# stop services
 test -f $SUPERVISOR_DIR/supervisord-jaws.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf stop jaws-$DEPLOYMENT_NAME:*
 test -f $SUPERVISOR_DIR/supervisord-jtm.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jtm.conf stop jaws-$DEPLOYMENT_NAME:*
 

@@ -161,7 +161,7 @@ def test_jaws_errors(submit_bad_task):
 
 def test_jaws_task_status(submit_fq_count_wdl):
     """Check that jaws task-status returns something like this:
-    fq_count.count_seqs 1   25177   running success 2021-01-13 12:37:45     The job completed successfully
+    fq_count.count_seqs 25177   success 2021-01-13 12:37:45     run_time=0:00:13.293
 
     It should have only one line.
     """
@@ -205,7 +205,7 @@ def test_jaws_log(submit_fq_count_wdl):
     # there should be 4 columns of output (but time is split into two so actually 5)
     assert len(a[1].split()) == 5
 
-    # there should be 9 output rows (including header)
+    # there should be 7 output rows (including header)
     assert len(a) == 9
 
 
@@ -224,7 +224,7 @@ def test_jaws_task_log(submit_fq_count_wdl):
     assert "fq_count.count_seqs" in a[1]
 
     # there should be 6 columns of output
-    assert len(a[1].split()) == 6
+    assert len(a[1].split()) == 7
 
     # there should be 6 output rows (including header)
     assert len(a) == 6
@@ -243,8 +243,9 @@ def test_jaws_get(submit_bad_task):
     (r, o, e) = util.run(cmd)
     assert r == 0
 
+    # These should exist: (script, script.submit, stderr.submit, stdout.submit)
     assert os.path.exists(
-        os.path.join(outdir, "call-count_seqs/execution/num_seqs.txt")
+        os.path.join(outdir, "call-count_seqs/execution/script")
     )
 
     try:

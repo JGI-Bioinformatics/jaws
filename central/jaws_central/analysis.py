@@ -205,13 +205,11 @@ def search_runs(user):
         delta_days=delta_days,
         site_id=site_id,
         result=result,
-        is_admin=is_admin,
         all_users=all_users,
     )
     runs = []
-    verbose = _is_admin(user)
     for run in rows:
-        runs.append(_run_info(run, verbose))
+        runs.append(_run_info(run, is_admin))
     return runs, 200
 
 
@@ -224,10 +222,7 @@ def _select_runs(user: str, **kwargs):
     :rtype: list
     """
     query = db.session.query(Run)
-    if ("all_users" in kwargs
-            and kwargs["all_users"] is True
-            and "is_admin" in kwargs
-            and kwargs["is_admin"] is True):
+    if "all_users" in kwargs and kwargs["all_users"] is True:
         pass
     else:
         query = query.filter(Run.user_id == user)
@@ -661,6 +656,23 @@ def task_log(user, run_id):
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
     return rpc_call(user, run_id, "get_task_log")
+
+
+def task_summary(user, run_id):
+    """
+    Retrieve summary of all task state transitions.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: The complete summary of all task state transitions.
+    :rtype: dict
+    """
+    logger.info(f"User {user}: Get task-log for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    return rpc_call(user, run_id, "get_task_summary")
 
 
 def run_metadata(user, run_id):

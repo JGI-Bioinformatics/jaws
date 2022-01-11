@@ -2,6 +2,8 @@
     "calls": {
         "fq_count.count_seqs": [
             {
+                "attempt": 1,
+                "shardIndex": -1,
                 "failures": [
                     {
                         "causedBy": [],
@@ -25,6 +27,7 @@
                     "shared": "0",
                     "time": "00:10:00"
                 },
+                "stdoutContents": null,
                 "stderrContents": null,
                 "stderrSubmitContents": null
             }

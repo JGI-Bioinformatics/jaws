@@ -150,9 +150,9 @@ def submit_skylake_250(request):
     """ This will submit to the large memory skylake machine on cori. The fixture will be skipped if run on anything other than cori.
 
     :param a request object for capturing CLI arguments
-    :type object 
-    :rtype dictionary 
-    :return output from jaws submit 
+    :type object
+    :rtype dictionary
+    :return output from jaws submit
     """
 
     # allow user to pass variables into the test functions via command line
@@ -216,7 +216,7 @@ def clone_tutorials_repo(request):
     """
     # clone the jaws-tutorial-examples repo
     cmd = (
-        "git clone "
+        "git clone -b master "
         "https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples.git"
     )
     util.run(cmd)
@@ -232,8 +232,8 @@ def pytest_addoption(parser):
     """ The parser.addoption function allows us to use flags to capture CLI arguments that can then be used in our test functions as if they were fixtures. 
 
     :param a request object for capturing CLI arguments
-    :type object 
-    :rtype none 
+    :type object
+    :rtype none
     :return none
     """
     parser.addoption(

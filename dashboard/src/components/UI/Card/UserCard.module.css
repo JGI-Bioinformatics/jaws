@@ -1,0 +1,17 @@
+CardRoot {
+  min-width: 275px
+}
+
+CardBullet {
+  display: inline-block;
+  margin: 0 2px;
+  transform: 'scale(0.8)'
+}
+
+CardTitle {
+  font-size: 14px;
+}
+
+CardPos {
+  margin-bottom: 12px
+}
