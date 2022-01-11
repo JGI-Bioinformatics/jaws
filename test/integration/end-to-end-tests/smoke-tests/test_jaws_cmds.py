@@ -206,7 +206,7 @@ def test_jaws_log(submit_fq_count_wdl):
     assert len(a[1].split()) == 5
 
     # there should be 7 output rows (including header)
-    assert len(a) == 7
+    assert len(a) == 9
 
 
 def test_jaws_task_log(submit_fq_count_wdl):
@@ -224,7 +224,7 @@ def test_jaws_task_log(submit_fq_count_wdl):
     assert "fq_count.count_seqs" in a[1]
 
     # there should be 6 columns of output
-    assert len(a[1].split()) == 6
+    assert len(a[1].split()) == 7
 
     # there should be 6 output rows (including header)
     assert len(a) == 6
