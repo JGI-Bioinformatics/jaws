@@ -205,8 +205,8 @@ def test_jaws_log(submit_fq_count_wdl):
     # there should be 4 columns of output (but time is split into two so actually 5)
     assert len(a[1].split()) == 5
 
-    # there should be 9 output rows (including header)
-    assert len(a) == 9
+    # there should be 7 output rows (including header)
+    assert len(a) == 7
 
 
 def test_jaws_task_log(submit_fq_count_wdl):
@@ -243,8 +243,9 @@ def test_jaws_get(submit_bad_task):
     (r, o, e) = util.run(cmd)
     assert r == 0
 
+    # These should exist: (script, script.submit, stderr.submit, stdout.submit)
     assert os.path.exists(
-        os.path.join(outdir, "call-count_seqs/execution/num_seqs.txt")
+        os.path.join(outdir, "call-count_seqs/execution/script")
     )
 
     try:
