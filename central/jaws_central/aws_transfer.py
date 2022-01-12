@@ -19,6 +19,7 @@ logger = logging.getLogger(__package__)
 
 class DataTransferS3:
     def __init__(self) -> None:
+        """DataTransferS3 is based on DataTransferProtocol"""
         # Init the DataTransfer Factory to get self._config
         self._config = config.Configuration()
         logger.debug("Creating DataTransferS3")
@@ -105,7 +106,7 @@ class DataTransferS3:
         return source_paths, dest_paths
 
     def _submit_upload(self, transfer_id, source_path, dest_path, label=None):
-
+        """PRIVATE, used to upload a file to aws"""
         # Get the filename from the src_path
         filename = os.path.basename(source_path)
 
@@ -133,7 +134,7 @@ class DataTransferS3:
             return False
 
     def _submit_download(self, transfer_id, source_path, dest_path, label=None):
-
+        """PRIVATE, used to download a file from aws"""
         # Get the filename from the src_path
         filename = os.path.basename(source_path)
 
