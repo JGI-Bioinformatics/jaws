@@ -1,6 +1,7 @@
+from ast import Str
 import logging
 import os
-from typing import Dict
+from typing import List, Tuple
 from jaws_central import config
 from glob import glob
 import threading
@@ -46,7 +47,7 @@ class DataTransfer:
         """
         return str(uuid.uuid4())
 
-    def submit_transfer(self, label: str, src_site_id: str, dest_site_id: str, manifest_file: list) -> Dict:
+    def submit_transfer(self, label: str, src_site_id: str, dest_site_id: str, manifest_file: list) -> List[str]:
         """
         Submit a transfer to S3
 
@@ -78,7 +79,7 @@ class DataTransfer:
 
         return transfer_ids
 
-    def _get_transfer_paths(self, manifest_file: list):
+    def _get_transfer_paths(self, manifest_file: list) -> Tuple[str, str]:
         """
         Given a manifest of a list of:
             source_path, dest_path, inode_type
@@ -105,7 +106,7 @@ class DataTransfer:
 
         return source_paths, dest_paths
 
-    def _submit_upload(self, transfer_id: str, source_path: str, dest_path: str, label: str = None):
+    def _submit_upload(self, transfer_id: str, source_path: str, dest_path: str, label: str = None) -> bool:
         """PRIVATE, used to upload a file to aws"""
         # Get the filename from the src_path
         filename = os.path.basename(source_path)
@@ -133,7 +134,7 @@ class DataTransfer:
             logger.error("Error uploading to aws", e)
             return False
 
-    def _submit_download(self, transfer_id: str, source_path: str, dest_path: str, label=None):
+    def _submit_download(self, transfer_id: str, source_path: str, dest_path: str, label=None) -> bool:
         """PRIVATE, used to download a file from aws"""
         # Get the filename from the src_path
         filename = os.path.basename(source_path)
@@ -161,7 +162,7 @@ class DataTransfer:
             logger.error("Error uploading to aws", e)
             return False
 
-    def transfer_status(self, transfer_id: str):
+    def transfer_status(self, transfer_id: str) -> str:
         """
         Return the status of the transfer
 
