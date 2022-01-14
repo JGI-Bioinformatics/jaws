@@ -1,35 +1,36 @@
-from typing import Protocol, Dict
+from typing import Protocol
+import importlib
 
 
-class DataTransferException(Exception):
+class DataTransferError(Exception):
     pass
 
 
 class DataTransferProtocol(Protocol):
-    def submit_transfer(self, label, src_site_id, dest_site_id, manifest_file) -> Dict:
-        """
-        Save the transfer in the queue (database) and return transfer ID (pk)
-        """
+    def submit_transfer(self):
+        ...
 
-    def _add_transfer(self) -> str:
-        """Insert transfer into table with "queued" initial state"""
-
-    def _submit_transfer(self, transfer_id):
-        """Submit the transfer and wait until done"""
-
-    def complete_transfer(self):
-        """
-        Called via callback (from REST server or via RPC from REST server),
-        update row to change state to 'completed' or 'failed'
-        """
-
-    def transfer_status(self, transfer_id):
-        """Query db and return current state"""
+    def transfer_status(self):
+        ...
 
     def cancel(self):
-        """Cancel transfer (optional in first version)"""
+        ...
 
 
 class DataTransferFactory:
-    def start_transfer(self, obj: DataTransferProtocol) -> None:
-        return obj.submit_transfer()
+    def __new__(cls, obj_type: str):
+        classname = "DataTransfer"
+        modulename = f"datatransfer_plugins.{obj_type}"
+
+        try:
+            imported_module = importlib.import_module(modulename)
+        except ImportError:
+            raise DataTransferError(f"No module {modulename} found")
+
+        try:
+            obj = getattr(imported_module, classname)
+        except AttributeError as err:
+            msg = f"{imported_module} cannot be found or has no class named {classname}: {err}"
+            raise DataTransferError(msg)
+
+        return obj()
