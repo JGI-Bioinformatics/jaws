@@ -12,12 +12,12 @@ import uuid
 import boto3
 from botocore.exceptions import ClientError
 
-from .data_transfer_protocol import DataTransferException
+from ..data_transfer_protocol import DataTransferError
 
 logger = logging.getLogger(__package__)
 
 
-class DataTransferS3:
+class DataTransfer:
     def __init__(self) -> None:
         """DataTransferS3 is based on DataTransferProtocol"""
         # Init the DataTransfer Factory to get self._config
@@ -74,7 +74,7 @@ class DataTransferS3:
             elif src_site_id == "aws":
                 self._submit_download(transfer_id, src, dest, label=label)
             else:
-                raise DataTransferException("Not an AWS transfer")
+                raise DataTransferError("Not an AWS transfer")
 
         return transfer_ids
 
