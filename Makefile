@@ -53,7 +53,7 @@ test-site: test-requirements
 .PHONY: test-central
 test-central: test-requirements
 	$Q flake8 central
-	$Q cd central && python -m pytest --cov=jaws_central --junitxml=central.xml tests/ && coverage xml
+	$Q cd central && python -m pytest --cov=jaws_central --cov=jaws_central/datatransfer_plugins --junitxml=central.xml tests/ && coverage xml
 
 .PHONY: test-client
 test-client: test-requirements
