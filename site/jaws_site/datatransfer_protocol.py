@@ -37,7 +37,7 @@ class DataTransferFactory:
 
 
 # Notes on implementing
-""" 
+"""
 from datatransfer_protocol import DataTransferProtocol, DataTransferError
 
 # Setup methods that use a DataTransferProtocol
@@ -60,6 +60,4 @@ def main():
 
     tansfer_ids = transfer_file(obj, label, src_site_id, dest_site_id, manifest_file)
     print(transfer_status(obj, tansfer_ids[0]))
-    
-
 """
