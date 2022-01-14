@@ -46,7 +46,7 @@ class DataTransfer:
         """
         return str(uuid.uuid4())
 
-    def submit_transfer(self, label, src_site_id, dest_site_id, manifest_file) -> Dict:
+    def submit_transfer(self, label: str, src_site_id: str, dest_site_id: str, manifest_file: list) -> Dict:
         """
         Submit a transfer to S3
 
@@ -78,7 +78,7 @@ class DataTransfer:
 
         return transfer_ids
 
-    def _get_transfer_paths(self, manifest_file):
+    def _get_transfer_paths(self, manifest_file: list):
         """
         Given a manifest of a list of:
             source_path, dest_path, inode_type
@@ -105,7 +105,7 @@ class DataTransfer:
 
         return source_paths, dest_paths
 
-    def _submit_upload(self, transfer_id, source_path, dest_path, label=None):
+    def _submit_upload(self, transfer_id: str, source_path: str, dest_path: str, label: str = None):
         """PRIVATE, used to upload a file to aws"""
         # Get the filename from the src_path
         filename = os.path.basename(source_path)
@@ -133,7 +133,7 @@ class DataTransfer:
             logger.error("Error uploading to aws", e)
             return False
 
-    def _submit_download(self, transfer_id, source_path, dest_path, label=None):
+    def _submit_download(self, transfer_id: str, source_path: str, dest_path: str, label=None):
         """PRIVATE, used to download a file from aws"""
         # Get the filename from the src_path
         filename = os.path.basename(source_path)
@@ -161,7 +161,7 @@ class DataTransfer:
             logger.error("Error uploading to aws", e)
             return False
 
-    def transfer_status(self, transfer_id):
+    def transfer_status(self, transfer_id: str):
         """
         Return the status of the transfer
 

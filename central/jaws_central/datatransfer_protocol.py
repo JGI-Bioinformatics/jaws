@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Callable, Protocol
 import importlib
 
 
@@ -18,7 +18,7 @@ class DataTransferProtocol(Protocol):
 
 
 class DataTransferFactory:
-    def __new__(cls, obj_type: str):
+    def __new__(cls, obj_type: str) -> Callable:
         classname = "DataTransfer"
         modulename = f"datatransfer_plugins.{obj_type}"
 
