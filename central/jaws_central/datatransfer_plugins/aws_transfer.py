@@ -12,7 +12,7 @@ import uuid
 import boto3
 from botocore.exceptions import ClientError
 
-from ..data_transfer_protocol import DataTransferError
+from ..datatransfer_protocol import DataTransferError
 
 logger = logging.getLogger(__package__)
 
