@@ -85,7 +85,7 @@ chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
 if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
-  CONTAINER_EXPORT="out=\$(shifterimg lookup \${docker} || shifterimg pull \${docker})
+  CONTAINER_EXPORT="IMG=\$($INSTALL_DIR/shifter_pull.sh \${docker})
 ret=\$?
 if [[ \$ret != 0 || \$(echo \$out | grep \"FAILURE\") ]]; then
   echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
@@ -95,7 +95,7 @@ else
 fi
 "
 CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
-CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
+CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${IMG} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
 
 
 cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
