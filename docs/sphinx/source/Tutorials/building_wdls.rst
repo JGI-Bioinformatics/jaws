@@ -134,4 +134,4 @@ Re-use Ready Made Tasks
 -----------------------
 Check if there are any ready made tasks (as subworkflows) that you can use in your WDL. 
 
-`WLD-tasks <https://gitlab.com/jgi-doe/wdl-tasks.git>`_
+`WDL-tasks <https://gitlab.com/jgi-doe/wdl-tasks.git>`_
