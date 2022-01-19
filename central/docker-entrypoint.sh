@@ -11,8 +11,8 @@ port = $JAWS_CENTRAL_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JAWS_LOCAL
 globus_endpoint = /
-globus_basepath = /
-uploads_subdir = /uploads
+globus_host_path = /
+uploads_dir = /uploads
 max_ram_gb = 100G
 "
 cat << EOM > /etc/jaws-central.conf
@@ -38,6 +38,7 @@ num_threads = 5
 max_retries = 3
 [GLOBUS]
 client_id = $JAWS_GLOBUS_CLIENT_ID
+client_secret = $JAWS_CLIENT_SECRET
 [HTTP]
 auth_port = $JAWS_AUTH_PORT
 rest_port = $JAWS_REST_PORT

@@ -225,6 +225,21 @@ The entrypoint scripts are meant to create a configuration file and populate the
 from environment variables. Each container uses supervisord to manage the multiple processes
 needed for each application.  
 
+### Bringing up services via docker-compose.yml
+In the root of the directory there exists a `docker-compose.yml` file that defines
+some of the environment variables needed to bring up the services. To bring up all the services,
+just run `docker-compose up -d` which will run the services in the background instead of the foreground. 
+If you want to run a specific service then just run `docker-compose up -d [service-name]`. The service name
+is defined in the `docker-compose.yml` file. 
+
+### Networking
+In order to make sure the containers all connect with each other properly, you'll need to first
+create the docker network using the `docker network` command. In this example, the network created is
+called `jaws-tier` and it is a bridge driver meaning that it'll bridge containers in their own network. 
+This makes it so you can refer to containers by simply their service name (eg jaws_rabbitmq). This helps when
+you want to connect to the database or rabbitmq servers without having to know IP addresses. The command to run is
+`docker network create jaws-tier`. 
+
 ## Contributing
 Developers
 * Edward Kirton

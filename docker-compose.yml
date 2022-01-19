@@ -1,37 +1,38 @@
 version: '3.1'
 
 networks:
-  central-tier:
+  jaws-tier:
     driver: bridge
 services:
   central:
-    image: jaws_central:2.0
+    image: jaws_central:2.5.0
     environment:
-      VERSION: 2.0
+      VERSION: 2.5.0
       DEPLOYMENT_NAME: dev
       JAWS_DOCS_URL: https://jaws-docs.readthedocs.io/en/latest/
-      JAWS_CENTRAL_DB_HOST: central_db
+      JAWS_CENTRAL_DB_HOST: jaws_db
       JAWS_CENTRAL_DB_PORT: 3306
       JAWS_CENTRAL_DB_PW: jawstest
       JAWS_CENTRAL_RMQ_PW: jawstest
-      JAWS_CENTRAL_RMQ_HOST: central_rabbitmq
+      JAWS_CENTRAL_RMQ_HOST: jaws_rabbitmq
       JAWS_CENTRAL_RMQ_PORT: 5672
       JAWS_GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
       JAWS_AUTH_PORT: 3000
+      JAWS_CLIENT_SECRET: TlLwcYHZF2c4b/KXPAk+R/PMwzmaF7exyAut/GQbNA=
       JAWS_REST_PORT: 5000
     depends_on:
-      - central_db
-      - central_rabbitmq
+      - jaws_db
+      - jaws_rabbitmq
     networks:
-      - central-tier
+      - jaws-tier
     expose:
       - 3000
       - 5000
     ports:
       - "5000:5000"
       - "3000:3000"
-  central_db:
-    image: jaws_mysql:2.0
+  jaws_db:
+    image: jaws_mysql:2.5.0
     restart: always
     environment:
       MYSQL_USER: jaws
@@ -41,12 +42,12 @@ services:
     expose:
       - 3306
     networks:
-      - central-tier
+      - jaws-tier
     ports:
       - "3306:3306"
     volumes:
       - ./mysql/init:/docker-entrypoint-initdb.d/
-  central_rabbitmq:
+  jaws_rabbitmq:
     image: rabbitmq:3-management
     environment:
       RABBITMQ_DEFAULT_VHOST: jaws_dev
@@ -57,104 +58,9 @@ services:
       - 5672
       - 5673
     networks:
-      - central-tier
+      - jaws-tier
     ports:
       - "15672:15672"
       - "5672:5672"
       - "5673:5673"
-  site_db:
-    image: jaws_mysql:2.0
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_USER: jaws
-      MYSQL_PASSWORD: jawstest
-    volumes:
-      - ./mysql/init:/docker-entrypoint-initdb.d/
-    expose:
-      - 3306
-    networks:
-      - central-tier
-    ports:
-      - "3307:3306"
-  site_rabbitmq:
-    image: jaws_rabbitmq:2.0
-    expose:
-      - 15672
-      - 5672
-      - 5673
-    networks:
-      - central-tier
-    ports:
-      - "15673:15672"
-      - "5675:5672"
-      - "5674:5673"
-  site:
-    image: jaws_site:2.0
-    environment:
-      DB_HOST: site_db
-      DB_PORT: 3306
-      DB_PW: jawstest
-      JAWS_SITE: LOCAL
-      RMQ_PW: jawstest
-      RMQ_HOST: site_rabbitmq
-      RMQ_PORT: 5672
-      DEPLOYMENT_NAME: dev
-      JAWS_CENTRAL_RMQ_PW: jawstest
-      JAWS_CENTRAL_RMQ_HOST: central_rabbitmq
-      JAWS_CENTRAL_RMQ_PORT: 5672
-      JAWS_GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-      GLOBUS_EP: /
-      GLOBUS_ROOT_DIR: /
-      GLOBUS_DEFAULT_DIR: /
-      UPLOADS_SUBDIR: /uploads
-      DOWNLOADS_SUBDIR: /downloads
-      CROMWELL_PORT: 50001
-    depends_on:
-      - site_rabbitmq
-      - site_db
-      - central_rabbitmq
-    networks:
-      - central-tier
-  cromwell:
-    image: jaws_cromwell:2.0
-    environment:
-      CROMWELL_PORT: 8001
-      CROMWELL_WORKFLOW_LOGS_DIR: /tmp/
-      SITE_DB_HOST: site_db
-      SITE_DB_PORT: 3306
-      SITE_DB_PW: jawstest
-      JAWS_SITE: LOCAL
-      DEPLOYMENT_NAME: dev
-      JAVA_OPTS: -Xmx5g -Dconfig.file=/etc/cromwell.conf -Djava.io.tmpdir=/tmp/     
-      CROMWELL_EXECUTIONS_DIR: /tmp/cromwell-executions
-    depends_on:
-      - site_db
-    networks:
-      - central-tier
-    ports:
-      - "8001:8001"
-  jtm:
-    image: jaws_jtm:2.0
-    hostname: ernie
-    tty: true
-    environment:
-      JAWS_SITE: LOCAL
-      DEPLOYMENT_NAME: dev
-      SITE_JTM_SCRATCH_DIR: /tmp/scratch
-      SITE_RMQ_PW: jawstest
-      SITE_RMQ_HOST: site_rabbitmq
-      SITE_RMQ_PORT: 5672
-      SITE_DB_HOST: site_db
-      SITE_DB_PORT: 3306
-      SITE_DB_PW: jawstest
-      SITE_CLUSTER_PARTITION: ""
-      SITE_CLUSTER_QOS: ""
-      SITE_CLUSTER_CONSTRAINT: ""
-      SITE_JTM_WORKER_INSTALL_DIR: /jtm/jaws_jtm_worker
-    depends_on:
-      - site_db
-      - site_rabbitmq
-    networks:
-      - central-tier
 

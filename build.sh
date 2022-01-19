@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 build_image() {
     if [ -z $1 ] && [ -z $2 ];
     then
@@ -10,16 +12,15 @@ build_image() {
     service_name=$1
     version=$2
 
-    if [ $service_name != 'cromwell' ] && [ $service_name != 'rabbitmq' ]; then
-        cp -R rpc/ $service_name/rpc/
-    fi
     if [ $service_name = 'cromwell' ]; then
         cd 'cromwell_utilities'
     else
         cd $service_name
     fi
-    docker image build -t jaws_$service_name:$version .
-    rm -rf rpc/
+
+    git clone https://code.jgi.doe.gov/advanced-analysis/jaws
+    docker build --no-cache -t  jaws_$service_name:$version --build-arg JAWS_VERSION=${version} .
+    rm -rf jaws/
 }
 
 build_image $1 $2
