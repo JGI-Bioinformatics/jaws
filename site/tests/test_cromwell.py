@@ -30,6 +30,9 @@ example_cromwell_run_id_6 = "cbbbc75f-8920-495c-a290-0a1a5f0d1c20"
 # failed run, with subs (sub's docker container not found)
 example_cromwell_run_id_7 = "dcb85c55-bf74-4f63-bce3-fe61f7b84ebb"
 
+# successful run, with outputs list
+example_cromwell_run_id_8 = "5a2cbafe-56ed-42aa-955d-fef8cb5014bb"
+
 
 def __load_example_output_from_file(cromwell_run_id, output_type):
     with open(f"{tests_dir}/{cromwell_run_id}.{output_type}.json", "r") as fh:
@@ -226,6 +229,7 @@ def test_errors(requests_mock, monkeypatch):
 
 
 def test_get_outputs(requests_mock):
+    # test 1 : outputs scalar
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
@@ -237,4 +241,26 @@ def test_get_outputs(requests_mock):
     actual_outputs_1 = ex_1.outputs(relpath=True)
     assert (
         bool(DeepDiff(actual_outputs_1, expected_outputs_1, ignore_order=True)) is False
+    )
+
+    # test 2 : outputs list
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_8}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_8, "metadata"),
+    )
+    expected_outputs_8 = {
+        "create_lastdb.dbFiles": [
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.bck",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.des",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.prj",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis"
+        ]
+    }
+    ex_8 = crom.get_metadata(example_cromwell_run_id_8)
+    actual_outputs_8 = ex_8.outputs(relpath=True)
+    assert (
+        bool(DeepDiff(actual_outputs_8, expected_outputs_8, ignore_order=True)) is False
     )
