@@ -85,77 +85,80 @@ chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
 if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
-  CONTAINER_EXPORT="IMG=\$($INSTALL_DIR/shifter_pull.sh \${docker})
-ret=\$?
-if [[ \$ret != 0 || \$(echo \$out | grep \"FAILURE\") ]]; then
-  echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
-  exit \$ret
-else
-  echo \"Successfully pulled \${docker}!\"
-fi
-"
-CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
-CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${IMG} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
-
-
-cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
-chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
-chmod 775 "$INSTALL_DIR/shifter_exec.sh"
+    CONTAINER_EXPORT="IMG_WITH_VERSION_TAG=\$($INSTALL_DIR/shifter_pull.sh \${docker})
+    ret=\$?
+    if [[ \$ret != 0 || \$(echo \$out | grep \"FAILURE\") ]]; then
+      echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
+      exit \$ret
+    else
+      echo \"Successfully pulled \${docker}!\"
+    fi
+    "
+    CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \$IMG_WITH_VERSION_TAG $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
+    
+    cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
+    chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
+    chmod 775 "$INSTALL_DIR/shifter_exec.sh"
+    
+    cp "$DIR/shifter_pull.sh" $INSTALL_DIR/
+    chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_pull.sh"
+    chmod 775 "$INSTALL_DIR/shifter_pull.sh"
 
 elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
-  CONTAINER_EXPORT="out=\$(docker pull \${docker})
-ret=\$?
-if [[ \$ret != 0 ]]; then
-  echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
-  exit \$ret
-else
-  echo \"Successfully pulled \${docker}!\"
-fi
-"
-CONTAINER_WRAPPER="$INSTALL_DIR/docker_exec.sh"
-CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script}"
-
-
-cp "$DIR/docker_exec.sh" $CONTAINER_WRAPPER
-chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/docker_exec.sh"
-chmod 775 "$INSTALL_DIR/docker_exec.sh"
+    CONTAINER_EXPORT="out=\$(docker pull \${docker})
+    ret=\$?
+    if [[ \$ret != 0 ]]; then
+      echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
+      exit \$ret
+    else
+      echo \"Successfully pulled \${docker}!\"
+    fi
+    "
+    CONTAINER_WRAPPER="$INSTALL_DIR/docker_exec.sh"
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script}"
+    
+    
+    cp "$DIR/docker_exec.sh" $CONTAINER_WRAPPER
+    chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/docker_exec.sh"
+    chmod 775 "$INSTALL_DIR/docker_exec.sh"
 
 elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
-  CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_TMPDIR
-export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_PULLDIR
-export SINGULARITY_TMPDIR=$SITE_CONTAINERS_TMPDIR
-export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_TMPDIR
-export FLOCK_DIR=/tmp
-
-IMAGE=\$(echo \${docker} | tr '/:' '_').sif
-echo \"\$IMAGE\"
-if [ -z \$SINGULARITY_CACHEDIR ];
-    then CACHE_DIR=\$HOME/.singularity/cache
-    else CACHE_DIR=\$SINGULARITY_CACHEDIR
-fi
-# Make sure cache dir exists so lock file can be created by flock
-mkdir -p \$CACHE_DIR
-LOCK_FILE=\$FLOCK_DIR/singularity_pull_flock
-out=\$(flock --exclusive --timeout 900 \$LOCK_FILE \
-singularity pull \$IMAGE docker://\${docker}  2>&1)
-ret=\$?
-if [[ \$ret == 0 ]]; then
-    echo \"Successfully pulled \${docker}!\"
-else
-    if [[ \$(echo \$out | grep \"exists\" ) ]]; then
-        echo \"Image file already exists, \${docker}!\"
-    else
-        echo \"Failed to pull \${docker}!\" >&2
-        exit \$ret
+    CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_TMPDIR
+    export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_PULLDIR
+    export SINGULARITY_TMPDIR=$SITE_CONTAINERS_TMPDIR
+    export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_TMPDIR
+    export FLOCK_DIR=/tmp
+    
+    IMAGE=\$(echo \${docker} | tr '/:' '_').sif
+    echo \"\$IMAGE\"
+    if [ -z \$SINGULARITY_CACHEDIR ];
+        then CACHE_DIR=\$HOME/.singularity/cache
+        else CACHE_DIR=\$SINGULARITY_CACHEDIR
     fi
-fi
-"
-  CONTAINER_WRAPPER="$INSTALL_DIR/singularity_exec.sh"
-  CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
+    # Make sure cache dir exists so lock file can be created by flock
+    mkdir -p \$CACHE_DIR
+    LOCK_FILE=\$FLOCK_DIR/singularity_pull_flock
+    out=\$(flock --exclusive --timeout 900 \$LOCK_FILE \
+    singularity pull \$IMAGE docker://\${docker}  2>&1)
+    ret=\$?
+    if [[ \$ret == 0 ]]; then
+        echo \"Successfully pulled \${docker}!\"
+    else
+        if [[ \$(echo \$out | grep \"exists\" ) ]]; then
+            echo \"Image file already exists, \${docker}!\"
+        else
+            echo \"Failed to pull \${docker}!\" >&2
+            exit \$ret
+        fi
+    fi
+    "
+    CONTAINER_WRAPPER="$INSTALL_DIR/singularity_exec.sh"
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
 
-  cp "$DIR/singularity_exec.sh" $CONTAINER_WRAPPER
-  chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/singularity_exec.sh"
-  chmod 775 "$INSTALL_DIR/singularity_exec.sh"
+    cp "$DIR/singularity_exec.sh" $CONTAINER_WRAPPER
+    chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/singularity_exec.sh"
+    chmod 775 "$INSTALL_DIR/singularity_exec.sh"
 fi
 
 ## GENERATE CONFIG
@@ -216,35 +219,6 @@ backend
         concurrent-job-limit = 0
       }
     }
-    PARSL
-    {
-      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
-      config {
-        run-in-background = true
-        runetime-attributes = """
-        String? docker
-        String? docker_user
-        Int cpus = 2
-        Int memory_gb = 1
-        """
-
-        submit = """
-          python send.py -c \${cpus} -m \${memory_gb} -s \${site} -cmd \${script}
-        """
-
-        submit-docker = """
-          LOOKUP=$(shifterimg lookup \${docker})
-          if [[ ! $LOOKUP ]]; then
-            shifterimg pull \${docker}
-          fi
-
-          python send.py -c \${cpus} -m \${memory_gb} -s \${site} -cmd \${script}
-        """
-        job-id-regex = "Task ID: (\\\d+)"
-        kill = ""
-        check-alive = "python read_db.py -t \${job_id}"  
-      }
-    }
     JTM
     {
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
@@ -284,56 +258,56 @@ backend
         job-id-regex = "JTM task ID (\\\d+)"
 
         submit = """
-CONSTRAINT=\${constraint}
-QOS=\${qos}
-PARTITION=\${partition}
-[ -z \$QOS ] || QOS="--qos \$QOS"
-[ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
-[ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
-jtm --config=$JTM_CONFIG_FILE \
-submit \
--cmd '/bin/bash \${script}' \
--cl \${cluster} \
--t \${time} \
--c \${cpu} \
--m \${memory_gb} \
--p \${poolname} \
--N \${node} \
--nwpn \${nwpn} \
--jid \${job_name} \
--A \${account} \
---shared \${shared} \
-\$CONSTRAINT \
-\$QOS \
-\$PARTITION
-"""
+        CONSTRAINT=\${constraint}
+        QOS=\${qos}
+        PARTITION=\${partition}
+        [ -z \$QOS ] || QOS="--qos \$QOS"
+        [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
+        [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
+        jtm --config=$JTM_CONFIG_FILE \
+        submit \
+        -cmd '/bin/bash \${script}' \
+        -cl \${cluster} \
+        -t \${time} \
+        -c \${cpu} \
+        -m \${memory_gb} \
+        -p \${poolname} \
+        -N \${node} \
+        -nwpn \${nwpn} \
+        -jid \${job_name} \
+        -A \${account} \
+        --shared \${shared} \
+        \$CONSTRAINT \
+        \$QOS \
+        \$PARTITION
+        """
 
 
         submit-docker = """
-$CONTAINER_EXPORT
-CONSTRAINT=\${constraint}
-QOS=\${qos}
-PARTITION=\${partition}
-[ -z \$QOS ] || QOS="--qos \$QOS"
-[ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
-[ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
-jtm --config=$JTM_CONFIG_FILE \
-submit \
--cmd "$CONTAINER_EXEC_COMMAND" \
--cl \${cluster} \
--t \${time} \
--c \${cpu} \
--m \${memory_gb} \
--p \${poolname} \
--N \${node} \
--nwpn \${nwpn} \
--jid \${job_name} \
--A \${account} \
---shared \${shared} \
-\$QOS \
-\$CONSTRAINT \
-\$PARTITION
-"""
+        $CONTAINER_EXPORT
+        CONSTRAINT=\${constraint}
+        QOS=\${qos}
+        PARTITION=\${partition}
+        [ -z \$QOS ] || QOS="--qos \$QOS"
+        [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
+        [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
+        jtm --config=$JTM_CONFIG_FILE \
+        submit \
+        -cmd "$CONTAINER_EXEC_COMMAND" \
+        -cl \${cluster} \
+        -t \${time} \
+        -c \${cpu} \
+        -m \${memory_gb} \
+        -p \${poolname} \
+        -N \${node} \
+        -nwpn \${nwpn} \
+        -jid \${job_name} \
+        -A \${account} \
+        --shared \${shared} \
+        \$QOS \
+        \$CONSTRAINT \
+        \$PARTITION
+        """
 
         # Root directory where Cromwell writes job results in the container. This value
         # can be used to specify where the execution folder is mounted in the container.
