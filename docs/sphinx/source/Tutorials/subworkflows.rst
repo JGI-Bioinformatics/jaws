@@ -63,6 +63,6 @@ JGI Managed Subworkflows
 
 You can also re-use some subworkflows that the JAWS team has currated. The idea is that if certain tasks are re-used by multiple WLDs, they should represent well tested and optimized code, not to mention, they should also expedite WDL development.
 
-`WLD-tasks <https://gitlab.com/jgi-doe/wdl-tasks.git>`_
+`WDL-tasks <https://gitlab.com/jgi-doe/wdl-tasks.git>`_
 
 See the README for that repo to see how to use the subworkflows in your own WDL.

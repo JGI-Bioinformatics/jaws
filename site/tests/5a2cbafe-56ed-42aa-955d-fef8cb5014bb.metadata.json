@@ -1,0 +1,160 @@
+{
+    "actualWorkflowLanguage": "WDL",
+    "actualWorkflowLanguageVersion": "1.0",
+    "calls": {
+        "create_lastdb.lastdb": [
+            {
+                "attempt": 1,
+                "backend": "JTM",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff",
+                    "hit": false,
+                    "result": "Cache Miss"
+                },
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb",
+                "commandLine": "if [ \"true\" == \"true\" ]; then CMD=\"lastdb5\"; else CMD=\"lastdb\"; fi\nif [ \"false\" == \"true\" ]; then PROTEIN=\"-p\"; else PROTEIN=\"\"; fi\n$CMD -S 2 $PROTEIN refGenomes.faa /global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/inputs/67631156/refGenomes.faa",
+                "dockerImageUsed": "doejgi/jaws-lastal:1257",
+                "end": "2022-01-13T23:32:49.337Z",
+                "executionEvents": [
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2022-01-13T23:04:45.414Z",
+                        "startTime": "2022-01-13T23:04:44.816Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2022-01-13T23:32:48.909Z",
+                        "startTime": "2022-01-13T23:04:45.443Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2022-01-13T23:04:44.816Z",
+                        "startTime": "2022-01-13T23:04:44.816Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2022-01-13T23:32:49.337Z",
+                        "startTime": "2022-01-13T23:32:48.909Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2022-01-13T23:04:45.414Z",
+                        "startTime": "2022-01-13T23:04:45.414Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2022-01-13T23:04:45.443Z",
+                        "startTime": "2022-01-13T23:04:45.414Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "infiles": [
+                        "/global/cscratch1/sd/jaws/jaws-prod/inputs/cwebb/CORI/global/cfs/cdirs/img/img/dataLoad10/data/phyloDist24/refGenomes.faa"
+                    ],
+                    "label": "refGenomes.faa",
+                    "last5": true,
+                    "max_time": "08:00:00",
+                    "memory": "115 GB",
+                    "num_threads": 32,
+                    "protein": false,
+                    "strand": 2
+                },
+                "jobId": "158315",
+                "outputs": {
+                    "db_files": [
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.bck",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.des",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.prj",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",
+                        "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis"
+                    ],
+                    "db_label": "refGenomes.faa"
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "account": "fungalp",
+                    "cluster": "cori",
+                    "constraint": "haswell",
+                    "continueOnReturnCode": "0",
+                    "cpu": "32",
+                    "docker": "doejgi/jaws-lastal:1257",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "115 GB",
+                    "node": "1",
+                    "nwpn": "1",
+                    "partition": "",
+                    "poolname": "lastdb",
+                    "qos": "genepool_special",
+                    "shared": "0",
+                    "time": "08:00:00"
+                },
+                "shardIndex": -1,
+                "start": "2022-01-13T23:04:44.816Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/stderr",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/stdout"
+            }
+        ]
+    },
+    "end": "2022-01-13T23:32:50.876Z",
+    "id": "5a2cbafe-56ed-42aa-955d-fef8cb5014bb",
+    "inputs": {
+        "create_lastdb.lastdb.max_time": "08:00:00",
+        "create_lastdb.lastdb.memory": "115 GB",
+        "create_lastdb.lastdb.num_threads": 32,
+        "create_lastdb.lastdb.protein": false,
+        "create_lastdb.lastdb.strand": 2,
+        "last5": true,
+        "subj_files": [
+            "/global/cscratch1/sd/jaws/jaws-prod/inputs/cwebb/CORI/global/cfs/cdirs/img/img/dataLoad10/data/phyloDist24/refGenomes.faa"
+        ],
+        "subj_label": "refGenomes.faa"
+    },
+    "labels": {
+        "cromwell-workflow-id": "cromwell-5a2cbafe-56ed-42aa-955d-fef8cb5014bb"
+    },
+    "metadataSource": "Unarchived",
+    "outputs": {
+        "create_lastdb.dbFiles": [
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.bck",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.des",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.prj",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis"
+        ]
+    },
+    "start": "2022-01-13T23:04:42.743Z",
+    "status": "Succeeded",
+    "submission": "2022-01-13T23:04:42.392Z",
+    "submittedFiles": {
+        "inputs": "{\"create_lastdb.last5\":true,\"create_lastdb.subj_files\":[\"/global/cscratch1/sd/jaws/jaws-prod/inputs/cwebb/CORI/global/cfs/cdirs/img/img/dataLoad10/data/phyloDist24/refGenomes.faa\"],\"create_lastdb.subj_label\":\"refGenomes.faa\"}",
+        "labels": "{}",
+        "options": "{\n  \"default_runtime_attributes\": {\n    \"docker\": \"ubuntu:latest\"\n  }\n}",
+        "root": "",
+        "workflow": "version 1.0\n\nworkflow create_lastdb {\n    input {\n        Boolean last5 = false\n        String subj_label \n        Array[File] subj_files\n    }\n\n    call lastdb {\n        input: last5=last5,\n               label=subj_label,\n               infiles=subj_files\n    }\n\n    output {\n        Array[File] dbFiles = lastdb.db_files\n    }\n}\n\ntask lastdb {\n    input {\n        Boolean last5 = false\n        String label\n        Array[File] infiles\n        Boolean protein = false\n        Int strand = 2\n        Int num_threads = 32\n        String memory = \"115 GB\"\n        String max_time = \"08:00:00\"\n    }\n\n    command <<<\n            if [ \"~{last5}\" == \"true\" ]; then CMD=\"lastdb5\"; else CMD=\"lastdb\"; fi\n            if [ \"~{protein}\" == \"true\" ]; then PROTEIN=\"-p\"; else PROTEIN=\"\"; fi\n            $CMD -S ~{strand} $PROTEIN ~{label} ~{sep=\" \" infiles}\n    >>>\n\n    runtime {\n        poolname: \"lastdb\"\n        docker: \"doejgi/jaws-lastal:1257\"\n        cpu: 32\n        memory: \"115G\"\n        time: \"08:00:00\"\n    }\n\n    output {\n        String db_label = label\n        Array[File] db_files = glob(\"${label}.*\")\n    }\n\n    parameter_meta {\n        # inputs\n        label: \"Identifier for the dataset\"\n        infiles: \"one or more files in FASTA format\"\n        protein: \"If true, interpret the sequences as proteins.  The default is to interpret them as DNA.\"\n\n        # outputs\n        db_files: \"Prepared sequences for subsequent comparison and alignment using lastal\"\n    }\n}\n",
+        "workflowUrl": ""
+    },
+    "workflowName": "create_lastdb",
+    "workflowProcessingEvents": [
+        {
+            "cromwellId": "cromid-e6755df",
+            "cromwellVersion": "58",
+            "description": "PickedUp",
+            "timestamp": "2022-01-13T23:04:42.742Z"
+        },
+        {
+            "cromwellId": "cromid-e6755df",
+            "cromwellVersion": "58",
+            "description": "Finished",
+            "timestamp": "2022-01-13T23:32:50.876Z"
+        }
+    ],
+    "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb"
+}
