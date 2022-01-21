@@ -1,4 +1,4 @@
-version: '3.1'
+version: '3.9'
 
 networks:
   jaws-tier:
@@ -20,6 +20,7 @@ services:
       JAWS_AUTH_PORT: 3000
       JAWS_CLIENT_SECRET: TlLwcYHZF2c4b/KXPAk+R/PMwzmaF7exyAut/GQbNA=
       JAWS_REST_PORT: 5000
+      JAWS_AUTH_URL: central-auth
     depends_on:
       - jaws_db
       - jaws_rabbitmq
@@ -30,7 +31,28 @@ services:
       - 5000
     ports:
       - "5000:5000"
+  central-auth:
+    image: central-auth:2.5.0
+    environment:
+      VERSION: 2.5.0
+      DEPLOYMENT_NAME: dev
+      JAWS_DOCS_URL: https://jaws-docs.readthedocs.io/en/latest/
+      JAWS_CENTRAL_DB_HOST: jaws_db
+      JAWS_CENTRAL_DB_PORT: 3306
+      JAWS_CENTRAL_DB_PW: jawstest
+      JAWS_CENTRAL_RMQ_PW: jawstest
+      JAWS_CENTRAL_RMQ_HOST: jaws_rabbitmq
+      JAWS_CENTRAL_RMQ_PORT: 5672
+      JAWS_GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
+      JAWS_AUTH_PORT: 3000
+      JAWS_CLIENT_SECRET: TlLwcYHZF2c4b/KXPAk+R/PMwzmaF7exyAut/GQbNA=
+    networks:
+      - jaws-tier
+    ports:
       - "3000:3000"
+    depends_on:
+      - jaws_db
+      - jaws_rabbitmq
   jaws_db:
     image: jaws_mysql:2.5.0
     restart: always
@@ -47,6 +69,48 @@ services:
       - "3306:3306"
     volumes:
       - ./mysql/init:/docker-entrypoint-initdb.d/
+  site:
+    image: jaws_site:2.5.0
+    environment:
+      JAWS_SITE: LOCAL
+      DEPLOYMENT_NAME: dev
+      DB_HOST: jaws_db
+      DB_PORT: 3306
+      DB_PW: jawstest
+      RMQ_PW: jawstest
+      RMQ_HOST: jaws_rabbitmq
+      RMQ_PORT: 5672
+      GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
+      GLOBUS_CLIENT_SECRET: TlLwcYHZF2c4b/KXPAk+R/PMwzmaF7exyAut/GQbNA=
+      UPLOADS_DIR: /
+      GLOBUS_EP: be1ff650-dcbc-11ea-85a2-0e1702b77d41
+      CROMWELL_PORT: 8000
+    networks:
+      - jaws-tier
+    depends_on:
+      - jaws_db
+      - jaws_rabbitmq
+  site-central:
+    image: site-central:2.5.0
+    environment:
+      JAWS_SITE: LOCAL
+      DEPLOYMENT_NAME: dev
+      DB_HOST: jaws_db
+      DB_PORT: 3306
+      DB_PW: jawstest
+      RMQ_PW: jawstest
+      RMQ_HOST: jaws_rabbitmq
+      RMQ_PORT: 5672
+      GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
+      GLOBUS_CLIENT_SECRET: TlLwcYHZF2c4b/KXPAk+R/PMwzmaF7exyAut/GQbNA=
+      UPLOADS_DIR: /
+      GLOBUS_EP: be1ff650-dcbc-11ea-85a2-0e1702b77d41
+      CROMWELL_PORT: 8000
+    networks:
+      - jaws-tier
+    depends_on:
+      - jaws_db
+      - jaws_rabbitmq
   jaws_rabbitmq:
     image: rabbitmq:3-management
     environment:
@@ -63,4 +127,15 @@ services:
       - "15672:15672"
       - "5672:5672"
       - "5673:5673"
-
+  cromwell:
+    image: broadinstitute/cromwell:58
+    command: "server"
+    expose:
+      - 8000
+    volumes:
+      - /Users/mamelara/data/jaws-volumes/install_dir/jaws-dev/configs:/app-config
+      - /Users/mamelara/data/jaws-volumes/install_dir/jaws-dev/logs/cromwell-workflow-logs:/var/log/cromwell-workflow-logs:rw
+    networks:
+      - jaws-tier
+    ports:
+      - "8000:8000"

@@ -40,6 +40,7 @@ max_retries = 3
 client_id = $JAWS_GLOBUS_CLIENT_ID
 client_secret = $JAWS_CLIENT_SECRET
 [HTTP]
+auth_url = $JAWS_AUTH_URL
 auth_port = $JAWS_AUTH_PORT
 rest_port = $JAWS_REST_PORT
 $CONF
