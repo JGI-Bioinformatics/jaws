@@ -47,12 +47,22 @@ You can try running this example
     # run jaws submit <workflow> <inputs> <site>
     jaws submit main.wdl inputs.json cori
 
-##############################
-# How to supply subworkflows #
-##############################
+##########################
+How to supply subworkflows
+##########################
 
 Subworkflows may be imported using relative paths.  The jaws-client app will validate your WDL, find the subworklow files, and prepare a ZIP file automatically.
-Alternatively, if you have a ZIP file of your subworkflows, you can supply it using the --sub option.
+Alternatively, if you have a ZIP file of your subworkflows, you can supply it using the --sub option (jaws submit --sub <zip>).
 
-Lastly, subworkflows may be imported using HTTP URLs, so long as no login is required, such as a public git repository (use the "Open raw" button in gitlab to get the URL to use).
+Also, subworkflows may be imported using HTTP URLs, so long as no login is required, such as a public git repository (use the "Open raw" button in gitlab to get the URL to use).
 However, a compute site's firewall may prevent imports via HTTP.  Currently http imports work at cori and jgi, but are blocked at tahoma.
+
+########################
+JGI Managed Subworkflows  
+########################
+
+You can also re-use some subworkflows that the JAWS team has currated. The idea is that if certain tasks are re-used by multiple WLDs, they should represent well tested and optimized code, not to mention, they should also expedite WDL development.
+
+`WDL-tasks <https://gitlab.com/jgi-doe/wdl-tasks.git>`_
+
+See the README for that repo to see how to use the subworkflows in your own WDL.

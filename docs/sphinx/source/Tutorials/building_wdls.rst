@@ -16,6 +16,7 @@ Some useful links
 
     * start with the official `WDL site <https://software.broadinstitute.org/wdl/documentation/>`_
     * `real world examples <https://software.broadinstitute.org/wdl/documentation/topic?name=wdl-scripts>`_.
+    * Re-usable subworkflow tasks: `WLD-tasks <https://gitlab.com/jgi-doe/wdl-tasks.git>`_
 
 
 ****************************
@@ -129,3 +130,8 @@ The input file ("inputs.json") would look like this
 An example of running this WDL was described in the last section :ref:`Run with Docker Inside the runtime{} <run with conf>`
 
 
+Re-use Ready Made Tasks
+-----------------------
+Check if there are any ready made tasks (as subworkflows) that you can use in your WDL. 
+
+`WDL-tasks <https://gitlab.com/jgi-doe/wdl-tasks.git>`_

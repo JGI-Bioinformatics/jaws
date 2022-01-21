@@ -216,7 +216,7 @@ def clone_tutorials_repo(request):
     """
     # clone the jaws-tutorial-examples repo
     cmd = (
-        "git clone "
+        "git clone -b master "
         "https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples.git"
     )
     util.run(cmd)

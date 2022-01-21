@@ -50,7 +50,7 @@ def test_task_status(submit_subworkflow_alignment):
     line_list = list(filter(None, line_list))  # remove empty element
     for i in line_list:
         task_names.append(i.split("\t")[0])
-        status_to.append(i.split("\t")[2])
+        status_to.append(i.split("\t")[3])
 
     # check that the subworkflows tasks are in the list
     assert len(task_names) == 5

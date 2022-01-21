@@ -394,9 +394,9 @@ class TaskLog:
             elif status_to == "success":
                 task_timestamps[task_name][4] = timestamp
                 task_timestamps[task_name][5] = "success"
-            elif status_to == "failure":
+            elif status_to == "failed":
                 task_timestamps[task_name][4] = timestamp
-                task_timestamps[task_name][5] = "failure"
+                task_timestamps[task_name][5] = "failed"
             if cached is True:
                 task_timestamps[task_name][5] = "success"
 
