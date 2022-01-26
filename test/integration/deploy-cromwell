@@ -359,7 +359,7 @@ backend
           $CONTAINER_EXEC_COMMAND
           EOF
           chmod 755 $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript
-          cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\{job_name}/execution/submitFile <<EOF
+          cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile <<EOF
           Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
           +Owner=UNDEFINED
           request_memory=\${memory_gb}
