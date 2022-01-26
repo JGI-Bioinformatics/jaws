@@ -84,26 +84,13 @@ chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
 if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
-    CONTAINER_EXPORT="IMG_WITH_VERSION_TAG=\$($INSTALL_DIR/shifter_pull.sh \${docker})
-    ret=\$?
-    if [[ \$ret != 0 || \$(echo \$out | grep \"FAILURE\") ]]; then
-      echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
-      exit \$ret
-    else
-      echo \"Successfully pulled \${docker}!\"
-    fi
-    "
     CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \$IMG_WITH_VERSION_TAG $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
     
     cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
     chmod 775 "$INSTALL_DIR/shifter_exec.sh"
     
-    cp "$DIR/shifter_pull.sh" $INSTALL_DIR/
-    chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_pull.sh"
-    chmod 775 "$INSTALL_DIR/shifter_pull.sh"
-
 elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
     CONTAINER_EXPORT="out=\$(docker pull \${docker})
     ret=\$?
@@ -279,7 +266,6 @@ backend
         """
 
         submit-docker = """
-          $CONTAINER_EXPORT
           CONSTRAINT=\${constraint}
           QOS=\${qos}
           PARTITION=\${partition}
@@ -334,18 +320,18 @@ backend
           #printenv > env.debug
           mkdir -p $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
           cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile <<EOF
-          PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
-          Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
-          +Owner=UNDEFINED
-          request_memory=\${memory_gb}
-          request_disk=\${disk_kb}
-          request_cpus=\${cpu}
-          error=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stderr
-          output=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stdout
-          log_xml=true
-          executable=\${script}
-          log=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/execution.log
-          queue
+PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
+Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
++Owner=UNDEFINED
+request_memory=\${memory_gb}
+request_disk=\${disk_kb}
+request_cpus=\${cpu}
+error=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stderr
+output=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stdout
+log_xml=true
+executable=\${script}
+log=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/execution.log
+queue
 EOF
           condor_submit $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile
         """
@@ -356,28 +342,28 @@ EOF
           #printenv > env.debug
           mkdir -p $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
           cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript <<EOF
-          #!/bin/bash
-          PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
-          $CONTAINER_EXEC_COMMAND
+#!/bin/bash
+PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
+$CONTAINER_EXEC_COMMAND
 EOF
           chmod 755 $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript
           cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile <<EOF
-          Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
-          +Owner=UNDEFINED
-          request_memory=\${memory_gb}
-          request_disk=\${disk_kb}
-          request_cpus=\${cpu}
-          error=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stderr
-          output=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stdout
-          log_xml=true
-          executable=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript
-          log=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/execution.log
-          queue
+Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
++Owner=UNDEFINED
+request_memory=\${memory_gb}
+request_disk=\${disk_kb}
+request_cpus=\${cpu}
+error=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stderr
+output=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stdout
+log_xml=true
+executable=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript
+log=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/execution.log
+queue
 EOF
           condor_submit $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile
        """
-        kill = "condor_rm \${job_id}"
-        check-alive = "condor_q \${job_id}"
+        kill = "export CONDOR_CONFIG=$SITE_HTCONDOR_MASTER_CONFIG && $SITE_HTCONDOR_INSTALL/bin/condor_rm \${job_id}"
+        check-alive = "export CONDOR_CONFIG=$SITE_HTCONDOR_MASTER_CONFIG && $SITE_HTCONDOR_INSTALL/bin/condor_q \${job_id}"
         job-id-regex = "(?sm).*cluster (\\\d+)..*"
         dockerRoot = $CROMWELL_EXECUTIONS_DIR
       }
