@@ -321,3 +321,25 @@ def test_jaws_history_result_filter_failed(submit_bad_task):
             assert d["result"] == "failed"
     else:
         assert 1, "no runs were found in the history that have result: failed"
+
+
+def test_jaws_task_summary(submit_fq_count_wdl):
+    """
+    jaws task-summary <run_id>
+
+    #NAME                CROMWELL_JOB_ID  CACHED  RESULT   QUEUED               QUEUE_WAIT  RUNTIME  MAX_TIME
+    fq_count.count_seqs  158914           False   success  2022-01-24 20:50:21  0:12:44     0:00:01  00:10:00
+
+    Check that the fourth column is "success" 
+    """
+    run_id = str(submit_fq_count_wdl["run_id"])
+    util.wait_for_run(run_id, check_tries, check_sleep)
+
+    cmd = (f"jaws task-summary --fmt json {run_id}")
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+
+    if data:
+        assert data[0][3] == 'success'
+    else:
+        assert 1, "task-summary did not return \"success\" in the fourth column" 
