@@ -374,9 +374,9 @@ backend
           EOF
           condor_submit $SITE_JTM_SCRATCH_BASEDIR/condor/run/${job_name}/execution/submitFile
        """
-        kill = "condor_rm ${job_id}"
-        check-alive = "condor_q ${job_id}"
-        job-id-regex = "(?sm).*cluster (\\d+)..*"
+        kill = "condor_rm \${job_id}"
+        check-alive = "condor_q \${job_id}"
+        job-id-regex = "(?sm).*cluster (\\\d+)..*"
         dockerRoot = $CROMWELL_EXECUTIONS_DIR
       }
     }
