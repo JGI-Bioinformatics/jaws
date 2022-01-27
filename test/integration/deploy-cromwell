@@ -332,6 +332,7 @@ backend
           PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
           chmod 755 \${script}
           #printenv > env.debug
+          mkdir -p $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
           cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile <<EOF
           PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
           Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
@@ -345,7 +346,7 @@ backend
           executable=\${script}
           log=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/execution.log
           queue
-          EOF
+EOF
           condor_submit $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile
         """
         submit-docker = """
@@ -353,11 +354,12 @@ backend
           PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
           $CONTAINER_EXPORT
           #printenv > env.debug
+          mkdir -p $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
           cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript <<EOF
           #!/bin/bash
           PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
           $CONTAINER_EXEC_COMMAND
-          EOF
+EOF
           chmod 755 $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript
           cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile <<EOF
           Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
@@ -371,7 +373,7 @@ backend
           executable=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript
           log=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/execution.log
           queue
-          EOF
+EOF
           condor_submit $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile
        """
         kill = "condor_rm \${job_id}"
