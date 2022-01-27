@@ -45,7 +45,6 @@ if [ -x "$(command -v pagurus)" ]; then
 fi
 
 # Run container script and catch exit code
-echo "shifter --image=$ID -V $2:$3 $4 $5"
 shifter --image=$ID -V $2:$3 $4 $5
 export EXIT_CODE=$?
 

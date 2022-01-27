@@ -29,12 +29,7 @@ ID=$(echo $IMG | sed 's/.*://')
 #   ID: 0.1.5
 
 set -eo pipefail
-echo IMG: $IMG
-echo REPO: $REPO
-echo HASH: $HASH
-echo ID: $ID
 img_exists=$(shifter --image=id:${ID} echo imageExists)
-echo img_exists: $img_exists
 if [[ $img_exists -eq "imageExists" ]]; then
     echo "image already pulled: $IMG"
     exit 0
