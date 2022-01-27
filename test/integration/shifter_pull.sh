@@ -10,7 +10,6 @@ if [ ! $IMG ]; then
     exit 1
 fi
 
-
 IMG=${1}
 REPO=$(echo $IMG | sed 's/@.*//')
 HASH=$(echo $IMG | sed 's/.*@//')
@@ -29,7 +28,17 @@ ID=$(echo $IMG | sed 's/.*://')
 #   HASH: jfroula/test:0.1.5
 #   ID: 0.1.5
 
-set -euo pipefail
+set -eo pipefail
+echo IMG: $IMG
+echo REPO: $REPO
+echo HASH: $HASH
+echo ID: $ID
+img_exists=$(shifter --image=id:${ID} echo imageExists)
+echo img_exists: $img_exists
+if [[ $img_exists -eq "imageExists" ]]; then
+    echo "image already pulled: $IMG"
+    exit 0
+fi
 
 TAG=
 IMAGE=
@@ -55,6 +64,4 @@ else
 fi
 
 # Pull image by tag
-shifterimg pull ${IMAGE} > /dev/null 2>&1
-
-echo "${IMAGE}"
+shifterimg pull ${IMAGE}

@@ -12,47 +12,25 @@ if [ $# -lt 5 ]; then
     exit 1
 fi
 
-function pull_by_id() {
-    # This will:
-    # 1) check to see if it is cached already.
-    # 2) if not, figure out the right version to pull
+IMG=${1}
+REPO=$(echo $IMG | sed 's/@.*//')
+HASH=$(echo $IMG | sed 's/.*@//')
+ID=$(echo $IMG | sed 's/.*://')
 
-    set -e
-    IMG=${1}
-    REPO=$(echo $IMG | sed 's/@.*//')
-    HASH=$(echo $IMG | sed 's/.*@//')
-    ID=$(echo $IMG | sed 's/.*://')
+# if using sha
+#   IMG: jfroula/test@sha256:ef70f44e4d7cc28d40ff6117922583642919403dfac44d0a523f49c5f9b8993a
+#   REPO: jfroula/test
+#   HASH: sha256:ef70f44e4d7cc28d40ff6117922583642919403dfac44d0a523f49c5f9b8993a
+#   ID: ef70f44e4d7cc28d40ff6117922583642919403dfac44d0a523f49c5f9b8993a
+#
+# if not using sha
+#   Tue Jan 18 14:05:51 jaws@cori20 /global/cfs/cdirs/jaws/jaws-install/jaws-prod$ ./shifter_pull.sh jfroula/test:0.1.5
+#   IMG: jfroula/test:0.1.5
+#   REPO: jfroula/test:0.1.5
+#   HASH: jfroula/test:0.1.5
+#   ID: 0.1.5
 
-    # Try running it...
-    set +e
-    shifter --image=id:${ID} echo yes >/dev/null 2>&1 && return 0
-    set -e
-
-    #Try to figure out the version to pull
-    RT=$(skopeo inspect docker://${IMG} | jq .RepoTags)
-    for ttag in $(echo $RT | sed 's/[",[]//g'); do
-        digest=$(skopeo inspect docker://${REPO}:${ttag} | jq .Digest | sed 's/"//g')
-        if [ "$digest" == "$HASH" ]; then
-            TAG=$ttag
-            break
-        fi
-    done
-    if [ -z $TAG ]; then
-        echo "Unable to determine image version" 1>&2
-        exit 1
-    fi
-
-    # Pull image by tag
-    shifterimg pull ${REPO}:${TAG} 1>&2
-
-    # Get the ID
-    # All variables are global by default in bash so we can access the
-    # ID variable outside the function now.
-    ID=$(shifterimg lookup ${REPO}:${TAG})
-}
-
-if [ $(echo ${IMG} | grep -c sha256) -gt 0 ]; then
-    pull_by_id ${IMG}
+if [[ $HASH =~ "sha256" ]]; then
     ID=id:$ID
 else
     ID=$1
@@ -67,6 +45,7 @@ if [ -x "$(command -v pagurus)" ]; then
 fi
 
 # Run container script and catch exit code
+echo "shifter --image=$ID -V $2:$3 $4 $5"
 shifter --image=$ID -V $2:$3 $4 $5
 export EXIT_CODE=$?
 
