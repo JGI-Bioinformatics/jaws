@@ -24,16 +24,47 @@ ID=$(echo $IMG | sed 's/.*://')
 #   ID: ef70f44e4d7cc28d40ff6117922583642919403dfac44d0a523f49c5f9b8993a
 #
 # if not using sha
-#   Tue Jan 18 14:05:51 jaws@cori20 /global/cfs/cdirs/jaws/jaws-install/jaws-prod$ ./shifter_pull.sh jfroula/test:0.1.5
 #   IMG: jfroula/test:0.1.5
 #   REPO: jfroula/test:0.1.5
 #   HASH: jfroula/test:0.1.5
 #   ID: 0.1.5
 
+shifter --image=id:${ID} echo trying to run image > /dev/null 2>&1
+if [[ $? == 0 ]]; then
+    echo "image already pulled: $IMG"
+    exit 0
+fi
+
+TAG=
+IMAGE=
 if [[ $HASH =~ "sha256" ]]; then
-    ID=id:$ID
+    #Try to figure out the version to pull
+    RT=$(skopeo inspect docker://${IMG} | jq .RepoTags)
+    for ttag in $(echo $RT | sed 's/[",[]//g'); do
+        digest=$(skopeo inspect docker://${REPO}:${ttag} | jq .Digest | sed 's/"//g')
+        if [ "$digest" == "$HASH" ]; then
+            TAG=$ttag
+            break
+        fi
+    done
+
+    if [ -z $TAG ]; then
+        echo "Unable to determine image version" 1>&2
+        exit 1
+    fi
+
+    IMAGE=${REPO}:${TAG}
 else
-    ID=$1
+    IMAGE=${REPO}
+fi
+
+# Pull image by tag
+shifterimg pull ${IMAGE}
+if [[ $? > 0 ]]; then
+    echo "Invalid container name or failed to pull container, ${IMAGE}"
+    exit 1
+else
+    echo "successfully pulled image ${IMAGE}"
 fi
 
 # Check if monitoring script is installed
@@ -45,7 +76,12 @@ if [ -x "$(command -v pagurus)" ]; then
 fi
 
 # Run container script and catch exit code
-shifter --image=$ID -V $2:$3 $4 $5
+if [[ $HASH =~ "sha256" ]]; then
+    shifter --image=id:$ID -V $2:$3 $4 $5
+else
+    shifter --image=$ID -V $2:$3 $4 $5
+fi
+
 export EXIT_CODE=$?
 
 # If PID is set then kill it
