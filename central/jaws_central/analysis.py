@@ -14,6 +14,14 @@ from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
 from jaws_central.models_fsa import db, Run, User, Run_Log
+from datatransfer_protocol import (
+    SiteTransfer,
+    DataTransferProtocol,
+    DataTransferFactory,
+    DataTransferError,
+    DataTransferAPIError,
+    DataTransferNetworkError,
+)
 
 
 logger = logging.getLogger(__package__)
@@ -282,6 +290,32 @@ def get_site(user, site_id):
     return result, 200
 
 
+def transfer_files(data_transfer: DataTransferProtocol, metadata: dict, manifest_files: list) -> str:
+    """Perform file transfer.
+
+    :param data_transfer: object for transferring data from one site to another (globus, aws, ...)
+    :type data_transfer: DataTransfer object
+    :param manifest_files: list of files to transfer
+    :type manifest_files: list
+    """
+    return data_transfer.submit_upload(metadata, manifest_files)
+
+
+def virtual_transfer_path(self, full_path, host_path):
+    """Return an absolute path used by Globus transfer service that uses the host_path as root.
+
+    :param full_path: The complete absolute path
+    :type full_path: str
+    :param host_path: Host path is root path of the globus endpoint
+    :type host_path: str
+    :return: virtual absolute path
+    :rtype: str
+    """
+    if not full_path.startswith(host_path):
+        raise ValueError(f"Path, {full_path}, is not accessible via Globus endpoint")
+    return os.path.join("/", os.path.relpath(full_path, host_path))
+
+
 def submit_run(user):
     """
     Record the run submission in the database, with status as "uploading".
@@ -350,7 +384,7 @@ def submit_run(user):
 
     # We modify the output dir path since we know the endpoint of the returning source site. From here
     # a compute site can simply query the output directory and send.
-    virtual_output_path = globus.virtual_transfer_path(output_dir, src_host_path)
+    virtual_output_path = virtual_transfer_path(output_dir, src_host_path)
 
     # Due to how the current database schema is setup, we have to update the output
     # directory from the model object itself immediately after insert.
@@ -371,21 +405,25 @@ def submit_run(user):
         abort(500, {"error": err_msg})
     logger.debug(f"Updating output dir for run_id={run.id}")
 
-    # SUBMIT GLOBUS TRANSFER
-    manifest_file = request.files["manifest"]
-    host_paths = {}
-    host_paths["src"] = src_host_path
-    host_paths["dest"] = config.conf.get_site(site_id, "globus_host_path")
+    # SUBMIT FILE TRANSFER
+    manifest_files = request.files["manifest"]
+    transfer_type = SiteTransfer.type[site_id.upper()]
+    data_transfer = DataTransferFactory(transfer_type)
+    metadata = {
+        "label": f"Upload run {run.id}",
+    }
+
+    if transfer_type == 'globus_transfer':
+        host_paths = {}
+        host_paths["src"] = src_host_path
+        host_paths["dest"] = config.conf.get_site(site_id, "globus_host_path")
+        metadata['host_paths'] = host_paths
+        metadata['input_endpoint'] = input_endpoint
+        metadata['compute_endpoint'] = compute_endpoint
 
     try:
-        upload_task_id = globus.submit_transfer(
-            f"Upload run {run.id}",
-            host_paths,
-            input_endpoint,
-            compute_endpoint,
-            manifest_file,
-        )
-    except globus_sdk.GlobusAPIError as error:
+        upload_task_id = transfer_files(self, metadata, manifest_files)
+    except DataTransferAPIError as error:
         run.status = "upload failed"
         db.session.commit()
         if error.code == "NoCredException":
@@ -408,13 +446,13 @@ def submit_run(user):
                 exc_info=True,
             )
             abort(error.code, {"error": error.message})
-    except globus_sdk.NetworkError as error:
+    except DataTransferNetworkError as error:
         logger.exception(
             f"{user} submission {run.id} failed due to NetworkError: {error}",
             exc_info=True,
         )
         abort(500, {"error": f"Network Error: {error}"})
-    except globus_sdk.GlobusError as error:
+    except DataTransferError as error:
         logger.exception(
             f"{user} submission {run.id} failed for unknown error: {error}",
             exc_info=True,
@@ -724,6 +762,7 @@ def cancel_run(user, run_id):
 
     run = _get_run(user, run_id)
     status = run.status
+
     if status == "cancelled":
         abort(400, {"error": "That Run had already been cancelled"})
     elif status == "download complete":
@@ -739,11 +778,14 @@ def _cancel_run(user, run, reason="Cancelled by user"):
     :param run: Run SqlAlchemy ORM object
     :type run: obj
     """
+    transfer_type = SiteTransfer.type[run.site_id.upper()]
+    data_transfer = DataTransferFactory(transfer_type)
     status = run.status
+
     if status.startswith("upload"):
-        _cancel_transfer(run.upload_task_id)
+        _cancel_transfer(data_transfer, run.upload_task_id)
     elif status.startswith("download"):
-        _cancel_transfer(run.download_task_id)
+        _cancel_transfer(data_transfer, run.download_task_id)
     try:
         _rpc_call(user, run.id, "cancel_run")
     except Exception as error:
@@ -757,20 +799,15 @@ def _cancel_run(user, run, reason="Cancelled by user"):
         return "cancelled"
 
 
-def _cancel_transfer(transfer_task_id: str) -> None:
-    """Cancel a Globus transfer.
+def _cancel_transfer(data_transfer: DataTransferProtocol, transfer_task_id: str) -> None:
+    """Cancels a data transfer.
 
+    :param data_transfer: object for transferring data from one site to another (globus, aws, ...)
+    :type data_transfer: DataTransfer object
     :param transfer_task_id: Globus transfer task id
     :type transfer_task_id: str
     """
-    try:
-        transfer_client = authorize_transfer_client()
-        transfer_response = transfer_client.cancel_task(transfer_task_id)
-    except globus_sdk.GlobusAPIError as error:
-        logger.error(f"Error cancelling Globus transfer, {transfer_task_id}: {error}")
-        return f"{error}"
-    else:
-        return transfer_response
+    return data_transfer.cancel_transfer(transfer_task_id)
 
 
 def cancel_all(user):
