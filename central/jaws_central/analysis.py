@@ -16,12 +16,12 @@ from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
 from jaws_central.models_fsa import db, Run, User, Run_Log
 from jaws_central.datatransfer_protocol import (
+    DataTransferFactory,
     DataTransferProtocol,
     SiteTransfer,
-    DataTransferFactory,
-    DataTransferError,
     DataTransferAPIError,
     DataTransferNetworkError,
+    DataTransferError,
 )
 
 
@@ -809,8 +809,6 @@ def _cancel_transfer(data_transfer: DataTransferProtocol, transfer_task_id: str)
     :param transfer_task_id: Globus transfer task id
     :type transfer_task_id: str
     """
-    print(f"{transfer_task_id=}")
-    print(f"{data_transfer=}")
     return data_transfer.cancel_transfer(transfer_task_id)
 
 
@@ -833,26 +831,3 @@ def cancel_all(user):
     for run in active_runs:
         cancelled[run.id] = _cancel_run(user, run)
     return cancelled, 201
-
-
-# def authorize_transfer_client():
-#     """
-#     Create a globus transfer client using client id and client secret for credentials. More information
-#     can be found via Globus documentation:
-
-#     https://globus-sdk-python.readthedocs.io/en/stable/examples/client_credentials.html?highlight=secret
-
-#     :return: globus_sdk.TransferClient
-#     """
-#     client_id = config.conf.get("GLOBUS", "client_id")
-#     client_secret = config.conf.get("GLOBUS", "client_secret")
-#     try:
-#         client = globus_sdk.ConfidentialAppAuthClient(client_id, client_secret)
-#     except globus_sdk.GlobusAPIError as error:
-#         raise error
-#     scopes = "urn:globus:auth:scope:transfer.api.globus.org:all"
-#     try:
-#         authorizer = globus_sdk.ClientCredentialsAuthorizer(client, scopes)
-#     except globus_sdk.GlobusAPIError as error:
-#         raise error
-#     return globus_sdk.TransferClient(authorizer=authorizer)

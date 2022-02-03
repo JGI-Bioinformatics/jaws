@@ -128,13 +128,6 @@ class DataTransfer:
 
             if inode_type == "D" or os.path.isdir(source_path):
                 source_paths, dest_paths = self._get_file_paths(source_path, dest_path)
-                # dest_paths.append(f"{dest_path}")
-                # If it's a directory get all the files and transfer them
-                # files = glob(f"{source_path}/*")
-                # for fil in files:
-                #     _fil = os.path.basename(fil)
-                #     source_paths.append(f"{source_path}/{_fil}")
-                #     dest_paths.append(f"{dest_path}")
             else:
                 source_paths.append(f"{source_path}")
                 dest_paths.append(f"{dest_path}")
@@ -161,7 +154,6 @@ class DataTransfer:
                 dest_file = os.path.join(dest_path, os.path.basename(src_file))
                 src_files.append(src_file)
                 dest_files.append(dest_file)
-            print()
 
         return src_files, dest_files
 

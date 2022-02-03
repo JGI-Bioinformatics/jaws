@@ -1,7 +1,7 @@
 import logging
 import os
 import globus_sdk
-import jaws_site.config
+import jaws_central.config
 from ..datatransfer_protocol import (
     SiteTransfer,
     DataTransferError,
@@ -21,7 +21,7 @@ class DataTransfer:
     """
 
     def __init__(self):
-        self.globus_config = jaws_site.config.Configuration()
+        self.globus_config = jaws_central.config.Configuration()
         self.endpoint_id = self.globus_config.get("GLOBUS", "endpoint_id")
         self.host_path = self.globus_config.get("GLOBUS", "host_path")
 
