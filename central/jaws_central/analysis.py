@@ -2,21 +2,22 @@
 Analysis (AKA Run) REST endpoints.
 """
 
+import os
 import logging
 from datetime import datetime, timedelta
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
-import globus_sdk
+# import globus_sdk
 
-import jaws_central.globus
+# import jaws_central.globus
 
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
 from jaws_central.models_fsa import db, Run, User, Run_Log
-from datatransfer_protocol import (
-    SiteTransfer,
+from jaws_central.datatransfer_protocol import (
     DataTransferProtocol,
+    SiteTransfer,
     DataTransferFactory,
     DataTransferError,
     DataTransferAPIError,
@@ -335,7 +336,7 @@ def submit_run(user):
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
     compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
-    globus = jaws_central.globus.GlobusService()
+    # globus = jaws_central.globus.GlobusService()
 
     if compute_endpoint is None:
         logger.error(
@@ -407,22 +408,23 @@ def submit_run(user):
 
     # SUBMIT FILE TRANSFER
     manifest_files = request.files["manifest"]
-    transfer_type = SiteTransfer.type[site_id.upper()]
-    data_transfer = DataTransferFactory(transfer_type)
+    data_transfer_type = SiteTransfer.type[site_id.upper()]
+    data_transfer = DataTransferFactory(data_transfer_type)
     metadata = {
         "label": f"Upload run {run.id}",
     }
 
-    if transfer_type == 'globus_transfer':
-        host_paths = {}
-        host_paths["src"] = src_host_path
-        host_paths["dest"] = config.conf.get_site(site_id, "globus_host_path")
-        metadata['host_paths'] = host_paths
+    if data_transfer_type == 'globus_transfer':
+        metadata['host_paths'] = {
+            "src": src_host_path,
+            "dest": config.conf.get_site(site_id, "globus_host_path"),
+        }
         metadata['input_endpoint'] = input_endpoint
         metadata['compute_endpoint'] = compute_endpoint
+        metadata['run_id'] = run.id
 
     try:
-        upload_task_id = transfer_files(self, metadata, manifest_files)
+        upload_task_id = transfer_files(data_transfer, metadata, manifest_files)
     except DataTransferAPIError as error:
         run.status = "upload failed"
         db.session.commit()
@@ -508,12 +510,12 @@ def submit_run(user):
     except Exception as error:
         reason = f"RPC submit failed: {error}"
         logger.exception(reason)
-        _submission_failed(user, run, reason)
+        _submission_failed(user, run, reason, data_transfer)
         abort(500, {"error": reason})
     if "error" in result:
         reason = f"Error sending new run to {site_id}: {result['error']['message']}"
         logger.error(reason)
-        _submission_failed(user, run, reason)
+        _submission_failed(user, run, reason, data_transfer)
         abort(result["error"]["code"], {"error": result["error"]["message"]})
 
     # DONE
@@ -528,9 +530,9 @@ def submit_run(user):
     return result, 201
 
 
-def _submission_failed(user, run, reason):
+def _submission_failed(user: str, run: str, reason: str, data_transfer: DataTransferProtocol):
     """Cancel upload and update run status"""
-    _cancel_transfer(run.upload_task_id)
+    _cancel_transfer(data_transfer, run.upload_task_id)
     _update_run_status(run, "submission failed", reason)
 
 
@@ -807,6 +809,8 @@ def _cancel_transfer(data_transfer: DataTransferProtocol, transfer_task_id: str)
     :param transfer_task_id: Globus transfer task id
     :type transfer_task_id: str
     """
+    print(f"{transfer_task_id=}")
+    print(f"{data_transfer=}")
     return data_transfer.cancel_transfer(transfer_task_id)
 
 
@@ -831,24 +835,24 @@ def cancel_all(user):
     return cancelled, 201
 
 
-def authorize_transfer_client():
-    """
-    Create a globus transfer client using client id and client secret for credentials. More information
-    can be found via Globus documentation:
+# def authorize_transfer_client():
+#     """
+#     Create a globus transfer client using client id and client secret for credentials. More information
+#     can be found via Globus documentation:
 
-    https://globus-sdk-python.readthedocs.io/en/stable/examples/client_credentials.html?highlight=secret
+#     https://globus-sdk-python.readthedocs.io/en/stable/examples/client_credentials.html?highlight=secret
 
-    :return: globus_sdk.TransferClient
-    """
-    client_id = config.conf.get("GLOBUS", "client_id")
-    client_secret = config.conf.get("GLOBUS", "client_secret")
-    try:
-        client = globus_sdk.ConfidentialAppAuthClient(client_id, client_secret)
-    except globus_sdk.GlobusAPIError as error:
-        raise error
-    scopes = "urn:globus:auth:scope:transfer.api.globus.org:all"
-    try:
-        authorizer = globus_sdk.ClientCredentialsAuthorizer(client, scopes)
-    except globus_sdk.GlobusAPIError as error:
-        raise error
-    return globus_sdk.TransferClient(authorizer=authorizer)
+#     :return: globus_sdk.TransferClient
+#     """
+#     client_id = config.conf.get("GLOBUS", "client_id")
+#     client_secret = config.conf.get("GLOBUS", "client_secret")
+#     try:
+#         client = globus_sdk.ConfidentialAppAuthClient(client_id, client_secret)
+#     except globus_sdk.GlobusAPIError as error:
+#         raise error
+#     scopes = "urn:globus:auth:scope:transfer.api.globus.org:all"
+#     try:
+#         authorizer = globus_sdk.ClientCredentialsAuthorizer(client, scopes)
+#     except globus_sdk.GlobusAPIError as error:
+#         raise error
+#     return globus_sdk.TransferClient(authorizer=authorizer)
