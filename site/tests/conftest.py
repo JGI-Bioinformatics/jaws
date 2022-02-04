@@ -6,6 +6,7 @@ import pytest
 import os
 import shutil
 from pathlib import Path
+from dataclasses import dataclass
 
 
 @pytest.fixture
@@ -542,3 +543,91 @@ def mock_query_user_id(monkeypatch):
     from jaws_site.daemon import Daemon
 
     monkeypatch.setattr(Daemon, "_query_user_id", query_jaws_id)
+
+
+@pytest.fixture()
+def mock_data_transfer(monkeypatch):
+    # import jaws_site.datatansfer_protocol
+    from jaws_site.runs import Run
+    from jaws_site.datatransfer_protocol import (
+        Status,
+        DataTransferError,
+        DataTransferAPIError,
+        DataTransferNetworkError,
+        DataTransferFactory,
+    )
+
+    class MockDataTransfer:
+        @staticmethod
+        def submit_upload(metadata: str, manifest_file: list):
+            if data_obj.raises.DataTransferError:
+                raise DataTransferError()
+            elif data_obj.raises.DataTransferAPIError:
+                raise DataTransferAPIError()
+            elif data_obj.raises.DataTransferNetworkError:
+                raise DataTransferNetworkError()
+            return "123"
+
+        @staticmethod
+        def submit_download(metadata: dict, src_dir: str, dst_dir: str):
+            if data_obj.raises.DataTransferError:
+                raise DataTransferError()
+            elif data_obj.raises.DataTransferAPIError:
+                raise DataTransferAPIError()
+            elif data_obj.raises.DataTransferNetworkError:
+                raise DataTransferNetworkError()
+            return "456"
+
+        @staticmethod
+        def transfer_status(task_id: str):
+            if data_obj.raises.DataTransferError:
+                raise DataTransferError()
+            elif data_obj.raises.DataTransferAPIError:
+                raise DataTransferAPIError()
+            elif data_obj.raises.DataTransferNetworkError:
+                raise DataTransferNetworkError()
+
+            if data_obj.status['succeeded']:
+                return Status.succeeded
+            elif data_obj.status['failed']:
+                return Status.failed
+            elif data_obj.status['transferring']:
+                return Status.transferring
+            elif data_obj.status['inactive']:
+                return Status.inactive
+
+        @staticmethod
+        def cancel_transfer(task_id: str):
+            if data_obj.raises.DataTransferError:
+                raise DataTransferError()
+            elif data_obj.raises.DataTransferAPIError:
+                raise DataTransferAPIError()
+            elif data_obj.raises.DataTransferNetworkError:
+                raise DataTransferNetworkError()
+
+    def mock_data_transfer(*args, **kwargs):
+        return MockDataTransfer()
+
+    def mock_get_data_transfer_type(*args, **kwargs):
+        return 'globus_transfer'
+
+    monkeypatch.setattr(DataTransferFactory, '__new__', mock_data_transfer)
+    monkeypatch.setattr(Run, '_get_data_transfer_type', mock_get_data_transfer_type)
+
+    @dataclass
+    class DataTransferExceptions():
+        DataTransferError = False
+        DataTransferAPIError = False
+        DataTransferNetworkError = False
+
+    class Data():
+        raises = DataTransferExceptions()
+        status = {
+            'succeeded': False,
+            'failed': False,
+            'transferring': False,
+            'inactive': False,
+        }
+
+    data_obj = Data()
+    return data_obj

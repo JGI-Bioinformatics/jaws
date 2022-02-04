@@ -3,9 +3,7 @@ import os.path
 import jaws_site
 from jaws_site.runs import Run
 
-# import jaws_site.globus
 import tests.conftest
-import globus_sdk
 
 
 def test_run_constructor(monkeypatch):
@@ -28,21 +26,21 @@ def mock__insert_run_log(self, status_from, status_to, timestamp, reason=None):
     assert isinstance(status_to, str)
 
 
-class MockGlobusService:
-    def __init__(self, status, transfer_result={"task_id": "325"}):
-        self.status = status
-        self.transfer_result = transfer_result
+# class MockGlobusService:
+#     def __init__(self, status, transfer_result={"task_id": "325"}):
+#         self.status = status
+#         self.transfer_result = transfer_result
 
-    def transfer_status(self, task_id):
-        return self.status["status"]
+#     def transfer_status(self, task_id):
+#         return self.status["status"]
 
-    def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
-        return self.transfer_result["task_id"]
+#     def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
+#         return self.transfer_result["task_id"]
 
 
-class MockGlobusWithError(MockGlobusService):
-    def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
-        raise globus_sdk.GlobusError()
+# class MockGlobusWithError(MockGlobusService):
+#     def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
+#         raise globus_sdk.GlobusError()
 
 
 class MockCromwell:
@@ -104,10 +102,10 @@ def test_check_operations_table(status):
 
 @pytest.mark.parametrize(
     "statuses",
-    [{"status": "FAILED"}, {"status": "INACTIVE"}],
+    ["failed", "inactive"],
     ids=["failed", "inactive"],
 )
-def test_check_if_upload_complete(statuses, monkeypatch):
+def test_check_if_upload_complete(statuses, monkeypatch, mock_data_transfer):
     """
     Tests check_if_upload_complete from Run class. This only tests two
     statuses since the 'SUCCEEDED' status calls another method we want to
@@ -117,10 +115,13 @@ def test_check_if_upload_complete(statuses, monkeypatch):
     model = tests.conftest.MockRunModel(status="uploading")
     run = Run(mock_session, model=model)
 
-    def mock_globus_service(run):
-        return MockGlobusService(statuses)
+    # def mock_globus_service(run):
+    #     return MockGlobusService(statuses)
 
-    monkeypatch.setattr(jaws_site.globus, "GlobusService", mock_globus_service)
+    # monkeypatch.setattr(jaws_site.globus, "GlobusService", mock_globus_service)
+
+    mock_data_transfer.status[statuses] = True
+
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     run.check_if_upload_complete()
@@ -209,7 +210,7 @@ def mock_path(tmp_path):
     return tmp_path_mock
 
 
-def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path):
+def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path, mock_data_transfer):
     def mock_cp_infile_to_outdir(
         self, path, suffix, dest_dir, dest_file, required=True
     ):
@@ -230,17 +231,16 @@ def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path):
     )
 
     run = Run(mock_session, model=mock_model)
-    monkeypatch.setattr(
-        jaws_site.runs, "globus", MockGlobusService({"status": "SUCCEEDED"})
-    )
     monkeypatch.setattr(jaws_site.runs, "cromwell", MockCromwell())
 
     run.transfer_results()
 
-    assert run.model.download_task_id == "325"
+    assert run.model.download_task_id == "456"
 
 
-def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path):
+def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path, mock_data_transfer):
+    from jaws_site.datatransfer_protocol import DataTransferError
+
     def mock_cp_infile_to_outdir(
         self, path, suffix, dest_dir, dest_file, required=True
     ):
@@ -261,23 +261,22 @@ def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path)
     )
 
     run = Run(mock_session, model=mock_model)
-    monkeypatch.setattr(
-        jaws_site.runs, "globus", MockGlobusWithError({"status": "FAILED"})
-    )
     monkeypatch.setattr(jaws_site.runs, "cromwell", MockCromwell())
 
-    with pytest.raises(globus_sdk.GlobusError):
+    mock_data_transfer.raises.DataTransferError = True
+
+    with pytest.raises(DataTransferError):
         run.transfer_results()
 
 
 @pytest.mark.parametrize(
     "status,expected",
     [
-        ({"status": "SUCCEEDED"}, "download complete"),
-        ({"status": "FAILED"}, "download failed"),
+        ("succeeded", "download complete"),
+        ("failed", "download failed"),
     ],
 )
-def test_check_if_download_complete(status, expected, monkeypatch):
+def test_check_if_download_complete(status, expected, monkeypatch, mock_data_transfer):
 
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
@@ -286,7 +285,7 @@ def test_check_if_download_complete(status, expected, monkeypatch):
     mock_model = tests.conftest.MockRunModel(status="downloading")
     run = Run(mock_session, model=mock_model)
 
-    monkeypatch.setattr(jaws_site.runs, "globus", MockGlobusService(status))
+    mock_data_transfer.status[status] = True
 
     run.check_if_download_complete()
 

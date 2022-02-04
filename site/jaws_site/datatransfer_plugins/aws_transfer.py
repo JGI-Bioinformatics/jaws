@@ -12,7 +12,7 @@ import uuid
 import boto3
 from botocore.exceptions import ClientError
 
-from ..datatransfer_protocol import DataTransferError, SiteTransfer
+from ..datatransfer_protocol import SiteTransfer
 
 logger = logging.getLogger(__package__)
 
@@ -70,10 +70,13 @@ class DataTransfer:
             # If we're submitting to aws we need to upload data
             self._submit_upload(transfer_id, src, dest, label=label)
 
-        return transfer_ids
+        # The client code expects a transfer id string to be returned, not a list. Hence, we're returning 0 in
+        # this case instead of a list of transfer ids.
 
+        # return transfer_ids
+        return 0
 
-    def submit_download(self, metadata: dict, src_path: str, dest_path:str) -> List[str]:
+    def submit_download(self, metadata: dict, src_path: str, dest_path: str) -> List[str]:
         """
         Submit a transfer to S3
 
@@ -224,7 +227,6 @@ class DataTransfer:
         if isinstance(self._transfer_threads[transfer_id], str):
             return self._transfer_threads[transfer_id]
 
-        status = None
         try:
             # While transfering thread "is_alive" -> True
             # When done transfering thread "is_alive" -> False
