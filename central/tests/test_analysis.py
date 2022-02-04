@@ -130,9 +130,10 @@ def test_list_sites(configuration):
         assert "max_ram_gb" in site
 
 
-def test_cancel_transfer(configuration, mock_database, mock_globus):
+def test_cancel_transfer(configuration, mock_database, mock_globus, mock_data_transfer):
     transfer_id = "without_error"
-    jaws_central.analysis._cancel_transfer(transfer_id)
+    status = jaws_central.analysis._cancel_transfer(mock_data_transfer, transfer_id)
+    assert status == f"cancelled {transfer_id}"
 
 
 def test_cancel_run(monkeypatch):

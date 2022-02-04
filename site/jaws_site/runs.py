@@ -12,7 +12,7 @@ import json
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
-from datatransfer_protocol import (
+from jaws_site.datatransfer_protocol import (
     DataTransferError,
     SiteTransfer,
     DataTransferProtocol,
@@ -184,7 +184,8 @@ class Run:
         If the upload is complete, update the run's status.
         """
         logger.debug(f"Run {self.model.id}: Check upload status")
-        data_transfer = self._get_data_transfer_object()
+        data_transfer_type = self._get_data_transfer_type()
+        data_transfer = DataTransferFactory(data_transfer_type)
         status = self.upload_status(data_transfer)
         if status == SiteTransfer.status.failed:
             self.update_run_status("upload failed")
@@ -341,12 +342,15 @@ class Run:
         with open(outputs_file, "w") as fh:
             fh.write(json.dumps(outputs, sort_keys=True, indent=4))
 
+    def _get_data_transfer_type(self) -> str:
+        """Lookup the site id to determine what type of data transfer method needs to be used (e.g., globus, aws).
 
-    def _get_data_transfer_object(self) -> DataTransferProtocol:
+        :return: data transfer type based on site id (e.gl, 'globus_transfer', 'aws_transfer')
+        :rtype: str
+        """
         site_id = config.conf.get("SITE", "id")
         transfer_type = SiteTransfer.type[site_id.upper()]
-        return DataTransferFactory(transfer_type)
-
+        return transfer_type
 
     def transfer_results(self) -> None:
         """
@@ -386,17 +390,18 @@ class Run:
             # don't change state; keep trying
             return
 
-        data_transfer = self._get_data_transfer_object()
+        data_transfer_type = self._get_data_transfer_type()
+        data_transfer = DataTransferFactory(data_transfer_type)
         metadata = {
             "label": f"Run {self.model.id}"
         }
 
-        if transfer_type == 'globus_transfer':
+        if data_transfer_type == 'globus_transfer':
             metadata['output_endpoint'] = self.model.output_endpoint
 
         try:
-            transfer_task_id = transfer_files(data_transfer, metadata, cromwell_workflow_dir,
-                                              self.model.output_dir)
+            transfer_task_id = self.transfer_files(data_transfer, metadata, cromwell_workflow_dir,
+                                                   self.model.output_dir)
         except DataTransferError as error:
             logger.error(f"error while submitting transfer: {error}")
             raise
@@ -406,20 +411,20 @@ class Run:
                 "downloading", f"download_task_id={self.model.download_task_id}"
             )
 
-    def transfer_files(data_transfer: DataTransferProtocol, metadata: dict, src_dir: str, dst_dir: str) -> str:
+    def transfer_files(self, data_transfer: DataTransferProtocol, metadata: dict, src_dir: str, dst_dir: str) -> str:
         return data_transfer.submit_download(metadata, src_dir, dst_dir)
-
 
     def check_if_download_complete(self) -> None:
         """
         If download is complete, change state.
         """
         logger.debug(f"Run {self.model.id}: Check download status")
-        data_transfer = self._get_data_transfer_object()
+        data_transfer_type = self._get_data_transfer_type()
+        data_transfer = DataTransferFactory(data_transfer_type)
         status = self.download_status(data_transfer)
-        if status == SiteTransfer.status["succeeded"]:
+        if status == SiteTransfer.status.succeeded:
             self.update_run_status("download complete")
-        elif status == SiteTransfer.status["failed"]:
+        elif status == SiteTransfer.status.failed:
             self.update_run_status("download failed")
 
     def update_run_status(self, status_to, reason=None) -> None:
