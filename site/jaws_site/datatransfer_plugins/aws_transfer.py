@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import List, Tuple
-from jaws_central import config
+from jaws_site import config
 from glob import glob
 import threading
 
@@ -137,7 +137,7 @@ class DataTransfer:
 
         return source_paths, dest_paths
 
-    def _get_file_paths(self, src_path: str, dest_path: str) -> Tuple(List[str], List[str]):
+    def _get_file_paths(self, src_path: str, dest_path: str) -> Tuple[List[str], List[str]]:
         """
         Given a source file path and a destination file path, construct a list of source files and destination
         files recursively.
