@@ -19,7 +19,7 @@ build_image() {
     fi
 
     git clone https://code.jgi.doe.gov/advanced-analysis/jaws
-    docker build --no-cache -t  jaws_$service_name:$version --build-arg JAWS_VERSION=${version} .
+    docker build --no-cache -t  jaws_$service_name:$version --build-arg JAWS_VERSION=${version} --build-arg VERSION=2.5.0 .
     rm -rf jaws/
 }
 

@@ -10,9 +10,9 @@ host = $JAWS_CENTRAL_RMQ_HOST
 port = $JAWS_CENTRAL_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JAWS_LOCAL
-globus_endpoint = /
-globus_host_path = /
-uploads_dir = /uploads
+globus_endpoint = $GLOBUS_ENDPOINT
+globus_host_path = $GLOBUS_HOST_PATH
+uploads_dir = $GLOBUS_HOST_PATH/uploads
 max_ram_gb = 100G
 "
 cat << EOM > /etc/jaws-central.conf
