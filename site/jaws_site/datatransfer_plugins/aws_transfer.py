@@ -161,7 +161,6 @@ class DataTransfer:
                 dest_file = os.path.join(dest_path, os.path.basename(src_file))
                 src_files.append(src_file)
                 dest_files.append(dest_file)
-            print()
 
         return src_files, dest_files
 

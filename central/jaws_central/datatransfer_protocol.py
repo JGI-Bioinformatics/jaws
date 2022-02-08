@@ -64,12 +64,12 @@ class DataTransferFactory:
     """
     def __new__(cls, obj_type: str) -> Callable:
         classname = "DataTransfer"
-        modulename = f"datatransfer_plugins.{obj_type}"
+        modulename = f"jaws_site.datatransfer_plugins.{obj_type}"
 
         try:
             imported_module = importlib.import_module(modulename)
         except ImportError:
-            raise DataTransferError(f"No module {modulename} found")
+            raise ImportError(f"No module {modulename} found")
 
         try:
             obj = getattr(imported_module, classname)
