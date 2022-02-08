@@ -12,51 +12,71 @@ if [ $# -lt 5 ]; then
     exit 1
 fi
 
-function pull_by_id() {
-    # This will:
-    # 1) check to see if it is cached already.
-    # 2) if not, figure out the right version to pull
-
-    set -e
-    IMG=${1}
-    REPO=$(echo $IMG | sed 's/@.*//')
-    HASH=$(echo $IMG | sed 's/.*@//')
-    ID=$(echo $IMG | sed 's/.*://')
-
-    # Try running it...
-    set +e
-    shifter --image=id:${ID} echo yes >/dev/null 2>&1 && return 0
-    set -e
-
-    #Try to figure out the version to pull
-    RT=$(skopeo inspect docker://${IMG} | jq .RepoTags)
-    for ttag in $(echo $RT | sed 's/[",[]//g'); do
-        digest=$(skopeo inspect docker://${REPO}:${ttag} | jq .Digest | sed 's/"//g')
-        if [ "$digest" == "$HASH" ]; then
-            TAG=$ttag
-            break
+function pullImage(){
+    IMG=$1
+    REPO=$2
+    HASH=$3
+    TAG=
+    IMAGE=
+    if [[ $HASH =~ "sha256" ]]; then
+        #Try to figure out the version to pull
+        RT=$(skopeo inspect docker://${IMG} | jq .RepoTags)
+        for ttag in $(echo $RT | sed 's/[",[]//g'); do
+            digest=$(skopeo inspect docker://${REPO}:${ttag} | jq .Digest | sed 's/"//g')
+            if [ "$digest" == "$HASH" ]; then
+                TAG=$ttag
+                break
+            fi
+        done
+    
+        if [ -z $TAG ]; then
+            echo "Unable to determine image version" 1>&2
+            exit 1
         fi
-    done
-    if [ -z $TAG ]; then
-        echo "Unable to determine image version" 1>&2
-        exit 1
+    
+        IMAGE=${REPO}:${TAG}
+    else
+        IMAGE=${REPO}
     fi
 
     # Pull image by tag
-    shifterimg pull ${REPO}:${TAG} 1>&2
-
-    # Get the ID
-    # All variables are global by default in bash so we can access the
-    # ID variable outside the function now.
-    ID=$(shifterimg lookup ${REPO}:${TAG})
+    shifterimg pull ${IMAGE} > /dev/null 2>&1
+    if [[ $? > 0 ]]; then
+        echo "Invalid container name or failed to pull container, ${IMAGE}"
+        exit 1
+    else
+        echo "successfully pulled image ${IMAGE}"
+    fi
 }
 
-if [ $(echo ${IMG} | grep -c sha256) -gt 0 ]; then
-    pull_by_id ${IMG}
-    ID=id:$ID
+IMG=${1}
+REPO=$(echo $IMG | sed 's/@.*//')
+HASH=$(echo $IMG | sed 's/.*@//')
+ID=$(echo $IMG | sed 's/.*://')
+
+# if using sha
+#   IMG: jfroula/test@sha256:ef70f44e4d7cc28d40ff6117922583642919403dfac44d0a523f49c5f9b8993a
+#   REPO: jfroula/test
+#   HASH: sha256:ef70f44e4d7cc28d40ff6117922583642919403dfac44d0a523f49c5f9b8993a
+#   ID: ef70f44e4d7cc28d40ff6117922583642919403dfac44d0a523f49c5f9b8993a
+#
+# if not using sha
+#   IMG: jfroula/test:0.1.5
+#   REPO: jfroula/test:0.1.5
+#   HASH: jfroula/test:0.1.5
+#   ID: 0.1.5
+
+if [[ $HASH =~ "sha256" ]]; then
+    shifter --image=id:${ID} echo testing to see if we already have image > /dev/null 2>&1
 else
-    ID=$1
+    shifter --image=${IMG} echo testing to see if we already have image > /dev/null 2>&1
 fi
+if [[ $? == 0 ]]; then
+    echo "image already pulled: $IMG"
+else
+    pullImage $IMG $REPO $HASH
+fi
+
 
 # Check if monitoring script is installed
 if [ -x "$(command -v pagurus)" ]; then
@@ -67,7 +87,12 @@ if [ -x "$(command -v pagurus)" ]; then
 fi
 
 # Run container script and catch exit code
-shifter --image=$ID -V $2:$3 $4 $5
+if [[ $HASH =~ "sha256" ]]; then
+    shifter --image=id:$ID -V $2:$3 $4 $5
+else
+    shifter --image=$REPO -V $2:$3 $4 $5
+fi
+
 export EXIT_CODE=$?
 
 # If PID is set then kill it
