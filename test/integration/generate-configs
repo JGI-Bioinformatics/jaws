@@ -102,6 +102,10 @@ id = $JAWS_SITE
 uploads_dir = $SITE_UPLOADS_DIR
 [CROMWELL]
 url = http://localhost:$CROMWELL_PORT
+[AWS]
+aws_access_key_id = $AWS_ACCESS_KEY_ID
+aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
+s3_bucket = ABCD
 EOM
 
 cat << EOM > $CONFIG_DIR/jaws-jtm.conf

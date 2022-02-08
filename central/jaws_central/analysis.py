@@ -809,8 +809,6 @@ def _cancel_transfer(data_transfer: DataTransferProtocol, transfer_task_id: str)
     :param transfer_task_id: Globus transfer task id
     :type transfer_task_id: str
     """
-    print(f"{transfer_task_id=}")
-    print(f"{data_transfer=}")
     return data_transfer.cancel_transfer(transfer_task_id)
 
 
