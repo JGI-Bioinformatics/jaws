@@ -2,7 +2,6 @@ import logging
 import os
 from typing import List, Tuple
 from jaws_site import config
-from glob import glob
 import threading
 
 # For creating random uuid
@@ -58,6 +57,7 @@ class DataTransfer:
 
         label = metadata.get('label', '')
         transfer_ids = []
+        result = None
 
         # Get source and destinations from manifest
         source_paths, dest_paths = self._get_manifest_paths(manifest_files)
@@ -68,13 +68,13 @@ class DataTransfer:
             logger.debug(f"S3 Transfer starting for {transfer_id} {label}")
             transfer_ids.append(transfer_id)
             # If we're submitting to aws we need to upload data
-            self._submit_upload(transfer_id, src, dest, label=label)
+            result = self._submit_upload(transfer_id, src, dest, label=label)
 
         # The client code expects a transfer id string to be returned, not a list. Hence, we're returning 0 in
         # this case instead of a list of transfer ids.
 
         # return transfer_ids
-        return 0
+        return str(result)
 
     def submit_download(self, metadata: dict, src_path: str, dest_path: str) -> List[str]:
         """
@@ -89,6 +89,7 @@ class DataTransfer:
 
         label = metadata.get('label', '')
         transfer_ids = []
+        result = None
 
         # Get source and destinations from manifest
         source_paths, dest_paths = self._get_file_paths(src_path, dest_path)
@@ -99,10 +100,11 @@ class DataTransfer:
             logger.debug(f"S3 Transfer starting for {transfer_id} {label}")
             transfer_ids.append(transfer_id)
             # If we're submitting to aws we need to upload data
-            self._submit_download(transfer_id, src, dest, label=label)
+            result = self._submit_download(transfer_id, src, dest, label=label)
 
         # client is expecting one transfer id, not a list so here, we don't return anything
         # return transfer_ids
+        return str(result)
 
     def cancel_transfer(self, task_id: str) -> None:
         """TODO: Need to implement. As of current 2/2022, boto3 doesn't support cancelling s3 transfers."""
@@ -125,12 +127,14 @@ class DataTransfer:
             source_path, dest_path, inode_type = line.split("\t")
 
             if inode_type == "D" or os.path.isdir(source_path):
+                source_paths, dest_paths = self._get_file_paths(source_path, dest_path)
+                # dest_paths.append(f"{dest_path}")
                 # If it's a directory get all the files and transfer them
-                files = glob(f"{source_path}/*")
-                for fil in files:
-                    _fil = os.path.basename(fil)
-                    source_paths.append(f"{source_path}/{_fil}")
-                    dest_paths.append(f"{dest_path}")
+                # files = glob(f"{source_path}/*")
+                # for fil in files:
+                #     _fil = os.path.basename(fil)
+                #     source_paths.append(f"{source_path}/{_fil}")
+                #     dest_paths.append(f"{dest_path}")
             else:
                 source_paths.append(f"{source_path}")
                 dest_paths.append(f"{dest_path}")
@@ -157,6 +161,7 @@ class DataTransfer:
                 dest_file = os.path.join(dest_path, os.path.basename(src_file))
                 src_files.append(src_file)
                 dest_files.append(dest_file)
+            print()
 
         return src_files, dest_files
 
@@ -224,7 +229,7 @@ class DataTransfer:
         """
         # If we already checked the status it is stored as the transfer ID
         # Just return the string value
-        if isinstance(self._transfer_threads[transfer_id], str):
+        if isinstance(self._transfer_threads.get(transfer_id), str):
             return self._transfer_threads[transfer_id]
 
         try:
@@ -243,7 +248,7 @@ class DataTransfer:
 
         if not alive:
             try:
-                self._transfer_threads[transfer_id].join()
+                # self._transfer_threads[transfer_id].join()
                 self._transfer_threads[transfer_id] = "upload complete"
                 return SiteTransfer.status.succeeded
             except ClientError as e:
