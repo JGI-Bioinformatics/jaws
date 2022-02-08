@@ -51,6 +51,10 @@ url = http://localhost:8000
 [SITE]
 id = eagle
 uploads_dir = /global/scratch/jaws/jaws-dev/uploads
+[AWS]
+aws_access_key_id = AAAA
+aws_secret_access_key = BBBB
+s3_bucket = CCCC
 """
 
     cfg.write_text(content)
@@ -90,6 +94,10 @@ url = http://localhost:8000
 [SITE]
 id = eagle
 uploads_dir = /global/scratch/jaws/jaws-dev/uploads
+[AWS]
+aws_access_key_id = AAAA
+aws_secret_access_key = BBBB
+s3_bucket = CCCC
     """
     cfg.write_text(content)
     return cfg.as_posix()
