@@ -96,8 +96,6 @@ def test_get_manifest_paths_filetype():
     src_paths, dst_paths = aws_transfer.DataTransfer()._get_manifest_paths(manifest_files)
     assert src_paths == ['/my/srcfile1', '/my/srcfile2', '/my/srcfile3']
     assert dst_paths == ['/my/dstfile1', '/my/dstfile2', '/my/dstfile3']
-    print(f"{src_paths=}")
-    print(f"{dst_paths=}")
 
 
 @pytest.fixture
@@ -115,12 +113,10 @@ def mock_src_paths(tmp_path):
 def test_get_manifest_paths_dirtype(mock_src_paths):
     manifest_files = []
     for src_file in mock_src_paths:
-        print(f"{src_file=}")
         src_dir = os.path.dirname(src_file)
         line = f"{src_dir}\t/my/dstfile\tD".encode('UTF-8')
         manifest_files.append(line)
 
-    print(f"{manifest_files=}")
     src_paths, dst_paths = aws_transfer.DataTransfer()._get_manifest_paths(manifest_files)
     assert all(obs == exp for obs, exp in zip(src_paths, reversed(mock_src_paths)))
     assert dst_paths == ['/my/dstfile/srcfile3.txt', '/my/dstfile/srcfile2.txt', '/my/dstfile/srcfile1.txt']
