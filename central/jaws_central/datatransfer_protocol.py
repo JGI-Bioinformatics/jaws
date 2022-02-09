@@ -17,13 +17,13 @@ class DataTransferNetworkError(DataTransferError):
 
 class DataTransferProtocol(Protocol):
     """Interface for the data transfer object using the Protocol structural subtyping class."""
-    def submit_upload(self, metadata: str, manifest_file: list):
+    def submit_upload(self, metadata: dict, manifest_files: list) -> str:
         ...
 
-    def submit_download(self, metadata: dict, src_dir: str, dst_dir: str):
+    def submit_download(self, metadata: dict, src_dir: str, dst_dir: str) -> str:
         ...
 
-    def transfer_status(self, task_id: str):
+    def transfer_status(self, task_id: str) -> str:
         ...
 
     def cancel_transfer(self, task_id: str):
@@ -86,11 +86,16 @@ from datatransfer_protocol import DataTransferProtocol, DataTransferError
 
 # Setup methods that use a DataTransferProtocol
 
-# Transfer arguments as *args, **kwargs
-def transfer_file(obj: DataTransferProtocol, *args, **kwargs) -> List[str]:
-    return obj.submit_transfer(*args, **kwargs)
+# File upload
+def submit_upload(obj: DataTransferProtocol, metadata: dict, manifest_files: list ) -> List[str]:
+    return obj.submit_transfer(metadata, manifest_files)
 
-# Or directly specifying them
+# File download
+def submit_download(obj: DataTransferProtocol, metadata: dict, src_dir: str, dst_dir:str) -> List[str]:
+    return obj.submit_download(metadata, src_dir, dst_dir)
+
+
+# Get status
 def transfer_status(obj: DataTransferProtocol, transfer_id: str) -> str:
     return obj.transfer_status(transfer_id)
 
@@ -102,6 +107,14 @@ def main():
         print(err)
         raise SystemExit()
 
-    tansfer_ids = transfer_file(obj, label, src_site_id, dest_site_id, manifest_file)
-    print(transfer_status(obj, tansfer_ids[0]))
+    metadata = {'label': 'this is a label'}
+
+    # Upload files to remote site
+    tansfer_id = submit_upload(obj, metadata, manifest_files)
+
+    # Download files from remote site
+    tansfer_id = submit_download(obj, metadata, src_dir, dst_dir)
+
+    # Check status
+    print(transfer_status(obj, tansfer_id))
 """
