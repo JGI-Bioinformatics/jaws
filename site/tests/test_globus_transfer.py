@@ -7,7 +7,6 @@ from jaws_site.datatransfer_protocol import SiteTransfer
 
 @pytest.fixture()
 def mock_globus_transfer(monkeypatch):
-
     class TransferClient:
         @staticmethod
         def get_task(*args, **kwargs):
@@ -69,7 +68,6 @@ def test_globus_submit_upload(mock_globus_transfer):
         b"/home/srcfile2\t/home/\tF",
         b"/home/srcfile3\t/home/\tF",
     ]
-    # data_transfer = DataTransferFactory('globus_transfer')
     data_transfer = globus_transfer.DataTransfer()
     result = data_transfer.submit_upload(metadata, manifest_files)
     assert result == 'globus_task_id_1234'
@@ -81,7 +79,9 @@ def test_globus_submit_download(mock_globus_transfer):
         "dest_endpoint": "abcd"
     }
     data_transfer = globus_transfer.DataTransfer()
-    result = data_transfer.submit_download(metadata, '/global/scratch/jaws/test', '/home/destdir')
+    src_dir = '/global/scratch/jaws/test'
+    dst_dir = '/home/destdir'
+    result = data_transfer.submit_download(metadata, src_dir, dst_dir)
     assert result == 'globus_task_id_1234'
 
 
