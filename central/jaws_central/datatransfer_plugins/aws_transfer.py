@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import List, Tuple
-from jaws_site import config
+from jaws_central import config
 import threading
 
 # For creating random uuid

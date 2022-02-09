@@ -5,7 +5,7 @@ from datetime import datetime
 import jaws_central.analysis
 import jaws_central.models_fsa
 import jaws_central.config
-import jaws_central.globus
+from jaws_central.datatransfer_plugins import globus_transfer
 
 
 class MockClient:
@@ -213,7 +213,7 @@ def test_run_metadata(monkeypatch):
 
 
 def test_globus_transfer_path(configuration):
-    globus = jaws_central.globus.GlobusService()
+    globus = globus_transfer.DataTransfer()
     test_data = [
         (
             "/global/cscratch1/sd/jaws/jaws-dev/users/mamelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl",
