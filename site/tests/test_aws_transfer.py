@@ -2,7 +2,6 @@ import pytest
 import os
 from dataclasses import dataclass
 from jaws_site.datatransfer_plugins import aws_transfer
-# from jaws_site.datatransfer_protocol import DataTransferFactory, SiteTransfer
 
 
 @pytest.fixture()
@@ -30,12 +29,8 @@ def mock_aws_transfer(monkeypatch):
     def mockup_thread(*args, **kwargs):
         return MockupThread
 
-    def mockup_get_file_path(self, src_path, dst_path):
-        return src_path, dst_path
-
     monkeypatch.setattr(boto3, "client", mockup_client)
     monkeypatch.setattr(threading, "Thread", mockup_thread)
-    monkeypatch.setattr(aws_transfer.DataTransfer, "_get_file_paths", mockup_get_file_path)
 
     class Data():
         def __init__(self):
@@ -43,6 +38,18 @@ def mock_aws_transfer(monkeypatch):
 
     data_obj = Data()
     return data_obj
+
+
+@pytest.fixture
+def mock_src_paths(tmp_path):
+    files = []
+    f = tmp_path / "srcpath"
+    f.mkdir()
+    for n in range(1, 4):
+        f = tmp_path / f"srcpath/srcfile{n}.txt"
+        f.touch()
+        files.append(f.as_posix())
+    return files
 
 
 def test_add_transfer():
@@ -63,21 +70,18 @@ def test_submit_upload(mock_aws_transfer):
     assert result == 'True'
 
 
-def test_submit_download(mock_aws_transfer):
+def test_submit_download(monkeypatch, mock_aws_transfer):
+    def mockup_get_file_paths(self, src_path, dst_path):
+        return [src_path], [dst_path]
+
+    monkeypatch.setattr(aws_transfer.DataTransfer, "_get_file_paths", mockup_get_file_paths)
+
     metadata = {
         "label": "test",
     }
-    src_paths = [
-        '/my/srcfile1',
-        '/my/srcfile2',
-        '/my/srcfile3',
-    ]
-    dst_paths = [
-        '/my/dstfile1',
-        '/my/dstfile2',
-        '/my/dstfile3',
-    ]
-    result = aws_transfer.DataTransfer().submit_download(metadata, src_paths, dst_paths)
+    src_dir = '/global/scratch/jaws/test'
+    dst_dir = '/home/destdir'
+    result = aws_transfer.DataTransfer().submit_download(metadata, src_dir, dst_dir)
     assert result == 'True'
 
 
@@ -98,28 +102,18 @@ def test_get_manifest_paths_filetype():
     assert dst_paths == ['/my/dstfile1', '/my/dstfile2', '/my/dstfile3']
 
 
-@pytest.fixture
-def mock_src_paths(tmp_path):
-    files = []
-    f = tmp_path / "srcpath"
-    f.mkdir()
-    for n in range(1, 4):
-        f = tmp_path / f"srcpath/srcfile{n}.txt"
-        f.touch()
-        files.append(f.as_posix())
-    return files
-
-
 def test_get_manifest_paths_dirtype(mock_src_paths):
     manifest_files = []
+    dst_dir = "/my/dstdir"
     for src_file in mock_src_paths:
+        # src_file = <some_tmp_dir>/srcfile[1-3].txt created from mock_src_paths
         src_dir = os.path.dirname(src_file)
-        line = f"{src_dir}\t/my/dstfile\tD".encode('UTF-8')
+        line = f"{src_dir}\t{dst_dir}\tD".encode('UTF-8')
         manifest_files.append(line)
 
     src_paths, dst_paths = aws_transfer.DataTransfer()._get_manifest_paths(manifest_files)
     assert all(obs == exp for obs, exp in zip(src_paths, reversed(mock_src_paths)))
-    assert dst_paths == ['/my/dstfile/srcfile3.txt', '/my/dstfile/srcfile2.txt', '/my/dstfile/srcfile1.txt']
+    assert dst_paths == [f"{dst_dir}/srcfile3.txt", f"{dst_dir}/srcfile2.txt", f"{dst_dir}/srcfile1.txt"]
 
 
 def test_transfer_status(mock_aws_transfer):
