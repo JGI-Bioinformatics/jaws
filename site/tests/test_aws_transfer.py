@@ -104,16 +104,27 @@ def test_get_manifest_paths_filetype():
 
 def test_get_manifest_paths_dirtype(mock_src_paths):
     manifest_files = []
-    dst_dir = "/my/dstdir"
+    dst_path = "/my/dstdir"
+    exp_dst_paths = []
     for src_file in mock_src_paths:
         # src_file = <some_tmp_dir>/srcfile[1-3].txt created from mock_src_paths
-        src_dir = os.path.dirname(src_file)
-        line = f"{src_dir}\t{dst_dir}\tD".encode('UTF-8')
+        src_path = os.path.dirname(src_file)
+        line = f"{src_path}\t{dst_path}\tD".encode('UTF-8')
         manifest_files.append(line)
+        exp_dst_paths.append(f"{dst_path}/{os.path.basename(src_file)}")
 
     src_paths, dst_paths = aws_transfer.DataTransfer()._get_manifest_paths(manifest_files)
-    assert all(obs == exp for obs, exp in zip(src_paths, reversed(mock_src_paths)))
-    assert dst_paths == [f"{dst_dir}/srcfile3.txt", f"{dst_dir}/srcfile2.txt", f"{dst_dir}/srcfile1.txt"]
+
+    assert len(src_paths) == len(mock_src_paths)
+    for fn in mock_src_paths:
+        assert fn in src_paths
+
+    assert len(dst_paths) == len(exp_dst_paths)
+    for fn in exp_dst_paths:
+        assert fn in dst_paths
+
+    # assert all(obs == exp for obs, exp in zip(src_paths, reversed(mock_src_paths)))
+    # assert dst_paths == [f"{dst_dir}/srcfile3.txt", f"{dst_dir}/srcfile2.txt", f"{dst_dir}/srcfile1.txt"]
 
 
 def test_transfer_status(mock_aws_transfer):
