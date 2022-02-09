@@ -2,7 +2,7 @@ import pytest
 import globus_sdk
 from dataclasses import dataclass
 from jaws_site.datatransfer_plugins import globus_transfer
-from jaws_site.datatransfer_protocol import SiteTransfer
+from jaws_site.datatransfer_protocol import SiteTransfer, DataTransferError
 
 
 @pytest.fixture()
