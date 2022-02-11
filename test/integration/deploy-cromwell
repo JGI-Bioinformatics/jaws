@@ -306,7 +306,7 @@ backend
         runtime-attributes = """
           String? docker
           String? docker_user
-          Int cpu = 1
+          Int? cpu = 1
           Float? memory_gb = 5
           Float? disk_kb = 25600.0
           Int? runtime_minutes
