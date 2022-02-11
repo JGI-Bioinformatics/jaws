@@ -97,7 +97,7 @@ variables:
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
   CORI_HTCONDOR_INSTALL: "/global/cfs/projectdirs/jaws/jaws-install/condor/condor"
-  CORI_HTCONDOR_MASTER_CONFIG: "/global/cfs/projectdirs/jaws/condor/condor_config.master.cori20"
+  CORI_HTCONDOR_MASTER_CONFIG: "/global/cfs/projectdirs/jaws/condor/condor_central.config"
 
   JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
@@ -123,8 +123,8 @@ variables:
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
-  JGI_HTCONDOR_INSTALL: "/global/home/groups-sw/lr_jgicloud/condor"
-  JGI_HTCONDOR_MASTER_CONFIG: "/global/home/groups-sw/lr_jgicloud/condor/etc/condor_config"
+  JGI_HTCONDOR_INSTALL: "/global/home/groups-sw/lr_jgicloud/condor/condor"
+  JGI_HTCONDOR_MASTER_CONFIG: "/global/home/groups-sw/lr_jgicloud/condor/condor_central.config"
 
   TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install/jaws-client/"
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
@@ -150,8 +150,8 @@ variables:
   TAHOMA_DATA_REPO_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
   TAHOMA_RMQ_PORT: 5672
-  TAHOMA_HTCONDOR_INSTALL: ""
-  TAHOMA_HTCONDOR_MASTER_CONFIG: ""
+  TAHOMA_HTCONDOR_INSTALL: "/tahoma/mscjgi/condor/condor"
+  TAHOMA_HTCONDOR_MASTER_CONFIG: "/tahoma/mscjgi/condor/condor_central.config"
 
   AWS_CLIENT_INSTALL_BASEDIR: "/opt/jaws-install/jaws-client/"
   AWS_INSTALL_BASEDIR: "/opt/jaws-install"
