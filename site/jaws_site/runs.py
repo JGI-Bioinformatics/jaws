@@ -399,6 +399,8 @@ class Run:
         if data_transfer_type == 'globus_transfer':
             metadata['output_endpoint'] = self.model.output_endpoint
 
+        logger.debug(f"Transferring files using {data_transfer_type}")
+
         try:
             transfer_task_id = self.transfer_files(data_transfer, metadata, cromwell_workflow_dir,
                                                    self.model.output_dir)
@@ -406,6 +408,7 @@ class Run:
             logger.error(f"error while submitting transfer: {error}")
             raise
         else:
+            logger.debug(f"Transfer task id={transfer_task_id}")
             self.model.download_task_id = transfer_task_id
             self.update_run_status(
                 "downloading", f"download_task_id={self.model.download_task_id}"

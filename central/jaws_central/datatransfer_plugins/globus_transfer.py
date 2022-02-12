@@ -144,6 +144,7 @@ class DataTransfer:
         :return: upload task id
         :rtype: str
         """
+        logger.debug("GLOBUS: submit_upload ...")
         if 'host_paths' not in metadata:
             raise KeyError("host_paths is not defined in input metadata.")
         elif 'input_endpoint' not in metadata:
@@ -168,6 +169,7 @@ class DataTransfer:
         except globus_sdk.GlobusError as error:
             raise DataTransferError(error)
 
+        logger.debug(f"{upload_task_id=}")
         return upload_task_id
 
     def cancel_transfer(self, transfer_task_id: str) -> str:

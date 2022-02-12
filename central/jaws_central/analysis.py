@@ -2,7 +2,6 @@
 Analysis (AKA Run) REST endpoints.
 """
 
-import os
 import logging
 from datetime import datetime, timedelta
 from flask import abort, request
@@ -302,21 +301,6 @@ def transfer_files(data_transfer: DataTransferProtocol, metadata: dict, manifest
     return data_transfer.submit_upload(metadata, manifest_files)
 
 
-def virtual_transfer_path(self, full_path, host_path):
-    """Return an absolute path used by Globus transfer service that uses the host_path as root.
-
-    :param full_path: The complete absolute path
-    :type full_path: str
-    :param host_path: Host path is root path of the globus endpoint
-    :type host_path: str
-    :return: virtual absolute path
-    :rtype: str
-    """
-    if not full_path.startswith(host_path):
-        raise ValueError(f"Path, {full_path}, is not accessible via Globus endpoint")
-    return os.path.join("/", os.path.relpath(full_path, host_path))
-
-
 def submit_run(user):
     """
     Record the run submission in the database, with status as "uploading".
@@ -336,7 +320,6 @@ def submit_run(user):
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
     compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
-    # globus = jaws_central.globus.GlobusService()
 
     if compute_endpoint is None:
         logger.error(
@@ -381,11 +364,30 @@ def submit_run(user):
     # These are all placed in a common location with setgid sticky bits so that all
     # submitting users have access.
     output_dir += f"/{user}/{site_id}/{run.id}"
-    src_host_path = config.conf.get_site(input_site_id, "globus_host_path")
 
-    # We modify the output dir path since we know the endpoint of the returning source site. From here
-    # a compute site can simply query the output directory and send.
-    virtual_output_path = virtual_transfer_path(output_dir, src_host_path)
+    # Setup data transfer object. The data transfer using either globus or AWS is based on site_id. This is defined
+    # in the SiteTransfer.type var.
+    data_transfer_type = SiteTransfer.type[site_id.upper()]
+    data_transfer = DataTransferFactory(data_transfer_type)
+    metadata = {"label": f"Upload run {run.id}"}
+
+    if data_transfer_type == 'globus_transfer':
+        src_host_path = config.conf.get_site(input_site_id, "globus_host_path")
+        metadata['host_paths'] = {
+            "src": src_host_path,
+            "dest": config.conf.get_site(site_id, "globus_host_path"),
+        }
+        metadata['input_endpoint'] = input_endpoint
+        metadata['compute_endpoint'] = compute_endpoint
+        metadata['run_id'] = run.id
+
+        # We modify the output dir path since we know the endpoint of the returning source site. From here
+        # a compute site can simply query the output directory and send.
+        virtual_output_path = data_transfer.virtual_transfer_path(output_dir, src_host_path)
+    else:
+        virtual_output_path = output_dir  # not sure what the virtual path for AWS should be ???
+
+    logger.debug("Transferring files using {data_transfer_type}")
 
     # Due to how the current database schema is setup, we have to update the output
     # directory from the model object itself immediately after insert.
@@ -408,20 +410,6 @@ def submit_run(user):
 
     # SUBMIT FILE TRANSFER
     manifest_files = request.files["manifest"]
-    data_transfer_type = SiteTransfer.type[site_id.upper()]
-    data_transfer = DataTransferFactory(data_transfer_type)
-    metadata = {
-        "label": f"Upload run {run.id}",
-    }
-
-    if data_transfer_type == 'globus_transfer':
-        metadata['host_paths'] = {
-            "src": src_host_path,
-            "dest": config.conf.get_site(site_id, "globus_host_path"),
-        }
-        metadata['input_endpoint'] = input_endpoint
-        metadata['compute_endpoint'] = compute_endpoint
-        metadata['run_id'] = run.id
 
     try:
         upload_task_id = transfer_files(data_transfer, metadata, manifest_files)
