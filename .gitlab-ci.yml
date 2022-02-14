@@ -183,18 +183,14 @@ variables:
 .only-default: &only-default
   tags:
     - shared-shell
-  only:
-    - master
-    - branches
-    - merge_requests
-    - tags
-
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 test:
   stage: test
-
   script:
       - echo "I'm needed for the SAST jobs"
-
 test-rpc:
   <<: *only-default
   stage: unit-test
@@ -233,7 +229,6 @@ test-central:
   artifacts:
     reports:
       cobertura: central/coverage.xml
-
 test-client:
   <<: *only-default
   stage: unit-test
@@ -249,7 +244,6 @@ test-client:
     reports:
       cobertura: client/coverage.xml
   allow_failure: true
-
 test-jtm:
   <<: *only-default
   stage: unit-test
@@ -263,19 +257,6 @@ test-jtm:
   artifacts:
     reports:
       cobertura: jtm/coverage.xml
-test-parsl:
-  <<: *only-default
-  stage: unit-test
-  script:
-    - python3.8 -m venv test-venv
-    - source test-venv/bin/activate
-    - pip3.8 install rpc/
-    - pip3.8 install -r parsl/requirements.txt
-    - pip3.8 install flake8 pytest pytest-cov
-    - make test-parsl
-  artifacts:
-    reports:
-      cobertura: parsl/coverage.xml
 
 package:
   <<: *only-default
