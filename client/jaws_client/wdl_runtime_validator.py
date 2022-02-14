@@ -225,6 +225,9 @@ class WDLStanzas:
                     # make stanza_list into a dictionary (so we'll have a dictionary of a dictionary)
                     mydict = {}
                     for param_key in stanza_list:
+                        if param_key.startswith('#'):
+                            continue
+
                         next_stanza = re.search(r"(?:{|<<<)", param_key)
 
                         # make sure the last bracket is not missing, or we'll bleed into the next stanza
