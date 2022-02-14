@@ -6,10 +6,6 @@ import logging
 from datetime import datetime, timedelta
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
-# import globus_sdk
-
-# import jaws_central.globus
-
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
