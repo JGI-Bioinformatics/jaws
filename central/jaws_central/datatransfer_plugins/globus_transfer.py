@@ -73,7 +73,8 @@ class DataTransfer:
             status = SiteTransfer.status.succeeded
         return status
 
-    def virtual_transfer_path(self, full_path: str, host_path: str) -> str:
+    @staticmethod
+    def virtual_transfer_path(full_path: str, host_path: str) -> str:
         """Return an absolute path used by Globus transfer service that uses the host_path as root.
 
         :param full_path: The complete absolute path
@@ -144,7 +145,6 @@ class DataTransfer:
         :return: upload task id
         :rtype: str
         """
-        logger.debug("GLOBUS: submit_upload ...")
         if 'host_paths' not in metadata:
             raise KeyError("host_paths is not defined in input metadata.")
         elif 'input_endpoint' not in metadata:
@@ -169,7 +169,6 @@ class DataTransfer:
         except globus_sdk.GlobusError as error:
             raise DataTransferError(error)
 
-        logger.debug(f"{upload_task_id=}")
         return upload_task_id
 
     def cancel_transfer(self, transfer_task_id: str) -> str:

@@ -73,7 +73,8 @@ class DataTransfer:
             status = SiteTransfer.status.succeeded
         return status
 
-    def virtual_transfer_path(self, full_path: str, host_path: str) -> str:
+    @staticmethod
+    def virtual_transfer_path(full_path: str, host_path: str) -> str:
         """Return an absolute path used by Globus transfer service that uses the host_path as root.
 
         :param full_path: The complete absolute path

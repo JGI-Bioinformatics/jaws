@@ -383,8 +383,6 @@ def submit_run(user):
     else:
         virtual_output_path = output_dir  # not sure what the virtual path for AWS should be ???
 
-    logger.debug("Transferring files using {data_transfer_type}")
-
     # Due to how the current database schema is setup, we have to update the output
     # directory from the model object itself immediately after insert.
     # TODO: Think of a better way to do this
@@ -406,6 +404,8 @@ def submit_run(user):
 
     # SUBMIT FILE TRANSFER
     manifest_files = request.files["manifest"]
+
+    logger.debug("Transferring files using {data_transfer_type}")
 
     try:
         upload_task_id = transfer_files(data_transfer, metadata, manifest_files)

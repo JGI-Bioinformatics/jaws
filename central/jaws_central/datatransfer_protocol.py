@@ -64,7 +64,7 @@ class DataTransferFactory:
     """
     def __new__(cls, obj_type: str) -> Callable:
         classname = "DataTransfer"
-        modulename = f"jaws_central.datatransfer_plugins.{obj_type}"
+        modulename = f"jaws_site.datatransfer_plugins.{obj_type}"
 
         try:
             imported_module = importlib.import_module(modulename)

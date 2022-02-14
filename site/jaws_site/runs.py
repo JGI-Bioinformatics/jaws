@@ -397,7 +397,7 @@ class Run:
         }
 
         if data_transfer_type == 'globus_transfer':
-            metadata['output_endpoint'] = self.model.output_endpoint
+            metadata['dest_endpoint'] = self.model.output_endpoint
 
         logger.debug(f"Transferring files using {data_transfer_type}")
 
@@ -415,6 +415,7 @@ class Run:
             )
 
     def transfer_files(self, data_transfer: DataTransferProtocol, metadata: dict, src_dir: str, dst_dir: str) -> str:
+        """Transfer files using the data_transfer object (e.g., via globus or aws)."""
         return data_transfer.submit_download(metadata, src_dir, dst_dir)
 
     def check_if_download_complete(self) -> None:
