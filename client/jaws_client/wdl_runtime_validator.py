@@ -64,7 +64,7 @@ class WDLStanzas:
 
         # time: "00:30:00"
         if key == "time":
-            if value.isalpha():
+            if value[0].isalpha():
                 # if the value starts with a letter, it is a variable name
                 return None
             elif re.search(r".+:.+:.+", value):
