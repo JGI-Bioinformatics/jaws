@@ -437,7 +437,7 @@ deploy-jaws-tahoma-staging:
     - ./test/integration/deploy-jaws
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
-    allow_failure: true
+      allow_failure: true
 
 deploy-jaws-tahoma-prod:
   stage: release-jaws
