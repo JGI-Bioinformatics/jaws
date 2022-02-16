@@ -153,19 +153,18 @@ def test_invalid_docker_b(site, submit_bad_docker):
     """
     TESTCASE-33
     When user submits a wdl with a reference to a docker container that does not exist in the docker hub then:
-    b) error message should be available to user in the run's metadata
+    b) error message should be available to user in the run's errors output
     """
     # get cromwell id from status
     id = str(submit_bad_docker["run_id"])
     cmd = "jaws status --verbose %s" % (id)
     (r, o, e) = util.run(cmd)
 
-    # check the metadata
     cmd = "jaws errors %s" % (id)
     (r, o, e) = util.run(cmd)
     if site.lower() == 'cori':
         assert (
-            "Invalid container name or failed to pull container" in o
+            "FAILED to lookup docker image freakonomics" in o
         ), "There should be a message saying docker was not found"
     elif site.lower() == 'jgi' or site.lower() == 'tahoma':
         assert (

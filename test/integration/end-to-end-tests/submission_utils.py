@@ -43,7 +43,7 @@ def submit_wdl(wdl, input_json, site):
 def submit_wdl_noexit(wdl, input_json, site):
     """
     This is a fixture that will submit a wdl that is expected to error out.
-    I will not exit the function if there is an error, but will just return the stderr, stdout, and rc.
+    It will not exit the function if there is an error, but will just return the stderr, stdout, and rc.
     """
 
     # the pipe > /dev/null 2>&1 is needed below because otherwise the info printed from the
