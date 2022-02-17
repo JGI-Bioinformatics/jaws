@@ -195,6 +195,10 @@ server=$JAWS_EMAIL_SERVER
 port=$JAWS_EMAIL_PORT
 user=$JAWS_EMAIL_USER
 password=$JAWS_EMAIL_PW
+[AWS]
+aws_access_key_id = $AWS_ACCESS_KEY_ID
+aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
+s3_bucket = ABCD
 $CONF
 EOM
 chmod 660 "$CONFIG_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$CONFIG_FILE"

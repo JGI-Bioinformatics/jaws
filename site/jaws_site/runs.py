@@ -5,7 +5,6 @@ them to the next state.
 
 import shutil
 import os
-import globus_sdk
 import logging
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -13,19 +12,22 @@ import json
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
+from jaws_site.datatransfer_protocol import (
+    DataTransferError,
+    SiteTransfer,
+    DataTransferProtocol,
+    DataTransferFactory,
+)
 from jaws_site.cromwell import (
     Cromwell,
     CromwellError,
     CromwellServiceError,
     CromwellRunError,
 )
-from jaws_site.globus import GlobusService
 
 logger = logging.getLogger(__package__)
 
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
-
-globus = GlobusService()
 
 
 def file_size(file_path: str):
@@ -157,20 +159,20 @@ class Run:
         else:
             return None
 
-    def upload_status(self) -> str:
+    def upload_status(self, data_transfer: DataTransferProtocol) -> str:
         try:
-            status = globus.transfer_status(self.model.upload_task_id)
-        except globus_sdk.GlobusError as error:
+            status = data_transfer.transfer_status(self.model.upload_task_id)
+        except DataTransferError as error:
             logger.exception(
                 f"Failed to check upload {self.model.upload_task_id}: {error}"
             )
         else:
             return status
 
-    def download_status(self) -> str:
+    def download_status(self, data_transfer: DataTransferProtocol) -> str:
         try:
-            status = globus.transfer_status(self.model.download_task_id)
-        except globus_sdk.GlobusError as error:
+            status = data_transfer.transfer_status(self.model.download_task_id)
+        except DataTransferError as error:
             logger.exception(
                 f"Failed to check download {self.model.download_task_id}: {error}"
             )
@@ -182,14 +184,16 @@ class Run:
         If the upload is complete, update the run's status.
         """
         logger.debug(f"Run {self.model.id}: Check upload status")
-        globus_status = self.upload_status()
-        if globus_status == "FAILED":
+        data_transfer_type = self._get_data_transfer_type()
+        data_transfer = DataTransferFactory(data_transfer_type)
+        status = self.upload_status(data_transfer)
+        if status == SiteTransfer.status.failed:
             self.update_run_status("upload failed")
-        elif globus_status == "INACTIVE":
+        elif status == SiteTransfer.status.inactive:
             self.update_run_status(
                 "upload inactive", "The JAWS endpoint authorization has expired"
             )
-        elif globus_status == "SUCCEEDED":
+        elif status == SiteTransfer.status.succeeded:
             self.update_run_status("upload complete")
 
     def uploads_file_path(self):
@@ -338,9 +342,19 @@ class Run:
         with open(outputs_file, "w") as fh:
             fh.write(json.dumps(outputs, sort_keys=True, indent=4))
 
+    def _get_data_transfer_type(self) -> str:
+        """Lookup the site id to determine what type of data transfer method needs to be used (e.g., globus, aws).
+
+        :return: data transfer type based on site id (e.gl, 'globus_transfer', 'aws_transfer')
+        :rtype: str
+        """
+        site_id = config.conf.get("SITE", "id")
+        transfer_type = SiteTransfer.type[site_id.upper()]
+        return transfer_type
+
     def transfer_results(self) -> None:
         """
-        Send run output via Globus
+        Send run output via data transfer
         """
         logger.debug(f"Run {self.model.id}: Download output")
         try:
@@ -376,31 +390,45 @@ class Run:
             # don't change state; keep trying
             return
 
+        data_transfer_type = self._get_data_transfer_type()
+        data_transfer = DataTransferFactory(data_transfer_type)
+        metadata = {
+            "label": f"Run {self.model.id}"
+        }
+
+        if data_transfer_type == 'globus_transfer':
+            metadata['dest_endpoint'] = self.model.output_endpoint
+
+        logger.debug(f"Transferring files using {data_transfer_type}")
+
         try:
-            transfer_task_id = globus.submit_transfer(
-                f"Run {self.model.id}",
-                self.model.output_endpoint,
-                cromwell_workflow_dir,
-                self.model.output_dir,
-            )
-        except globus_sdk.GlobusError as error:
+            transfer_task_id = self.transfer_files(data_transfer, metadata, cromwell_workflow_dir,
+                                                   self.model.output_dir)
+        except DataTransferError as error:
             logger.error(f"error while submitting transfer: {error}")
             raise
         else:
+            logger.debug(f"Transfer task id={transfer_task_id}")
             self.model.download_task_id = transfer_task_id
             self.update_run_status(
                 "downloading", f"download_task_id={self.model.download_task_id}"
             )
+
+    def transfer_files(self, data_transfer: DataTransferProtocol, metadata: dict, src_dir: str, dst_dir: str) -> str:
+        """Transfer files using the data_transfer object (e.g., via globus or aws)."""
+        return data_transfer.submit_download(metadata, src_dir, dst_dir)
 
     def check_if_download_complete(self) -> None:
         """
         If download is complete, change state.
         """
         logger.debug(f"Run {self.model.id}: Check download status")
-        globus_status = self.download_status()
-        if globus_status == "SUCCEEDED":
+        data_transfer_type = self._get_data_transfer_type()
+        data_transfer = DataTransferFactory(data_transfer_type)
+        status = self.download_status(data_transfer)
+        if status == SiteTransfer.status.succeeded:
             self.update_run_status("download complete")
-        elif globus_status == "FAILED":
+        elif status == SiteTransfer.status.failed:
             self.update_run_status("download failed")
 
     def update_run_status(self, status_to, reason=None) -> None:
