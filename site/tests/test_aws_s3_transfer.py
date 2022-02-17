@@ -1,7 +1,7 @@
 import pytest
 import os
 from dataclasses import dataclass
-from jaws_site.datatransfer_plugins import aws_transfer
+from jaws_site.datatransfer_plugins import aws_s3_transfer as data_transfer
 
 
 @pytest.fixture()
@@ -53,7 +53,7 @@ def mock_src_paths(tmp_path):
 
 
 def test_add_transfer():
-    result = aws_transfer.DataTransfer()._add_transfer()
+    result = data_transfer.DataTransfer()._add_transfer()
     assert isinstance(result, str)
 
 
@@ -66,7 +66,7 @@ def test_submit_upload(mock_aws_transfer):
         "/my/srcfile2\t/my/dstfile2\tF".encode('UTF-8'),
         "/my/srcfile3\t/my/dstfile3\tF".encode('UTF-8'),
     ]
-    result = aws_transfer.DataTransfer().submit_upload(metadata, manifest_files)
+    result = data_transfer.DataTransfer().submit_upload(metadata, manifest_files)
     assert result == 'True'
 
 
@@ -74,19 +74,19 @@ def test_submit_download(monkeypatch, mock_aws_transfer):
     def mockup_get_file_paths(self, src_path, dst_path):
         return [src_path], [dst_path]
 
-    monkeypatch.setattr(aws_transfer.DataTransfer, "_get_file_paths", mockup_get_file_paths)
+    monkeypatch.setattr(data_transfer.DataTransfer, "_get_file_paths", mockup_get_file_paths)
 
     metadata = {
         "label": "test",
     }
     src_dir = '/global/scratch/jaws/test'
     dst_dir = '/home/destdir'
-    result = aws_transfer.DataTransfer().submit_download(metadata, src_dir, dst_dir)
+    result = data_transfer.DataTransfer().submit_download(metadata, src_dir, dst_dir)
     assert result == 'True'
 
 
 def test_cancel_transfer(mock_aws_transfer):
-    result = aws_transfer.DataTransfer().cancel_transfer('123')
+    result = data_transfer.DataTransfer().cancel_transfer('123')
     assert result is None
 
 
@@ -97,7 +97,7 @@ def test_get_manifest_paths_filetype():
         b"/my/srcfile2\t/my/dstfile2\tF",
         b"/my/srcfile3\t/my/dstfile3\tF",
     ]
-    src_paths, dst_paths = aws_transfer.DataTransfer()._get_manifest_paths(manifest_files)
+    src_paths, dst_paths = data_transfer.DataTransfer()._get_manifest_paths(manifest_files)
     assert src_paths == ['/my/srcfile1', '/my/srcfile2', '/my/srcfile3']
     assert dst_paths == ['/my/dstfile1', '/my/dstfile2', '/my/dstfile3']
 
@@ -113,7 +113,7 @@ def test_get_manifest_paths_dirtype(mock_src_paths):
         manifest_files.append(line)
         exp_dst_paths.append(f"{dst_path}/{os.path.basename(src_file)}")
 
-    src_paths, dst_paths = aws_transfer.DataTransfer()._get_manifest_paths(manifest_files)
+    src_paths, dst_paths = data_transfer.DataTransfer()._get_manifest_paths(manifest_files)
 
     assert len(src_paths) == len(mock_src_paths)
     for fn in mock_src_paths:
@@ -132,7 +132,7 @@ def test_transfer_status(mock_aws_transfer):
     import threading
 
     # test transfer thread not defined, return failed status
-    obj = aws_transfer.DataTransfer()
+    obj = data_transfer.DataTransfer()
     mock_aws_transfer.is_alive = False
     result = obj.transfer_status('abcd')
     assert result == SiteTransfer.status.failed

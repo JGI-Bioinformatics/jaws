@@ -6,7 +6,7 @@ from jaws_site.datatransfer_protocol import DataTransferFactory
     'transfer_type, expect',
     [
         ('globus_transfer', "<class 'jaws_site.datatransfer_plugins.globus_transfer.DataTransfer'>"),
-        ('aws_transfer', "<class 'jaws_site.datatransfer_plugins.aws_transfer.DataTransfer'>"),
+        ('aws_s3_transfer', "<class 'jaws_site.datatransfer_plugins.aws_s3_transfer.DataTransfer'>"),
     ]
 )
 def test_datatransfer_factory(transfer_type, expect):

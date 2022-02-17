@@ -48,7 +48,7 @@ class SiteTransfer:
         'CORI': 'globus_transfer',
         'JGI': 'globus_transfer',
         'TAHOMA': 'globus_transfer',
-        'AWS': 'aws_transfer',
+        'AWS': 'aws_s3_transfer',
     }
     status = Status()
 
