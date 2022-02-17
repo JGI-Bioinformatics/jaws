@@ -5,7 +5,7 @@ from datetime import datetime
 import jaws_central.analysis
 import jaws_central.models_fsa
 import jaws_central.config
-import jaws_central.globus
+from jaws_central.datatransfer_plugins import globus_transfer
 
 
 class MockClient:
@@ -130,9 +130,10 @@ def test_list_sites(configuration):
         assert "max_ram_gb" in site
 
 
-def test_cancel_transfer(configuration, mock_database, mock_globus):
+def test_cancel_transfer(configuration, mock_database, mock_globus, mock_data_transfer):
     transfer_id = "without_error"
-    jaws_central.analysis._cancel_transfer(transfer_id)
+    status = jaws_central.analysis._cancel_transfer(mock_data_transfer, transfer_id)
+    assert status == f"cancelled {transfer_id}"
 
 
 def test_cancel_run(monkeypatch):
@@ -212,7 +213,7 @@ def test_run_metadata(monkeypatch):
 
 
 def test_globus_transfer_path(configuration):
-    globus = jaws_central.globus.GlobusService()
+    globus = globus_transfer.DataTransfer()
     test_data = [
         (
             "/global/cscratch1/sd/jaws/jaws-dev/users/mamelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl",
