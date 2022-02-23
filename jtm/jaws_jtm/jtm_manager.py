@@ -1930,7 +1930,7 @@ def process_remove_pool(task_pool_name: str, jtm_host_name: str):
             _, _, ec = run_sh_command(scancel_cmd, log=logger)
             if ec != 0:
                 # if CORI, check one more time using esslurm
-                if jtm_host_name == "CORI"
+                if jtm_host_name == "CORI":
                     scancel_cmd = "module load esslurm && scancel %s" % (jid[0])
                     _, _, ec = run_sh_command(scancel_cmd, log=logger, show_stdout=False)
             if ec == 0:
