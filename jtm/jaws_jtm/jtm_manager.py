@@ -590,7 +590,11 @@ class JtmNonTaskCommandRunner(JtmAmqpstormBase):
             self.send_reply(message, "check_worker", process_check_worker(msg_unzipped))
         elif task_type == "remove_pool":
             self.send_reply(
-                message, "remove_pool", process_remove_pool(msg_unzipped["task_pool"], msg_unzipped["jtm_host_name"])
+                message,
+                "remove_pool",
+                process_remove_pool(
+                    msg_unzipped["task_pool"], msg_unzipped["jtm_host_name"]
+                ),
             )
         else:
             logger.critical(f"Task type not found: {task_type}")
@@ -1932,7 +1936,9 @@ def process_remove_pool(task_pool_name: str, jtm_host_name: str):
                 # if CORI, check one more time using esslurm
                 if jtm_host_name == "CORI":
                     scancel_cmd = "module load esslurm && scancel %s" % (jid[0])
-                    _, _, ec = run_sh_command(scancel_cmd, log=logger, show_stdout=False)
+                    _, _, ec = run_sh_command(
+                        scancel_cmd, log=logger, show_stdout=False
+                    )
             if ec == 0:
                 logger.info("Successfully cancel the job, %s" % (jid[0]))
             else:
