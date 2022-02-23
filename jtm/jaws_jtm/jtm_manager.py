@@ -2195,7 +2195,7 @@ def manager(
     DEBUG = ctx.obj["debug"]
     # config file has precedence
     config_debug = CONFIG.configparser.getboolean("SITE", "debug")
-    config_jtmhostname = CONFIG.configparser.getboolean("SITE", "jtm_host_name")
+    config_jtmhostname = CONFIG.configparser.get("SITE", "jtm_host_name")
     if config_debug:
         DEBUG = config_debug
     global TASK_STATUS
