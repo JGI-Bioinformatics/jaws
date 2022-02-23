@@ -18,6 +18,8 @@ import time
 from subprocess import Popen, PIPE
 import submission_utils as util
 
+check_tries = 360
+check_sleep = 60
 
 #####################
 #     Functions     #
@@ -195,8 +197,6 @@ def test_timeout(dir, site):
     """
     WDL = "/WDLs/timeout.wdl"
     INP = "/test-inputs/timeout.json"
-    check_sleep = 30
-    check_tries = 50
 
     wdl = dir + WDL
     input_json = dir + INP
@@ -204,7 +204,7 @@ def test_timeout(dir, site):
     run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
     util.wait_for_run(run_id, check_tries, check_sleep)
 
-    time.sleep(60)
+    time.sleep(30)
 
     # get the errors from JAWS for that run
     cmd = "jaws errors %s" % (run_id)
@@ -221,12 +221,10 @@ def test_bad_ref_dir(dir, site):
     /refdata/i_dont_exist
     We should get a user friendly error message like:
 
-      No such file or directory
+    cannot access <bad-ref>.  No such file or directory
     """
     WDL = "/WDLs/bad_ref.wdl"
     INP = "/test-inputs/bad_ref.json"
-    check_sleep = 30
-    check_tries = 50
 
     wdl = dir + WDL
     input_json = dir + INP
