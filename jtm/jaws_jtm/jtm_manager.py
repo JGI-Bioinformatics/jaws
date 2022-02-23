@@ -590,7 +590,7 @@ class JtmNonTaskCommandRunner(JtmAmqpstormBase):
             self.send_reply(message, "check_worker", process_check_worker(msg_unzipped))
         elif task_type == "remove_pool":
             self.send_reply(
-                message, "remove_pool", process_remove_pool(msg_unzipped["task_pool"])
+                message, "remove_pool", process_remove_pool(msg_unzipped["task_pool"], msg_unzipped["jtm_host_name"])
             )
         else:
             logger.critical(f"Task type not found: {task_type}")
@@ -1906,7 +1906,7 @@ def process_check_worker(msg_unzipped):
 
 
 # -------------------------------------------------------------------------------
-def process_remove_pool(task_pool_name):
+def process_remove_pool(task_pool_name: str, jtm_host_name: str):
     """
 
     :param task_pool_name:
@@ -1928,6 +1928,11 @@ def process_remove_pool(task_pool_name):
         for jid in zombie_slurm_job_id_list:
             scancel_cmd = "scancel %s" % (jid[0])
             _, _, ec = run_sh_command(scancel_cmd, log=logger)
+            if ec != 0:
+                # if CORI, check one more time using esslurm
+                if jtm_host_name == "CORI"
+                    scancel_cmd = "module load esslurm && scancel %s" % (jid[0])
+                    _, _, ec = run_sh_command(scancel_cmd, log=logger, show_stdout=False)
             if ec == 0:
                 logger.info("Successfully cancel the job, %s" % (jid[0]))
             else:
@@ -2043,14 +2048,14 @@ def task_kill_proc():
 
 
 # -------------------------------------------------------------------------------
-def slurm_worker_cleanup_proc(jtmhostname: str):
+def slurm_worker_cleanup_proc(jtm_host_name: str):
     """
     Try to find invalid slurm job
     If any, update workers table
 
     Todo: Very slurm dependent. Do we need this?
 
-    jtmhostname: SITE name
+    jtm_host_name: SITE name
 
     """
     while True:
@@ -2069,7 +2074,7 @@ def slurm_worker_cleanup_proc(jtmhostname: str):
                 so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
                 if ec != 0:
                     # if CORI, check one more time using esslurm
-                    if jtmhostname == "CORI":
+                    if jtm_host_name == "CORI":
                         cmd = "module load esslurm && squeue -j %d" % j
                         so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
 
