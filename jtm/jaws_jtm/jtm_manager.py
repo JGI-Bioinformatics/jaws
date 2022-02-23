@@ -1163,6 +1163,8 @@ def process_task_request(msg):
 
         for jid in slurm_jid_list:
             cmd = "squeue -j %d" % jid
+            if pool_constraint == "skylake" or pool_qos in ("jgi_exvivo", "jgi_shared"):
+                cmd = "module load esslurm &&" + cmd
             so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
             if not re.search(r"\bPD\b", so) and not re.search(r"\bR\b", so):
                 num_slurm_jid_in_pool -= 1
@@ -2041,12 +2043,14 @@ def task_kill_proc():
 
 
 # -------------------------------------------------------------------------------
-def slurm_worker_cleanup_proc():
+def slurm_worker_cleanup_proc(jtmhostname: str):
     """
     Try to find invalid slurm job
     If any, update workers table
 
     Todo: Very slurm dependent. Do we need this?
+
+    jtmhostname: SITE name
 
     """
     while True:
@@ -2062,7 +2066,13 @@ def slurm_worker_cleanup_proc():
             for j in slurm_job_id:
                 # Note: slurm dependent code!
                 cmd = "squeue -j %d" % j
-                so, _, _ = run_sh_command(cmd, log=logger, show_stdout=False)
+                so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
+                if ec != 0:
+                    # if CORI, check one more time using esslurm
+                    if jtmhostname == "CORI":
+                        cmd = "module load esslurm && squeue -j %d" % j
+                        so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
+
                 if not re.search(r"\bPD\b", so) and not re.search(r"\bR\b", so):
                     logger.info("Found dead worker(s) from %s, %s" % (str(j), so))
                     logger.debug(
@@ -2185,6 +2195,7 @@ def manager(
     DEBUG = ctx.obj["debug"]
     # config file has precedence
     config_debug = CONFIG.configparser.getboolean("SITE", "debug")
+    config_jtmhostname = CONFIG.configparser.getboolean("SITE", "jtm_host_name")
     if config_debug:
         DEBUG = config_debug
     global TASK_STATUS
@@ -2292,7 +2303,10 @@ def manager(
 
     # Start worker cleanup proc
     try:
-        worker_cleanup_proc_hdl = mp.Process(target=slurm_worker_cleanup_proc)
+        worker_cleanup_proc_hdl = mp.Process(
+            target=slurm_worker_cleanup_proc,
+            args=(config_jtmhostname,),
+        )
         worker_cleanup_proc_hdl.start()
         plist.append(worker_cleanup_proc_hdl)
         logger.debug(f"worker_cleanup_proc pid = {worker_cleanup_proc_hdl.pid}")
