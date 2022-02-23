@@ -1339,7 +1339,8 @@ wait
                 sys.exit(0)
 
             sbatch_cmd = f"sbatch --parsable {batch_job_script_file}"
-            if constraint == "skylake":
+
+            if constraint == "skylake" or qos == "jgi_exvivo" or qos == "jgi_shared":
                 sbatch_cmd = "module load esslurm; " + sbatch_cmd
                 logger.debug(f"skylake sbatch: {sbatch_cmd}")
             _, _, ec = run_sh_command(sbatch_cmd, log=logger)
