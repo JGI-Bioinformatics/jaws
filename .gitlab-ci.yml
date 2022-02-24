@@ -188,10 +188,14 @@ variables:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
 test:
   stage: test
+  tags:
+    - shared-shell
   script:
       - echo "I'm needed for the SAST jobs"
+
 test-rpc:
   <<: *only-default
   stage: unit-test
