@@ -314,6 +314,7 @@ deploy-jaws-central-prod:
     - ./test/integration/deploy-central
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      when: manual
 
 deploy-jaws-aws-dev:
   stage: deploy-jaws
@@ -371,6 +372,7 @@ deploy-jaws-cori-prod:
     - ./test/integration/deploy-jaws
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+      when: manual
 
 deploy-jaws-jgi-dev:
   stage: deploy-jaws
@@ -413,6 +415,7 @@ deploy-jaws-jgi-prod:
     - ./test/integration/deploy-jaws
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      when: manual
 
 deploy-jaws-tahoma-dev:
   stage: deploy-jaws
@@ -459,6 +462,7 @@ deploy-jaws-tahoma-prod:
     - ./test/integration/deploy-jaws
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      when: manual
       allow_failure: true
 
 cori-dev-smoke-tests:
