@@ -911,10 +911,10 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                 logger.debug(f"status now {task_id} = {status_now}")
 
                                 if not STANDALONE:
-                                    logger.debug(
-                                        f"status change msg {task_id}: {status_now} => running"
-                                    )
                                     if status_now == TASK_STATUS["pending"]:
+                                        logger.debug(
+                                            f"status change msg {task_id}: {status_now} => running"
+                                        )
                                         send_update_task_status_msg(
                                             task_id,
                                             status_now,
@@ -922,6 +922,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                             reason="slurm_jid=%d" % (slurm_job_id),
                                         )
 
+                                # Only if the status in (0, 1, 2), update status=3 = running
                                 db.execute(
                                     JTM_SQL["update_runs_status_to_running_by_taskid"]
                                     % dict(
