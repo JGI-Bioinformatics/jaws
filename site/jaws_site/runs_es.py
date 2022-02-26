@@ -140,7 +140,7 @@ class RunES:
             logger.error(f"Failed to get task_status for run_id={self.run_id}: {err}")
             return {}
 
-        return cromwell_metadata
+        return cromwell_metadata or {}
 
     def create_doc(self) -> None:
         """Create a json document of the run info for the run_id provided during object instantiation."""
@@ -155,7 +155,7 @@ class RunES:
 
         doc = {
             'run_id': run_status['run_id'],
-            'workflow_name': cromwell_metadata.get('workflowName'),
+            'workflow_name': cromwell_metadata.get('workflowName', 'unknown'),
         }
         doc.update(run_status)
         doc['tasks'] = []
