@@ -99,6 +99,8 @@ class RunES:
 
         infos = {}
         for entry in entries:
+            if len(entry) < 8:
+                continue
             task_name = entry[0]
             infos[task_name] = {
                 'cromwell_id': entry[1],
@@ -122,6 +124,8 @@ class RunES:
 
         infos = {}
         for entry in entries:
+            if len(entry) < 6:
+                continue
             task_name = entry[0]
             infos[task_name] = {
                 'cromwell_id': entry[1],
@@ -169,46 +173,6 @@ class RunES:
             doc['tasks'].append(status_entries)
 
         return doc
-
-    @staticmethod
-    def _convert_date_to_seconds(time_string, format="%H:%M:%S") -> int:
-        """Convert dates in string format to datetime object."""
-        try:
-            date_time = datetime.strptime(time_string, "%H:%M:%S")
-        except ValueError:
-            seconds = 0
-        else:
-            time_delta = date_time - datetime(1900, 1, 1)
-            seconds = time_delta.total_seconds()
-        return seconds
-
-    @staticmethod
-    def _mutate_run_dates(jsondata: dict) -> None:
-        """Convert dates in string format to datetime object."""
-        jsondata['submitted'] = datetime.fromisoformat(jsondata['submitted'])
-        jsondata['updated'] = datetime.fromisoformat(jsondata['updated'])
-        jsondata['runtime_sec'] = (jsondata['updated'] - jsondata['submitted']).total_seconds()
-
-    @staticmethod
-    def _mutate_task_status_dates(jsondata: dict) -> None:
-        """Convert dates in string format to datetime object."""
-        for task in jsondata:
-            entries = jsondata[task]
-            if 'timestamp' in entries and entries['timestamp']:
-                entries['timestamp'] = datetime.fromisoformat(entries['timestamp'])
-
-    def _mutate_task_summary_dates(self, jsondata: dict) -> None:
-        """Convert dates in string format to datetime object."""
-        for task in jsondata:
-            entries = jsondata[task]
-            if 'queued' in entries and entries['queued']:
-                entries['queued'] = datetime.fromisoformat(entries['queued'])
-            if 'queue_wait' in entries and entries['queue_wait']:
-                entries['queue_wait_sec'] = self._convert_date_to_seconds(entries['queue_wait'])
-            if 'runtime' in entries and entries['runtime']:
-                entries['runtime_sec'] = self._convert_date_to_seconds(entries['runtime'])
-            if 'maxtime' in entries and entries['maxtime']:
-                entries['maxtime_sec'] = self._convert_date_to_seconds(entries['maxtime'])
 
 
 class RPC_ES:
