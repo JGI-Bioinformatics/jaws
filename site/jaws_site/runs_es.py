@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from typing import Tuple
 from jaws_rpc import responses
 from jaws_site import (
