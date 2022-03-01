@@ -12,8 +12,6 @@ import submission_utils as util
 import re
 import time
 
-# log = logging.getLogger('test_cache.log',level=INFO)
-
 check_tries = 100
 check_sleep = 60
 

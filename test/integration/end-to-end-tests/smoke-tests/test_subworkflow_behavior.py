@@ -27,8 +27,7 @@ check_sleep = 60
 #####################
 
 
-#def test_task_status(submit_subworkflow_alignment):
-def test_task_status():
+def test_task_status(submit_subworkflow_alignment):
     """
     # task-status verifies all subworkflows task status was shown
     #
@@ -40,8 +39,7 @@ def test_task_status():
     main_wdl.bam_stats                                46810   success 2021-02-08 20:56:36  The job completed successfully
     """ # noqa
 
-    # run_id = submit_subworkflow_alignment["run_id"]
-    run_id = 9156
+    run_id = submit_subworkflow_alignment["run_id"]
     cmd = "jaws task-status %s | tail -n+2" % (run_id)
     (r, o, e) = util.run(cmd)
 
