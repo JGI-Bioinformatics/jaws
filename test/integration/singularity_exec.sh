@@ -6,6 +6,25 @@ DOCKER_CWD=$4
 IMAGE=$5
 JOB_SHELL=$6
 SCRIPT=$7
+
+## VERIFY REQUIRED VARS ARE DEFINED
+# Exits if any required var is undefined.
+REQUIRED_VARS="
+SINGULARITY_CACHEDIR
+SINGULARITY_PULLFOLDER
+SINGULARITY_TMPDIR
+SINGULARITY_LOCALCACHEDIR
+FLOCK_DIR
+"
+RESULT=0
+for VAR in $REQUIRED_VARS; do
+  if [[ -z ${!VAR} ]]; then
+    RESULT=1
+    echo "Missing env var: $VAR">&2
+  fi
+done
+[ $RESULT -eq 0 ] || exit 1
+
 echo "Executing on $HOSTNAME" 1>&2
 
 # Check if monitoring script is installed
