@@ -10,17 +10,14 @@ import pytest
 import json
 import submission_utils as util
 import re
-
-# log = logging.getLogger('test_cache.log',level=INFO)
+import time
 
 check_tries = 100
-check_sleep = 30
-
+check_sleep = 60
 
 #####################
 #     Functions     #
 #####################
-
 
 def return_submit_data(cmd):
     (r, o, e) = util.run(cmd)
@@ -48,6 +45,7 @@ def return_submit_data(cmd):
 
     util.wait_for_run(run_id, check_tries, check_sleep)
 
+    time.sleep(60)
     cmd = "jaws metadata %s" % (run_id)
     (r, o, e) = util.run(cmd)
     if r != 0:

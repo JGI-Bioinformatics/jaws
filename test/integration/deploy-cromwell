@@ -266,6 +266,7 @@ backend
         """
 
         submit-docker = """
+          $CONTAINER_EXPORT
           CONSTRAINT=\${constraint}
           QOS=\${qos}
           PARTITION=\${partition}
