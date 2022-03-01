@@ -21,7 +21,7 @@ check_sleep = 30
 #####################
 
 
-def test_jaws_get(submit_fq_count_wdl):
+def test_jaws_get():
     """
     1) I will check that the input WDL and json file are saved in the output dir.
        (70f82d8f-352f-48ce-a21d-3e4ede4daef3.orig.json  70f82d8f-352f-48ce-a21d-3e4ede4daef3.wdl)
@@ -50,7 +50,10 @@ def test_jaws_get(submit_fq_count_wdl):
 
     # verify it is a valid wdl
     with open(os.path.join(outdir, input_wdl)) as fh:
-        if "workflow fq_count" not in fh.readline():
+        # check of the workflow title is in the top 3 lines
+        head = [next(fh) for x in range(3)]
+        head = ' '.join(head)
+        if "workflow fq_count" not in head:
             assert 0, "This does not look like a valid workflow"
 
     # check that we have a valid inputs json
