@@ -556,3 +556,29 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         except Exception as error:
             session.rollback()
             logger.exception(f"Error updating run_logs as sent: {error}")
+
+
+def get_run_status_logs(session, run_id) -> None:
+    """Get run logs for a given run."""
+
+    # get updates from datbase
+    try:
+        query = session.query(models.Run_Log) \
+            .filter(models.Run_Log.run_id == run_id) \
+            .all()
+    except SQLAlchemyError as error:
+        logger.exception(f"Unable to select from run_logs: {error}")
+        return
+
+    datas = []
+    for log in query:
+        data = {
+            "site_id": config.conf.get("SITE", "id"),
+            "run_id": log.run_id,
+            "status_from": log.status_from,
+            "status_to": log.status_to,
+            "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "reason": log.reason,
+        }
+        datas.append(data)
+    return datas
