@@ -21,7 +21,7 @@ check_sleep = 30
 #####################
 
 
-def test_jaws_get():
+def test_jaws_get(submit_fq_count_wdl):
     """
     1) I will check that the input WDL and json file are saved in the output dir.
        (70f82d8f-352f-48ce-a21d-3e4ede4daef3.orig.json  70f82d8f-352f-48ce-a21d-3e4ede4daef3.wdl)
