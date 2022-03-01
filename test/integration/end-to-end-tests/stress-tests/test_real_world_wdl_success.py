@@ -13,10 +13,10 @@ import submission_utils as util
             "../../../examples/bfoster_meta_assem/jgi_meta.jaws.wdl",
             "../../../examples/bfoster_meta_assem/inputs.json",
         ),
-        (
-            "../../../examples/leo_dapseq/Azospirillum_brasilense.wdl",
-            "../../../examples/leo_dapseq/shortened-100.json",
-        ),
+#        (
+#            "../../../examples/leo_dapseq/Azospirillum_brasilense.wdl",
+#            "../../../examples/leo_dapseq/shortened-100.json",
+#        ),
     ),
 )
 def test_real_world_success(site, wdl, input_json):

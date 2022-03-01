@@ -18,6 +18,8 @@ import time
 from subprocess import Popen, PIPE
 import submission_utils as util
 
+check_tries = 360
+check_sleep = 60
 
 #####################
 #     Functions     #
@@ -153,19 +155,18 @@ def test_invalid_docker_b(site, submit_bad_docker):
     """
     TESTCASE-33
     When user submits a wdl with a reference to a docker container that does not exist in the docker hub then:
-    b) error message should be available to user in the run's metadata
+    b) error message should be available to user in the run's errors output
     """
     # get cromwell id from status
     id = str(submit_bad_docker["run_id"])
     cmd = "jaws status --verbose %s" % (id)
     (r, o, e) = util.run(cmd)
 
-    # check the metadata
     cmd = "jaws errors %s" % (id)
     (r, o, e) = util.run(cmd)
     if site.lower() == 'cori':
         assert (
-            "Invalid container name or failed to pull container" in o
+            "FAILED to lookup docker image freakonomics" in o
         ), "There should be a message saying docker was not found"
     elif site.lower() == 'jgi' or site.lower() == 'tahoma':
         assert (
@@ -196,8 +197,6 @@ def test_timeout(dir, site):
     """
     WDL = "/WDLs/timeout.wdl"
     INP = "/test-inputs/timeout.json"
-    check_sleep = 30
-    check_tries = 50
 
     wdl = dir + WDL
     input_json = dir + INP
@@ -205,7 +204,7 @@ def test_timeout(dir, site):
     run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
     util.wait_for_run(run_id, check_tries, check_sleep)
 
-    time.sleep(60)
+    time.sleep(30)
 
     # get the errors from JAWS for that run
     cmd = "jaws errors %s" % (run_id)
@@ -222,12 +221,10 @@ def test_bad_ref_dir(dir, site):
     /refdata/i_dont_exist
     We should get a user friendly error message like:
 
-      No such file or directory
+    cannot access <bad-ref>.  No such file or directory
     """
     WDL = "/WDLs/bad_ref.wdl"
     INP = "/test-inputs/bad_ref.json"
-    check_sleep = 30
-    check_tries = 50
 
     wdl = dir + WDL
     input_json = dir + INP

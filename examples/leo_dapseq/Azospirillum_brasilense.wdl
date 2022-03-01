@@ -114,29 +114,6 @@ workflow jgi_dap_leo {
                     amplified=amplified
         }
         
-        call copyOutput as copyOutput_expt {
-            input:  basename=basename,
-                    genes_gff=genes_gff,
-                    effgsize=effgsize,
-                    genome_fasta=genome_fasta,
-                    bam=trimAlign_expt.bam,
-                    bai=trimAlign_expt.bai,
-                    bigwig=trimAlign_expt.bw,
-                    peaks_narrow=findPeaks.peaks_narrow,
-                    peaks_narrow_filt=findPeaks.peaks_narrow_filt,
-                    dap_stats=dapStats.dap_stats,
-                    peak_plot=dapStats.peak_plot,
-                    motif1=findMotifs.motifs_summits,
-                    motif2=findMotifs.motifs_summits_pal,
-                    motif3=findMotifs.motifs_peaks,
-                    motif4=findMotifs.motifs_peaks_pal,
-                    trim_stats=trimAlign_expt.trim_stats,
-                    align_stats=trimAlign_expt.align_stats,
-                    macs2_stats=findPeaks.macs2_stats,
-                    overlap_genes=assignGenes.overlap_genes,
-                    assigned_genes=assignGenes.assigned_genes,
-                    destination=basename
-        }
     }
 }
 

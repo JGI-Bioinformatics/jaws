@@ -74,15 +74,9 @@ def test_misspelled_variable_in_input_file_msg(dir, site):
 
     # we CAN use submission utils here because this job submits successfully
     # error isn't seen until the run fails
-    data = util.submit_wdl(wdl, input_json, site)
+    submit_cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, input_json, site)
+    (r, o, e) = util.run(submit_cmd)
 
-    # wait for run to complete
-    run_id = data["run_id"]
-    util.wait_for_run(run_id, check_tries, check_sleep)
-
-    # check for the correct error message
-    cmd = "jaws errors %s" % (run_id)
-    (r, o, e) = util.run(cmd)
     assert "KeyError: 'fq_count.fastq_file_misspelled'" in e
 
 
