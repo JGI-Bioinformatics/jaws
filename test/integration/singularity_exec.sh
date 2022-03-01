@@ -7,23 +7,26 @@ IMAGE=$5
 JOB_SHELL=$6
 SCRIPT=$7
 
-## VERIFY REQUIRED VARS ARE DEFINED
-# Exits if any required var is undefined.
-REQUIRED_VARS="
-SINGULARITY_CACHEDIR
-SINGULARITY_PULLFOLDER
-SINGULARITY_TMPDIR
-SINGULARITY_LOCALCACHEDIR
-FLOCK_DIR
-"
-RESULT=0
-for VAR in $REQUIRED_VARS; do
-  if [[ -z ${!VAR} ]]; then
-    RESULT=1
-    echo "Missing env var: $VAR">&2
-  fi
-done
-[ $RESULT -eq 0 ] || exit 1
+if [ "$#" -ne 7 ]; then
+    echo "Missing some arguments. There should be 7 arguments"
+    echo "Usage: $0 <local refdata> <container refdata> <local cwd> <container cwd(same)> <image> <job shell> <script>"
+    exit 1
+fi
+
+if [[ ! -d $CWD ]]; then
+    echo "The CWD dir: $CWD is not a valid directory"
+    exit 1
+fi
+
+if [[ ! -d $LOCAL_REF ]]; then
+    echo "The Local reference dir: $LOCAL_REF is not a valid directory"
+    exit 1
+fi
+
+if [[ ! -e $SCRIPT ]]; then
+    echo "The SCRIPT: $SCRIPT doesn't exist"
+    exit 1
+fi
 
 echo "Executing on $HOSTNAME" 1>&2
 
