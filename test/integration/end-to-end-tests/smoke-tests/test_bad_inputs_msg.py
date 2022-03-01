@@ -12,6 +12,7 @@ Updated: 03/04/21
 
 import os
 import json
+import pytest
 import submission_utils as util
 
 check_tries = 360  # try this many times when waiting for a JAWS run to complete.
@@ -66,24 +67,19 @@ def test_json_bad_path_to_input_file_msg(dir, site):
 
 
 
-def test_misspelled_variable_in_input_file_msg(dir, site):
-    # TESTCASE-5b
-    # Submit job with json that contains a misspelled variable name
-    wdl = os.path.join(dir, "WDLs/fq_count.wdl")
-    input_json = os.path.join(dir, "test-inputs/misspelled_variable.json")
-
-    # we CAN use submission utils here because this job submits successfully
-    # error isn't seen until the run fails
-    data = util.submit_wdl(wdl, input_json, site)
-
-    # wait for run to complete
-    run_id = data["run_id"]
-    util.wait_for_run(run_id, check_tries, check_sleep)
-
-    # check for the correct error message
-    cmd = "jaws errors %s" % (run_id)
-    (r, o, e) = util.run(cmd)
-    assert "KeyError: 'fq_count.fastq_file_misspelled'" in e
+## @pytest.mark.xfail
+#def test_misspelled_variable_in_input_file_msg(dir, site):
+#    # TESTCASE-5b
+#    # Submit job with json that contains a misspelled variable name
+#    wdl = os.path.join(dir, "WDLs/fq_count.wdl")
+#    input_json = os.path.join(dir, "test-inputs/misspelled_variable.json")
+#
+#    # we CAN use submission utils here because this job submits successfully
+#    # error isn't seen until the run fails
+#    submit_cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, input_json, site)
+#    (r, o, e) = util.run(submit_cmd)
+#
+#    assert "KeyError: 'fq_count.fastq_file_misspelled'" in e
 
 
 def test_bad_input_file_permissions_msg(dir, site):
