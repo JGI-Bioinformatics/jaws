@@ -12,6 +12,7 @@ import json
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
+from jaws_site import runs_es
 from jaws_site.datatransfer_protocol import (
     DataTransferError,
     SiteTransfer,
@@ -68,8 +69,9 @@ class Run:
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
-            "succeeded": self.transfer_results,
-            "failed": self.transfer_results,
+            "succeeded": self.publish_run_metadata,
+            "failed": self.publish_run_metadata,
+            "ready to download": self.transfer_results,
             "downloading": self.check_if_download_complete,
         }
 
@@ -81,6 +83,8 @@ class Run:
             model = kwargs["model"]
             assert model.id is not None
             self.model = model
+
+        self.run_es_rpc_client = kwargs.get('run_es_rpc_client')
 
     def _insert_run(self, **kwargs) -> None:
         """Insert run record into rdb"""
@@ -431,6 +435,41 @@ class Run:
         elif status == SiteTransfer.status.failed:
             self.update_run_status("download failed")
 
+    def publish_run_metadata(self) -> None:
+        """
+        Get run metadata and send to RMQ for publishing to elasticsearch.
+        """
+        logger.debug(f"Run {self.model.id}: Publish run metadata")
+        doc = {}
+
+        if not self.run_es_rpc_client:
+            logger.error(f"Run {self.model.id}: Cannot publish run metadata. The run_es_rpc_client is not defined")
+            self.update_run_status("ready to download")
+            return
+
+        try:
+            run_es = runs_es.RunES(self.model.id)
+        except runs_es.RunNotFoundError as err:
+            logger.error(f"Failed to get run metadata for run={self.model.id}: {err}")
+            self.update_run_status("ready to download")
+            return
+
+        # Create json doc of the run metadata
+        doc = run_es.create_doc()
+
+        # Send to json doc to RMQ to be inserted to elasticsearch.
+        if doc and 'user_id' in doc and doc['user_id'] != 'test':
+            logger.debug(f"Run {self.model.id}: Sending run metadata json doc to RMQ")
+            jsondata, status_code = run_es.send_rpc_run_metadata(self.run_es_rpc_client, doc)
+            if status_code:
+                if 'error' in jsondata and 'message' in jsondata['error']:
+                    message = jsondata['error']['message']
+                else:
+                    message = 'Unknown RPC error.'
+                logger.error(f"Run {self.model.id}: Failed to send run metadata to RMQ: {message}")
+
+        self.update_run_status("ready to download")
+
     def update_run_status(self, status_to, reason=None) -> None:
         """
         Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
@@ -476,13 +515,13 @@ class Run:
             raise
 
 
-def check_active_runs(session) -> None:
+def check_active_runs(session, run_es_rpc_client) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
     rows = _select_active_runs(session)
     for model in rows:
-        run = Run(session, model=model)
+        run = Run(session, model=model, run_es_rpc_client=run_es_rpc_client)
         run.check_status()
 
 
@@ -498,6 +537,7 @@ def _select_active_runs(session) -> list:
         "running",
         "succeeded",
         "failed",
+        "ready to download",
         "downloading",
     ]
     try:

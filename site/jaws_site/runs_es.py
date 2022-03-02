@@ -174,59 +174,37 @@ class RunES:
         return doc
 
 
-class RPC_ES:
-    """Class to create a RMQ connection for sending json payload to a queue where logstash will retrieve
-    the payload and update elasticsearch with the doc.
+def send_rpc_run_metadata(rpc_client: rpc_es.RPCRequest, payload: dict) -> Tuple[dict, int]:
+    """Sends request to RabbitMQ/RPC and wait for response. If response fails, return non-zero status_code.
+
+    :param entries: A dictionary containing the rabbitmq connection information.
+    :type entries: dict
+    :param try_count: for logging number of tries only.
+    :type try_count: int
+    :return jsondata: dictionary of the results returned from RPC request.
+    :rtype jsondata: dictionary
+    :return status_code: zero if successful, non-zero if connection fails or return json contains error msg.
+    :rtype status_code: int
     """
-    def __init__(self, logger: logging) -> None:
-        """Creates a RMQ connection based on the connection parameters specified in the config entry
-        DASHBOARD_RPC_CLIENT. The config entries must have the following keys in the following example:
 
-        [DASHBOARD_RPC_CLIENT]
-        user: RabbitMQ user
-        password: RabbitMQ password
-        host: RabbitMQ host
-        port: RabbitMQ port
-        vhost: vhost name
-        queue: queue name
-        """
+    try:
+        jsondata = rpc_client.request(payload)
+    except InvalidJsonResponse as err:
+        msg = f"RPC request returned an invalid response: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
+    except ConfigurationError as err:
+        msg = f"RPC request returned an invalid configuration error: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
+    except ConnectionError as err:
+        msg = f"RPC request returned an invalid connection error: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
 
-        # Get config paramters for rabbitmq connection in the config file.
-        rpc_params = config.conf.get_section("DASHBOARD_RPC_CLIENT")
+    status_code = 0
 
-        self.rpc = rpc_es.RPCRequest(rpc_params, logger)
+    if jsondata and 'error' in jsondata:
+        status_code = jsondata['error'].get('code', 500)
 
-    def send_rpc_run_info(self, payload: dict) -> Tuple[dict, int]:
-        """Sends request to RabbitMQ/RPC and wait for response. If response fails, return non-zero status_code.
-
-        :param entries: A dictionary containing the rabbitmq connection information.
-        :type entries: dict
-        :param try_count: for logging number of tries only.
-        :type try_count: int
-        :return jsondata: dictionary of the results returned from RPC request.
-        :rtype jsondata: dictionary
-        :return status_code: zero if successful, non-zero if connection fails or return json contains error msg.
-        :rtype status_code: int
-        """
-
-        try:
-            jsondata = self.rpc.request(payload)
-        except InvalidJsonResponse as err:
-            msg = f"RPC request returned an invalid response: {err}"
-            logger.debug(msg)
-            jsondata = responses.failure(err)
-        except ConfigurationError as err:
-            msg = f"RPC request returned an invalid configuration error: {err}"
-            logger.debug(msg)
-            jsondata = responses.failure(err)
-        except ConnectionError as err:
-            msg = f"RPC request returned an invalid connection error: {err}"
-            logger.debug(msg)
-            jsondata = responses.failure(err)
-
-        status_code = 0
-
-        if jsondata and 'error' in jsondata:
-            status_code = jsondata['error'].get('code', 500)
-
-        return jsondata, status_code
+    return jsondata, status_code
