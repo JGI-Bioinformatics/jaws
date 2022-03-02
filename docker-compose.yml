@@ -5,24 +5,7 @@ networks:
     driver: bridge
 services:
   central:
-    image: jaws_central:2.5.0
-    environment:
-      VERSION: 2.5.0
-      DEPLOYMENT_NAME: dev
-      JAWS_DOCS_URL: https://jaws-docs.readthedocs.io/en/latest/
-      JAWS_CENTRAL_DB_HOST: db
-      JAWS_CENTRAL_DB_PORT: 3306
-      JAWS_CENTRAL_DB_PW: jawstest
-      JAWS_CENTRAL_RMQ_PW: jawstest
-      JAWS_CENTRAL_RMQ_HOST: rabbitmq
-      JAWS_CENTRAL_RMQ_PORT: 5672
-      JAWS_GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-      JAWS_GLOBUS_HOST_PATH: /data/jaws
-      GLOBUS_ENDPOINT: cf7c2dc8-75fb-11eb-8fff-01b9e52ec1df
-      JAWS_AUTH_PORT: 3000
-      JAWS_CLIENT_SECRET: TlLwcYHZF2c4b/KXPAk+R/PMwzmaF7exyAut/GQbNA=
-      JAWS_REST_PORT: 80
-      JAWS_AUTH_URL: central-auth
+    image: jaws_central:2.6.0-rc1-137-g878cc3d6
     depends_on:
       - db
       - rabbitmq
@@ -57,6 +40,35 @@ services:
     depends_on:
       - db
       - rabbitmq
+    expose:
+      - 3000
+    command:
+      - "jaws-central"
+      - "--config"
+      - "/etc/config/jaws-central.conf"
+      - "--log-level"
+      - "DEBUG"
+      - "auth"
+    volumes:
+      - /Users/mamelara/data/jaws/configs/auth/jaws-central.conf:/etc/config/jaws-central.conf
+  central-rpc:
+    image: jaws_central:2.6.0-rc1-111-g1c9b6fec
+    networks:
+      - jaws-tier
+    depends_on:
+      - db
+      - rabbitmq
+    expose:
+      - 3000
+    command:
+      - "jaws-central"
+      - "--config"
+      - "/etc/config/jaws-central.conf"
+      - "--log-level"
+      - "DEBUG"
+      - "rpc"
+    volumes:
+      - /Users/mamelara/data/jaws/configs/central-rpc/jaws-central.conf:/etc/config/jaws-central.conf
   db:
     image: jaws_mysql:2.5.0
     restart: always
@@ -74,49 +86,34 @@ services:
     volumes:
       - ./mysql/init:/docker-entrypoint-initdb.d/
   site:
-    image: jaws_site:2.5.0
-    environment:
-      JAWS_SITE: LOCAL
-      DEPLOYMENT_NAME: dev
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_PW: jawstest
-      RMQ_PW: jawstest
-      RMQ_HOST: rabbitmq
-      RMQ_PORT: 5672
-      GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-      GLOBUS_CLIENT_SECRET: TlLwcYHZF2c4b/KXPAk+R/PMwzmaF7exyAut/GQbNA=
-      GLOBUS_EP: cf7c2dc8-75fb-11eb-8fff-01b9e52ec1df
-      UPLOADS_DIR: /data/jaws
-      CROMWELL_PORT: 8000
-    networks:
-      - jaws-tier
-    depends_on:
-      - db
-      - rabbitmq
-  site-central:
-    image: site-central:2.5.0
-    environment:
-      JAWS_SITE: LOCAL
-      DEPLOYMENT_NAME: dev
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_PW: jawstest
-      RMQ_PW: jawstest
-      RMQ_HOST: rabbitmq
-      RMQ_PORT: 5672
-      GLOBUS_CLIENT_ID: 29a47d96-76b4-4f2b-a8bb-a4cb38ea17e3
-      GLOBUS_CLIENT_SECRET: TlLwcYHZF2c4b/KXPAk+R/PMwzmaF7exyAut/GQbNA=
-      GLOBUS_EP: cf7c2dc8-75fb-11eb-8fff-01b9e52ec1df
-      UPLOADS_DIR: /data/jaws/local
-      CROMWELL_PORT: 8000
+    image: jaws_site:2.6.0-rc1-137-g878cc3d6
+    command:
+      - "jaws-site"
+      - "--config"
+      - "/etc/config/jaws-site.conf"
+      - "--log-level"
+      - "DEBUG"
+      - "central-rpc"
     networks:
       - jaws-tier
     depends_on:
       - db
       - rabbitmq
     volumes:
-      - /Users/mamelara/data/jaws/local:/data/jaws/local
+      - /Users/mamelara/data/jaws/configs/site-central/jaws-site.conf:/etc/config/jaws-site.conf
+      - /Users/mamelara/data/jaws/local/uploads:/data/uploads
+  site-daemon:
+    image: jaws_site:2.6.0-rc1-137-g878cc3d6
+    networks:
+      - jaws-tier
+    depends_on:
+      - db
+      - rabbitmq
+    volumes:
+      - /Users/mamelara/data/jaws/configs/daemon/jaws-site.conf:/etc/config/jaws-site.conf
+      - /Users/mamelara/data/jaws/local/uploads:/data/uploads
+      - /Users/mamelara/data/jaws/local/uploads/cromwell-executions:/cromwell-executions:rw
+      - /Users/mamelara/data/jaws/laptop/output/:/data/jaws/laptop/output:rw
   rabbitmq:
     image: rabbitmq:3-management
     environment:
@@ -139,9 +136,9 @@ services:
     expose:
       - 8000
     volumes:
-      - /Users/mamelara/data/jaws-volumes/install_dir/jaws-dev/configs:/app-config
-      - /Users/mamelara/data/jaws-volumes/install_dir/jaws-dev/logs/cromwell-workflow-logs:/var/log/cromwell-workflow-logs:rw
-      - /Users/mamelara/data/jaws/local/cromwell:/data/jaws
+      - /Users/mamelara/data/jaws/configs/cromwell:/app-config
+      - /Users/mamelara/data/jaws/local/cromwell-workflow-logs:/var/log/cromwell-workflow-logs:rw
+      - /Users/mamelara/data/jaws/local/uploads/cromwell-executions:/cromwell-executions:rw
     networks:
       - jaws-tier
     ports:
