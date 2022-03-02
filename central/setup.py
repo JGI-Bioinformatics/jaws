@@ -11,7 +11,7 @@ setup(
     url="https://code.jgi.doe.gov/advanced-analysis/jaws",
     author="The JAWS Team",
     packages=['jaws_central'],
-    package_data={'jaws_central': ['datatransfer_plugins/*']},
+    package_data={'': ['datatransfer_plugins/*']},
     include_package_data=True,
     install_requires=[line.strip() for line in open("requirements.txt")],
     entry_points={"console_scripts": ["jaws-central = jaws_central.cli:jaws", ]},
