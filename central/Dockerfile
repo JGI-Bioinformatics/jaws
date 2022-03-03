@@ -1,13 +1,16 @@
 ARG JAWS_VERSION
-FROM jaws_rpc:${JAWS_VERSION}
+FROM rpc:${JAWS_VERSION} as base
+ENV JAWS_VERSION=${JAWS_VERSION}
+WORKDIR /usr/app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
 
-RUN pip install wheel
+FROM base as dev
+RUN pip install -e .
+USER jaws
 
-COPY docker-entrypoint.sh bin/
-
-WORKDIR app
-COPY jaws/central .
-RUN python setup.py bdist_wheel && pip install dist/*
-
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["jaws-central --log /tmp/central-rest.log --config /etc/jaws-central.conf --log-level DEBUG rest"]
+FROM base as prod
+RUN python setup.py bdist_wheel
+RUN pip install dist/*
+USER jaw
