@@ -12,6 +12,15 @@ services:
       - 80
     ports:
       - "80:80"
+    command:
+      - "jaws-central"
+      - "--config"
+      - "/etc/config/jaws-central.conf"
+      - "--log"
+      - "/var/log/jaws-central/jaws-central.log"
+      - "--log-level"
+      - "DEBUG"
+      - "rest"
     volumes:
       - $DATA_HOME/configs/central/jaws-central.conf:/etc/config/jaws-central.conf
       - $DATA_HOME/laptop:/data/jaws/laptop:rw
@@ -62,15 +71,12 @@ services:
       - $DATA_HOME/configs/central-rpc/jaws-central.conf:/etc/config/jaws-central.conf
       - $DATA_HOME/logs/central-rpc:/var/log/central-rpc:rw
   db:
-    image: mysql
-    command: --default-authentication-plugin=mysql_native_password
+    image: mysql:8.0.28
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: example
     ports:
       - "3306:3306"
-    volumes:
-      - ./mysql/init:/docker-entrypoint-initdb.d/
   site:
     image: site:2.6.0-dev
     command:
