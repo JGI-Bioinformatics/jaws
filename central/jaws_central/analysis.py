@@ -286,7 +286,9 @@ def get_site(user, site_id):
     return result, 200
 
 
-def transfer_files(data_transfer: DataTransferProtocol, metadata: dict, manifest_files: list) -> str:
+def transfer_files(
+    data_transfer: DataTransferProtocol, metadata: dict, manifest_files: list
+) -> str:
     """Perform file transfer.
 
     :param data_transfer: object for transferring data from one site to another (globus, aws, ...)
@@ -367,21 +369,25 @@ def submit_run(user):
     data_transfer = DataTransferFactory(data_transfer_type)
     metadata = {"label": f"Upload run {run.id}"}
 
-    if data_transfer_type == 'globus_transfer':
+    if data_transfer_type == "globus_transfer":
         src_host_path = config.conf.get_site(input_site_id, "globus_host_path")
-        metadata['host_paths'] = {
+        metadata["host_paths"] = {
             "src": src_host_path,
             "dest": config.conf.get_site(site_id, "globus_host_path"),
         }
-        metadata['input_endpoint'] = input_endpoint
-        metadata['compute_endpoint'] = compute_endpoint
-        metadata['run_id'] = run.id
+        metadata["input_endpoint"] = input_endpoint
+        metadata["compute_endpoint"] = compute_endpoint
+        metadata["run_id"] = run.id
 
         # We modify the output dir path since we know the endpoint of the returning source site. From here
         # a compute site can simply query the output directory and send.
-        virtual_output_path = data_transfer.virtual_transfer_path(output_dir, src_host_path)
+        virtual_output_path = data_transfer.virtual_transfer_path(
+            output_dir, src_host_path
+        )
     else:
-        virtual_output_path = output_dir  # not sure what the virtual path for AWS should be ???
+        virtual_output_path = (
+            output_dir  # not sure what the virtual path for AWS should be ???
+        )
 
     # Due to how the current database schema is setup, we have to update the output
     # directory from the model object itself immediately after insert.
@@ -514,7 +520,9 @@ def submit_run(user):
     return result, 201
 
 
-def _submission_failed(user: str, run: str, reason: str, data_transfer: DataTransferProtocol):
+def _submission_failed(
+    user: str, run: str, reason: str, data_transfer: DataTransferProtocol
+):
     """Cancel upload and update run status"""
     _cancel_transfer(data_transfer, run.upload_task_id)
     _update_run_status(run, "submission failed", reason)
@@ -785,7 +793,9 @@ def _cancel_run(user, run, reason="Cancelled by user"):
         return "cancelled"
 
 
-def _cancel_transfer(data_transfer: DataTransferProtocol, transfer_task_id: str) -> None:
+def _cancel_transfer(
+    data_transfer: DataTransferProtocol, transfer_task_id: str
+) -> None:
     """Cancels a data transfer.
 
     :param data_transfer: object for transferring data from one site to another (globus, aws, ...)
