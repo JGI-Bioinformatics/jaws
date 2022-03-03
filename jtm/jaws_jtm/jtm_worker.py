@@ -274,7 +274,16 @@ class TaskRunner(JtmAmqpstormBase):
             logger.exception(f"Detail: {detail}")
             raise OSError(2, "Failed to send a request to a worker")
 
-        message.ack()
+        try:
+            message.ack()
+        except Exception as detail:
+            logger.exception(
+                f"Exception: Failed to send an ACK for the task msg"
+            )
+            logger.exception(f"Detail: {detail}")
+            PIPE_TASK_ID_SEND.send(0)
+            USER_PROC_PROC_ID.value = 0
+            raise OSError(2, "Failed to send an ACK for the task completed")
 
         # Send taskid=0 to send_hb_to_client_thread() b/c the requested task is completed
         PIPE_TASK_ID_SEND.send(0)
