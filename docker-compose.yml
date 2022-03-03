@@ -1,4 +1,8 @@
-version: '3.1'
+version: '3.9'
+
+networks:
+  jaws-tier:
+    driver: bridge
 services:
   central:
     image: central:2.6.0-dev
@@ -74,7 +78,14 @@ services:
     image: mysql:8.0.28
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: example
+      MYSQL_USER: jaws
+      MYSQL_PASSWORD: jawstest
+      MYSQL_DATABASE: jaws_central_dev
+      MYSQL_ROOT_PASSWORD: jawstest
+    expose:
+      - 3306
+    networks:
+      - jaws-tier
     ports:
       - "3306:3306"
   site:
@@ -122,14 +133,26 @@ services:
       - $DATA_HOME/local/uploads/cromwell-executions:/cromwell-executions:rw
       - $DATA_HOME/laptop/output/:/data/jaws/laptop/output:rw
   rabbitmq:
-    image: "rabbitmq:3-management"
-    hostname: "rabbit"
-    enviroment:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_VHOST: jaws_dev
       RABBITMQ_DEFAULT_USER: jaws
       RABBITMQ_DEFAULT_PASS: jawstest
+    expose:
+      - 15672
+      - 5672
+      - 5673
+    networks:
+      - jaws-tier
     ports:
       - "15672:15672"
       - "5672:5672"
+      - "5673:5673"
+  cromwell:
+    image: broadinstitute/cromwell:58
+    command: "server"
+    expose:
+      - 8000
     volumes:
       - $DATA_HOME/configs/cromwell:/app-config
       - $DATA_HOME/local/cromwell-workflow-logs:/var/log/cromwell-workflow-logs:rw
