@@ -42,50 +42,8 @@ class RunES:
             msg = f"Failed to get run info for run_id={run_id}: {err}"
             logger.error(msg)
             raise RunNotFoundError(msg)
-        else:
-            if not self.run.model:
-                msg = f"Run info not found for run_id={run_id}"
-                logger.error(msg)
-                raise RunNotFoundError(msg)
-            else:
-                self.task = tasks.TaskLog(self.session, run_id=run_id)
 
-    def get_result(self) -> None:
-        """Get the result status for the given run_id provided during object instantiation."""
-
-        run_logs = runs.get_run_status_logs(self.session, self.run_id)
-        result = None
-        for row in run_logs:
-            if 'status_to' in row and row['status_to'] in ('succeeded', 'failed'):
-                result = row['status_to']
-                break
-        return result
-
-    def run_info(self) -> None:
-        """
-        Given a SQLAlchemy model for a Run, create a dict with the desired fields.
-        :param run: Run object
-        :type run: model
-        :param is_admin: True if current user is an administrator
-        :type is_admin: bool
-        :param verbose: True if all fields desired
-        :type verbose: bool
-        :return: selected fields
-        :rtype: dict
-        """
-
-        info = {
-            "run_id": self.run.model.id,
-            "user_id": self.run.model.user_id,
-            "email": self.run.model.email,
-            "submitted": self.run.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-            "updated": self.run.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
-            "status": self.run.model.status,
-            "status_detail": jaws_constants.task_status_msg.get(self.run.model.status, ""),
-            "result": self.get_result(),
-            "site_id": config.conf.get("SITE", "id"),
-        }
-        return info
+        self.task = tasks.TaskLog(self.session, run_id=run_id)
 
     def task_summary(self) -> None:
         """Get task summary info for the run based on the run_id provided during object instantiation."""
@@ -148,7 +106,7 @@ class RunES:
     def create_doc(self) -> None:
         """Create a json document of the run info for the run_id provided during object instantiation."""
 
-        run_status = self.run_info()
+        run_status = self.run.get_run_metadata()
         if not run_status:
             return {}
 
@@ -177,11 +135,11 @@ class RunES:
 def send_rpc_run_metadata(rpc_client: rpc_es.RPCRequest, payload: dict) -> Tuple[dict, int]:
     """Sends request to RabbitMQ/RPC and wait for response. If response fails, return non-zero status_code.
 
-    :param entries: A dictionary containing the rabbitmq connection information.
-    :type entries: dict
-    :param try_count: for logging number of tries only.
-    :type try_count: int
-    :return jsondata: dictionary of the results returned from RPC request.
+    :param rpc_client: rpc object connected to a RMQ queue for publishing message.
+    :type rpc_client: rpc_es.RPCRequest object.
+    :param payload: json document to publish to RMQ queue.
+    :type payload: dict
+    :return jsondata: response from RMQ request.
     :rtype jsondata: dictionary
     :return status_code: zero if successful, non-zero if connection fails or return json contains error msg.
     :rtype status_code: int
