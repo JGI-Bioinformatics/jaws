@@ -8,7 +8,7 @@ ARG JAWS_VERSION
 ENV JAWS_VERSION=${JAWS_VERSION}
 RUN pip install wheel
 
-WORKDIR /usr/app/rpc
+WORKDIR /usr/rpc
 COPY requirements.txt .
 RUN  pip install -r requirements.txt
 COPY . .

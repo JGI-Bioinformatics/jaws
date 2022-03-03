@@ -1,12 +1,13 @@
 ARG JAWS_VERSION
 FROM rpc:${JAWS_VERSION} as base
 ENV JAWS_VERSION=${JAWS_VERSION}
-WORKDIR /usr/app
+WORKDIR /usr/app/
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
 
 FROM base as dev
+RUN mkhomedir_helper jaws
 RUN pip install -e .
 USER jaws
 

@@ -8,6 +8,7 @@ RUN pip install -r requirements.txt
 COPY . .
 
 FROM builder as dev
+RUN mkhomedir_helper jaws
 RUN pip install -e .
 USER jaws
 
