@@ -405,7 +405,7 @@ def submit_run(user):
     # SUBMIT FILE TRANSFER
     manifest_files = request.files["manifest"]
 
-    logger.debug("Transferring files using {data_transfer_type}")
+    logger.debug(f"Transferring files using {data_transfer_type}")
 
     try:
         upload_task_id = transfer_files(data_transfer, metadata, manifest_files)
