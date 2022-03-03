@@ -16,6 +16,15 @@ services:
       - 80
     ports:
       - "80:80"
+    command:
+      - "jaws-central"
+      - "--config"
+      - "/etc/config/jaws-central.conf"
+      - "--log"
+      - "/var/log/jaws-central/jaws-central.log"
+      - "--log-level"
+      - "DEBUG"
+      - "rest"
     volumes:
       - $DATA_HOME/configs/central/jaws-central.conf:/etc/config/jaws-central.conf
       - $DATA_HOME/laptop:/data/jaws/laptop:rw
@@ -66,7 +75,7 @@ services:
       - $DATA_HOME/configs/central-rpc/jaws-central.conf:/etc/config/jaws-central.conf
       - $DATA_HOME/logs/central-rpc:/var/log/central-rpc:rw
   db:
-    image: jaws_mysql:2.5.0
+    image: mysql:8.0.28
     restart: always
     environment:
       MYSQL_USER: jaws
@@ -79,8 +88,6 @@ services:
       - jaws-tier
     ports:
       - "3306:3306"
-    volumes:
-      - ./mysql/init:/docker-entrypoint-initdb.d/
   site:
     image: site:2.6.0-dev
     command:
