@@ -50,3 +50,18 @@ def test_skylake_500G(submit_skylake_500):
     status_info = json.loads(o)
     assert status_info["status"] == "download complete"
     assert status_info["result"] == "succeeded"
+
+
+def test_jgi_500G(submit_jgi_500):
+    """tests that the jaws history command has the run id in the stdout.
+    This test will be skipped if the '--site' is not cori.
+    """
+    run_id = str(submit_jgi_500["run_id"])
+
+    # Run: jaws status
+    cmd = "jaws status --verbose %s" % (run_id)
+    (r, o, e) = util.run(cmd)
+
+    status_info = json.loads(o)
+    assert status_info["status"] == "download complete"
+    assert status_info["result"] == "succeeded"
