@@ -118,6 +118,50 @@ JAWS runs on a dedicated clusters LR3 and JGI
 
 \* the actual number of gigabytes you can use to reserve memory space for system processes.
 
+
+.. raw:: html
+
+  <details>
+  <summary><a>Example of requesting high-mem nodes from JGI</a></summary>
+
+  Using 256G memory machines on lr3. Just by having a memory setting larger than 64G, 
+  you will be sent to the jgi partition with 256G nodes.
+
+  <br>
+  <code>
+    <pre>
+    runtime {
+      poolname: "highmem_test"
+      time: "00:30:00"
+      memory: "2360G"
+      node: 1
+      nwpn: 1
+    }
+  </pre>
+  </code>
+
+  <summary><a>Example of requesting high-mem 512G nodes from JGI</a></summary>
+
+  Here you need to set some more params
+
+  <br>
+  <code>
+    <pre>
+    runtime {
+        poolname: "helloworldtest"
+        node: 1
+        nwpn: 1
+        memory: "500G"
+        time: "00:10:00"
+        account: "lr_jgicloud"
+        qos: "condo_jgicloud"
+        partition: "lr3"
+    }
+  </pre>
+  </code>
+
+  </details>
+
 |
 
 Pacific Northwest National Labs
