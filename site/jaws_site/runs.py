@@ -9,10 +9,13 @@ import logging
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import json
-from jaws_site import models
-from jaws_site import config
-from jaws_site import tasks
-from jaws_site import runs_es
+from jaws_site import (
+    models,
+    config,
+    tasks,
+    runs_es,
+    jaws_constants
+)
 from jaws_site.datatransfer_protocol import (
     DataTransferError,
     SiteTransfer,
@@ -119,6 +122,9 @@ class Run:
             err_msg = f"Unable to select run, {run_id}: {error}"
             logger.error(err_msg)
             raise RunDbError(err_msg)
+
+        if not self.model:
+            raise RunNotFound(f"Run {run_id} not found")
 
     @property
     def status(self) -> str:
@@ -443,14 +449,14 @@ class Run:
         doc = {}
 
         if not self.run_es_rpc_client:
-            logger.error(f"Run {self.model.id}: Cannot publish run metadata. The run_es_rpc_client is not defined")
+            logger.error(f"Run {self.model.id}: Cannot publish run metadata. The run_es_rpc_client is not defined.")
             self.update_run_status("ready to download")
             return
 
         try:
             run_es = runs_es.RunES(self.model.id)
         except runs_es.RunNotFoundError as err:
-            logger.error(f"Failed to get run metadata for run={self.model.id}: {err}")
+            logger.error(f"Run {self.model.id}: Run metadata not found.")
             self.update_run_status("ready to download")
             return
 
@@ -479,6 +485,33 @@ class Run:
         timestamp = datetime.utcnow()
         self._update_run_status(status_to, timestamp)
         self._insert_run_log(status_from, status_to, timestamp, reason)
+
+    def get_run_metadata(self) -> dict:
+        """
+        Get run entry from 'runs' table.
+
+        :return: dict containing the run entry from the runs table
+        :rtype: dict
+        """
+        run_logs = get_run_status_logs(self.session, self.model.id)
+        result = None
+        for row in run_logs:
+            if 'status_to' in row and row['status_to'] in ('succeeded', 'failed'):
+                result = row['status_to']
+                break
+
+        metadata = {
+            "run_id": self.model.id,
+            "user_id": self.model.user_id,
+            "email": self.model.email,
+            "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": self.model.status,
+            'status_detail': jaws_constants.task_status_msg.get(self.model.status, ""),
+            "result": result,
+            "site_id": config.conf.get("SITE", "id"),
+        }
+        return metadata
 
     def _update_run_status(self, new_status, timestamp) -> None:
         """
