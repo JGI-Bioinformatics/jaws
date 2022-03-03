@@ -152,6 +152,7 @@ JAWS runs on a dedicated clusters LR3 and JGI
         nwpn: 1
         memory: "500G"
         time: "00:10:00"
+        constraint: "lr3_c32,jgi_m512"
         account: "lr_jgicloud"
         qos: "condo_jgicloud"
         partition: "lr3"
