@@ -2,10 +2,10 @@ stages:
   - test
   - bandit-sast
   - semgrep-sast
-  - eslint-sast
+  - esline-sast
   - nodejs-scan-sast
   - unit-test
-  - package
+  - image-build
   - deploy-jaws
   - smoke-tests
   - deployment-tests
@@ -14,9 +14,9 @@ stages:
   - deploy-docs
 
 include:
-  - project: 'advanced-analysis/ci-templates'
-    ref: 'main'
-    file: 'SAST.gitlab-ci.yml'
+  - project: "advanced-analysis/ci-templates"
+    ref: "main"
+    file: "SAST.gitlab-ci.yml"
 
 variables:
   GIT_STRATEGY: clone
@@ -189,12 +189,6 @@ variables:
     - if: '$CI_COMMIT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
-test:
-  stage: test
-  tags:
-    - shared-shell
-  script:
-      - echo "I'm needed for the SAST jobs"
 
 test-rpc:
   <<: *only-default
@@ -263,14 +257,51 @@ test-jtm:
     reports:
       cobertura: jtm/coverage.xml
 
-package:
-  <<: *only-default
-  stage: package
+
+image: docker:19.03.12
+services:
+  - docker:19.03.12-dind
+
+.docker-login: &docker-login
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+build-rpc:
+  tags: 
+  - docker-build
+  stage: image-build
+  variables:
+    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
+  <<: *docker-login
   script:
-    - python3.8 -m venv pkg-venv
-    - source pkg-venv/bin/activate
-    - pip3.8 install wheel
-    - make pkg
+    - chmod +x build.sh
+    - ./build.sh rpc $JAWS_VERSION prod
+
+build-central:
+  tags:
+    - docker-build
+  stage: image-build
+  variables:
+    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/central:JAWS_VERSION
+    RPC_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
+  <<: *docker-login
+  script:
+    - docker pull $RPC_IMAGE_TAG
+    - chmod +x build.sh
+    - ./build.sh central $JAWS_VERSION prod
+
+build-site:
+  tags:
+    - docker-build
+  stage: image-build
+  variables:
+    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/site:$JAWS_VERSION
+    RPC_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
+  <<: *docker-login
+  script:
+    - docker pull $RPC_IMAGE_TAG
+    - chmod +x build.sh
+    - ./build.sh site $JAWS_VERSION prod
 
 ## integration tests - only run on merge request
 deploy-jaws-central-dev:
