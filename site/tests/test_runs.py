@@ -1,5 +1,6 @@
 import pytest
 import os.path
+from datetime import datetime
 import jaws_site
 from jaws_site.runs import Run
 
@@ -24,23 +25,6 @@ def mock__update_run_status(self, new_status, timestamp):
 def mock__insert_run_log(self, status_from, status_to, timestamp, reason=None):
     assert isinstance(status_from, str)
     assert isinstance(status_to, str)
-
-
-# class MockGlobusService:
-#     def __init__(self, status, transfer_result={"task_id": "325"}):
-#         self.status = status
-#         self.transfer_result = transfer_result
-
-#     def transfer_status(self, task_id):
-#         return self.status["status"]
-
-#     def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
-#         return self.transfer_result["task_id"]
-
-
-# class MockGlobusWithError(MockGlobusService):
-#     def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
-#         raise globus_sdk.GlobusError()
 
 
 class MockCromwell:
@@ -114,11 +98,6 @@ def test_check_if_upload_complete(statuses, monkeypatch, mock_data_transfer):
     mock_session = tests.conftest.MockSession()
     model = tests.conftest.MockRunModel(status="uploading")
     run = Run(mock_session, model=model)
-
-    # def mock_globus_service(run):
-    #     return MockGlobusService(statuses)
-
-    # monkeypatch.setattr(jaws_site.globus, "GlobusService", mock_globus_service)
 
     mock_data_transfer.status[statuses] = True
 
@@ -382,3 +361,100 @@ def test_check_run_cromwell_status(monkeypatch):
     )
     run.check_run_cromwell_status()
     assert run.status == "failed"
+
+
+def test_get_run_status_logs(mock_db_session):
+    exp_results = [
+        {
+            'run_id': 123,
+            'status_from': 'status from',
+            'status_to': 'succeeded',
+            'reason': '123 reason',
+            'timestamp': datetime.now(),
+            'site_id': 'EAGLE',
+        },
+        {
+            'run_id': 456,
+            'status_from': 'status from',
+            'status_to': 'succeeded',
+            'reason': '456 reason',
+            'timestamp': datetime.now(),
+            'site_id': 'EAGLE',
+        }
+    ]
+    mock_db_session.output(exp_results)
+
+    run_id = 123
+    obs_results = jaws_site.runs.get_run_status_logs(mock_db_session, run_id)
+
+    for idx, row in enumerate(exp_results):
+        for key in row:
+            obs_result_row = obs_results[idx]
+            assert key in obs_result_row
+            if key == 'timestamp':
+                row['timestamp'] = row['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
+            if key == 'site_id':
+                obs_result_row['site_id'] = obs_result_row['site_id'].upper()
+            assert row[key] == obs_result_row[key]
+
+
+def test_get_run_metadata(mock_db_session, monkeypatch):
+    from jaws_site import runs
+
+    def mock_get_run_status_log(*args, **kwargs):
+        return [{'status_to': 'succeeded'}]
+
+    monkeypatch.setattr(runs, 'get_run_status_logs', mock_get_run_status_log)
+
+    session_result = [
+        {
+            'id': 123,
+            'user_id': 'John Doe',
+            'email': 'johndoe@lbl.gov',
+            'submitted': datetime.now(),
+            'updated': datetime.now(),
+            "status": "download complete",
+            "result": "succeeded",
+        }
+    ]
+    exp_results = {
+        'email': 'johndoe@lbl.gov',
+        'result': 'succeeded',
+        'run_id': 123,
+        'site_id': 'EAGLE',
+        'status': 'download complete',
+        'status_detail': '',
+        'submitted': session_result[0]['submitted'].strftime("%Y-%m-%d %H:%M:%S"),
+        'updated': session_result[0]['updated'].strftime("%Y-%m-%d %H:%M:%S"),
+        'user_id': 'John Doe'
+    }
+    mock_db_session.output(session_result)
+    run = Run(mock_db_session, run_id=123)
+    obs_results = run.get_run_metadata()
+
+    for key in exp_results:
+        if key == 'site_id':
+            obs_results['site_id'] = obs_results['site_id'].upper()
+        assert key in obs_results
+        assert obs_results[key] == exp_results[key]
+
+
+def test_publish_run_metadata(mock_db_session, mock_rpc_request, monkeypatch):
+    from jaws_site.runs_es import RunES
+
+    exp_doc = {'user_id': 'John Doe'}
+
+    def mock_create_doc(*args, **kwargs):
+        return exp_doc
+
+    monkeypatch.setattr(RunES, 'create_doc', mock_create_doc)
+
+    run_id = 123
+    rpc_response = {'result': 'ok'}
+    session_result = [{'id': run_id, 'status': 'test status'}]
+    mock_db_session.output(session_result)
+    mock_rpc_request.output(rpc_response)
+    run = Run(mock_db_session, run_id=run_id, runs_es_rpc_client=mock_rpc_request)
+    obs_doc, rpc_result = run.publish_run_metadata()
+    assert obs_doc == exp_doc
+    assert rpc_result == {'rpc_response': rpc_response, 'rpc_status': 0}

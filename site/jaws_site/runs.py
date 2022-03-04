@@ -72,10 +72,11 @@ class Run:
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
-            "succeeded": self.publish_run_metadata,
-            "failed": self.publish_run_metadata,
-            "ready to download": self.transfer_results,
+            "succeeded": self.transfer_results,
+            "failed": self.transfer_results,
             "downloading": self.check_if_download_complete,
+            "download complete": self.publish_run_metadata,
+            "download failed": self.publish_run_metadata,
         }
 
         if "submission_id" in kwargs:
@@ -87,7 +88,7 @@ class Run:
             assert model.id is not None
             self.model = model
 
-        self.run_es_rpc_client = kwargs.get('run_es_rpc_client')
+        self.runs_es_rpc_client = kwargs.get('runs_es_rpc_client')
 
     def _insert_run(self, **kwargs) -> None:
         """Insert run record into rdb"""
@@ -376,12 +377,12 @@ class Run:
         except CromwellRunError as error:
             # if there's something wrong with this particular (failed) run, promote to next state
             logger.debug(f"Run {self.model.id}: {error}")
-            self.update_run_status("download complete", f"Cromwell run error: {error}")
+            self.update_run_status("downloading", f"Cromwell run error: {error}")
             return
         cromwell_workflow_dir = metadata.workflow_root()
         if not cromwell_workflow_dir:
             # This run failed before a folder was created; nothing to xfer
-            self.update_run_status("download complete", "No run folder was created")
+            self.update_run_status("downloading", "No run folder was created")
             return
 
         try:
@@ -444,29 +445,33 @@ class Run:
     def publish_run_metadata(self) -> None:
         """
         Get run metadata and send to RMQ for publishing to elasticsearch.
+
+        :return doc: dictionary containing the run metadata
+        :rtype doc: dictionary
+        :return rpc_response: dictionary containing the rpc response and status code
+        :rtype: dictionary
         """
+
         logger.debug(f"Run {self.model.id}: Publish run metadata")
         doc = {}
 
-        if not self.run_es_rpc_client:
-            logger.error(f"Run {self.model.id}: Cannot publish run metadata. The run_es_rpc_client is not defined.")
-            self.update_run_status("ready to download")
-            return
+        if not self.runs_es_rpc_client:
+            logger.error(f"Run {self.model.id}: Cannot publish run metadata. The runs_es_rpc_client is not defined.")
+            return None, None
 
         try:
-            run_es = runs_es.RunES(self.model.id)
+            run = runs_es.RunES(self.session, self.model.id)
         except runs_es.RunNotFoundError as err:
-            logger.error(f"Run {self.model.id}: Run metadata not found.")
-            self.update_run_status("ready to download")
-            return
+            logger.error(f"Run {self.model.id}: Run metadata not found: {err}")
+            return None, None
 
         # Create json doc of the run metadata
-        doc = run_es.create_doc()
+        doc = run.create_doc()
 
         # Send to json doc to RMQ to be inserted to elasticsearch.
         if doc and 'user_id' in doc and doc['user_id'] != 'test':
             logger.debug(f"Run {self.model.id}: Sending run metadata json doc to RMQ")
-            jsondata, status_code = run_es.send_rpc_run_metadata(self.run_es_rpc_client, doc)
+            jsondata, status_code = runs_es.send_rpc_run_metadata(self.runs_es_rpc_client, doc)
             if status_code:
                 if 'error' in jsondata and 'message' in jsondata['error']:
                     message = jsondata['error']['message']
@@ -474,7 +479,9 @@ class Run:
                     message = 'Unknown RPC error.'
                 logger.error(f"Run {self.model.id}: Failed to send run metadata to RMQ: {message}")
 
-        self.update_run_status("ready to download")
+        rpc_response = {'rpc_response': jsondata, 'rpc_status': status_code}
+
+        return doc, rpc_response
 
     def update_run_status(self, status_to, reason=None) -> None:
         """
@@ -548,13 +555,13 @@ class Run:
             raise
 
 
-def check_active_runs(session, run_es_rpc_client) -> None:
+def check_active_runs(session, runs_es_rpc_client) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
     rows = _select_active_runs(session)
     for model in rows:
-        run = Run(session, model=model, run_es_rpc_client=run_es_rpc_client)
+        run = Run(session, model=model, runs_es_rpc_client=runs_es_rpc_client)
         run.check_status()
 
 

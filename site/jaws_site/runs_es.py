@@ -1,11 +1,8 @@
 import logging
-from typing import Tuple
+from typing import Tuple, Callable
 from jaws_rpc import responses
 from jaws_site import (
-    config,
-    jaws_constants,
     rpc_es,
-    database,
     runs,
     tasks
 )
@@ -26,14 +23,16 @@ class RunES:
     """Class to retrieve jaws run information for a given run_id and create a json document to
     insert into elasticsearch."""
 
-    def __init__(self, run_id: int) -> None:
+    def __init__(self, session: Callable, run_id: int) -> None:
         """Initialize database for retrieving run info.
 
+        :param session: database.Session() which is a sqlalchemy session object.
+        :type session: sqlalchemy/database.session object
         :param run_id: jaws run_id
         :type run_id: int
         """
 
-        self.session = database.Session()
+        self.session = session
         self.run_id = run_id
 
         try:
