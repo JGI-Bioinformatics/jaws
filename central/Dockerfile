@@ -14,4 +14,4 @@ USER jaws
 FROM base as prod
 RUN python setup.py bdist_wheel
 RUN pip install dist/*
-USER jaw
+USER jaws
