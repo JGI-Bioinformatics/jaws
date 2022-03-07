@@ -276,6 +276,9 @@ build-rpc:
   script:
     - chmod +x build.sh
     - ./build.sh rpc $JAWS_VERSION prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      allow_failure: true
 
 build-central:
   tags:
@@ -289,6 +292,9 @@ build-central:
     - docker pull $RPC_IMAGE_TAG
     - chmod +x build.sh
     - ./build.sh central $JAWS_VERSION prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      allow_failure: true
 
 build-site:
   tags:
@@ -302,6 +308,9 @@ build-site:
     - docker pull $RPC_IMAGE_TAG
     - chmod +x build.sh
     - ./build.sh site $JAWS_VERSION prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      allow_failure: true
 
 ## integration tests - only run on merge request
 deploy-jaws-central-dev:
