@@ -278,7 +278,7 @@ class TaskRunner(JtmAmqpstormBase):
             message.ack()
         except Exception as detail:
             logger.exception(
-                f"Exception: Failed to send an ACK for the task msg"
+                "Exception: Failed to send an ACK for the task msg"
             )
             logger.exception(f"Detail: {detail}")
             PIPE_TASK_ID_SEND.send(0)
