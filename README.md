@@ -298,6 +298,7 @@ Developers
 
 Documentation and WDL authoring
 * Jeff Froula
+* Ramani Kothadia
  
 User support
 * Jeff Froula
@@ -312,5 +313,5 @@ System and integration testing
 
 Functional design consulting, project and resource coordination
 * Kjiersten Fagnan
-* Hugh Salamon
+* Stephan Chan
 

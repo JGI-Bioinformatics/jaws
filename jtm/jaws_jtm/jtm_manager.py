@@ -590,7 +590,11 @@ class JtmNonTaskCommandRunner(JtmAmqpstormBase):
             self.send_reply(message, "check_worker", process_check_worker(msg_unzipped))
         elif task_type == "remove_pool":
             self.send_reply(
-                message, "remove_pool", process_remove_pool(msg_unzipped["task_pool"])
+                message,
+                "remove_pool",
+                process_remove_pool(
+                    msg_unzipped["task_pool"], msg_unzipped["jtm_host_name"]
+                ),
             )
         else:
             logger.critical(f"Task type not found: {task_type}")
@@ -907,10 +911,10 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                 logger.debug(f"status now {task_id} = {status_now}")
 
                                 if not STANDALONE:
-                                    logger.debug(
-                                        f"status change msg {task_id}: {status_now} => running"
-                                    )
                                     if status_now == TASK_STATUS["pending"]:
+                                        logger.debug(
+                                            f"status change msg {task_id}: {status_now} => running"
+                                        )
                                         send_update_task_status_msg(
                                             task_id,
                                             status_now,
@@ -918,6 +922,7 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                             reason="slurm_jid=%d" % (slurm_job_id),
                                         )
 
+                                # Only if the status in (0, 1, 2), update status=3 = running
                                 db.execute(
                                     JTM_SQL["update_runs_status_to_running_by_taskid"]
                                     % dict(
@@ -1163,6 +1168,8 @@ def process_task_request(msg):
 
         for jid in slurm_jid_list:
             cmd = "squeue -j %d" % jid
+            if pool_constraint == "skylake" or pool_qos in ("jgi_exvivo", "jgi_shared"):
+                cmd = "module load esslurm &&" + cmd
             so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
             if not re.search(r"\bPD\b", so) and not re.search(r"\bR\b", so):
                 num_slurm_jid_in_pool -= 1
@@ -1351,7 +1358,7 @@ def process_task_request(msg):
         if last_task_id != -1:
             db = DbSqlMysql(config=CONFIG)
             if not STANDALONE:
-                logger.debug("process task request -->")
+                logger.debug("process task request...")
                 logger.debug(f"status change msg {last_task_id}: created => ready")
                 send_update_task_status_msg(
                     last_task_id, TASK_STATUS["created"], TASK_STATUS["ready"]
@@ -1388,7 +1395,7 @@ def process_task_request(msg):
                     db.close()
 
                     if not STANDALONE:
-                        logger.debug("process task request -->")
+                        logger.debug("process task request...")
                         logger.debug(
                             f"status change msg {last_task_id}: {task_status_int} => terminated"
                         )
@@ -1438,7 +1445,7 @@ def process_task_request(msg):
                     logger.debug(f"status now {last_task_id} = {status_now}")
 
                     if not STANDALONE:
-                        logger.debug("process task request -->")
+                        logger.debug("process task request...")
                         logger.debug(
                             f"status change msg {last_task_id}: {status_now} => queued"
                         )
@@ -1489,7 +1496,7 @@ def process_task_request(msg):
                 logger.debug(f"status now {last_task_id} = {status_now}")
 
                 if not STANDALONE:
-                    logger.debug("process task request -->")
+                    logger.debug("process task request...")
                     logger.debug(
                         f"status change msg {last_task_id}: {status_now} => pending"
                     )
@@ -1725,7 +1732,7 @@ def process_task_kill(task_id):
         # because worker id and pid is not known yet
 
         if not STANDALONE:
-            logger.debug("task kill -->")
+            logger.debug("task kill...")
             logger.debug(f"status change msg {task_id}: {status_now} => terminated")
             send_update_task_status_msg(
                 task_id,
@@ -1904,7 +1911,7 @@ def process_check_worker(msg_unzipped):
 
 
 # -------------------------------------------------------------------------------
-def process_remove_pool(task_pool_name):
+def process_remove_pool(task_pool_name: str, jtm_host_name: str):
     """
 
     :param task_pool_name:
@@ -1926,6 +1933,13 @@ def process_remove_pool(task_pool_name):
         for jid in zombie_slurm_job_id_list:
             scancel_cmd = "scancel %s" % (jid[0])
             _, _, ec = run_sh_command(scancel_cmd, log=logger)
+            if ec != 0:
+                # if CORI, check one more time using esslurm
+                if jtm_host_name == "CORI":
+                    scancel_cmd = "module load esslurm && scancel %s" % (jid[0])
+                    _, _, ec = run_sh_command(
+                        scancel_cmd, log=logger, show_stdout=False
+                    )
             if ec == 0:
                 logger.info("Successfully cancel the job, %s" % (jid[0]))
             else:
@@ -2019,7 +2033,7 @@ def task_kill_proc():
                 db.close()
 
                 if not STANDALONE:
-                    logger.debug("task kill proc -->")
+                    logger.debug("task kill proc...")
                     logger.debug(f"status change msg {tid}: '' => terminated")
                     send_update_task_status_msg(
                         tid,
@@ -2041,12 +2055,14 @@ def task_kill_proc():
 
 
 # -------------------------------------------------------------------------------
-def slurm_worker_cleanup_proc():
+def slurm_worker_cleanup_proc(jtm_host_name: str):
     """
     Try to find invalid slurm job
     If any, update workers table
 
     Todo: Very slurm dependent. Do we need this?
+
+    jtm_host_name: SITE name
 
     """
     while True:
@@ -2062,7 +2078,13 @@ def slurm_worker_cleanup_proc():
             for j in slurm_job_id:
                 # Note: slurm dependent code!
                 cmd = "squeue -j %d" % j
-                so, _, _ = run_sh_command(cmd, log=logger, show_stdout=False)
+                so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
+                if ec != 0:
+                    # if CORI, check one more time using esslurm
+                    if jtm_host_name == "CORI":
+                        cmd = "module load esslurm && squeue -j %d" % j
+                        so, _, ec = run_sh_command(cmd, log=logger, show_stdout=False)
+
                 if not re.search(r"\bPD\b", so) and not re.search(r"\bR\b", so):
                     logger.info("Found dead worker(s) from %s, %s" % (str(j), so))
                     logger.debug(
@@ -2185,6 +2207,7 @@ def manager(
     DEBUG = ctx.obj["debug"]
     # config file has precedence
     config_debug = CONFIG.configparser.getboolean("SITE", "debug")
+    config_jtmhostname = CONFIG.configparser.get("SITE", "jtm_host_name")
     if config_debug:
         DEBUG = config_debug
     global TASK_STATUS
@@ -2292,7 +2315,10 @@ def manager(
 
     # Start worker cleanup proc
     try:
-        worker_cleanup_proc_hdl = mp.Process(target=slurm_worker_cleanup_proc)
+        worker_cleanup_proc_hdl = mp.Process(
+            target=slurm_worker_cleanup_proc,
+            args=(config_jtmhostname,),
+        )
         worker_cleanup_proc_hdl.start()
         plist.append(worker_cleanup_proc_hdl)
         logger.debug(f"worker_cleanup_proc pid = {worker_cleanup_proc_hdl.pid}")
