@@ -48,7 +48,7 @@ class DataTransfer:
 
         Transfers a source directory to a destination directory.
         """
-        _ = metadata # metadata is not needed for local transfer
+        _ = metadata  # metadata is not needed for local transfer
         if os.path.isdir(source_dir):
             try:
                 shutil.copytree(source_dir, dest_dir)
