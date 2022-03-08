@@ -137,7 +137,7 @@ class Task:
                 job_id = call["jobId"]
             max_time = None
             if "runtimeAttributes" in call:
-                max_time = call["runtimeAttributes"]["time"]
+                max_time = call["runtimeAttributes"].get("time", "")
             if "subWorkflowMetadata" in call:
                 subworkflow = self.subworkflows[shard_index][attempt]
                 sub_task_summary = subworkflow.task_summary()
