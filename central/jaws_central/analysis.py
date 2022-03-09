@@ -828,26 +828,27 @@ def cancel_all(user):
     return cancelled, 201
 
 
-def _query_elastic_search_for_perf_metrics(params, match_query, agg_query):
+def _query_elastic_search_for_perf_metrics(params, query_filter, query_aggr):
     try:
         elastic_client = Elasticsearch(
             [f"http://{params['host']}:{params['port']}"],
-            api_key = params['api_key'])
+            api_key=params['api_key'])
         response = elastic_client.search(
-            index = params['perf_index'],
-            query = match_query,
-            aggregations = agg_query,
-            size = 10000)
-    except AuthorizationException as error:
+            index=params['perf_index'],
+            query=query_filter,
+            aggregations=query_aggr,
+            size=10000)
+    except Elasticsearch.AuthorizationException as error:
         logger.error(error)
         abort(403, {"error": f"Elastic Search error; {error}"})
-    except AuthenticationException as error:
+    except Elasticsearch.AuthenticationException as error:
         logger.error(error)
         abort(401, {"error": f"Elastic Search error; {error}"})
     except Exception as error:
         logger.error(error)
         abort(500, {"error": f"Elastic Search error; {error}"})
     return response
+
 
 def get_performance_metrics(user, run_id):
     """
@@ -867,7 +868,7 @@ def get_performance_metrics(user, run_id):
     query_aggr = {
         'aggregations': {'terms': {'field': 'name', 'size': 500}}}
     params = config.conf.get_section("ELASTIC_SEARCH")
-    response = _query_elastic_search_for_perf_metrics(params, match_query, agg_query)
+    response = _query_elastic_search_for_perf_metrics(params, query_filter, query_aggr)
     metrics = {'hits': [], 'groups': {}}
     for bucket in response['aggregations']['aggregations']['buckets']:
         metrics['groups'][bucket["key"]] = bucket["doc_count"]
