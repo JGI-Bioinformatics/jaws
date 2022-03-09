@@ -270,8 +270,8 @@ def allRequiredParams(task_name, task_dict):
             % (task_name, "memory")
         )
 
-# For now, maybe we shouldn't try to validate qos since they way we 
-# have users configure the runtime{} section will change soon and this 
+# For now, maybe we shouldn't try to validate qos since they way we
+# have users configure the runtime{} section will change soon and this
 # validation will be somewhere else.
     # check that qos is an acceptable value.
 #    accepted_qos = ["jgi_shared", "jgi_exvivo", "regular"]
