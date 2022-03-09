@@ -1358,7 +1358,7 @@ def process_task_request(msg):
         if last_task_id != -1:
             db = DbSqlMysql(config=CONFIG)
             if not STANDALONE:
-                logger.debug("process task request -->")
+                logger.debug("process task request...")
                 logger.debug(f"status change msg {last_task_id}: created => ready")
                 send_update_task_status_msg(
                     last_task_id, TASK_STATUS["created"], TASK_STATUS["ready"]
@@ -1395,7 +1395,7 @@ def process_task_request(msg):
                     db.close()
 
                     if not STANDALONE:
-                        logger.debug("process task request -->")
+                        logger.debug("process task request...")
                         logger.debug(
                             f"status change msg {last_task_id}: {task_status_int} => terminated"
                         )
@@ -1445,7 +1445,7 @@ def process_task_request(msg):
                     logger.debug(f"status now {last_task_id} = {status_now}")
 
                     if not STANDALONE:
-                        logger.debug("process task request -->")
+                        logger.debug("process task request...")
                         logger.debug(
                             f"status change msg {last_task_id}: {status_now} => queued"
                         )
@@ -1496,7 +1496,7 @@ def process_task_request(msg):
                 logger.debug(f"status now {last_task_id} = {status_now}")
 
                 if not STANDALONE:
-                    logger.debug("process task request -->")
+                    logger.debug("process task request...")
                     logger.debug(
                         f"status change msg {last_task_id}: {status_now} => pending"
                     )
@@ -1732,7 +1732,7 @@ def process_task_kill(task_id):
         # because worker id and pid is not known yet
 
         if not STANDALONE:
-            logger.debug("task kill -->")
+            logger.debug("task kill...")
             logger.debug(f"status change msg {task_id}: {status_now} => terminated")
             send_update_task_status_msg(
                 task_id,
@@ -2033,7 +2033,7 @@ def task_kill_proc():
                 db.close()
 
                 if not STANDALONE:
-                    logger.debug("task kill proc -->")
+                    logger.debug("task kill proc...")
                     logger.debug(f"status change msg {tid}: '' => terminated")
                     send_update_task_status_msg(
                         tid,
