@@ -200,6 +200,11 @@ aws_access_key_id = $AWS_ACCESS_KEY_ID
 aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
 s3_bucket = ABCD
 $CONF
+[ELASTIC_SEARCH]
+host=$ES_HOST_ADDR
+port=$ES_HOST_PORT
+api_key=$ES_API_KEY
+perf_index=$ES_PERF_INDEX
 EOM
 chmod 660 "$CONFIG_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$CONFIG_FILE"
 

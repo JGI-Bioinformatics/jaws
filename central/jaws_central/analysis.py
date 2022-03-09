@@ -4,6 +4,7 @@ Analysis (AKA Run) REST endpoints.
 
 import logging
 from datetime import datetime, timedelta
+from elasticsearch import Elasticsearch
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config
@@ -825,3 +826,51 @@ def cancel_all(user):
     for run in active_runs:
         cancelled[run.id] = _cancel_run(user, run)
     return cancelled, 201
+
+
+def _query_elastic_search_for_perf_metrics(params, match_query, agg_query):
+    try:
+        elastic_client = Elasticsearch(
+            [f"http://{params['host']}:{params['port']}"],
+            api_key = params['api_key'])
+        response = elastic_client.search(
+            index = params['perf_index'],
+            query = match_query,
+            aggregations = agg_query,
+            size = 10000)
+    except AuthorizationException as error:
+        logger.error(error)
+        abort(403, {"error": f"Elastic Search error; {error}"})
+    except AuthenticationException as error:
+        logger.error(error)
+        abort(401, {"error": f"Elastic Search error; {error}"})
+    except Exception as error:
+        logger.error(error)
+        abort(500, {"error": f"Elastic Search error; {error}"})
+    return response
+
+def get_performance_metrics(user, run_id):
+    """
+    Query ES to get performance metrics for user's run
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: performance metrics
+    :rtype: dict
+    """
+    run = _get_run(user, run_id)
+    logger.info(f"User {user}: Get log of Run {run.id}")
+    query_filter = {
+        'match': {'jaws_run_id': int(run_id)}}
+    query_aggr = {
+        'aggregations': {'terms': {'field': 'name', 'size': 500}}}
+    params = config.conf.get_section("ELASTIC_SEARCH")
+    response = _query_elastic_search_for_perf_metrics(params, match_query, agg_query)
+    metrics = {'hits': [], 'groups': {}}
+    for bucket in response['aggregations']['aggregations']['buckets']:
+        metrics['groups'][bucket["key"]] = bucket["doc_count"]
+    for hit in response['hits']['hits']:
+        metrics['hits'].append(hit)
+    return metrics
