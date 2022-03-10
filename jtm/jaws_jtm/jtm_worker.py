@@ -274,7 +274,16 @@ class TaskRunner(JtmAmqpstormBase):
             logger.exception(f"Detail: {detail}")
             raise OSError(2, "Failed to send a request to a worker")
 
-        message.ack()
+        try:
+            message.ack()
+        except Exception as detail:
+            logger.exception(
+                "Exception: Failed to send an ACK for the task msg"
+            )
+            logger.exception(f"Detail: {detail}")
+            PIPE_TASK_ID_SEND.send(0)
+            USER_PROC_PROC_ID.value = 0
+            raise OSError(2, "Failed to send an ACK for the task completed")
 
         # Send taskid=0 to send_hb_to_client_thread() b/c the requested task is completed
         PIPE_TASK_ID_SEND.send(0)
@@ -1162,6 +1171,14 @@ def worker(
 module unload python
 %(env_activation_cmd)s
 %(export_jtm_config_file)s
+
+/global/project/projectdirs/m3792/tylern/local/bin/pagurus \
+    --user $USER \
+    --outfile /global/cscratch1/sd/jaws_jtm/monitoring-runs/%(job_name)s_$SLURM_JOB_ID.csv &
+
+PID=$!
+sleep 2
+
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
@@ -1339,7 +1356,8 @@ wait
                 sys.exit(0)
 
             sbatch_cmd = f"sbatch --parsable {batch_job_script_file}"
-            if constraint == "skylake":
+
+            if constraint == "skylake" or qos in ("jgi_exvivo", "jgi_shared"):
                 sbatch_cmd = "module load esslurm; " + sbatch_cmd
                 logger.debug(f"skylake sbatch: {sbatch_cmd}")
             _, _, ec = run_sh_command(sbatch_cmd, log=logger)

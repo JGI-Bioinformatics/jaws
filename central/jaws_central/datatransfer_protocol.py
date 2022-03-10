@@ -49,6 +49,7 @@ class SiteTransfer:
         'JGI': 'globus_transfer',
         'TAHOMA': 'globus_transfer',
         'AWS': 'aws_s3_transfer',
+        'LOCAL': 'local_transfer'
     }
     status = Status()
 

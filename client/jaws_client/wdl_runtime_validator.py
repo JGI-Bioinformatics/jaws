@@ -270,14 +270,6 @@ def allRequiredParams(task_name, task_dict):
             % (task_name, "memory")
         )
 
-    # check that qos is an acceptable value.
-    accepted_qos = ["jgi_shared", "jgi_exvivo", "regular"]
-    if "qos" in task_dict and task_dict["qos"] not in accepted_qos:
-        raise WdlRuntimeError(
-            "Task: %s memoryParam. The value for qos is not a recognized value for skylake. You had: %s."
-            % (task_name, task_dict["qos"])
-        )
-
     # check that constraint is an acceptable value.
     accepted_constraint = [
         "haswell",
