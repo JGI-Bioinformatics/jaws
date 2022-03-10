@@ -347,7 +347,6 @@ def test_get_performance_metrics(monkeypatch):
 
         response = {
             "took": 2,
-            "timed_out": false,
             "_shards": {
             },
             "hits": {
