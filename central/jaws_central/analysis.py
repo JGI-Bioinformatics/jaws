@@ -898,8 +898,9 @@ def get_performance_metrics(user, run_id):
     elastic_client = _get_elastic_client(params)
     response = _search_elastic_search(
         elastic_client,
-        index=params['performance_metrics_index'], 
+        index=params['performance_metrics_index'],
         query={'match': {'jaws_run_id': int(run_id)}})
+    metrics = []
     for hit in response['hits']['hits']:
-        metrics['hits'].append(hit["_source"])
+        metrics.append(hit["_source"])
     return metrics
