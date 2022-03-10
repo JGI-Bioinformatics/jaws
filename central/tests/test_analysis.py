@@ -339,11 +339,12 @@ def test_get_performance_metrics(monkeypatch):
     def mock_get_run(user_id, run_id):
         return MockRunWithId()
 
-    def mock_create_es_client(params):
-        return {}
-
-    def mock_search_es(params, index, query, aggregations):
+    def mock_search_es(host, port, api_key, index, query, aggregations):
+        assert isinstance(host, str)
+        assert isinstance(port, str)
+        assert isinstance(api_key, str)
         assert isinstance(index, str)
+        assert isinstance(query, dict)
 
         response = {
             "took": 2,
