@@ -56,6 +56,12 @@ globus_endpoint = YYYY
 globus_host_path = /
 uploads_dir = /global/cscratch/sd1/jaws/jaws-dev/uploads
 max_ram_gb = 2048
+[ELASTIC_SEARCH]
+host=jaws-vm-1.jgi.lbl.gob
+port=9200
+api_key=XXXX
+[PERFORMANCE_METRICS]
+index=perfmetrics
 """
     cfg.write_text(content)
     return cfg.as_posix()
