@@ -39,7 +39,7 @@ if [ -x "$(command -v pagurus)" ]; then
 fi
 
 # Run container script and catch exit code
-singularity exec --bind $DOCKER_REF:$LOCAL_REF --bind $CWD:$DOCKER_CWD $IMAGE $JOB_SHELL $SCRIPT
+singularity exec --bind $LOCAL_REF:$DOCKER_REF --bind $CWD:$DOCKER_CWD $IMAGE $JOB_SHELL $SCRIPT
 export EXIT_CODE=$?
 
 # If PID is set then kill it
