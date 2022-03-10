@@ -102,6 +102,7 @@ class MockRunWithId:
     def __init__(self, *args, **kwargs):
         self.id = 123
 
+
 @pytest.fixture()
 def mock_database(monkeypatch):
     monkeypatch.setattr(jaws_central.models_fsa.db, "session", MockSession)
@@ -337,37 +338,39 @@ def test_get_performance_metrics(monkeypatch):
     """
     def mock_get_run(user_id, run_id):
         return MockRunWithId()
+
     def mock_create_es_client(params):
         return {}
+
     def mock_search_es(params, index, query, aggregations):
         assert isinstance(index, str)
 
         response = {
-            "took":2,
-            "timed_out":false,
-            "_shards":{
+            "took": 2,
+            "timed_out": false,
+            "_shards": {
             },
-            "hits":{
-                "max_score":1.0,
-                "hits":[
+            "hits": {
+                "max_score": 1.0,
+                "hits": [
                     {
-                        "_index":"dummyperfmetrics",
-                        "_type":"_doc",
-                        "_id":"47JAY38BP88SDbn3qnsw",
-                        "_score":1.0,
-                        "_source":{
-                        "read_chars":2668002692,
-                        "pid":31390,
-                        "write_chars":410010798,
-                        "cmdline":"",
-                        "memory_percent":0.026769763565699004,
-                        "write_count":4142,
-                        "current_dir":"",
-                        "cpu_percent":0,
-                        "jaws_run_id":123,
-                        "name":"jtm",
-                        "num_fds":17,
-                        "mem_vms":361418752
+                        "_index": "dummyperfmetrics",
+                        "_type": "_doc",
+                        "_id": "47JAY38BP88SDbn3qnsw",
+                        "_score": 1.0,
+                        "_source": {
+                            "read_chars": 2668002692,
+                            "pid": 31390,
+                            "write_chars": 410010798,
+                            "cmdline": "",
+                            "memory_percent": 0.026769763565699004,
+                            "write_count": 4142,
+                            "current_dir": "",
+                            "cpu_percent": 0,
+                            "jaws_run_id": 123,
+                            "name": "jtm",
+                            "num_fds": 17,
+                            "mem_vms": 361418752
                         }
                     }
                 ]
