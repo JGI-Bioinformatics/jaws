@@ -98,6 +98,10 @@ class MockGetInactiveUploadRun:
         self.json_file = "example.json"
 
 
+class MockRunWithId:
+    def __init__(self, *args, **kwargs):
+        self.id = 123
+
 @pytest.fixture()
 def mock_database(monkeypatch):
     monkeypatch.setattr(jaws_central.models_fsa.db, "session", MockSession)
@@ -325,3 +329,69 @@ def test_run_info():
         assert key in expected_fields_partial
     for key in expected_fields_partial:
         assert key in partial_results
+
+
+def test_get_performance_metrics(monkeypatch):
+    def mock_get_run(user_id, run_id):
+        return MockRunWithId()
+
+    def mock_create_es_client(params):
+        return {}
+
+    def mock_search_es(params, index, query, aggregations):
+        assert isinstance(index, str)
+        response = {
+            "took" : 2,
+            "timed_out" : false,
+            "_shards" : {
+            },
+            "hits" : {
+                "max_score" : 1.0,
+                "hits" : [
+                    {
+                        "_index" : "dummyperfmetrics",
+                        "_type" : "_doc",
+                        "_id" : "47JAY38BP88SDbn3qnsw",
+                        "_score" : 1.0,
+                        "_source" : {
+                        "read_chars" : 2668002692,
+                        "pid" : 31390,
+                        "write_chars" : 410010798,
+                        "cmdline" : "/global/cfs/projectdirs/jaws/jaws-install/jaws-prod/jtm/bin/python3|/global/cfs/projectdirs/jaws/jaws-install/jaws-prod/jtm/bin/jtm|--config=/global/cfs/projectdirs/jaws/jaws-install/jaws-prod/configs/jaws-jtm.conf|--debug|worker|--slurm_job_id|54658642|-cl|cori|-wt|dynamic|-t|00:15:00|--clone_time_rate|0.200000|-p|dapseq_leo_8a854e1f-52c5-4a58-a701-5a7046ceca00|--num_worker_per_node|12|-C|haswell|-m|115G|-c|32|-m|115G|-wi|N5GdAFu89cCejy5PHf4dmX_9|-q|genepool_special",
+                        "memory_percent" : 0.026769763565699004,
+                        "write_count" : 4142,
+                        "current_dir" : "/global/cfs/cdirs/jaws/jaws-install/jaws-supervisord-prod",
+                        "cpu_percent" : 0,
+                        "read_count" : 12992,
+                        "jaws_run_id" : 437,
+                        "cpu_iowait" : 0.0,
+                        "cpu_user" : 1.47,
+                        "mem_rss" : 36155392,
+                        "cpu_num" : 41,
+                        "cpu_system" : 0.58,
+                        "mem_total" : 397574144,
+                        "@timestamp" : "2022-02-10T12:50:43.971730000-08:00",
+                        "name" : "jtm",
+                        "num_threads" : 3,
+                        "num_fds" : 17,
+                        "mem_vms" : 361418752
+                        }
+                    }
+                ]
+            }
+        }
+        return response
+
+    monkeypatch.setattr(
+        jaws_central.analysis, "_get_run", mock_get_run
+    )
+    monkeypatch.setattr(
+        jaws_central.analysis, "_get_elastic_client", mock_create_es_client
+    )
+    monkeypatch.setattr(
+        jaws_central.analysis, "_search_elastic_search", mock_search_es
+    )
+    metrics = jaws_central.analysis.get_performance_metrics("test_user", 123)
+    assert "name" in metrics
+    assert "cpu_percent" in metrics
+    assert type(metrics["num_fds"]) == int 

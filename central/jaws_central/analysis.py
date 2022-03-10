@@ -828,25 +828,56 @@ def cancel_all(user):
     return cancelled, 201
 
 
-def _query_elastic_search_for_perf_metrics(params, query_filter, query_aggr):
+def _get_elastic_client(params):
+    """
+    Create an instance of Elastic Search Client
+
+    :param params: information regarding host, port, and api key
+    :type params: dict
+    :return: Elastic Search Client
+    :rtype: obj
+    """
     try:
         elastic_client = Elasticsearch(
             [f"http://{params['host']}:{params['port']}"],
             api_key=params['api_key'])
-        response = elastic_client.search(
-            index=params['perf_index'],
-            query=query_filter,
-            aggregations=query_aggr,
-            size=10000)
     except Elasticsearch.AuthorizationException as error:
         logger.error(error)
-        abort(403, {"error": f"Elastic Search error; {error}"})
+        abort(403, {"error": f"Not authorized; {error}"})
     except Elasticsearch.AuthenticationException as error:
         logger.error(error)
-        abort(401, {"error": f"Elastic Search error; {error}"})
+        abort(401, {"error": f"Invalid/Missing credentials; {error}"})
     except Exception as error:
         logger.error(error)
-        abort(500, {"error": f"Elastic Search error; {error}"})
+        abort(500, {"error": f"Elastic-Search error; {error}"})
+    return elastic_client
+
+
+def _search_elastic_search(elastic_client, index, query, aggregations=None):
+    """
+    Search Elastic Search (ES) DB
+
+    :param elastic_client: ES Client
+    :type elastic_client: obj
+    :param query: ES top-level query
+    :type query: dict
+    :param aggregations: ES bucket aggregations
+    :type aggregations: dict
+    :return: ES search response
+    :rtype: dict
+    """
+    try:
+        response = elastic_client.search(
+            index=index,
+            query=query,
+            aggregations=aggregations,
+            size=10000)
+    except Elasticsearch.NotFoundError as error:
+        logger.error(error)
+        abort(404, {"error": f"Not found; {error}"})
+    except Exception as error:
+        logger.error(error)
+        abort(500, {"error": f"Elastic-Search error; {error}"})
     return response
 
 
@@ -863,15 +894,12 @@ def get_performance_metrics(user, run_id):
     """
     run = _get_run(user, run_id)
     logger.info(f"User {user}: Get log of Run {run.id}")
-    query_filter = {
-        'match': {'jaws_run_id': int(run_id)}}
-    query_aggr = {
-        'aggregations': {'terms': {'field': 'name', 'size': 500}}}
     params = config.conf.get_section("ELASTIC_SEARCH")
-    response = _query_elastic_search_for_perf_metrics(params, query_filter, query_aggr)
-    metrics = {'hits': [], 'groups': {}}
-    for bucket in response['aggregations']['aggregations']['buckets']:
-        metrics['groups'][bucket["key"]] = bucket["doc_count"]
+    elastic_client = _get_elastic_client(params)
+    response = _search_elastic_search(
+        elastic_client,
+        index=params['performance_metrics_index'], 
+        query={'match': {'jaws_run_id': int(run_id)}})
     for hit in response['hits']['hits']:
-        metrics['hits'].append(hit)
+        metrics['hits'].append(hit["_source"])
     return metrics
