@@ -142,6 +142,7 @@ of the docker-compose.yml file and modify as needed. Some volume mounts are requ
 be processed by the containers. You will want to set your `DATA_HOME` with the locations of your
 configuration files, log files and data upload files. Here is an example: 
 
+
 ```console
 ❯ pwd
 /Users/mamelara/data/jaws

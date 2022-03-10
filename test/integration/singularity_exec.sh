@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-REMOTE_REF=$1
-LOCAL_REF=$2
+LOCAL_REF=$1
+DOCKER_REF=$2
 CWD=$3
 DOCKER_CWD=$4
 IMAGE=$5
@@ -39,7 +39,7 @@ if [ -x "$(command -v pagurus)" ]; then
 fi
 
 # Run container script and catch exit code
-singularity exec --bind $REMOTE_REF:$LOCAL_REF --bind $CWD:$DOCKER_CWD $IMAGE $JOB_SHELL $SCRIPT
+singularity exec --bind $LOCAL_REF:$DOCKER_REF --bind $CWD:$DOCKER_CWD $IMAGE $JOB_SHELL $SCRIPT
 export EXIT_CODE=$?
 
 # If PID is set then kill it
