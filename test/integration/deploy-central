@@ -204,7 +204,8 @@ $CONF
 host=$ES_HOST_ADDR
 port=$ES_HOST_PORT
 api_key=$ES_API_KEY
-performance_metrics_index=$ES_PERF_INDEX
+[PERFORMANCE_METRICS]
+index=$ES_PERF_INDEX
 EOM
 chmod 660 "$CONFIG_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$CONFIG_FILE"
 

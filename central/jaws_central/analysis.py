@@ -3,6 +3,7 @@ Analysis (AKA Run) REST endpoints.
 """
 
 import logging
+import json
 from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch
 from flask import abort, request
@@ -828,32 +829,7 @@ def cancel_all(user):
     return cancelled, 201
 
 
-def _get_elastic_client(params):
-    """
-    Create an instance of Elastic Search Client
-
-    :param params: information regarding host, port, and api key
-    :type params: dict
-    :return: Elastic Search Client
-    :rtype: obj
-    """
-    try:
-        elastic_client = Elasticsearch(
-            [f"http://{params['host']}:{params['port']}"],
-            api_key=params['api_key'])
-    except Elasticsearch.AuthorizationException as error:
-        logger.error(error)
-        abort(403, {"error": f"Not authorized; {error}"})
-    except Elasticsearch.AuthenticationException as error:
-        logger.error(error)
-        abort(401, {"error": f"Invalid/Missing credentials; {error}"})
-    except Exception as error:
-        logger.error(error)
-        abort(500, {"error": f"Elastic-Search error; {error}"})
-    return elastic_client
-
-
-def _search_elastic_search(elastic_client, index, query, aggregations=None):
+def _search_elastic_search(host, port, api_key, index, query, aggregations=None):
     """
     Search Elastic Search (ES) DB
 
@@ -867,11 +843,18 @@ def _search_elastic_search(elastic_client, index, query, aggregations=None):
     :rtype: dict
     """
     try:
+        elastic_client = Elasticsearch([f"http://{host}:{port}"], api_key=api_key)
         response = elastic_client.search(
             index=index,
             query=query,
             aggregations=aggregations,
             size=10000)
+    except Elasticsearch.AuthorizationException as error:
+        logger.error(error)
+        abort(403, {"error": f"Not authorized; {error}"})
+    except Elasticsearch.AuthenticationException as error:
+        logger.error(error)
+        abort(401, {"error": f"Invalid/Missing credentials; {error}"})
     except Elasticsearch.NotFoundError as error:
         logger.error(error)
         abort(404, {"error": f"Not found; {error}"})
@@ -894,13 +877,23 @@ def get_performance_metrics(user, run_id):
     """
     run = _get_run(user, run_id)
     logger.info(f"User {user}: Get log of Run {run.id}")
-    params = config.conf.get_section("ELASTIC_SEARCH")
-    elastic_client = _get_elastic_client(params)
+    db_conf = config.conf.get_section("ELASTIC_SEARCH")
+    pm_conf = config.conf.get_section("PERFORMANCE_METRICS")
     response = _search_elastic_search(
-        elastic_client,
-        index=params['performance_metrics_index'],
+        host=db_conf['host'],
+        port=db_conf['port'],
+        api_key=db_conf['api_key'],
+        index=pm_conf['index'],
         query={'match': {'jaws_run_id': int(run_id)}})
     metrics = []
-    for hit in response['hits']['hits']:
-        metrics.append(hit["_source"])
+    try:
+        for hit in response['hits']['hits']:
+            metrics.append(hit["_source"])
+    except Exception as error:
+        status = 404
+        if "error" in response and "status" in response:
+            status = response["status"]
+            error += json.dumps(response['error'], indent=2)
+        logger.error(error)
+        abort(status, {"error": f"{error}"})
     return metrics

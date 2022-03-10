@@ -379,9 +379,7 @@ def test_get_performance_metrics(monkeypatch):
     monkeypatch.setattr(
         jaws_central.analysis, "_get_run", mock_get_run
     )
-    monkeypatch.setattr(
-        jaws_central.analysis, "_get_elastic_client", mock_create_es_client
-    )
+
     monkeypatch.setattr(
         jaws_central.analysis, "_search_elastic_search", mock_search_es
     )
