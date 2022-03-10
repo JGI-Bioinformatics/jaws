@@ -51,10 +51,6 @@ build_image() {
         help >&2; exit
     fi
 
-    echo $1
-    echo $2
-    echo $3
-    echo $4
     service_name=$1
     version=$2
     env=$3
