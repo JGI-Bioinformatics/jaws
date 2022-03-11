@@ -3,7 +3,6 @@ JAWS Daemon process periodically checks on runs and performs actions to usher
 them to the next state.
 """
 
-import shutil
 import os
 import logging
 from datetime import datetime
