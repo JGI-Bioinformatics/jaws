@@ -449,63 +449,48 @@ class Cromwell:
 
     def submit(
         self,
-        wdl_file: str,
-        json_file: str,
-        zip_file: str = None,
-        options_file: str = None,
+        wdl_fh: str,
+        json_fh: str,
+        zip_fh: str = None,
+        options_fh: str = None,
     ) -> int:
         """
         Submit a run to Cromwell.
-        :param wdl_file: Path to WDL file
-        :type wdl_file: str
-        :param json_file: Path to inputs JSON file
-        :type json_file: str
-        :param zip_file: Path to subworkflows ZIP file (optional)
-        :type zip_file: str
-        :param options_file: Path to options JSON file (optional)
-        :type options_file: str
+        :param wdl_fh: File handle to WDL file
+        :type wdl_fh: str
+        :param json_fh: File handle to inputs JSON file
+        :type json_fh: str
+        :param zip_fh: Binary file handle to subworkflows ZIP file (optional)
+        :type zip_fh: str
+        :param options_fh: File handle to options JSON file (optional)
+        :type options_fh: str
         :return: Cromwell workflow uuid
         :rtype: str
         """
         logger = logging.getLogger(__package__)
         files = {}
-        try:
-            files["workflowInputs"] = (
-                "workflowInputs",
-                open(json_file, "r"),
+        files["workflowInputs"] = (
+            "workflowInputs",
+            json_fh,
+            "application/json",
+        )
+        files["workflowSource"] = (
+            "workflowSource",
+            wdl_fh,
+            "application/json",
+        )
+        if zip_fh:
+            files["workflowDependencies"] = (
+                "workflowDependencies",
+                zip_fh,
+                "application/zip",
+            )
+        if options_fh:
+            files["workflowOptions"] = (
+                "workflowOptions",
+                options_fh,
                 "application/json",
             )
-        except Exception as error:
-            logger.exception(f"Unable to open file, {json_file}: {error}")
-            raise IOError(f"Unable to open file, {json_file}: {error}")
-        try:
-            files["workflowSource"] = (
-                "workflowSource",
-                open(wdl_file, "r"),
-                "application/json",
-            )
-        except Exception as error:
-            logger.exception(f"Unable to open file, {wdl_file}: {error}")
-            raise IOError(f"Unable to open file, {wdl_file}: {error}")
-        if zip_file:
-            try:
-                files["workflowDependencies"] = (
-                    "workflowDependencies",
-                    open(zip_file, "rb"),
-                    "application/zip",
-                )
-            except Exception as error:
-                raise IOError(f"Unable to open file, {zip_file}: {error}")
-        if options_file:
-            try:
-                files["workflowOptions"] = (
-                    "workflowOptions",
-                    open(options_file, "r"),
-                    "application/json",
-                )
-            except Exception as error:
-                logger.exception(f"Unable to open file, {options_file}: {error}")
-                raise IOError(f"Unable to open file, {options_file}: {error}")
         try:
             response = requests.post(self.workflows_url, files=files)
         except requests.ConnectionError as error:

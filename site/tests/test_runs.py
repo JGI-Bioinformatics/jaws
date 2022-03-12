@@ -26,23 +26,6 @@ def mock__insert_run_log(self, status_from, status_to, timestamp, reason=None):
     assert isinstance(status_to, str)
 
 
-# class MockGlobusService:
-#     def __init__(self, status, transfer_result={"task_id": "325"}):
-#         self.status = status
-#         self.transfer_result = transfer_result
-
-#     def transfer_status(self, task_id):
-#         return self.status["status"]
-
-#     def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
-#         return self.transfer_result["task_id"]
-
-
-# class MockGlobusWithError(MockGlobusService):
-#     def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
-#         raise globus_sdk.GlobusError()
-
-
 class MockCromwell:
     def __init__(self, url="localhost"):
         self.url = url
@@ -162,11 +145,9 @@ def test_get_run_input(
     model1 = tests.conftest.MockRunModel(status="upload complete", submission_id="XXXX")
     run1 = Run(mock_session, model=model1)
     infiles = run1.get_run_input()
-    home_dir = os.path.expanduser("~")
-    root_dir = os.path.join(home_dir, "XXXX")
-    assert infiles[0] == os.path.join(root_dir, "XXXX.wdl")
-    assert infiles[1] == os.path.join(root_dir, "XXXX.json")
-    assert infiles[2] == os.path.join(root_dir, "XXXX.zip")
+    assert infiles[0].read() == "output for XXXX.wdl"
+    assert infiles[1].read() == "output for XXXX.json"
+    assert infiles[2].read().decode() == "output for XXXX.zip"
     assert infiles[3] is None
 
     # test 2: invalid input
@@ -179,10 +160,8 @@ def test_get_run_input(
     model3 = tests.conftest.MockRunModel(status="upload complete", submission_id="WWWW")
     run3 = Run(mock_session, model=model3)
     infiles = run3.get_run_input()
-    home_dir = os.path.expanduser("~")
-    root_dir = os.path.join(home_dir, "WWWW")
-    assert infiles[0] == os.path.join(root_dir, "WWWW.wdl")
-    assert infiles[1] == os.path.join(root_dir, "WWWW.json")
+    assert infiles[0].read() == "output for WWWW.wdl"
+    assert infiles[1].read() == "output for WWWW.json"
     assert infiles[2] is None
     assert infiles[3] is None
 
