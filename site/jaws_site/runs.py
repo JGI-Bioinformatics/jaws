@@ -3,7 +3,6 @@ JAWS Daemon process periodically checks on runs and performs actions to usher
 them to the next state.
 """
 
-import shutil
 import os
 import logging
 from datetime import datetime
@@ -293,47 +292,6 @@ class Run:
         elif cromwell_status == "Aborted":
             self.update_run_status("cancelled")
 
-    @staticmethod
-    def _cp_infile_to_outdir(
-        src_root_path, src_suffix, dest_dir, dest_file, required=True
-    ) -> None:
-        """
-        Copy an input file to the output dir.  If not required, no exception thrown if the file doesn't exist.
-        :param src_root_path: dir and basename of file
-        :type src_root_path: str
-        :param src_suffix: suffix of the file
-        :type src_suffix: str
-        :param dest_dir: folder to copy to
-        :type dest_dir: str
-        :param dest_file: destination filename
-        :type dest_file: str
-        :param required: If False then don't complain if the src file doesn't exist
-        :type required: bool
-        :return:
-        """
-        src_file = f"{src_root_path}.{src_suffix}"
-        dest = os.path.join(dest_dir, dest_file)
-        if required or os.path.exists(src_file):
-            try:
-                shutil.copy(src_file, dest)
-            except OSError as error:
-                logger.error(f"Unable to copy {src_file}->{dest}: {error}")
-                raise error
-
-    def copy_metadata_files(self, dest_dir: str):
-        """
-        Copy metadata files to Run's output dir.
-        Files are renamed in the process to something more sensible to user.
-        """
-        file_path = self.uploads_file_path()
-        try:
-            self._cp_infile_to_outdir(file_path, "wdl", dest_dir, "main.wdl")
-            self._cp_infile_to_outdir(file_path, "json", dest_dir, "jaws.inputs.json")
-            self._cp_infile_to_outdir(file_path, "orig.json", dest_dir, "inputs.json")
-            self._cp_infile_to_outdir(file_path, "zip", dest_dir, "subworkflows.zip", False)
-        except OSError as error:
-            raise error
-
     def _write_outputs_json(self, metadata):
         """Write outputs.json to workflow_root dir"""
         cromwell_workflow_dir = metadata.workflow_root()
@@ -378,15 +336,6 @@ class Run:
             self._write_outputs_json(metadata)
         except OSError as error:
             logger.error(f"Run {self.model.id}: Cannot write outputs json: {error}")
-            # don't change state; keep trying
-            return
-
-        try:
-            self.copy_metadata_files(cromwell_workflow_dir)
-        except OSError as error:
-            logger.error(
-                f"Run {self.model.id}: Cannot write to {cromwell_workflow_dir}: {error}"
-            )
             # don't change state; keep trying
             return
 
