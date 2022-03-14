@@ -155,7 +155,7 @@ variables:
   TAHOMA_DATA_REPO_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
   TAHOMA_RMQ_PORT: 5672
-  TAHOMA_MONITOR_RMQ_HOST: "r`mq.lbl.gov"
+  TAHOMA_MONITOR_RMQ_HOST: "rmq.lbl.gov"
   TAHOMA_MONITOR_RMQ_PORT: 5672
   TAHOMA_HTCONDOR_INSTALL: "/tahoma/mscjgi/condor/condor"
   TAHOMA_HTCONDOR_MASTER_CONFIG: "/tahoma/mscjgi/condor/condor_central.config"
