@@ -7,7 +7,6 @@ import os
 import logging
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-import json
 from jaws_site import models
 from jaws_site import config
 from jaws_site import tasks
@@ -147,6 +146,17 @@ class Run:
         """
         if self.model.cromwell_run_id:
             return cromwell.get_metadata(self.model.cromwell_run_id).data
+        else:
+            return None
+
+    def outputs(self) -> str:
+        """
+        Get outputs from Cromwell and return it, if available.
+        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        """
+        if self.model.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.model.cromwell_run_id)
+            return metadata.outputs(relpath=True)
         else:
             return None
 
@@ -292,14 +302,6 @@ class Run:
         elif cromwell_status == "Aborted":
             self.update_run_status("cancelled")
 
-    def _write_outputs_json(self, metadata):
-        """Write outputs.json to workflow_root dir"""
-        cromwell_workflow_dir = metadata.workflow_root()
-        outputs_file = os.path.join(cromwell_workflow_dir, "outputs.json")
-        outputs = metadata.outputs(relpath=True)
-        with open(outputs_file, "w") as fh:
-            fh.write(json.dumps(outputs, sort_keys=True, indent=4))
-
     def _get_data_transfer_type(self) -> str:
         """Lookup the site id to determine what type of data transfer method needs to be used (e.g., globus, aws).
 
@@ -330,13 +332,6 @@ class Run:
         if not cromwell_workflow_dir:
             # This run failed before a folder was created; nothing to xfer
             self.update_run_status("download complete", "No run folder was created")
-            return
-
-        try:
-            self._write_outputs_json(metadata)
-        except OSError as error:
-            logger.error(f"Run {self.model.id}: Cannot write outputs json: {error}")
-            # don't change state; keep trying
             return
 
         data_transfer_type = self._get_data_transfer_type()
