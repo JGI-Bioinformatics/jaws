@@ -17,10 +17,7 @@ class DataTransferNetworkError(DataTransferError):
 
 class DataTransferProtocol(Protocol):
     """Interface for the data transfer object using the Protocol structural subtyping class."""
-    def submit_upload(self, metadata: dict, manifest_files: list) -> str:
-        ...
-
-    def submit_download(self, metadata: dict, src_dir: str, dst_dir: str) -> str:
+    def submit_transfer(self, metadata: dict, manifest: list) -> str:
         ...
 
     def transfer_status(self, task_id: str) -> str:

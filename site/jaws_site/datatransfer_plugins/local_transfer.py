@@ -25,35 +25,19 @@ class DataTransfer:
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 shutil.copy2(src, dest)
 
-    def submit_upload(self, metadata, manifest_files):
+    def submit_transfer(self, metadata, manifest: list):
         """
         Submits transfer uploads from TSV file.
         """
         _ = metadata  # metadata is not needed for the local transfer
-        try:
-            for line in manifest_files:
-                line = line.decode("UTF-8")
-                source_path, dest_path, inode_type = line.strip("\n").split("\t")
-                logger.info(f"COPYING THE FILE {source_path} to {dest_path}")
-                self._upload(source_path, dest_path, inode_type)
-            upload_task_id = uuid.uuid4()
-            return str(upload_task_id)
+        for (source_path, dest_path, inode_type) in manifest:
+            logger.info(f"COPYING THE FILE {source_path} to {dest_path}")
+            self._upload(source_path, dest_path, inode_type)
         except Exception as e:
             logging.error(e, exc_info=True)
             raise DataTransferAPIError("Problem reading file")
-
-    def submit_download(self, metadata, source_dir, dest_dir):
-        """
-        Submits a transfer download.
-
-        Transfers a source directory to a destination directory.
-        """
-        _ = metadata  # metadata is not needed for local transfer
-        if os.path.isdir(source_dir):
-            try:
-                shutil.copytree(source_dir, dest_dir)
-            except IOError as io_error:
-                logging.error(io_error, exc_info=True)
+        transfer_task_id = uuid.uuid4()  # dummy ID
+        return str(transfer_task_id)
 
     def cancel_transfer(self, task_id):
         """
