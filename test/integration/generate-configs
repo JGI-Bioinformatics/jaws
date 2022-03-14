@@ -131,8 +131,8 @@ queue = SITE_$JAWS_SITE
 [JTM_RPC_SERVER]
 user = jaws
 password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
+host = $SITE_MONITOR_RMQ_HOST
+port = $SITE_MONITOR_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JTM_RPC_$JAWS_SITE
 num_threads = 5
