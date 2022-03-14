@@ -375,10 +375,13 @@ def uploads_files():
     if not os.path.exists(root_dir):
         os.mkdir(root_dir)
 
-    for f in ["XXXX.wdl", "XXXX.json", "XXXX.orig.json", "XXXX.zip"]:
+    for f in ["XXXX.wdl", "XXXX.json"]:
         file_path = os.path.join(root_dir, f)
         with open(file_path, "w") as outfile:
             outfile.write(f"output for {f}")
+    file_path = os.path.join(root_dir, "XXXX.zip")
+    with open(file_path, "wb") as outfile:
+        outfile.write("output for XXXX.zip".encode())
 
     yield
 
@@ -392,7 +395,7 @@ def uploads_files_without_zip():
     if not os.path.exists(root_dir):
         os.mkdir(root_dir)
 
-    for f in ["WWWW.wdl", "WWWW.json", "WWWW.orig.json"]:
+    for f in ["WWWW.wdl", "WWWW.json"]:
         file_path = os.path.join(root_dir, f)
         with open(file_path, "w") as outfile:
             outfile.write(f"output for {f}")
@@ -411,7 +414,7 @@ def uploads_files_missing_json():
 
     file_path = os.path.join(root_dir, "YYYY.wdl")
     with open(file_path, "w") as outfile:
-        outfile.write(f"workflow test { ... }")
+        outfile.write("output for YYYY.wdl")
 
     yield
 
