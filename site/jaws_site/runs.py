@@ -211,22 +211,22 @@ class Run:
 
     def get_run_input(self) -> list:
         """
-        Check if the input files are valid and return a list of their paths.
+        Check if the input files are valid and return a list of their file handles.
         The list contains wdl_file, json_file, and optionally zip_file.
         Raise on error.
 
         :return: list of [wdl,json,zip] file paths
         :rtype: list
         """
-        suffixes_and_required = [
-            ("wdl", True),
-            ("json", True),
-            ("zip", False),
-            ("options.json", False),
+        infile_parameters = [
+            ("wdl", True, False),
+            ("json", True, False),
+            ("zip", False, True),
+            ("options.json", False, False),
         ]
-        files = []
+        file_handles = []
         file_path = self.uploads_file_path()
-        for (suffix, required) in suffixes_and_required:
+        for (suffix, required, is_binary) in infile_parameters:
             a_file = f"{file_path}.{suffix}"
             a_file_size = file_size(a_file)
             if required:
@@ -236,11 +236,15 @@ class Run:
                     raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
             elif a_file_size is not None and a_file_size == 0:
                 raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
+            a_fh = None
+            filetype = "rb" if is_binary else "r"
             if a_file_size:
-                files.append(a_file)
-            else:
-                files.append(None)
-        return files
+                try:
+                    a_fh = open(a_file, filetype)
+                except IOError:
+                    raise
+            file_handles.append(a_fh)
+        return file_handles
 
     def submit_run(self) -> None:
         """
@@ -248,13 +252,18 @@ class Run:
         """
         logger.debug(f"Run {self.model.id}: Submit to Cromwell")
         try:
-            infiles = self.get_run_input()
+            input_file_handles = self.get_run_input()
         except DataError as error:
             logger.error(f"Run {self.model.id}: {error}")
             self.update_run_status("submission failed", f"Bad input: {error}")
             return
+        except IOError as error:
+            logger.error(f"Run {self.model.id}: {error}")
+            self.update_run_status("submission failed", f"IO Error: {error}")
+            return
+
         try:
-            cromwell_run_id = cromwell.submit(*infiles)
+            cromwell_run_id = cromwell.submit(*input_file_handles)
         except CromwellError as error:
             logger.error(f"Run {self.model.id} submission failed: {error}")
             self.update_run_status("submission failed", f"{error}")
