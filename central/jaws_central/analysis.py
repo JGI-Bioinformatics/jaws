@@ -726,6 +726,23 @@ def run_metadata(user, run_id):
     return rpc_call(user, run_id, "run_metadata")
 
 
+def run_outputs(user, run_id):
+    """
+    Retrieve the outputs of a run.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: Cromwell outputs for the run, if found; abort otherwise
+    :rtype: dict
+    """
+    logger.info(f"User {user}: Get outputs for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    return rpc_call(user, run_id, "run_outputs")
+
+
 def get_errors(user, run_id):
     """
     Retrieve error messages and stderr for failed tasks.

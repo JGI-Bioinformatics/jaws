@@ -211,13 +211,10 @@ def mock_path(tmp_path):
 
 
 def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path, mock_data_transfer):
-    def mock_write_outputs_json(self, metadata):
-        pass
 
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     monkeypatch.setattr(Run, "uploads_file_path", mock_path)
-    monkeypatch.setattr(Run, "_write_outputs_json", mock_write_outputs_json)
 
     mock_session = tests.conftest.MockSession()
     mock_model = tests.conftest.MockRunModel(
@@ -235,13 +232,9 @@ def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path, mock_
 def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path, mock_data_transfer):
     from jaws_site.datatransfer_protocol import DataTransferError
 
-    def mock_write_outputs_json(self, metadata):
-        pass
-
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     monkeypatch.setattr(Run, "uploads_file_path", mock_path)
-    monkeypatch.setattr(Run, "_write_outputs_json", mock_write_outputs_json)
 
     mock_session = tests.conftest.MockSession()
     mock_model = tests.conftest.MockRunModel(
