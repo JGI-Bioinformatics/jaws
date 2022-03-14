@@ -97,6 +97,8 @@ variables:
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
+  CORI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
+  CORI_MONITOR_RMQ_PORT: 5672
   CORI_HTCONDOR_INSTALL: "/global/cfs/projectdirs/jaws/jaws-install/condor/condor"
   CORI_HTCONDOR_MASTER_CONFIG: "/global/cfs/projectdirs/jaws/condor/condor_central.config"
 
@@ -124,6 +126,8 @@ variables:
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
+  JGI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
+  JGI_MONITOR_RMQ_PORT: 5672
   JGI_HTCONDOR_INSTALL: "/global/home/groups-sw/lr_jgicloud/condor/condor"
   JGI_HTCONDOR_MASTER_CONFIG: "/global/home/groups-sw/lr_jgicloud/condor/condor_central.config"
 
@@ -151,6 +155,8 @@ variables:
   TAHOMA_DATA_REPO_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
   TAHOMA_RMQ_PORT: 5672
+  TAHOMA_MONITOR_RMQ_HOST: "rmq.lbl.gov"
+  TAHOMA_MONITOR_RMQ_PORT: 5672
   TAHOMA_HTCONDOR_INSTALL: "/tahoma/mscjgi/condor/condor"
   TAHOMA_HTCONDOR_MASTER_CONFIG: "/tahoma/mscjgi/condor/condor_central.config"
 
@@ -267,7 +273,7 @@ services:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
 build-rpc:
-  tags: 
+  tags:
   - docker-build
   stage: image-build
   variables:
