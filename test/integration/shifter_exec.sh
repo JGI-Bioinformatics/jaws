@@ -77,15 +77,6 @@ else
     pullImage $IMG $REPO $HASH
 fi
 
-
-# Check if monitoring script is installed
-if [ -x "$(command -v pagurus)" ]; then
-    # Start monitoring running, get monitor pid and sleep
-    pagurus -u $USER -o $PWD/stats.csv &
-    PID=$!
-    sleep 2
-fi
-
 # Run container script and catch exit code
 if [[ $HASH =~ "sha256" ]]; then
     shifter --image=id:$ID -V $2:$3 $4 $5
@@ -94,13 +85,6 @@ else
 fi
 
 export EXIT_CODE=$?
-
-# If PID is set then kill it
-if [ -n "$PID" ]; then
-    # Kill pagurus monitoring and wait for it to write stats.csv
-    kill $PID
-    sleep 2
-fi
 
 # Return with container exit code
 exit $EXIT_CODE
