@@ -3,8 +3,9 @@ from typing import Tuple, Callable
 from jaws_rpc import responses
 from jaws_site import (
     rpc_es,
-    runs,
-    tasks
+    tasks,
+    models,
+    cromwell,
 )
 from jaws_rpc.rpc_client import (
     InvalidJsonResponse,
@@ -23,7 +24,7 @@ class RunES:
     """Class to retrieve jaws run information for a given run_id and create a json document to
     insert into elasticsearch."""
 
-    def __init__(self, session: Callable, run_id: int) -> None:
+    def __init__(self, session: Callable, model: models.Run = None, run_id: int = None) -> None:
         """Initialize database for retrieving run info.
 
         :param session: database.Session() which is a sqlalchemy session object.
@@ -34,15 +35,28 @@ class RunES:
 
         self.session = session
         self.run_id = run_id
+        self.model = None
 
-        try:
-            self.run = runs.Run(self.session, run_id=run_id)
-        except (runs.RunNotFound, runs.RunDbError) as err:
-            msg = f"Failed to get run info for run_id={run_id}: {err}"
-            logger.error(msg)
-            raise RunNotFoundError(msg)
+        if model:
+            self.model = model
+            self.run_id = model.id
+        elif run_id:
+            """Select run record from rdb"""
+            try:
+                self.model = self.session.query(models.Run).get(run_id)
+            except IntegrityError as error:
+                logger.warn(f"Run {run_id}: IntegrityError for model thrown: {error}")
+                raise RunNotFound(f"Run {run_id} not found")
+            except SQLAlchemyError as error:
+                err_msg = f"Unable to select run, {run_id}: {error}"
+                logger.error(err_msg)
+                raise RunDbError(err_msg)
 
-        self.task = tasks.TaskLog(self.session, run_id=run_id)
+        if not self.model:
+            logger.warn(f"Run {run_id}: model not found")
+            raise RunNotFoundError(f"Run {run_id} not found")
+
+        self.task = tasks.TaskLog(self.session, run_id=self.run_id)
 
     def task_summary(self) -> None:
         """Get task summary info for the run based on the run_id provided during object instantiation."""
@@ -92,20 +106,28 @@ class RunES:
         return infos
 
     def cromwell_metadata(self) -> None:
-        """Get cromwell metadata for the run based on the run_id provided during object instantiation."""
-
-        try:
-            cromwell_metadata = self.run.metadata()
-        except Exception as err:
-            logger.error(f"Failed to get task_status for run_id={self.run_id}: {err}")
-            return {}
+        """
+        Get metadata from Cromwell and return it, if available.
+        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        """
+        if self.model.cromwell_run_id:
+            return cromwell.get_metadata(self.model.cromwell_run_id).data
+        else:
+            return None
 
         return cromwell_metadata or {}
 
     def create_doc(self) -> None:
         """Create a json document of the run info for the run_id provided during object instantiation."""
 
-        run_status = self.run.get_run_metadata()
+        try:
+            run = runs.Run(self.session, run_id=self.run_id)
+        except (runs.RunNotFound, runs.RunDbError) as err:
+            msg = f"Failed to get run info for run_id={run_id}: {err}"
+            logger.error(msg)
+            raise RunNotFoundError(msg)
+
+        run_status = run.get_run_metadata()
         if not run_status:
             return {}
 

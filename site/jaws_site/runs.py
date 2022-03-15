@@ -75,8 +75,6 @@ class Run:
             "succeeded": self.transfer_results,
             "failed": self.transfer_results,
             "downloading": self.check_if_download_complete,
-            "download complete": self.publish_run_metadata,
-            "download failed": self.publish_run_metadata,
         }
 
         if "submission_id" in kwargs:
@@ -123,9 +121,6 @@ class Run:
             err_msg = f"Unable to select run, {run_id}: {error}"
             logger.error(err_msg)
             raise RunDbError(err_msg)
-
-        if not self.model:
-            raise RunNotFound(f"Run {run_id} not found")
 
     @property
     def status(self) -> str:
@@ -304,6 +299,102 @@ class Run:
         elif cromwell_status == "Aborted":
             self.update_run_status("cancelled")
 
+    def publish_run_metadata(self) -> None:
+        """
+        Get run metadata and send to RMQ for publishing to elasticsearch.
+
+        :return doc: dictionary containing the run metadata
+        :rtype doc: dictionary
+        :return rpc_response: dictionary containing the rpc response and status code
+        :rtype: dictionary
+        """
+
+        logger.debug(f"Run {self.model.id}: Publish run metadata")
+        doc = {}
+
+        if not self.runs_es_rpc_client:
+            logger.error(f"Run {self.model.id}: Cannot publish run metadata. The runs_es_rpc_client is not defined.")
+            return None, None
+
+        try:
+            es = runs_es.RunES(self.session, model=self.model)
+        except runs_es.RunNotFoundError as err:
+            logger.error(f"Run {self.model.id}: Run metadata not found: {err}")
+            return None, None
+
+        # Create json doc of the run metadata
+        doc = self._create_es_json_doc(es)
+
+        # Send to json doc to RMQ to be inserted to elasticsearch.
+        if doc and 'user_id' in doc and doc['user_id'] != 'test':
+            logger.debug(f"Run {self.model.id}: Sending run metadata json doc to RMQ")
+            jsondata, status_code = runs_es.send_rpc_run_metadata(self.runs_es_rpc_client, doc)
+            if status_code:
+                if 'error' in jsondata and 'message' in jsondata['error']:
+                    message = jsondata['error']['message']
+                else:
+                    message = 'Unknown RPC error.'
+                logger.error(f"Run {self.model.id}: Failed to send run metadata to RMQ: {message}")
+
+        rpc_response = {'rpc_response': jsondata, 'rpc_status': status_code}
+
+        return doc, rpc_response
+
+    def _create_es_json_doc(self, es: runs_es.RunES) -> dict:
+        """Create a json payload containing the run metadata to be uploaded to elasticsearch."""
+
+        run_status = self.get_run_metadata()
+        if not run_status:
+            return {}
+
+        cromwell_metadata = self.metadata()
+        task_summary = es.task_summary()
+        task_status = es.task_status()
+
+        doc = {
+            'run_id': run_status['run_id'],
+            'workflow_name': cromwell_metadata.get('workflowName', 'unknown'),
+        }
+        doc.update(run_status)
+        doc['tasks'] = []
+
+        for task_name in task_status:
+            status_entries = {}
+            status_entries['name'] = task_name
+            status_entries.update(task_status[task_name])
+            if task_name in task_summary:
+                status_entries.update(task_summary[task_name])
+            doc['tasks'].append(status_entries)
+
+        return doc
+
+    def get_run_metadata(self) -> dict:
+        """
+        Get run entry from 'runs' table.
+
+        :return: dict containing the run entry from the runs table
+        :rtype: dict
+        """
+        run_logs = get_run_status_logs(self.session, self.model.id)
+        result = None
+        for row in run_logs:
+            if 'status_to' in row and row['status_to'] in ('succeeded', 'failed'):
+                result = row['status_to']
+                break
+
+        metadata = {
+            "run_id": self.model.id,
+            "user_id": self.model.user_id,
+            "email": self.model.email,
+            "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": self.model.status,
+            'status_detail': jaws_constants.task_status_msg.get(self.model.status, ""),
+            "result": result,
+            "site_id": config.conf.get("SITE", "id"),
+        }
+        return metadata
+
     @staticmethod
     def _cp_infile_to_outdir(
         src_root_path, src_suffix, dest_dir, dest_file, required=True
@@ -377,12 +468,12 @@ class Run:
         except CromwellRunError as error:
             # if there's something wrong with this particular (failed) run, promote to next state
             logger.debug(f"Run {self.model.id}: {error}")
-            self.update_run_status("downloading", f"Cromwell run error: {error}")
+            self.update_run_status("download complete", f"Cromwell run error: {error}")
             return
         cromwell_workflow_dir = metadata.workflow_root()
         if not cromwell_workflow_dir:
             # This run failed before a folder was created; nothing to xfer
-            self.update_run_status("downloading", "No run folder was created")
+            self.update_run_status("download complete", "No run folder was created")
             return
 
         try:
@@ -439,49 +530,10 @@ class Run:
         status = self.download_status(data_transfer)
         if status == SiteTransfer.status.succeeded:
             self.update_run_status("download complete")
+            self.publish_run_metadata()
         elif status == SiteTransfer.status.failed:
             self.update_run_status("download failed")
-
-    def publish_run_metadata(self) -> None:
-        """
-        Get run metadata and send to RMQ for publishing to elasticsearch.
-
-        :return doc: dictionary containing the run metadata
-        :rtype doc: dictionary
-        :return rpc_response: dictionary containing the rpc response and status code
-        :rtype: dictionary
-        """
-
-        logger.debug(f"Run {self.model.id}: Publish run metadata")
-        doc = {}
-
-        if not self.runs_es_rpc_client:
-            logger.error(f"Run {self.model.id}: Cannot publish run metadata. The runs_es_rpc_client is not defined.")
-            return None, None
-
-        try:
-            run = runs_es.RunES(self.session, self.model.id)
-        except runs_es.RunNotFoundError as err:
-            logger.error(f"Run {self.model.id}: Run metadata not found: {err}")
-            return None, None
-
-        # Create json doc of the run metadata
-        doc = run.create_doc()
-
-        # Send to json doc to RMQ to be inserted to elasticsearch.
-        if doc and 'user_id' in doc and doc['user_id'] != 'test':
-            logger.debug(f"Run {self.model.id}: Sending run metadata json doc to RMQ")
-            jsondata, status_code = runs_es.send_rpc_run_metadata(self.runs_es_rpc_client, doc)
-            if status_code:
-                if 'error' in jsondata and 'message' in jsondata['error']:
-                    message = jsondata['error']['message']
-                else:
-                    message = 'Unknown RPC error.'
-                logger.error(f"Run {self.model.id}: Failed to send run metadata to RMQ: {message}")
-
-        rpc_response = {'rpc_response': jsondata, 'rpc_status': status_code}
-
-        return doc, rpc_response
+            self.publish_run_metadata()
 
     def update_run_status(self, status_to, reason=None) -> None:
         """
@@ -492,33 +544,6 @@ class Run:
         timestamp = datetime.utcnow()
         self._update_run_status(status_to, timestamp)
         self._insert_run_log(status_from, status_to, timestamp, reason)
-
-    def get_run_metadata(self) -> dict:
-        """
-        Get run entry from 'runs' table.
-
-        :return: dict containing the run entry from the runs table
-        :rtype: dict
-        """
-        run_logs = get_run_status_logs(self.session, self.model.id)
-        result = None
-        for row in run_logs:
-            if 'status_to' in row and row['status_to'] in ('succeeded', 'failed'):
-                result = row['status_to']
-                break
-
-        metadata = {
-            "run_id": self.model.id,
-            "user_id": self.model.user_id,
-            "email": self.model.email,
-            "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-            "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
-            "status": self.model.status,
-            'status_detail': jaws_constants.task_status_msg.get(self.model.status, ""),
-            "result": result,
-            "site_id": config.conf.get("SITE", "id"),
-        }
-        return metadata
 
     def _update_run_status(self, new_status, timestamp) -> None:
         """
@@ -577,7 +602,6 @@ def _select_active_runs(session) -> list:
         "running",
         "succeeded",
         "failed",
-        "ready to download",
         "downloading",
     ]
     try:
@@ -662,3 +686,4 @@ def get_run_status_logs(session, run_id) -> None:
         }
         datas.append(data)
     return datas
+
