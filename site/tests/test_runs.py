@@ -521,7 +521,7 @@ def test_publish_run_metadata(mock_db_session, mock_rpc_request, monkeypatch):
     ]
     mock_db_session.output(session_result)
 
-    exp_results =  {
+    exp_results = {
         'email': 'jaws@lbl.gov',
         'result': 'success',
         'run_id': 123,
@@ -562,7 +562,6 @@ def test_publish_run_metadata(mock_db_session, mock_rpc_request, monkeypatch):
         'workflow_name': 'test'
     }
 
-    from pprint import pprint
     run = Run(mock_db_session, run_id=123, runs_es_rpc_client=mock_rpc_request)
     obs_results, response = run.publish_run_metadata()
     assert obs_results == exp_results
