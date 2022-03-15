@@ -9,6 +9,7 @@ import sys
 import re
 import warnings
 
+
 class WdlRuntimeError(Exception):
     pass
 
