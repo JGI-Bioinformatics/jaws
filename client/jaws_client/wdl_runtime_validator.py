@@ -7,7 +7,7 @@ when the runtime dictionary is created.
 
 import sys
 import re
-
+import warnings
 
 class WdlRuntimeError(Exception):
     pass
@@ -254,6 +254,13 @@ class WDLStanzas:
                     start_count = 0
 
 
+def spellCheck(task_name, task_dict):
+    accepted_param_names = ["node", "nwpn", "time", "memory", "cpu", "shared", "constraint", "account", "qos"]
+    for key in task_dict.keys():
+        if key not in accepted_param_names:
+            warnings.warn('%s is not a known runtime parameter and will be ignored.' % key, SyntaxWarning)
+
+
 def allRequiredParams(task_name, task_dict):
     """Check that the user has included the minimum runtime parameters and that other params
     are acceptable values
@@ -413,6 +420,9 @@ def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float) -> None:
     doc.loadStanza("runtime")
     for task_name in doc.stanza_dict.keys():
         task_dict = doc.stanza_dict[task_name]
+
+        # Check the spelling of the runtime param keys. Give a warning if a paramemter is not in the list
+        spellCheck(task_name, task_dict)
 
         # Check that we have minimum runtime params (i.e. time & memory)
         allRequiredParams(task_name, task_dict)
