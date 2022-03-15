@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from datetime import datetime
-from jaws_site import tasks, runs, runs_es
+from jaws_site import tasks, runs, runs_es, cromwell
 
 this_date = datetime.today()
 
@@ -52,8 +53,15 @@ def mock_task_status(*args, **kwargs):
 
 def mock_metadata(*args, **kwargs):
     return {
-        'workflowName': 'test'
+        'workflow_name': 'test'
     }
+
+
+def mock_cromwell_metadata(*args, **kwargs):
+    @dataclass
+    class Metadata:
+        data = {'workflowName': 'test'}
+    return Metadata()
 
 
 def test_task_summary(mock_db_session, monkeypatch):
@@ -109,13 +117,14 @@ def test_task_status(mock_db_session, monkeypatch):
 
 def test_cromwell_metadata(mock_db_session, monkeypatch):
     exp_results = {
-        'workflow_name': 'test'
+        'workflowName': 'test'
     }
 
     def mock_metadata(*args, **kwargs):
         return exp_results
 
-    monkeypatch.setattr(runs.Run, 'metadata', mock_metadata)
+    mock_db_session.output([{'cromwell_run_id': 'abc'}])
+    monkeypatch.setattr(cromwell.Cromwell, 'get_metadata', mock_cromwell_metadata)
 
     obs_results = runs_es.RunES(mock_db_session, run_id=123).cromwell_metadata()
     assert obs_results == exp_results
@@ -125,19 +134,22 @@ def test_create_doc(mock_db_session, monkeypatch):
     monkeypatch.setattr(tasks.TaskLog, 'task_summary', mock_task_summary)
     monkeypatch.setattr(tasks.TaskLog, 'task_status', mock_task_status)
     monkeypatch.setattr(runs.Run, 'metadata', mock_metadata)
+    monkeypatch.setattr(runs_es.RunES, 'cromwell_metadata', mock_cromwell_metadata)
 
     session_result = [
         {
             'id': 123,
+            'run_id': 123,
             'user_id': 'John Doe',
             'email': 'johndoe@lbl.gov',
             'submitted': this_date,
             'updated': this_date,
             "status": "download complete",
             "result": "succeeded",
+            "cromwell_run_id": "abcd"
         }
     ]
-    mock_db_session.output(session_result)
+    mock_db_session.output(session_result, repeat=True)
 
     exp_results = {
         'email': 'johndoe@lbl.gov',

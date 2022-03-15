@@ -686,4 +686,3 @@ def get_run_status_logs(session, run_id) -> None:
         }
         datas.append(data)
     return datas
-

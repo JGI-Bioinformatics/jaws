@@ -1,11 +1,13 @@
 import logging
 from typing import Tuple, Callable
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jaws_rpc import responses
 from jaws_site import (
     rpc_es,
     tasks,
     models,
     cromwell,
+    config,
 )
 from jaws_rpc.rpc_client import (
     InvalidJsonResponse,
@@ -17,6 +19,10 @@ logger = logging.getLogger(__package__)
 
 
 class RunNotFoundError(Exception):
+    pass
+
+
+class RunDbError(Exception):
     pass
 
 
@@ -46,7 +52,7 @@ class RunES:
                 self.model = self.session.query(models.Run).get(run_id)
             except IntegrityError as error:
                 logger.warn(f"Run {run_id}: IntegrityError for model thrown: {error}")
-                raise RunNotFound(f"Run {run_id} not found")
+                raise RunNotFoundError(f"Run {run_id} not found")
             except SQLAlchemyError as error:
                 err_msg = f"Unable to select run, {run_id}: {error}"
                 logger.error(err_msg)
@@ -110,20 +116,20 @@ class RunES:
         Get metadata from Cromwell and return it, if available.
         If the run hasn't been submitted to Cromwell yet, the result shall be None.
         """
-        if self.model.cromwell_run_id:
-            return cromwell.get_metadata(self.model.cromwell_run_id).data
-        else:
+        if not self.model.cromwell_run_id:
             return None
 
-        return cromwell_metadata or {}
+        url = config.conf.get("CROMWELL", "url")
+        return cromwell.Cromwell(url).get_metadata(self.model.cromwell_run_id).data
 
     def create_doc(self) -> None:
         """Create a json document of the run info for the run_id provided during object instantiation."""
+        from jaws_site import runs
 
         try:
             run = runs.Run(self.session, run_id=self.run_id)
         except (runs.RunNotFound, runs.RunDbError) as err:
-            msg = f"Failed to get run info for run_id={run_id}: {err}"
+            msg = f"Failed to get run info for run_id={self.run_id}: {err}"
             logger.error(msg)
             raise RunNotFoundError(msg)
 

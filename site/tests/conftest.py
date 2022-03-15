@@ -648,7 +648,7 @@ def mock_db_session():
 
     Ex: if the test function performs one sqlalchemy query, and we want to specify the return value of that query,
     (i.e., one query returning two entries):
-    mock_db_session.add_result(
+    mock_db_session.output(
         [
             {'employee': 'John', 'Title': 'analyst'},
             {'employee': 'Mary', 'Title': 'PI'},
@@ -656,9 +656,9 @@ def mock_db_session():
     )
 
     If the test function performs multiple sqlalchemy queries and we want to return the same result, add
-    repeat=True to the mock_db_session.add_result() call.
+    repeat=True to the mock_db_session.output() call.
     Ex:
-    mock_db_session.add_result(
+    mock_db_session.output(
         [
             {'employee': 'John', 'Title': 'analyst'},
             {'employee': 'Mary', 'Title': 'PI'},
@@ -668,15 +668,15 @@ def mock_db_session():
 
 
     If the test function performs two sqlalchemy queries, and we want to specify the return different entries
-    for each query, (i.e., two queries returning 2 entries each), call mock_db_sssion.add_result() multiple times.
+    for each query, (i.e., two queries returning 2 entries each), call mock_db_sssion.output() multiple times.
     Ex:
-    mock_db_session.add_result(
+    mock_db_session.output(
         [
             {'employee': 'John', 'Title': 'analyst'},
             {'employee': 'Mary', 'Title': 'PI'},
         ]
     )
-    mock_db_session.add_result(
+    mock_db_session.output(
         [
             {'employee': 'Bob', 'Title': 'scientist'},
             {'employee': 'Lisa', 'Title': 'researcher'},
