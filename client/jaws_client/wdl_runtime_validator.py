@@ -256,7 +256,20 @@ class WDLStanzas:
 
 
 def spellCheck(task_name, task_dict):
-    accepted_param_names = ["node", "nwpn", "time", "memory", "cpu", "shared", "constraint", "account", "qos"]
+    accepted_param_names = [
+        "poolname",
+        "docker",
+        "node",
+        "nwpn",
+        "time",
+        "memory",
+        "cpu",
+        "shared",
+        "cluster",
+        "constraint",
+        "account",
+        "qos",
+    ]
     for key in task_dict.keys():
         if key not in accepted_param_names:
             warnings.warn('%s is not a known runtime parameter and will be ignored.' % key, SyntaxWarning)
