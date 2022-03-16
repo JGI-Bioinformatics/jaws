@@ -312,7 +312,7 @@ class Run:
         logger.debug(f"Run {self.model.id}: Publish run metadata")
 
         # If user id for this run is in this list, skip publishing to elasticsearch
-        if self.model.user_id in ['tests']:
+        if self.model.user_id in ['test']:
             return None, None
 
         if not self.runs_es_rpc_client:
