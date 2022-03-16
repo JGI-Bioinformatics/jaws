@@ -34,6 +34,5 @@ echo "Executing on $HOSTNAME" 1>&2
 singularity exec --bind $LOCAL_REF:$DOCKER_REF --bind $CWD:$DOCKER_CWD $IMAGE $JOB_SHELL $SCRIPT
 export EXIT_CODE=$?
 
-
 # Return with container exit code
 exit $EXIT_CODE
