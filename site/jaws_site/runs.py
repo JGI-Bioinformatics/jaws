@@ -310,37 +310,49 @@ class Run:
         """
 
         logger.debug(f"Run {self.model.id}: Publish run metadata")
-        doc = {}
+
+        # If user id for this run is in this list, skip publishing to elasticsearch
+        if self.model.user_id in ['tests']:
+            return None, None
 
         if not self.runs_es_rpc_client:
-            logger.error(f"Run {self.model.id}: Cannot publish run metadata. The runs_es_rpc_client is not defined.")
-            return None, None
+            msg = f"Run {self.model.id}: Cannot publish run metadata. The runs_es_rpc_client is not defined."
+            logger.error(msg)
+            rpc_response = {'rpc_response': {'error': msg}, 'rpc_status': 500}
+            return None, rpc_response
 
         try:
             es = runs_es.RunES(self.session, model=self.model)
         except runs_es.RunNotFoundError as err:
-            logger.error(f"Run {self.model.id}: Run metadata not found: {err}")
-            return None, None
+            msg = f"Run {self.model.id}: Run metadata not found: {err}"
+            logger.error(msg)
+            rpc_response = {'rpc_response': {'error': msg}, 'rpc_status': 500}
+            return None, rpc_response
 
         # Create json doc of the run metadata
-        doc = self._create_es_json_doc(es)
+        doc = self.create_es_json_doc(es)
+
+        if not doc:
+            logger.debug(f"Run {self.model.id}: Empty json doc found for this run.")
+            return None, None
 
         # Send to json doc to RMQ to be inserted to elasticsearch.
-        if doc and 'user_id' in doc and doc['user_id'] != 'test':
-            logger.debug(f"Run {self.model.id}: Sending run metadata json doc to RMQ")
-            jsondata, status_code = runs_es.send_rpc_run_metadata(self.runs_es_rpc_client, doc)
-            if status_code:
-                if 'error' in jsondata and 'message' in jsondata['error']:
-                    message = jsondata['error']['message']
-                else:
-                    message = 'Unknown RPC error.'
-                logger.error(f"Run {self.model.id}: Failed to send run metadata to RMQ: {message}")
+        # if doc and 'user_id' in doc and doc['user_id'] not in skip_users:
+        # if doc:
+        logger.debug(f"Run {self.model.id}: Sending run metadata json doc to RMQ")
+        response, status_code = runs_es.send_rpc_run_metadata(self.runs_es_rpc_client, doc)
+        if status_code:
+            if 'error' in response and 'message' in response['error']:
+                message = response['error']['message']
+            else:
+                message = 'Unknown RPC error.'
+            logger.error(f"Run {self.model.id}: Failed to send run metadata to RMQ: {message}")
 
-        rpc_response = {'rpc_response': jsondata, 'rpc_status': status_code}
+        rpc_response = {'rpc_response': response, 'rpc_status': status_code}
 
         return doc, rpc_response
 
-    def _create_es_json_doc(self, es: runs_es.RunES) -> dict:
+    def create_es_json_doc(self, es: runs_es.RunES) -> dict:
         """Create a json payload containing the run metadata to be uploaded to elasticsearch."""
 
         run_status = self.get_run_metadata()

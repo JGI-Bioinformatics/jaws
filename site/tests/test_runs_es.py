@@ -61,6 +61,7 @@ def mock_cromwell_metadata(*args, **kwargs):
     @dataclass
     class Metadata:
         data = {'workflowName': 'test'}
+
     return Metadata()
 
 
@@ -134,9 +135,10 @@ def test_create_doc(mock_db_session, monkeypatch):
     monkeypatch.setattr(tasks.TaskLog, 'task_summary', mock_task_summary)
     monkeypatch.setattr(tasks.TaskLog, 'task_status', mock_task_status)
     monkeypatch.setattr(runs.Run, 'metadata', mock_metadata)
-    monkeypatch.setattr(runs_es.RunES, 'cromwell_metadata', mock_cromwell_metadata)
+    monkeypatch.setattr(cromwell.Cromwell, 'get_metadata', mock_cromwell_metadata)
 
-    session_result = [
+    # Add sqlalchemy query result for runs
+    run_result = [
         {
             'id': 123,
             'run_id': 123,
@@ -149,7 +151,20 @@ def test_create_doc(mock_db_session, monkeypatch):
             "cromwell_run_id": "abcd"
         }
     ]
-    mock_db_session.output(session_result, repeat=True)
+    mock_db_session.output(run_result)
+
+    # Add sqlalchemy query result for run_logs
+    run_log_result = [
+        {
+            "site_id": "CORI",
+            "run_id": 123,
+            "status_from": this_date,
+            "status_to": this_date,
+            "timestamp": this_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "reason": "",
+        }
+    ]
+    mock_db_session.output(run_log_result)
 
     exp_results = {
         'email': 'johndoe@lbl.gov',
