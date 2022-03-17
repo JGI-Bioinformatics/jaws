@@ -1,4 +1,4 @@
-AMQPStorm==2.9.0
+AMQPStorm==2.10.4
 appdirs==1.4.4
 asyncio==3.4.3
 attrs==21.2.0
