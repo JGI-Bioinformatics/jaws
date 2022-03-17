@@ -79,6 +79,7 @@ class TaskTerminator(JtmAmqpstormBase):
         while True:
             try:
                 channel = self.connection.channel()
+                channel.basic.qos(prefetch_count=1)
                 channel.exchange.declare(
                     exchange=self.jtm_task_kill_exch,
                     exchange_type="fanout",
@@ -99,7 +100,7 @@ class TaskTerminator(JtmAmqpstormBase):
                 channel.basic.consume(
                     self.process_kill, self.jtm_task_kill_q, no_ack=False
                 )
-                channel.basic.qos(prefetch_count=1)
+                #channel.basic.qos(prefetch_count=1)
                 channel.start_consuming()
                 if not channel.consumer_tags:
                     channel.close()
@@ -187,6 +188,7 @@ class TaskRunner(JtmAmqpstormBase):
         while True:
             try:
                 channel = self.connection.channel()
+                channel.basic.qos(prefetch_count=1)
                 channel.exchange.declare(
                     exchange=self.jtm_inner_main_exch,
                     exchange_type="direct",
@@ -200,7 +202,7 @@ class TaskRunner(JtmAmqpstormBase):
                     exchange=self.jtm_inner_main_exch, queue=req_q, routing_key=req_q
                 )
                 channel.basic.consume(self.process_task, req_q, no_ack=False)
-                channel.basic.qos(prefetch_count=1)
+                #channel.basic.qos(prefetch_count=1)
                 channel.start_consuming()
                 if not channel.consumer_tags:
                     channel.close()
