@@ -70,6 +70,7 @@ class WorkerResultReceiver(JtmAmqpstormBase):
         while True:
             try:
                 channel = self.connection.channel()
+                channel.basic.qos(prefetch_count=1)
                 channel.exchange.declare(
                     exchange=self.jtm_inner_main_exch,
                     exchange_type="direct",
@@ -90,7 +91,6 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                 channel.basic.consume(
                     self.process_result, self.inner_result_queue_name, no_ack=False
                 )
-                channel.basic.qos(prefetch_count=1)
                 channel.start_consuming()
                 if not channel.consumer_tags:
                     channel.close()
@@ -452,6 +452,7 @@ class JtmCommandRunner(JtmAmqpstormBase):
         while True:
             try:
                 channel = self.connection.channel()
+                channel.basic.qos(prefetch_count=1)
                 channel.exchange.declare(
                     exchange=self.jgi_jtm_main_exch,
                     exchange_type="direct",
@@ -472,7 +473,6 @@ class JtmCommandRunner(JtmAmqpstormBase):
                 channel.basic.consume(
                     self.process_jtm_command, self.jtm_task_request_q, no_ack=False
                 )
-                channel.basic.qos(prefetch_count=1)
                 channel.start_consuming()
                 if not channel.consumer_tags:
                     channel.close()
@@ -522,6 +522,7 @@ class JtmNonTaskCommandRunner(JtmAmqpstormBase):
         while True:
             try:
                 channel = self.connection.channel()
+                channel.basic.qos(prefetch_count=1)
                 channel.exchange.declare(
                     exchange=self.jgi_jtm_main_exch,
                     exchange_type="direct",
@@ -542,7 +543,6 @@ class JtmNonTaskCommandRunner(JtmAmqpstormBase):
                 channel.basic.consume(
                     self.process_jtm_command, self.jtm_status_request_q, no_ack=False
                 )
-                channel.basic.qos(prefetch_count=1)
                 channel.start_consuming()
                 if not channel.consumer_tags:
                     channel.close()
