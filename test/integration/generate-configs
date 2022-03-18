@@ -92,6 +92,13 @@ host = $JAWS_RMQ_HOST
 port = $JAWS_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = CENTRAL
+[RUNS_ES_RPC_CLIENT]
+user = jaws
+password = $JAWS_RMQ_PW
+host = $JAWS_RMQ_HOST
+port = $JAWS_RMQ_PORT
+vhost = jaws_$DEPLOYMENT_NAME
+queue = JAWS_RUNS_ES
 [GLOBUS]
 client_id = $JAWS_GLOBUS_CLIENT_ID
 client_secret = $JAWS_GLOBUS_CLIENT_SECRET

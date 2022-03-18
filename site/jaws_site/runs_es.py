@@ -1,13 +1,13 @@
 import logging
-from typing import Tuple
+from typing import Tuple, Callable
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from jaws_rpc import responses
 from jaws_site import (
-    config,
-    jaws_constants,
     rpc_es,
-    database,
-    runs,
-    tasks
+    tasks,
+    models,
+    cromwell,
+    config,
 )
 from jaws_rpc.rpc_client import (
     InvalidJsonResponse,
@@ -22,70 +22,47 @@ class RunNotFoundError(Exception):
     pass
 
 
+class RunDbError(Exception):
+    pass
+
+
 class RunES:
     """Class to retrieve jaws run information for a given run_id and create a json document to
     insert into elasticsearch."""
 
-    def __init__(self, run_id: int) -> None:
+    def __init__(self, session: Callable, model: models.Run = None, run_id: int = None) -> None:
         """Initialize database for retrieving run info.
 
+        :param session: database.Session() which is a sqlalchemy session object.
+        :type session: sqlalchemy/database.session object
         :param run_id: jaws run_id
         :type run_id: int
         """
 
-        self.session = database.Session()
+        self.session = session
         self.run_id = run_id
+        self.model = None
 
-        try:
-            self.run = runs.Run(self.session, run_id=run_id)
-        except (runs.RunNotFound, runs.RunDbError) as err:
-            msg = f"Failed to get run info for run_id={run_id}: {err}"
-            logger.error(msg)
-            raise RunNotFoundError(msg)
-        else:
-            if not self.run.model:
-                msg = f"Run info not found for run_id={run_id}"
-                logger.error(msg)
-                raise RunNotFoundError(msg)
-            else:
-                self.task = tasks.TaskLog(self.session, run_id=run_id)
+        if model:
+            self.model = model
+            self.run_id = model.id
+        elif run_id:
+            """Select run record from rdb"""
+            try:
+                self.model = self.session.query(models.Run).get(run_id)
+            except IntegrityError as error:
+                logger.warn(f"Run {run_id}: IntegrityError for model thrown: {error}")
+                raise RunNotFoundError(f"Run {run_id} not found")
+            except SQLAlchemyError as error:
+                err_msg = f"Unable to select run, {run_id}: {error}"
+                logger.error(err_msg)
+                raise RunDbError(err_msg)
 
-    def get_result(self) -> None:
-        """Get the result status for the given run_id provided during object instantiation."""
+        if not self.model:
+            logger.warn(f"Run {run_id}: model not found")
+            raise RunNotFoundError(f"Run {run_id} not found")
 
-        run_logs = runs.get_run_status_logs(self.session, self.run_id)
-        result = None
-        for row in run_logs:
-            if 'status_to' in row and row['status_to'] in ('succeeded', 'failed'):
-                result = row['status_to']
-                break
-        return result
-
-    def run_info(self) -> None:
-        """
-        Given a SQLAlchemy model for a Run, create a dict with the desired fields.
-        :param run: Run object
-        :type run: model
-        :param is_admin: True if current user is an administrator
-        :type is_admin: bool
-        :param verbose: True if all fields desired
-        :type verbose: bool
-        :return: selected fields
-        :rtype: dict
-        """
-
-        info = {
-            "run_id": self.run.model.id,
-            "user_id": self.run.model.user_id,
-            "email": self.run.model.email,
-            "submitted": self.run.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-            "updated": self.run.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
-            "status": self.run.model.status,
-            "status_detail": jaws_constants.task_status_msg.get(self.run.model.status, ""),
-            "result": self.get_result(),
-            "site_id": config.conf.get("SITE", "id"),
-        }
-        return info
+        self.task = tasks.TaskLog(self.session, run_id=self.run_id)
 
     def task_summary(self) -> None:
         """Get task summary info for the run based on the run_id provided during object instantiation."""
@@ -135,20 +112,28 @@ class RunES:
         return infos
 
     def cromwell_metadata(self) -> None:
-        """Get cromwell metadata for the run based on the run_id provided during object instantiation."""
+        """
+        Get metadata from Cromwell and return it, if available.
+        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        """
+        if not self.model.cromwell_run_id:
+            return None
 
-        try:
-            cromwell_metadata = self.run.metadata()
-        except Exception as err:
-            logger.error(f"Failed to get task_status for run_id={self.run_id}: {err}")
-            return {}
-
-        return cromwell_metadata or {}
+        url = config.conf.get("CROMWELL", "url")
+        return cromwell.Cromwell(url).get_metadata(self.model.cromwell_run_id).data
 
     def create_doc(self) -> None:
         """Create a json document of the run info for the run_id provided during object instantiation."""
+        from jaws_site import runs
 
-        run_status = self.run_info()
+        try:
+            run = runs.Run(self.session, run_id=self.run_id)
+        except (runs.RunNotFound, runs.RunDbError) as err:
+            msg = f"Failed to get run info for run_id={self.run_id}: {err}"
+            logger.error(msg)
+            raise RunNotFoundError(msg)
+
+        run_status = run.get_run_metadata()
         if not run_status:
             return {}
 
@@ -174,59 +159,37 @@ class RunES:
         return doc
 
 
-class RPC_ES:
-    """Class to create a RMQ connection for sending json payload to a queue where logstash will retrieve
-    the payload and update elasticsearch with the doc.
+def send_rpc_run_metadata(rpc_client: rpc_es.RPCRequest, payload: dict) -> Tuple[dict, int]:
+    """Sends request to RabbitMQ/RPC and wait for response. If response fails, return non-zero status_code.
+
+    :param rpc_client: rpc object connected to a RMQ queue for publishing message.
+    :type rpc_client: rpc_es.RPCRequest object.
+    :param payload: json document to publish to RMQ queue.
+    :type payload: dict
+    :return jsondata: response from RMQ request.
+    :rtype jsondata: dictionary
+    :return status_code: zero if successful, non-zero if connection fails or return json contains error msg.
+    :rtype status_code: int
     """
-    def __init__(self, logger: logging) -> None:
-        """Creates a RMQ connection based on the connection parameters specified in the config entry
-        DASHBOARD_RPC_CLIENT. The config entries must have the following keys in the following example:
 
-        [DASHBOARD_RPC_CLIENT]
-        user: RabbitMQ user
-        password: RabbitMQ password
-        host: RabbitMQ host
-        port: RabbitMQ port
-        vhost: vhost name
-        queue: queue name
-        """
+    try:
+        jsondata = rpc_client.request(payload)
+    except InvalidJsonResponse as err:
+        msg = f"RPC request returned an invalid response: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
+    except ConfigurationError as err:
+        msg = f"RPC request returned an invalid configuration error: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
+    except ConnectionError as err:
+        msg = f"RPC request returned an invalid connection error: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
 
-        # Get config paramters for rabbitmq connection in the config file.
-        rpc_params = config.conf.get_section("DASHBOARD_RPC_CLIENT")
+    status_code = 0
 
-        self.rpc = rpc_es.RPCRequest(rpc_params, logger)
+    if jsondata and 'error' in jsondata:
+        status_code = jsondata['error'].get('code', 500)
 
-    def send_rpc_run_info(self, payload: dict) -> Tuple[dict, int]:
-        """Sends request to RabbitMQ/RPC and wait for response. If response fails, return non-zero status_code.
-
-        :param entries: A dictionary containing the rabbitmq connection information.
-        :type entries: dict
-        :param try_count: for logging number of tries only.
-        :type try_count: int
-        :return jsondata: dictionary of the results returned from RPC request.
-        :rtype jsondata: dictionary
-        :return status_code: zero if successful, non-zero if connection fails or return json contains error msg.
-        :rtype status_code: int
-        """
-
-        try:
-            jsondata = self.rpc.request(payload)
-        except InvalidJsonResponse as err:
-            msg = f"RPC request returned an invalid response: {err}"
-            logger.debug(msg)
-            jsondata = responses.failure(err)
-        except ConfigurationError as err:
-            msg = f"RPC request returned an invalid configuration error: {err}"
-            logger.debug(msg)
-            jsondata = responses.failure(err)
-        except ConnectionError as err:
-            msg = f"RPC request returned an invalid connection error: {err}"
-            logger.debug(msg)
-            jsondata = responses.failure(err)
-
-        status_code = 0
-
-        if jsondata and 'error' in jsondata:
-            status_code = jsondata['error'].get('code', 500)
-
-        return jsondata, status_code
+    return jsondata, status_code

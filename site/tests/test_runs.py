@@ -1,5 +1,6 @@
 import pytest
 import os.path
+from datetime import datetime
 import jaws_site
 from jaws_site.runs import Run
 
@@ -97,11 +98,6 @@ def test_check_if_upload_complete(statuses, monkeypatch, mock_data_transfer):
     mock_session = tests.conftest.MockSession()
     model = tests.conftest.MockRunModel(status="uploading")
     run = Run(mock_session, model=model)
-
-    # def mock_globus_service(run):
-    #     return MockGlobusService(statuses)
-
-    # monkeypatch.setattr(jaws_site.globus, "GlobusService", mock_globus_service)
 
     mock_data_transfer.status[statuses] = True
 
@@ -238,8 +234,12 @@ def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path,
 )
 def test_check_if_download_complete(status, expected, monkeypatch, mock_data_transfer):
 
+    def mock_publish_run_metadata(*args, **kwargs):
+        pass
+
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
+    monkeypatch.setattr(Run, "publish_run_metadata", mock_publish_run_metadata)
 
     mock_session = tests.conftest.MockSession()
     mock_model = tests.conftest.MockRunModel(status="downloading")
@@ -342,3 +342,203 @@ def test_check_run_cromwell_status(monkeypatch):
     )
     run.check_run_cromwell_status()
     assert run.status == "failed"
+
+
+def test_get_run_status_logs(mock_db_session):
+    exp_results = [
+        {
+            'run_id': 123,
+            'status_from': 'status from',
+            'status_to': 'succeeded',
+            'reason': '123 reason',
+            'timestamp': datetime.now(),
+            'site_id': 'EAGLE',
+        },
+        {
+            'run_id': 456,
+            'status_from': 'status from',
+            'status_to': 'succeeded',
+            'reason': '456 reason',
+            'timestamp': datetime.now(),
+            'site_id': 'EAGLE',
+        }
+    ]
+    mock_db_session.output(exp_results)
+
+    run_id = 123
+    obs_results = jaws_site.runs.get_run_status_logs(mock_db_session, run_id)
+
+    for idx, row in enumerate(exp_results):
+        for key in row:
+            obs_result_row = obs_results[idx]
+            assert key in obs_result_row
+            if key == 'timestamp':
+                row['timestamp'] = row['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
+            if key == 'site_id':
+                obs_result_row['site_id'] = obs_result_row['site_id'].upper()
+            assert row[key] == obs_result_row[key]
+
+
+def test_get_run_metadata(mock_db_session, monkeypatch):
+    from jaws_site import runs
+
+    def mock_get_run_status_log(*args, **kwargs):
+        return [{'status_to': 'succeeded'}]
+
+    monkeypatch.setattr(runs, 'get_run_status_logs', mock_get_run_status_log)
+
+    session_result = [
+        {
+            'id': 123,
+            'user_id': 'John Doe',
+            'email': 'johndoe@lbl.gov',
+            'submitted': datetime.now(),
+            'updated': datetime.now(),
+            "status": "download complete",
+            "result": "succeeded",
+        }
+    ]
+    exp_results = {
+        'email': 'johndoe@lbl.gov',
+        'result': 'succeeded',
+        'run_id': 123,
+        'site_id': 'EAGLE',
+        'status': 'download complete',
+        'status_detail': '',
+        'submitted': session_result[0]['submitted'].strftime("%Y-%m-%d %H:%M:%S"),
+        'updated': session_result[0]['updated'].strftime("%Y-%m-%d %H:%M:%S"),
+        'user_id': 'John Doe'
+    }
+    mock_db_session.output(session_result)
+    run = Run(mock_db_session, run_id=123)
+    obs_results = run.get_run_metadata()
+
+    for key in exp_results:
+        if key == 'site_id':
+            obs_results['site_id'] = obs_results['site_id'].upper()
+        assert key in obs_results
+        assert obs_results[key] == exp_results[key]
+
+
+def test_publish_run_metadata(mock_db_session, mock_rpc_request, monkeypatch):
+    from jaws_site.runs_es import RunES
+
+    this_date = datetime.today()
+
+    def mock_get_run_metadata(*args):
+        return {
+            "run_id": 123,
+            "user_id": 'jaws',
+            "email": 'jaws@lbl.gov',
+            "submitted": this_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": this_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": 'download complete',
+            'status_detail': '',
+            "result": 'success',
+            "site_id": 'CORI',
+        }
+
+    def mock_metadata(*args):
+        return {'workflowName': 'test'}
+
+    def mock_task_summary(*args):
+        return {
+            'task_abcd':
+                {
+                    'cached': False,
+                    'cromwell_id': 'cromwell_abcd',
+                    'maxtime': '03:00:00',
+                    'queue_wait': '01:00:00',
+                    'queued': this_date,
+                    'result': 'success',
+                    'runtime': '02:00:00'},
+            'task_efgh':
+                {
+                    'cached': True,
+                    'cromwell_id': 'cromwell_efgh',
+                    'maxtime': '06:00:00',
+                    'queue_wait': '04:00:00',
+                    'queued': this_date,
+                    'result': 'success',
+                    'runtime': '05:00:00'
+                }
+            }
+
+    def mock_task_status(*args):
+        return {
+            'task_abcd': {
+                'cromwell_id': 'cromwell_abcd',
+                'reason': 'reason_abcd',
+                'status': 'success',
+                'timestamp': this_date,
+            },
+            'task_efgh': {
+                'cromwell_id': 'cromwell_efgh',
+                'reason': 'reason_efgh',
+                'status': 'success',
+                'timestamp': this_date,
+            }
+        }
+
+    monkeypatch.setattr(Run, 'get_run_metadata', mock_get_run_metadata)
+    monkeypatch.setattr(Run, 'metadata', mock_metadata)
+    monkeypatch.setattr(RunES, 'task_summary', mock_task_summary)
+    monkeypatch.setattr(RunES, 'task_status', mock_task_status)
+
+    session_result = [
+        {
+            'id': 123,
+            'user_id': 'jaws',
+            'email': 'jaws@lbl.gov',
+            'submitted': this_date,
+            'updated': this_date,
+            "status": "download complete",
+            "result": "success",
+        }
+    ]
+    mock_db_session.output(session_result)
+
+    exp_results = {
+        'email': 'jaws@lbl.gov',
+        'result': 'success',
+        'run_id': 123,
+        'site_id': 'CORI',
+        'status': 'download complete',
+        'status_detail': '',
+        'submitted': this_date.strftime('%Y-%m-%d %H:%M:%S'),
+        'tasks': [
+            {
+                'cached': False,
+                'cromwell_id': 'cromwell_abcd',
+                'maxtime': '03:00:00',
+                'name': 'task_abcd',
+                'queue_wait': '01:00:00',
+                'queued': this_date,
+                'reason': 'reason_abcd',
+                'result': 'success',
+                'runtime': '02:00:00',
+                'status': 'success',
+                'timestamp': this_date,
+            },
+            {
+                'cached': True,
+                'cromwell_id': 'cromwell_efgh',
+                'maxtime': '06:00:00',
+                'name': 'task_efgh',
+                'queue_wait': '04:00:00',
+                'queued': this_date,
+                'reason': 'reason_efgh',
+                'result': 'success',
+                'runtime': '05:00:00',
+                'status': 'success',
+                'timestamp': this_date,
+            }
+        ],
+        'updated': this_date.strftime('%Y-%m-%d %H:%M:%S'),
+        'user_id': 'jaws',
+        'workflow_name': 'test'
+    }
+
+    run = Run(mock_db_session, run_id=123, runs_es_rpc_client=mock_rpc_request)
+    obs_results, response = run.publish_run_metadata()
+    assert obs_results == exp_results

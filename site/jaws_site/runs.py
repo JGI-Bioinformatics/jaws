@@ -7,9 +7,13 @@ import os
 import logging
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from jaws_site import models
-from jaws_site import config
-from jaws_site import tasks
+from jaws_site import (
+    models,
+    config,
+    tasks,
+    runs_es,
+    jaws_constants
+)
 from jaws_site.datatransfer_protocol import (
     DataTransferError,
     SiteTransfer,
@@ -79,6 +83,8 @@ class Run:
             model = kwargs["model"]
             assert model.id is not None
             self.model = model
+
+        self.runs_es_rpc_client = kwargs.get('runs_es_rpc_client')
 
     def _insert_run(self, **kwargs) -> None:
         """Insert run record into rdb"""
@@ -311,6 +317,114 @@ class Run:
         elif cromwell_status == "Aborted":
             self.update_run_status("cancelled")
 
+    def publish_run_metadata(self) -> None:
+        """
+        Get run metadata and send to RMQ for publishing to elasticsearch.
+
+        :return doc: dictionary containing the run metadata
+        :rtype doc: dictionary
+        :return rpc_response: dictionary containing the rpc response and status code
+        :rtype: dictionary
+        """
+
+        logger.debug(f"Run {self.model.id}: Publish run metadata")
+
+        # If user id for this run is in this list, skip publishing to elasticsearch
+        if self.model.user_id in ['test']:
+            return None, None
+
+        if not self.runs_es_rpc_client:
+            msg = f"Run {self.model.id}: Cannot publish run metadata. The runs_es_rpc_client is not defined."
+            logger.error(msg)
+            rpc_response = {'rpc_response': {'error': msg}, 'rpc_status': 500}
+            return None, rpc_response
+
+        try:
+            es = runs_es.RunES(self.session, model=self.model)
+        except runs_es.RunNotFoundError as err:
+            msg = f"Run {self.model.id}: Run metadata not found: {err}"
+            logger.error(msg)
+            rpc_response = {'rpc_response': {'error': msg}, 'rpc_status': 500}
+            return None, rpc_response
+
+        # Create json doc of the run metadata
+        doc = self.create_es_json_doc(es)
+
+        if not doc:
+            logger.debug(f"Run {self.model.id}: Empty json doc found for this run.")
+            return None, None
+
+        # Send to json doc to RMQ to be inserted to elasticsearch.
+        # if doc and 'user_id' in doc and doc['user_id'] not in skip_users:
+        # if doc:
+        logger.debug(f"Run {self.model.id}: Sending run metadata json doc to RMQ")
+        response, status_code = runs_es.send_rpc_run_metadata(self.runs_es_rpc_client, doc)
+        if status_code:
+            if 'error' in response and 'message' in response['error']:
+                message = response['error']['message']
+            else:
+                message = 'Unknown RPC error.'
+            logger.error(f"Run {self.model.id}: Failed to send run metadata to RMQ: {message}")
+
+        rpc_response = {'rpc_response': response, 'rpc_status': status_code}
+
+        return doc, rpc_response
+
+    def create_es_json_doc(self, es: runs_es.RunES) -> dict:
+        """Create a json payload containing the run metadata to be uploaded to elasticsearch."""
+
+        run_status = self.get_run_metadata()
+        if not run_status:
+            return {}
+
+        cromwell_metadata = self.metadata()
+        task_summary = es.task_summary()
+        task_status = es.task_status()
+
+        doc = {
+            'run_id': run_status['run_id'],
+            'workflow_name': cromwell_metadata.get('workflowName', 'unknown'),
+        }
+        doc.update(run_status)
+        doc['tasks'] = []
+
+        for task_name in task_status:
+            status_entries = {}
+            status_entries['name'] = task_name
+            status_entries.update(task_status[task_name])
+            if task_name in task_summary:
+                status_entries.update(task_summary[task_name])
+            doc['tasks'].append(status_entries)
+
+        return doc
+
+    def get_run_metadata(self) -> dict:
+        """
+        Get run entry from 'runs' table.
+
+        :return: dict containing the run entry from the runs table
+        :rtype: dict
+        """
+        run_logs = get_run_status_logs(self.session, self.model.id)
+        result = None
+        for row in run_logs:
+            if 'status_to' in row and row['status_to'] in ('succeeded', 'failed'):
+                result = row['status_to']
+                break
+
+        metadata = {
+            "run_id": self.model.id,
+            "user_id": self.model.user_id,
+            "email": self.model.email,
+            "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": self.model.status,
+            'status_detail': jaws_constants.task_status_msg.get(self.model.status, ""),
+            "result": result,
+            "site_id": config.conf.get("SITE", "id"),
+        }
+        return metadata
+
     def _get_data_transfer_type(self) -> str:
         """Lookup the site id to determine what type of data transfer method needs to be used (e.g., globus, aws).
 
@@ -381,8 +495,10 @@ class Run:
         status = self.download_status(data_transfer)
         if status == SiteTransfer.status.succeeded:
             self.update_run_status("download complete")
+            self.publish_run_metadata()
         elif status == SiteTransfer.status.failed:
             self.update_run_status("download failed")
+            self.publish_run_metadata()
 
     def update_run_status(self, status_to, reason=None) -> None:
         """
@@ -429,13 +545,13 @@ class Run:
             raise
 
 
-def check_active_runs(session) -> None:
+def check_active_runs(session, runs_es_rpc_client) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
     rows = _select_active_runs(session)
     for model in rows:
-        run = Run(session, model=model)
+        run = Run(session, model=model, runs_es_rpc_client=runs_es_rpc_client)
         run.check_status()
 
 
