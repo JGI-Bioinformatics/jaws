@@ -61,14 +61,10 @@ class Run:
     def __init__(self, session, **kwargs):
         self.session = session
         self.operations = {
-            "uploading": self.check_if_upload_complete,
             "upload complete": self.submit_run,
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
-            "succeeded": self.transfer_results,
-            "failed": self.transfer_results,
-            "downloading": self.check_if_download_complete,
         }
 
         if "submission_id" in kwargs:
@@ -167,43 +163,6 @@ class Run:
             return metadata.errors()
         else:
             return None
-
-    def upload_status(self, data_transfer: DataTransferProtocol) -> str:
-        try:
-            status = data_transfer.transfer_status(self.model.upload_task_id)
-        except DataTransferError as error:
-            logger.exception(
-                f"Failed to check upload {self.model.upload_task_id}: {error}"
-            )
-        else:
-            return status
-
-    def download_status(self, data_transfer: DataTransferProtocol) -> str:
-        try:
-            status = data_transfer.transfer_status(self.model.download_task_id)
-        except DataTransferError as error:
-            logger.exception(
-                f"Failed to check download {self.model.download_task_id}: {error}"
-            )
-        else:
-            return status
-
-    def check_if_upload_complete(self) -> None:
-        """
-        If the upload is complete, update the run's status.
-        """
-        logger.debug(f"Run {self.model.id}: Check upload status")
-        data_transfer_type = self._get_data_transfer_type()
-        data_transfer = DataTransferFactory(data_transfer_type)
-        status = self.upload_status(data_transfer)
-        if status == SiteTransfer.status.failed:
-            self.update_run_status("upload failed")
-        elif status == SiteTransfer.status.inactive:
-            self.update_run_status(
-                "upload inactive", "The JAWS endpoint authorization has expired"
-            )
-        elif status == SiteTransfer.status.succeeded:
-            self.update_run_status("upload complete")
 
     def uploads_file_path(self):
         uploads_dir = config.conf.get("SITE", "uploads_dir")
@@ -320,69 +279,6 @@ class Run:
         site_id = config.conf.get("SITE", "id")
         transfer_type = SiteTransfer.type[site_id.upper()]
         return transfer_type
-
-    def transfer_results(self) -> None:
-        """
-        Send run output via data transfer
-        """
-        logger.debug(f"Run {self.model.id}: Download output")
-        try:
-            metadata = cromwell.get_metadata(self.model.cromwell_run_id)
-        except CromwellServiceError as error:
-            # if Cromwell service not available, do not fail run and try again later
-            logger.debug(f"Cromwell service error: {error}")
-            return
-        except CromwellRunError as error:
-            # if there's something wrong with this particular (failed) run, promote to next state
-            logger.debug(f"Run {self.model.id}: {error}")
-            self.update_run_status("download complete", f"Cromwell run error: {error}")
-            return
-        cromwell_workflow_dir = metadata.workflow_root()
-        if not cromwell_workflow_dir:
-            # This run failed before a folder was created; nothing to xfer
-            self.update_run_status("download complete", "No run folder was created")
-            return
-
-        data_transfer_type = self._get_data_transfer_type()
-        data_transfer = DataTransferFactory(data_transfer_type)
-        metadata = {
-            "label": f"Run {self.model.id}"
-        }
-
-        if data_transfer_type == 'globus_transfer':
-            metadata['dest_endpoint'] = self.model.output_endpoint
-
-        logger.debug(f"Transferring files using {data_transfer_type}")
-
-        try:
-            transfer_task_id = self.transfer_files(data_transfer, metadata, cromwell_workflow_dir,
-                                                   self.model.output_dir)
-        except DataTransferError as error:
-            logger.error(f"error while submitting transfer: {error}")
-            raise
-        else:
-            logger.debug(f"Transfer task id={transfer_task_id}")
-            self.model.download_task_id = transfer_task_id
-            self.update_run_status(
-                "downloading", f"download_task_id={self.model.download_task_id}"
-            )
-
-    def transfer_files(self, data_transfer: DataTransferProtocol, metadata: dict, src_dir: str, dst_dir: str) -> str:
-        """Transfer files using the data_transfer object (e.g., via globus or aws)."""
-        return data_transfer.submit_download(metadata, src_dir, dst_dir)
-
-    def check_if_download_complete(self) -> None:
-        """
-        If download is complete, change state.
-        """
-        logger.debug(f"Run {self.model.id}: Check download status")
-        data_transfer_type = self._get_data_transfer_type()
-        data_transfer = DataTransferFactory(data_transfer_type)
-        status = self.download_status(data_transfer)
-        if status == SiteTransfer.status.succeeded:
-            self.update_run_status("download complete")
-        elif status == SiteTransfer.status.failed:
-            self.update_run_status("download failed")
 
     def update_run_status(self, status_to, reason=None) -> None:
         """

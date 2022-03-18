@@ -199,4 +199,12 @@ operations = {
         "function": get_errors,
         "required_params": ["user_id", "cromwell_run_id"],
     },
+    "s3_xfer_submit": {
+        "function": s3_xfer_submit,
+        "required_params": ["user_id", "run_id", "src", "dest", "manifest"],
+    },
+    "s3_xfer_status": {
+        "function": s3_xfer_status,
+        "required_params": ["user_id", "run_id", "src", "dest", "manifest"],
+    },
 }
