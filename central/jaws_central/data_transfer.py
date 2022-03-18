@@ -17,10 +17,7 @@ class DataTransferNetworkError(DataTransferError):
 
 class DataTransferProtocol(Protocol):
     """Interface for the data transfer object using the Protocol structural subtyping class."""
-    def submit_upload(self, metadata: dict, manifest_files: list) -> str:
-        ...
-
-    def submit_download(self, metadata: dict, src_dir: str, dst_dir: str) -> str:
+    def submit_transfer(self, metadata: dict, manifest_files: list) -> str:
         ...
 
     def transfer_status(self, task_id: str) -> str:
@@ -44,6 +41,7 @@ class SiteTransfer:
     """Defines the data transfer object types for each site. The values are used as arguments to the
     DataTransferFactory class.
     """
+    # TODO this should be in a config file
     type = {
         'CORI': 'globus_transfer',
         'JGI': 'globus_transfer',
@@ -56,16 +54,16 @@ class SiteTransfer:
 
 class DataTransferFactory:
     """Factory class with plugin architecture to return a data transfer object. Based on the input object type
-    which is the name of the module sans .py within the datatransfer_plugins directory, the factory dynamically
+    which is the name of the module sans .py within the data_transfer_plugins directory, the factory dynamically
     imports the module and returns an instantiated object of the DataTransfer class from the imported module.
 
     Example of input object types:
-      "globus_transfer" -> datatransfer_plugins/globus_transfer.py
-      "aws_transfer" -> datatransfer_plugins/aws_transfer.py
+      "globus_transfer" -> data_transfer_plugins/globus_transfer.py
+      "aws_s3_transfer" -> data_transfer_plugins/aws_s3_transfer.py
     """
     def __new__(cls, obj_type: str) -> Callable:
         classname = "DataTransfer"
-        modulename = f"jaws_central.datatransfer_plugins.{obj_type}"
+        modulename = f"jaws_central.data_transfer_plugins.{obj_type}"
 
         try:
             imported_module = importlib.import_module(modulename)
@@ -79,43 +77,3 @@ class DataTransferFactory:
             raise DataTransferError(msg)
 
         return obj()
-
-
-# Notes on implementing
-"""
-from datatransfer_protocol import DataTransferProtocol, DataTransferError
-
-# Setup methods that use a DataTransferProtocol
-
-# File upload
-def submit_upload(obj: DataTransferProtocol, metadata: dict, manifest_files: list ) -> List[str]:
-    return obj.submit_transfer(metadata, manifest_files)
-
-# File download
-def submit_download(obj: DataTransferProtocol, metadata: dict, src_dir: str, dst_dir:str) -> List[str]:
-    return obj.submit_download(metadata, src_dir, dst_dir)
-
-
-# Get status
-def transfer_status(obj: DataTransferProtocol, transfer_id: str) -> str:
-    return obj.transfer_status(transfer_id)
-
-def main():
-    try:
-        # call based on filename/modulename in datatransfer_plugins
-        obj = DataTransferFactory("aws_transfer")
-    except DataTransferError as err:
-        print(err)
-        raise SystemExit()
-
-    metadata = {'label': 'this is a label'}
-
-    # Upload files to remote site
-    tansfer_id = submit_upload(obj, metadata, manifest_files)
-
-    # Download files from remote site
-    tansfer_id = submit_download(obj, metadata, src_dir, dst_dir)
-
-    # Check status
-    print(transfer_status(obj, tansfer_id))
-"""

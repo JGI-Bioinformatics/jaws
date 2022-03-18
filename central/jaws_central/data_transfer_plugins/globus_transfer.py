@@ -24,42 +24,41 @@ class DataTransfer:
         self.globus_config = jaws_central.config.Configuration()
         self.endpoint_id = self.globus_config.get("GLOBUS", "endpoint_id")
         self.host_path = self.globus_config.get("GLOBUS", "host_path")
+        self._transfer_client = None
 
-    def _authorize_transfer_client(self) -> globus_sdk.TransferClient:
+    def transfer_client(self):
         """
-        Helper method to create a Globus transfer client using
-        client id and client secret for credentials.
+        Return an authorized transfer client object.  Initialize if not exists.
 
-        :return globus_sdk.TransferClient:
+        :return: datatransfer_client
+        :rtype: globus_sdk.ConfidentialAppAuthClient
         """
-        client = globus_sdk.ConfidentialAppAuthClient(self.globus_config.get("GLOBUS", "client_id"),
-                                                      self.globus_config.get("GLOBUS", "client_secret"))
-        scopes = "urn:globus:auth:scope:transfer.api.globus.org:all"
-        authorizer = globus_sdk.ClientCredentialsAuthorizer(client, scopes)
-        return globus_sdk.TransferClient(authorizer=authorizer)
+        if not defined(self.transfer_client):
+            try:
+                client = globus_sdk.ConfidentialAppAuthClient(self.globus_config.get("GLOBUS", "client_id"),
+                                                              self.globus_config.get("GLOBUS", "client_secret"))
+                scopes = "urn:globus:auth:scope:transfer.api.globus.org:all"
+                authorizer = globus_sdk.ClientCredentialsAuthorizer(client, scopes)
+                transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
+            except globus_sdk.GlobusAPIError as error:
+                raise
+            else:
+                self._transfer_client = transfer_client
+        return self._transfer_client
 
-    def _create_transfer_client(self) -> globus_sdk.TransferClient:
-        """
-        Creates the transfer client using client id and client secret for
-        credentials
-        :return: globus_sdk.TransferClient
-        """
-        transfer_client = self._authorize_transfer_client()
-        return transfer_client
-
-    def transfer_status(self, task_id: str) -> int:
+    def transfer_status(self, transfer_task_id: str) -> int:
         """
         Query Globus transfer service for transfer task status.
         Uploads are done only by JAWS's globus credentials (i.e. confidential app).
 
-        :param task_id: Globus task id
-        :return: integer value representing the different statuses. The statuses are defined in
-         DataTransfer_protocol.Status class.
-        :rtype: integer
+        :param transfer_task_id: Globus transfer task id
+        :ptype: str
+        :return: integer value representing the status of the transfer
+        :rtype: DataTransfer.Status
         """
         try:
-            transfer_client = self._create_transfer_client()
-            task = transfer_client.get_task(task_id)
+            transfer_client = self.transfer_client()
+            task = transfer_client.get_task(transfer_task_id)
         except globus_sdk.GlobusError as error:
             raise DataTransferError(error)
 
@@ -111,7 +110,7 @@ class DataTransfer:
             raise KeyError("Missing label key in input metadata.")
 
         try:
-            transfer_client = self._create_transfer_client()
+            transfer_client = self.transfer_client()
             tdata = globus_sdk.TransferData(
                 transfer_client,
                 self.endpoint_id,
@@ -178,7 +177,7 @@ class DataTransfer:
         :type transfer_task_id: str
         """
         try:
-            transfer_client = self._authorize_transfer_client()
+            transfer_client = self.transfer_client()
             transfer_response = transfer_client.cancel_task(transfer_task_id)
         except globus_sdk.GlobusAPIError as error:
             logger.error(f"Error cancelling Globus transfer, {transfer_task_id}: {error}")
@@ -204,7 +203,7 @@ class DataTransfer:
         src_host_path = host_paths["src"]
         dest_host_path = host_paths["dest"]
 
-        transfer_client = self._create_transfer_client()
+        transfer_client = self.transfer_client()
 
         tdata = globus_sdk.TransferData(
             transfer_client,

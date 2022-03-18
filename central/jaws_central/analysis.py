@@ -12,7 +12,7 @@ from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
 from jaws_central.models_fsa import db, Run, User, Run_Log
-from jaws_central.datatransfer_protocol import (
+from jaws_central.data_transfer import (
     DataTransferFactory,
     DataTransferProtocol,
     SiteTransfer,
@@ -288,19 +288,6 @@ def get_site(user, site_id):
     return result, 200
 
 
-def transfer_files(
-    data_transfer: DataTransferProtocol, metadata: dict, manifest_files: list
-) -> str:
-    """Perform file transfer.
-
-    :param data_transfer: object for transferring data from one site to another (globus, aws, ...)
-    :type data_transfer: DataTransfer object
-    :param manifest_files: list of files to transfer
-    :type manifest_files: list
-    """
-    return data_transfer.submit_upload(metadata, manifest_files)
-
-
 def submit_run(user):
     """
     Record the run submission in the database, with status as "uploading".
@@ -416,7 +403,7 @@ def submit_run(user):
     logger.debug(f"Transferring files using {data_transfer_type}")
 
     try:
-        upload_task_id = transfer_files(data_transfer, metadata, manifest_files)
+        upload_task_id = data_transfer.submit_transfer(metadata, manifest_files)
     except DataTransferAPIError as error:
         run.status = "upload failed"
         db.session.commit()
@@ -526,7 +513,7 @@ def _submission_failed(
     user: str, run: str, reason: str, data_transfer: DataTransferProtocol
 ):
     """Cancel upload and update run status"""
-    _cancel_transfer(data_transfer, run.upload_task_id)
+    data_transfer.cancel_transfer(run.upload_task_id)
     _update_run_status(run, "submission failed", reason)
 
 
@@ -796,9 +783,9 @@ def _cancel_run(user, run, reason="Cancelled by user"):
     status = run.status
 
     if status.startswith("upload"):
-        _cancel_transfer(data_transfer, run.upload_task_id)
+        data_transfer.cancel_transfer(run.upload_task_id)
     elif status.startswith("download"):
-        _cancel_transfer(data_transfer, run.download_task_id)
+        data_transfer.cancel_transfer(run.upload_task_id)
     try:
         _rpc_call(user, run.id, "cancel_run")
     except Exception as error:
@@ -810,19 +797,6 @@ def _cancel_run(user, run, reason="Cancelled by user"):
         return f"cancel failed; {error}"
     else:
         return "cancelled"
-
-
-def _cancel_transfer(
-    data_transfer: DataTransferProtocol, transfer_task_id: str
-) -> None:
-    """Cancels a data transfer.
-
-    :param data_transfer: object for transferring data from one site to another (globus, aws, ...)
-    :type data_transfer: DataTransfer object
-    :param transfer_task_id: Globus transfer task id
-    :type transfer_task_id: str
-    """
-    return data_transfer.cancel_transfer(transfer_task_id)
 
 
 def cancel_all(user):
