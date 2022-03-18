@@ -98,6 +98,11 @@ class MockGetInactiveUploadRun:
         self.json_file = "example.json"
 
 
+class MockRunWithId:
+    def __init__(self, *args, **kwargs):
+        self.id = 123
+
+
 @pytest.fixture()
 def mock_database(monkeypatch):
     monkeypatch.setattr(jaws_central.models_fsa.db, "session", MockSession)
@@ -325,3 +330,62 @@ def test_run_info():
         assert key in expected_fields_partial
     for key in expected_fields_partial:
         assert key in partial_results
+
+
+def test_get_performance_metrics(monkeypatch):
+    """
+    test if the response is parsed correctly
+    """
+    def mock_get_run(user_id, run_id):
+        return MockRunWithId()
+
+    def mock_search_es(host, port, api_key, index, query, aggregations=None):
+        assert isinstance(host, str)
+        assert isinstance(port, str)
+        assert isinstance(api_key, str)
+        assert isinstance(index, str)
+        assert isinstance(query, dict)
+
+        response = {
+            "took": 2,
+            "_shards": {
+            },
+            "hits": {
+                "max_score": 1.0,
+                "hits": [
+                    {
+                        "_index": "dummyperfmetrics",
+                        "_type": "_doc",
+                        "_id": "47JAY38BP88SDbn3qnsw",
+                        "_score": 1.0,
+                        "_source": {
+                            "read_chars": 2668002692,
+                            "pid": 31390,
+                            "write_chars": 410010798,
+                            "cmdline": "",
+                            "memory_percent": 0.026769763565699004,
+                            "write_count": 4142,
+                            "current_dir": "",
+                            "cpu_percent": 0,
+                            "jaws_run_id": 123,
+                            "name": "jtm",
+                            "num_fds": 17,
+                            "mem_vms": 361418752
+                        }
+                    }
+                ]
+            }
+        }
+        return response
+    monkeypatch.setattr(
+        jaws_central.analysis, "_get_run", mock_get_run
+    )
+
+    monkeypatch.setattr(
+        jaws_central.analysis, "_search_elastic_search", mock_search_es
+    )
+    metrics = jaws_central.analysis.get_performance_metrics("test_user", 123)
+    assert len(metrics) == 1
+    assert "name" in metrics[0]
+    assert "cpu_percent" in metrics[0]
+    assert type(metrics[0]["num_fds"]) == int

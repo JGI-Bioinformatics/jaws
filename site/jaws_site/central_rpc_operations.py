@@ -48,6 +48,23 @@ def run_metadata(params, session):
     return success(result)
 
 
+def run_outputs(params, session):
+    """Retrieve the outputs-json of a run.
+
+    :param cromwell_run_id: Cromwell run ID
+    :type params: dict
+    :return: The Cromwell outputs for the specified run.
+    :rtype: dict
+    """
+    logger.info(f"User {params['user_id']}: Outputs Run {params['run_id']}")
+    try:
+        run = Run(session, **params)
+        result = run.outputs()
+    except Exception as error:
+        return failure(error)
+    return success(result)
+
+
 def cancel_run(params, session):
     """Cancel a run.
 
@@ -156,6 +173,10 @@ operations = {
     },
     "run_metadata": {
         "function": run_metadata,
+        "required_params": ["user_id", "cromwell_run_id"],
+    },
+    "run_outputs": {
+        "function": run_outputs,
         "required_params": ["user_id", "cromwell_run_id"],
     },
     "cancel_run": {

@@ -141,11 +141,9 @@ def test_get_run_input(
     model1 = tests.conftest.MockRunModel(status="upload complete", submission_id="XXXX")
     run1 = Run(mock_session, model=model1)
     infiles = run1.get_run_input()
-    home_dir = os.path.expanduser("~")
-    root_dir = os.path.join(home_dir, "XXXX")
-    assert infiles[0] == os.path.join(root_dir, "XXXX.wdl")
-    assert infiles[1] == os.path.join(root_dir, "XXXX.json")
-    assert infiles[2] == os.path.join(root_dir, "XXXX.zip")
+    assert infiles[0].read() == "output for XXXX.wdl"
+    assert infiles[1].read() == "output for XXXX.json"
+    assert infiles[2].read().decode() == "output for XXXX.zip"
     assert infiles[3] is None
 
     # test 2: invalid input
@@ -158,10 +156,8 @@ def test_get_run_input(
     model3 = tests.conftest.MockRunModel(status="upload complete", submission_id="WWWW")
     run3 = Run(mock_session, model=model3)
     infiles = run3.get_run_input()
-    home_dir = os.path.expanduser("~")
-    root_dir = os.path.join(home_dir, "WWWW")
-    assert infiles[0] == os.path.join(root_dir, "WWWW.wdl")
-    assert infiles[1] == os.path.join(root_dir, "WWWW.json")
+    assert infiles[0].read() == "output for WWWW.wdl"
+    assert infiles[1].read() == "output for WWWW.json"
     assert infiles[2] is None
     assert infiles[3] is None
 
@@ -190,19 +186,10 @@ def mock_path(tmp_path):
 
 
 def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path, mock_data_transfer):
-    def mock_cp_infile_to_outdir(
-        self, path, suffix, dest_dir, dest_file, required=True
-    ):
-        pass
-
-    def mock_write_outputs_json(self, metadata):
-        pass
 
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     monkeypatch.setattr(Run, "uploads_file_path", mock_path)
-    monkeypatch.setattr(Run, "_cp_infile_to_outdir", mock_cp_infile_to_outdir)
-    monkeypatch.setattr(Run, "_write_outputs_json", mock_write_outputs_json)
 
     mock_session = tests.conftest.MockSession()
     mock_model = tests.conftest.MockRunModel(
@@ -220,19 +207,9 @@ def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path, mock_
 def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path, mock_data_transfer):
     from jaws_site.datatransfer_protocol import DataTransferError
 
-    def mock_cp_infile_to_outdir(
-        self, path, suffix, dest_dir, dest_file, required=True
-    ):
-        pass
-
-    def mock_write_outputs_json(self, metadata):
-        pass
-
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     monkeypatch.setattr(Run, "uploads_file_path", mock_path)
-    monkeypatch.setattr(Run, "_cp_infile_to_outdir", mock_cp_infile_to_outdir)
-    monkeypatch.setattr(Run, "_write_outputs_json", mock_write_outputs_json)
 
     mock_session = tests.conftest.MockSession()
     mock_model = tests.conftest.MockRunModel(

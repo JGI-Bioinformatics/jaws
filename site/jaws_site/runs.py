@@ -3,12 +3,10 @@ JAWS Daemon process periodically checks on runs and performs actions to usher
 them to the next state.
 """
 
-import shutil
 import os
 import logging
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-import json
 from jaws_site import (
     models,
     config,
@@ -157,6 +155,17 @@ class Run:
         else:
             return None
 
+    def outputs(self) -> str:
+        """
+        Get outputs from Cromwell and return it, if available.
+        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        """
+        if self.model.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.model.cromwell_run_id)
+            return metadata.outputs(relpath=True)
+        else:
+            return None
+
     def errors(self) -> str:
         """Get errors report from Cromwell service"""
         if self.model.cromwell_run_id:
@@ -208,22 +217,22 @@ class Run:
 
     def get_run_input(self) -> list:
         """
-        Check if the input files are valid and return a list of their paths.
+        Check if the input files are valid and return a list of their file handles.
         The list contains wdl_file, json_file, and optionally zip_file.
         Raise on error.
 
         :return: list of [wdl,json,zip] file paths
         :rtype: list
         """
-        suffixes_and_required = [
-            ("wdl", True),
-            ("json", True),
-            ("zip", False),
-            ("options.json", False),
+        infile_parameters = [
+            ("wdl", True, False),
+            ("json", True, False),
+            ("zip", False, True),
+            ("options.json", False, False),
         ]
-        files = []
+        file_handles = []
         file_path = self.uploads_file_path()
-        for (suffix, required) in suffixes_and_required:
+        for (suffix, required, is_binary) in infile_parameters:
             a_file = f"{file_path}.{suffix}"
             a_file_size = file_size(a_file)
             if required:
@@ -233,11 +242,15 @@ class Run:
                     raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
             elif a_file_size is not None and a_file_size == 0:
                 raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
+            a_fh = None
+            filetype = "rb" if is_binary else "r"
             if a_file_size:
-                files.append(a_file)
-            else:
-                files.append(None)
-        return files
+                try:
+                    a_fh = open(a_file, filetype)
+                except IOError:
+                    raise
+            file_handles.append(a_fh)
+        return file_handles
 
     def submit_run(self) -> None:
         """
@@ -245,13 +258,18 @@ class Run:
         """
         logger.debug(f"Run {self.model.id}: Submit to Cromwell")
         try:
-            infiles = self.get_run_input()
+            input_file_handles = self.get_run_input()
         except DataError as error:
             logger.error(f"Run {self.model.id}: {error}")
             self.update_run_status("submission failed", f"Bad input: {error}")
             return
+        except IOError as error:
+            logger.error(f"Run {self.model.id}: {error}")
+            self.update_run_status("submission failed", f"IO Error: {error}")
+            return
+
         try:
-            cromwell_run_id = cromwell.submit(*infiles)
+            cromwell_run_id = cromwell.submit(*input_file_handles)
         except CromwellError as error:
             logger.error(f"Run {self.model.id} submission failed: {error}")
             self.update_run_status("submission failed", f"{error}")
@@ -407,55 +425,6 @@ class Run:
         }
         return metadata
 
-    @staticmethod
-    def _cp_infile_to_outdir(
-        src_root_path, src_suffix, dest_dir, dest_file, required=True
-    ) -> None:
-        """
-        Copy an input file to the output dir.  If not required, no exception thrown if the file doesn't exist.
-        :param src_root_path: dir and basename of file
-        :type src_root_path: str
-        :param src_suffix: suffix of the file
-        :type src_suffix: str
-        :param dest_dir: folder to copy to
-        :type dest_dir: str
-        :param dest_file: destination filename
-        :type dest_file: str
-        :param required: If False then don't complain if the src file doesn't exist
-        :type required: bool
-        :return:
-        """
-        src_file = f"{src_root_path}.{src_suffix}"
-        dest = os.path.join(dest_dir, dest_file)
-        if required or os.path.exists(src_file):
-            try:
-                shutil.copy(src_file, dest)
-            except OSError as error:
-                logger.error(f"Unable to copy {src_file}->{dest}: {error}")
-                raise error
-
-    def copy_metadata_files(self, dest_dir: str):
-        """
-        Copy metadata files to Run's output dir.
-        Files are renamed in the process to something more sensible to user.
-        """
-        file_path = self.uploads_file_path()
-        try:
-            self._cp_infile_to_outdir(file_path, "wdl", dest_dir, "main.wdl")
-            self._cp_infile_to_outdir(file_path, "json", dest_dir, "jaws.inputs.json")
-            self._cp_infile_to_outdir(file_path, "orig.json", dest_dir, "inputs.json")
-            self._cp_infile_to_outdir(file_path, "zip", dest_dir, "subworkflows.zip", False)
-        except OSError as error:
-            raise error
-
-    def _write_outputs_json(self, metadata):
-        """Write outputs.json to workflow_root dir"""
-        cromwell_workflow_dir = metadata.workflow_root()
-        outputs_file = os.path.join(cromwell_workflow_dir, "outputs.json")
-        outputs = metadata.outputs(relpath=True)
-        with open(outputs_file, "w") as fh:
-            fh.write(json.dumps(outputs, sort_keys=True, indent=4))
-
     def _get_data_transfer_type(self) -> str:
         """Lookup the site id to determine what type of data transfer method needs to be used (e.g., globus, aws).
 
@@ -486,22 +455,6 @@ class Run:
         if not cromwell_workflow_dir:
             # This run failed before a folder was created; nothing to xfer
             self.update_run_status("download complete", "No run folder was created")
-            return
-
-        try:
-            self._write_outputs_json(metadata)
-        except OSError as error:
-            logger.error(f"Run {self.model.id}: Cannot write outputs json: {error}")
-            # don't change state; keep trying
-            return
-
-        try:
-            self.copy_metadata_files(cromwell_workflow_dir)
-        except OSError as error:
-            logger.error(
-                f"Run {self.model.id}: Cannot write to {cromwell_workflow_dir}: {error}"
-            )
-            # don't change state; keep trying
             return
 
         data_transfer_type = self._get_data_transfer_type()

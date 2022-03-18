@@ -12,6 +12,8 @@ clickclick==20.10.2
 configparser==5.0.2
 connexion==2.9.0
 cryptography==3.4.7
+elastic-transport==8.1.0
+elasticsearch==8.1.0
 entrypoints==0.3
 Flask==1.1.4
 Flask-Cors==3.0.10
