@@ -156,6 +156,36 @@ def get_task_status(params, session):
         return success(result)
 
 
+def s3_xfer_submit(params, session):
+    """
+    Direct the Site to transfer files to S3.
+    """
+    logger.info(f"User {params['user_id']}: S3-copy submit, Run {params['run_id']}")
+    try:
+        file_transfer = FileTransferProtocol(config.conf.get_section("AWS"))
+        result = file_transfer.submit_transfer(
+            params["src"], params["dest"], params["manifest"]
+        )
+    except Exception as error:
+        return failure(error)
+    else:
+        return success(result)
+
+
+def s3_xfer_status(params, session):
+    """
+    Check the status of an S3 copy task.
+    """
+    logger.info(f"User {params['user_id']}: S3-copy status, Run {params['run_id']}")
+    try:
+        file_transfer = FileTransferProtocol(config.conf.get_section("AWS"))
+        result = file_transfer.transfer_status(params["transfer_id"])
+    except Exception as error:
+        return failure(error)
+    else:
+        return success(result)
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -205,6 +235,6 @@ operations = {
     },
     "s3_xfer_status": {
         "function": s3_xfer_status,
-        "required_params": ["user_id", "run_id", "src", "dest", "manifest"],
+        "required_params": ["user_id", "run_id", "transfer_id"],
     },
 }
