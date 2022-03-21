@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 import uuid
-from ..datatransfer_protocol import DataTransferAPIError, SiteTransfer
+from ..datatransfer_protocol import DataTransferAPIError
 
 logger = logging.getLogger(__package__)
 
@@ -13,9 +13,11 @@ class DataTransfer:
     shutil python module for creating data transfers. This should not be used for production-sized data
     transfers.
     """
-    def _upload(self, src, dest, inode_type):
-        logger.info(f"running transfer: {src} -> {dest}")
+
+    def _copy(self, src, dest, inode_type):
+        logger.info(f"Local copy: {src} -> {dest}")
         if inode_type == "D":
+            # folders are copied recursively
             if not os.path.exists(dest):
                 shutil.copytree(src, dest)
         else:
@@ -25,35 +27,23 @@ class DataTransfer:
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 shutil.copy2(src, dest)
 
-    def submit_upload(self, metadata, manifest_files):
+    def submit_transfer(self, manifest, **kwargs):
         """
-        Submits transfer uploads from TSV file.
+        Copies files and/or folders listed in transfer manifest table.
         """
-        _ = metadata  # metadata is not needed for the local transfer
         try:
-            for line in manifest_files:
+            for line in manifest:
                 line = line.decode("UTF-8")
                 source_path, dest_path, inode_type = line.strip("\n").split("\t")
                 logger.info(f"COPYING THE FILE {source_path} to {dest_path}")
-                self._upload(source_path, dest_path, inode_type)
-            upload_task_id = uuid.uuid4()
-            return str(upload_task_id)
+                self._copy(source_path, dest_path, inode_type)
         except Exception as e:
             logging.error(e, exc_info=True)
             raise DataTransferAPIError("Problem reading file")
-
-    def submit_download(self, metadata, source_dir, dest_dir):
-        """
-        Submits a transfer download.
-
-        Transfers a source directory to a destination directory.
-        """
-        _ = metadata  # metadata is not needed for local transfer
-        if os.path.isdir(source_dir):
-            try:
-                shutil.copytree(source_dir, dest_dir)
-            except IOError as io_error:
-                logging.error(io_error, exc_info=True)
+        else:
+            # an ID is expected by the API, so return a random string
+            transfer_task_id = uuid.uuid4()
+            return str(transfer_task_id)
 
     def cancel_transfer(self, task_id):
         """
@@ -71,4 +61,6 @@ class DataTransfer:
         Assumes that the transfer is successful.
         """
         _ = task_id  # task_id is not created for local transfer
-        return SiteTransfer.status.succeeded
+        # status will always be successful since local copy is a blocking, synchronous operation
+        # (i.e. it either completed or failed &submit_transfer method already)
+        return "succeeded"
