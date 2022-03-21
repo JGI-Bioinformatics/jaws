@@ -4,7 +4,31 @@ Q := $(if $V,,@)
 ## Package Section BEGIN
 .PHONY: pkg-requirements
 pkg-requirements:
+	$(if $(shell which poetry),,$(error "Packaging needs Python poetry module installed. Please run 'pip install poetry'"))
 	$(if $(shell which wheel),,$(error "Packaging needs Python wheel installed. Please run 'pip install wheel'"))
+
+.PHONY: pkg-rpc-poetry
+pkg-rpc-poetry: pkg-requirements
+	$Q cd rpc && poetry build
+
+.PHONY: pkg-site-poetry
+pkg-site-poetry: pkg-requirements
+	$Q cd site && poetry build
+
+.PHONY: pkg-central-poetry
+pkg-central-poetry: pkg-requirements
+	$Q cd central && poetry build
+
+.PHONY: pkg-client-poetry
+pkg-client-poetry: pkg-requirements
+	$Q cd client && poetry build
+
+.PHONY: pkg-jtm-poetry
+pkg-jtm-poetry: pkg-requirements
+	$Q cd jtm && poetry build
+
+.PHONY: pkg-poetry
+pkg-poetry: pkg-rpc-poetry pkg-site-poetry pkg-central-poetry pkg-client-poetry pkg-jtm-poetry
 
 .PHONY: pkg-rpc
 pkg-rpc: pkg-requirements
@@ -32,6 +56,7 @@ pkg-parsl: pkg-requirements
 
 .PHONY: pkg
 pkg: pkg-rpc pkg-site pkg-central pkg-client pkg-jtm pkg-parsl
+
 ## Package Section END
 
 ## Test Section BEGIN

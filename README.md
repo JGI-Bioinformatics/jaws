@@ -287,6 +287,17 @@ the container by running `pip install -e .`
 Since you mounted your code, any changes reflected in your code will be reflected in the container. You can then
 run that service with all the updated code changes you made to do some live testing. 
 
+## Python Wheels and Poetry
+We use [Poetry](https://python-poetry.org/) to build and publish python wheels into our containers. The Gitlab CI/CD pipeline 
+uses poetry in its environment by running `pip install poetry`. A packaging step is triggered by the pipeline upon the creation of a
+release branch. The resulting wheels are then pushed up to a private repository and can get pulled by running the command: 
+
+```shell
+$ pip install --index-url https://<personal_access_token_name>:<personal_access_token>@code.jgi.doe.gov/api/v4/projects/5/packages/pypi/simple --no-deps <package_name>
+```
+For more information please visit the official Gitlab [docs](https://docs.gitlab.com/ee/user/packages/package_registry/index.html).
+
+
 ## Contributing
 Developers
 * Edward Kirton
