@@ -308,7 +308,7 @@ backend
           String? docker
           String? docker_user
           Int? cpu = 1
-          Float? memory_gb = 5
+          Float? memory_mb = 512
           Float? disk_kb = 25600.0
           Int? runtime_minutes
           String? nativeSpecs
@@ -324,7 +324,7 @@ backend
 PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
 Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
 +Owner=UNDEFINED
-request_memory=\${memory_gb}
+request_memory=\${memory_mb}
 request_disk=\${disk_kb}
 request_cpus=\${cpu}
 error=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stderr
@@ -351,7 +351,7 @@ EOF
           cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile <<EOF
 Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
 +Owner=UNDEFINED
-request_memory=\${memory_gb}
+request_memory=\${memory_mb}
 request_disk=\${disk_kb}
 request_cpus=\${cpu}
 error=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stderr
