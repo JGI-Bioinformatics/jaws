@@ -77,7 +77,6 @@ task bbcms{
 		poolname: "bfoster_ma_wdl"
 		node: 1
 		nwpn: 1
-		shared: 0
 		constraint: "skylake"
 		qos: "jgi_shared"
 		account: "fungalp"
@@ -121,7 +120,6 @@ task assy{
 	  poolname: "bfoster_ma_wdl"
 	  node: 1
 	  nwpn: 1
-	  shared: 0
 	  constraint: "skylake"
       qos: "jgi_shared"
       account: "fungalp"
@@ -161,7 +159,6 @@ task create_agp {
 	  poolname: "bfoster_ma_wdl"
 	  node: 1
 	  nwpn: 1
-	  shared: 0
 	  constraint: "skylake"
       qos: "jgi_shared"
       account: "fungalp"

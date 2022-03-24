@@ -158,8 +158,7 @@ task trimAlign {
     Int memory_gb = 7
     
     runtime {
-		docker: "jfroula/dap_py:3.2"
-        shared: 0
+	docker: "jfroula/dap_py:3.2"
         time: "00:15:00"
         memory: "115G"
         poolname: "dapseq_leo"
@@ -206,8 +205,7 @@ task mergeBams {
     Array[File] bams
 
     runtime {
-		docker: "jfroula/dap_py:3.2"
-        shared: 0
+	docker: "jfroula/dap_py:3.2"
         time: "00:15:00"
         memory: "115G"
         poolname: "dapseq_leo"
@@ -242,8 +240,7 @@ task findPeaks {
     Int min_foldch = 5
 
     runtime {
-		docker: "jfroula/dap_py:2"
-        shared: 0
+	docker: "jfroula/dap_py:2"
         time: "00:15:00"
         memory: "115G"
         poolname: "dapseq_leo"
@@ -278,8 +275,7 @@ task motifInputs {
     File genome_fasta
 
     runtime {
-		docker: "jfroula/dap_py:3.2"
-        shared: 0
+	docker: "jfroula/dap_py:3.2"
         time: "00:15:00"
         memory: "115G"
         poolname: "dapseq_leo"
@@ -322,8 +318,7 @@ task findMotifs {
     String basename
 
     runtime {
-		docker: "jfroula/dap_py:2"
-        shared: 0
+	docker: "jfroula/dap_py:2"
         time: "00:15:00"
         memory: "115G"
         poolname: "dapseq_leo"
@@ -355,8 +350,7 @@ task assignGenes {
     File genes_gff
 
     runtime {
-		docker: "jfroula/dap_py:3.2"
-        shared: 0
+	docker: "jfroula/dap_py:3.2"
         time: "05:00:00"
         memory: "115G"
         poolname: "dapseq_leo"
@@ -387,8 +381,7 @@ task dapStats {
     String amplified
 
     runtime {
-		docker: "jfroula/dap_py:3.2"
-        shared: 0
+	docker: "jfroula/dap_py:3.2"
         time: "00:15:00"
         memory: "115G"
         poolname: "dapseq_leo"
@@ -435,7 +428,6 @@ task copyOutput {
     String destination
 
     runtime {
-        shared: 0
         time: "00:15:00"
         memory: "115G"
         poolname: "dapseq_leo"

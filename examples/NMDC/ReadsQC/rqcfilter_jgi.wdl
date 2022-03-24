@@ -38,7 +38,6 @@ task rqcfilter {
         time: "05:00:00"
         memory: "240G"
         poolname: "nmdc_readqc_test"
-        shared: 0
         node: 1
         nwpn: 1
         constraint: "lr3_c32,jgi_m256"

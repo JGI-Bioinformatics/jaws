@@ -56,7 +56,6 @@ task shard {
     runtime {
         docker: "jfroula/jaws-sharding:1.0.10"
         poolname: "align_test"
-        shared: 0
         node: 1
         nwpn: 1
         memory: "5G"
@@ -77,8 +76,7 @@ task bbmap_indexing {
 
     runtime {
         docker: "jfroula/aligner-bbmap:2.0.1"
-	    poolname: "align_test"
-        shared: 0
+	poolname: "align_test"
         node: 1
         nwpn: 1
         memory: "5G"
@@ -114,7 +112,6 @@ task alignment {
     runtime {
         docker: "jfroula/aligner-bbmap:2.0.1"
         poolname: "align_test"
-        shared: 0
         node: 1
         nwpn: 1
         memory: "5G"
@@ -135,7 +132,6 @@ task merge_bams {
     runtime {
         docker: "jfroula/aligner-bbmap:2.0.1"
         poolname: "align_test"
-        shared: 0
         node: 1
         nwpn: 1
         memory: "5G"
