@@ -283,7 +283,6 @@ Templates
             docker: "jfroula/bbtools:1.0.4"
             time: "12:00:00"      
             poolname: "medium"    
-            shared: 0         
             constraint: "haswell"
             nodes: 1
             nwpn: 1

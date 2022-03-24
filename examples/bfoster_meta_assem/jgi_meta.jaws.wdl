@@ -40,7 +40,6 @@ task bbcms {
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
-        shared: 0
     }
 
      command {
@@ -81,7 +80,6 @@ task assy {
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
-        shared: 0
     }
 
      command{
@@ -115,7 +113,6 @@ task create_agp {
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
-        shared: 0
     }
 
     command{
@@ -154,7 +151,6 @@ task read_mapping_pairs{
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
-        shared: 0
     }
 
     command{

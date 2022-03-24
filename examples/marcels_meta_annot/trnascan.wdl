@@ -37,7 +37,7 @@ task trnascan_ba {
   runtime {
     time: "9:00:00"
     docker: container
-	shared: 1
+    shared: 1 
     memory: "115G"
     poolname: "trnascan"
     node: 1
