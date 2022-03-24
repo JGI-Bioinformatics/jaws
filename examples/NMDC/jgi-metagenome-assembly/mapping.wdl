@@ -69,7 +69,6 @@ task finalize_bams {
       poolname: "bfoster_ma_wdl"
       node: 1
       nwpn: 1
-	  shared: 0
 	  constraint: "lr3_c32,jgi_m256"
     }
 
@@ -112,7 +111,6 @@ task mappingtask {
       poolname: "bfoster_ma_wdl"
       node: 1
       nwpn: 1
-	  shared: 0
 	  constraint: "lr3_c32,jgi_m256"
     }
 

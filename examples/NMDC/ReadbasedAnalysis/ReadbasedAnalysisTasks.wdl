@@ -28,7 +28,6 @@ task profilerGottcha2 {
 		nwpn: 1
 		memory: "45G"
 		time: "04:00:00"
-		shared: 1
     }
     meta {
         author: "Po-E Li, B10, LANL"
@@ -64,7 +63,6 @@ task profilerCentrifuge {
 		nwpn: 1
 		memory: "45G"
 		time: "04:00:00"
-		shared: 1
     }
     meta {
         author: "Po-E Li, B10, LANL"
@@ -102,7 +100,6 @@ task profilerKraken2 {
 		nwpn: 1
 		memory: "45G"
 		time: "04:00:00"
-		shared: 1
     }
     meta {
         author: "Po-E Li, B10, LANL"

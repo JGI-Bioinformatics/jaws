@@ -69,7 +69,6 @@ task finalize_bams {
       poolname: "bfoster_ma_wdl"
       node: 1
       nwpn: 1
-	  shared: 0
 	  constraint: "skylake"
 	  qos: "jgi_shared"
 	  account: "fungalp"
@@ -114,8 +113,7 @@ task mappingtask {
       poolname: "bfoster_ma_wdl"
       node: 1
       nwpn: 1
-	  shared: 0
-	  constraint: "skylake"
+      constraint: "skylake"
       qos: "jgi_shared"
       account: "fungalp"
     }
