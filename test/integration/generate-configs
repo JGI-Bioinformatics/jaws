@@ -142,6 +142,10 @@ host = $SITE_RMQ_HOST
 port = $SITE_RMQ_PORT
 password = $SITE_RMQ_PW
 vhost = jtm_$DEPLOYMENT_NAME
+[PERFORMANCE_METRICS]
+script = /global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus
+output_dir = /global/cscratch1/sd/jaws_jtm/monitoring-runs-$DEPLOYMENT_NAME
+log_dir = /global/cscratch1/sd/jaws_jtm/monitoring-runs-$DEPLOYMENT_NAME/logs
 [SITE_RPC_CLIENT]
 user = jaws
 password = $SITE_RMQ_PW
