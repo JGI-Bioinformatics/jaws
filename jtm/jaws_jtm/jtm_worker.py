@@ -1172,7 +1172,7 @@ module unload python
 %(env_activation_cmd)s
 %(export_jtm_config_file)s
 
-/global/project/projectdirs/m3792/tylern/local/bin/pagurus \
+/global/cscratch1/sd/jaws_jtm/monitoring-runs/bin/pagurus \
     --user $USER \
     --outfile /global/cscratch1/sd/jaws_jtm/monitoring-runs/%(job_name)s_$SLURM_JOB_ID.csv &
 
