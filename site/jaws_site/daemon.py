@@ -6,9 +6,8 @@ them to the next state.
 import schedule
 import time
 import logging
-from jaws_site import database, runs, config, rpc_es, perm_metrics_es
+from jaws_site import database, runs, config, rpc_es, perf_metrics_es
 from jaws_rpc import rpc_client
-
 
 logger = logging.getLogger(__package__)
 
