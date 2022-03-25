@@ -34,6 +34,23 @@ vhost = jaws_test
 queue = central_rpc
 user = jaws_eagle
 password = succotash
+[RUNS_ES_RPC_CLIENT]
+user = jaws
+password = password
+host = localhost
+port = 5672
+vhost = jaws_test
+queue = site_rpc_es
+[PERFORMANCE_METRICS_ES_RPC_CLIENT]
+user = jaws
+password = password
+host = localhost
+port = 5672
+vhost = jaws
+queue = site_rpc_es
+[PERFORMANCE_METRICS]
+done_dir =
+processed_dir =
 [GLOBUS]
 client_id = AAAA
 client_secret = BBBB
@@ -75,6 +92,23 @@ host = https://rmq.nersc.gov
 user = bugs_bunny
 password = xqweasdasa
 vhost = jaws_test
+[RUNS_ES_RPC_CLIENT]
+user = jaws
+password = password
+host = localhost
+port = 5672
+vhost = jaws_test
+queue = site_rpc_es
+[PERFORMANCE_METRICS_ES_RPC_CLIENT]
+user = jaws
+password = password
+host = localhost
+port = 5672
+vhost = jaws
+queue = site_rpc_es
+[PERFORMANCE_METRICS]
+done_dir =
+processed_dir =
 [GLOBUS]
 client_id = AAAA
 client_secret = BBBB
