@@ -1,1494 +1,13 @@
-Skip to content
-GitLab
-Menu
-Search GitLab
-9
-5
-99+
-Help
-Stephan Trong
-J
-jaws
-Project information
-Repository
-Files
-Commits
-Branches
-Tags
-Contributors
-Graph
-Compare
-Locked Files
-Issues
-163
-Jira
-Merge requests
-24
-CI/CD
-Security & Compliance
-Deployments
-Monitor
-Infrastructure
-Packages & Registries
-Analytics
-Wiki
-Snippets
-Settings
-Collapse sidebar
-Advanced Analysis
-jaws
-Repository
-main
-jaws
-jtm
-jaws_jtm
-jtm_worker.py
-Nicholas Scoville Tyler's avatar
-Resolve "Start collecting performance on cori"
-Nicholas Scoville Tyler authored 5 days ago and Stephan Trong's avatar Stephan Trong committed 5 days ago
-968a5783
- jtm_worker.py  52.8 KB
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
-25
-26
-27
-28
-29
-30
-31
-32
-33
-34
-35
-36
-37
-38
-39
-40
-41
-42
-43
-44
-45
-46
-47
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57
-58
-59
-60
-61
-62
-63
-64
-65
-66
-67
-68
-69
-70
-71
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118
-119
-120
-121
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134
-135
-136
-137
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182
-183
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
-216
-217
-218
-219
-220
-221
-222
-223
-224
-225
-226
-227
-228
-229
-230
-231
-232
-233
-234
-235
-236
-237
-238
-239
-240
-241
-242
-243
-244
-245
-246
-247
-248
-249
-250
-251
-252
-253
-254
-255
-256
-257
-258
-259
-260
-261
-262
-263
-264
-265
-266
-267
-268
-269
-270
-271
-272
-273
-274
-275
-276
-277
-278
-279
-280
-281
-282
-283
-284
-285
-286
-287
-288
-289
-290
-291
-292
-293
-294
-295
-296
-297
-298
-299
-300
-301
-302
-303
-304
-305
-306
-307
-308
-309
-310
-311
-312
-313
-314
-315
-316
-317
-318
-319
-320
-321
-322
-323
-324
-325
-326
-327
-328
-329
-330
-331
-332
-333
-334
-335
-336
-337
-338
-339
-340
-341
-342
-343
-344
-345
-346
-347
-348
-349
-350
-351
-352
-353
-354
-355
-356
-357
-358
-359
-360
-361
-362
-363
-364
-365
-366
-367
-368
-369
-370
-371
-372
-373
-374
-375
-376
-377
-378
-379
-380
-381
-382
-383
-384
-385
-386
-387
-388
-389
-390
-391
-392
-393
-394
-395
-396
-397
-398
-399
-400
-401
-402
-403
-404
-405
-406
-407
-408
-409
-410
-411
-412
-413
-414
-415
-416
-417
-418
-419
-420
-421
-422
-423
-424
-425
-426
-427
-428
-429
-430
-431
-432
-433
-434
-435
-436
-437
-438
-439
-440
-441
-442
-443
-444
-445
-446
-447
-448
-449
-450
-451
-452
-453
-454
-455
-456
-457
-458
-459
-460
-461
-462
-463
-464
-465
-466
-467
-468
-469
-470
-471
-472
-473
-474
-475
-476
-477
-478
-479
-480
-481
-482
-483
-484
-485
-486
-487
-488
-489
-490
-491
-492
-493
-494
-495
-496
-497
-498
-499
-500
-501
-502
-503
-504
-505
-506
-507
-508
-509
-510
-511
-512
-513
-514
-515
-516
-517
-518
-519
-520
-521
-522
-523
-524
-525
-526
-527
-528
-529
-530
-531
-532
-533
-534
-535
-536
-537
-538
-539
-540
-541
-542
-543
-544
-545
-546
-547
-548
-549
-550
-551
-552
-553
-554
-555
-556
-557
-558
-559
-560
-561
-562
-563
-564
-565
-566
-567
-568
-569
-570
-571
-572
-573
-574
-575
-576
-577
-578
-579
-580
-581
-582
-583
-584
-585
-586
-587
-588
-589
-590
-591
-592
-593
-594
-595
-596
-597
-598
-599
-600
-601
-602
-603
-604
-605
-606
-607
-608
-609
-610
-611
-612
-613
-614
-615
-616
-617
-618
-619
-620
-621
-622
-623
-624
-625
-626
-627
-628
-629
-630
-631
-632
-633
-634
-635
-636
-637
-638
-639
-640
-641
-642
-643
-644
-645
-646
-647
-648
-649
-650
-651
-652
-653
-654
-655
-656
-657
-658
-659
-660
-661
-662
-663
-664
-665
-666
-667
-668
-669
-670
-671
-672
-673
-674
-675
-676
-677
-678
-679
-680
-681
-682
-683
-684
-685
-686
-687
-688
-689
-690
-691
-692
-693
-694
-695
-696
-697
-698
-699
-700
-701
-702
-703
-704
-705
-706
-707
-708
-709
-710
-711
-712
-713
-714
-715
-716
-717
-718
-719
-720
-721
-722
-723
-724
-725
-726
-727
-728
-729
-730
-731
-732
-733
-734
-735
-736
-737
-738
-739
-740
-741
-742
-743
-744
-745
-746
-747
-748
-749
-750
-751
-752
-753
-754
-755
-756
-757
-758
-759
-760
-761
-762
-763
-764
-765
-766
-767
-768
-769
-770
-771
-772
-773
-774
-775
-776
-777
-778
-779
-780
-781
-782
-783
-784
-785
-786
-787
-788
-789
-790
-791
-792
-793
-794
-795
-796
-797
-798
-799
-800
-801
-802
-803
-804
-805
-806
-807
-808
-809
-810
-811
-812
-813
-814
-815
-816
-817
-818
-819
-820
-821
-822
-823
-824
-825
-826
-827
-828
-829
-830
-831
-832
-833
-834
-835
-836
-837
-838
-839
-840
-841
-842
-843
-844
-845
-846
-847
-848
-849
-850
-851
-852
-853
-854
-855
-856
-857
-858
-859
-860
-861
-862
-863
-864
-865
-866
-867
-868
-869
-870
-871
-872
-873
-874
-875
-876
-877
-878
-879
-880
-881
-882
-883
-884
-885
-886
-887
-888
-889
-890
-891
-892
-893
-894
-895
-896
-897
-898
-899
-900
-901
-902
-903
-904
-905
-906
-907
-908
-909
-910
-911
-912
-913
-914
-915
-916
-917
-918
-919
-920
-921
-922
-923
-924
-925
-926
-927
-928
-929
-930
-931
-932
-933
-934
-935
-936
-937
-938
-939
-940
-941
-942
-943
-944
-945
-946
-947
-948
-949
-950
-951
-952
-953
-954
-955
-956
-957
-958
-959
-960
-961
-962
-963
-964
-965
-966
-967
-968
-969
-970
-971
-972
-973
-974
-975
-976
-977
-978
-979
-980
-981
-982
-983
-984
-985
-986
-987
-988
-989
-990
-991
-992
-993
-994
-995
-996
-997
-998
-999
-1000
-1001
-1002
-1003
-1004
-1005
-1006
-1007
-1008
-1009
-1010
-1011
-1012
-1013
-1014
-1015
-1016
-1017
-1018
-1019
-1020
-1021
-1022
-1023
-1024
-1025
-1026
-1027
-1028
-1029
-1030
-1031
-1032
-1033
-1034
-1035
-1036
-1037
-1038
-1039
-1040
-1041
-1042
-1043
-1044
-1045
-1046
-1047
-1048
-1049
-1050
-1051
-1052
-1053
-1054
-1055
-1056
-1057
-1058
-1059
-1060
-1061
-1062
-1063
-1064
-1065
-1066
-1067
-1068
-1069
-1070
-1071
-1072
-1073
-1074
-1075
-1076
-1077
-1078
-1079
-1080
-1081
-1082
-1083
-1084
-1085
-1086
-1087
-1088
-1089
-1090
-1091
-1092
-1093
-1094
-1095
-1096
-1097
-1098
-1099
-1100
-1101
-1102
-1103
-1104
-1105
-1106
-1107
-1108
-1109
-1110
-1111
-1112
-1113
-1114
-1115
-1116
-1117
-1118
-1119
-1120
-1121
-1122
-1123
-1124
-1125
-1126
-1127
-1128
-1129
-1130
-1131
-1132
-1133
-1134
-1135
-1136
-1137
-1138
-1139
-1140
-1141
-1142
-1143
-1144
-1145
-1146
-1147
-1148
-1149
-1150
-1151
-1152
-1153
-1154
-1155
-1156
-1157
-1158
-1159
-1160
-1161
-1162
-1163
-1164
-1165
-1166
-1167
-1168
-1169
-1170
-1171
-1172
-1173
-1174
-1175
-1176
-1177
-1178
-1179
-1180
-1181
-1182
-1183
-1184
-1185
-1186
-1187
-1188
-1189
-1190
-1191
-1192
-1193
-1194
-1195
-1196
-1197
-1198
-1199
-1200
-1201
-1202
-1203
-1204
-1205
-1206
-1207
-1208
-1209
-1210
-1211
-1212
-1213
-1214
-1215
-1216
-1217
-1218
-1219
-1220
-1221
-1222
-1223
-1224
-1225
-1226
-1227
-1228
-1229
-1230
-1231
-1232
-1233
-1234
-1235
-1236
-1237
-1238
-1239
-1240
-1241
-1242
-1243
-1244
-1245
-1246
-1247
-1248
-1249
-1250
-1251
-1252
-1253
-1254
-1255
-1256
-1257
-1258
-1259
-1260
-1261
-1262
-1263
-1264
-1265
-1266
-1267
-1268
-1269
-1270
-1271
-1272
-1273
-1274
-1275
-1276
-1277
-1278
-1279
-1280
-1281
-1282
-1283
-1284
-1285
-1286
-1287
-1288
-1289
-1290
-1291
-1292
-1293
-1294
-1295
-1296
-1297
-1298
-1299
-1300
-1301
-1302
-1303
-1304
-1305
-1306
-1307
-1308
-1309
-1310
-1311
-1312
-1313
-1314
-1315
-1316
-1317
-1318
-1319
-1320
-1321
-1322
-1323
-1324
-1325
-1326
-1327
-1328
-1329
-1330
-1331
-1332
-1333
-1334
-1335
-1336
-1337
-1338
-1339
-1340
-1341
-1342
-1343
-1344
-1345
-1346
-1347
-1348
-1349
-1350
-1351
-1352
-1353
-1354
-1355
-1356
-1357
-1358
-1359
-1360
-1361
-1362
-1363
-1364
-1365
-1366
-1367
-1368
-1369
-1370
-1371
-1372
-1373
-1374
-1375
-1376
-1377
-1378
-1379
-1380
-1381
-1382
-1383
-1384
-1385
-1386
-1387
-1388
-1389
-1390
-1391
-1392
-1393
-1394
-1395
-1396
-1397
-1398
-1399
-1400
-1401
-1402
-1403
-1404
-1405
-1406
-1407
-1408
-1409
-1410
-1411
-1412
-1413
-1414
-1415
-1416
-1417
-1418
-1419
-1420
-1421
-1422
-1423
-1424
-1425
-1426
-1427
-1428
-1429
-1430
-1431
-1432
-1433
-1434
-1435
 #! /usr/bin/env python
 # pylint: disable=C0111,C0103,R0205
 # -*- coding: utf-8 -*-
 # Seung-Jin Sul (ssul@lbl.gov)
+
 """
+
 jtm worker
+
+
 Example scenario
 1. jtm_submit sends a msg to "jgi_main_exchange" with "jtm_task_request_queue" tag.
 2. jtm listens to "jtm_task_request_queue" which is bound to "jgi_main_exchange"
@@ -1499,6 +18,7 @@ Example scenario
    "jgi_jtm_inner_result_queue" tag
 6. jtm listens to "jgi_jtm_inner_result_queue" queue; when a result is ready, takes and updates
    tables
+
 """
 import datetime
 import json
@@ -1513,6 +33,7 @@ import time
 import amqpstorm
 import psutil
 import shortuuid
+
 from jaws_jtm.common import logger, setup_custom_logger
 from jaws_jtm.lib.msgcompress import zdumps, zloads
 from jaws_jtm.lib.rabbitmqconnection import JtmAmqpstormBase, RmqConnectionAmqpstorm
@@ -1526,6 +47,7 @@ from jaws_jtm.lib.resourceusage import (
     get_virtual_memory_usage,
 )
 from jaws_jtm.lib.run import make_dir, run_sh_command
+
 # -------------------------------------------------------------------------------
 # Globals
 # -------------------------------------------------------------------------------
@@ -1540,10 +62,14 @@ UNIQ_WORKER_ID = str(shortuuid.uuid())
 WORKER_START_TIME = datetime.datetime.now()
 PARENT_PROCESS_ID = os.getpid()  # parent process id
 THIS_WORKER_TYPE = None
+
+
 class TaskTerminator(JtmAmqpstormBase):
     """
     Process task cancellation
+
     """
+
     def start(self):
         """Start the OnWorkerResult.
         :return:
@@ -1588,21 +114,26 @@ class TaskTerminator(JtmAmqpstormBase):
                 if self.connection:
                     self.connection.close()
                 raise
+
     def process_kill(self, message):
         """
         Callback for processing user task
+
         :param message:
         :return:
         """
         msg_unzipped = json.loads(zloads(message.body))
         logger.debug("Received task termination command: %r" % msg_unzipped)
+
         if msg_unzipped["worker_id"] == UNIQ_WORKER_ID:
             if msg_unzipped["child_pid"] > 0:
                 logger.info("Process termination request received.")
+
                 # This -9 is to notify run_user_task() that it's killed by user requests
                 # Also send_hb_to_client() will check this for adjust childpid and parentpid
                 # Note: this should done first to signal run_user_task() that the process is killed.
                 USER_PROC_PROC_ID.value = -9
+
                 # kill if there is child's children
                 for i in get_pid_tree(msg_unzipped["child_pid"]):
                     kill_cmd = "kill -9 %d" % i
@@ -1616,6 +147,7 @@ class TaskTerminator(JtmAmqpstormBase):
                         logger.warning(
                             f"User process not found. Ignore the termination command, {kill_cmd}"
                         )
+
                 # Kill the main child process
                 # Note: can consider to use "pkill -9 -P ppid" to kill the family
                 kill_cmd = f"kill -9 {msg_unzipped['child_pid']}"
@@ -1631,15 +163,21 @@ class TaskTerminator(JtmAmqpstormBase):
                     )
             else:
                 logger.warning("No valid child process id to terminate.")
+
             message.ack()
+
         else:
             # If UNIQ_WORKER_ID is not for me, reject and requeue it
             logger.info("Send NACK to the broker")
             message.nack(requeue=True)
+
+
 class TaskRunner(JtmAmqpstormBase):
     """
     Process user task
+
     """
+
     def start(self, req_q):
         """Start the OnWorkerResult.
         :return:
@@ -1677,24 +215,31 @@ class TaskRunner(JtmAmqpstormBase):
                 if self.connection:
                     self.connection.close()
                 raise
+
     def process_task(self, message):
         """
         Callback for processing user task
+
         :param message:
         :return:
         """
         msg_unzipped = json.loads(zloads(message.body))
         task_id = msg_unzipped["task_id"]
+
         # Send taskid to send_hb_to_client_proc() so that the task_id can be shown in the hb messages
         PIPE_TASK_ID_SEND.send(task_id)
+
         logger.info("Received a task, %r" % (msg_unzipped,))
         logger.debug(f"Return queue = {message.reply_to}")
+
         result_dict = run_user_task(msg_unzipped)
+
         json_data = json.dumps(result_dict)
         logger.debug(f"Reply msg with result: {str(json_data)}")
         logger.debug(json_data)
         response = zdumps(json_data)
         logger.debug("Send ACK to the manager")
+
         logger.debug("Send result to the manager")
         try:
             with RmqConnectionAmqpstorm(config=CONFIG).open() as conn:
@@ -1728,6 +273,7 @@ class TaskRunner(JtmAmqpstormBase):
             )
             logger.exception(f"Detail: {detail}")
             raise OSError(2, "Failed to send a request to a worker")
+
         try:
             message.ack()
         except Exception as detail:
@@ -1738,36 +284,47 @@ class TaskRunner(JtmAmqpstormBase):
             PIPE_TASK_ID_SEND.send(0)
             USER_PROC_PROC_ID.value = 0
             raise OSError(2, "Failed to send an ACK for the task completed")
+
         # Send taskid=0 to send_hb_to_client_thread() b/c the requested task is completed
         PIPE_TASK_ID_SEND.send(0)
+
         # Reset child pid
         USER_PROC_PROC_ID.value = 0
+
+
 # -------------------------------------------------------------------------------
 def run_user_task(msg_unzipped):
     """
     Run a user command in msg_zipped_to_send
+
     :param msg_unzipped: uncompressed msg from client
     :return:
     """
     return_msg = {}
+
     # Uncompress msg to get a task
     logger.info(f"User task to run: {msg_unzipped}")
     task_id = msg_unzipped["task_id"]
     user_task_cmd = msg_unzipped["user_cmd"]
     task_type = msg_unzipped["task_type"]
+
     return_msg["task_id"] = task_id
     return_msg["user_cmd"] = user_task_cmd
     return_msg["task_type"] = task_type
+
     if "stdout" in msg_unzipped:
         user_task_cmd + f" > {msg_unzipped['stdout']}"
     if "stderr" in msg_unzipped:
         user_task_cmd + f" 2>{msg_unzipped['stderr']}"
+
     # Run the task
     logger.info(f"Running task ID {task_id}...")
+
     p = None
     time_out_in_minute = 0
     done_f = CONFIG.constants.DONE_FLAGS
     w_int = CONFIG.configparser.getfloat("JTM", "worker_hb_recv_interval")
+
     if THIS_WORKER_TYPE != "manual":
         # Wait until WORKER_LIFE_LEFT_IN_MINUTE is updated by worker's HB
         limit = 0
@@ -1783,6 +340,7 @@ def run_user_task(msg_unzipped):
                     return return_msg
                 time.sleep(1)
                 limit += 1
+
         # ex) WORKER_LIFE_LEFT_IN_MINUTE = 20min and TASK_KILL_TIMEOUT_MINUTE = 10min
         # timeout will be set as 10min
         # TASK_KILL_TIMEOUT_MINUTE is a extra housekeeping time after explicitly
@@ -1792,12 +350,15 @@ def run_user_task(msg_unzipped):
         logger.debug(f"worker life: {WORKER_LIFE_LEFT_IN_MINUTE.value}")
         time_out_in_minute = int(WORKER_LIFE_LEFT_IN_MINUTE.value - tkill_time)
         logger.info(f"Timeout in minute: {time_out_in_minute}")
+
         if time_out_in_minute <= tkill_time:
             logger.info(f"Not enough time to run the task, {task_id}.")
             return_msg["done_flag"] = str(done_f["failed with timeout"])
             return_msg["ret_msg"] = "User task timeout"
             return return_msg
+
     proc_return_code = -1
+
     logger.debug("Start subprocess to run a task.")
     try:
         p = subprocess.Popen(
@@ -1823,10 +384,12 @@ def run_user_task(msg_unzipped):
         USER_PROC_PROC_ID.value = p.pid
         logger.debug(f"USER_PROC_PROC_ID.value {USER_PROC_PROC_ID.value}")
         logger.debug(f"User command: {user_task_cmd}")
+
     stdout_str = None
     time_out_in_second = None
     if time_out_in_minute != 0:
         time_out_in_second = time_out_in_minute * 60
+
     if p is not None:
         # ref)
         # https://www.programcreek.com/python/example/56781/subprocess.TimeoutExpired
@@ -1847,9 +410,11 @@ def run_user_task(msg_unzipped):
                 proc_return_code = p.returncode
     else:
         logger.error("subprocess call failed")
+
     # Prepare result to send back
     return_msg["worker_id"] = UNIQ_WORKER_ID
     return_msg["host_name"] = socket.gethostname()
+
     if USER_PROC_PROC_ID.value == -9:
         return_msg["done_flag"] = done_f["failed with user termination"]
         return_msg["ret_msg"] = "Task cancelled."
@@ -1878,8 +443,12 @@ def run_user_task(msg_unzipped):
             )
             return_msg["done_flag"] = done_f["failed to run user command"]
             return_msg["ret_msg"] = stdout_str
+
     logger.info(f"Reply msg prepared with result: {return_msg}")
+
     return return_msg
+
+
 # -------------------------------------------------------------------------------
 def send_hb_to_client_proc(
     interval,
@@ -1894,6 +463,7 @@ def send_hb_to_client_proc(
 ):
     """
     Send heartbeats to the client
+
     :param interval: time interval to send heartbeats to the client
     :param slurm_job_id: SLURM job id
     :param mem_per_node: memory request per node
@@ -1929,6 +499,7 @@ def send_hb_to_client_proc(
             child_pid = PARENT_PROCESS_ID
         else:
             child_pid = int(USER_PROC_PROC_ID.value)
+
         # Collect pids from process tree
         try:
             root_pid_num = get_pid_tree(PARENT_PROCESS_ID)
@@ -1946,6 +517,7 @@ def send_hb_to_client_proc(
                 proc_id_list_merged = root_pid_num
         except Exception as e:
             logger.warning(f"get_pid_tree error: {e}")
+
         # Collect vmem usage from process tree
         for pid in proc_id_list_merged:
             try:
@@ -1956,6 +528,7 @@ def send_hb_to_client_proc(
                 logger.warning("UnboundLocalError: No entry in process id list.")
             else:
                 vmem_usage_list.append(vmem)
+
         # Collect rss mem usage from process tree
         for pid in proc_id_list_merged:
             try:
@@ -1966,9 +539,11 @@ def send_hb_to_client_proc(
                 logger.warning("UnboundLocalError: No entry in process id list.")
             else:
                 rmem_usage_list.append(rmem)
+
         # Collect mem_usages for all pids in the tree and get sum()
         rmem_usage = "%.1f" % sum(rmem_usage_list) if len(rmem_usage_list) > 0 else 0.0
         vmem_usage = "%.1f" % sum(vmem_usage_list) if len(vmem_usage_list) > 0 else 0.0
+
         # Collect cpu_usages for all pids in the tree and get max()
         for pid in proc_id_list_merged:
             try:
@@ -1977,17 +552,22 @@ def send_hb_to_client_proc(
                 logger.warning(f"get_cpu_load() exception: {e}")
             else:
                 cpu_load_list.append(cload)
+
         max_cpu_load = max(cpu_load_list) if len(cpu_load_list) > 0 else 0.0
+
         # Only get the run time of child_pid
         if sys.platform.lower() == "darwin":
             # Todo: Add a method to get etime on Mac OS
             proc_run_time = ""
         else:
             proc_run_time = get_runtime(child_pid)
+
         if max_cpu_load == "":
             max_cpu_load = 0.0
+
         if proc_run_time == "":
             proc_run_time = 0
+
         # Get % mem used per node
         # This is for node-based scheduling
         try:
@@ -1995,9 +575,11 @@ def send_hb_to_client_proc(
         except Exception as e:
             logger.warning(f"get_total_mem_usage_per_node() exception: {e}")
             perc_used_mem = 0.0
+
         # Check if there is any task id in the ipc pipe
         if PIPE_TASK_ID_RECV.poll():
             task_id = PIPE_TASK_ID_RECV.recv()
+
         if slurm_job_id:
             temp = WORKER_LIFE_LEFT_IN_MINUTE.value
             try:
@@ -2019,6 +601,7 @@ def send_hb_to_client_proc(
                     f"Something wrong in computing remaining wall clock time: {e}"
                 )
                 WORKER_LIFE_LEFT_IN_MINUTE.value = temp
+
         msg_dict_to_send = {
             hb_msg["child_pid"]: child_pid,
             hb_msg["clone_time_rate"]: 0.0,  # OBSOLETE
@@ -2051,9 +634,12 @@ def send_hb_to_client_proc(
             hb_msg["worker_type"]: w_type[THIS_WORKER_TYPE],
             hb_msg["nwpn"]: nwpn,  # not used
         }
+
         msg_zipped_to_send = zdumps(json.dumps(msg_dict_to_send))
+
         if show_resource_log:
             logger.info(msg_dict_to_send)
+
         max_retries = CONFIG.configparser.getint("JTM", "max_retries")
         exp = CONFIG.configparser.get("JTM", "worker_s_hb_expiration")
         attempts = 0
@@ -2087,10 +673,14 @@ def send_hb_to_client_proc(
                     except Exception as e:
                         logger.exception(e)
                         raise
+
         time.sleep(interval)
+
+
 # -------------------------------------------------------------------------------
 def proc_clean_exit(pid_list):
     """
+
     :param pid_list: process handle list
     :return:
     """
@@ -2105,7 +695,10 @@ def proc_clean_exit(pid_list):
         except Exception as e:
             # print log and just pass
             logger.exception(f"Failed to terminate a child process: {e}")
+
     os._exit(1)
+
+
 # -------------------------------------------------------------------------------
 def worker(
     ctx: object,
@@ -2132,6 +725,7 @@ def worker(
     show_resource_log: bool,
 ) -> int:
     """
+
     :param ctx:
     :param heartbeat_interval_param:
     :param custom_log_dir:
@@ -2156,6 +750,7 @@ def worker(
     :param show_resource_log:
     :return:
     """
+
     global CONFIG
     CONFIG = ctx.obj["config"]
     global DEBUG
@@ -2166,18 +761,22 @@ def worker(
         DEBUG = config_debug
     global JTM_INNER_MAIN_EXCH
     JTM_INNER_MAIN_EXCH = CONFIG.configparser.get("JTM", "jtm_inner_main_exch")
+
     prod_mod = False
     if CONFIG.configparser.get("JTM", "run_mode") == "prod":
         prod_mod = True
+
     # Set uniq worker id if worker id is provided in the params
     if worker_id_param:
         global UNIQ_WORKER_ID
         UNIQ_WORKER_ID = worker_id_param
+
     # Job log dir setting
     job_script_dir_name = os.path.join(CONFIG.configparser.get("JTM", "log_dir"), "job")
     if custom_job_log_dir_name:
         job_script_dir_name = custom_job_log_dir_name
     make_dir(job_script_dir_name)
+
     # Log dir setting
     datetime_str = datetime.datetime.now().strftime("%Y-%m-%d")
     datetime_str = UNIQ_WORKER_ID + "_" + datetime_str
@@ -2187,11 +786,14 @@ def worker(
     log_dir_name = os.path.join(log_dir_name, "worker")
     make_dir(log_dir_name)
     log_file_name = f"{log_dir_name}/jtm_worker_{datetime_str}.log"
+
     # Logger setting
     log_level = "info"
     if DEBUG:
         log_level = "debug"
+
     setup_custom_logger(log_level, log_dir_name, log_file_name, 1, 1)
+
     logger.info(f"JTM Worker, version: {CONFIG.constants.VERSION}")
     hearbeat_interval = CONFIG.configparser.getfloat("JTM", "worker_hb_send_interval")
     logger.info(
@@ -2210,6 +812,7 @@ def worker(
     )
     logger.info("env activation: %s", CONFIG.configparser.get("JTM", "env_activation"))
     logger.info("JTM config file: %s" % (CONFIG.config_file))
+
     # Slurm config
     num_nodes_to_request = (
         num_nodes_to_request_param
@@ -2240,6 +843,7 @@ def worker(
         else CONFIG.configparser.getint("SLURM", "ncpus")
     )
     assert num_cpus_to_request
+
     # Set CPU affinity for limiting the number of cores to use
     if (
         worker_type_param != "manual"
@@ -2276,6 +880,7 @@ def worker(
             except Exception as e:
                 logger.exception(f"Failed to set the CPU usage limit: {e}")
                 sys.exit(1)
+
     # Set memory upper limit
     # Todo: May need to use all free_memory on Cori and Lbl
     system_free_mem_bytes = get_free_memory()
@@ -2283,6 +888,7 @@ def worker(
         "Total available memory (MBytes): %d"
         % (system_free_mem_bytes / 1024.0 / 1024.0)
     )
+
     # This available memory validation needs to executed on a compute node
     # not on a MOM node.
     if (
@@ -2301,6 +907,7 @@ def worker(
                 "Requested memory for this worker (MBytes): %d"
                 % (mem_per_node_to_request_byte / 1024.0 / 1024.0)
             )
+
             # if requested mempernode is larger than system avaiable mem space
             if system_free_mem_bytes < mem_per_node_to_request_byte:
                 logger.critical("Requested memory space is not available")
@@ -2316,6 +923,7 @@ def worker(
                 # mem_per_node_to_request_byte = system_free_mem_bytes
                 # Option 2
                 raise MemoryError
+
             mem_limit_per_worker_bytes = int(
                 mem_per_node_to_request_byte / num_workers_per_node
             )
@@ -2325,6 +933,7 @@ def worker(
             )
             logger.exception(e)
             sys.exit(1)
+
         try:
             soft, hard = resource.getrlimit(resource.RLIMIT_AS)
             resource.setrlimit(resource.RLIMIT_AS, (mem_limit_per_worker_bytes, hard))
@@ -2338,6 +947,7 @@ def worker(
             )
             logger.exception(e)
             sys.exit(1)
+
     job_time_to_request = (
         job_time_to_request_param
         if job_time_to_request_param
@@ -2359,35 +969,43 @@ def worker(
         if partition_param
         else CONFIG.configparser.get("SLURM", "partition")
     )
+
     global THIS_WORKER_TYPE
     THIS_WORKER_TYPE = worker_type_param
     job_name = "jtm_worker_" + pool_name_param
+
     # Set task queue name
     if heartbeat_interval_param:
         hearbeat_interval = heartbeat_interval_param
+
     # Start hb receive thread
     tp_name = (
         pool_name_param
         if pool_name_param
         else CONFIG.configparser.get("JTM", "pool_name")
     )
+
     assert pool_name_param is not None, "User pool name is not set"
     inner_task_request_queue = (
         CONFIG.configparser.get("JTM", "jtm_inner_request_q") + "." + pool_name_param
     )
+
     worker_clone_time_rate = (
         worker_clone_time_rate_param
         if worker_clone_time_rate_param
         else CONFIG.configparser.getfloat("JTM", "clone_time_rate")
     )
+
     if THIS_WORKER_TYPE in ("dynamic"):
         assert (
             cluster_name_param != "" and cluster_name_param != "local"
         ), "Static or dynamic worker needs a cluster setting (-cl)."
+
     slurm_job_id = slurm_job_id_param
     cluster_name = None
     if cluster_name_param:
         cluster_name = cluster_name_param.lower()
+
     if (
         cluster_name == "cori"
         and mem_per_cpu_to_request != ""
@@ -2400,9 +1018,12 @@ def worker(
             "--mem-per-cpu in Cori shouldn't be larger than 1GB. User '--mem' instead."
         )
         sys.exit(1)
+
     logger.info("Task queue name: %s", inner_task_request_queue)
     logger.info("Worker type: %s", THIS_WORKER_TYPE)
+
     env_act = CONFIG.configparser.get("JTM", "env_activation")
+
     if slurm_job_id == 0 and THIS_WORKER_TYPE in ["dynamic"]:
         batch_job_script_file = os.path.join(
             job_script_dir_name,
@@ -2410,28 +1031,36 @@ def worker(
         )
         batch_job_script_str = ""
         batch_job_misc_params = ""
+
         worker_config = CONFIG.config_file if CONFIG else ""
         if CONFIG.configparser.get("JTM", "worker_config_file"):
             worker_config = CONFIG.configparser.get("JTM", "worker_config_file")
+
         if cluster_name in ("cori", "jgi", "tahoma"):
+
             with open(batch_job_script_file, "w") as jf:
                 batch_job_script_str += "#!/bin/bash -l"
+
                 if cluster_name in ("cori"):
                     if num_nodes_to_request_param:
                         batch_job_script_str += f"""
 #SBATCH -N {num_nodes_to_request}
 #SBATCH --mem={mem_per_node_to_request}"""
+
                         batch_job_misc_params += (
                             f" -N {num_nodes_to_request} -m {mem_per_node_to_request} "
                         )
+
                         if num_cores_to_request_param:
                             batch_job_script_str += f"""
 #SBATCH -c {num_cpus_to_request}"""
                             batch_job_misc_params += f" -c {num_cpus_to_request} "
+
                     else:
                         batch_job_script_str += f"""
 #SBATCH -c {num_cpus_to_request}"""
                         batch_job_misc_params += f" -c {num_cpus_to_request} "
+
                         if mem_per_node_to_request:
                             batch_job_script_str += f"""
 #SBATCH --mem={mem_per_node_to_request}"""
@@ -2440,15 +1069,18 @@ def worker(
                             batch_job_script_str += f"""
 #SBATCH --mem-per-cpu={mem_per_cpu_to_request}"""
                             batch_job_misc_params += f" -mc {mem_per_cpu_to_request} "
+
                         if worker_id_param:
                             batch_job_misc_params += " -wi %(worker_id)s_${i} " % dict(
                                 worker_id=UNIQ_WORKER_ID
                             )
+
                     ###########################
                     if 1:
                         # Need to set both --qos=genepool (or genepool_shared) _and_ -A fungalp
                         # OR
                         # no qos _and_ -A m342 _and_ -C haswell
+
                         # Note: currently constraint in ["haswell" | "knl"]
                         if constraint == "haswell":
                             if qos_param:
@@ -2460,10 +1092,13 @@ def worker(
 #SBATCH -q {qos}"""
                             batch_job_script_str += """
 #SBATCH -C haswell"""
+
                             if charging_account == "m342":
                                 batch_job_misc_params += " -A m342 "
+
                             batch_job_script_str += f"""
 #SBATCH -A {charging_account}"""
+
                         elif constraint == "knl":
                             # Note: Basic KNL setting = "-q regular -A m342 -C knl"
                             #
@@ -2483,6 +1118,7 @@ def worker(
 #SBATCH -A {charging_account}
 #SBATCH -q {qos}"""
                             batch_job_misc_params += f" -A {charging_account} -q {qos} "
+
                         elif constraint == "skylake":
                             # Example usage with skylakte for Brian F.
                             # 120G
@@ -2509,34 +1145,42 @@ def worker(
                             # module load esslurm; sbatch --qos=jgi_shared --mem=250G --cpus-per-task=12
                             # -C skylake -A pkasmb
                             # -N 1 -t 12:00:00 -D $PWD --wrap=""
+
                             batch_job_script_str += f"""
 #SBATCH -N {num_nodes_to_request}
 #SBATCH -C skylake
 #SBATCH -A {charging_account}
 #SBATCH -q {qos}"""
                             batch_job_misc_params += f" -A {charging_account} -q {qos}"
+
                         excl_param = ""
                         if constraint != "skylake":
                             excl_param = "#SBATCH --exclusive"
+
                         tq_param = ""
                         if pool_name_param:
                             tq_param = f"-p {pool_name_param}"
+
                         batch_job_script_str += """
 #SBATCH -t %(wall_time)s
 #SBATCH --job-name=%(job_name)s
 #SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
 #SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
 %(exclusive)s
+
 module unload python
 %(env_activation_cmd)s
 %(export_jtm_config_file)s
+
 /global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus \
     --move \
     --user $USER \
     --path /global/cscratch1/sd/jaws_jtm/monitoring-runs \
     --outfile %(job_name)s_$SLURM_JOB_ID.csv &
+
 PID=$!
 sleep 2
+
 for i in {1..%(num_workers_per_node)d}
 do
     echo "jobid: $SLURM_JOB_ID"
@@ -2572,19 +1216,24 @@ wait
                             % worker_config,
                             set_jtm_config_file="--config=%s" % worker_config,
                         )
+
                 elif cluster_name in ("jgi"):
                     if worker_id_param:
                         batch_job_misc_params += " -wi %(worker_id)s_${i} " % dict(
                             worker_id=UNIQ_WORKER_ID
                         )
+
                     if num_cores_to_request_param:
                         batch_job_script_str += f"""
 #SBATCH --cpus-per-task {num_cpus_to_request}"""
                         batch_job_misc_params += f" -c {num_cpus_to_request}"
+
                     tp_param = ""
                     if pool_name_param:
                         tp_param = f"-p {pool_name_param}"
+
                     mnode_param = f"#SBATCH --mem={mem_per_node_to_request}"
+
                     batch_job_script_str += """
 #SBATCH --time=%(wall_time)s
 #SBATCH --job-name=%(job_name)s
@@ -2595,6 +1244,7 @@ wait
 %(mem_per_node_setting)s
 #SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
 #SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
+
 %(env_activation_cmd)s
 %(export_jtm_config_file)s
 for i in {1..%(num_workers_per_node)d}
@@ -2634,18 +1284,23 @@ wait
                         % worker_config,
                         set_jtm_config_file="--config=%s" % worker_config,
                     )
+
                 elif cluster_name in ("tahoma"):
                     if worker_id_param:
                         batch_job_misc_params += " -wi %(worker_id)s_${i} " % dict(
                             worker_id=UNIQ_WORKER_ID
                         )
+
                     tp_param = ""
                     if pool_name_param:
                         tp_param = f"-p {pool_name_param}"
+
                     if partition_param:
                         batch_job_script_str += f"""
 #SBATCH --partition={partition_param}"""
+
                     mnode_param = f"#SBATCH --mem={mem_per_node_to_request}"
+
                     batch_job_script_str += """
 #SBATCH --account=%(charging_account)s
 #SBATCH --nodes=%(num_nodes_to_request)d
@@ -2655,6 +1310,7 @@ wait
 %(mem_per_node_setting)s
 #SBATCH -o %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.out
 #SBATCH -e %(job_dir)s/jtm_%(worker_type)s_worker_%(worker_id)s.err
+
 %(env_activation_cmd)s
 %(export_jtm_config_file)s
 for i in {1..%(num_workers_per_node)d}
@@ -2692,25 +1348,36 @@ wait
                         % worker_config,
                         set_jtm_config_file="--config=%s" % worker_config,
                     )
+
                 jf.writelines(batch_job_script_str)
+
             os.chmod(batch_job_script_file, 0o775)
+
             if dry_run:
                 print(batch_job_script_str)
                 sys.exit(0)
+
             sbatch_cmd = f"sbatch --parsable {batch_job_script_file}"
+
             if constraint == "skylake" or qos in ("jgi_exvivo", "jgi_shared"):
                 sbatch_cmd = "module load esslurm; " + sbatch_cmd
                 logger.debug(f"skylake sbatch: {sbatch_cmd}")
             _, _, ec = run_sh_command(sbatch_cmd, log=logger)
             return ec
+
         elif cluster_name == "aws":
             pass
+
     logger.info("Waiting for a request...")
     logger.debug(f"Main pid = {PARENT_PROCESS_ID}")
+
     pid_list = []
+
     def signal_handler(signum, frame):
         proc_clean_exit(pid_list)
+
     signal.signal(signal.SIGTERM, signal_handler)
+
     # Start task termination proc
     max_retries = CONFIG.configparser.getint("JTM", "max_retries")
     try:
@@ -2723,6 +1390,7 @@ wait
         logger.exception(f"recv_task_kill_request_proc: {e}")
         proc_clean_exit(pid_list)
         raise
+
     # Start send_hb_to_client_proc proc
     try:
         send_hb_to_client_proc_hdl = mp.Process(
@@ -2745,10 +1413,12 @@ wait
         logger.exception(f"send_hb_to_client_proc: {e}")
         proc_clean_exit(pid_list)
         raise
+
     logger.info(
         "Start sending my heartbeat to the client in every %d sec to %s"
         % (hearbeat_interval, CONFIG.configparser.get("JTM", "worker_hb_q_postfix"))
     )
+
     # Start task runner proc
     try:
         process_task_proc_hdl = mp.Process(
@@ -2761,4 +1431,5 @@ wait
         logger.exception(f"process_task_proc: {e}")
         proc_clean_exit(pid_list)
         raise
+
     return 0
