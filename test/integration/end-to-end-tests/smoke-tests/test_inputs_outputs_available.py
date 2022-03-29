@@ -11,6 +11,7 @@ import os
 import uuid
 import shutil
 import submission_utils as util
+import time
 
 # set variables specific for this series of tests
 check_tries = 100
@@ -22,7 +23,6 @@ check_sleep = 30
 
 
 def test_jaws_get(submit_fq_count_wdl):
-#def test_jaws_get():
     """
     1) I will check that the input WDL and json file are saved in the output dir.
        (70f82d8f-352f-48ce-a21d-3e4ede4daef3.orig.json  70f82d8f-352f-48ce-a21d-3e4ede4daef3.wdl)
@@ -40,10 +40,9 @@ def test_jaws_get(submit_fq_count_wdl):
 
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
-#    run_id = 9302
+    time.sleep(20)
 
     cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
-    print(f"CMD: {cmd}")
     (r, o, e) = util.run(cmd)
     assert r == 0
 
