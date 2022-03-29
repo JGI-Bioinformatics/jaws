@@ -22,6 +22,7 @@ check_sleep = 30
 
 
 def test_jaws_get(submit_fq_count_wdl):
+#def test_jaws_get():
     """
     1) I will check that the input WDL and json file are saved in the output dir.
        (70f82d8f-352f-48ce-a21d-3e4ede4daef3.orig.json  70f82d8f-352f-48ce-a21d-3e4ede4daef3.wdl)
@@ -39,8 +40,10 @@ def test_jaws_get(submit_fq_count_wdl):
 
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
+#    run_id = 9302
 
     cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
+    print(f"CMD: {cmd}")
     (r, o, e) = util.run(cmd)
     assert r == 0
 
@@ -48,9 +51,11 @@ def test_jaws_get(submit_fq_count_wdl):
     # using the full path (outdir and input_wdl), we are essentially testing that the outdir
     # was correct and that the wdl file got created.
 
+    # call-count_seqs/  inputs.json  jaws.inputs.json  main.wdl  outputs.json
     # verify it is a valid wdl
     with open(os.path.join(outdir, input_wdl)) as fh:
-        if "workflow fq_count" not in fh.readline():
+        first3lines=str(fh.readlines()[0:3])
+        if "workflow fq_count" not in first3lines:
             assert 0, "This does not look like a valid workflow"
 
     # check that we have a valid inputs json
@@ -79,3 +84,4 @@ def test_jaws_get(submit_fq_count_wdl):
         shutil.rmtree(outdir)
     except OSError as error:
         print(f"Error: {outdir}: {error}")
+
