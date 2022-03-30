@@ -18,7 +18,7 @@ This diagram (from [Microsoft](https://docs.microsoft.com/en-us/dotnet/architect
 
 You will need to do the following steps to use this workflow:
 
-1. Make sure you have a functioning docker environment on you computer
+1. Make sure you have a functioning docker environment on your computer
 2. Authenticate to the container registry on code.jgi.doe.gov
 3. Use the build.sh script to build local copies of your images (this can result in pulling in dependencies from code.jgi.doe.gov)
    1. The site, central and dashboard images all depend on the rpc docker image, so it needs to be built before attempting to build site, central or dashboard
