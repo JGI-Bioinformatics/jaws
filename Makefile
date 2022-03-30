@@ -6,8 +6,8 @@ Q := $(if $V,,@)
 pkg-requirements:
 	$(if $(shell which wheel),,$(error "Packaging needs Python wheel installed. Please run 'pip install wheel'"))
 
-.PHONY: pkg-requirements
-pkg-requirements:
+.PHONY: pkg-poetry-requirements
+pkg-poetry-requirements:
 	$(if $(shell which poetry),,$(error "Packaging needs Python poetry module installed. Please run 'pip install poetry'"))
 
 .PHONY: pkg-rpc-poetry
