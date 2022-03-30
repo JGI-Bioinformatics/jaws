@@ -1,6 +1,30 @@
 ## Local Development
 
-### ToDo: add docs explaining gitlab dependencies such as the images in the gitlab package registry and their versions tags
+The new local development model uses docker images for all services, these images can be built/stored locally for local development, and they are also built/stored in the gitlab registry. Because the gitlab container registry is a new dependency, acquiring and configuring local access to the gitlab repository is needed.
+
+* Gitlab Container Registry general info: https://docs.gitlab.com/ee/user/packages/
+* Our Gitlab Registry: https://code.jgi.doe.gov/groups/advanced-analysis/-/packages
+* Background info on docker registries: https://docs.docker.com/registry/introduction/
+
+To build any images, you will need to have a Gitlab personal access token (or comparable) and use that to
+authenticate your docker access.
+
+* Getting a personal access token: https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#create-a-personal-access-token
+* Using the token to authenticate to gitlab's docker registry: https://docs.gitlab.com/ee/user/packages/container_registry/#authenticate-with-the-container-registry
+
+This diagram (from [Microsoft](https://docs.microsoft.com/en-us/dotnet/architecture/microservices/docker-application-development-process/docker-app-development-workflow) ) shows thw overall workflow for local development using Docker:
+
+![Docker workflow](https://docs.microsoft.com/en-us/dotnet/architecture/microservices/docker-application-development-process/media/docker-app-development-workflow/life-cycle-containerized-apps-docker-cli.png)
+
+You will need to do the following steps to use this workflow:
+
+1. Make sure you have a functioning docker environment on you computer
+2. Authenticate to the container registry on code.jgi.doe.gov
+3. Use the build.sh script to build local copies of your images (this can result in pulling in dependencies from code.jgi.doe.gov)
+4. Use the docker-compose.yml file to start up a local environment using the docker images built in the previous step
+5. Test your services locally
+6. Make any changes required and loop back to step 3 to iterate until you have something you want to commit and push back to the repo
+7. Push your changes back to the main repo - note that you should avoid pushing changes to docker-compose.yml which are specific to your setup, or which contains credentials
 
 To deploy the JAWS services (except for the backend) locally you will want to make use
 of the docker-compose.yml file and modify as needed. Some volume mounts are required in order for file uploads to
