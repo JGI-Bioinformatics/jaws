@@ -686,7 +686,6 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
         sys.exit(f"Unable to write output file: {error}")
 
     # the paths of workflow output files are listed in the outputs_file
-    outputs = {}
     for (key, value) in outputs.items():
         if type(value) is list:
             for an_output in value:
