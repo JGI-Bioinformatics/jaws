@@ -1,0 +1,156 @@
+## Local Development
+
+### ToDo: add docs explaining gitlab dependencies such as the images in the gitlab package registry and their versions tags
+
+To deploy the JAWS services (except for the backend) locally you will want to make use
+of the docker-compose.yml file and modify as needed. Some volume mounts are required in order for file uploads to
+be processed by the containers. You will want to set your `DATA_HOME` with the locations of your
+configuration files, log files and data upload files. Here is an example: 
+
+
+```console
+❯ pwd
+/Users/mamelara/data/jaws
+~/data/jaws on ☁️  (us-west-2)
+❯ tree -L 2
+.
+├── configs
+│   ├── auth
+│   ├── central
+│   ├── central-rpc
+│   ├── cromwell
+│   ├── daemon
+│   └── site-central
+├── laptop
+│   ├── hello_world
+│   └── output
+├── local
+│   ├── cromwell-workflow-logs
+│   └── uploads
+└── logs
+    ├── auth
+    ├── central
+    ├── central-rpc
+    ├── cromwell
+    ├── cromwell-workflow-logs
+    ├── daemon
+    ├── jaws-auth
+    └── site-central
+
+22 directories, 0 files
+> export DATA_HOME=/Users/mamelara/data/jaws
+```
+
+The important thing to note is the name of the files, though these can be easily changed
+in the `docker-compose.yml` file if you wish to use a different naming scheme. One you've
+created the following directory tree, the next step is to build the images.
+
+The `laptop` and `local` directories are just there to "mock" locations on different filesystems. You can name these whatever directory
+you want as long as you make sure the volume mounts match the names.
+
+### Image building
+At the root of the JAWS directory is a `build.sh` script that takes arguments for 
+ the service name, the version and environment (eg - dev, prod). If you want to build central you will
+want to run the following command: 
+
+### ToDo: Explain how the $version param to build.sh must match version a version in the gitlab repo
+### ToDo: Add details about authenticating access to the gitlab registry to download dependencies, or else make those images public
+
+```console
+> ./build.sh central 2.6.0 dev
+```
+
+This will build the development environment for your container script. This is useful if you want the code you are actively working on to be deployed in the container
+Because rpc is a dependency for central, and site services, you will first want to build rpc docker container. 
+
+```console
+> ./build.sh rpc 2.6.0 dev
+```
+
+Once your images are built you can then modify the `docker-compose.yml` with the apppropriate 
+image tags and then deploy the services. You'll want to deploy the mysql and rabbitmq services
+first: 
+
+```console
+> docker-compose up -d db rabbitmq
+```
+You will want to setup your database first by creating some databases in mysql: 
+You can enter the container either with `docker exec` or with the docker desktop. It is recommended 
+to use the docker desktop since it provides a nice GUI. If you want to
+```console
+> docker exec -it <CONTAINER ID or CONTAINER NAMES> /bin/bash
+```
+
+If you're not sure of the container id or the container name you can run `docker ps`.
+You will want to create the databases inside mysql: 
+
+```console
+$ mysql -u root -p 
+$ Password: ********
+$ CREATE DATABASE IF NOT EXISTS jaws_cromwell_dev;
+$ CREATE DATABASE IF NOT EXISTS jaws_local_dev;
+$ GRANT ALL PRIVILEGES ON * . * TO 'jaws'@'%';
+```
+
+Next you can bring up the other services without specifying their names.
+
+```console
+> docker-compose up -d
+```
+
+You should now have a deployed version of JAWS (except for the backend) on your local dev environment. To confirm
+visit: http://localhost:80/api/v2/status and you should see the JAWS service statuses displayed in your browser. 
+
+In order to use this local instance you will want to create a user in the mysql container. Enter the container and then
+open up the mysql console. There is a table in the `jaws_central_dev` database called users. You will want to enter your
+user information there. 
+
+````console
+$ mysql -u jaws -p
+$ Password:
+$ use jaws_central_dev;
+$ insert into users (id, email, name, is_admin, is_dashboard, jaws_token) values ("yourusername", "youremail", true, false, "yourtoken");1
+````
+
+This should insert the first user in the database which will be your user. 
+
+### Local Development Flow
+The real power of deploying locally comes in being able to have your own instance of JAWS available. You have
+all other services available for you with little setup. Let's look at an example on how to develop JAWS central code 
+locally.
+
+You'll want to use the `./build.sh` script to make sure you build the dev container version.
+
+```console
+./build.sh central 2.6.0 dev
+```
+
+This will build the central dev image with the tag `2.6.0-dev`. Next you will want to make sure you bind mount the source code you are working on: 
+
+```yaml
+
+volumes:
+	- $DATA_HOME/configs/central/jaws-central.conf:/etc/config/jaws-central.conf
+	- $DATA_HOME/laptop:/data/jaws/laptop:rw
+	- $DATA_HOME/local:/data/jaws/local:rw
+	- $DATA_HOME/logs/central:/var/log/jaws-central:rw
+	- ./central:/usr/app
+```
+
+Note that the working directory is located in `/usr/app`. This is where the source code will be installed in the container.
+
+You'll also want to just run an interactive shell without any commands running:
+
+```yaml
+central:
+	image: central:2.6.0-dev
+	stdin_open: true  # add these to the docker-compose file
+	tty: true
+```
+
+Then you can run a `docker-compose up -d`. And your container will be running. You can enter the shell once again
+with `docker exec -it <CONTAINER_ID> /bin/bash`. Once you are in there you can install your package inside
+the container by running `pip install -e .`
+
+Since you mounted your code, any changes reflected in your code will be reflected in the container. You can then
+run that service with all the updated code changes you made to do some live testing. 
