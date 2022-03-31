@@ -1172,14 +1172,8 @@ module unload python
 %(env_activation_cmd)s
 %(export_jtm_config_file)s
 
-#/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus \
-#    --log /global/cscratch1/sd/jaws_jtm/monitoring-runs/logs \
-#    --move \
-#    --user $USER \
-#    --path /global/cscratch1/sd/jaws_jtm/monitoring-runs \
-#    --outfile %(job_name)s_$SLURM_JOB_ID.csv &
-
 %{pagurus} \
+    --log /global/cscratch1/sd/jaws_jtm/monitoring-runs/logs/pagurus.log \
     --move \
     --user $USER \
     --path %{pmetrics_path} \
