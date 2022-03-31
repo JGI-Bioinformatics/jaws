@@ -4,27 +4,30 @@ Q := $(if $V,,@)
 ## Package Section BEGIN
 .PHONY: pkg-requirements
 pkg-requirements:
-	$(if $(shell which poetry),,$(error "Packaging needs Python poetry module installed. Please run 'pip install poetry'"))
 	$(if $(shell which wheel),,$(error "Packaging needs Python wheel installed. Please run 'pip install wheel'"))
 
+.PHONY: pkg-poetry-requirements
+pkg-poetry-requirements:
+	$(if $(shell which poetry),,$(error "Packaging needs Python poetry module installed. Please run 'pip install poetry'"))
+
 .PHONY: pkg-rpc-poetry
-pkg-rpc-poetry: pkg-requirements
+pkg-rpc-poetry: pkg-poetry-requirements
 	$Q cd rpc && poetry version $(VERSION) && poetry build
 
 .PHONY: pkg-site-poetry
-pkg-site-poetry: pkg-requirements
+pkg-site-poetry: pkg-poetry-requirements
 	$Q cd site && poetry version $(VERSION) && poetry build 
 
 .PHONY: pkg-central-poetry
-pkg-central-poetry: pkg-requirements
+pkg-central-poetry: pkg-poetry-requirements
 	$Q cd central && poetry version $(VERSION) && poetry build
 
 .PHONY: pkg-client-poetry
-pkg-client-poetry: pkg-requirements
+pkg-client-poetry: pkg-poetry-requirements
 	$Q cd client && poetry version $(VERSION) && poetry build 
 
 .PHONY: pkg-jtm-poetry
-pkg-jtm-poetry: pkg-requirements
+pkg-jtm-poetry: pkg-poetry-requirements
 	$Q cd jtm && poetry version $(VERSION) && poetry build
 
 .PHONY: pkg-poetry
