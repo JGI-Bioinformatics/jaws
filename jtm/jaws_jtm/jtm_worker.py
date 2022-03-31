@@ -1173,7 +1173,6 @@ module unload python
 %(export_jtm_config_file)s
 
 %{pagurus} \
-    --log /global/cscratch1/sd/jaws_jtm/monitoring-runs/logs/pagurus.log \
     --move \
     --user $USER \
     --path %{pmetrics_path} \
