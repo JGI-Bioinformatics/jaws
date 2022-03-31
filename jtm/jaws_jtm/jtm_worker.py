@@ -1216,8 +1216,8 @@ wait
                             export_jtm_config_file="export JTM_CONFIG_FILE=%s"
                             % worker_config,
                             set_jtm_config_file="--config=%s" % worker_config,
-                            pagurus=CONFIG.configparser.get("PERFORMANCE_METRICS", "script")
-                            pmetrics_path=CONFIG.configparser.get("PERFORMANCE_METRICS", "output_dir")
+                            pagurus=CONFIG.configparser.get("PERFORMANCE_METRICS", "script"),
+                            pmetrics_path=CONFIG.configparser.get("PERFORMANCE_METRICS", "output_dir"),
                             pmetrics_log=CONFIG.configparser.get("PERFORMANCE_METRICS", "log_dir")
                         )
 
