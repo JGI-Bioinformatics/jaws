@@ -627,6 +627,7 @@ def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
     status = result["status"]
     src = result["output_dir"]
     submission_id = result["submission_id"]
+    uid = result["user_id"]
 
     if status != "download complete":
         sys.exit(f"Run {run_id} output is not yet available; status is {status}")
@@ -644,7 +645,11 @@ def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
     else:
         _get_outputs(run_id, src, dest, quiet)
 
-    _copy_infiles(src, dest, submission_id, run_id)
+    staging_subdir = config.get("JAWS", "staging_dir")
+    staging_user_subdir = os.path.join(staging_subdir, uid)
+    globus_host_path = config.get("GLOBUS", "host_path")
+    local_staging_endpoint = os.path.join(globus_host_path, staging_user_subdir)
+    _copy_infiles(local_staging_endpoint, dest, submission_id, run_id)
 
 
 def _get_complete(run_id: int, src: str, dest: str) -> None:
