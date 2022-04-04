@@ -1,1 +1,2 @@
 include jaws_central/*.yml
+recursive-include jaws_central/datatransfer_plugins *

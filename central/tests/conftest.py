@@ -56,6 +56,12 @@ globus_endpoint = YYYY
 globus_host_path = /
 uploads_dir = /global/cscratch/sd1/jaws/jaws-dev/uploads
 max_ram_gb = 2048
+[ELASTIC_SEARCH]
+host=jaws-vm-1.jgi.lbl.gob
+port=9200
+api_key=XXXX
+[PERFORMANCE_METRICS]
+index=perfmetrics
 """
     cfg.write_text(content)
     return cfg.as_posix()
@@ -108,3 +114,25 @@ def configuration(config_file):
     if jaws_central.config.conf is not None:
         jaws_central.config.Configuration._destructor()
     return jaws_central.config.Configuration(config_file)
+
+
+@pytest.fixture()
+def mock_data_transfer(monkeypatch):
+    class MockDataTransfer:
+        @staticmethod
+        def submit_upload(metadata: str, manifest_file: list):
+            return "123"
+
+        @staticmethod
+        def submit_download(metadata: dict, src_dir: str, dst_dir: str):
+            return "456"
+
+        @staticmethod
+        def transfer_status(task_id: str):
+            pass
+
+        @staticmethod
+        def cancel_transfer(task_id: str):
+            return f"cancelled {task_id}"
+
+    return MockDataTransfer

@@ -2,20 +2,22 @@ stages:
   - test
   - bandit-sast
   - semgrep-sast
-  - eslint-sast
+  - esline-sast
   - nodejs-scan-sast
   - unit-test
   - package
+  - image-build
   - deploy-jaws
   - smoke-tests
   - deployment-tests
   - stress-tests
+  - release-jaws
   - deploy-docs
 
 include:
-  - project: 'advanced-analysis/ci-templates'
-    ref: 'main'
-    file: 'SAST.gitlab-ci.yml'
+  - project: "advanced-analysis/ci-templates"
+    ref: "main"
+    file: "SAST.gitlab-ci.yml"
 
 variables:
   GIT_STRATEGY: clone
@@ -35,7 +37,7 @@ variables:
   JAWS_DB_PORT: 3306
   PARSL_MP_HOST: "localhost"
   PARSL_MP_PORT: 6000
-  JAWS_DEFAULT_CONTAINER: "ubuntu:latest"
+  JAWS_DEFAULT_CONTAINER: "ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf"
   JAWS_EMAIL_USER: "jgi.jaws@gmail.com"
   JAWS_EMAIL_SERVER: "smtp.gmail.com"
   JAWS_EMAIL_PORT: "587"
@@ -96,6 +98,10 @@ variables:
   CORI_DATA_REPO_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
+  CORI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
+  CORI_MONITOR_RMQ_PORT: 5672
+  CORI_HTCONDOR_INSTALL: "/global/cfs/projectdirs/jaws/jaws-install/condor/condor"
+  CORI_HTCONDOR_MASTER_CONFIG: "/global/cfs/projectdirs/jaws/condor/condor_central.config"
 
   JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
@@ -121,6 +127,10 @@ variables:
   JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
+  JGI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
+  JGI_MONITOR_RMQ_PORT: 5672
+  JGI_HTCONDOR_INSTALL: "/global/home/groups-sw/lr_jgicloud/condor/condor"
+  JGI_HTCONDOR_MASTER_CONFIG: "/global/home/groups-sw/lr_jgicloud/condor/condor_central.config"
 
   TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install/jaws-client/"
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
@@ -146,6 +156,10 @@ variables:
   TAHOMA_DATA_REPO_BASEDIR: "/tahoma/mscjgi"
   TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
   TAHOMA_RMQ_PORT: 5672
+  TAHOMA_MONITOR_RMQ_HOST: "rmq.lbl.gov"
+  TAHOMA_MONITOR_RMQ_PORT: 5672
+  TAHOMA_HTCONDOR_INSTALL: "/tahoma/mscjgi/condor/condor"
+  TAHOMA_HTCONDOR_MASTER_CONFIG: "/tahoma/mscjgi/condor/condor_central.config"
 
   AWS_CLIENT_INSTALL_BASEDIR: "/opt/jaws-install/jaws-client/"
   AWS_INSTALL_BASEDIR: "/opt/jaws-install"
@@ -177,17 +191,10 @@ variables:
 .only-default: &only-default
   tags:
     - shared-shell
-  only:
-    - master
-    - branches
-    - merge_requests
-    - tags
-
-test:
-  stage: test
-
-  script:
-      - echo "I'm needed for the SAST jobs"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 test-rpc:
   <<: *only-default
@@ -227,7 +234,6 @@ test-central:
   artifacts:
     reports:
       cobertura: central/coverage.xml
-
 test-client:
   <<: *only-default
   stage: unit-test
@@ -243,7 +249,6 @@ test-client:
     reports:
       cobertura: client/coverage.xml
   allow_failure: true
-
 test-jtm:
   <<: *only-default
   stage: unit-test
@@ -257,28 +262,81 @@ test-jtm:
   artifacts:
     reports:
       cobertura: jtm/coverage.xml
-test-parsl:
-  <<: *only-default
-  stage: unit-test
-  script:
-    - python3.8 -m venv test-venv
-    - source test-venv/bin/activate
-    - pip3.8 install rpc/
-    - pip3.8 install -r parsl/requirements.txt
-    - pip3.8 install flake8 pytest pytest-cov
-    - make test-parsl
-  artifacts:
-    reports:
-      cobertura: parsl/coverage.xml
 
 package:
-  <<: *only-default
+  tags:
+    - shared-shell
   stage: package
   script:
     - python3.8 -m venv pkg-venv
-    - source pkg-venv/bin/activate
-    - pip3.8 install wheel
-    - make pkg
+    - source pkg-venv/bin/activate 
+    - pip3.8 install poetry wheel
+    - make pkg-poetry
+    - cd rpc && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+    - poetry publish --repository gitlab && cd ../
+    - cd central && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+    - poetry publish --repository gitlab & cd ../
+    - cd site && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+    - poetry publish --repository gitlab && cd ../
+    - cd jtm && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+    - poetry publish --repository gitlab && cd ../
+    - cd client && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+    - poetry publish --repository gitlab && cd ../
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+
+image: docker:19.03.12
+services:
+  - docker:19.03.12-dind
+.docker-login: &docker-login
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+build-rpc:
+  tags:
+  - docker-build
+  stage: image-build
+  variables:
+    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
+  <<: *docker-login
+  script:
+    - chmod +x build.sh
+    - ./build.sh rpc $JAWS_VERSION prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      allow_failure: true
+
+build-central:
+  tags:
+    - docker-build
+  stage: image-build
+  variables:
+    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/central:JAWS_VERSION
+    RPC_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
+  <<: *docker-login
+  script:
+    - docker pull $RPC_IMAGE_TAG
+    - chmod +x build.sh
+    - ./build.sh central $JAWS_VERSION prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      allow_failure: true
+
+build-site:
+  tags:
+    - docker-build
+  stage: image-build
+  variables:
+    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/site:$JAWS_VERSION
+    RPC_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
+  <<: *docker-login
+  script:
+    - docker pull $RPC_IMAGE_TAG
+    - chmod +x build.sh
+    - ./build.sh site $JAWS_VERSION prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      allow_failure: true
 
 ## integration tests - only run on merge request
 deploy-jaws-central-dev:
@@ -292,8 +350,8 @@ deploy-jaws-central-dev:
     name: "central/dev"
   script:
     - ./test/integration/deploy-central
-  only:
-  - dev
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-central-staging:
   stage: deploy-jaws
@@ -306,11 +364,11 @@ deploy-jaws-central-staging:
     name: "central/staging"
   script:
     - ./test/integration/deploy-central
-  only:
-  - staging
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
 
 deploy-jaws-central-prod:
-  stage: deploy-jaws
+  stage: release-jaws
   tags:
     - central
   variables:
@@ -320,8 +378,9 @@ deploy-jaws-central-prod:
     name: "central/production"
   script:
     - ./test/integration/deploy-central
-  only:
-  - master
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      when: manual
 
 deploy-jaws-aws-dev:
   stage: deploy-jaws
@@ -334,9 +393,9 @@ deploy-jaws-aws-dev:
     name: "aws/dev"
   script:
     - ./test/integration/deploy-jaws
-  only:
-    - dev
-  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
+      allow_failure: true
 
 deploy-jaws-cori-dev:
   stage: deploy-jaws
@@ -349,8 +408,8 @@ deploy-jaws-cori-dev:
     name: "cori/dev"
   script:
     - ./test/integration/deploy-jaws
-  only:
-  - dev
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-cori-staging:
   stage: deploy-jaws
@@ -363,11 +422,11 @@ deploy-jaws-cori-staging:
     name: "cori/staging"
   script:
     - ./test/integration/deploy-jaws
-  only:
-  - staging
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
 
 deploy-jaws-cori-prod:
-  stage: deploy-jaws
+  stage: release-jaws
   tags:
     - cori
   variables:
@@ -377,8 +436,9 @@ deploy-jaws-cori-prod:
     name: "cori/production"
   script:
     - ./test/integration/deploy-jaws
-  only:
-  - master
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+      when: manual
 
 deploy-jaws-jgi-dev:
   stage: deploy-jaws
@@ -391,8 +451,8 @@ deploy-jaws-jgi-dev:
     name: "jgi/dev"
   script:
     - ./test/integration/deploy-jaws
-  only:
-  - dev
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-jgi-staging:
   stage: deploy-jaws
@@ -405,11 +465,11 @@ deploy-jaws-jgi-staging:
     name: "jgi/staging"
   script:
     - ./test/integration/deploy-jaws
-  only:
-  - staging
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
 
 deploy-jaws-jgi-prod:
-  stage: deploy-jaws
+  stage: release-jaws
   tags:
     - jgi
   variables:
@@ -419,8 +479,9 @@ deploy-jaws-jgi-prod:
     name: "jgi/production"
   script:
     - ./test/integration/deploy-jaws
-  only:
-  - master
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      when: manual
 
 deploy-jaws-tahoma-dev:
   stage: deploy-jaws
@@ -434,9 +495,8 @@ deploy-jaws-tahoma-dev:
     name: "tahoma/dev"
   script:
     - ./test/integration/deploy-jaws
-  only:
-    - dev
-  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-tahoma-staging:
   stage: deploy-jaws
@@ -450,12 +510,12 @@ deploy-jaws-tahoma-staging:
     name: "tahoma/staging"
   script:
     - ./test/integration/deploy-jaws
-  only:
-    - staging
-  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      allow_failure: true
 
 deploy-jaws-tahoma-prod:
-  stage: deploy-jaws
+  stage: release-jaws
   tags:
     - tahoma
     - pnnl
@@ -466,9 +526,10 @@ deploy-jaws-tahoma-prod:
     name: "tahoma/prod"
   script:
     - ./test/integration/deploy-jaws
-  only:
-    - master
-  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      when: manual
+      allow_failure: true
 
 cori-dev-smoke-tests:
   stage: smoke-tests
@@ -480,7 +541,7 @@ cori-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
       when: manual
   allow_failure: true
 
@@ -494,7 +555,7 @@ jgi-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
       when: manual
   allow_failure: true
 
@@ -508,7 +569,7 @@ tahoma-dev-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
       when: manual
   allow_failure: true
 
@@ -522,7 +583,7 @@ cori-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
       when: manual
   allow_failure: true
 
@@ -536,7 +597,7 @@ jgi-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
       when: manual
   allow_failure: true
 
@@ -550,7 +611,7 @@ tahoma-dev-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
       when: manual
   allow_failure: true
 
@@ -564,7 +625,7 @@ cori-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
       when: manual
   allow_failure: true
 
@@ -578,7 +639,7 @@ jgi-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
       when: manual
   allow_failure: true
 
@@ -592,7 +653,7 @@ tahoma-dev-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "master"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
       when: manual
   allow_failure: true
 
@@ -606,7 +667,7 @@ cori-staging-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
   allow_failure: true
 
@@ -620,7 +681,7 @@ jgi-staging-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
   allow_failure: true
 
@@ -634,7 +695,7 @@ tahoma-staging-smoke-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
   allow_failure: true
 
@@ -648,7 +709,7 @@ cori-staging-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
   allow_failure: true
 
@@ -662,7 +723,7 @@ jgi-staging-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
   allow_failure: true
 
@@ -676,7 +737,7 @@ tahoma-staging-deployment-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
   allow_failure: true
 
@@ -690,7 +751,7 @@ cori-staging-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
   allow_failure: true
 
@@ -704,7 +765,7 @@ jgi-staging-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
   allow_failure: true
 
@@ -718,7 +779,7 @@ tahoma-staging-stress-tests:
   script:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging"'
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
   allow_failure: true
 

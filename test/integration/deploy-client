@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-# import helper functionn from any location
+# import helper function from any location
 # taken from https://stackoverflow.com/questions/192292/how-best-to-include-other-scripts
 DIR="${BASH_SOURCE%/*}"
 if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
@@ -79,7 +79,7 @@ cat << EOM > $SITE_CLIENT_INSTALL_DIR/jaws-$DEPLOYMENT_NAME.sh
 
 $SITE_LOAD_JAVA
 
-if [[ "\$SITE_LOAD_PYTHON" == module* ]]; then
+if [ -n "\${SITE_LOAD_PYTHON:-}" ] && [[ "\$SITE_LOAD_PYTHON" == module* ]]; then
   module list 2>/dev/null
   if [ \$? == 0 ]; then
     if [[ ! -z \`module list python 2>&1 | grep python\` ]]; then

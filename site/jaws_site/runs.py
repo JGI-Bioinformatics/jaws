@@ -3,29 +3,33 @@ JAWS Daemon process periodically checks on runs and performs actions to usher
 them to the next state.
 """
 
-import shutil
 import os
-import globus_sdk
 import logging
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-import json
-from jaws_site import models
-from jaws_site import config
-from jaws_site import tasks
+from jaws_site import (
+    models,
+    config,
+    tasks,
+    runs_es,
+    jaws_constants
+)
+from jaws_site.datatransfer_protocol import (
+    DataTransferError,
+    SiteTransfer,
+    DataTransferProtocol,
+    DataTransferFactory,
+)
 from jaws_site.cromwell import (
     Cromwell,
     CromwellError,
     CromwellServiceError,
     CromwellRunError,
 )
-from jaws_site.globus import GlobusService
 
 logger = logging.getLogger(__package__)
 
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
-
-globus = GlobusService()
 
 
 def file_size(file_path: str):
@@ -79,6 +83,8 @@ class Run:
             model = kwargs["model"]
             assert model.id is not None
             self.model = model
+
+        self.runs_es_rpc_client = kwargs.get('runs_es_rpc_client')
 
     def _insert_run(self, **kwargs) -> None:
         """Insert run record into rdb"""
@@ -149,6 +155,17 @@ class Run:
         else:
             return None
 
+    def outputs(self) -> str:
+        """
+        Get outputs from Cromwell and return it, if available.
+        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        """
+        if self.model.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.model.cromwell_run_id)
+            return metadata.outputs(relpath=True)
+        else:
+            return None
+
     def errors(self) -> str:
         """Get errors report from Cromwell service"""
         if self.model.cromwell_run_id:
@@ -157,20 +174,20 @@ class Run:
         else:
             return None
 
-    def upload_status(self) -> str:
+    def upload_status(self, data_transfer: DataTransferProtocol) -> str:
         try:
-            status = globus.transfer_status(self.model.upload_task_id)
-        except globus_sdk.GlobusError as error:
+            status = data_transfer.transfer_status(self.model.upload_task_id)
+        except DataTransferError as error:
             logger.exception(
                 f"Failed to check upload {self.model.upload_task_id}: {error}"
             )
         else:
             return status
 
-    def download_status(self) -> str:
+    def download_status(self, data_transfer: DataTransferProtocol) -> str:
         try:
-            status = globus.transfer_status(self.model.download_task_id)
-        except globus_sdk.GlobusError as error:
+            status = data_transfer.transfer_status(self.model.download_task_id)
+        except DataTransferError as error:
             logger.exception(
                 f"Failed to check download {self.model.download_task_id}: {error}"
             )
@@ -182,14 +199,16 @@ class Run:
         If the upload is complete, update the run's status.
         """
         logger.debug(f"Run {self.model.id}: Check upload status")
-        globus_status = self.upload_status()
-        if globus_status == "FAILED":
+        data_transfer_type = self._get_data_transfer_type()
+        data_transfer = DataTransferFactory(data_transfer_type)
+        status = self.upload_status(data_transfer)
+        if status == SiteTransfer.status.failed:
             self.update_run_status("upload failed")
-        elif globus_status == "INACTIVE":
+        elif status == SiteTransfer.status.inactive:
             self.update_run_status(
                 "upload inactive", "The JAWS endpoint authorization has expired"
             )
-        elif globus_status == "SUCCEEDED":
+        elif status == SiteTransfer.status.succeeded:
             self.update_run_status("upload complete")
 
     def uploads_file_path(self):
@@ -198,22 +217,22 @@ class Run:
 
     def get_run_input(self) -> list:
         """
-        Check if the input files are valid and return a list of their paths.
+        Check if the input files are valid and return a list of their file handles.
         The list contains wdl_file, json_file, and optionally zip_file.
         Raise on error.
 
         :return: list of [wdl,json,zip] file paths
         :rtype: list
         """
-        suffixes_and_required = [
-            ("wdl", True),
-            ("json", True),
-            ("zip", False),
-            ("options.json", False),
+        infile_parameters = [
+            ("wdl", True, False),
+            ("json", True, False),
+            ("zip", False, True),
+            ("options.json", False, False),
         ]
-        files = []
+        file_handles = []
         file_path = self.uploads_file_path()
-        for (suffix, required) in suffixes_and_required:
+        for (suffix, required, is_binary) in infile_parameters:
             a_file = f"{file_path}.{suffix}"
             a_file_size = file_size(a_file)
             if required:
@@ -223,11 +242,15 @@ class Run:
                     raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
             elif a_file_size is not None and a_file_size == 0:
                 raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
+            a_fh = None
+            filetype = "rb" if is_binary else "r"
             if a_file_size:
-                files.append(a_file)
-            else:
-                files.append(None)
-        return files
+                try:
+                    a_fh = open(a_file, filetype)
+                except IOError:
+                    raise
+            file_handles.append(a_fh)
+        return file_handles
 
     def submit_run(self) -> None:
         """
@@ -235,13 +258,18 @@ class Run:
         """
         logger.debug(f"Run {self.model.id}: Submit to Cromwell")
         try:
-            infiles = self.get_run_input()
+            input_file_handles = self.get_run_input()
         except DataError as error:
             logger.error(f"Run {self.model.id}: {error}")
             self.update_run_status("submission failed", f"Bad input: {error}")
             return
+        except IOError as error:
+            logger.error(f"Run {self.model.id}: {error}")
+            self.update_run_status("submission failed", f"IO Error: {error}")
+            return
+
         try:
-            cromwell_run_id = cromwell.submit(*infiles)
+            cromwell_run_id = cromwell.submit(*input_file_handles)
         except CromwellError as error:
             logger.error(f"Run {self.model.id} submission failed: {error}")
             self.update_run_status("submission failed", f"{error}")
@@ -289,58 +317,127 @@ class Run:
         elif cromwell_status == "Aborted":
             self.update_run_status("cancelled")
 
-    @staticmethod
-    def _cp_infile_to_outdir(
-        src_root_path, src_suffix, dest_dir, dest_file, required=True
-    ) -> None:
+    def publish_run_metadata(self) -> None:
         """
-        Copy an input file to the output dir.  If not required, no exception thrown if the file doesn't exist.
-        :param src_root_path: dir and basename of file
-        :type src_root_path: str
-        :param src_suffix: suffix of the file
-        :type src_suffix: str
-        :param dest_dir: folder to copy to
-        :type dest_dir: str
-        :param dest_file: destination filename
-        :type dest_file: str
-        :param required: If False then don't complain if the src file doesn't exist
-        :type required: bool
-        :return:
-        """
-        src_file = f"{src_root_path}.{src_suffix}"
-        dest = os.path.join(dest_dir, dest_file)
-        if required or os.path.exists(src_file):
-            try:
-                shutil.copy(src_file, dest)
-            except OSError as error:
-                logger.error(f"Unable to copy {src_file}->{dest}: {error}")
-                raise error
+        Get run metadata and send to RMQ for publishing to elasticsearch.
 
-    def copy_metadata_files(self, dest_dir: str):
+        :return doc: dictionary containing the run metadata
+        :rtype doc: dictionary
+        :return rpc_response: dictionary containing the rpc response and status code
+        :rtype: dictionary
         """
-        Copy metadata files to Run's output dir.
-        Files are renamed in the process to something more sensible to user.
-        """
-        file_path = self.uploads_file_path()
+
+        logger.debug(f"Run {self.model.id}: Publish run metadata")
+
+        # If user id for this run is in this list, skip publishing to elasticsearch
+        if self.model.user_id in ['test']:
+            return None, None
+
+        if not self.runs_es_rpc_client:
+            msg = f"Run {self.model.id}: Cannot publish run metadata. The runs_es_rpc_client is not defined."
+            logger.error(msg)
+            rpc_response = {'rpc_response': {'error': msg}, 'rpc_status': 500}
+            return None, rpc_response
+
         try:
-            self._cp_infile_to_outdir(file_path, "wdl", dest_dir, "main.wdl")
-            self._cp_infile_to_outdir(file_path, "json", dest_dir, "jaws.inputs.json")
-            self._cp_infile_to_outdir(file_path, "orig.json", dest_dir, "inputs.json")
-            self._cp_infile_to_outdir(file_path, "zip", dest_dir, "subworkflows.zip", False)
-        except OSError as error:
-            raise error
+            es = runs_es.RunES(self.session, model=self.model)
+        except runs_es.RunNotFoundError as err:
+            msg = f"Run {self.model.id}: Run metadata not found: {err}"
+            logger.error(msg)
+            rpc_response = {'rpc_response': {'error': msg}, 'rpc_status': 500}
+            return None, rpc_response
 
-    def _write_outputs_json(self, metadata):
-        """Write outputs.json to workflow_root dir"""
-        cromwell_workflow_dir = metadata.workflow_root()
-        outputs_file = os.path.join(cromwell_workflow_dir, "outputs.json")
-        outputs = metadata.outputs(relpath=True)
-        with open(outputs_file, "w") as fh:
-            fh.write(json.dumps(outputs, sort_keys=True, indent=4))
+        # Create json doc of the run metadata
+        doc = self.create_es_json_doc(es)
+
+        if not doc:
+            logger.debug(f"Run {self.model.id}: Empty json doc found for this run.")
+            return None, None
+
+        # Send to json doc to RMQ to be inserted to elasticsearch.
+        # if doc and 'user_id' in doc and doc['user_id'] not in skip_users:
+        # if doc:
+        logger.debug(f"Run {self.model.id}: Sending run metadata json doc to RMQ")
+        response, status_code = runs_es.send_rpc_run_metadata(self.runs_es_rpc_client, doc)
+        if status_code:
+            if 'error' in response and 'message' in response['error']:
+                message = response['error']['message']
+            else:
+                message = 'Unknown RPC error.'
+            logger.error(f"Run {self.model.id}: Failed to send run metadata to RMQ: {message}")
+
+        rpc_response = {'rpc_response': response, 'rpc_status': status_code}
+
+        return doc, rpc_response
+
+    def create_es_json_doc(self, es: runs_es.RunES) -> dict:
+        """Create a json payload containing the run metadata to be uploaded to elasticsearch."""
+
+        run_status = self.get_run_metadata()
+        if not run_status:
+            return {}
+
+        cromwell_metadata = self.metadata()
+        task_summary = es.task_summary()
+        task_status = es.task_status()
+
+        doc = {
+            'run_id': run_status['run_id'],
+            'workflow_name': cromwell_metadata.get('workflowName', 'unknown'),
+        }
+        doc.update(run_status)
+        doc['tasks'] = []
+
+        for task_name in task_status:
+            status_entries = {}
+            status_entries['name'] = task_name
+            status_entries.update(task_status[task_name])
+            if task_name in task_summary:
+                status_entries.update(task_summary[task_name])
+            doc['tasks'].append(status_entries)
+
+        return doc
+
+    def get_run_metadata(self) -> dict:
+        """
+        Get run entry from 'runs' table.
+
+        :return: dict containing the run entry from the runs table
+        :rtype: dict
+        """
+        run_logs = get_run_status_logs(self.session, self.model.id)
+        result = None
+        for row in run_logs:
+            if 'status_to' in row and row['status_to'] in ('succeeded', 'failed'):
+                result = row['status_to']
+                break
+
+        metadata = {
+            "run_id": self.model.id,
+            "user_id": self.model.user_id,
+            "email": self.model.email,
+            "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": self.model.status,
+            'status_detail': jaws_constants.task_status_msg.get(self.model.status, ""),
+            "result": result,
+            "site_id": config.conf.get("SITE", "id"),
+        }
+        return metadata
+
+    def _get_data_transfer_type(self) -> str:
+        """Lookup the site id to determine what type of data transfer method needs to be used (e.g., globus, aws).
+
+        :return: data transfer type based on site id (e.gl, 'globus_transfer', 'aws_transfer')
+        :rtype: str
+        """
+        site_id = config.conf.get("SITE", "id")
+        transfer_type = SiteTransfer.type[site_id.upper()]
+        return transfer_type
 
     def transfer_results(self) -> None:
         """
-        Send run output via Globus
+        Send run output via data transfer
         """
         logger.debug(f"Run {self.model.id}: Download output")
         try:
@@ -360,48 +457,48 @@ class Run:
             self.update_run_status("download complete", "No run folder was created")
             return
 
-        try:
-            self._write_outputs_json(metadata)
-        except OSError as error:
-            logger.error(f"Run {self.model.id}: Cannot write outputs json: {error}")
-            # don't change state; keep trying
-            return
+        data_transfer_type = self._get_data_transfer_type()
+        data_transfer = DataTransferFactory(data_transfer_type)
+        metadata = {
+            "label": f"Run {self.model.id}"
+        }
+
+        if data_transfer_type == 'globus_transfer':
+            metadata['dest_endpoint'] = self.model.output_endpoint
+
+        logger.debug(f"Transferring files using {data_transfer_type}")
 
         try:
-            self.copy_metadata_files(cromwell_workflow_dir)
-        except OSError as error:
-            logger.error(
-                f"Run {self.model.id}: Cannot write to {cromwell_workflow_dir}: {error}"
-            )
-            # don't change state; keep trying
-            return
-
-        try:
-            transfer_task_id = globus.submit_transfer(
-                f"Run {self.model.id}",
-                self.model.output_endpoint,
-                cromwell_workflow_dir,
-                self.model.output_dir,
-            )
-        except globus_sdk.GlobusError as error:
+            transfer_task_id = self.transfer_files(data_transfer, metadata, cromwell_workflow_dir,
+                                                   self.model.output_dir)
+        except DataTransferError as error:
             logger.error(f"error while submitting transfer: {error}")
             raise
         else:
+            logger.debug(f"Transfer task id={transfer_task_id}")
             self.model.download_task_id = transfer_task_id
             self.update_run_status(
                 "downloading", f"download_task_id={self.model.download_task_id}"
             )
+
+    def transfer_files(self, data_transfer: DataTransferProtocol, metadata: dict, src_dir: str, dst_dir: str) -> str:
+        """Transfer files using the data_transfer object (e.g., via globus or aws)."""
+        return data_transfer.submit_download(metadata, src_dir, dst_dir)
 
     def check_if_download_complete(self) -> None:
         """
         If download is complete, change state.
         """
         logger.debug(f"Run {self.model.id}: Check download status")
-        globus_status = self.download_status()
-        if globus_status == "SUCCEEDED":
+        data_transfer_type = self._get_data_transfer_type()
+        data_transfer = DataTransferFactory(data_transfer_type)
+        status = self.download_status(data_transfer)
+        if status == SiteTransfer.status.succeeded:
             self.update_run_status("download complete")
-        elif globus_status == "FAILED":
+            self.publish_run_metadata()
+        elif status == SiteTransfer.status.failed:
             self.update_run_status("download failed")
+            self.publish_run_metadata()
 
     def update_run_status(self, status_to, reason=None) -> None:
         """
@@ -448,13 +545,13 @@ class Run:
             raise
 
 
-def check_active_runs(session) -> None:
+def check_active_runs(session, runs_es_rpc_client) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
     rows = _select_active_runs(session)
     for model in rows:
-        run = Run(session, model=model)
+        run = Run(session, model=model, runs_es_rpc_client=runs_es_rpc_client)
         run.check_status()
 
 
@@ -528,3 +625,29 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         except Exception as error:
             session.rollback()
             logger.exception(f"Error updating run_logs as sent: {error}")
+
+
+def get_run_status_logs(session, run_id) -> None:
+    """Get run logs for a given run."""
+
+    # get updates from datbase
+    try:
+        query = session.query(models.Run_Log) \
+            .filter(models.Run_Log.run_id == run_id) \
+            .all()
+    except SQLAlchemyError as error:
+        logger.exception(f"Unable to select from run_logs: {error}")
+        return
+
+    datas = []
+    for log in query:
+        data = {
+            "site_id": config.conf.get("SITE", "id"),
+            "run_id": log.run_id,
+            "status_from": log.status_from,
+            "status_to": log.status_to,
+            "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "reason": log.reason,
+        }
+        datas.append(data)
+    return datas

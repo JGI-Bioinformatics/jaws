@@ -11,6 +11,8 @@ Updated: 03/04/21
 """
 
 import os
+import json
+import pytest
 import submission_utils as util
 
 check_tries = 360  # try this many times when waiting for a JAWS run to complete.
@@ -42,7 +44,7 @@ def test_input_file_is_not_json_format(dir, site):
     assert "is not a valid JSON file" in e
 
 
-def xtest_json_bad_path_to_input_file_msg(dir, site):
+def test_json_bad_path_to_input_file_msg(dir, site):
     # TESTCASE-5a
     # Submit job with json that contains a path to a non-existent input file
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
@@ -52,32 +54,32 @@ def xtest_json_bad_path_to_input_file_msg(dir, site):
     submit_cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, inputs, site)
     cmd = submit_cmd
     (r, o, e) = util.run(cmd)
-
-    # check for the correct error message
-    assert "Input path not found or inaccessible:" in e
-
-
-def xtest_misspelled_variable_in_input_file_msg(dir, site):
-    # TESTCASE-5b
-    # Submit job with json that contains a misspelled variable name
-    wdl = os.path.join(dir, "WDLs/fq_count.wdl")
-    input_json = os.path.join(dir, "test-inputs/misspelled_variable.json")
-
-    # we CAN use submission utils here because this job submits successfully
-    # error isn't seen until the run fails
-    data = util.submit_wdl(wdl, input_json, site)
-
-    # wait for run to complete
+    data = json.loads(o)
     run_id = data["run_id"]
-    util.wait_for_run(run_id, check_tries, check_sleep)
 
     # check for the correct error message
-    cmd = "jaws errors %s" % (run_id)
-    (r, o, e) = util.run(cmd)
+    assert "WARNING: Input path not found or inaccessible" in e
 
-    # in 2.2 this error is seen in the metadata
-    # I think that in 2.3 the error should also be displayed by the error command output
-    assert "Required workflow input 'fq_count.fastq_file' not specified" in o
+    cmd = "jaws cancel %s" % (run_id)
+    (r, o, e) = util.run(cmd)
+    data = json.loads(o)
+    assert 'cancelled' in o
+
+
+
+## @pytest.mark.xfail
+#def test_misspelled_variable_in_input_file_msg(dir, site):
+#    # TESTCASE-5b
+#    # Submit job with json that contains a misspelled variable name
+#    wdl = os.path.join(dir, "WDLs/fq_count.wdl")
+#    input_json = os.path.join(dir, "test-inputs/misspelled_variable.json")
+#
+#    # we CAN use submission utils here because this job submits successfully
+#    # error isn't seen until the run fails
+#    submit_cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, input_json, site)
+#    (r, o, e) = util.run(submit_cmd)
+#
+#    assert "KeyError: 'fq_count.fastq_file_misspelled'" in e
 
 
 def test_bad_input_file_permissions_msg(dir, site):

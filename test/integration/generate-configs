@@ -37,6 +37,8 @@ JTM_VENV_DIR
 PARSL_MP_HOST
 PARSL_MP_PORT
 PARSL_MP_PASSWORD
+SITE_MONITOR_RMQ_HOST
+SITE_MONITOR_RMQ_PORT
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -92,6 +94,13 @@ host = $JAWS_RMQ_HOST
 port = $JAWS_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = CENTRAL
+[RUNS_ES_RPC_CLIENT]
+user = jaws
+password = $JAWS_RMQ_PW
+host = $JAWS_RMQ_HOST
+port = $JAWS_RMQ_PORT
+vhost = jaws_$DEPLOYMENT_NAME
+queue = JAWS_RUNS_ES
 [GLOBUS]
 client_id = $JAWS_GLOBUS_CLIENT_ID
 client_secret = $JAWS_GLOBUS_CLIENT_SECRET
@@ -102,6 +111,10 @@ id = $JAWS_SITE
 uploads_dir = $SITE_UPLOADS_DIR
 [CROMWELL]
 url = http://localhost:$CROMWELL_PORT
+[AWS]
+aws_access_key_id = $AWS_ACCESS_KEY_ID
+aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
+s3_bucket = ABCD
 EOM
 
 cat << EOM > $CONFIG_DIR/jaws-jtm.conf
@@ -127,8 +140,8 @@ queue = SITE_$JAWS_SITE
 [JTM_RPC_SERVER]
 user = jaws
 password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
+host = $SITE_MONITOR_RMQ_HOST
+port = $SITE_MONITOR_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JTM_RPC_$JAWS_SITE
 num_threads = 5

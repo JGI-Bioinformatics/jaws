@@ -1,10 +1,37 @@
-VERSION := $(shell git describe --always --tags --abbrev=6 --dirty="-dev")
+VERSION := $(shell git describe --always --tags --abbrev=0)
 Q := $(if $V,,@)
 
 ## Package Section BEGIN
 .PHONY: pkg-requirements
 pkg-requirements:
 	$(if $(shell which wheel),,$(error "Packaging needs Python wheel installed. Please run 'pip install wheel'"))
+
+.PHONY: pkg-poetry-requirements
+pkg-poetry-requirements:
+	$(if $(shell which poetry),,$(error "Packaging needs Python poetry module installed. Please run 'pip install poetry'"))
+
+.PHONY: pkg-rpc-poetry
+pkg-rpc-poetry: pkg-poetry-requirements
+	$Q cd rpc && poetry version $(VERSION) && poetry build
+
+.PHONY: pkg-site-poetry
+pkg-site-poetry: pkg-poetry-requirements
+	$Q cd site && poetry version $(VERSION) && poetry build 
+
+.PHONY: pkg-central-poetry
+pkg-central-poetry: pkg-poetry-requirements
+	$Q cd central && poetry version $(VERSION) && poetry build
+
+.PHONY: pkg-client-poetry
+pkg-client-poetry: pkg-poetry-requirements
+	$Q cd client && poetry version $(VERSION) && poetry build 
+
+.PHONY: pkg-jtm-poetry
+pkg-jtm-poetry: pkg-poetry-requirements
+	$Q cd jtm && poetry version $(VERSION) && poetry build
+
+.PHONY: pkg-poetry
+pkg-poetry: pkg-rpc-poetry pkg-site-poetry pkg-central-poetry pkg-client-poetry pkg-jtm-poetry
 
 .PHONY: pkg-rpc
 pkg-rpc: pkg-requirements
@@ -32,6 +59,7 @@ pkg-parsl: pkg-requirements
 
 .PHONY: pkg
 pkg: pkg-rpc pkg-site pkg-central pkg-client pkg-jtm pkg-parsl
+
 ## Package Section END
 
 ## Test Section BEGIN
@@ -48,7 +76,7 @@ test-rpc: test-requirements
 .PHONY: test-site
 test-site: test-requirements
 	$Q flake8 site
-	$Q cd site && python -m pytest --cov=jaws_site --junitxml=site.xml tests/ && coverage xml
+	$Q cd site && python -m pytest --cov=jaws_site --cov=jaws_site/datatransfer_plugins --junitxml=site.xml tests/ && coverage xml
 
 .PHONY: test-central
 test-central: test-requirements

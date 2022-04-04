@@ -40,6 +40,7 @@ for VAR in $REQUIRED_VARS; do
     break
   fi
 done
+
 if [[ $RESULT -ne 0 ]]; then
   RESULT=0
   for VAR in $REQUIRED_VARS; do
@@ -51,13 +52,11 @@ if [[ $RESULT -ne 0 ]]; then
 fi
 [ $RESULT -eq 0 ] || exit 1
 
-
 ## CREATE SITE_REF_DATA_DIR DIR
 if [ ! -d "$SITE_REF_DATA_DIR" ]; then
   mkdir -p "$SITE_REF_DATA_DIR"
   fix_perms $SITE_JTM_GROUP "$SITE_REF_DATA_DIR"
 fi
-
 
 ## COPY CROMWELL JAR
 wget --no-verbose "$CROMWELL_JAR_URL" -O "$SITE_CROMWELL_JAR"
@@ -85,77 +84,66 @@ chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
 if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
-  CONTAINER_EXPORT="out=\$(shifterimg lookup \${docker} || shifterimg pull \${docker})
-ret=\$?
-if [[ \$ret != 0 || \$(echo \$out | grep \"FAILURE\") ]]; then
-  echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
-  exit \$ret
-else
-  echo \"Successfully pulled \${docker}!\"
-fi
-"
-CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
-CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
-
-
-cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
-chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
-chmod 775 "$INSTALL_DIR/shifter_exec.sh"
-
+    CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
+    
+    cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
+    chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
+    chmod 775 "$INSTALL_DIR/shifter_exec.sh"
+    
 elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
-  CONTAINER_EXPORT="out=\$(docker pull \${docker})
-ret=\$?
-if [[ \$ret != 0 ]]; then
-  echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
-  exit \$ret
-else
-  echo \"Successfully pulled \${docker}!\"
-fi
-"
-CONTAINER_WRAPPER="$INSTALL_DIR/docker_exec.sh"
-CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script}"
+    CONTAINER_EXPORT="out=\$(docker pull \${docker})
+    ret=\$?
+    if [[ \$ret != 0 ]]; then
+      echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
+      exit \$ret
+    else
+      echo \"Successfully pulled \${docker}!\"
+    fi
+    "
+    CONTAINER_WRAPPER="$INSTALL_DIR/docker_exec.sh"
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script}"
 
-
-cp "$DIR/docker_exec.sh" $CONTAINER_WRAPPER
-chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/docker_exec.sh"
-chmod 775 "$INSTALL_DIR/docker_exec.sh"
+    cp "$DIR/docker_exec.sh" $CONTAINER_WRAPPER
+    chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/docker_exec.sh"
+    chmod 775 "$INSTALL_DIR/docker_exec.sh"
 
 elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
-  CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_TMPDIR
-export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_PULLDIR
-export SINGULARITY_TMPDIR=$SITE_CONTAINERS_TMPDIR
-export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_TMPDIR
-export FLOCK_DIR=/tmp
+    CONTAINER_EXPORT="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_TMPDIR
+    export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_PULLDIR
+    export SINGULARITY_TMPDIR=$SITE_CONTAINERS_TMPDIR
+    export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_TMPDIR
+    export FLOCK_DIR=/tmp
 
-IMAGE=\$(echo \${docker} | tr '/:' '_').sif
-echo \"\$IMAGE\"
-if [ -z \$SINGULARITY_CACHEDIR ];
-    then CACHE_DIR=\$HOME/.singularity/cache
-    else CACHE_DIR=\$SINGULARITY_CACHEDIR
-fi
-# Make sure cache dir exists so lock file can be created by flock
-mkdir -p \$CACHE_DIR
-LOCK_FILE=\$FLOCK_DIR/singularity_pull_flock
-out=\$(flock --exclusive --timeout 900 \$LOCK_FILE \
-singularity pull \$IMAGE docker://\${docker}  2>&1)
-ret=\$?
-if [[ \$ret == 0 ]]; then
-    echo \"Successfully pulled \${docker}!\"
-else
-    if [[ \$(echo \$out | grep \"exists\" ) ]]; then
-        echo \"Image file already exists, \${docker}!\"
-    else
-        echo \"Failed to pull \${docker}!\" >&2
-        exit \$ret
+    IMAGE=\$(echo \${docker} | tr '/:' '_').sif
+    echo \"\$IMAGE\"
+    if [ -z \$SINGULARITY_CACHEDIR ];
+        then CACHE_DIR=\$HOME/.singularity/cache
+        else CACHE_DIR=\$SINGULARITY_CACHEDIR
     fi
-fi
-"
-  CONTAINER_WRAPPER="$INSTALL_DIR/singularity_exec.sh"
-  CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
+    # Make sure cache dir exists so lock file can be created by flock
+    mkdir -p \$CACHE_DIR
+    LOCK_FILE=\$FLOCK_DIR/singularity_pull_flock
+    out=\$(flock --exclusive --timeout 900 \$LOCK_FILE \
+    singularity pull \$IMAGE docker://\${docker}  2>&1)
+    ret=\$?
+    if [[ \$ret == 0 ]]; then
+        echo \"Successfully pulled \${docker}!\"
+    else
+        if [[ \$(echo \$out | grep \"exists\" ) ]]; then
+            echo \"Image file already exists, \${docker}!\"
+        else
+            echo \"Failed to pull \${docker}!\" >&2
+            exit \$ret
+        fi
+    fi
+    "
+    CONTAINER_WRAPPER="$INSTALL_DIR/singularity_exec.sh"
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
 
-  cp "$DIR/singularity_exec.sh" $CONTAINER_WRAPPER
-  chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/singularity_exec.sh"
-  chmod 775 "$INSTALL_DIR/singularity_exec.sh"
+    cp "$DIR/singularity_exec.sh" $CONTAINER_WRAPPER
+    chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/singularity_exec.sh"
+    chmod 775 "$INSTALL_DIR/singularity_exec.sh"
 fi
 
 ## GENERATE CONFIG
@@ -216,54 +204,25 @@ backend
         concurrent-job-limit = 0
       }
     }
-    PARSL
-    {
-      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
-      config {
-        run-in-background = true
-        runetime-attributes = """
-        String? docker
-        String? docker_user
-        Int cpus = 2
-        Int memory_gb = 1
-        """
-
-        submit = """
-          python send.py -c \${cpus} -m \${memory_gb} -s \${site} -cmd \${script}
-        """
-
-        submit-docker = """
-          LOOKUP=$(shifterimg lookup \${docker})
-          if [[ ! $LOOKUP ]]; then
-            shifterimg pull \${docker}
-          fi
-
-          python send.py -c \${cpus} -m \${memory_gb} -s \${site} -cmd \${script}
-        """
-        job-id-regex = "Task ID: (\\\d+)"
-        kill = ""
-        check-alive = "python read_db.py -t \${job_id}"  
-      }
-    }
     JTM
     {
       actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
       config {
         exit-code-timeout-seconds = 60
         runtime-attributes = """
-        String? docker
-        String time = "00:30:00"
-        Int cpu = 32
-        Float? memory_gb = 5
-        String cluster = "${JAWS_SITE,,}"
-        String poolname = "small"
-        String constraint = "$SITE_CLUSTER_CONSTRAINT"
-        String qos = "$SITE_CLUSTER_QOS"
-        String account = "$SITE_CLUSTER_ACCOUNT"
-        String partition = "$SITE_CLUSTER_PARTITION"
-        Int node = 1
-        Int nwpn = 1
-        Int shared = 0
+          String? docker
+          String time = "00:30:00"
+          Int cpu = 32
+          Float? memory_gb = 5
+          String cluster = "${JAWS_SITE,,}"
+          String poolname = "small"
+          String constraint = "$SITE_CLUSTER_CONSTRAINT"
+          String qos = "$SITE_CLUSTER_QOS"
+          String account = "$SITE_CLUSTER_ACCOUNT"
+          String partition = "$SITE_CLUSTER_PARTITION"
+          Int node = 1
+          Int nwpn = 1
+          Int shared = 0
         """
 
         filesystems {
@@ -278,67 +237,135 @@ backend
         }
 
         kill = "jtm --config=$JTM_CONFIG_FILE kill -tid \${job_id}"
-
         check-alive = "jtm --config=$JTM_CONFIG_FILE isalive -tid \${job_id}"
-
         job-id-regex = "JTM task ID (\\\d+)"
 
         submit = """
-CONSTRAINT=\${constraint}
-QOS=\${qos}
-PARTITION=\${partition}
-[ -z \$QOS ] || QOS="--qos \$QOS"
-[ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
-[ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
-jtm --config=$JTM_CONFIG_FILE \
-submit \
--cmd '/bin/bash \${script}' \
--cl \${cluster} \
--t \${time} \
--c \${cpu} \
--m \${memory_gb} \
--p \${poolname} \
--N \${node} \
--nwpn \${nwpn} \
--jid \${job_name} \
--A \${account} \
---shared \${shared} \
-\$CONSTRAINT \
-\$QOS \
-\$PARTITION
-"""
-
+          CONSTRAINT=\${constraint}
+          QOS=\${qos}
+          PARTITION=\${partition}
+          [ -z \$QOS ] || QOS="--qos \$QOS"
+          [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
+          [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
+          jtm --config=$JTM_CONFIG_FILE \
+          submit \
+          -cmd '/bin/bash \${script}' \
+          -cl \${cluster} \
+          -t \${time} \
+          -c \${cpu} \
+          -m \${memory_gb} \
+          -p \${poolname} \
+          -N \${node} \
+          -nwpn \${nwpn} \
+          -jid \${job_name} \
+          -A \${account} \
+          --shared \${shared} \
+          \$CONSTRAINT \
+          \$QOS \
+          \$PARTITION
+        """
 
         submit-docker = """
-$CONTAINER_EXPORT
-CONSTRAINT=\${constraint}
-QOS=\${qos}
-PARTITION=\${partition}
-[ -z \$QOS ] || QOS="--qos \$QOS"
-[ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
-[ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
-jtm --config=$JTM_CONFIG_FILE \
-submit \
--cmd "$CONTAINER_EXEC_COMMAND" \
--cl \${cluster} \
--t \${time} \
--c \${cpu} \
--m \${memory_gb} \
--p \${poolname} \
--N \${node} \
--nwpn \${nwpn} \
--jid \${job_name} \
--A \${account} \
---shared \${shared} \
-\$QOS \
-\$CONSTRAINT \
-\$PARTITION
-"""
+          $CONTAINER_EXPORT
+          CONSTRAINT=\${constraint}
+          QOS=\${qos}
+          PARTITION=\${partition}
+          [ -z \$QOS ] || QOS="--qos \$QOS"
+          [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
+          [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
+          jtm --config=$JTM_CONFIG_FILE \
+          submit \
+          -cmd "$CONTAINER_EXEC_COMMAND" \
+          -cl \${cluster} \
+          -t \${time} \
+          -c \${cpu} \
+          -m \${memory_gb} \
+          -p \${poolname} \
+          -N \${node} \
+          -nwpn \${nwpn} \
+          -jid \${job_name} \
+          -A \${account} \
+          --shared \${shared} \
+          \$QOS \
+          \$CONSTRAINT \
+          \$PARTITION
+        """
 
         # Root directory where Cromwell writes job results in the container. This value
         # can be used to specify where the execution folder is mounted in the container.
         # it is used for the construction of the docker_cwd string in the submit-docker
         # value above AND in the generation of the "script" file.
+        dockerRoot = $CROMWELL_EXECUTIONS_DIR
+      }
+    }
+    HtCondor {
+      actor-factory = "cromwell.backend.impl.sfs.config.ConfigBackendLifecycleActorFactory"
+
+      config
+      {
+        exit-code-timeout-seconds = 60
+        runtime-attributes = """
+          String? docker
+          String? docker_user
+          Int? cpu = 1
+          Float? memory_mb = 512
+          Float? disk_kb = 25600.0
+          Int? runtime_minutes
+          String? nativeSpecs
+          String? priority
+        """
+        submit = """
+          export CONDOR_CONFIG="$SITE_HTCONDOR_MASTER_CONFIG"
+          PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
+          chmod 755 \${script}
+          #printenv > env.debug
+          mkdir -p $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
+          cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile <<EOF
+PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
+Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
++Owner=UNDEFINED
+request_memory=\${memory_mb}
+request_disk=\${disk_kb}
+request_cpus=\${cpu}
+error=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stderr
+output=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stdout
+log_xml=true
+executable=\${script}
+log=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/execution.log
+queue
+EOF
+          condor_submit $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile
+        """
+        submit-docker = """
+          export CONDOR_CONFIG="$SITE_HTCONDOR_MASTER_CONFIG"
+          PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
+          $CONTAINER_EXPORT
+          #printenv > env.debug
+          mkdir -p $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
+          cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript <<EOF
+#!/bin/bash
+PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
+$CONTAINER_EXEC_COMMAND
+EOF
+          chmod 755 $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript
+          cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile <<EOF
+Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
++Owner=UNDEFINED
+request_memory=\${memory_mb}
+request_disk=\${disk_kb}
+request_cpus=\${cpu}
+error=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stderr
+output=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stdout
+log_xml=true
+executable=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript
+log=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/execution.log
+queue
+EOF
+          condor_submit $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile
+       """
+        kill = "export CONDOR_CONFIG=$SITE_HTCONDOR_MASTER_CONFIG && $SITE_HTCONDOR_INSTALL/bin/condor_rm \${job_id}"
+        check-alive = "export CONDOR_CONFIG=$SITE_HTCONDOR_MASTER_CONFIG && $SITE_HTCONDOR_INSTALL/bin/condor_q \${job_id}"
+        job-id-regex = "(?sm).*cluster (\\\d+)..*"
         dockerRoot = $CROMWELL_EXECUTIONS_DIR
       }
     }
@@ -386,5 +413,7 @@ exec java -Xmx5g -Dconfig.file="$CONFIG_DIR/cromwell.conf" -Djava.io.tmpdir="$SI
 EOM
 chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME"
 chmod 770 "$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME"
+
+mkdir -p $SITE_JTM_SCRATCH_BASEDIR/condor/run
 
 printf "END deploy-cromwell\n\n"

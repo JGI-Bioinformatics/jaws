@@ -35,12 +35,11 @@ task bbcms {
 
     runtime {
         docker: container
-        time: "03:00:00"
+        time: "01:00:00"
         memory: "118G"
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
-        shared: 0
     }
 
      command {
@@ -76,12 +75,11 @@ task assy {
 
     runtime {
         docker: container
-        time: "03:00:00"
+        time: "01:00:00"
         memory: "118G"
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
-        shared: 0
     }
 
      command{
@@ -110,12 +108,11 @@ task create_agp {
 
     runtime {
         docker: container
-        time: "03:00:00"
+        time: "01:00:00"
         memory: "118G"
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
-        shared: 0
     }
 
     command{
@@ -149,12 +146,11 @@ task read_mapping_pairs{
 
     runtime {
         docker: container
-        time: "03:00:00"
+        time: "01:00:00"
         memory: "118G"
         node: 1
         nwpn: 1
         poolname: "bfostersmall"
-        shared: 0
     }
 
     command{

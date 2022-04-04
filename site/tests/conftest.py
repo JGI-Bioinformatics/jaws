@@ -6,6 +6,7 @@ import pytest
 import os
 import shutil
 from pathlib import Path
+from dataclasses import dataclass
 
 
 @pytest.fixture
@@ -50,6 +51,10 @@ url = http://localhost:8000
 [SITE]
 id = eagle
 uploads_dir = /global/scratch/jaws/jaws-dev/uploads
+[AWS]
+aws_access_key_id = AAAA
+aws_secret_access_key = BBBB
+s3_bucket = CCCC
 """
 
     cfg.write_text(content)
@@ -89,6 +94,10 @@ url = http://localhost:8000
 [SITE]
 id = eagle
 uploads_dir = /global/scratch/jaws/jaws-dev/uploads
+[AWS]
+aws_access_key_id = AAAA
+aws_secret_access_key = BBBB
+s3_bucket = CCCC
     """
     cfg.write_text(content)
     return cfg.as_posix()
@@ -366,10 +375,13 @@ def uploads_files():
     if not os.path.exists(root_dir):
         os.mkdir(root_dir)
 
-    for f in ["XXXX.wdl", "XXXX.json", "XXXX.orig.json", "XXXX.zip"]:
+    for f in ["XXXX.wdl", "XXXX.json"]:
         file_path = os.path.join(root_dir, f)
         with open(file_path, "w") as outfile:
             outfile.write(f"output for {f}")
+    file_path = os.path.join(root_dir, "XXXX.zip")
+    with open(file_path, "wb") as outfile:
+        outfile.write("output for XXXX.zip".encode())
 
     yield
 
@@ -383,7 +395,7 @@ def uploads_files_without_zip():
     if not os.path.exists(root_dir):
         os.mkdir(root_dir)
 
-    for f in ["WWWW.wdl", "WWWW.json", "WWWW.orig.json"]:
+    for f in ["WWWW.wdl", "WWWW.json"]:
         file_path = os.path.join(root_dir, f)
         with open(file_path, "w") as outfile:
             outfile.write(f"output for {f}")
@@ -402,7 +414,7 @@ def uploads_files_missing_json():
 
     file_path = os.path.join(root_dir, "YYYY.wdl")
     with open(file_path, "w") as outfile:
-        outfile.write(f"workflow test { ... }")
+        outfile.write("output for YYYY.wdl")
 
     yield
 
@@ -458,14 +470,6 @@ class MockSession:
 
     def _query_user_id(self, *args, **kwargs):
         return
-
-
-class MockDb:
-    def __init__(self):
-        return
-
-    def session(self):
-        return MockSession()
 
 
 class MockRunModel:
@@ -542,3 +546,352 @@ def mock_query_user_id(monkeypatch):
     from jaws_site.daemon import Daemon
 
     monkeypatch.setattr(Daemon, "_query_user_id", query_jaws_id)
+
+
+@pytest.fixture()
+def mock_data_transfer(monkeypatch):
+    # import jaws_site.datatansfer_protocol
+    from jaws_site.runs import Run
+    from jaws_site.datatransfer_protocol import (
+        Status,
+        DataTransferError,
+        DataTransferAPIError,
+        DataTransferNetworkError,
+        DataTransferFactory,
+    )
+
+    class MockDataTransfer:
+        @staticmethod
+        def submit_upload(metadata: str, manifest_file: list):
+            if data_obj.raises.DataTransferError:
+                raise DataTransferError()
+            elif data_obj.raises.DataTransferAPIError:
+                raise DataTransferAPIError()
+            elif data_obj.raises.DataTransferNetworkError:
+                raise DataTransferNetworkError()
+            return "123"
+
+        @staticmethod
+        def submit_download(metadata: dict, src_dir: str, dst_dir: str):
+            if data_obj.raises.DataTransferError:
+                raise DataTransferError()
+            elif data_obj.raises.DataTransferAPIError:
+                raise DataTransferAPIError()
+            elif data_obj.raises.DataTransferNetworkError:
+                raise DataTransferNetworkError()
+            return "456"
+
+        @staticmethod
+        def transfer_status(task_id: str):
+            if data_obj.raises.DataTransferError:
+                raise DataTransferError()
+            elif data_obj.raises.DataTransferAPIError:
+                raise DataTransferAPIError()
+            elif data_obj.raises.DataTransferNetworkError:
+                raise DataTransferNetworkError()
+
+            if data_obj.status['succeeded']:
+                return Status.succeeded
+            elif data_obj.status['failed']:
+                return Status.failed
+            elif data_obj.status['transferring']:
+                return Status.transferring
+            elif data_obj.status['inactive']:
+                return Status.inactive
+
+        @staticmethod
+        def cancel_transfer(task_id: str):
+            if data_obj.raises.DataTransferError:
+                raise DataTransferError()
+            elif data_obj.raises.DataTransferAPIError:
+                raise DataTransferAPIError()
+            elif data_obj.raises.DataTransferNetworkError:
+                raise DataTransferNetworkError()
+
+    def mock_data_transfer(*args, **kwargs):
+        return MockDataTransfer()
+
+    def mock_get_data_transfer_type(*args, **kwargs):
+        return 'globus_transfer'
+
+    monkeypatch.setattr(DataTransferFactory, '__new__', mock_data_transfer)
+    monkeypatch.setattr(Run, '_get_data_transfer_type', mock_get_data_transfer_type)
+
+    @dataclass
+    class DataTransferExceptions():
+        DataTransferError = False
+        DataTransferAPIError = False
+        DataTransferNetworkError = False
+
+    class Data():
+        raises = DataTransferExceptions()
+        status = {
+            'succeeded': False,
+            'failed': False,
+            'transferring': False,
+            'inactive': False,
+        }
+
+    data_obj = Data()
+    return data_obj
+
+
+@pytest.fixture
+def mock_db_session():
+    """Fixture to mockup the sqlalchemy session.
+
+    session = database.session()  # here, session is a sqlalchemy sessionmaker object.
+    result = session.query(table).\
+        filter_by(**filters).\
+        order_by(table.start_date.desc()).\
+        all()
+
+    will be mocked up. The result variable can be set in the pytest function using the mock_db.query variable.
+    This variable accepts a list of either dictionaries, or another list of dictionaries.
+
+    Ex: if the test function performs one sqlalchemy query, and we want to specify the return value of that query,
+    (i.e., one query returning two entries):
+    mock_db_session.output(
+        [
+            {'employee': 'John', 'Title': 'analyst'},
+            {'employee': 'Mary', 'Title': 'PI'},
+        ]
+    )
+
+    If the test function performs multiple sqlalchemy queries and we want to return the same result, add
+    repeat=True to the mock_db_session.output() call.
+    Ex:
+    mock_db_session.output(
+        [
+            {'employee': 'John', 'Title': 'analyst'},
+            {'employee': 'Mary', 'Title': 'PI'},
+        ],
+        repeat = True
+    )
+
+
+    If the test function performs two sqlalchemy queries, and we want to specify the return different entries
+    for each query, (i.e., two queries returning 2 entries each), call mock_db_sssion.output() multiple times.
+    Ex:
+    mock_db_session.output(
+        [
+            {'employee': 'John', 'Title': 'analyst'},
+            {'employee': 'Mary', 'Title': 'PI'},
+        ]
+    )
+    mock_db_session.output(
+        [
+            {'employee': 'Bob', 'Title': 'scientist'},
+            {'employee': 'Lisa', 'Title': 'researcher'},
+        ]
+    )
+    Note that if repeat=True is specified in either mock_db_session.query call, the last query entry is repeated.
+
+    Additionally, to intentionally raise a sqlalchemy.exc.SQLAlchemyError after a query is performed, set
+    mock_db_session.raise_exception = True
+
+    In order to check if the sqlalchemly add, commit, query and close was successfully called, we can checkthe
+    mockup_session[key] boolean for True | False. The keys are:
+    add, commit, query, close.
+
+    To clear these keys, call mock_db_session.clear().
+    """
+    import sqlalchemy
+
+    class MockQueryFields:
+        def __init__(self, entries: dict):
+            for key in entries:
+                setattr(self, key, entries[key])
+
+    class MockQueryResultIter:
+        def __init__(self, mock_query: list):
+            self.mock_query = mock_query
+            self.idx = 0
+
+        def __next__(self):
+            retval = None
+            if data_obj.limit_query:
+                num_entries = data_obj.limit_query
+            elif len(self.mock_query) > data_obj.entry_idx:
+                num_entries = len(self.mock_query[data_obj.entry_idx])
+            else:
+                num_entries = 0
+
+            if num_entries > self.idx:
+                retval = self.mock_query[data_obj.entry_idx][self.idx]
+            else:
+                raise StopIteration
+
+            self.idx += 1
+            return retval
+
+    class MockQueryResult:
+        def __init__(self):
+            self.entries = []
+
+        def __iter__(self):
+            return MockQueryResultIter(self.entries)
+
+        def __getitem__(self, index: int):
+            retval = None
+            if len(self.entries) > data_obj.entry_idx and len(self.entries[data_obj.entry_idx]) > index:
+                retval = self.entries[data_obj.entry_idx][index]
+            return retval
+
+        def add_mock_entry(self, entries: dict):
+            sub_entries = []
+            for entry in entries:
+                sub_entries.append(MockQueryFields(entry))
+                for key in entry:
+                    setattr(self, key, entry[key])
+            self.entries.append(sub_entries)
+
+        def count(self, *args, **kwargs):
+            val = 0
+            if len(self.entries) > data_obj.entry_idx:
+                num_entries = len(self.entries[data_obj.entry_idx])
+                if data_obj.limit_query:
+                    val = data_obj.limit_query if data_obj.limit_query <= num_entries else num_entries
+                else:
+                    val = num_entries
+            return val
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def group_by(self, *args, **kwargs):
+            return self
+
+        def limit(self, number: int):
+            data_obj.limit_query = number
+            return self
+
+        def all(self):
+            return self
+
+    class MockSessionQuery:
+        result = MockQueryResult()
+
+        @staticmethod
+        def filter(*args, **kwargs):
+            MockSessionQuery.result.entries = []
+            data_obj.limit_query = 0
+            data_obj.entry_idx += 1
+
+            if data_obj.repeat_entry and data_obj.entry_idx >= len(data_obj.queries):
+                data_obj.entry_idx = len(data_obj.queries) - 1
+
+            for entry in data_obj.queries:
+                MockSessionQuery.result.add_mock_entry(entry)
+            return MockSessionQuery.result
+
+        @staticmethod
+        def filter_by(*args, **kwargs):
+            return MockSessionQuery.filter(*args, **kwargs)
+
+        @staticmethod
+        def get(*args, **kwargs):
+            return MockSessionQuery.filter(*args, **kwargs)
+
+    class MockSession:
+        @staticmethod
+        def add(*args, **kwargs):
+            data_obj.session['add'] = True
+            if data_obj.raise_exception:
+                raise sqlalchemy.exc.SQLAlchemyError()
+
+        @staticmethod
+        def commit(*args, **kwargs):
+            data_obj.session['commit'] = True
+            if data_obj.raise_exception:
+                raise sqlalchemy.exc.SQLAlchemyError()
+
+        @staticmethod
+        def query(*args, **kwargs):
+            data_obj.session['query'] = True
+            if data_obj.raise_exception:
+                raise sqlalchemy.exc.SQLAlchemyError()
+            return MockSessionQuery
+
+        @staticmethod
+        def close(*args, **kwargs):
+            data_obj.session['close'] = True
+
+        @staticmethod
+        def rollback(*args, **kwargs):
+            data_obj.session['rollback'] = True
+
+        @staticmethod
+        def output(entries: list, repeat=False, raise_exception=False):
+            data_obj.repeat_entry = repeat
+            data_obj.raise_exception = raise_exception
+            data_obj.queries.append(entries)
+
+        @staticmethod
+        def clear():
+            data_obj.__init__()
+            MockSessionQuery.result.entries = []
+
+    @dataclass
+    class Data:
+        queries = []
+        limit_query = 0
+        entry_idx = -1
+        repeat_entry = False
+        raise_exception = False
+        session = {
+            'add': False,
+            'commit': False,
+            'query': False,
+            'close': False,
+            'rollback': False,
+        }
+
+    data_obj = Data()
+    return MockSession()
+
+
+@pytest.fixture
+def mock_rpc_request(monkeypatch):
+    """Fixture to mockup the rpc_client.RpcClient object for handling RMQ requests.
+
+    To set the return value of the rpc_client.RpcClient.request() call, set the
+    mockup_rpc_request.json = dictionary
+
+    To intentionally throw an exception when calling the request, set the
+    mockup_rpc_request.Exception = True and catch the rpc_client.ConnectionError exception.
+    """
+    from jaws_rpc import rpc_client
+
+    class MockRpcClient():
+        def __init__(self):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args, **kwargs):
+            pass
+
+        @staticmethod
+        def request(*args, **kwargs):
+            return data_obj.json
+
+        @staticmethod
+        def output(jsondata):
+            data_obj.json = jsondata
+
+    def mock_rpc_client(*args, **kwargs):
+        if data_obj.Exception:
+            raise rpc_client.ConnectionError("RPC client failed")
+        return MockRpcClient()
+
+    monkeypatch.setattr(rpc_client, 'RpcClient', mock_rpc_client)
+
+    class Data():
+        def __init__(self):
+            self.json = None
+            self.Exception = False
+
+    data_obj = Data()
+    return MockRpcClient()

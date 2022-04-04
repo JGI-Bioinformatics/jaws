@@ -7,6 +7,7 @@ when the runtime dictionary is created.
 
 import sys
 import re
+import warnings
 
 
 class WdlRuntimeError(Exception):
@@ -64,7 +65,7 @@ class WDLStanzas:
 
         # time: "00:30:00"
         if key == "time":
-            if value.isalpha():
+            if value[0].isalpha():
                 # if the value starts with a letter, it is a variable name
                 return None
             elif re.search(r".+:.+:.+", value):
@@ -225,6 +226,9 @@ class WDLStanzas:
                     # make stanza_list into a dictionary (so we'll have a dictionary of a dictionary)
                     mydict = {}
                     for param_key in stanza_list:
+                        if param_key.startswith('#'):
+                            continue
+
                         next_stanza = re.search(r"(?:{|<<<)", param_key)
 
                         # make sure the last bracket is not missing, or we'll bleed into the next stanza
@@ -251,6 +255,26 @@ class WDLStanzas:
                     start_count = 0
 
 
+def spellCheck(task_name, task_dict):
+    accepted_param_names = [
+        "poolname",
+        "docker",
+        "node",
+        "nwpn",
+        "time",
+        "memory",
+        "cpu",
+        "shared",
+        "cluster",
+        "constraint",
+        "account",
+        "qos",
+    ]
+    for key in task_dict.keys():
+        if key not in accepted_param_names:
+            warnings.warn('%s is not a known runtime parameter and will be ignored.' % key, SyntaxWarning)
+
+
 def allRequiredParams(task_name, task_dict):
     """Check that the user has included the minimum runtime parameters and that other params
     are acceptable values
@@ -265,14 +289,6 @@ def allRequiredParams(task_name, task_dict):
         raise WdlRuntimeMemoryError(
             "Task: %s allRequiredParams. %s is a required parameter for runtime"
             % (task_name, "memory")
-        )
-
-    # check that qos is an acceptable value.
-    accepted_qos = ["jgi_shared", "jgi_exvivo", "regular"]
-    if "qos" in task_dict and task_dict["qos"] not in accepted_qos:
-        raise WdlRuntimeError(
-            "Task: %s memoryParam. The value for qos is not a recognized value for skylake. You had: %s."
-            % (task_name, task_dict["qos"])
         )
 
     # check that constraint is an acceptable value.
@@ -418,6 +434,9 @@ def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float) -> None:
     doc.loadStanza("runtime")
     for task_name in doc.stanza_dict.keys():
         task_dict = doc.stanza_dict[task_name]
+
+        # Check the spelling of the runtime param keys. Give a warning if a paramemter is not in the list
+        spellCheck(task_name, task_dict)
 
         # Check that we have minimum runtime params (i.e. time & memory)
         allRequiredParams(task_name, task_dict)

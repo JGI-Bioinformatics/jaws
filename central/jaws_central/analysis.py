@@ -3,17 +3,23 @@ Analysis (AKA Run) REST endpoints.
 """
 
 import logging
+import json
 from datetime import datetime, timedelta
+from elasticsearch import Elasticsearch
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
-import globus_sdk
-
-import jaws_central.globus
-
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_rpc import rpc_index
 from jaws_central.models_fsa import db, Run, User, Run_Log
+from jaws_central.datatransfer_protocol import (
+    DataTransferFactory,
+    DataTransferProtocol,
+    SiteTransfer,
+    DataTransferAPIError,
+    DataTransferNetworkError,
+    DataTransferError,
+)
 
 
 logger = logging.getLogger(__package__)
@@ -282,6 +288,19 @@ def get_site(user, site_id):
     return result, 200
 
 
+def transfer_files(
+    data_transfer: DataTransferProtocol, metadata: dict, manifest_files: list
+) -> str:
+    """Perform file transfer.
+
+    :param data_transfer: object for transferring data from one site to another (globus, aws, ...)
+    :type data_transfer: DataTransfer object
+    :param manifest_files: list of files to transfer
+    :type manifest_files: list
+    """
+    return data_transfer.submit_upload(metadata, manifest_files)
+
+
 def submit_run(user):
     """
     Record the run submission in the database, with status as "uploading".
@@ -301,7 +320,6 @@ def submit_run(user):
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
     compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
-    globus = jaws_central.globus.GlobusService()
 
     if compute_endpoint is None:
         logger.error(
@@ -346,11 +364,32 @@ def submit_run(user):
     # These are all placed in a common location with setgid sticky bits so that all
     # submitting users have access.
     output_dir += f"/{user}/{site_id}/{run.id}"
-    src_host_path = config.conf.get_site(input_site_id, "globus_host_path")
 
-    # We modify the output dir path since we know the endpoint of the returning source site. From here
-    # a compute site can simply query the output directory and send.
-    virtual_output_path = globus.virtual_transfer_path(output_dir, src_host_path)
+    # Setup data transfer object. The data transfer using either globus or AWS is based on site_id. This is defined
+    # in the SiteTransfer.type var.
+    data_transfer_type = SiteTransfer.type[site_id.upper()]
+    data_transfer = DataTransferFactory(data_transfer_type)
+    metadata = {"label": f"Upload run {run.id}"}
+
+    if data_transfer_type == "globus_transfer":
+        src_host_path = config.conf.get_site(input_site_id, "globus_host_path")
+        metadata["host_paths"] = {
+            "src": src_host_path,
+            "dest": config.conf.get_site(site_id, "globus_host_path"),
+        }
+        metadata["input_endpoint"] = input_endpoint
+        metadata["compute_endpoint"] = compute_endpoint
+        metadata["run_id"] = run.id
+
+        # We modify the output dir path since we know the endpoint of the returning source site. From here
+        # a compute site can simply query the output directory and send.
+        virtual_output_path = data_transfer.virtual_transfer_path(
+            output_dir, src_host_path
+        )
+    else:
+        virtual_output_path = (
+            output_dir  # not sure what the virtual path for AWS should be ???
+        )
 
     # Due to how the current database schema is setup, we have to update the output
     # directory from the model object itself immediately after insert.
@@ -371,21 +410,14 @@ def submit_run(user):
         abort(500, {"error": err_msg})
     logger.debug(f"Updating output dir for run_id={run.id}")
 
-    # SUBMIT GLOBUS TRANSFER
-    manifest_file = request.files["manifest"]
-    host_paths = {}
-    host_paths["src"] = src_host_path
-    host_paths["dest"] = config.conf.get_site(site_id, "globus_host_path")
+    # SUBMIT FILE TRANSFER
+    manifest_files = request.files["manifest"]
+
+    logger.debug(f"Transferring files using {data_transfer_type}")
 
     try:
-        upload_task_id = globus.submit_transfer(
-            f"Upload run {run.id}",
-            host_paths,
-            input_endpoint,
-            compute_endpoint,
-            manifest_file,
-        )
-    except globus_sdk.GlobusAPIError as error:
+        upload_task_id = transfer_files(data_transfer, metadata, manifest_files)
+    except DataTransferAPIError as error:
         run.status = "upload failed"
         db.session.commit()
         if error.code == "NoCredException":
@@ -408,13 +440,13 @@ def submit_run(user):
                 exc_info=True,
             )
             abort(error.code, {"error": error.message})
-    except globus_sdk.NetworkError as error:
+    except DataTransferNetworkError as error:
         logger.exception(
             f"{user} submission {run.id} failed due to NetworkError: {error}",
             exc_info=True,
         )
         abort(500, {"error": f"Network Error: {error}"})
-    except globus_sdk.GlobusError as error:
+    except DataTransferError as error:
         logger.exception(
             f"{user} submission {run.id} failed for unknown error: {error}",
             exc_info=True,
@@ -470,12 +502,12 @@ def submit_run(user):
     except Exception as error:
         reason = f"RPC submit failed: {error}"
         logger.exception(reason)
-        _submission_failed(user, run, reason)
+        _submission_failed(user, run, reason, data_transfer)
         abort(500, {"error": reason})
     if "error" in result:
         reason = f"Error sending new run to {site_id}: {result['error']['message']}"
         logger.error(reason)
-        _submission_failed(user, run, reason)
+        _submission_failed(user, run, reason, data_transfer)
         abort(result["error"]["code"], {"error": result["error"]["message"]})
 
     # DONE
@@ -490,9 +522,11 @@ def submit_run(user):
     return result, 201
 
 
-def _submission_failed(user, run, reason):
+def _submission_failed(
+    user: str, run: str, reason: str, data_transfer: DataTransferProtocol
+):
     """Cancel upload and update run status"""
-    _cancel_transfer(run.upload_task_id)
+    _cancel_transfer(data_transfer, run.upload_task_id)
     _update_run_status(run, "submission failed", reason)
 
 
@@ -692,6 +726,23 @@ def run_metadata(user, run_id):
     return rpc_call(user, run_id, "run_metadata")
 
 
+def run_outputs(user, run_id):
+    """
+    Retrieve the outputs of a run.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: Cromwell outputs for the run, if found; abort otherwise
+    :rtype: dict
+    """
+    logger.info(f"User {user}: Get outputs for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    return rpc_call(user, run_id, "run_outputs")
+
+
 def get_errors(user, run_id):
     """
     Retrieve error messages and stderr for failed tasks.
@@ -724,6 +775,7 @@ def cancel_run(user, run_id):
 
     run = _get_run(user, run_id)
     status = run.status
+
     if status == "cancelled":
         abort(400, {"error": "That Run had already been cancelled"})
     elif status == "download complete":
@@ -739,11 +791,14 @@ def _cancel_run(user, run, reason="Cancelled by user"):
     :param run: Run SqlAlchemy ORM object
     :type run: obj
     """
+    transfer_type = SiteTransfer.type[run.site_id.upper()]
+    data_transfer = DataTransferFactory(transfer_type)
     status = run.status
+
     if status.startswith("upload"):
-        _cancel_transfer(run.upload_task_id)
+        _cancel_transfer(data_transfer, run.upload_task_id)
     elif status.startswith("download"):
-        _cancel_transfer(run.download_task_id)
+        _cancel_transfer(data_transfer, run.download_task_id)
     try:
         _rpc_call(user, run.id, "cancel_run")
     except Exception as error:
@@ -757,20 +812,17 @@ def _cancel_run(user, run, reason="Cancelled by user"):
         return "cancelled"
 
 
-def _cancel_transfer(transfer_task_id: str) -> None:
-    """Cancel a Globus transfer.
+def _cancel_transfer(
+    data_transfer: DataTransferProtocol, transfer_task_id: str
+) -> None:
+    """Cancels a data transfer.
 
+    :param data_transfer: object for transferring data from one site to another (globus, aws, ...)
+    :type data_transfer: DataTransfer object
     :param transfer_task_id: Globus transfer task id
     :type transfer_task_id: str
     """
-    try:
-        transfer_client = authorize_transfer_client()
-        transfer_response = transfer_client.cancel_task(transfer_task_id)
-    except globus_sdk.GlobusAPIError as error:
-        logger.error(f"Error cancelling Globus transfer, {transfer_task_id}: {error}")
-        return f"{error}"
-    else:
-        return transfer_response
+    return data_transfer.cancel_transfer(transfer_task_id)
 
 
 def cancel_all(user):
@@ -794,24 +846,71 @@ def cancel_all(user):
     return cancelled, 201
 
 
-def authorize_transfer_client():
+def _search_elastic_search(host, port, api_key, index, query, aggregations=None):
     """
-    Create a globus transfer client using client id and client secret for credentials. More information
-    can be found via Globus documentation:
+    Search Elastic Search (ES) DB
 
-    https://globus-sdk-python.readthedocs.io/en/stable/examples/client_credentials.html?highlight=secret
-
-    :return: globus_sdk.TransferClient
+    :param elastic_client: ES Client
+    :type elastic_client: obj
+    :param query: ES top-level query
+    :type query: dict
+    :param aggregations: ES bucket aggregations
+    :type aggregations: dict
+    :return: ES search response
+    :rtype: dict
     """
-    client_id = config.conf.get("GLOBUS", "client_id")
-    client_secret = config.conf.get("GLOBUS", "client_secret")
     try:
-        client = globus_sdk.ConfidentialAppAuthClient(client_id, client_secret)
-    except globus_sdk.GlobusAPIError as error:
-        raise error
-    scopes = "urn:globus:auth:scope:transfer.api.globus.org:all"
+        elastic_client = Elasticsearch([f"http://{host}:{port}"], api_key=api_key)
+        response = elastic_client.search(
+            index=index,
+            query=query,
+            aggregations=aggregations,
+            size=10000)
+    except Elasticsearch.AuthorizationException as error:
+        logger.error(error)
+        abort(403, {"error": f"Not authorized; {error}"})
+    except Elasticsearch.AuthenticationException as error:
+        logger.error(error)
+        abort(401, {"error": f"Invalid/Missing credentials; {error}"})
+    except Elasticsearch.NotFoundError as error:
+        logger.error(error)
+        abort(404, {"error": f"Not found; {error}"})
+    except Exception as error:
+        logger.error(error)
+        abort(500, {"error": f"Elastic-Search error; {error}"})
+    return response
+
+
+def get_performance_metrics(user, run_id):
+    """
+    Query ES to get performance metrics for user's run
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: performance metrics
+    :rtype: dict
+    """
+    run = _get_run(user, run_id)
+    logger.info(f"User {user}: Get log of Run {run.id}")
+    db_conf = config.conf.get_section("ELASTIC_SEARCH")
+    pm_conf = config.conf.get_section("PERFORMANCE_METRICS")
+    response = _search_elastic_search(
+        host=db_conf['host'],
+        port=db_conf['port'],
+        api_key=db_conf['api_key'],
+        index=pm_conf['index'],
+        query={'match': {'jaws_run_id': int(run_id)}})
+    metrics = []
     try:
-        authorizer = globus_sdk.ClientCredentialsAuthorizer(client, scopes)
-    except globus_sdk.GlobusAPIError as error:
-        raise error
-    return globus_sdk.TransferClient(authorizer=authorizer)
+        for hit in response['hits']['hits']:
+            metrics.append(hit["_source"])
+    except Exception as error:
+        status = 404
+        if "error" in response and "status" in response:
+            status = response["status"]
+            error += json.dumps(response['error'], indent=2)
+        logger.error(error)
+        abort(status, {"error": f"{error}"})
+    return metrics

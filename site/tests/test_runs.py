@@ -1,11 +1,10 @@
 import pytest
 import os.path
+from datetime import datetime
 import jaws_site
 from jaws_site.runs import Run
 
-# import jaws_site.globus
 import tests.conftest
-import globus_sdk
 
 
 def test_run_constructor(monkeypatch):
@@ -26,23 +25,6 @@ def mock__update_run_status(self, new_status, timestamp):
 def mock__insert_run_log(self, status_from, status_to, timestamp, reason=None):
     assert isinstance(status_from, str)
     assert isinstance(status_to, str)
-
-
-class MockGlobusService:
-    def __init__(self, status, transfer_result={"task_id": "325"}):
-        self.status = status
-        self.transfer_result = transfer_result
-
-    def transfer_status(self, task_id):
-        return self.status["status"]
-
-    def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
-        return self.transfer_result["task_id"]
-
-
-class MockGlobusWithError(MockGlobusService):
-    def submit_transfer(self, run_id, endpoint, src_dir, dest_dir):
-        raise globus_sdk.GlobusError()
 
 
 class MockCromwell:
@@ -104,10 +86,10 @@ def test_check_operations_table(status):
 
 @pytest.mark.parametrize(
     "statuses",
-    [{"status": "FAILED"}, {"status": "INACTIVE"}],
+    ["failed", "inactive"],
     ids=["failed", "inactive"],
 )
-def test_check_if_upload_complete(statuses, monkeypatch):
+def test_check_if_upload_complete(statuses, monkeypatch, mock_data_transfer):
     """
     Tests check_if_upload_complete from Run class. This only tests two
     statuses since the 'SUCCEEDED' status calls another method we want to
@@ -117,10 +99,8 @@ def test_check_if_upload_complete(statuses, monkeypatch):
     model = tests.conftest.MockRunModel(status="uploading")
     run = Run(mock_session, model=model)
 
-    def mock_globus_service(run):
-        return MockGlobusService(statuses)
+    mock_data_transfer.status[statuses] = True
 
-    monkeypatch.setattr(jaws_site.globus, "GlobusService", mock_globus_service)
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     run.check_if_upload_complete()
@@ -161,11 +141,9 @@ def test_get_run_input(
     model1 = tests.conftest.MockRunModel(status="upload complete", submission_id="XXXX")
     run1 = Run(mock_session, model=model1)
     infiles = run1.get_run_input()
-    home_dir = os.path.expanduser("~")
-    root_dir = os.path.join(home_dir, "XXXX")
-    assert infiles[0] == os.path.join(root_dir, "XXXX.wdl")
-    assert infiles[1] == os.path.join(root_dir, "XXXX.json")
-    assert infiles[2] == os.path.join(root_dir, "XXXX.zip")
+    assert infiles[0].read() == "output for XXXX.wdl"
+    assert infiles[1].read() == "output for XXXX.json"
+    assert infiles[2].read().decode() == "output for XXXX.zip"
     assert infiles[3] is None
 
     # test 2: invalid input
@@ -178,10 +156,8 @@ def test_get_run_input(
     model3 = tests.conftest.MockRunModel(status="upload complete", submission_id="WWWW")
     run3 = Run(mock_session, model=model3)
     infiles = run3.get_run_input()
-    home_dir = os.path.expanduser("~")
-    root_dir = os.path.join(home_dir, "WWWW")
-    assert infiles[0] == os.path.join(root_dir, "WWWW.wdl")
-    assert infiles[1] == os.path.join(root_dir, "WWWW.json")
+    assert infiles[0].read() == "output for WWWW.wdl"
+    assert infiles[1].read() == "output for WWWW.json"
     assert infiles[2] is None
     assert infiles[3] is None
 
@@ -209,20 +185,11 @@ def mock_path(tmp_path):
     return tmp_path_mock
 
 
-def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path):
-    def mock_cp_infile_to_outdir(
-        self, path, suffix, dest_dir, dest_file, required=True
-    ):
-        pass
-
-    def mock_write_outputs_json(self, metadata):
-        pass
+def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path, mock_data_transfer):
 
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     monkeypatch.setattr(Run, "uploads_file_path", mock_path)
-    monkeypatch.setattr(Run, "_cp_infile_to_outdir", mock_cp_infile_to_outdir)
-    monkeypatch.setattr(Run, "_write_outputs_json", mock_write_outputs_json)
 
     mock_session = tests.conftest.MockSession()
     mock_model = tests.conftest.MockRunModel(
@@ -230,30 +197,19 @@ def test_transfer_results(monkeypatch, transfer_dirs, mock_path, tmp_path):
     )
 
     run = Run(mock_session, model=mock_model)
-    monkeypatch.setattr(
-        jaws_site.runs, "globus", MockGlobusService({"status": "SUCCEEDED"})
-    )
     monkeypatch.setattr(jaws_site.runs, "cromwell", MockCromwell())
 
     run.transfer_results()
 
-    assert run.model.download_task_id == "325"
+    assert run.model.download_task_id == "456"
 
 
-def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path):
-    def mock_cp_infile_to_outdir(
-        self, path, suffix, dest_dir, dest_file, required=True
-    ):
-        pass
-
-    def mock_write_outputs_json(self, metadata):
-        pass
+def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path, mock_data_transfer):
+    from jaws_site.datatransfer_protocol import DataTransferError
 
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     monkeypatch.setattr(Run, "uploads_file_path", mock_path)
-    monkeypatch.setattr(Run, "_cp_infile_to_outdir", mock_cp_infile_to_outdir)
-    monkeypatch.setattr(Run, "_write_outputs_json", mock_write_outputs_json)
 
     mock_session = tests.conftest.MockSession()
     mock_model = tests.conftest.MockRunModel(
@@ -261,32 +217,35 @@ def test_failed_transfer_result(monkeypatch, transfer_dirs, mock_path, tmp_path)
     )
 
     run = Run(mock_session, model=mock_model)
-    monkeypatch.setattr(
-        jaws_site.runs, "globus", MockGlobusWithError({"status": "FAILED"})
-    )
     monkeypatch.setattr(jaws_site.runs, "cromwell", MockCromwell())
 
-    with pytest.raises(globus_sdk.GlobusError):
+    mock_data_transfer.raises.DataTransferError = True
+
+    with pytest.raises(DataTransferError):
         run.transfer_results()
 
 
 @pytest.mark.parametrize(
     "status,expected",
     [
-        ({"status": "SUCCEEDED"}, "download complete"),
-        ({"status": "FAILED"}, "download failed"),
+        ("succeeded", "download complete"),
+        ("failed", "download failed"),
     ],
 )
-def test_check_if_download_complete(status, expected, monkeypatch):
+def test_check_if_download_complete(status, expected, monkeypatch, mock_data_transfer):
+
+    def mock_publish_run_metadata(*args, **kwargs):
+        pass
 
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
+    monkeypatch.setattr(Run, "publish_run_metadata", mock_publish_run_metadata)
 
     mock_session = tests.conftest.MockSession()
     mock_model = tests.conftest.MockRunModel(status="downloading")
     run = Run(mock_session, model=mock_model)
 
-    monkeypatch.setattr(jaws_site.runs, "globus", MockGlobusService(status))
+    mock_data_transfer.status[status] = True
 
     run.check_if_download_complete()
 
@@ -383,3 +342,203 @@ def test_check_run_cromwell_status(monkeypatch):
     )
     run.check_run_cromwell_status()
     assert run.status == "failed"
+
+
+def test_get_run_status_logs(mock_db_session):
+    exp_results = [
+        {
+            'run_id': 123,
+            'status_from': 'status from',
+            'status_to': 'succeeded',
+            'reason': '123 reason',
+            'timestamp': datetime.now(),
+            'site_id': 'EAGLE',
+        },
+        {
+            'run_id': 456,
+            'status_from': 'status from',
+            'status_to': 'succeeded',
+            'reason': '456 reason',
+            'timestamp': datetime.now(),
+            'site_id': 'EAGLE',
+        }
+    ]
+    mock_db_session.output(exp_results)
+
+    run_id = 123
+    obs_results = jaws_site.runs.get_run_status_logs(mock_db_session, run_id)
+
+    for idx, row in enumerate(exp_results):
+        for key in row:
+            obs_result_row = obs_results[idx]
+            assert key in obs_result_row
+            if key == 'timestamp':
+                row['timestamp'] = row['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
+            if key == 'site_id':
+                obs_result_row['site_id'] = obs_result_row['site_id'].upper()
+            assert row[key] == obs_result_row[key]
+
+
+def test_get_run_metadata(mock_db_session, monkeypatch):
+    from jaws_site import runs
+
+    def mock_get_run_status_log(*args, **kwargs):
+        return [{'status_to': 'succeeded'}]
+
+    monkeypatch.setattr(runs, 'get_run_status_logs', mock_get_run_status_log)
+
+    session_result = [
+        {
+            'id': 123,
+            'user_id': 'John Doe',
+            'email': 'johndoe@lbl.gov',
+            'submitted': datetime.now(),
+            'updated': datetime.now(),
+            "status": "download complete",
+            "result": "succeeded",
+        }
+    ]
+    exp_results = {
+        'email': 'johndoe@lbl.gov',
+        'result': 'succeeded',
+        'run_id': 123,
+        'site_id': 'EAGLE',
+        'status': 'download complete',
+        'status_detail': '',
+        'submitted': session_result[0]['submitted'].strftime("%Y-%m-%d %H:%M:%S"),
+        'updated': session_result[0]['updated'].strftime("%Y-%m-%d %H:%M:%S"),
+        'user_id': 'John Doe'
+    }
+    mock_db_session.output(session_result)
+    run = Run(mock_db_session, run_id=123)
+    obs_results = run.get_run_metadata()
+
+    for key in exp_results:
+        if key == 'site_id':
+            obs_results['site_id'] = obs_results['site_id'].upper()
+        assert key in obs_results
+        assert obs_results[key] == exp_results[key]
+
+
+def test_publish_run_metadata(mock_db_session, mock_rpc_request, monkeypatch):
+    from jaws_site.runs_es import RunES
+
+    this_date = datetime.today()
+
+    def mock_get_run_metadata(*args):
+        return {
+            "run_id": 123,
+            "user_id": 'jaws',
+            "email": 'jaws@lbl.gov',
+            "submitted": this_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": this_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": 'download complete',
+            'status_detail': '',
+            "result": 'success',
+            "site_id": 'CORI',
+        }
+
+    def mock_metadata(*args):
+        return {'workflowName': 'test'}
+
+    def mock_task_summary(*args):
+        return {
+            'task_abcd':
+                {
+                    'cached': False,
+                    'cromwell_id': 'cromwell_abcd',
+                    'maxtime': '03:00:00',
+                    'queue_wait': '01:00:00',
+                    'queued': this_date,
+                    'result': 'success',
+                    'runtime': '02:00:00'},
+            'task_efgh':
+                {
+                    'cached': True,
+                    'cromwell_id': 'cromwell_efgh',
+                    'maxtime': '06:00:00',
+                    'queue_wait': '04:00:00',
+                    'queued': this_date,
+                    'result': 'success',
+                    'runtime': '05:00:00'
+                }
+            }
+
+    def mock_task_status(*args):
+        return {
+            'task_abcd': {
+                'cromwell_id': 'cromwell_abcd',
+                'reason': 'reason_abcd',
+                'status': 'success',
+                'timestamp': this_date,
+            },
+            'task_efgh': {
+                'cromwell_id': 'cromwell_efgh',
+                'reason': 'reason_efgh',
+                'status': 'success',
+                'timestamp': this_date,
+            }
+        }
+
+    monkeypatch.setattr(Run, 'get_run_metadata', mock_get_run_metadata)
+    monkeypatch.setattr(Run, 'metadata', mock_metadata)
+    monkeypatch.setattr(RunES, 'task_summary', mock_task_summary)
+    monkeypatch.setattr(RunES, 'task_status', mock_task_status)
+
+    session_result = [
+        {
+            'id': 123,
+            'user_id': 'jaws',
+            'email': 'jaws@lbl.gov',
+            'submitted': this_date,
+            'updated': this_date,
+            "status": "download complete",
+            "result": "success",
+        }
+    ]
+    mock_db_session.output(session_result)
+
+    exp_results = {
+        'email': 'jaws@lbl.gov',
+        'result': 'success',
+        'run_id': 123,
+        'site_id': 'CORI',
+        'status': 'download complete',
+        'status_detail': '',
+        'submitted': this_date.strftime('%Y-%m-%d %H:%M:%S'),
+        'tasks': [
+            {
+                'cached': False,
+                'cromwell_id': 'cromwell_abcd',
+                'maxtime': '03:00:00',
+                'name': 'task_abcd',
+                'queue_wait': '01:00:00',
+                'queued': this_date,
+                'reason': 'reason_abcd',
+                'result': 'success',
+                'runtime': '02:00:00',
+                'status': 'success',
+                'timestamp': this_date,
+            },
+            {
+                'cached': True,
+                'cromwell_id': 'cromwell_efgh',
+                'maxtime': '06:00:00',
+                'name': 'task_efgh',
+                'queue_wait': '04:00:00',
+                'queued': this_date,
+                'reason': 'reason_efgh',
+                'result': 'success',
+                'runtime': '05:00:00',
+                'status': 'success',
+                'timestamp': this_date,
+            }
+        ],
+        'updated': this_date.strftime('%Y-%m-%d %H:%M:%S'),
+        'user_id': 'jaws',
+        'workflow_name': 'test'
+    }
+
+    run = Run(mock_db_session, run_id=123, runs_es_rpc_client=mock_rpc_request)
+    obs_results, response = run.publish_run_metadata()
+    assert obs_results == exp_results
