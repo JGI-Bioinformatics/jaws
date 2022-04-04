@@ -102,8 +102,8 @@ variables:
   CORI_MONITOR_RMQ_PORT: 5672
   CORI_HTCONDOR_INSTALL: "/global/cfs/projectdirs/jaws/jaws-install/condor/condor"
   CORI_HTCONDOR_MASTER_CONFIG: "/global/cfs/projectdirs/jaws/condor/condor_central.config"
-  CORI_PERFORMANCE_METRICS_DONE_DIR: "/global/cscratch1/sd/jaws_jtm/monitoring-runs/done"
-  CORI_PERFORMANCE_METRICS_PROCESSED_DIR: "/global/cscratch1/sd/jaws_jtm/monitoring-runs/processed"
+  CORI_PERFORMANCE_METRICS_SCRIPT: "/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus"
+  CORI_PERFORMANCE_METRICS_DIR: "/global/cscratch1/sd/jaws_jtm/monitoring-runs"
 
   JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
@@ -133,8 +133,7 @@ variables:
   JGI_MONITOR_RMQ_PORT: 5672
   JGI_HTCONDOR_INSTALL: "/global/home/groups-sw/lr_jgicloud/condor/condor"
   JGI_HTCONDOR_MASTER_CONFIG: "/global/home/groups-sw/lr_jgicloud/condor/condor_central.config"
-  JGI_PERFORMANCE_METRICS_DONE_DIR: ""
-  JGI_PERFORMANCE_METRICS_PROCESSED_DIR: ""
+  JGI_PERFORMANCE_METRICS_DIR: ""
 
   TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install/jaws-client/"
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
@@ -164,8 +163,7 @@ variables:
   TAHOMA_MONITOR_RMQ_PORT: 5672
   TAHOMA_HTCONDOR_INSTALL: "/tahoma/mscjgi/condor/condor"
   TAHOMA_HTCONDOR_MASTER_CONFIG: "/tahoma/mscjgi/condor/condor_central.config"
-  TAHOMA_PERFORMANCE_METRICS_DONE_DIR: ""
-  TAHOMA_PERFORMANCE_METRICS_PROCESSED_DIR: ""
+  TAHOMA_PERFORMANCE_METRICS_DIR: ""
 
   AWS_CLIENT_INSTALL_BASEDIR: "/opt/jaws-install/jaws-client/"
   AWS_INSTALL_BASEDIR: "/opt/jaws-install"

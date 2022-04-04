@@ -55,13 +55,12 @@ class Metrics:
                     logger.warn(f"Publishing performace metrics: failed to get run_id from {cromwell_id=}: {err})")
                     continue
                 doc['jaws_run_id'] = run_id
+                logger.info(f"Run {run_id}: Publish performance metrics for cromwell_id={cromwell_id}")
                 response, status = runs_es.send_rpc_run_metadata(self.rpc_client, doc)
 
             # Move csv file to processed folder
             processed_file = proc_dir_obj / done_file.name
-            print(f"Moving {done_file} to {processed_file}")
-            # Path(f"{done_file}").rename(f"{processed}")
-            break
+            Path(f"{done_file}").rename(f"{processed_file}")
 
 
 @np.vectorize
