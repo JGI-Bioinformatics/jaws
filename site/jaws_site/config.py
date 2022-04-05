@@ -39,6 +39,9 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         "LOCAL_RPC_SERVER": ["vhost"],
         "CENTRAL_RPC_SERVER": ["vhost"],
         "CENTRAL_RPC_CLIENT": ["host", "vhost", "user", "password"],
+        "RUNS_ES_RPC_CLIENT": ["host", "vhost", "user", "password", "queue"],
+        "PERFORMANCE_METRICS_ES_RPC_CLIENT": ["host", "vhost", "user", "password", "queue"],
+        "PERFORMANCE_METRICS": ["done_dir", "processed_dir"],
         "GLOBUS": [
             "client_id",
             "client_secret",
