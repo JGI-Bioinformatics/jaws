@@ -206,7 +206,7 @@ def status(run_id: int, verbose: bool) -> None:
     """Print the current status of a run."""
 
     result = _run_status(run_id, verbose)
-    _convert_all_fields_to_localtime(result, keys=["submitted", "updated"])
+    _convert_all_fields_to_localtime([result], keys=["submitted", "updated"])
     _print_json(result)
 
 
@@ -218,7 +218,7 @@ def task_status(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
     result = _request("GET", url)
-    _convert_all_table_fields_to_localtime(result, columns=[4])
+    _convert_all_fields_to_localtime(result, columns=[4])
     header = [
         "NAME",
         "CROMWELL_JOB_ID",
@@ -265,7 +265,7 @@ def log(run_id: int, fmt: str) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/run_log'
     result = _request("GET", url)
-    _convert_all_table_fields_to_localtime(result, columns=[2])
+    _convert_all_fields_to_localtime(result, columns=[2])
     header = ["STATUS_FROM", "STATUS_TO", "TIMESTAMP", "COMMENT"]
     if fmt == "json":
         _print_json(result)
@@ -345,7 +345,7 @@ def task_log(run_id: int, fmt: str) -> None:
         "TIMESTAMP",
         "COMMENT",
     ]
-    _convert_all_table_fields_to_localtime(result, columns=[5])
+    _convert_all_fields_to_localtime(result, columns=[5])
     if fmt == "json":
         _print_json(result)
     elif fmt == "tab":
@@ -626,8 +626,6 @@ def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
     result = _run_status(run_id, True)
     status = result["status"]
     src = result["output_dir"]
-    submission_id = result["submission_id"]
-    uid = result["user_id"]
 
     if status != "download complete":
         sys.exit(f"Run {run_id} output is not yet available; status is {status}")
@@ -644,12 +642,6 @@ def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
         _get_complete(run_id, src, dest)
     else:
         _get_outputs(run_id, src, dest, quiet)
-
-    staging_subdir = config.get("JAWS", "staging_dir")
-    staging_user_subdir = os.path.join(staging_subdir, uid)
-    globus_host_path = config.get("GLOBUS", "host_path")
-    local_staging_endpoint = os.path.join(globus_host_path, staging_user_subdir)
-    _copy_infiles(local_staging_endpoint, dest, submission_id, run_id)
 
 
 def _get_complete(run_id: int, src: str, dest: str) -> None:
@@ -694,6 +686,7 @@ def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
         sys.exit(f"Unable to write output file: {error}")
 
     # the paths of workflow output files are listed in the outputs_file
+    outputs = {}
     for (key, value) in outputs.items():
         if type(value) is list:
             for an_output in value:
@@ -717,38 +710,19 @@ def _copy_outfile(rel_path, src_dir, dest_dir, quiet=False):
     os.chmod(dest_file, 0o0664)
 
 
-def _copy_infiles(src_dir, dest_dir, submission_id, run_id) -> None:
-    """Copy the Run's input files to the output dir"""
-    src_file = os.path.join(src_dir, f"{submission_id}.orig.json")
-    dest_file = os.path.join(dest_dir, f"run_{run_id}.json")
-    shutil.copy(src_file, dest_file)
-    os.chmod(dest_file, 0o0664)
-    src_file = os.path.join(src_dir, f"{submission_id}.wdl")
-    dest_file = os.path.join(dest_dir, f"run_{run_id}.wdl")
-    shutil.copy(src_file, dest_file)
-    os.chmod(dest_file, 0o0664)
-    src_file = os.path.join(src_dir, f"{submission_id}.zip")
-    dest_file = os.path.join(dest_dir, f"run_{run_id}.zip")
-    if os.path.isfile(src_file):
-        shutil.copy(src_file, dest_file)
-        os.chmod(dest_file, 0o0664)
-
-
-def _convert_all_table_fields_to_localtime(table, **kwargs):
-    for row in table:
-        _convert_all_fields_to_localtime(row, **kwargs)
-
-
 def _convert_all_fields_to_localtime(rec, **kwargs):
-    if "columns" in kwargs:
-        for index in kwargs["columns"]:
-            if rec[index]:
-                rec[index] = _utc_to_local(rec[index])
-    elif "keys" in kwargs:
-        for key in kwargs["keys"]:
-            if key in rec and rec[key] is not None:
-                rec[key] = _utc_to_local(rec[key])
-
+    if not rec:
+        return
+    for single_rec in rec:
+        if "columns" in kwargs:
+            for index in kwargs["columns"]:
+                if single_rec[index]:
+                    single_rec[index] = _utc_to_local(single_rec[index])
+        elif "keys" in kwargs:
+            for key in kwargs["keys"]:
+                if key in single_rec and single_rec[key] is not None:
+                    single_rec[key] = _utc_to_local(single_rec[key])
+    
 
 def _utc_to_local(utc_datetime):
     """Convert UTC time to the local time zone. This should handle daylight savings.
