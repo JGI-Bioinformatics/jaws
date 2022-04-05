@@ -12,7 +12,7 @@ authenticate your docker access.
 * Getting a personal access token: https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#create-a-personal-access-token
 * Using the token to authenticate to gitlab's docker registry: https://docs.gitlab.com/ee/user/packages/container_registry/#authenticate-with-the-container-registry
 
-This diagram (from [Microsoft](https://docs.microsoft.com/en-us/dotnet/architecture/microservices/docker-application-development-process/docker-app-development-workflow) ) shows thw overall workflow for local development using Docker:
+This diagram (from [Microsoft](https://docs.microsoft.com/en-us/dotnet/architecture/microservices/docker-application-development-process/docker-app-development-workflow) ) shows the overall workflow for local development using Docker:
 
 ![Docker workflow](https://docs.microsoft.com/en-us/dotnet/architecture/microservices/docker-application-development-process/media/docker-app-development-workflow/life-cycle-containerized-apps-docker-cli.png)
 
@@ -69,7 +69,7 @@ configuration files, log files and data upload files. Here is an example:
 A sample configuration based on Mario's local test instance can be found in under /test/localdev of this repo. It can serve as a starting point for your own local test instance
 
 The important thing to note is the name of the files, though these can be easily changed
-in the `docker-compose.yml` file if you wish to use a different naming scheme. One you've
+in the `docker-compose.yml` file if you wish to use a different naming scheme. Once you've
 created the following directory tree, the next step is to build the images.
 
 The `laptop` and `local` directories are just there to "mock" locations on different filesystems. You can name these whatever directory
@@ -87,7 +87,7 @@ want to run the following command:
 > ./build.sh central 2.6.0 dev
 ```
 
-This will build the development environment for your container script. This is useful if you want the code you are actively working on to be deployed in the container
+This will build the development environment for your container script. This is useful if you want the code you are actively working on to be deployed in the container.  
 Because rpc is a dependency for central, and site services, you will first want to build rpc docker container. 
 
 ```console
@@ -103,7 +103,7 @@ first:
 ```
 You will want to setup your database first by creating some databases in mysql: 
 You can enter the container either with `docker exec` or with the docker desktop. It is recommended 
-to use the docker desktop since it provides a nice GUI. If you want to
+to use the docker desktop since it provides a nice GUI.
 ```console
 > docker exec -it <CONTAINER ID or CONTAINER NAMES> /bin/bash
 ```
