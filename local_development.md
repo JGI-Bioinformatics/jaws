@@ -66,6 +66,8 @@ configuration files, log files and data upload files. Here is an example:
 > export DATA_HOME=/Users/mamelara/data/jaws
 ```
 
+A sample configuration based on Mario's local test instance can be found in under /test/localdev of this repo. It can serve as a starting point for your own local test instance
+
 The important thing to note is the name of the files, though these can be easily changed
 in the `docker-compose.yml` file if you wish to use a different naming scheme. One you've
 created the following directory tree, the next step is to build the images.
