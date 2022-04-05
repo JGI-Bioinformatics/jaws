@@ -1172,11 +1172,12 @@ module unload python
 %(env_activation_cmd)s
 %(export_jtm_config_file)s
 
-/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus \
-    --move \
-    --user $USER \
-    --path /global/cscratch1/sd/jaws_jtm/monitoring-runs \
-    --outfile %(job_name)s_$SLURM_JOB_ID.csv &
+%(pagurus)s \
+--move \
+--user $USER \
+--path %(pmetrics_path)s \
+--outfile %(job_name)s_$SLURM_JOB_ID.csv \
+--log %(pmetrics_log)s &
 
 PID=$!
 sleep 2
@@ -1212,9 +1213,11 @@ wait
                             nersc_cluster_name=cluster_name,
                             job_name=job_name,
                             exclusive=excl_param,
-                            export_jtm_config_file="export JTM_CONFIG_FILE=%s"
-                            % worker_config,
+                            export_jtm_config_file="export JTM_CONFIG_FILE=%s" % worker_config,
                             set_jtm_config_file="--config=%s" % worker_config,
+                            pagurus=CONFIG.configparser.get("PERFORMANCE_METRICS", "script"),
+                            pmetrics_path=CONFIG.configparser.get("PERFORMANCE_METRICS", "output_dir"),
+                            pmetrics_log=CONFIG.configparser.get("PERFORMANCE_METRICS", "log_file"),
                         )
 
                 elif cluster_name in ("jgi"):
