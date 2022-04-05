@@ -722,7 +722,7 @@ def _convert_all_fields_to_localtime(rec, **kwargs):
             for key in kwargs["keys"]:
                 if key in single_rec and single_rec[key] is not None:
                     single_rec[key] = _utc_to_local(single_rec[key])
-    
+
 
 def _utc_to_local(utc_datetime):
     """Convert UTC time to the local time zone. This should handle daylight savings.
