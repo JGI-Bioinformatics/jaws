@@ -1,5 +1,6 @@
 # Changelog
 
+
 ## 2.7.7 (2022-4-12) Summary
 
 ### User Facing Changes
@@ -7,6 +8,8 @@
 #### Added
 #### Changed
 - All jaws commands show localtime in the output
+- Reviewed and updated the documentation for dockerization of JAWS, and how to setup a local dev instance. Pulled local dev notes into separate file, local_development.md, added documentation links to local docker based development workflow, pointed out dependency on building rpc image before others, links to docs about docker repos, added sample local config under /test/localdev.
+ToDo: Update parseConfig setup to enable environment variables to be used in config files and then make associated changes to sample configurations, update build.sh script to have default values to improve usability, further documentation in the local local_development.md 
 
 ### Internal Changes
 #### Fixed
@@ -32,7 +35,6 @@
 - LaunchDarkley implemented for jaws dashboard
 #### Changed
 - WDL validation now allows variables to be used in the runtime section (i.e memory, time, etc.).
-
 
 ## 2.5.0 (2021-10-21) Summary
 This release includes changes necessary to deploy to an additional computing site, tahoma.  Also included are several bug fixes and new features to improve the user experience.

@@ -5,7 +5,7 @@ networks:
     driver: bridge
 services:
   central:
-    image: central:2.6.0-dev
+    image: central:${JAWS_VERSION:-2.6.0-dev}
     depends_on:
       - db
       - rabbitmq
@@ -31,7 +31,7 @@ services:
       - $DATA_HOME/local:/data/jaws/local:rw
       - $DATA_HOME/logs/central:/var/log/jaws-central:rw
   auth:
-    image: central:2.6.0-dev
+    image: central:${JAWS_VERSION:-2.6.0-dev}
     networks:
       - jaws-tier
     ports:
@@ -54,7 +54,7 @@ services:
       - $DATA_HOME/configs/auth/jaws-central.conf:/etc/config/jaws-central.conf
       - $DATA_HOME/logs/auth:/var/log/jaws-auth:rw
   central-rpc:
-    image: central:2.6.0-dev
+    image: central:${JAWS_VERSION:-2.6.0-dev}
     networks:
       - jaws-tier
     depends_on:
@@ -89,7 +89,7 @@ services:
     ports:
       - "3306:3306"
   site:
-    image: site:2.6.0-dev
+    image: site:${JAWS_VERSION:-2.6.0-dev}
     command:
       - "jaws-site"
       - "--config"
@@ -109,7 +109,7 @@ services:
       - $DATA_HOME/logs/site-central:/var/log/site-central:rw
       - $DATA_HOME/local/uploads:/data/uploads
   site-daemon:
-    image: site:2.6.0-dev
+    image: site:${JAWS_VERSION:-2.6.0-dev}
     networks:
       - jaws-tier
     depends_on:
