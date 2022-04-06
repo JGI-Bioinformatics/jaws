@@ -7,12 +7,15 @@
 #### Fixed
 #### Added
 #### Changed
+- The jaws-get command saves the wdl, json and zip files used for the run. The names have changed so all files are prefixed with "run_<run_id>"
 - All jaws commands show localtime in the output
 - Reviewed and updated the documentation for dockerization of JAWS, and how to setup a local dev instance. Pulled local dev notes into separate file, local_development.md, added documentation links to local docker based development workflow, pointed out dependency on building rpc image before others, links to docs about docker repos, added sample local config under /test/localdev.
 ToDo: Update parseConfig setup to enable environment variables to be used in config files and then make associated changes to sample configurations, update build.sh script to have default values to improve usability, further documentation in the local local_development.md 
 
 ### Internal Changes
 #### Fixed
+- Fixed end-to-end tests for jaws-get
+
 #### Added
 #### Changed
 
@@ -29,7 +32,7 @@ ToDo: Update parseConfig setup to enable environment variables to be used in con
 
 ### Internal Changes
 #### Fixed
-- workflows were crashing on tahoma because of bad permissions on the `inputs` and `refdata` dirs.
+- Workflows were crashing on tahoma because of bad permissions on the `inputs` and `refdata` dirs.
 ### Added
 - Created a status bar-chart for tasks as part of the jaws dashboard
 - LaunchDarkley implemented for jaws dashboard
