@@ -1,9 +1,40 @@
 # Changelog
 
 
-## (2011-4-5) Documentation changes
-Reviewed and updated the documentation for dockerization of JAWS, and how to setup a local dev instance. Pulled local dev notes into separate file, local_development.md, added documentation links to local docker based development workflow, pointed out dependency on building rpc image before others, links to docs about docker repos, added sample local config under /test/localdev.
+## 2.7.7 (2022-4-12) Summary
+
+### User Facing Changes
+#### Fixed
+#### Added
+#### Changed
+- All jaws commands show localtime in the output
+- Reviewed and updated the documentation for dockerization of JAWS, and how to setup a local dev instance. Pulled local dev notes into separate file, local_development.md, added documentation links to local docker based development workflow, pointed out dependency on building rpc image before others, links to docs about docker repos, added sample local config under /test/localdev.
 ToDo: Update parseConfig setup to enable environment variables to be used in config files and then make associated changes to sample configurations, update build.sh script to have default values to improve usability, further documentation in the local local_development.md 
+
+### Internal Changes
+#### Fixed
+#### Added
+#### Changed
+
+## 2.7.6 (2022-4-1) Summary
+
+### User Facing Changes
+#### Fixed
+- Fixed WDL comments in the runtime section causing errors.
+- The documentation (https://jaws-docs.readthedocs.io/en/latest/Specifications/configuringJTM_in_wdls.html) matches the jaws command `jaws list-sites`.
+#### Added
+- Default docker image is ubuntu:20.04 (WDL command always runs inside a container)
+#### Changed
+- The source file `jaws-prod.sh` can be used in a script with `set -u`.
+
+### Internal Changes
+#### Fixed
+- workflows were crashing on tahoma because of bad permissions on the `inputs` and `refdata` dirs.
+### Added
+- Created a status bar-chart for tasks as part of the jaws dashboard
+- LaunchDarkley implemented for jaws dashboard
+#### Changed
+- WDL validation now allows variables to be used in the runtime section (i.e memory, time, etc.).
 
 ## 2.5.0 (2021-10-21) Summary
 This release includes changes necessary to deploy to an additional computing site, tahoma.  Also included are several bug fixes and new features to improve the user experience.
@@ -199,3 +230,13 @@ Major feature release with new Gitlab integration and central gitlab repository
 - Modification to how JAWS works section (!46)
 - Major changes to quickstart guide to reflect 2.0 usage (!49)
 - Update of JAWS commands in documentation (!136)
+
+### Controlled Vocabulary
+All changes should be under one of these categories
+
+`Added` for new features.
+`Changed` for changes in existing functionality.
+`Deprecated` for soon-to-be removed features.
+`Removed` for now removed features.
+`Fixed` for any bug fixes.
+`Security` in case of vulnerabilities.
