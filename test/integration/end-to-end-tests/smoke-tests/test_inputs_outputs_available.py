@@ -10,6 +10,7 @@
 import os
 import uuid
 import shutil
+import time
 import submission_utils as util
 
 # set variables specific for this series of tests
@@ -33,13 +34,15 @@ def test_jaws_get(submit_fq_count_wdl):
         fq_count_out/call-count_seqs/execution/
             num_seqs.txt  rc  script  script.submit  stderr  stderr.submit      stdout  stdout.submit
     """
-    input_wdl = "main.wdl"
-    input_json = "inputs.json"
-    outdir = str(uuid.uuid4())
 
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
 
+    input_wdl = f"run_{run_id}.wdl"
+    input_json = f"run_{run_id}.json"
+    outdir = str(uuid.uuid4())
+
+    time.sleep(30)
     cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
     (r, o, e) = util.run(cmd)
     assert r == 0
@@ -49,9 +52,12 @@ def test_jaws_get(submit_fq_count_wdl):
     # was correct and that the wdl file got created.
 
     # verify it is a valid wdl
+    firstnlines = ''
     with open(os.path.join(outdir, input_wdl)) as fh:
-        if "workflow fq_count" not in fh.readline():
-            assert 0, "This does not look like a valid workflow"
+        firstnlines = ' '.join(fh.readlines()[2:3])
+
+    if "workflow fq_count" not in firstnlines:
+         assert 0, "This does not look like a valid workflow"
 
     # check that we have a valid inputs json
     with open(os.path.join(outdir, input_json)) as fh:
