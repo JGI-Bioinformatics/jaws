@@ -4,20 +4,19 @@
 ## 2.7.7 (2022-4-12) Summary
 
 ### User Facing Changes
-#### Fixed
-#### Added
 #### Changed
-- The jaws-get command saves the wdl, json and zip files used for the run. The names have changed so all files are prefixed with "run_<run_id>"
-- All jaws commands show localtime in the output
-- Reviewed and updated the documentation for dockerization of JAWS, and how to setup a local dev instance. Pulled local dev notes into separate file, local_development.md, added documentation links to local docker based development workflow, pointed out dependency on building rpc image before others, links to docs about docker repos, added sample local config under /test/localdev.
-ToDo: Update parseConfig setup to enable environment variables to be used in config files and then make associated changes to sample configurations, update build.sh script to have default values to improve usability, further documentation in the local local_development.md 
+- As before, the jaws-get command saves the wdl, json and zip files used for the run; however, the names have changed so all files are prefixed with "run_<run_id>"
+- All jaws commands now use localtime in the output, whereas before, some of the commands showed time in UTC.
 
 ### Internal Changes
 #### Fixed
 - Fixed end-to-end tests for jaws-get
 
 #### Added
-#### Changed
+- Reviewed and updated the documentation for dockerization of JAWS, and how to setup a local dev instance. Pulled local dev notes into separate file, local_development.md, added documentation links to local docker based development workflow, pointed out dependency on building rpc image before others, links to docs about docker repos, added sample local config under /test/localdev.
+ToDo: Update parseConfig setup to enable environment variables to be used in config files and then make associated changes to sample configurations, update build.sh script to have default values to improve usability, further documentation in the local local_development.md 
+- Update site daemon to add performance metrics to elasticsearch
+- Separate elasticsearch metrics into dev,staging and prod envs
 
 ## 2.7.6 (2022-4-1) Summary
 
