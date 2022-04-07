@@ -90,6 +90,7 @@ cd site && python setup.py develop
 # JTM
 cd ../ && pip install -r jtm/requirements.txt
 cd jtm && python setup.py develop
+cd ../
 
 # create a file called womtool in ~/venv/jaws-test/bin
  
@@ -103,6 +104,7 @@ export JAWS_CLIENT_CONFIG=/global/cfs/projectdirs/jaws/jaws-dev/jaws-dev.conf
 export JAWS_USER_CONFIG=~/jaws.conf
 
 # test that environment is set up correctly
+# you should be in the root dir
 make test
 
 # To deactivate the venv:
