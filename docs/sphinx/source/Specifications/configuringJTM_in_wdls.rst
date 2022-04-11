@@ -21,19 +21,19 @@ Cori
 ----
 JAWS runs on a dedicated cluster.
 
-+----------+-----+----------+----------------+-----+-------+--------------+
-|constraint|nodes| ram (G)  | qos            |cores|threads|max time (hrs)|
-+==========+=====+==========+================+=====+=======+==============+
-| haswell  |2,388|128 (118*)|genepool_special| 32  |   64  |  72          |
-+----------+-----+----------+----------------+-----+-------+--------------+
-| haswell  |2,388|128 (118*)|genepool**      | 32  |   64  |  72          |
-+----------+-----+----------+----------------+-----+-------+--------------+
-|     knl  |9,489| 96 (87*) | regular        | 68  |  272  |  48          |
-+----------+-----+----------+----------------+-----+-------+--------------+
-| skylake  |  20 |758 (700*)| jgi_exvivo     | 32  |   32  | 168          |
-+----------+-----+----------+----------------+-----+-------+--------------+
-| skylake  |  20 |250 (230*)| jgi_shared     | 32  |   32  | 168          |
-+----------+-----+----------+----------------+-----+-------+--------------+
++----------+-----+------------+----------------+-----+-------+--------------+
+|constraint|nodes|  ram (G)   | qos            |cores|threads|max time (hrs)|
++==========+=====+============+================+=====+=======+==============+
+| haswell  |2,388|  128 (118*)|genepool_special| 32  |   64  |  72          |
++----------+-----+-----------+----------------+-----+-------+--------------+
+| haswell  |2,388|  128 (118*)|genepool**      | 32  |   64  |  72          |
++----------+-----+------------+----------------+-----+-------+--------------+
+|     knl  |9,489|   96 (87*) | regular        | 68  |  272  |  48          |
++----------+-----+------------+----------------+-----+-------+--------------+
+| skylake  |  20 |1500 (1450*)| jgi_exvivo     | 36  |   36  | 168          |
++          +     +------------+----------------+-----+-------+--------------+
+|          |     |  768 (740*)| jgi_shared     | 18  |   18  | 168          |
++----------+-----+------------+----------------+-----+-------+--------------+
 
  \* the actual number of gigabytes you can use to reserve memory space for system processes.
 
@@ -45,43 +45,44 @@ JAWS runs on a dedicated cluster.
   <details>
   <summary><a>See examples of requesting different resources</a></summary>
 
-  Using 250G machines
+  Using 350G Exvivo machines
   <br>
   <code>
 	<pre>
     runtime {
       time: "00:30:00"
-      memory: "250G"
+      memory: "350G"
       poolname: "some-unique-name"
       node: 1
       nwpn: 1
       constraint: "skylake"
       qos: "jgi_shared"
       account: "fungalp"
-      cpu: 12
+      cpu: 18
     }
 	</pre>
   </code>
 
 
-  Using 700G machines
+  Using 1000G Exvivo machines
   <br>
   <code>
 	<pre>
     runtime {
       time: "00:30:00"
-      memory: "700G"
+      memory: "1000G"
       poolname: "some-unique-name"
       node: 1
       nwpn: 1
       constraint: "skylake"
       qos: "jgi_exvivo"
       account: "fungalp"
+      cpu: 36
     }
 	</pre>
   </code>
 
-  Using non-priority queue ("genepool")
+  Using Cori machines ("genepool")
   <br>
   <code>
   <pre>
