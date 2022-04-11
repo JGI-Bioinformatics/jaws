@@ -1,0 +1,11 @@
+Universe        = vanilla
+Executable      = hello.py
+Output          = OUTPUT/hello.out.$(Cluster).$(Process).txt
+Error           = OUTPUT/hello.error.$(Cluster).$(Process).txt
+Log             = OUTPUT/hello.log.$(Cluster).$(Process).txt
+notification = Never
+Arguments = $(Process)
+PeriodicRelease = ((JobStatus==5) && (CurentTime - EnteredCurrentStatus) > 30)
+OnExitRemove = (ExitStatus == 0)
++Owner=UNDEFINED
+Queue 4

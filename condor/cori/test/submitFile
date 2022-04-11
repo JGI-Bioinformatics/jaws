@@ -1,0 +1,16 @@
+PATH=/global/cfs/projectdirs/jaws/condor/condor/bin:/global/cfs/projectdirs/jaws/condor/condor/sbin:/global/cfs/projectdirs/jaws/condor/condor/bin:/global/cfs/projectdirs/jaws/condor/condor/sbin:/global/cfs/projectdirs/jaws/condor/condor/bin:/global/cfs/projectdirs/jaws/condor/condor/sbin:/opt/cray/pe/mpt/7.7.10/gni/bin:/opt/cray/rca/2.2.20-7.0.1.1_4.72__g8e3fb5b.ari/bin:/opt/cray/alps/6.6.58-7.0.1.1_6.28__g437d88db.ari/sbin:/opt/cray/alps/default/bin:/opt/cray/job/2.2.4-7.0.1.1_3.54__g36b56f4.ari/bin:/opt/cray/pe/craype/2.6.2/bin:/opt/intel/compilers_and_libraries_2019.3.199/linux/bin/intel64:/usr/common/software/darshan/3.2.1/bin:/global/common/cori/software/altd/2.0/bin:/usr/common/software/bin:/usr/common/nsg/bin:/opt/ovis/bin:/opt/ovis/sbin:/opt/cray/pe/modules/3.2.11.4/bin:/usr/local/bin:/usr/bin:/bin:/usr/lib/mit/bin:/usr/lib/mit/sbin:/opt/cray/pe/bin
+Iwd=/global/homes/j/jaws_jtm/ssul/condor/cromwell/cromwell-executions/myWorkflow/63d2ef1e-f618-466b-8b16-b4230bc90f02/call-myTaskOut/execution
++Owner=UNDEFINED
+#requirements=dynamic
+#leave_in_queue=true
+#request_memory=10240.0
+#request_disk=25600.0
+#request_cpus=1
+#priority=
+error=/global/homes/j/jaws_jtm/ssul/condor/cromwell/cromwell-executions/myWorkflow/63d2ef1e-f618-466b-8b16-b4230bc90f02/call-myTaskOut/execution/stderr
+output=/global/homes/j/jaws_jtm/ssul/condor/cromwell/cromwell-executions/myWorkflow/63d2ef1e-f618-466b-8b16-b4230bc90f02/call-myTaskOut/execution/stdout
+log_xml=true
+#executable=/global/homes/j/jaws_jtm/ssul/condor/cromwell/cromwell-executions/myWorkflow/63d2ef1e-f618-466b-8b16-b4230bc90f02/call-myTaskOut/execution/submitFile
+executable=sleep.sh
+log=/global/homes/j/jaws_jtm/ssul/condor/cromwell/cromwell-executions/myWorkflow/63d2ef1e-f618-466b-8b16-b4230bc90f02/call-myTaskOut/execution/execution.log
+queue
