@@ -11,7 +11,7 @@ Steps
    normal: <= 118G
    jgi_shared: 118 ~ 740G
    jgi_exvivo: 740 ~ 1450G
-3. Eexcute sbatch 
+3. Execute sbatch
 
 """
 import os
