@@ -73,7 +73,7 @@ WHERE (JobStatus == 2 || JobStatus == 4)""")
 
 
 #
-# Run condor_q_cmd to get the jobs in IDLE status
+# Run condor_q_cmd to get the jobs in RUNNING status
 #
 so, se, ec = run_sh_command(condor_q_cmd, show_stdout=False)
 if ec != 0:
