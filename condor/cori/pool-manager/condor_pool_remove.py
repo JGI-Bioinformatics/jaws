@@ -8,7 +8,7 @@ Author: Seung-Jin Sul (ssul@lbl.gov)
 Steps
 1. Collect all RUNNING and PENDING SLURM job ids for Condor pool
 2. Get each number of RUNNING and PENDING jobs per the memeory requirement (normal, jgi_shared, jgi_exvivo)
-3. Check if any of running SLURM jobs are using the node(s) and `scancel` them if not
+3. Check if any of running Condor jobs are using the SLURM compute nodes and `scancel` them if not
 
 """
 import os
