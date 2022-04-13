@@ -11,7 +11,8 @@ Steps
    normal: <= 118G
    jgi_shared: 118 ~ 740G
    jgi_exvivo: 740 ~ 1450G
-3. Eexcute sbatch
+3. Execute sbatch if the current SLURM jobs + number of sbatches needed < MAX pool size
+4. Check if MIN pool size is being maintained, if not add more nodes up to MIN
 
 """
 import os

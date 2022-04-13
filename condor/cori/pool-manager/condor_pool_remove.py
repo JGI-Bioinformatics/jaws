@@ -7,8 +7,9 @@ Author: Seung-Jin Sul (ssul@lbl.gov)
 
 Steps
 1. Collect all RUNNING and PENDING SLURM job ids for Condor pool
-2. Get each number of RUNNING and PENDING jobs per the memeory requirement (normal, jgi_shared, jgi_exvivo)
-3. Check if any of running SLURM jobs are using the node(s) and `scancel` them if not
+2. Get each number of RUNNING and PENDING jobs per the memory requirement (normal, jgi_shared, jgi_exvivo)
+3. Check if any of running SLURM jobs are using the node(s) and `scancel` them if not and the number of R and PD SLURM
+   jobs is bigger than MIN pool size
 
 """
 import os
