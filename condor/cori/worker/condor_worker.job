@@ -1,6 +1,5 @@
-#!/bin/sh 
-#SBATCH -c 32
-#SBATCH --mem=115G
+#!/bin/bash -l
+#SBATCH -N 1
 #SBATCH -q genepool_special
 #SBATCH -C haswell
 #SBATCH -A fungalp
@@ -8,9 +7,24 @@
 #SBATCH --job-name=jaws_condor_normal_worker
 #SBATCH --exclusive
 #SBATCH -e /global/cscratch1/sd/jaws_jtm/condor/%N-%j.err
-#SBATCH -o /global/cscratch1/sd/jaws_jtm/condor/%N-%j.out 
+#SBATCH -o /global/cscratch1/sd/jaws_jtm/condor/%N-%j.out
 
-export FLAVOR=dynamic
+export WORKER_SCRIPTS="/global/cfs/cdirs/jaws/condor"
 
-srun -k -K0 /global/cfs/cdirs/jaws/condor/condor_worker.sh
-#$HOME/condor_worker.sh
+# For each node start a worker on that node
+for node in $(scontrol show hostnames ${SLURM_NODELIST}); do
+    srun -N 1 -n 1 -c 1 --overlap ${WORKER_SCRIPTS}/start_worker.sh &
+    sleep 2
+done
+
+# 6 hours is 21600 seconds
+# Sleeps for a minute less then that to cleanup workers
+# This is better for htcondor to handle instead of leaving hanging slots
+sleep 21540
+
+echo $(date)": Ending jobs"
+for node in $(scontrol show hostnames ${SLURM_NODELIST}); do
+    srun -N 1 -n 1 -c 1 --overlap ${WORKER_SCRIPTS}/stop_worker.sh &
+    sleep 2
+done
+exit
