@@ -347,3 +347,19 @@ def extract_cromwell_id(task: str) -> str:
 
     return cromwell_id
 
+
+# --------------------------------------------------------------------------------------------------
+def run_slurm_cmd(s_cmd: str) -> int:
+    """
+    To run sbatch and squeue and parse `wc -l`
+    """
+    so, se, ec = run_sh_command(s_cmd, show_stdout=False)
+    print(s_cmd)
+    if ec != 0:
+        print(f"ERROR: failed to execute slurm command: {s_cmd}\n{se}")
+        exit(1)
+    try:
+        return int(so.rstrip())
+    except TypeError as te:
+        print(f"Unexpected output from slurm command: {s_cmd}\n{te}\n{se}")
+        return -1

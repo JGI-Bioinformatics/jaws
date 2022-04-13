@@ -11,66 +11,98 @@ Steps
    normal: <= 118G
    jgi_shared: 118 ~ 740G
    jgi_exvivo: 740 ~ 1450G
-3. Eexcute sbatch 
+3. Eexcute sbatch
 
 """
 import os
-import time 
+import time
 import subprocess
 import shlex
-from utils import run_sh_command
+from utils import run_sh_command, run_slurm_cmd
+import configparser
+
 
 #
 # System vars, dirs, and cmds
 #
-accnt_name = "jaws_jtm"
-condor_root = "/global/cfs/cdirs/jaws/condor"
+config = configparser.ConfigParser()
+config.read("jaws_condor_pool_manager.ini")
+accnt_name = config["SLURM"]["accnt_name"]
+condor_root = config["CONDOR"]["condor_root"]
+min_pool_size = config.getint("CONDOR", "min_pool_size")
+max_pool_size = config.getint("CONDOR", "max_pool_size")
 condor_q_cmd = f"condor_q -pr {condor_root}/fmt_nobatch_id.cpf"
-normal_worker_q = f"{condor_root}/condor_worker_normal.job"
-highmem_worker_jgishared_q = f"{condor_root}/condor_worker_highmem_jgi_shared.job"
-highmem_worker_jgiexvivo_q = f"{condor_root}/condor_worker_highmem_jgi_exvivo.job"
+normal_worker_job = f"{condor_root}/condor_worker_normal.job"
+highmem_worker_jgishared_job = f"{condor_root}/condor_worker_highmem_jgi_shared.job"
+highmem_worker_jgiexvivo_job = f"{condor_root}/condor_worker_highmem_jgi_exvivo.job"
 sbatch_cmd = "sbatch --parsable %s"
 sbatch_cmd_esslurm = "module load esslurm && sbatch --parsable %s"
 squeue_cmd = f"""squeue --format="%.18i %.9P %.40j %.8u %.10T %.10M %.9l %.6D %R" --me -u {accnt_name} -t PENDING | grep jaws_condor_normal_worker | wc -l"""
+squeue_cmd_running_pending = f"""squeue --format="%.18i %.9P %.40j %.8u %.10T %.10M %.9l %.6D %R" --me -u {accnt_name} -t R,PD | grep jaws_condor_normal_worker | wc -l"""
 squeue_cmd_esslurm_shared = f"""module load esslurm && squeue --format="%.18i %.9P %.40j %.8u %.10T %.10M %.9l %.6D %R" --me -u {accnt_name} -t PENDING | grep jaws_condor_highmem_jgi_shared_worker | wc -l"""
 squeue_cmd_esslurm_exvivo = f"""module load esslurm && squeue --format="%.18i %.9P %.40j %.8u %.10T %.10M %.9l %.6D %R" --me -u {accnt_name} -t PENDING | grep jaws_condor_highmem_jgi_exvivo_worker | wc -l"""
 
 
 #
-# Execute sbatch
-#
-def run_sbatch(sq_cmd: str, idle_jobs: list, batch_script: str, sbatch_cmd: str):
-    num_pending_jobs = 0
-    so, se, ec = run_sh_command(sq_cmd, show_stdout=False)
-    if ec != 0:
-        print(f"ERROR: failed to execute squeue command: {sq_cmd}")
-        exit(1)
-    num_pending_jobs = int(so.rstrip())
-    print(sq_cmd)
-    print("Number of IDLE condor jobs: %d" % len(idle_jobs))
-    print(f"Number of PENDING slurm jobs: {num_pending_jobs}")
-    num_sbatches = len(idle_jobs) - int(num_pending_jobs)
-    sb_cmd = sbatch_cmd % (batch_script)
-    for _ in range(num_sbatches):
-        so, se, ec = run_sh_command(sb_cmd)
-        if ec != 0:
-            print(f"ERROR: failed to execute sbatch command: {sb_cmd}")
-            exit(1)
-        print(sb_cmd)
-        time.sleep(0.5)
-
-
-#
 # Create condor print format file
 #
-with open(f"{condor_root}/fmt_nobatch_id.cpf", 'w') as cpf:
-    cpf.write("""# condor_q format to list IDLE jobs
+with open(f"{condor_root}/fmt_nobatch_id.cpf", "w") as cpf:
+    cpf.write(
+        """# condor_q format to list IDLE jobs
 SELECT NOHEADER NOTITLE
    ClusterId     AS "    ID"  NOSUFFIX WIDTH AUTO
    RequestMemory AS REQUEST_MEMORY    WIDTH 10    PRINTAS READABLE_MB
    RequestDisk   AS REQUEST_DISK  WIDTH 12    PRINTAS READABLE_KB
    RequestCpus   AS REQUEST_CPUS
-WHERE JobStatus == 1""")
+WHERE JobStatus == 1"""
+    )
+
+
+#
+# Execute sbatch
+#
+def run_sbatch(
+    sq_cmd: str, sq_r_pd_cmd: str, idle_jobs: list, batch_script: str, sb_cmd: str
+):
+    num_pending_jobs = 0
+    num_r_pd_jobs = 0
+    num_pending_jobs = run_slurm_cmd(sq_cmd)
+    assert num_pending_jobs != -1
+    print(sq_cmd)
+    print("Number of IDLE condor jobs: %d" % len(idle_jobs))
+    print(f"Number of PENDING slurm jobs: {num_pending_jobs}")
+    num_sbatches = len(idle_jobs) - int(num_pending_jobs)
+    no_sbatch = False
+    if sq_r_pd_cmd is not None:
+        num_r_pd_jobs = run_slurm_cmd(sq_r_pd_cmd)
+        no_sbatch = (num_r_pd_jobs + num_sbatches) > max_pool_size
+    if not no_sbatch:
+        for _ in range(num_sbatches):
+            print(run_slurm_cmd(sb_cmd % batch_script))
+            time.sleep(0.5)
+    else:
+        print(f"MAX pool size reached! No more sbatch")
+        print(f"Current pool size = {num_r_pd_jobs}")
+
+
+#
+# Check MIN pool
+#
+def keep_min_pool(sq_cmd: str, batch_script: str, sb_cmd: str):
+    num_total_r_pd_jobs = 0
+    num_total_r_pd_jobs = run_slurm_cmd(sq_cmd)
+    assert num_total_r_pd_jobs != -1
+    if num_total_r_pd_jobs <= min_pool_size:
+        to_add = min_pool_size - num_total_r_pd_jobs
+        print(f"Add {to_add} nodes to Keep MIN size pool")
+        sb_cmd = sb_cmd % batch_script
+        for _ in range(to_add):
+            so, se, ec = run_sh_command(sb_cmd)
+            if ec != 0:
+                print(f"ERROR: failed to execute sbatch command: {sb_cmd}")
+                exit(1)
+            print(sb_cmd)
+            time.sleep(0.5)
 
 
 #
@@ -80,7 +112,6 @@ so, se, ec = run_sh_command(condor_q_cmd, show_stdout=False)
 if ec != 0:
     print(f"ERROR: failed to execute condor_q command: {condor_q_cmd}")
     exit(1)
-
 print("IDLE Condor jobs")
 print("Job_id\tReq_mem\tReq_disk\tReq_cpu")
 print(f"{so.rstrip()}")
@@ -96,9 +127,9 @@ for l in so.split("\n"):
         req_mem = float(tok[1])
         mem_unit = tok[2].strip()
         if mem_unit in ("KB", "kb"):
-            req_mem = req_mem/(1024*1024)
+            req_mem = req_mem / (1024 * 1024)
         if mem_unit in ("MB", "mb"):
-            req_mem = req_mem/1024
+            req_mem = req_mem / 1024
         req_disk = float(tok[3])
         req_cpu = int(tok[5])
 
@@ -122,6 +153,21 @@ print(f"Jgi_exvivo job: {exvivo_job}")
 #
 # Run sbatch
 #
-run_sbatch(squeue_cmd, normal_job, normal_worker_q, sbatch_cmd)
-run_sbatch(squeue_cmd_esslurm_shared, shared_job, highmem_worker_jgishared_q, sbatch_cmd_esslurm)
-run_sbatch(squeue_cmd_esslurm_exvivo, exvivo_job, highmem_worker_jgiexvivo_q, sbatch_cmd_esslurm)
+run_sbatch(
+    squeue_cmd, squeue_cmd_running_pending, normal_job, normal_worker_job, sbatch_cmd
+)
+run_sbatch(
+    squeue_cmd_esslurm_shared,
+    None,
+    shared_job,
+    highmem_worker_jgishared_job,
+    sbatch_cmd_esslurm,
+)
+run_sbatch(
+    squeue_cmd_esslurm_exvivo,
+    None,
+    exvivo_job,
+    highmem_worker_jgiexvivo_job,
+    sbatch_cmd_esslurm,
+)
+keep_min_pool(squeue_cmd_running_pending, normal_worker_job, sbatch_cmd)
