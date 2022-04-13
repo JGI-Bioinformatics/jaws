@@ -149,7 +149,7 @@ export CROMWELL_EXECUTIONS_DIR="$SITE_JTM_SCRATCH_DIR/cromwell-executions"
 export JTM_CONFIG_FILE="$CONFIG_DIR/jaws-jtm.conf"
 
 # Performance metrics
-export SITE_PERFORMANCE_METRICS_SCRIPT="$SITE_CLIENT_INSTALL_DIR/site/bin/pagurus"
+export SITE_PERFORMANCE_METRICS_SCRIPT="$INSTALL_DIR/site/bin/pagurus"
 
 # Globus has some rules about how paths are interpreted, depending on how the endpoint is configured.
 [[ ${SITE_GLOBUS_ROOT_DIR: -1} == "/" ]] || SITE_GLOBUS_ROOT_DIR="$SITE_GLOBUS_ROOT_DIR/"
