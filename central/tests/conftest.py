@@ -16,9 +16,11 @@ docs_url = https://jaws-docs.readthedocs.io/en/latest
 [DB]
 dialect = mysql+mysqlconnector
 host = db.foo.com
+host2 = ${JAWS_DB_HOST}
 port = 3306
 user = jaws
 password = passw0rd1
+password2 = ${JAWS_DB_PASSWORD}123
 db = jaws
 [RPC_SERVER]
 host = rmq.jaws.gov
@@ -44,6 +46,7 @@ queue = lbnl_rpc
 globus_endpoint = XXXX
 globus_host_path = /global/scratch/jaws
 uploads_dir = /global/scratch/jaws/jaws-dev/uploads
+uploads_dir2 = ${SCRATCH_ROOT}/jaws/jaws-dev/uploads
 max_ram_gb = 1024
 [SITE:NERSC]
 host = rmq.jaws.gov
