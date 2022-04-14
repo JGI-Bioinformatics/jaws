@@ -18,6 +18,8 @@ vhost = jaws_test
 queue = site_rpc
 user = jaws
 password = passw0rd1
+password2 = ${LOCAL_RPC_SERVER_PASSWORD}
+password3 = ${LOCAL_RPC_SERVER_PASSWORD}$
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_SERVER]
@@ -56,6 +58,7 @@ client_id = AAAA
 client_secret = BBBB
 endpoint_id = rooster
 host_path = /global/scratch/jaws
+host_path2 = ${GLOBAL_SCRATCH}/${PROJECT_NAME}
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
