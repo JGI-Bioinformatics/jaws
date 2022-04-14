@@ -1,6 +1,7 @@
 import os
 import logging
 import configparser
+from jaws_site.env_interpolation import EnvInterpolation
 import jaws_site.utils
 
 
@@ -65,7 +66,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         logger.debug(f"Loading config from {config_file}")
         if not os.path.isfile(config_file):
             raise FileNotFoundError(f"{config_file} does not exist")
-        self.config = configparser.ConfigParser()
+        self.config = configparser.ConfigParser(interpolation=EnvInterpolation())
         self.config.read_dict(self.defaults)
         try:
             self.config.read(config_file)

@@ -1,6 +1,7 @@
 import logging
 import os
 import configparser
+from jaws_central.env_interpolation import EnvInterpolation
 from typing import Dict
 
 
@@ -73,7 +74,8 @@ class Configuration(metaclass=Singleton):
         logger.debug(f"Loading configuration from {config_file}")
         if not os.path.isfile(config_file):
             raise FileNotFoundError(f"{config_file} does not exist")
-        self.config = configparser.ConfigParser()
+        self.config = configparser.ConfigParser(interpolation=EnvInterpolation())
+        # self.config = configparser.ConfigParser()
         self.config.read_dict(self.defaults)
         try:
             self.config.read(config_file)
