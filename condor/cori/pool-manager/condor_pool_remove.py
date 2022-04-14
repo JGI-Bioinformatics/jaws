@@ -19,6 +19,7 @@ import shlex
 from utils import run_sh_command
 import configparser
 from datetime import datetime
+
 print(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
 

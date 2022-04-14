@@ -22,6 +22,7 @@ import shlex
 from utils import run_sh_command, run_slurm_cmd
 import configparser
 from datetime import datetime
+
 print(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
 

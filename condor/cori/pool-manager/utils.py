@@ -181,8 +181,9 @@ def chmod(path, mode, opts="", dry_run=False):
 
 
 # -------------------------------------------------------------------------------
-def run_sh_command(cmd, live=True, log=None, run_time=False,
-                   show_stdout=True, timeout_sec=0):
+def run_sh_command(
+    cmd, live=True, log=None, run_time=False, show_stdout=True, timeout_sec=0
+):
     """
     Run a command, catch stdout and stderr and exit_code
     :param cmd:
