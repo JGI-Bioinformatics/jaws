@@ -72,6 +72,12 @@ def test_check_all_values(config_file):
     ]
 
     print("Checking DB section without environment variables set")
+    # Clear any conflicting keys in the environment
+    try:
+        del os.environ['JAWS_DB_HOST']
+        del os.environ['JAWS_DB_PASSWORD']
+    except KeyError:
+        pass
     check_section("DB", expected_db_parameters, cfg)
     print("Checking DB section with environment variables set")
     os.environ['JAWS_DB_HOST'] = "db.foobar.com"
