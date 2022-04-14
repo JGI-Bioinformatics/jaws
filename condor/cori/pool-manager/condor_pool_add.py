@@ -21,6 +21,8 @@ import subprocess
 import shlex
 from utils import run_sh_command, run_slurm_cmd
 import configparser
+from datetime import datetime
+print(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
 
 #
@@ -73,17 +75,16 @@ def run_sbatch(
     print("Number of IDLE condor jobs: %d" % len(idle_jobs))
     print(f"Number of PENDING slurm jobs: {num_pending_jobs}")
     num_sbatches = len(idle_jobs) - int(num_pending_jobs)
-    no_sbatch = False
     if sq_r_pd_cmd is not None:
         num_r_pd_jobs = run_slurm_cmd(sq_r_pd_cmd)
-        no_sbatch = (num_r_pd_jobs + num_sbatches) > max_pool_size
-    if not no_sbatch:
-        for _ in range(num_sbatches):
-            print(run_slurm_cmd(sb_cmd % batch_script))
-            time.sleep(0.5)
-    else:
-        print(f"MAX pool size reached! No more sbatch")
-        print(f"Current pool size = {num_r_pd_jobs}")
+        if (num_r_pd_jobs + num_sbatches) > max_pool_size:
+            num_sbatches = max_pool_size - num_r_pd_jobs
+            print(f"Current pool size = {num_r_pd_jobs}")
+            print(f"MAX pool size = {max_pool_size}")
+            print(f"Adjusted number of nodes to add = {num_sbatches}")
+    for _ in range(num_sbatches):
+        print(run_slurm_cmd(sb_cmd % batch_script))
+        time.sleep(0.5)
 
 
 #
