@@ -128,8 +128,8 @@ How to scatter over arrays and maps
     You can see working examples for `scattering an array and scattering a map <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/tree/master/scatter_gather_example>`_.
 
 
-Custome datastructures
-    Besides Map, Array, Pair you can create a custom datastructure using "struct" to create a hash-like datastructure that contains any combination of datatypes.  See `WDL Spec for v1.1: Custom Type "Struct" <https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#custom-types-structs>`_.
+Custom data structures
+    Besides Map, Array, Pair you can create a custom data structure using "struct". This will be similar to a hash but can contain any combination of data types.  See `WDL Spec for v1.1: Custom Type "Struct" <https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#custom-types-structs>`_.
 
     Example 
     `main.wdl <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/custom_datastructure/main.wdl>`_ && `inputs.json <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/custom_datastructure/inputs.json>`_
