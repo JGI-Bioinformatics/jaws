@@ -95,10 +95,7 @@ def keep_min_pool(sq_cmd: str, batch_script: str, sb_cmd: str):
     num_total_r_pd_jobs = 0
     num_total_r_pd_jobs = run_slurm_cmd(sq_cmd)
     assert num_total_r_pd_jobs != -1
-<<<<<<< HEAD
     print(f"Number of total RUNNING and PENDING slurm jobs: {num_total_r_pd_jobs}")
-=======
->>>>>>> caeeaa1b001c339040bce943a4db192b530383c4
     if num_total_r_pd_jobs <= min_pool_size:
         to_add = min_pool_size - num_total_r_pd_jobs
         print(f"Add {to_add} nodes to Keep MIN size pool")
