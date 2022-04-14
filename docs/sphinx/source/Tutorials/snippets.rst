@@ -38,13 +38,13 @@ How can I use bash commands that require curly braces?
 How can I output a file that has been named dynamically as a bash variable
     Bash variables created in the command{} block cannot be seen outside the block, for example, in the output {} section. Therefore, you can write the name(s) of any output files to another file which will be read inside the output {} block.
 
-	This is the official WDL way, using glob
+    This is the official WDL way, using glob
 
     .. code-block:: text
 
-		output {
-  			Array[File] output_bams = glob("*.bam")
-		}
+        output {
+            Array[File] output_bams = glob("*.bam")
+        }
 
     This is another method
 
@@ -111,7 +111,7 @@ How to scatter over arrays and maps
         Array[String] some_array
         scatter (e in some_array) {
             String value = some_array[e]
-			call some_task {input: value = value}
+            call some_task {input: value = value}
         }
 
     But you can iterate over a map by using the :bash:`pair` keyword and then :bash:`.left` and :bash:`.right` as such
@@ -120,9 +120,16 @@ How to scatter over arrays and maps
 
         Map[String,String] some_map
         scatter (pair in some_map) {
-        	String key= pair.left
-        	String value = pair.right # or String val = some_map[key]
-			call some_task {input: value = value}
+            String key= pair.left
+            String value = pair.right # or String val = some_map[key]
+            call some_task {input: value = value}
         }
 
     You can see working examples for `scattering an array and scattering a map <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/tree/master/scatter_gather_example>`_.
+
+
+Custom data structures
+    Besides Map, Array, Pair you can create a custom data structure using "struct". This will be similar to a hash but can contain any combination of data types.  See `WDL Spec for v1.1: Custom Type "Struct" <https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#custom-types-structs>`_.
+
+    Example 
+    `main.wdl <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/custom_datastructure/main.wdl>`_ && `inputs.json <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/custom_datastructure/inputs.json>`_
