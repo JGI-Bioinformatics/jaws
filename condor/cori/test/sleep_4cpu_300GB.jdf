@@ -1,0 +1,13 @@
+# sleep.sub -- simple sleep job
+
+executable              = sleep.sh
+log                     = sleep.log
+output                  = outfile.txt
+error                   = errors.txt
+#should_transfer_files   = Yes
+#when_to_transfer_output = ON_EXIT
+request_memory = 300000 
+request_cpus   = 4
+#request_disk   = 16384
++Owner=UNDEFINED
+queue

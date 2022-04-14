@@ -1176,8 +1176,7 @@ module unload python
 --move \
 --user $USER \
 --path %(pmetrics_path)s \
---outfile %(job_name)s_$SLURM_JOB_ID.csv \
---log %(pmetrics_log)s &
+--outfile %(job_name)s_$SLURM_JOB_ID.csv &
 
 PID=$!
 sleep 2

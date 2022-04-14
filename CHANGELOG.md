@@ -1,5 +1,76 @@
 # Changelog
 
+
+## 2.7.7 (2022-4-12) Summary
+### User Facing Changes
+#### Changed
+- As before, the jaws-get command saves the wdl, json and zip files used for the run; however, the names have changed so all files are prefixed with "run_<run_id>"
+- All jaws commands now use local time in the output, whereas before, some of the commands showed time in UTC.
+- Ensure sharded tasks have unique names for task-log/task-status (#1064)
+- Globus transfers will skip files when error when NFS problems instead of quit
+
+#### Depricated
+- Deprecate wfcopy command (#1040)
+
+#### Fixed
+- Fix Cromwell-caching (#1059)
+- WDL validation will now allow variable for memory (#1098)
+- WDL validation will now allow sub workflow http import (#1097)
+- Fix “get” command for list of output files (#1132)
+#### Added
+- Cromwell tasks echo HOSTNAME to stderr (#1044)
+- Add stdout output to “errors” report (#1101)
+- Allow users to submit subworkflows zip (#1089)
+- Support for shifter container version tags (#1125)
+
+
+### Internal Changes
+#### Fixed
+- Fixed end-to-end tests for jaws-get
+- Fixed JTM to reuse workers that are already running
+- Fixed the RabbitMQ settings in the CI/CD deployment for JTM service monitoring from TAHOMA
+
+#### Added
+- Reviewed and updated the documentation for dockerization of JAWS, and how to setup a local dev instance.
+- Added initial dockerization implementation:
+- Build.sh script to build the docker images
+- Push images into gitlab repository
+- Started collecting performance data with [pagurus](https://github.com/tylern4/pagurus) on cori.
+- Updated site daemon to add performance metrics to elasticsearch
+- Separated elasticsearch metrics into dev,staging and prod envs
+- Updated site daemon to add run information to elasticsearch
+- Updated JTM to access  high-memory nodes (1.5TB) on TAHOMA
+
+#### Changed
+- Refactored data transfer to use factory class and  plugin architecture
+- Added a prefix, “slurm_jid=” to the SLURM job id in the `reason` filed of the `task-log` command
+- Added HTCondor backed configuration for Cromwell and updated CI/CD deployment for HTCondor
+- Jaws-site cromwell submit file handles instead of paths, for AWS
+- Update site daemon to add performance metrics to elasticsearch
+- Separate elasticsearch metrics into dev,staging and prod envs
+- Factor out the rpc and base image into a separate docker image to speed up builds
+- Update CI/CD to support builds (optional currently)
+
+## 2.7.6 (2022-4-1) Summary
+
+### User Facing Changes
+#### Fixed
+- Fixed WDL comments in the runtime section causing errors.
+- The documentation (https://jaws-docs.readthedocs.io/en/latest/Specifications/configuringJTM_in_wdls.html) matches the jaws command `jaws list-sites`.
+#### Added
+- Default docker image is ubuntu:20.04 (WDL command always runs inside a container)
+#### Changed
+- The source file `jaws-prod.sh` can be used in a script with `set -u`.
+
+### Internal Changes
+#### Fixed
+- Workflows were crashing on tahoma because of bad permissions on the `inputs` and `refdata` dirs.
+### Added
+- Created a status bar-chart for tasks as part of the jaws dashboard
+- LaunchDarkley implemented for jaws dashboard
+#### Changed
+- WDL validation now allows variables to be used in the runtime section (i.e memory, time, etc.).
+
 ## 2.5.0 (2021-10-21) Summary
 This release includes changes necessary to deploy to an additional computing site, tahoma.  Also included are several bug fixes and new features to improve the user experience.
 
@@ -194,3 +265,13 @@ Major feature release with new Gitlab integration and central gitlab repository
 - Modification to how JAWS works section (!46)
 - Major changes to quickstart guide to reflect 2.0 usage (!49)
 - Update of JAWS commands in documentation (!136)
+
+### Controlled Vocabulary
+All changes should be under one of these categories
+
+`Added` for new features.
+`Changed` for changes in existing functionality.
+`Deprecated` for soon-to-be removed features.
+`Removed` for now removed features.
+`Fixed` for any bug fixes.
+`Security` in case of vulnerabilities.
