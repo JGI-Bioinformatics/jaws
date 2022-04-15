@@ -47,6 +47,8 @@ sbatch_cmd = "sbatch --parsable %s"
 MIN_POOL = 3
 MAX_POOL = 100
 
+worker_sizes = {'regular_cpu' : 64, 'regular_mem':128, 'exvivo_cpu': 72, 'exvivo_mem':1450, 'perlmutter_cpu': 256, 'perlmutter_mem': 512}
+
 #
 # Execute sbatch
 #
@@ -54,7 +56,7 @@ MAX_POOL = 100
 
 def get_current_slurm_workers() -> Dict:
     partitions = '-p genepool,genepool_shared,exvivo,exvivo_shared'
-    squeue_cmd = f'squeue --clusters=all --format="%.18i %.24P %.100j %.8u %.10T %S %e" {partitions}'
+    squeue_cmd = f'squeue --clusters=all --format="%.18i %D %.24P %.100j %.20u %.10T %S %e" {partitions}'
 
     _stdout, _stderr, error = run_sh_command(squeue_cmd, show_stdout=False)
     if error != 0:
@@ -71,6 +73,7 @@ def get_current_slurm_workers() -> Dict:
 
     # Make dataframe to query with
     df = pd.DataFrame(jobs, columns=columns)
+    df['NODES'] = df['NODES'].astype(int)
 
     # replace time with value and convert times to datetime
     for time_col in ['START_TIME', 'END_TIME']:
@@ -87,17 +90,19 @@ def get_current_slurm_workers() -> Dict:
 
     mask_jtm = (mask_jtm & mask_condor)
 
-    jaws_jtm_status['jaws_regular_pending'] = sum(mask_jtm & mask_pending & mask_genepool)
-    jaws_jtm_status['jaws_regular_running'] = sum(mask_jtm & ~mask_pending & mask_genepool)
+    # Each of these selects for a certian type of node based on a set of masks
+    # Add the number of nodes to get how many are in each catogory
+    jaws_jtm_status['jaws_regular_pending'] = sum(df[mask_jtm & mask_pending & mask_genepool].NODES)
+    jaws_jtm_status['jaws_regular_running'] = sum(df[mask_jtm & ~mask_pending & mask_genepool].NODES)
 
-    jaws_jtm_status['jaws_exvivo_pending'] = sum(mask_jtm & mask_pending & ~mask_genepool)
-    jaws_jtm_status['jaws_exvivo_running'] = sum(mask_jtm & ~mask_pending & ~mask_genepool)
+    jaws_jtm_status['jaws_exvivo_pending'] = sum(df[mask_jtm & mask_pending & ~mask_genepool].NODES)
+    jaws_jtm_status['jaws_exvivo_running'] = sum(df[mask_jtm & ~mask_pending & ~mask_genepool].NODES)
 
-    jaws_jtm_status['other_genepool_pending'] = sum(~mask_jtm & mask_pending & mask_genepool)
-    jaws_jtm_status['other_genepool_running'] = sum(~mask_jtm & ~mask_pending & mask_genepool)
+    jaws_jtm_status['other_genepool_pending'] = sum(df[~mask_jtm & mask_pending & mask_genepool].NODES)
+    jaws_jtm_status['other_genepool_running'] = sum(df[~mask_jtm & ~mask_pending & mask_genepool].NODES)
 
-    jaws_jtm_status['other_exvivo_pending'] = sum(~mask_jtm & mask_pending & ~mask_genepool)
-    jaws_jtm_status['other_exvivo_running'] = sum(~mask_jtm & ~mask_pending & ~mask_genepool)
+    jaws_jtm_status['other_exvivo_pending'] = sum(df[~mask_jtm & mask_pending & ~mask_genepool].NODES)
+    jaws_jtm_status['other_exvivo_running'] = sum(df[~mask_jtm & ~mask_pending & ~mask_genepool].NODES)
 
     return jaws_jtm_status
 
@@ -136,11 +141,11 @@ SELECT BARE
     df['RequestCpus'] = df['RequestCpus'].astype(float)
 
     df['mem_bin'] = pd.cut(df['RequestMemory'], 
-        bins=[0, 125, 1450, 10_000_000], 
+        bins=[0, worker_sizes['regular_mem'], worker_sizes['exvivo_mem'], 10_000_000], 
         labels=['regular', 'exvivo', 'over-mem'])
     df['cpu_bin'] = pd.cut(df['RequestCpus'], 
-        bins=[0, 64, 72, 256, 10_000_000], 
-        labels=['regular', 'exvivo', 'perlmutter', 'over-cpu'])
+        bins=[0, worker_sizes['regular_cpu'], worker_sizes['exvivo_cpu'], 10_000_000], 
+        labels=['regular', 'exvivo', 'over-cpu'])
 
     condor_q_status = {}
     mask_running_status = (df['JobStatus'].astype(int) == 2)
@@ -172,7 +177,6 @@ SELECT BARE
 
 
 def need_new_nodes(condor_job_queue, slurm_workers, machine):
-    worker_sizes = {'regular_cpu' : 64, 'regular_mem':128, 'exvivo_cpu': 72, 'exvivo_mem':1450}
     workers_needed = 0
     
     # If we need more than a node add a node (or more)
