@@ -159,7 +159,7 @@ def recurse_dict_type(inp_type, dict_type):
         if element == "," and bracket_stack == []:
             break
         if ((element == "]" or element == "}") and
-            paren_map[element] == bracket_stack[-1]):
+                paren_map[element] == bracket_stack[-1]):
             bracket_stack.pop()
     key = inp_type[start_idx:idx]
     value = inp_type[idx + 1: len(inp_type) - 1]
