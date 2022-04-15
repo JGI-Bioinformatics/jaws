@@ -777,6 +777,12 @@ def struct_inputs(tmp_path):
     struct_dir.mkdir()
     inputs = struct_dir / "struct.json"
 
+    apple = struct_dir / "apple.txt"
+    apple.write_text("Apple starts with an A.")
+    brown = tmp_path / "brown.txt"
+    brown.write_text("Brown starts with a B.")
+    crown = tmp_path / "crown.txt"
+    crown.write_text("Crown starts with a C.")
     contents = """{
     "test_struct.product_list": [
         {
@@ -784,23 +790,38 @@ def struct_inputs(tmp_path):
             "batch": {
                 "Left": 2234, 
                 "Right" : 2020
-            }
+            },
+            "info": {
+                "manufacture": "India",
+                "distribution": "India"
+            },
+            "locations": ["%s"]
         },
         {
             "name": "Brown", 
             "batch": {
                 "Left": 9876, 
                 "Right" : 2022
-            }
+            },
+            "info": {
+                "manufacture": "Germany",
+                "distribution": "Spain"
+            },
+            "locations": ["%s"]
         },
         {
             "name": "Crown", 
             "batch": {
                 "Left": 4506, 
                 "Right" : 2019
-            }
+            },
+            "info": {
+                "manufacture": "Spain",
+                "distribution": "France"
+            },
+            "locations": ["%s"]
         }]
-}"""
+}""" % (apple, brown, crown)
 
     inputs.write_text(contents)
     wdl = struct_dir / "struct.wdl"
@@ -810,6 +831,8 @@ version 1.0
 struct Product {
     String name
     Pair[Int, Int] batch
+    Array[File] locations
+    Map[String, String] info
 }
 
 workflow test_struct {
