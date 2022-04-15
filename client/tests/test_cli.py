@@ -373,9 +373,16 @@ def test_get(configuration, monkeypatch):
             return {
                 "status": "download complete",
                 "output_dir": "/data/repo/dir/mockuser/run1",
+                "submission_id": "65f2f4df-2a6c-4881-a3b0-3141107ac668",
+                "user_id": "abc",
             }
         else:
-            return {"status": "submitted", "output_dir": "/data/repo/dir/mockuser/run1"}
+            return {
+                "status": "submitted", 
+                "output_dir": "/data/repo/dir/mockuser/run1",
+                "submission_id": "65f2f4df-2a6c-4881-a3b0-3141107ac668",
+                "user_id": "abc",
+            }
 
     def mock_run(args, **kwargs):
         if args[0] == "rsync" and args[1] == "-a" and len(args) == 4:
