@@ -836,7 +836,7 @@ task write_product_params {
         Product product
     }
     command <<<
-        echo "hi!"
+        echo {product.name}
     >>>
 }
 """
