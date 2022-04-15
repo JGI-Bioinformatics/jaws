@@ -165,10 +165,11 @@ def recurse_dict_type(inp_type, dict_type):
     value = inp_type[idx + 1: len(inp_type) - 1]
     return key, value
 
+
 def process_wom_composite(inp_type):
     dict_type = "WomCompositeType{"
     start_idx = inp_type.find(dict_type) + len(dict_type)
-    elements = inp_type[start_idx : len(inp_type)-1]
+    elements = inp_type[start_idx: len(inp_type)-1]
     elements = elements.strip().split()
     struct_obj = {}
     for element in elements:
