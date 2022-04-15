@@ -772,6 +772,73 @@ task task_relative {
 
 
 @pytest.fixture()
+def struct_inputs(tmp_path):
+    struct_dir = tmp_path / "test"
+    struct_dir.mkdir()
+    inputs = struct_dir / "struct.json"
+
+    contents = """{{
+    "test_struct.product_list": [
+        {
+            "name": "Apple", 
+            "batch": {
+                "Left": 2234, 
+                "Right" : 2020
+            }
+        },
+        {
+            "name": "Brown", 
+            "batch": {
+                "Left": 9876, 
+                "Right" : 2022
+            }
+        },
+        {
+            "name": "Crown", 
+            "batch": {
+                "Left": 4506, 
+                "Right" : 2019
+            }
+        }]
+}}"""
+
+    inputs.write_text(contents)
+    wdl = struct_dir / "struct.wdl"
+    wdl_contents = """
+version 1.0
+
+struct Product {
+    String name
+    Pair[Int, Int] batch
+}
+
+workflow test_struct {
+    input {
+        Array[Product] product_list
+    }
+
+    scatter (product in product_list) {
+        call write_product_params {
+            input:
+                product=product
+        }
+    }
+}
+
+task write_product_params {
+    input {
+        Product product
+    }
+    command {
+        echo ${product.name}
+    }
+}
+"""
+    wdl.write_text(wdl_contents)
+    return tmp_path.as_posix()
+
+
+@pytest.fixture()
 def refdata_inputs_missing_slash(tmp_path):
     inputs = tmp_path / "inputs.json"
     text_file = tmp_path / "file1.txt"
