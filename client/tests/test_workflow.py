@@ -403,8 +403,8 @@ def test_rsync_excludes(configuration, output_example):
     assert os.path.exists(f"{dest}/run1/task1/execution/stdout") is True
     assert os.path.exists(f"{dest}/run1/task1/inputs/infile") is False
 
-def test_struct(struct_inputs):
-    root_dir = struct_inputs
+def test_struct(relative_inputs):
+    root_dir = relative_inputs
     inputs_json = os.path.join(root_dir, "test", "struct.json")
     wdl = os.path.join(root_dir, "test", "struct.wdl")
     import jaws_client.workflow
