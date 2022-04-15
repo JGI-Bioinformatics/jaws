@@ -776,12 +776,8 @@ def struct_inputs(tmp_path):
     struct_dir = tmp_path / "test"
     struct_dir.mkdir()
     inputs = struct_dir / "struct.json"
-    apple = struct_dir / "apple.txt"
-    apple.write_text("Apple starts with an A.")
-    brown = tmp_path / "brown.txt"
-    brown.write_text("Brown starts with a B.")
-    crown = tmp_path / "crown.txt"
-    crown.write_text("Crown starts with a C.")
+    fileZ = tmp_path / "fileZ.txt"
+    fileZ.write_text("This is fileZ.")
     contents = """{{
     "test_struct.product_list": [
     {
@@ -819,7 +815,7 @@ def struct_inputs(tmp_path):
     }],
     "test_struct.location": "{0}"
 }}
-""".format(apple)
+""".format(fileZ)
 
     inputs.write_text(contents)
     wdl = struct_dir / "struct.wdl"
