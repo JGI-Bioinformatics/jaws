@@ -790,6 +790,10 @@ def struct_inputs(tmp_path):
             "Left": 2234,
             "Right" : 2020
         },
+        "info": {
+            "manufacture": "India",
+            "distribution": "India"
+        }
     },
     {
         "name" : "Brown",
@@ -797,6 +801,10 @@ def struct_inputs(tmp_path):
             "Left": 9876,
             "Right" : 2022
         },
+        "info": {
+            "manufacture": "Germany",
+            "distribution": "Spain"
+        }
     },
     {
         "name" : "Crown",
@@ -804,6 +812,10 @@ def struct_inputs(tmp_path):
             "Left": 4506,
             "Right" : 2019
         },
+        "info": {
+            "manufacture": "Spain",
+            "distribution": "France"
+        }
     }]
 }}
 """
@@ -816,6 +828,7 @@ version 1.0
 struct Product {
     String name
     Pair[Int, Int] batch
+    Map[String, String] info
 }
 
 workflow test_struct {
