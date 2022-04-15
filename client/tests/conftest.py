@@ -777,40 +777,7 @@ def struct_inputs(tmp_path):
     struct_dir.mkdir()
     inputs = struct_dir / "struct.json"
     contents = """{{
-    "test_struct.product_list": [
-    {
-        "name" : "Apple",
-        "batch" : {
-            "Left": 2234,
-            "Right" : 2020
-        },
-        "info": {
-            "manufacture": "India",
-            "distribution": "India"
-        }
-    },
-    {
-        "name" : "Brown",
-        "batch" : {
-            "Left": 9876,
-            "Right" : 2022
-        },
-        "info": {
-            "manufacture": "Germany",
-            "distribution": "Spain"
-        }
-    },
-    {
-        "name" : "Crown",
-        "batch" : {
-            "Left": 4506,
-            "Right" : 2019
-        },
-        "info": {
-            "manufacture": "Spain",
-            "distribution": "France"
-        }
-    }]
+    "test_struct.product_list": ["Apple", "Brown", "Crown"]
 }}
 """
 
@@ -819,15 +786,9 @@ def struct_inputs(tmp_path):
     wdl_contents = """
 version 1.0
 
-struct Product {
-    String name
-    Pair[Int, Int] batch
-    Map[String, String] info
-}
-
 workflow test_struct {
     input {
-        Array[Product] product_list
+        Array[String] product_list
     }
 
     scatter (product in product_list) {
@@ -843,7 +804,7 @@ task write_product_params {
         Product product
     }
     command <<<
-        echo {product.name}
+        echo "Hello!"
     >>>
 }
 """
