@@ -790,6 +790,7 @@ def struct_inputs(tmp_path):
             "Left": 2234,
             "Right" : 2020
         },
+        "locations": ["{apple}"],
         "info": {
             "manufacture": "India",
             "distribution": "India"
@@ -801,6 +802,7 @@ def struct_inputs(tmp_path):
             "Left": 9876,
             "Right" : 2022
         },
+        "locations": ["{brown}"],
         "info": {
             "manufacture": "Germany",
             "distribution": "Spain"
@@ -812,13 +814,14 @@ def struct_inputs(tmp_path):
             "Left": 4506,
             "Right" : 2019
         },
+        "locations": ["{crown}"],
         "info": {
             "manufacture": "Spain",
             "distribution": "France"
         }
     }]
 }}
-"""
+""".format(apple=apple, brown=brown, crown=crown)
 
     inputs.write_text(contents)
     wdl = struct_dir / "struct.wdl"
