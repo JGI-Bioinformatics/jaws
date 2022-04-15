@@ -167,6 +167,16 @@ def recurse_dict_type(inp_type, dict_type):
 
 
 def process_wom_composite(inp_type):
+    """
+    Takes WomCompositeType and parses the string into a dict
+    Eg. WomCompositeType{\nname->String\nbatch->Pair[Int,Int]\nlocations-> Array[File]\ninfo->Map[String,String]\n} will be parsed into
+    {
+        'name': 'String',
+        'batch': 'Pair[Int,Int]',
+        'locations': 'Array[File]',
+        'info': 'Map[String,String]'
+    }
+    """
     dict_type = "WomCompositeType{"
     start_idx = inp_type.find(dict_type) + len(dict_type)
     elements = inp_type[start_idx: len(inp_type)-1]
