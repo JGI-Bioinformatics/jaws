@@ -53,7 +53,8 @@ MAX_POOL = 100
 
 
 def get_current_slurm_workers() -> Dict:
-    squeue_cmd = f"""squeue --clusters=all --format="%.18i %.24P %.100j %.8u %.10T %S %e" -p genepool,genepool_shared,exvivo,exvivo_shared"""
+    partitions = '-p genepool,genepool_shared,exvivo,exvivo_shared'
+    squeue_cmd = f'squeue --clusters=all --format="%.18i %.24P %.100j %.8u %.10T %S %e" {partitions}'
 
     _stdout, _stderr, error = run_sh_command(squeue_cmd, show_stdout=False)
     if error != 0:
@@ -170,7 +171,7 @@ SELECT BARE
     return condor_q_status
 
 
-def start_new_nodes(condor_job_queue, slurm_workers, machine):
+def need_new_nodes(condor_job_queue, slurm_workers, machine):
     worker_sizes = {'regular_cpu' : 64, 'regular_mem':128, 'exvivo_cpu': 72, 'exvivo_mem':1450}
     workers_needed = 0
     
@@ -202,8 +203,8 @@ if __name__ == '__main__':
     print(condor_job_queue,"\n\n")
     slurm_workers = get_current_slurm_workers()
     print(slurm_workers,"\n\n")
-    workers_needed = {'regular' : start_new_nodes(condor_job_queue, slurm_workers, 'regular'), 
-                        'exvivo' : start_new_nodes(condor_job_queue, slurm_workers, 'exvivo')}
+    workers_needed = {'regular' : need_new_nodes(condor_job_queue, slurm_workers, 'regular'), 
+                        'exvivo' : need_new_nodes(condor_job_queue, slurm_workers, 'exvivo')}
     print(workers_needed)
 
 
