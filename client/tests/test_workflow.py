@@ -410,4 +410,6 @@ def test_struct(struct_inputs):
     import jaws_client.workflow
     inputs = jaws_client.workflow.WorkflowInputs(inputs_json, 'ABCDEF', wdl_loc=wdl)
     assert len(inputs.inputs_json["test_struct.product_list"]) == 3
+    for path in inputs.src_file_inputs:
+        assert path.startswith(root_dir)
     assert inputs.inputs_json["test_struct.product_list"][0]["name"] == "Apple"
