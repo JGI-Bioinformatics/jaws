@@ -777,7 +777,7 @@ def struct_inputs(tmp_path):
     struct_dir.mkdir()
     inputs = struct_dir / "struct.json"
 
-    contents = """{{
+    contents = """{
     "test_struct.product_list": [
         {
             "name": "Apple", 
@@ -800,7 +800,7 @@ def struct_inputs(tmp_path):
                 "Right" : 2019
             }
         }]
-}}"""
+}"""
 
     inputs.write_text(contents)
     wdl = struct_dir / "struct.wdl"
