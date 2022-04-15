@@ -169,7 +169,9 @@ def recurse_dict_type(inp_type, dict_type):
 def process_wom_composite(inp_type):
     """
     Takes WomCompositeType and parses the string into a dict
-    Eg. WomCompositeType{\nname->String\nbatch->Pair[Int,Int]\nlocations-> Array[File]\ninfo->Map[String,String]\n} will be parsed into
+    Eg. WomCompositeType{\nname->String\nbatch->Pair[Int,Int]
+    \nlocations-> Array[File]\ninfo->Map[String,String]\n}
+    will be parsed into
     {
         'name': 'String',
         'batch': 'Pair[Int,Int]',
