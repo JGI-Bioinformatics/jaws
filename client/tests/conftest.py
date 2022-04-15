@@ -776,8 +776,6 @@ def struct_inputs(tmp_path):
     struct_dir = tmp_path / "test"
     struct_dir.mkdir()
     inputs = struct_dir / "struct.json"
-    fileZ = tmp_path / "fileZ.txt"
-    fileZ.write_text("This is fileZ.")
     contents = """{{
     "test_struct.product_list": [
     {
@@ -812,10 +810,9 @@ def struct_inputs(tmp_path):
             "manufacture": "Spain",
             "distribution": "France"
         }
-    }],
-    "test_struct.location": "{0}"
+    }]
 }}
-""".format(fileZ)
+"""
 
     inputs.write_text(contents)
     wdl = struct_dir / "struct.wdl"
@@ -831,7 +828,6 @@ struct Product {
 workflow test_struct {
     input {
         Array[Product] product_list
-        File location
     }
 
     scatter (product in product_list) {
