@@ -203,7 +203,7 @@ def apply_filepath_op(obj, inp_type, operation):
             }
     else:
         raise ValueError(
-            f"cannot perform op={operation.__name__} to object of type {type(obj)}"
+            f"cannot perform op={operation.__name__} to object ({obj}) of type {type(obj)}, {inp_type}"
         )
 
 

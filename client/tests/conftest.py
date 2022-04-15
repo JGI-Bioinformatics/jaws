@@ -771,6 +771,95 @@ task task_relative {
     return tmp_path.as_posix()
 
 
+@pytest.fixture()
+def struct_inputs(tmp_path):
+    struct_dir = tmp_path / "test"
+    struct_dir.mkdir()
+    inputs = struct_dir / "struct.json"
+    apple = struct_dir / "apple.txt"
+    apple.write_text("Apple starts with an A.")
+    brown = tmp_path / "brown.txt"
+    brown.write_text("Brown starts with a B.")
+    crown = tmp_path / "crown.txt"
+    crown.write_text("Crown starts with a C.")
+    contents = """{{
+    "test_struct.product_list": [
+    {
+        "name" : "Apple",
+        "batch" : {
+            "Left": 2234,
+            "Right" : 2020
+        },
+        "locations": ["{0}"],
+        "info": {
+            "manufacture": "India",
+            "distribution": "India"
+        }
+    },
+    {
+        "name" : "Brown",
+        "batch" : {
+            "Left": 9876,
+            "Right" : 2022
+        },
+        "locations": ["{1}"],
+        "info": {
+            "manufacture": "Germany",
+            "distribution": "Spain"
+        }
+    },
+    {
+        "name" : "Crown",
+        "batch" : {
+            "Left": 4506,
+            "Right" : 2019
+        },
+        "locations": ["{2}"],
+        "info": {
+            "manufacture": "Spain",
+            "distribution": "France"
+        }
+    }]
+}}
+""".format(apple, brown, crown)
+
+    inputs.write_text(contents)
+    wdl = struct_dir / "struct.wdl"
+    wdl_contents = """
+version 1.0
+
+struct Product {
+    String name
+    Pair[Int, Int] batch
+    Array[File] locations
+    Map[String, String] info
+}
+
+workflow test_struct {
+    input {
+        Array[Product] product_list
+    }
+
+    scatter (product in product_list) {
+        call write_product_params {
+            input:
+                product=product
+        }
+    }
+}
+
+task write_product_params {
+    input {
+        Product product
+    }
+    command {
+        echo ${product.name}
+    }
+}
+"""
+    wdl.write_text(wdl_contents)
+    return tmp_path.as_posix()
+
 
 @pytest.fixture()
 def refdata_inputs_missing_slash(tmp_path):
