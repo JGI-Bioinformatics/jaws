@@ -91,7 +91,6 @@ def extract_jaws_info(working_dir):
     if len(split) == 8:
         workflow_name, cromwell_id, task_name, sub_workflow_name, \
             sub_cromwell_id, sub_task_name, shard_n, _ = split
-        
         try:
             shard_n = int(shard_n.split('-')[-1])
             task_name = task_name.split('-')[-1]
@@ -123,12 +122,12 @@ def extract_jaws_info(working_dir):
         task_name = task_name.split('-')[-1]
     else:
         return default_response
-    
     # If there's an error it's probably better to return default instead of breaking
     try:
         return workflow_name, cromwell_id, task_name, sub_workflow_name, \
             sub_cromwell_id, sub_task_name, int(shard_n)
-    except:
+    except Exception as e:
+        logger.info(f"Error when processing cromwell_id={cromwell_id}, {e}")
         return default_response
 
 
