@@ -149,18 +149,45 @@ def recurse_dict_type(inp_type, dict_type):
     Eg. Map[Array[Array[File]], Pair[Int, String]] will return:
     key = Array[Array[File]] and value = Pair[Int, String]
     """
+    paren_map = {"{": "}", "[": "]"}
     start_idx = inp_type.find(dict_type) + len(dict_type)
     bracket_stack = []
     for idx in range(start_idx, len(inp_type)):
-        if inp_type[idx] == "[":
-            bracket_stack.append("[")
-        if inp_type[idx] == "," and bracket_stack == []:
+        element = inp_type[idx]
+        if element == "[" or element == "{":
+            bracket_stack.append(element)
+        if element == "," and bracket_stack == []:
             break
-        if inp_type[idx] == "]":
+        if ((element == "]" or element == "}") and
+                paren_map[element] == bracket_stack[-1]):
             bracket_stack.pop()
     key = inp_type[start_idx:idx]
-    value = inp_type[idx + 2: len(inp_type) - 1]
+    value = inp_type[idx + 1: len(inp_type) - 1]
     return key, value
+
+
+def process_wom_composite(inp_type):
+    """
+    Takes WomCompositeType and parses the string into a dict
+    Eg. WomCompositeType{\nname->String\nbatch->Pair[Int,Int]
+    \nlocations-> Array[File]\ninfo->Map[String,String]\n}
+    will be parsed into
+    {
+        'name': 'String',
+        'batch': 'Pair[Int,Int]',
+        'locations': 'Array[File]',
+        'info': 'Map[String,String]'
+    }
+    """
+    dict_type = "WomCompositeType{"
+    start_idx = inp_type.find(dict_type) + len(dict_type)
+    elements = inp_type[start_idx: len(inp_type)-1]
+    elements = elements.strip().split()
+    struct_obj = {}
+    for element in elements:
+        pair = element.split("->")
+        struct_obj[pair[0]] = pair[1]
+    return struct_obj
 
 
 def apply_filepath_op(obj, inp_type, operation):
@@ -175,6 +202,7 @@ def apply_filepath_op(obj, inp_type, operation):
     Note: Whenever operation is called a Boolean value is passed along with obj.
     This boolean values represents the flag is_file. It indicates if obj is a File.
     """
+    inp_type = inp_type.replace(" ", "")
     if isinstance(obj, str):
         if "File" in inp_type:
             return operation(obj, True)
@@ -187,13 +215,20 @@ def apply_filepath_op(obj, inp_type, operation):
             apply_filepath_op(i, recurse_list_type(inp_type), operation) for i in obj
         ]
     elif isinstance(obj, dict):
-        if "Pair[" in inp_type:
+        if inp_type.startswith("WomCompositeType"):
+            inp_type = process_wom_composite(inp_type)
+            struct_obj = {}
+            for variable in inp_type:
+                struct_obj[variable] = apply_filepath_op(
+                    obj[variable], inp_type[variable], operation)
+            return struct_obj
+        if inp_type.startswith("Pair["):
             left_type, right_type = recurse_dict_type(inp_type, "Pair[")
             return {
                 "Left": apply_filepath_op(obj["Left"], left_type, operation),
                 "Right": apply_filepath_op(obj["Right"], right_type, operation),
             }
-        if "Map[" in inp_type:
+        if inp_type.startswith("Map["):
             key_type, value_type = recurse_dict_type(inp_type, "Map[")
             return {
                 apply_filepath_op(k, key_type, operation): apply_filepath_op(
