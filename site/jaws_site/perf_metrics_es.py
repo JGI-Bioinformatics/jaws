@@ -91,9 +91,20 @@ def extract_jaws_info(working_dir):
     if len(split) == 8:
         workflow_name, cromwell_id, task_name, sub_workflow_name, \
             sub_cromwell_id, sub_task_name, shard_n, _ = split
-        shard_n = shard_n.split('-')[-1]
-        task_name = task_name.split('-')[-1]
-        sub_task_name = sub_task_name.split('-')[-1]
+        try:
+            shard_n = int(shard_n.split('-')[-1])
+            task_name = task_name.split('-')[-1]
+            sub_task_name = sub_task_name.split('-')[-1]
+        except ValueError:
+            # Quick hack to rearange
+            _sub_task_name = sub_task_name
+            _sub_cromwell_id = sub_cromwell_id
+            task_name = task_name.split('-')[-1]
+            sub_task_name = shard_n.split('-')[-1]
+            shard_n = int(sub_workflow_name.split('-')[-1])
+            sub_cromwell_id = _sub_task_name
+            sub_workflow_name = _sub_cromwell_id
+
     # Workflow with subworkflow
     elif len(split) == 7:
         workflow_name, cromwell_id, task_name, sub_workflow_name, \
@@ -111,9 +122,13 @@ def extract_jaws_info(working_dir):
         task_name = task_name.split('-')[-1]
     else:
         return default_response
-
-    return workflow_name, cromwell_id, task_name, sub_workflow_name, \
-        sub_cromwell_id, sub_task_name, int(shard_n)
+    # If there's an error it's probably better to return default instead of breaking
+    try:
+        return workflow_name, cromwell_id, task_name, sub_workflow_name, \
+            sub_cromwell_id, sub_task_name, int(shard_n)
+    except Exception as e:
+        logger.info(f"Error when processing cromwell_id={cromwell_id}, {e}")
+        return default_response
 
 
 def process_csv(csv_file):
