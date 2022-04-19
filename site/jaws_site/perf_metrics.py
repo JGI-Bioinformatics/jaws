@@ -79,7 +79,7 @@ class PerformanceMetrics:
             self.tasks[cromwell_id] = tasks.TaskLog(
                 self.session, cromwell_run_id=cromwell_id
             ).get_task_cromwell_dir_mapping()
-        except Exception as err:
+        except Exception:
             # if calling TaskLog throws an exception (cromwell fails to get data using cromwell_id), don't
             # update the tasks list.
             pass
