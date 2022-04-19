@@ -5,6 +5,8 @@ from typing import Callable
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from pathlib import Path
 from jaws_site import config, models, rpc_es, runs_es
+import re
+from functools import lru_cache
 
 logger = logging.getLogger(__package__)
 
@@ -73,96 +75,37 @@ class Metrics:
             Path(f"{done_file}").rename(f"{processed_file}")
 
 
+@lru_cache()
 def extract_jaws_info(working_dir):
+    """
+    Extract Cromwell run id from a Cromwell working directory
+    returns "naw" if there is no cromwell id found
+
+    :param task: command string
+    :return: Cromwell run id in UUID format
+    """
+    cromwell_id = "naw"
     try:
-        # Make defaults in case there are no values later
-        default_response = "naw", "naw", "naw", "naw", "naw", "naw", 0  # not a workflow
-        # no subworflow
-        sub_workflow_name = sub_cromwell_id = sub_task_name = "nosub"
-        shard_n = 0
-
-        # Make dummy varialbes
-        workflow_name = None
-        task_name = None
-        cromwell_id = None
-
-        # Splits the directory structure into a list
-        try:
-            split = working_dir.split("/")
-        except AttributeError:
-            return default_response
-
-        # If there is no "cromwell-executions" in the directory structure
-        # then it's not a part of cromwell executions
-        # and therefore not a part of the JAWS workflow
-        # Label it so that it can be removed later
-        if "cromwell-executions" not in split:
-            return default_response
-
-        # Only keep the parts after "cromwell-executions"
-        split = split[split.index("cromwell-executions") + 1:]
-        split.remove("execution")
-
-        # Fill in outputs from the split string by looping through the parts
-        for s in split:
-            # Get task information
-            if "call-" in s:
-                # If we don't have a task yet it's the main task
-                if task_name is None:
-                    task_name = s.split("-")[-1]
-                # Otherwise it's a subtask
-                else:
-                    sub_task_name = s.split("-")[-1]
-            # Get information for shards
-            elif "shard-" in s:
-                shard_n = s.split("-")[-1]
-            # Cromwell-id should be 8-4-4-4-12 giving 5 parts
-            # If we can split it into 5 parts it's a {sub-}workflow
-            elif len(s.split("-")) == 5:
-                if cromwell_id is None:
-                    cromwell_id = s
-                else:
-                    sub_cromwell_id = s
-            # Any other strings should be the {sub-}workflow name
-            else:
-                if workflow_name is None:
-                    workflow_name = s
-                else:
-                    sub_workflow_name = s
-
-        return (
-            workflow_name,
-            cromwell_id,
-            task_name,
-            sub_workflow_name,
-            sub_cromwell_id,
-            sub_task_name,
-            int(shard_n),
-        )
+        regex = re.compile(r"cromwell-executions\/[^\/]+\/([^\/]+)", re.I)
+        match = regex.search(working_dir)
+        if match:
+            cromwell_id = match.group(1)
     except Exception as e:
-        logger.warn(
-            f"Error when processing cromwell_id={cromwell_id}, {type(e).__name__} : {e}"
-        )
-        return default_response
+        logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+
+    return cromwell_id
 
 
 def process_csv(csv_file):
     csv_data = pd.read_csv(csv_file, parse_dates=[0], index_col=[0])
 
     # Get data and make new columns in dataframe
-    (
-        csv_data["workflow_name"],
-        csv_data["cromwell_id"],
-        csv_data["task_name"],
-        csv_data["sub_workflow_name"],
-        csv_data["sub_cromwell_id"],
-        csv_data["sub_task_name"],
-        csv_data["shard_n"],
-    ) = csv_data.current_dir.apply(extract_jaws_info)
+    csv_data["cromwell_id"] = csv_data.current_dir.apply(extract_jaws_info)
+
     # Drops any non-workflow related processes
-    csv_data = csv_data[csv_data.workflow_name != "naw"]
+    csv_data = csv_data[csv_data.cromwell_id != "naw"]
     # Drops the current_dir, since we shouldn't need it anymore
-    csv_data = csv_data.drop(columns=["current_dir"])
+    # csv_data = csv_data.drop(columns=["current_dir"])
 
     csv_data["@timestamp"] = csv_data.index.map(lambda x: x.isoformat())
     csv_data["mem_total"] = csv_data["mem_rss"] + csv_data["mem_vms"]
