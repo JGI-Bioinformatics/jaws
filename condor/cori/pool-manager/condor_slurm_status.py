@@ -1,17 +1,5 @@
 #!/usr/bin/env python
 """
-Condor pool manager for CORI
-- condor_pool_add.py
-
-Author: Seung-Jin Sul (ssul@lbl.gov)
-
-# Steps
-# 1. Collect the IDLE condor job IDs
-# 2. Get the number of nodes required per memory requirement (normal, jgi_shared, jgi_exvivo)
-#    normal: <= 118G
-#    jgi_shared: 118 ~ 740G
-#    jgi_exvivo: 740 ~ 1450G
-# 3. Execute sbatch
 
 # Steps
 1. Get idle and running htcondor jobs
@@ -27,6 +15,7 @@ Author: Seung-Jin Sul (ssul@lbl.gov)
 
 import shlex
 from typing import Dict
+import uuid
 from utils import run_sh_command
 
 import pandas as pd
@@ -44,14 +33,31 @@ highmem_worker_jgishared_q = f"{condor_root}/condor_worker_highmem_jgi_shared.jo
 highmem_worker_jgiexvivo_q = f"{condor_root}/condor_worker_highmem_jgi_exvivo.job"
 sbatch_cmd = "sbatch --parsable %s"
 
+
+###################### TODO : These should all be created from a configuration file at some point ######################
 MIN_POOL = 3
 MAX_POOL = 100
 
 worker_sizes = {'regular_cpu' : 64, 'regular_mem':128, 'exvivo_cpu': 72, 'exvivo_mem':1450, 'perlmutter_cpu': 256, 'perlmutter_mem': 512}
 
-#
-# Execute sbatch
-#
+default_form = {}
+default_form['regular'] = {
+                'qos': 'genepool_special',
+                'constraint': 'haswell',
+                'account': 'fungalp',
+                'time': '06:00:00',
+                'cluster': 'cori',
+                'script_location': '.',
+            }
+default_form['exvivo'] = {
+                'qos': 'exvivo',
+                'constraint': 'skylake',
+                'account': 'fungalp',
+                'time': '06:00:00',
+                'cluster': 'escori',
+                'script_location': '.',
+            }
+############### TODO : These should all be created from a configuration file at some point ###############
 
 
 def get_current_slurm_workers() -> Dict:
@@ -176,30 +182,104 @@ SELECT BARE
     return condor_q_status
 
 
-def need_new_nodes(condor_job_queue, slurm_workers, machine):
+def need_new_nodes(condor_job_queue:Dict, slurm_workers:Dict, machine:Dict) -> Dict:
     workers_needed = 0
     
     # If we need more than a node add a node (or more)
     if condor_job_queue[f'{machine}_cpu_needed'] > worker_sizes[f'{machine}_cpu'] \
         or condor_job_queue[f'{machine}_mem_needed'] > worker_sizes[f'{machine}_mem']:
+        # Calculate what we need
         _cpu = condor_job_queue[f'{machine}_cpu_needed']//worker_sizes[f'{machine}_cpu']
         _mem = condor_job_queue[f'{machine}_mem_needed']//worker_sizes[f'{machine}_mem']
         workers_needed += max(_cpu,_mem)
 
-    run_pend = slurm_workers[f'jaws_{machine}_pending'] \
+    # Total number running and pending to run (i.e. worker pool)
+    current_pool_size = slurm_workers[f'jaws_{machine}_pending'] \
         + slurm_workers[f'jaws_{machine}_running']
 
-    if run_pend < MIN_POOL:
-        workers_needed = max(MIN_POOL - run_pend, workers_needed)
+    # If workers_needed is higher than the pool we'll add the diference
+    # Else we don't need workers (add 0)
+    workers_needed = max(0, workers_needed - current_pool_size)
 
-    current = slurm_workers[f'jaws_{machine}_pending'] \
-        + slurm_workers[f'jaws_{machine}_running']
+    # If we have less running than the minimum we always need to add more
+    # Either add what we need from queue (workers_needed) 
+    # Or what we're lacking in the pool (min - worker pool)
+    if current_pool_size < MIN_POOL:
+        workers_needed = max(MIN_POOL - current_pool_size, workers_needed)
 
-    # Only add up to max pool and no more
-    if (workers_needed + current) > MAX_POOL:
-        workers_needed = MAX_POOL - current
+    # Check to make sure we don't go over the max pool size
+    if (workers_needed + current_pool_size) > MAX_POOL:
+        # Only add up to max pool and no more
+        workers_needed = MAX_POOL - current_pool_size
 
     return workers_needed
+
+job_template="""#!/bin/bash
+#SBATCH -N {num_nodes}
+#SBATCH -q {qos}
+#SBATCH -C {constraint}
+#SBATCH -A {account}
+#SBATCH -t {time}
+#SBATCH -M {cluster}
+#SBATCH --job-name=jaws_condor_{machine}_worker
+#SBATCH --exclusive
+#SBATCH -e htcondor_%j.err
+#SBATCH -o htcondor_%j.out
+
+export WORKER_SCRIPTS="{script_location}"
+
+# For each node start a worker on that node
+for node in $(scontrol show hostnames ${{SLURM_NODELIST}}); do
+    srun -N 1 -n 1 -c 1 --overlap ${{WORKER_SCRIPTS}}/start_worker.sh &
+    sleep 2
+done
+
+# 6 hours is 21600 seconds
+# Sleeps for a minute less then that to cleanup workers
+# This is better for htcondor to handle instead of leaving hanging slots
+# sleep 21540
+sleep {time_sec}
+
+echo $(date)": Ending jobs"
+for node in $(scontrol show hostnames ${{SLURM_NODELIST}}); do
+    srun -N 1 -n 1 -c 1 --overlap ${{WORKER_SCRIPTS}}/stop_worker.sh &
+    sleep 2
+done
+exit
+"""
+def get_seconds(str_time, percent_off=0.10):
+    days = str_time.split('-')[0]
+    str_time = str_time.split('-')[-1]
+    try:
+       days = int(days)
+    except ValueError as e:
+        days = 0
+
+    total_seconds = days*(60*60*24)
+    str_time = str_time.split(":")
+    convert = {0:1,1:60,2:60*60}
+    for i, t in enumerate(str_time[::-1]):
+        total_seconds += int(t)*convert[i]
+
+    return round(total_seconds*(1-percent_off/100))
+    
+
+def submit_new_job(form):
+
+    form['time_sec'] = get_seconds(form['time'])
+
+    filename = f"new_nodes_{uuid.uuid1()}.sh"
+    sbatch_cmd = f"sbatch --parsable {filename}"
+    with open(filename, 'w') as script:
+        script.write(job_template.format(**form))
+    
+    _stdout, _stderr, error = run_sh_command(sbatch_cmd, show_stdout=False)
+    if error != 0:
+        print(f"ERROR: failed to execute sbatch command: {sbatch_cmd}, {_stderr}, {_stdout}")
+        return None
+    else:
+        form['job'] = _stdout
+        return form
 
 
 if __name__ == '__main__':
@@ -210,5 +290,13 @@ if __name__ == '__main__':
     workers_needed = {'regular' : need_new_nodes(condor_job_queue, slurm_workers, 'regular'), 
                         'exvivo' : need_new_nodes(condor_job_queue, slurm_workers, 'exvivo')}
     print(workers_needed)
+
+    for machine, needed in workers_needed.items():
+        if needed >= 1:
+            form = default_form[machine]
+            form['num_nodes'] = needed
+            form['machine'] = machine
+            # Don't submit jobs for now, but it is working
+            # ret = submit_new_job(form=form)
 
 
