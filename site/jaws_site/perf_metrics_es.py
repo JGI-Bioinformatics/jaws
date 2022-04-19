@@ -63,71 +63,69 @@ class Metrics:
             Path(f"{done_file}").rename(f"{processed_file}")
 
 
-@np.vectorize
 def extract_jaws_info(working_dir):
-    # Splits the directory structure into a list
-    split = working_dir.split("/")
-
-    # Make defaults in case there are no values later
-    default_response = "naw", "naw", "naw", "naw", \
-        "naw", "naw", 0  # not a workflow
-    # no subworflow
-    sub_workflow_name = sub_cromwell_id = sub_task_name = "nosub"
-    shard_n = 0
-
-    # If there is no "cromwell-executions" in the directory structure
-    # then it's not a part of cromwell executions
-    # and therefore not a part of the JAWS workflow
-    # Label it so that it can be removed later
-    if "cromwell-executions" not in split:
-        return default_response
-
-    # Only keep the parts after "cromwell-executions"
-    split = split[split.index("cromwell-executions")+1:]
-
-    # Fill in outputs from the split string based on length
-
-    # Workflow with subworkflows and shards
-    if len(split) == 8:
-        workflow_name, cromwell_id, task_name, sub_workflow_name, \
-            sub_cromwell_id, sub_task_name, shard_n, _ = split
-        try:
-            shard_n = int(shard_n.split('-')[-1])
-            task_name = task_name.split('-')[-1]
-            sub_task_name = sub_task_name.split('-')[-1]
-        except ValueError:
-            # Quick hack to rearange
-            _sub_task_name = sub_task_name
-            _sub_cromwell_id = sub_cromwell_id
-            task_name = task_name.split('-')[-1]
-            sub_task_name = shard_n.split('-')[-1]
-            shard_n = int(sub_workflow_name.split('-')[-1])
-            sub_cromwell_id = _sub_task_name
-            sub_workflow_name = _sub_cromwell_id
-
-    # Workflow with subworkflow
-    elif len(split) == 7:
-        workflow_name, cromwell_id, task_name, sub_workflow_name, \
-            sub_cromwell_id, sub_task_name, _ = split
-        task_name = task_name.split('-')[-1]
-        sub_task_name = sub_task_name.split('-')[-1]
-    # Workflow with shards
-    elif len(split) == 5:
-        workflow_name, cromwell_id, task_name, shard_n, _ = split
-        task_name = task_name.split('-')[-1]
-        shard_n = shard_n.split('-')[-1]
-    # Workflow only
-    elif len(split) == 4:
-        workflow_name, cromwell_id, task_name, _ = split
-        task_name = task_name.split('-')[-1]
-    else:
-        return default_response
-    # If there's an error it's probably better to return default instead of breaking
     try:
+        # Make defaults in case there are no values later
+        default_response = "naw", "naw", "naw", "naw", \
+            "naw", "naw", 0  # not a workflow
+        # no subworflow
+        sub_workflow_name = sub_cromwell_id = sub_task_name = "nosub"
+        shard_n = 0
+
+        # Make dummy varialbes
+        workflow_name = None
+        task_name = None
+        cromwell_id = None
+
+        # Splits the directory structure into a list
+        try:
+            split = working_dir.split("/")
+        except AttributeError:
+            return default_response
+
+        # If there is no "cromwell-executions" in the directory structure
+        # then it's not a part of cromwell executions
+        # and therefore not a part of the JAWS workflow
+        # Label it so that it can be removed later
+        if "cromwell-executions" not in split:
+            return default_response
+
+        # Only keep the parts after "cromwell-executions"
+        split = split[split.index("cromwell-executions")+1:]
+        split.remove("execution")
+        print(split)
+
+        # Fill in outputs from the split string by looping through the parts
+        for s in split:
+            # Get task information
+            if "call-" in s:
+                # If we don't have a task yet it's the main task
+                if task_name is None:
+                    task_name = s.split('-')[-1]
+                # Otherwise it's a subtask
+                else:
+                    sub_task_name = s.split('-')[-1]
+            # Get information for shards
+            elif "shard-" in s:
+                shard_n = s.split('-')[-1]
+            # Cromwell-id should be 8-4-4-4-12 giving 5 parts
+            # If we can split it into 5 parts it's a {sub-}workflow
+            elif len(s.split("-")) == 5:
+                if cromwell_id is None:
+                    cromwell_id = s
+                else:
+                    sub_cromwell_id = s
+            # Any other strings should be the {sub-}workflow name
+            else:
+                if workflow_name is None:
+                    workflow_name = s
+                else:
+                    sub_workflow_name = s
+
         return workflow_name, cromwell_id, task_name, sub_workflow_name, \
-            sub_cromwell_id, sub_task_name, int(shard_n)
+            sub_cromwell_id, sub_task_name, shard_n
     except Exception as e:
-        logger.info(f"Error when processing cromwell_id={cromwell_id}, {e}")
+        logger.warn(f"Error when processing cromwell_id={cromwell_id}, {type(e).__name__} : {e}")
         return default_response
 
 
@@ -138,7 +136,7 @@ def process_csv(csv_file):
     csv_data["workflow_name"], csv_data["cromwell_id"], \
         csv_data["task_name"], csv_data["sub_workflow_name"], \
         csv_data["sub_cromwell_id"], csv_data["sub_task_name"], \
-        csv_data["shard_n"] = extract_jaws_info(csv_data.current_dir)
+        csv_data["shard_n"] = csv_data.current_dir.apply(extract_jaws_info)
     # Drops any non-workflow related processes
     csv_data = csv_data[csv_data.workflow_name != "naw"]
     # Drops the current_dir, since we shouldn't need it anymore
