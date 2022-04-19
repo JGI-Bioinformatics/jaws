@@ -16,8 +16,8 @@ setup(
     install_requires=[line.strip() for line in open("requirements.txt")],
     entry_points={
         "console_scripts": [
-            "jaws-condor-add=jaws_condor.add:cli",
-            "jaws-condor-remove=jaws_condor.remove:send"
+            "jaws-condor-add=jaws_condor.add:add",
+            "jaws-condor-remove=jaws_condor.remove:remove"
         ]
     },
     zip_safe=False,
