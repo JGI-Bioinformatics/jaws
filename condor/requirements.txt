@@ -1,0 +1,5 @@
+Click==7.0
+pytest
+pandas
+black
+
