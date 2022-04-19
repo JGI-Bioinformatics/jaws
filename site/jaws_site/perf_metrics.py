@@ -16,6 +16,7 @@ class PerformanceMetrics:
         self.session = session
         self.rpc_client = rpc_client
 
+    @lru_cache()
     def get_run_id(self, cromwell_id: str) -> int:
         try:
             run = runs.Run.from_cromwell_run_id(self.session, cromwell_id)
@@ -24,6 +25,44 @@ class PerformanceMetrics:
             logger.warn(msg)
             raise runs.RunDbError(msg)
         return run.data.id
+
+    def process_csv(self, csv_file):
+        csv_data = pd.read_csv(csv_file, parse_dates=[0], index_col=[0])
+
+        # Remove extranious parts from the current directory
+        csv_data["current_dir"] = csv_data.current_dir.apply(remove_beginning_path)
+        # Get data and make new columns in dataframe
+        csv_data["cromwell_id"] = csv_data.current_dir.apply(extract_jaws_info)
+
+        # Drops any non-workflow related processes
+        csv_data = csv_data[csv_data.cromwell_id != "naw"]
+
+        # TODO: Add function call to get task name from cromwell api
+        # csv_data["cromwell_task_name"] = csv_data.cromwell_id.apply(self.get_cromwell_task_name)
+        # csv_data = csv_data[csv_data.cromwell_task_name != "None"]
+
+        # If we have a cromwell-id then get the jaws id by calling jaws db
+        csv_data["jaws_run_id"] = csv_data.cromwell_id.apply(self.get_run_id)
+        # Filter out anything that didn't get a jaws_run_id returned
+        csv_data = csv_data[csv_data.jaws_run_id != "None"]
+
+        # Drops the current_dir, since we shouldn't need it anymore
+        # csv_data = csv_data.drop(columns=["current_dir"])
+
+        csv_data["@timestamp"] = csv_data.index.map(lambda x: x.isoformat())
+        csv_data["mem_total"] = csv_data["mem_rss"] + csv_data["mem_vms"]
+        csv_data["num_fds"] = csv_data["num_fds"].replace(["None"], np.nan)
+        csv_data.fillna(0, inplace=True)
+        csv_data["num_fds"] = csv_data.num_fds.astype(int)
+
+        return csv_data.to_dict("records")
+
+    @lru_cache()
+    def add_taskname_mapping(self, cromwell_id):
+        self.tasks[cromwell_id] = tasks.TaskLog(self.session,
+                                                cromwell_run_id=cromwell_id
+                                               ).get_task_cromwell_dir_mapping()
+
 
     def process_metrics(self):
         done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
@@ -41,143 +80,110 @@ class PerformanceMetrics:
             return
 
         for done_file in list(done_dir_obj.glob("*.csv")):
-            docs = process_csv(done_file)
+            docs = self.process_csv(done_file)
             for doc in docs:
                 cromwell_id = doc.get("cromwell_id")
-                if not cromwell_id:
-                    logger.warn(
-                        f"Publishing performance metrics: cannot find cromwell_run_id in {done_file=}."
+                run_id = doc.get("jaws_run_id")
+
+                # Just really a final check at this point since it should already be in the document
+                if not run_id or not cromwell_id:
+                    logger.error(
+                        f"Error with {run_id=} or {cromwell_id=}, Not uploading to performance metrics"
                     )
                     continue
-                try:
-                    run_id = self.get_run_id(cromwell_id)
-                except runs.RunDbError as err:
-                    logger.warn(
-                        f"Publishing performace metrics: failed to get run_id from {cromwell_id=}: {err})"
-                    )
-                    continue
-                doc["jaws_run_id"] = run_id
+
                 logger.info(
                     f"Run {run_id}: Publish performance metrics for cromwell_id={cromwell_id}"
                 )
-                response, status = self.rpc_client.send_request(doc)
+
+                # Add cromwell dir to task name mapping if not already exists
+                self.add_taskname_mapping(cromwell_id)
+
+                # Add task name to doc
+                cromwell_dir = doc["current_dir"]
+                if cromwell_id in self.tasks and cromwell_dir in self.tasks[cromwell_id]:
+                    task_name = self.tasks[cromwell_id][cromwell_dir]
+                else:
+                    task_name = ""
+                doc["task_name"] = task_name
+
+                runs_es.send_rpc_run_metadata(self.rpc_client, doc)
 
             # Move csv file to processed folder
             processed_file = proc_dir_obj / done_file.name
             Path(f"{done_file}").rename(f"{processed_file}")
 
+        # Clear cached cromwell dir to taskname mapping
+        self.tasks = {}
 
-@np.vectorize
+
+@lru_cache()
 def extract_jaws_info(working_dir):
-    # Splits the directory structure into a list
-    split = working_dir.split("/")
+    """
+    Extract Cromwell run id from a Cromwell working directory
+    returns "naw" if there is no cromwell id found
 
-    # Make defaults in case there are no values later
-    default_response = "naw", "naw", "naw", "naw", "naw", "naw", 0  # not a workflow
-    # no subworflow
-    sub_workflow_name = sub_cromwell_id = sub_task_name = "nosub"
-    shard_n = 0
-
-    # If there is no "cromwell-executions" in the directory structure
-    # then it's not a part of cromwell executions
-    # and therefore not a part of the JAWS workflow
-    # Label it so that it can be removed later
-    if "cromwell-executions" not in split:
-        return default_response
-
-    # Only keep the parts after "cromwell-executions"
-    split = split[split.index("cromwell-executions") + 1 :]  # noqa
-
-    # Fill in outputs from the split string based on length
-
-    # Workflow with subworkflows and shards
-    if len(split) == 8:
-        (
-            workflow_name,
-            cromwell_id,
-            task_name,
-            sub_workflow_name,
-            sub_cromwell_id,
-            sub_task_name,
-            shard_n,
-            _,
-        ) = split
-        try:
-            shard_n = int(shard_n.split("-")[-1])
-            task_name = task_name.split("-")[-1]
-            sub_task_name = sub_task_name.split("-")[-1]
-        except ValueError:
-            # Quick hack to rearange
-            _sub_task_name = sub_task_name
-            _sub_cromwell_id = sub_cromwell_id
-            task_name = task_name.split("-")[-1]
-            sub_task_name = shard_n.split("-")[-1]
-            shard_n = int(sub_workflow_name.split("-")[-1])
-            sub_cromwell_id = _sub_task_name
-            sub_workflow_name = _sub_cromwell_id
-
-    # Workflow with subworkflow
-    elif len(split) == 7:
-        (
-            workflow_name,
-            cromwell_id,
-            task_name,
-            sub_workflow_name,
-            sub_cromwell_id,
-            sub_task_name,
-            _,
-        ) = split
-        task_name = task_name.split("-")[-1]
-        sub_task_name = sub_task_name.split("-")[-1]
-    # Workflow with shards
-    elif len(split) == 5:
-        workflow_name, cromwell_id, task_name, shard_n, _ = split
-        task_name = task_name.split("-")[-1]
-        shard_n = shard_n.split("-")[-1]
-    # Workflow only
-    elif len(split) == 4:
-        workflow_name, cromwell_id, task_name, _ = split
-        task_name = task_name.split("-")[-1]
-    else:
-        return default_response
-    # If there's an error it's probably better to return default instead of breaking
+    :param task: command string
+    :return: Cromwell run id in UUID format
+    """
+    cromwell_id = "naw"
     try:
-        return (
-            workflow_name,
-            cromwell_id,
-            task_name,
-            sub_workflow_name,
-            sub_cromwell_id,
-            sub_task_name,
-            int(shard_n),
-        )
+        regex = re.compile(r"cromwell-executions\/[^\/]+\/([^\/]+)", re.I)
+        match = regex.search(working_dir)
+        if match:
+            cromwell_id = match.group(1)
     except Exception as e:
-        logger.info(f"Error when processing cromwell_id={cromwell_id}, {e}")
-        return default_response
+        logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+
+    return cromwell_id
+
+@lru_cache()
+def remove_beginning_path(working_dir):
+    # Get the index of the string "cromwell-executions"
+    dir_name = "None"
+    try:
+        id_ce_dir = working_dir.find("cromwell-executions")
+        # -1 means "cromwell-executions" was not found
+        if id_ce_dir != -1:
+            # Extract from "cromwell-executions" to the end of the string
+            dir_name = working_dir[id_ce_dir:]
+    except Exception as e:
+        logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+
+    return dir_name
 
 
-def process_csv(csv_file):
-    csv_data = pd.read_csv(csv_file, parse_dates=[0], index_col=[0])
+def send_rpc_run_metadata(rpc_client: rpc_es.RPCRequest, payload: dict) -> Tuple[dict, int]:
+    """Sends request to RabbitMQ/RPC and wait for response. If response fails, return non-zero status_code.
 
-    # Get data and make new columns in dataframe
-    (
-        csv_data["workflow_name"],
-        csv_data["cromwell_id"],
-        csv_data["task_name"],
-        csv_data["sub_workflow_name"],
-        csv_data["sub_cromwell_id"],
-        csv_data["sub_task_name"],
-        csv_data["shard_n"],
-    ) = extract_jaws_info(csv_data.current_dir)
-    # Drops any non-workflow related processes
-    csv_data = csv_data[csv_data.workflow_name != "naw"]
-    # Drops the current_dir, since we shouldn't need it anymore
-    csv_data = csv_data.drop(columns=["current_dir"])
+    :param rpc_client: rpc object connected to a RMQ queue for publishing message.
+    :type rpc_client: rpc_es.RPCRequest object.
+    :param payload: json document to publish to RMQ queue.
+    :type payload: dict
+    :return jsondata: response from RMQ request.
+    :rtype jsondata: dictionary
+    :return status_code: zero if successful, non-zero if connection fails or return json contains error msg.
+    :rtype status_code: int
+    """
 
-    csv_data["@timestamp"] = csv_data.index.map(lambda x: x.isoformat())
-    csv_data["mem_total"] = csv_data["mem_rss"] + csv_data["mem_vms"]
-    csv_data["num_fds"] = csv_data["num_fds"].replace(["None"], np.nan)
-    csv_data.fillna(0, inplace=True)
-    csv_data["num_fds"] = csv_data.num_fds.astype(int)
+    try:
+        jsondata = rpc_client.request(payload)
+    except InvalidJsonResponse as err:
+        msg = f"RPC request returned an invalid response: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
+    except ConfigurationError as err:
+        msg = f"RPC request returned an invalid configuration error: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
+    except ConnectionError as err:
+        msg = f"RPC request returned an invalid connection error: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
 
-    return csv_data.to_dict("records")
+    status_code = 0
+
+    if jsondata and 'error' in jsondata:
+        status_code = jsondata['error'].get('code', 500)
+
+    return jsondata, status_code
