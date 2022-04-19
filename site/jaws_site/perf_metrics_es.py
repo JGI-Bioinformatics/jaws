@@ -93,7 +93,6 @@ def extract_jaws_info(working_dir):
         # Only keep the parts after "cromwell-executions"
         split = split[split.index("cromwell-executions")+1:]
         split.remove("execution")
-        print(split)
 
         # Fill in outputs from the split string by looping through the parts
         for s in split:
