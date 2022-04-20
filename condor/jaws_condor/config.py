@@ -47,32 +47,5 @@ class Configuration():
         s = self.config[section]
         params = {
             "site_id":  s["site_id"],
-            "accnt_name": s["accnt_name"],
         }
         return s["site_id"]
-
-    def get_condor_params(self):
-        """Returns Condor pool options.
-
-        :return: Condor pool options.
-        :rtype: dict
-        """
-        section = "CONDOR"
-        s = self.config[section]
-        params = {
-            "condor_root": s["condor_root"],
-            "pool_min_size": s["pool_min_size"],
-            "pool_max_size": s["pool_max_size"],
-        }
-        return params
-
-    def get_slurm_params(self):
-        """Returns site-specific SLURM commands
-
-        :return: Slurm commands
-        :rtype: dict
-        """
-        section = "SLURM"
-        s = self.config[section]
-        params = {}
-        return params

@@ -173,24 +173,21 @@ def cli():
     squeue_cmd_r_p = site_config["SLURM"]["squeue_cmd_running_pending"]
 
     run_sbatch(
-        "small",
-        squeue_cmd_p,
+        squeue_cmd_p % "small",
         None,
         idle_list[0],
         site_config["SLURM"]["small_slurm_job"],
         sbatch_cmd,
     )
     run_sbatch(
-        "medium",
-        squeue_cmd_p,
-        squeue_cmd_r_p,
+        squeue_cmd_p % "medium",
+        squeue_cmd_r_p % "medium",
         idle_list[1],
         site_config["SLURM"]["medium_slurm_job"],
         sbatch_cmd,
     )
     run_sbatch(
-        "large",
-        squeue_cmd_p,
+        squeue_cmd_p % "large",
         None,
         idle_list[2],
         site_config["SLURM"]["large_slurm_job"],
@@ -198,8 +195,7 @@ def cli():
         site_id=site_id,
     )
     run_sbatch(
-        "xlarge",
-        squeue_cmd_p,
+        squeue_cmd_p % "xlarge",
         None,
         idle_list[3],
         site_config["SLURM"]["xlarge_slurm_job"],
