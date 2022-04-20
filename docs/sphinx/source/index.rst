@@ -21,9 +21,8 @@ Summary of JAWS
 Getting Started
 ---------------
 
-`Create your own WDLs <Tutorials/create_env.html>`_
-
-`Run an existing WDL in JAWS <Tutorials/jaws_quickstart.html>`_
+* `Create your own WDLs <Tutorials/create_env.html>`_
+* `Run an existing WDL in JAWS <Tutorials/jaws_quickstart.html>`_
 
 
 
