@@ -20,6 +20,8 @@ import re
 import time
 from threading import Timer
 import sys
+import json
+import yaml
 
 
 # -------------------------------------------------------------------------------
@@ -364,3 +366,13 @@ def run_slurm_cmd(s_cmd: str) -> int:
     except TypeError as te:
         print(f"Unexpected output from slurm command: {s_cmd}\n{te}\n{se}")
         return -1
+
+
+def read_json(file_path):
+    with open(file_path, "r") as f:
+        return json.load(f)
+
+
+def read_yaml(file_path):
+    with open(file_path, "r") as f:
+        return yaml.safe_load(f)

@@ -17,8 +17,11 @@ import os
 import time
 import shlex
 from datetime import datetime
+import configparser
+import jaws_condor.config
 from jaws_condor import config
 form jaws_condor.utils import run_sh_command
+
 
 logger = None
 
@@ -48,5 +51,24 @@ def start_file_logger(filename, name='jaws_condor_pool_remove.log', level=loggin
     logger.addHandler(handler)
 
 
-def remove():
-    pass
+def cli():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", default=None,
+                        help="Config file")
+    parser.add_argument("-l", "--logfile", default=None,
+                        help="Path to logfile")
+    parser.add_argument("-d", "--debug", action='store_true',
+                        help="Enables debug logging")
+
+    args = parser.parse_args()
+    jaws_condor.config.Configuration(args.config)
+    site_id = jaws_condor.config.conf.get_site_id()
+    site_config = configparser.ConfigParser()
+    if site_id == "CORI":
+        site_config.read("condor_config/cori_config.ini")
+    elif site_id == "JGI":
+        site_config.read("condor_config/jgi_config.ini")
+    elif site_id == "TAHOMA":
+        site_config.read("condor_config/tahoma_config.ini")
+    else:
+        raise ValueError("Unknown side_id specified in condor backend config")
