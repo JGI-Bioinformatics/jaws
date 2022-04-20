@@ -11,10 +11,15 @@ OpenWDL provides the WDL functions in `specs for version 1.0 <https://github.com
 Building WDLs
 #############
 
-How can I use bash commands that require curly braces?
-    If you ever need to use curly braces in bash to strip a suffix txt or set a default:
+.. raw:: html
 
-    .. code-block:: text
+  <details>
+  <summary><a>How can I use bash commands that require curly braces?</a></summary>
+
+  <br>
+  If you ever need to use curly braces in bash to strip a suffix txt or set a default:
+  <code>
+    <pre>
 
         # strip a suffix
         myvar=${somefile%.txt}
@@ -22,10 +27,13 @@ How can I use bash commands that require curly braces?
         # set defaults
         ${parameter:=default}
 
+    </pre>
+  </code>
 
-    Then you need to do
+  Then you need to do
 
-    .. code-block:: text
+  <code>
+    <pre>
 
         task somthing {
             String dollar='$'
@@ -33,23 +41,30 @@ How can I use bash commands that require curly braces?
                 ${dollar}{parameter:=default} 
             }
         }
+    </pre>
+  </code>
+  </details>
 
 
-How can I output a file that has been named dynamically as a bash variable
-    Bash variables created in the command{} block cannot be seen outside the block, for example, in the output {} section. Therefore, you can write the name(s) of any output files to another file which will be read inside the output {} block.
-
-    This is the official WDL way, using glob
-
-    .. code-block:: text
-
+  <details>
+  <summary><a> How can I output a file that has been named dynamically as a bash variable </a></summary>
+  <br>
+  Bash variables created in the command{} block cannot be seen outside the block, for example, in the output {} section. Therefore, you can write the name(s) of any output files to another file which will be read inside the output {} block.
+  <br>
+  <br>
+  This is the official WDL way, using glob
+  <code>
+    <pre>
         output {
             Array[File] output_bams = glob("*.bam")
         }
+    </pre>
+  </code>
 
-    This is another method
+  This is another method
 
-    .. code-block:: text
-
+  <code>
+    <pre>
         command{
            echo $lib.bam > list_of_files
         }
@@ -59,11 +74,14 @@ How can I output a file that has been named dynamically as a bash variable
         
 
     To see more about read_lines() and other WDL functions, see `openwdl/wdl <https://github.com/openwdl/wdl/blob/main/versions/1.0/SPEC.md>`_
+    </pre>
+  </code>
+  </details>
 
+  <details>
+  <summary><a> Using conditionals</a></summary>
 
-Using Conditionals
-
-    .. code-block:: text
+  <code><pre>
 
         workflow conditional_example {
           File infile
@@ -100,24 +118,26 @@ Using Conditionals
             File outfile = "wc.txt"
           }
         }
+  </pre></code></details>
 
-
-How to scatter over arrays and maps
+  <details>
+  <summary><a> How to scatter over arrays and maps </a></summary>
+  <br>
     Although you can scatter over arrays and maps, there is different syntax for each.
     You can only scatter over an array with this syntax
+  <br>
     
-    .. code-block:: text
-
+  <code><pre>
         Array[String] some_array
         scatter (e in some_array) {
             String value = some_array[e]
             call some_task {input: value = value}
         }
+  </pre></code>
 
-    But you can iterate over a map by using the :bash:`pair` keyword and then :bash:`.left` and :bash:`.right` as such
+  But you can iterate over a map by using the 'pair' keyword and then '.left' and '.right' as such
 
-    .. code-block:: text
-
+  <code><pre>
         Map[String,String] some_map
         scatter (pair in some_map) {
             String key= pair.left
@@ -125,11 +145,19 @@ How to scatter over arrays and maps
             call some_task {input: value = value}
         }
 
-    You can see working examples for `scattering an array and scattering a map <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/tree/master/scatter_gather_example>`_.
+    You can see working examples for <a href=https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/tree/master/scatter_gather_example>scattering an array and scattering a map</a> 
+  </pre></code></details>
 
-
-Custom data structures
-    Besides Map, Array, Pair you can create a custom data structure using "struct". This will be similar to a hash but can contain any combination of data types.  See `WDL Spec for v1.1: Custom Type "Struct" <https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#custom-types-structs>`_.
-
-    Example 
-    `main.wdl <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/custom_datastructure/main.wdl>`_ && `inputs.json <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/custom_datastructure/inputs.json>`_
+  <details>
+  <summary><a> Custom data structures </a></summary>
+  <br>
+    Besides Map, Array, Pair you can create a custom data structure using "struct". This will be similar to a hash but can contain any combination of data types. 
+    <br>
+	<ul>
+      <li>Documentation for <a href=https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#custom-types-structs>Custom Type "Struct"</a></li>
+      <li>Example <a href=https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/custom_datastructure/main.wdl>main.wdl</a> && <a href=https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/custom_datastructure/inputs.json>inputs.json</a></li>
+	</ul>
+    <br>
+  </details>
+|
+|
