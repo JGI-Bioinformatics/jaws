@@ -56,29 +56,39 @@ def start_file_logger(
 
 
 def run_sbatch(
-    sq_cmd: str, sq_r_pd_cmd: str, idle_jobs: list, batch_script: str, sb_cmd: str
+    sq_cmd: str,
+    sq_r_pd_cmd: str,
+    idle_jobs: list,
+    batch_script: str,
+    sb_cmd: str,
+    site_id=None,
 ):
-    num_pending_jobs = 0
-    num_r_pd_jobs = 0
-    num_pending_jobs = run_slurm_cmd(sq_cmd)
-    assert num_pending_jobs != -1
-    logger.info(sq_cmd)
     logger.info("Number of IDLE condor jobs: %d" % len(idle_jobs))
-    logger.info(f"Number of PENDING slurm jobs: {num_pending_jobs}")
-    num_sbatches = len(idle_jobs) - int(num_pending_jobs)
-    if sq_r_pd_cmd is not None:
-        num_r_pd_jobs = run_slurm_cmd(sq_r_pd_cmd)
-        if (num_r_pd_jobs + num_sbatches) > max_pool_size:
-            num_sbatches = max_pool_size - num_r_pd_jobs
-            logger.info(f"Current pool size = {num_r_pd_jobs}")
-            logger.info(f"MAX pool size = {max_pool_size}")
-            logger.info(f"Adjusted number of nodes to add = {num_sbatches}")
-    for _ in range(num_sbatches):
-        logger.info(run_slurm_cmd(sb_cmd % batch_script))
-        time.sleep(0.5)
+    if len(idle_jobs):
+        if site_id is not None and site_id == "CORI":
+            sq_cmd = "module load esslurm && " + sq_cmd
+            sb_cmd = "module load esslurm && " + sb_cmd
+        num_pending_jobs = 0
+        num_r_pd_jobs = 0
+        num_pending_jobs = run_slurm_cmd(sq_cmd)
+        assert num_pending_jobs != -1
+        logger.info(sq_cmd)
+
+        logger.info(f"Number of PENDING slurm jobs: {num_pending_jobs}")
+        num_sbatches = len(idle_jobs) - int(num_pending_jobs)
+        if sq_r_pd_cmd is not None:
+            num_r_pd_jobs = run_slurm_cmd(sq_r_pd_cmd)
+            if (num_r_pd_jobs + num_sbatches) > max_pool_size:
+                num_sbatches = max_pool_size - num_r_pd_jobs
+                logger.info(f"Current pool size = {num_r_pd_jobs}")
+                logger.info(f"MAX pool size = {max_pool_size}")
+                logger.info(f"Adjusted number of nodes to add = {num_sbatches}")
+        for _ in range(num_sbatches):
+            logger.info(run_slurm_cmd(sb_cmd % batch_script))
+            time.sleep(0.5)
 
 
-def keep_min_pool(sq_cmd: str, batch_script: str, sb_cmd: str):
+def keep_min_pool(min_pool_size: int, sq_cmd: str, batch_script: str, sb_cmd: str):
     num_total_r_pd_jobs = 0
     num_total_r_pd_jobs = run_slurm_cmd(sq_cmd)
     assert num_total_r_pd_jobs != -1
@@ -96,6 +106,30 @@ def keep_min_pool(sq_cmd: str, batch_script: str, sb_cmd: str):
                 exit(1)
             logger.info(sb_cmd)
             time.sleep(0.5)
+
+
+def collect_condor_jobs(condor_q_out: str, ram_range: list) -> dict:
+    idle_jobs = [[], [], [], []]  # small, med, large, xlarge
+    for l in condor_q_out.split("\n"):
+        if l and len(shlex.split(l)) == 6:
+            tok = shlex.split(l)
+            job_id = tok[0]
+            req_mem = float(tok[1])
+            mem_unit = tok[2].strip()
+            if mem_unit in ("KB", "kb"):
+                req_mem = req_mem / (1024 * 1024)
+            if mem_unit in ("MB", "mb"):
+                req_mem = req_mem / 1024
+            req_disk = float(tok[3])
+            req_cpu = int(tok[5])
+
+            for idx, rr in enumerate(ram_range):
+                ram_start = int(rr.split("-")[0])
+                ram_end = int(rr.split("-")[1])
+                if ram_end != 0 and ram_start < req_mem <= ram_end:
+                    idle_jobs[idx].append([job_id, req_mem, req_disk, req_cpu])
+
+    return idle_jobs
 
 
 def cli():
@@ -130,57 +164,53 @@ def cli():
     logger.info("Job_id\tReq_mem\tReq_disk\tReq_cpu")
     logger.info(f"{so.rstrip()}")
 
-    normal_job = []
-    highmem_job = []
+    ram_range = json.loads(site_config.get("RESOURCE", "ram"))
+    idle_list = collect_condor_jobs(so, ram_range)
+    logger.info(f"IDLE Condor job list: {idle_list}")
 
+    sbatch_cmd = site_config["SLURM"]["sbatch_cmd"]
+    squeue_cmd_p = site_config["SLURM"]["squeue_cmd_pending"]
+    squeue_cmd_r_p = site_config["SLURM"]["squeue_cmd_running_pending"]
 
-    for l in so.split("\n"):
-        if l and len(shlex.split(l)) == 6:
-            tok = shlex.split(l)
-            job_id = tok[0]
-            req_mem = float(tok[1])
-            mem_unit = tok[2].strip()
-            if mem_unit in ("KB", "kb"):
-                req_mem = req_mem / (1024 * 1024)
-            if mem_unit in ("MB", "mb"):
-                req_mem = req_mem / 1024
-            req_disk = float(tok[3])
-            req_cpu = int(tok[5])
-    
-            if req_mem <= site:
-                normal_job.append([job_id, req_mem, req_disk, req_cpu])
-            elif req_mem <= 1450.0 and req_cpu <= 36:
-                highmem_job.append([job_id, req_mem, req_disk, req_cpu])
-            else:
-                logger.info(
-                    f"ERROR: no machines available for the job id, {job_id}, requested_memory={req_mem}, requested_disk={req_disk}, requested_cpu={req_cpu}"
-                )
-    
-    
-    logger.info(f"Normal job: {normal_job}")
-    logger.info(f"Highmem job: {highmem_job}")
-    
-    
-    #
-    # Run sbatch
-    #
-    squeue_cmd_pending = site_config["SLURM"]["squeue_cmd_pending"]
-
-    # Normal jobs
     run_sbatch(
-        squeue_cmd_pending,
-        squeue_cmd_running_pending,
-        normal_job,
-        normal_worker_job,
-        sbatch_normal_cmd
-    )
-
-    # Highmem jobs
-    run_sbatch(
-        squeue_cmd_esslurm_exvivo,
+        "small",
+        squeue_cmd_p,
         None,
-        highmem_job,
-        highmem_worker_jgihighmem_job,
-        sbatch_cmd_esslurm,
+        idle_list[0],
+        site_config["SLURM"]["small_slurm_job"],
+        sbatch_cmd,
     )
-    keep_min_pool(squeue_cmd_running_pending, normal_worker_job, sbatch_normal_cmd)
+    run_sbatch(
+        "medium",
+        squeue_cmd_p,
+        squeue_cmd_r_p,
+        idle_list[1],
+        site_config["SLURM"]["medium_slurm_job"],
+        sbatch_cmd,
+    )
+    run_sbatch(
+        "large",
+        squeue_cmd_p,
+        None,
+        idle_list[2],
+        site_config["SLURM"]["large_slurm_job"],
+        sbatch_cmd,
+        site_id=site_id,
+    )
+    run_sbatch(
+        "xlarge",
+        squeue_cmd_p,
+        None,
+        idle_list[3],
+        site_config["SLURM"]["xlarge_slurm_job"],
+        sbatch_cmd,
+        site_id=site_id,
+    )
+
+    # Maintain MIN pool size for medium compute nodes
+    keep_min_pool(
+        site_config.getint("CONDOR", "min_pool"),
+        site_config["SLURM"]["squeue_cmd_running_pending"],
+        site_config["SLURM"]["medium_slurm_job"],
+        site_config["SLURM"]["sbatch_cmd"],
+    )
