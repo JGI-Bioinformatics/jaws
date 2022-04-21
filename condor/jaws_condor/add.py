@@ -119,7 +119,7 @@ def keep_min_pool(
         for _ in range(to_add):
             so, se, ec = run_sh_command(sb_cmd)
             if ec != 0:
-                logger.info(f"ERROR: failed to execute sbatch command: {sb_cmd}")
+                logger.critical(f"ERROR: failed to execute sbatch command: {sb_cmd}")
                 exit(1)
             logger.info(sb_cmd)
             time.sleep(0.5)
@@ -175,31 +175,28 @@ def cli():
             site_config_path = args.site_config
         else:
             site_config_path = "cori_config.ini"
-        site_config.read(site_config_path)
     elif site_id == "JGI":
         if args.site_config:
             site_config_path = args.site_config
         else:
             site_config_path = "jgi_config.ini"
-        site_config.read(site_config_path)
     elif site_id == "TAHOMA":
         if args.site_config:
             site_config_path = args.site_config
         else:
             site_config_path = "tahoma_config.ini"
-        site_config.read(site_config_path)
     else:
         raise ValueError("Unknown side_id specified in condor backend config")
 
+    site_config.read(site_config_path)
     condor_q_cmd = site_config["CONDOR"]["condor_q_cmd"]
     so, se, ec = run_sh_command(condor_q_cmd, log=logger, show_stdout=False)
     if ec != 0:
-        logger.info(f"ERROR: failed to execute condor_q command: {condor_q_cmd}")
+        logger.critical(f"ERROR: failed to execute condor_q command: {condor_q_cmd}")
         exit(1)
     logger.info("IDLE Condor jobs")
     logger.info("Job_id\tReq_mem\tReq_disk\tReq_cpu")
     logger.info(f"{so.rstrip()}")
-
     ram_range = json.loads(site_config.get("RESOURCE", "ram"))
     idle_list = collect_condor_jobs(so, ram_range)
     logger.info(f"IDLE Condor job list: {idle_list}")
@@ -208,10 +205,10 @@ def cli():
     squeue_cmd_p = site_config["SLURM"]["squeue_cmd_pending"]
     squeue_cmd_r_p = site_config["SLURM"]["squeue_cmd_running_pending"]
     min_pool_size = json.loads(site_config.get("CONDOR", "min_pool"))
-    max_pool_size = json.loads(site_config.get("CONDOR", "max_pool"))
     resource_types = max_pool_size = json.loads(site_config.get("RESOURCE", "types"))
     job_files = [v for (k, v) in site_config.items("WORKER_TYPES")]
 
+    # Run sbatch
     for idx, t in enumerate(resource_types):
         logger.info(f"=== Checking for {t} ===")
         run_sbatch(
