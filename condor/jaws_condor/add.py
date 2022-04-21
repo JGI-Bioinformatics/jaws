@@ -114,7 +114,7 @@ def keep_min_pool(
     )
     if num_total_r_pd_jobs <= min_pool_sz:
         to_add = min_pool_sz - num_total_r_pd_jobs
-        logger.info(f"Add {to_add} nodes to Keep MIN size pool")
+        logger.info(f"Need to add {to_add} nodes to keep MIN size pool for {rsc_t}")
         sb_cmd = sb_cmd % batch_script
         for _ in range(to_add):
             so, se, ec = run_sh_command(sb_cmd)
@@ -213,6 +213,7 @@ def cli():
     job_files = [v for (k, v) in site_config.items("WORKER_TYPES")]
 
     for idx, t in enumerate(resource_types):
+        logger.info(f"=== Checking for {t} ===")
         run_sbatch(
             t,
             squeue_cmd_p,
