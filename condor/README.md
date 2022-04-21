@@ -10,3 +10,9 @@ Please see "Installing all services" in the project's main `README.md` file.
 
 Parameters and commands for SLURM and HTCondor should be specified
 in the `jaws_condor.ini` file.
+
+Per each site, please refer to the *.ini files in `site_config`.
+
+### Usage
+
+source /global/u1/j/jaws_jtm/ssul/condor/env_central.sh && condor_pool_add -c jaws_condor.ini -s ./site_config/cori_config.ini -d

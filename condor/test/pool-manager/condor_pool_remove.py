@@ -31,7 +31,7 @@ config.read("jaws_condor_pool_manager.ini")
 accnt_name = config["SLURM"]["accnt_name"]
 condor_root = config["CONDOR"]["condor_root"]
 min_pool_size = config.getint("CONDOR", "min_pool_size")
-max_pool_size = config.getint("CONDOR", "max_pool_size")
+# max_pool_size = config.getint("CONDOR", "max_pool_size")
 condor_q_cmd = f"condor_q -pr {condor_root}/fmt_nobatch_running.cpf"
 sbatch_cmd = "sbatch --parsable %s"
 sbatch_cmd_esslurm = "module load esslurm && sbatch --parsable %s"

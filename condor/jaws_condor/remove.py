@@ -11,6 +11,7 @@ Steps
    jobs is bigger than MIN pool size
 
 """
+import argparse
 import click
 import logging
 import os
@@ -18,15 +19,21 @@ import time
 import shlex
 from datetime import datetime
 import configparser
+import json
 import jaws_condor.config
 from jaws_condor import config
-form jaws_condor.utils import run_sh_command
+from jaws_condor.utils import run_sh_command
 
 
 logger = None
 
 
-def start_file_logger(filename, name='jaws_condor_pool_remove.log', level=logging.DEBUG, format_string=None):
+def start_file_logger(
+    filename,
+    name="jaws_condor_pool_remove.log",
+    level=logging.DEBUG,
+    format_string=None,
+):
     """Add a stream log handler.
 
     Args:
@@ -39,24 +46,34 @@ def start_file_logger(filename, name='jaws_condor_pool_remove.log', level=loggin
        -  None
     """
     if format_string is None:
-        format_string = "%(asctime)s.%(msecs)03d %(name)s:%(lineno)d [%(levelname)s]  %(message)s"
+        format_string = (
+            "%(asctime)s.%(msecs)03d %(name)s:%(lineno)d [%(levelname)s]  %(message)s"
+        )
 
     global logger
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(filename)
     handler.setLevel(level)
-    formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
+    formatter = logging.Formatter(format_string, datefmt="%Y-%m-%d %H:%M:%S")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+    streamLogger = logging.StreamHandler()
+    streamLogger.setLevel(level)
+    streamLogger.setFormatter(formatter)
+    logger.addHandler(streamLogger)
 
 
 def run_scancel(
-    sq_cmd: str, running_condor_jobs: list, sc_cmd: str, keep_min_pool=False
+    sq_cmd: str,
+    running_condor_jobs: list,
+    sc_cmd: str,
+    min_pool_sz: int,
+    keep_min_pool=False,
 ):
     if len(running_condor_jobs) == 0:
         num_running_slurm_ids = []
-        so, se, ec = run_sh_command(sq_cmd, show_stdout=False)
+        so, se, ec = run_sh_command(sq_cmd, log=logger, show_stdout=False)
         if ec != 0:
             print(f"ERROR: failed to execute squeue command: {sq_cmd}")
             exit(1)
@@ -67,13 +84,13 @@ def run_scancel(
         if keep_min_pool:
             # Keep min_pool_size number of nodes
             num_running_slurm_ids.sort()
-            num_running_slurm_ids = num_running_slurm_ids[:-min_pool_size]
+            num_running_slurm_ids = num_running_slurm_ids[:-min_pool_sz]
         print(sq_cmd)
         print(f"Candidate SLURM jobs to remove: {num_running_slurm_ids}")
         print("Number of SLURM jobs to remove: %d" % len(num_running_slurm_ids))
         if len(num_running_slurm_ids):
             sc_cmd = sc_cmd % ",".join(num_running_slurm_ids)
-            so, se, ec = run_sh_command(sc_cmd, show_stdout=False)
+            so, se, ec = run_sh_command(sc_cmd, log=logger, show_stdout=False)
             if ec != 0:
                 print(f"ERROR: failed to execute scancel command: {sc_cmd}")
                 exit(1)
@@ -84,17 +101,27 @@ def run_scancel(
 
 def cli():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", default=None,
-                        help="Config file")
-    parser.add_argument("-l", "--logfile", default=None,
-                        help="Path to logfile")
-    parser.add_argument("-d", "--debug", action='store_true',
-                        help="Enables debug logging")
+    parser.add_argument("-c", "--config", default=None, help="Config file")
+    parser.add_argument("-s", "--site_config", default=None, help="Site config file")
+    parser.add_argument("-l", "--logfile", default=None, help="Path to logfile")
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="Enables debug logging"
+    )
 
     args = parser.parse_args()
     jaws_condor.config.Configuration(args.config)
     site_id = jaws_condor.config.conf.get_site_id()
     site_config = configparser.ConfigParser()
+
+    if logfile:
+        logfile_path = logfile
+    else:
+        logfile_path = "./jaws_condor_add.log"
+    os.makedirs(os.path.dirname(logfile_path), exist_ok=True)
+    start_file_logger(
+        logfile_path, level=logging.DEBUG if loglevel == "debug" else logging.INFO
+    )
+
     if site_id == "CORI":
         site_config.read("condor_config/cori_config.ini")
     elif site_id == "JGI":
@@ -104,10 +131,9 @@ def cli():
     else:
         raise ValueError("Unknown side_id specified in condor backend config")
 
-    #
     # Run condor_q_cmd to get the jobs in IDLE status
-    #
-    so, se, ec = run_sh_command(condor_q_cmd, show_stdout=False)
+    condor_q_cmd = site_config["CONDOR"]["condor_q_cmd_rm"]
+    so, se, ec = run_sh_command(condor_q_cmd, log=logger, show_stdout=False)
     if ec != 0:
         print(f"ERROR: failed to execute condor_q command: {condor_q_cmd}")
         exit(1)
@@ -115,9 +141,9 @@ def cli():
     print("Job_id\tReq_mem\tReq_disk\tReq_cpu")
     print(f"{so.rstrip()}")
 
-    normal_job = []
-    shared_job = []
-    exvivo_job = []
+    ram_range = json.loads(site_config.get("RESOURCE", "ram"))
+    run_list = collect_condor_running_jobs(so, ram_range)
+    logger.info(f"Running Condor job list: {run_list}")
 
     for l in so.split("\n"):
         if l and len(shlex.split(l)) == 6:
@@ -147,9 +173,12 @@ def cli():
     print(f"Jgi_shared job: {shared_job}")
     print(f"Jgi_exvivo job: {exvivo_job}")
 
-    #
     # Run scancel
-    #
-    run_scancel(squeue_cmd, normal_job, scancel_cmd, keep_min_pool=True)
-    run_scancel(squeue_cmd_esslurm_shared, shared_job, scancel_cmd_esslurm)
-    run_scancel(squeue_cmd_esslurm_exvivo, exvivo_job, scancel_cmd_esslurm)
+    min_pool_size = site_config.getint("CONDOR", "min_pool")
+    run_scancel(squeue_cmd, normal_job, scancel_cmd, min_pool_size, keep_min_pool=True)
+    run_scancel(
+        squeue_cmd_esslurm_shared, shared_job, scancel_cmd_esslurm, min_pool_size
+    )
+    run_scancel(
+        squeue_cmd_esslurm_exvivo, exvivo_job, scancel_cmd_esslurm, min_pool_size
+    )

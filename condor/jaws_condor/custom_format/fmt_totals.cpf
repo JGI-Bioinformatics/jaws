@@ -1,4 +1,0 @@
-# q_totals.cpf
-# show only totals with condor_q
-SELECT NOHEADER NOTITLE
-SUMMARY STANDARD

@@ -10,14 +10,13 @@ setup(
     description="JGI Analysis Workflow Service Condor Backend Pool Manager",
     url="https://code.jgi.doe.gov/advanced-analysis/jaws",
     author="The JAWS Team",
-    packages=["jaws_condor",
-              "jaws_condor.condor_configs"],
+    packages=["jaws_condor"],
     include_package_data=True,
     install_requires=[line.strip() for line in open("requirements.txt")],
     entry_points={
         "console_scripts": [
-            "jaws-condor-add=jaws_condor.add:cli",
-            "jaws-condor-remove=jaws_condor.remove:cli"
+            "condor_pool_add=jaws_condor.add:cli",
+            "condor_pool_remove=jaws_condor.remove:cli",
         ]
     },
     zip_safe=False,
