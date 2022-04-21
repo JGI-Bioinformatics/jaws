@@ -20,6 +20,8 @@ import re
 import time
 from threading import Timer
 import sys
+import json
+import yaml
 
 
 # -------------------------------------------------------------------------------
@@ -181,8 +183,9 @@ def chmod(path, mode, opts="", dry_run=False):
 
 
 # -------------------------------------------------------------------------------
-def run_sh_command(cmd, live=True, log=None, run_time=False,
-                   show_stdout=True, timeout_sec=0):
+def run_sh_command(
+    cmd, live=True, log=None, run_time=False, show_stdout=True, timeout_sec=0
+):
     """
     Run a command, catch stdout and stderr and exit_code
     :param cmd:
@@ -347,3 +350,29 @@ def extract_cromwell_id(task: str) -> str:
 
     return cromwell_id
 
+
+# --------------------------------------------------------------------------------------------------
+def run_slurm_cmd(s_cmd: str) -> int:
+    """
+    To run sbatch and squeue and parse `wc -l`
+    """
+    so, se, ec = run_sh_command(s_cmd, show_stdout=False)
+    print(s_cmd)
+    if ec != 0:
+        print(f"ERROR: failed to execute slurm command: {s_cmd}\n{se}")
+        exit(1)
+    try:
+        return int(so.rstrip())
+    except TypeError as te:
+        print(f"Unexpected output from slurm command: {s_cmd}\n{te}\n{se}")
+        return -1
+
+
+def read_json(file_path):
+    with open(file_path, "r") as f:
+        return json.load(f)
+
+
+def read_yaml(file_path):
+    with open(file_path, "r") as f:
+        return yaml.safe_load(f)
