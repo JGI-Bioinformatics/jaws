@@ -141,9 +141,14 @@ class RunES:
         task_status = self.task_status()
         cromwell_metadata = self.cromwell_metadata()
 
+        if cromwell_metadata and 'workflowName' in cromwell_metadata:
+            workflow_name = cromwell_metadata['workflowName']
+        else:
+            workflow_name = 'unknown'
+
         doc = {
             'run_id': run_status['run_id'],
-            'workflow_name': cromwell_metadata.get('workflowName', 'unknown'),
+            'workflow_name': workflow_name
         }
         doc.update(run_status)
         doc['tasks'] = []
