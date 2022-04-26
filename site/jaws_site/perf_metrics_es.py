@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 import logging
 from typing import Callable
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from pathlib import Path
-from jaws_site import config, models, runs, rpc_es, runs_es
+from jaws_site import config, runs, rpc_es, runs_es
 import re
 from functools import lru_cache
 
