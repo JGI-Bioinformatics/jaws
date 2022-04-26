@@ -21,6 +21,17 @@ class Metrics:
         self.rpc_client = rpc_client
         self.runs = runs.Run(session)
 
+    @lru_cache()
+    def get_run_id(self, cromwell_id):
+        try:
+            run_id = self.runs.get_run_id_from_cromwell_id(cromwell_id)
+        except RunDbError as err:
+            logger.warn(
+                f"Publishing performace metrics: failed to get run_id from {cromwell_id=}: {err})"
+            )
+            return None
+        return run_id
+
     def process_metrics(self):
         done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
         proc_dir = config.conf.get("PERFORMANCE_METRICS", "processed_dir")
@@ -36,26 +47,15 @@ class Metrics:
         if not done_dir_obj.is_dir() or not proc_dir_obj.is_dir():
             return
 
-        cromwell_id_to_run_ids = {}
-
         for done_file in list(done_dir_obj.glob("*.csv")):
 
             docs = process_csv(done_file)
             for doc in docs:
                 cromwell_id = doc.get("cromwell_id")
 
-                if cromwell_id in cromwell_id_to_run_ids:
-                    run_id = cromwell_id_to_run_ids[cromwell_id]
-                else:
-                    try:
-                        run_id = self.runs.get_run_id_from_cromwell_id(cromwell_id)
-                    except RunDbError as err:
-                        logger.warn(
-                            f"Publishing performace metrics: failed to get run_id from {cromwell_id=}: {err})"
-                        )
-                        continue
-                    else:
-                        cromwell_id_to_run_ids[cromwell_id] = run_id
+                run_id = self.get_run_id(cromwell_id)
+                if not run_id:
+                    continue
 
                 doc["jaws_run_id"] = run_id
 
