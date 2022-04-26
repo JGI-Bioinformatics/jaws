@@ -104,7 +104,7 @@ test-parsl: test-requirements
 	$Q cd parsl && python -m pytest --cov=jaws_parsl --junitxml=parsl.xml tests/ && coverage xml
 
 .PHONY: test
-test: test-rpc test-site test-central test-client test-jtm test-parsl
+test: test-rpc test-site test-central test-client test-jtm test-parsl test-condor
 ## Test Section END
 
 ## Doc Section BEGIN
