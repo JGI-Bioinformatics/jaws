@@ -4,7 +4,7 @@ import logging
 from typing import Callable
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from pathlib import Path
-from jaws_site import config, models, rpc_es, runs_es
+from jaws_site import config, models, runs, rpc_es, runs_es
 import re
 from functools import lru_cache
 
@@ -19,19 +19,7 @@ class Metrics:
     def __init__(self, session: Callable, rpc_client: rpc_es.RPCRequest) -> None:
         self.session = session
         self.rpc_client = rpc_client
-
-    def get_run_id(self, cromwell_id: str) -> int:
-        try:
-            run = (
-                self.session.query(models.Run)
-                .filter(models.Run.cromwell_run_id == cromwell_id)
-                .one()
-            )
-        except (IntegrityError, SQLAlchemyError) as err:
-            msg = f"Failed to get run_id from {cromwell_id=}: {err}"
-            logger.warn(msg)
-            raise RunDbError(msg)
-        return run.id
+        self.runs = runs.Run(session)
 
     def process_metrics(self):
         done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
@@ -48,26 +36,33 @@ class Metrics:
         if not done_dir_obj.is_dir() or not proc_dir_obj.is_dir():
             return
 
+        cromwell_id_to_run_ids = {}
+
         for done_file in list(done_dir_obj.glob("*.csv")):
+
             docs = process_csv(done_file)
             for doc in docs:
                 cromwell_id = doc.get("cromwell_id")
-                if not cromwell_id:
-                    logger.warn(
-                        f"Publishing performance metrics: cannot find cromwell_run_id in {done_file=}."
-                    )
-                    continue
-                try:
-                    run_id = self.get_run_id(cromwell_id)
-                except RunDbError as err:
-                    logger.warn(
-                        f"Publishing performace metrics: failed to get run_id from {cromwell_id=}: {err})"
-                    )
-                    continue
+
+                if cromwell_id in cromwell_id_to_run_ids:
+                    run_id = cromwell_id_to_run_ids[cromwell_id]
+                else:
+                    try:
+                        run_id = self.runs.get_run_id_from_cromwell_id(cromwell_id)
+                    except RunDbError as err:
+                        logger.warn(
+                            f"Publishing performace metrics: failed to get run_id from {cromwell_id=}: {err})"
+                        )
+                        continue
+                    else:
+                        cromwell_id_to_run_ids[cromwell_id] = run_id
+
                 doc["jaws_run_id"] = run_id
+
                 logger.info(
                     f"Run {run_id}: Publish performance metrics for cromwell_id={cromwell_id}"
                 )
+
                 response, status = runs_es.send_rpc_run_metadata(self.rpc_client, doc)
 
             # Move csv file to processed folder
