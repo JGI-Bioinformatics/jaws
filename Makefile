@@ -93,6 +93,11 @@ test-jtm: test-requirements
 	$Q flake8 jtm
 	$Q cd jtm && python -m pytest --cov=jaws_jtm --junitxml=jtm.xml tests/ && coverage xml
 
+.PHONY: test-condor
+test-condor: test-requirements
+	$Q flake8 condor
+	$Q cd condor && python -m pytest --cov=jaws_condor --junitxml=condor.xml tests/ && coverage xml
+
 .PHONY: test-parsl
 test-parsl: test-requirements
 	$Q flake8 parsl
