@@ -1,5 +1,5 @@
 import pytest
-from jaws_site.perf_metrics_es import extract_jaws_info
+from jaws_site.perf_metrics_es import Metrics
 
 
 @pytest.mark.parametrize(
@@ -31,9 +31,17 @@ cromwell-executions/jgi_dap_leo/f92649f2-31f9-4fc4-b1fd-18ed4de94c12\
         (
             "None",
             "naw"
+        ),
+        (  # Hopefully tests that lru_cache is working
+            "/global/cfs/cdirs/jaws/jaws-install/jaws-supervisord-prod",
+            "naw"
+        ),
+        (
+            "None",
+            "naw"
         )
     ],
 )
 def test_extract_cromwell_es(working_dir, expect):
-    out = extract_jaws_info(working_dir=working_dir)
+    out = Metrics.extract_jaws_info(working_dir=working_dir)
     assert out == expect
