@@ -120,6 +120,20 @@ class Run:
             logger.error(err_msg)
             raise RunDbError(err_msg)
 
+    def get_run_id_from_cromwell_id(self, cromwell_id):
+        try:
+            run = (
+                self.session.query(models.Run)
+                .filter(models.Run.cromwell_run_id == cromwell_id)
+                .one_or_none()
+            )
+        except (IntegrityError, SQLAlchemyError) as err:
+            err_msg = f"Failed to get run_id from {cromwell_id=}: {err}"
+            logger.warn(err_msg)
+            raise RunDbError(err_msg)
+        return run.id if run else None
+
+
     @property
     def status(self) -> str:
         """Return the current state of the run."""
