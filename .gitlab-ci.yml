@@ -268,7 +268,19 @@ test-jtm:
   artifacts:
     reports:
       cobertura: jtm/coverage.xml
-
+test-condor:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3.8 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip3.8 install condor/
+    - pip3.8 install -r condor/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
+    - make test-condor
+  artifacts:
+    reports:
+      cobertura: condor/coverage.xml
 package:
   tags:
     - shared-shell
