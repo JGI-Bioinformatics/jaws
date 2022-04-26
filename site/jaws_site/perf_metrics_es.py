@@ -114,8 +114,6 @@ class Metrics:
         if not done_dir_obj.is_dir() or not proc_dir_obj.is_dir():
             return
 
-        cromwell_id_to_run_ids = {}
-
         for done_file in list(done_dir_obj.glob("*.csv")):
             docs = self.process_csv(done_file)
             for doc in docs:
