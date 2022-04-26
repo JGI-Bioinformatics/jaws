@@ -133,7 +133,6 @@ class Run:
             raise RunDbError(err_msg)
         return run.id if run else None
 
-
     @property
     def status(self) -> str:
         """Return the current state of the run."""
