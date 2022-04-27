@@ -204,8 +204,9 @@ def cli():
     sbatch_cmd = site_config["SLURM"]["sbatch_cmd"]
     squeue_cmd_p = site_config["SLURM"]["squeue_cmd_pending"]
     squeue_cmd_r_p = site_config["SLURM"]["squeue_cmd_running_pending"]
+    max_pool_size = json.loads(site_config.get("CONDOR", "max_pool"))
     min_pool_size = json.loads(site_config.get("CONDOR", "min_pool"))
-    resource_types = max_pool_size = json.loads(site_config.get("RESOURCE", "types"))
+    resource_types = json.loads(site_config.get("RESOURCE", "types"))
     job_files = [v for (k, v) in site_config.items("WORKER_TYPES")]
 
     # Run sbatch
