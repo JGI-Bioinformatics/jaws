@@ -5,6 +5,7 @@ Configuration singleton, loads values from provided INI files.
 import logging
 import os
 import configparser
+from jaws_client.env_interpolation import EnvInterpolation
 import shutil
 
 
@@ -75,7 +76,7 @@ class Configuration:
             raise FileNotFoundError(f"{jaws_config_file} does not exist")
         if not os.path.isfile(user_config_file):
             raise FileNotFoundError(f"{user_config_file} does not exist")
-        self.config = configparser.ConfigParser()
+        self.config = configparser.ConfigParser(interpolation=EnvInterpolation)
         self.config.read_dict(self.defaults)
         try:
             self.config.read(jaws_config_file)
