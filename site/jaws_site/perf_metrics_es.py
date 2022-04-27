@@ -31,7 +31,7 @@ class Metrics:
             return "None"
         return run_id
 
-    # TODO: Made this a class method to have tests work, should probably be moved
+    # TODO: Made this a class method to have tests work, tests should probably be moved
     @classmethod
     @lru_cache()
     def extract_jaws_info(self, working_dir):
@@ -53,9 +53,26 @@ class Metrics:
 
         return cromwell_id
 
+    @lru_cache()
+    def remove_begining_path(self, working_dir):
+        # Get the index of the string "cromwell-executions"
+        dir_name = "None"
+        try:
+            id_ce_dir = working_dir.find("cromwell-executions")
+            # -1 means "cromwell-executions" was not found
+            if id_ce_dir != -1:
+                # Extract from "cromwell-executions" to the end of the string
+                dir_name = working_dir[id_ce_dir:]
+        except Exception as e:
+            logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+
+        return dir_name
+
     def process_csv(self, csv_file):
         csv_data = pd.read_csv(csv_file, parse_dates=[0], index_col=[0])
 
+        # Remove extranious parts from the current directory
+        csv_data["current_dir"] = csv_data.current_dir.apply(self.remove_begining_path)
         # Get data and make new columns in dataframe
         csv_data["cromwell_id"] = csv_data.current_dir.apply(self.extract_jaws_info)
 
