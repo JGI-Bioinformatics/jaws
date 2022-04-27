@@ -252,11 +252,16 @@ class TaskLog:
             self._get_cromwell_task_summary()
         return self._cromwell_task_summary
 
-    def get_task_cromwell_dirs(self):
+    def get_task_cromwell_dir_mapping(self):
+        """
+        Return a dictionary that maps the cromwell directory to the task name for each task in the run.
+        The returned cromwell directory is modified to remove the root dir.
+        Ex: /my/path/cromwell-executions/task1/execution becomes
+            cromwell-executions/task1/execution
+        """
         cromwell_run_id = self.cromwell_run_id()
         metadata = self.cromwell.get_metadata(cromwell_run_id)
         tasks = metadata.tasks
-        # from pprint import pprint
         cromwell_to_task_names = {}
 
         for name in tasks:
