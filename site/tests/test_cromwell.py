@@ -79,12 +79,48 @@ def test_task_summary(requests_mock):
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     actual = metadata.task_summary()
     expected = [
-        ["main_workflow.goodbye", "12129", False, "00:10:00"],
-        ["main_workflow.hello", "12130", False, "00:10:00"],
-        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "12134", False, "00:10:00"],
-        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "12133", False, "00:10:00"],
-        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131", False, "00:10:00"],
-        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132", False, "00:10:00"],
+        [
+            "main_workflow.goodbye",
+            "12129",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-goodbye/execution",  # noqa
+        ],
+        [
+            "main_workflow.hello",
+            "12130",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello/execution",  # noqa
+        ],
+        [
+            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
+            "12134",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-goodbye/execution",  # noqa
+        ],
+        [
+            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+            "12133",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-hello/execution",  # noqa
+        ],
+        [
+            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
+            "12131",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-goodbye/execution",  # noqa
+        ],
+        [
+            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
+            "12132",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-hello/execution",  # noqa
+        ],
     ]
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
@@ -94,7 +130,6 @@ def test_task_summary(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_5)
     actual = metadata.task_summary()
-    print(actual)  # DEBUG
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
     )
@@ -256,7 +291,7 @@ def test_get_outputs(requests_mock):
             "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",
             "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",
             "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",
-            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis"
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis",
         ]
     }
     ex_8 = crom.get_metadata(example_cromwell_run_id_8)

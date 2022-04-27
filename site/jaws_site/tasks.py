@@ -252,6 +252,28 @@ class TaskLog:
             self._get_cromwell_task_summary()
         return self._cromwell_task_summary
 
+    def get_task_cromwell_dirs(self):
+        cromwell_run_id = self.cromwell_run_id()
+        metadata = self.cromwell.get_metadata(cromwell_run_id)
+        tasks = metadata.tasks
+        # from pprint import pprint
+        cromwell_to_task_names = {}
+
+        for name in tasks:
+            for entry in tasks[name].summary():
+
+                # remove root path from cromwell-exections dir.
+                # ex: /my/path/cromwell-executions/a/b/c is converted to cromwell-executions/a/b/c
+                if len(entry) < 5:
+                    continue
+
+                cromwell_dir = entry[4]
+                idx = cromwell_dir.find("cromwell-executions")
+                cromwell_dir = cromwell_dir[idx:]
+                entry[4] = cromwell_dir
+                cromwell_to_task_names[cromwell_dir] = entry[0]
+        return cromwell_to_task_names
+
     def _get_cromwell_task_summary(self):
         """Retrieve all tasks from Cromwell metadata for a run."""
         cromwell_run_id = self.cromwell_run_id()
@@ -268,7 +290,7 @@ class TaskLog:
         if not self._cromwell_job_summary:
             cromwell_task_summary = self.cromwell_task_summary()
             cromwell_job_summary = {}
-            for task_name, cromwell_job_id, cached, max_time in cromwell_task_summary:
+            for task_name, cromwell_job_id, cached, max_time, _ in cromwell_task_summary:
                 if cromwell_job_id:
                     cromwell_job_id = str(cromwell_job_id)
                     cromwell_job_summary[cromwell_job_id] = [task_name, max_time]
@@ -282,7 +304,7 @@ class TaskLog:
 
         cromwell_task_summary = self.cromwell_task_summary()
         cached_tasks = []
-        for task_name, cromwell_job_id, cached, max_time in cromwell_task_summary:
+        for task_name, cromwell_job_id, cached, max_time, _ in cromwell_task_summary:
             if cached:
                 cached_tasks.append(task_name)
         self._cached_tasks = cached_tasks

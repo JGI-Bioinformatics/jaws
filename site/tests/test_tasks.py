@@ -246,31 +246,35 @@ def test_cromwell_job_summary(monkeypatch):
 
     def mock_cromwell_task_summary(self):
         example_task_summary = [
-            ["main_workflow.goodbye", "12129", False, "0:10:00"],
-            ["main_workflow.hello", "12130", False, "0:10:00"],
+            ["main_workflow.goodbye", "12129", False, "0:10:00", "/a/b/c"],
+            ["main_workflow.hello", "12130", False, "0:10:00", "/a/b/c"],
             [
                 "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
                 "12134",
                 False,
                 "0:10:00",
+                "/a/b/c",
             ],
             [
                 "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
                 "12133",
                 False,
                 "0:10:00",
+                "/a/b/c",
             ],
             [
                 "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
                 "12131",
                 False,
                 "0:10:00",
+                "/a/b/c",
             ],
             [
                 "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
                 "12132",
                 False,
                 "0:10:00",
+                "/a/b/c",
             ],
         ]
         return example_task_summary
@@ -301,6 +305,7 @@ def test_cromwell_job_summary(monkeypatch):
     mock_session = None
     tasks = TaskLog(mock_session, run_id=example_run_id)
     task_info = tasks.cromwell_job_summary()
+
     assert bool(DeepDiff(task_info, expected_task_info, ignore_order=True)) is False
 
 
@@ -316,21 +321,23 @@ def test_task_log(monkeypatch):
 
     def mock_cromwell_task_summary(self):
         example_task_summary = [
-            ["main_workflow.goodbye", "5480", False, "0:10:00"],
-            ["main_workflow.hello", "5481", False, None],
+            ["main_workflow.goodbye", "5480", False, "0:10:00", "/a/b/c"],
+            ["main_workflow.hello", "5481", False, None, "/a/b/c"],
             [
                 "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
                 "5482",
                 False,
                 None,
+                "/a/b/c",
             ],
             [
                 "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
                 "5484",
                 False,
                 None,
+                "/a/b/c",
             ],
-            ["main_workflow.hello_world", None, True, None],
+            ["main_workflow.hello_world", None, True, None, "/a/b/c"],
         ]
         return example_task_summary
 
