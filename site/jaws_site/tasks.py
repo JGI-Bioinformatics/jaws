@@ -255,7 +255,8 @@ class TaskLog:
     def get_task_cromwell_dir_mapping(self):
         """
         Return a dictionary that maps the cromwell directory to the task name for each task in the run.
-        The returned cromwell directory is modified to remove the root dir.
+        The key=cromwell_dir, the value=task_name.
+        The cromwell directory name is modified to remove the root dir.
         Ex: /my/path/cromwell-executions/task1/execution becomes
             cromwell-executions/task1/execution
         """
