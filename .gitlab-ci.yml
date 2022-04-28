@@ -100,7 +100,7 @@ variables:
   CORI_RMQ_PORT: 5672
   CORI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
   CORI_MONITOR_RMQ_PORT: 5672
-  CORI_HTCONDOR_INSTALL: "/global/cfs/projectdirs/jaws/jaws-install/condor/condor"
+  CORI_HTCONDOR_INSTALL: "/global/cfs/projectdirs/jaws/condor/condor"
   CORI_HTCONDOR_MASTER_CONFIG: "/global/cfs/projectdirs/jaws/condor/condor_central.config"
   CORI_PERFORMANCE_METRICS_SCRIPT: "/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus"
   CORI_PERFORMANCE_METRICS_DIR: "/global/cscratch1/sd/jaws_jtm/monitoring-runs"
@@ -145,8 +145,8 @@ variables:
   TAHOMA_JAWS_GROUP: "svc-jtm-manager"
   TAHOMA_JTM_GROUP: "svc-jtm-user"
   TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
-  TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi"
-  TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi"
+  TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi/scratch"
+  TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi/scratch"
   TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata"
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
