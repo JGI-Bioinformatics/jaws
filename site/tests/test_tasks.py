@@ -1,4 +1,5 @@
 from jaws_site import tasks
+from jaws_site import cromwell
 from jaws_site.tasks import TaskLog
 from deepdiff import DeepDiff
 
@@ -524,4 +525,77 @@ def test_task_summary(monkeypatch):
     mock_session = None
     tasks = TaskLog(mock_session, run_id=example_run_id)
     actual = tasks.task_summary()
+    assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
+
+
+def test_get_task_cromwell_dir_mapping(monkeypatch):
+    class TaskMetadata:
+        def __init__(self, task_data):
+            self.tasks = task_data
+
+        def summary(self):
+            return self.tasks
+
+    def mock_cromwell(*args, **kwargs):
+        class CromMetadata:
+            task1 = [
+                [
+                    'align.stats',
+                    1,
+                    False,
+                    '00:30:00',
+                    '/scratch/cromwell-executions/align/C1/call-stats/execution'
+                ],
+            ]
+            task2 = [
+                [
+                    'align.shard_wf:shard_wf.indexing',
+                    2,
+                    False,
+                    '00:30:00',
+                    '/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-indexing/execution'
+                ],
+                [
+                    "align.shard_wf:shard_wf.map[0]",
+                    3,
+                    False,
+                    '01:00:00',
+                    '/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-map/shard-0/execution'
+                ],
+                [
+                    "align.shard_wf:shard_wf.merge",
+                    4,
+                    False,
+                    '00:30:00',
+                    '/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-merge/execution'
+                ],
+                [
+                    "align.shard_wf:shard_wf.shard",
+                    5,
+                    False,
+                    '00:30:00',
+                    '/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-shard/execution'
+                ]
+            ]
+
+            def __init__(self):
+                self.tasks = {
+                    'align.stats': TaskMetadata(CromMetadata.task1),
+                    'align.bbmap_shard_wf': TaskMetadata(CromMetadata.task2)
+                }
+
+        return CromMetadata()
+
+    monkeypatch.setattr(cromwell.Cromwell, "get_metadata", mock_cromwell)
+
+    expected = {
+        'cromwell-executions/align/C1/call-stats/execution': 'align.stats',
+        'cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-indexing/execution': 'align.shard_wf:shard_wf.indexing',  # noqa
+        'cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-map/shard-0/execution': 'align.shard_wf:shard_wf.map[0]',  # noqa
+        'cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-merge/execution': 'align.shard_wf:shard_wf.merge',  # noqa
+        'cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-shard/execution': 'align.shard_wf:shard_wf.shard'  # noqa
+    }
+    mock_session = None
+    tasks = TaskLog(mock_session, cromwell_run_id="EXAMPLE-CROMWELL-RUN-ID")
+    actual = tasks.get_task_cromwell_dir_mapping()
     assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
