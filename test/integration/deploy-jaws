@@ -1,5 +1,9 @@
 #!/bin/bash -l
 
+# comment out set -e because this breaks the deployment to tahoma
+# because the chgrp command in test/integration/define-env fails for /big_scratch/singularity_files
+#set -e
+
 echo "BEGIN deploy-jaws"
 
 source ./test/integration/define-env
