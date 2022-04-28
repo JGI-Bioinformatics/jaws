@@ -303,7 +303,7 @@ backend
 
       config
       {
-        exit-code-timeout-seconds = 60
+        #exit-code-timeout-seconds = 60
         runtime-attributes = """
           String? docker
           String? docker_user
@@ -318,54 +318,53 @@ backend
           export CONDOR_CONFIG="$SITE_HTCONDOR_MASTER_CONFIG"
           PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
           chmod 755 \${script}
-          #printenv > env.debug
-          mkdir -p $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
-          cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile <<EOF
+          #printenv > env.debug          
+          cat > \${cwd}/execution/submitFile <<EOF
 PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
-Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
+Iwd=\${cwd}/execution
 +Owner=UNDEFINED
 request_memory=\${memory_mb}
 request_disk=\${disk_kb}
 request_cpus=\${cpu}
-error=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stderr
-output=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stdout
+error=\${cwd}/execution/stderr
+output=\${cwd}/execution/stdout
 log_xml=true
 executable=\${script}
-log=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/execution.log
+log=\${cwd}/execution/execution.log
 queue
 EOF
-          condor_submit $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile
+          condor_submit \${cwd}/execution/submitFile
         """
         submit-docker = """
           export CONDOR_CONFIG="$SITE_HTCONDOR_MASTER_CONFIG"
           PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
           $CONTAINER_EXPORT
           #printenv > env.debug
-          mkdir -p $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
-          cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript <<EOF
+          cat > \${cwd}/execution/dockerScript <<EOF
 #!/bin/bash
 PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
 $CONTAINER_EXEC_COMMAND
 EOF
-          chmod 755 $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript
-          cat > $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile <<EOF
-Iwd=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution
+          chmod 755 \${cwd}/execution/dockerScript
+          cat > \${cwd}/execution/submitFile <<EOF
+Iwd=\${cwd}/execution
 +Owner=UNDEFINED
 request_memory=\${memory_mb}
 request_disk=\${disk_kb}
 request_cpus=\${cpu}
-error=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stderr
-output=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/stdout
+error=\${cwd}/execution/stderr
+output=\${cwd}/execution/stdout
 log_xml=true
-executable=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/dockerScript
-log=$SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/execution.log
+executable=\${cwd}/execution/dockerScript
+log=\${cwd}/execution/execution.log
 queue
 EOF
-          condor_submit $SITE_JTM_SCRATCH_BASEDIR/condor/run/\${job_name}/execution/submitFile
+          condor_submit \${cwd}/execution/submitFile
        """
         kill = "export CONDOR_CONFIG=$SITE_HTCONDOR_MASTER_CONFIG && $SITE_HTCONDOR_INSTALL/bin/condor_rm \${job_id}"
         check-alive = "export CONDOR_CONFIG=$SITE_HTCONDOR_MASTER_CONFIG && $SITE_HTCONDOR_INSTALL/bin/condor_q \${job_id}"
         job-id-regex = "(?sm).*cluster (\\\d+)..*"
+        root = $CROMWELL_EXECUTIONS_DIR
         dockerRoot = $CROMWELL_EXECUTIONS_DIR
       }
     }
