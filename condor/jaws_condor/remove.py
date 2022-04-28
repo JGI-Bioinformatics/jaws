@@ -12,16 +12,12 @@ Steps
 
 """
 import argparse
-import click
 import logging
 import os
-import time
 import shlex
-from datetime import datetime
 import configparser as cparser
 import json
 import jaws_condor.config
-from jaws_condor import config
 from jaws_condor.utils import run_sh_command
 
 
@@ -109,9 +105,9 @@ def run_scancel(
 
 def collect_condor_running_jobs(condor_q_out: str, ram_range: list) -> dict:
     idle_jobs = [[], [], [], []]  # small, med, large, xlarge
-    for l in condor_q_out.split("\n"):
-        if l and len(shlex.split(l)) == 6:
-            tok = shlex.split(l)
+    for a_job in condor_q_out.split("\n"):
+        if a_job and len(shlex.split(a_job)) == 6:
+            tok = shlex.split(a_job)
             job_id = tok[0]
             req_mem = float(tok[1])
             mem_unit = tok[2].strip()
@@ -145,7 +141,7 @@ def cli():
     site_id = jaws_condor.config.conf.get_site_id().upper()
 
     if args.logfile:
-        logfile_path = logfile
+        logfile_path = args.logfile
     else:
         logfile_path = "./jaws_condor_remove.log"
     os.makedirs(os.path.dirname(logfile_path), exist_ok=True)
