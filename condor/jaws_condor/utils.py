@@ -12,14 +12,10 @@ and other os-related tools
 
 """
 
-from subprocess import Popen, call, PIPE
-import os
-import glob
-import shlex
+from subprocess import Popen, PIPE
 import re
 import time
 from threading import Timer
-import sys
 
 
 def run_sh_command(
@@ -165,8 +161,7 @@ def extract_cromwell_id(task: str) -> str:
     try:
         regex = re.compile(r"cromwell-executions\/[^\/]+\/([^\/]+)", re.I)
         match = regex.search(task)
-    except Exception as e:
-        eprint(f"Failed to regex cromwell id from task: {e}, {task}")
+    except Exception:
         raise
 
     if match:
