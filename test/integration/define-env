@@ -33,7 +33,6 @@ for VAR in $REQUIRED_VARS; do
 done
 [ $RESULT -eq 0 ] || exit $RESULT
 
-
 ## DEPLOYMENT-SPECIFIC VARIABLES
 echo "DEFINING DEPLOYMENT VARS"
 function set_deployment_var {
@@ -152,7 +151,7 @@ export JTM_CONFIG_FILE="$CONFIG_DIR/jaws-jtm.conf"
 export SITE_PERFORMANCE_METRICS_SCRIPT="$INSTALL_DIR/site/bin/pagurus"
 
 # Globus has some rules about how paths are interpreted, depending on how the endpoint is configured.
-[[ ${SITE_GLOBUS_ROOT_DIR: -1} == "/" ]] || SITE_GLOBUS_ROOT_DIR="$SITE_GLOBUS_ROOT_DIR/"
+[[ ${SITE_GLOBUS_ROOT_DIR:-1} == "/" ]] || SITE_GLOBUS_ROOT_DIR="$SITE_GLOBUS_ROOT_DIR/"
 
 # virtual envs
 export JTM_VENV_DIR="$INSTALL_DIR/jtm"
