@@ -122,7 +122,7 @@ def keep_min_pool(
             time.sleep(0.5)
 
 
-def collect_condor_jobs(condor_q_out: str, ram_range: list) -> dict:
+def collect_condor_jobs(condor_q_out: str, ram_range: list) -> list:
     idle_jobs = [[], [], [], []]  # small, med, large, xlarge
     for a_job in condor_q_out.split("\n"):
         if a_job and len(shlex.split(a_job)) == 6:
