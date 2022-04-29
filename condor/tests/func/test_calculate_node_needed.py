@@ -20,6 +20,12 @@ def test_calculate_node_needed():
     [[192, 390.6, 1024.0, 4]]
     ]
 
+    ==> Resources per type
+    types = ["small", "medium", "large", "xlarge"]
+    ; unit GB
+    mem = ["0-0", "0-364", "0-0", "364-1480"]
+    cpu = [36, 36, 36, 36]
+
     ==> total number of nodes needed to sbatch
     max(sum(mem_requested) / each_max_mem, sum(cpu_requested) / each_max_cpu) +  1
 
