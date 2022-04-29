@@ -27,6 +27,7 @@ elsewhere in JAWS/JTM, as clarified below:
 import requests
 import logging
 import os
+import re
 
 
 def _read_file(path: str):
@@ -122,6 +123,11 @@ class Task:
         """
         summary = []
         for call in self.data:
+            if call.get("stdout"):
+                cromwell_dir = re.sub(r"/stdout$", '', call["stdout"])
+            else:
+                cromwell_dir = None
+
             name = self.name
             shard_index = call["shardIndex"]
             if shard_index > -1:
@@ -141,12 +147,12 @@ class Task:
             if "subWorkflowMetadata" in call:
                 subworkflow = self.subworkflows[shard_index][attempt]
                 sub_task_summary = subworkflow.task_summary()
-                for sub_name, sub_job_id, sub_cached, max_time in sub_task_summary:
+                for sub_name, sub_job_id, sub_cached, max_time, cromwell_dir in sub_task_summary:
                     summary.append(
-                        [f"{name}:{sub_name}", sub_job_id, sub_cached, max_time]
+                        [f"{name}:{sub_name}", sub_job_id, sub_cached, max_time, cromwell_dir]
                     )
             else:
-                summary.append([name, job_id, cached, max_time])
+                summary.append([name, job_id, cached, max_time, cromwell_dir])
         return summary
 
     def errors(self):
@@ -364,8 +370,8 @@ class Metadata:
         summary = []
         for task_name, task in self.tasks.items():
             task_summary = task.summary()
-            for name, job_id, cached, max_time in task_summary:
-                summary.append([name, job_id, cached, max_time])
+            for name, job_id, cached, max_time, cromwell_dir in task_summary:
+                summary.append([name, job_id, cached, max_time, cromwell_dir])
         return summary
 
     def outputs(self, **kwargs):
