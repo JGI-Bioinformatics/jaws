@@ -17,6 +17,7 @@ setup(
         "console_scripts": [
             "condor_pool_add=jaws_condor.add:cli",
             "condor_pool_remove=jaws_condor.remove:cli",
+            "condor_pool_remove=jaws_condor.pool_manager:cli",
         ]
     },
     zip_safe=False,
