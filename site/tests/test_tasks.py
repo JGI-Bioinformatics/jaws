@@ -577,11 +577,21 @@ def test_get_task_cromwell_dir_mapping(monkeypatch):
                     '/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-shard/execution'
                 ]
             ]
+            task3 = [
+                [
+                    'no_cromwell_dir',
+                    1,
+                    False,
+                    '00:30:00',
+                    '',
+                ],
+            ]
 
             def __init__(self):
                 self.tasks = {
                     'align.stats': TaskMetadata(CromMetadata.task1),
-                    'align.bbmap_shard_wf': TaskMetadata(CromMetadata.task2)
+                    'align.bbmap_shard_wf': TaskMetadata(CromMetadata.task2),
+                    'no_cromwell_dir': TaskMetadata(CromMetadata.task3),
                 }
 
         return CromMetadata()

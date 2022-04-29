@@ -275,9 +275,12 @@ class TaskLog:
 
                 cromwell_dir = entry[4]
                 idx = cromwell_dir.find("cromwell-executions")
-                cromwell_dir = cromwell_dir[idx:]
-                entry[4] = cromwell_dir
-                cromwell_to_task_names[cromwell_dir] = entry[0]
+
+                # if cromwell-executions not found in directory name, idx=-1. skip this condition.
+                if idx >= 0:
+                    cromwell_dir = cromwell_dir[idx:]
+                    entry[4] = cromwell_dir
+                    cromwell_to_task_names[cromwell_dir] = entry[0]
         return cromwell_to_task_names
 
     def _get_cromwell_task_summary(self):
