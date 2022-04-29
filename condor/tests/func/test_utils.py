@@ -1,6 +1,5 @@
-import pytest
 import jaws_condor.utils
-from unittest import mock
+
 
 def test_extract_cromwell_id():
     """

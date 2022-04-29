@@ -45,7 +45,4 @@ class Configuration:
         """
         section = "SITE"
         s = self.config[section]
-        params = {
-            "site_id": s["site_id"],
-        }
         return s["site_id"]

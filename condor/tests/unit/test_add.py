@@ -1,6 +1,4 @@
-import pytest
 import jaws_condor.add
-from unittest import mock
 
 
 def test_start_file_logger(tmp_path):
