@@ -19,7 +19,7 @@ import shlex
 import configparser as cparser
 import json
 import jaws_condor.config
-from jaws_condor.utils import run_sh_command, run_slurm_cmd
+from jaws_condor.utils import run_sh_command, run_slurm_cmd, mem_unit_to_g
 
 
 logger = None
@@ -58,6 +58,16 @@ def start_file_logger(
     logger.addHandler(streamLogger)
 
 
+def calculate_node_needed(idle_list: list, ram_range: str, ncpu: int) -> int:
+    # 0-118 --> max mem for this type = 118
+    ram_e = int(ram_range.split("-")[1])
+    summed = [sum(x) for x in zip(*idle_list)]
+    print(summed)
+    sum_ram = summed[1]
+    sum_cpu = summed[3]
+    return max(int(sum_ram / ram_e), int(sum_cpu / ncpu)) + 1
+
+
 def run_sbatch(
     rsc_t: str,
     sq_cmd: str,
@@ -66,6 +76,8 @@ def run_sbatch(
     batch_script: str,
     sb_cmd: str,
     max_pool_sz: int,
+    ram_s_e: str,
+    cpu_s: int,
     site_id=None,
 ):
     logger.info("Number of IDLE condor jobs: %d" % len(idle_jobs))
@@ -84,6 +96,8 @@ def run_sbatch(
         logger.info(sq_cmd)
 
         logger.info(f"Number of PENDING slurm jobs: {num_pending_jobs}")
+        num_sbatches_new = calculate_node_needed(idle_jobs, ram_s_e, cpu_s)
+        logger.info(f"num_sbatches_new = {num_sbatches_new}")
         num_sbatches = len(idle_jobs) - int(num_pending_jobs)
         if max_pool_sz > 0:
             num_r_pd_jobs = run_slurm_cmd(sq_r_pd_cmd)
@@ -126,22 +140,21 @@ def collect_condor_jobs(condor_q_out: str, ram_range: list) -> list:
     idle_jobs = [[], [], [], []]  # small, med, large, xlarge
     for a_job in condor_q_out.split("\n"):
         if a_job and len(shlex.split(a_job)) == 6:
+            # ex)
+            # 190        1.0 TB    1024.0 MB  1
+            # 191     1024.0 KB    1024.0 MB  16
+            # 192      390.6 GB    1024.0 MB  4
+            # 193       97.7 GB    1024.0 MB  10
             tok = shlex.split(a_job)
             job_id = tok[0]
-            req_mem = float(tok[1])
-            mem_unit = tok[2].strip()
-            if mem_unit in ("KB", "kb"):
-                req_mem = req_mem / (1024 * 1024)
-            if mem_unit in ("MB", "mb"):
-                req_mem = req_mem / 1024
+            req_mem = mem_unit_to_g(tok[2].strip(), float(tok[1]))
             req_disk = float(tok[3])
             req_cpu = int(tok[5])
-
             for idx, rr in enumerate(ram_range):
                 ram_start = int(rr.split("-")[0])
                 ram_end = int(rr.split("-")[1])
                 if ram_end != 0 and ram_start < req_mem <= ram_end:
-                    idle_jobs[idx].append([job_id, req_mem, req_disk, req_cpu])
+                    idle_jobs[idx].append([int(job_id), req_mem, req_disk, req_cpu])
 
     return idle_jobs
 
@@ -194,7 +207,7 @@ def cli():
     logger.info("IDLE Condor jobs")
     logger.info("Job_id\tReq_mem\tReq_disk\tReq_cpu")
     logger.info(f"{so.rstrip()}")
-    ram_range = json.loads(site_config.get("RESOURCE", "ram"))
+    ram_range = json.loads(site_config.get("RESOURCE", "mem"))
     idle_list = collect_condor_jobs(so, ram_range)
     logger.info(f"IDLE Condor job list: {idle_list}")
 
@@ -203,6 +216,7 @@ def cli():
     squeue_cmd_r_p = site_config["SLURM"]["squeue_cmd_running_pending"]
     max_pool_size = json.loads(site_config.get("CONDOR", "max_pool"))
     min_pool_size = json.loads(site_config.get("CONDOR", "min_pool"))
+    cpu_size = json.loads(site_config.get("RESOURCE", "cpu"))
     resource_types = json.loads(site_config.get("RESOURCE", "types"))
     job_files = [v for (k, v) in site_config.items("WORKER_TYPES")]
 
@@ -217,6 +231,8 @@ def cli():
             job_files[idx],
             sbatch_cmd,
             max_pool_size[idx],
+            ram_range[idx],
+            cpu_size[idx],
             site_id=site_id,
         )
         keep_min_pool(

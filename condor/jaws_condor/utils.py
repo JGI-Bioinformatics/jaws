@@ -184,3 +184,16 @@ def run_slurm_cmd(s_cmd: str) -> int:
     except TypeError as te:
         print(f"Unexpected output from slurm command: {s_cmd}\n{te}\n{se}")
         return -1
+
+
+def mem_unit_to_g(unit: str, mem: float) -> float:
+    if unit.upper() not in ("GB", "G"):
+        if unit.upper() in ("TB", "T"):
+            mem *= 1024
+        elif unit.upper() in ("MB", "M"):
+            mem /= 1024
+        elif unit.upper() in ("KB", "K"):
+            mem /= 1024 * 1024
+        else:
+            return -1
+    return mem
