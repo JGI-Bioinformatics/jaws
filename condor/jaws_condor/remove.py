@@ -176,7 +176,7 @@ def cli():
     logger.info("RUNNING Condor jobs")
     logger.info("Job_id\tReq_mem\tReq_disk\tReq_cpu")
     logger.info(f"{so.rstrip()}")
-    ram_range = json.loads(site_config.get("RESOURCE", "ram"))
+    ram_range = json.loads(site_config.get("RESOURCE", "mem"))
     run_list = collect_condor_running_jobs(so, ram_range)
     logger.info(f"Running Condor job list: {run_list}")
 
