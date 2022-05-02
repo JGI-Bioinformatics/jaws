@@ -98,7 +98,8 @@ def run_sbatch(
         logger.info(f"Number of PENDING slurm jobs: {num_pending_jobs}")
         num_sbatches_new = calculate_node_needed(idle_jobs, ram_s_e, cpu_s)
         logger.info(f"num_sbatches_new = {num_sbatches_new}")
-        num_sbatches = len(idle_jobs) - int(num_pending_jobs)
+        # num_sbatches = len(idle_jobs) - int(num_pending_jobs)
+        num_sbatches = num_sbatches_new - int(num_pending_jobs)
         if max_pool_sz > 0:
             num_r_pd_jobs = run_slurm_cmd(sq_r_pd_cmd)
             if (num_r_pd_jobs + num_sbatches) > max_pool_sz:
@@ -106,10 +107,11 @@ def run_sbatch(
                 logger.info(f"Current pool size = {num_r_pd_jobs}")
                 logger.info(f"MAX pool size = {max_pool_sz}")
                 logger.info(f"Adjusted number of nodes to add = {num_sbatches}")
-        for _ in range(num_sbatches):
-            logger.info(run_slurm_cmd(sb_cmd % batch_script))
-            logger.debug(sb_cmd % batch_script)
-            time.sleep(0.5)
+        if num_sbatches > 0:
+            for _ in range(num_sbatches):
+                logger.info(run_slurm_cmd(sb_cmd % batch_script))
+                logger.debug(sb_cmd % batch_script)
+                time.sleep(0.5)
 
 
 def keep_min_pool(
