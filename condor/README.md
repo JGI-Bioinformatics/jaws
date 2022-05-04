@@ -82,6 +82,16 @@ Total for all users: 1 jobs; 0 completed, 0 removed, 0 idle, 1 running, 0 held, 
 
 ** Check a job status (https://htcondor.readthedocs.io/en/latest/users-manual/managing-a-job.html)
 - Tahoma
+Checking a running job
+```angular2html
+$ condor_q (job_id)
+```
+To get a detailed job status
+```angular2html
+$ condor_q (job_id) -l
+```
+
+To check a completed job
 ```
 $ condor_history 596 -af JobStatus
 4
@@ -158,6 +168,8 @@ ratch/condor/condor_pool_remove.log -d
 
 
 ### Cronjob per site
+
+To enable the pool manager service, create cronjobs per site. 
 
 ex) Cori Cronjob
 
