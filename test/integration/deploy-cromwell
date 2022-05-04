@@ -213,7 +213,7 @@ backend
           String? docker
           String time = "00:30:00"
           Int cpu = 32
-          Float? memory_gb = 5
+          Float? memory_gb = 10
           String cluster = "${JAWS_SITE,,}"
           String poolname = "small"
           String constraint = "$SITE_CLUSTER_CONSTRAINT"
@@ -308,7 +308,7 @@ backend
           String? docker
           String? docker_user
           Int? cpu = 1
-          Float? memory_mb = 512
+          Float? memory_mb = 2048
           Float? disk_kb = 25600.0
           Int? runtime_minutes
           String? nativeSpecs
