@@ -6,18 +6,6 @@ import pytest
 import logging
 
 
-@pytest.fixture
-def config_file(tmp_path):
-    cfg = tmp_path / "jaws-central.ini"
-    content = """[JAWS]
-name = jaws-dev
-version = 2.0.1
-docs_url = https://jaws-docs.readthedocs.io/en/latest/
-"""
-    cfg.write_text(content)
-    return cfg.as_posix()
-
-
 @pytest.fixture()
 def configuration(config_file):
     return jaws_central.config.Configuration(config_file)

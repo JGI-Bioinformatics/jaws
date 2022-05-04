@@ -6,13 +6,15 @@ them to the next state.
 import schedule
 import time
 import logging
-from jaws_site import database, runs, config, rpc_es, perf_metrics_es
+from jaws_site import database, runs, config, rpc_es
+
+# from jaws_site import perf_metrics_es
 from jaws_rpc import rpc_client
 
 logger = logging.getLogger(__package__)
 
 
-class Daemon:
+class RunDaemon:
     """
     Daemon that periodically checks on this site's active runs.
     It prompts active runs to query Cromwell or Globus, as appropriate.
@@ -23,11 +25,12 @@ class Daemon:
 
     def __init__(self):
         logger.info("Initializing daemon")
-        self.central_rpc_client = rpc_client.RpcClient(config.conf.get_section("CENTRAL_RPC_CLIENT"), logger)
-        self.runs_es_rpc_client = rpc_es.RPCRequest(config.conf.get_section("RUNS_ES_RPC_CLIENT"), logger)
-        self.pmetrics_es_rpc_client = rpc_es.RPCRequest(config.conf.get_section("PERFORMANCE_METRICS_ES_RPC_CLIENT"),
-                                                        logger)
-
+        self.central_rpc_client = rpc_client.RpcClient(
+            config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
+        )
+        self.runs_es_rpc_client = rpc_es.RPCRequest(
+            config.conf.get_section("RUNS_ES_RPC_CLIENT"), logger
+        )
         # Set message expiration to 60 secs
         self.runs_es_rpc_client.message_ttl = 3600
         self.pmetrics_es_rpc_client.message_ttl = 3600
@@ -46,7 +49,9 @@ class Daemon:
         Check for runs in particular states.
         """
         session = database.Session()
-        runs.check_active_runs(session, self.runs_es_rpc_client)
+        runs.check_active_runs(
+            session, self.central_rpc_client, self.runs_es_rpc_client
+        )
         runs.send_run_status_logs(session, self.central_rpc_client)
-        perf_metrics_es.Metrics(session, self.pmetrics_es_rpc_client).process_metrics()
+        # perf_metrics_es.Metrics(session, self.pmetrics_es_rpc_client).process_metrics()
         session.close()

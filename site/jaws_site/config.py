@@ -33,15 +33,27 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "num_threads": 5,
             "max_retries": 5,
         },
-        "CENTRAL_RPC_CLIENT": {"port": "5672", },
-        "DB": {"host": "localhost", "port": "3306", "dialect": "mysql+mysqlconnector", },
+        "CENTRAL_RPC_CLIENT": {
+            "port": "5672",
+        },
+        "DB": {
+            "host": "localhost",
+            "port": "3306",
+            "dialect": "mysql+mysqlconnector",
+        },
     }
     required_params = {
         "LOCAL_RPC_SERVER": ["vhost"],
         "CENTRAL_RPC_SERVER": ["vhost"],
         "CENTRAL_RPC_CLIENT": ["host", "vhost", "user", "password"],
         "RUNS_ES_RPC_CLIENT": ["host", "vhost", "user", "password", "queue"],
-        "PERFORMANCE_METRICS_ES_RPC_CLIENT": ["host", "vhost", "user", "password", "queue"],
+        "PERFORMANCE_METRICS_ES_RPC_CLIENT": [
+            "host",
+            "vhost",
+            "user",
+            "password",
+            "queue",
+        ],
         "PERFORMANCE_METRICS": ["done_dir", "processed_dir"],
         "GLOBUS": [
             "client_id",
@@ -91,7 +103,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         global conf
         conf = self
 
-    def get(self, section: str, key: str) -> str:
+    def get(self, section: str, key: str, default=None) -> str:
         """Get a configuration value.
 
         :param section: name of config section
@@ -101,7 +113,9 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         :return: the value is always a string; typecast as necessary
         :rtype: str
         """
-        return self.config.get(section, key)
+        if section not in self.config:
+            raise ConfigurationError(f"Section {section} not defined in config obj")
+        return self.config[section].get(key, default)
 
     def get_section(self, section: str) -> dict:
         """Get a configuration section.

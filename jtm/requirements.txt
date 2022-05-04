@@ -1,4 +1,4 @@
-AMQPStorm==2.9.0
+AMQPStorm==2.10.4
 cffi==1.14.6
 click==7.1.2
 cryptography==3.4.7

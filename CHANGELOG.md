@@ -4,6 +4,9 @@
 ### User Facing Changes
 #### Changed
 - Install performance metrics script pagurus in site venv during CICD deployment
+- add beta deployment at AWS
+- remove "--default-container" option.  If a container is not specified for a task, "ubuntu:latest" is used by default; if a particular container is desired, it should be specified in the WDL, not on the command-line.
+- add user-supplied "tag" to Run completion notification email
 
 ## 2.7.7 (2022-4-12) Summary
 ### User Facing Changes
@@ -13,7 +16,7 @@
 - Ensure sharded tasks have unique names for task-log/task-status (#1064)
 - Globus transfers will skip files when error when NFS problems instead of quit
 
-#### Depricated
+#### Deprecated
 - Deprecate wfcopy command (#1040)
 
 #### Fixed

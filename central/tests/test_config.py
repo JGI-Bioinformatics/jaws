@@ -9,7 +9,7 @@ def check_section(section_to_test, expected_entries, actual_config):
 
 def check_site(site_to_test, expected_entries, actual_config):
     for key, expected in expected_entries:
-        assert actual_config.get_site(site_to_test, key) == expected
+        assert actual_config.get_site_param(site_to_test, key) == expected
 
 
 def check_site_info(site_to_test, expected_entries, actual_config):
@@ -31,8 +31,8 @@ def test_check_all_values(config_file):
         ("user", "jaws"),
         ("password", "passw0rd1"),
         ("db", "jaws"),
-        ("host2", '${JAWS_DB_HOST}'),
-        ("password2", '${JAWS_DB_PASSWORD}123')
+        ("host2", "${JAWS_DB_HOST}"),
+        ("password2", "${JAWS_DB_PASSWORD}123"),
     ]
 
     expected_db_parameters_env = [
@@ -42,8 +42,8 @@ def test_check_all_values(config_file):
         ("user", "jaws"),
         ("password", "passw0rd1"),
         ("db", "jaws"),
-        ("host2", 'db.foobar.com'),
-        ("password2", 'password123')
+        ("host2", "db.foobar.com"),
+        ("password2", "password123"),
     ]
 
     expected_globus_parameters = [
@@ -59,7 +59,7 @@ def test_check_all_values(config_file):
         ("globus_endpoint", "XXXX"),
         ("globus_host_path", "/global/scratch/jaws"),
         ("uploads_dir", "/global/scratch/jaws/jaws-dev/uploads"),
-        ("uploads_dir2", '${SCRATCH_ROOT}/jaws/jaws-dev/uploads'),
+        ("uploads_dir2", "${SCRATCH_ROOT}/jaws/jaws-dev/uploads"),
         ("max_ram_gb", "1024"),
     ]
 
@@ -74,14 +74,14 @@ def test_check_all_values(config_file):
     print("Checking DB section without environment variables set")
     # Clear any conflicting keys in the environment
     try:
-        del os.environ['JAWS_DB_HOST']
-        del os.environ['JAWS_DB_PASSWORD']
+        del os.environ["JAWS_DB_HOST"]
+        del os.environ["JAWS_DB_PASSWORD"]
     except KeyError:
         pass
     check_section("DB", expected_db_parameters, cfg)
     print("Checking DB section with environment variables set")
-    os.environ['JAWS_DB_HOST'] = "db.foobar.com"
-    os.environ['JAWS_DB_PASSWORD'] = "password"
+    os.environ["JAWS_DB_HOST"] = "db.foobar.com"
+    os.environ["JAWS_DB_PASSWORD"] = "password"
     check_section("DB", expected_db_parameters_env, cfg)
     check_section("GLOBUS", expected_globus_parameters, cfg)
     check_site("JGI", expected_site1_parameters, cfg)

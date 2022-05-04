@@ -5,8 +5,12 @@ testing.
 import pytest
 import os
 import shutil
+import json
+from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
+
+this_date = datetime.today()
 
 
 @pytest.fixture
@@ -140,7 +144,71 @@ s3_bucket = CCCC
     return cfg.as_posix()
 
 
+class MockRunModel:
+    """Mock Run sqlalchemy orm model object with useable defaults."""
+
+    def __init__(self, **kwargs):
+        self.user_id = kwargs.get("user_id", "jaws")
+        self.upload_task_id = kwargs.get("upload_task_id", "1")
+        self.submission_id = kwargs.get("submission_id", "XXXX")
+        self.cromwell_run_id = kwargs.get("cromwell_run_id", None)
+        self.status = kwargs.get("status", "running")
+        self.id = kwargs.get("id", "99")
+        self.result = kwargs.get("result", None)
+        self.output_endpoint = kwargs.get(
+            "output_endpoint", "EXAMPLE_OUTPUT_ENDPOINT_ID"
+        )
+        self.output_dir = kwargs.get("output_dir", ".")
+        self.download_task_id = kwargs.get("download_task_id", "325")
+        self.email = kwargs.get("email", "jaws@vog.gov")
+        self.cromwell_workflow_dir = (
+            "/global/scratch/jaws/dev/cromwell-executions/test_wdl/myid"
+        )
+        self.input_site_id = kwargs.get("input_site_id", "CORI")
+        self.caching = kwargs.get("caching", True)
+        self.submitted = kwargs.get("submitted", datetime.utcnow())
+        self.updated = kwargs.get("updated", datetime.utcnow())
+
+
+class MockCromwell:
+    def __init__(self, url="localhost"):
+        self.url = url
+        self.workflows_url = f"{url}/api/workflows/v1"
+
+    def get_metadata(self, workflow_id, data=None, cache={}):
+        return MockCromwellMetadata(self.workflows_url, workflow_id, data, cache)
+
+
+class MockCromwellMetadata:
+    def __init__(self, workflows_url, workflow_id, data=None, cache={}):
+        self.workflows_url = workflows_url
+        self.workflow_id = workflow_id
+        self.tasks = None
+        self.data = data
+
+    def workflow_root(self):
+        return "/example/cromwell-outputs/wdlName/workflowRoot"
+
+    def outputs(self, **kwargs):
+        return {}
+
+
+class MockRpcClient:
+    def __init__(self, params=None, logger=None):
+        pass
+
+    def request(self, method, params={}):
+        response = {"result": None}
+        return response
+
+
+def mock_rpc_client(run):
+    return MockRpcClient()
+
+
 class MockResponses:
+    """Requests response class"""
+
     def __init__(self, json_data, status_code):
         self.status_code = status_code
         self.json_data = json_data
@@ -163,157 +231,24 @@ class MockResponses:
         return
 
 
-CROMWELL_ID = "15774623-0f76-49ef-828c-3aa0ccd024f5"
+class MockTransferModel:
+    """Mock Transfer sqlalchemy orm model object with useable defaults."""
 
-METADATA = {
-    "workflowName": "sc_test",
-    "calls": {
-        "sc_test.do_prepare": [
-            {
-                "executionStatus": "Done",
-                "stdout": "/path/to/stdout",
-                "shardIndex": -1,
-                "outputs": {
-                    "split_files": ["/home/jdoe/temp_aa", "/home/jdoe/temp_ad"]
-                },
-                "inputs": {"input_file": "/home/jdoe/cromwell/11.txt"},
-                "runtimeAttributes": {
-                    "failOnStderr": "true",
-                    "continueOnReturnCode": "0",
-                },
-                "returnCode": 0,
-                "backend": "Local",
-                "end": "2016-02-04T13:47:56.000-05:00",
-                "stderr": "/home/jdoe/stderr",
-                "attempt": 1,
-                "executionEvents": [],
-                "start": "2016-02-04T13:47:55.000-05:00",
-            }
-        ],
-        "sc_test.do_scatter": [
-            {
-                "executionStatus": "Preempted",
-                "stdout": "/home/shard-0/stdout",
-                "shardIndex": 0,
-                "outputs": {},
-                "runtimeAttributes": {
-                    "failOnStderr": "true",
-                    "continueOnReturnCode": "0",
-                },
-                "inputs": {"input_file": "f"},
-                "backend": "Local",
-                "end": "2016-02-04T13:47:56.000-05:00",
-                "stderr": "/home/jdoe/0/stderr",
-                "attempt": 1,
-                "executionEvents": [],
-                "start": "2016-02-04T13:47:56.000-05:00",
-            },
-            {
-                "executionStatus": "Done",
-                "stdout": "/home/jdoe/shard-0/attempt-2/stdout",
-                "shardIndex": 0,
-                "outputs": {"count_file": "/home/jdoe/0/attempt-2/output.txt"},
-                "runtimeAttributes": {
-                    "failOnStderr": "true",
-                    "continueOnReturnCode": "0",
-                },
-                "inputs": {"input_file": "f"},
-                "returnCode": 0,
-                "end": "2016-02-04T13:47:56.000-05:00",
-                "stderr": "/home/jdoe/shard-0/attempt-2/stderr",
-                "attempt": 2,
-                "executionEvents": [],
-                "start": "2016-02-04T13:47:56.000-05:00",
-            },
-            {
-                "executionStatus": "Done",
-                "stdout": "/home/jdoe/shard-1/stdout",
-                "shardIndex": 1,
-                "outputs": {"count_file": "/home/jdoe/shard-1/output.txt"},
-                "runtimeAttributes": {
-                    "failOnStderr": "true",
-                    "continueOnReturnCode": "0",
-                },
-                "inputs": {"input_file": "f"},
-                "returnCode": 0,
-                "backend": "Local",
-                "end": "2016-02-04T13:47:56.000-05:00",
-                "stderr": "/home/jdoe/shard-1/stderr",
-                "attempt": 1,
-                "executionEvents": [],
-                "start": "2016-02-04T13:47:56.000-05:00",
-            },
-        ],
-        "sc_test.do_gather": [
-            {
-                "executionStatus": "Done",
-                "stdout": "/home/jdoe/call-do_gather/stdout",
-                "shardIndex": -1,
-                "outputs": {"sum": 12},
-                "runtimeAttributes": {
-                    "failOnStderr": "true",
-                    "continueOnReturnCode": "0",
-                },
-                "inputs": {
-                    "input_files": [
-                        "/home/jdoe/shard-0/attempt-2/output.txt",
-                        "/home/jdoe/shard-1/output.txt",
-                    ]
-                },
-                "returnCode": 0,
-                "backend": "Local",
-                "end": "2016-02-04T13:47:57.000-05:00",
-                "stderr": "/home/jdoe/call-do_gather/stderr",
-                "attempt": 1,
-                "executionEvents": [],
-                "start": "2016-02-04T13:47:56.000-05:00",
-            }
-        ],
-    },
-    "outputs": {
-        "sc_test.do_gather.sum": 12,
-        "sc_test.do_prepare.split_files": [
-            "/home/jdoe/call-do_prepare/temp_aa",
-            "/home/jdoe/call-do_prepare/temp_ad",
-        ],
-        "sc_test.do_scatter.count_file": [
-            "/home/jdoe/shard-0/attempt-2/output.txt",
-            "/home/jdoe/shard-1/output.txt",
-        ],
-    },
-    "id": "8e592ed8-ebe5-4be0-8dcb-4073a41fe180",
-    "inputs": {"sc_test.do_prepare.input_file": "/home/jdoe/cromwell/11.txt"},
-    "submission": "2016-02-04T13:47:55.000-05:00",
-    "status": "Succeeded",
-    "end": "2016-02-04T13:47:57.000-05:00",
-    "start": "2016-02-04T13:47:55.000-05:00",
-}
-
-LOGS = {
-    "id": "b3e45584-9450-4e73-9523-fc3ccf749848",
-    "logs": {
-        "call.ps": [
-            {
-                "stderr": "/home/user/call-ps/stderr6126967977036995110.tmp",
-                "stdout": "/home/user/call-ps/stdout6128485235785447571.tmp",
-            }
-        ],
-        "call.cgrep": [
-            {
-                "stderr": "/home/user/call-cgrep/stderr6126967977036995110.tmp",
-                "stdout": "/home/user/call-cgrep/stdout6128485235785447571.tmp",
-            }
-        ],
-        "call.wc": [
-            {
-                "stderr": "/home/user/call-wc/stderr6126967977036995110.tmp",
-                "stdout": "/home/user/call-wc/stdout6128485235785447571.tmp",
-            }
-        ],
-    },
-}
-
-ABORT = {"id": "e442e52a-9de1-47f0-8b4f-e6e565008cf1", "status": "Aborted"}
+    def __init__(self, **kwargs):
+        manifest_json = "[]"
+        if "manifest" in kwargs:
+            assert type(kwargs["manifest"]) == list
+            manifest_json = json.dumps(kwargs.get("manifest", []))
+        elif "manifest_json" in kwargs:
+            assert type(kwargs["manifest_json"]) == str
+            manifest_json = manifest_json
+        self.id = kwargs.get("id", "12")
+        self.status = kwargs.get("status", "queued")
+        self.submitted = kwargs.get("submitted", datetime.utcnow())
+        self.updated = kwargs.get("updated", datetime.utcnow())
+        self.src_base_dir = kwargs.get("src_base_dir", "/uploads")
+        self.dest_base_dir = kwargs.get("dest_base_dir", "/uploads")
+        self.manifest_json = manifest_json
 
 
 @pytest.fixture()
@@ -339,6 +274,7 @@ def server_status_up():
 @pytest.fixture()
 def server_status_get():
     def get(url):
+        CROMWELL_ID = "15774623-0f76-49ef-828c-3aa0ccd024f5"
         return MockResponses({"id": CROMWELL_ID, "status": "Submitted"}, 200)
 
     return get
@@ -505,38 +441,6 @@ class MockSession:
     def close_all(self):
         return
 
-    def _query_user_id(self, *args, **kwargs):
-        return
-
-
-class MockRunModel:
-    """Mock Run sqlalchemy orm model object with useable defaults."""
-
-    def __init__(self, **kwargs):
-        self.user_id = kwargs.get("user_id", "jaws")
-        self.upload_task_id = kwargs.get("upload_task_id", "1")
-        self.submission_id = kwargs.get("submission_id", "XXXX")
-        self.cromwell_run_id = kwargs.get("cromwell_run_id", "myid")
-        self._status = kwargs.get("status", "running")
-        self.id = kwargs.get("id", "99")
-        self.output_endpoint = kwargs.get(
-            "output_endpoint", "EXAMPLE_OUTPUT_ENDPOINT_ID"
-        )
-        self.output_dir = kwargs.get("output_dir", ".")
-        self.download_task_id = kwargs.get("download_task_id", "325")
-        self.email = "jaws@vog.gov"
-        self.cromwell_workflow_dir = (
-            "/global/scratch/jaws/dev/cromwell-executions/test_wdl/myid"
-        )
-
-    @property
-    def status(self):
-        return self._status
-
-    @status.setter
-    def status(self, new_status: str):
-        self._status = new_status
-
 
 class MockTransferClientWithCopy:
     def __init__(self, status, transfer_result={"task_id": "325"}):
@@ -627,13 +531,13 @@ def mock_data_transfer(monkeypatch):
             elif data_obj.raises.DataTransferNetworkError:
                 raise DataTransferNetworkError()
 
-            if data_obj.status['succeeded']:
+            if data_obj.status["succeeded"]:
                 return Status.succeeded
-            elif data_obj.status['failed']:
+            elif data_obj.status["failed"]:
                 return Status.failed
-            elif data_obj.status['transferring']:
+            elif data_obj.status["transferring"]:
                 return Status.transferring
-            elif data_obj.status['inactive']:
+            elif data_obj.status["inactive"]:
                 return Status.inactive
 
         @staticmethod
@@ -649,24 +553,24 @@ def mock_data_transfer(monkeypatch):
         return MockDataTransfer()
 
     def mock_get_data_transfer_type(*args, **kwargs):
-        return 'globus_transfer'
+        return "globus_transfer"
 
-    monkeypatch.setattr(DataTransferFactory, '__new__', mock_data_transfer)
-    monkeypatch.setattr(Run, '_get_data_transfer_type', mock_get_data_transfer_type)
+    monkeypatch.setattr(DataTransferFactory, "__new__", mock_data_transfer)
+    monkeypatch.setattr(Run, "_get_data_transfer_type", mock_get_data_transfer_type)
 
     @dataclass
-    class DataTransferExceptions():
+    class DataTransferExceptions:
         DataTransferError = False
         DataTransferAPIError = False
         DataTransferNetworkError = False
 
-    class Data():
+    class Data:
         raises = DataTransferExceptions()
         status = {
-            'succeeded': False,
-            'failed': False,
-            'transferring': False,
-            'inactive': False,
+            "succeeded": False,
+            "failed": False,
+            "transferring": False,
+            "inactive": False,
         }
 
     data_obj = Data()
@@ -771,7 +675,10 @@ def mock_db_session():
 
         def __getitem__(self, index: int):
             retval = None
-            if len(self.entries) > data_obj.entry_idx and len(self.entries[data_obj.entry_idx]) > index:
+            if (
+                len(self.entries) > data_obj.entry_idx
+                and len(self.entries[data_obj.entry_idx]) > index
+            ):
                 retval = self.entries[data_obj.entry_idx][index]
             return retval
 
@@ -788,7 +695,11 @@ def mock_db_session():
             if len(self.entries) > data_obj.entry_idx:
                 num_entries = len(self.entries[data_obj.entry_idx])
                 if data_obj.limit_query:
-                    val = data_obj.limit_query if data_obj.limit_query <= num_entries else num_entries
+                    val = (
+                        data_obj.limit_query
+                        if data_obj.limit_query <= num_entries
+                        else num_entries
+                    )
                 else:
                     val = num_entries
             return val
@@ -833,30 +744,30 @@ def mock_db_session():
     class MockSession:
         @staticmethod
         def add(*args, **kwargs):
-            data_obj.session['add'] = True
+            data_obj.session["add"] = True
             if data_obj.raise_exception:
                 raise sqlalchemy.exc.SQLAlchemyError()
 
         @staticmethod
         def commit(*args, **kwargs):
-            data_obj.session['commit'] = True
+            data_obj.session["commit"] = True
             if data_obj.raise_exception:
                 raise sqlalchemy.exc.SQLAlchemyError()
 
         @staticmethod
         def query(*args, **kwargs):
-            data_obj.session['query'] = True
+            data_obj.session["query"] = True
             if data_obj.raise_exception:
                 raise sqlalchemy.exc.SQLAlchemyError()
             return MockSessionQuery
 
         @staticmethod
         def close(*args, **kwargs):
-            data_obj.session['close'] = True
+            data_obj.session["close"] = True
 
         @staticmethod
         def rollback(*args, **kwargs):
-            data_obj.session['rollback'] = True
+            data_obj.session["rollback"] = True
 
         @staticmethod
         def output(entries: list, repeat=False, raise_exception=False):
@@ -877,11 +788,11 @@ def mock_db_session():
         repeat_entry = False
         raise_exception = False
         session = {
-            'add': False,
-            'commit': False,
-            'query': False,
-            'close': False,
-            'rollback': False,
+            "add": False,
+            "commit": False,
+            "query": False,
+            "close": False,
+            "rollback": False,
         }
 
     data_obj = Data()
@@ -900,7 +811,7 @@ def mock_rpc_request(monkeypatch):
     """
     from jaws_rpc import rpc_client
 
-    class MockRpcClient():
+    class MockRpcClient:
         def __init__(self):
             pass
 
@@ -923,12 +834,58 @@ def mock_rpc_request(monkeypatch):
             raise rpc_client.ConnectionError("RPC client failed")
         return MockRpcClient()
 
-    monkeypatch.setattr(rpc_client, 'RpcClient', mock_rpc_client)
+    monkeypatch.setattr(rpc_client, "RpcClient", mock_rpc_client)
 
-    class Data():
+    class Data:
         def __init__(self):
             self.json = None
             self.Exception = False
 
     data_obj = Data()
     return MockRpcClient()
+
+
+def mock_task_summary_table(*args, **kwargs):
+    return [
+        [
+            "task_abcd",  # task_name
+            "cromwell_abcd",  # cromwell_job_id
+            False,  # cached
+            "success",  # result
+            this_date,  # queued
+            "01:00:00",  # queue-wait
+            "02:00:00",  # run-time
+            "03:00:00",  # max-time
+        ],
+        [
+            "task_efgh",  # task_name
+            "cromwell_efgh",  # cromwell_job_id
+            True,  # cached
+            "success",  # result
+            this_date,  # queued
+            "04:00:00",  # queue-wait
+            "05:00:00",  # run-time
+            "06:00:00",  # max-time
+        ],
+    ]
+
+
+def mock_task_status_table(*args, **kwargs):
+    return [
+        [
+            "task_abcd",  # task_name
+            "cromwell_abcd",  # cromwell_job_id
+            False,  # cached
+            "success",  # status
+            this_date,  # timestamp
+            "reason_abcd",  # reason
+        ],
+        [
+            "task_efgh",  # task_name
+            "cromwell_efgh",  # cromwell_job_id
+            True,  # cached
+            "success",  # status
+            this_date,  # timestamp
+            "reason_efgh",  # reason
+        ],
+    ]
