@@ -35,11 +35,11 @@ svc-jtm+ 108402 108388  0 Apr27 ?        00:01:39 condor_negotiator -f
 svc-jtm+ 108404 108388  0 Apr27 ?        00:01:03 condor_schedd -f
 ```
 
-* Note: if not, please check the logs under 
+** Note: if not, please check the logs under  
 - Cori: /global/cscratch1/sd/jaws_jtm/jaws-condor/central_log
 - Tahoma: /home/svc-jtm-user/condor/central_log
 
-* To create a pool manually
+** To create a pool manually
 - Tahoma
 ```
 $ cd /tahoma/mscjgi/condor/jaws/condor
@@ -59,7 +59,7 @@ slot1@t61          LINUX      X86_64 Unclaimed Idle	 0.000 385344  0+14:24:48
          Total     1     0	 0         1	   0          0        0      0
 ```
 
-* Test a Condor submission
+** Test a Condor submission
 - Tahoma
 ```
 $ cd /tahoma/mscjgi/condor/jaws/condor
@@ -80,7 +80,7 @@ Total for all users: 1 jobs; 0 completed, 0 removed, 0 idle, 1 running, 0 held, 
 
 ```
 
-* Check a job status (https://htcondor.readthedocs.io/en/latest/users-manual/managing-a-job.html)
+** Check a job status (https://htcondor.readthedocs.io/en/latest/users-manual/managing-a-job.html)
 - Tahoma
 ```
 $ condor_history 596 -af JobStatus
@@ -88,7 +88,7 @@ $ condor_history 596 -af JobStatus
 ```
 
 
-* Condor Job Status Code (https://pages.cs.wisc.edu/~adesmet/status.html)
+** Condor Job Status Code (https://pages.cs.wisc.edu/~adesmet/status.html)
 ```angular2html
 JobStatus in job ClassAds
 
@@ -126,6 +126,7 @@ in the `jaws_condor.ini` file.
 
 Per each site, please refer to the *.ini files in `site_config`.
 
+
 ### Usage Example
 
 ```
@@ -154,6 +155,9 @@ condor_pool_remove -c $jaws_condor_root/pool-manager/jaws_condor.ini -s $jaws_co
 ratch/condor/condor_pool_remove.log -d
 ```
 
+
+
+### Cronjob per site
 
 ex) Cori Cronjob
 
