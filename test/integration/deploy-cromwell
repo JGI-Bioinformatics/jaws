@@ -343,7 +343,11 @@ PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
 $CONTAINER_EXEC_COMMAND
 EOF
           chmod 755 \${cwd}/execution/dockerScript
+
+          # converts working directory into readable and parsable name for htcondor job
+          export name=$(echo \${cwd} | sed 's/cromwell-executions//g' | sed 's/cromwell//g' | sed 's/\/\/\///g' | sed 's/\//_/g' );
           cat > \${cwd}/execution/submitFile <<EOF
+JobBatchName = \$name
 Iwd=\${cwd}/execution
 +Owner=UNDEFINED
 request_memory=\${memory_mb}
