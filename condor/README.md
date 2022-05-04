@@ -8,6 +8,7 @@ JAWS Condor Pool Manager is to manager compute nodes for the Condor pool
 Installation directories
 - Cori: /global/cfs/cdirs/jaws/condor
 - Tahoma: /tahoma/mscjgi/condor
+- JGI: /global/home/groups-sw/lr_jgicloud/condor
 
 How to start the Condor Central 
 - Cori
@@ -38,6 +39,17 @@ svc-jtm+ 108404 108388  0 Apr27 ?        00:01:03 condor_schedd -f
 ** Note: if not, please check the logs under  
 - Cori: /global/cscratch1/sd/jaws_jtm/jaws-condor/central_log
 - Tahoma: /home/svc-jtm-user/condor/central_log
+- JGI: /global/scratch/users/jaws/condor/central_log
+
+** Note: Each worker node's log
+- Cori: /global/cscratch1/sd/jaws_jtm/jaws-condor/worker_log
+- Tahoma: /home/svc-jtm-user/condor/worker_log
+- JGI: /global/scratch/users/jaws/condor/worker_log
+
+** Note: Each slurm job log
+- Cori: /global/cscratch1/sd/jaws_jtm/jaws-condor/slurm
+- Tahoma: /home/svc-jtm-user/condor/slurm
+- JGI: /global/scratch/users/jaws/condor/slurm
 
 ** To create a pool manually
 - Tahoma
