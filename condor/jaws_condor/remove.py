@@ -18,7 +18,7 @@ import shlex
 import configparser as cparser
 import json
 import jaws_condor.config
-from jaws_condor.utils import run_sh_command
+from jaws_condor.utils import run_sh_command, mem_unit_to_g
 
 
 logger = None
@@ -109,12 +109,7 @@ def collect_condor_running_jobs(condor_q_out: str, ram_range: list) -> dict:
         if a_job and len(shlex.split(a_job)) == 6:
             tok = shlex.split(a_job)
             job_id = tok[0]
-            req_mem = float(tok[1])
-            mem_unit = tok[2].strip()
-            if mem_unit in ("KB", "kb"):
-                req_mem = req_mem / (1024 * 1024)
-            if mem_unit in ("MB", "mb"):
-                req_mem = req_mem / 1024
+            req_mem = mem_unit_to_g(tok[2].strip(), float(tok[1]))
             req_disk = float(tok[3])
             req_cpu = int(tok[5])
 
