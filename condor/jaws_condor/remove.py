@@ -12,17 +12,13 @@ Steps
 
 """
 import argparse
-import click
 import logging
 import os
-import time
 import shlex
-from datetime import datetime
 import configparser as cparser
 import json
 import jaws_condor.config
-from jaws_condor import config
-from jaws_condor.utils import run_sh_command
+from jaws_condor.utils import run_sh_command, mem_unit_to_g
 
 
 logger = None
@@ -109,16 +105,11 @@ def run_scancel(
 
 def collect_condor_running_jobs(condor_q_out: str, ram_range: list) -> dict:
     idle_jobs = [[], [], [], []]  # small, med, large, xlarge
-    for l in condor_q_out.split("\n"):
-        if l and len(shlex.split(l)) == 6:
-            tok = shlex.split(l)
+    for a_job in condor_q_out.split("\n"):
+        if a_job and len(shlex.split(a_job)) == 6:
+            tok = shlex.split(a_job)
             job_id = tok[0]
-            req_mem = float(tok[1])
-            mem_unit = tok[2].strip()
-            if mem_unit in ("KB", "kb"):
-                req_mem = req_mem / (1024 * 1024)
-            if mem_unit in ("MB", "mb"):
-                req_mem = req_mem / 1024
+            req_mem = mem_unit_to_g(tok[2].strip(), float(tok[1]))
             req_disk = float(tok[3])
             req_cpu = int(tok[5])
 
@@ -145,7 +136,7 @@ def cli():
     site_id = jaws_condor.config.conf.get_site_id().upper()
 
     if args.logfile:
-        logfile_path = logfile
+        logfile_path = args.logfile
     else:
         logfile_path = "./jaws_condor_remove.log"
     os.makedirs(os.path.dirname(logfile_path), exist_ok=True)
@@ -180,7 +171,7 @@ def cli():
     logger.info("RUNNING Condor jobs")
     logger.info("Job_id\tReq_mem\tReq_disk\tReq_cpu")
     logger.info(f"{so.rstrip()}")
-    ram_range = json.loads(site_config.get("RESOURCE", "ram"))
+    ram_range = json.loads(site_config.get("RESOURCE", "mem"))
     run_list = collect_condor_running_jobs(so, ram_range)
     logger.info(f"Running Condor job list: {run_list}")
 

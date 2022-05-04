@@ -1,5 +1,5 @@
 #!/bin/bash -l
-source /global/cfs/cdirs/jaws/condor/env_central.sh
-source /global/cfs/cdirs/jaws/condor/pool-manager/venv/bin/activate
-condor_pool_add -c /global/cfs/cdirs/jaws/condor/pool-manager/test/condor/jaws_condor/jaws_condor.ini -s /global/cfs/cdirs/jaws/condor/pool-manager/test/condor/jaws_condor/
-site_config/cori_config.ini -d
+jaws_condor_root=/global/cfs/cdirs/jaws/condor
+source $jaws_condor_root/pool-manager/venv/bin/activate
+source $jaws_condor_root/env_central.sh
+condor_pool_add -c $jaws_condor_root/pool-manager/jaws_condor.ini -s $jaws_condor_root/pool-manager/condor/jaws_condor/site_configs/cori_config.ini -d

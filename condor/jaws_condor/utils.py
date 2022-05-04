@@ -12,175 +12,12 @@ and other os-related tools
 
 """
 
-from subprocess import Popen, call, PIPE
-import os
-import glob
-import shlex
+from subprocess import Popen, PIPE
 import re
 import time
 from threading import Timer
-import sys
 
 
-# -------------------------------------------------------------------------------
-def run(*popenargs, **kwargs):
-    """
-    Run user command using subprocess.call
-    :param popenargs: command and options to run
-    :param kwargs: additional parameters
-    :return:
-    """
-    kw = {}
-    kw.update(kwargs)
-    dry_run = kw.pop("dry_run", False)
-
-    if dry_run:
-        print(popenargs)
-    else:
-        # convert something like run("ls -l") into run("ls -l", shell=True)
-        if isinstance(popenargs[0], str) and len(shlex.split(popenargs[0])) > 1:
-            kw.setdefault("shell", True)
-
-        # > /dev/null 2>&1
-        if kw.pop("supressAllOutput", False):
-            stdnull = open(os.devnull, "w")  # incompat with close_fds on Windows
-            kw.setdefault("stdout", stdnull)
-            kw.setdefault("stderr", stdnull)
-        else:
-            stdnull = None
-
-        return_code = call(*popenargs, **kw)
-        if stdnull:
-            stdnull.close()
-        if return_code != 0:
-            eprint("Failed to call run()")
-            return 1
-
-    return 0
-
-
-# -------------------------------------------------------------------------------
-def make_dir(path, dry_run=False):
-    """
-    Create one dir with pathname path or do nothing if it already exists. Same as Linux 'mkdir -p'.
-    :param path: path to create
-    :param dry_run: dryrun directive
-    :return:
-    """
-    if not dry_run:
-        if not os.path.exists(path):
-            try:
-                original_umask = os.umask(0)
-                os.makedirs(path, mode=0o775)
-            except Exception:
-                pass
-            finally:
-                os.umask(original_umask)
-    else:
-        print("make_dir %s" % (path,))
-
-    return 0
-
-
-# -------------------------------------------------------------------------------
-def make_dirs(paths, dry_run=False):
-    """
-    Create muiltiple dirs with the same semantics as make_dir
-    :param paths: path to delete
-    :param dry_run: dryrun directive
-    :return:
-    """
-    for path in paths:
-        make_dir(path=path, dry_run=dry_run)
-
-
-# -------------------------------------------------------------------------------
-def make_file_path(fileName):
-    """
-    Assume that the argument is a file name and make all directories that are
-    part of it
-    :param fileName: create dir to the file
-    :return:
-    """
-    dirName = os.path.dirname(fileName)
-    if dirName not in ("", "."):
-        make_dir(dirName)
-
-
-# -------------------------------------------------------------------------------
-def rm_dir(path, dry_run=False):
-    """
-    Remove dir
-    :param path: path to delete
-    :param dry_run: dryrun directive
-    :return:
-    """
-    # To do: perhaps use shutil.rmtree instead?
-    return run(["rm", "-rf", path], dry_run=dry_run)
-
-
-# -------------------------------------------------------------------------------
-def rmf(path, dry_run=False):
-    """
-    Remove file.
-    :param path: path to delete
-    :param dry_run: dryrun directive
-    :return:
-    """
-    for f in glob.iglob(path):
-        try:
-            if os.path.exists(f):
-                os.remove(f)
-        except OSError:
-            pass
-
-
-# -------------------------------------------------------------------------------
-def rmf_many(paths, dry_run=False):
-    """
-    Remove multiple files.
-    :param paths: path to delete
-    :param dry_run: dryrun directive
-    :return:
-    """
-    for f in paths:
-        try:
-            os.remove(f)
-        except OSError:
-            pass
-
-
-# -------------------------------------------------------------------------------
-def remake_dir(path, dry_run=False):
-    """
-    Create an empty dir with a given path.
-    If path already exists,  it will be removed first.
-    :param path: path to delete and create
-    :param dry_run:
-    :return:
-    """
-    rm_dir(path, dry_run=dry_run)
-    make_dir(path, dry_run=dry_run)
-
-
-# -------------------------------------------------------------------------------
-def chmod(path, mode, opts="", dry_run=False):
-    """
-    Change mode.
-    :param path: path to chmod
-    :param mode: the form `[ugoa]*([-+=]([rwxXst]*|[ugo]))+'.
-    :param opts: additional chmod options
-    :param dry_run: dryrun directive
-    :return:
-    """
-    if isinstance(path, str):
-        path = [path]
-    else:
-        path = list(path)
-    run(["chmod"] + opts.split() + [mode] + path, dry_run=dry_run)
-
-
-# -------------------------------------------------------------------------------
 def run_sh_command(
     cmd, live=True, log=None, run_time=False, show_stdout=True, timeout_sec=0
 ):
@@ -277,15 +114,6 @@ def run_sh_command(
     return std_out, std_err, exit_code
 
 
-# -------------------------------------------------------------------------------
-def file_exist(path):
-    """
-    Check file existence
-    """
-    return os.path.exists(path)
-
-
-# -------------------------------------------------------------------------------
 def pad_string_path(my_string, pad_length=8, depth=None):
     """
     Pads a string with 0's and splits into groups of 2
@@ -317,12 +145,6 @@ def pad_string_path(my_string, pad_length=8, depth=None):
     return pad_string
 
 
-# --------------------------------------------------------------------------------------------------
-def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
-
-
-# --------------------------------------------------------------------------------------------------
 def extract_cromwell_id(task: str) -> str:
     """
     Extract Cromwell run id from a Cromwell task string
@@ -339,8 +161,7 @@ def extract_cromwell_id(task: str) -> str:
     try:
         regex = re.compile(r"cromwell-executions\/[^\/]+\/([^\/]+)", re.I)
         match = regex.search(task)
-    except Exception as e:
-        eprint(f"Failed to regex cromwell id from task: {e}, {task}")
+    except Exception:
         raise
 
     if match:
@@ -349,7 +170,6 @@ def extract_cromwell_id(task: str) -> str:
     return cromwell_id
 
 
-# --------------------------------------------------------------------------------------------------
 def run_slurm_cmd(s_cmd: str) -> int:
     """
     To run sbatch and squeue and parse `wc -l`
@@ -364,3 +184,16 @@ def run_slurm_cmd(s_cmd: str) -> int:
     except TypeError as te:
         print(f"Unexpected output from slurm command: {s_cmd}\n{te}\n{se}")
         return -1
+
+
+def mem_unit_to_g(unit: str, mem: float) -> float:
+    if unit.upper() not in ("GB", "G"):
+        if unit.upper() in ("TB", "T"):
+            mem *= 1024
+        elif unit.upper() in ("MB", "M"):
+            mem /= 1024
+        elif unit.upper() in ("KB", "K"):
+            mem /= 1024 * 1024
+        else:
+            return -1
+    return mem
