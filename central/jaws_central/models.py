@@ -1,4 +1,8 @@
-"""Vanilla Sqlalchemy ORM models, used by rpc_operations"""
+"""
+Vanilla Sqlalchemy ORM models, used by rpc_operations and daemon.
+The tables are duplicated in the matching models_fsa.py file because
+Flask-SqlAlchemy uses a different ORM base class than SqlAlchemy.
+"""
 
 import datetime
 from sqlalchemy import (
@@ -7,6 +11,7 @@ from sqlalchemy import (
     String,
     Integer,
     Boolean,
+    Text,
     ForeignKey,
 )
 from jaws_central.database import Base
@@ -45,30 +50,55 @@ class User(Base):
         return f"<User {self.id}>"
 
 
+class Transfer(Base):
+    """
+    Transfer tasks (i.e. uploads/downloads).
+    If it's a Globus transfer, the globus_task_id will be specified.
+    If it's an AWS-S3-copy transfer, the xfer_site_id will be specified.
+    """
+
+    __tablename__ = "transfers"
+    id = Column(Integer, primary_key=True)
+    status = Column(String(32), nullable=False, default="created")
+    src_site_id = Column(String(8), nullable=False)
+    src_base_dir = Column(String(128), nullable=False)
+    dest_site_id = Column(String(8), nullable=False)
+    dest_base_dir = Column(String(128), nullable=False)
+    manifest_json = Column(Text(), nullable=False)
+    globus_transfer_id = Column(String(36), nullable=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return f"<Transfer {self.id}>"
+
+
 class Run(Base):
     """Analysis runs are the execution of workflows on specific inputs."""
 
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)
+    user_id = Column(String(32), ForeignKey("users.id"), nullable=False)
     submission_id = Column(String(36), nullable=False)
+    caching = Column(Boolean, nullable=False, default=True)
+    input_site_id = Column(String(8), nullable=False)
+    compute_site_id = Column(String(8), nullable=True)
     cromwell_run_id = Column(String(36), nullable=True)
     result = Column(String(32), nullable=True)
     status = Column(String(32), nullable=False)
-    user_id = Column(String(32), ForeignKey("users.id"), nullable=False)
-    site_id = Column(String(8), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = Column(
-        DateTime, default=same_as("submitted"), onupdate=datetime.datetime.utcnow,
+        DateTime,
+        default=same_as("submitted"),
+        onupdate=datetime.datetime.utcnow,
     )
-    input_site_id = Column(String(8), nullable=False)
-    input_endpoint = Column(String(36), nullable=False)
-    upload_task_id = Column(String(36), nullable=True)
-    output_endpoint = Column(String(36), nullable=False)
-    output_dir = Column(String(256), nullable=False)
+    upload_id = Column(Integer, nullable=True)
+    download_id = Column(Integer, nullable=True)
     wdl_file = Column(String(256), nullable=False)
     json_file = Column(String(256), nullable=False)
     tag = Column(String(256), nullable=True)
-    download_task_id = Column(String(36), nullable=True)
+    manifest_json = Column(Text, nullable=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -92,3 +122,9 @@ class Run_Log(Base):
 
     def __repr__(self):
         return f"<Run_Log {self.run_id}:{self.status_from}:{self.status_to}>"
+
+
+def create_all(engine, session):
+    """Create all tables if not exist"""
+    Base.metadata.create_all(engine)
+    session.commit()

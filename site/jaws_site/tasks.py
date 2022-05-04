@@ -299,7 +299,13 @@ class TaskLog:
         if not self._cromwell_job_summary:
             cromwell_task_summary = self.cromwell_task_summary()
             cromwell_job_summary = {}
-            for task_name, cromwell_job_id, cached, max_time, _ in cromwell_task_summary:
+            for (
+                task_name,
+                cromwell_job_id,
+                cached,
+                max_time,
+                _,
+            ) in cromwell_task_summary:
                 if cromwell_job_id:
                     cromwell_job_id = str(cromwell_job_id)
                     cromwell_job_summary[cromwell_job_id] = [task_name, max_time]
@@ -380,10 +386,10 @@ class TaskLog:
         self._task_log = merged_logs
         return merged_logs
 
-    def task_summary(self):
+    def task_summary_table(self):
         """Retrieve complete task summary for a run.
         :return: foreach task_name, return list of is-cached, queue-time, run-time, result
-        :rtype: dict
+        :rtype: list
         """
         run_id = self.run_id()
         logger.info(f"Run {run_id}: get task-summary")
@@ -441,7 +447,7 @@ class TaskLog:
         # [3] : result (string)
         # [4] : queued (datetime)
         # [5] : queue-wait (string)
-        # [6] : wallclock (string)
+        # [6] : run_time (string)
         # [7] : max_time (string)
         for task_name, row in task_timestamps.items():
             (cromwell_job_id, cached, queued, running, completed, result) = row
@@ -468,12 +474,39 @@ class TaskLog:
         self._task_summary = task_summary
         return self._task_summary
 
-    def task_status(self):
+    def task_summary(self):
+        """
+        Reformat the task summary table into a (verbose) dictionary.
+        """
+        summary = {}
+        for row in self.task_summary_table():
+            (
+                task_name,
+                cromwell_job_id,
+                cached,
+                result,
+                queued,
+                queue_wait,
+                run_time,
+                max_time,
+            ) = row
+            summary[task_name] = {
+                "cromwell_job_id": cromwell_job_id,
+                "cached": cached,
+                "result": result,
+                "queued": queued,
+                "queue_wait": queue_wait,
+                "run_time": run_time,
+                "max_time": max_time,
+            }
+        return summary
+
+    def task_status_table(self):
         """
         Retrieve the current status of each task by filtering the log to include only the latest state per task.
         """
         run_id = self.run_id()
-        logger.info(f"Run {run_id}: Get task-status")
+        logger.info(f"Run {run_id}: Get task-status table")
         if self._task_status:
             return self._task_status
 
@@ -499,6 +532,20 @@ class TaskLog:
                 last_job_id = job_id
         self._task_status = task_status
         return self._task_status
+
+    def task_status(self):
+        """Reformat the task_status as (verbose) dictionary"""
+        task_status = {}
+        for row in self.task_status_table():
+            (task_name, cromwell_job_id, cached, status, timestamp, reason) = row
+            task_status[task_name] = {
+                "cromwell_job_id": cromwell_job_id,
+                "cached": cached,
+                "status": status,
+                "timestamp": timestamp,
+                "reason": reason,
+            }
+        return task_status
 
 
 def get_run_status(session, run_id: int) -> str:

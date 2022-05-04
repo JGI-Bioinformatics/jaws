@@ -1,4 +1,8 @@
-"""Flask-SQLAlchemy db and models, used by Connexion/Flask servers."""
+"""
+Flask-SQLAlchemy db and models, used by Connexion/Flask servers.
+The tables are duplicated in the matching models.py file because
+Flask-SqlAlchemy uses a different ORM base class than SqlAlchemy.
+"""
 
 import datetime
 from flask_sqlalchemy import SQLAlchemy
@@ -40,30 +44,55 @@ class User(db.Model):
         return f"<User {self.id}>"
 
 
+class Transfer(db.Model):
+    """
+    Transfer tasks (i.e. uploads/downloads).
+    If it's a Globus transfer, the globus_task_id will be specified.
+    If it's an AWS-S3-copy transfer, the xfer_site_id will be specified.
+    """
+
+    __tablename__ = "transfers"
+    id = db.Column(db.Integer, primary_key=True)
+    status = db.Column(db.String(32), nullable=False, default="created")
+    src_site_id = db.Column(db.String(8), nullable=False)
+    src_base_dir = db.Column(db.String(128), nullable=False)
+    dest_site_id = db.Column(db.String(8), nullable=False)
+    dest_base_dir = db.Column(db.String(128), nullable=False)
+    manifest_json = db.Column(db.Text(), nullable=False)
+    globus_transfer_id = db.Column(db.String(36), nullable=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return f"<Transfer {self.id}>"
+
+
 class Run(db.Model):
     """Analysis runs are the execution of workflows on specific inputs."""
 
     __tablename__ = "runs"
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
     submission_id = db.Column(db.String(36), nullable=False)
+    caching = db.Column(db.Boolean, nullable=False, default=True)
+    input_site_id = db.Column(db.String(8), nullable=False)
+    compute_site_id = db.Column(db.String(8), nullable=True)
     cromwell_run_id = db.Column(db.String(36), nullable=True)
     result = db.Column(db.String(32), nullable=True)
     status = db.Column(db.String(32), nullable=False)
-    user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
-    site_id = db.Column(db.String(8), nullable=False)
     submitted = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = db.Column(
-        db.DateTime, default=same_as("submitted"), onupdate=datetime.datetime.utcnow,
+        db.DateTime,
+        default=same_as("submitted"),
+        onupdate=datetime.datetime.utcnow,
     )
-    input_site_id = db.Column(db.String(8), nullable=False)
-    input_endpoint = db.Column(db.String(36), nullable=False)
-    upload_task_id = db.Column(db.String(36), nullable=True)
-    output_endpoint = db.Column(db.String(36), nullable=False)
-    output_dir = db.Column(db.String(256), nullable=False)
+    upload_id = db.Column(db.Integer, nullable=True)
+    download_id = db.Column(db.Integer, nullable=True)
     wdl_file = db.Column(db.String(256), nullable=False)
     json_file = db.Column(db.String(256), nullable=False)
     tag = db.Column(db.String(256), nullable=True)
-    download_task_id = db.Column(db.String(36), nullable=True)
+    manifest_json = db.Column(db.Text, nullable=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

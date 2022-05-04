@@ -5,10 +5,10 @@ JAWS CLI
 import sys
 import click
 import os
+import pathlib
 import requests
 import json
-import uuid
-import shutil
+import subprocess
 from typing import Dict
 from jaws_client import log as logging
 from jaws_client import deprecated
@@ -257,6 +257,16 @@ def outputs(run_id: int) -> None:
 
 @main.command()
 @click.argument("run_id")
+def outfiles(run_id: int) -> None:
+    """Print list of a run's output files."""
+
+    url = f'{config.get("JAWS", "url")}/run/{run_id}/outfiles'
+    result = _request("GET", url)
+    _print_json(result)
+
+
+@main.command()
+@click.argument("run_id")
 @click.option(
     "--fmt", default="text", help="the desired output format: [text|json|tab]"
 )
@@ -434,6 +444,14 @@ def list_sites() -> None:
     _list_sites()
 
 
+def _get_uid() -> str:
+    """Get the current user's JAWS user ID"""
+    url = f'{config.get("JAWS", "url")}/user'
+    result = _request("GET", url)
+    uid = result["uid"]
+    return uid
+
+
 @main.command()
 @click.argument("wdl_file", nargs=1)
 @click.argument("json_file", nargs=1)
@@ -441,8 +459,9 @@ def list_sites() -> None:
 @click.option("--tag", help="identifier for the run")
 @click.option("--no-cache", is_flag=True, help="Disable call-caching for this run")
 @click.option("--quiet", is_flag=True, help="Don't print copy progress bar")
-@click.option("--default-container", default=None, help="The default Docker container to use for Tasks")
-@click.option("--sub", default=None, help="Subworkflows zip (optional; by default, auto-generate)")
+@click.option(
+    "--sub", default=None, help="Subworkflows zip (optional; by default, auto-generate)"
+)
 def submit(
     wdl_file: str,
     json_file: str,
@@ -450,133 +469,50 @@ def submit(
     tag: str,
     no_cache: bool,
     quiet: bool,
-    default_container: str,
-    sub: str
+    sub: str,
 ):
     """Submit a run for execution at a JAWS-Site.
     Available sites can be found by running 'jaws run list-sites'.
     """
-    user_zip_file = sub
     from jaws_client import workflow
     from jaws_client.workflow import WdlError
 
     wdl_file = os.path.abspath(wdl_file)
     json_file = os.path.abspath(json_file)
-
-    # the users' jaws id may not match the linux uid where the client is installed
-    url = f'{config.get("JAWS", "url")}/user'
-    result = _request("GET", url)
-    uid = result["uid"]
-
-    staging_subdir = config.get("JAWS", "staging_dir")
-    staging_user_subdir = os.path.join(staging_subdir, uid)
-    globus_host_path = config.get("GLOBUS", "host_path")
-    output_directory = config.get("JAWS", "data_repo_basedir")
     input_site_id = config.get("JAWS", "site_id")
-    local_staging_endpoint = workflow.join_path(globus_host_path, staging_user_subdir)
+    input_basedir = config.get("JAWS", "uploads_dir")
+    output_basedir = config.get("JAWS", "downloads_dir")
+    input_dir = workflow.join_path(input_basedir, input_site_id)
 
-    # GET SITE INFO
-    compute_site_id = site.upper()
-    url = f'{config.get("JAWS", "url")}/site/{compute_site_id}'
-    result = _request("GET", url)
-    compute_basedir = result["globus_host_path"]
-    compute_uploads_subdir = result["uploads_dir"]
-    compute_max_ram_gb = int(result["max_ram_gb"])
-
-    # VALIDATE WORKFLOW WDLs
-    submission_id = str(uuid.uuid4())
+    params = {}
+    if sub:
+        params["subworkflows_zip_file"] = sub
+    if quiet:
+        params["quiet"] = quiet
     try:
-        wdl = workflow.WdlFile(wdl_file, submission_id)
-        wdl.validate(compute_max_ram_gb)
-        max_ram_gb = wdl.max_ram_gb
+        run = workflow.Run(wdl_file, json_file, input_dir, output_basedir, **params)
     except WdlError as error:
-        sys.exit(error)
-
-    # any and all subworkflow WDL files must be supplied to Cromwell in a single ZIP archive
-    try:
-        staged_wdl, zip_file = wdl.prepare_wdls(local_staging_endpoint, user_zip_file)
-    except IOError as error:
-        sys.exit(f"Unable to copy WDLs to inputs dir: {error}")
-
-    # VALIDATE INPUTS JSON
-    try:
-        inputs_json = workflow.WorkflowInputs(
-            json_file, submission_id, wdl_loc=wdl_file
-        )
-    except json.JSONDecodeError as error:
-        sys.exit(f"Your file, {json_file}, is not a valid JSON file: {error}")
-
-    staged_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.json")
-    site_subdir = workflow.join_path(local_staging_endpoint, input_site_id)
-    jaws_site_staging_dir = workflow.join_path(compute_basedir, compute_uploads_subdir)
-    jaws_site_staging_site_subdir = workflow.join_path(
-        jaws_site_staging_dir, input_site_id
-    )
-
-    # copy infiles in inputs json to site's inputs dir so they may be read by jaws user and
-    # transferred to the compute site via globus
-    try:
-        moved_files = inputs_json.move_input_files(site_subdir, quiet)
+        raise SystemExit(f"Your workflow has an error: {error}")
     except Exception as error:
-        sys.exit(f"Unable to copy input files: {error}")
+        raise SystemExit(f"Error initializing Run: {error}")
 
-    # the paths in the inputs json file are changed to their paths at the compute site
-    modified_json = inputs_json.prepend_paths_to_json(jaws_site_staging_site_subdir)
-    modified_json.write_to(staged_json)
-
-    # the original inputs json file is kept with the run submission for record-keeping only
-    orig_json = workflow.join_path(local_staging_endpoint, f"{submission_id}.orig.json")
-    try:
-        shutil.copy(json_file, orig_json)
-    except IOError as error:
-        sys.exit(f"Error copying JSON to {orig_json}: {error}")
-    try:
-        os.chmod(orig_json, 0o0664)
-    except PermissionError as error:
-        sys.exit(f"Unable to chmod {orig_json}: {error}")
-
-    # specify Cromwell workflow options
-    if default_container is None:
-        default_container = config.get("JAWS", "default_container")
-    workflow_options = {"default_runtime_attributes": {"docker": default_container}}
-    if no_cache is True:
-        workflow_options["read_from_cache"] = False
-        workflow_options["write_to_cache"] = False
-
-    # write workflow options json file
-    options_json_file = workflow.join_path(
-        local_staging_endpoint, f"{submission_id}.options.json"
-    )
-    with open(options_json_file, "w") as options_fh:
-        json.dump(workflow_options, options_fh, indent=4)
-
-    # write the file transfer manifest; jaws-central shall submit the transfer to globus
-    manifest_file = workflow.Manifest(local_staging_endpoint, compute_uploads_subdir)
-    manifest_file.add(staged_wdl, zip_file, staged_json, orig_json, *moved_files)
-    if options_json_file:
-        manifest_file.add(options_json_file)
-    staged_manifest = workflow.join_path(staging_user_subdir, f"{submission_id}.tsv")
-    manifest_file.write_to(staged_manifest)
-
-    # SUBMIT RUN TO CENTRAL
-    local_endpoint_id = config.get("GLOBUS", "endpoint_id")
+    # post Run to jaws-central
     data = {
-        "site_id": compute_site_id,
-        "submission_id": submission_id,
         "input_site_id": input_site_id,
-        "input_endpoint": local_endpoint_id,
-        "output_endpoint": local_endpoint_id,  # return to original submission site
-        "output_dir": output_directory,  # jaws-writable dir to initially receive results
+        "compute_site_id": site.upper(),
+        "submission_id": run.submission_id,
+        "caching": False if no_cache else True,
+        "max_ram_gb": run.wdl.max_ram_gb,
+        "manifest": json.dumps(run.manifest.files),
+        # the following aren't used by JAWS but are recorded for users' benefit
         "wdl_file": wdl_file,
         "json_file": json_file,
         "tag": tag,
     }
-    files = {"manifest": open(staged_manifest, "r")}
     url = f'{config.get("JAWS", "url")}/run'
     logger.debug(f"Submitting run: {data}")
-    result = _request("POST", url, data, files)
-    result["max_ram_gb"] = max_ram_gb
-    del result["output_dir"]
+    result = _request("POST", url, data)
+    result["max_ram_gb"] = run.wdl.max_ram_gb
     _print_json(result)
 
 
@@ -625,40 +561,43 @@ def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
 
     result = _run_status(run_id, True)
     status = result["status"]
-    src = result["output_dir"]
     submission_id = result["submission_id"]
-    uid = result["user_id"]
 
     if status != "download complete":
         sys.exit(f"Run {run_id} output is not yet available; status is {status}")
 
-    if src is None:
-        logger.error(f"Run {run_id} doesn't have an output_dir defined")
-        sys.exit(f"Run {run_id} doesn't have an output_dir defined")
+    pathlib.Path(dest).mkdir(parents=True, exist_ok=True)
 
-    if os.path.exists(dest) and os.path.isfile(dest):
-        sys.exit(f"Error destination path is a file: {dest}")
-    os.makedirs(dest, exist_ok=True)
+    src_base = config.get("JAWS", "downloads_dir")
+    src = f"{src_base}/{submission_id}"
 
     if complete is True:
         _get_complete(run_id, src, dest)
     else:
         _get_outputs(run_id, src, dest, quiet)
 
-    staging_subdir = config.get("JAWS", "staging_dir")
-    staging_user_subdir = os.path.join(staging_subdir, uid)
-    globus_host_path = config.get("GLOBUS", "host_path")
-    local_staging_endpoint = os.path.join(globus_host_path, staging_user_subdir)
-    _copy_infiles(local_staging_endpoint, dest, submission_id, run_id)
+
+def rsync(src, dest, options=["-rLtq"]):
+    """Copy source to destination using rsync.
+
+    :param src: Source path
+    :type src: str
+    :param dest: Destination path
+    :type dest: str
+    :param options: rsync options
+    :type options: str
+    :return: None
+    """
+    return subprocess.run(
+        ["rsync", *options, src, dest], capture_output=True, text=True
+    )
 
 
 def _get_complete(run_id: int, src: str, dest: str) -> None:
     """Copy the complete cromwell output dir"""
-    from jaws_client import workflow
-
     src = f"{src}/"  # so rsync won't make an extra dir
     try:
-        result = workflow.rsync(
+        result = rsync(
             src,
             dest,
             [
@@ -717,21 +656,9 @@ def _copy_outfile(rel_path, src_dir, dest_dir, quiet=False):
     os.chmod(dest_file, 0o0664)
 
 
-def _copy_infiles(src_dir, dest_dir, submission_id, run_id) -> None:
-    """Copy the Run's input files to the output dir"""
-    src_file = os.path.join(src_dir, f"{submission_id}.orig.json")
-    dest_file = os.path.join(dest_dir, f"run_{run_id}.json")
-    shutil.copy(src_file, dest_file)
-    os.chmod(dest_file, 0o0664)
-    src_file = os.path.join(src_dir, f"{submission_id}.wdl")
-    dest_file = os.path.join(dest_dir, f"run_{run_id}.wdl")
-    shutil.copy(src_file, dest_file)
-    os.chmod(dest_file, 0o0664)
-    src_file = os.path.join(src_dir, f"{submission_id}.zip")
-    dest_file = os.path.join(dest_dir, f"run_{run_id}.zip")
-    if os.path.isfile(src_file):
-        shutil.copy(src_file, dest_file)
-        os.chmod(dest_file, 0o0664)
+def _convert_all_table_fields_to_localtime(table, **kwargs):
+    for row in table:
+        _convert_all_fields_to_localtime(row, **kwargs)
 
 
 def _convert_all_fields_to_localtime(rec, **kwargs):
@@ -766,7 +693,9 @@ def _utc_to_local(utc_datetime):
 
     fmt = "%Y-%m-%d %H:%M:%S"
     datetime_obj = datetime.strptime(utc_datetime, fmt)
-    local_datetime_obj = datetime_obj.replace(tzinfo=timezone.utc).astimezone(tz=local_tz_obj)
+    local_datetime_obj = datetime_obj.replace(tzinfo=timezone.utc).astimezone(
+        tz=local_tz_obj
+    )
     return local_datetime_obj.strftime(fmt)
 
 

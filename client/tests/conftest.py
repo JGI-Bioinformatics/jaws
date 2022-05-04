@@ -13,25 +13,24 @@ def configuration(tmp_path):
     os.environ["JAWS_USER_CONFIG"] = user_config_path.as_posix()
     os.environ["JAWS_TZ"] = "US/PACIFIC"
 
-    globus_basedir = tmp_path / "globus_basedir"
-    staging_dir = globus_basedir / "staging"
-    globus_basedir.mkdir()
-    staging_dir.mkdir()
+    uploads_dir = tmp_path / "uploads"
+    downloads_dir = tmp_path / "downloads"
+    uploads_dir.mkdir()
+    downloads_dir.mkdir()
 
     contents = """
 [JAWS]
 site_id = CORI
 url = http://localhost:5001/api/v2
 womtool_jar =
-uploads_subdir = {0}/globus/staging/uploads
-staging_dir = {0}/globus/staging/users
-data_repo_basedir = {0}/globus/data-repository-dev
+uploads_dir = {0}/uploads
+downloads_dir = {0}/downloads
 shared_endpoint_group = genome
 default_container = debian:latest
 [GLOBUS]
 client_id =
 endpoint_id =
-host_path = {0}/globus
+host_path = {0}
 """.format(tmp_path.as_posix())
     config_path.write_text(contents)
 
@@ -374,7 +373,6 @@ task findMotifs {
         cpu: 1
         memory: "5G"
         poolname: "test"
-        poolsize: 1
     }
     command {
         shifter --image=leobaumgart/dap_py2:2.0 find_motifs.sh \
@@ -485,10 +483,6 @@ task run_task1 {
 
     runtime {
         docker: "jfroula/aligner-bbmap:1.1.9"
-        poolname: "extrasmall"
-        shared: 1
-        node: 1
-        nwpn: 1
         memory: "4G"
         time: "00:10:00"
     }
@@ -517,9 +511,6 @@ task run_task2 {
     runtime {
         docker: "jfroula/aligner-bbmap:1.1.9"
         poolname: "extrasmall"
-        shared: 1
-        node: 1
-        nwpn: 1
         memory: "6G"
         time: "00:10:00"
     }
@@ -683,18 +674,11 @@ task task_files {
 
 @pytest.fixture()
 def staged_files(tmp_path):
-    staging_dir = tmp_path / "staging"
-
-    destination_dir = tmp_path / "jaws_site" / "staging" / "src_site"
-    destination_dir.mkdir(parents=True)
-
-    wdl_file = tmp_path / "example.wdl"
-    inputs_json = tmp_path / "example.json"
-
-    wdl_file.write_text("This is a WDL file")
-    inputs_json.write_text("This is a JSON file")
-
-    return staging_dir.as_posix(), destination_dir.as_posix()
+    file1 = tmp_path / "file1.txt"
+    file2 = tmp_path / "file2.txt"
+    file1.write_text("This is file 1")
+    file2.write_text("This is file 2")
+    return tmp_path.as_posix(), file1.as_posix(), file2.as_posix()
 
 
 @pytest.fixture()
@@ -703,11 +687,12 @@ def refdata_wdl(tmp_path):
     wdl_contents = """
 workflow refdata {
     File file1
-    call runblastplus_sub
+    File db
+    call runblast { input: db=db }
 }
 
-task runblastplus_sub {
-    File ncbi_nt
+task runblast {
+    File db
     command <<<
         echo "hi!"
     >>>
@@ -725,7 +710,7 @@ def refdata_inputs(tmp_path):
 
     contents = """{{
     "refdata.file1": "{0}",
-    "refdata.runblastplus_sub.ncbi_nt": "/refdata/nt"
+    "refdata.db": "/refdata/db.fasta"
 }}
 """.format(text_file)
 
@@ -869,7 +854,7 @@ def refdata_inputs_missing_slash(tmp_path):
 
     contents = """{{
     "refdata.file1": "{0}",
-    "refdata.runblastplus_sub.ncbi_nt": "/refdata"
+    "refdata.db": "/refdata"
 }}
 """.format(text_file)
 

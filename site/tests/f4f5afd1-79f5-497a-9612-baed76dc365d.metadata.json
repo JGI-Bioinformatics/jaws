@@ -1,0 +1,599 @@
+{
+    "actualWorkflowLanguage": "WDL",
+    "actualWorkflowLanguageVersion": "draft-2",
+    "calls": {
+        "jgi_meta.assy": [
+            {
+                "attempt": 1,
+                "backend": "AWSBATCH",
+                "backendStatus": "Succeeded",
+                "callCaching": {
+                    "allowResultReuse": true,
+                    "effectiveCallCachingMode": "ReadAndWriteCache",
+                    "hashes": {
+                        "backend name": "2267EF43AEF6BB551F414FEC2390F68A",
+                        "command template": "B40FEE457561EB6A44E7F006199A1235",
+                        "input": {
+                            "File infile1": "\"b97d4e501d3b6e03b4d8ecb2c370a541\"",
+                            "File infile2": "\"241c6683103acd89aeb0948f280bd7db\"",
+                            "String container": "0A2852EF9289BBC2DEACAF842A8425A6",
+                            "String dollar": "A705F61EC6C5BB7C687B66C953D1AF74",
+                            "String filename_outfile": "25B522BBD3AE6E5085345653989AB649",
+                            "String filename_resources": "BB33B57AABB086DF5262374FB1AB6D81",
+                            "String filename_spadeslog": "FD741A7F4A1FC482186FCCE07B4B0EB8",
+                            "String outprefix": "D3967AD61A91A7CE3BE70A62AC9D6982"
+                        },
+                        "input count": "C9F0F895FB98AB9159F51FD0297E236D",
+                        "output count": "ECCBC87E4B5CE2FE28308FD9F2A7BAF3",
+                        "output expression": {
+                            "File out": "8157E7491BB9BB88011520747FA3D6E2",
+                            "File outlog": "429BE4941FC078E6722FB463009CF450",
+                            "File outresources": "A28AF04D838A38049B8DEC7154319B8A"
+                        },
+                        "runtime attribute": {
+                            "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
+                            "docker": "B39DE888030A8FF18D9AA572151387AA",
+                            "failOnStderr": "68934A3E9455FA72420237EB05902327"
+                        }
+                    },
+                    "hit": false,
+                    "result": "Cache Miss"
+                },
+                "callRoot": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-assy",
+                "commandLine": "touch resources.log && \\\nspades.py -m 2000 --tmp-dir /tmp -o spades3 --only-assembler -k 33,55,77,99,127  --meta -t $(grep \"model name\" /proc/cpuinfo | wc -l) -1 /cromwell_root/jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/input.corr.left.fastq.gz -2 /cromwell_root/jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/input.corr.right.fastq.gz",
+                "compressedDockerSize": 136027299,
+                "dockerImageUsed": "bryce911/spades@sha256:9671553112f90e1974f87b508cf707ad466f8958fe07dbc38a010d3e083b5fd9",
+                "end": "2022-04-21T18:17:53.856Z",
+                "executionEvents": [
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2022-04-21T17:33:34.078Z",
+                        "startTime": "2022-04-21T17:33:34.078Z"
+                    },
+                    {
+                        "description": "CallCacheReading",
+                        "endTime": "2022-04-21T17:33:34.242Z",
+                        "startTime": "2022-04-21T17:33:34.131Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2022-04-21T18:17:51.031Z",
+                        "startTime": "2022-04-21T17:33:34.242Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2022-04-21T17:33:34.078Z",
+                        "startTime": "2022-04-21T17:33:33.918Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2022-04-21T17:33:34.131Z",
+                        "startTime": "2022-04-21T17:33:34.078Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2022-04-21T18:17:53.856Z",
+                        "startTime": "2022-04-21T18:17:52.850Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2022-04-21T17:33:33.918Z",
+                        "startTime": "2022-04-21T17:33:33.918Z"
+                    },
+                    {
+                        "description": "UpdatingCallCache",
+                        "endTime": "2022-04-21T18:17:52.850Z",
+                        "startTime": "2022-04-21T18:17:51.031Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "container": "bryce911/spades:3.13.0",
+                    "dollar": "$",
+                    "filename_outfile": "spades3/scaffolds.fasta",
+                    "filename_resources": "resources.log",
+                    "filename_spadeslog": "spades3/spades.log",
+                    "infile1": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/input.corr.left.fastq.gz",
+                    "infile2": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/input.corr.right.fastq.gz",
+                    "outprefix": "spades3"
+                },
+                "jobId": "10cb3d05-2d60-4cf1-baf4-72ece8e268c5",
+                "outputs": {
+                    "out": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-assy/spades3/scaffolds.fasta",
+                    "outlog": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-assy/spades3/spades.log",
+                    "outresources": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-assy/resources.log"
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "cpu": "1",
+                    "cpuMin": "1",
+                    "disks": "local-disk /cromwell_root",
+                    "docker": "bryce911/spades:3.13.0",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "118 GB",
+                    "memoryMin": "2 GB",
+                    "noAddress": "false",
+                    "queueArn": "arn:aws:batch:us-west-2:080819234838:job-queue/priority-jaws",
+                    "scriptBucketName": "jaws-site",
+                    "zones": "us-east-1a"
+                },
+                "shardIndex": -1,
+                "start": "2022-04-21T17:33:33.917Z",
+                "stderr": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-assy/assy-stderr.log",
+                "stdout": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-assy/assy-stdout.log"
+            }
+        ],
+        "jgi_meta.bbcms": [
+            {
+                "attempt": 1,
+                "backend": "AWSBATCH",
+                "callCaching": {
+                    "allowResultReuse": true,
+                    "effectiveCallCachingMode": "ReadAndWriteCache",
+                    "hashes": {
+                        "backend name": "2267EF43AEF6BB551F414FEC2390F68A",
+                        "command template": "6B7199694ECF1AFA8AC4F550C22E6F1E",
+                        "input": {
+                            "File infile": "\"d9febbc9773947678f3f89189501d77c-291\"",
+                            "String container": "2680320BB71130923944BDB1D041DDBE",
+                            "String dollar": "A705F61EC6C5BB7C687B66C953D1AF74",
+                            "String filename_counts": "5B8C970481FD4F15FBA20AC16F13F1AE",
+                            "String filename_errlog": "89651982A4072491D986C17EA65F08EA",
+                            "String filename_kmerfile": "72BC51BF5FBC79B4EBDE3D7605172C96",
+                            "String filename_outfile": "81285DF1130E8E7D553675D337E17B20",
+                            "String filename_outfile1": "889913D5F14D1E5E4177B3D484797D72",
+                            "String filename_outfile2": "F064BB584C07A32D02407F7459E2BFDA",
+                            "String filename_outlog": "29A651378FA88B93A2FFCAE185CCA736",
+                            "String filename_readlen": "4F8B39ED2EF7C608914A86B7572F1BAF",
+                            "String filename_resources": "BB33B57AABB086DF5262374FB1AB6D81"
+                        },
+                        "input count": "C20AD4D76FE97759AA27A0C99BFF6710",
+                        "output count": "45C48CCE2E2D7FBDEA1AFC51C7C6AD26",
+                        "output expression": {
+                            "File out": "8157E7491BB9BB88011520747FA3D6E2",
+                            "File out1": "AF845D7EE2B426A1E883A5E54EB6346D",
+                            "File out2": "570EB0B87F78A638946A29FD7127896A",
+                            "File outcounts": "9FECE9477BA7626F417112060A58452B",
+                            "File outkmer": "D12E16BDF146E2421458AD252301B800",
+                            "File outreadlen": "77EC2E2A3F58890BA83738C10D8707C5",
+                            "File outresources": "A28AF04D838A38049B8DEC7154319B8A",
+                            "File stderr": "C46FEF3AE2A84B5187DE1BE4A26AD8A2",
+                            "File stdout": "9F7E37AEEB0B4F6BC393D63EF21407CE"
+                        },
+                        "runtime attribute": {
+                            "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
+                            "docker": "D85281F8A8802F8134502D683B7EB64C",
+                            "failOnStderr": "68934A3E9455FA72420237EB05902327"
+                        }
+                    },
+                    "hit": true,
+                    "result": "Cache Hit: 34523607-f38a-4fe0-a3b6-bac34173f010:jgi_meta.bbcms:-1"
+                },
+                "callRoot": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms",
+                "compressedDockerSize": 499108549,
+                "end": "2022-04-21T17:33:32.867Z",
+                "executionEvents": [
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2022-04-21T17:32:00.078Z",
+                        "startTime": "2022-04-21T17:32:00.078Z"
+                    },
+                    {
+                        "description": "UpdatingCallCache",
+                        "endTime": "2022-04-21T17:33:31.882Z",
+                        "startTime": "2022-04-21T17:33:31.559Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2022-04-21T17:32:00.129Z",
+                        "startTime": "2022-04-21T17:32:00.078Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2022-04-21T17:33:32.867Z",
+                        "startTime": "2022-04-21T17:33:31.882Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2022-04-21T17:32:00.078Z",
+                        "startTime": "2022-04-21T17:31:59.228Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2022-04-21T17:31:59.228Z",
+                        "startTime": "2022-04-21T17:31:59.228Z"
+                    },
+                    {
+                        "description": "CallCacheReading",
+                        "endTime": "2022-04-21T17:33:31.559Z",
+                        "startTime": "2022-04-21T17:32:00.129Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "container": "bryce911/bbtools:38.44",
+                    "dollar": "$",
+                    "filename_counts": "counts.metadata.json",
+                    "filename_errlog": "stderr.log",
+                    "filename_kmerfile": "unique31mer.txt",
+                    "filename_outfile": "input.corr.fastq.gz",
+                    "filename_outfile1": "input.corr.left.fastq.gz",
+                    "filename_outfile2": "input.corr.right.fastq.gz",
+                    "filename_outlog": "stdout.log",
+                    "filename_readlen": "readlen.txt",
+                    "filename_resources": "resources.log",
+                    "infile": "s3://jaws-site/jaws-dev/inputs/CORI/global/cfs/projectdirs/jaws/test/tutorial_test_data/12074.1.235970.AGCTAAC-GGTTAGC.filter-METAGENOME-2.3G.fastq.gz"
+                },
+                "outputs": {
+                    "out": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/input.corr.fastq.gz",
+                    "out1": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/input.corr.left.fastq.gz",
+                    "out2": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/input.corr.right.fastq.gz",
+                    "outcounts": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/counts.metadata.json",
+                    "outkmer": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/unique31mer.txt",
+                    "outreadlen": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/readlen.txt",
+                    "outresources": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/resources.log",
+                    "stderr": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/stderr.log",
+                    "stdout": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/stdout.log"
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "cpu": "1",
+                    "cpuMin": "1",
+                    "disks": "local-disk /cromwell_root",
+                    "docker": "bryce911/bbtools:38.44",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "118 GB",
+                    "memoryMin": "2 GB",
+                    "noAddress": "false",
+                    "queueArn": "arn:aws:batch:us-west-2:080819234838:job-queue/priority-jaws",
+                    "scriptBucketName": "jaws-site",
+                    "zones": "us-east-1a"
+                },
+                "shardIndex": -1,
+                "start": "2022-04-21T17:31:59.228Z",
+                "stderr": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/bbcms-stderr.log",
+                "stdout": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/bbcms-stdout.log"
+            }
+        ],
+        "jgi_meta.create_agp": [
+            {
+                "attempt": 1,
+                "backend": "AWSBATCH",
+                "callCaching": {
+                    "allowResultReuse": true,
+                    "effectiveCallCachingMode": "ReadAndWriteCache",
+                    "hashes": {
+                        "backend name": "2267EF43AEF6BB551F414FEC2390F68A",
+                        "command template": "307BAAC41E30F60D0BD09DC25A746373",
+                        "input": {
+                            "File scaffolds_in": "\"3cf9c97cd4add0d270fb4eece51af9c2-12\"",
+                            "String container": "2680320BB71130923944BDB1D041DDBE",
+                            "String filename_agp": "88F5497AE352ED810ECA53075189370B",
+                            "String filename_contigs": "7EBB2A85F59CB41B80A1E2315F04B2ED",
+                            "String filename_legend": "0451BF425867E5A21CFB17CAC87C55A6",
+                            "String filename_resources": "BB33B57AABB086DF5262374FB1AB6D81",
+                            "String filename_scaffolds": "0801BBE5347B496250A05733DDE942F8",
+                            "String prefix": "4B1D570D08B496A1017DD67935ACA408"
+                        },
+                        "input count": "C9F0F895FB98AB9159F51FD0297E236D",
+                        "output count": "E4DA3B7FBBCE2345D7772B0674A318D5",
+                        "output expression": {
+                            "File outagp": "A5485CBB897C4319EE570B8DA27F0BF4",
+                            "File outcontigs": "607CCACCEE73F954AC1F84EF480BCC6A",
+                            "File outlegend": "4270E9004409CFD6B0297BD3C48948DD",
+                            "File outresources": "A28AF04D838A38049B8DEC7154319B8A",
+                            "File outscaffolds": "6401E6983B250ED992D796278CC0BF16"
+                        },
+                        "runtime attribute": {
+                            "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
+                            "docker": "D85281F8A8802F8134502D683B7EB64C",
+                            "failOnStderr": "68934A3E9455FA72420237EB05902327"
+                        }
+                    },
+                    "hit": true,
+                    "result": "Cache Hit: 34523607-f38a-4fe0-a3b6-bac34173f010:jgi_meta.create_agp:-1"
+                },
+                "callRoot": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp",
+                "compressedDockerSize": 499108549,
+                "end": "2022-04-21T18:18:02.875Z",
+                "executionEvents": [
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2022-04-21T18:17:56.078Z",
+                        "startTime": "2022-04-21T18:17:56.078Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2022-04-21T18:18:02.875Z",
+                        "startTime": "2022-04-21T18:18:01.873Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2022-04-21T18:17:56.078Z",
+                        "startTime": "2022-04-21T18:17:55.488Z"
+                    },
+                    {
+                        "description": "CallCacheReading",
+                        "endTime": "2022-04-21T18:18:00.146Z",
+                        "startTime": "2022-04-21T18:17:56.110Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2022-04-21T18:17:56.110Z",
+                        "startTime": "2022-04-21T18:17:56.078Z"
+                    },
+                    {
+                        "description": "UpdatingCallCache",
+                        "endTime": "2022-04-21T18:18:01.873Z",
+                        "startTime": "2022-04-21T18:18:00.146Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2022-04-21T18:17:55.488Z",
+                        "startTime": "2022-04-21T18:17:55.488Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "container": "bryce911/bbtools:38.44",
+                    "filename_agp": "assembly.agp",
+                    "filename_contigs": "assembly.contigs.fasta",
+                    "filename_legend": "assembly.scaffolds.legend",
+                    "filename_resources": "resources.log",
+                    "filename_scaffolds": "assembly.scaffolds.fasta",
+                    "prefix": "assembly",
+                    "scaffolds_in": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-assy/spades3/scaffolds.fasta"
+                },
+                "outputs": {
+                    "outagp": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/assembly.agp",
+                    "outcontigs": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/assembly.contigs.fasta",
+                    "outlegend": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/assembly.scaffolds.legend",
+                    "outresources": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/resources.log",
+                    "outscaffolds": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/assembly.scaffolds.fasta"
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "cpu": "1",
+                    "cpuMin": "1",
+                    "disks": "local-disk /cromwell_root",
+                    "docker": "bryce911/bbtools:38.44",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "118 GB",
+                    "memoryMin": "2 GB",
+                    "noAddress": "false",
+                    "queueArn": "arn:aws:batch:us-west-2:080819234838:job-queue/priority-jaws",
+                    "scriptBucketName": "jaws-site",
+                    "zones": "us-east-1a"
+                },
+                "shardIndex": -1,
+                "start": "2022-04-21T18:17:55.488Z",
+                "stderr": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/create_agp-stderr.log",
+                "stdout": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/create_agp-stdout.log"
+            }
+        ],
+        "jgi_meta.read_mapping_pairs": [
+            {
+                "attempt": 1,
+                "backend": "AWSBATCH",
+                "backendStatus": "Succeeded",
+                "callCaching": {
+                    "allowResultReuse": true,
+                    "effectiveCallCachingMode": "ReadAndWriteCache",
+                    "hashes": {
+                        "backend name": "2267EF43AEF6BB551F414FEC2390F68A",
+                        "command template": "CDBD8668D9D075AB43103ADC2C2E36C2",
+                        "input": {
+                            "File reads": "\"d9febbc9773947678f3f89189501d77c-291\"",
+                            "File ref": "\"4e80699aed1ba773f6ee82ef7c156a79\"",
+                            "String container": "2680320BB71130923944BDB1D041DDBE",
+                            "String dollar": "A705F61EC6C5BB7C687B66C953D1AF74",
+                            "String filename_bamscript": "F51254F15E0FF5A7A2A6377DCFF51E34",
+                            "String filename_cov": "2448072E5901593427B7EF25114F05EE",
+                            "String filename_outsam": "755D099676FA035F6C357180D44E11C0",
+                            "String filename_resources": "BB33B57AABB086DF5262374FB1AB6D81",
+                            "String filename_sorted": "297A5965C834F32050A732873F038C12",
+                            "String filename_sorted_idx": "1C5178CBE5A452A091D23D4F0CA9EE6D",
+                            "String filename_unsorted": "1C16BF995260682C0323BEB31C7D7ADE"
+                        },
+                        "input count": "6512BD43D9CAA6E02C990B0A82652DCA",
+                        "output count": "E4DA3B7FBBCE2345D7772B0674A318D5",
+                        "output expression": {
+                            "File outbamfile": "3D8E2C09F538E5B952AD7A9406F51254",
+                            "File outbamfileidx": "3878AD36197335DFD0967379A0D4728B",
+                            "File outcovfile": "C5031677844F9709A756005A0A23BF29",
+                            "File outresources": "A28AF04D838A38049B8DEC7154319B8A",
+                            "File outsamfile": "6A6BB03CA29E2F9138A08AFBD49368DD"
+                        },
+                        "runtime attribute": {
+                            "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
+                            "docker": "D85281F8A8802F8134502D683B7EB64C",
+                            "failOnStderr": "68934A3E9455FA72420237EB05902327"
+                        }
+                    },
+                    "hit": false,
+                    "result": "Cache Miss"
+                },
+                "callRoot": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs",
+                "commandLine": "touch resources.log && \\\nbbmap.sh -Xmx105g threads=$(grep \"model name\" /proc/cpuinfo | wc -l) nodisk=true interleaved=true ambiguous=random in=/cromwell_root/jaws-site/jaws-dev/inputs/CORI/global/cfs/projectdirs/jaws/test/tutorial_test_data/12074.1.235970.AGCTAAC-GGTTAGC.filter-METAGENOME-2.3G.fastq.gz ref=/cromwell_root/jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/assembly.contigs.fasta out=pairedMapped.bam covstats=covstats.txt bamscript=to_bam.sh && \\\nsamtools sort -m100M -@ $(grep \"model name\" /proc/cpuinfo | wc -l) pairedMapped.bam -o pairedMapped_sorted.bam && \\\nsamtools index pairedMapped_sorted.bam && \\\nreformat.sh -Xmx105g in=pairedMapped.bam out=pairedMapped.sam.gz overwrite=true",
+                "compressedDockerSize": 499108549,
+                "dockerImageUsed": "bryce911/bbtools@sha256:4f8a3afeb42502d40b89d0444be90f8d6cfc71eb3d457bfe32ce7edd20a0d680",
+                "end": "2022-04-21T19:23:35.862Z",
+                "executionEvents": [
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2022-04-21T19:23:35.862Z",
+                        "startTime": "2022-04-21T19:23:34.862Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2022-04-21T18:18:06.110Z",
+                        "startTime": "2022-04-21T18:18:06.078Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2022-04-21T18:18:04.668Z",
+                        "startTime": "2022-04-21T18:18:04.668Z"
+                    },
+                    {
+                        "description": "UpdatingCallCache",
+                        "endTime": "2022-04-21T19:23:34.862Z",
+                        "startTime": "2022-04-21T19:23:32.917Z"
+                    },
+                    {
+                        "description": "CallCacheReading",
+                        "endTime": "2022-04-21T18:18:06.297Z",
+                        "startTime": "2022-04-21T18:18:06.110Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2022-04-21T18:18:06.078Z",
+                        "startTime": "2022-04-21T18:18:06.078Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2022-04-21T18:18:06.078Z",
+                        "startTime": "2022-04-21T18:18:04.668Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2022-04-21T19:23:32.917Z",
+                        "startTime": "2022-04-21T18:18:06.297Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {
+                    "container": "bryce911/bbtools:38.44",
+                    "dollar": "$",
+                    "filename_bamscript": "to_bam.sh",
+                    "filename_cov": "covstats.txt",
+                    "filename_outsam": "pairedMapped.sam.gz",
+                    "filename_resources": "resources.log",
+                    "filename_sorted": "pairedMapped_sorted.bam",
+                    "filename_sorted_idx": "pairedMapped_sorted.bam.bai",
+                    "filename_unsorted": "pairedMapped.bam",
+                    "reads": "s3://jaws-site/jaws-dev/inputs/CORI/global/cfs/projectdirs/jaws/test/tutorial_test_data/12074.1.235970.AGCTAAC-GGTTAGC.filter-METAGENOME-2.3G.fastq.gz",
+                    "ref": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/assembly.contigs.fasta"
+                },
+                "jobId": "c8fb5f01-6fb5-47f5-80cb-3afa920489f5",
+                "outputs": {
+                    "outbamfile": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/pairedMapped_sorted.bam",
+                    "outbamfileidx": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/pairedMapped_sorted.bam.bai",
+                    "outcovfile": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/covstats.txt",
+                    "outresources": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/resources.log",
+                    "outsamfile": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/pairedMapped.sam.gz"
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "cpu": "1",
+                    "cpuMin": "1",
+                    "disks": "local-disk /cromwell_root",
+                    "docker": "bryce911/bbtools:38.44",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "118 GB",
+                    "memoryMin": "2 GB",
+                    "noAddress": "false",
+                    "queueArn": "arn:aws:batch:us-west-2:080819234838:job-queue/priority-jaws",
+                    "scriptBucketName": "jaws-site",
+                    "zones": "us-east-1a"
+                },
+                "shardIndex": -1,
+                "start": "2022-04-21T18:18:04.668Z",
+                "stderr": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/read_mapping_pairs-stderr.log",
+                "stdout": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/read_mapping_pairs-stdout.log"
+            }
+        ]
+    },
+    "end": "2022-04-21T19:23:37.240Z",
+    "id": "f4f5afd1-79f5-497a-9612-baed76dc365d",
+    "inputs": {
+        "jgi_meta.assy.dollar": "$",
+        "jgi_meta.assy.filename_resources": "resources.log",
+        "jgi_meta.assy.outprefix": "spades3",
+        "jgi_meta.basic_container": "bryce911/bbtools:38.44",
+        "jgi_meta.bbcms.dollar": "$",
+        "jgi_meta.bbcms.filename_counts": "counts.metadata.json",
+        "jgi_meta.bbcms.filename_errlog": "stderr.log",
+        "jgi_meta.bbcms.filename_kmerfile": "unique31mer.txt",
+        "jgi_meta.bbcms.filename_outfile": "input.corr.fastq.gz",
+        "jgi_meta.bbcms.filename_outfile1": "input.corr.left.fastq.gz",
+        "jgi_meta.bbcms.filename_outfile2": "input.corr.right.fastq.gz",
+        "jgi_meta.bbcms.filename_outlog": "stdout.log",
+        "jgi_meta.bbcms.filename_readlen": "readlen.txt",
+        "jgi_meta.bbcms.filename_resources": "resources.log",
+        "jgi_meta.bbtools_container": "bryce911/bbtools:38.44",
+        "jgi_meta.create_agp.filename_resources": "resources.log",
+        "jgi_meta.create_agp.prefix": "assembly",
+        "jgi_meta.input_file": "s3://jaws-site/jaws-dev/inputs/CORI/global/cfs/projectdirs/jaws/test/tutorial_test_data/12074.1.235970.AGCTAAC-GGTTAGC.filter-METAGENOME-2.3G.fastq.gz",
+        "jgi_meta.read_mapping_pairs.dollar": "$",
+        "jgi_meta.read_mapping_pairs.filename_bamscript": "to_bam.sh",
+        "jgi_meta.read_mapping_pairs.filename_cov": "covstats.txt",
+        "jgi_meta.read_mapping_pairs.filename_outsam": "pairedMapped.sam.gz",
+        "jgi_meta.read_mapping_pairs.filename_resources": "resources.log",
+        "jgi_meta.read_mapping_pairs.filename_sorted": "pairedMapped_sorted.bam",
+        "jgi_meta.read_mapping_pairs.filename_sorted_idx": "pairedMapped_sorted.bam.bai",
+        "jgi_meta.read_mapping_pairs.filename_unsorted": "pairedMapped.bam",
+        "jgi_meta.spades_container": "bryce911/spades:3.13.0",
+        "jgi_meta.uniquekmer": 1000
+    },
+    "labels": {
+        "cromwell-workflow-id": "cromwell-f4f5afd1-79f5-497a-9612-baed76dc365d"
+    },
+    "outputs": {
+        "jgi_meta.assy.out": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-assy/spades3/scaffolds.fasta",
+        "jgi_meta.assy.outlog": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-assy/spades3/spades.log",
+        "jgi_meta.assy.outresources": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-assy/resources.log",
+        "jgi_meta.bbcms.out": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/input.corr.fastq.gz",
+        "jgi_meta.bbcms.out1": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/input.corr.left.fastq.gz",
+        "jgi_meta.bbcms.out2": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/input.corr.right.fastq.gz",
+        "jgi_meta.bbcms.outcounts": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/counts.metadata.json",
+        "jgi_meta.bbcms.outkmer": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/unique31mer.txt",
+        "jgi_meta.bbcms.outreadlen": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/readlen.txt",
+        "jgi_meta.bbcms.outresources": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/resources.log",
+        "jgi_meta.bbcms.stderr": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/stderr.log",
+        "jgi_meta.bbcms.stdout": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-bbcms/cacheCopy/stdout.log",
+        "jgi_meta.create_agp.outagp": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/assembly.agp",
+        "jgi_meta.create_agp.outcontigs": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/assembly.contigs.fasta",
+        "jgi_meta.create_agp.outlegend": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/assembly.scaffolds.legend",
+        "jgi_meta.create_agp.outresources": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/resources.log",
+        "jgi_meta.create_agp.outscaffolds": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-create_agp/cacheCopy/assembly.scaffolds.fasta",
+        "jgi_meta.read_mapping_pairs.outbamfile": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/pairedMapped_sorted.bam",
+        "jgi_meta.read_mapping_pairs.outbamfileidx": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/pairedMapped_sorted.bam.bai",
+        "jgi_meta.read_mapping_pairs.outcovfile": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/covstats.txt",
+        "jgi_meta.read_mapping_pairs.outresources": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/resources.log",
+        "jgi_meta.read_mapping_pairs.outsamfile": "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d/call-read_mapping_pairs/pairedMapped.sam.gz"
+    },
+    "start": "2022-04-21T17:31:57.044Z",
+    "status": "Succeeded",
+    "submission": "2022-04-21T17:31:56.294Z",
+    "submittedFiles": {
+        "inputs": "{\"jgi_meta.input_file\":\"s3://jaws-site/jaws-dev/inputs/CORI/global/cfs/projectdirs/jaws/test/tutorial_test_data/12074.1.235970.AGCTAAC-GGTTAGC.filter-METAGENOME-2.3G.fastq.gz\"}",
+        "labels": "{}",
+        "options": "{\n  \"default_runtime_attributes\": {\n    \"docker\": \"ubuntu:latest\"\n  },\n  \"read_from_cache\": true,\n  \"write_to_cache\": true\n}",
+        "root": "",
+        "workflow": "workflow jgi_meta {\n    File input_file\n    Float uniquekmer=1000\n    String bbtools_container=\"bryce911/bbtools:38.44\"\n    String spades_container=\"bryce911/spades:3.13.0\"\n    String basic_container=\"bryce911/bbtools:38.44\"\n    call bbcms {\n          input: infile=input_file, container=bbtools_container\n    }\n    call assy {\n         input: infile1=bbcms.out1, infile2=bbcms.out2, container=spades_container\n    }\n    call create_agp {\n         input: scaffolds_in=assy.out, container=bbtools_container\n    }\n    call read_mapping_pairs {\n     input: reads=input_file, ref=create_agp.outcontigs, container=bbtools_container\n    }\n\n}\ntask bbcms {\n     File infile\n     String container\n\n     String filename_resources=\"resources.log\"\n     String filename_outfile=\"input.corr.fastq.gz\"\n     String filename_outfile1=\"input.corr.left.fastq.gz\"\n     String filename_outfile2=\"input.corr.right.fastq.gz\"\n     String filename_readlen=\"readlen.txt\"\n     String filename_outlog=\"stdout.log\"\n     String filename_errlog=\"stderr.log\"\n     String filename_kmerfile=\"unique31mer.txt\"\n     String filename_counts=\"counts.metadata.json\"\n     String dollar=\"$\"\n\n    runtime {\n        docker: container\n        time: \"01:00:00\"\n        memory: \"118G\"\n        node: 1\n        nwpn: 1\n        poolname: \"bfostersmall\"\n    }\n\n     command {\n        touch ${filename_resources} && \\\n        bbcms.sh -Xmx105g metadatafile=${filename_counts} mincount=2 highcountfraction=0.6 in=${infile} out=${filename_outfile} > >(tee -a ${filename_outlog}) 2> >(tee -a ${filename_errlog} >&2) && grep Unique ${filename_errlog} | rev |  cut -f 1 | rev  > ${filename_kmerfile} && \\\n        reformat.sh -Xmx105g in=${filename_outfile} out1=${filename_outfile1} out2=${filename_outfile2} && \\\n        readlength.sh -Xmx105g in=${filename_outfile} out=${filename_readlen}\n     }\n\n     output {\n            File out = filename_outfile\n            File out1 = filename_outfile1\n            File out2 = filename_outfile2\n            File outreadlen = filename_readlen\n            File stdout = filename_outlog\n            File stderr = filename_errlog\n            File outcounts = filename_counts\n            File outkmer = filename_kmerfile\n            File outresources = filename_resources\n     }\n}\n\ntask assy {\n     File infile1\n     File infile2\n     String container\n\n     String filename_resources=\"resources.log\"\n     String outprefix=\"spades3\"\n     String filename_outfile=\"${outprefix}/scaffolds.fasta\"\n     String filename_spadeslog =\"${outprefix}/spades.log\"\n     String dollar=\"$\"\n\n    runtime {\n        docker: container\n        time: \"01:00:00\"\n        memory: \"118G\"\n        node: 1\n        nwpn: 1\n        poolname: \"bfostersmall\"\n    }\n\n     command{\n        touch ${filename_resources} && \\\n        spades.py -m 2000 --tmp-dir /tmp -o ${outprefix} --only-assembler -k 33,55,77,99,127  --meta -t ${dollar}(grep \"model name\" /proc/cpuinfo | wc -l) -1 ${infile1} -2 ${infile2}\n     }\n\n     output {\n            File out = filename_outfile\n            File outlog = filename_spadeslog\n            File outresources = filename_resources\n     }\n}\n\n\ntask create_agp {\n    File scaffolds_in\n    String container\n\n    String filename_resources=\"resources.log\"\n    String prefix=\"assembly\"\n    String filename_contigs=\"${prefix}.contigs.fasta\"\n    String filename_scaffolds=\"${prefix}.scaffolds.fasta\"\n    String filename_agp=\"${prefix}.agp\"\n    String filename_legend=\"${prefix}.scaffolds.legend\"\n\n    runtime {\n        docker: container\n        time: \"01:00:00\"\n        memory: \"118G\"\n        node: 1\n        nwpn: 1\n        poolname: \"bfostersmall\"\n    }\n\n    command{\n        touch ${filename_resources} && \\\n        fungalrelease.sh -Xmx105g in=${scaffolds_in} out=${filename_scaffolds} outc=${filename_contigs} agp=${filename_agp} legend=${filename_legend} mincontig=200 minscaf=200 sortscaffolds=t sortcontigs=t overwrite=t\n  }\n\n    output{\n        File outcontigs = filename_contigs\n        File outscaffolds = filename_scaffolds\n        File outagp = filename_agp\n        File outlegend = filename_legend\n        File outresources = filename_resources\n    }\n}\n\n\ntask read_mapping_pairs{\n    File reads\n    File ref\n    String container\n  \n    String filename_resources=\"resources.log\"\n    String filename_unsorted=\"pairedMapped.bam\"\n    String filename_outsam=\"pairedMapped.sam.gz\"\n    String filename_sorted=\"pairedMapped_sorted.bam\"\n    String filename_sorted_idx=\"pairedMapped_sorted.bam.bai\"\n    String filename_bamscript=\"to_bam.sh\"\n    String filename_cov=\"covstats.txt\"\n    String dollar=\"$\"\n\n    runtime {\n        docker: container\n        time: \"01:00:00\"\n        memory: \"118G\"\n        node: 1\n        nwpn: 1\n        poolname: \"bfostersmall\"\n    }\n\n    command{\n        touch ${filename_resources} && \\\n        bbmap.sh -Xmx105g threads=${dollar}(grep \"model name\" /proc/cpuinfo | wc -l) nodisk=true interleaved=true ambiguous=random in=${reads} ref=${ref} out=${filename_unsorted} covstats=${filename_cov} bamscript=${filename_bamscript} && \\\n        samtools sort -m100M -@ ${dollar}(grep \"model name\" /proc/cpuinfo | wc -l) ${filename_unsorted} -o ${filename_sorted} && \\\n        samtools index ${filename_sorted} && \\\n        reformat.sh -Xmx105g in=${filename_unsorted} out=${filename_outsam} overwrite=true\n  }\n\n  output {\n      File outbamfile = filename_sorted\n      File outbamfileidx = filename_sorted_idx\n      File outcovfile = filename_cov\n      File outsamfile = filename_outsam\n      File outresources = filename_resources\n  }\n}\n",
+        "workflowUrl": ""
+    },
+    "workflowName": "jgi_meta",
+    "workflowProcessingEvents": [
+        {
+            "cromwellId": "cromid-f1c1cb5",
+            "cromwellVersion": "77",
+            "description": "PickedUp",
+            "timestamp": "2022-04-21T17:31:57.043Z"
+        },
+        {
+            "cromwellId": "cromid-f1c1cb5",
+            "cromwellVersion": "77",
+            "description": "Finished",
+            "timestamp": "2022-04-21T19:23:37.240Z"
+        }
+    ]
+}

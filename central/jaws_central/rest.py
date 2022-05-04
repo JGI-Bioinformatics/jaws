@@ -8,18 +8,10 @@ from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch
 from flask import abort, request
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_central import config
-from jaws_central import jaws_constants
+from jaws_central import config, jaws_constants
 from jaws_rpc import rpc_index
 from jaws_central.models_fsa import db, Run, User, Run_Log
-from jaws_central.datatransfer_protocol import (
-    DataTransferFactory,
-    DataTransferProtocol,
-    SiteTransfer,
-    DataTransferAPIError,
-    DataTransferNetworkError,
-    DataTransferError,
-)
+from jaws_central.config import ConfigurationError
 
 
 logger = logging.getLogger(__package__)
@@ -114,7 +106,7 @@ def _rpc_call(user, run_id, method, params={}):
         raise RunAccessDeniedError(
             "Access denied; you cannot access to another user's workflow"
         )
-    a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
+    a_site_rpc_client = rpc_index.rpc_index.get_client(run.compute_site_id)
     params["user_id"] = user
     params["run_id"] = run_id
     params["cromwell_run_id"] = run.cromwell_run_id
@@ -143,59 +135,6 @@ def _is_admin(user):
     return True if current_user.is_admin else False
 
 
-def _run_info(run, is_admin: bool = False, verbose: bool = False):
-    """
-    Given a SQLAlchemy model for a Run, create a dict with the desired fields.
-    :param run: Run object
-    :type run: model
-    :param is_admin: True if current user is an administrator
-    :type is_admin: bool
-    :param verbose: True if all fields desired
-    :type verbose: bool
-    :return: selected fields
-    :rtype: dict
-    """
-    info = {}
-    complete = True if (is_admin or verbose) else False
-    if complete:
-        info = {
-            "id": run.id,
-            "submission_id": run.submission_id,
-            "cromwell_run_id": run.cromwell_run_id,
-            "result": run.result,
-            "status": run.status,
-            "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
-            "site_id": run.site_id,
-            "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-            "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
-            "input_site_id": run.input_site_id,
-            "input_endpoint": run.input_endpoint,
-            "upload_task_id": run.upload_task_id,
-            "output_endpoint": run.output_endpoint,
-            "output_dir": run.output_dir,
-            "download_task_id": run.download_task_id,
-            "user_id": run.user_id,
-            "tag": run.tag,
-            "wdl_file": run.wdl_file,
-            "json_file": run.json_file,
-        }
-    else:
-        info = {
-            "id": run.id,
-            "result": run.result,
-            "status": run.status,
-            "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
-            "site_id": run.site_id,
-            "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-            "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
-            "input_site_id": run.input_site_id,
-            "tag": run.tag,
-            "wdl_file": run.wdl_file,
-            "json_file": run.json_file,
-        }
-    return info
-
-
 def search_runs(user):
     """Search is used by both user queue and history commands."""
     site_id = request.form.get("site_id", "all").upper()
@@ -214,8 +153,8 @@ def search_runs(user):
         all_users=all_users,
     )
     runs = []
-    for run in rows:
-        runs.append(_run_info(run, is_admin))
+    for row in rows:
+        runs.append(_run_info(row, is_admin))
     return runs, 200
 
 
@@ -261,7 +200,7 @@ def list_sites(user):
     logger.info(f"User {user}: List sites")
     result = []
     for site_id in config.conf.sites.keys():
-        max_ram_gb = config.conf.get_site(site_id, "max_ram_gb")
+        max_ram_gb = config.conf.get_site_param(site_id, "max_ram_gb")
         record = {
             "site_id": site_id,
             "max_ram_gb": max_ram_gb,
@@ -288,62 +227,62 @@ def get_site(user, site_id):
     return result, 200
 
 
-def transfer_files(
-    data_transfer: DataTransferProtocol, metadata: dict, manifest_files: list
-) -> str:
-    """Perform file transfer.
-
-    :param data_transfer: object for transferring data from one site to another (globus, aws, ...)
-    :type data_transfer: DataTransfer object
-    :param manifest_files: list of files to transfer
-    :type manifest_files: list
-    """
-    return data_transfer.submit_upload(metadata, manifest_files)
-
-
 def submit_run(user):
     """
-    Record the run submission in the database, with status as "uploading".
+    Insert the run submission in the database and return the run_id (primary key).
 
     :param user: current user's ID
     :type user: str
-    :return: run_id, upload_task_id
+    :return: run metadata including run_id
     :rtype: dict
     """
-    site_id = request.form.get("site_id", None).upper()
-    submission_id = request.form.get("submission_id")
     input_site_id = request.form.get("input_site_id", None).upper()
-    input_endpoint = request.form.get("input_endpoint", None)
-    output_endpoint = request.form.get("output_endpoint")
-    output_dir = request.form.get("output_dir")
+    compute_site_id = request.form.get("compute_site_id", None).upper()
+    submission_id = request.form.get("submission_id")
+    caching = False if request.form.get("caching") == "False" else True
+    max_ram_gb = request.form.get("max_ram_gb")
     wdl_file = request.form.get("wdl_file")
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
-    compute_endpoint = config.conf.get_site(site_id, "globus_endpoint")
+    manifest_json = request.form.get("manifest")
+    logger.info(
+        f"User {user}: New run submission {submission_id} from {input_site_id} to {compute_site_id}"
+    )
 
-    if compute_endpoint is None:
-        logger.error(
-            f"Received run submission from {user} with invalid computing site ID: {site_id}"
+    # check if valid compute site was requested
+    try:
+        compute_site_config = config.conf.get_site(compute_site_id)
+    except ConfigurationError as error:
+        logger.warning(
+            f"User requested unknown compute-site, {compute_site_id}: {error}"
         )
         abort(
             404,
-            {"error": f'Unknown Site ID, "{site_id}"; try the "list-sites" command'},
+            {"error": f'Unknown Site ID; "{compute_site_id}" is not one of our sites'},
         )
-    logger.info(f"User {user}: New run submission {submission_id} to {site_id}")
 
-    # INSERT INTO RDB TO GET RUN ID
+    # check if requested compute site can process this WDL
+    if (
+        "max_ram_gb" in compute_site_config
+        and compute_site_config["max_ram_gb"] < max_ram_gb
+    ):
+        msg = f'The requested site {compute_site_id} has only {compute_site_config["max_ram_gb"]} GB which is less than the {max_ram_gb} GB required by this workflow.'  # noqa
+        abort(406, {"error": msg})
+
+    # insert into db and the daemon will pick it up and initiate the file transfer
     run = Run(
         user_id=user,
-        site_id=site_id,
-        submission_id=submission_id,
         input_site_id=input_site_id,
-        input_endpoint=input_endpoint,
-        output_endpoint=output_endpoint,
-        output_dir=output_dir,
+        compute_site_id=compute_site_id,
+        submission_id=submission_id,
+        caching=caching,
+        status="created",
+        manifest_json=manifest_json,
+        # the following are not used by JAWS but are recorded for users' convenience
+        # (to help them identify their runs)
         wdl_file=wdl_file,
         json_file=json_file,
         tag=tag,
-        status="created",
     )
     try:
         db.session.add(run)
@@ -360,174 +299,12 @@ def submit_run(user):
         abort(500, {"error": err_msg})
     logger.debug(f"User {user}: New run {run.id}")
 
-    # Output directory is a subdirectory that includes the user id, site id and run id.
-    # These are all placed in a common location with setgid sticky bits so that all
-    # submitting users have access.
-    output_dir += f"/{user}/{site_id}/{run.id}"
-
-    # Setup data transfer object. The data transfer using either globus or AWS is based on site_id. This is defined
-    # in the SiteTransfer.type var.
-    data_transfer_type = SiteTransfer.type[site_id.upper()]
-    data_transfer = DataTransferFactory(data_transfer_type)
-    metadata = {"label": f"Upload run {run.id}"}
-
-    if data_transfer_type == "globus_transfer":
-        src_host_path = config.conf.get_site(input_site_id, "globus_host_path")
-        metadata["host_paths"] = {
-            "src": src_host_path,
-            "dest": config.conf.get_site(site_id, "globus_host_path"),
-        }
-        metadata["input_endpoint"] = input_endpoint
-        metadata["compute_endpoint"] = compute_endpoint
-        metadata["run_id"] = run.id
-
-        # We modify the output dir path since we know the endpoint of the returning source site. From here
-        # a compute site can simply query the output directory and send.
-        virtual_output_path = data_transfer.virtual_transfer_path(
-            output_dir, src_host_path
-        )
-    else:
-        virtual_output_path = (
-            output_dir  # not sure what the virtual path for AWS should be ???
-        )
-
-    # Due to how the current database schema is setup, we have to update the output
-    # directory from the model object itself immediately after insert.
-    # TODO: Think of a better way to do this
-    try:
-        run.output_dir = virtual_output_path
-    except Exception as error:
-        db.session.rollback()
-        err_msg = f"Unable to update output_dir in db: {error}"
-        logger.exception(err_msg)
-        abort(500, {"error": err_msg})
-    try:
-        db.session.commit()
-    except Exception as error:
-        db.session.rollback()
-        err_msg = f"Unable to update output_dir in db: {error}"
-        logger.exception(err_msg)
-        abort(500, {"error": err_msg})
-    logger.debug(f"Updating output dir for run_id={run.id}")
-
-    # SUBMIT FILE TRANSFER
-    manifest_files = request.files["manifest"]
-
-    logger.debug(f"Transferring files using {data_transfer_type}")
-
-    try:
-        upload_task_id = transfer_files(data_transfer, metadata, manifest_files)
-    except DataTransferAPIError as error:
-        run.status = "upload failed"
-        db.session.commit()
-        if error.code == "NoCredException":
-            logger.warning(
-                f"{user} submission {run.id} failed due to Globus {error.code}"
-            )
-            abort(
-                401,
-                {
-                    "error": error.message
-                    + " -- Your access to the Globus endpoint has expired.  "
-                    + "To reactivate, log-in to https://app.globus.org, go to Endpoints (left), "
-                    + "search for the endpoint by name (if not shown), click on the endpoint, "
-                    + "and use the button on the right to activate your credentials."
-                },
-            )
-        else:
-            logger.exception(
-                f"{user} submission {run.id} failed for GlobusAPIError: {error}",
-                exc_info=True,
-            )
-            abort(error.code, {"error": error.message})
-    except DataTransferNetworkError as error:
-        logger.exception(
-            f"{user} submission {run.id} failed due to NetworkError: {error}",
-            exc_info=True,
-        )
-        abort(500, {"error": f"Network Error: {error}"})
-    except DataTransferError as error:
-        logger.exception(
-            f"{user} submission {run.id} failed for unknown error: {error}",
-            exc_info=True,
-        )
-        abort(500, {"error": f"Unexpected error: {error}"})
-
-    logger.debug(f"User {user}: Run {run.id} upload {upload_task_id}")
-
-    # UPDATE RUN WITH UPLOAD TASK ID AND ADD LOG ENTRY
-    run.upload_task_id = upload_task_id
-    old_status = run.status
-    new_status = run.status = "uploading"
-    log = Run_Log(
-        run_id=run.id,
-        status_to=new_status,
-        status_from=old_status,
-        timestamp=run.updated,
-        reason=f"upload_task_id={upload_task_id}",
-    )
-    try:
-        db.session.add(log)
-    except Exception as error:
-        db.session.rollback()
-        logger.exception(f"Error inserting run log for Run {run.id}: {error}")
-    try:
-        db.session.commit()
-    except Exception as error:
-        db.session.rollback()
-        err_msg = f"Error inserting run log for Run {run.id}: {error}"
-        logger.exception(err_msg)
-
-    # GET CURRENT USER INFO
-    try:
-        current_user = db.session.query(User).get(user)
-    except SQLAlchemyError as e:
-        logger.error(e)
-        abort(500, {"error": f"Db error; {e}"})
-
-    # SEND TO SITE
-    params = {
-        "run_id": run.id,
-        "user_id": user,
-        "email": current_user.email,
-        "submission_id": submission_id,
-        "upload_task_id": upload_task_id,
-        "output_endpoint": output_endpoint,
-        "output_dir": output_dir,
-    }
-    a_site_rpc_client = rpc_index.rpc_index.get_client(run.site_id)
-    logger.debug(f"User {user}: submit run: {params}")
-    try:
-        result = a_site_rpc_client.request("submit", params)
-    except Exception as error:
-        reason = f"RPC submit failed: {error}"
-        logger.exception(reason)
-        _submission_failed(user, run, reason, data_transfer)
-        abort(500, {"error": reason})
-    if "error" in result:
-        reason = f"Error sending new run to {site_id}: {result['error']['message']}"
-        logger.error(reason)
-        _submission_failed(user, run, reason, data_transfer)
-        abort(result["error"]["code"], {"error": result["error"]["message"]})
-
-    # DONE
+    # return run_id
     result = {
         "run_id": run.id,
-        "status": run.status,
-        "site_id": site_id,
-        "output_dir": output_dir,
-        "tag": tag,
     }
-    logger.info(f"User {user}: New run: {result}")
+    logger.info(f"User {user}: New run {run.id}")
     return result, 201
-
-
-def _submission_failed(
-    user: str, run: str, reason: str, data_transfer: DataTransferProtocol
-):
-    """Cancel upload and update run status"""
-    _cancel_transfer(data_transfer, run.upload_task_id)
-    _update_run_status(run, "submission failed", reason)
 
 
 def _update_run_status(run, new_status, reason=None):
@@ -740,7 +517,26 @@ def run_outputs(user, run_id):
     logger.info(f"User {user}: Get outputs for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "run_outputs")
+    result = rpc_call(user, run_id, "run_outputs")
+    return result
+
+
+def run_outfiles(user, run_id):
+    """
+    Retrieve the output files of a run.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: List of output files
+    :rtype: list
+    """
+    logger.info(f"User {user}: Get outfiles for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    result = rpc_call(user, run_id, "run_outfiles")
+    return result
 
 
 def get_errors(user, run_id):
@@ -791,14 +587,8 @@ def _cancel_run(user, run, reason="Cancelled by user"):
     :param run: Run SqlAlchemy ORM object
     :type run: obj
     """
-    transfer_type = SiteTransfer.type[run.site_id.upper()]
-    data_transfer = DataTransferFactory(transfer_type)
-    status = run.status
-
-    if status.startswith("upload"):
-        _cancel_transfer(data_transfer, run.upload_task_id)
-    elif status.startswith("download"):
-        _cancel_transfer(data_transfer, run.download_task_id)
+    if run.status in ["cancelled", "download complete"]:
+        return
     try:
         _rpc_call(user, run.id, "cancel_run")
     except Exception as error:
@@ -810,19 +600,6 @@ def _cancel_run(user, run, reason="Cancelled by user"):
         return f"cancel failed; {error}"
     else:
         return "cancelled"
-
-
-def _cancel_transfer(
-    data_transfer: DataTransferProtocol, transfer_task_id: str
-) -> None:
-    """Cancels a data transfer.
-
-    :param data_transfer: object for transferring data from one site to another (globus, aws, ...)
-    :type data_transfer: DataTransfer object
-    :param transfer_task_id: Globus transfer task id
-    :type transfer_task_id: str
-    """
-    return data_transfer.cancel_transfer(transfer_task_id)
 
 
 def cancel_all(user):
@@ -862,10 +639,8 @@ def _search_elastic_search(host, port, api_key, index, query, aggregations=None)
     try:
         elastic_client = Elasticsearch([f"http://{host}:{port}"], api_key=api_key)
         response = elastic_client.search(
-            index=index,
-            query=query,
-            aggregations=aggregations,
-            size=10000)
+            index=index, query=query, aggregations=aggregations, size=10000
+        )
     except Elasticsearch.AuthorizationException as error:
         logger.error(error)
         abort(403, {"error": f"Not authorized; {error}"})
@@ -897,20 +672,55 @@ def get_performance_metrics(user, run_id):
     db_conf = config.conf.get_section("ELASTIC_SEARCH")
     pm_conf = config.conf.get_section("PERFORMANCE_METRICS")
     response = _search_elastic_search(
-        host=db_conf['host'],
-        port=db_conf['port'],
-        api_key=db_conf['api_key'],
-        index=pm_conf['index'],
-        query={'match': {'jaws_run_id': int(run_id)}})
+        host=db_conf["host"],
+        port=db_conf["port"],
+        api_key=db_conf["api_key"],
+        index=pm_conf["index"],
+        query={"match": {"jaws_run_id": int(run_id)}},
+    )
     metrics = []
     try:
-        for hit in response['hits']['hits']:
+        for hit in response["hits"]["hits"]:
             metrics.append(hit["_source"])
     except Exception as error:
         status = 404
         if "error" in response and "status" in response:
             status = response["status"]
-            error += json.dumps(response['error'], indent=2)
+            error += json.dumps(response["error"], indent=2)
         logger.error(error)
         abort(status, {"error": f"{error}"})
     return metrics
+
+
+def _run_info(run, is_admin=False, verbose=False):
+    """
+    Return dictionary of run info.
+    Run run cannot be changed by altering the returned dict.
+    :param verbose: True if more fields desired else fewer.
+    :type verbose: bool
+    :return: selected fields
+    :rtype: dict
+    """
+    info = {
+        "id": run.id,
+        "result": run.result,
+        "status": run.status,
+        "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
+        "compute_site_id": run.compute_site_id,
+        "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+        "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
+        "tag": run.tag,
+        "wdl_file": run.wdl_file,
+        "json_file": run.json_file,
+    }
+    if verbose or is_admin:
+        more_info = {
+            "cromwell_run_id": run.cromwell_run_id,
+            "input_site_id": run.input_site_id,
+            "upload_id": run.upload_id,
+            "submission_id": run.submission_id,
+            "download_id": run.download_id,
+            "user_id": run.user_id,
+        }
+        info.update(more_info)
+    return info
