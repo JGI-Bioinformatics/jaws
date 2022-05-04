@@ -308,7 +308,7 @@ backend
           String? docker
           String? docker_user
           Int? cpu = 1
-          Float? memory_mb = 10240
+          Float? memory_mb = 2048
           Float? disk_kb = 25600.0
           Int? runtime_minutes
           String? nativeSpecs
