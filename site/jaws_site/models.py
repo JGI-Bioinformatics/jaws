@@ -3,8 +3,31 @@ SQLAlchemy models for persistent data structures.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey
+from sqlalchemy import (
+    Column,
+    DateTime,
+    String,
+    Integer,
+    Boolean,
+    Text,
+    ForeignKey,
+)
 from jaws_site.database import Base
+
+
+def same_as(column_name: str):
+    """Function sets the default value of a column to the value in another column.
+
+    :param column_name: name of the column
+    :type column_name: str
+    :return: function which retrieves the value of the specified column
+    :rtype: function
+    """
+
+    def default_function(context):
+        return context.current_parameters.get(column_name)
+
+    return default_function
 
 
 class Run(Base):
@@ -17,15 +40,18 @@ class Run(Base):
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)
     submission_id = Column(String(36), nullable=False)
+    input_site_id = Column(String(8), nullable=False)
+    caching = Column(Boolean, nullable=False, default=True)
     cromwell_run_id = Column(String(36), nullable=True)
     status = Column(String(32), nullable=False)
+    result = Column(String(9), nullable=True)
     user_id = Column(String(32), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    upload_task_id = Column(String(36), nullable=False)
-    output_endpoint = Column(String(36), nullable=False)
-    output_dir = Column(String(256), nullable=False)
-    download_task_id = Column(String(36), nullable=True)
+    updated = Column(
+        DateTime,
+        default=same_as("submitted"),
+        onupdate=datetime.utcnow,
+    )
     email = Column(String(64), nullable=False)
 
 
@@ -59,6 +85,21 @@ class Job_Log(Base):
     status_to = Column(String(32), primary_key=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=False, default="")
+
+
+class Transfer(Base):
+    """
+    Table of transfer tasks (sets of files to transfer).
+    """
+
+    __tablename__ = "transfers"
+    id = Column(Integer, primary_key=True)
+    status = Column(String(32), default="queued")
+    submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    src_base_dir = Column(String(128), nullable=False)
+    dest_base_dir = Column(String(128), nullable=False)
+    manifest_json = Column(Text, nullable=False)
 
 
 def create_all(engine, session):

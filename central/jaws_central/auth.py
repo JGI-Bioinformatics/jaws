@@ -81,7 +81,7 @@ def _get_json_from_sso(hash_code):
 
 
 def _check_email_validity(email):
-    regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
     if re.fullmatch(regex, email):
         return True
     return False

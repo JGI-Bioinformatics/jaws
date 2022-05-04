@@ -1,7 +1,3 @@
-"""
-RPC functions for Central.
-"""
-
 import logging
 from jaws_rpc.responses import success, failure
 from jaws_site.tasks import TaskLog
@@ -9,6 +5,7 @@ from jaws_site import errors
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run, RunNotFound
+from jaws_site.transfers import Transfer
 
 
 # config and logging must be initialized before importing this module
@@ -41,7 +38,7 @@ def run_metadata(params, session):
     """
     logger.info(f"User {params['user_id']}: Metadata Run {params['run_id']}")
     try:
-        run = Run(session, **params)
+        run = Run.from_id(session, params["run_id"])
         result = run.metadata()
     except Exception as error:
         return failure(error)
@@ -57,9 +54,46 @@ def run_outputs(params, session):
     :rtype: dict
     """
     logger.info(f"User {params['user_id']}: Outputs Run {params['run_id']}")
+    relpath = False if "relpath" in params and params["relpath"] is False else True
     try:
-        run = Run(session, **params)
-        result = run.outputs()
+        run = Run.from_id(session, params["run_id"])
+        result = run.outputs(relpath)
+    except Exception as error:
+        return failure(error)
+    return success(result)
+
+
+def run_outfiles(params, session):
+    """Retrieve list of output files of a run.
+
+    :param cromwell_run_id: Cromwell run ID
+    :type params: dict
+    :return: The output files for a run
+    :rtype: dict
+    """
+    logger.info(f"User {params['user_id']}: Outfiles Run {params['run_id']}")
+    relpath = False if "relpath" in params and params["relpath"] is False else True
+    try:
+        run = Run.from_id(session, params["run_id"])
+        result = run.outfiles(complete=False, relpath=relpath)
+    except Exception as error:
+        return failure(error)
+    return success(result)
+
+
+def run_manifest(params, session):
+    """Retrieve list of output files of a Run.
+
+    :param run_id: JAWS Run ID
+    :type params: dict
+    :return: The workflow_root and list of output files
+    :rtype: list
+    """
+    logger.info(f"Output manifest for Run {params['run_id']}")
+    complete = True if "complete" in params and params["complete"] is True else False
+    try:
+        run = Run.from_id(session, params["run_id"])
+        result = run.output_manifest(complete)
     except Exception as error:
         return failure(error)
     return success(result)
@@ -75,7 +109,7 @@ def cancel_run(params, session):
     """
     logger.info(f"User {params['user_id']}: Cancel Run {params['run_id']}")
     try:
-        run = Run(session, **params)
+        run = Run.from_id(session, params["run_id"])
         run.cancel()
     except RunNotFound as error:
         return success(f"Cancelled with Cromwell warning: {error}")
@@ -107,11 +141,11 @@ def get_errors(params, session):
     return success(errors_report)
 
 
-def submit(params, session):
+def submit_run(params, session):
     """Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes."""
     logger.info(f"User {params['user_id']}: Submit Run {params['run_id']}")
     try:
-        run = Run(session, **params)
+        run = Run.from_params(session, params)
     except Exception as error:
         return failure(error)
     else:
@@ -135,7 +169,7 @@ def get_task_summary(params, session):
     logger.info(f"User {params['user_id']}: Task-summary Run {params['run_id']}")
     try:
         task_log = TaskLog(session, run_id=params["run_id"])
-        result = task_log.task_summary()
+        result = task_log.task_summary_table()
     except Exception as error:
         return failure(error)
     else:
@@ -149,26 +183,69 @@ def get_task_status(params, session):
     logger.info(f"User {params['user_id']}: Task-status Run {params['run_id']}")
     try:
         task_log = TaskLog(session, run_id=params["run_id"])
-        result = task_log.task_status()
+        result = task_log.task_status_table()
     except Exception as error:
         return failure(error)
     else:
         return success(result)
 
 
+def submit_transfer(params, session):
+    """
+    Direct the Site to transfer files.  The transfer is added to the queue and will be done later.
+    The status of the transfer may be queried using the &transfer_status function below.
+    """
+    logger.info(f"New transfer {params['transfer_id']}")
+    try:
+        transfer = Transfer.from_params(session, params)
+    except Exception as error:
+        logger.debug(f"Error submitting transfer {params['transfer_id']}: {error}")
+        return failure(error)
+    else:
+        result = {"status": transfer.status()}
+        return success(result)
+
+
+def transfer_status(params, session):
+    """
+    Check the status of a transfer.
+    """
+    try:
+        transfer = Transfer.from_id(session, params["transfer_id"])
+    except Exception as error:
+        return failure(error)
+    else:
+        result = {"status": transfer.status()}
+        return success(result)
+
+
+def cancel_transfer(params, session):
+    """
+    Check the status of a transfer.
+    """
+    logger.info(f"Cancel transfer {params['transfer_id']}")
+    try:
+        transfer = Transfer.from_id(session, params["transfer_id"])
+        transfer.cancel()
+    except Exception as error:
+        logger.debug(f"Error cancelling transfer {params['transfer_id']}: {error}")
+        return failure(error)
+    else:
+        result = {"status": transfer.status()}
+        return success(result)
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
-    "submit": {
-        "function": submit,
+    "submit_run": {
+        "function": submit_run,
         "required_params": [
             "user_id",
             "run_id",
             "email",
             "submission_id",
-            "upload_task_id",
-            "output_endpoint",
-            "output_dir",
+            "input_site_id",
         ],
     },
     "run_metadata": {
@@ -178,6 +255,14 @@ operations = {
     "run_outputs": {
         "function": run_outputs,
         "required_params": ["user_id", "cromwell_run_id"],
+    },
+    "run_outfiles": {
+        "function": run_outfiles,
+        "required_params": ["user_id", "cromwell_run_id"],
+    },
+    "run_manifest": {
+        "function": run_manifest,
+        "required_params": ["run_id"],
     },
     "cancel_run": {
         "function": cancel_run,
@@ -198,5 +283,22 @@ operations = {
     "get_errors": {
         "function": get_errors,
         "required_params": ["user_id", "cromwell_run_id"],
+    },
+    "submit_transfer": {
+        "function": submit_transfer,
+        "required_params": [
+            "transfer_id",
+            "src_base_dir",
+            "dest_base_dir",
+            "manifest",
+        ],
+    },
+    "transfer_status": {
+        "function": transfer_status,
+        "required_params": ["transfer_id"],
+    },
+    "cancel_transfer": {
+        "function": cancel_transfer,
+        "required_params": ["transfer_id"],
     },
 }

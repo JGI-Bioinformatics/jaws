@@ -204,6 +204,31 @@ cluster: `PNNL <https://www.emsl.pnnl.gov/MSC/UserGuide/compute_resources/cascad
 
 |
 
+Amazon Web Services (AWS)
+-------------------------------
+JAWS runs on AWS
+cluster: `Instance types <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html#AvailableInstanceTypes>`_
+
+JAWS-AWS does not use JTM so tasks are specified without regard for worker pools -- simply specify the memory and cpu requirements for each task (i.e. standard WDL resources stanza).  Any JTM-specific keywords (e.g. poolname) will be ignored.
+
+.. raw:: html
+
+  <details>
+  <summary><a>Example of requesting resources for AWS</a></summary>
+
+  <br>
+  <code>
+	<pre>
+    runtime {
+      memory: "118G"
+      cpu: 16
+    }
+  </pre>
+  </code>
+  </details>
+
+|
+
 .. _requesting-workers:
 
 ******************

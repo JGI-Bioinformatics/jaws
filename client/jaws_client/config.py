@@ -20,14 +20,14 @@ class Configuration:
     """Configuration class variables should be initialized at the start of the program."""
 
     defaults = {
-        "USER": {"token": "", "staging_dir": ""},
+        "USER": {"token": ""},
         "JAWS": {
             "name": "JAWS",
             "site_id": "",
             "url": "http://localhost:5000",
             "womtool_jar": "",
-            "staging_dir": "",
-            "data_repo_basedir": "",
+            "uploads_dir": "",
+            "downloads_dir": "",
             "shared_endpoint_group": "",
         },
         "GLOBUS": {"client_id": "", "endpoint_id": "", "basedir": "/"},
@@ -39,8 +39,8 @@ class Configuration:
             "site_id",
             "url",
             "womtool_jar",
-            "staging_dir",
-            "data_repo_basedir",
+            "uploads_dir",
+            "downloads_dir",
             "shared_endpoint_group",
         ],
         "GLOBUS": ["client_id", "endpoint_id", "basedir"],

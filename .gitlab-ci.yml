@@ -169,8 +169,8 @@ variables:
 
   AWS_CLIENT_INSTALL_BASEDIR: "/opt/jaws-install/jaws-client/"
   AWS_INSTALL_BASEDIR: "/opt/jaws-install"
-  AWS_GLOBUS_EP: "f441d224-35cd-11ec-95e9-853490a236f9"
-  AWS_GLOBUS_HOST_PATH: "/tmp"
+  AWS_GLOBUS_EP: ""
+  AWS_GLOBUS_HOST_PATH: ""
   AWS_PYTHON: "python3"
   AWS_LOAD_PYTHON: ""
   AWS_JAWS_GROUP: "ec2-user"

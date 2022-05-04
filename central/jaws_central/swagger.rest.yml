@@ -116,7 +116,7 @@ paths:
 
   /search:
     post:
-      operationId: jaws_central.analysis.search_runs
+      operationId: jaws_central.rest.search_runs
       tags:
         - search
         - runs
@@ -156,7 +156,7 @@ paths:
 
   /run:
     post:
-      operationId: jaws_central.analysis.submit_run
+      operationId: jaws_central.rest.submit_run
       consumes:
         - multipart/form-data
       tags:
@@ -164,13 +164,8 @@ paths:
       summary: Begin run run process
       description: Returns site information to send infiles.
       parameters:
-        - name: site_id
+        - name: compute_site_id
           description: computing site to use
-          type: string
-          in: formData
-          required: True
-        - name: submission_id
-          description: UUID used to name inputs
           type: string
           in: formData
           required: True
@@ -179,18 +174,23 @@ paths:
           type: string
           in: formData
           required: True
-        - name: input_endpoint
-          description: Globus endpoint ID where the input data is stored
+        - name: submission_id
+          description: UUID used to name input WDL and output dir
           type: string
           in: formData
           required: True
-        - name: output_endpoint
-          description: Globus endpoint ID where to send results
-          type: string
+        - name: caching
+          description: Whether or not to allow Cromwell call-caching
+          type: boolean
+          in: formData
+          required: False
+        - name: max_ram_gb
+          description: Maximum RAM required
+          type: integer
           in: formData
           required: True
-        - name: output_dir
-          description: Folder to write results
+        - name: manifest
+          description: List of input files
           type: string
           in: formData
           required: True
@@ -219,7 +219,7 @@ paths:
 
   /run/{run_id}:
     get:
-      operationId: jaws_central.analysis.run_status
+      operationId: jaws_central.rest.run_status
       tags:
         - run
       summary: Retrieve the status of a specified run
@@ -240,7 +240,7 @@ paths:
 
   /run/{run_id}/complete:
     get:
-      operationId: jaws_central.analysis.run_status_complete
+      operationId: jaws_central.rest.run_status_complete
       tags:
         - run
       summary: Retrieve the status of a specified run
@@ -261,7 +261,7 @@ paths:
 
   /run/{run_id}/task_status:
     get:
-      operationId: jaws_central.analysis.task_status
+      operationId: jaws_central.rest.task_status
       tags:
         - run
       summary: Retrieve a summary of a run's tasks
@@ -282,7 +282,7 @@ paths:
 
   /run/{run_id}/cancel:
     put:
-      operationId: jaws_central.analysis.cancel_run
+      operationId: jaws_central.rest.cancel_run
       tags:
         - run
       summary: Cancel a run
@@ -302,7 +302,7 @@ paths:
 
   /run/{run_id}/metadata:
     get:
-      operationId: jaws_central.analysis.run_metadata
+      operationId: jaws_central.rest.run_metadata
       tags:
         - run
       summary: Retrieve the metadata of a specified run
@@ -323,7 +323,7 @@ paths:
 
   /run/{run_id}/run_log:
     get:
-      operationId: jaws_central.analysis.run_log
+      operationId: jaws_central.rest.run_log
       tags:
         - run
       summary: Retrieve the run logs of a specified run
@@ -344,7 +344,7 @@ paths:
 
   /run/{run_id}/task_log:
     get:
-      operationId: jaws_central.analysis.task_log
+      operationId: jaws_central.rest.task_log
       tags:
         - run
       summary: Retrieve the task logs of a specified run
@@ -365,7 +365,7 @@ paths:
 
   /run/{run_id}/task_summary:
     get:
-      operationId: jaws_central.analysis.task_summary
+      operationId: jaws_central.rest.task_summary
       tags:
         - run
       summary: Retrieve the task summary of a specified run
@@ -386,7 +386,7 @@ paths:
 
   /run/{run_id}/errors:
     get:
-      operationId: jaws_central.analysis.get_errors
+      operationId: jaws_central.rest.get_errors
       tags:
         - run
       summary: Retrieve error messages for a run
@@ -407,7 +407,7 @@ paths:
 
   /run/{run_id}/performance_metrics:
     get:
-      operationId: jaws_central.analysis.get_performance_metrics
+      operationId: jaws_central.rest.get_performance_metrics
       tags:
         - run
       summary: Retrieve performance metrics for a run
@@ -430,7 +430,7 @@ paths:
 
   /run/{run_id}/outputs:
     get:
-      operationId: jaws_central.analysis.run_outputs
+      operationId: jaws_central.rest.run_outputs
       tags:
         - run
       summary: Retrieve the outputs of the specified Run.
@@ -449,9 +449,30 @@ paths:
         404:
           description: The specified record does not exist
 
+  /run/{run_id}/outfiles:
+    get:
+      operationId: jaws_central.rest.run_outfiles
+      tags:
+        - run
+      summary: Retrieve the output files of the specified Run.
+      description: Return document of all files tagged as outputs in the workflow.
+      parameters:
+        - name: run_id
+          in: path
+          description: run_id of the run to retrieve
+          type: integer
+          required: True
+      responses:
+        200:
+          description: OK
+        401:
+          description: Authorization information is missing or invalid.
+        404:
+          description: The specified record does not exist
+
   /run/cancel-all:
     put:
-      operationId: jaws_central.analysis.cancel_all
+      operationId: jaws_central.rest.cancel_all
       tags:
         - run
       summary: Cancel all
@@ -462,7 +483,7 @@ paths:
 
   /site:
     get:
-      operationId: jaws_central.analysis.list_sites
+      operationId: jaws_central.rest.list_sites
       tags:
         - site
       summary: Retrieve summary of all JAWS-Sites
@@ -475,7 +496,7 @@ paths:
 
   /site/{site_id}:
     get:
-      operationId: jaws_central.analysis.get_site
+      operationId: jaws_central.rest.get_site
       tags:
         - site
       summary: Retrieve JAWS-Site info

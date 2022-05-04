@@ -1,16 +1,49 @@
-import pytest
 import os
+import pathlib
 import requests
-import shutil
 import subprocess
-import json
+import uuid
 import click.testing
 from jaws_client import cli
 
 
-# flake8: noqa
+class MockRun:
+    def __init__(
+        self, wdl_file, json_file, input_basedir, output_basedir, zip_file=None
+    ):
+        assert os.path.isfile(wdl_file)
+        self.submission_id = str(uuid.uuid4())
+        self.wdl = MockWdlFile(wdl_file)
+        self.inputs = MockWorkflowInputs(json_file, wdl_file)
+        self.manifest = MockManifest(input_basedir)
+
+
+class MockWdlFile:
+    def __init__(self, path, data=None):
+        self.file_location = path
+        self.max_ram_gb = 0
+
+    def validate(self):
+        pass
+
+
+class MockWorkflowInputs:
+    def __init__(self, json_file, wdl_file, data=None):
+        self.inputs_location = json_file
+        self.inputs_json = {}
+
+
+class MockManifest:
+    def __init__(self, basedir):
+        self.basedir = basedir
+        self.files = []
+
+    def add(self, *files):
+        pass
+
+
 HISTORY = [
-        {
+    {
         "id": "33",
         "input_site_id": "CORI",
         "json_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.json",
@@ -21,9 +54,9 @@ HISTORY = [
         "submitted": "2021-01-01 11:00:00",
         "tag": "none",
         "updated": "2021-01-01 12:00:00",
-        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl"
-        },
-        {
+        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl",
+    },
+    {
         "id": "34",
         "input_site_id": "CORI",
         "json_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.json",
@@ -34,13 +67,13 @@ HISTORY = [
         "submitted": "2021-07-13 14:00:00",
         "tag": "none",
         "updated": "2021-07-13 14:51:55",
-        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl"
-        }
+        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl",
+    },
 ]
 
 
 QUEUE = [
-        {
+    {
         "id": "33",
         "input_site_id": "CORI",
         "json_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.json",
@@ -51,9 +84,9 @@ QUEUE = [
         "submitted": "2021-01-01 11:00:00",
         "tag": "none",
         "updated": "2021-01-01 12:00:00",
-        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl"
-        },
-        {
+        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl",
+    },
+    {
         "id": "34",
         "input_site_id": "CORI",
         "json_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.json",
@@ -64,10 +97,9 @@ QUEUE = [
         "submitted": "2021-07-13 14:00:00",
         "tag": "none",
         "updated": "2021-07-13 14:51:55",
-        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl"
-        }
+        "wdl_file": "/global/cscratch1/sd/jaws/jfroula/jaws-health-test/fq_count.wdl",
+    },
 ]
-
 
 WORKFLOW_METADATA = {
     "run_id": "36",
@@ -130,11 +162,11 @@ WORKFLOW_METADATA = {
     "status": "Running",
     "submission": "2020-04-03T20:32:49.265Z",
     "submittedFiles": {
-        "inputs": '{"bbtools.reads":"/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq","bbtools.ref":"/global/dna/shared/data/jfroula/JAWS/data/5min_ref.fasta"}',
+        "inputs": '{"bbtools.reads":"/global/dna/shared/data/jfroula/JAWS/data/5min_reads.fq","bbtools.ref":"/global/dna/shared/data/jfroula/JAWS/data/5min_ref.fasta"}',  # noqa
         "labels": '{"username": "mamelara"}',
         "options": "{\n\n}",
         "root": "",
-        "workflow": 'workflow bbtools { File reads\n    File ref\n\n    call alignment {\n       input: fastq=reads,\n              fasta=ref\n    }\n    call samtools {\n       input: sam=alignment.sam\n   }\n}\n\ntask alignment {\n    File fastq\n    File fasta\n\n    command <<<\n        shifterimg pull jfroula/bbtools:1.2.1 && \\\n        shifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=${fastq} ref=${fasta} out=test.sam\n    >>>\n    output {\n       File sam = "test.sam"\n    }\n}\n\ntask samtools {\n    File sam\n\n    command {\n       shifter --image=jfroula/bbtools:1.2.1 samtools view -b -F0x4 ${sam} | shifter --image=jfroula/bbtools:1.2.1 samtools sort - > test.sorted.bam\n    }\n    output {\n       File bam = "test.sorted.bam"\n    }\n\t#runtime {\n\t#  docker: "jfroula/bbtools:1.2.1"\n\t#}\n}\n',
+        "workflow": 'workflow bbtools { File reads\n    File ref\n\n    call alignment {\n       input: fastq=reads,\n              fasta=ref\n    }\n    call samtools {\n       input: sam=alignment.sam\n   }\n}\n\ntask alignment {\n    File fastq\n    File fasta\n\n    command <<<\n        shifterimg pull jfroula/bbtools:1.2.1 && \\\n        shifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=${fastq} ref=${fasta} out=test.sam\n    >>>\n    output {\n       File sam = "test.sam"\n    }\n}\n\ntask samtools {\n    File sam\n\n    command {\n       shifter --image=jfroula/bbtools:1.2.1 samtools view -b -F0x4 ${sam} | shifter --image=jfroula/bbtools:1.2.1 samtools sort - > test.sorted.bam\n    }\n    output {\n       File bam = "test.sorted.bam"\n    }\n\t#runtime {\n\t#  docker: "jfroula/bbtools:1.2.1"\n\t#}\n}\n',  # noqa
         "workflowUrl": "",
     },
     "workflowName": "bbtools",
@@ -212,23 +244,18 @@ TASK_LOG_JSON = [
 TASK_LOG_TEXT = (
     "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS_FROM\tSTATUS_TO\tTIMESTAMP\tCOMMENT\n"
     "runblastplus_sub.task1\t43\tready\tqueued\t2020-06-10 13:42:44\t\n",
-    "runblastplus_sub.task2\t44\tqueued\tpending\t2020-06-10 13:43:36\t\n"
+    "runblastplus_sub.task2\t44\tqueued\tpending\t2020-06-10 13:43:36\t\n",
 )
 
 SUBMISSION = {
-    "output_dir": "/global/homes/m/mamelara/out",
-    "output_endpoint": "9d6d994a-6d04-11e5-ba46-22000b92c6ec",
     "run_id": 35,
-    "site_id": "NERSC",
-    "status": "uploading",
-    "submission_id": "65f2f4df-2a6c-4881-a3b0-3141107ac668",
-    "upload_task_id": "1aba54ac-7695-11ea-9615-0afc9e7dd773",
+    "input_site_id": "CORI",
+    "compute_site_id": "CORI",
+    "status": "created",
 }
 
 
-TASK_STATUS_JSON = [
-    ["bbtools.alignment", 432, "Running", "2020-04-03 20:32:52", ""]
-]
+TASK_STATUS_JSON = [["bbtools.alignment", 432, "Running", "2020-04-03 20:32:52", ""]]
 
 TASK_STATUS_TEXT = (
     "#TASK_NAME\tCROMWELL_JOB_ID\tSTATUS\tTIMESTAMP\tCOMMENT\n"
@@ -263,10 +290,12 @@ def test_cli_queue(monkeypatch, configuration):
 
     # this checks that there is 8hrs difference when we are not in daylight savings (nov 8 - march 13)
     # utc: 2021-01-01 11:00:00
+
+
 #    assert('2021-01-01 03:00:00' in result.output)
 
-    # this checks that there is 7hrs difference when we are in daylight savings(march 14 - nov 7)
-    # utc: 2021-07-13 14:00:00
+# this checks that there is 7hrs difference when we are in daylight savings(march 14 - nov 7)
+# utc: 2021-07-13 14:00:00
 #    assert('2021-07-13 07:00:00' in result.output)
 
 
@@ -284,10 +313,12 @@ def test_cli_history(monkeypatch, configuration):
 
     # this checks that there is 8hrs difference when we are not in daylight savings (nov 8 - march 13)
     # utc: 2021-01-01 11:00:00
+
+
 #    assert('2021-01-01 03:00:00' in result.output)
 
-    # this checks that there is 7hrs difference when we are in daylight savings(march 14 - nov 7)
-    # utc: 2021-07-13 14:00:00
+# this checks that there is 7hrs difference when we are in daylight savings(march 14 - nov 7)
+# utc: 2021-07-13 14:00:00
 #    assert('2021-07-13 07:00:00' in result.output)
 
 
@@ -297,8 +328,13 @@ def test_cli_status(monkeypatch, configuration):
         Returns a list of attributes from a run ordered as the following:
         run id, submission date, submission id, upload id
         """
-        job_status = {"status": "Running",'submitted': '2021-07-06 22:40:04', 'tag': None, 'updated': '2021-07-06 22:42:55'}
-        if url.endswith('/complete'):
+        job_status = {
+            "status": "Running",
+            "submitted": "2021-07-06 22:40:04",
+            "tag": None,
+            "updated": "2021-07-06 22:42:55",
+        }
+        if url.endswith("/complete"):
             job_status["output_dir"] = "/foo/bar"
         return MockResponse(job_status, 200)
 
@@ -315,8 +351,6 @@ def test_cli_status(monkeypatch, configuration):
     assert "Running" in result.output
     assert "/foo/bar" not in result.output
 
-#    assert('2021-07-06 15:40:04' in result.output or '2021-07-06 14:40:04' in result.output)
-
 
 def test_cli_metadata(monkeypatch, configuration):
     def get_metadata(url, headers=None):
@@ -331,51 +365,34 @@ def test_cli_metadata(monkeypatch, configuration):
         return MockResponse(WORKFLOW_METADATA, 201)
 
 
-@pytest.mark.skipif(
-    shutil.which("womtool") is None, reason="WOMTool needs to be installed."
-)
 def test_cli_submit(configuration, monkeypatch, sample_workflow):
     root = sample_workflow
 
-    wdl = os.path.join(root, "workflow", "sample.wdl")
-    inputs = os.path.join(root, "workflow", "sample.json")
+    wdl_file = os.path.join(root, "workflow", "sample.wdl")
+    inputs_file = os.path.join(root, "workflow", "sample.json")
 
-    def mock_get(url, headers=None):
-        if "user" in url:
-            result = {"email": "joe@lbl.gov", "uid": "jdoe", "name": "John Doe"}
-        else:
-            result = {
-                "site_id": "CORI",
-                "globus_endpoint": "abcdeqerawr13423sdasd",
-                "globus_host_path": "/",
-                "uploads_dir": "/global/cscratch1/sd/jaws_jtm/jaws-dev/uploads",
-                "max_ram_gb": 1024,
-            }
-        return MockResponse(result, 200)
+    def post_submit(url, data={}, files={}, headers=None):
+        return MockResponse(SUBMISSION, 201)
+    monkeypatch.setattr(requests, "post", post_submit)
 
-    def mock_post(url, data=None, files=None, headers={}):
-        return MockResponse(
-            {"run_id": "36", "site_id": "CORI", "tag": None, "output_dir": "/a/b/c"},
-            201,
-        )
+    from jaws_client import workflow
 
-    monkeypatch.setattr(requests, "get", mock_get)
-    monkeypatch.setattr(requests, "post", mock_post)
+    monkeypatch.setattr(workflow, "Run", MockRun)
+    monkeypatch.setattr(workflow, "WdlFile", MockWdlFile)
+    monkeypatch.setattr(workflow, "WorkflowInputs", MockWorkflowInputs)
+    monkeypatch.setattr(workflow, "Manifest", MockManifest)
 
     runner = click.testing.CliRunner()
-    result = runner.invoke(cli.main, ["submit", wdl, inputs, "CORI"])
+    result = runner.invoke(cli.main, ["submit", wdl_file, inputs_file, "CORI"])
     assert result.exit_code == 0
 
 
 def test_get(configuration, monkeypatch):
     def mock__run_status(run_id, verbose):
         if run_id == "1":
-            return {
-                "status": "download complete",
-                "output_dir": "/data/repo/dir/mockuser/run1",
-            }
+            return {"status": "download complete", "submission_id": "AAAA"}
         else:
-            return {"status": "submitted", "output_dir": "/data/repo/dir/mockuser/run1"}
+            return {"status": "submitted", "submission_id": "AAAA"}
 
     def mock_run(args, **kwargs):
         if args[0] == "rsync" and args[1] == "-a" and len(args) == 4:
@@ -396,18 +413,16 @@ def test_get(configuration, monkeypatch):
     def mock_get_complete(run_id, src, dest):
         pass
 
-    def mock_makedirs(path, **kwargs):
+    def mock_mkdir(path, **kwargs):
         pass
-    
+
     monkeypatch.setattr(subprocess, "run", mock_run)
     monkeypatch.setattr(cli, "_run_status", mock__run_status)
     monkeypatch.setattr(cli, "_get_outputs", mock_get_outputs)
     monkeypatch.setattr(cli, "_get_complete", mock_get_complete)
-    monkeypatch.setattr(os, "makedirs", mock_makedirs)
+    monkeypatch.setattr(pathlib.Path, "mkdir", mock_mkdir)
 
-    from jaws_client import workflow
-
-    monkeypatch.setattr(workflow, "rsync", mock_rsync)
+    monkeypatch.setattr(cli, "rsync", mock_rsync)
 
     runner = click.testing.CliRunner()
 
@@ -449,7 +464,7 @@ def test_cancel_ERR(monkeypatch, configuration):
     result = runner.invoke(cli.main, ["cancel", "35"])
     assert result.exit_code == 1
 
+
 def test_utc_to_local(monkeypatch):
-    from pytz import timezone
-    local_time = cli._utc_to_local('2021-07-06 22:42:55')
-    assert '2021-07-06 15:42:55' in local_time
+    local_time = cli._utc_to_local("2021-07-06 22:42:55")
+    assert "2021-07-06 15:42:55" in local_time

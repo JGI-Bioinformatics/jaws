@@ -107,8 +107,7 @@ class WDLStanzas:
             else:
                 sys.exit(
                     'Error in the runtime section of task %s. "memory" should have '
-                    'a "G" to specify gigabytes. You had %s'
-                    % (task, value)
+                    'a "G" to specify gigabytes. You had %s' % (task, value)
                 )
 
             if value < 1:
@@ -226,7 +225,7 @@ class WDLStanzas:
                     # make stanza_list into a dictionary (so we'll have a dictionary of a dictionary)
                     mydict = {}
                     for param_key in stanza_list:
-                        if param_key.startswith('#'):
+                        if param_key.startswith("#"):
                             continue
 
                         next_stanza = re.search(r"(?:{|<<<)", param_key)
@@ -272,7 +271,10 @@ def spellCheck(task_name, task_dict):
     ]
     for key in task_dict.keys():
         if key not in accepted_param_names:
-            warnings.warn('%s is not a known runtime parameter and will be ignored.' % key, SyntaxWarning)
+            warnings.warn(
+                "%s is not a known runtime parameter and will be ignored." % key,
+                SyntaxWarning,
+            )
 
 
 def allRequiredParams(task_name, task_dict):
@@ -327,7 +329,7 @@ def timeParam(task_name, task_dict):
 
     hours = int(task_dict["time"].split(":")[0])
     mins = int(task_dict["time"].split(":")[1])
-    if (mins > 0):
+    if mins > 0:
         hours += 1
 
     if "constraint" in task_dict:
@@ -364,25 +366,25 @@ def timeParam(task_name, task_dict):
             )
 
 
-def memoryParam(task_name, task_dict, compute_max_ram_gb):
+def memoryParam(task_name, task_dict, compute_max_ram_gb=None):
     """Check that the user hasn't requested too much memory for the specified resource."""
 
     if "memory" not in task_dict:
         raise WdlRuntimeMemoryError(
-            'Task: %s memoryParam. %s is a required parameter for runtime. The "memoryParam" test has been skipped.'  # noqa: E501,E261
+            "Task: %s memoryParam. %s is a required parameter for runtime."
             % (task_name, "memory")
         )
         return
     elif task_dict["memory"] is None:
-        # memory is a variable name; nothing to do
+        # memory is a variable name (i.e. memory shall be calculated); nothing to do
         return
 
     # memory is a string that include a "G" for gigabytes, so grab just the int
     mem = int(re.sub("[gG]", "", task_dict["memory"]))
 
-    if mem > compute_max_ram_gb:
+    if compute_max_ram_gb and mem > compute_max_ram_gb:
         raise WdlRuntimeMemoryError(
-            f"Task: {task_name} memoryParam. You are limited to {compute_max_ram_gb} for the requested site, you had {mem}" # noqa
+            f"Task: {task_name} memoryParam. You are limited to {compute_max_ram_gb} for the requested site, you had {mem}"  # noqa
         )
 
 
@@ -423,7 +425,7 @@ def runtimeCombinations(task_name, task_dict):
     # the skylake combinations have been checked in the memoryParam function.
 
 
-def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float) -> None:
+def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float = None) -> None:
     # Run the validations
     #
     # A dictionary of all the runtime stanzas is created here.
@@ -446,7 +448,7 @@ def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float) -> None:
         # Also check that constraint is not set to some non-recognized value.
         timeParam(task_name, task_dict)
 
-        # check the user hasn't requested too much memory for the specified resource
+        # verify memory has been defined
         memoryParam(task_name, task_dict, compute_max_ram_gb)
 
         # Some runtime params require other params to be set. Check that the combinations
