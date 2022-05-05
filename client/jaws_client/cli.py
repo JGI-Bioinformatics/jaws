@@ -11,7 +11,6 @@ import json
 import subprocess
 from typing import Dict
 from jaws_client import log as logging
-from jaws_client import deprecated
 from jaws_client.config import Configuration
 from jaws_client.copy_progress import copy_with_progress_bar
 
@@ -715,5 +714,4 @@ def add_user(uid: str, email: str, name: str, admin: bool) -> None:
 
 def jaws():
     """Entrypoint for jaws-client app."""
-    main.add_command(deprecated.run)
     main()
