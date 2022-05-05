@@ -55,8 +55,8 @@ port = 5672
 vhost = jaws
 queue = site_rpc_es
 [PERFORMANCE_METRICS]
-done_dir =
-processed_dir =
+done_dir = /tmp/done_dir
+processed_dir = /tmp/processed_dir
 [GLOBUS]
 client_id = AAAA
 client_secret = BBBB
