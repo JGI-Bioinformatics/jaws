@@ -5,12 +5,13 @@ import numpy as np
 import logging
 from typing import Callable
 from pathlib import Path
-from jaws_site import config, runs, rpc_es, runs_es
+from jaws_site import config, runs
+from jaws_rpc import rpc_client_basic
 
 logger = logging.getLogger(__package__)
 
 
-class Metrics:
+class PerformanceMetrics:
     def __init__(self, session: Callable, rpc_client: rpc_es.RPCRequest) -> None:
         self.session = session
         self.rpc_client = rpc_client
