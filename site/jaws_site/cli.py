@@ -111,17 +111,17 @@ def transfer_daemon() -> None:
 
 
 @cli.command()
-def report_daemon() -> None:
-    """Start transfer daemon."""
+def perf_metrics_daemon() -> None:
+    """Start performance metrics daemon"""
 
     import daemon
     import lockfile
-    from jaws_site.report_daemon import ReportDaemon
+    from jaws_site.perf_metrics_daemon import PerformanceMetricsDaemon
 
-    pidfile = os.path.join(config.conf.get("SITE", "pidfile_dir"), "reportd.pid")
+    pidfile = os.path.join(config.conf.get("SITE", "pidfile_dir"), "perf_metricsd.pid")
     with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
-        report_daemon = ReportDaemon()
-        report_daemon.start_daemon()
+        perf_metrics_daemon = PerformanceMetricsDaemon()
+        perf_metrics_daemon.start_daemon()
 
 
 def jaws():

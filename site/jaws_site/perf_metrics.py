@@ -12,7 +12,7 @@ logger = logging.getLogger(__package__)
 
 
 class PerformanceMetrics:
-    def __init__(self, session: Callable, rpc_client: rpc_es.RPCRequest) -> None:
+    def __init__(self, session: Callable, rpc_client: rpc_client_basic) -> None:
         self.session = session
         self.rpc_client = rpc_client
 
@@ -60,7 +60,7 @@ class PerformanceMetrics:
                 logger.info(
                     f"Run {run_id}: Publish performance metrics for cromwell_id={cromwell_id}"
                 )
-                response, status = runs_es.send_rpc_run_metadata(self.rpc_client, doc)
+                response, status = self.rpc_client.send_request(doc)
 
             # Move csv file to processed folder
             processed_file = proc_dir_obj / done_file.name

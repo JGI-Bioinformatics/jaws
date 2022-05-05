@@ -1,13 +1,12 @@
 import schedule
 import time
 import logging
-from jaws_site import config, database, reports
-from jaws_site import reports
+from jaws_site import config, database, perf_metrics
 
 logger = logging.getLogger(__package__)
 
 
-class ReportDaemon:
+class PerformanceMetricsDaemon:
     """
     The Report Daemon periodically checks for newly completed Runs, generates the
     final Run report, and publishes to the elasticsearch service.
@@ -36,6 +35,6 @@ class ReportDaemon:
         Check for newly completed Runs.
         """
         session = database.Session()
-        perf_metrics = reports.PerformanceMetrics(session, self.rpc_client)
+        perf_metrics = perf_metrics.PerformanceMetrics(session, self.rpc_client)
         perf_metrics.process_metrics()
         session.close()
