@@ -175,12 +175,9 @@ class Run:
 
     def report(self) -> dict:
         """Produce full report of Run and Task info"""
-        report = {
-            "run_id": self.data.id,
-            "workflow_name": self.metadata().workflow_name(),
-            "run_summary": self.summary(),
-            "tasks": self.task_log().task_status(),
-        }
+        report = self.summary()
+        report["run_id"] = self.data.id
+        report["tasks"] = self.task_log().task_status()
         return report
 
     def check_status(self) -> None:
