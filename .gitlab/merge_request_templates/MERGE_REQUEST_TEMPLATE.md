@@ -17,5 +17,6 @@ strikethrough things that don't make sense for your PR
 - [ ] My code follows the contribution guidelines as defined in CONTRIBUTING.md
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to the documentation
+- [ ] I have updated the CHANGELOG
 - [ ] I have added tests or modified existing tests that prove my fix is effective or that my feature works
 - [ ] Unit tests pass
