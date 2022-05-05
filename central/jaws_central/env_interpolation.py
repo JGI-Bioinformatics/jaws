@@ -23,7 +23,7 @@ class EnvInterpolation(configparser.BasicInterpolation):
             # to be passed as a dictionary to the get() vars argument, which overrides any settings.
         else:
             self._vars = None
-        super._init(self, **kwargs)
+        configparser.BasicInterpolation.__init__(self, **kwargs)
 
     def before_get(self, parser, section, option, value, defaults):
         value = super().before_get(parser, section, option, value, defaults)
