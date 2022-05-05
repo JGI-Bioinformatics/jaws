@@ -3,7 +3,7 @@ import numpy as np
 import logging
 from typing import Callable
 from pathlib import Path
-from jaws_site import config, runs, rpc_es, runs_es
+from jaws_site import config, runs, rpc_es, runs_es, tasks
 import re
 from functools import lru_cache
 
@@ -19,6 +19,7 @@ class Metrics:
         self.session = session
         self.rpc_client = rpc_client
         self.runs = runs.Run(session)
+        self.tasks = {}
 
     @lru_cache()
     def get_run_id(self, cromwell_id):
@@ -31,50 +32,13 @@ class Metrics:
             return "None"
         return run_id
 
-    # TODO: Made this a class method to have tests work, tests should probably be moved
-    @classmethod
-    @lru_cache()
-    def extract_jaws_info(self, working_dir):
-        """
-        Extract Cromwell run id from a Cromwell working directory
-        returns "naw" if there is no cromwell id found
-
-        :param task: command string
-        :return: Cromwell run id in UUID format
-        """
-        cromwell_id = "naw"
-        try:
-            regex = re.compile(r"cromwell-executions\/[^\/]+\/([^\/]+)", re.I)
-            match = regex.search(working_dir)
-            if match:
-                cromwell_id = match.group(1)
-        except Exception as e:
-            logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
-
-        return cromwell_id
-
-    @lru_cache()
-    def remove_begining_path(self, working_dir):
-        # Get the index of the string "cromwell-executions"
-        dir_name = "None"
-        try:
-            id_ce_dir = working_dir.find("cromwell-executions")
-            # -1 means "cromwell-executions" was not found
-            if id_ce_dir != -1:
-                # Extract from "cromwell-executions" to the end of the string
-                dir_name = working_dir[id_ce_dir:]
-        except Exception as e:
-            logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
-
-        return dir_name
-
     def process_csv(self, csv_file):
         csv_data = pd.read_csv(csv_file, parse_dates=[0], index_col=[0])
 
         # Remove extranious parts from the current directory
-        csv_data["current_dir"] = csv_data.current_dir.apply(self.remove_begining_path)
+        csv_data["current_dir"] = csv_data.current_dir.apply(remove_beginning_path)
         # Get data and make new columns in dataframe
-        csv_data["cromwell_id"] = csv_data.current_dir.apply(self.extract_jaws_info)
+        csv_data["cromwell_id"] = csv_data.current_dir.apply(extract_jaws_info)
 
         # Drops any non-workflow related processes
         csv_data = csv_data[csv_data.cromwell_id != "naw"]
@@ -99,6 +63,13 @@ class Metrics:
 
         return csv_data.to_dict("records")
 
+    @lru_cache()
+    def add_taskname_mapping(self, cromwell_id):
+        self.tasks[cromwell_id] = tasks.TaskLog(self.session,
+                                                cromwell_run_id=cromwell_id
+                                               ).get_task_cromwell_dir_mapping()
+
+
     def process_metrics(self):
         done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
         proc_dir = config.conf.get("PERFORMANCE_METRICS", "processed_dir")
@@ -119,6 +90,7 @@ class Metrics:
             for doc in docs:
                 cromwell_id = doc.get("cromwell_id")
                 run_id = doc.get("jaws_run_id")
+
                 # Just really a final check at this point since it should already be in the document
                 if not run_id or not cromwell_id:
                     logger.error(
@@ -130,8 +102,95 @@ class Metrics:
                     f"Run {run_id}: Publish performance metrics for cromwell_id={cromwell_id}"
                 )
 
-                response, status = runs_es.send_rpc_run_metadata(self.rpc_client, doc)
+                # Add cromwell dir to task name mapping if not already exists
+                self.add_taskname_mapping(cromwell_id)
+
+                # Add task name to doc
+                cromwell_dir = doc["current_dir"]
+                if cromwell_id in self.tasks and cromwell_dir in self.tasks[cromwell_id]:
+                    task_name = self.tasks[cromwell_id][cromwell_dir]
+                else:
+                    task_name = ""
+                doc["task_name"] = task_name
+
+                runs_es.send_rpc_run_metadata(self.rpc_client, doc)
 
             # Move csv file to processed folder
             processed_file = proc_dir_obj / done_file.name
             Path(f"{done_file}").rename(f"{processed_file}")
+
+        # Clear cached cromwell dir to taskname mapping
+        self.tasks = {}
+
+
+@lru_cache()
+def extract_jaws_info(working_dir):
+    """
+    Extract Cromwell run id from a Cromwell working directory
+    returns "naw" if there is no cromwell id found
+
+    :param task: command string
+    :return: Cromwell run id in UUID format
+    """
+    cromwell_id = "naw"
+    try:
+        regex = re.compile(r"cromwell-executions\/[^\/]+\/([^\/]+)", re.I)
+        match = regex.search(working_dir)
+        if match:
+            cromwell_id = match.group(1)
+    except Exception as e:
+        logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+
+    return cromwell_id
+
+
+@lru_cache()
+def remove_beginning_path(working_dir):
+    # Get the index of the string "cromwell-executions"
+    dir_name = "None"
+    try:
+        id_ce_dir = working_dir.find("cromwell-executions")
+        # -1 means "cromwell-executions" was not found
+        if id_ce_dir != -1:
+            # Extract from "cromwell-executions" to the end of the string
+            dir_name = working_dir[id_ce_dir:]
+    except Exception as e:
+        logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+
+    return dir_name
+
+
+def send_rpc_run_metadata(rpc_client: rpc_es.RPCRequest, payload: dict) -> Tuple[dict, int]:
+    """Sends request to RabbitMQ/RPC and wait for response. If response fails, return non-zero status_code.
+
+    :param rpc_client: rpc object connected to a RMQ queue for publishing message.
+    :type rpc_client: rpc_es.RPCRequest object.
+    :param payload: json document to publish to RMQ queue.
+    :type payload: dict
+    :return jsondata: response from RMQ request.
+    :rtype jsondata: dictionary
+    :return status_code: zero if successful, non-zero if connection fails or return json contains error msg.
+    :rtype status_code: int
+    """
+
+    try:
+        jsondata = rpc_client.request(payload)
+    except InvalidJsonResponse as err:
+        msg = f"RPC request returned an invalid response: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
+    except ConfigurationError as err:
+        msg = f"RPC request returned an invalid configuration error: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
+    except ConnectionError as err:
+        msg = f"RPC request returned an invalid connection error: {err}"
+        logger.debug(msg)
+        jsondata = responses.failure(err)
+
+    status_code = 0
+
+    if jsondata and 'error' in jsondata:
+        status_code = jsondata['error'].get('code', 500)
+
+    return jsondata, status_code
