@@ -115,8 +115,22 @@ prompt=supervisor-jaws-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
-[program:jaws-site-daemon]
-command=$SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME
+[program:jaws-site-run-daemon]
+command=$SHIM_DIR/jaws-site-run-daemon-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=10
+autorestart=unexpected
+
+[program:jaws-site-transfer-daemon]
+command=$SHIM_DIR/jaws-site-transfer-daemon-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=10
+autorestart=unexpected
+
+[program:jaws-site-perf-metrics-daemon]
+command=$SHIM_DIR/jaws-site-perf-metrics-daemon-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=10
@@ -137,7 +151,7 @@ startretries=10
 autorestart=unexpected
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-site-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
+programs=jaws-site-run-daemon,jaws-site-transfer-daemon,jaws-site-perf-metrics-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
 priority=999
 EOM
 

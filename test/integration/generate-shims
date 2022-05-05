@@ -109,6 +109,18 @@ source $SITE_VENV_DIR/bin/activate
 exec jaws-site --log $LOGS_DIR/site-run-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL run-daemon
 EOM
 
+# performance-metrics-daemon script
+cat <<EOM > $SHIM_DIR/jaws-site-perf-metrics-daemon-$DEPLOYMENT_NAME
+#!/bin/bash -l
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $SITE_VENV_DIR/bin/activate
+exec jaws-site --log $LOGS_DIR/site-perf-metrics-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL perf-metrics-daemon
+EOM
+
 ## rpc shim script
 cat <<EOM > "$SHIM_DIR/jaws-site-rpc-$DEPLOYMENT_NAME"
 #!/bin/bash -l

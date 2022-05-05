@@ -175,12 +175,9 @@ class Run:
 
     def report(self) -> dict:
         """Produce full report of Run and Task info"""
-        report = {
-            "run_id": self.data.id,
-            "workflow_name": self.metadata().workflow_name(),
-            "run_summary": self.summary(),
-            "tasks": self.task_log().task_status(),
-        }
+        report = self.summary()
+        report["run_id"] = self.data.id
+        report["tasks"] = self.task_log().task_status()
         return report
 
     def check_status(self) -> None:
@@ -513,15 +510,17 @@ class Run:
         """
         Send report document to reports service via RPC.
         """
-        report = self.report()
-        try:
-            response = self.reports_rpc_client.request("save_run_report", report)
-        except Exception as error:
-            logger.exception(f"RPC save_run_report error: {error}")
-            return
-        if "error" in response:
-            logger.warn(f"RPC save_run_report failed: {response['error']['message']}")
-            return
+        # "test" is a special user account for automatic periodic system tests -- skip
+        if self.data.user_id != "test":
+            report = self.report()
+            try:
+                response = self.reports_rpc_client.request("save_run_report", report)
+            except Exception as error:
+                logger.exception(f"RPC save_run_report error: {error}")
+                return
+            if "error" in response:
+                logger.warn(f"RPC save_run_report failed: {response['error']['message']}")
+                return
         self.update_run_status("finished")
 
 
