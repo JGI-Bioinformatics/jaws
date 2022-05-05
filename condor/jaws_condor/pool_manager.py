@@ -272,8 +272,8 @@ def need_new_nodes(condor_job_queue: Dict, slurm_workers: Dict, machine: Dict) -
     _mem = (
         condor_job_queue[f"{machine}_mem_needed"] / worker_sizes[f"{machine}_mem"]
     )
-    _cpu = math.ceil(_cpu)
-    _mem = math.ceil(_mem)
+    _cpu = math.floor(_cpu)
+    _mem = math.floor(_mem)
 
     workers_needed += max(_cpu, _mem)
 
@@ -290,7 +290,6 @@ def need_new_nodes(condor_job_queue: Dict, slurm_workers: Dict, machine: Dict) -
 
     # If workers_needed is higher than the pool we'll add the diference
     # Else we don't need workers (add 0)
-    print(workers_needed, current_pool_size, workers_needed - current_pool_size)
     workers_needed = max(0, workers_needed - current_pool_size)
 
     # If we have less running than the minimum we always need to add more
