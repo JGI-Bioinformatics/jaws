@@ -8,7 +8,7 @@
         b.1 ) If no nodes can run task, add to "needed_node_{regular,highmem}" state
         b.2 ) If nodes are availible, add to "waiting_on_slurm_job" state
 2. Collect current SLURM workers, pending/running
-3. See what is needed and submit sbatch command 
+3. See what is needed and submit sbatch command
 
 """
 from typing import Dict
@@ -17,7 +17,7 @@ import pandas as pd
 import time
 from pathlib import Path
 import argparse
-
+import math
 
 try:
     from SuperfacilityAPI import SuperfacilityAPI, SuperfacilityAccessToken
@@ -94,10 +94,10 @@ def get_condor_job_queue() -> pd.DataFrame:
 
     # Create a dataframe from the split outputs
     df = pd.DataFrame(queued_jobs, columns=columns)
-    # Change the type 
+    # Change the type
     df["RequestMemory"] = df["RequestMemory"].astype(int)
     df["JobStatus"] = df["JobStatus"].astype(int)
-    df["RequestMemory"] = df["RequestMemory"].astype(float)
+    df["RequestMemory"] = df["RequestMemory"].astype(float) / 1024
     df["RequestCpus"] = df["RequestCpus"].astype(float)
     df["total_q_time"] = int(time.time()) - df["QDate"].astype(int)
 
@@ -138,8 +138,10 @@ def determine_condor_job_sizes(df: pd.DataFrame):
 
     # If it sits in the regular bin for cpu and memorry
     mask_idle_regular = mask_regular & mask_idle_status
+    mask_running_regular = mask_regular & mask_running_status
     # If either the memory or cpu need a larger node
     mask_idle_large = mask_large & mask_idle_status
+    mask_running_large = mask_large & mask_running_status
 
     condor_q_status["idle_regular"] = sum(mask_regular & mask_idle_status)
     condor_q_status["running_regular"] = sum(mask_regular & mask_running_status)
@@ -149,11 +151,11 @@ def determine_condor_job_sizes(df: pd.DataFrame):
     )
     condor_q_status["impossible"] = sum(mask_over)
 
-    condor_q_status["regular_cpu_needed"] = sum(df[mask_idle_regular].RequestCpus)
-    condor_q_status["regular_mem_needed"] = sum(df[mask_idle_regular].RequestMemory)
+    condor_q_status["regular_cpu_needed"] = sum(df[mask_idle_regular].RequestCpus) + sum(df[mask_running_regular].RequestCpus)
+    condor_q_status["regular_mem_needed"] = sum(df[mask_idle_regular].RequestMemory) + sum(df[mask_running_regular].RequestMemory)
 
-    condor_q_status["large_cpu_needed"] = sum(df[mask_idle_large].RequestCpus)
-    condor_q_status["large_mem_needed"] = sum(df[mask_idle_large].RequestMemory)
+    condor_q_status["large_cpu_needed"] = sum(df[mask_idle_large].RequestCpus) + sum(df[mask_running_large].RequestCpus)
+    condor_q_status["large_mem_needed"] = sum(df[mask_idle_large].RequestMemory) + sum(df[mask_running_large].RequestMemory)
 
     return condor_q_status
 
@@ -265,11 +267,13 @@ def need_new_nodes(condor_job_queue: Dict, slurm_workers: Dict, machine: Dict) -
 
     # Determines how many full (or partially full nodes) we need to create
     _cpu = (
-        condor_job_queue[f"{machine}_cpu_needed"] // worker_sizes[f"{machine}_cpu"]
+        condor_job_queue[f"{machine}_cpu_needed"] / worker_sizes[f"{machine}_cpu"]
     )
     _mem = (
-        condor_job_queue[f"{machine}_mem_needed"] // worker_sizes[f"{machine}_mem"]
+        condor_job_queue[f"{machine}_mem_needed"] / worker_sizes[f"{machine}_mem"]
     )
+    _cpu = math.ceil(_cpu)
+    _mem = math.ceil(_mem)
 
     workers_needed += max(_cpu, _mem)
 
@@ -286,6 +290,7 @@ def need_new_nodes(condor_job_queue: Dict, slurm_workers: Dict, machine: Dict) -
 
     # If workers_needed is higher than the pool we'll add the diference
     # Else we don't need workers (add 0)
+    print(workers_needed, current_pool_size, workers_needed - current_pool_size)
     workers_needed = max(0, workers_needed - current_pool_size)
 
     # If we have less running than the minimum we always need to add more
