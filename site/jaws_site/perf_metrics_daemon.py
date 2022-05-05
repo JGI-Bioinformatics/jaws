@@ -1,6 +1,7 @@
 import schedule
 import time
 import logging
+import jaws_rpc
 from jaws_site import config, database, perf_metrics
 
 logger = logging.getLogger(__package__)
@@ -15,7 +16,7 @@ class PerformanceMetricsDaemon:
     def __init__(self):
         logger.info("Initializing report daemon")
         rpc_config = config.conf.get_section("RUNS_ES_RPC_CLIENT")
-        self.rpc_client = reports.RPCRequest(rpc_config, logger)
+        self.rpc_client = jaws_rpc.rpc_client_basic(rpc_config, logger)
 
         # Set message expiration to 60 secs
         self.runs_es_rpc_client.message_ttl = 3600
@@ -35,6 +36,6 @@ class PerformanceMetricsDaemon:
         Check for newly completed Runs.
         """
         session = database.Session()
-        perf_metrics = perf_metrics.PerformanceMetrics(session, self.rpc_client)
-        perf_metrics.process_metrics()
+        performance_metrics = perf_metrics.PerformanceMetrics(session, self.rpc_client)
+        performance_metrics.process_metrics()
         session.close()
