@@ -32,7 +32,8 @@ except Exception as e:
 
 ###################### TODO : These should all be created from a configuration file at some point ######################
 accnt_name = "jaws_jtm"
-wanted_columns = "ClusterId RequestMemory RequestCpus JobStatus NumRestarts QDate"
+wanted_columns = "ClusterId RequestMemory RequestCpus JobStatus NumRestarts LoadAvg QDate"
+wanted_columns = "ClusterId RequestMemory RequestCpus CumulativeRemoteSysCpu CumulativeRemoteUserCpu JobStatus NumRestarts RemoteHost JobStartDate QDate"
 condor_q_cmd = f"condor_q -af {wanted_columns}"
 
 MIN_POOL = 3
@@ -99,7 +100,14 @@ def get_condor_job_queue() -> pd.DataFrame:
     df["JobStatus"] = df["JobStatus"].astype(int)
     df["RequestMemory"] = df["RequestMemory"].astype(float) / 1024
     df["RequestCpus"] = df["RequestCpus"].astype(float)
-    df["total_q_time"] = int(time.time()) - df["QDate"].astype(int)
+    df["CumulativeRemoteSysCpu"] = df["CumulativeRemoteSysCpu"].astype(float)
+    df["CumulativeRemoteUserCpu"] = df["CumulativeRemoteUserCpu"].astype(float)
+
+    now = int(time.time())
+    df["total_running_time"] = now - df["JobStartDate"].astype(int)
+    df["cpu_percentage"] = (((df['CumulativeRemoteSysCpu'] + df['CumulativeRemoteUserCpu']) / df['RequestCpus']) / df['total_running_time']) * 100
+    df["JobStartDate"] = df["JobStartDate"].str.replace('undefined',f'{now}')
+    df["total_q_time"] = df["JobStartDate"].astype(int) - df["QDate"].astype(int)
 
     return df
 
