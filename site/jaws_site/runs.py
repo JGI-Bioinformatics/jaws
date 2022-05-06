@@ -130,7 +130,6 @@ class Run:
             err_msg = f"Unable to select cromwell, {cromwell_run_id}: {error}"
             logger.error(err_msg)
             raise RunDbError(err_msg)
-<<<<<<< HEAD
         else:
             return cls(
                 session,
@@ -139,11 +138,6 @@ class Run:
                 reports_rpc_client=reports_rpc_client,
             )
 
-=======
-        return run.id if run else None
-
-    @property
->>>>>>> e3ca89e3... flake8 fix
     def status(self) -> str:
         """Return the current state of the run."""
         return self.data.status
