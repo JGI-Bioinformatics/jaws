@@ -136,6 +136,7 @@ class PerformanceMetrics:
                     task_name = ""
                 doc["task_name"] = task_name
 
+                # Submit doc to RMQ to be picked up by logstash and inserted into elasticsearch
                 self.rpc_client.request(doc)
 
             # Move csv file to processed folder
