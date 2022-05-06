@@ -717,6 +717,9 @@ def mock_db_session():
         def all(self):
             return self
 
+        def one(self):
+            return self
+
     class MockSessionQuery:
         result = MockQueryResult()
 

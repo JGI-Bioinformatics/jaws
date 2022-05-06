@@ -130,7 +130,6 @@ class Run:
             err_msg = f"Unable to select cromwell, {cromwell_run_id}: {error}"
             logger.error(err_msg)
             raise RunDbError(err_msg)
-<<<<<<< HEAD
         else:
             return cls(
                 session,
@@ -139,11 +138,6 @@ class Run:
                 reports_rpc_client=reports_rpc_client,
             )
 
-=======
-        return run.id if run else None
-
-    @property
->>>>>>> e3ca89e3... flake8 fix
     def status(self) -> str:
         """Return the current state of the run."""
         return self.data.status
@@ -517,8 +511,11 @@ class Run:
         # "test" is a special user account for automatic periodic system tests -- skip
         if self.data.user_id != "test":
             report = self.report()
+            if not report:
+                logger.exception(f"RPC save_run_report warning: run summary is empty.")
+                return
             try:
-                response = self.reports_rpc_client.request("save_run_report", report)
+                response = self.reports_rpc_client.request(report)
             except Exception as error:
                 logger.exception(f"RPC save_run_report error: {error}")
                 return
