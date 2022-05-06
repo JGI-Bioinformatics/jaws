@@ -512,7 +512,7 @@ class Run:
         if self.data.user_id != "test":
             report = self.report()
             if not report:
-                logger.exception(f"RPC save_run_report warning: run summary is empty.")
+                logger.exception("RPC save_run_report warning: run summary is empty.")
                 return
             try:
                 response = self.reports_rpc_client.request(report)
