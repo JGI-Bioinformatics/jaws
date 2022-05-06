@@ -7,6 +7,7 @@
 - add beta deployment at AWS
 - remove "--default-container" option.  If a container is not specified for a task, "ubuntu:latest" is used by default; if a particular container is desired, it should be specified in the WDL, not on the command-line.
 - add user-supplied "tag" to Run completion notification email
+- add "--webhook" option for users to supply an URL, to which JAWS will post Run info upon completion
 
 ## 2.7.7 (2022-4-12) Summary
 ### User Facing Changes
