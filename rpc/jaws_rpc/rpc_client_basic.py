@@ -78,12 +78,6 @@ class RpcClientBasic(rpc_client.RpcClient):
         # Convert dictionary to string
         payload = json.dumps(payload, default=str)
 
-        # Send the request and store the requests' ID
-        # corr_id = self.send_request(payload)
-
-        # Return the JSON-RPC2 response to the user (may be error).
-        # return self.get_response(corr_id)
-
         try:
             corr_id = self.send_request(payload)
             jsondata = self.get_response(corr_id)
