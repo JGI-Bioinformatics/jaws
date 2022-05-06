@@ -81,15 +81,15 @@ class RpcClientBasic(rpc_client.RpcClient):
         try:
             corr_id = self.send_request(payload)
             jsondata = self.get_response(corr_id)
-        except InvalidJsonResponse as err:
+        except rpc_client.InvalidJsonResponse as err:
             msg = f"RPC request returned an invalid response: {err}"
             logger.debug(msg)
             jsondata = responses.failure(err)
-        except ConfigurationError as err:
+        except rpc_client.ConfigurationError as err:
             msg = f"RPC request returned an invalid configuration error: {err}"
             logger.debug(msg)
             jsondata = responses.failure(err)
-        except ConnectionError as err:
+        except rpc_client.ConnectionError as err:
             msg = f"RPC request returned an invalid connection error: {err}"
             logger.debug(msg)
             jsondata = responses.failure(err)
