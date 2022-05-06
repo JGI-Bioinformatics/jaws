@@ -130,7 +130,6 @@ class Run:
             err_msg = f"Unable to select cromwell, {cromwell_run_id}: {error}"
             logger.error(err_msg)
             raise RunDbError(err_msg)
-<<<<<<< HEAD
         else:
             return cls(
                 session,
@@ -139,11 +138,6 @@ class Run:
                 reports_rpc_client=reports_rpc_client,
             )
 
-=======
-        return run.id if run else None
-
-    @property
->>>>>>> e3ca89e3... flake8 fix
     def status(self) -> str:
         """Return the current state of the run."""
         return self.data.status
@@ -179,9 +173,27 @@ class Run:
 
     def report(self) -> dict:
         """Produce full report of Run and Task info"""
+        # get cromwell metadata
+        metadata = self.metadata()
+
         report = self.summary()
         report["run_id"] = self.data.id
-        report["tasks"] = self.task_log().task_status()
+        report["workflow_name"] = metadata.get("workflowName")
+        report["cromwell_run_id"] = self.data.cromwell_run_id
+
+        # self.summary returns a keyname compute_site_id. this was formely named site_id. To satisfy backwards
+        # compatibility with kibana dashboard setup, need to rename compute_site_id back to site_id.
+        report["site_id"] = report["compute_site_id"]
+        del report["compute_site_id"]
+
+        # transform task data structure and add to report
+        report["tasks"] = []
+        tasks = self.task_log().task_status()
+        for task_name in tasks:
+            entries = tasks[task_name]
+            entries["name"] = task_name
+            report["tasks"].append(entries)
+
         return report
 
     def check_status(self) -> None:
@@ -266,7 +278,6 @@ class Run:
         folders = full_path.split("/")
         s3_bucket = folders.pop(0)
         path = "/".join(folders)
-        print(f"S3 BUCKET={s3_bucket}; PATH={path}")
         return s3_bucket, path
 
     def _read_file_s3(self, path, binary=False):
