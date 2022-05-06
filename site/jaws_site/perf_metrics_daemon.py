@@ -22,6 +22,9 @@ class PerformanceMetricsDaemon:
         self.runs_es_rpc_client.message_ttl = 3600
         self.pmetrics_es_rpc_client.message_ttl = 3600
 
+        self.perf_done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
+        self.perf_proc_dir = config.conf.get("PERFORMANCE_METRICS", "processed_dir")
+
     def start_daemon(self):
         """
         Run scheduled task(s) periodically.
@@ -37,5 +40,5 @@ class PerformanceMetricsDaemon:
         """
         session = database.Session()
         performance_metrics = perf_metrics.PerformanceMetrics(session, self.rpc_client)
-        performance_metrics.process_metrics()
+        performance_metrics.process_metrics(self.perf_done_dir, self.proc_dir)
         session.close()
