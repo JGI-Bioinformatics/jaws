@@ -241,9 +241,10 @@ def submit_run(user):
     submission_id = request.form.get("submission_id")
     caching = False if request.form.get("caching") == "False" else True
     max_ram_gb = request.form.get("max_ram_gb")
-    wdl_file = request.form.get("wdl_file")
+    wdl_file = int(request.form.get("wdl_file"))
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
+    webhook = request.form.get("webhook")
     manifest_json = request.form.get("manifest")
     logger.info(
         f"User {user}: New run submission {submission_id} from {input_site_id} to {compute_site_id}"
@@ -270,19 +271,21 @@ def submit_run(user):
         abort(406, {"error": msg})
 
     # insert into db and the daemon will pick it up and initiate the file transfer
+    # We aren't using the Run class here because it isn't compatible with the
+    # flask-sqlalchemy base class
+    # TODO: stop using flask-sqlalchemy and use runs.Run.from_params() instead
     run = Run(
         user_id=user,
+        submission_id=submission_id,
+        max_ram_gb=max_ram_gb,
+        caching=caching,
         input_site_id=input_site_id,
         compute_site_id=compute_site_id,
-        submission_id=submission_id,
-        caching=caching,
-        status="created",
-        manifest_json=manifest_json,
-        # the following are not used by JAWS but are recorded for users' convenience
-        # (to help them identify their runs)
         wdl_file=wdl_file,
         json_file=json_file,
         tag=tag,
+        manifest_json=manifest_json,
+        webhook=webhook,
     )
     try:
         db.session.add(run)

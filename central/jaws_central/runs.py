@@ -60,6 +60,7 @@ class Run:
         """Insert run record into rdb"""
         manifest_json = "[]"
         if "manifest" in kwargs:
+            # if a list is provided then need to convert to JSON text
             assert(type(kwargs["manifest"]) == list)
             manifest_json = json.dumps(kwargs["manifest"])
         elif "manifest_json" in kwargs:
@@ -67,20 +68,25 @@ class Run:
             manifest_json = kwargs["manifest_json"]
         try:
             data = models.Run(
-                id=int(kwargs["run_id"]),
                 user_id=kwargs["user_id"],
+                submission_id=kwargs["submission_id"],
+                max_ram_gb=int(kwargs["max_ram_gb"]),
                 caching=kwargs["caching"],
-                output_uuid=kwargs["output_uuid"],
-                upload_id=kwargs["upload_id"],
-                output_endpoint=kwargs["output_endpoint"],
+                input_site_id=kwargs["input_site_id"],
+                compute_site_id=kwargs["compute_site_id"],
                 status="uploading",
-                manifest_json=manifest_json
+                wdl_file=kwargs["wdl_file"],
+                json_file=kwargs["json_file"],
+                tag=kwargs["tag"],
+                manifest_json=manifest_json,
+                webhook=kwargs["webhook"],
             )
         except SQLAlchemyError as error:
             raise (f"Error creating model for new Run {kwargs['run_id']}: {error}")
         try:
             session.add(data)
             session.commit()
+            # data.id will be defined after the commit
         except SQLAlchemyError as error:
             session.rollback()
             raise (error)

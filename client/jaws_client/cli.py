@@ -461,6 +461,9 @@ def _get_uid() -> str:
 @click.option(
     "--sub", default=None, help="Subworkflows zip (optional; by default, auto-generate)"
 )
+@click.option(
+    "--webhook", default=None, help="If provided, JAWS will POST to this URL when Run completes."
+)
 def submit(
     wdl_file: str,
     json_file: str,
@@ -469,6 +472,7 @@ def submit(
     no_cache: bool,
     quiet: bool,
     sub: str,
+    webhook: str,
 ):
     """Submit a run for execution at a JAWS-Site.
     Available sites can be found by running 'jaws run list-sites'.
@@ -507,6 +511,7 @@ def submit(
         "wdl_file": wdl_file,
         "json_file": json_file,
         "tag": tag,
+        "webhook": webhook,
     }
     url = f'{config.get("JAWS", "url")}/run'
     logger.debug(f"Submitting run: {data}")

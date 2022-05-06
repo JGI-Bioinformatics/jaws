@@ -75,6 +75,7 @@ class Run(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey("users.id"), nullable=False)
     submission_id = db.Column(db.String(36), nullable=False)
+    max_ram_gb = db.Column(db.Integer, nullable=False, default=10)
     caching = db.Column(db.Boolean, nullable=False, default=True)
     input_site_id = db.Column(db.String(8), nullable=False)
     compute_site_id = db.Column(db.String(8), nullable=True)
@@ -93,6 +94,7 @@ class Run(db.Model):
     json_file = db.Column(db.String(256), nullable=False)
     tag = db.Column(db.String(256), nullable=True)
     manifest_json = db.Column(db.Text, nullable=False)
+    webhook = db.Column(db.String(256), nullable=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

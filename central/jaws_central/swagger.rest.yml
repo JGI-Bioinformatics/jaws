@@ -209,6 +209,11 @@ paths:
           type: string
           in: formData
           required: False
+        - name: webhook
+          description: User-specified URL for notification of completion
+          type: string
+          in: formData
+          required: False
       responses:
         201:
           description: Successful
