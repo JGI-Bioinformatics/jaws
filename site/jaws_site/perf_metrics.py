@@ -4,10 +4,10 @@ import pandas as pd
 import numpy as np
 import logging
 import re
-from typing import Callable, Tuple
+from typing import Callable
 from pathlib import Path
 from functools import lru_cache
-from jaws_site import config, runs
+from jaws_site import runs, tasks
 from jaws_rpc import rpc_client_basic
 
 logger = logging.getLogger(__package__)
@@ -21,6 +21,7 @@ class PerformanceMetrics:
 
     @lru_cache()
     def get_run_id(self, cromwell_id: str) -> int:
+        """Given a cromwell run id, return the jaws run id."""
         try:
             run = runs.Run.from_cromwell_run_id(self.session, cromwell_id)
         except runs.RunNotFoundError or runs.RunDbError as err:
@@ -29,7 +30,15 @@ class PerformanceMetrics:
             raise runs.RunDbError(msg)
         return run.data.id
 
-    def process_csv(self, csv_file):
+    def process_csv(self, csv_file: str) -> list:
+        """Parse the performance csv files and generate a dictionary containing a list of performance metrics
+        defined within the file.
+
+        :param csv_file: performance metric csv file
+        :type csv_file: str
+        :return: list of dictionaries where each dictionary is a json doc of the performance metrics.
+        :rtype: list
+        """
         csv_data = pd.read_csv(csv_file, parse_dates=[0], index_col=[0])
 
         # Remove extranious parts from the current directory
@@ -58,14 +67,32 @@ class PerformanceMetrics:
 
     @lru_cache()
     def add_taskname_mapping(self, cromwell_id):
-        self.tasks[cromwell_id] = tasks.TaskLog(self.session,
-                                                cromwell_run_id=cromwell_id
-                                               ).get_task_cromwell_dir_mapping()
+        """Create a cache to map the cromwell task directory to the task name keyed using the cromwell_id.
+        The cached result looks something like like:
 
+        self.tasks[some_cromwell_id] = {
+            "cromwell-executions/a/aa/aaa": "task_a",
+            "cromwell-executions/b/bb/bbb": "task_b",
+        }
+        """
+        self.tasks[cromwell_id] = tasks.TaskLog(
+            self.session, cromwell_run_id=cromwell_id
+        ).get_task_cromwell_dir_mapping()
 
-    def process_metrics(self):
-        done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
-        proc_dir = config.conf.get("PERFORMANCE_METRICS", "processed_dir")
+    def process_metrics(self, done_dir: str, proc_dir: str) -> None:
+        """Gather all csv files in done_dir, parse and generate json docs for each entry, add docs to
+        elasticsearch via RMQ submission whereby logstash picks up the doc from RMQ and inserts into
+        the elasticsearch database.
+
+        The csv files to be processed are stored in the done_dir. Once the file has been processed, it is moved
+        to the proc_dir.
+
+        :param done_dir: directory containing the performance csv files to process
+        :type done_dir: str
+        :param proc_dir: directory containing the processed performance csv files
+        :type proc_dir: str
+        :return: None
+        """
 
         # If directories are not defined in config file, skip.
         if not done_dir or not proc_dir:
@@ -79,6 +106,7 @@ class PerformanceMetrics:
             return
 
         for done_file in list(done_dir_obj.glob("*.csv")):
+            print(f"***** {done_file=}")
             docs = self.process_csv(done_file)
             for doc in docs:
                 cromwell_id = doc.get("cromwell_id")
@@ -100,12 +128,16 @@ class PerformanceMetrics:
 
                 # Add task name to doc
                 cromwell_dir = doc["current_dir"]
-                if cromwell_id in self.tasks and cromwell_dir in self.tasks[cromwell_id]:
+                if (
+                    cromwell_id in self.tasks
+                    and cromwell_dir in self.tasks[cromwell_id]
+                ):
                     task_name = self.tasks[cromwell_id][cromwell_dir]
                 else:
                     task_name = ""
                 doc["task_name"] = task_name
 
+                print(f"{self.rpc_client=}")
                 self.rpc_client.request(doc)
 
             # Move csv file to processed folder
@@ -136,9 +168,10 @@ def extract_jaws_info(working_dir):
 
     return cromwell_id
 
+
 @lru_cache()
 def remove_beginning_path(working_dir):
-    # Get the index of the string "cromwell-executions"
+    """Get the index of the string "cromwell-executions"""
     dir_name = "None"
     try:
         id_ce_dir = working_dir.find("cromwell-executions")
@@ -150,39 +183,3 @@ def remove_beginning_path(working_dir):
         logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
 
     return dir_name
-
-
-# def send_rpc_run_metadata(rpc_client: rpc_client_basic.RpcClientBasic, payload: dict) -> Tuple[dict, int]:
-#     """Sends request to RabbitMQ/RPC and wait for response. If response fails, return non-zero status_code.
-
-#     :param rpc_client: rpc object connected to a RMQ queue for publishing message.
-#     :type rpc_client: rpc_es.RPCRequest object.
-#     :param payload: json document to publish to RMQ queue.
-#     :type payload: dict
-#     :return jsondata: response from RMQ request.
-#     :rtype jsondata: dictionary
-#     :return status_code: zero if successful, non-zero if connection fails or return json contains error msg.
-#     :rtype status_code: int
-#     """
-
-#     try:
-#         jsondata = rpc_client.request(payload)
-#     except InvalidJsonResponse as err:
-#         msg = f"RPC request returned an invalid response: {err}"
-#         logger.debug(msg)
-#         jsondata = responses.failure(err)
-#     except ConfigurationError as err:
-#         msg = f"RPC request returned an invalid configuration error: {err}"
-#         logger.debug(msg)
-#         jsondata = responses.failure(err)
-#     except ConnectionError as err:
-#         msg = f"RPC request returned an invalid connection error: {err}"
-#         logger.debug(msg)
-#         jsondata = responses.failure(err)
-
-#     status_code = 0
-
-#     if jsondata and 'error' in jsondata:
-#         status_code = jsondata['error'].get('code', 500)
-
-#     return jsondata, status_code
