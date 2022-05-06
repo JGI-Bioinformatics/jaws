@@ -359,7 +359,6 @@ class Run:
         rpc_client = self.rpc_index.get_client(site_id)
         params = {
             "user_id": self.data.user_id,
-            "email": self.user_email(),
             "run_id": self.data.id,
             "caching": self.data.caching,
             "submission_id": self.data.submission_id,

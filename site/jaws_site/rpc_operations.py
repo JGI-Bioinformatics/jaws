@@ -243,7 +243,6 @@ operations = {
         "required_params": [
             "user_id",
             "run_id",
-            "email",
             "submission_id",
             "input_site_id",
         ],
