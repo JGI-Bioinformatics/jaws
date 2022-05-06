@@ -111,7 +111,6 @@ class PerformanceMetrics:
             return
 
         for done_file in list(done_dir_obj.glob("*.csv")):
-            print(f"***** {done_file=}")
             docs = self.process_csv(done_file)
             for doc in docs:
                 cromwell_id = doc.get("cromwell_id")
