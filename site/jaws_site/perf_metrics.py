@@ -3,8 +3,10 @@
 import pandas as pd
 import numpy as np
 import logging
-from typing import Callable
+import re
+from typing import Callable, Tuple
 from pathlib import Path
+from functools import lru_cache
 from jaws_site import config, runs
 from jaws_rpc import rpc_client_basic
 
@@ -15,12 +17,13 @@ class PerformanceMetrics:
     def __init__(self, session: Callable, rpc_client: rpc_client_basic) -> None:
         self.session = session
         self.rpc_client = rpc_client
+        self.tasks = {}
 
     @lru_cache()
     def get_run_id(self, cromwell_id: str) -> int:
         try:
             run = runs.Run.from_cromwell_run_id(self.session, cromwell_id)
-        except runs.RunNotFound or runs.RunDbError as err:
+        except runs.RunNotFoundError or runs.RunDbError as err:
             msg = f"Failed to get run_id from {cromwell_id=}: {err}"
             logger.warn(msg)
             raise runs.RunDbError(msg)
@@ -36,10 +39,6 @@ class PerformanceMetrics:
 
         # Drops any non-workflow related processes
         csv_data = csv_data[csv_data.cromwell_id != "naw"]
-
-        # TODO: Add function call to get task name from cromwell api
-        # csv_data["cromwell_task_name"] = csv_data.cromwell_id.apply(self.get_cromwell_task_name)
-        # csv_data = csv_data[csv_data.cromwell_task_name != "None"]
 
         # If we have a cromwell-id then get the jaws id by calling jaws db
         csv_data["jaws_run_id"] = csv_data.cromwell_id.apply(self.get_run_id)
@@ -107,7 +106,7 @@ class PerformanceMetrics:
                     task_name = ""
                 doc["task_name"] = task_name
 
-                runs_es.send_rpc_run_metadata(self.rpc_client, doc)
+                self.rpc_client.request(doc)
 
             # Move csv file to processed folder
             processed_file = proc_dir_obj / done_file.name
@@ -153,37 +152,37 @@ def remove_beginning_path(working_dir):
     return dir_name
 
 
-def send_rpc_run_metadata(rpc_client: rpc_es.RPCRequest, payload: dict) -> Tuple[dict, int]:
-    """Sends request to RabbitMQ/RPC and wait for response. If response fails, return non-zero status_code.
+# def send_rpc_run_metadata(rpc_client: rpc_client_basic.RpcClientBasic, payload: dict) -> Tuple[dict, int]:
+#     """Sends request to RabbitMQ/RPC and wait for response. If response fails, return non-zero status_code.
 
-    :param rpc_client: rpc object connected to a RMQ queue for publishing message.
-    :type rpc_client: rpc_es.RPCRequest object.
-    :param payload: json document to publish to RMQ queue.
-    :type payload: dict
-    :return jsondata: response from RMQ request.
-    :rtype jsondata: dictionary
-    :return status_code: zero if successful, non-zero if connection fails or return json contains error msg.
-    :rtype status_code: int
-    """
+#     :param rpc_client: rpc object connected to a RMQ queue for publishing message.
+#     :type rpc_client: rpc_es.RPCRequest object.
+#     :param payload: json document to publish to RMQ queue.
+#     :type payload: dict
+#     :return jsondata: response from RMQ request.
+#     :rtype jsondata: dictionary
+#     :return status_code: zero if successful, non-zero if connection fails or return json contains error msg.
+#     :rtype status_code: int
+#     """
 
-    try:
-        jsondata = rpc_client.request(payload)
-    except InvalidJsonResponse as err:
-        msg = f"RPC request returned an invalid response: {err}"
-        logger.debug(msg)
-        jsondata = responses.failure(err)
-    except ConfigurationError as err:
-        msg = f"RPC request returned an invalid configuration error: {err}"
-        logger.debug(msg)
-        jsondata = responses.failure(err)
-    except ConnectionError as err:
-        msg = f"RPC request returned an invalid connection error: {err}"
-        logger.debug(msg)
-        jsondata = responses.failure(err)
+#     try:
+#         jsondata = rpc_client.request(payload)
+#     except InvalidJsonResponse as err:
+#         msg = f"RPC request returned an invalid response: {err}"
+#         logger.debug(msg)
+#         jsondata = responses.failure(err)
+#     except ConfigurationError as err:
+#         msg = f"RPC request returned an invalid configuration error: {err}"
+#         logger.debug(msg)
+#         jsondata = responses.failure(err)
+#     except ConnectionError as err:
+#         msg = f"RPC request returned an invalid connection error: {err}"
+#         logger.debug(msg)
+#         jsondata = responses.failure(err)
 
-    status_code = 0
+#     status_code = 0
 
-    if jsondata and 'error' in jsondata:
-        status_code = jsondata['error'].get('code', 500)
+#     if jsondata and 'error' in jsondata:
+#         status_code = jsondata['error'].get('code', 500)
 
-    return jsondata, status_code
+#     return jsondata, status_code

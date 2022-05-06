@@ -6,10 +6,10 @@ them to the next state.
 import schedule
 import time
 import logging
-from jaws_site import database, runs, config, rpc_es
+from jaws_site import database, runs, config
 
 # from jaws_site import perf_metrics_es
-from jaws_rpc import rpc_client
+from jaws_rpc import rpc_client, rpc_client_basic
 
 logger = logging.getLogger(__package__)
 
@@ -28,7 +28,7 @@ class RunDaemon:
         self.central_rpc_client = rpc_client.RpcClient(
             config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
         )
-        self.runs_es_rpc_client = rpc_es.RPCRequest(
+        self.report_rpc_client = rpc_client_basic.RpcClientBasic(
             config.conf.get_section("RUNS_ES_RPC_CLIENT"), logger
         )
         # Set message expiration to 60 secs
@@ -50,7 +50,7 @@ class RunDaemon:
         """
         session = database.Session()
         runs.check_active_runs(
-            session, self.central_rpc_client, self.runs_es_rpc_client
+            session, self.central_rpc_client, self.report_rpc_client
         )
         runs.send_run_status_logs(session, self.central_rpc_client)
         # perf_metrics_es.Metrics(session, self.pmetrics_es_rpc_client).process_metrics()
