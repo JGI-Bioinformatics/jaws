@@ -8,6 +8,8 @@
 - remove "--default-container" option.  If a container is not specified for a task, "ubuntu:latest" is used by default; if a particular container is desired, it should be specified in the WDL, not on the command-line.
 - add user-supplied "tag" to Run completion notification email
 - add "--webhook" option for users to supply an URL, to which JAWS will post Run info upon completion
+- deprecate /refdata dir -- specify reference files in your inputs json like any other input file and the JAWS file caching system will allow the file to be reused between multiple runs and will not be deleted until the files have not been accessed for some period of time (e.g. 14d).
+- if the compute node has fast local disk (e.g. SSD) or large local disk (e.g. HD), then the /fast_scratch and/or /big_scratch volumes shall be mounted to the task's container
 
 ## 2.7.7 (2022-4-12) Summary
 ### User Facing Changes
