@@ -46,7 +46,8 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_JTM_SCRATCH_BASEDIR: SCRATCH directory for JTM. Can be same as JAWS   
 - [SITE]_JAWS_SW_BASEDIR: Base directory where JAWS code is located  
 - [SITE]_JTM_SW_BASEDIR: Base directory where JTM code is located  
-- [SITE]_REF_DATA_DIR: Location of JGI ref data  
+- [SITE]_FAST_SCRATCH_DIR: Path of fast storage local to worker nodes
+- [SITE]_BIG_SCRATCH_DIR: Path of large storage local to worker nodes
 - [SITE]_SUPERVISOR_HOST: Supervisor hostname for site  
 - [SITE]_CONTAINER_TYPE: Container type the site uses (shifter, singularity etc)  
 - [SITE]_CLUSTER_QOS: quality of service to use for a particular cluster  
