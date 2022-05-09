@@ -1,6 +1,7 @@
 AMQPStorm==2.10.4
 boto3==1.21.27
 click==8.0.4
+daemon==1.2
 deepdiff==5.5.0
 mysql-connector-python==8.0.28
 requests==2.27.1
