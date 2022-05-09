@@ -71,7 +71,6 @@ class Run:
             data = models.Run(
                 id=int(params["run_id"]),
                 user_id=params["user_id"],
-                email=params["email"],
                 caching=params["caching"],
                 submission_id=params["submission_id"],
                 input_site_id=params["input_site_id"],
@@ -148,7 +147,6 @@ class Run:
         summary = {
             "run_id": self.data.id,
             "user_id": self.data.user_id,
-            "email": self.data.email,
             "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
             "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
             "status": self.data.status,

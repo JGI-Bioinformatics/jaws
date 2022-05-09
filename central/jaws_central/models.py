@@ -81,12 +81,13 @@ class Run(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(String(32), ForeignKey("users.id"), nullable=False)
     submission_id = Column(String(36), nullable=False)
+    max_ram_gb = Column(Integer, nullable=False, default=10)
     caching = Column(Boolean, nullable=False, default=True)
     input_site_id = Column(String(8), nullable=False)
     compute_site_id = Column(String(8), nullable=True)
     cromwell_run_id = Column(String(36), nullable=True)
     result = Column(String(32), nullable=True)
-    status = Column(String(32), nullable=False)
+    status = Column(String(32), nullable=False, default="created")
     submitted = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = Column(
         DateTime,
@@ -99,6 +100,7 @@ class Run(Base):
     json_file = Column(String(256), nullable=False)
     tag = Column(String(256), nullable=True)
     manifest_json = Column(Text, nullable=False)
+    webhook = Column(String(256), nullable=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

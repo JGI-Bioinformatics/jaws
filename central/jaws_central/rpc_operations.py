@@ -2,13 +2,10 @@
 RPC operations by which Sites update Run and Job status.
 """
 
-import smtplib
-import ssl
 import logging
 import sqlalchemy.exc
 from datetime import datetime
 from jaws_central.models import Run, Run_Log, User
-from jaws_central import config
 from jaws_central.transfers import Transfer
 from jaws_rpc.responses import success, failure
 from sqlalchemy.exc import SQLAlchemyError
@@ -79,31 +76,6 @@ def update_run_logs(params, session):
     except Exception as error:
         session.rollback()
         return failure(error)
-
-    if status_to == "download complete":
-        receiver_email = _get_email_address(session, run.user_id)
-        sender_email = config.conf.get("EMAIL", "user")
-        smtp_server = config.conf.get("EMAIL", "server")
-        port = config.conf.get("EMAIL", "port")
-        password = config.conf.get("EMAIL", "password")
-        smtp_server = "smtp.gmail.com"
-
-        message = f"""Subject: JAWS Run {run.id} {run.result}: {run.tag}
-
-        Your run has completed.
-
-        RESULT = {
-            "run_id": "{run.id}",
-            "result": "{run.result}",
-            "tag": "{run.tag}"
-        }
-        """
-
-        context = ssl.create_default_context()
-        with smtplib.SMTP(smtp_server, port) as server:
-            server.starttls(context=context)
-            server.login(sender_email, password)
-            server.sendmail(sender_email, receiver_email, message)
 
     return success()
 

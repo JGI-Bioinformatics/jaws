@@ -3,6 +3,9 @@ import time
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import json
+import smtplib
+import ssl
+import requests
 from jaws_central import models
 from jaws_central import config
 from jaws_central import jaws_constants
@@ -50,6 +53,8 @@ class Run:
             "finished": self.submit_download,
             "download queued": self.check_if_download_complete,
             "downloading": self.check_if_download_complete,
+            "download complete": self.send_email,
+            "email sent": self.post_to_webhook,
         }
         self.rpc_index = rpc_index
         self.upload = None
@@ -60,27 +65,33 @@ class Run:
         """Insert run record into rdb"""
         manifest_json = "[]"
         if "manifest" in kwargs:
-            assert(type(kwargs["manifest"]) == list)
+            # if a list is provided then need to convert to JSON text
+            assert type(kwargs["manifest"]) == list
             manifest_json = json.dumps(kwargs["manifest"])
         elif "manifest_json" in kwargs:
-            assert(type(kwargs["manifest_json"]) == str)
+            assert type(kwargs["manifest_json"]) == str
             manifest_json = kwargs["manifest_json"]
         try:
             data = models.Run(
-                id=int(kwargs["run_id"]),
                 user_id=kwargs["user_id"],
+                submission_id=kwargs["submission_id"],
+                max_ram_gb=int(kwargs["max_ram_gb"]),
                 caching=kwargs["caching"],
-                output_uuid=kwargs["output_uuid"],
-                upload_id=kwargs["upload_id"],
-                output_endpoint=kwargs["output_endpoint"],
+                input_site_id=kwargs["input_site_id"],
+                compute_site_id=kwargs["compute_site_id"],
                 status="uploading",
-                manifest_json=manifest_json
+                wdl_file=kwargs["wdl_file"],
+                json_file=kwargs["json_file"],
+                tag=kwargs["tag"],
+                manifest_json=manifest_json,
+                webhook=kwargs["webhook"],
             )
         except SQLAlchemyError as error:
             raise (f"Error creating model for new Run {kwargs['run_id']}: {error}")
         try:
             session.add(data)
             session.commit()
+            # data.id will be defined after the commit
         except SQLAlchemyError as error:
             session.rollback()
             raise (error)
@@ -126,7 +137,9 @@ class Run:
         if verbose:
             more_info = {
                 "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-                "status_detail": jaws_constants.run_status_msg.get(self.data.status, ""),
+                "status_detail": jaws_constants.run_status_msg.get(
+                    self.data.status, ""
+                ),
                 "input_site_id": self.data.input_site_id,
                 "cromwell_run_id": self.data.cromwell_run_id,
                 "upload_id": self.data.upload_id,
@@ -353,7 +366,6 @@ class Run:
         rpc_client = self.rpc_index.get_client(site_id)
         params = {
             "user_id": self.data.user_id,
-            "email": self.user_email(),
             "run_id": self.data.id,
             "caching": self.data.caching,
             "submission_id": self.data.submission_id,
@@ -415,6 +427,49 @@ class Run:
             )
             raise
 
+    def send_email(self):
+        receiver_email = self.user_email()
+        sender_email = config.conf.get("EMAIL", "user")
+        smtp_server = config.conf.get("EMAIL", "server")
+        port = config.conf.get("EMAIL", "port")
+        password = config.conf.get("EMAIL", "password")
+        smtp_server = "smtp.gmail.com"
+
+        message = f"""Subject: JAWS Run {self.data.id} {self.data.result}: {self.data.tag}
+
+        Your run has completed.
+
+        RESULT = {
+            "run_id": "{self.data.id}",
+            "result": "{self.data.result}",
+            "wdl_file": "{self.data.wdl_file}",
+            "json_file": "{self.data.json_file}",
+            "tag": "{self.data.tag}"
+        }
+        """
+
+        context = ssl.create_default_context()
+        try:
+            with smtplib.SMTP(smtp_server, port) as server:
+                server.starttls(context=context)
+                server.login(sender_email, password)
+                server.sendmail(sender_email, receiver_email, message)
+        except Exception as error:
+            logger.error(f"Run {self.data.id} failed to send email: {error}")
+        else:
+            self.update_status("email sent")
+
+    def post_to_webhook(self):
+        if self.data.webhook:
+            try:
+                requests.post(self.data.webhook, data=self.info())
+            except Exception as error:
+                self.error(f"Run {self.data.id} failed to POST: {error}")
+            else:
+                self.update_status("done")
+        else:
+            self.update_status("done")
+
 
 def check_active_runs(session, rpc_index) -> None:
     """
@@ -428,6 +483,8 @@ def check_active_runs(session, rpc_index) -> None:
         "finished",
         "download queued",
         "downloading",
+        "download complete",
+        "email sent",
     ]
     try:
         rows = (

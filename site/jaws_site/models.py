@@ -52,7 +52,6 @@ class Run(Base):
         default=same_as("submitted"),
         onupdate=datetime.utcnow,
     )
-    email = Column(String(64), nullable=False)
 
 
 class Run_Log(Base):
