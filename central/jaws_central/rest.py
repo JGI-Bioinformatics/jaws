@@ -240,8 +240,8 @@ def submit_run(user):
     compute_site_id = request.form.get("compute_site_id", None).upper()
     submission_id = request.form.get("submission_id")
     caching = False if request.form.get("caching") == "False" else True
-    max_ram_gb = request.form.get("max_ram_gb")
-    wdl_file = int(request.form.get("wdl_file"))
+    max_ram_gb = int(request.form.get("max_ram_gb"))
+    wdl_file = request.form.get("wdl_file")
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
     webhook = request.form.get("webhook")
