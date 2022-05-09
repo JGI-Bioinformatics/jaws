@@ -86,7 +86,7 @@ def jtm_rpc() -> None:
 def run_daemon() -> None:
     """Start run daemon."""
 
-    import daemon
+    import run_daemon
     import lockfile
     from jaws_site.run_daemon import RunDaemon
 
@@ -100,7 +100,7 @@ def run_daemon() -> None:
 def transfer_daemon() -> None:
     """Start transfer daemon."""
 
-    import daemon
+    import transfer_daemon
     import lockfile
     from jaws_site.transfer_daemon import TransferDaemon
 
@@ -114,7 +114,7 @@ def transfer_daemon() -> None:
 def perf_metrics_daemon() -> None:
     """Start performance metrics daemon"""
 
-    import daemon
+    import perf_metrics_daemon
     import lockfile
     from jaws_site.perf_metrics_daemon import PerformanceMetricsDaemon
 
