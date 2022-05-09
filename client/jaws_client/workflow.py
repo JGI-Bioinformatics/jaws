@@ -49,6 +49,7 @@ def convert_to_gb(mem, prefix):
     :param prefix: units prefix
     :type prefix str
     :return: memory in gigabytes
+    :rtype: int
     """
     conversion_table = {
         "g": lambda x: x,
