@@ -3,6 +3,7 @@ boto3==1.21.27
 click==8.0.4
 daemon==1.2
 deepdiff==5.5.0
+lockfile==0.12.2
 mysql-connector-python==8.0.28
 requests==2.27.1
 requests-mock==1.9.3
