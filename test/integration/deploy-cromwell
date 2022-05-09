@@ -52,12 +52,6 @@ if [[ $RESULT -ne 0 ]]; then
 fi
 [ $RESULT -eq 0 ] || exit 1
 
-## CREATE SITE_REF_DATA_DIR DIR
-if [ ! -d "$SITE_REF_DATA_DIR" ]; then
-  mkdir -p "$SITE_REF_DATA_DIR"
-  fix_perms $SITE_JTM_GROUP "$SITE_REF_DATA_DIR"
-fi
-
 ## COPY CROMWELL JAR
 wget --no-verbose "$CROMWELL_JAR_URL" -O "$SITE_CROMWELL_JAR"
 chmod 640 "$SITE_CROMWELL_JAR"
@@ -67,26 +61,27 @@ chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
 # When creating the wrapper scripts the arguments to each script are as follows:
 # For SHIFTER
 # $1 image name
-# $2 the location of the refdata directory location at the site
-# $3 the name of the directory $SITE_REF_DATA_DIR will be mounted inside container
-# $4 shell name (eg - bash, csh)
-# $5 script name
+# $2 shell name (eg - bash, csh)
+# $3 script name
+# $4 site fast-scratch dir
+# $5 site big-scratch dir
 #
 # For SINGULARITY
-# $1 the location of the refdata directory location at the site
-# $2 the name of the directory $SITE_REF_DATA_DIR will be mounted on inside container
-# $3 script name
-# $4 docker command
-# $5 image name
-# $6 shell name (eg - bash, csh)
-# $7 script name
+# $1 script name
+# $2 docker command
+# $3 image name
+# $4 shell name (eg - bash, csh)
+# $5 script name
+# $6 site fast-scratch dir
+# $7 site big-scratch dir
 #
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
 if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
     CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} $SITE_REF_DATA_DIR /refdata \${job_shell} \${script}"
-    
+    # note that double-quotation marks are required around optional scratch dirs
+    CONTAINER_EXEC_COMMAND='$CONTAINER_WRAPPER \${docker} \${job_shell} \${script} "$SITE_FAST_SCRATCH_DIR" "$SITE_BIG_SCRATCH_DIR"'
+
     cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
     chmod 775 "$INSTALL_DIR/shifter_exec.sh"
@@ -102,7 +97,8 @@ elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
     fi
     "
     CONTAINER_WRAPPER="$INSTALL_DIR/docker_exec.sh"
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script}"
+    # note that double-quotation marks are required around optional scratch dirs
+    CONTAINER_EXEC_COMMAND='$CONTAINER_WRAPPER \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script} "$SITE_FAST_SCRATCH_DIR" "$SITE_BIG_SCRATCH_DIR"'
 
     cp "$DIR/docker_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/docker_exec.sh"
@@ -139,7 +135,8 @@ elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
     fi
     "
     CONTAINER_WRAPPER="$INSTALL_DIR/singularity_exec.sh"
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER $SITE_REF_DATA_DIR /refdata \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script}"
+    # note that double-quotation marks are required around optional scratch dirs
+    CONTAINER_EXEC_COMMAND='$CONTAINER_WRAPPER \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script} "$SITE_FAST_SCRATCH_DIR" "$SITE_BIG_SCRATCH_DIR"'
 
     cp "$DIR/singularity_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/singularity_exec.sh"
