@@ -75,9 +75,14 @@ class PerformanceMetrics:
             "cromwell-executions/b/bb/bbb": "task_b",
         }
         """
-        self.tasks[cromwell_id] = tasks.TaskLog(
-            self.session, cromwell_run_id=cromwell_id
-        ).get_task_cromwell_dir_mapping()
+        try:
+            self.tasks[cromwell_id] = tasks.TaskLog(
+                self.session, cromwell_run_id=cromwell_id
+            ).get_task_cromwell_dir_mapping()
+        except Exception as err:
+            # if calling TaskLog throws an exception (cromwell fails to get data using cromwell_id), don't
+            # update the tasks list.
+            pass
 
     def process_metrics(self, done_dir: str, proc_dir: str) -> None:
         """Gather all csv files in done_dir, parse and generate json docs for each entry, add docs to
@@ -133,7 +138,7 @@ class PerformanceMetrics:
                 ):
                     task_name = self.tasks[cromwell_id][cromwell_dir]
                 else:
-                    task_name = ""
+                    task_name = "unknown"
                 doc["task_name"] = task_name
 
                 # Submit doc to RMQ to be picked up by logstash and inserted into elasticsearch
