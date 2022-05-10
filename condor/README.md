@@ -10,9 +10,11 @@ This allows to execute JAWS runs using HTCondor which is a specialized workload 
 ## Cromwell Configuration for HTCondor
 
 To HTCondor as Cromwell backend for JAWS, the below condor commands need to be added to the JAWS Cormwell configuration file.
-- condor_submit
-- condor_q
-- condor_rm
+- submit-docker = condor_submit
+- check-alive = condor_q
+- kill = condor_rm
+- job-id-regex = "(?sm).*cluster (\\d+)..*"
+
 
 The details can be found at `https://cromwell.readthedocs.io/en/stable/backends/HTcondor/`
 And the production configuration files can also be found from the JAWS code repository under `condor/jaws_condor/test/cromwell`.
@@ -310,11 +312,15 @@ no time-out errors
 
 ## Troubleshooting for a user run
 
-### Debug steps example (JAWS run id = 33919)
+### Debug steps example
  
-1. Get cromwell id jaws status 33919
-2. get into cromwell.out vi /tahoma/mscjgi/jaws-install/jaws-prod/logs/cromwell.out
-3. Search f82e24d9-315d-46d3-9b1a-1316496cf26f
+1. Get cromwell id from `jaws status <jaws_run_id>`
+2. Open `cromwell.out`
+ex) From Tahoma
+```
+$ vi /tahoma/mscjgi/jaws-install/jaws-prod/logs/cromwell.out
+```
+3. Search `f82e24d9-315d-46d3-9b1a-1316496cf26f`
 4. Go to the last found
 ```
 Check the content of stderr for potential additional information: /tahoma/mscjgi/scratch/jaws-prod/cromwell-executions/nmdc_metag/f82e24d9-315d-46d3-9b1a-1316496cf26f/call-qc/rqc.jgi_rqcfilter/5e911a32-3e04-4c06-bca7-baaa0f15d67f/call-rqcfilter/shard-0/execution/stderr.
@@ -386,7 +392,25 @@ INFO  - DispatchedConfigAsyncJobExecutionActor [UUID(f82e24d9)nmdc_metag.stage:N
 ```
 2. Get the node info by running 
 
-```condor_q 837 -af RemoteHost```
+```condor_q <condor_job_id> -af RemoteHost```
+
+
+ex)
+```angular2html
+[svc-jtm-user@twf1 test]$ condor_submit sleep.jdf
+[svc-jtm-user@twf1 test]$ condor_q
+
+
+-- Schedd: svc-jtm-user@twf1 : <130.20.235.49:9618?... @ 05/06/22 10:38:45
+OWNER        BATCH_NAME    SUBMITTED   DONE   RUN    IDLE  TOTAL JOB_IDS
+svc-jtm-user ID: 905      5/6  10:38      _      1      _      1 905.0
+
+Total for query: 1 jobs; 0 completed, 0 removed, 0 idle, 1 running, 0 held, 0 suspended
+Total for all users: 1 jobs; 0 completed, 0 removed, 0 idle, 1 running, 0 held, 0 suspended
+[svc-jtm-user@twf1 test]$ condor_q 905 -af RemoteHost
+slot1_1@t97
+
+```
 
 3. Use `squeue` command to get the SLURM job id for the machine name
 
