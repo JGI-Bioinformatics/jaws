@@ -166,10 +166,10 @@ def rpc() -> None:
 def daemon() -> None:
     """Start daemon"""
     from jaws_central.database import engine, Session
-    from jaws_central import models_sa
+    from jaws_central import models
 
     session = Session()
-    models_sa.create_all(engine, session)
+    models.create_all(engine, session)
 
     logger = logging.getLogger(__package__)
 

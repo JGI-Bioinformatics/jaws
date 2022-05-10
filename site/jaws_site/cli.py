@@ -90,7 +90,7 @@ def run_daemon() -> None:
     import lockfile
     from jaws_site.run_daemon import RunDaemon
 
-    pidfile = os.path.join(config.conf.get("SITE", "pidfile_dir"), "rund.pid")
+    pidfile = os.path.join(config.conf.get("SITE", "lock_dir"), "rund.pid")
     with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
         run_daemon = RunDaemon()
         run_daemon.start_daemon()
@@ -104,7 +104,7 @@ def transfer_daemon() -> None:
     import lockfile
     from jaws_site.transfer_daemon import TransferDaemon
 
-    pidfile = os.path.join(config.conf.get("SITE", "pidfile_dir"), "transferd.pid")
+    pidfile = os.path.join(config.conf.get("SITE", "lock_dir"), "transferd.pid")
     with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
         transfer_daemon = TransferDaemon()
         transfer_daemon.start_daemon()
@@ -118,7 +118,7 @@ def perf_metrics_daemon() -> None:
     import lockfile
     from jaws_site.perf_metrics_daemon import PerformanceMetricsDaemon
 
-    pidfile = os.path.join(config.conf.get("SITE", "pidfile_dir"), "perf_metricsd.pid")
+    pidfile = os.path.join(config.conf.get("SITE", "lock_dir"), "perf_metricsd.pid")
     with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
         perf_metrics_daemon = PerformanceMetricsDaemon()
         perf_metrics_daemon.start_daemon()
