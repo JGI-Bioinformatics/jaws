@@ -69,6 +69,14 @@ class TaskLog:
         else:
             raise ValueError("cromwell_run_id or run_id required")
 
+    @classmethod
+    def from_run_id(cls, session, run_id):
+        return cls(session, run_id=run_id)
+
+    @classmethod
+    def from_cromwell_run_id(cls, session, cromwell_run_id):
+        return cls(session, cromwell_run_id=cromwell_run_id)
+
     def cromwell_run_id(self):
         if not self._cromwell_run_id:
             self._get_cromwell_run_id()
@@ -559,7 +567,7 @@ def get_run_status(session, run_id: int) -> str:
     :return: the status of run, as far as tasks are concerned (None, "queued", or "running")
     :rtype: str
     """
-    task_log = TaskLog(session, run_id=run_id)
+    task_log = TaskLog.from_run_id(session, run_id)
     task_status = task_log.task_status()
     if len(task_status) == 0:
         return None

@@ -482,10 +482,9 @@ def submit(
 
     wdl_file = os.path.abspath(wdl_file)
     json_file = os.path.abspath(json_file)
+    input_dir = config.get("JAWS", "uploads_dir")
     input_site_id = config.get("JAWS", "site_id")
-    input_basedir = config.get("JAWS", "uploads_dir")
-    output_basedir = config.get("JAWS", "downloads_dir")
-    input_dir = workflow.join_path(input_basedir, input_site_id)
+    output_dir = config.get("JAWS", "downloads_dir")
 
     params = {}
     if sub:
@@ -493,7 +492,7 @@ def submit(
     if quiet:
         params["quiet"] = quiet
     try:
-        run = workflow.Run(wdl_file, json_file, input_dir, output_basedir, **params)
+        run = workflow.Run(wdl_file, json_file, input_dir, input_site_id, output_dir, **params)
     except WdlError as error:
         raise SystemExit(f"Your workflow has an error: {error}")
     except Exception as error:

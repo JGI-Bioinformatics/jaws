@@ -8,17 +8,13 @@ from jaws_central.runs import check_active_runs
 logger = logging.getLogger(__package__)
 
 
-class Daemon:
+class RunDaemon:
     """
-    Daemon that periodically checks on this site's active runs.
-    It prompts active runs to query Cromwell or Globus, as appropriate.
-    When Globus uploads are completed, the run is submitted to Cromwell.
-    When Cromwell execution has completed, the output is downloaded using Globus.
-    When the download is finished, the run is complete.
+    Daemon that periodically checks on active runs.
     """
 
     def __init__(self, rpc_index):
-        logger.info("Initializing daemon")
+        logger.info("Initializing run daemon")
         self.rpc_index = rpc_index
 
     def start_daemon(self):

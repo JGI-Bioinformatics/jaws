@@ -244,7 +244,7 @@ def submit_run(user):
     wdl_file = request.form.get("wdl_file")
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
-    webhook = request.form.get("webhook")
+    webhook = request.form.get("webhook", None)
     manifest_json = request.form.get("manifest")
     logger.info(
         f"User {user}: New run submission {submission_id} from {input_site_id} to {compute_site_id}"
@@ -265,7 +265,7 @@ def submit_run(user):
     # check if requested compute site can process this WDL
     if (
         "max_ram_gb" in compute_site_config
-        and compute_site_config["max_ram_gb"] < max_ram_gb
+        and int(compute_site_config["max_ram_gb"]) < max_ram_gb
     ):
         msg = f'The requested site {compute_site_id} has only {compute_site_config["max_ram_gb"]} GB which is less than the {max_ram_gb} GB required by this workflow.'  # noqa
         abort(406, {"error": msg})
@@ -277,6 +277,7 @@ def submit_run(user):
     run = Run(
         user_id=user,
         submission_id=submission_id,
+        status="created",
         max_ram_gb=max_ram_gb,
         caching=caching,
         input_site_id=input_site_id,
