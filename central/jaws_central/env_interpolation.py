@@ -12,7 +12,7 @@ class EnvInterpolation(configparser.BasicInterpolation):
     Uses normal interpolation syntax for configparser
     https://docs.python.org/3/library/configparser.html#interpolation-of-values
 
-    A new parameter is introduced to the init() function, env_var_override, which is a prefix for
+    A new parameter is introduced to the init() function, env_override, which is a prefix for
     any environment variables that should be used as overrides for the get() function.
     """
 
@@ -35,7 +35,7 @@ class EnvInterpolation(configparser.BasicInterpolation):
     def get(self, section, option, **kwargs):
         """
         Override the standard getter by forcing the vars argument to use the dictionary derived
-        from the environment variables with the prefix in the env_var_override param to init
+        from the environment variables with the prefix in the env_override param to init
         """
         value = super().get(self, section, option, vars=self._vars, **kwargs)
         return(value)
