@@ -137,10 +137,11 @@ The commands with an asterik have additional options. Expand the below commands 
     running 'jaws run list-sites'.
 
     Options:
-    --tag TEXT  identifier for the run
-    --no-cache  Disable call-caching for this run
-    --quiet     Don't print copy progress bar
-    -h, --help  Show this message and exit.
+    --tag TEXT      identifier for the run
+    --no-cache      Disable call-caching for this run
+    --webhook TEXT  If provided, JAWS will POST to this URL when Run completes.
+    --quiet         Don't print copy progress bar
+    -h, --help      Show this message and exit.
 
 .. raw:: html
 

@@ -1,15 +1,25 @@
 #!/usr/bin/env bash
 echo "Executing on $HOSTNAME" 1>&2
 IMG=$1          # jfroula/bbtools@sha256:
-DB=$2           # /global/dna/shared/databases/jaws/refdata/
-MOUNT=$3        # /refdata
-SHELL_SCRIPT=$4 # /bin/bash
-SCRIPT=$5       # script
+SHELL=$2 # /bin/bash
+SCRIPT=$3       # script
+FAST_SCRATCH=$4
+BIG_SCRATCH=$5
 
 if [ $# -lt 5 ]; then
     echo "One or more arguments are missing."
-    echo "Usage: $0 <docker image either tagged or sha@256> <path to refdata on nfs> <path to refdata in container> <path to bash> <script>"
+    echo "Usage: $0 <docker image either tagged or sha@256> <path to bash> <script> <path to fast scratch> <path to big scratch>"
     exit 1
+fi
+
+MOUNT_FAST_SCRATCH=""
+if [ ! -z $FAST_SCRATCH ] && [ -d $FAST_SCRATCH ]; then
+    MOUNT_FAST_SCRATCH = "-V $FAST_SCRATCH:/fast_scratch"
+fi
+
+MOUNT_BIG_SCRATCH=""
+if [ ! -z $BIG_SCRATCH ] && [ -d $BIG_SCRATCH ] ; then
+    MOUNT_BIG_SCRATCH = "-V $BIG_SCRATCH:/big_scratch"
 fi
 
 function pullImage(){
@@ -79,9 +89,9 @@ fi
 
 # Run container script and catch exit code
 if [[ $HASH =~ "sha256" ]]; then
-    shifter --image=id:$ID -V $2:$3 $4 $5
+    shifter --image=id:$ID $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH $SHELL $SCRIPT
 else
-    shifter --image=$REPO -V $2:$3 $4 $5
+    shifter --image=$REPO $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH $SHELL $SCRIPT
 fi
 
 export EXIT_CODE=$?

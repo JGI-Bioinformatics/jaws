@@ -1,6 +1,8 @@
 from jaws_site import tasks
+from jaws_site import cromwell
 from jaws_site.tasks import TaskLog
 from deepdiff import DeepDiff
+from tests.conftest import mock_task_status_table, mock_task_summary_table, this_date
 
 
 def test_save_job_log(monkeypatch):
@@ -61,7 +63,7 @@ def test_job_logs(monkeypatch):
     assert job_logs[test_cromwell_job_id][0][0] == "created"
 
 
-def test_task_status(monkeypatch):
+def test_task_status_table(monkeypatch):
     def mock_task_log(self):
         example_log = [
             [
@@ -145,7 +147,7 @@ def test_task_status(monkeypatch):
     mock_session = None
 
     tasks = TaskLog(mock_session, run_id=example_run_id)
-    task_status = tasks.task_status()
+    task_status = tasks.task_status_table()
     assert bool(DeepDiff(task_status, expected_status, ignore_order=True)) is False
 
 
@@ -246,31 +248,35 @@ def test_cromwell_job_summary(monkeypatch):
 
     def mock_cromwell_task_summary(self):
         example_task_summary = [
-            ["main_workflow.goodbye", "12129", False, "0:10:00"],
-            ["main_workflow.hello", "12130", False, "0:10:00"],
+            ["main_workflow.goodbye", "12129", False, "0:10:00", "/a/b/c"],
+            ["main_workflow.hello", "12130", False, "0:10:00", "/a/b/c"],
             [
                 "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
                 "12134",
                 False,
                 "0:10:00",
+                "/a/b/c",
             ],
             [
                 "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
                 "12133",
                 False,
                 "0:10:00",
+                "/a/b/c",
             ],
             [
                 "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
                 "12131",
                 False,
                 "0:10:00",
+                "/a/b/c",
             ],
             [
                 "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
                 "12132",
                 False,
                 "0:10:00",
+                "/a/b/c",
             ],
         ]
         return example_task_summary
@@ -301,6 +307,7 @@ def test_cromwell_job_summary(monkeypatch):
     mock_session = None
     tasks = TaskLog(mock_session, run_id=example_run_id)
     task_info = tasks.cromwell_job_summary()
+
     assert bool(DeepDiff(task_info, expected_task_info, ignore_order=True)) is False
 
 
@@ -316,21 +323,23 @@ def test_task_log(monkeypatch):
 
     def mock_cromwell_task_summary(self):
         example_task_summary = [
-            ["main_workflow.goodbye", "5480", False, "0:10:00"],
-            ["main_workflow.hello", "5481", False, None],
+            ["main_workflow.goodbye", "5480", False, "0:10:00", "/a/b/c"],
+            ["main_workflow.hello", "5481", False, None, "/a/b/c"],
             [
                 "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
                 "5482",
                 False,
                 None,
+                "/a/b/c",
             ],
             [
                 "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
                 "5484",
                 False,
                 None,
+                "/a/b/c",
             ],
-            ["main_workflow.hello_world", None, True, None],
+            ["main_workflow.hello_world", None, True, None, "/a/b/c"],
         ]
         return example_task_summary
 
@@ -435,7 +444,7 @@ def test_task_log(monkeypatch):
     assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
 
 
-def test_task_summary(monkeypatch):
+def test_task_summary_table(monkeypatch):
     def mock_task_log(self):
         self._task_log = [
             [
@@ -516,5 +525,142 @@ def test_task_summary(monkeypatch):
     example_run_id = 1
     mock_session = None
     tasks = TaskLog(mock_session, run_id=example_run_id)
-    actual = tasks.task_summary()
+    actual = tasks.task_summary_table()
     assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
+
+
+def test_get_task_cromwell_dir_mapping(monkeypatch):
+    class TaskMetadata:
+        def __init__(self, task_data):
+            self.tasks = task_data
+
+        def summary(self):
+            return self.tasks
+
+    def mock_cromwell(*args, **kwargs):
+        class CromMetadata:
+            task1 = [
+                [
+                    "align.stats",
+                    1,
+                    False,
+                    "00:30:00",
+                    "/scratch/cromwell-executions/align/C1/call-stats/execution",
+                ],
+            ]
+            task2 = [
+                [
+                    "align.shard_wf:shard_wf.indexing",
+                    2,
+                    False,
+                    "00:30:00",
+                    "/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-indexing/execution",
+                ],
+                [
+                    "align.shard_wf:shard_wf.map[0]",
+                    3,
+                    False,
+                    "01:00:00",
+                    "/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-map/shard-0/execution",
+                ],
+                [
+                    "align.shard_wf:shard_wf.merge",
+                    4,
+                    False,
+                    "00:30:00",
+                    "/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-merge/execution",
+                ],
+                [
+                    "align.shard_wf:shard_wf.shard",
+                    5,
+                    False,
+                    "00:30:00",
+                    "/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-shard/execution",
+                ],
+            ]
+            task3 = [
+                [
+                    "no_cromwell_dir",
+                    1,
+                    False,
+                    "00:30:00",
+                    "",
+                ],
+            ]
+
+            def __init__(self):
+                self.tasks = {
+                    "align.stats": TaskMetadata(CromMetadata.task1),
+                    "align.bbmap_shard_wf": TaskMetadata(CromMetadata.task2),
+                    "no_cromwell_dir": TaskMetadata(CromMetadata.task3),
+                }
+
+        return CromMetadata()
+
+    monkeypatch.setattr(cromwell.Cromwell, "get_metadata", mock_cromwell)
+
+    expected = {
+        "cromwell-executions/align/C1/call-stats/execution": "align.stats",
+        "cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-indexing/execution": "align.shard_wf:shard_wf.indexing",  # noqa
+        "cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-map/shard-0/execution": "align.shard_wf:shard_wf.map[0]",  # noqa
+        "cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-merge/execution": "align.shard_wf:shard_wf.merge",  # noqa
+        "cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-shard/execution": "align.shard_wf:shard_wf.shard",  # noqa
+    }
+    mock_session = None
+    tasks = TaskLog(mock_session, cromwell_run_id="EXAMPLE-CROMWELL-RUN-ID")
+    actual = tasks.get_task_cromwell_dir_mapping()
+    assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
+
+
+def test_task_summary(mock_db_session, monkeypatch):
+    monkeypatch.setattr(TaskLog, "task_summary_table", mock_task_summary_table)
+
+    exp_results = {
+        "task_abcd": {
+            "cached": False,
+            "cromwell_job_id": "cromwell_abcd",
+            "max_time": "03:00:00",
+            "queue_wait": "01:00:00",
+            "queued": this_date,
+            "result": "success",
+            "run_time": "02:00:00",
+        },
+        "task_efgh": {
+            "cached": True,
+            "cromwell_job_id": "cromwell_efgh",
+            "max_time": "06:00:00",
+            "queue_wait": "04:00:00",
+            "queued": this_date,
+            "result": "success",
+            "run_time": "05:00:00",
+        },
+    }
+
+    tasks = TaskLog(mock_db_session, cromwell_run_id="EXAMPLE-CROMWELL-RUN-ID")
+    obs_results = tasks.task_summary()
+    assert bool(DeepDiff(obs_results, exp_results, ignore_order=True)) is False
+
+
+def test_task_status(mock_db_session, monkeypatch):
+    monkeypatch.setattr(TaskLog, "task_status_table", mock_task_status_table)
+
+    exp_results = {
+        "task_abcd": {
+            "cromwell_job_id": "cromwell_abcd",
+            "reason": "reason_abcd",
+            "status": "success",
+            "timestamp": this_date,
+            "cached": False,
+        },
+        "task_efgh": {
+            "cromwell_job_id": "cromwell_efgh",
+            "reason": "reason_efgh",
+            "status": "success",
+            "timestamp": this_date,
+            "cached": True,
+        },
+    }
+
+    tasks = TaskLog(mock_db_session, cromwell_run_id="EXAMPLE-CROMWELL-RUN-ID")
+    obs_results = tasks.task_status()
+    assert bool(DeepDiff(obs_results, exp_results, ignore_order=True)) is False

@@ -33,6 +33,9 @@ example_cromwell_run_id_7 = "dcb85c55-bf74-4f63-bce3-fe61f7b84ebb"
 # successful run, with outputs list
 example_cromwell_run_id_8 = "5a2cbafe-56ed-42aa-955d-fef8cb5014bb"
 
+# successful AWS run
+example_cromwell_run_id_9 = "f4f5afd1-79f5-497a-9612-baed76dc365d"
+
 
 def __load_example_output_from_file(cromwell_run_id, output_type):
     with open(f"{tests_dir}/{cromwell_run_id}.{output_type}.json", "r") as fh:
@@ -48,6 +51,16 @@ def test_get_metadata(requests_mock):
     expectedWorkflowRoot = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3"  # noqa
     metadata1 = crom.get_metadata(example_cromwell_run_id_1)
     assert expectedWorkflowRoot == metadata1.get("workflowRoot")
+
+
+def test_workflow_root(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_9}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_9, "metadata"),
+    )
+    expectedWorkflowRoot = "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d"  # noqa
+    metadata = crom.get_metadata(example_cromwell_run_id_9)
+    assert expectedWorkflowRoot == metadata.workflow_root()
 
 
 def test_task(requests_mock):
@@ -79,12 +92,48 @@ def test_task_summary(requests_mock):
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     actual = metadata.task_summary()
     expected = [
-        ["main_workflow.goodbye", "12129", False, "00:10:00"],
-        ["main_workflow.hello", "12130", False, "00:10:00"],
-        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye", "12134", False, "00:10:00"],
-        ["main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello", "12133", False, "00:10:00"],
-        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye", "12131", False, "00:10:00"],
-        ["main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello", "12132", False, "00:10:00"],
+        [
+            "main_workflow.goodbye",
+            "12129",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-goodbye/execution",  # noqa
+        ],
+        [
+            "main_workflow.hello",
+            "12130",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello/execution",  # noqa
+        ],
+        [
+            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
+            "12134",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-goodbye/execution",  # noqa
+        ],
+        [
+            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+            "12133",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-hello/execution",  # noqa
+        ],
+        [
+            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
+            "12131",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-goodbye/execution",  # noqa
+        ],
+        [
+            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
+            "12132",
+            False,
+            "00:10:00",
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-hello/execution",  # noqa
+        ],
     ]
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
@@ -94,7 +143,6 @@ def test_task_summary(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_5)
     actual = metadata.task_summary()
-    print(actual)  # DEBUG
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
     )
@@ -256,11 +304,83 @@ def test_get_outputs(requests_mock):
             "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",
             "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",
             "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",
-            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis"
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis",
         ]
     }
     ex_8 = crom.get_metadata(example_cromwell_run_id_8)
     actual_outputs_8 = ex_8.outputs(relpath=True)
     assert (
         bool(DeepDiff(actual_outputs_8, expected_outputs_8, ignore_order=True)) is False
+    )
+
+
+def test_outfiles(requests_mock):
+    # test 1 : outputs scalar
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
+    )
+    expected_outfiles_1 = ["./call-count_seqs/execution/num_seqs.txt"]
+    ex_1 = crom.get_metadata(example_cromwell_run_id_1)
+    actual_outfiles_1 = ex_1.outfiles(relpath=True)
+    assert (
+        bool(DeepDiff(actual_outfiles_1, expected_outfiles_1, ignore_order=True))
+        is False
+    )
+
+    # test 2 : outputs list
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_8}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_8, "metadata"),
+    )
+    expected_outfiles_8 = [
+        "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.bck",
+        "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.des",
+        "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.prj",
+        "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",
+        "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",
+        "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",
+        "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis",
+    ]
+    ex_8 = crom.get_metadata(example_cromwell_run_id_8)
+    actual_outfiles_8 = ex_8.outfiles(relpath=True)
+    assert (
+        bool(DeepDiff(actual_outfiles_8, expected_outfiles_8, ignore_order=True))
+        is False
+    )
+
+    # test 9 : aws outputs
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_9}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_9, "metadata"),
+    )
+    expected_outfiles_9 = [
+        "./call-create_agp/cacheCopy/assembly.contigs.fasta",
+        "./call-read_mapping_pairs/covstats.txt",
+        "./call-read_mapping_pairs/pairedMapped.sam.gz",
+        "./call-bbcms/cacheCopy/resources.log",
+        "./call-create_agp/cacheCopy/assembly.scaffolds.fasta",
+        "./call-bbcms/cacheCopy/input.corr.fastq.gz",
+        "./call-assy/resources.log",
+        "./call-read_mapping_pairs/resources.log",
+        "./call-assy/spades3/spades.log",
+        "./call-create_agp/cacheCopy/resources.log",
+        "./call-read_mapping_pairs/pairedMapped_sorted.bam.bai",
+        "./call-bbcms/cacheCopy/counts.metadata.json",
+        "./call-bbcms/cacheCopy/stdout.log",
+        "./call-assy/spades3/scaffolds.fasta",
+        "./call-bbcms/cacheCopy/input.corr.left.fastq.gz",
+        "./call-bbcms/cacheCopy/stderr.log",
+        "./call-bbcms/cacheCopy/readlen.txt",
+        "./call-bbcms/cacheCopy/unique31mer.txt",
+        "./call-create_agp/cacheCopy/assembly.scaffolds.legend",
+        "./call-bbcms/cacheCopy/input.corr.right.fastq.gz",
+        "./call-read_mapping_pairs/pairedMapped_sorted.bam",
+        "./call-create_agp/cacheCopy/assembly.agp",
+    ]
+    ex_9 = crom.get_metadata(example_cromwell_run_id_9)
+    actual_outfiles_9 = ex_9.outfiles(relpath=True)
+    assert (
+        bool(DeepDiff(actual_outfiles_9, expected_outfiles_9, ignore_order=True))
+        is False
     )

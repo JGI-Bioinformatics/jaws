@@ -2,13 +2,11 @@
 RPC operations by which Sites update Run and Job status.
 """
 
-import smtplib
-import ssl
 import logging
 import sqlalchemy.exc
 from datetime import datetime
-from jaws_central.models_sa import Run, Run_Log, User
-from jaws_central import config
+from jaws_central.models import Run, Run_Log, User
+from jaws_central.transfers import Transfer
 from jaws_rpc.responses import success, failure
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -79,25 +77,6 @@ def update_run_logs(params, session):
         session.rollback()
         return failure(error)
 
-    if status_to == "download complete":
-        receiver_email = _get_email_address(session, run.user_id)
-        sender_email = config.conf.get("EMAIL", "user")
-        smtp_server = config.conf.get("EMAIL", "server")
-        port = config.conf.get("EMAIL", "port")
-        password = config.conf.get("EMAIL", "password")
-        smtp_server = 'smtp.gmail.com'
-
-        message = f"""Subject: JAWS Run Complete {run.id}
-
-        Your run {run.id} has completed with \"{run.result}\"
-        """
-
-        context = ssl.create_default_context()
-        with smtplib.SMTP(smtp_server, port) as server:
-            server.starttls(context=context)
-            server.login(sender_email, password)
-            server.sendmail(sender_email, receiver_email, message)
-
     return success()
 
 
@@ -121,6 +100,28 @@ def _get_email_address(session, user_id):
     return user.email
 
 
+def submit_transfer(params, session):
+    try:
+        transfer = Transfer.from_params(session, params)
+    except Exception as error:
+        return failure(str(error))
+    else:
+        return success({"transfer_id": transfer.data.id})
+
+
+def transfer_status(params, session):
+    """
+    Request transfer status from specified site (via RPC) and return the results.
+    """
+    transfer_id = params["transfer_id"]
+    try:
+        transfer = Transfer.from_id(transfer_id)
+    except Exception as error:
+        return failure(str(error))
+    else:
+        return success({"status": transfer.status})
+
+
 # all RPC operations are defined in this dispatch table
 operations = {
     "update_run_logs": {
@@ -131,6 +132,20 @@ operations = {
             "status_from",
             "status_to",
             "timestamp",
+        ],
+    },
+    "submit_transfer": {
+        "function": submit_transfer,
+        "required_parameters": [
+            "src_site_id",
+            "dest_site_id",
+            "manifest_json",
+        ],
+    },
+    "transfer_status": {
+        "function": transfer_status,
+        "required_parameters": [
+            "transfer_id",
         ],
     },
 }

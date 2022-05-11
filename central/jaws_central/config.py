@@ -35,16 +35,30 @@ class Configuration(metaclass=Singleton):
     """Configuration singleton class."""
 
     defaults = {
-        "JAWS": {"name": "jaws", "version": "", "docs_url": ""},
-        "DB": {"dialect": "mysql+mysqlconnector", "host": "localhost", "port": 3306},
+        "JAWS": {
+            "name": "jaws",
+            "version": "",
+            "docs_url": ""
+        },
+        "DB": {
+            "dialect": "mysql+mysqlconnector",
+            "host": "localhost",
+            "port": 3306
+        },
         "RPC_SERVER": {
             "host": "localhost",
             "port": "5672",
+            "user": "guest",  # default from docker container
+            "password": "guest",  # default from docker container
             "queue": "central_rpc",
-            "max_threads": 2,
-            "max_retries": 3,
+            "num_threads": 5,
+            "max_retries": 5,
         },
-        "HTTP": {"auth_url": "localhost", "auth_port": "3000", "rest_port": "5000"},
+        "HTTP": {
+            "auth_url": "localhost",
+            "auth_port": "3000",
+            "rest_port": "5000"
+        },
     }
     required_params = {
         "DB": ["user", "password", "db"],
@@ -75,7 +89,6 @@ class Configuration(metaclass=Singleton):
         if not os.path.isfile(config_file):
             raise FileNotFoundError(f"{config_file} does not exist")
         self.config = configparser.ConfigParser(interpolation=EnvInterpolation())
-        # self.config = configparser.ConfigParser()
         self.config.read_dict(self.defaults)
         try:
             self.config.read(config_file)
@@ -101,7 +114,7 @@ class Configuration(metaclass=Singleton):
         self.sites = {}
         for section in self.config.sections():
             if section.startswith("SITE:"):
-                site_id = section[len("SITE:"):].upper()
+                site_id = section[len("SITE:") :].upper()  # noqa
                 if len(site_id) > MAX_SITE_ID_LEN:
                     raise ConfigurationError(
                         f"Invalid Site ID: {site_id} (max. {MAX_SITE_ID_LEN} char.)"
@@ -125,12 +138,21 @@ class Configuration(metaclass=Singleton):
         global conf
         conf = self
 
-    def get(self, section: str, key: str) -> str:
+    def get(self, section: str, key: str, default=None) -> str:
         if section not in self.config:
             raise ConfigurationError(f"Section {section} not defined in config obj")
-        return self.config[section].get(key)
+        return self.config[section].get(key, default)
 
-    def get_site(self, site_id: str, key: str) -> str:
+    def get_site(self, site_id: str) -> dict:
+        """Retrieve Site config section
+        :param site_id: Unique ID of a JAWS-Site
+        :type site_id: str
+        :return: All of a Site's configuration parameters
+        :rtype: dict
+        """
+        return self.get_section(f"SITE:{site_id}")
+
+    def get_site_param(self, site_id: str, key: str) -> str:
         """Retrieve Site config parameter; syntactic sugar.
 
         :param site_id: Unique ID of a JAWS-Site

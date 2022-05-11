@@ -46,7 +46,8 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_JTM_SCRATCH_BASEDIR: SCRATCH directory for JTM. Can be same as JAWS   
 - [SITE]_JAWS_SW_BASEDIR: Base directory where JAWS code is located  
 - [SITE]_JTM_SW_BASEDIR: Base directory where JTM code is located  
-- [SITE]_REF_DATA_DIR: Location of JGI ref data  
+- [SITE]_FAST_SCRATCH_DIR: Path of fast storage local to worker nodes
+- [SITE]_BIG_SCRATCH_DIR: Path of large storage local to worker nodes
 - [SITE]_SUPERVISOR_HOST: Supervisor hostname for site  
 - [SITE]_CONTAINER_TYPE: Container type the site uses (shifter, singularity etc)  
 - [SITE]_CLUSTER_QOS: quality of service to use for a particular cluster  
@@ -55,8 +56,8 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_CLUSTER_CONSTRAINT: Cluster node type (eg - haswell, knl, skylake) 
 - [SITE]_MAX_RAM_GB: Maximum ram for the cluster
 - [SITE]_LOAD_JAVA: Module load command for Java  
-- [SITE]_STAGING_USER_DIR: staging area for wdls, json files, manifest files and zip files for Globus transfer.
-- [SITE]_DATA_REPO_DIR: output location of processed data sets. All under shared group permissions.
+- [SITE]_UPLOADS_DIR: staging area for wdls, json files, zipped subworkflows files
+- [SITE]_DOWNLOADS_DIR: output location of processed data sets. All under shared group permissions.
 
 
 ### deploy-jaws 

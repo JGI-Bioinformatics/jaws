@@ -1,6 +1,7 @@
 import pytest
 import jaws_central.auth
 import jaws_central.models_fsa
+from tests.conftest import MockSession
 
 MOCK_JSON = {
     "ip": "1.2.3.4",
@@ -11,8 +12,8 @@ MOCK_JSON = {
         "first_name": "Jane",
         "middle_name": None,
         "last_name": "Doe",
-        "email_address": "ijklmn@foo.gov"
-    }
+        "email_address": "ijklmn@foo.gov",
+    },
 }
 
 
@@ -42,18 +43,6 @@ class MockQuery:
     @staticmethod
     def get(user):
         return MockUser()
-
-
-class MockSession:
-    @staticmethod
-    def query(user):
-        return MockQuery()
-
-
-class MockDb:
-    @property
-    def session(self):
-        return MockSession()
 
 
 @pytest.fixture()

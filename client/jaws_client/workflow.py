@@ -13,6 +13,7 @@ import zipfile
 import logging
 import pathlib
 import warnings
+import uuid
 from jaws_client.config import Configuration
 from jaws_client.wdl_runtime_validator import validate_wdl_runtime
 from jaws_client.copy_progress import copy_with_progress_bar
@@ -32,20 +33,10 @@ def join_path(*args):
     return os.path.join(*args)
 
 
-def rsync(src, dest, options=["-rLtq"]):
-    """Copy source to destination using rsync.
-
-    :param src: Source path
-    :type src: str
-    :param dest: Destination path
-    :type dest: str
-    :param options: rsync options
-    :type options: str
-    :return: None
-    """
-    return subprocess.run(
-        ["rsync", *options, src, dest], capture_output=True, text=True
-    )
+def mkdir(path, perms=0o0775):
+    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+    if perms:
+        os.chmod(path, perms)
 
 
 def convert_to_gb(mem, prefix):
@@ -57,6 +48,7 @@ def convert_to_gb(mem, prefix):
     :param prefix: units prefix
     :type prefix str
     :return: memory in gigabytes
+    :rtype: int
     """
     conversion_table = {
         "g": lambda x: x,
@@ -125,10 +117,6 @@ def values(inputs_map):
         yield from value_generator(val)
 
 
-def is_refdata(filepath):
-    return filepath.startswith("/refdata")
-
-
 def looks_like_file_path(input):
     return True if isinstance(input, str) and re.match(".{0,2}/.+", input) else False
 
@@ -138,7 +126,7 @@ def recurse_list_type(inp_type):
     Eg. Array[Array[File]] -> Array[File] -> File.
     Eg. Array[Map[Int, String]] -> Map[Int, String]
     (will move to recurse_dict_type fuction to process this map further)"""
-    return inp_type[inp_type.find("[") + 1: len(inp_type) - 1]
+    return inp_type[inp_type.find("[") + 1 : len(inp_type) - 1]  # noqa
 
 
 def recurse_dict_type(inp_type, dict_type):
@@ -158,11 +146,12 @@ def recurse_dict_type(inp_type, dict_type):
             bracket_stack.append(element)
         if element == "," and bracket_stack == []:
             break
-        if ((element == "]" or element == "}") and
-                paren_map[element] == bracket_stack[-1]):
+        if (element == "]" or element == "}") and paren_map[element] == bracket_stack[
+            -1
+        ]:
             bracket_stack.pop()
     key = inp_type[start_idx:idx]
-    value = inp_type[idx + 1: len(inp_type) - 1]
+    value = inp_type[idx + 1 : len(inp_type) - 1]  # noqa
     return key, value
 
 
@@ -181,7 +170,7 @@ def process_wom_composite(inp_type):
     """
     dict_type = "WomCompositeType{"
     start_idx = inp_type.find(dict_type) + len(dict_type)
-    elements = inp_type[start_idx: len(inp_type)-1]
+    elements = inp_type[start_idx : len(inp_type) - 1]  # noqa
     elements = elements.strip().split()
     struct_obj = {}
     for element in elements:
@@ -220,7 +209,8 @@ def apply_filepath_op(obj, inp_type, operation):
             struct_obj = {}
             for variable in inp_type:
                 struct_obj[variable] = apply_filepath_op(
-                    obj[variable], inp_type[variable], operation)
+                    obj[variable], inp_type[variable], operation
+                )
             return struct_obj
         if inp_type.startswith("Pair["):
             left_type, right_type = recurse_dict_type(inp_type, "Pair[")
@@ -242,6 +232,90 @@ def apply_filepath_op(obj, inp_type, operation):
         )
 
 
+class Run:
+    """
+    A Run is comprised of a Workflow (WDL file(s)) and input files/parameters (inputs JSON file).
+    """
+
+    def __init__(self, wdl_file, json_file, input_basedir, output_basedir, **kwargs):
+        """
+        A Run requires the main WDL and inputs JSON.  If the main WDL uses subworkflows,
+        a ZIP archive may optionally be supplied, otherwise the object will attempt to
+        create it (requires `womtool` to be installed).
+        :param wdl_file: Path to main WDL file
+        :ptype wdl_file: str
+        :param json_file: Path to inputs JSON file
+        :ptype json_file: str
+        :param input_basedir: Base dir where Run WDL and infiles shall be copied.
+        :ptype input_basedir: str
+        :param output_basedir: Base dir where Run results are located.
+        :ptype output_basedir: str
+        """
+        self.input_basedir = input_basedir
+        self.output_basedir = output_basedir
+
+        subworkflows_zip_file = None
+        if "subworkfows_zip_file" in kwargs:
+            subworkflows_zip_file = kwargs["subworkflows_zip_file"]
+        quiet = False
+        if "quiet" in kwargs:
+            quiet = True if kwargs["quiet"] else False
+
+        # validate WDL file(s)
+        self.wdl = WdlFile(wdl_file)
+        self.wdl.validate()
+
+        # validate inputs json
+        self.inputs = WorkflowInputs(json_file, wdl_file)
+
+        # The submission_id is a unique identifier used before the run_id is assigned.
+        # It is used to name the temporary output directory and to name the input
+        # workflow (WDL, JSON, ZIP) files.
+        self.submission_id = str(uuid.uuid4())
+
+        # This folder is where the outputs shall be returned.  Make the dir now --
+        # the ACL rules will ensure the folder is writeable by `jaws`
+        self.output_dir = f"{output_basedir}/{self.submission_id}"
+        mkdir(self.output_dir)
+
+        # Create optional subworkflows Zip-file and copy Run all inputs to the
+        # input-dir, a folder where JAWS user can read them.  The subworkflows ZIP may be
+        # supplied by the user or it will be created automatically.
+        staged_wdl_file, zip_file = self.wdl.prepare_wdls(
+            self.input_basedir, self.submission_id, subworkflows_zip_file
+        )
+
+        # Run infiles (identified in the inputs JSON file) are copied to the input-dir,
+        # so they may be read by JAWS user
+        try:
+            copied_files = self.inputs.copy_input_files(self.input_dir, quiet)
+        except Exception as error:
+            raise IOError(f"Unable to copy input files: {error}")
+
+        # generate a new inputs JSON object with the paths pointing to the files copied under
+        # the inputs-dir
+        staged_inputs_json_file = f"{self.input_basedir}/{self.submission_id}.json"
+        self.inputs.prepend_paths_to_json(self.input_site_id)
+        self.inputs.write_to(staged_inputs_json_file)
+
+        # generate a (unique) list of all files to be transferred to the compute-site
+        self.manifest = Manifest(input_basedir)
+        self.manifest.add(
+            staged_inputs_json_file, staged_wdl_file, zip_file, *copied_files
+        )
+
+        # Copy workflow inputs (WDL, JSON, ZIP) to the output dir for the user's reference.
+        # These copies are not used by JAWS.
+        shutil.copy(json_file, self.output_dir)
+        shutil.copy(wdl_file, self.output_dir)
+        if subworkflows_zip_file:
+            # if user-supplied zip, copy it to keep original filename
+            shutil.copy(subworkflows_zip_file, self.output_dir)
+        elif zip_file:
+            # else copy automatically generated zip (if exists)
+            shutil.copy(zip_file, f"{self.output_dir}/subworkflows.zip")
+
+
 class WdlFile:
     """
     A WDL object that can be queried for subworkflows, memory requirements and can also validate itself.
@@ -250,30 +324,38 @@ class WdlFile:
     keep track of any resource requirements (max_memory) required. It will also know its compressed file location.
     """
 
-    def __init__(self, wdl_file_location, submission_id, contents=None):
+    def __init__(self, wdl_file_location, contents=None):
         """
         Constructor for the WDL file.
 
         :param wdl_file_location:  location where the WDL file exists
-        :param staging_subdir_path:  the directory where WDLs and cromwell files are all staged
-        :param submission_id:  a uuid.uuid4() generated string
+        :param contents: contents of file, if has already been read
         """
 
         self.file_location = os.path.abspath(wdl_file_location)
         self.name = self._get_wdl_name(wdl_file_location)
-        self.submission_id = submission_id
+        self._subworkflows = None
+        self.max_ram_gb = 0
+
         self.contents = (
             contents if contents is not None else open(wdl_file_location, "r").read()
         )
-        self._subworkflows = None
-        self._max_ram_gb = None
-        self.compute_max_ram_gb = None
+        self.lines = self.contents.split("\n")
+
+        # the max RAM required by any task must be supplied to JAWS with the Run
+        self.set_max_ram_gb()
+
+        # specifying the Cromwell backend to use (e.g. LOCAL) is disallowed
+        self.verify_wdl_has_no_backend_tags()
+
+        # verify required tags are set (e.g. memory)
+        validate_wdl_runtime(self.contents)
 
     def _set_subworkflows(self, output):
         """
         Filters the output of WOMTool inputs -l so that it can parse through and grab the paths to the sub-workflows.
 
-        It will collect the sub-workflows to a set of WdlFiles. The parent globus_basedir, staging_dir and path
+        It will collect the sub-workflows to a set of WdlFiles. The parent basedir, staging_dir and path
         to the ZIP file are passed down to the sub workflows.
 
         Subworkflows are also checked for invalid 'backend' tag and a WdlError will be raised if found.
@@ -290,10 +372,15 @@ class WdlFile:
         subworkflows = set()
         for sub in out:
             match = re.search(command_line_regex, sub)
-            if sub not in filtered_out_lines and not match and not sub.startswith("http"):
-                sub_wdl = WdlFile(sub, self.submission_id)
-                sub_wdl.verify_wdl_has_no_backend_tags()
+            if (
+                sub not in filtered_out_lines
+                and not match
+                and not sub.startswith("http")
+            ):
+                sub_wdl = WdlFile(sub)
                 subworkflows.add(sub_wdl)
+                if sub_wdl.max_ram_gb > self.max_ram_gb:
+                    self.max_ram_gb = sub_wdl.max_ram_gb
         self._subworkflows = list(subworkflows)
 
     @property
@@ -312,7 +399,7 @@ class WdlFile:
         return self._subworkflows
 
     @staticmethod
-    def _check_missing_subworkflow_msg(stderr):
+    def missing_subworkflows_error_msg(stderr):
         missing = set()
         m = re.search("Failed to import workflow (.+).:", stderr)
         if m:
@@ -320,79 +407,46 @@ class WdlFile:
                 missing.add(sub)
             raise WdlError("Subworkflows not found: " + ", ".join(missing))
 
-    def validate(self, compute_max_ram_gb=None):
+    def validate(self):
         """
-        Validates the WDL file using Cromwell's womtool and runtime validator.
+        Validates the WDL file using Cromwell's womtool.
         Any syntax errors from WDL will be raised in a WdlError.
+        Any subworkflows will also be identified and initialized.
         This is a separate method and not done automatically by the constructor because subworkflows() returns
         WdlFile objects and we wish to avoid running womtool multiple times unnecessarily.
         :return:
         """
         logger = logging.getLogger(__package__)
         logger.debug(f"Validating WDL, {self.file_location}")
-        if compute_max_ram_gb:
-            self.compute_max_ram_gb = compute_max_ram_gb
 
+        # validate WDL using womtool
         stdout, stderr = womtool("validate", "-l", self.file_location)
+
+        # define subworkflow WDLs, if any
         self._set_subworkflows(stdout)
         if stderr:
-            self._check_missing_subworkflow_msg(stderr)
+            self.missing_subworkflows_error_msg(stderr)
             raise WdlError(stderr)
-        self.verify_wdl_has_no_backend_tags()
-
-        if self.compute_max_ram_gb:
-            validate_wdl_runtime(self.contents, self.compute_max_ram_gb)
 
     @staticmethod
     def _get_wdl_name(file_location):
         return os.path.basename(file_location)
 
-    def _calculate_max_ram_gb(self):
+    def set_max_ram_gb(self):
         """
         Helper method for calculating the maximum memory in a WDL.
 
         :return: maximum memory specified in a WDL.
         """
-        max_ram = 0
-        with open(self.file_location, "r") as f:
-            for line in f:
-                m = re.match(
-                    r"^\s+(mem|memory)\s*[:=]\s*\"?(\d+\.?\d*)([kKmMgGtT])\"?", line
-                )
-                if m:
-                    g = m.groups()
-                    if g[0] == "memory":
-                        mem = int(m.group(2))
-                        prefix = m.group(3).lower()
-                        mem = convert_to_gb(mem, prefix)
-                        if mem > max_ram:
-                            max_ram = mem
-                    else:
-                        raise WdlError(
-                            "The 'mem' tag is deprecated; please use 'memory' instead"
-                        )
-        return max_ram
-
-    @property
-    def max_ram_gb(self):
-        """
-        Lazily evaluates the maximum memory specified in a WDL and its imported WDL files.
-
-        The evaluation is lazy because it also has to call WOMTool to grab the subworkflows and thus
-        can be an expensive operation.
-
-        :return: maximum RAM in GB, rounded up to the nearest GB.
-        :rtype: int
-        """
-        if self._max_ram_gb is None:
-            self._max_ram_gb = self._calculate_max_ram_gb()
-            for subworkflow_file in self.subworkflows:
-                if subworkflow_file.max_ram_gb > self._max_ram_gb:
-                    self._max_ram_gb = subworkflow_file.max_ram_gb
-
-        logger = logging.getLogger(__package__)
-        logger.debug(f"Maximum RAM requested is {self._max_ram_gb}Gb")
-        return self._max_ram_gb
+        for line in self.lines:
+            m = re.match(r"^\s+memory\s*[:=]\s*\"?(\d+\.?\d*)([kKmMgGtT])\"?", line)
+            if m:
+                g = m.groups()
+                mem = int(g[0])
+                prefix = g[1].lower()
+                mem = convert_to_gb(mem, prefix)
+                if mem > self.max_ram_gb:
+                    self.max_ram_gb = mem
 
     def copy_to(self, destination, permissions=0o664):
         shutil.copy(self.file_location, destination)
@@ -412,16 +466,12 @@ class WdlFile:
         :type wdl: str
         :return:
         """
-        # We are temporarily turning this check off to allow Parsl backend testing;
-        # once complete, delete the following line to disallow "backend" tags once again.
-        return
-        with open(self.file_location, "r") as fh:
-            for line in fh:
-                m = re.match(r"^\s*backend", line)
-                if m:
-                    raise WdlError("ERROR: WDLs may not contain 'backend' tag")
+        for line in self.lines:
+            m = re.match(r"^\s*backend", line)
+            if m:
+                raise WdlError("ERROR: WDLs may not contain 'backend' tag")
 
-    def prepare_wdls(self, staging_dir=".", user_zip=None):
+    def prepare_wdls(self, staging_dir, submission_id, user_zip=None):
         """
         Create a new staging WDL and compress any subworkflow files into a ZIP file.
 
@@ -443,29 +493,29 @@ class WdlFile:
         if not os.path.isdir(staging_dir):
             os.makedirs(staging_dir)
 
-        # the main wdl must be copied to submission path
-        staged_wdl_filename = join_path(staging_dir, f"{self.submission_id}.wdl")
+        # the main wdl must be copied to submission path and named by submission id
+        staged_wdl_filename = join_path(staging_dir, f"{submission_id}.wdl")
         self.copy_to(staged_wdl_filename)
 
-        # any subworkflows must be zipped and also copied to submission path
-        compressed_file_format = ".zip"
-        compressed_file = join_path(
-            staging_dir, self.submission_id + compressed_file_format
-        )
+        # any subworkflows must be zipped and also copied to submission path and are
+        # also named using the submission id
+        compressed_file = join_path(staging_dir, submission_id + ".zip")
         if not len(self.subworkflows):
             return staged_wdl_filename, None
         elif user_zip:
             shutil.copy(user_zip, compressed_file)
             os.chmod(compressed_file, 0o664)
         else:
-            self.compress_subworkflows(compressed_file, staging_dir)
+            self.compress_subworkflows(compressed_file, staging_dir, submission_id)
         return staged_wdl_filename, compressed_file
 
-    def compress_subworkflows(self, compressed_file: str, staging_dir: str):
+    def compress_subworkflows(
+        self, compressed_file: str, staging_dir: str, submission_id: str
+    ):
         """
         Generate ZIP file of required subworkflows.
         """
-        compression_dir = pathlib.Path(os.path.join(staging_dir, self.submission_id))
+        compression_dir = pathlib.Path(os.path.join(staging_dir, submission_id))
         compression_dir.mkdir(parents=True, exist_ok=True)
         main_wdl_dir = os.path.dirname(self.file_location)
 
@@ -509,21 +559,21 @@ class WorkflowInputs:
     The user will submit the WDL, and JSON files to specify the workflow to JAWS. The inputs JSON
     will store the location of the input files. These input files are then pre-pended with the staging directory
     where JAWS Central will know where to pick them up.
-
     """
 
-    def __init__(self, inputs_loc, submission_id, inputs_json=None, wdl_loc=None):
+    def __init__(self, inputs_loc, wdl_loc, inputs_json=None):
         """
         This class represents the inputs JSON which may contain both path and non-path elements.
-        Inputs that look like relative paths and converted to absolute paths.
+        Inputs that look like relative paths are converted to absolute paths.
         Input paths are saved in a set, for ease of processing without traversing complex data structure.
         """
-        self.submission_id = submission_id
         self.inputs_location = os.path.abspath(inputs_loc)
         self.basedir = os.path.dirname(self.inputs_location)
-        inputs_json = (
-            json.load(open(inputs_loc, "r")) if inputs_json is None else inputs_json
-        )
+        if not inputs_json:
+            try:
+                inputs_json = json.load(open(inputs_loc, "r"))
+            except json.JSONDecodeError as error:
+                raise WorkflowInputsError(f"Your inputs JSON is invalid: {error}")
         self.inputs_json = {}
         self.src_file_inputs = set()
         self.wdl_file_location = os.path.abspath(wdl_loc)
@@ -557,9 +607,9 @@ class WorkflowInputs:
             self.src_file_inputs.add(element)
         return element
 
-    def move_input_files(self, destination, quiet=False):
+    def copy_input_files(self, destination, quiet=False):
         """
-        Moves the input files defined in a JSON file to a destination.
+        Copies the input files defined in a JSON file to a destination.
 
         It will make any directories that are needed in the staging path and then copy the files.
 
@@ -571,11 +621,8 @@ class WorkflowInputs:
 
         for original_path in self.src_file_inputs:
 
-            # if the path doesn't exist, it may refer to a path in a Docker container, so just
-            # warn user and skip, without raising an exception
             if not os.path.exists(original_path):
-                warnings.warn(f"Input path not found or inaccessible: {original_path}")
-                continue
+                raise ValueError(f"Input path not found or inaccessible: {original_path}")
 
             staged_path = pathlib.Path(f"{destination}{original_path}")
             dest_path = staged_path.as_posix()
@@ -598,23 +645,19 @@ class WorkflowInputs:
 
     def prepend_paths_to_json(self, staging_dir):
         """
-        Modifies the paths of real files by prepending the base dir of the compute site.
+        Modifies the paths of real files by prepending the inputs dir to where they were copied.
+        Thus the inputs-json will have file paths which point to the new (copied) location that JAWS can access.
         Only paths which exist are modified; other path-like strings presumably refer to files in the container.
         """
-        destination_json = {}
+        new_json = {}
         for k in self.inputs_json:
-            destination_json[k] = apply_filepath_op(
+            new_json[k] = apply_filepath_op(
                 self.inputs_json[k],
                 self.wom_input_types[k],
                 self._prepend_path(staging_dir),
             )
-
-        return WorkflowInputs(
-            staging_dir,
-            self.submission_id,
-            destination_json,
-            wdl_loc=self.wdl_file_location,
-        )
+        self.inputs_json = new_json
+        return new_json
 
     @staticmethod
     def _prepend_path(path_to_prepend):
@@ -623,7 +666,7 @@ class WorkflowInputs:
         updated to reflect the new location by prepending the site's uploads basedir.
         Only paths which exist are modified because these are the only files which are transferred; the other
         paths presumably refer to files in a Docker container.
-        If element is a file and contains "http", do not prepend given path to it
+        If element is a file and is an URL, do not prepend given path to it
         """
 
         def func(path, is_file):
@@ -644,49 +687,27 @@ class WorkflowInputs:
         :return:
         """
         with open(json_location, "w") as json_inputs:
-            json.dump(self.inputs_json, json_inputs, indent=4)
+            json.dump(self.inputs_json, json_inputs, indent=2)
 
 
 class Manifest:
     """
-    A Manifest file includes all the files and their inode types that are transferred over via Globus.
-
-    It is a TSV (tab-separate value) file.
+    The Manifest is a list of all the Run's input files which must be transferred to the compute jaws-site.
+    Paths stored are relative to the specified base directory.
     """
 
-    def __init__(self, staging_dir, dest_dir):
-        self.staging_dir = staging_dir
-        self.dest_dir = dest_dir
-        self.manifest = []
+    def __init__(self, basedir):
+        self.basedir = basedir
 
-    def add(self, *args):
-        """
-        Adds the specified filepath to the manifest TSV. It will include the source path, the destination path
-        and its inode type (file or directory).
-
-        :param filepath: path of the file to add to TSV
-        :return:
-        """
-        for filepath in args:
-            if filepath is None:
-                continue  # zip file may be none
-            inode_type = "D" if os.path.isdir(filepath) else "F"
-            src_rel_path = os.path.relpath(filepath, self.staging_dir)
-            dest_rel_path = f"{self.dest_dir}/{src_rel_path}"
-            self.manifest.append([filepath, dest_rel_path, inode_type])
-
-    def write_to(self, write_location):
-        """
-        Writes the TSV file to a specified location.
-
-        :param write_location: a file path
-        :return:
-        """
-        logger = logging.getLogger(__package__)
-        logger.debug(f"Writing manifest file: {write_location}")
-        with open(write_location, "w") as f:
-            for src, dest, inode_type in self.manifest:
-                f.write(f"{src}\t{dest}\t{inode_type}\n")
+    def add(self, *files):
+        # use a set to ensure files are unique
+        uniq_files = set()
+        for filepath in files:
+            if filepath and os.path.isfile(filepath):
+                abs_path = os.path.abspath(filepath)
+                rel_path = os.path.relpath(abs_path, self.basedir)
+                uniq_files.add(rel_path)
+        self.files = list(uniq_files)
 
 
 class WorkflowError(Exception):

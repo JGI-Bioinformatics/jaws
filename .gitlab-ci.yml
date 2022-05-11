@@ -79,13 +79,14 @@ variables:
   CORI_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
   CORI_GLOBUS_HOST_PATH: "/"
   CORI_PYTHON: "python3"
-  CORI_LOAD_PYTHON: "module load python/3.8-anaconda-2020.11"
+  CORI_LOAD_PYTHON: "module load python/3.9-anaconda-2021.11"
   CORI_JAWS_GROUP: "jaws"
   CORI_JTM_GROUP: "jaws_jtm"
   CORI_CLIENT_GROUP: "genome"
   CORI_JAWS_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws"
   CORI_JTM_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws_jtm"
-  CORI_REF_DATA_DIR: "/global/dna/shared/databases/jaws/refdata"
+  CORI_FAST_SCRATCH_DIR: ""
+  CORI_BIG_SCRATCH_DIR: ""
   CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
   CORI_CONTAINER_TYPE: "shifter"
   CORI_CONTAINER_TMPDIR: "/global/cscratch1/sd/jaws_jtm"
@@ -100,7 +101,7 @@ variables:
   CORI_RMQ_PORT: 5672
   CORI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
   CORI_MONITOR_RMQ_PORT: 5672
-  CORI_HTCONDOR_INSTALL: "/global/cfs/projectdirs/jaws/jaws-install/condor/condor"
+  CORI_HTCONDOR_INSTALL: "/global/cfs/projectdirs/jaws/condor/condor"
   CORI_HTCONDOR_MASTER_CONFIG: "/global/cfs/projectdirs/jaws/condor/condor_central.config"
   CORI_PERFORMANCE_METRICS_SCRIPT: "/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus"
   CORI_PERFORMANCE_METRICS_DIR: "/global/cscratch1/sd/jaws_jtm/monitoring-runs"
@@ -108,25 +109,26 @@ variables:
   JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
   JGI_GLOBUS_EP: "e8b18c38-36cd-11eb-b54c-02d9497ca481"
-  JGI_GLOBUS_HOST_PATH: "/global/scratch/jaws"
+  JGI_GLOBUS_HOST_PATH: "/global/scratch/users/jaws"
   JGI_PYTHON: "python"
   JGI_LOAD_PYTHON: "module load python/3.8.2-dll"
   JGI_JAWS_GROUP: "jaws"
   JGI_JTM_GROUP: "jaws"
   JGI_CLIENT_GROUP: "jgi"
-  JGI_JAWS_SCRATCH_BASEDIR: "/global/scratch/jaws"
-  JGI_JTM_SCRATCH_BASEDIR: "/global/scratch/jaws"
-  JGI_REF_DATA_DIR: "/global/scratch/jaws/refdata"
+  JGI_JAWS_SCRATCH_BASEDIR: "/global/scratch/users/jaws"
+  JGI_JTM_SCRATCH_BASEDIR: "/global/scratch/users/jaws"
+  JGI_FAST_SCRATCH_DIR: ""
+  JGI_BIG_SCRATCH_DIR: ""
   JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
   JGI_CONTAINER_TYPE: "singularity"
-  JGI_CONTAINER_TMPDIR: "/global/scratch/jaws"
+  JGI_CONTAINER_TMPDIR: "/global/scratch/users/jaws"
   JGI_CLUSTER_QOS: "normal"
   JGI_CLUSTER_PARTITION: "jgi"
   JGI_CLUSTER_ACCOUNT: "jgi"
   JGI_CLUSTER_CONSTRAINT: ""
   JGI_MAX_RAM_GB: 512
   JGI_LOAD_JAVA: "module load java"
-  JGI_DATA_REPO_BASEDIR: "/global/scratch/jaws"
+  JGI_DATA_REPO_BASEDIR: "/global/scratch/users/jaws"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
   JGI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
@@ -134,7 +136,7 @@ variables:
   JGI_HTCONDOR_INSTALL: "/global/home/groups-sw/lr_jgicloud/condor/condor"
   JGI_HTCONDOR_MASTER_CONFIG: "/global/home/groups-sw/lr_jgicloud/condor/condor_central.config"
   JGI_PERFORMANCE_METRICS_SCRIPT: "/global/home/groups-sw/lr_jgicloud/jaws-metrics/bin/pagurus"
-  JGI_PERFORMANCE_METRICS_DIR: "/global/scratch/jaws/jaws-jtm/monitoring-runs"
+  JGI_PERFORMANCE_METRICS_DIR: "/global/scratch/users/jaws/jaws-jtm/monitoring-runs"
 
   TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install/jaws-client/"
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
@@ -145,9 +147,10 @@ variables:
   TAHOMA_JAWS_GROUP: "svc-jtm-manager"
   TAHOMA_JTM_GROUP: "svc-jtm-user"
   TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
-  TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi"
-  TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi"
-  TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata"
+  TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi/scratch"
+  TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi/scratch"
+  TAHOMA_FAST_SCRATCH_DIR: "/fast_scratch"
+  TAHOMA_BIG_SCRATCH_DIR: "/big_scratch"
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
   TAHOMA_CONTAINER_TMPDIR: "/big_scratch"
@@ -169,8 +172,8 @@ variables:
 
   AWS_CLIENT_INSTALL_BASEDIR: "/opt/jaws-install/jaws-client/"
   AWS_INSTALL_BASEDIR: "/opt/jaws-install"
-  AWS_GLOBUS_EP: "f441d224-35cd-11ec-95e9-853490a236f9"
-  AWS_GLOBUS_HOST_PATH: "/tmp"
+  AWS_GLOBUS_EP: ""
+  AWS_GLOBUS_HOST_PATH: ""
   AWS_PYTHON: "python3"
   AWS_LOAD_PYTHON: ""
   AWS_JAWS_GROUP: "ec2-user"
@@ -178,7 +181,8 @@ variables:
   AWS_CLIENT_GROUP: "ec2-user"
   AWS_JAWS_SCRATCH_BASEDIR: "/tmp"
   AWS_JTM_SCRATCH_BASEDIR: "/tmp"
-  AWS_REF_DATA_DIR: "/tmp/refdata"
+  AWS_FAST_SCRATCH_DIR: ""
+  AWS_BIG_SCRATCH_DIR: ""
   AWS_SUPERVISOR_HOST: "http://localhost"
   AWS_CONTAINER_TYPE: "singularity"
   AWS_CONTAINER_TMPDIR: "/tmp"
@@ -268,7 +272,19 @@ test-jtm:
   artifacts:
     reports:
       cobertura: jtm/coverage.xml
-
+test-condor:
+  <<: *only-default
+  stage: unit-test
+  script:
+    - python3.8 -m venv test-venv
+    - source test-venv/bin/activate
+    - pip3.8 install condor/
+    - pip3.8 install -r condor/requirements.txt
+    - pip3.8 install flake8 pytest pytest-cov
+    - make test-condor
+  artifacts:
+    reports:
+      cobertura: condor/coverage.xml
 package:
   tags:
     - shared-shell

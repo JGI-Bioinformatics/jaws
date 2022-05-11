@@ -139,7 +139,7 @@ def copy_with_progress_bar(src, dest, **kwargs):
         shutil.copystat(str(srcfile), str(destfile))
     else:
         start_t = time.time()
-        with tqdm(total=src_size) as bar:
+        with tqdm(total=src_size, unit='B', unit_scale=True) as bar:
             _copy_with_callback(
                 srcfile,
                 destfile,

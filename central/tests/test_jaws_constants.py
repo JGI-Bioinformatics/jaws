@@ -4,10 +4,13 @@ import jaws_central.jaws_constants
 def test_run_status_msg():
 
     valid_run_states = [
+        "created",
+        "upload queued",
         "uploading",
         "upload failed",
         "upload inactive",
         "upload complete",
+        "ready",
         "missing input",
         "submitted",
         "submission failed",
@@ -15,12 +18,14 @@ def test_run_status_msg():
         "running",
         "succeeded",
         "failed",
+        "finished",
         "aborting",
         "aborted",
+        "download queued",
         "downloading",
         "download failed",
         "download inactive",
-        "download complete"
+        "download complete",
     ]
 
     for status in valid_run_states:

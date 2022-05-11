@@ -5,13 +5,13 @@
 import os
 import click
 import logging
+from jaws_central import config, log
 import connexion
 from flask_cors import CORS
 from urllib.parse import quote_plus
 from sqlalchemy.pool import QueuePool
-from jaws_central import config, log
 from jaws_central.models_fsa import db
-from jaws_rpc import rpc_index, rpc_server
+from jaws_rpc import rpc_index
 
 
 JAWS_LOG_ENV = "JAWS_CENTRAL_LOG"
@@ -29,10 +29,16 @@ def cli(config_file: str, log_file: str, log_level: str) -> None:
     # Initialize logging and configuration singletons;
     # as they are singletons, the Click context object is not needed.
     if log_file is None:
-        log_file = os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
+        log_file = (
+            os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
+        )
     logger = log.setup_logger(__package__, log_file, log_level)
     if config_file is None:
-        config_file = os.environ[JAWS_CONFIG_ENV] if JAWS_CONFIG_ENV in os.environ else JAWS_CWD_CONFIG
+        config_file = (
+            os.environ[JAWS_CONFIG_ENV]
+            if JAWS_CONFIG_ENV in os.environ
+            else JAWS_CWD_CONFIG
+        )
     conf = config.Configuration(config_file)
     if conf:
         logger.debug(f"Config using {config_file}")
@@ -58,12 +64,12 @@ def auth() -> None:
     connex.app.config["SQLALCHEMY_ECHO"] = False
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        'poolclass': QueuePool,
+        "poolclass": QueuePool,
         "pool_pre_ping": True,
         "pool_recycle": 3600,
         "pool_size": 5,
         "max_overflow": 10,
-        "pool_timeout": 30
+        "pool_timeout": 30,
     }
     db.init_app(connex.app)
 
@@ -109,12 +115,12 @@ def rest() -> None:
     connex.app.config["SQLALCHEMY_ECHO"] = False
     connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        'poolclass': QueuePool,
+        "poolclass": QueuePool,
         "pool_pre_ping": True,
         "pool_recycle": 3600,
         "pool_size": 5,
         "max_overflow": 10,
-        "pool_timeout": 30
+        "pool_timeout": 30,
     }
 
     # add CORS support
@@ -146,12 +152,35 @@ def rest() -> None:
 @cli.command()
 def rpc() -> None:
     """Start JAWS-Central RPC server."""
+    from jaws_rpc import rpc_server
     from jaws_central.database import Session
     from jaws_central import rpc_operations
+
     rpc_params = config.conf.get_section("RPC_SERVER")
     logger = logging.getLogger(__package__)
     app = rpc_server.RpcServer(rpc_params, logger, rpc_operations.operations, Session)
     app.start_server()
+
+
+@cli.command()
+def daemon() -> None:
+    """Start daemon"""
+    from jaws_central.database import engine, Session
+    from jaws_central import models
+
+    session = Session()
+    models.create_all(engine, session)
+
+    logger = logging.getLogger(__package__)
+
+    # init RPC clients
+    site_rpc_params = config.conf.get_all_sites_rpc_params()
+    rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params, logger)
+
+    from jaws_central import daemon
+
+    jawsd = daemon.Daemon(rpc_index.rpc_index)
+    jawsd.start_daemon()
 
 
 def jaws():

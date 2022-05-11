@@ -75,6 +75,7 @@ export INSTALL_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-central-$DEPLOYMENT_NAME"
 export CONFIG_DIR="$INSTALL_DIR/configs"
 export SHIM_DIR="$INSTALL_DIR/shims"
 export LOGS_DIR="$INSTALL_DIR/logs"
+export LOCK_DIR="$INSTALL_DIR/lock"
 export SUPERVISOR_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-central-supervisord-$DEPLOYMENT_NAME"
 
 
@@ -96,6 +97,7 @@ INSTALL_DIR
 CONFIG_DIR
 SHIM_DIR
 LOGS_DIR
+LOCK_DIR
 SUPERVISOR_DIR
 "
 for DIR in $INSTALL_DIRS; do
@@ -108,7 +110,8 @@ echo "STOPPING SERVICES"
 test -f $SUPERVISOR_DIR/supervisord-jaws-central.conf && $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws-central.conf stop \
 jaws-central-$DEPLOYMENT_NAME:auth \
 jaws-central-$DEPLOYMENT_NAME:rest \
-jaws-central-$DEPLOYMENT_NAME:rpc
+jaws-central-$DEPLOYMENT_NAME:rpc \
+jaws-central-$DEPLOYMENT_NAME:daemon
 
 
 ## DELETE OLD VERSION
@@ -171,6 +174,7 @@ cat << EOM > "$CONFIG_FILE"
 name = $DEPLOYMENT_NAME
 version = $JAWS_VERSION
 docs_url = $JAWS_DOCS_URL
+lock_dir = $LOCK_DIR
 [DB]
 dialect = mysql+mysqlconnector
 host = $JAWS_DB_HOST
@@ -201,7 +205,7 @@ password=$JAWS_EMAIL_PW
 [AWS]
 aws_access_key_id = $AWS_ACCESS_KEY_ID
 aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
-s3_bucket = ABCD
+s3_bucket = $AWS_S3_BUCKET
 $CONF
 [ELASTIC_SEARCH]
 host=$ES_HOST_ADDR
@@ -244,6 +248,17 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 source $INSTALL_DIR/central/bin/activate
 exec jaws-central --log $LOGS_DIR/central-rpc.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL rpc
+EOM
+chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
+
+SHIM_FILE="$SHIM_DIR/jaws-central-daemon-$DEPLOYMENT_NAME"
+cat <<EOM > "$SHIM_FILE"
+#!/usr/bin/env bash
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+source $INSTALL_DIR/central/bin/activate
+exec jaws-central --log $LOGS_DIR/central-daemon.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL daemon
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
@@ -325,6 +340,13 @@ startsecs=3
 startretries=10
 autorestart=unexpected
 
+[program:daemon]
+command=$SHIM_DIR/jaws-central-daemon-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=10
+autorestart=unexpected
+
 [program:auth]
 command=$SHIM_DIR/jaws-central-auth-$DEPLOYMENT_NAME
 numprocs=1
@@ -333,7 +355,7 @@ startretries=10
 autorestart=unexpected
 
 [group:jaws-central-$DEPLOYMENT_NAME]
-programs=auth,rest,rpc
+programs=auth,rest,rpc,daemon
 priority=999
 EOM
 

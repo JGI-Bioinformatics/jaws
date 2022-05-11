@@ -19,7 +19,6 @@ SITE_JTM_GROUP
 SITE_CLIENT_GROUP
 SITE_JAWS_GROUP
 SITE_CLIENT_INSTALL_DIR
-SITE_REF_DATA_DIR
 SITE_CONTAINER_TYPE
 SITE_CROMWELL_TMPDIR
 SITE_LOAD_JAVA
@@ -55,7 +54,9 @@ fi
 # of the required services is executed.  This is a hack.
 FIX_PERMS_CLIENT=""
 [[ -n "$SITE_CLIENT_INSTALL_DIR" ]] && FIX_PERMS_CLIENT="fix_perms $SITE_CLIENT_GROUP $SITE_CLIENT_INSTALL_DIR"
-cat <<EOM > $SHIM_DIR/jaws-site-daemon-$DEPLOYMENT_NAME
+
+# transfer-daemon script
+cat <<EOM > $SHIM_DIR/jaws-site-transfer-daemon-$DEPLOYMENT_NAME
 #!/bin/bash -l
 
 function fix_perms() {
@@ -79,20 +80,48 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-test -d "$SITE_JAWS_SCRATCH_DIR" || mkdir "$SITE_JAWS_SCRATCH_DIR"
+test -d "$SITE_JAWS_SCRATCH_DIR" || mkdir -p "$SITE_JAWS_SCRATCH_DIR"
 chmod 2775 "$SITE_JAWS_SCRATCH_DIR"
+test -d $SITE_UPLOADS_DIR || mkdir -p $SITE_UPLOADS_DIR
+chmod 0775 $SITE_UPLOADS_DIR
+test -d $SITE_DOWNLOADS_DIR || mkdir -p $SITE_DOWNLOADS_DIR
+chmod 2775 $SITE_DOWNLOADS_DIR
 
 $FIX_PERMS_CLIENT
 
 set_jaws_acl $SITE_UPLOADS_DIR
-set_jaws_acl $SITE_DATA_REPO_DIR
+set_jaws_acl $SITE_DOWNLOADS_DIR
 
 source $SITE_VENV_DIR/bin/activate
-exec jaws-site --log $LOGS_DIR/site-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL daemon
+exec jaws-site --log $LOGS_DIR/site-transfer-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL transfer-daemon
 EOM
 
-## central rpc shim script
-cat <<EOM > "$SHIM_DIR/jaws-site-central-rpc-$DEPLOYMENT_NAME"
+# run-daemon script
+cat <<EOM > $SHIM_DIR/jaws-site-run-daemon-$DEPLOYMENT_NAME
+#!/bin/bash -l
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $SITE_VENV_DIR/bin/activate
+exec jaws-site --log $LOGS_DIR/site-run-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL run-daemon
+EOM
+
+# performance-metrics-daemon script
+cat <<EOM > $SHIM_DIR/jaws-site-perf-metrics-daemon-$DEPLOYMENT_NAME
+#!/bin/bash -l
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+source $SITE_VENV_DIR/bin/activate
+exec jaws-site --log $LOGS_DIR/site-perf-metrics-daemon.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL perf-metrics-daemon
+EOM
+
+## rpc shim script
+cat <<EOM > "$SHIM_DIR/jaws-site-rpc-$DEPLOYMENT_NAME"
 #!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
@@ -101,10 +130,10 @@ export PYTHONIOENCODING=utf-8
 
 # START RPC SERVER
 source $SITE_VENV_DIR/bin/activate
-exec jaws-site --log $LOGS_DIR/site-central-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL central-rpc
+exec jaws-site --log $LOGS_DIR/site-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL rpc
 EOM
 
-## site rpc shim script
+## site jtm-rpc shim script
 cat <<EOM > "$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME"
 #!/bin/bash -l
 
@@ -125,11 +154,9 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
 test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
-test -d $SITE_UPLOADS_DIR || mkdir $SITE_UPLOADS_DIR
 chgrp $SITE_JTM_GROUP $SITE_JTM_SCRATCH_DIR
 chgrp $SITE_JTM_GROUP $SITE_UPLOADS_DIR
 chmod 2770 $SITE_JTM_SCRATCH_DIR
-chmod 2775 $SITE_UPLOADS_DIR
 
 # DEPLOY TO NFS DIR
 # HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly

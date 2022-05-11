@@ -27,6 +27,9 @@ elsewhere in JAWS/JTM, as clarified below:
 import requests
 import logging
 import os
+import re
+import json
+import io
 
 
 def _read_file(path: str):
@@ -122,6 +125,11 @@ class Task:
         """
         summary = []
         for call in self.data:
+            if call.get("stdout"):
+                cromwell_dir = re.sub(r"/stdout$", '', call["stdout"])
+            else:
+                cromwell_dir = None
+
             name = self.name
             shard_index = call["shardIndex"]
             if shard_index > -1:
@@ -141,12 +149,12 @@ class Task:
             if "subWorkflowMetadata" in call:
                 subworkflow = self.subworkflows[shard_index][attempt]
                 sub_task_summary = subworkflow.task_summary()
-                for sub_name, sub_job_id, sub_cached, max_time in sub_task_summary:
+                for sub_name, sub_job_id, sub_cached, max_time, cromwell_dir in sub_task_summary:
                     summary.append(
-                        [f"{name}:{sub_name}", sub_job_id, sub_cached, max_time]
+                        [f"{name}:{sub_name}", sub_job_id, sub_cached, max_time, cromwell_dir]
                     )
             else:
-                summary.append([name, job_id, cached, max_time])
+                summary.append([name, job_id, cached, max_time, cromwell_dir])
         return summary
 
     def errors(self):
@@ -324,8 +332,45 @@ class Metadata:
         """
         return self.data.get(param, default)
 
+    def workflow_name(self):
+        return self.get("workflowName", "unknown")
+
     def workflow_root(self):
-        return self.get("workflowRoot", None)
+        """
+        Return the base location for the Run.
+        Note that workflowRoot is only defined when using NFS;
+        for S3 we must infer from an output file.
+        """
+        workflow_root = self.get("workflowRoot", None)
+        if workflow_root:
+            return workflow_root
+
+        # extract from an outfile or return empty string if no outfiles.
+        outputs = self.get("outputs", {})
+        an_outfile = None
+        for key, value in outputs.items():
+            if value is None:
+                # skip if null (i.e. optional output was not produced)
+                pass
+            elif type(value) is list:
+                # a sharded task may produce a list of outputs, one per shard
+                for item in value:
+                    if (
+                        type(item) is str
+                        and item is not None
+                        and self.workflow_id in item
+                    ):
+                        an_outfile = item
+                        break
+            elif value is not None and type(value) is str and self.workflow_id in value:
+                # a typical task produces outputs which may be a file path
+                an_outfile = value
+                break
+        if not an_outfile:
+            return None
+        (root, partial_path) = an_outfile.split(self.workflow_id)
+        workflow_root = os.path.join(root, self.workflow_id)
+        return workflow_root
 
     def filtered_failures(self):
         """
@@ -364,15 +409,15 @@ class Metadata:
         summary = []
         for task_name, task in self.tasks.items():
             task_summary = task.summary()
-            for name, job_id, cached, max_time in task_summary:
-                summary.append([name, job_id, cached, max_time])
+            for name, job_id, cached, max_time, cromwell_dir in task_summary:
+                summary.append([name, job_id, cached, max_time, cromwell_dir])
         return summary
 
-    def outputs(self, **kwargs):
+    def outputs(self, relpath=True):
         """Returns all outputs for a workflow"""
         outputs = self.get("outputs", {})
-        if "relpath" in kwargs and kwargs["relpath"] is True:
-            workflowRoot = self.get("workflowRoot")
+        workflowRoot = self.workflow_root()
+        if relpath and workflowRoot:
             relpath_outputs = {}
             for key, value in outputs.items():
                 if value is None:
@@ -386,11 +431,51 @@ class Metadata:
                             relpath_outputs[key].append(
                                 item.replace(workflowRoot, ".", 1)
                             )
-                elif type(value) is str:
+                elif value is not None and type(value) is str:
                     # a typical task produces outputs which may be a file path
                     relpath_outputs[key] = value.replace(workflowRoot, ".", 1)
             outputs = relpath_outputs
         return outputs
+
+    def outfiles(self, complete=False, relpath=True):
+        """Return list of all output files of a run"""
+        workflow_root = self.workflow_root()
+        full_paths = []
+        outputs = self.get("outputs", {})
+        if workflow_root is None:
+            return full_paths
+        elif complete is True:
+            return [workflow_root]
+        elif len(outputs.keys()) == 0:
+            return full_paths
+        for key, value in outputs.items():
+            if value is None:
+                # skip if null (i.e. optional output was not produced)
+                pass
+            elif type(value) is list:
+                # a sharded task may produce a list of outputs, one per shard
+                for item in value:
+                    if (
+                        type(item) is str
+                        and item is not None
+                        and item.startswith(workflow_root)
+                    ):
+                        full_paths.append(item)
+            elif (
+                value is not None
+                and type(value) is str
+                and value.startswith(workflow_root)
+            ):
+                # a typical task produces outputs which may be a file path
+                full_paths.append(value)
+
+        if relpath:
+            rel_paths = []
+            for path in full_paths:
+                rel_paths.append(path.replace(workflow_root, ".", 1))
+            return rel_paths
+        else:
+            return full_paths
 
 
 class Cromwell:
@@ -447,50 +532,60 @@ class Cromwell:
             raise error
         response.raise_for_status()
 
-    def submit(
-        self,
-        wdl_fh: str,
-        json_fh: str,
-        zip_fh: str = None,
-        options_fh: str = None,
-    ) -> int:
+    def _options_fh(self, **kwargs):
+        """
+        Provide a file handle to an in-RAM JSON file with the Cromwell options.
+        """
+        options = {"default_runtime_attributes": {"docker": "ubuntu:latest"}}
+        if "default_container" in kwargs:
+            options["default_runtime_attributes"]["docker"] = kwargs[
+                "default_container"
+            ]
+        if "caching" in kwargs and kwargs["caching"] is False:
+            options["read_from_cache"] = False
+            options["write_to_cache"] = False
+        else:
+            options["read_from_cache"] = True
+            options["write_to_cache"] = True
+        fh = io.StringIO(json.dumps(options))
+        fh.seek(0)
+        return fh
+
+    def submit(self, file_handles: dict, options: dict) -> int:
         """
         Submit a run to Cromwell.
-        :param wdl_fh: File handle to WDL file
-        :type wdl_fh: str
-        :param json_fh: File handle to inputs JSON file
-        :type json_fh: str
-        :param zip_fh: Binary file handle to subworkflows ZIP file (optional)
-        :type zip_fh: str
-        :param options_fh: File handle to options JSON file (optional)
-        :type options_fh: str
         :return: Cromwell workflow uuid
         :rtype: str
         """
         logger = logging.getLogger(__package__)
         files = {}
-        files["workflowInputs"] = (
-            "workflowInputs",
-            json_fh,
-            "application/json",
-        )
-        files["workflowSource"] = (
-            "workflowSource",
-            wdl_fh,
-            "application/json",
-        )
-        if zip_fh:
-            files["workflowDependencies"] = (
-                "workflowDependencies",
-                zip_fh,
-                "application/zip",
-            )
-        if options_fh:
-            files["workflowOptions"] = (
-                "workflowOptions",
-                options_fh,
+        if "wdl" in file_handles:
+            files["workflowSource"] = (
+                "workflowSource",
+                file_handles["wdl"],
                 "application/json",
             )
+        else:
+            raise ValueError("WDL file handle required")
+        if "inputs" in file_handles:
+            files["workflowInputs"] = (
+                "workflowInputs",
+                file_handles["inputs"],
+                "application/json",
+            )
+        else:
+            raise ValueError("Inputs JSON file handle required")
+        if "subworkflows" in file_handles:
+            files["workflowDependencies"] = (
+                "workflowDependencies",
+                file_handles["subworkflows"],
+                "application/zip",
+            )
+        files["workflowOptions"] = (
+            "workflowOptions",
+            self._options_fh(**options),
+            "application/json",
+        )
         try:
             response = requests.post(self.workflows_url, files=files)
         except requests.ConnectionError as error:
@@ -498,6 +593,7 @@ class Cromwell:
             logger.exception(
                 f"Error submitting new run: Cromwell unavailable: {lines[-1]}"
             )
+            raise
         except Exception as error:
             logger.exception(f"Error submitting new run: {error}")
             raise error

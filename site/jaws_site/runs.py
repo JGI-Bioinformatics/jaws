@@ -1,57 +1,24 @@
-"""
-JAWS Daemon process periodically checks on runs and performs actions to usher
-them to the next state.
-"""
-
 import os
 import logging
+import json
+import io
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from jaws_site import (
-    models,
-    config,
-    tasks,
-    runs_es,
-    jaws_constants
-)
-from jaws_site.datatransfer_protocol import (
-    DataTransferError,
-    SiteTransfer,
-    DataTransferProtocol,
-    DataTransferFactory,
-)
-from jaws_site.cromwell import (
-    Cromwell,
-    CromwellError,
-    CromwellServiceError,
-    CromwellRunError,
-)
+from sqlalchemy.orm.exc import NoResultFound
+import boto3
+from jaws_site import models, config, tasks, jaws_constants
+from jaws_site.cromwell import Cromwell, CromwellError
 
 logger = logging.getLogger(__package__)
 
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 
 
-def file_size(file_path: str):
-    """
-    Checks if a file exists and is a file; if it does, check it's size.
-
-    :param file_path: path to file
-    :type file_path: str
-    :return: Size in bytes if file exists; else None
-    :rtype: int
-    """
-    if os.path.isfile(file_path):
-        return os.path.getsize(file_path)
-    else:
-        return None
-
-
 class RunDbError(Exception):
     pass
 
 
-class RunNotFound(Exception):
+class RunNotFoundError(Exception):
     pass
 
 
@@ -62,450 +29,441 @@ class DataError(Exception):
 class Run:
     """Class representing a single Run"""
 
-    def __init__(self, session, **kwargs):
+    def __init__(self, session, data, **kwargs):
         self.session = session
+        self.data = data
         self.operations = {
-            "uploading": self.check_if_upload_complete,
             "upload complete": self.submit_run,
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
-            "succeeded": self.transfer_results,
-            "failed": self.transfer_results,
-            "downloading": self.check_if_download_complete,
+            "succeeded": self.publish_report,
+            "failed": self.publish_report,
+        }
+        self.central_rpc_client = (
+            kwargs["central_rpc_client"] if "central_rpc_client" in kwargs else None
+        )
+        self.reports_rpc_client = (
+            kwargs["reports_rpc_client"] if "reports_rpc_client" in kwargs else None
+        )
+        self._metadata = None
+        self._task_log = None
+
+        self.config = {
+            "site_id": config.conf.get("SITE", "id"),
+            "uploads_dir": config.conf.get("SITE", "uploads_dir"),
+            "default_container": config.conf.get(
+                "SITE", "default_container", "ubuntu:latest"
+            ),
+            "aws_access_key_id": config.conf.get("AWS", "aws_access_key_id"),
+            "aws_region_name": config.conf.get("AWS", "aws_region_name"),
+            "aws_secret_access_key": config.conf.get("AWS", "aws_secret_access_key"),
+            "cromwell_url": config.conf.get("CROMWELL", "url"),
         }
 
-        if "submission_id" in kwargs:
-            self._insert_run(**kwargs)
-        elif "run_id" in kwargs:
-            self._select_run(kwargs["run_id"])
-        elif "model" in kwargs:
-            model = kwargs["model"]
-            assert model.id is not None
-            self.model = model
-
-        self.runs_es_rpc_client = kwargs.get('runs_es_rpc_client')
-
-    def _insert_run(self, **kwargs) -> None:
-        """Insert run record into rdb"""
+    @classmethod
+    def from_params(
+        cls, session, params, central_rpc_client=None, reports_rpc_client=None
+    ):
+        """Insert new Run into RDb.  Site only receives Runs in the "upload complete" state."""
+        # JSON string was escaped because it was included in RPC's JSON doc
         try:
-            self.model = models.Run(
-                id=int(kwargs["run_id"]),
-                user_id=kwargs["user_id"],
-                email=kwargs["email"],
-                submission_id=kwargs["submission_id"],
-                upload_task_id=kwargs["upload_task_id"],
-                output_endpoint=kwargs["output_endpoint"],
-                output_dir=kwargs["output_dir"],
-                status="uploading",
+            data = models.Run(
+                id=int(params["run_id"]),
+                user_id=params["user_id"],
+                caching=params["caching"],
+                submission_id=params["submission_id"],
+                input_site_id=params["input_site_id"],
+                status="upload complete",
             )
         except SQLAlchemyError as error:
-            raise (f"Error creating model for new Run {kwargs['run_id']}: {error}")
+            raise (f"Error creating model for new Run {params['run_id']}: {error}")
         try:
-            self.session.add(self.model)
-            self.session.commit()
+            session.add(data)
+            session.commit()
         except SQLAlchemyError as error:
-            self.session.rollback()
+            session.rollback()
             raise (error)
+        else:
+            return cls(
+                session,
+                data,
+                central_rpc_client=central_rpc_client,
+                reports_rpc_client=reports_rpc_client,
+            )
 
-    def _select_run(self, run_id):
-        """Select run record from rdb"""
+    @classmethod
+    def from_id(cls, session, run_id, central_rpc_client=None, reports_rpc_client=None):
+        """Select Run record from RDb given primary key"""
         try:
-            self.model = self.session.query(models.Run).get(run_id)
+            data = session.query(models.Run).get(run_id)
         except IntegrityError as error:
             logger.warn(f"Run {run_id} not found: {error}")
-            raise RunNotFound(f"Run {run_id} not found")
+            raise RunNotFoundError(f"Run {run_id} not found")
         except SQLAlchemyError as error:
             err_msg = f"Unable to select run, {run_id}: {error}"
             logger.error(err_msg)
             raise RunDbError(err_msg)
+        else:
+            return cls(
+                session,
+                data,
+                central_rpc_client=central_rpc_client,
+                reports_rpc_client=reports_rpc_client,
+            )
 
-    @property
+    @classmethod
+    def from_cromwell_run_id(
+        cls, session, cromwell_run_id, central_rpc_client=None, reports_rpc_client=None
+    ):
+        """Select Run record from RDb given Cromwell Run ID"""
+        try:
+            data = (
+                session.query(models.Run)
+                .filter(models.Run.cromwell_run_id == cromwell_run_id)
+                .one()
+            )
+        except NoResultFound as error:
+            logger.warn(f"Cromwell {cromwell_run_id} not found: {error}")
+            raise RunNotFoundError(f"Cromwell {cromwell_run_id} not found")
+        except SQLAlchemyError as error:
+            err_msg = f"Unable to select cromwell, {cromwell_run_id}: {error}"
+            logger.error(err_msg)
+            raise RunDbError(err_msg)
+        else:
+            return cls(
+                session,
+                data,
+                central_rpc_client=central_rpc_client,
+                reports_rpc_client=reports_rpc_client,
+            )
+
     def status(self) -> str:
         """Return the current state of the run."""
-        return self.model.status
+        return self.data.status
+
+    def summary(self) -> dict:
+        """Produce summary of Run info"""
+        summary = {
+            "run_id": self.data.id,
+            "user_id": self.data.user_id,
+            "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": self.data.status,
+            "status_detail": jaws_constants.task_status_msg.get(self.data.status, ""),
+            "result": self.data.result,
+            "compute_site_id": self.config["site_id"],
+        }
+        return summary
+
+    def metadata(self):
+        """
+        Lazy loading of Cromwell metadata.
+        """
+        if not self._metadata and self.data.cromwell_run_id:
+            url = config.conf.get("CROMWELL", "url")
+            self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
+        return self._metadata
+
+    def task_log(self):
+        """Lazy loading of Task Log"""
+        if not self._task_log:
+            self._task_log = tasks.TaskLog.from_id(self.data.id)
+        return self._task_log
+
+    def report(self) -> dict:
+        """Produce full report of Run and Task info"""
+        report = self.summary()
+        report["run_id"] = self.data.id
+        report["tasks"] = self.task_log().task_status()
+        return report
 
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
-        status = self.model.status
+        status = self.data.status
         if status in self.operations:
             return self.operations[status]()
 
     def cancel(self) -> None:
-        """Cancel a run, instruct Cromwell to abort if required."""
-        self.update_run_status("cancelled")
-        if self.model.cromwell_run_id and self.model.status in [
+        """Cancel a run, aborting Cromwell or file transfer as appropriate"""
+        if self.data.cromwell_run_id and self.data.status in [
             "submitted",
             "queued",
             "running",
         ]:
             try:
-                cromwell.abort(self.model.cromwell_run_id)
+                cromwell.abort(self.data.cromwell_run_id)
             except CromwellError as error:
-                logger.warn(f"Cromwell error cancelling Run {self.model.id}: {error}")
+                logger.warn(f"Cromwell error cancelling Run {self.data.id}: {error}")
                 raise
+            self.update_run_status("cancelled")
 
-    def metadata(self) -> str:
-        """
-        Get metadata from Cromwell and return it, if available.
-        If the run hasn't been submitted to Cromwell yet, the result shall be None.
-        """
-        if self.model.cromwell_run_id:
-            return cromwell.get_metadata(self.model.cromwell_run_id).data
-        else:
-            return None
-
-    def outputs(self) -> str:
+    def outputs(self, relpath=True) -> dict:
         """
         Get outputs from Cromwell and return it, if available.
         If the run hasn't been submitted to Cromwell yet, the result shall be None.
         """
-        if self.model.cromwell_run_id:
-            metadata = cromwell.get_metadata(self.model.cromwell_run_id)
-            return metadata.outputs(relpath=True)
+        if self.data.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            return metadata.outputs(relpath)
         else:
-            return None
+            return {}
 
-    def errors(self) -> str:
+    def outfiles(self, relpath=True) -> dict:
+        """
+        Get output files from Cromwell and return it, if available.
+        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        """
+        if self.data.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            return metadata.outfiles(relpath)
+        else:
+            return []
+
+    def output_manifest(self, complete=False) -> list:
+        """
+        Get list of all of a Run's output files.
+        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        """
+        if self.data.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            result = {
+                "workflow_root": metadata.workflow_root(),
+                "manifest": metadata.outfiles(complete=complete, relpath=True),
+            }
+            return result
+        else:
+            return {}
+
+    def errors(self) -> dict:
         """Get errors report from Cromwell service"""
-        if self.model.cromwell_run_id:
-            metadata = cromwell.get_metadata(self.model.cromwell_run_id)
+        if self.data.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             return metadata.errors()
         else:
-            return None
+            return {}
 
-    def upload_status(self, data_transfer: DataTransferProtocol) -> str:
+    @staticmethod
+    def s3_parse_path(full_path):
+        full_path = full_path.replace("s3://", "", 1)  # discard S3 identifier
+        folders = full_path.split("/")
+        s3_bucket = folders.pop(0)
+        path = "/".join(folders)
+        print(f"S3 BUCKET={s3_bucket}; PATH={path}")
+        return s3_bucket, path
+
+    def _read_file_s3(self, path, binary=False):
+        """
+        Read the contents of a file from S3 into RAM and return a file handle object.
+        """
+        s3_bucket, src_path = self.s3_parse_path(path)
+        logger.debug(f"Read from s3://{s3_bucket} obj {src_path}")
+
+        aws_session = boto3.Session(
+            aws_access_key_id=self.config["aws_access_key_id"],
+            aws_secret_access_key=self.config["aws_secret_access_key"],
+            region_name=self.config["aws_region_name"],
+        )
+        s3_resource = aws_session.resource("s3")
+        bucket_obj = s3_resource.Bucket(s3_bucket)
+        fh = io.BytesIO()
         try:
-            status = data_transfer.transfer_status(self.model.upload_task_id)
-        except DataTransferError as error:
-            logger.exception(
-                f"Failed to check upload {self.model.upload_task_id}: {error}"
-            )
-        else:
-            return status
+            bucket_obj.download_fileobj(src_path, fh)
+        except Exception as error:
+            raise IOError(error)
+        fh.seek(0)
 
-    def download_status(self, data_transfer: DataTransferProtocol) -> str:
+        if not binary:
+            data = fh.read()
+            fh.close()
+            fh = io.StringIO(data.decode("utf-8"))
+        return fh
+
+    def _read_file_nfs(self, path: str, binary=False):
+        """
+        Read file from NFS into RAM and return a file handle object.
+        """
+        if not os.path.isfile(path):
+            raise IOError(f"File not found: {path}")
+        data = None
+        mode = "rb" if binary else "r"
         try:
-            status = data_transfer.transfer_status(self.model.download_task_id)
-        except DataTransferError as error:
-            logger.exception(
-                f"Failed to check download {self.model.download_task_id}: {error}"
-            )
+            with open(path, mode) as fh:
+                data = fh.read()
+        except IOError:
+            raise
+        if len(data) == 0:
+            raise IOError("File is 0 bytes")
+        fh = io.BytesIO(data) if binary else io.StringIO(data)
+        fh.seek(0)
+        return fh
+
+    def _read_file(self, path: str, binary=False):
+        """
+        Read file from NFS or S3 and return contents.
+        """
+        if self.config["uploads_dir"].startswith("s3://"):
+            return self._read_file_s3(path, binary)
         else:
-            return status
+            return self._read_file_nfs(path, binary)
 
-    def check_if_upload_complete(self) -> None:
+    def read_inputs(self):
         """
-        If the upload is complete, update the run's status.
+        Read inputs json from file or S3 bucket and return contents.
+        :return: The Run's input parameters
+        :rtype: dict
         """
-        logger.debug(f"Run {self.model.id}: Check upload status")
-        data_transfer_type = self._get_data_transfer_type()
-        data_transfer = DataTransferFactory(data_transfer_type)
-        status = self.upload_status(data_transfer)
-        if status == SiteTransfer.status.failed:
-            self.update_run_status("upload failed")
-        elif status == SiteTransfer.status.inactive:
-            self.update_run_status(
-                "upload inactive", "The JAWS endpoint authorization has expired"
+        fh = self._read_file(
+            os.path.join(self.config["uploads_dir"], f"{self.data.submission_id}.json")
+        )
+        inputs = json.load(fh)
+        return inputs
+
+    def inputs(self):
+        """
+        Get the Run inputs with valid paths for this Site.
+        :return: input parameters
+        :rtype: dict
+        """
+
+        def add_prefix_to_paths(data, site_id, prefix):
+            """Recursively traverse dictionary and add prefix to
+            file path items"""
+            if type(data) is str:
+                if data.startswith(site_id):
+                    return os.path.join(prefix, data)
+                else:
+                    return data
+            elif type(data) is list:
+                new_data = []
+                for item in data:
+                    new_data.append(add_prefix_to_paths(item, site_id, prefix))
+                return new_data
+            elif type(data) is dict:
+                new_data = {}
+                for key, value in data.items():
+                    new_key = add_prefix_to_paths(key, site_id, prefix)
+                    new_value = add_prefix_to_paths(value, site_id, prefix)
+                    new_data[new_key] = new_value
+                return new_data
+            else:
+                return data
+
+        # convert paths to correct abspaths for this Site
+        relpath_inputs = self.read_inputs()
+        inputs = add_prefix_to_paths(
+            relpath_inputs, self.data.input_site_id, self.config["uploads_dir"]
+        )
+        return inputs
+
+    def inputs_fh(self):
+        """
+        Get valid inputs json for this Site and create a file handle, which is
+        required to POST it to the Cromwell server (instead of writing a tmpfile).
+        """
+        inputs = self.inputs()
+        json_str = json.dumps(inputs)
+        fh = io.StringIO(json_str)
+        fh.seek(0)
+        return fh
+
+    def get_run_inputs(self):
+        """
+        Get file handles.
+        """
+        file_handles = {}
+        try:
+            file_handles["inputs"] = self.inputs_fh()
+        except Exception as error:
+            raise DataError(f"Error specifying inputs: {error}")
+        try:
+            path = os.path.join(
+                self.config["uploads_dir"], f"{self.data.submission_id}.wdl"
             )
-        elif status == SiteTransfer.status.succeeded:
-            self.update_run_status("upload complete")
-
-    def uploads_file_path(self):
-        uploads_dir = config.conf.get("SITE", "uploads_dir")
-        return os.path.join(uploads_dir, self.model.user_id, self.model.submission_id)
-
-    def get_run_input(self) -> list:
-        """
-        Check if the input files are valid and return a list of their file handles.
-        The list contains wdl_file, json_file, and optionally zip_file.
-        Raise on error.
-
-        :return: list of [wdl,json,zip] file paths
-        :rtype: list
-        """
-        infile_parameters = [
-            ("wdl", True, False),
-            ("json", True, False),
-            ("zip", False, True),
-            ("options.json", False, False),
-        ]
-        file_handles = []
-        file_path = self.uploads_file_path()
-        for (suffix, required, is_binary) in infile_parameters:
-            a_file = f"{file_path}.{suffix}"
-            a_file_size = file_size(a_file)
-            if required:
-                if a_file_size is None:
-                    raise DataError(f"Input {suffix} file not found: {a_file}")
-                elif a_file_size == 0:
-                    raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
-            elif a_file_size is not None and a_file_size == 0:
-                raise DataError(f"Input {suffix} file is 0-bytes: {a_file}")
-            a_fh = None
-            filetype = "rb" if is_binary else "r"
-            if a_file_size:
-                try:
-                    a_fh = open(a_file, filetype)
-                except IOError:
-                    raise
-            file_handles.append(a_fh)
+            file_handles["wdl"] = self._read_file(path)
+        except Exception as error:
+            raise DataError(f"Cannot read {path}: {error}")
+        try:
+            path = os.path.join(
+                self.config["uploads_dir"], f"{self.data.submission_id}.zip"
+            )
+            sub = self._read_file(path, True)
+        except Exception:
+            pass  # subworkflows are optional
+        else:
+            file_handles["subworkflows"] = sub
         return file_handles
+
+    def cromwell_options(self):
+        default_container = self.config["default_container"]
+        options = {
+            "caching": self.data.caching,
+            "default_container": default_container,
+        }
+        return options
 
     def submit_run(self) -> None:
         """
         Submit a run to Cromwell.
         """
-        logger.debug(f"Run {self.model.id}: Submit to Cromwell")
+        logger.debug(f"Run {self.data.id}: Submit to Cromwell")
+        file_handles = self.get_run_inputs()
+        options = self.cromwell_options()
         try:
-            input_file_handles = self.get_run_input()
-        except DataError as error:
-            logger.error(f"Run {self.model.id}: {error}")
-            self.update_run_status("submission failed", f"Bad input: {error}")
-            return
-        except IOError as error:
-            logger.error(f"Run {self.model.id}: {error}")
-            self.update_run_status("submission failed", f"IO Error: {error}")
-            return
-
-        try:
-            cromwell_run_id = cromwell.submit(*input_file_handles)
+            cromwell_run_id = cromwell.submit(file_handles, options)
         except CromwellError as error:
-            logger.error(f"Run {self.model.id} submission failed: {error}")
+            logger.error(f"Run {self.data.id} submission failed: {error}")
             self.update_run_status("submission failed", f"{error}")
         else:
-            self.model.cromwell_run_id = cromwell_run_id
+            self.data.cromwell_run_id = cromwell_run_id
             self.update_run_status("submitted", f"cromwell_run_id={cromwell_run_id}")
 
     def check_run_cromwell_status(self) -> None:
         """
         Check Cromwell for the status of the Run.
         """
-        logger.debug(f"Run {self.model.id}: Check Cromwell status")
+        logger.debug(f"Run {self.data.id}: Check Cromwell status")
         try:
-            cromwell_status = cromwell.get_status(self.model.cromwell_run_id)
+            cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
         except CromwellError as error:
             logger.error(
-                f"Unable to check Cromwell status of Run {self.model.id}: {error}"
+                f"Unable to check Cromwell status of Run {self.data.id}: {error}"
             )
             raise
 
         # check if state has changed; allowed states and transitions for a successful run are:
         # submitted -> queued -> running -> succeeded (with no skipping of states allowed)
         # Additionally, any state can transition directly to cancelled or failed.
-        logger.debug(f"Run {self.model.id}: Cromwell status is {cromwell_status}")
+        logger.debug(f"Run {self.data.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
             # no skips allowed, so there may be more than one transition
-            if self.model.status == "submitted":
+            if self.data.status == "submitted":
                 self.update_run_status("queued")
-            elif self.model.status == "queued":
+            elif self.data.status == "queued":
                 # although Cromwell may consider a Run to be "Running", since it does not distinguish between
                 # "queued" and "running", we check the task-log to see if any task is "running"; only once any
                 # task is running does the Run transition to the "running" state.
-                tasks_status = tasks.get_run_status(self.session, self.model.id)
+                tasks_status = tasks.get_run_status(self.session, self.data.id)
                 if tasks_status == "running":
                     self.update_run_status("running")
         elif cromwell_status == "Failed":
             self.update_run_status("failed")
         elif cromwell_status == "Succeeded":
             # no skips allowed, so there may be more than one transition
-            if self.model.status == "submitted":
+            if self.data.status == "submitted":
                 self.update_run_status("queued")
-            if self.model.status == "queued":
+            if self.data.status == "queued":
                 self.update_run_status("running")
             self.update_run_status("succeeded")
         elif cromwell_status == "Aborted":
             self.update_run_status("cancelled")
 
-    def publish_run_metadata(self) -> None:
-        """
-        Get run metadata and send to RMQ for publishing to elasticsearch.
-
-        :return doc: dictionary containing the run metadata
-        :rtype doc: dictionary
-        :return rpc_response: dictionary containing the rpc response and status code
-        :rtype: dictionary
-        """
-
-        logger.debug(f"Run {self.model.id}: Publish run metadata")
-
-        # If user id for this run is in this list, skip publishing to elasticsearch
-        if self.model.user_id in ['test']:
-            return None, None
-
-        if not self.runs_es_rpc_client:
-            msg = f"Run {self.model.id}: Cannot publish run metadata. The runs_es_rpc_client is not defined."
-            logger.error(msg)
-            rpc_response = {'rpc_response': {'error': msg}, 'rpc_status': 500}
-            return None, rpc_response
-
-        try:
-            es = runs_es.RunES(self.session, model=self.model)
-        except runs_es.RunNotFoundError as err:
-            msg = f"Run {self.model.id}: Run metadata not found: {err}"
-            logger.error(msg)
-            rpc_response = {'rpc_response': {'error': msg}, 'rpc_status': 500}
-            return None, rpc_response
-
-        # Create json doc of the run metadata
-        doc = self.create_es_json_doc(es)
-
-        if not doc:
-            logger.debug(f"Run {self.model.id}: Empty json doc found for this run.")
-            return None, None
-
-        # Send to json doc to RMQ to be inserted to elasticsearch.
-        # if doc and 'user_id' in doc and doc['user_id'] not in skip_users:
-        # if doc:
-        logger.debug(f"Run {self.model.id}: Sending run metadata json doc to RMQ")
-        response, status_code = runs_es.send_rpc_run_metadata(self.runs_es_rpc_client, doc)
-        if status_code:
-            if 'error' in response and 'message' in response['error']:
-                message = response['error']['message']
-            else:
-                message = 'Unknown RPC error.'
-            logger.error(f"Run {self.model.id}: Failed to send run metadata to RMQ: {message}")
-
-        rpc_response = {'rpc_response': response, 'rpc_status': status_code}
-
-        return doc, rpc_response
-
-    def create_es_json_doc(self, es: runs_es.RunES) -> dict:
-        """Create a json payload containing the run metadata to be uploaded to elasticsearch."""
-
-        run_status = self.get_run_metadata()
-        if not run_status:
-            return {}
-
-        cromwell_metadata = self.metadata()
-        task_summary = es.task_summary()
-        task_status = es.task_status()
-
-        doc = {
-            'run_id': run_status['run_id'],
-            'workflow_name': cromwell_metadata.get('workflowName', 'unknown'),
-        }
-        doc.update(run_status)
-        doc['tasks'] = []
-
-        for task_name in task_status:
-            status_entries = {}
-            status_entries['name'] = task_name
-            status_entries.update(task_status[task_name])
-            if task_name in task_summary:
-                status_entries.update(task_summary[task_name])
-            doc['tasks'].append(status_entries)
-
-        return doc
-
-    def get_run_metadata(self) -> dict:
-        """
-        Get run entry from 'runs' table.
-
-        :return: dict containing the run entry from the runs table
-        :rtype: dict
-        """
-        run_logs = get_run_status_logs(self.session, self.model.id)
-        result = None
-        for row in run_logs:
-            if 'status_to' in row and row['status_to'] in ('succeeded', 'failed'):
-                result = row['status_to']
-                break
-
-        metadata = {
-            "run_id": self.model.id,
-            "user_id": self.model.user_id,
-            "email": self.model.email,
-            "submitted": self.model.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-            "updated": self.model.updated.strftime("%Y-%m-%d %H:%M:%S"),
-            "status": self.model.status,
-            'status_detail': jaws_constants.task_status_msg.get(self.model.status, ""),
-            "result": result,
-            "site_id": config.conf.get("SITE", "id"),
-        }
-        return metadata
-
-    def _get_data_transfer_type(self) -> str:
-        """Lookup the site id to determine what type of data transfer method needs to be used (e.g., globus, aws).
-
-        :return: data transfer type based on site id (e.gl, 'globus_transfer', 'aws_transfer')
-        :rtype: str
-        """
-        site_id = config.conf.get("SITE", "id")
-        transfer_type = SiteTransfer.type[site_id.upper()]
-        return transfer_type
-
-    def transfer_results(self) -> None:
-        """
-        Send run output via data transfer
-        """
-        logger.debug(f"Run {self.model.id}: Download output")
-        try:
-            metadata = cromwell.get_metadata(self.model.cromwell_run_id)
-        except CromwellServiceError as error:
-            # if Cromwell service not available, do not fail run and try again later
-            logger.debug(f"Cromwell service error: {error}")
-            return
-        except CromwellRunError as error:
-            # if there's something wrong with this particular (failed) run, promote to next state
-            logger.debug(f"Run {self.model.id}: {error}")
-            self.update_run_status("download complete", f"Cromwell run error: {error}")
-            return
-        cromwell_workflow_dir = metadata.workflow_root()
-        if not cromwell_workflow_dir:
-            # This run failed before a folder was created; nothing to xfer
-            self.update_run_status("download complete", "No run folder was created")
-            return
-
-        data_transfer_type = self._get_data_transfer_type()
-        data_transfer = DataTransferFactory(data_transfer_type)
-        metadata = {
-            "label": f"Run {self.model.id}"
-        }
-
-        if data_transfer_type == 'globus_transfer':
-            metadata['dest_endpoint'] = self.model.output_endpoint
-
-        logger.debug(f"Transferring files using {data_transfer_type}")
-
-        try:
-            transfer_task_id = self.transfer_files(data_transfer, metadata, cromwell_workflow_dir,
-                                                   self.model.output_dir)
-        except DataTransferError as error:
-            logger.error(f"error while submitting transfer: {error}")
-            raise
-        else:
-            logger.debug(f"Transfer task id={transfer_task_id}")
-            self.model.download_task_id = transfer_task_id
-            self.update_run_status(
-                "downloading", f"download_task_id={self.model.download_task_id}"
-            )
-
-    def transfer_files(self, data_transfer: DataTransferProtocol, metadata: dict, src_dir: str, dst_dir: str) -> str:
-        """Transfer files using the data_transfer object (e.g., via globus or aws)."""
-        return data_transfer.submit_download(metadata, src_dir, dst_dir)
-
-    def check_if_download_complete(self) -> None:
-        """
-        If download is complete, change state.
-        """
-        logger.debug(f"Run {self.model.id}: Check download status")
-        data_transfer_type = self._get_data_transfer_type()
-        data_transfer = DataTransferFactory(data_transfer_type)
-        status = self.download_status(data_transfer)
-        if status == SiteTransfer.status.succeeded:
-            self.update_run_status("download complete")
-            self.publish_run_metadata()
-        elif status == SiteTransfer.status.failed:
-            self.update_run_status("download failed")
-            self.publish_run_metadata()
-
     def update_run_status(self, status_to, reason=None) -> None:
         """
         Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
         """
-        status_from = self.model.status
-        logger.info(f"Run {self.model.id}: now {status_to}")
+        status_from = self.data.status
+        logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
         self._update_run_status(status_to, timestamp)
         self._insert_run_log(status_from, status_to, timestamp, reason)
@@ -515,12 +473,14 @@ class Run:
         Update Run's current status in 'runs' table
         """
         try:
-            self.model.status = new_status
-            self.model.updated = timestamp
+            self.data.status = new_status
+            self.data.updated = timestamp
+            if new_status in ("succeeded", "failed"):
+                self.data.result = new_status
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
-            logger.exception(f"Unable to update Run {self.model.id}: {error}")
+            logger.exception(f"Unable to update Run {self.data.id}: {error}")
             raise
 
     def _insert_run_log(self, status_from, status_to, timestamp, reason) -> None:
@@ -529,7 +489,7 @@ class Run:
         """
         try:
             log_entry = models.Run_Log(
-                run_id=self.model.id,
+                run_id=self.data.id,
                 status_from=status_from,
                 status_to=status_to,
                 timestamp=timestamp,
@@ -540,34 +500,39 @@ class Run:
         except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(
-                f"Failed to insert log for Run {self.model.id} ({status_to}): {error}"
+                f"Failed to insert log for Run {self.data.id} ({status_to}): {error}"
             )
             raise
 
+    def publish_report(self):
+        """
+        Send report document to reports service via RPC.
+        """
+        # "test" is a special user account for automatic periodic system tests -- skip
+        if self.data.user_id != "test":
+            report = self.report()
+            try:
+                response = self.reports_rpc_client.request("save_run_report", report)
+            except Exception as error:
+                logger.exception(f"RPC save_run_report error: {error}")
+                return
+            if "error" in response:
+                logger.warn(f"RPC save_run_report failed: {response['error']['message']}")
+                return
+        self.update_run_status("finished")
 
-def check_active_runs(session, runs_es_rpc_client) -> None:
+
+def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
-    rows = _select_active_runs(session)
-    for model in rows:
-        run = Run(session, model=model, runs_es_rpc_client=runs_es_rpc_client)
-        run.check_status()
-
-
-def _select_active_runs(session) -> list:
-    """
-    Select runs in particular states from db.
-    """
     active_states = [
-        "uploading",
         "upload complete",
         "submitted",
         "queued",
         "running",
         "succeeded",
         "failed",
-        "downloading",
     ]
     try:
         rows = (
@@ -575,8 +540,15 @@ def _select_active_runs(session) -> list:
         )
     except SQLAlchemyError as error:
         logger.warning(f"Failed to select active runs from db: {error}", exc_info=True)
-        return []
-    return rows
+    else:
+        for row in rows:
+            run = Run(
+                session,
+                row,
+                central_rpc_client=central_rpc_client,
+                reports_rpc_client=reports_rpc_client,
+            )
+            run.check_status()
 
 
 def send_run_status_logs(session, central_rpc_client) -> None:
@@ -608,9 +580,6 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         if log.status_to == "submitted":
             run = session.query(models.Run).get(log.run_id)
             data["cromwell_run_id"] = run.cromwell_run_id
-        elif log.status_to == "downloading":
-            run = session.query(models.Run).get(log.run_id)
-            data["download_task_id"] = run.download_task_id
         try:
             response = central_rpc_client.request("update_run_logs", data)
         except Exception as error:
@@ -627,27 +596,39 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             logger.exception(f"Error updating run_logs as sent: {error}")
 
 
-def get_run_status_logs(session, run_id) -> None:
-    """Get run logs for a given run."""
+class RunLog:
+    """Class representing table of run state transition logs"""
 
-    # get updates from datbase
-    try:
-        query = session.query(models.Run_Log) \
-            .filter(models.Run_Log.run_id == run_id) \
-            .all()
-    except SQLAlchemyError as error:
-        logger.exception(f"Unable to select from run_logs: {error}")
-        return
+    def __init__(self, session, run_id) -> None:
+        self.session = session
+        self.run_id = run_id
+        self.data = self._select_rows()
 
-    datas = []
-    for log in query:
-        data = {
-            "site_id": config.conf.get("SITE", "id"),
-            "run_id": log.run_id,
-            "status_from": log.status_from,
-            "status_to": log.status_to,
-            "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            "reason": log.reason,
-        }
-        datas.append(data)
-    return datas
+    def _select_rows(self):
+        try:
+            rows = (
+                self.session.query(models.Run_Log)
+                .filter(models.Run_Log.run_id == self.run_id)
+                .all()
+            )
+        except SQLAlchemyError as error:
+            logger.error(f"Unable to select from run_logs: {error}")
+            raise RunDbError(error)
+        return rows
+
+    def logs_table(self):
+        return self.data
+
+    def logs(self):
+        """Reformat logs table to (verbose) dictionary"""
+        logs = []
+        for row in self.data:
+            (run_id, status_from, status_to, timestamp, reason, sent) = row
+            log = {
+                "status_from": status_from,
+                "status_to": status_to,
+                "timestamp": timestamp,
+                "reason": reason,
+            }
+            logs.append(log)
+        return logs

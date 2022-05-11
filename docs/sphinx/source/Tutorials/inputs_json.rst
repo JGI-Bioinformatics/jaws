@@ -55,4 +55,9 @@ To include lists or dictionaries in your input.json files, you would do somethin
                            "third":  "c" }
    }
 
+.. note::
+    JAWS will cache your input files for some number of days (e.g. 14d) so that if you use the same file in another run (e.g. reference data file), it will not need to be transferred.  Your input files are not deleted so long as they are accessed within this time period.
+
+.. note::
+    Some compute nodes have fast local disk (e.g. SSD) or large local disk (e.g. HD).  If available, they will be mounted as /fast_scratch and/or /big_scratch, respectively.  The availability varies between compute sites.
 

@@ -35,11 +35,7 @@ def info() -> dict:
     name = config.conf.get("JAWS", "name")
     version = config.conf.get("JAWS", "version")
     docs_url = config.conf.get("JAWS", "docs_url")
-    result = {
-        "name": name,
-        "version": version,
-        "docs_url": docs_url
-    }
+    result = {"name": name, "version": version, "docs_url": docs_url}
     return result, 200
 
 
