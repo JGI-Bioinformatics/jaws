@@ -244,7 +244,7 @@ def submit_run(user):
     wdl_file = request.form.get("wdl_file")
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
-    webhook = request.form.get("webhook")
+    webhook = request.form.get("webhook", None)
     manifest_json = request.form.get("manifest")
     logger.info(
         f"User {user}: New run submission {submission_id} from {input_site_id} to {compute_site_id}"
