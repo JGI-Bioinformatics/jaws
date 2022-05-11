@@ -156,7 +156,7 @@ def get_task_log(params, session):
     """Retrieve task log from database"""
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
-        task_log = TaskLog(session, run_id=params["run_id"])
+        task_log = TaskLog.from_run_id(session, params["run_id"])
         result = task_log.task_log()
     except Exception as error:
         return failure(error)
@@ -168,7 +168,7 @@ def get_task_summary(params, session):
     """Retrieve task summary from database"""
     logger.info(f"User {params['user_id']}: Task-summary Run {params['run_id']}")
     try:
-        task_log = TaskLog(session, run_id=params["run_id"])
+        task_log = TaskLog.from_run_id(session, params["run_id"])
         result = task_log.task_summary_table()
     except Exception as error:
         return failure(error)
@@ -182,7 +182,7 @@ def get_task_status(params, session):
     """
     logger.info(f"User {params['user_id']}: Task-status Run {params['run_id']}")
     try:
-        task_log = TaskLog(session, run_id=params["run_id"])
+        task_log = TaskLog.from_run_id(session, params["run_id"])
         result = task_log.task_status_table()
     except Exception as error:
         return failure(error)

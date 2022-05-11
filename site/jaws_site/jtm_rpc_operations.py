@@ -18,13 +18,13 @@ def update_job_status(params, session):
     logger.debug(f"{params['cromwell_run_id']} is now {params['status_to']}")
     cromwell_run_id = params["cromwell_run_id"]
     try:
-        task_log = TaskLog(session, cromwell_run_id=cromwell_run_id)
+        task_log = TaskLog.from_cromwell_run_id(session, cromwell_run_id)
         task_log.save_job_log(
             params["cromwell_job_id"],
             params["status_from"],
             params["status_to"],
             datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S"),
-            params["reason"],
+            params.get("reason", None),
         )
     except Exception as error:
         logger.error(
@@ -44,7 +44,6 @@ operations = {
             "status_from",
             "status_to",
             "timestamp",
-            "reason",
         ],
     }
 }
