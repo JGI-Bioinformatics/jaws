@@ -208,7 +208,10 @@ class Transfer:
             )
             logger.debug(f"S3 download from {s3_bucket}: {src_path} -> {dest_path}")
             dest_folder = os.path.dirname(dest_path)
-            mkdir(dest_folder)
+            try:
+                mkdir(dest_folder)
+            except IOError as error:
+                logger.error(f"Unable to make download dir, {dest_folder}: {error}")
             try:
                 with open(dest_path, "wb") as fh:
                     bucket_obj.download_fileobj(src_path, fh)
