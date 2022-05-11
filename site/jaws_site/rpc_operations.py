@@ -39,7 +39,8 @@ def run_metadata(params, session):
     logger.info(f"User {params['user_id']}: Metadata Run {params['run_id']}")
     try:
         run = Run.from_id(session, params["run_id"])
-        result = run.metadata()
+        metadata = run.metadata()
+        result = metadata.data
     except Exception as error:
         return failure(error)
     return success(result)
