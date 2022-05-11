@@ -13,7 +13,8 @@ class EnvInterpolation(configparser.BasicInterpolation):
     https://docs.python.org/3/library/configparser.html#interpolation-of-values
 
     A new parameter is introduced to the init() function, env_override, which is a prefix for
-    any environment variables that should be used as overrides for the get() function.
+    any environment variables that should be used as overrides for the get() function. Must be
+    at least 2 characters long
     """
 
     def __init__(self,  env_override=None, **kwargs):
@@ -22,6 +23,8 @@ class EnvInterpolation(configparser.BasicInterpolation):
             # for the prefix env_override in the name, and then strip off the prefix for the
             # name of the setting.
             strlen = len(env_override)
+            if strlen < 3 or strlen > 20:  # The prefix must be 3-20 characters long
+                raise(ValueError("env_override prefix must be from 3-20 characters in length"))
             # should change to use removeprefix() for Python 3.9+ instead of slicing off prefix
             self._vars = {k[strlen:]: os.environ[k] for k in os.environ.keys() if k.startswith(env_override)}
         else:
