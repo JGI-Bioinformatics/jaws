@@ -81,7 +81,7 @@ class Run(db.Model):
     compute_site_id = db.Column(db.String(8), nullable=True)
     cromwell_run_id = db.Column(db.String(36), nullable=True)
     result = db.Column(db.String(32), nullable=True)
-    status = db.Column(db.String(32), nullable=False)
+    status = db.Column(db.String(32), nullable=False, default="created")
     submitted = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated = db.Column(
         db.DateTime,

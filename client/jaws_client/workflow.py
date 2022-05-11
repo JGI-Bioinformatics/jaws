@@ -237,7 +237,7 @@ class Run:
     A Run is comprised of a Workflow (WDL file(s)) and input files/parameters (inputs JSON file).
     """
 
-    def __init__(self, wdl_file, json_file, input_basedir, output_basedir, **kwargs):
+    def __init__(self, wdl_file, json_file, input_dir, input_site_id, output_basedir, **kwargs):
         """
         A Run requires the main WDL and inputs JSON.  If the main WDL uses subworkflows,
         a ZIP archive may optionally be supplied, otherwise the object will attempt to
@@ -246,12 +246,15 @@ class Run:
         :ptype wdl_file: str
         :param json_file: Path to inputs JSON file
         :ptype json_file: str
-        :param input_basedir: Base dir where Run WDL and infiles shall be copied.
-        :ptype input_basedir: str
+        :param input_dir: Base dir where Run WDL and infiles shall be copied.
+        :ptype input_dir: str
+        :param input_site_id: Name of the input/submission jaws-site
+        :ptype input_site_id: str
         :param output_basedir: Base dir where Run results are located.
         :ptype output_basedir: str
         """
-        self.input_basedir = input_basedir
+        self.input_dir = input_dir
+        self.input_site_id = input_site_id.upper()
         self.output_basedir = output_basedir
 
         subworkflows_zip_file = None
@@ -276,30 +279,34 @@ class Run:
         # This folder is where the outputs shall be returned.  Make the dir now --
         # the ACL rules will ensure the folder is writeable by `jaws`
         self.output_dir = f"{output_basedir}/{self.submission_id}"
-        mkdir(self.output_dir)
+        try:
+            mkdir(self.output_dir)
+        except IOError as error:
+            raise IOError(f"Unable to create output dir: {error}")
 
         # Create optional subworkflows Zip-file and copy Run all inputs to the
         # input-dir, a folder where JAWS user can read them.  The subworkflows ZIP may be
         # supplied by the user or it will be created automatically.
         staged_wdl_file, zip_file = self.wdl.prepare_wdls(
-            self.input_basedir, self.submission_id, subworkflows_zip_file
+            self.input_dir, self.submission_id, subworkflows_zip_file
         )
 
         # Run infiles (identified in the inputs JSON file) are copied to the input-dir,
         # so they may be read by JAWS user
+        site_input_dir = os.path.join(self.input_dir, self.input_site_id)
         try:
-            copied_files = self.inputs.copy_input_files(self.input_dir, quiet)
+            copied_files = self.inputs.copy_input_files(site_input_dir, quiet)
         except Exception as error:
             raise IOError(f"Unable to copy input files: {error}")
 
         # generate a new inputs JSON object with the paths pointing to the files copied under
         # the inputs-dir
-        staged_inputs_json_file = f"{self.input_basedir}/{self.submission_id}.json"
+        staged_inputs_json_file = f"{self.input_dir}/{self.submission_id}.json"
         self.inputs.prepend_paths_to_json(self.input_site_id)
         self.inputs.write_to(staged_inputs_json_file)
 
         # generate a (unique) list of all files to be transferred to the compute-site
-        self.manifest = Manifest(input_basedir)
+        self.manifest = Manifest(input_dir)
         self.manifest.add(
             staged_inputs_json_file, staged_wdl_file, zip_file, *copied_files
         )
@@ -639,7 +646,10 @@ class WorkflowInputs:
             # Files must be copied in to ensure they are readable by the jaws and jtm users.  The group
             # will be set correctly as a result of the gid sticky bit and acl rules on the inputs dir.
             copy_with_progress_bar(original_path, dest_path, quiet=quiet)
-            os.chmod(dest_path, 0o0660)
+            try:
+                os.chmod(dest_path, 0o0660)
+            except IOError as error:
+                raise IOError(f"Error chmod {dest_path}: {error}")
 
         return copied_files
 
