@@ -265,7 +265,7 @@ def submit_run(user):
     # check if requested compute site can process this WDL
     if (
         "max_ram_gb" in compute_site_config
-        and compute_site_config["max_ram_gb"] < max_ram_gb
+        and int(compute_site_config["max_ram_gb"]) < max_ram_gb
     ):
         msg = f'The requested site {compute_site_id} has only {compute_site_config["max_ram_gb"]} GB which is less than the {max_ram_gb} GB required by this workflow.'  # noqa
         abort(406, {"error": msg})
