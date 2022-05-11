@@ -16,11 +16,14 @@ class EnvInterpolation(configparser.BasicInterpolation):
     any environment variables that should be used as overrides for the get() function.
     """
 
-    def __init__(self,  env_var_override=None, **kwargs):
-        if env_var_override is not None:
-            self._vars = dict()  # Dictionary to be used as vars param in get(), populated from env vars
-            # ToDo: take the value of env_var_override as a prefix for any environment variables meant
-            # to be passed as a dictionary to the get() vars argument, which overrides any settings.
+    def __init__(self,  env_override=None, **kwargs):
+        if env_override is not None:
+            # Dictionary to be used as vars param in get(), populated from env vars by looking
+            # for the prefix env_override in the name, and then strip off the prefix for the
+            # name of the setting.
+            strlen = len(env_override)
+            # should change to use removeprefix() for Python 3.9+ instead of slicing off prefix
+            self._vars = {k[strlen:]: os.environ[k] for k in os.environ.keys() if k.startswith(env_override)}
         else:
             self._vars = None
         configparser.BasicInterpolation.__init__(self, **kwargs)
