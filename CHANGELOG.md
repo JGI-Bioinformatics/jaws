@@ -11,6 +11,7 @@
 - deprecate /refdata dir -- specify reference files in your inputs json like any other input file and the JAWS file caching system will allow the file to be reused between multiple runs and will not be deleted until the files have not been accessed for some period of time (e.g. 14d).
 - if the compute node has fast local disk (e.g. SSD) or large local disk (e.g. HD), then the /fast_scratch and/or /big_scratch volumes shall be mounted to the task's container
 - run submissions are failed if any infile is missing (was warning); if your inputs.json refers to paths inside a container then use String instead of File for these
+- make copy run inputs progress bar in human-readable units
 
 ## 2.7.7 (2022-4-12) Summary
 ### User Facing Changes
