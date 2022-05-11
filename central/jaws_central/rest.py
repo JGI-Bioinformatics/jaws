@@ -277,6 +277,7 @@ def submit_run(user):
     run = Run(
         user_id=user,
         submission_id=submission_id,
+        status="created",
         max_ram_gb=max_ram_gb,
         caching=caching,
         input_site_id=input_site_id,
