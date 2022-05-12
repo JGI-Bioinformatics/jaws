@@ -132,6 +132,9 @@ class Transfer:
             return new_status
 
     def status(self) -> str:
+        if self.data.status in ["submit failed", "failed", "succeeded", "cancelled"]:
+            # terminal states don't change, no need to query
+            return self.data.status
         site_id = self.responsible_site_id()
         original_status = self.data.status
         new_status = None

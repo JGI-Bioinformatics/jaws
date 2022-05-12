@@ -512,13 +512,15 @@ class Run:
         if self.data.user_id != "test":
             report = self.report()
             try:
-                #response = self.reports_rpc_client.request("save_run_report", report)
+                # response = self.reports_rpc_client.request("save_run_report", report)
                 response = {}  # skip for now  TODO
             except Exception as error:
                 logger.exception(f"RPC save_run_report error: {error}")
                 return
             if "error" in response:
-                logger.warn(f"RPC save_run_report failed: {response['error']['message']}")
+                logger.warn(
+                    f"RPC save_run_report failed: {response['error']['message']}"
+                )
                 return
         self.update_run_status("finished")
 

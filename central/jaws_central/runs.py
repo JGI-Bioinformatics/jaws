@@ -317,7 +317,7 @@ class Run:
             logger.error(f"Unable to get upload for Run {self.data.id}: {error}")
             return
         status = upload.status()
-        if status == "failed":
+        if status in ["submission failed", "failed"]:
             self.update_run_status("upload failed")
         elif status == "succeeded":
             self.update_run_status("upload complete")
@@ -333,7 +333,7 @@ class Run:
             logger.error(f"Unable to get download for Run {self.data.id}: {error}")
             return
         status = download.status()
-        if status == "failed":
+        if status in ["submission failed", "failed"]:
             self.update_run_status("download failed")
         elif status == "succeeded":
             time.sleep(
