@@ -1,3 +1,4 @@
+import pytest
 from jaws_central import transfers
 from tests.conftest import MockSession, MockTransferModel
 
@@ -86,8 +87,8 @@ def test_responsible_site_id():
         dest_base_dir=test_dest_base_dir,
     )
     transfer = transfers.Transfer(mock_session, mock_data)
-    actual = transfer.responsible_site_id()
-    assert actual == test_src_site_id
+    with pytest.raises(Exception):
+        actual = transfer.responsible_site_id()
 
     # src and dest both have Globus endpoints
     test_src_site_id = "NERSC"

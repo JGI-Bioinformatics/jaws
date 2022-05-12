@@ -30,5 +30,5 @@ class TransferDaemon:
         Do any queued transfers now.
         """
         session = database.Session()
-        transfers.check_queue(session)
+        transfers.check_queue(session, logger)
         session.close()

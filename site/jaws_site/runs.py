@@ -168,7 +168,7 @@ class Run:
     def task_log(self):
         """Lazy loading of Task Log"""
         if not self._task_log:
-            self._task_log = tasks.TaskLog.from_id(self.data.id)
+            self._task_log = tasks.TaskLog.from_run_id(self.session, self.data.id)
         return self._task_log
 
     def report(self) -> dict:
@@ -209,16 +209,27 @@ class Run:
         else:
             return {}
 
-    def outfiles(self, relpath=True) -> dict:
+    def outfiles(self, complete=False, relpath=True) -> dict:
         """
         Get output files from Cromwell and return it, if available.
         If the run hasn't been submitted to Cromwell yet, the result shall be None.
         """
         if self.data.cromwell_run_id:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            return metadata.outfiles(relpath)
+            return metadata.outfiles(complete=complete, relpath=relpath)
         else:
             return []
+
+    def workflow_root(self) -> str:
+        """
+        Get workflowRoot from Cromwell and return it, if available.
+        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        """
+        if self.data.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            return metadata.workflow_root()
+        else:
+            return None
 
     def output_manifest(self, complete=False) -> list:
         """
@@ -510,15 +521,18 @@ class Run:
         """
         # "test" is a special user account for automatic periodic system tests -- skip
         if self.data.user_id != "test":
-            report = self.report()
-            try:
-                response = self.reports_rpc_client.request("save_run_report", report)
-            except Exception as error:
-                logger.exception(f"RPC save_run_report error: {error}")
-                return
-            if "error" in response:
-                logger.warn(f"RPC save_run_report failed: {response['error']['message']}")
-                return
+            pass  # TODO
+        #            report = self.report()
+        #            try:
+        #                response = self.reports_rpc_client.request("save_run_report", report)
+        #            except Exception as error:
+        #                logger.exception(f"RPC save_run_report error: {error}")
+        #                return
+        #            if "error" in response:
+        #                logger.warn(
+        #                    f"RPC save_run_report failed: {response['error']['message']}"
+        #                )
+        #                return
         self.update_run_status("finished")
 
 

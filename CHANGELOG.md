@@ -12,6 +12,7 @@
 - if the compute node has fast local disk (e.g. SSD) or large local disk (e.g. HD), then the /fast_scratch and/or /big_scratch volumes shall be mounted to the task's container
 - run submissions are failed if any infile is missing (was warning); if your inputs.json refers to paths inside a container then use String instead of File for these
 - make copy run inputs progress bar in human-readable units
+- remove unnecessary file copy operations when compute-site is same as input-site (i.e. faster)
 
 ## 2.7.7 (2022-4-12) Summary
 ### User Facing Changes

@@ -462,7 +462,9 @@ def _get_uid() -> str:
     "--sub", default=None, help="Subworkflows zip (optional; by default, auto-generate)"
 )
 @click.option(
-    "--webhook", default=None, help="If provided, JAWS will POST to this URL when Run completes."
+    "--webhook",
+    default=None,
+    help="If provided, JAWS will POST to this URL when Run completes.",
 )
 def submit(
     wdl_file: str,
@@ -492,7 +494,9 @@ def submit(
     if quiet:
         params["quiet"] = quiet
     try:
-        run = workflow.Run(wdl_file, json_file, input_dir, input_site_id, output_dir, **params)
+        run = workflow.Run(
+            wdl_file, json_file, input_dir, input_site_id, output_dir, **params
+        )
     except WdlError as error:
         raise SystemExit(f"Your workflow has an error: {error}")
     except Exception as error:
@@ -566,13 +570,21 @@ def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
     status = result["status"]
     submission_id = result["submission_id"]
 
-    if status != "download complete":
+    if status not in ["download complete", "email sent", "done"]:
         sys.exit(f"Run {run_id} output is not yet available; status is {status}")
 
+    # this shouldn't be necessary as wdl, json, zip were copied to this folder during submission
     pathlib.Path(dest).mkdir(parents=True, exist_ok=True)
 
-    src_base = config.get("JAWS", "downloads_dir")
-    src = f"{src_base}/{submission_id}"
+    src = None
+    if result["input_site_id"] == result["compute_site_id"]:
+        # get the results from the cromwell-execution dir
+        url = f'{config.get("JAWS", "url")}/run/{run_id}/root'
+        src = _request("GET", url)
+    else:
+        # results will be in the downloads dir
+        src_base = config.get("JAWS", "downloads_dir")
+        src = f"{src_base}/{submission_id}"
 
     if complete is True:
         _get_complete(run_id, src, dest)
