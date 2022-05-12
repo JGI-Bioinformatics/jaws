@@ -220,6 +220,17 @@ class Run:
         else:
             return []
 
+    def workflow_root(self) -> str:
+        """
+        Get workflowRoot from Cromwell and return it, if available.
+        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        """
+        if self.data.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            return metadata.workflow_root()
+        else:
+            return None
+
     def output_manifest(self, complete=False) -> list:
         """
         Get list of all of a Run's output files.

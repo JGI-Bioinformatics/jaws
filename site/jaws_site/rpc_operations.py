@@ -82,6 +82,23 @@ def run_outfiles(params, session):
     return success(result)
 
 
+def run_workflow_root(params, session):
+    """Retrieve the root dir of the workflow
+
+    :param cromwell_run_id: Cromwell run ID
+    :type params: dict
+    :return: The output files for a run
+    :rtype: dict
+    """
+    logger.info(f"User {params['user_id']}: workflowRoot Run {params['run_id']}")
+    try:
+        run = Run.from_id(session, params["run_id"])
+        result = run.workflow_root()
+    except Exception as error:
+        return failure(error)
+    return success(result)
+
+
 def run_manifest(params, session):
     """Retrieve list of output files of a Run.
 
@@ -259,6 +276,10 @@ operations = {
     },
     "run_outfiles": {
         "function": run_outfiles,
+        "required_params": ["user_id", "cromwell_run_id"],
+    },
+    "run_workflow_root": {
+        "function": run_workflow_root,
         "required_params": ["user_id", "cromwell_run_id"],
     },
     "run_manifest": {
