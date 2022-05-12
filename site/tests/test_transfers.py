@@ -1,20 +1,24 @@
 import shutil
+import logging
 from jaws_site import transfers
 from jaws_site.transfers import Transfer
 from tests.conftest import MockSession, MockTransferModel
 
 
+logger = logging.getLogger(__package__)
+
+
 def test_constructor():
     mock_session = MockSession()
     mock_data = MockTransferModel()
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     assert transfer
 
 
 def test_status():
     mock_session = MockSession()
     mock_data = MockTransferModel(status="queued")
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     assert transfer.status() == "queued"
 
 
@@ -29,12 +33,12 @@ def test_cancel(monkeypatch):
 
     # a queued transfer may be cancelled
     mock_data = MockTransferModel(status="queued")
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     assert transfer.cancel() is True
 
     # a transfer that has already begun cannot be cancelled
     mock_data = MockTransferModel(status="transferring")
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     assert transfer.cancel() is False
 
 
@@ -43,7 +47,7 @@ def test_manifest():
     EXAMPLE_MANIFEST = ["file1", "file2", "file3"]
     mock_session = MockSession()
     mock_data = MockTransferModel(manifest=EXAMPLE_MANIFEST)
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
 
     assert type(transfer.data.manifest_json) == str
     manifest = transfer.manifest()
@@ -81,7 +85,7 @@ def test_transfer_files(monkeypatch):
         src_base_dir="s3://jaws-site/cromwell-executions/X/Y",
         dest_base_dir="/scratch/jaws/downloads",
     )
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     transfer.transfer_files()
     assert transfer.S3_DOWNLOAD is True
 
@@ -91,7 +95,7 @@ def test_transfer_files(monkeypatch):
         src_base_dir="/scratch/jaws/uploads/A/B/C",
         dest_base_dir="s3://jaws-site/uploads",
     )
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     transfer.transfer_files()
     assert transfer.S3_UPLOAD is True
 
@@ -101,7 +105,7 @@ def test_transfer_files(monkeypatch):
         src_base_dir="/scratch/jaws/cromwell-executions/X/Y",
         dest_base_dir="/scratch/jaws/downloads",
     )
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     transfer.transfer_files()
     assert transfer.LOCAL_COPY is True
 
@@ -132,14 +136,14 @@ def test_local_copy(monkeypatch):
         dest_base_dir="/scratch/jaws/downloads",
         manifest_json='{"task1.file1": "file1.txt"}',
     )
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     transfer.local_copy()
 
 
 def test_s3_parse_path():
     mock_session = MockSession()
     mock_data = MockTransferModel()
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
 
     test_path = "s3://jaws-site/dev/uploads/Pfam-A.hmm"
     actual_bucket, actual_path = transfer.s3_parse_path(test_path)

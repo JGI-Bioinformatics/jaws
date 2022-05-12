@@ -3,11 +3,10 @@ Transfer is a collection of files/folders to transfer (e.g. via Globus, FTP, etc
 Items are stored in a relational database.
 """
 
-import logging
 import os
 import pathlib
 from datetime import datetime
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 import json
 import shutil
 import boto3
@@ -53,25 +52,25 @@ class Transfer:
         self.data = data
 
     @classmethod
-    def from_params(cls, session, logger, **kwargs):
+    def from_params(cls, session, logger, params):
         """Create new transfer from parameter values and save in RDb."""
         manifest_json = "[]"
-        if "manifest" in kwargs:
-            assert type(kwargs["manifest"]) == list
-            manifest_json = (json.dumps(kwargs["manifest"]),)
-        elif "manifest_json" in kwargs:
-            assert (kwargs["manifest_json"]) == str
-            manifest_json = kwargs["manifest_json"]
+        if "manifest" in params:
+            assert type(params["manifest"]) == list
+            manifest_json = json.dumps(params["manifest"])
+        elif "manifest_json" in params:
+            assert (params["manifest_json"]) == str
+            manifest_json = params["manifest_json"]
         try:
             data = models.Transfer(
-                id=kwargs["transfer_id"],
-                src_base_dir=kwargs["src_base_dir"],
-                dest_base_dir=kwargs["dest_base_dir"],
+                id=params["transfer_id"],
+                src_base_dir=params["src_base_dir"],
+                dest_base_dir=params["dest_base_dir"],
                 manifest_json=manifest_json,
             )
         except SQLAlchemyError as error:
             raise TransferValueError(
-                f"Error creating model for new Transfer: {kwargs}: {error}"
+                f"Error creating model for new Transfer: {params}: {error}"
             )
         try:
             session.add(data)
@@ -86,15 +85,16 @@ class Transfer:
     def from_id(cls, session, logger, transfer_id: int):
         """Select existing Transfers record from RDb by primary key"""
         try:
-            data = session.query(models.Transfer).get(int(transfer_id))
-        except IntegrityError as error:
-            raise TransferNotFoundError(f"Transfer {transfer_id} not found")
+            data = session.query(models.Transfer).get(int(transfer_id)).one_or_none()
         except SQLAlchemyError as error:
-            raise TransferDbError("Error selecting Transfer {transfer_id}: {error}")
+            raise TransferDbError(f"Error selecting Transfer {transfer_id}: {error}")
         except Exception as error:
             raise TransferError(f"Error selecting Transfer {transfer_id}: {error}")
         else:
-            return cls(session, logger, data)
+            if data is None:
+                raise TransferNotFoundError(f"Transfer {transfer_id} not found")
+            else:
+                return cls(session, logger, data)
 
     def status(self) -> str:
         """Return the current state of the transfer."""
@@ -263,7 +263,7 @@ def check_queue(session, logger) -> None:
             .all()
         )
     except SQLAlchemyError as error:
-        self.logger.warning(
+        logger.warning(
             f"Failed to select transfer task from db: {error}", exc_info=True
         )
     if len(rows):
