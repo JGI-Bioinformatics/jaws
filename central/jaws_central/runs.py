@@ -443,7 +443,9 @@ class Run:
         password = config.conf.get("EMAIL", "password")
         smtp_server = "smtp.gmail.com"
 
-        message = f"""Subject: JAWS Run {self.data.id} {self.data.result}: {self.data.tag}
+        tag_text = f" ({self.data.tag})" if self.data.tag else ""
+
+        message = f"""Subject: JAWS Run {self.data.id} {self.data.result}{tag_text}
 
         Your run has completed.
 
