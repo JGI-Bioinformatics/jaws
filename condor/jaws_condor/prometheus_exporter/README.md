@@ -2,21 +2,29 @@
 
 
 This is a REST server that returns various performance metrics from a HTCondor Central service to REST requests.
-By default, it listens to the port 9118.
 This is used by a Prometheous service to collect metrics from a HTCondor service.
 
 * NOTE: 
-In JAWS, each site runs this exporter for the site's HTCondor Central. Each site should call REST to this exporter to get a JSON data of performance metrics. 
+- In JAWS, each site runs this exporter for the site's HTCondor Central. Each site should call REST to this exporter to get a JSON data of performance metrics. 
+- By default, it listens to the port `9118`.
 
 
+## Per site setup
 
-## JGI
+### JGI
 
 1. cd /global/home/groups-sw/lr_jgicloud/condor/monitor/
 2. git clone https://github.com/niclabs/htcondor-monitor
 3. module load python 
 4. cd /global/home/groups-sw/lr_jgicloud/condor/monitor/htcondor-monitor/CondorExporter 
 5. . venv/bin/activate && pip install -r requirements.txt
+
+### TAHOMA
+
+Installation directory
+```angular2html
+/tahoma/mscjgi/condor/monitor/htcondor-monitor/CondorExporter
+```
 
 
 ## How to start exporter
