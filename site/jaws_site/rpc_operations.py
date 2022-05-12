@@ -5,7 +5,7 @@ from jaws_site import errors
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run, RunNotFoundError
-from jaws_site.transfers import Transfer
+from jaws_site.transfers import Transfer, TransferError, TransferNotFoundError, TransferDbError, TransferValueError
 
 
 # config and logging must be initialized before importing this module
@@ -198,7 +198,7 @@ def submit_transfer(params, session):
     """
     logger.info(f"New transfer {params['transfer_id']}")
     try:
-        transfer = Transfer.from_params(session, params)
+        transfer = Transfer.from_params(session, logger, params)
     except Exception as error:
         logger.debug(f"Error submitting transfer {params['transfer_id']}: {error}")
         return failure(error)
@@ -212,8 +212,9 @@ def transfer_status(params, session):
     Check the status of a transfer.
     """
     try:
-        transfer = Transfer.from_id(session, params["transfer_id"])
+        transfer = Transfer.from_id(session, logger, params["transfer_id"])
     except Exception as error:
+        logger.error(f"Transfer {params['transfer_id']} status failed: {error}")
         return failure(error)
     else:
         result = {"status": transfer.status()}
@@ -226,7 +227,7 @@ def cancel_transfer(params, session):
     """
     logger.info(f"Cancel transfer {params['transfer_id']}")
     try:
-        transfer = Transfer.from_id(session, params["transfer_id"])
+        transfer = Transfer.from_id(session, logger, params["transfer_id"])
         transfer.cancel()
     except Exception as error:
         logger.debug(f"Error cancelling transfer {params['transfer_id']}: {error}")

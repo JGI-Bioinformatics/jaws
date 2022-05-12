@@ -14,9 +14,6 @@ import boto3
 from jaws_site import config, models
 
 
-logger = logging.getLogger(__package__)
-
-
 def mkdir(folder):
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
 
@@ -41,19 +38,22 @@ class TransferValueError(TransferError):
 class Transfer:
     """Class representing a transfer (set of files to transfer) associated with one Run."""
 
-    def __init__(self, session, data):
+    def __init__(self, session, logger, data):
         """
         Initialize transfer object.
         :param session: database handle
-        :type session: SqlAlchemy.session
+        :ptype session: SqlAlchemy.session
+        :param logger: logging object
+        :ptype logger: logging.Logger
         :param data: ORM record for this object
-        :type: sqlalchemy.ext.declarative.declarative_base
+        :ptype: sqlalchemy.ext.declarative.declarative_base
         """
         self.session = session
+        self.logger = logger
         self.data = data
 
     @classmethod
-    def from_params(cls, session, **kwargs):
+    def from_params(cls, session, logger, **kwargs):
         """Create new transfer from parameter values and save in RDb."""
         manifest_json = "[]"
         if "manifest" in kwargs:
@@ -70,7 +70,7 @@ class Transfer:
                 manifest_json=manifest_json
             )
         except SQLAlchemyError as error:
-            raise TransferDbError(
+            raise TransferValueError(
                 f"Error creating model for new Transfer: {kwargs}: {error}"
             )
         try:
@@ -80,21 +80,21 @@ class Transfer:
             session.rollback()
             raise TransferDbError(error)
         else:
-            return cls(session, data)
+            return cls(session, logger, data)
 
     @classmethod
-    def from_id(cls, session, id):
+    def from_id(cls, session, logger, transfer_id: int):
         """Select existing Transfers record from RDb by primary key"""
         try:
-            data = session.query(models.Transfer).get(id)
+            data = session.query(models.Transfer).get(int(transfer_id))
         except IntegrityError as error:
-            logger.error(f"Transfer {id} not found", error)
-            raise TransferNotFoundError(f"Transfer {id} not found")
+            raise TransferNotFoundError(f"Transfer {transfer_id} not found")
         except SQLAlchemyError as error:
-            logger.error(f"Unable to select Transfer {id}", error)
-            raise TransferDbError("Error selecting Transfer {id}: {error}")
+            raise TransferDbError("Error selecting Transfer {transfer_id}: {error}")
+        except Exception as error:
+            raise TransferError(f"Error selecting Transfer {transfer_id}: {error}")
         else:
-            return cls(session, data)
+            return cls(session, logger, data)
 
     def status(self) -> str:
         """Return the current state of the transfer."""
@@ -118,7 +118,7 @@ class Transfer:
         """
         Update Transfers' status.
         """
-        logger.info(f"Transfers {self.data.id}: now {new_status}")
+        self.logger.info(f"Transfers {self.data.id}: now {new_status}")
         timestamp = datetime.utcnow()
         try:
             self.data.status = new_status
@@ -126,14 +126,14 @@ class Transfer:
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
-            logger.exception(f"Unable to update Transfer {self.data.id}: {error}")
+            self.logger.exception(f"Unable to update Transfer {self.data.id}: {error}")
             raise (error)
 
     def transfer_files(self) -> None:
         """
         Do the transfer and return when done -- the operation is blocking.
         """
-        logger.debug(f"Begin transfer {self.data.id}")
+        self.logger.debug(f"Begin transfer {self.data.id}")
         self.update_status("transferring")
         try:
             if self.data.src_base_dir.startswith("s3://"):
@@ -143,7 +143,7 @@ class Transfer:
             else:
                 self.local_copy()
         except IOError as error:
-            logger.error(f"Transfer {self.data.id} failed: {error}")
+            self.logger.error(f"Transfer {self.data.id} failed: {error}")
             self.update_status("failed")
         else:
             self.update_status("succeeded")
@@ -155,7 +155,7 @@ class Transfer:
                 os.path.join(self.data.dest_base_dir, rel_path)
             )
             dest_folder = os.path.dirname(dest_path)
-            logger.debug(f"Copy {src_path} {dest_path}")
+            self.logger.debug(f"Copy {src_path} {dest_path}")
             try:
                 mkdir(dest_folder)
                 shutil.copyfile(src_path, dest_path)
@@ -190,7 +190,7 @@ class Transfer:
         for rel_path in self.manifest():
             src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
             dest_path = os.path.normpath(os.path.join(dest_base_dir, rel_path))
-            logger.debug(f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}")
+            self.logger.debug(f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}")
             try:
                 with open(src_path, "rb") as fh:
                     bucket_obj.upload_fileobj(fh, dest_path)
@@ -206,12 +206,12 @@ class Transfer:
             dest_path = os.path.normpath(
                 os.path.join(self.data.dest_base_dir, rel_path)
             )
-            logger.debug(f"S3 download from {s3_bucket}: {src_path} -> {dest_path}")
+            self.logger.debug(f"S3 download from {s3_bucket}: {src_path} -> {dest_path}")
             dest_folder = os.path.dirname(dest_path)
             try:
                 mkdir(dest_folder)
             except IOError as error:
-                logger.error(f"Unable to make download dir, {dest_folder}: {error}")
+                self.logger.error(f"Unable to make download dir, {dest_folder}: {error}")
             try:
                 with open(dest_path, "wb") as fh:
                     bucket_obj.download_fileobj(src_path, fh)
@@ -233,19 +233,19 @@ class Transfer:
                     try:
                         mkdir(dest_path)
                     except Exception as error:
-                        msg = f"Mkdir {dest_path} error: {error}"
-                        logger.error(msg)
+                        msg = f"Unable to make download dir, {dest_path}: {error}"
+                        self.logger.error(msg)
                         raise IOError(msg)
                 else:
                     try:
                         aws_client.download_file(s3_bucket, rel_path, dest_path)
                     except Exception as error:
                         msg = f"S3 download error, {rel_path}: {error}"
-                        logger.error(msg)
+                        self.logger.error(msg)
                         raise IOError(msg)
 
 
-def check_queue(session) -> None:
+def check_queue(session, logger) -> None:
     """
     Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
     transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
@@ -259,9 +259,9 @@ def check_queue(session) -> None:
             .all()
         )
     except SQLAlchemyError as error:
-        logger.warning(
+        self.logger.warning(
             f"Failed to select transfer task from db: {error}", exc_info=True
         )
     if len(rows):
-        transfer = Transfer(session, rows[0])
+        transfer = Transfer(session, logger, rows[0])
         transfer.transfer_files()
