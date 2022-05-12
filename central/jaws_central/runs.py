@@ -274,6 +274,14 @@ class Run:
 
     def submit_download(self):
         logger.debug(f"Run {self.data.id}: Submit download")
+
+        # if input and compute site are same, there are no files to transfer, so just
+        # promote the state (two updates are required since we don't skip states)
+        if self.data.input_site_id == self.data.compute_site_id:
+            self.update_run_status("download queued")
+            self.update_run_status("download complete")
+            return
+
         dest_config = config.conf.get_site(self.data.input_site_id)
         workflow_root, manifest = self.outputs_manifest()
         if len(manifest) == 0:

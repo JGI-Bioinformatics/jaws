@@ -569,6 +569,7 @@ def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
     if status != "download complete":
         sys.exit(f"Run {run_id} output is not yet available; status is {status}")
 
+    # this shouldn't be necessary as wdl, json, zip were copied to this folder during submission
     pathlib.Path(dest).mkdir(parents=True, exist_ok=True)
 
     src_base = config.get("JAWS", "downloads_dir")

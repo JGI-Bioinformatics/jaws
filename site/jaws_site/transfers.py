@@ -8,7 +8,6 @@ import pathlib
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 import json
-import shutil
 import boto3
 from jaws_site import config, models
 
@@ -141,26 +140,13 @@ class Transfer:
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
-                self.local_copy()
+                self.logger.error(f"Transfer {self.data.id} failed because neither src/dest start with s3://")
+                self.update_status("failed")
         except IOError as error:
             self.logger.error(f"Transfer {self.data.id} failed: {error}")
             self.update_status("failed")
         else:
             self.update_status("succeeded")
-
-    def local_copy(self):
-        for rel_path in self.manifest():
-            src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
-            dest_path = os.path.normpath(
-                os.path.join(self.data.dest_base_dir, rel_path)
-            )
-            dest_folder = os.path.dirname(dest_path)
-            self.logger.debug(f"Copy {src_path} {dest_path}")
-            try:
-                mkdir(dest_folder)
-                shutil.copyfile(src_path, dest_path)
-            except IOError:
-                raise
 
     def aws_client(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
