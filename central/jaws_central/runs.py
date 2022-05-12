@@ -176,7 +176,7 @@ class Run:
             rpc_client = self.rpc_index.get_client(self.data.compute_site_id)
             params = {"user_id": self.data.user_id, "run_id": self.data.id}
             rpc_client.request("cancel", params)
-        self.update_run_status("cancelled")
+        self.update_status("cancelled")
 
     def _get_transfer(self, transfer_id: int):
         """
@@ -248,8 +248,8 @@ class Run:
         # if input and compute site are same, there are no files to transfer, so just
         # promote the state (two updates are required since we don't skip states)
         if self.data.input_site_id == self.data.compute_site_id:
-            self.update_run_status("upload queued")
-            self.update_run_status("upload complete")
+            self.update_status("upload queued")
+            self.update_status("upload complete")
             return
 
         src_config = config.conf.get_site(self.data.input_site_id)
@@ -266,11 +266,11 @@ class Run:
             transfer.submit_transfer()
         except Exception as error:
             logger.error(f"Failed to create upload: {error}")
-            self.update_run_status("upload failed", f"{error}")
+            self.update_status("upload failed", f"{error}")
         else:
             logger.debug(f"Run {self.data.id} upload {transfer.data.id} queued")
             self.data.upload_id = transfer.data.id
-            self.update_run_status("upload queued")
+            self.update_status("upload queued")
 
     def submit_download(self):
         logger.debug(f"Run {self.data.id}: Submit download")
@@ -278,15 +278,15 @@ class Run:
         # if input and compute site are same, there are no files to transfer, so just
         # promote the state (two updates are required since we don't skip states)
         if self.data.input_site_id == self.data.compute_site_id:
-            self.update_run_status("download queued")
-            self.update_run_status("download complete")
+            self.update_status("download queued")
+            self.update_status("download complete")
             return
 
         dest_config = config.conf.get_site(self.data.input_site_id)
         workflow_root, manifest = self.outputs_manifest()
         if len(manifest) == 0:
             # there are no outputs to download (e.g. failed run)
-            self.update_run_status(
+            self.update_status(
                 "download complete", "no output files were generated"
             )
             return
@@ -302,17 +302,17 @@ class Run:
             transfer = Transfer.from_params(self.session, params)
         except Exception as error:
             logger.error(f"Failed to create download: {error}")
-            self.update_run_status("download failed", f"{error}")
+            self.update_status("download failed", f"{error}")
             return
         try:
             transfer.submit_transfer()
         except Exception as error:
             logger.error(f"Failed to submit download: {error}")
-            self.update_run_status("download failed", f"{error}")
+            self.update_status("download failed", f"{error}")
         else:
             logger.debug(f"Run {self.data.id} download {transfer.data.id} queued")
             self.data.download_id = transfer.data.id
-            self.update_run_status("download queued")
+            self.update_status("download queued")
 
     def check_if_upload_complete(self) -> None:
         """
@@ -326,9 +326,9 @@ class Run:
             return
         status = upload.status()
         if status in ["submission failed", "failed"]:
-            self.update_run_status("upload failed")
+            self.update_status("upload failed")
         elif status == "succeeded":
-            self.update_run_status("upload complete")
+            self.update_status("upload complete")
 
     def check_if_download_complete(self) -> None:
         """
@@ -342,12 +342,12 @@ class Run:
             return
         status = download.status()
         if status in ["submission failed", "failed"]:
-            self.update_run_status("download failed")
+            self.update_status("download failed")
         elif status == "succeeded":
             time.sleep(
                 30
             )  # give file system a chance to update all metadata tables (see: #1236)
-            self.update_run_status("download complete")
+            self.update_status("download complete")
 
     def user_email(self):
         """
@@ -389,19 +389,19 @@ class Run:
             error = f"Run {self.data.id} rejected by {site_id}: {response['error']['message']}"
             logger.error(error)
             return
-        self.update_run_status("ready")
+        self.update_status("ready")
 
-    def update_run_status(self, status_to, reason=None) -> None:
+    def update_status(self, status_to, reason=None) -> None:
         """
         Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
         """
         status_from = self.data.status
         logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
-        self._update_run_status(status_to, timestamp)
+        self._update_status(status_to, timestamp)
         self._insert_run_log(status_from, status_to, timestamp, reason)
 
-    def _update_run_status(self, new_status, timestamp) -> None:
+    def _update_status(self, new_status, timestamp) -> None:
         """
         Update Run's current status in 'runs' table
         """
