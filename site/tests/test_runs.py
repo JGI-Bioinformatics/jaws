@@ -143,7 +143,7 @@ def test_outfiles(monkeypatch):
         def __init__(self):
             self.data = {}
 
-        def outfiles(self, relpath=True):
+        def outfiles(self, complete=False, relpath=True):
             mock_outfiles = ["./TEST_OUTFILE"]
             return mock_outfiles
 

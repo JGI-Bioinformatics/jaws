@@ -88,12 +88,12 @@ def run_daemon() -> None:
 
     from jaws_site.run_daemon import RunDaemon
 
-#    import daemon
-#    import lockfile
-#    pidfile = os.path.join(config.conf.get("SITE", "lock_dir"), "rund.pid")
-#    with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
-#        rund = RunDaemon()
-#        rund.start_daemon()
+    #    import daemon
+    #    import lockfile
+    #    pidfile = os.path.join(config.conf.get("SITE", "lock_dir"), "rund.pid")
+    #    with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
+    #        rund = RunDaemon()
+    #        rund.start_daemon()
 
     rund = RunDaemon()
     rund.start_daemon()
@@ -105,12 +105,12 @@ def transfer_daemon() -> None:
 
     from jaws_site.transfer_daemon import TransferDaemon
 
-#    import daemon
-#    import lockfile
-#    pidfile = os.path.join(config.conf.get("SITE", "lock_dir"), "transferd.pid")
-#    with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
-#        transferd = TransferDaemon()
-#        transferd.start_daemon()
+    #    import daemon
+    #    import lockfile
+    #    pidfile = os.path.join(config.conf.get("SITE", "lock_dir"), "transferd.pid")
+    #    with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
+    #        transferd = TransferDaemon()
+    #        transferd.start_daemon()
 
     transferd = TransferDaemon()
     transferd.start_daemon()
@@ -122,12 +122,12 @@ def perf_metrics_daemon() -> None:
 
     from jaws_site.perf_metrics_daemon import PerformanceMetricsDaemon
 
-#    import daemon
-#    import lockfile
-#    pidfile = os.path.join(config.conf.get("SITE", "lock_dir"), "perf_metricsd.pid")
-#    with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
-#        perfd = PerformanceMetricsDaemon()
-#        perfd.start_daemon()
+    #    import daemon
+    #    import lockfile
+    #    pidfile = os.path.join(config.conf.get("SITE", "lock_dir"), "perf_metricsd.pid")
+    #    with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
+    #        perfd = PerformanceMetricsDaemon()
+    #        perfd.start_daemon()
 
     perfd = PerformanceMetricsDaemon()
     perfd.start_daemon()

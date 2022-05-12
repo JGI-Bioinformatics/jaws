@@ -35,16 +35,8 @@ class Configuration(metaclass=Singleton):
     """Configuration singleton class."""
 
     defaults = {
-        "JAWS": {
-            "name": "jaws",
-            "version": "",
-            "docs_url": ""
-        },
-        "DB": {
-            "dialect": "mysql+mysqlconnector",
-            "host": "localhost",
-            "port": 3306
-        },
+        "JAWS": {"name": "jaws", "version": "", "docs_url": ""},
+        "DB": {"dialect": "mysql+mysqlconnector", "host": "localhost", "port": 3306},
         "RPC_SERVER": {
             "host": "localhost",
             "port": "5672",
@@ -54,11 +46,7 @@ class Configuration(metaclass=Singleton):
             "num_threads": 5,
             "max_retries": 5,
         },
-        "HTTP": {
-            "auth_url": "localhost",
-            "auth_port": "3000",
-            "rest_port": "5000"
-        },
+        "HTTP": {"auth_url": "localhost", "auth_port": "3000", "rest_port": "5000"},
     }
     required_params = {
         "DB": ["user", "password", "db"],

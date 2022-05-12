@@ -543,6 +543,24 @@ def run_outfiles(user, run_id):
     return result
 
 
+def run_workflow_root(user, run_id):
+    """
+    Retrieve the workflow_root for the Run.  It refers to the path at the compute-site.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: Unmodified root folder of the Run
+    :rtype: str
+    """
+    logger.info(f"User {user}: Get outfiles for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    result = rpc_call(user, run_id, "run_workflow_root")
+    return result
+
+
 def get_errors(user, run_id):
     """
     Retrieve error messages and stderr for failed tasks.

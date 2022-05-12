@@ -132,6 +132,9 @@ class Transfer:
             return new_status
 
     def status(self) -> str:
+        if self.data.status in ["submit failed", "failed", "succeeded", "cancelled"]:
+            # terminal states don't change, no need to query
+            return self.data.status
         site_id = self.responsible_site_id()
         original_status = self.data.status
         new_status = None
@@ -183,9 +186,9 @@ class Transfer:
         Which jaws-site is responsible for this transfer, if any.
         When None, that means this (jaws-central) service is responsible for this transfer.
         """
-        site_id = None  # if None, then this service (central)
+        site_id = None  # if None, then this service (jaws-central) is responsible for the transfer
         if self.data.src_site_id == self.data.dest_site_id:
-            site_id = self.data.src_site_id
+            raise TransferError(f"No transfer expected for intra-site transfers; Transfer {self.data.id}")
         elif (
             self.src_site_config["globus_endpoint"]
             and self.dest_site_config["globus_endpoint"]
@@ -195,7 +198,7 @@ class Transfer:
             "s3://"
         ) and self.data.dest_base_dir.startswith("s3://"):
             # we don't currently support retrieving user input data from S3 buckets
-            raise TransferError("S3:S3 transfers not yet implemented")
+            raise TransferError("S3:S3 transfers are not supported")
         elif self.data.src_base_dir.startswith("s3://"):
             # download from S3->NFS must be done by destination site (with NFS access)
             site_id = self.data.dest_site_id
@@ -209,7 +212,7 @@ class Transfer:
     def submit_transfer(self) -> None:
         """
         If the file transfer is between jaws-sites with Globus endpoints, then jaws-central can
-        submit to Globus service directly.  For AWS-S3 (or local) copy operations, the jaws-site
+        submit to Globus service directly.  For AWS-S3 copy operations, the jaws-site
         must do operation because central doesn't have access to the jaws-sites' file systems.
         REST requests to Globus are sent via the SDK.  Requests to the jaws-site are sent via RPC.
         """
@@ -219,7 +222,7 @@ class Transfer:
         responsible_site_id = self.responsible_site_id()
 
         if responsible_site_id:
-            # sites handle S3- or local-copy
+            # jaws-sites handle AWS-S3 copy operations
             params = {
                 "transfer_id": self.data.id,
                 "src_site_id": self.data.src_site_id,
@@ -236,7 +239,7 @@ class Transfer:
             else:
                 self.update_status("queued")
         else:
-            # central with submit to Globus
+            # jaws-central with submit to Globus
             label = f"Transfer {self.data.id}"
             src_endpoint = self.src_site_config["globus_endpoint"]
             src_host_path = self.src_site_config["globus_host_path"]

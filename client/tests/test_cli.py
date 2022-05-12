@@ -390,7 +390,12 @@ def test_cli_submit(configuration, monkeypatch, sample_workflow):
 def test_get(configuration, monkeypatch):
     def mock__run_status(run_id, verbose):
         if run_id == "1":
-            return {"status": "download complete", "submission_id": "AAAA"}
+            return {
+                "status": "download complete",
+                "submission_id": "AAAA",
+                "input_site_id": "CORI",
+                "compute_site_id": "JGI",
+            }
         else:
             return {"status": "submitted", "submission_id": "AAAA"}
 

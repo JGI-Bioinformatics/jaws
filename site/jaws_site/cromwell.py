@@ -126,7 +126,7 @@ class Task:
         summary = []
         for call in self.data:
             if call.get("stdout"):
-                cromwell_dir = re.sub(r"/stdout$", '', call["stdout"])
+                cromwell_dir = re.sub(r"/stdout$", "", call["stdout"])
             else:
                 cromwell_dir = None
 
@@ -149,9 +149,21 @@ class Task:
             if "subWorkflowMetadata" in call:
                 subworkflow = self.subworkflows[shard_index][attempt]
                 sub_task_summary = subworkflow.task_summary()
-                for sub_name, sub_job_id, sub_cached, max_time, cromwell_dir in sub_task_summary:
+                for (
+                    sub_name,
+                    sub_job_id,
+                    sub_cached,
+                    max_time,
+                    cromwell_dir,
+                ) in sub_task_summary:
                     summary.append(
-                        [f"{name}:{sub_name}", sub_job_id, sub_cached, max_time, cromwell_dir]
+                        [
+                            f"{name}:{sub_name}",
+                            sub_job_id,
+                            sub_cached,
+                            max_time,
+                            cromwell_dir,
+                        ]
                     )
             else:
                 summary.append([name, job_id, cached, max_time, cromwell_dir])
@@ -438,7 +450,16 @@ class Metadata:
         return outputs
 
     def outfiles(self, complete=False, relpath=True):
-        """Return list of all output files of a run"""
+        """
+        Return list of all output files of a run.
+        By default, only include files tagged as outputs for the Run.
+        :param complete: All files, not just workflow outputs.
+        :ptype complete: bool
+        :param relpath: Convert abs paths to rel paths.
+        :ptype relpath: bool
+        :return: List of files
+        :rtype: list
+        """
         workflow_root = self.workflow_root()
         full_paths = []
         outputs = self.get("outputs", {})

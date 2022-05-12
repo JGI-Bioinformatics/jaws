@@ -81,11 +81,11 @@ def test_check_if_upload_complete(monkeypatch):
         transfer = transfers.Transfer(session, data)
         return transfer
 
-    def mock_update_run_status(self, new_status):
+    def mock_update_status(self, new_status):
         self.data.status = new_status
 
     monkeypatch.setattr(runs.Run, "_get_transfer", mock_get_transfer)
-    monkeypatch.setattr(runs.Run, "update_run_status", mock_update_run_status)
+    monkeypatch.setattr(runs.Run, "update_status", mock_update_status)
 
     session = MockSession()
     test_transfer_id = 999
@@ -103,11 +103,11 @@ def test_check_if_download_complete(monkeypatch):
         transfer = transfers.Transfer(session, data)
         return transfer
 
-    def mock_update_run_status(self, new_status):
+    def mock_update_status(self, new_status):
         self.data.status = new_status
 
     monkeypatch.setattr(runs.Run, "_get_transfer", mock_get_transfer)
-    monkeypatch.setattr(runs.Run, "update_run_status", mock_update_run_status)
+    monkeypatch.setattr(runs.Run, "update_status", mock_update_status)
 
     session = MockSession()
     test_transfer_id = 999
@@ -206,8 +206,8 @@ def test_inputs_manifest():
     assert inputs_manifest["foo"] == "bar"
 
 
-def test_update_run_status(monkeypatch):
-    def mock__update_run_status(self, status_from, status_to):
+def test_update_status(monkeypatch):
+    def mock__update_status(self, status_from, status_to):
         assert status_from != status_to
         self.RUN_STATUS_WAS_UPDATED = True
 
@@ -215,12 +215,12 @@ def test_update_run_status(monkeypatch):
         assert status_from != status_to
         self.RUN_LOG_WAS_INSERTED = True
 
-    monkeypatch.setattr(runs.Run, "_update_run_status", mock__update_run_status)
+    monkeypatch.setattr(runs.Run, "_update_status", mock__update_status)
     monkeypatch.setattr(runs.Run, "_insert_run_log", mock__insert_run_log)
 
     mock_session = MockSession()
     mock_data = MockRunModel(status="queued")
     run = runs.Run(mock_session, mock_data)
-    run.update_run_status("running")
+    run.update_status("running")
     assert run.RUN_STATUS_WAS_UPDATED
     assert run.RUN_LOG_WAS_INSERTED

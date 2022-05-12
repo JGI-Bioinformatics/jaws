@@ -178,12 +178,12 @@ def run_daemon() -> None:
     site_rpc_params = config.conf.get_all_sites_rpc_params()
     rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params, logger)
 
-#    import daemon
-#    import lockfile
-#    pidfile = os.path.join(config.conf.get("JAWS", "lock_dir"), "rund.pid")
-#    with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
-#        rund = RunDaemon(rpc_index.rpc_index)
-#        rund.start_daemon()
+    #    import daemon
+    #    import lockfile
+    #    pidfile = os.path.join(config.conf.get("JAWS", "lock_dir"), "rund.pid")
+    #    with daemon.DaemonContext(pidfile=lockfile.FileLock(pidfile)):
+    #        rund = RunDaemon(rpc_index.rpc_index)
+    #        rund.start_daemon()
 
     rund = RunDaemon(rpc_index.rpc_index)
     rund.start_daemon()
