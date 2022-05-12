@@ -447,13 +447,11 @@ class Run:
 
         Your run has completed.
 
-        RESULT = {
-            "run_id": "{self.data.id}",
-            "result": "{self.data.result}",
-            "wdl_file": "{self.data.wdl_file}",
-            "json_file": "{self.data.json_file}",
-            "tag": "{self.data.tag}"
-        }
+        run_id: {self.data.id}
+        result: {self.data.result}
+        wdl_file: {self.data.wdl_file}
+        json_file: {self.data.json_file}
+        tag: {self.data.tag}
         """
 
         context = ssl.create_default_context()
