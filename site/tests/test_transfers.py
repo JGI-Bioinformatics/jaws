@@ -1,6 +1,4 @@
-import shutil
 import logging
-from jaws_site import transfers
 from jaws_site.transfers import Transfer
 from tests.conftest import MockSession, MockTransferModel
 
