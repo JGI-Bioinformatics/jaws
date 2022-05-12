@@ -1,12 +1,13 @@
-# HTCondor Prometheous exporter 
+# HTCondor Prometheus exporter 
 
 
 This is a REST server that returns various performance metrics from a HTCondor Central service to REST requests.
-This is used by a Prometheous service to collect metrics from a HTCondor service.
+This is used by a Prometheus service to collect metrics from a HTCondor service.
 
-* NOTE: 
+NOTE: 
 - In JAWS, each site runs this exporter for the site's HTCondor Central. Each site should call REST to this exporter to get a JSON data of performance metrics. 
 - By default, it listens to the port `9118`.
+- The exporter code repo: https://github.com/niclabs/htcondor-monitor
 
 
 ## Per site setup
