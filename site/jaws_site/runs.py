@@ -209,14 +209,14 @@ class Run:
         else:
             return {}
 
-    def outfiles(self, relpath=True) -> dict:
+    def outfiles(self, complete=False, relpath=True) -> dict:
         """
         Get output files from Cromwell and return it, if available.
         If the run hasn't been submitted to Cromwell yet, the result shall be None.
         """
         if self.data.cromwell_run_id:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            return metadata.outfiles(relpath)
+            return metadata.outfiles(complete=complete, relpath=relpath)
         else:
             return []
 

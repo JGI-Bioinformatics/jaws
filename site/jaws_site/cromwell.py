@@ -450,7 +450,16 @@ class Metadata:
         return outputs
 
     def outfiles(self, complete=False, relpath=True):
-        """Return list of all output files of a run"""
+        """
+        Return list of all output files of a run.
+        By default, only include files tagged as outputs for the Run.
+        :param complete: All files, not just workflow outputs.
+        :ptype complete: bool
+        :param relpath: Convert abs paths to rel paths.
+        :ptype relpath: bool
+        :return: List of files
+        :rtype: list
+        """
         workflow_root = self.workflow_root()
         full_paths = []
         outputs = self.get("outputs", {})
