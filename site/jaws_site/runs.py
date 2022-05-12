@@ -168,7 +168,7 @@ class Run:
     def task_log(self):
         """Lazy loading of Task Log"""
         if not self._task_log:
-            self._task_log = tasks.TaskLog.from_id(self.data.id)
+            self._task_log = tasks.TaskLog.from_run_id(self.session, self.data.id)
         return self._task_log
 
     def report(self) -> dict:
@@ -512,7 +512,8 @@ class Run:
         if self.data.user_id != "test":
             report = self.report()
             try:
-                response = self.reports_rpc_client.request("save_run_report", report)
+                #response = self.reports_rpc_client.request("save_run_report", report)
+                response = {}  # skip for now  TODO
             except Exception as error:
                 logger.exception(f"RPC save_run_report error: {error}")
                 return
