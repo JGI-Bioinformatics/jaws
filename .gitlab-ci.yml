@@ -827,7 +827,9 @@ deploy-jaws-docs-beta:
     - cori
   script:
     - git clone git@gitlab.com:jfroula/jaws-docs.git
+    - cd jaws-docs
     - git checkout beta
+    - cd ../
     - cp -r docs/sphinx/source/* jaws-docs/docs/source/
     - cd jaws-docs
     - git commit -a -m 'syncing docs beta' || echo "nothing to commit"
