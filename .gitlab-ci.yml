@@ -819,3 +819,21 @@ deploy-jaws-docs:
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
   allow_failure: true
+
+deploy-jaws-docs-beta:
+  stage: deploy-docs-beta
+  tags:
+    - cori
+  script:
+    - git clone git@gitlab.com:jfroula/jaws-docs.git
+    - git checkout beta
+    - cp -r docs/sphinx/source/* jaws-docs/docs/source/
+    - cd jaws-docs
+    - git commit -a -m 'syncing docs beta' || echo "nothing to commit"
+    - git push || echo "nothing to push"
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /documentation-beta'
+      when: manual
+  allow_failure: true
+
+
