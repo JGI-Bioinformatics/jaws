@@ -68,48 +68,48 @@ fi
 cat << EOM > $CONFIG_DIR/jaws-site.conf
 [DB]
 dialect = mysql+mysqlconnector
-host = $JAWS_DB_HOST
-port = $JAWS_DB_PORT
+host = \${JAWS_DB_HOST}
+port = \${JAWS_DB_PORT}
 user = jaws
-password = $JAWS_DB_PW
+password = \${JAWS_DB_PW}
 db = jaws_${JAWS_SITE,,}_$DEPLOYMENT_NAME
 [LOCAL_RPC_SERVER]
 user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
+password = \${SITE_RMQ_PW}
+host = \${SITE_RMQ_HOST}
+port = \${SITE_RMQ_PORT}
 vhost = jaws_$DEPLOYMENT_NAME
 queue = SITE_$JAWS_SITE
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_SERVER]
 user = jaws
-password = $JAWS_RMQ_PW
-host = $JAWS_RMQ_HOST
-port = $JAWS_RMQ_PORT
+password = \${JAWS_RMQ_PW}
+host = \${JAWS_RMQ_HOST}
+port = \${JAWS_RMQ_PORT}
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JAWS_$JAWS_SITE
 num_threads = 5
 max_retries = 3
 [CENTRAL_RPC_CLIENT]
 user = jaws
-password = $JAWS_RMQ_PW
-host = $JAWS_RMQ_HOST
-port = $JAWS_RMQ_PORT
+password = \${JAWS_RMQ_PW}
+host = \${JAWS_RMQ_HOST}
+port = \${JAWS_RMQ_PORT}
 vhost = jaws_$DEPLOYMENT_NAME
 queue = CENTRAL
 [RUNS_ES_RPC_CLIENT]
 user = jaws
-password = $JAWS_RMQ_PW
-host = $JAWS_RMQ_HOST
-port = $JAWS_RMQ_PORT
+password = \${JAWS_RMQ_PW}
+host = \${JAWS_RMQ_HOST}
+port = \${JAWS_RMQ_PORT}
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JAWS_RUNS_ES
 [PERFORMANCE_METRICS_ES_RPC_CLIENT]
 user = jaws
-password = $JAWS_RMQ_PW
-host = $JAWS_RMQ_HOST
-port = $JAWS_RMQ_PORT
+password = \${JAWS_RMQ_PW}
+host = \${JAWS_RMQ_HOST}
+port = \${JAWS_RMQ_PORT}
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JAWS_PERF_METRICS_ES
 [PERFORMANCE_METRICS]
@@ -126,10 +126,10 @@ uploads_dir = $SITE_UPLOADS_DIR
 downloads_dir = $SITE_DOWNLOADS_DIR
 lock_dir = $SITE_LOCK_DIR
 [CROMWELL]
-url = http://localhost:$CROMWELL_PORT
+url = http://localhost:\${CROMWELL_PORT}
 [AWS]
-aws_access_key_id = $AWS_ACCESS_KEY_ID
-aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
+aws_access_key_id = \${AWS_ACCESS_KEY_ID}
+aws_secret_access_key = \${AWS_SECRET_ACCESS_KEY}
 s3_bucket = ABCD
 EOM
 
@@ -142,35 +142,35 @@ scratch = $SITE_JTM_SCRATCH_DIR
 debug = 1
 [RMQ]
 user = jaws
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
-password = $SITE_RMQ_PW
+host = \${SITE_RMQ_HOST}
+port = \${SITE_RMQ_PORT}
+password = \${SITE_RMQ_PW}
 vhost = jtm_$DEPLOYMENT_NAME
 [PERFORMANCE_METRICS]
-script = $SITE_PERFORMANCE_METRICS_SCRIPT
+script = ${SITE_PERFORMANCE_METRICS_SCRIPT}
 log_file = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}/logs/pagurus.log
 output_dir = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}
 [SITE_RPC_CLIENT]
 user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
+password = \${SITE_RMQ_PW}
+host = \${SITE_RMQ_HOST}
+port = \${SITE_RMQ_PORT}
 vhost = jaws_$DEPLOYMENT_NAME
 queue = SITE_$JAWS_SITE
 [JTM_RPC_SERVER]
 user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_MONITOR_RMQ_HOST
-port = $SITE_MONITOR_RMQ_PORT
+password = \${SITE_RMQ_PW}
+host = \${SITE_MONITOR_RMQ_HOST}
+port = \${SITE_MONITOR_RMQ_PORT}
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JTM_RPC_$JAWS_SITE
 num_threads = 5
 max_retries = 3
 [MYSQL]
-host = $JAWS_DB_HOST
-port = $JAWS_DB_PORT
+host = \${JAWS_DB_HOST}
+port = \${JAWS_DB_PORT}
 user = jaws
-password = $JAWS_DB_PW
+password = \${JAWS_DB_PW}
 db = jtm_${JAWS_SITE,,}_$DEPLOYMENT_NAME
 [SLURM]
 # number of nodes for the pool
@@ -181,10 +181,10 @@ ncpus = 32
 jobtime = 00:30:00
 mempercpu = 1gb
 mempernode = 5gb
-partition = $SITE_CLUSTER_PARTITION
-qos = $SITE_CLUSTER_QOS
-charge_accnt = $SITE_CLUSTER_ACCOUNT
-constraint = $SITE_CLUSTER_CONSTRAINT
+partition = \${SITE_CLUSTER_PARTITION}
+qos = \${SITE_CLUSTER_QOS}
+charge_accnt = \${SITE_CLUSTER_ACCOUNT}
+constraint = \${SITE_CLUSTER_CONSTRAINT}
 [JTM]
 cluster = \${SITE:jtm_host_name}
 # deployment mode: prod, staging, dev
@@ -281,8 +281,3 @@ queue = SITE_$JAWS_SITE
 EOM
 
 
-## SET PERMISSIONS
-chgrp $SITE_JAWS_GROUP $CONFIG_DIR/*.conf
-chgrp $SITE_JTM_GROUP $CONFIG_DIR/jaws-jtm.conf
-chmod 660 $CONFIG_DIR/*
-printf "END generate-configs\n\n"
