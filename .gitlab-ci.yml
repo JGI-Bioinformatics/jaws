@@ -13,6 +13,7 @@ stages:
   - stress-tests
   - release-jaws
   - deploy-docs
+  - deploy-docs-beta
 
 include:
   - project: "advanced-analysis/ci-templates"
