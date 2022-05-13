@@ -80,7 +80,6 @@ class RpcClientBasic(rpc_client.RpcClient):
         payload = json.dumps(payload, default=str)
 
         try:
-            print(f"*** sending {payload=}")
             corr_id = self.send_request(payload)
             jsondata = self.get_response(corr_id)
             print(f"{corr_id=}, {jsondata=}")
