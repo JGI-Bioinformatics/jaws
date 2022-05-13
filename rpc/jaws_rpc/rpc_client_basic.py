@@ -30,7 +30,6 @@ class RpcClientBasic(rpc_client.RpcClient):
         :param logger: log object
         :type logger: logging
         """
-        print(f"*** {rpc_params=}")
         super().__init__(rpc_params, logger)
 
     def send_request(self, payload: dict) -> str:
@@ -82,7 +81,6 @@ class RpcClientBasic(rpc_client.RpcClient):
         try:
             corr_id = self.send_request(payload)
             jsondata = self.get_response(corr_id)
-            print(f"{corr_id=}, {jsondata=}")
         except rpc_client.InvalidJsonResponse as err:
             msg = f"RPC request returned an invalid response: {err}"
             self.logger.debug(msg)
