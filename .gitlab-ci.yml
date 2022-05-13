@@ -832,7 +832,7 @@ deploy-jaws-docs-beta:
     - git commit -a -m 'syncing docs beta' || echo "nothing to commit"
     - git push || echo "nothing to push"
   rules:
-    - if: '$CI_COMMIT_BRANCH =~ /documentation-beta'
+    - if: '$CI_COMMIT_BRANCH =~ /documentation-beta/'
       when: manual
   allow_failure: true
 
