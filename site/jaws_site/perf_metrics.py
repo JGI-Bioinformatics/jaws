@@ -20,12 +20,12 @@ class PerformanceMetrics:
         self.tasks = {}
 
     @lru_cache()
-    def get_run_id(self, cromwell_id: str) -> int:
+    def get_run_id(self, cromwell_run_id: str) -> int:
         """Given a cromwell run id, return the jaws run id."""
         try:
-            run = runs.Run.from_cromwell_run_id(self.session, cromwell_id)
+            run = runs.Run.from_cromwell_run_id(self.session, cromwell_run_id)
         except runs.RunNotFoundError or runs.RunDbError as err:
-            msg = f"Failed to get run_id from {cromwell_id=}: {err}"
+            msg = f"Failed to get run_id from {cromwell_run_id=}: {err}"
             logger.warn(msg)
             raise runs.RunDbError(msg)
         return run.data.id
@@ -44,13 +44,13 @@ class PerformanceMetrics:
         # Remove extranious parts from the current directory
         csv_data["current_dir"] = csv_data.current_dir.apply(remove_beginning_path)
         # Get data and make new columns in dataframe
-        csv_data["cromwell_id"] = csv_data.current_dir.apply(extract_jaws_info)
+        csv_data["cromwell_run_id"] = csv_data.current_dir.apply(extract_jaws_info)
 
         # Drops any non-workflow related processes
-        csv_data = csv_data[csv_data.cromwell_id != "naw"]
+        csv_data = csv_data[csv_data.cromwell_run_id != "naw"]
 
         # If we have a cromwell-id then get the jaws id by calling jaws db
-        csv_data["jaws_run_id"] = csv_data.cromwell_id.apply(self.get_run_id)
+        csv_data["jaws_run_id"] = csv_data.cromwell_run_id.apply(self.get_run_id)
         # Filter out anything that didn't get a jaws_run_id returned
         csv_data = csv_data[csv_data.jaws_run_id != "None"]
 
@@ -66,21 +66,21 @@ class PerformanceMetrics:
         return csv_data.to_dict("records")
 
     @lru_cache()
-    def add_taskname_mapping(self, cromwell_id):
-        """Create a cache to map the cromwell task directory to the task name keyed using the cromwell_id.
+    def add_taskname_mapping(self, cromwell_run_id):
+        """Create a cache to map the cromwell task directory to the task name keyed using the cromwell_run_id.
         The cached result looks something like like:
 
-        self.tasks[some_cromwell_id] = {
+        self.tasks[some_cromwell_run_id] = {
             "cromwell-executions/a/aa/aaa": "task_a",
             "cromwell-executions/b/bb/bbb": "task_b",
         }
         """
         try:
-            self.tasks[cromwell_id] = tasks.TaskLog(
-                self.session, cromwell_run_id=cromwell_id
+            self.tasks[cromwell_run_id] = tasks.TaskLog(
+                self.session, cromwell_run_id=cromwell_run_id
             ).get_task_cromwell_dir_mapping()
         except Exception:
-            # if calling TaskLog throws an exception (cromwell fails to get data using cromwell_id), don't
+            # if calling TaskLog throws an exception (cromwell fails to get data using cromwell_run_id), don't
             # update the tasks list.
             pass
 
@@ -113,30 +113,30 @@ class PerformanceMetrics:
         for done_file in list(done_dir_obj.glob("*.csv")):
             docs = self.process_csv(done_file)
             for doc in docs:
-                cromwell_id = doc.get("cromwell_id")
+                cromwell_run_id = doc.get("cromwell_run_id")
                 run_id = doc.get("jaws_run_id")
 
                 # Just really a final check at this point since it should already be in the document
-                if not run_id or not cromwell_id:
+                if not run_id or not cromwell_run_id:
                     logger.error(
-                        f"Error with {run_id=} or {cromwell_id=}, Not uploading to performance metrics"
+                        f"Error with {run_id=} or {cromwell_run_id=}, Not uploading to performance metrics"
                     )
                     continue
 
                 logger.info(
-                    f"Run {run_id}: Publish performance metrics for cromwell_id={cromwell_id}"
+                    f"Run {run_id}: Publish performance metrics for cromwell_run_id={cromwell_run_id}"
                 )
 
                 # Add cromwell dir to task name mapping if not already exists
-                self.add_taskname_mapping(cromwell_id)
+                self.add_taskname_mapping(cromwell_run_id)
 
                 # Add task name to doc
                 cromwell_dir = doc["current_dir"]
                 if (
-                    cromwell_id in self.tasks
-                    and cromwell_dir in self.tasks[cromwell_id]
+                    cromwell_run_id in self.tasks
+                    and cromwell_dir in self.tasks[cromwell_run_id]
                 ):
-                    task_name = self.tasks[cromwell_id][cromwell_dir]
+                    task_name = self.tasks[cromwell_run_id][cromwell_dir]
                 else:
                     task_name = "unknown"
                 doc["task_name"] = task_name
@@ -161,16 +161,16 @@ def extract_jaws_info(working_dir):
     :param task: command string
     :return: Cromwell run id in UUID format
     """
-    cromwell_id = "naw"
+    cromwell_run_id = "naw"
     try:
         regex = re.compile(r"cromwell-executions\/[^\/]+\/([^\/]+)", re.I)
         match = regex.search(working_dir)
         if match:
-            cromwell_id = match.group(1)
+            cromwell_run_id = match.group(1)
     except Exception as e:
         logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
 
-    return cromwell_id
+    return cromwell_run_id
 
 
 @lru_cache()
