@@ -1,7 +1,7 @@
 import logging
 import json
 from amqpstorm import Message
-from jaws_rpc import rpc_client
+from jaws_rpc import rpc_client, responses
 
 
 class RpcClientBasic(rpc_client.RpcClient):
@@ -78,8 +78,25 @@ class RpcClientBasic(rpc_client.RpcClient):
         # Convert dictionary to string
         payload = json.dumps(payload, default=str)
 
-        # Send the request and store the requests' ID
-        corr_id = self.send_request(payload)
+        try:
+            corr_id = self.send_request(payload)
+            jsondata = self.get_response(corr_id)
+        except rpc_client.InvalidJsonResponse as err:
+            msg = f"RPC request returned an invalid response: {err}"
+            self.logger.debug(msg)
+            jsondata = responses.failure(err)
+        except rpc_client.ConfigurationError as err:
+            msg = f"RPC request returned an invalid configuration error: {err}"
+            self.logger.debug(msg)
+            jsondata = responses.failure(err)
+        except rpc_client.ConnectionError as err:
+            msg = f"RPC request returned an invalid connection error: {err}"
+            self.logger.debug(msg)
+            jsondata = responses.failure(err)
 
-        # Return the JSON-RPC2 response to the user (may be error).
-        return self.get_response(corr_id)
+        status_code = 0
+
+        if jsondata and 'error' in jsondata:
+            status_code = jsondata['error'].get('code', 500)
+
+        return jsondata, status_code
