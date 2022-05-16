@@ -75,7 +75,6 @@ export INSTALL_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-central-$DEPLOYMENT_NAME"
 export CONFIG_DIR="$INSTALL_DIR/configs"
 export SHIM_DIR="$INSTALL_DIR/shims"
 export LOGS_DIR="$INSTALL_DIR/logs"
-export LOCK_DIR="$INSTALL_DIR/lock"
 export SUPERVISOR_DIR="$CENTRAL_INSTALL_BASEDIR/jaws-central-supervisord-$DEPLOYMENT_NAME"
 
 
@@ -97,7 +96,6 @@ INSTALL_DIR
 CONFIG_DIR
 SHIM_DIR
 LOGS_DIR
-LOCK_DIR
 SUPERVISOR_DIR
 "
 for DIR in $INSTALL_DIRS; do
@@ -174,7 +172,6 @@ cat << EOM > "$CONFIG_FILE"
 name = $DEPLOYMENT_NAME
 version = $JAWS_VERSION
 docs_url = $JAWS_DOCS_URL
-lock_dir = $LOCK_DIR
 [DB]
 dialect = mysql+mysqlconnector
 host = $JAWS_DB_HOST
