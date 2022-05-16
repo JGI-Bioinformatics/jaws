@@ -93,7 +93,6 @@ variables:
   CORI_CLUSTER_CONSTRAINT: "haswell"
   CORI_MAX_RAM_GB: 758
   CORI_LOAD_JAVA: ""
-  CORI_DOWNLOADS_DIR: "/global/cfs/projectdirs/jaws"
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
   CORI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
@@ -125,7 +124,6 @@ variables:
   JGI_CLUSTER_CONSTRAINT: ""
   JGI_MAX_RAM_GB: 512
   JGI_LOAD_JAVA: "module load java"
-  JGI_DOWNLOADS_DIR: "/global/scratch/users/jaws"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
   JGI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
@@ -157,7 +155,6 @@ variables:
   TAHOMA_CLUSTER_CONSTRAINT: ""
   TAHOMA_MAX_RAM_GB: 1500
   TAHOMA_LOAD_JAVA: ""
-  TAHOMA_DOWNLOADS_DIR: "/tahoma/mscjgi"
   TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
   TAHOMA_RMQ_PORT: 5672
   TAHOMA_MONITOR_RMQ_HOST: "rmq.lbl.gov"
@@ -189,7 +186,6 @@ variables:
   AWS_CLUSTER_CONSTRAINT: ""
   AWS_MAX_RAM_GB: 1500
   AWS_LOAD_JAVA: ""
-  AWS_DOWNLOADS_DIR: "/tmp"
   AWS_RMQ_HOST: "rmq.lbl.gov"
   AWS_RMQ_PORT: 5672
 
