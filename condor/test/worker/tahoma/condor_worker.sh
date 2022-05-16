@@ -1,8 +1,8 @@
 #!/bin/bash
 # Pagurus task performance monitoring wrapper
 # `venv` should be installed by deploying JAWS SITE
-# (or pagurus should be found from `JGI_PERFORMANCE_METRICS_SCRIPT` in the .gitlab.yml
-# `--path` should be set by `JGI_PERFORMANCE_METRICS_DIR` in the .gitlab.yml
+# (or pagurus should be found from `TAHOMA_PERFORMANCE_METRICS_SCRIPT` in the .gitlab.yml
+# `--path` should be set by `TAHOMA_PERFORMANCE_METRICS_DIR` in the .gitlab.yml
 source /tahoma/mscjgi/jaws-install/jaws-prod/site/bin/activate
 pagurus \
 --move \

@@ -1,6 +1,5 @@
 # HTCondor Prometheus exporter 
 
-
 This is a REST server that returns various performance metrics from a HTCondor Central service to REST requests.
 This is used by a Prometheus service to collect metrics from a HTCondor service.
 

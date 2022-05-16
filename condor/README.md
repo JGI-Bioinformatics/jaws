@@ -381,7 +381,7 @@ jaws errors 33919
 
 
 
-### How to get the node name that ran a task
+### How to get the node name that is running a task
 
 if you want to get into a compute node by `srun`
 
