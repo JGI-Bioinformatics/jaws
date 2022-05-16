@@ -4,7 +4,7 @@ This is a REST server that returns various performance metrics from a HTCondor C
 This is used by a Prometheus service to collect metrics from a HTCondor service.
 
 NOTE: 
-- In JAWS, each site runs this exporter for the site's HTCondor Central. Each JAWS Site should call a REST to this exporter to get performance metric data when JAWS Monitor requests them via AMQP RPC call.  
+- In JAWS, each site runs this exporter. Each JAWS Site should call a REST to this exporter to get performance metric data whenever JAWS Monitor requests them via AMQP RPC call.  
 - By default, it listens to the port `9118`.
 - The exporter code repo: https://github.com/niclabs/htcondor-monitor
 
