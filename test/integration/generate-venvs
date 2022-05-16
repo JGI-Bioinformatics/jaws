@@ -80,4 +80,7 @@ fix_perms "$SITE_VENV_DIR" $SITE_JAWS_GROUP
 fix_perms "$JTM_VENV_DIR" $SITE_JTM_GROUP
 fix_perms "$PARSL_VENV_DIR" $SITE_JAWS_GROUP
 
+# If pagurus is installed change the group so jaws_jtm can run it
+test -d $SITE_VENV_DIR/bin/pagurus && chgrp $SITE_JTM_GROUP $SITE_VENV_DIR/bin/pagurus
+
 printf "END generate-venvs\n\n"
