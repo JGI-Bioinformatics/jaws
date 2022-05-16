@@ -49,7 +49,8 @@ NOTE:
 1. cd /global/home/groups-sw/lr_jgicloud/condor/monitor/htcondor-monitor/CondorExporter 
 2. . venv/bin/activate
 3. export PYTHONPATH=/global/home/groups-sw/lr_jgicloud/condor/monitor/htcondor-monitor/CondorExporter:$PYTHONPATH
-4. python ./exporter/CondorExporter.py &
+4. export CONDOR_CONFIG=/global/home/groups-sw/lr_jgicloud/condor/condor_central.config
+5. python ./exporter/CondorExporter.py &
 ```
 
 ### TAHOMA
@@ -58,7 +59,8 @@ NOTE:
 1. cd /tahoma/mscjgi/condor/monitor/htcondor-monitor/CondorExporter  
 2. . venv/bin/activate
 3. export PYTHONPATH=/tahoma/mscjgi/condor/monitor/htcondor-monitor/CondorExporter:$PYTHONPATH
-4. python ./exporter/CondorExporter.py &
+4. export CONDOR_CONFIG="/tahoma/mscjgi/condor/central.config"
+5. python ./exporter/CondorExporter.py &
 ```
 
 Ex)
@@ -80,7 +82,8 @@ Exporter listening on localhost:9118
 1. cd /global/cfs/cdirs/jaws/condor/monitor/htcondor-monitor/CondorExporter
 2. . venv/bin/activate
 3. export PYTHONPATH=/global/cfs/cdirs/jaws/condor/monitor/htcondor-monitor/CondorExporter:$PYTHONPATH
-4. python ./exporter/CondorExporter.py &
+4. export CONDOR_CONFIG=/global/cfs/cdirs/jaws/condor/condor_central.config
+5. python ./exporter/CondorExporter.py &
 ```
 
 ## How to request metrics
