@@ -111,7 +111,7 @@ test -f $SUPERVISOR_DIR/supervisord-jaws-central.conf && $SUPERVISOR_DIR/bin/sup
 jaws-central-$DEPLOYMENT_NAME:auth \
 jaws-central-$DEPLOYMENT_NAME:rest \
 jaws-central-$DEPLOYMENT_NAME:rpc \
-jaws-central-$DEPLOYMENT_NAME:daemon
+jaws-central-$DEPLOYMENT_NAME:run-daemon
 
 
 ## DELETE OLD VERSION
@@ -251,14 +251,14 @@ exec jaws-central --log $LOGS_DIR/central-rpc.log --config $CONFIG_DIR/jaws-cent
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
-SHIM_FILE="$SHIM_DIR/jaws-central-daemon-$DEPLOYMENT_NAME"
+SHIM_FILE="$SHIM_DIR/jaws-central-run-daemon-$DEPLOYMENT_NAME"
 cat <<EOM > "$SHIM_FILE"
 #!/usr/bin/env bash
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 source $INSTALL_DIR/central/bin/activate
-exec jaws-central --log $LOGS_DIR/central-daemon.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL daemon
+exec jaws-central --log $LOGS_DIR/central-run-daemon.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL run-daemon
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
@@ -340,8 +340,8 @@ startsecs=3
 startretries=10
 autorestart=unexpected
 
-[program:daemon]
-command=$SHIM_DIR/jaws-central-daemon-$DEPLOYMENT_NAME
+[program:run-daemon]
+command=$SHIM_DIR/jaws-central-run-daemon-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=10
@@ -355,7 +355,7 @@ startretries=10
 autorestart=unexpected
 
 [group:jaws-central-$DEPLOYMENT_NAME]
-programs=auth,rest,rpc,daemon
+programs=auth,rest,rpc,run-daemon
 priority=999
 EOM
 
