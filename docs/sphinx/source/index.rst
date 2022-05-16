@@ -25,7 +25,6 @@ Getting Started
 * `Run an existing WDL in JAWS <Tutorials/jaws_quickstart.html>`_
 
 
-
 .. toctree::
    :hidden:
    :name: extradoc
