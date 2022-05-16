@@ -173,9 +173,27 @@ class Run:
 
     def report(self) -> dict:
         """Produce full report of Run and Task info"""
+        # get cromwell metadata
+        metadata = self.metadata()
+
         report = self.summary()
         report["run_id"] = self.data.id
-        report["tasks"] = self.task_log().task_status()
+        report["workflow_name"] = metadata.get("workflowName")
+        report["cromwell_run_id"] = self.data.cromwell_run_id
+
+        # self.summary returns a keyname compute_site_id. this was formely named site_id. To satisfy backwards
+        # compatibility with kibana dashboard setup, need to rename compute_site_id back to site_id.
+        report["site_id"] = report["compute_site_id"]
+        del report["compute_site_id"]
+
+        # transform task data structure and add to report
+        report["tasks"] = []
+        tasks = self.task_log().task_status()
+        for task_name in tasks:
+            entries = tasks[task_name]
+            entries["name"] = task_name
+            report["tasks"].append(entries)
+
         return report
 
     def check_status(self) -> None:
@@ -260,7 +278,6 @@ class Run:
         folders = full_path.split("/")
         s3_bucket = folders.pop(0)
         path = "/".join(folders)
-        print(f"S3 BUCKET={s3_bucket}; PATH={path}")
         return s3_bucket, path
 
     def _read_file_s3(self, path, binary=False):
@@ -521,18 +538,18 @@ class Run:
         """
         # "test" is a special user account for automatic periodic system tests -- skip
         if self.data.user_id != "test":
-            pass  # TODO
-        #            report = self.report()
-        #            try:
-        #                response = self.reports_rpc_client.request("save_run_report", report)
-        #            except Exception as error:
-        #                logger.exception(f"RPC save_run_report error: {error}")
-        #                return
-        #            if "error" in response:
-        #                logger.warn(
-        #                    f"RPC save_run_report failed: {response['error']['message']}"
-        #                )
-        #                return
+            report = self.report()
+            if not report:
+                logger.exception("RPC save_run_report warning: run summary is empty.")
+                return
+            try:
+                response = self.reports_rpc_client.request(report)
+            except Exception as error:
+                logger.exception(f"RPC save_run_report error: {error}")
+                return
+            if "error" in response:
+                logger.warn(f"RPC save_run_report failed: {response['error']['message']}")
+                return
         self.update_run_status("finished")
 
 
