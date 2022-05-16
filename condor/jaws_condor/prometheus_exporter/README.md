@@ -59,7 +59,7 @@ NOTE:
 1. cd /tahoma/mscjgi/condor/monitor/htcondor-monitor/CondorExporter  
 2. . venv/bin/activate
 3. export PYTHONPATH=/tahoma/mscjgi/condor/monitor/htcondor-monitor/CondorExporter:$PYTHONPATH
-4. export CONDOR_CONFIG="/tahoma/mscjgi/condor/central.config"
+4. export CONDOR_CONFIG=/tahoma/mscjgi/condor/central.config
 5. python ./exporter/CondorExporter.py &
 ```
 
