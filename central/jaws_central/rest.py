@@ -19,6 +19,7 @@ logger = logging.getLogger(__package__)
 
 run_active_states = [
     "created",
+    "upload queued",
     "uploading",
     "upload inactive",
     "upload complete",
@@ -27,12 +28,14 @@ run_active_states = [
     "running",
     "succeeded",
     "ready",
+    "download queued",
     "downloading",
 ]
 
 
 run_pre_cromwell_states = [
     "created",
+    "upload queued",
     "uploading",
     "upload inactivte",
     "upload complete",
