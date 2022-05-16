@@ -16,7 +16,7 @@ Summary of JAWS
 
 * Before using JAWS, workflows need to be wrapped in the human readable `Workflow Definition Language (WDL) <https://software.broadinstitute.org/wdl/>`_
 
-* JAWS commands can be integrated into larger workflows since everything is CLI based.
+* JAWS commands can be integrated into larger workflows since everything is `CLI <https://en.wikipedia.org/wiki/Command-line_interface>`_ based.
 
 Getting Started
 ---------------
