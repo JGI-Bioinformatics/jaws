@@ -27,10 +27,6 @@ class RunFileNotFoundError(Exception):
     pass
 
 
-class DataError(Exception):
-    pass
-
-
 class Run:
     """Class representing a single Run"""
 
@@ -412,16 +408,14 @@ class Run:
         try:
             file_handles["inputs"] = self.inputs_fh()
         except Exception as error:
-            raise DataError(f"Error specifying inputs: {error}")
-            self.update_run_status("submission failed", f"Input error: {error}")
+            raise RunFileNotFoundError(f"Error specifying inputs: {error}")
         try:
             path = os.path.join(
                 self.config["uploads_dir"], f"{self.data.submission_id}.wdl"
             )
             file_handles["wdl"] = self._read_file(path)
         except Exception as error:
-            raise DataError(f"Cannot read {path}: {error}")
-            self.update_run_status("submission failed", f"WDL input error: {error}")
+            raise RunFileNotFoundError(f"Cannot read {path}: {error}")
         try:
             path = os.path.join(
                 self.config["uploads_dir"], f"{self.data.submission_id}.zip"
@@ -446,7 +440,10 @@ class Run:
         Submit a run to Cromwell.
         """
         logger.debug(f"Run {self.data.id}: Submit to Cromwell")
-        file_handles = self.get_run_inputs()
+        try:
+            file_handles = self.get_run_inputs()
+        except Exception as error:
+            self.update_run_status("submission failed", f"Input error: {error}")
         options = self.cromwell_options()
         try:
             cromwell_run_id = cromwell.submit(file_handles, options)
