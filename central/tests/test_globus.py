@@ -66,9 +66,9 @@ def test_virtual_transfer_path(configuration):
             "/global/cscratch1/sd/jaws/jaws-dev/users/mamelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl",
         ),  # noqa: E501
         (
-            "/global/scratch/jaws/jaws-dev/uploads/mmelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl",
+            "/global/scratch/jaws/jaws-dev/inputs/mmelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl",
             "/global/scratch/jaws",
-            "/jaws-dev/uploads/mmelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl",
+            "/jaws-dev/inputs/mmelara/7d2454c6-7052-4835-bb8d-e701c2d3df3e.wdl",
         ),  # noqa: E501
         (
             "/global/cscratch1/sd/jaws/jaws-dev/users/mamelara/CORI/global/u2/m/mamelara/jaws-quickstart-example/data/sample.fastq.bz2",  # noqa
@@ -76,9 +76,9 @@ def test_virtual_transfer_path(configuration):
             "/global/cscratch1/sd/jaws/jaws-dev/users/mamelara/CORI/global/u2/m/mamelara/jaws-quickstart-example/data/sample.fastq.bz2",  # noqa
         ),  # noqa: E501
         (
-            "/global/scratch/jaws/jaws-dev/uploads/mmelara/CORI/global/u2/m/mamelara/jaws-quickstart-example/data/sample.fastq.bz2",  # noqa
+            "/global/scratch/jaws/jaws-dev/inputs/mmelara/CORI/global/u2/m/mamelara/jaws-quickstart-example/data/sample.fastq.bz2",  # noqa
             "/global/scratch/jaws",
-            "/jaws-dev/uploads/mmelara/CORI/global/u2/m/mamelara/jaws-quickstart-example/data/sample.fastq.bz2",
+            "/jaws-dev/inputs/mmelara/CORI/global/u2/m/mamelara/jaws-quickstart-example/data/sample.fastq.bz2",
         ),  # noqa: E501
         (
             "/global/cfs/cdirs/jaws/data-repository-dev/mmelara/CORI/5247",

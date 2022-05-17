@@ -39,7 +39,8 @@ def run_metadata(params, session):
     logger.info(f"User {params['user_id']}: Metadata Run {params['run_id']}")
     try:
         run = Run.from_id(session, params["run_id"])
-        result = run.metadata()
+        metadata = run.metadata()
+        result = metadata.data
     except Exception as error:
         return failure(error)
     return success(result)
@@ -76,6 +77,23 @@ def run_outfiles(params, session):
     try:
         run = Run.from_id(session, params["run_id"])
         result = run.outfiles(complete=False, relpath=relpath)
+    except Exception as error:
+        return failure(error)
+    return success(result)
+
+
+def run_workflow_root(params, session):
+    """Retrieve the root dir of the workflow
+
+    :param cromwell_run_id: Cromwell run ID
+    :type params: dict
+    :return: The output files for a run
+    :rtype: dict
+    """
+    logger.info(f"User {params['user_id']}: workflowRoot Run {params['run_id']}")
+    try:
+        run = Run.from_id(session, params["run_id"])
+        result = run.workflow_root()
     except Exception as error:
         return failure(error)
     return success(result)
@@ -149,14 +167,14 @@ def submit_run(params, session):
     except Exception as error:
         return failure(error)
     else:
-        return success(run.status)
+        return success(run.data.status)
 
 
 def get_task_log(params, session):
     """Retrieve task log from database"""
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
-        task_log = TaskLog(session, run_id=params["run_id"])
+        task_log = TaskLog.from_run_id(session, params["run_id"])
         result = task_log.task_log()
     except Exception as error:
         return failure(error)
@@ -168,7 +186,7 @@ def get_task_summary(params, session):
     """Retrieve task summary from database"""
     logger.info(f"User {params['user_id']}: Task-summary Run {params['run_id']}")
     try:
-        task_log = TaskLog(session, run_id=params["run_id"])
+        task_log = TaskLog.from_run_id(session, params["run_id"])
         result = task_log.task_summary_table()
     except Exception as error:
         return failure(error)
@@ -182,7 +200,7 @@ def get_task_status(params, session):
     """
     logger.info(f"User {params['user_id']}: Task-status Run {params['run_id']}")
     try:
-        task_log = TaskLog(session, run_id=params["run_id"])
+        task_log = TaskLog.from_run_id(session, params["run_id"])
         result = task_log.task_status_table()
     except Exception as error:
         return failure(error)
@@ -213,6 +231,7 @@ def transfer_status(params, session):
     try:
         transfer = Transfer.from_id(session, params["transfer_id"])
     except Exception as error:
+        logger.error(f"Transfer {params['transfer_id']} status failed: {error}")
         return failure(error)
     else:
         result = {"status": transfer.status()}
@@ -257,6 +276,10 @@ operations = {
     },
     "run_outfiles": {
         "function": run_outfiles,
+        "required_params": ["user_id", "cromwell_run_id"],
+    },
+    "run_workflow_root": {
+        "function": run_workflow_root,
         "required_params": ["user_id", "cromwell_run_id"],
     },
     "run_manifest": {

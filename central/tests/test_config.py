@@ -62,8 +62,8 @@ def test_check_all_values(config_file):
         ("vhost", "jaws"),
         ("globus_endpoint", "XXXX"),
         ("globus_host_path", "/global/scratch/jaws"),
-        ("uploads_dir", "/global/scratch/jaws/jaws-dev/uploads"),
-        ("uploads_dir2", "${SCRATCH_ROOT}/jaws/jaws-dev/uploads"),
+        ("inputs_dir", "/global/scratch/jaws/jaws-dev/inputs"),
+        ("inputs_dir2", "${SCRATCH_ROOT}/jaws/jaws-dev/inputs"),
         ("max_ram_gb", "1024"),
     ]
 
@@ -71,7 +71,7 @@ def test_check_all_values(config_file):
         ("site_id", "NERSC"),
         ("globus_endpoint", "YYYY"),
         ("globus_host_path", "/"),
-        ("uploads_dir", "/global/cscratch/sd1/jaws/jaws-dev/uploads"),
+        ("inputs_dir", "/global/cscratch/sd1/jaws/jaws-dev/inputs"),
         ("max_ram_gb", "2048"),
     ]
 

@@ -19,6 +19,7 @@ logger = logging.getLogger(__package__)
 
 run_active_states = [
     "created",
+    "upload queued",
     "uploading",
     "upload inactive",
     "upload complete",
@@ -27,12 +28,14 @@ run_active_states = [
     "running",
     "succeeded",
     "ready",
+    "download queued",
     "downloading",
 ]
 
 
 run_pre_cromwell_states = [
     "created",
+    "upload queued",
     "uploading",
     "upload inactivte",
     "upload complete",
@@ -223,7 +226,7 @@ def get_site(user, site_id):
     result = config.conf.get_site_info(site_id)
     if result is None:
         abort(404, {"error": f'Unknown Site ID; "{site_id}" is not one of our sites'})
-    result["uploads_dir"] = f'{result["uploads_dir"]}/{user}'
+    result["inputs_dir"] = f'{result["inputs_dir"]}/{user}'
     return result, 200
 
 
@@ -244,7 +247,7 @@ def submit_run(user):
     wdl_file = request.form.get("wdl_file")
     json_file = request.form.get("json_file")
     tag = request.form.get("tag")
-    webhook = request.form.get("webhook")
+    webhook = request.form.get("webhook", None)
     manifest_json = request.form.get("manifest")
     logger.info(
         f"User {user}: New run submission {submission_id} from {input_site_id} to {compute_site_id}"
@@ -265,7 +268,7 @@ def submit_run(user):
     # check if requested compute site can process this WDL
     if (
         "max_ram_gb" in compute_site_config
-        and compute_site_config["max_ram_gb"] < max_ram_gb
+        and int(compute_site_config["max_ram_gb"]) < max_ram_gb
     ):
         msg = f'The requested site {compute_site_id} has only {compute_site_config["max_ram_gb"]} GB which is less than the {max_ram_gb} GB required by this workflow.'  # noqa
         abort(406, {"error": msg})
@@ -277,6 +280,7 @@ def submit_run(user):
     run = Run(
         user_id=user,
         submission_id=submission_id,
+        status="created",
         max_ram_gb=max_ram_gb,
         caching=caching,
         input_site_id=input_site_id,
@@ -539,6 +543,24 @@ def run_outfiles(user, run_id):
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
     result = rpc_call(user, run_id, "run_outfiles")
+    return result
+
+
+def run_workflow_root(user, run_id):
+    """
+    Retrieve the workflow_root for the Run.  It refers to the path at the compute-site.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: Unmodified root folder of the Run
+    :rtype: str
+    """
+    logger.info(f"User {user}: Get outfiles for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    result = rpc_call(user, run_id, "run_workflow_root")
     return result
 
 

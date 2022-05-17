@@ -85,7 +85,7 @@ def test_overwrite_all_default_values(config_file):
 
     expected_site_sections = [
         ("id", "eagle"),
-        ("uploads_dir", "/global/scratch/jaws/jaws-dev/uploads"),
+        ("inputs_dir", "/global/scratch/jaws/jaws-dev/inputs"),
     ]
 
     expected_cromwell_sections = [

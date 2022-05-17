@@ -1,13 +1,22 @@
 ## Repository for JAWS docs
 This content was created by using sphinx and hosted by readthedocs
 
+### Install sphinx
+
+```
+apt-get install python3-sphinx ## Linux
+brew install sphinx-doc ## macOS
+```
+
 ### I created conda env
 
 ```
-conda create sphinx
+conda create --name sphinx
 conda activate sphinx
-pip install -y sphinx
+pip install sphinx
 pip install recommonmark
+pip install -U sphinxcontrib-confluencebuilder
+pip install sphinx_rtd_theme 
 ```
   
 ### creating the docs
@@ -42,6 +51,9 @@ https://docs.readthedocs.io/en/latest/intro/getting-started-with-sphinx.html
 
 ## view published docs
 https://jaws-docs.readthedocs.io/en/latest/
+
+## Publish BETA docs
+When you want to publish a draft of the documentation you can clone the jaws-repo and push changes to a branch called `documentation-beta`.  Any pushes to this branch will create a pipeline that has a manual option to publish the documentation as beta which can be viewed at https://jaws-docs.readthedocs.io/en/beta.
 
 # Publish pages to confluence
 

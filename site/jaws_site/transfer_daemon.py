@@ -1,6 +1,6 @@
+import logging
 import schedule
 import time
-import logging
 from jaws_site import database, transfers
 
 

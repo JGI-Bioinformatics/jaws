@@ -163,10 +163,11 @@ def rpc() -> None:
 
 
 @cli.command()
-def daemon() -> None:
-    """Start daemon"""
+def run_daemon() -> None:
+    """Start run-daemon"""
     from jaws_central.database import engine, Session
     from jaws_central import models
+    from jaws_central.run_daemon import RunDaemon
 
     session = Session()
     models.create_all(engine, session)
@@ -177,10 +178,8 @@ def daemon() -> None:
     site_rpc_params = config.conf.get_all_sites_rpc_params()
     rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params, logger)
 
-    from jaws_central import daemon
-
-    jawsd = daemon.Daemon(rpc_index.rpc_index)
-    jawsd.start_daemon()
+    rund = RunDaemon(rpc_index.rpc_index)
+    rund.start_daemon()
 
 
 def jaws():

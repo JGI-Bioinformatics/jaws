@@ -143,7 +143,7 @@ def test_outfiles(monkeypatch):
         def __init__(self):
             self.data = {}
 
-        def outfiles(self, relpath=True):
+        def outfiles(self, complete=False, relpath=True):
             mock_outfiles = ["./TEST_OUTFILE"]
             return mock_outfiles
 
@@ -238,12 +238,12 @@ def test_inputs(monkeypatch):
     mock_session = MockSession()
     mock_data = MockRunModel(input_site_id="CORI")
     run = Run(mock_session, mock_data)
-    run.config["uploads_dir"] = "/uploads"
+    run.config["inputs_dir"] = "/inputs"
     inputs = run.inputs()
 
     print(inputs)
 
-    assert inputs["fasta_file"] == "/uploads/CORI/mydata/genome.fasta"
+    assert inputs["fasta_file"] == "/inputs/CORI/mydata/genome.fasta"
     assert inputs["min_score"] == 95
 
 
@@ -262,7 +262,7 @@ def test_inputs_fh(monkeypatch):
 
 
 # def test_get_run_inputs(
-#    monkeypatch, uploads_files, uploads_files_missing_json, uploads_files_without_zip
+#    monkeypatch, inputs_files, inputs_files_missing_json, inputs_files_without_zip
 # ):
 #    def mock__inputs_fh():
 #        return None
@@ -300,7 +300,7 @@ def test_inputs_fh(monkeypatch):
 #    assert infiles[3] is None
 
 
-def test_submit_run(monkeypatch, uploads_files):
+def test_submit_run(monkeypatch, inputs_files):
     def mock_cromwell_submit(self, fhs, options):
         return "ABCD-EFGH"
 
@@ -322,7 +322,7 @@ def test_submit_run(monkeypatch, uploads_files):
 @pytest.fixture
 def mock_path(tmp_path):
     def tmp_path_mock(*args, **kwargs):
-        return (tmp_path / "cwd/uploads/jaws/XXXX").as_posix()
+        return (tmp_path / "cwd/inputs/jaws/XXXX").as_posix()
 
     return tmp_path_mock
 

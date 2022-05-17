@@ -97,8 +97,8 @@ vhost = jaws
 queue = lbnl_rpc
 globus_endpoint = XXXX
 globus_host_path = /global/scratch/jaws
-uploads_dir = /global/scratch/jaws/jaws-dev/uploads
-uploads_dir2 = ${SCRATCH_ROOT}/jaws/jaws-dev/uploads
+inputs_dir = /global/scratch/jaws/jaws-dev/inputs
+inputs_dir2 = ${SCRATCH_ROOT}/jaws/jaws-dev/inputs
 max_ram_gb = 1024
 [SITE:NERSC]
 host = rmq.jaws.gov
@@ -109,7 +109,7 @@ queue = nersc_rpc
 message_ttl = 5
 globus_endpoint = YYYY
 globus_host_path = /
-uploads_dir = /global/cscratch/sd1/jaws/jaws-dev/uploads
+inputs_dir = /global/cscratch/sd1/jaws/jaws-dev/inputs
 max_ram_gb = 2048
 [SITE:AWS]
 host = rmq.jaws.gov
@@ -120,7 +120,7 @@ queue = aws_rpc
 message_ttl = 5
 globus_endpoint =
 globus_host_path =
-uploads_dir = s3://jaws-site/jaws-dev/uploads
+inputs_dir = s3://jaws-site/jaws-dev/inputs
 max_ram_gb = 512
 [ELASTIC_SEARCH]
 host=jaws-vm-1.jgi.lbl.gob
@@ -165,7 +165,7 @@ rpc_client_dict = {
     "queue": "lbnl_rpc",
     "globus_endpoint": "XXXX",
     "globus_basepath": '"/global/scratch/jaws"',
-    "uploads_dir": "/global/scratch/jaws/uploads",
+    "inputs_dir": "/global/scratch/jaws/inputs",
     "max_ram_gb": 1024,
 }
 
@@ -200,9 +200,9 @@ class MockTransferModel:
         self.id = kwargs.get("id", "99")
         self.status = kwargs.get("status", "created")
         self.src_site_id = kwargs.get("src_site_id", "NERSC")
-        self.src_base_dir = kwargs.get("src_base_dir", "/jaws-test/uploads")
+        self.src_base_dir = kwargs.get("src_base_dir", "/jaws-test/inputs")
         self.dest_site_id = kwargs.get("dest_site_id", "JGI")
-        self.dest_base_dir = kwargs.get("dest_base_dir", "/jaws-test/uploads")
+        self.dest_base_dir = kwargs.get("dest_base_dir", "/jaws-test/inputs")
         self.manifest_json = kwargs.get("manifest_json", "{}")
         self.globus_transfer_id = kwargs.get("globus_transfer_id", None)
 

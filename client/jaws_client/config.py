@@ -27,11 +27,9 @@ class Configuration:
             "site_id": "",
             "url": "http://localhost:5000",
             "womtool_jar": "",
-            "uploads_dir": "",
+            "inputs_dir": "",
             "downloads_dir": "",
-            "shared_endpoint_group": "",
         },
-        "GLOBUS": {"client_id": "", "endpoint_id": "", "basedir": "/"},
     }
 
     required_jaws_params = {
@@ -40,11 +38,9 @@ class Configuration:
             "site_id",
             "url",
             "womtool_jar",
-            "uploads_dir",
+            "inputs_dir",
             "downloads_dir",
-            "shared_endpoint_group",
         ],
-        "GLOBUS": ["client_id", "endpoint_id", "basedir"],
     }
     required_user_params = {"USER": ["token"]}
 
