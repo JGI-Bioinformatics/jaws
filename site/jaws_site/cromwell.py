@@ -461,14 +461,17 @@ class Metadata:
         :rtype: list
         """
         workflow_root = self.workflow_root()
-        full_paths = []
         outputs = self.get("outputs", {})
         if workflow_root is None:
-            return full_paths
+            return []
         elif complete is True:
-            return [workflow_root]
+            if relpath:
+                return []
+            else:
+                return [workflow_root]
         elif len(outputs.keys()) == 0:
-            return full_paths
+            return []
+        full_paths = []
         for key, value in outputs.items():
             if value is None:
                 # skip if null (i.e. optional output was not produced)

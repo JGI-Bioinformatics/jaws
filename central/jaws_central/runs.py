@@ -256,9 +256,9 @@ class Run:
         dest_config = config.conf.get_site(self.data.compute_site_id)
         params = {
             "src_site_id": self.data.input_site_id,
-            "src_base_dir": src_config.get("uploads_dir"),
+            "src_base_dir": src_config.get("inputs_dir"),
             "dest_site_id": self.data.compute_site_id,
-            "dest_base_dir": dest_config.get("uploads_dir"),
+            "dest_base_dir": dest_config.get("inputs_dir"),
             "manifest": self.inputs_manifest(),
         }
         try:
@@ -284,12 +284,12 @@ class Run:
 
         dest_config = config.conf.get_site(self.data.input_site_id)
         workflow_root, manifest = self.outputs_manifest()
-        if len(manifest) == 0:
-            # there are no outputs to download (e.g. failed run)
-            self.update_status(
-                "download complete", "no output files were generated"
-            )
-            return
+#        if len(manifest) == 0:
+#            # there are no outputs to download (e.g. failed run)
+#            self.update_status(
+#                "download complete", "no output files were generated"
+#            )
+#            return
         dest_base_dir = f"{dest_config.get('downloads_dir')}/{self.data.submission_id}"
         params = {
             "src_site_id": self.data.compute_site_id,
