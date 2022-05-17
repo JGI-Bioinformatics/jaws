@@ -138,7 +138,7 @@ class Transfer:
         self.update_status("transferring")
         try:
             if self.data.src_base_dir.startswith("s3://"):
-                self.s3_download()
+                self.s3_download_folder()
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
