@@ -236,3 +236,26 @@ d submitter
 # TYPE condor_job_avg_running_time_seconds gauge
 
 ```
+
+
+
+## Cronjob to auto-start HTCondor exporter
+
+Tahoma
+
+```angular2html
+*/4 * * * * /tahoma/mscjgi/condor/monitor/htcondor-monitor/CondorExporter/cron.sh >> /tahoma/mscjgi/scratch/condor/condor_prometheus_exporter.log 2>&1
+```
+
+
+JGI
+
+```angular2html
+*/4 * * * * /global/home/groups-sw/lr_jgicloud/condor/monitor/htcondor-monitor/CondorExporter/cron.sh >> /global/scratch/users/jaws/condor/condor_prometheus_exporter.log 2>&1
+```
+
+
+Cori
+```angular2html
+*/4 * * * * /global/cfs/cdirs/jaws/condor/monitor/htcondor-monitor/CondorExporter/cron.sh >> /global/cscratch1/sd/jaws_jtm/condor/condor_prometheus_exporter.log 2>&1
+```
