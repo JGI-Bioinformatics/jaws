@@ -136,8 +136,8 @@ export SITE_JTM_SCRATCH_DIR="$SITE_JTM_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
 
 # Folders for Run inputs, working dir, and outputs
 export SITE_CROMWELL_TMPDIR="$SITE_JTM_SCRATCH_DIR/cromwell-tmp"
-export SITE_UPLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/jaws-$DEPLOYMENT_NAME/uploads"
-export SITE_DOWNLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/jaws-$DEPLOYMENT_NAME/downloads"
+export SITE_UPLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/uploads"
+export SITE_DOWNLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/downloads"
 
 # Cromwell-related dirs
 export SITE_CROMWELL_JAR="$INSTALL_DIR/cromwell.jar"
