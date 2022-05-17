@@ -11,7 +11,7 @@ stages:
   - release-jaws
   - smoke-tests
   - deployment-tests
-  - stress-test
+  - stress-tests
   - deploy-docs
 
 include:
