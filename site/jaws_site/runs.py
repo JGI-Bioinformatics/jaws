@@ -444,7 +444,12 @@ class Run:
             file_handles = self.get_run_inputs()
         except Exception as error:
             self.update_run_status("submission failed", f"Input error: {error}")
-        options = self.cromwell_options()
+            return
+        try:
+            options = self.cromwell_options()
+        except Exception as error:
+            self.update_run_status("submission failed", f"Options error: {error}")
+            return
         try:
             cromwell_run_id = cromwell.submit(file_handles, options)
         except CromwellError as error:
