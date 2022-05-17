@@ -84,7 +84,7 @@ class Transfer:
     def from_id(cls, session, logger, transfer_id: int):
         """Select existing Transfers record from RDb by primary key"""
         try:
-            data = session.query(models.Transfer).get(int(transfer_id)).one_or_none()
+            data = session.query(models.Transfer).filter_by(id=int(transfer_id)).one_or_none()
         except SQLAlchemyError as error:
             raise TransferDbError(f"Error selecting Transfer {transfer_id}: {error}")
         except Exception as error:
