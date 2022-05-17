@@ -215,11 +215,11 @@ Currently the gitlab runner is being managed by EMSL. To contact them, join the 
 
 The input files and cromwell-executions folders must be purged regularly by cron at each compute-site.
 
-`inputs` folder:
+`uploads` folder:
 
-    0 2 * * 0 find $SCRATCH/jaws-dev/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
-    0 2 * * 5 find $SCRATCH/jaws-staging/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
-    0 2 * * 6 find $SCRATCH/jaws-prod/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 2 * * 0 find $SCRATCH/jaws-dev/uploads -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 2 * * 5 find $SCRATCH/jaws-staging/uploads -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 2 * * 6 find $SCRATCH/jaws-prod/uploads -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
 
 `cromwell-executions` (outputs) folder:
 
