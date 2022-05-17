@@ -673,7 +673,7 @@ class WorkflowInputs:
     def _prepend_path(path_to_prepend):
         """
         The input files shall be transferred to the compute-site, so the paths in the inputs json file must be
-        updated to reflect the new location by prepending the site's uploads basedir.
+        updated to reflect the new location by prepending the site's inputs basedir.
         Only paths which exist are modified because these are the only files which are transferred; the other
         paths presumably refer to files in a Docker container.
         If element is a file and is an URL, do not prepend given path to it

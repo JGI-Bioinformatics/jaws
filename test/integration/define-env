@@ -134,8 +134,8 @@ fi
 export SITE_JAWS_SCRATCH_DIR="$SITE_JAWS_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
 export SITE_JTM_SCRATCH_DIR="$SITE_JTM_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
 
-# Folders for uploads (Run inputs) and downloads from other jaws-sites
-export SITE_UPLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/uploads"
+# Folders for Run inputs and downloads from other jaws-sites
+export SITE_INPUTS_DIR="$SITE_JAWS_SCRATCH_DIR/inputss"
 export SITE_DOWNLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/downloads"
 
 # Cromwell-related dirs
@@ -193,7 +193,7 @@ for DIR in $INSTALL_DIRS; do
 done
 
 setup_dir "$SITE_JTM_SCRATCH_DIR" "$SITE_JTM_GROUP" 775
-setup_dir "$SITE_UPLOADS_DIR" "$SITE_JTM_GROUP" 777
+setup_dir "$SITE_INPUTS_DIR" "$SITE_JTM_GROUP" 777
 setup_dir "$SITE_DOWNLOADS_DIR" "$SITE_CLIENT_GROUP" 2775
 setup_dir "$CROMWELL_EXECUTIONS_DIR" "$SITE_JTM_GROUP" 775
 

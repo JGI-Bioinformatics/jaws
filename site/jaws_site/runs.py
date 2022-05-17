@@ -52,7 +52,7 @@ class Run:
 
         self.config = {
             "site_id": config.conf.get("SITE", "id"),
-            "uploads_dir": config.conf.get("SITE", "uploads_dir"),
+            "inputs_dir": config.conf.get("SITE", "inputs_dir"),
             "default_container": config.conf.get(
                 "SITE", "default_container", "ubuntu:latest"
             ),
@@ -335,7 +335,7 @@ class Run:
         """
         Read file from NFS or S3 and return contents.
         """
-        if self.config["uploads_dir"].startswith("s3://"):
+        if self.config["inputs_dir"].startswith("s3://"):
             return self._read_file_s3(path, binary)
         else:
             return self._read_file_nfs(path, binary)
@@ -347,7 +347,7 @@ class Run:
         :rtype: dict
         """
         fh = self._read_file(
-            os.path.join(self.config["uploads_dir"], f"{self.data.submission_id}.json")
+            os.path.join(self.config["inputs_dir"], f"{self.data.submission_id}.json")
         )
         inputs = json.load(fh)
         return inputs
@@ -385,7 +385,7 @@ class Run:
         # convert paths to correct abspaths for this Site
         relpath_inputs = self.read_inputs()
         inputs = add_prefix_to_paths(
-            relpath_inputs, self.data.input_site_id, self.config["uploads_dir"]
+            relpath_inputs, self.data.input_site_id, self.config["inputs_dir"]
         )
         return inputs
 
@@ -411,14 +411,14 @@ class Run:
             raise RunFileNotFoundError(f"Error specifying inputs: {error}")
         try:
             path = os.path.join(
-                self.config["uploads_dir"], f"{self.data.submission_id}.wdl"
+                self.config["inputs_dir"], f"{self.data.submission_id}.wdl"
             )
             file_handles["wdl"] = self._read_file(path)
         except Exception as error:
             raise RunFileNotFoundError(f"Cannot read {path}: {error}")
         try:
             path = os.path.join(
-                self.config["uploads_dir"], f"{self.data.submission_id}.zip"
+                self.config["inputs_dir"], f"{self.data.submission_id}.zip"
             )
             sub = self._read_file(path, True)
         except Exception:

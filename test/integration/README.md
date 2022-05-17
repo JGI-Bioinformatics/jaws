@@ -56,7 +56,7 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_CLUSTER_CONSTRAINT: Cluster node type (eg - haswell, knl, skylake) 
 - [SITE]_MAX_RAM_GB: Maximum ram for the cluster
 - [SITE]_LOAD_JAVA: Module load command for Java  
-- [SITE]_UPLOADS_DIR: staging area for wdls, json files, zipped subworkflows files
+- [SITE]_INPUTS_DIR: staging area for wdls, json files, zipped subworkflows files
 - [SITE]_DOWNLOADS_DIR: output location of processed data sets. All under shared group permissions.
 
 
@@ -215,11 +215,11 @@ Currently the gitlab runner is being managed by EMSL. To contact them, join the 
 
 The input files and cromwell-executions folders must be purged regularly by cron at each compute-site.
 
-`uploads` folder:
+`inputs` folder:
 
-    0 2 * * 0 find $SCRATCH/jaws-dev/uploads -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
-    0 2 * * 5 find $SCRATCH/jaws-staging/uploads -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
-    0 2 * * 6 find $SCRATCH/jaws-prod/uploads -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 2 * * 0 find $SCRATCH/jaws-dev/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 2 * * 5 find $SCRATCH/jaws-staging/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
+    0 2 * * 6 find $SCRATCH/jaws-prod/inputs -mindepth 2 -mtime +14 -exec rm -rf {} \; 2>/dev/null
 
 `cromwell-executions` (outputs) folder:
 

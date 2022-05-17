@@ -226,7 +226,7 @@ def get_site(user, site_id):
     result = config.conf.get_site_info(site_id)
     if result is None:
         abort(404, {"error": f'Unknown Site ID; "{site_id}" is not one of our sites'})
-    result["uploads_dir"] = f'{result["uploads_dir"]}/{user}'
+    result["inputs_dir"] = f'{result["inputs_dir"]}/{user}'
     return result, 200
 
 
