@@ -484,7 +484,7 @@ def submit(
 
     wdl_file = os.path.abspath(wdl_file)
     json_file = os.path.abspath(json_file)
-    input_dir = config.get("JAWS", "uploads_dir")
+    input_dir = config.get("JAWS", "inputs_dir")
     input_site_id = config.get("JAWS", "site_id")
     output_dir = config.get("JAWS", "downloads_dir")
 

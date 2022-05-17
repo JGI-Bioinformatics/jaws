@@ -149,7 +149,8 @@ for A_SITE in $JAWS_SITES; do
   set_site_var "$A_SITE" "JAWS_SCRATCH_BASEDIR"
   set_site_var "$A_SITE" "MAX_RAM_GB"
   A_SITE_JAWS_SCRATCH_DIR="$A_SITE_JAWS_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
-  A_SITE_UPLOADS_DIR="$A_SITE_JAWS_SCRATCH_DIR/inputs"
+  A_SITE_INPUTS_DIR="$A_SITE_JAWS_SCRATCH_DIR/inputs"
+  A_SITE_DOWNLOADS_DIR="$A_SITE_JAWS_SCRATCH_DIR/downloads"
   [[ ${A_SITE_GLOBUS_HOST_PATH: -1} == "/" ]] || A_SITE_GLOBUS_HOST_PATH="$A_SITE_GLOBUS_HOST_PATH/"
   CONF="$CONF
 [SITE:$A_SITE]
@@ -161,7 +162,8 @@ vhost = jaws_$DEPLOYMENT_NAME
 queue = JAWS_$A_SITE
 globus_endpoint = $A_SITE_GLOBUS_EP
 globus_host_path = $A_SITE_GLOBUS_HOST_PATH
-uploads_dir = $A_SITE_UPLOADS_DIR
+inputs_dir = $A_SITE_INPUTS_DIR
+downloads_dir = $A_SITE_DOWNLOADS_DIR
 max_ram_gb = $A_SITE_MAX_RAM_GB
 "
 done
@@ -199,10 +201,6 @@ server=$JAWS_EMAIL_SERVER
 port=$JAWS_EMAIL_PORT
 user=$JAWS_EMAIL_USER
 password=$JAWS_EMAIL_PW
-[AWS]
-aws_access_key_id = $AWS_ACCESS_KEY_ID
-aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
-s3_bucket = $AWS_S3_BUCKET
 $CONF
 [ELASTIC_SEARCH]
 host=$ES_HOST_ADDR

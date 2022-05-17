@@ -56,7 +56,7 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_CLUSTER_CONSTRAINT: Cluster node type (eg - haswell, knl, skylake) 
 - [SITE]_MAX_RAM_GB: Maximum ram for the cluster
 - [SITE]_LOAD_JAVA: Module load command for Java  
-- [SITE]_UPLOADS_DIR: staging area for wdls, json files, zipped subworkflows files
+- [SITE]_INPUTS_DIR: staging area for wdls, json files, zipped subworkflows files
 - [SITE]_DOWNLOADS_DIR: output location of processed data sets. All under shared group permissions.
 
 

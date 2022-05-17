@@ -1,22 +1,18 @@
-import logging
 from jaws_site.transfers import Transfer
 from tests.conftest import MockSession, MockTransferModel
-
-
-logger = logging.getLogger(__package__)
 
 
 def test_constructor():
     mock_session = MockSession()
     mock_data = MockTransferModel()
-    transfer = Transfer(mock_session, logger, mock_data)
+    transfer = Transfer(mock_session, mock_data)
     assert transfer
 
 
 def test_status():
     mock_session = MockSession()
     mock_data = MockTransferModel(status="queued")
-    transfer = Transfer(mock_session, logger, mock_data)
+    transfer = Transfer(mock_session, mock_data)
     assert transfer.status() == "queued"
 
 
@@ -31,12 +27,12 @@ def test_cancel(monkeypatch):
 
     # a queued transfer may be cancelled
     mock_data = MockTransferModel(status="queued")
-    transfer = Transfer(mock_session, logger, mock_data)
+    transfer = Transfer(mock_session, mock_data)
     assert transfer.cancel() is True
 
     # a transfer that has already begun cannot be cancelled
     mock_data = MockTransferModel(status="transferring")
-    transfer = Transfer(mock_session, logger, mock_data)
+    transfer = Transfer(mock_session, mock_data)
     assert transfer.cancel() is False
 
 
@@ -45,7 +41,7 @@ def test_manifest():
     EXAMPLE_MANIFEST = ["file1", "file2", "file3"]
     mock_session = MockSession()
     mock_data = MockTransferModel(manifest=EXAMPLE_MANIFEST)
-    transfer = Transfer(mock_session, logger, mock_data)
+    transfer = Transfer(mock_session, mock_data)
 
     assert type(transfer.data.manifest_json) == str
     manifest = transfer.manifest()
@@ -65,23 +61,37 @@ def test_transfer_files(monkeypatch):
     def mock_s3_download(self):
         self.S3_DOWNLOAD = True
 
+    def mock_s3_download_folder(self):
+        self.S3_DOWNLOAD_FOLDER = True
+
     def mock_s3_upload(self):
         self.S3_UPLOAD = True
 
     monkeypatch.setattr(Transfer, "s3_download", mock_s3_download)
+    monkeypatch.setattr(Transfer, "s3_download_folder", mock_s3_download_folder)
     monkeypatch.setattr(Transfer, "s3_upload", mock_s3_upload)
 
     mock_session = MockSession()
 
+#    # if the src path starts with "s3://" then download from S3
+#    mock_data = MockTransferModel(
+#        status="queued",
+#        src_base_dir="s3://jaws-site/cromwell-executions/X/Y",
+#        dest_base_dir="/scratch/jaws/downloads",
+#    )
+#    transfer = Transfer(mock_session, mock_data)
+#    transfer.transfer_files()
+#    assert transfer.S3_DOWNLOAD is True
+
     # if the src path starts with "s3://" then download from S3
     mock_data = MockTransferModel(
         status="queued",
-        src_base_dir="s3://jaws-site/cromwell-executions/X/Y",
+        src_base_dir="s3://jaws-site/cromwell-executions/AAAA",
         dest_base_dir="/scratch/jaws/downloads",
     )
-    transfer = Transfer(mock_session, logger, mock_data)
+    transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
-    assert transfer.S3_DOWNLOAD is True
+    assert transfer.S3_DOWNLOAD_FOLDER is True
 
     # if the dest path starts with "s3://" then upload to S3
     mock_data = MockTransferModel(
@@ -89,7 +99,7 @@ def test_transfer_files(monkeypatch):
         src_base_dir="/scratch/jaws/uploads/A/B/C",
         dest_base_dir="s3://jaws-site/uploads",
     )
-    transfer = Transfer(mock_session, logger, mock_data)
+    transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
     assert transfer.S3_UPLOAD is True
 
@@ -97,7 +107,7 @@ def test_transfer_files(monkeypatch):
 def test_s3_parse_path():
     mock_session = MockSession()
     mock_data = MockTransferModel()
-    transfer = Transfer(mock_session, logger, mock_data)
+    transfer = Transfer(mock_session, mock_data)
 
     test_path = "s3://jaws-site/dev/uploads/Pfam-A.hmm"
     actual_bucket, actual_path = transfer.s3_parse_path(test_path)
