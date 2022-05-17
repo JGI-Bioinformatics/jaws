@@ -234,8 +234,9 @@ class Transfer:
             for obj in page["Contents"]:
                 rel_path = obj["Key"]
                 size = obj["Size"]
+                dest_rel_path = rel_path.removeprefix(src_base_dir)
                 dest_path = os.path.normpath(
-                    os.path.join(self.data.dest_base_dir, rel_path)
+                    os.path.join(self.data.dest_base_dir, dest_rel_path)
                 )
                 if rel_path.endswith("/") and size == 0:
                     try:
