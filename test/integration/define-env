@@ -135,7 +135,7 @@ export SITE_JAWS_SCRATCH_DIR="$SITE_JAWS_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
 export SITE_JTM_SCRATCH_DIR="$SITE_JTM_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
 
 # Folders for Run inputs and downloads from other jaws-sites
-export SITE_INPUTS_DIR="$SITE_JAWS_SCRATCH_DIR/inputss"
+export SITE_INPUTS_DIR="$SITE_JAWS_SCRATCH_DIR/inputs"
 export SITE_DOWNLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/downloads"
 
 # Cromwell-related dirs
