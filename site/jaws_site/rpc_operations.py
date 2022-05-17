@@ -215,7 +215,7 @@ def submit_transfer(params, session):
     """
     logger.info(f"New transfer {params['transfer_id']}")
     try:
-        transfer = Transfer.from_params(session, logger, params)
+        transfer = Transfer.from_params(session, params)
     except Exception as error:
         logger.debug(f"Error submitting transfer {params['transfer_id']}: {error}")
         return failure(error)
