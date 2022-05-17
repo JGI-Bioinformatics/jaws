@@ -203,8 +203,18 @@ class Run:
             return self.operations[status]()
 
     def cancel(self) -> None:
-        """Cancel a run, aborting Cromwell or file transfer as appropriate"""
-        if self.data.cromwell_run_id and self.data.status in [
+        """
+        Cancel a run, aborting Cromwell or file transfer as appropriate.
+        Raise if not successful.
+        """
+        orig_status = self.data.status
+        try:
+            self.update_run_status("cancelled")
+        except Exception as error:
+            logger.error(f"Failed to cancel Run {self.data.id}: {error}")
+            raise RunDbError(f"Change Run {self.data.id} status to cancelled failed: {error}")
+
+        if self.data.cromwell_run_id and orig_status in [
             "submitted",
             "queued",
             "running",
@@ -213,8 +223,7 @@ class Run:
                 cromwell.abort(self.data.cromwell_run_id)
             except CromwellError as error:
                 logger.warn(f"Cromwell error cancelling Run {self.data.id}: {error}")
-                raise
-            self.update_run_status("cancelled")
+                raise CromwellError(f"Cromwell cancel failed: {error}")
 
     def outputs(self, relpath=True) -> dict:
         """
