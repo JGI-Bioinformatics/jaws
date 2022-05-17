@@ -229,7 +229,7 @@ def transfer_status(params, session):
     Check the status of a transfer.
     """
     try:
-        transfer = Transfer.from_id(session, logger, params["transfer_id"])
+        transfer = Transfer.from_id(session, params["transfer_id"])
     except Exception as error:
         logger.error(f"Transfer {params['transfer_id']} status failed: {error}")
         return failure(error)
@@ -244,7 +244,7 @@ def cancel_transfer(params, session):
     """
     logger.info(f"Cancel transfer {params['transfer_id']}")
     try:
-        transfer = Transfer.from_id(session, logger, params["transfer_id"])
+        transfer = Transfer.from_id(session, params["transfer_id"])
         transfer.cancel()
     except Exception as error:
         logger.debug(f"Error cancelling transfer {params['transfer_id']}: {error}")
