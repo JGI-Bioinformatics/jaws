@@ -78,7 +78,7 @@ class Configuration(metaclass=Singleton):
 
     config = None
 
-    def __init__(self, config_file: str) -> None:
+    def __init__(self, config_file: str, env_prefix: str = None) -> None:
         """Constructor
 
         :param config_file: Path to config file in YAML format
@@ -88,7 +88,7 @@ class Configuration(metaclass=Singleton):
         logger.debug(f"Loading configuration from {config_file}")
         if not os.path.isfile(config_file):
             raise FileNotFoundError(f"{config_file} does not exist")
-        self.config = configparser.ConfigParser(interpolation=EnvInterpolation())
+        self.config = configparser.ConfigParser(interpolation=EnvInterpolation(env_override=env_prefix))
         self.config.read_dict(self.defaults)
         try:
             self.config.read(config_file)

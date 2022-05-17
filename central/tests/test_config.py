@@ -23,6 +23,10 @@ def test_check_all_values(config_file):
 
     config_path = config_file
     cfg = jaws_central.config.Configuration(config_path)
+    # Make sure that the _vars attribute in the interpolation object is "NONE" because
+    # there was no env_override value set
+    print("Verifying that the _vars instance variable is NONE")
+    assert cfg.config._interpolation._vars is None
 
     expected_db_parameters = [
         ("dialect", "mysql+mysqlconnector"),
