@@ -28,6 +28,12 @@ JAWS Condor Pool Manager is to manager compute nodes for the Condor pool. The ma
 
 The worker pool is categorized into 4 types, `small, medium, large, xlarge`. The current supported types and the amount of resources provided per each site is the below.
 
+The configuration file for each site can be found:
+- Cori: /global/cfs/cdirs/jaws/condor/pool-manager/condor/jaws_condor/site_configs/cori_config.ini
+- Tahoma: /tahoma/mscjgi/condor/pool-manager/condor/jaws_condor/site_configs/tahoma_config.ini
+- JGI: /global/home/groups-sw/lr_jgicloud/condor/pool-manager/condor/jaws_condor/site_configs/jgi_config.ini
+
+
 - Memory space (GB)
 
 |                          | small      | medium   | large     | xlarge       |
@@ -381,7 +387,7 @@ jaws errors 33919
 
 
 
-### How to get the node name that ran a task
+### How to get the node name that is running a task
 
 if you want to get into a compute node by `srun`
 
