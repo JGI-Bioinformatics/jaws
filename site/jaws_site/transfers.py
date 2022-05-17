@@ -64,6 +64,7 @@ class Transfer:
         try:
             data = models.Transfer(
                 id=params["transfer_id"],
+                status="queued",
                 src_base_dir=params["src_base_dir"],
                 dest_base_dir=params["dest_base_dir"],
                 manifest_json=manifest_json,
