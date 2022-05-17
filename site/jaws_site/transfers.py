@@ -170,10 +170,13 @@ class Transfer:
         return s3_bucket, path
 
     def s3_upload(self):
+        manifest = self.manifest()
+        num_files = len(manifest)
+        self.logger.debug(f"Transfer {self.data.id} begin s3 upload of {num_files} files")
         aws_client = self.aws_client()
         s3_bucket, dest_base_dir = self.s3_parse_path(self.data.dest_base_dir)
         bucket_obj = aws_client.Bucket(s3_bucket)
-        for rel_path in self.manifest():
+        for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
             dest_path = os.path.normpath(os.path.join(dest_base_dir, rel_path))
             self.logger.debug(f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}")
@@ -184,10 +187,13 @@ class Transfer:
                 raise IOError(error)
 
     def s3_download(self):
+        manifest = self.manifest()
+        num_files = len(manifest)
+        self.logger.debug(f"Transfer {self.data.id} begin s3 download of {num_files} files")
         aws_client = self.aws_client()
         s3_bucket, src_base_dir = self.s3_parse_path(self.data.src_base_dir)
         bucket_obj = aws_client.Bucket(s3_bucket)
-        for rel_path in self.manifest():
+        for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(src_base_dir, rel_path))
             dest_path = os.path.normpath(
                 os.path.join(self.data.dest_base_dir, rel_path)
@@ -253,5 +259,7 @@ def check_queue(session, logger) -> None:
             f"Failed to select transfer task from db: {error}", exc_info=True
         )
     if len(rows):
+        logger.debug("Process active transfer")  # DEBUG TODO DELETE THIS LINE
         transfer = Transfer(session, logger, rows[0])
+        logger.debug(f"GOT Transfer {transfer.data.id}")  # DEBUG TODO DELETE THIS LINE
         transfer.transfer_files()
