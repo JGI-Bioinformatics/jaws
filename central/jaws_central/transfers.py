@@ -237,7 +237,7 @@ class Transfer:
                 logger.error(f"Site transfer {self.data.id} failed: {error}")
                 self.update_status("submit failed")
             else:
-                logger.debug(f"Submitted RPC transfer {self.data..id}: {status}")
+                logger.debug(f"Submitted RPC transfer {self.data.id}: {status}")
                 self.update_status("queued")
         else:
             # jaws-central with submit to Globus
