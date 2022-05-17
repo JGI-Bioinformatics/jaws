@@ -67,7 +67,6 @@ class Run:
         cls, session, params, central_rpc_client=None, reports_rpc_client=None
     ):
         """Insert new Run into RDb.  Site only receives Runs in the "upload complete" state."""
-        # JSON string was escaped because it was included in RPC's JSON doc
         try:
             data = models.Run(
                 id=int(params["run_id"]),
@@ -78,13 +77,13 @@ class Run:
                 status="upload complete",
             )
         except SQLAlchemyError as error:
-            raise (f"Error creating model for new Run {params['run_id']}: {error}")
+            raise RunDbError(f"Error creating model for new Run {params['run_id']}: {error}")
         try:
             session.add(data)
             session.commit()
         except SQLAlchemyError as error:
             session.rollback()
-            raise (error)
+            raise RunDbError(error)
         else:
             return cls(
                 session,
