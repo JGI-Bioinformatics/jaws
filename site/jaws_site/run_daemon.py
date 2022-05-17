@@ -32,7 +32,7 @@ class RunDaemon:
             config.conf.get_section("RUNS_ES_RPC_CLIENT"), logger
         )
         # Set message expiration to 60 secs
-        self.runs_es_rpc_client.message_ttl = 3600
+        # self.runs_es_rpc_client.message_ttl = 3600
         # self.pmetrics_es_rpc_client.message_ttl = 3600
 
     def start_daemon(self):
