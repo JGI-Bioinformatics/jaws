@@ -1,6 +1,6 @@
+import logging
 import schedule
 import time
-import logging
 from jaws_site import database, transfers
 
 
@@ -30,5 +30,5 @@ class TransferDaemon:
         Do any queued transfers now.
         """
         session = database.Session()
-        transfers.check_queue(session, logger)
+        transfers.check_queue(session)
         session.close()

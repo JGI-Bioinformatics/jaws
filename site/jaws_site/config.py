@@ -63,7 +63,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         ],
         "DB": ["user", "password", "db"],
         "CROMWELL": ["url"],
-        "SITE": ["id", "uploads_dir"],
+        "SITE": ["id", "inputs_dir"],
     }
 
     config = None

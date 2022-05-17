@@ -232,11 +232,12 @@ class Transfer:
                 "manifest": manifest,
             }
             try:
-                self._rpc(responsible_site_id, "submit_transfer", params)
+                status = self._rpc(responsible_site_id, "submit_transfer", params)
             except Exception as error:
                 logger.error(f"Site transfer {self.data.id} failed: {error}")
                 self.update_status("submit failed")
             else:
+                logger.debug(f"Submitted RPC transfer {self.data.id}: {status}")
                 self.update_status("queued")
         else:
             # jaws-central with submit to Globus

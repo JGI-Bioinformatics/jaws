@@ -74,7 +74,7 @@ db = hunting_sites
 url = http://localhost:8000
 [SITE]
 id = eagle
-uploads_dir = /global/scratch/jaws/jaws-dev/uploads
+inputs_dir = /global/scratch/jaws/jaws-dev/inputs
 [AWS]
 aws_access_key_id = AAAA
 aws_secret_access_key = BBBB
@@ -134,7 +134,7 @@ vhost = jaws_test
 url = http://localhost:8000
 [SITE]
 id = eagle
-uploads_dir = /global/scratch/jaws/jaws-dev/uploads
+inputs_dir = /global/scratch/jaws/jaws-dev/inputs
 [AWS]
 aws_access_key_id = AAAA
 aws_secret_access_key = BBBB
@@ -246,8 +246,8 @@ class MockTransferModel:
         self.status = kwargs.get("status", "queued")
         self.submitted = kwargs.get("submitted", datetime.utcnow())
         self.updated = kwargs.get("updated", datetime.utcnow())
-        self.src_base_dir = kwargs.get("src_base_dir", "/uploads")
-        self.dest_base_dir = kwargs.get("dest_base_dir", "/uploads")
+        self.src_base_dir = kwargs.get("src_base_dir", "/inputs")
+        self.dest_base_dir = kwargs.get("dest_base_dir", "/inputs")
         self.manifest_json = manifest_json
 
 
@@ -342,7 +342,7 @@ def cromwell_run_dir(tmp_path):
 
 
 @pytest.fixture()
-def uploads_files():
+def inputs_files():
     home_dir = os.path.expanduser("~")
     root_dir = os.path.join(home_dir, "XXXX")
     if not os.path.exists(root_dir):
@@ -362,7 +362,7 @@ def uploads_files():
 
 
 @pytest.fixture()
-def uploads_files_without_zip():
+def inputs_files_without_zip():
     home_dir = os.path.expanduser("~")
     root_dir = os.path.join(home_dir, "WWWW")
     if not os.path.exists(root_dir):
@@ -379,7 +379,7 @@ def uploads_files_without_zip():
 
 
 @pytest.fixture()
-def uploads_files_missing_json():
+def inputs_files_missing_json():
     home_dir = os.path.expanduser("~")
     root_dir = os.path.join(home_dir, "YYYY")
     if not os.path.exists(root_dir):
@@ -395,7 +395,7 @@ def uploads_files_missing_json():
 
 
 @pytest.fixture()
-def uploads_files_empty_wdl():
+def inputs_files_empty_wdl():
     home_dir = os.path.expanduser("~")
     root_dir = os.path.join(home_dir, "ZZZZ")
     if not os.path.exists(root_dir):
@@ -415,17 +415,17 @@ def uploads_files_empty_wdl():
 
 @pytest.fixture()
 def transfer_dirs(tmp_path):
-    uploads_dir = tmp_path / "cwd/uploads/jaws"
+    inputs_dir = tmp_path / "cwd/inputs/jaws"
 
-    uploads_dir.mkdir(parents=True)
+    inputs_dir.mkdir(parents=True)
 
     for f in ["XXXX.wdl", "XXXX.json", "XXXX.orig.json", "XXXX.zip"]:
-        file_path = uploads_dir / f
+        file_path = inputs_dir / f
         file_path.write_text(f"output for {f}")
 
     yield
 
-    shutil.rmtree(uploads_dir)
+    shutil.rmtree(inputs_dir)
 
 
 class MockSession:

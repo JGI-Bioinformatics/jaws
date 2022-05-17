@@ -256,9 +256,9 @@ class Run:
         dest_config = config.conf.get_site(self.data.compute_site_id)
         params = {
             "src_site_id": self.data.input_site_id,
-            "src_base_dir": src_config.get("uploads_dir"),
+            "src_base_dir": src_config.get("inputs_dir"),
             "dest_site_id": self.data.compute_site_id,
-            "dest_base_dir": dest_config.get("uploads_dir"),
+            "dest_base_dir": dest_config.get("inputs_dir"),
             "manifest": self.inputs_manifest(),
         }
         try:
