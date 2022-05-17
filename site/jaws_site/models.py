@@ -93,7 +93,7 @@ class Transfer(Base):
 
     __tablename__ = "transfers"
     id = Column(Integer, primary_key=True)
-    status = Column(String(32), default="queued")
+    status = Column(String(32), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     src_base_dir = Column(String(128), nullable=False)

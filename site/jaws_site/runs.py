@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 import boto3
+import botocore
 from jaws_site import models, config, tasks, jaws_constants
 from jaws_site.cromwell import Cromwell, CromwellError
 
@@ -22,7 +23,7 @@ class RunNotFoundError(Exception):
     pass
 
 
-class DataError(Exception):
+class RunFileNotFoundError(Exception):
     pass
 
 
@@ -51,7 +52,7 @@ class Run:
 
         self.config = {
             "site_id": config.conf.get("SITE", "id"),
-            "uploads_dir": config.conf.get("SITE", "uploads_dir"),
+            "inputs_dir": config.conf.get("SITE", "inputs_dir"),
             "default_container": config.conf.get(
                 "SITE", "default_container", "ubuntu:latest"
             ),
@@ -297,6 +298,8 @@ class Run:
         fh = io.BytesIO()
         try:
             bucket_obj.download_fileobj(src_path, fh)
+        except botocore.exceptions.ClientError as error:
+            raise RunFileNotFoundError(f"File obj not found, {src_path}: {error}")
         except Exception as error:
             raise IOError(error)
         fh.seek(0)
@@ -315,6 +318,8 @@ class Run:
             raise IOError(f"File not found: {path}")
         data = None
         mode = "rb" if binary else "r"
+        if not os.path.isfile(path):
+            raise RunFileNotFoundError(f"File not found, {path}")
         try:
             with open(path, mode) as fh:
                 data = fh.read()
@@ -330,7 +335,7 @@ class Run:
         """
         Read file from NFS or S3 and return contents.
         """
-        if self.config["uploads_dir"].startswith("s3://"):
+        if self.config["inputs_dir"].startswith("s3://"):
             return self._read_file_s3(path, binary)
         else:
             return self._read_file_nfs(path, binary)
@@ -342,7 +347,7 @@ class Run:
         :rtype: dict
         """
         fh = self._read_file(
-            os.path.join(self.config["uploads_dir"], f"{self.data.submission_id}.json")
+            os.path.join(self.config["inputs_dir"], f"{self.data.submission_id}.json")
         )
         inputs = json.load(fh)
         return inputs
@@ -380,7 +385,7 @@ class Run:
         # convert paths to correct abspaths for this Site
         relpath_inputs = self.read_inputs()
         inputs = add_prefix_to_paths(
-            relpath_inputs, self.data.input_site_id, self.config["uploads_dir"]
+            relpath_inputs, self.data.input_site_id, self.config["inputs_dir"]
         )
         return inputs
 
@@ -403,17 +408,17 @@ class Run:
         try:
             file_handles["inputs"] = self.inputs_fh()
         except Exception as error:
-            raise DataError(f"Error specifying inputs: {error}")
+            raise RunFileNotFoundError(f"Error specifying inputs: {error}")
         try:
             path = os.path.join(
-                self.config["uploads_dir"], f"{self.data.submission_id}.wdl"
+                self.config["inputs_dir"], f"{self.data.submission_id}.wdl"
             )
             file_handles["wdl"] = self._read_file(path)
         except Exception as error:
-            raise DataError(f"Cannot read {path}: {error}")
+            raise RunFileNotFoundError(f"Cannot read {path}: {error}")
         try:
             path = os.path.join(
-                self.config["uploads_dir"], f"{self.data.submission_id}.zip"
+                self.config["inputs_dir"], f"{self.data.submission_id}.zip"
             )
             sub = self._read_file(path, True)
         except Exception:
@@ -435,8 +440,16 @@ class Run:
         Submit a run to Cromwell.
         """
         logger.debug(f"Run {self.data.id}: Submit to Cromwell")
-        file_handles = self.get_run_inputs()
-        options = self.cromwell_options()
+        try:
+            file_handles = self.get_run_inputs()
+        except Exception as error:
+            self.update_run_status("submission failed", f"Input error: {error}")
+            return
+        try:
+            options = self.cromwell_options()
+        except Exception as error:
+            self.update_run_status("submission failed", f"Options error: {error}")
+            return
         try:
             cromwell_run_id = cromwell.submit(file_handles, options)
         except CromwellError as error:

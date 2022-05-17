@@ -19,6 +19,7 @@ logger = logging.getLogger(__package__)
 
 run_active_states = [
     "created",
+    "upload queued",
     "uploading",
     "upload inactive",
     "upload complete",
@@ -27,12 +28,14 @@ run_active_states = [
     "running",
     "succeeded",
     "ready",
+    "download queued",
     "downloading",
 ]
 
 
 run_pre_cromwell_states = [
     "created",
+    "upload queued",
     "uploading",
     "upload inactivte",
     "upload complete",
@@ -223,7 +226,7 @@ def get_site(user, site_id):
     result = config.conf.get_site_info(site_id)
     if result is None:
         abort(404, {"error": f'Unknown Site ID; "{site_id}" is not one of our sites'})
-    result["uploads_dir"] = f'{result["uploads_dir"]}/{user}'
+    result["inputs_dir"] = f'{result["inputs_dir"]}/{user}'
     return result, 200
 
 
