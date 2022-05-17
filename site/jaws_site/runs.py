@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 import boto3
+import botocore
 from jaws_site import models, config, tasks, jaws_constants
 from jaws_site.cromwell import Cromwell, CromwellError
 
@@ -19,6 +20,10 @@ class RunDbError(Exception):
 
 
 class RunNotFoundError(Exception):
+    pass
+
+
+class RunFileNotFoundError(Exception):
     pass
 
 
@@ -297,6 +302,8 @@ class Run:
         fh = io.BytesIO()
         try:
             bucket_obj.download_fileobj(src_path, fh)
+        except botocore.exceptions.ClientError as error:
+            raise RunFileNotFoundError(f"File obj not found, {src_path}: {error}")
         except Exception as error:
             raise IOError(error)
         fh.seek(0)
@@ -315,6 +322,8 @@ class Run:
             raise IOError(f"File not found: {path}")
         data = None
         mode = "rb" if binary else "r"
+        if not os.path.isfile(path):
+            raise RunFileNotFoundError(f"File not found, {path}")
         try:
             with open(path, mode) as fh:
                 data = fh.read()
@@ -404,6 +413,7 @@ class Run:
             file_handles["inputs"] = self.inputs_fh()
         except Exception as error:
             raise DataError(f"Error specifying inputs: {error}")
+            self.update_run_status("submission failed", f"Input error: {error}")
         try:
             path = os.path.join(
                 self.config["uploads_dir"], f"{self.data.submission_id}.wdl"
@@ -411,6 +421,7 @@ class Run:
             file_handles["wdl"] = self._read_file(path)
         except Exception as error:
             raise DataError(f"Cannot read {path}: {error}")
+            self.update_run_status("submission failed", f"WDL input error: {error}")
         try:
             path = os.path.join(
                 self.config["uploads_dir"], f"{self.data.submission_id}.zip"
