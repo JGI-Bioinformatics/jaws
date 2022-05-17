@@ -201,7 +201,7 @@ class Transfer:
                 os.path.join(self.data.dest_base_dir, rel_path)
             )
             logger.debug(
-                f"S3 download from {s3_bucket}: {src_path} -> {dest_path}"
+                f"S3 download from {s3_bucket}: {rel_path} as {src_path} -> {dest_path}"
             )
             dest_folder = os.path.dirname(dest_path)
             try:
@@ -261,7 +261,5 @@ def check_queue(session) -> None:
             f"Failed to select transfer task from db: {error}", exc_info=True
         )
     if len(rows):
-        logger.debug("Process active transfer")  # DEBUG TODO DELETE THIS LINE
         transfer = Transfer(session, rows[0])
-        logger.debug(f"GOT Transfer {transfer.data.id}")  # DEBUG TODO DELETE THIS LINE
         transfer.transfer_files()
