@@ -17,14 +17,6 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
     """Configuration singleton class"""
 
     defaults = {
-        "LOCAL_RPC_SERVER": {
-            "host": "localhost",
-            "port": "5672",
-            "user": "guest",  # default from docker container
-            "password": "guest",  # default from docker container
-            "num_threads": 5,
-            "max_retries": 5,
-        },
         "RPC_SERVER": {
             "host": "localhost",
             "port": "5672",
@@ -43,7 +35,6 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         },
     }
     required_params = {
-        "LOCAL_RPC_SERVER": ["vhost"],
         "RPC_SERVER": ["vhost"],
         "CENTRAL_RPC_CLIENT": ["host", "vhost", "user", "password"],
         "RUNS_ES_RPC_CLIENT": ["host", "vhost", "user", "password", "queue"],
@@ -55,12 +46,6 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "queue",
         ],
         "PERFORMANCE_METRICS": ["done_dir", "processed_dir"],
-        "GLOBUS": [
-            "client_id",
-            "client_secret",
-            "endpoint_id",
-            "host_path",
-        ],
         "DB": ["user", "password", "db"],
         "CROMWELL": ["url"],
         "SITE": ["id", "inputs_dir"],
