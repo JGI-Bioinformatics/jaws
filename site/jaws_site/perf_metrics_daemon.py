@@ -51,34 +51,44 @@ class PerformanceMetricsDaemon:
         """
         Check for files in the running folder to move to done folder
         """
-        try:
-            # Get paths for both running/done
-            running_dir = Path(self.perf_running_dir)
-            done_dir = Path(self.perf_done_dir)
 
-            # If there is no running folder return (there's probably an error here)
-            if not running_dir.exists():
-                logger.warn(f"Running folder not found: {running_dir}")
-                return
+        # Get paths for both running/done
+        running_dir = Path(self.perf_running_dir)
+        done_dir = Path(self.perf_done_dir)
 
-            # If there is no done folder make sure to create one
-            if not done_dir.exists():
+        # If there is no running folder return (there's probably an error here)
+        if not running_dir.exists():
+            logger.warn(f"Running folder not found: {running_dir}")
+            return
+
+        # If there is no done folder make sure to create one
+        if not done_dir.exists():
+            try:
                 done_dir.mkdir(exist_ok=True)
-
-            # Get all the csv files in the running dir
-            files_running = running_dir.glob("*.csv")
-            # Get the time the daemon was run
-            now = time.time()
-            for metric in files_running:
+            except Exception as ex:
+                logger.warn(f"Error making new directory {done_dir} {type(ex).__name__} : {ex}")
+        # Get all the csv files in the running dir
+        files_running = running_dir.glob("*.csv")
+        # Get the time the daemon was run
+        now = time.time()
+        for metric in files_running:
+            try:
                 status = metric.stat()
-                # gets the time the file hasn't been modified to in minutes
-                idle_time = (now-status.st_mtime)/60
-                # If we're over the number of minutes and there has been no modifications then move it
-                if idle_time > self.perf_cleanup_time:
-                    # Create a new path based on the metrics name and the done directory
-                    new_path = self.perf_done_dir / metric.name
-                    logger.debug(f"Moving {metric} to {new_path}")
-                    # Moves to the new path
+            except FileNotFoundError as ex:
+                logger.warn(f"Error file not found {metric} : {ex}")
+            except Exception as ex:
+                logger.warn(f"Error getting file stat {type(ex).__name__} : {ex}")
+            # gets the time the file hasn't been modified to in minutes
+            idle_time = (now-status.st_ctime)/60
+            # If we're over the number of minutes and there has been no modifications then move it
+            if idle_time > self.perf_cleanup_time:
+                # Create a new path based on the metrics name and the done directory
+                new_path = self.perf_done_dir / metric.name
+                logger.debug(f"Moving {metric} to {new_path}")
+                # Moves to the new path
+                try:
                     metric.replace(new_path)
-        except Exception as ex:
-            logger.warn(f"Unknown exception {type(ex).__name__} : {ex}")
+                except PermissionError as ex:
+                    logger.warn(f"Error moving file {metric} due to directory permissions {type(ex).__name__} : {ex}")
+                except OSError as ex:
+                    logger.warn(f"Error moving file {metric} from one disk to another {type(ex).__name__} : {ex}")
