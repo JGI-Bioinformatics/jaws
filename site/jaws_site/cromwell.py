@@ -146,6 +146,9 @@ class Task:
             max_time = None
             if "runtimeAttributes" in call:
                 max_time = call["runtimeAttributes"].get("time", "")
+            execution_status = None
+            if "executionStatus" in call:
+                execution_status = call["executionStatus"]
             if "subWorkflowMetadata" in call:
                 subworkflow = self.subworkflows[shard_index][attempt]
                 sub_task_summary = subworkflow.task_summary()
@@ -154,6 +157,7 @@ class Task:
                     sub_job_id,
                     sub_cached,
                     max_time,
+                    execution_status,
                     cromwell_dir,
                 ) in sub_task_summary:
                     summary.append(
@@ -162,11 +166,12 @@ class Task:
                             sub_job_id,
                             sub_cached,
                             max_time,
+                            execution_status,
                             cromwell_dir,
                         ]
                     )
             else:
-                summary.append([name, job_id, cached, max_time, cromwell_dir])
+                summary.append([name, job_id, cached, max_time, execution_status, cromwell_dir])
         return summary
 
     def errors(self):
@@ -421,8 +426,8 @@ class Metadata:
         summary = []
         for task_name, task in self.tasks.items():
             task_summary = task.summary()
-            for name, job_id, cached, max_time, cromwell_dir in task_summary:
-                summary.append([name, job_id, cached, max_time, cromwell_dir])
+            for name, job_id, cached, max_time, execution_status, cromwell_dir in task_summary:
+                summary.append([name, job_id, cached, max_time, execution_status, cromwell_dir])
         return summary
 
     def outputs(self, relpath=True):
