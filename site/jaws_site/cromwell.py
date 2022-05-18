@@ -554,7 +554,17 @@ class Cromwell:
             response = requests.post(url)
         except Exception as error:
             raise error
-        response.raise_for_status()
+        sc = response.status_code
+        if sc == 200:
+            return
+        elif sc == 400:
+            raise ValueError(f"Abort failed for malformed workflow id: {workflow_id}")
+        elif sc == 403:
+            return  # too late to cancel
+        elif sc == 404:
+            raise ValueError(f"Cannot abort; workflow not found: {workflow_id}")
+        else:
+            return
 
     def _options_fh(self, **kwargs):
         """
