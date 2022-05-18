@@ -615,15 +615,19 @@ def _cancel_run(user, run, reason="Cancelled by user"):
     :param run: Run SqlAlchemy ORM object
     :type run: obj
     """
+    orig_status = run.status
     if run.status in ["cancelled", "download complete", "email sent", "done"]:
+        # too late to cancel
         return False
     else:
+        # central must be updated so the central-run-daemon will not process it
         try:
             _update_run_status(run, "cancelled", reason)
         except Exception as error:
             logger.error(f"Cancel failed to update Run {run.id} status: {error}")
             return False
-    if run.status in ["submitted", "queued", "running"]:
+    if orig_status in ["submitted", "queued", "running"]:
+        # the compute jaws-site should also receive the cancel instruction
         try:
             _rpc_call(user, run.id, "cancel_run")
         except Exception as error:
