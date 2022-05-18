@@ -73,16 +73,7 @@ port = $JAWS_DB_PORT
 user = jaws
 password = $JAWS_DB_PW
 db = jaws_${JAWS_SITE,,}_$DEPLOYMENT_NAME
-[LOCAL_RPC_SERVER]
-user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
-vhost = jaws_$DEPLOYMENT_NAME
-queue = SITE_$JAWS_SITE
-num_threads = 5
-max_retries = 3
-[CENTRAL_RPC_SERVER]
+[RPC_SERVER]
 user = jaws
 password = $JAWS_RMQ_PW
 host = $JAWS_RMQ_HOST

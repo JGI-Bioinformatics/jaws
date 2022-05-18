@@ -25,7 +25,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "num_threads": 5,
             "max_retries": 5,
         },
-        "CENTRAL_RPC_SERVER": {
+        "RPC_SERVER": {
             "host": "localhost",
             "port": "5672",
             "user": "guest",  # default from docker container
@@ -44,7 +44,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
     }
     required_params = {
         "LOCAL_RPC_SERVER": ["vhost"],
-        "CENTRAL_RPC_SERVER": ["vhost"],
+        "RPC_SERVER": ["vhost"],
         "CENTRAL_RPC_CLIENT": ["host", "vhost", "user", "password"],
         "RUNS_ES_RPC_CLIENT": ["host", "vhost", "user", "password", "queue"],
         "PERFORMANCE_METRICS_ES_RPC_CLIENT": [

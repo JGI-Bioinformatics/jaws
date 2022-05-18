@@ -26,7 +26,7 @@ password2 = ${LOCAL_RPC_SERVER_PASSWORD}
 password3 = ${LOCAL_RPC_SERVER_PASSWORD}$
 num_threads = 5
 max_retries = 3
-[CENTRAL_RPC_SERVER]
+[RPC_SERVER]
 host = currenthost
 vhost = jaws_test
 queue = eagle
@@ -57,12 +57,6 @@ queue = site_rpc_es
 [PERFORMANCE_METRICS]
 done_dir = /tmp/done_dir
 processed_dir = /tmp/processed_dir
-[GLOBUS]
-client_id = AAAA
-client_secret = BBBB
-endpoint_id = rooster
-host_path = /global/scratch/jaws
-host_path2 = ${GLOBAL_SCRATCH}/${PROJECT_NAME}
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
@@ -88,7 +82,7 @@ s3_bucket = CCCC
 @pytest.fixture
 def partial_config(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
-    content = """[CENTRAL_RPC_SERVER]
+    content = """[RPC_SERVER]
 host = https://rmq.nersc.gov
 vhost = jaws_test
 user = bugs_bunny
@@ -116,11 +110,6 @@ queue = site_rpc_es
 [PERFORMANCE_METRICS]
 done_dir =
 processed_dir =
-[GLOBUS]
-client_id = AAAA
-client_secret = BBBB
-endpoint_id = rooster
-host_path = /global/scratch/jaws
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
