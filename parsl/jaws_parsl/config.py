@@ -61,21 +61,3 @@ class Configuration():
             "port": int(s["port"])
         }
         return params
-
-    def get_rpc_params(self):
-        """Returns site RPC connection info.
-
-        :return: RPC parameters.
-        :rtype: dict
-        """
-        section = "SITE_RPC_CLIENT"
-        s = self.config[section]
-        params = {
-            "user": s["user"],
-            "password": s["password"],
-            "host": s["host"],
-            "vhost": s["vhost"],
-            "port": int(s["port"]),
-            "queue": s["queue"]
-        }
-        return params

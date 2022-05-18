@@ -669,45 +669,6 @@ def send_update_task_status_msg(
         "reason": reason_str,
     }
 
-    # send message to Site
-    global RPC_CLIENT
-    if RPC_CLIENT is None:
-        RPC_CLIENT = rpc_client.RpcClient(
-            {
-                "host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
-                "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
-                "port": CONFIG.configparser.get("SITE_RPC_CLIENT", "port"),
-                "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
-                "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
-                "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password"),
-            },
-            logger,
-        )
-
-    try:
-        wait_count = 0
-        response = RPC_CLIENT.request("update_job_status", data)
-        logger.debug(f"Return msg from JAWS Site: {response}")
-        while "error" in response and response["error"]["message"] == "Server timeout":
-            wait_count += 1
-            if wait_count == 60:  # try for 1min
-                logger.error("RPC reply timeout!")
-                break
-            logger.debug(
-                f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}"
-            )
-            time.sleep(1.0)
-            response = RPC_CLIENT.request("update_job_status", data)
-    except Exception as error:
-        logger.error(f"RPC call failed: {error}")
-        raise
-
-    if "result" in response:
-        logger.debug(f"Status change message sent successfully: {data}")
-        pass
-    else:
-        logger.error(f"Status update failed: {response['error']['message']}")
-
 
 # --------------------------------------------------------------------------------------------------
 def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
