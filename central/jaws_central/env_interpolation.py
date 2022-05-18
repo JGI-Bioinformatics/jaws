@@ -21,7 +21,7 @@ class EnvInterpolation(configparser.BasicInterpolation):
 class JAWSConfigParser(configparser.ConfigParser):
     """
     Subclass of the normal configparser that allows config options to be totally overriden by an
-    environment variable.
+    environment variable. ignoring any other settings in the config file.
 
     A new parameter is introduced to the init() function, env_override, which is a prefix for
     any environment variables that should be used as overrides for the get() function. Must be
@@ -52,5 +52,4 @@ class JAWSConfigParser(configparser.ConfigParser):
             # any calls to get() with an explcitly set vars
             kwargs['vars'] = self._vars
         value = super().get(section, option, **kwargs)
-        print("section: ", section, " option:", option, " vars: ", self._vars)
         return(value)
