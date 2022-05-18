@@ -26,7 +26,7 @@ def test_check_all_values(config_file):
     # Make sure that the _vars attribute in the interpolation object is "NONE" because
     # there was no env_override value set
     print("Verifying that the _vars instance variable is NONE")
-    assert cfg.config._interpolation._vars is None
+    assert cfg.config._vars is None
 
     expected_db_parameters = [
         ("dialect", "mysql+mysqlconnector"),

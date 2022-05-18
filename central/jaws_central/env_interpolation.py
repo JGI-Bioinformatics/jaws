@@ -40,13 +40,17 @@ class JAWSConfigParser(configparser.ConfigParser):
             self._vars = {k[strlen:]: os.environ[k] for k in os.environ.keys() if k.startswith(env_override)}
         else:
             self._vars = None
-        configparser.BasicInterpolation.__init__(self, **kwargs)
+        configparser.ConfigParser.__init__(self, **kwargs)
 
     def get(self, section, option, **kwargs):
         """
         Override the standard getter by forcing the vars argument to use the dictionary derived
         from the environment variables with the prefix in the env_override param to init
         """
-        value = super().get(self, section, option, vars=self._vars, **kwargs)
+        if self._vars is not None:
+            # Force vars to self._vars if it has been set. This means env_override will also override
+            # any calls to get() with an explcitly set vars
+            kwargs['vars'] = self._vars
+        value = super().get(section, option, **kwargs)
         print("section: ", section, " option:", option, " vars: ", self._vars)
         return(value)
