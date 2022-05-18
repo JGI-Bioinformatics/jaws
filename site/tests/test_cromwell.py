@@ -385,8 +385,8 @@ def test_outfiles(requests_mock):
         is False
     )
 
-def test_job_summary(monkeypatch):
 
+def test_job_summary(monkeypatch):
     def mock_task_summary(self):
         example_task_summary = [
             ["main_workflow.goodbye", "12129", False, "0:10:00", "Success", "/a/b/c"],
@@ -454,5 +454,3 @@ def test_job_summary(monkeypatch):
     actual_result = metadata.job_summary()
 
     assert bool(DeepDiff(actual_result, expected_result, ignore_order=True)) is False
-
-
