@@ -470,6 +470,23 @@ class Metadata:
                 )
         return summary
 
+    def job_summary(self):
+        """Return task info, organized by job_id."""
+        task_summary = self.task_summary()
+        job_summary = {}
+        for (
+            task_name,
+            job_id,
+            cached,
+            max_time,
+            execution_status,
+            _,
+        ) in task_summary:
+            if job_id:
+                job_id = str(job_id)
+                job_summary[job_id] = [task_name, max_time]
+        return job_summary
+
     def outputs(self, relpath=True):
         """Returns all outputs for a workflow"""
         outputs = self.get("outputs", {})

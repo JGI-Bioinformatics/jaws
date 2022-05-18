@@ -384,3 +384,75 @@ def test_outfiles(requests_mock):
         bool(DeepDiff(actual_outfiles_9, expected_outfiles_9, ignore_order=True))
         is False
     )
+
+def test_job_summary(monkeypatch):
+
+    def mock_task_summary(self):
+        example_task_summary = [
+            ["main_workflow.goodbye", "12129", False, "0:10:00", "Success", "/a/b/c"],
+            ["main_workflow.hello", "12130", False, "0:10:00", "Success", "/a/b/c"],
+            [
+                "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
+                "12134",
+                False,
+                "0:10:00",
+                "Success",
+                "/a/b/c",
+            ],
+            [
+                "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+                "12133",
+                False,
+                "0:10:00",
+                "Success",
+                "/a/b/c",
+            ],
+            [
+                "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
+                "12131",
+                False,
+                "0:10:00",
+                "Success",
+                "/a/b/c",
+            ],
+            [
+                "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
+                "12132",
+                False,
+                "0:10:00",
+                "Success",
+                "/a/b/c",
+            ],
+        ]
+        return example_task_summary
+
+    monkeypatch.setattr(cromwell.Metadata, "task_summary", mock_task_summary)
+
+    expected_result = {
+        "12129": ["main_workflow.goodbye", "0:10:00"],
+        "12130": ["main_workflow.hello", "0:10:00"],
+        "12134": [
+            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
+            "0:10:00",
+        ],
+        "12133": [
+            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+            "0:10:00",
+        ],
+        "12131": [
+            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
+            "0:10:00",
+        ],
+        "12132": [
+            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
+            "0:10:00",
+        ],
+    }
+
+    mock_data = {"id": "EXAMPLE_CROMWELL_RUN_ID"}
+    metadata = cromwell.Metadata(mock_data)
+    actual_result = metadata.job_summary()
+
+    assert bool(DeepDiff(actual_result, expected_result, ignore_order=True)) is False
+
+
