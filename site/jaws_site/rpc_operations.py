@@ -1,7 +1,6 @@
 import logging
 from jaws_rpc.responses import success, failure
 from jaws_site.tasks import TaskLog
-from jaws_site import errors
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run
@@ -135,26 +134,22 @@ def cancel_run(params, session):
 
 
 def get_errors(params, session):
-    """Retrieve error report which includes errors from both Cromwell metadata and the TaskLog.
+    """Retrieve error report which is generated from Cromwell metadata.
 
     :param cromwell_run_id: Cromwell run ID
     :type params: dict
     :return: errors report
     :rtype: dict
     """
-    user_id = params["user_id"]
-    run_id = params["run_id"]
-    cromwell_run_id = params["cromwell_run_id"]
-    logger.info(f"User {user_id}: Get errors for Run {run_id}")
-    if cromwell_run_id is None:
-        return success(f"Run {run_id} hasn't been submitted to Cromwell.")
-    logger.info(f"{user_id} - Run {run_id} - Get errors")
+    logger.info(f"User {params['user_id']}: Run {params['run_id']} errors report")
     try:
-        errors_report = errors.get_errors(session, cromwell_run_id)
+        run = Run.from_id(session, params["run_id"])
+        result = run.errors_report()
+    except RunNotFoundError as error:
+        return success(f"Run hasn't yet been submitted to Cromwell so there is no errors report")
     except Exception as error:
-        logger.error(f"Error getting errors report for {run_id}: {error}")
         return failure(error)
-    return success(errors_report)
+    return success(result)
 
 
 def submit_run(params, session):
@@ -169,7 +164,7 @@ def submit_run(params, session):
 
 
 def get_task_log(params, session):
-    """Retrieve task log from database"""
+    """Retrieve task log from Cromwell metadata"""
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
         task_log = TaskLog.from_run_id(session, params["run_id"])
@@ -181,7 +176,7 @@ def get_task_log(params, session):
 
 
 def get_task_summary(params, session):
-    """Retrieve task summary from database"""
+    """Retrieve task summary from Cromwell metadata"""
     logger.info(f"User {params['user_id']}: Task-summary Run {params['run_id']}")
     try:
         task_log = TaskLog.from_run_id(session, params["run_id"])

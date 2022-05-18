@@ -68,24 +68,6 @@ class Run_Log(Base):
     sent = Column(Boolean, default=False, nullable=False)
 
 
-class Job_Log(Base):
-    """
-    Log state transitions log.
-    Initially, records are inserted when a state transition log is received from JTM;
-    however JTM doesn't know the run_id, task_name, or attempt so they are NULL.
-    The Daemon process will fill in those fields by querying the db and cromwell;
-    until then, they will not be found by selecting run_id.
-    """
-
-    __tablename__ = "job_logs"
-    cromwell_run_id = Column(String(36), nullable=False)
-    cromwell_job_id = Column(Integer, primary_key=True)
-    status_from = Column(String(32), primary_key=True)
-    status_to = Column(String(32), primary_key=True)
-    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
-    reason = Column(String(1024), nullable=False, default="")
-
-
 class Transfer(Base):
     """
     Table of transfer tasks (sets of files to transfer).

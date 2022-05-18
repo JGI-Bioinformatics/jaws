@@ -165,6 +165,10 @@ class Run:
             self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
         return self._metadata
 
+    def errors_report(self):
+        metadata = self.metadata()
+        return metadata.errors()
+
     def task_log(self):
         """Lazy loading of Task Log"""
         if not self._task_log:

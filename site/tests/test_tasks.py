@@ -5,63 +5,6 @@ from deepdiff import DeepDiff
 from tests.conftest import mock_task_status_table, mock_task_summary_table, this_date
 
 
-def test_save_job_log(monkeypatch):
-    example_log = [
-        2345,
-        "queued",
-        "running",
-        "2021-03-17 12:22:22",
-        None,
-    ]
-
-    def mock_save_job_log(self, job_log):
-        pass
-
-    monkeypatch.setattr(TaskLog, "_save_job_log", mock_save_job_log)
-    mock_session = None
-
-    tasks = TaskLog(mock_session, cromwell_run_id="EXAMPLE-CROMWELL-RUN-ID")
-    tasks.save_job_log(*example_log)
-
-
-def test_job_logs(monkeypatch):
-
-    test_cromwell_run_id = "AAAA-BBBB-CCCC"
-    test_cromwell_job_id = "2345"
-
-    def mock_select_job_logs(self):
-        self._job_logs = [
-            [
-                test_cromwell_job_id,
-                "queued",
-                "running",
-                "2021-03-17 12:22:22",
-                None,
-            ],
-            [
-                test_cromwell_job_id,
-                "created",
-                "ready",
-                "2021-03-17 12:00:00",
-                None,
-            ],
-            [
-                test_cromwell_job_id,
-                "ready",
-                "queued",
-                "2021-03-17 12:11:11",
-                None,
-            ],
-        ]
-        return self._job_logs
-
-    monkeypatch.setattr(TaskLog, "_select_job_logs", mock_select_job_logs)
-    mock_session = None
-
-    tasks = TaskLog(mock_session, cromwell_run_id=test_cromwell_run_id)
-    job_logs = tasks.job_logs()
-    assert job_logs[test_cromwell_job_id][0][0] == "created"
-
 
 def test_task_status_table(monkeypatch):
     def mock_task_log(self):
@@ -241,74 +184,6 @@ def test_run_status(monkeypatch):
 
     for run_id, expected in run_id_and_expected.items():
         assert tasks.get_run_status(mock_session, run_id) == expected
-
-
-def test_cromwell_job_summary(monkeypatch):
-    example_run_id = 99
-
-    def mock_cromwell_task_summary(self):
-        example_task_summary = [
-            ["main_workflow.goodbye", "12129", False, "0:10:00", "/a/b/c"],
-            ["main_workflow.hello", "12130", False, "0:10:00", "/a/b/c"],
-            [
-                "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
-                "12134",
-                False,
-                "0:10:00",
-                "/a/b/c",
-            ],
-            [
-                "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-                "12133",
-                False,
-                "0:10:00",
-                "/a/b/c",
-            ],
-            [
-                "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
-                "12131",
-                False,
-                "0:10:00",
-                "/a/b/c",
-            ],
-            [
-                "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
-                "12132",
-                False,
-                "0:10:00",
-                "/a/b/c",
-            ],
-        ]
-        return example_task_summary
-
-    monkeypatch.setattr(TaskLog, "cromwell_task_summary", mock_cromwell_task_summary)
-
-    expected_task_info = {
-        "12129": ["main_workflow.goodbye", "0:10:00"],
-        "12130": ["main_workflow.hello", "0:10:00"],
-        "12134": [
-            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
-            "0:10:00",
-        ],
-        "12133": [
-            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-            "0:10:00",
-        ],
-        "12131": [
-            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
-            "0:10:00",
-        ],
-        "12132": [
-            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
-            "0:10:00",
-        ],
-    }
-
-    mock_session = None
-    tasks = TaskLog(mock_session, run_id=example_run_id)
-    task_info = tasks.cromwell_job_summary()
-
-    assert bool(DeepDiff(task_info, expected_task_info, ignore_order=True)) is False
 
 
 def test_task_log(monkeypatch):
