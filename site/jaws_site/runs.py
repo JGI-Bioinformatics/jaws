@@ -74,7 +74,7 @@ class Run:
                 caching=params["caching"],
                 submission_id=params["submission_id"],
                 input_site_id=params["input_site_id"],
-                status="upload complete",
+                status="ready",
             )
         except SQLAlchemyError as error:
             raise RunDbError(f"Error creating model for new Run {params['run_id']}: {error}")
