@@ -149,6 +149,19 @@ class Task:
             execution_status = None
             if "executionStatus" in call:
                 execution_status = call["executionStatus"]
+            queue_start_time = None
+            run_start_time = None
+            if "executionEvents" in call:
+                for event in call["executionEvents"]:
+                    if event["description"] == "RequestingExecutionToken":
+                        queue_start_time = event["startTime"]
+                    elif event["description"] == "RunningJob":
+                        run_start_time = event["startTime"]
+                    elif event["description"] == "CallCacheReading":
+                        run_start_time = event["startTime"]
+            end_time = None
+            if "end" in call:
+                end_time = call["end"]
             if "subWorkflowMetadata" in call:
                 subworkflow = self.subworkflows[shard_index][attempt]
                 sub_task_summary = subworkflow.task_summary()
@@ -157,6 +170,9 @@ class Task:
                     sub_job_id,
                     sub_cached,
                     max_time,
+                    queue_start_time,
+                    run_start_time,
+                    end_time,
                     execution_status,
                     cromwell_dir,
                 ) in sub_task_summary:
@@ -166,12 +182,27 @@ class Task:
                             sub_job_id,
                             sub_cached,
                             max_time,
+                            queue_start_time,
+                            run_start_time,
+                            end_time,
                             execution_status,
                             cromwell_dir,
                         ]
                     )
             else:
-                summary.append([name, job_id, cached, max_time, execution_status, cromwell_dir])
+                summary.append(
+                    [
+                        name,
+                        job_id,
+                        cached,
+                        max_time,
+                        queue_start_time,
+                        run_start_time,
+                        end_time,
+                        execution_status,
+                        cromwell_dir,
+                    ]
+                )
         return summary
 
     def errors(self):
@@ -426,8 +457,17 @@ class Metadata:
         summary = []
         for task_name, task in self.tasks.items():
             task_summary = task.summary()
-            for name, job_id, cached, max_time, execution_status, cromwell_dir in task_summary:
-                summary.append([name, job_id, cached, max_time, execution_status, cromwell_dir])
+            for (
+                name,
+                job_id,
+                cached,
+                max_time,
+                execution_status,
+                cromwell_dir,
+            ) in task_summary:
+                summary.append(
+                    [name, job_id, cached, max_time, execution_status, cromwell_dir]
+                )
         return summary
 
     def outputs(self, relpath=True):
