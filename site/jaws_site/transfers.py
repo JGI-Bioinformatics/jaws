@@ -246,6 +246,13 @@ class Transfer:
                         raise IOError(msg)
                 else:
                     try:
+                        basedir = os.path.dirname(dest_path)
+                        mkdir(basedir)
+                    except Exception as error:
+                        msg = f"Unable to make download dir, {basedir}: {error}"
+                        logger.error(msg)
+                        raise IOError(msg)
+                    try:
                         aws_s3_client.download_file(s3_bucket, rel_path, dest_path)
                     except Exception as error:
                         msg = f"S3 download error, {rel_path}: {error}"
