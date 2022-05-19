@@ -37,7 +37,7 @@ def test_status():
 @pytest.mark.parametrize(
     "status",
     [
-        "upload complete",
+        "ready",
         "submitted",
         "queued",
         "running",
