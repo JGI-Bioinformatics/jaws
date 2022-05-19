@@ -99,12 +99,18 @@ class GlobusService:
             notify_on_inactive=True,
         )
 
-        for relpath in manifest:
-            source_path = f"{src_base_dir}/{relpath}"
-            dest_path = f"{dest_base_dir}/{relpath}"
-            virtual_src_path = self.virtual_transfer_path(source_path, src_host_path)
-            virtual_dest_path = self.virtual_transfer_path(dest_path, dest_host_path)
-            tdata.add_item(virtual_src_path, virtual_dest_path, recursive=False)
+        # the manifest is empty for complete download, add path and do recursive
+        if len(manifest) == 0:
+            virtual_src_path = self.virtual_transfer_path(src_base_dir, src_host_path)
+            virtual_dest_path = self.virtual_transfer_path(dest_base_dir, dest_host_path)
+            tdata.add_item(virtual_src_path, virtual_dest_path, recursive=True)
+        else:
+            for relpath in manifest:
+                source_path = f"{src_base_dir}/{relpath}"
+                dest_path = f"{dest_base_dir}/{relpath}"
+                virtual_src_path = self.virtual_transfer_path(source_path, src_host_path)
+                virtual_dest_path = self.virtual_transfer_path(dest_path, dest_host_path)
+                tdata.add_item(virtual_src_path, virtual_dest_path, recursive=False)
 
         transfer_result = transfer_client.submit_transfer(tdata)
         return transfer_result["task_id"]
