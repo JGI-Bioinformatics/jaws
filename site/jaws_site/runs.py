@@ -34,7 +34,7 @@ class Run:
         self.session = session
         self.data = data
         self.operations = {
-            "upload complete": self.submit_run,
+            "ready": self.submit_run,
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
@@ -579,7 +579,7 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
     Get active runs from db and have each check and update their status.
     """
     active_states = [
-        "upload complete",
+        "ready",
         "submitted",
         "queued",
         "running",
