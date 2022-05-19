@@ -85,12 +85,13 @@ class GlobusService:
         """
         logger.debug(f"Globus xfer {label}")
         transfer_client = self._create_transfer_client()
+        # sync level 1 : Copy files if the size of the destination does not match the size of the source.
         tdata = globus_sdk.TransferData(
             transfer_client,
             src_endpoint,
             dest_endpoint,
             label=label,
-            sync_level="mtime",
+            sync_level=1,
             verify_checksum=True,
             preserve_timestamp=True,
             notify_on_succeeded=False,
