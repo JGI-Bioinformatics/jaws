@@ -48,7 +48,6 @@ class Run:
             kwargs["reports_rpc_client"] if "reports_rpc_client" in kwargs else None
         )
         self._metadata = None
-        self._task_log = None
 
         self.config = {
             "site_id": config.conf.get("SITE", "id"),
@@ -77,7 +76,9 @@ class Run:
                 status="ready",
             )
         except SQLAlchemyError as error:
-            raise RunDbError(f"Error creating model for new Run {params['run_id']}: {error}")
+            raise RunDbError(
+                f"Error creating model for new Run {params['run_id']}: {error}"
+            )
         try:
             session.add(data)
             session.commit()
@@ -150,7 +151,6 @@ class Run:
             "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
             "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
             "status": self.data.status,
-            "status_detail": jaws_constants.task_status_msg.get(self.data.status, ""),
             "result": self.data.result,
             "compute_site_id": self.config["site_id"],
         }
@@ -166,14 +166,24 @@ class Run:
         return self._metadata
 
     def errors_report(self):
-        metadata = self.metadata()
-        return metadata.errors()
+        return self.metadata().errors()
 
     def task_log(self):
-        """Lazy loading of Task Log"""
-        if not self._task_log:
-            self._task_log = tasks.TaskLog.from_run_id(self.session, self.data.id)
-        return self._task_log
+        return self.metadata().task_log()
+
+    def task_status(self):
+        return self.metadata().task_status()
+
+    def did_run_start(self):
+        """
+        Cromwell doesn't distinguish between Queued and Running states.
+        JAWS considers a Run as "Queued" until at least one task executes.
+        """
+        task_status = self.task_status()
+        for task in task_status:
+            if task["status"] in ["Running", "Done", "Failed"]:
+                return True
+        return False
 
     def report(self) -> dict:
         """Produce full report of Run and Task info"""
@@ -192,7 +202,7 @@ class Run:
 
         # transform task data structure and add to report
         report["tasks"] = []
-        tasks = self.task_log().task_status()
+        tasks = self.task_status()
         for task_name in tasks:
             entries = tasks[task_name]
             entries["name"] = task_name
@@ -496,8 +506,7 @@ class Run:
                 # although Cromwell may consider a Run to be "Running", since it does not distinguish between
                 # "queued" and "running", we check the task-log to see if any task is "running"; only once any
                 # task is running does the Run transition to the "running" state.
-                tasks_status = tasks.get_run_status(self.session, self.data.id)
-                if tasks_status == "running":
+                if self.did_run_start() is True:
                     self.update_run_status("running")
         elif cromwell_status == "Failed":
             self.update_run_status("failed")
@@ -573,7 +582,9 @@ class Run:
                 logger.exception(f"RPC save_run_report error: {error}")
                 return
             if "error" in response:
-                logger.warn(f"RPC save_run_report failed: {response['error']['message']}")
+                logger.warn(
+                    f"RPC save_run_report failed: {response['error']['message']}"
+                )
                 return
         self.update_run_status("finished")
 
