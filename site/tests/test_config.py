@@ -58,22 +58,6 @@ def test_overwrite_all_default_values(config_file):
         ("password", "succotash"),
     ]
 
-    expected_globus_sections = [
-        ("client_id", "AAAA"),
-        ("client_secret", "BBBB"),
-        ("endpoint_id", "rooster"),
-        ("host_path", "/global/scratch/jaws"),
-        ("host_path2", '${GLOBAL_SCRATCH}/${PROJECT_NAME}')
-    ]
-
-    expected_globus_sections_env = [
-        ("client_id", "AAAA"),
-        ("client_secret", "BBBB"),
-        ("endpoint_id", "rooster"),
-        ("host_path", "/global/scratch/jaws"),
-        ("host_path2", '/global/scratch/jaws')
-    ]
-
     expected_db_sections = [
         ("dialect", "mysql+mysqlconnector"),
         ("host", "myhost"),
@@ -110,11 +94,8 @@ def test_overwrite_all_default_values(config_file):
         del os.environ['PROJECT_NAME']
     except KeyError:
         pass
-    check_section("GLOBUS", expected_globus_sections, cfg)
-    print("Checking GLOBUS with environment variables set.")
     os.environ['GLOBAL_SCRATCH'] = '/global/scratch'
     os.environ['PROJECT_NAME'] = 'jaws'
-    check_section("GLOBUS", expected_globus_sections_env, cfg)
     check_section("DB", expected_db_sections, cfg)
     check_section("SITE", expected_site_sections, cfg)
     check_section("CROMWELL", expected_cromwell_sections, cfg)
