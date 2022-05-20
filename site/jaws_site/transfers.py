@@ -204,17 +204,17 @@ class Transfer:
             except Exception as error:
                 raise IOError(error)
 
-    def s3_file_stats(self, bucket, file_key, aws_s3_client=None):
+    def s3_file_size(self, bucket, file_key, aws_s3_client=None):
         """
-        If a file_key exists then return it's size and mtime, otherwise these are None.
+        If a file_key exists then return it's size, otherwise None.
         :param bucket: name of the S3 bucket
         :ptype bucket: str
         :param file_key: identifier for the file (similar to path)
         :ptype file_key: str
         :param aws_s3_client: S3 client object
         :ptype aws_s3_client: boto3.client
-        :return: size and mtime
-        :rtype: tuple
+        :return: size
+        :rtype: int
         """
         if aws_s3_client is None:
             aws_s3_client = self.aws_s3_client()
@@ -224,7 +224,6 @@ class Transfer:
             logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
             raise
         size = None
-        mtime = None
         if "Contents" in result:
             contents = result["Contents"]
             if len(contents) > 1:
@@ -233,8 +232,8 @@ class Transfer:
                 )
             file_obj = contents[0]
             size = file_obj["Size"]
-            mtime = file_obj["LastModified"]
-        return (size, memtime)
+            # mtime = file_obj["LastModified"]
+        return size
 
     def s3_upload(self):
         manifest = self.manifest()
@@ -247,12 +246,9 @@ class Transfer:
         for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
             src_file_size = os.path.getsize(src_path)
-            src_file_mtime = os.path.getmtime(src_path)
             dest_path = os.path.normpath(os.path.join(dest_base_dir, rel_path))
-            (dest_file_size, dest_file_mtime) = self.s3_file_stats(
-                s3_bucket, dest_path, aws_client
-            )
-            if src_file_size == dest_file_size and src_file_mtime == dest_file_mtime:
+            dest_file_size = self.s3_file_size(s3_bucket, dest_path, aws_client)
+            if src_file_size == dest_file_size:
                 logger.debug(f"S3 upload: Skipping cached file {dest_path}")
             else:
                 logger.debug(f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}")
