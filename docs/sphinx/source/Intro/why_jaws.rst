@@ -23,7 +23,6 @@ Here are some additional benefits to using JAWS
    :scale: 50%
 
 
-
 Some technologies used
 ----------------------
 
