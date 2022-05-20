@@ -5,7 +5,7 @@ echo "BEGIN deploy-cromwell"
 
 # import helper functionn from any location
 # taken from https://stackoverflow.com/questions/192292/how-best-to-include-other-scripts
-DIR="${BASH_SOURCE%/*}"
+DIR="\${BASH_SOURCE%/*}"
 if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 . "$DIR/utils.sh"
 
@@ -33,7 +33,7 @@ JTM_CONFIG_FILE
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
-  if [ -z ${!VAR+xxx} ]; then
+  if [ -z \${!VAR+xxx} ]; then
     echo "Missing env var, $VAR; sourcing setup script..."
     source ./test/integration/define-env
     RESULT=1
@@ -44,7 +44,7 @@ done
 if [[ $RESULT -ne 0 ]]; then
   RESULT=0
   for VAR in $REQUIRED_VARS; do
-    if [ -z ${!VAR+xxx} ]; then
+    if [ -z \${!VAR+xxx} ]; then
       echo "Missing env var: $VAR">&2
       RESULT=1
     fi
@@ -81,25 +81,25 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
     CONTAINER_PULL=""
     CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
     # note that double-quotation marks are required around optional scratch dirs
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER ${docker} ${job_shell} ${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
 
     cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
     chmod 775 "$INSTALL_DIR/shifter_exec.sh"
     
 elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
-    CONTAINER_PULL="out=\$(docker pull \${docker})
+    CONTAINER_PULL="out=\$(docker pull \\${docker})
     ret=\$?
     if [[ \$ret != 0 ]]; then
-      echo \"Invalid container name or failed to pull container, ${docker}!\" >&2
+      echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
       exit \$ret
     else
-      echo \"Successfully pulled ${docker}!\"
+      echo \"Successfully pulled \${docker}!\"
     fi
     "
     CONTAINER_WRAPPER="$INSTALL_DIR/docker_exec.sh"
     # note that double-quotation marks are required around optional scratch dirs
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER ${cwd} ${docker_cwd} ${docker} ${job_shell} ${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
 
     cp "$DIR/docker_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/docker_exec.sh"
@@ -112,7 +112,7 @@ elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
     export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_TMPDIR
     export FLOCK_DIR=/tmp
 
-    IMAGE=\$(echo ${docker} | tr '/:' '_').sif
+    IMAGE=\$(echo \${docker} | tr '/:' '_').sif
     echo \"\$IMAGE\"
     if [ -z \$SINGULARITY_CACHEDIR ];
         then CACHE_DIR=\$HOME/.singularity/cache
@@ -122,22 +122,22 @@ elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
     mkdir -p \$CACHE_DIR
     LOCK_FILE=\$FLOCK_DIR/singularity_pull_flock
     out=\$(flock --exclusive --timeout 900 \$LOCK_FILE \
-    singularity pull \$IMAGE docker://${docker}  2>&1)
+    singularity pull \$IMAGE docker://\${docker}  2>&1)
     ret=\$?
     if [[ \$ret == 0 ]]; then
-        echo \"Successfully pulled \${docker}!\"
+        echo \"Successfully pulled \\${docker}!\"
     else
         if [[ \$(echo \$out | grep \"exists\" ) ]]; then
-            echo \"Image file already exists, ${docker}!\"
+            echo \"Image file already exists, \${docker}!\"
         else
-            echo \"Failed to pull ${docker}!\" >&2
+            echo \"Failed to pull \${docker}!\" >&2
             exit \$ret
         fi
     fi
     "
     CONTAINER_WRAPPER="$INSTALL_DIR/singularity_exec.sh"
     # note that double-quotation marks are required around optional scratch dirs
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER ${cwd} ${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE ${job_shell} ${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
 
     cp "$DIR/singularity_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/singularity_exec.sh"
@@ -212,7 +212,7 @@ backend
 #          String time = "00:30:00"
 #          Int cpu = 32
 #          Float? memory_gb = 10
-#          String cluster = "${JAWS_SITE,,}"
+#          String cluster = "\${JAWS_SITE,,}"
 #          String poolname = "small"
 #          String constraint = "$SITE_CLUSTER_CONSTRAINT"
 #          String qos = "$SITE_CLUSTER_QOS"
@@ -234,11 +234,37 @@ backend
 #          }
 #        }
 #
-#        kill = "jtm --config=$JTM_CONFIG_FILE kill -tid \${job_id}"
-#        check-alive = "jtm --config=$JTM_CONFIG_FILE isalive -tid \${job_id}"
+#        kill = "jtm --config=$JTM_CONFIG_FILE kill -tid \\${job_id}"
+#        check-alive = "jtm --config=$JTM_CONFIG_FILE isalive -tid \\${job_id}"
 #        job-id-regex = "JTM task ID (\\\d+)"
 #
 #        submit = """
+#          CONSTRAINT=\\${constraint}
+#          QOS=\\${qos}
+#          PARTITION=\\${partition}
+#          [ -z \$QOS ] || QOS="--qos \$QOS"
+#          [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
+#          [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
+#          jtm --config=$JTM_CONFIG_FILE \
+#          submit \
+#          -cmd '/bin/bash \\${script}' \
+#          -cl \\${cluster} \
+#          -t \\${time} \
+#          -c \\${cpu} \
+#          -m \\${memory_gb} \
+#          -p \\${poolname} \
+#          -N \\${node} \
+#          -nwpn \\${nwpn} \
+#          -jid \\${job_name} \
+#          -A \\${account} \
+#          --shared \\${shared} \
+#          \$CONSTRAINT \
+#          \$QOS \
+#          \$PARTITION
+#        """
+#
+#        submit-docker = """
+#          $CONTAINER_PULL
 #          CONSTRAINT=\${constraint}
 #          QOS=\${qos}
 #          PARTITION=\${partition}
@@ -247,7 +273,7 @@ backend
 #          [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
 #          jtm --config=$JTM_CONFIG_FILE \
 #          submit \
-#          -cmd '/bin/bash \${script}' \
+#          -cmd "$CONTAINER_EXEC_COMMAND" \
 #          -cl \${cluster} \
 #          -t \${time} \
 #          -c \${cpu} \
@@ -258,32 +284,6 @@ backend
 #          -jid \${job_name} \
 #          -A \${account} \
 #          --shared \${shared} \
-#          \$CONSTRAINT \
-#          \$QOS \
-#          \$PARTITION
-#        """
-#
-#        submit-docker = """
-#          $CONTAINER_PULL
-#          CONSTRAINT=${constraint}
-#          QOS=${qos}
-#          PARTITION=${partition}
-#          [ -z \$QOS ] || QOS="--qos \$QOS"
-#          [ -z \$CONSTRAINT ] || CONSTRAINT="-C \$CONSTRAINT"
-#          [ -z \$PARTITION ] || PARTITION="-P \$PARTITION"
-#          jtm --config=$JTM_CONFIG_FILE \
-#          submit \
-#          -cmd "$CONTAINER_EXEC_COMMAND" \
-#          -cl ${cluster} \
-#          -t ${time} \
-#          -c ${cpu} \
-#          -m ${memory_gb} \
-#          -p ${poolname} \
-#          -N ${node} \
-#          -nwpn ${nwpn} \
-#          -jid ${job_name} \
-#          -A ${account} \
-#          --shared ${shared} \
 #          \$QOS \
 #          \$CONSTRAINT \
 #          \$PARTITION
@@ -315,56 +315,56 @@ backend
         submit = """
           export CONDOR_CONFIG="$SITE_HTCONDOR_MASTER_CONFIG"
           PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
-          chmod 755 \${script}
+          chmod 755 \\${script}
           #printenv > env.debug          
-          cat > \${cwd}/execution/submitFile <<EOF
+          cat > \\${cwd}/execution/submitFile <<EOF
 PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
-Iwd=${cwd}/execution
+Iwd=\${cwd}/execution
 +Owner=UNDEFINED
-request_memory=${memory_mb}
-request_disk=${disk_kb}
-request_cpus=${cpu}
-error=${cwd}/execution/stderr
-output=${cwd}/execution/stdout
+request_memory=\${memory_mb}
+request_disk=\${disk_kb}
+request_cpus=\${cpu}
+error=\${cwd}/execution/stderr
+output=\${cwd}/execution/stdout
 log_xml=true
-executable=${script}
-log=${cwd}/execution/execution.log
+executable=\${script}
+log=\${cwd}/execution/execution.log
 queue
 EOF
-          condor_submit ${cwd}/execution/submitFile
+          condor_submit \${cwd}/execution/submitFile
         """
         submit-docker = """
           export CONDOR_CONFIG="$SITE_HTCONDOR_MASTER_CONFIG"
           PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
           $CONTAINER_PULL
           #printenv > env.debug
-          cat > ${cwd}/execution/dockerScript <<EOF
+          cat > \${cwd}/execution/dockerScript <<EOF
 #!/bin/bash
 PATH="$SITE_HTCONDOR_INSTALL/bin":"$SITE_HTCONDOR_INSTALL/sbin":$PATH
 $CONTAINER_EXEC_COMMAND
 EOF
-          chmod 755 ${cwd}/execution/dockerScript
+          chmod 755 \${cwd}/execution/dockerScript
 
           # converts working directory into readable and parsable name for htcondor job
-          export name=\$(echo ${cwd} | sed 's/cromwell-executions//g' | sed 's/cromwell//g' | sed 's/\/\/\///g' | sed 's/\//_/g' );
-          cat > ${cwd}/execution/submitFile <<EOF
+          export name=\$(echo \${cwd} | sed 's/cromwell-executions//g' | sed 's/cromwell//g' | sed 's/\/\/\///g' | sed 's/\//_/g' );
+          cat > \${cwd}/execution/submitFile <<EOF
 JobBatchName = \$name
-Iwd=${cwd}/execution
+Iwd=\${cwd}/execution
 +Owner=UNDEFINED
-request_memory=${memory_mb}
-request_disk=${disk_kb}
-request_cpus=${cpu}
-error=${cwd}/execution/stderr
-output=${cwd}/execution/stdout
+request_memory=\${memory_mb}
+request_disk=\${disk_kb}
+request_cpus=\${cpu}
+error=\${cwd}/execution/stderr
+output=\${cwd}/execution/stdout
 log_xml=true
-executable=${cwd}/execution/dockerScript
-log=${cwd}/execution/execution.log
+executable=\${cwd}/execution/dockerScript
+log=\${cwd}/execution/execution.log
 queue
 EOF
-          condor_submit ${cwd}/execution/submitFile
+          condor_submit \${cwd}/execution/submitFile
        """
-        kill = "export CONDOR_CONFIG=$SITE_HTCONDOR_MASTER_CONFIG && $SITE_HTCONDOR_INSTALL/bin/condor_rm ${job_id}"
-        check-alive = "export CONDOR_CONFIG=$SITE_HTCONDOR_MASTER_CONFIG && $SITE_HTCONDOR_INSTALL/bin/condor_q ${job_id}"
+        kill = "export CONDOR_CONFIG=$SITE_HTCONDOR_MASTER_CONFIG && $SITE_HTCONDOR_INSTALL/bin/condor_rm \${job_id}"
+        check-alive = "export CONDOR_CONFIG=$SITE_HTCONDOR_MASTER_CONFIG && $SITE_HTCONDOR_INSTALL/bin/condor_q \${job_id}"
         job-id-regex = "(?sm).*cluster (\\\d+)..*"
         root = $CROMWELL_EXECUTIONS_DIR
         dockerRoot = $CROMWELL_EXECUTIONS_DIR
@@ -378,7 +378,7 @@ database
   db
   {
     driver = "com.mysql.cj.jdbc.Driver"
-    url = "jdbc:mysql://$JAWS_DB_HOST:$JAWS_DB_PORT/cromwell_${JAWS_SITE,,}_$DEPLOYMENT_NAME?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
+    url = "jdbc:mysql://$JAWS_DB_HOST:$JAWS_DB_PORT/cromwell_\${JAWS_SITE,,}_$DEPLOYMENT_NAME?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
     user = "jaws"
     password = "$JAWS_DB_PW"
     connectionTimeout = 5000
