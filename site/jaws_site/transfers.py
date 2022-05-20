@@ -187,23 +187,6 @@ class Transfer:
         print(f"S3 BUCKET={s3_bucket}; PATH={path}")
         return s3_bucket, path
 
-    def s3_upload_old(self):
-        manifest = self.manifest()
-        num_files = len(manifest)
-        logger.debug(f"Transfer {self.data.id} begin s3 upload of {num_files} files")
-        aws_s3_resource = self.aws_s3_resource()
-        s3_bucket, dest_base_dir = self.s3_parse_path(self.data.dest_base_dir)
-        bucket_obj = aws_s3_resource.Bucket(s3_bucket)
-        for rel_path in manifest:
-            src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
-            dest_path = os.path.normpath(os.path.join(dest_base_dir, rel_path))
-            logger.debug(f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}")
-            try:
-                with open(src_path, "rb") as fh:
-                    bucket_obj.upload_fileobj(fh, dest_path)
-            except Exception as error:
-                raise IOError(error)
-
     def s3_file_size(self, bucket, file_key, aws_s3_client=None):
         """
         If a file_key exists then return it's size, otherwise None.
@@ -236,6 +219,9 @@ class Transfer:
         return size
 
     def s3_upload(self):
+        """
+        Upload files from NFS->S3.  Skip files which exist and have the same size.
+        """
         manifest = self.manifest()
         num_files = len(manifest)
         logger.debug(f"Transfer {self.data.id} begin s3 upload of {num_files} files")
