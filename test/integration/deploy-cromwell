@@ -212,7 +212,7 @@ backend
 #          String time = "00:30:00"
 #          Int cpu = 32
 #          Float? memory_gb = 10
-#          String cluster = "\${JAWS_SITE,,}"
+#          String cluster = "${JAWS_SITE,,}"
 #          String poolname = "small"
 #          String constraint = "$SITE_CLUSTER_CONSTRAINT"
 #          String qos = "$SITE_CLUSTER_QOS"
@@ -378,7 +378,7 @@ database
   db
   {
     driver = "com.mysql.cj.jdbc.Driver"
-    url = "jdbc:mysql://$JAWS_DB_HOST:$JAWS_DB_PORT/cromwell_\${JAWS_SITE,,}_$DEPLOYMENT_NAME?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
+    url = "jdbc:mysql://$JAWS_DB_HOST:$JAWS_DB_PORT/cromwell_${JAWS_SITE,,}_$DEPLOYMENT_NAME?rewriteBatchedStatements=true&useSSL=false&autoReconnect=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
     user = "jaws"
     password = "$JAWS_DB_PW"
     connectionTimeout = 5000
