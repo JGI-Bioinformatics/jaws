@@ -1,7 +1,8 @@
-"""Cromwell class provides OO-interface to Cromwell REST server.
+"""
+Cromwell class provides object-oriented API to Cromwell REST server.
 
 NOTE: This class employs the verbiage employed by Cromwell, which may differ slightly from that used
-elsewhere in JAWS/JTM, as clarified below:
+elsewhere in JAWS, as clarified below:
 
 - Cromwell "workflow": the execution of a "Workflow Specification" on a particular set of input.
   - "Workflow Specification" is colloquially referred to as a "WDL file" or "widdle"
@@ -11,16 +12,15 @@ elsewhere in JAWS/JTM, as clarified below:
 
 - Cromwell "task": a specific step in a Workflow Specification
   - same in JAWS, which uses the variable "cromwell_task_name" for Cromwell's "task_name"
-  - no equivalent in JTM
-  - JAWS uses Cromwell's task name, in the format: "<WDL_name>.<task_name>"
+  - JAWS cromwell_task name has expanded format: "<WDL_name>.<task_name>"; if the task is a scatter then
+    the format is "<WDL_name>.<task_name>[shard_index]"
 
-- Cromwell "job": the execution of a Task
+- Cromwell "call": An execution of a task
   - a Task may be atempted more than once, each with a unique "attempt" (int) and "job_id"
-  - same in JAWS, which uses "cromwell_job_id" to refer to Cromwell's "job_id";
-    while JTM calls this "task_id"
-  - for JTM a "job" is a compute reservation and is equivalent to the scheduler job,
-    so the JTM "job_id" will match that of SLURM's `squeue` or SGE's `qstat` output.
-    A single JTM job (running a JTM Worker) executes many JTM tasks (Cromwell jobs).
+
+- Cromwell "job": the execution of a Task on the backend
+  - the "job_id" is assigned by the backend; e.g. local (pid), SLURM (slurm job_id), etc.
+  - same in JAWS, which uses "backend_job_id" to refer to Cromwell's "job_id"
 """
 
 
@@ -30,6 +30,7 @@ import os
 import re
 import json
 import io
+from dateutil import parser
 
 
 def _read_file(path: str):
@@ -41,23 +42,188 @@ def _read_file(path: str):
     :rtype: str
     """
     contents = None
+    # TODO special handling required for files in S3  (see example in runs.py; move to common py)
     if path and os.path.isfile(path):
         with open(path, "r") as file:
             contents = file.read()
     return contents
 
 
+class CallError(Exception):
+    pass
+
+
+class Call:
+    def __init__(self, data, task_name: str):
+        """
+        :param data: This is the original call record from the cromwell metadata
+        :ptype data: dict
+        """
+        self.data = data
+        self.task_name = task_name
+        self.name = task_name
+        self.attempt = data.get("attempt", None)
+
+        self.status = data.get("executionStatus", None)
+        self.shard_index = data.get("shardIndex", None)
+        self.subworkflow = None
+        self.cached = False
+        self.start = data.get("start", None)
+        self.end = data.get("end", None)
+
+        if "subWorkflowMetadata" in data:
+            self.subworkflow = Metadata(data["subWorkflowMetadata"])
+            return
+
+        self.queue_start = None
+        self.run_start = None
+        self.run_end = None
+        self.queue_duration = None
+        self.run_duration = None
+        self.dir = None
+
+        if self.data.get("stdout", None):
+            self.dir = re.sub(r"/stdout$", "", self.data["stdout"])
+
+        if "callCaching" in call and "hit" in self.data["callCaching"]:
+            self.cached = self.data["callCaching"]["hit"]
+
+        # get queued, running, and completed times as well as durations
+        if "executionEvents" in call:
+            for event in self.data["executionEvents"]:
+                if event["description"] == "RequestingExecutionToken":
+                    self.queue_start = event["startTime"]
+                elif event["description"] == "RunningJob":
+                    self.run_start = event["startTime"]
+                elif event["description"] == "CallCacheReading":
+                    self.run_start = event["startTime"]
+                elif event["description"] == "UpdatingJobStore":
+                    self.run_end = event["startTime"]
+        if self.queue_start is not None and call_log["run_start"] is not None:
+            delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
+            self.queue_duration = str(delta)
+        if self.run_start is not None and call_log["run_end"] is not None:
+            delta = parser.parse(self.run_end) - parser.parse(self.run_start)
+            self.run_duration = str(delta)
+
+    def summary(self, fmt="dict"):
+        if fmt == "dict":
+            return self.as_dict()
+        elif fmt == "list":
+            return self.as_list()
+        else:
+            raise ValueError(f"Allowed formats are 'list', 'dict'; got: ${fmt}")
+
+    def as_dict(self):
+        """
+        :return: Select fields
+        :rtype: dict
+        """
+        record = {
+            "name": self.name,
+            "attempt": self.attempt,
+            "cached": self.cached,
+            "status": self.status,
+            "queue_start": self.queue_start,
+            "run_start": self.run_start,
+            "run_end": self.run_end,
+            "queue_duration": self.queue_duration,
+            "run_duration": self.run_duration,
+            "dir": self.dir,
+        }
+        return record
+
+    def as_list(self):
+        """
+        :return: Select fields
+        :rtype: list
+        """
+        row = [
+            self.name,
+            self.attempt,
+            self.cached,
+            self.status,
+            self.queue_start,
+            self.run_start,
+            self.run_end,
+            self.queue_duration,
+            self.run_duration,
+            self.dir,
+        ]
+        return row
+
+    def logs(self, fmt="list"):
+        """
+        :return: logs (one if task, many if subworkflow)
+        :rtype: list
+        """
+        if self.subworkflow is None:
+            return [self.summary(fmt)]
+        else:
+            logs = []
+            sub_logs = self.subworkflow.logs(fmt=fmt)
+            for log in sub_logs:
+                if fmt == "dict":
+                    log["name"] = f"{self.name}:{log['name']}"
+                else:
+                    log[0] = f"{self.name}:{log[0]}"
+                logs.append(log)
+            return logs
+
+    def errors(self):
+        """
+        Errors report, if failed (else None).
+        :return: errors report
+        :rtype: dict
+        """
+        if self.status != "Failed":
+            return None
+
+        result = {
+            "shardIndex": self.shard_index,
+            "attempt": self.attempt,
+        }
+        if self.subworkflow is None:
+            # simple task (not a subworkflow)
+            if "failures" in self.data:
+                result["failures"] = self.data["failures"]
+            if "jobId" in self.data:
+                result["jobId"] = self.data["jobId"]
+            if "returnCode" in self.data:
+                result["returnCode"] = self.data["returnCode"]
+            if "runtimeAttributes" in self.data:
+                result["runtimeAttributes"] = self.data["runtimeAttributes"]
+            if "stderr" in self.data:
+                # include *contents* of stderr files, instead of file paths
+                stderr_file = self.data["stderr"]
+                result["stderrContents"] = _read_file(stderr_file)
+                result["stderrSubmitContents"] = _read_file(f"{stderr_file}.submit")
+            if "stdout" in self.data:
+                # include *contents* of stdout file, instead of file path
+                stdout_file = self.data["stdout"]
+                result["stdoutContents"] = _read_file(stdout_file)
+        else:
+            result["subWorkflowMetadata"] = self.subworkflow.errors()
+        return result
+
+
+class TaskError(Exception):
+    pass
+
+
 class Task:
     """
     A Task may have multiple calls, corresponding to multiple attempts and/or shards.
-    If a Task is a subworkflow, it will contain a Metadata object.
+    Only the last attempt is kept.
+    If a Task is a subworkflow, it's Call object will contain a Metadata object.
     """
 
     def __init__(self, name, data):
         """
-        Initialize a Task object, which may contain a subworkflow.
+        Initialize a Task object, which may contain multiple shards or be a subworkflow.
         A Task may contain multiple calls corresponding to multiple shards, but only the
-        last attempt (of each) is represented by the object.
+        last attempt is represented by the object, for simplicity and ease of use.  We
+        currently don't care about prior attempts because we've never actually seen them.
 
         :param name: Task name
         :type name: str
@@ -66,193 +232,45 @@ class Task:
         """
         self.name = name
         self.data = data
-        self.subworkflows = {}
-        self.max_shard_index = None
-        self.num_attempts = {}  # max attempt per shard_index
-
-        if len(data) == 0:
-            return
-
-        for call in data:
-            shard_index = call["shardIndex"]
-            attempt = call["attempt"]
-
-            if self.max_shard_index is None or self.max_shard_index < shard_index:
-                self.max_shard_index = shard_index
-
+        self.call_root = data.get("callRoot", None)
+        self.calls = {}  # shard_index (str) => Call
+        for call_data in data:
+            shard_index = call_data[
+                "shardIndex"
+            ]  # -1 for regular (not scattered) tasks
+            attempt = call_data["attempt"]  # usually only 1
             if (
-                shard_index not in self.num_attempts
-                or self.num_attempts[shard_index] < attempt
+                shard_index not in self.calls
+                or attempt > self.calls[shard_index].attempt
             ):
-                self.num_attempts[shard_index] = attempt
+                self.calls[shard_index] = Call(call_data, self.name)
 
-            if "subWorkflowMetadata" in call:
-                # this task is a subworkflow, with it's own tasks
-                if shard_index not in self.subworkflows:
-                    self.subworkflows[shard_index] = {}
-                self.subworkflows[shard_index][attempt] = Metadata(
-                    call["subWorkflowMetadata"]
-                )
-
-    def get(self, key, shard_index: int = -1, attempt: int = 1, default=None):
+    def logs(self):
         """
-        Get an item from the call dictionary (e.g. "executionStatus")
-        corresponding to the last attempt.
-        :param key: Dictionary key (e.g. "executionStatus")
-        :type key: str
-        :param default: Default value to return if key not found (default=None).
-        :return: value of the specified key, for specified attempt number.
+        Return list of all call logs (i.e. all shards, all subworkflow calls).
+        :return: All call logs
+        :rtype: list
         """
-        if shard_index > self.max_shard_index:
-            raise ValueError(
-                f"ShardIndex {shard_index} is invalid for Task {self.name} (max. shardIndex is {self.max_shard_index}"
-            )
-        if (
-            shard_index not in self.num_attempts
-            or attempt > self.num_attempts[shard_index]
-        ):
-            raise ValueError(
-                f"Attempt {attempt} is invalid for Task {self.name} shardIndex {shard_index}"
-            )
-        for call in self.data:
-            if call["shardIndex"] == shard_index and call["attempt"] == attempt:
-                return call.get(key, default)
-        return default
-
-    def summary(self):
-        """
-        Summary of calls, their jobIds, and whether or not they are cached results.
-        """
-        summary = []
-        for call in self.data:
-            if call.get("stdout"):
-                cromwell_dir = re.sub(r"/stdout$", "", call["stdout"])
-            else:
-                cromwell_dir = None
-
-            name = self.name
-            shard_index = call["shardIndex"]
-            if shard_index > -1:
-                name = f"{name}[{shard_index}]"
-            attempt = call["attempt"]
-            if self.num_attempts[shard_index] > 1:
-                name = f"{name}.{attempt}"
-            cached = False
-            if "callCaching" in call and "hit" in call["callCaching"]:
-                cached = call["callCaching"]["hit"]
-            job_id = None
-            if "jobId" in call:
-                job_id = call["jobId"]
-            max_time = None
-            if "runtimeAttributes" in call:
-                max_time = call["runtimeAttributes"].get("time", "")
-            execution_status = None
-            if "executionStatus" in call:
-                execution_status = call["executionStatus"]
-            queue_start_time = None
-            run_start_time = None
-            if "executionEvents" in call:
-                for event in call["executionEvents"]:
-                    if event["description"] == "RequestingExecutionToken":
-                        queue_start_time = event["startTime"]
-                    elif event["description"] == "RunningJob":
-                        run_start_time = event["startTime"]
-                    elif event["description"] == "CallCacheReading":
-                        run_start_time = event["startTime"]
-            end_time = None
-            if "end" in call:
-                end_time = call["end"]
-            if "subWorkflowMetadata" in call:
-                subworkflow = self.subworkflows[shard_index][attempt]
-                sub_task_summary = subworkflow.task_summary()
-                for (
-                    sub_name,
-                    sub_job_id,
-                    sub_cached,
-                    max_time,
-                    queue_start_time,
-                    run_start_time,
-                    end_time,
-                    execution_status,
-                    cromwell_dir,
-                ) in sub_task_summary:
-                    summary.append(
-                        [
-                            f"{name}:{sub_name}",
-                            sub_job_id,
-                            sub_cached,
-                            max_time,
-                            queue_start_time,
-                            run_start_time,
-                            end_time,
-                            execution_status,
-                            cromwell_dir,
-                        ]
-                    )
-            else:
-                summary.append(
-                    [
-                        name,
-                        job_id,
-                        cached,
-                        max_time,
-                        queue_start_time,
-                        run_start_time,
-                        end_time,
-                        execution_status,
-                        cromwell_dir,
-                    ]
-                )
-        return summary
+        all_logs = []
+        for call in self.calls:
+            for call_log in call.logs():
+                all_logs.append(call_log)
+        return all_logs
 
     def errors(self):
         """
         Return user friendly errors report for this task/subworkflow.
         This is a copy of the call data with only pertinent elements of the last
         attempt included, for brevity and readability.
-        The contents of the stderr and stderr.submit files are also added.
-        :return: Errors report (filtered task call data)
+        The contents of the stderr, stderr.submit files are also added for convenience.
+        :return: Errors report
         :rtype: dict
         """
-        filteredCalls = []
-        for call in self.data:
-            shard_index = call["shardIndex"]
-            attempt = call["attempt"]
-            status = call["executionStatus"]
-            if status != "Failed":
-                # There is only error information if this task actually failed
-                continue
-            filteredCall = {
-                "shardIndex": shard_index,
-                "attempt": attempt,
-            }
-            if "subWorkflowMetadata" in call:
-                # include any errors from the subworkflow's tasks
-                subworkflow = self.subworkflows[shard_index][attempt]
-                filteredCall["subWorkflowMetadata"] = subworkflow.errors()
-            else:
-                # simple task (not a subworkflow)
-                if "failures" in call:
-                    filteredCall["failures"] = call["failures"]
-                if "jobId" in call:
-                    filteredCall["jobId"] = call["jobId"]
-                if "returnCode" in call:
-                    filteredCall["returnCode"] = call["returnCode"]
-                if "runtimeAttributes" in call:
-                    filteredCall["runtimeAttributes"] = call["runtimeAttributes"]
-                if "stderr" in call:
-                    # include *contents* of stderr files, instead of file paths
-                    stderr_file = call["stderr"]
-                    filteredCall["stderrContents"] = _read_file(stderr_file)
-                    filteredCall["stderrSubmitContents"] = _read_file(
-                        f"{stderr_file}.submit"
-                    )
-                if "stdout" in call:
-                    # include *contents* of stdout file, instead of file path
-                    stdout_file = call["stdout"]
-                    filteredCall["stdoutContents"] = _read_file(stdout_file)
-            filteredCalls.append(filteredCall)
-        return filteredCalls
+        all_errors = []
+        for call in self.calls:
+            for call_errors in call.errors():
+                all_errors.append(call_errors)
+        return all_errors
 
     def _get_file_path(self, file_id, relpath=False):
         """
@@ -266,13 +284,16 @@ class Task:
         :rtype: str
         """
         if file_id not in ("stdout", "stderr"):
-            raise ValueError(
+            raise TaskError(
                 f"Invalid file id, {file_id}; allowed values: stdout, stderr"
             )
-        path = self.get(file_id)
+        path = self.data.get(file_id)
         if relpath:
-            call_root = self.get("callRoot")
-            path = os.path.relpath(call_root, path)
+            if self.call_root is None:
+                raise TaskError(
+                    f"Cannot return relpath as callRoot is not defined for task {self.name}"
+                )
+            path = os.path.relpath(self.call_root, path)
         return path
 
     def stdout(self, relpath=False):
@@ -713,3 +734,34 @@ class Cromwell:
         response.raise_for_status()
         result = response.json()
         return result["status"]
+
+
+# TODO: Moved from deprecated tasks.py but this code seems wrong.
+#    def get_task_cromwell_dir_mapping(self):
+#        """
+#        Return a dictionary that maps the cromwell directory to the task name for each task in the run.
+#        The key=cromwell_dir, the value=task_name.
+#        The cromwell directory name is modified to remove the root dir.
+#        Ex: /my/path/cromwell-executions/task1/execution becomes
+#            cromwell-executions/task1/execution
+#        """
+#        tasks = self.metadata.tasks
+#        cromwell_to_task_names = {}
+#
+#        for name in tasks:
+#            for entry in tasks[name].summary():
+#
+#                # remove root path from cromwell-exections dir.
+#                # ex: /my/path/cromwell-executions/a/b/c is converted to cromwell-executions/a/b/c
+#                if len(entry) < 5:
+#                    continue
+#
+#                cromwell_dir = entry[4]
+#                idx = cromwell_dir.find("cromwell-executions")
+#
+#                # if cromwell-executions not found in directory name, idx=-1. skip this condition.
+#                if idx >= 0:
+#                    cromwell_dir = cromwell_dir[idx:]
+#                    entry[4] = cromwell_dir
+#                    cromwell_to_task_names[cromwell_dir] = entry[0]
+#        return cromwell_to_task_names

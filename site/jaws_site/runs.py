@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 import boto3
 import botocore
-from jaws_site import models, config, tasks, jaws_constants
+from jaws_site import models, config
 from jaws_site.cromwell import Cromwell, CromwellError
 
 logger = logging.getLogger(__package__)

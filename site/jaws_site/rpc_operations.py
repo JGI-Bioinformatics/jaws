@@ -145,8 +145,10 @@ def get_errors(params, session):
     try:
         run = Run.from_id(session, params["run_id"])
         result = run.errors_report()
-    except RunNotFoundError as error:
-        return success(f"Run hasn't yet been submitted to Cromwell so there is no errors report")
+    except RunNotFoundError:
+        return success(
+            "The Run hasn't yet been submitted to Cromwell so there is no errors report"
+        )
     except Exception as error:
         return failure(error)
     return success(result)
