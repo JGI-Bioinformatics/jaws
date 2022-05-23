@@ -85,11 +85,11 @@ class Call:
         if self.data.get("stdout", None):
             self.dir = re.sub(r"/stdout$", "", self.data["stdout"])
 
-        if "callCaching" in call and "hit" in self.data["callCaching"]:
+        if "callCaching" in self.data and "hit" in self.data["callCaching"]:
             self.cached = self.data["callCaching"]["hit"]
 
         # get queued, running, and completed times as well as durations
-        if "executionEvents" in call:
+        if "executionEvents" in self.data:
             for event in self.data["executionEvents"]:
                 if event["description"] == "RequestingExecutionToken":
                     self.queue_start = event["startTime"]
@@ -99,10 +99,10 @@ class Call:
                     self.run_start = event["startTime"]
                 elif event["description"] == "UpdatingJobStore":
                     self.run_end = event["startTime"]
-        if self.queue_start is not None and call_log["run_start"] is not None:
+        if self.queue_start is not None and self.run_start is not None:
             delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
             self.queue_duration = str(delta)
-        if self.run_start is not None and call_log["run_end"] is not None:
+        if self.run_start is not None and self.run_end is not None:
             delta = parser.parse(self.run_end) - parser.parse(self.run_start)
             self.run_duration = str(delta)
 
