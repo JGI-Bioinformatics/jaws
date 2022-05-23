@@ -44,15 +44,13 @@ from jaws_jtm.lib.run import (
     extract_cromwell_id,
 )
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_rpc import rpc_server, responses, rpc_client
+from jaws_rpc import rpc_server, responses
 
 
 # --------------------------------------------------------------------------------------------------
 # Globals
 # --------------------------------------------------------------------------------------------------
 NUM_TOTAL_WORKERS = mp.Value("i", 0)
-# global instance for rpc_client
-RPC_CLIENT = None
 
 
 class WorkerResultReceiver(JtmAmqpstormBase):
@@ -657,17 +655,8 @@ def send_update_task_status_msg(
         reason_str += "%s, " % reversed_done_flags[fail_code]
     if reason:
         reason_str += "%s" % reason
+    return  # deprecated
 
-    data = {
-        "cromwell_run_id": run_id,  # this is not the JAWS run_id
-        "cromwell_job_id": task_id,
-        "status_from": reversed_task_status[status_from]
-        if status_from is not None
-        else "",
-        "status_to": reversed_task_status[status_to] if status_to is not None else "",
-        "timestamp": now,
-        "reason": reason_str,
-    }
 
 
 # --------------------------------------------------------------------------------------------------
