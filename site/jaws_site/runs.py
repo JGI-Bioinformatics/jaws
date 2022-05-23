@@ -34,7 +34,7 @@ class Run:
         self.session = session
         self.data = data
         self.operations = {
-            "upload complete": self.submit_run,
+            "ready": self.submit_run,
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
@@ -67,7 +67,6 @@ class Run:
         cls, session, params, central_rpc_client=None, reports_rpc_client=None
     ):
         """Insert new Run into RDb.  Site only receives Runs in the "upload complete" state."""
-        # JSON string was escaped because it was included in RPC's JSON doc
         try:
             data = models.Run(
                 id=int(params["run_id"]),
@@ -75,16 +74,16 @@ class Run:
                 caching=params["caching"],
                 submission_id=params["submission_id"],
                 input_site_id=params["input_site_id"],
-                status="upload complete",
+                status="ready",
             )
         except SQLAlchemyError as error:
-            raise (f"Error creating model for new Run {params['run_id']}: {error}")
+            raise RunDbError(f"Error creating model for new Run {params['run_id']}: {error}")
         try:
             session.add(data)
             session.commit()
         except SQLAlchemyError as error:
             session.rollback()
-            raise (error)
+            raise RunDbError(error)
         else:
             return cls(
                 session,
@@ -204,8 +203,18 @@ class Run:
             return self.operations[status]()
 
     def cancel(self) -> None:
-        """Cancel a run, aborting Cromwell or file transfer as appropriate"""
-        if self.data.cromwell_run_id and self.data.status in [
+        """
+        Cancel a run, aborting Cromwell or file transfer as appropriate.
+        Raise if not successful.
+        """
+        orig_status = self.data.status
+        try:
+            self.update_run_status("cancelled")
+        except Exception as error:
+            logger.error(f"Failed to cancel Run {self.data.id}: {error}")
+            raise RunDbError(f"Change Run {self.data.id} status to cancelled failed: {error}")
+
+        if self.data.cromwell_run_id and orig_status in [
             "submitted",
             "queued",
             "running",
@@ -214,8 +223,7 @@ class Run:
                 cromwell.abort(self.data.cromwell_run_id)
             except CromwellError as error:
                 logger.warn(f"Cromwell error cancelling Run {self.data.id}: {error}")
-                raise
-            self.update_run_status("cancelled")
+                raise CromwellError(f"Cromwell cancel failed: {error}")
 
     def outputs(self, relpath=True) -> dict:
         """
@@ -571,7 +579,7 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
     Get active runs from db and have each check and update their status.
     """
     active_states = [
-        "upload complete",
+        "ready",
         "submitted",
         "queued",
         "running",

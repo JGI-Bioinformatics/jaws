@@ -4,7 +4,7 @@ from jaws_site.tasks import TaskLog
 from jaws_site import errors
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
-from jaws_site.runs import Run, RunNotFoundError
+from jaws_site.runs import Run
 from jaws_site.transfers import Transfer
 
 
@@ -128,12 +128,10 @@ def cancel_run(params, session):
     logger.info(f"User {params['user_id']}: Cancel Run {params['run_id']}")
     try:
         run = Run.from_id(session, params["run_id"])
-        run.cancel()
-    except RunNotFoundError as error:
-        return success(f"Cancelled with Cromwell warning: {error}")
+        result = run.cancel()
     except Exception as error:
         return failure(error)
-    return success(True)
+    return success(result)
 
 
 def get_errors(params, session):
@@ -167,7 +165,7 @@ def submit_run(params, session):
     except Exception as error:
         return failure(error)
     else:
-        return success(run.status)
+        return success(run.data.status)
 
 
 def get_task_log(params, session):

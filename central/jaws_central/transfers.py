@@ -233,8 +233,14 @@ class Transfer:
             }
             try:
                 status = self._rpc(responsible_site_id, "submit_transfer", params)
+            except TransferRpcError as error:
+                logger.error(f"Submit site transfer {self.data.id} RPC error: {error}")
+                # do not update status; keep retrying
+            except TransferSiteError as error:
+                logger.error(f"Submit site transfer {self.data.id} rejected: {error}")
+                self.update_status("submit failed")
             except Exception as error:
-                logger.error(f"Site transfer {self.data.id} failed: {error}")
+                logger.error(f"Site transfer {self.data.id} unexpected error: {error}")
                 self.update_status("submit failed")
             else:
                 logger.debug(f"Submitted RPC transfer {self.data.id}: {status}")

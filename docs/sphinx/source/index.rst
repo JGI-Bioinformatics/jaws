@@ -37,7 +37,6 @@ Getting Started
    FAQ <Intro/faq>
    Known Issues <Intro/known_issues>
    Getting Help <Intro/contact_us>
-   Jaws Developers Docs <Developers/code>
 
 .. toctree::
    :hidden:

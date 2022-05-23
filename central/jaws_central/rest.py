@@ -599,10 +599,13 @@ def cancel_run(user, run_id):
 
     if status == "cancelled":
         abort(400, {"error": "That Run had already been cancelled"})
-    elif status == "download complete":
-        abort(400, {"error": "It's too late to cancel; run is finished."})
+    elif status in ["download complete", "email sent", "done"]:
+        abort(400, {"error": "It is too late to cancel."})
     cancelled = _cancel_run(user, run)
-    return {run_id: cancelled}, 201
+    if cancelled is True:
+        return {run_id: cancelled}, 201
+    else:
+        abort(400, {"error": f"Run {run_id} could not be cancelled"})
 
 
 def _cancel_run(user, run, reason="Cancelled by user"):
@@ -612,19 +615,29 @@ def _cancel_run(user, run, reason="Cancelled by user"):
     :param run: Run SqlAlchemy ORM object
     :type run: obj
     """
-    if run.status in ["cancelled", "download complete"]:
-        return
-    try:
-        _rpc_call(user, run.id, "cancel_run")
-    except Exception as error:
-        logger.error(f"Error canceling run {run.id}: {error}")
-        # ignore error, cancel anyway
-    try:
-        _update_run_status(run, "cancelled", reason)
-    except Exception as error:
-        return f"cancel failed; {error}"
+    orig_status = run.status
+    if run.status in ["cancelled", "download complete", "email sent", "done"]:
+        # too late to cancel
+        return False
     else:
-        return "cancelled"
+        # central must be updated so the central-run-daemon will not process it
+        try:
+            _update_run_status(run, "cancelled", reason)
+        except Exception as error:
+            logger.error(f"Cancel failed to update Run {run.id} status: {error}")
+            return False
+    if orig_status in ["submitted", "queued", "running"]:
+        # the compute jaws-site should also receive the cancel instruction
+        try:
+            _rpc_call(user, run.id, "cancel_run")
+        except Exception as error:
+            logger.error(f"RPC cancel Run {run.id} failed: {error}")
+            return False
+        else:
+            logger.debug(f"RPC cancel Run {run.id} successful")
+            return True
+    else:
+        return True
 
 
 def cancel_all(user):

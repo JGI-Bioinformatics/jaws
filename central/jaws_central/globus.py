@@ -85,12 +85,13 @@ class GlobusService:
         """
         logger.debug(f"Globus xfer {label}")
         transfer_client = self._create_transfer_client()
+        # sync level 1 : Copy files if the size of the destination does not match the size of the source.
         tdata = globus_sdk.TransferData(
             transfer_client,
             src_endpoint,
             dest_endpoint,
             label=label,
-            sync_level="mtime",
+            sync_level=1,
             verify_checksum=True,
             preserve_timestamp=True,
             notify_on_succeeded=False,
@@ -98,12 +99,18 @@ class GlobusService:
             notify_on_inactive=True,
         )
 
-        for relpath in manifest:
-            source_path = f"{src_base_dir}/{relpath}"
-            dest_path = f"{dest_base_dir}/{relpath}"
-            virtual_src_path = self.virtual_transfer_path(source_path, src_host_path)
-            virtual_dest_path = self.virtual_transfer_path(dest_path, dest_host_path)
-            tdata.add_item(virtual_src_path, virtual_dest_path, recursive=False)
+        # the manifest is empty for complete download, add path and do recursive
+        if len(manifest) == 0:
+            virtual_src_path = self.virtual_transfer_path(src_base_dir, src_host_path)
+            virtual_dest_path = self.virtual_transfer_path(dest_base_dir, dest_host_path)
+            tdata.add_item(virtual_src_path, virtual_dest_path, recursive=True)
+        else:
+            for relpath in manifest:
+                source_path = f"{src_base_dir}/{relpath}"
+                dest_path = f"{dest_base_dir}/{relpath}"
+                virtual_src_path = self.virtual_transfer_path(source_path, src_host_path)
+                virtual_dest_path = self.virtual_transfer_path(dest_path, dest_host_path)
+                tdata.add_item(virtual_src_path, virtual_dest_path, recursive=False)
 
         transfer_result = transfer_client.submit_transfer(tdata)
         return transfer_result["task_id"]

@@ -191,7 +191,7 @@ docker {
 }
 backend
 {
-  default = "JTM"
+  default = "HtCondor"
   providers
   {
     LOCAL
