@@ -43,7 +43,7 @@ def test_should_fail_status(submit_bad_task):
     """
 
     # test status
-    assert submit_bad_task["run_id"] == 1, "error error"
+    assert submit_bad_task == 1, "error error"
     #run_id = str(submit_bad_task["run_id"])
     #cmd = "jaws status --verbose %s" % (run_id)
     #(r, o, e) = util.run(cmd)
