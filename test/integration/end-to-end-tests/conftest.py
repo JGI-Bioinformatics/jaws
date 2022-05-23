@@ -76,11 +76,10 @@ def submit_bad_task(request):
 
     data = util.submit_wdl_noexit(wdl, input_json, site)
 
-    #id = data["run_id"]
+    id = data["run_id"]
 
     # wait for run to complete
-    #util.wait_for_run(id, check_tries, check_sleep)
-    #return data
+    util.wait_for_run(id, check_tries, check_sleep)
     return data
 
 
