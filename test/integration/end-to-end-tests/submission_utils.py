@@ -51,9 +51,10 @@ def submit_wdl_noexit(wdl, input_json, site):
 
     cmd = "jaws submit --quiet --tag submit_wdl_noexit --no-cache %s %s %s" % (wdl, input_json, site)
     (rc, stdout, stderr) = run(cmd)
-    data = json.loads(stdout)
+    #data = json.loads(stdout)
 
-    return data
+    #return data
+    return stdout
 
 def wait_for_run(id,check_tries,check_sleep):
     """ Wait for all the runs in ids list to finish."""
