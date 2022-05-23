@@ -167,7 +167,7 @@ def queue(site: str, all: bool) -> None:
     "--all",
     is_flag=True,
     default=False,
-    help="List runs from all users;d default=False",
+    help="List runs from all users; default=False",
 )
 def history(days: int, site: str, result: str, all: bool) -> None:
     """Print a list of the user's past runs."""
@@ -348,32 +348,6 @@ def _convert_to_table(header: list, jdoc: dict):
             row.append(value)
         table.append(row)
     return table
-
-
-@main.command()
-@click.argument("run_id")
-@click.option("--fmt", default="text", help="the desired output format: [text|json]")
-def task_summary(run_id: int, fmt: str) -> None:
-    """Get summary of each Task's state durations."""
-
-    url = f'{config.get("JAWS", "url")}/run/{run_id}/task_summary'
-    result = _request("GET", url)
-    header = [
-        "NAME",
-        "CROMWELL_JOB_ID",
-        "CACHED",
-        "RESULT",
-        "QUEUED",
-        "QUEUE_WAIT",
-        "RUNTIME",
-        "MAX_TIME",
-    ]
-    if fmt == "json":
-        _print_json(result)
-    elif fmt == "tab":
-        _print_tab_delimited_table(header, result)
-    else:
-        _print_space_delimited_table(header, result)
 
 
 @main.command()
