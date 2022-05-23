@@ -13,6 +13,7 @@
 - run submissions are failed if any infile is missing (was warning); if your inputs.json refers to paths inside a container then use String instead of File for these
 - make copy run inputs progress bar in human-readable units
 - remove unnecessary file copy operations when compute-site is same as input-site (i.e. faster)
+- `task-log` and `task-status` are deprecated as we no longer receive task status messages from JTM since we've switched to htCondor backend.  A new `tasks` command will be added in the next release.
 
 ## 2.7.7 (2022-4-12) Summary
 ### User Facing Changes
