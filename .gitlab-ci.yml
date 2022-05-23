@@ -5,13 +5,13 @@ stages:
   - esline-sast
   - nodejs-scan-sast
   - unit-test
-  - package
   - image-build
   - deploy-jaws
   - release-jaws
   - smoke-tests
   - deployment-tests
   - stress-tests
+  - package
   - deploy-docs
 
 include:
@@ -281,27 +281,7 @@ test-condor:
   artifacts:
     reports:
       cobertura: condor/coverage.xml
-package:
-  tags:
-    - shared-shell
-  stage: package
-  script:
-    - python3.8 -m venv pkg-venv
-    - source pkg-venv/bin/activate 
-    - pip3.8 install poetry wheel
-    - make pkg-poetry
-    - cd rpc && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab && cd ../
-    - cd central && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab & cd ../
-    - cd site && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab && cd ../
-    - cd jtm && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab && cd ../
-    - cd client && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab && cd ../
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+
 
 image: docker:19.03.12
 services:
@@ -674,6 +654,28 @@ tahoma-dev-stress-tests:
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
       when: manual
   allow_failure: true
+
+package:
+  tags:
+    - shared-shell
+  stage: package
+  script:
+    - python3.8 -m venv pkg-venv
+    - source pkg-venv/bin/activate 
+    - pip3.8 install poetry wheel
+    - make pkg-poetry
+    - cd rpc && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+    - poetry publish --repository gitlab && cd ../
+    - cd central && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+    - poetry publish --repository gitlab & cd ../
+    - cd site && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+    - poetry publish --repository gitlab && cd ../
+    - cd jtm && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+    - poetry publish --repository gitlab && cd ../
+    - cd client && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+    - poetry publish --repository gitlab && cd ../
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^release/'
 
 deploy-jaws-docs:
   stage: deploy-docs
