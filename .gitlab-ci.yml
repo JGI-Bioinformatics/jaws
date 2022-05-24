@@ -147,7 +147,7 @@ variables:
   TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
   TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi/scratch"
   TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi/scratch"
-  TAHOMA_FAST_SCRATCH_DIR: "/fast_scratch"
+  TAHOMA_FAST_SCRATCH_DIR: ""
   TAHOMA_BIG_SCRATCH_DIR: "/big_scratch"
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
