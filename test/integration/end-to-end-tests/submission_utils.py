@@ -59,6 +59,7 @@ def wait_for_run(id,check_tries,check_sleep):
     """ Wait for all the runs in ids list to finish."""
     tries = 1
     while tries <= int(check_tries):
+        time.sleep(20)
         # check whether the run has finished every 60 seconds
         cmd = "jaws status %s" % (id)
         (r,o,e) = run(cmd)
@@ -67,7 +68,7 @@ def wait_for_run(id,check_tries,check_sleep):
 
         status_output = json.loads(o)
         run_status = status_output["status"]
-
+        return run_status
         if run_status == "done":
             return
 
