@@ -54,6 +54,7 @@ def submit_subworkflow_alignment(request):
 
     # wait for run to complete
     id = data["run_id"]
+    check_sleep = 30
     util.wait_for_run(id, check_tries, check_sleep)
     return data
 
@@ -79,9 +80,8 @@ def submit_bad_task(request):
     id = data["run_id"]
 
     # wait for run to complete
-    status = util.wait_for_run(id, check_tries, check_sleep)
-    #return data
-    return status
+    util.wait_for_run(id, check_tries, check_sleep)
+    return data
 
 @pytest.fixture(scope="session")
 def submit_bad_docker(request):
