@@ -106,6 +106,51 @@ class Call:
             delta = parser.parse(self.run_end) - parser.parse(self.run_start)
             self.run_duration = str(delta)
 
+    def _get_file_path(self, file_id, relpath=False):
+        """
+        Return the path to the specified output file, optionally replacing part of the path.
+        :param file_id: either "stdout" or "stderr"
+        :type file_id: str
+        :param relpath: If true then make path relative to callRoot; fullpath by default
+        :type relpath: bool
+        :param dest: Destination root dir
+        :return: Path to specified file
+        :rtype: str
+        """
+        if file_id not in ("stdout", "stderr"):
+            raise TaskError(
+                f"Invalid file id, {file_id}; allowed values: stdout, stderr"
+            )
+        path = self.data.get(file_id)
+        if relpath:
+            if self.call_root is None:
+                raise TaskError(
+                    f"Cannot return relpath as callRoot is not defined for task {self.name}"
+                )
+            path = os.path.relpath(self.call_root, path)
+        return path
+
+    def stdout(self, relpath=False):
+        """
+        Return the path to the standard output file, optionally replacing part of the path.
+        :param relpath: If true then make path relative to callRoot; fullpath by default
+        :type relpath: bool
+        :param dest: Destination root dir
+        :return: Path to stdout file
+        :rtype: str
+        """
+        return self._get_file_path("stdout", relpath)
+
+    def stderr(self, relpath=False):
+        """
+        Return the path to the standard err file, optionally replacing part of the path.
+        :param relpath: If true then make path relative to callRoot; fullpath by default
+        :type relpath: bool
+        :return: Path to stdout file
+        :rtype: str
+        """
+        return self._get_file_path("stderr", relpath)
+
     def summary(self, fmt="dict"):
         if fmt == "dict":
             return self.as_dict()
@@ -232,7 +277,6 @@ class Task:
         """
         self.name = name
         self.data = data
-        self.call_root = data.get("callRoot", None)
         self.calls = {}  # shard_index (str) => Call
         for call_data in data:
             shard_index = call_data[
@@ -271,51 +315,6 @@ class Task:
             for call_errors in call.errors():
                 all_errors.append(call_errors)
         return all_errors
-
-    def _get_file_path(self, file_id, relpath=False):
-        """
-        Return the path to the specified output file, optionally replacing part of the path.
-        :param file_id: either "stdout" or "stderr"
-        :type file_id: str
-        :param relpath: If true then make path relative to callRoot; fullpath by default
-        :type relpath: bool
-        :param dest: Destination root dir
-        :return: Path to specified file
-        :rtype: str
-        """
-        if file_id not in ("stdout", "stderr"):
-            raise TaskError(
-                f"Invalid file id, {file_id}; allowed values: stdout, stderr"
-            )
-        path = self.data.get(file_id)
-        if relpath:
-            if self.call_root is None:
-                raise TaskError(
-                    f"Cannot return relpath as callRoot is not defined for task {self.name}"
-                )
-            path = os.path.relpath(self.call_root, path)
-        return path
-
-    def stdout(self, relpath=False):
-        """
-        Return the path to the standard output file, optionally replacing part of the path.
-        :param relpath: If true then make path relative to callRoot; fullpath by default
-        :type relpath: bool
-        :param dest: Destination root dir
-        :return: Path to stdout file
-        :rtype: str
-        """
-        return self._get_file_path("stdout", relpath)
-
-    def stderr(self, relpath=False):
-        """
-        Return the path to the standard err file, optionally replacing part of the path.
-        :param relpath: If true then make path relative to callRoot; fullpath by default
-        :type relpath: bool
-        :return: Path to stdout file
-        :rtype: str
-        """
-        return self._get_file_path("stderr", relpath)
 
 
 class CromwellError(Exception):
