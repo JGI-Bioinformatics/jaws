@@ -68,7 +68,7 @@ def wait_for_run(id,check_tries,check_sleep):
         status_output = json.loads(o)
         run_status = status_output["status"]
 
-        if run_status == "download complete":
+        if run_status == "done":
             return
 
         tries += 1
