@@ -91,7 +91,6 @@ def test_jaws_status(submit_fq_count_wdl):
     assert "updated" in data
     assert "user_id" in data
 
-@pytest.mark.xfail(reason="only the flag --site is failing and ticket created")
 def test_jaws_queue(site, dir):
     """tests that the jaws queue command has the correct site in the output when --site is used."""
 
@@ -102,7 +101,7 @@ def test_jaws_queue(site, dir):
     data = json.loads(o)
     run_id = data["run_id"]
 
-    # jaws queue --site [CORI, JGI, CASCADE]
+    # jaws queue --site [CORI, JGI, TAHOMA]
     cmd = "jaws queue --site %s" % (site)
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
@@ -115,7 +114,7 @@ def test_jaws_queue(site, dir):
     ids = []
     if data:
         for d in data:
-            if d["site_id"].lower() == site.lower():
+            if d["compute_site_id"].lower() == site.lower():
                 result = True
                 ids.append(d["id"])
     else:
