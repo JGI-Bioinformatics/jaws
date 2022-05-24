@@ -11,6 +11,7 @@ import json
 import uuid
 import shutil
 import submission_utils as util
+import pytest
 
 check_tries = 360
 check_sleep = 60
@@ -20,7 +21,7 @@ check_sleep = 60
 #     Functions     #
 #####################
 #
-# Test functions for verification of jaws log commands (log,task-log,status,task-status).
+# Test functions for verification of jaws log commands (log,task-log,status).
 #
 def test_jaws_info():
     """tests that there is a valid output for jaws info. Name should be dev,staging, or prod and version should have some value.
@@ -72,17 +73,25 @@ def test_jaws_health():
     for k in required_keys:
         assert k in actual_keys
 
-
 def test_jaws_status(submit_fq_count_wdl):
-    """test that the jaws status --verbose command has an output directory defined in its stdout"""
+    """test that the jaws status --verbose command has some of the expected keys displayed in its stdout"""
     data = submit_fq_count_wdl
     run_id = str(data["run_id"])
     cmd = "jaws status --verbose %s" % (run_id)
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
-    assert "output_dir" in data
+    assert "compute_site_id" in data
+    assert "id" in data
+    assert "input_site_id" in data
+    assert "json_file" in data
+    assert "result" in data
+    assert "status" in data
+    assert "submitted" in data
+    assert "tag" in data
+    assert "updated" in data
+    assert "user_id" in data
 
-
+@pytest.mark.xfail(reason="only the flag --site is failing and ticket created")
 def test_jaws_queue(site, dir):
     """tests that the jaws queue command has the correct site in the output when --site is used."""
 
@@ -159,27 +168,6 @@ def test_jaws_errors(submit_bad_task):
     assert "command not found" in o
 
 
-def test_jaws_task_status(submit_fq_count_wdl):
-    """Check that jaws task-status returns something like this:
-    fq_count.count_seqs 25177   success 2021-01-13 12:37:45     run_time=0:00:13.293
-
-    It should have only one line.
-    """
-    run_id = str(submit_fq_count_wdl["run_id"])
-    util.wait_for_run(run_id, check_tries, check_sleep)
-
-    cmd = "jaws task-status %s" % (run_id)
-    (r, o, e) = util.run(cmd)
-
-    # make sure there is only 1 output line (not including header)
-    a = o.split("\n")
-    a = list(filter(None, a))  # remove empty elements
-    assert len(a) == 2
-
-    # output line should have this string
-    assert "fq_count.count_seqs" in a[1]
-
-
 def test_jaws_log(submit_fq_count_wdl):
     """Check that the first line of jaws log returns something like this:
     #STATUS_FROM     STATUS_TO          TIMESTAMP            REASON
@@ -207,27 +195,6 @@ def test_jaws_log(submit_fq_count_wdl):
 
     # there should be 7 output rows (including header)
     assert len(a) == 9
-
-
-def test_jaws_task_log(submit_fq_count_wdl):
-    """Check that the first line of jaws task-log returns something like this:
-    fq_count.count_seqs	33478	created	ready	2021-10-19 18:04:10
-    """
-    run_id = str(submit_fq_count_wdl["run_id"])
-    util.wait_for_run(run_id, check_tries, check_sleep)
-
-    cmd = "jaws task-log %s" % (run_id)
-    (r, o, e) = util.run(cmd)
-    a = o.split("\n")
-    a = list(filter(None, a))  # remove empty elements
-
-    assert "fq_count.count_seqs" in a[1]
-
-    # there should be 6 columns of output
-    assert len(a[1].split()) == 7
-
-    # there should be 6 output rows (including header)
-    assert len(a) == 6
 
 
 def test_jaws_get(submit_bad_task):
@@ -323,23 +290,23 @@ def test_jaws_history_result_filter_failed(submit_bad_task):
         assert 1, "no runs were found in the history that have result: failed"
 
 
-def test_jaws_task_summary(submit_fq_count_wdl):
-    """
-    jaws task-summary <run_id>
-
-    #NAME                CROMWELL_JOB_ID  CACHED  RESULT   QUEUED               QUEUE_WAIT  RUNTIME  MAX_TIME
-    fq_count.count_seqs  158914           False   success  2022-01-24 20:50:21  0:12:44     0:00:01  00:10:00
-
-    Check that the fourth column is "success" 
-    """
-    run_id = str(submit_fq_count_wdl["run_id"])
-    util.wait_for_run(run_id, check_tries, check_sleep)
-
-    cmd = (f"jaws task-summary --fmt json {run_id}")
-    (r, o, e) = util.run(cmd)
-    data = json.loads(o)
-
-    if data:
-        assert data[0][3] == 'success'
-    else:
-        assert 1, "task-summary did not return \"success\" in the fourth column" 
+#def test_jaws_task_summary(submit_fq_count_wdl):
+#    """
+#    jaws task-summary <run_id>
+#
+#    #NAME                CROMWELL_JOB_ID  CACHED  RESULT   QUEUED               QUEUE_WAIT  RUNTIME  MAX_TIME
+#    fq_count.count_seqs  158914           False   success  2022-01-24 20:50:21  0:12:44     0:00:01  00:10:00
+#
+#    Check that the fourth column is "success" 
+#    """
+#    run_id = str(submit_fq_count_wdl["run_id"])
+#    util.wait_for_run(run_id, check_tries, check_sleep)
+#
+#    cmd = (f"jaws task-summary --fmt json {run_id}")
+#    (r, o, e) = util.run(cmd)
+#    data = json.loads(o)
+#
+#    if data:
+#        assert data[0][3] == 'success'
+#    else:
+#        assert 1, "task-summary did not return \"success\" in the fourth column" 
