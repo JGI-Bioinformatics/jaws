@@ -41,14 +41,14 @@ def test_should_fail_status(submit_bad_task):
     "result": "succeeded",
     }
     """
-
+    assert submit_bad_task == 1
     # test status
-    run_id = str(submit_bad_task["run_id"])
-    cmd = "jaws status --verbose %s" % (run_id)
-    (r, o, e) = util.run(cmd)
-    data = json.loads(o)
+    #run_id = str(submit_bad_task["run_id"])
+    #cmd = "jaws status --verbose %s" % (run_id)
+    #(r, o, e) = util.run(cmd)
+    #data = json.loads(o)
 
-    assert data["result"] == "failed", "jaws-status should say run failed"
+    #assert data["result"] == "failed", "jaws-status should say run failed"
 
 
 def test_should_fail_task_status(submit_bad_task):

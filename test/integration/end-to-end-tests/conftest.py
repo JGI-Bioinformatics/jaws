@@ -76,12 +76,14 @@ def submit_bad_task(request):
 
     data = util.submit_wdl_noexit(wdl, input_json, site)
 
+    if "run_id" not in data:
+        return data
     id = data["run_id"]
 
     # wait for run to complete
-    util.wait_for_run(id, check_tries, check_sleep)
-    return data
-
+    #util.wait_for_run(id, check_tries, check_sleep)
+    #return data
+    return id
 
 @pytest.fixture(scope="session")
 def submit_bad_docker(request):
