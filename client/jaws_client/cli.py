@@ -346,7 +346,7 @@ def task_summary(run_id: int) -> None:
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_summary'
     result = _request("GET", url)
-    _convert_all_fields_to_localtime(result, keys=["queued", "running", "finished"])
+    _convert_all_fields_to_localtime(result, keys=["queue_start", "run_start", "run_end"])
     _print_json(result)
 
 
