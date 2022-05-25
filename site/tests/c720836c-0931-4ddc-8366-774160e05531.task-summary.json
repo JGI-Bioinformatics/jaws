@@ -12,9 +12,9 @@
     "queue_duration": "0:00:03",
     "run_duration": "0:00:40",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-goodbye",
-    "max_time": "00:10:00",
-    "cpu": "32",
-    "memory": "10 GB"
+    "requested_time": "00:10:00",
+    "requested_cpu": "32",
+    "requested_memory": "10 GB"
   },
   {
     "name": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
@@ -29,9 +29,9 @@
     "queue_duration": "0:00:02",
     "run_duration": "0:00:40",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-hello",
-    "max_time": "00:10:00",
-    "cpu": "32",
-    "memory": "10 GB"
+    "requested_time": "00:10:00",
+    "requested_cpu": "32",
+    "requested_memory": "10 GB"
   },
   {
     "name": "main_workflow.hello",
@@ -46,9 +46,9 @@
     "queue_duration": "0:00:01",
     "run_duration": "0:00:45",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello",
-    "max_time": "00:10:00",
-    "cpu": "32",
-    "memory": "10 GB"
+    "requested_time": "00:10:00",
+    "requested_cpu": "32",
+    "requested_memory": "10 GB"
   },
   {
     "name": "main_workflow.goodbye",
@@ -63,9 +63,9 @@
     "queue_duration": "0:00:00",
     "run_duration": "0:00:44",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-goodbye",
-    "max_time": "00:10:00",
-    "cpu": "32",
-    "memory": "10 GB"
+    "requested_time": "00:10:00",
+    "requested_cpu": "32",
+    "requested_memory": "10 GB"
   },
   {
     "name": "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
@@ -80,9 +80,9 @@
     "queue_duration": "0:00:00",
     "run_duration": "0:00:40",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-goodbye",
-    "max_time": "00:10:00",
-    "cpu": "32",
-    "memory": "10 GB"
+    "requested_time": "00:10:00",
+    "requested_cpu": "32",
+    "requested_memory": "10 GB"
   },
   {
     "name": "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
@@ -97,8 +97,8 @@
     "queue_duration": "0:00:01",
     "run_duration": "0:00:41",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-hello",
-    "max_time": "00:10:00",
-    "cpu": "32",
-    "memory": "10 GB"
+    "requested_time": "00:10:00",
+    "requested_cpu": "32",
+    "requested_memory": "10 GB"
   }
 ]

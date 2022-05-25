@@ -62,7 +62,6 @@ class Call:
         if "subWorkflowMetadata" in data:
             raise CallError(f"Task {task_name} is a subworkflow, not a Call object")
         self.data = data
-        self.task_name = task_name
         self.name = task_name
         self.attempt = data.get("attempt", None)
         self.shard_index = data.get("shardIndex", None)
@@ -78,14 +77,14 @@ class Call:
         self.call_root = self.data.get("callRoot", None)
         self.execution_dir = None
         self.job_id = self.data.get("jobId", None)
-        self.max_time = None
-        self.memory = None
-        self.cpu = None
+        self.requested_time = None
+        self.requested_memory = None
+        self.requested_cpu = None
 
         if "runtimeAttributes" in self.data:
-            self.max_time = self.data["runtimeAttributes"].get("time", None)
-            self.memory = self.data["runtimeAttributes"].get("memory", None)
-            self.cpu = self.data["runtimeAttributes"].get("cpu", None)
+            self.requested_time = self.data["runtimeAttributes"].get("time", None)
+            self.requested_memory = self.data["runtimeAttributes"].get("memory", None)
+            self.requested_cpu = self.data["runtimeAttributes"].get("cpu", None)
 
         self.queue_start = None
         self.run_start = None
@@ -116,7 +115,8 @@ class Call:
                     self.run_end = parser.parse(event["startTime"]).strftime(
                         "%Y-%m-%d %H:%M:%S"
                     )
-        self.queue_start = self.start  # let's try not using the event time  TODO PICK ONE
+        if self.queue_start is None:
+            self.queue_start = self.start
         if self.queue_start is not None and self.run_start is not None:
             delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
             self.queue_duration = str(delta)
@@ -169,14 +169,16 @@ class Call:
         """
         return self._get_file_path("stderr", relpath)
 
-    def summary(self):
+    def summary(self, **kwargs):
         """
         :return: Select fields
         :rtype: dict
         """
-        if self.execution_status == "Running":
-            # this will attempt to determine if the task has started running or not
-            self.get_run_start_time_from_stderr_file_stat()
+        real_time = True
+        if "real_time" in kwargs and kwargs["real_time"] is False:
+            real_time = False
+        if real_time is True and self.execution_status == "Running":
+            self.set_real_time_status()
         record = {
             "name": self.name,
             "shard_index": self.shard_index,
@@ -190,9 +192,9 @@ class Call:
             "queue_duration": self.queue_duration,
             "run_duration": self.run_duration,
             "call_root": self.call_root,
-            "max_time": self.max_time,
-            "cpu": self.cpu,
-            "memory": self.memory,
+            "requested_time": self.requested_time,
+            "requested_cpu": self.requested_cpu,
+            "requested_memory": self.requested_memory,
         }
         return record
 
@@ -227,16 +229,33 @@ class Call:
             result["stdoutContents"] = _read_file(stdout_file)
         return result
 
-    def get_run_start_time_from_stderr_file_stat(self):
+    def set_real_time_status(self) -> None:
         """
+        Distinguish between "Queued" and "Running" states.
         Check the stderr mtime to see when the task started running.
+        This is necessary because the executionEvents are not populated until the
+        task completes execution.
+        This is only used by the summary() method because a) we usually don't need
+        real-time data and b) accessing the file system could be unnecessarily slow.
         """
-        if self.stderr is None or self.stderr.startswith("s3://"):
-            return None
-        stderr_mtime = os.path.getmtime(self.stderr)
-        if stderr_mtime:
-            self.run_start = datetime.fromtimestamp(stderr_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-            if self.queue_start is not None and self.run_start is not None:
+        if self.execution_status != "Running":
+            pass
+        elif self.stderr is None or self.queue_start is None:
+            self.execution_status = "Queued"
+        elif self.stderr.startswith("s3://"):
+            # we don't have access to the EBS volume; stderr will not be copied to S3 until after the
+            # task completes
+            pass
+        else:
+            try:
+                stderr_mtime = os.path.getmtime(self.stderr)
+            except Exception:  # noqa
+                self.execution_status = "Queued"
+            else:
+                # task is actually "Running" so calculate the queue-wait duration
+                self.run_start = datetime.fromtimestamp(
+                    stderr_mtime, tz=timezone.utc
+                ).strftime("%Y-%m-%d %H:%M:%S")
                 delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
                 self.queue_duration = str(delta)
 
@@ -280,37 +299,6 @@ class Task:
                     self.calls[shard_index] = {}
                 self.calls[shard_index][attempt] = Call(call_data, self.name)
 
-    def logs(self):
-        """
-        Return list of all call logs (i.e. all shards, all subworkflow calls).
-        :return: All call logs
-        :rtype: list
-        """
-        all_logs = []
-        for shard_index in self.calls.keys():
-            for attempt in self.calls[shard_index].keys():
-                call = self.calls[shard_index][attempt]
-                all_logs.append(call.log())
-        return all_logs
-
-    #    def logs(self, fmt="list"):
-    #        """
-    #        :return: logs (one if task, many if subworkflow)
-    #        :rtype: list
-    #        """
-    #        if self.subworkflow is None:
-    #            return [self.summary(fmt)]
-    #        else:
-    #            logs = []
-    #            sub_logs = self.subworkflow.logs(fmt=fmt)
-    #            for log in sub_logs:
-    #                if fmt == "dict":
-    #                    log["name"] = f"{self.name}:{log['name']}"
-    #                else:
-    #                    log[0] = f"{self.name}:{log[0]}"
-    #                logs.append(log)
-    #            return logs
-
     def errors(self):
         """
         Return user friendly errors report for this task/subworkflow.
@@ -336,20 +324,55 @@ class Task:
                 all_errors.append(sub_errors)
         return all_errors
 
-    def summary(self):
+    def summary(self, **kwargs):
+        """
+        Generally, there is only one attempt.  The only exception is when the resubmit with more memory
+        feature of Cromwell is turned on, but it's only available with "gcs" backend as of 5/25/2022.
+        For simplicity, we use only the last attempt by default.
+        """
+        real_time = True
+        if "real_time" in kwargs and kwargs["real_time"] is False:
+            real_time = False
+        last_attempts = False
+        if "last_attempts" in kwargs and kwargs["last_attempts"] is True:
+            last_attempts = True
+        if last_attempts is True:
+            return self.summary_last_attempts(real_time)
+        else:
+            return self.summary_all_attempts(real_time)
+
+    def summary_all_attempts(self, real_time):
         result = []
         for shard_index in self.calls.keys():
             for attempt in self.calls[shard_index].keys():
                 call = self.calls[shard_index][attempt]
-                result.append(call.summary())
+                result.append(call.summary(real_time=real_time))
         for shard_index in self.subworkflows.keys():
             for attempt in self.subworkflows[shard_index].keys():
                 sub_meta = self.subworkflows[shard_index][attempt]
-                for item in sub_meta.task_summary():
+                for item in sub_meta.task_summary(real_time=real_time):
                     renamed_item = item
                     name = item["name"]
                     renamed_item["name"] = f"{self.name}:{name}"
                     result.append(renamed_item)
+        return result
+
+    def summary_last_attempts(self, real_time):
+        result = []
+        for shard_index in self.calls.keys():
+            attempts = sorted(self.calls[shard_index].keys())
+            attempt = attempts[-1]
+            call = self.calls[shard_index][attempt]
+            result.append(call.summary(real_time=real_time))
+        for shard_index in self.subworkflows.keys():
+            attempts = sorted(self.subworkflows[shard_index].keys())
+            attempt = attempts[-1]
+            sub_meta = self.subworkflows[shard_index][attempt]
+            for item in sub_meta.task_summary(real_time=real_time):
+                renamed_item = item
+                name = item["name"]
+                renamed_item["name"] = f"{self.name}:{name}"
+                result.append(renamed_item)
         return result
 
 
@@ -506,26 +529,30 @@ class Metadata:
             filtered_metadata["failures"] = other_failures
         return filtered_metadata
 
-    def task_summary(self):
+    def task_summary(self, **kwargs):
         """
         Return list of all tasks, including any subworkflows.
+        :param real_time: Check file system to distinguish between Queued and Running states
+        :ptype real_time: bool
         :return: List of task information dictionaries
         :rtype: list
         """
         summary = []
         for task_name, task in self.tasks.items():
-            for item in task.summary():
+            for item in task.summary(**kwargs):
                 summary.append(item)
         return summary
 
-    def task_log(self):
+    def task_log(self, **kwargs):
         """
         Return select task summary fields in table format.
+        :param real_time: Check file system to distinguish between Queued and Running states
+        :ptype real_time: bool
         :return: Table of tasks
         :rtype: list
         """
         table = []
-        for info in self.task_summary():
+        for info in self.task_summary(**kwargs):
             name = info["name"]
             if info["shard_index"] > 0:
                 name = f"{name}[{info['shard_index']}]"
@@ -547,27 +574,22 @@ class Metadata:
         :return: True if any task actually started running; false otherwise.
         :rtype: bool
         """
-        for info in self.task_summary():
+        for info in self.task_summary(real_time=True):
             if info["run_start"] is not None:
                 return True
         return False
 
-    def job_summary(self):
-        """Return task info, organized by job_id."""
-        task_summary = self.task_summary()
-        job_summary = {}
-        for (
-            task_name,
-            job_id,
-            cached,
-            max_time,
-            execution_status,
-            _,
-        ) in task_summary:
-            if job_id:
-                job_id = str(job_id)
-                job_summary[job_id] = [task_name, max_time]
-        return job_summary
+    def job_summary(self, **kwargs) -> dict:
+        """
+        :return: task name for each job id
+        :rtype: dict
+        """
+        job_ids = {}
+        for task in self.task_summary(real_time=False):
+            if "job_id" in task:
+                job_id = str(task["job_id"])
+                job_ids[job_id] = task.get("name", "unknown")
+        return job_ids
 
     def outputs(self, relpath=True):
         """Returns all outputs for a workflow"""

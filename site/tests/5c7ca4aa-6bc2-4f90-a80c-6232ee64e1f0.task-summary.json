@@ -12,9 +12,9 @@
     "queue_duration": "0:00:01",
     "run_duration": "0:00:03",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-collect_outputs",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.generate_excel",
@@ -29,9 +29,9 @@
     "queue_duration": "0:00:01",
     "run_duration": "0:00:08",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_excel",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.generate_html",
@@ -46,9 +46,9 @@
     "queue_duration": "0:00:01",
     "run_duration": "0:00:07",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-generate_html",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.bbduk",
@@ -63,9 +63,9 @@
     "queue_duration": "0:00:00",
     "run_duration": "0:01:09",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbduk",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.bbmerge",
@@ -80,9 +80,9 @@
     "queue_duration": "0:00:05",
     "run_duration": "0:02:15",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-bbmerge",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.extract_spacer_length",
@@ -97,9 +97,9 @@
     "queue_duration": "0:00:07",
     "run_duration": "0:00:14",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-extract_spacer_length",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.flank_seq_3P",
@@ -114,9 +114,9 @@
     "queue_duration": "0:00:01",
     "run_duration": "0:00:15",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_3P",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.flank_seq_5P",
@@ -131,9 +131,9 @@
     "queue_duration": "0:00:03",
     "run_duration": "0:00:14",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-flank_seq_5P",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.seal",
@@ -148,9 +148,9 @@
     "queue_duration": "0:00:01",
     "run_duration": "0:01:11",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-seal",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.stats_python",
@@ -165,9 +165,9 @@
     "queue_duration": "0:00:01",
     "run_duration": "0:00:56",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-0/miseq_library.miseq_library/2fb7bb1a-3dce-4f93-82c2-c956d2c27a57/call-stats_python",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.bbduk",
@@ -182,9 +182,9 @@
     "queue_duration": "0:00:01",
     "run_duration": "0:00:33",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbduk",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.bbmerge",
@@ -199,9 +199,9 @@
     "queue_duration": "0:00:02",
     "run_duration": "0:00:59",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-bbmerge",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.extract_spacer_length",
@@ -216,9 +216,9 @@
     "queue_duration": "0:00:06",
     "run_duration": "0:00:12",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-extract_spacer_length",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.flank_seq_3P",
@@ -233,9 +233,9 @@
     "queue_duration": "0:00:00",
     "run_duration": "0:00:12",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_3P",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.flank_seq_5P",
@@ -250,9 +250,9 @@
     "queue_duration": "0:00:04",
     "run_duration": "0:00:18",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-flank_seq_5P",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.seal",
@@ -267,9 +267,9 @@
     "queue_duration": "0:00:00",
     "run_duration": "0:00:58",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-seal",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.miseq_library:miseq_library.stats_python",
@@ -284,9 +284,9 @@
     "queue_duration": "0:00:00",
     "run_duration": "0:00:33",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-miseq_library/shard-1/miseq_library.miseq_library/07790ae1-3481-4710-8e07-4b5f6ca2bfb5/call-stats_python",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.vis_python_stats:visualize_miseq_library.visualize",
@@ -301,9 +301,9 @@
     "queue_duration": "0:00:01",
     "run_duration": "0:00:18",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-0/visualize_miseq_library.visualize_miseq_library/4df693ad-25f1-4ab7-b180-c328f20696be/call-visualize",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   },
   {
     "name": "miseq_libraries.vis_python_stats:visualize_miseq_library.visualize",
@@ -318,8 +318,8 @@
     "queue_duration": "0:00:00",
     "run_duration": "0:00:09",
     "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/miseq_libraries/5c7ca4aa-6bc2-4f90-a80c-6232ee64e1f0/call-vis_python_stats/shard-1/visualize_miseq_library.visualize_miseq_library/f29dadf4-f642-450a-8f8d-cd5b34f886cd/call-visualize",
-    "max_time": "06:00:00",
-    "cpu": "32",
-    "memory": "116 GB"
+    "requested_time": "06:00:00",
+    "requested_cpu": "32",
+    "requested_memory": "116 GB"
   }
 ]
