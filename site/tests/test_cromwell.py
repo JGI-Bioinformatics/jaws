@@ -71,7 +71,9 @@ def test_task(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     task = metadata.tasks["main_workflow.hello_and_goodbye_1"]
-    assert task.get("executionStatus", -1, 1) == "Done"
+    shard_index = -1  # not a sharded task
+    attempt = 1  # generally only 1 attempt
+    assert task.calls[shard_index][attempt].execution_status == "Done"
 
 
 def test_task_subworkflow(requests_mock):
@@ -81,7 +83,9 @@ def test_task_subworkflow(requests_mock):
     )
     metadata2 = crom.get_metadata(example_cromwell_run_id_2)
     task = metadata2.tasks["main_workflow.hello_and_goodbye_1"]
-    taskMetadata = task.get("subWorkflowMetadata")
+    shard_index = -1  # not a sharded task
+    attempt = 1  # generally only 1 attempt
+    taskMetadata = task.calls[shard_index][attempt].subworkflow
     assert taskMetadata.get("rootWorkflowId") == "c720836c-0931-4ddc-8366-774160e05531"
 
 
@@ -157,10 +161,13 @@ def test_task_stdout(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_1)
     task = metadata.tasks["fq_count.count_seqs"]
+    shard_index = -1  # not a sharded task
+    attempt = 1  # generally only 1 attempt
+    call = task.calls[shard_index][attempt]
     expected_stderr = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stderr"  # noqa
     expected_stdout = "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/stdout"  # noqa
-    assert task.get("stderr") == expected_stderr
-    assert task.get("stdout") == expected_stdout
+    assert call.stderr == expected_stderr
+    assert call.stdout == expected_stdout
 
 
 def test_metadata_tasks(requests_mock):

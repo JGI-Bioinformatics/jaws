@@ -64,12 +64,14 @@ class Call:
         self.name = task_name
         self.attempt = data.get("attempt", None)
 
-        self.status = data.get("executionStatus", None)
+        self.execution_status = data.get("executionStatus", None)
         self.shard_index = data.get("shardIndex", None)
         self.subworkflow = None
         self.cached = False
         self.start = data.get("start", None)
         self.end = data.get("end", None)
+        self.stdout = self.data.get("stdout", None)
+        self.stderr = self.data.get("stderr", None)
 
         if "subWorkflowMetadata" in data:
             self.subworkflow = Metadata(data["subWorkflowMetadata"])
@@ -82,8 +84,8 @@ class Call:
         self.run_duration = None
         self.dir = None
 
-        if self.data.get("stdout", None):
-            self.dir = re.sub(r"/stdout$", "", self.data["stdout"])
+        if self.stdout is not None:
+            self.dir = re.sub(r"/stdout$", "", self.stdout)
 
         if "callCaching" in self.data and "hit" in self.data["callCaching"]:
             self.cached = self.data["callCaching"]["hit"]
@@ -168,7 +170,7 @@ class Call:
             "name": self.name,
             "attempt": self.attempt,
             "cached": self.cached,
-            "status": self.status,
+            "status": self.execution_status,
             "queue_start": self.queue_start,
             "run_start": self.run_start,
             "run_end": self.run_end,
@@ -187,7 +189,7 @@ class Call:
             self.name,
             self.attempt,
             self.cached,
-            self.status,
+            self.execution_status,
             self.queue_start,
             self.run_start,
             self.run_end,
@@ -215,18 +217,18 @@ class Call:
                 logs.append(log)
             return logs
 
-    def errors(self):
+    def error(self):
         """
         Errors report, if failed (else None).
         :return: errors report
         :rtype: dict
         """
-        if self.status != "Failed":
+        if self.execution_status != "Failed":
             return None
 
         result = {
-            "shardIndex": self.shard_index,
             "attempt": self.attempt,
+            "shardIndex": self.shard_index,
         }
         if self.subworkflow is None:
             # simple task (not a subworkflow)
@@ -279,15 +281,13 @@ class Task:
         self.data = data
         self.calls = {}  # shard_index (str) => Call
         for call_data in data:
-            shard_index = call_data[
-                "shardIndex"
-            ]  # -1 for regular (not scattered) tasks
-            attempt = call_data["attempt"]  # usually only 1
-            if (
-                shard_index not in self.calls
-                or attempt > self.calls[shard_index].attempt
-            ):
-                self.calls[shard_index] = Call(call_data, self.name)
+            # shardIndex is "-1" for regular (not scattered) tasks
+            shard_index = int(call_data["shardIndex"])
+            if shard_index not in self.calls:
+                self.calls[shard_index] = {}
+            # in general, there is only 1 attempt
+            attempt = int(call_data["attempt"])
+            self.calls[shard_index][attempt] = Call(call_data, self.name)
 
     def logs(self):
         """
@@ -296,9 +296,10 @@ class Task:
         :rtype: list
         """
         all_logs = []
-        for call in self.calls:
-            for call_log in call.logs():
-                all_logs.append(call_log)
+        for shard_index in self.calls.keys():
+            for attempt in self.calls[shard_index].keys():
+                call = self.calls[shard_index][attempt]
+                all_logs.append(call.log())
         return all_logs
 
     def errors(self):
@@ -311,9 +312,12 @@ class Task:
         :rtype: dict
         """
         all_errors = []
-        for call in self.calls:
-            for call_errors in call.errors():
-                all_errors.append(call_errors)
+        for shard_index in self.calls.keys():
+            for attempt in self.calls[shard_index].keys():
+                call = self.calls[shard_index][attempt]
+                call_error = call.error()
+                if call_error is not None:
+                    all_errors.append(call_error)
         return all_errors
 
 
