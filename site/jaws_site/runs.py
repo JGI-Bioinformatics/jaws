@@ -169,10 +169,16 @@ class Run:
         return self.metadata().started_running()
 
     def task_summary(self):
-        return self.metadata().task_summary()
+        if self.data.cromwell_run_id:
+            return self.metadata().task_summary()
+        else:
+            return []
 
     def task_log(self):
-        return self.metadata().task_log()
+        if self.data.cromwell_run_id:
+            return self.metadata().task_log()
+        else:
+            return []
 
     def report(self) -> dict:
         """Produce full report of Run and Task info"""
@@ -191,7 +197,7 @@ class Run:
 
         # transform task data structure and add to report
         report["tasks"] = []
-        tasks = self.task_status()
+        tasks = self.task_summary()
         for task_name in tasks:
             entries = tasks[task_name]
             entries["name"] = task_name
