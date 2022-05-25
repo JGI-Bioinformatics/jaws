@@ -25,7 +25,6 @@ check_sleep = 30
 def test_jaws_get(submit_fq_count_wdl):
     """
     1) I will check that the input WDL and json file are saved in the output dir.
-       (70f82d8f-352f-48ce-a21d-3e4ede4daef3.orig.json  70f82d8f-352f-48ce-a21d-3e4ede4daef3.wdl)
 
     2) I will also check that the raw cromwell file structure was created
 
@@ -38,9 +37,9 @@ def test_jaws_get(submit_fq_count_wdl):
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
 
-    input_wdl = f"run_{run_id}.wdl"
-    input_json = f"run_{run_id}.json"
-    outdir = str(uuid.uuid4())
+    input_wdl = "fq_count.wdl"
+    input_json = "fq_count.json"
+    outdir = "test-output-jaws-get"
 
     time.sleep(30)
     cmd = "jaws get --quiet --complete %s %s" % (run_id, outdir)
