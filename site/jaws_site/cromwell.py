@@ -59,23 +59,36 @@ class Call:
         :param data: This is the original call record from the cromwell metadata
         :ptype data: dict
         """
+        if "subWorkflowMetadata" in data:
+            raise CallError(f"Task {task_name} is a subworkflow, not a Call object")
         self.data = data
         self.task_name = task_name
         self.name = task_name
         self.attempt = data.get("attempt", None)
-
-        self.execution_status = data.get("executionStatus", None)
         self.shard_index = data.get("shardIndex", None)
-        self.subworkflow = None
-        self.cached = False
+        self.execution_status = data.get("executionStatus", None)
+        self.cached = None
+        self.return_code = data.get("returnCode", None)
         self.start = data.get("start", None)
         self.end = data.get("end", None)
         self.stdout = self.data.get("stdout", None)
         self.stderr = self.data.get("stderr", None)
+        self.call_root = self.data.get("callRoot", None)
+        self.execution_dir = None
+        self.job_id = self.data.get("jobId", None)
+        self.max_time = None
+        self.memory = None
+        self.cpu = None
 
-        if "subWorkflowMetadata" in data:
-            self.subworkflow = Metadata(data["subWorkflowMetadata"])
-            return
+        if self.stdout is not None:
+            self.execution_dir = re.sub(r"/stdout$", "", self.stdout)
+        elif self.call_root is not None:
+            self.execution_dir = f"{self.call_root}/execution"
+
+        if "runtimeAttributes" in self.data:
+            self.max_time = self.data["runtimeAttributes"].get("time", None)
+            self.memory = self.data["runtimeAttributes"].get("memory", None)
+            self.cpu = self.data["runtimeAttributes"].get("cpu", None)
 
         self.queue_start = None
         self.run_start = None
@@ -83,9 +96,6 @@ class Call:
         self.queue_duration = None
         self.run_duration = None
         self.dir = None
-
-        if self.stdout is not None:
-            self.dir = re.sub(r"/stdout$", "", self.stdout)
 
         if "callCaching" in self.data and "hit" in self.data["callCaching"]:
             self.cached = self.data["callCaching"]["hit"]
@@ -170,13 +180,13 @@ class Call:
             "name": self.name,
             "attempt": self.attempt,
             "cached": self.cached,
-            "status": self.execution_status,
+            "execution_status": self.execution_status,
             "queue_start": self.queue_start,
             "run_start": self.run_start,
             "run_end": self.run_end,
             "queue_duration": self.queue_duration,
             "run_duration": self.run_duration,
-            "dir": self.dir,
+            "execution_dir": self.execution_dir,
         }
         return record
 
@@ -195,7 +205,7 @@ class Call:
             self.run_end,
             self.queue_duration,
             self.run_duration,
-            self.dir,
+            self.execution_dir,
         ]
         return row
 
@@ -205,17 +215,7 @@ class Call:
         :rtype: list
         """
         if self.subworkflow is None:
-            return [self.summary(fmt)]
-        else:
-            logs = []
-            sub_logs = self.subworkflow.logs(fmt=fmt)
-            for log in sub_logs:
-                if fmt == "dict":
-                    log["name"] = f"{self.name}:{log['name']}"
-                else:
-                    log[0] = f"{self.name}:{log[0]}"
-                logs.append(log)
-            return logs
+            return self.summary(fmt)
 
     def error(self):
         """
@@ -261,16 +261,12 @@ class TaskError(Exception):
 class Task:
     """
     A Task may have multiple calls, corresponding to multiple attempts and/or shards.
-    Only the last attempt is kept.
     If a Task is a subworkflow, it's Call object will contain a Metadata object.
     """
 
     def __init__(self, name, data):
         """
-        Initialize a Task object, which may contain multiple shards or be a subworkflow.
-        A Task may contain multiple calls corresponding to multiple shards, but only the
-        last attempt is represented by the object, for simplicity and ease of use.  We
-        currently don't care about prior attempts because we've never actually seen them.
+        Initialize a Task object, which may contain multiple shards or a subworkflow.
 
         :param name: Task name
         :type name: str
@@ -279,15 +275,23 @@ class Task:
         """
         self.name = name
         self.data = data
-        self.calls = {}  # shard_index (str) => Call
+        self.calls = {}
+        self.subworkflows = {}
         for call_data in data:
             # shardIndex is "-1" for regular (not scattered) tasks
             shard_index = int(call_data["shardIndex"])
-            if shard_index not in self.calls:
-                self.calls[shard_index] = {}
             # in general, there is only 1 attempt
             attempt = int(call_data["attempt"])
-            self.calls[shard_index][attempt] = Call(call_data, self.name)
+
+            if "subWorkflowMetadata" in call_data:
+                sub_data = call_data["subWorkflowMetadata"]
+                if shard_index not in self.subworkflows:
+                    self.subworkflows[shard_index] = {}
+                self.subworkflows[shard_index][attempt] = Metadata(sub_data)
+            else:
+                if shard_index not in self.calls:
+                    self.calls[shard_index] = {}
+                self.calls[shard_index][attempt] = Call(call_data, self.name)
 
     def logs(self):
         """
@@ -301,6 +305,23 @@ class Task:
                 call = self.calls[shard_index][attempt]
                 all_logs.append(call.log())
         return all_logs
+#    def logs(self, fmt="list"):
+#        """
+#        :return: logs (one if task, many if subworkflow)
+#        :rtype: list
+#        """
+#        if self.subworkflow is None:
+#            return [self.summary(fmt)]
+#        else:
+#            logs = []
+#            sub_logs = self.subworkflow.logs(fmt=fmt)
+#            for log in sub_logs:
+#                if fmt == "dict":
+#                    log["name"] = f"{self.name}:{log['name']}"
+#                else:
+#                    log[0] = f"{self.name}:{log[0]}"
+#                logs.append(log)
+#            return logs
 
     def errors(self):
         """
@@ -319,6 +340,23 @@ class Task:
                 if call_error is not None:
                     all_errors.append(call_error)
         return all_errors
+
+    def summary(self):
+        result = []
+        for shard_index in self.calls.keys():
+            # include only last attempt in summary
+            attempt = sorted(self.calls[shard_index].keys())[-1]
+            call = self.calls[shard_index][attempt]
+            row = [
+                call.name,
+                call.job_id,
+                call.cached,
+                call.max_time,
+                call.execution_status,
+                call.call_root
+            ]
+            result.append(row)
+        return result
 
 
 class CromwellError(Exception):
