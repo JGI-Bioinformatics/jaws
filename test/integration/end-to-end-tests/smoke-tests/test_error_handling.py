@@ -61,7 +61,7 @@ def test_should_fail_task_status(submit_bad_task):
     id = str(submit_bad_task["run_id"])
     cmd = "jaws task-status %s" % (id)
     (r, o, e) = util.run(cmd)
-    assert "command not found" in o.replace("\n", " ")
+    assert "No such command" in e.replace("\n", " ")
 
 
 def test_should_fail_task_log(submit_bad_task):
@@ -79,7 +79,7 @@ def test_should_fail_task_log(submit_bad_task):
     id = str(submit_bad_task["run_id"])
     cmd = "jaws task-log %s" % (id)
     (r, o, e) = util.run(cmd)
-    assert "command not found" in o.replace("\n", " ")
+    assert "No such command" in e.replace("\n", " ")
 
 
 def test_should_fail_log(submit_bad_task):
