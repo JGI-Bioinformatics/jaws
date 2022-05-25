@@ -1,8 +1,8 @@
 import pytest
 import submission_utils as util
 
-check_sleep = 360
-check_tries = 60
+check_sleep = 60
+check_tries = 360
 
 
 @pytest.fixture(scope="session")
@@ -25,9 +25,6 @@ def submit_fq_count_wdl(request):
     data =  {
     "max_ram_gb": 10,
     "run_id": 7105,
-    "site_id": "CORI",
-    "status": "uploading",
-    "tag": "submit_fq_count_wdl"
     }
     """
     data = util.submit_wdl(wdl, input_json, site)
