@@ -29,7 +29,7 @@ import logging
 import os
 import json
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil import parser
 
 
