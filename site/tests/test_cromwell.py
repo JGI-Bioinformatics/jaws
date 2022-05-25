@@ -388,84 +388,14 @@ def test_job_summary(requests_mock):
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
-# def test_get_task_cromwell_dir_mapping(monkeypatch):
-#    class TaskMetadata:
-#        def __init__(self, task_data):
-#            self.tasks = task_data
-#
-#        def summary(self):
-#            return self.tasks
-#
-#    def mock_cromwell(*args, **kwargs):
-#        class CromMetadata:
-#            task1 = [
-#                [
-#                    "align.stats",
-#                    1,
-#                    False,
-#                    "00:30:00",
-#                    "/scratch/cromwell-executions/align/C1/call-stats/execution",
-#                ],
-#            ]
-#            task2 = [
-#                [
-#                    "align.shard_wf:shard_wf.indexing",
-#                    2,
-#                    False,
-#                    "00:30:00",
-#                    "/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-indexing/execution",
-#                ],
-#                [
-#                    "align.shard_wf:shard_wf.map[0]",
-#                    3,
-#                    False,
-#                    "01:00:00",
-#                    "/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-map/shard-0/execution",
-#                ],
-#                [
-#                    "align.shard_wf:shard_wf.merge",
-#                    4,
-#                    False,
-#                    "00:30:00",
-#                    "/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-merge/execution",
-#                ],
-#                [
-#                    "align.shard_wf:shard_wf.shard",
-#                    5,
-#                    False,
-#                    "00:30:00",
-#                    "/scratch/cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-shard/execution",
-#                ],
-#            ]
-#            task3 = [
-#                [
-#                    "no_cromwell_dir",
-#                    1,
-#                    False,
-#                    "00:30:00",
-#                    "",
-#                ],
-#            ]
-#
-#            def __init__(self):
-#                self.tasks = {
-#                    "align.stats": TaskMetadata(CromMetadata.task1),
-#                    "align.bbmap_shard_wf": TaskMetadata(CromMetadata.task2),
-#                    "no_cromwell_dir": TaskMetadata(CromMetadata.task3),
-#                }
-#
-#        return CromMetadata()
-#
-#    monkeypatch.setattr(cromwell.Cromwell, "get_metadata", mock_cromwell)
-#
-#    expected = {
-#        "cromwell-executions/align/C1/call-stats/execution": "align.stats",
-#        "cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-indexing/execution": "align.shard_wf:shard_wf.indexing",  # noqa
-#        "cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-map/shard-0/execution": "align.shard_wf:shard_wf.map[0]",  # noqa
-#        "cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-merge/execution": "align.shard_wf:shard_wf.merge",  # noqa
-#        "cromwell-executions/align/C1/call-shard_wf/align.shard_wf/C2/call-shard/execution": "align.shard_wf:shard_wf.shard",  # noqa
-#    }
-#    mock_session = None
-#    tasks = TaskLog(mock_session, cromwell_run_id="EXAMPLE-CROMWELL-RUN-ID")
-#    actual = tasks.get_task_cromwell_dir_mapping()
-#    assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
+def test_parse_cromwell_task_dir():
+
+    test_data = [
+        [ "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9/execution", "jgi_dap_leo.trimAlign_expt[9]" ],
+        [ "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution", "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello" ]
+    ]
+
+    for task_dir, expected in test_data:
+        result = cromwell.parse_cromwell_task_dir(task_dir)
+        actual = result["name"]
+        assert actual == expected
