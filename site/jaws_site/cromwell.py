@@ -29,6 +29,7 @@ import logging
 import os
 import json
 import io
+from datetime import datetime
 from dateutil import parser
 
 
@@ -234,7 +235,7 @@ class Call:
             return None
         stderr_mtime = os.path.getmtime(self.stderr)
         if stderr_mtime:
-            self.run_start = stderr_mtime
+            self.run_start = datetime.fromtimestamp(stderr_mtime).strftime("%Y-%m-%d %H:%M:%S")
 
 
 class TaskError(Exception):
