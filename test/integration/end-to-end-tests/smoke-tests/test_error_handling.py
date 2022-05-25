@@ -202,7 +202,7 @@ def test_timeout(dir, site):
     input_json = dir + INP
 
     run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
-    util.wait_for_run(run_id, check_tries=5, check_sleep=30)
+    util.wait_for_run(run_id, check_tries, check_sleep=30)
 
     time.sleep(30)
 
