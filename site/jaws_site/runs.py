@@ -171,17 +171,6 @@ class Run:
     def task_log(self):
         return self.metadata().task_log()
 
-    def did_run_start(self):
-        """
-        Cromwell doesn't distinguish between Queued and Running states.
-        JAWS considers a Run as "Queued" until at least one task executes.
-        """
-        task_status = self.task_status()
-        for task in task_status:
-            if task["status"] in ["Running", "Done", "Failed"]:
-                return True
-        return False
-
     def report(self) -> dict:
         """Produce full report of Run and Task info"""
         # get cromwell metadata
@@ -223,7 +212,9 @@ class Run:
             self.update_run_status("cancelled")
         except Exception as error:
             logger.error(f"Failed to cancel Run {self.data.id}: {error}")
-            raise RunDbError(f"Change Run {self.data.id} status to cancelled failed: {error}")
+            raise RunDbError(
+                f"Change Run {self.data.id} status to cancelled failed: {error}"
+            )
 
         if self.data.cromwell_run_id and orig_status in [
             "submitted",
@@ -503,7 +494,7 @@ class Run:
                 # although Cromwell may consider a Run to be "Running", since it does not distinguish between
                 # "queued" and "running", we check the task-log to see if any task is "running"; only once any
                 # task is running does the Run transition to the "running" state.
-                if self.did_run_start() is True:
+                if self.metadata().started_running() is True:
                     self.update_run_status("running")
         elif cromwell_status == "Failed":
             self.update_run_status("failed")

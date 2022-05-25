@@ -29,6 +29,7 @@ import logging
 import os
 import json
 import io
+from datetime import datetime
 from dateutil import parser
 
 
@@ -98,13 +99,21 @@ class Call:
         if "executionEvents" in self.data:
             for event in self.data["executionEvents"]:
                 if event["description"] == "RequestingExecutionToken":
-                    self.queue_start = event["startTime"]
+                    self.queue_start = parser.parse(event["startTime"]).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
                 elif event["description"] == "RunningJob":
-                    self.run_start = event["startTime"]
+                    self.run_start = parser.parse(event["startTime"]).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
                 elif event["description"] == "CallCacheReading":
-                    self.run_start = event["startTime"]
+                    self.run_start = parser.parse(event["startTime"]).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
                 elif event["description"] == "UpdatingJobStore":
-                    self.run_end = event["startTime"]
+                    self.run_end = parser.parse(event["startTime"]).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
         if self.queue_start is not None and self.run_start is not None:
             delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
             self.queue_duration = str(delta)
@@ -509,10 +518,20 @@ class Metadata:
                 info["run_start"],
                 info["run_end"],
                 info["queue_duration"],
-                info["run_duration"]
+                info["run_duration"],
             ]
             table.append(row)
         return table
+
+    def started_running(self):
+        """
+        :return: True if any task actually started running; false otherwise.
+        :rtype: bool
+        """
+        for info in self.task_summary():
+            if info["run_start"] is not None:
+                return True
+        return False
 
     def job_summary(self):
         """Return task info, organized by job_id."""
