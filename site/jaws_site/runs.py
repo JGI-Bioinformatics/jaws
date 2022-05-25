@@ -165,7 +165,7 @@ class Run:
             self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
         return self._metadata
 
-    def errors_report(self):
+    def errors(self):
         return self.metadata().errors()
 
     def task_summary(self):
