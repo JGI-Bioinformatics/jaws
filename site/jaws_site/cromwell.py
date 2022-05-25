@@ -116,7 +116,7 @@ class Call:
                     self.run_end = parser.parse(event["startTime"]).strftime(
                         "%Y-%m-%d %H:%M:%S"
                     )
-        self.queue_start = self.start  # let's try not using the event time  TODO
+        self.queue_start = self.start  # let's try not using the event time  TODO PICK ONE
         if self.queue_start is not None and self.run_start is not None:
             delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
             self.queue_duration = str(delta)
@@ -236,6 +236,9 @@ class Call:
         stderr_mtime = os.path.getmtime(self.stderr)
         if stderr_mtime:
             self.run_start = datetime.fromtimestamp(stderr_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            if self.queue_start is not None and self.run_start is not None:
+                delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
+                self.queue_duration = str(delta)
 
 
 class TaskError(Exception):
