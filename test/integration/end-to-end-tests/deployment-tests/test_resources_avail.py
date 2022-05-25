@@ -33,7 +33,7 @@ def test_skylake_250G(submit_skylake_250):
     (r, o, e) = util.run(cmd)
 
     status_info = json.loads(o)
-    assert status_info["status"] == "download complete"
+    assert status_info["status"] == "done"
     assert status_info["result"] == "succeeded"
 
 
@@ -48,5 +48,5 @@ def test_skylake_500G(submit_skylake_500):
     (r, o, e) = util.run(cmd)
 
     status_info = json.loads(o)
-    assert status_info["status"] == "download complete"
+    assert status_info["status"] == "done"
     assert status_info["result"] == "succeeded"

@@ -1,8 +1,8 @@
 import pytest
 import submission_utils as util
 
-check_sleep = 360
-check_tries = 60
+check_sleep = 60
+check_tries = 360
 
 
 @pytest.fixture(scope="session")
@@ -25,9 +25,6 @@ def submit_fq_count_wdl(request):
     data =  {
     "max_ram_gb": 10,
     "run_id": 7105,
-    "site_id": "CORI",
-    "status": "uploading",
-    "tag": "submit_fq_count_wdl"
     }
     """
     data = util.submit_wdl(wdl, input_json, site)
@@ -79,7 +76,7 @@ def submit_bad_task(request):
     id = data["run_id"]
 
     # wait for run to complete
-    util.wait_for_run(id, check_tries, check_sleep)
+    util.wait_for_run(id, check_tries, check_sleep=30)
     return data
 
 
@@ -123,7 +120,7 @@ def submit_bad_sub_task(request):
     id = data["run_id"]
 
     # wait for run to complete
-    util.wait_for_run(id, check_tries, check_sleep)
+    util.wait_for_run(id, check_tries, check_sleep=30)
     return data
 
 
@@ -216,8 +213,7 @@ def clone_tutorials_repo(request):
     """
     # clone the jaws-tutorial-examples repo
     cmd = (
-        "git clone -b master "
-        "https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples.git"
+        "git clone https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples.git"
     )
     util.run(cmd)
 
