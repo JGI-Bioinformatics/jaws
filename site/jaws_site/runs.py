@@ -197,11 +197,8 @@ class Run:
 
         # transform task data structure and add to report
         report["tasks"] = []
-        tasks = self.task_summary()
-        for task_name in tasks:
-            entries = tasks[task_name]
-            entries["name"] = task_name
-            report["tasks"].append(entries)
+        for task in self.task_summary():
+            report["tasks"].append(task)
 
         return report
 
