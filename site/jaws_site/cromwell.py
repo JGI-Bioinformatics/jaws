@@ -31,6 +31,7 @@ import json
 import io
 from datetime import datetime, timezone
 from dateutil import parser
+from collections import deque
 
 
 def _read_file(path: str):
@@ -819,7 +820,7 @@ class Cromwell:
         return result["status"]
 
 
-# TODO: Moved from deprecated tasks.py but this code seems wrong.
+# TODO: Moved from deprecated tasks.py but this code has been replaced by the function below
 #    def get_task_cromwell_dir_mapping(self):
 #        """
 #        Return a dictionary that maps the cromwell directory to the task name for each task in the run.
@@ -848,3 +849,58 @@ class Cromwell:
 #                    entry[4] = cromwell_dir
 #                    cromwell_to_task_names[cromwell_dir] = entry[0]
 #        return cromwell_to_task_names
+
+def parse_cromwell_task_dir(task_dir):
+    """
+    Given path of a task, return task fields.
+    """
+    result = {
+        "call_root": task_dir,
+        "cached": False,
+        "shard": -1,
+    }
+    if task_dir.endswith("/execution"):
+        result["call_root"] = result["call_root"].rstrip("/execution")
+    else:
+        task_dir = f"{task_dir}/execution"
+    (root_dir, subdir) = task_dir.split("cromwell-executions/")
+    result["call_root_rel_path"] = subdir
+    fields = deque(subdir.split("/"))
+    result["wdl_name"] = fields.popleft()
+    result["name"] = result["wdl_name"]
+    result["cromwell_run_id"] = fields.popleft()
+    if not fields[0].startswith("call-"):
+        raise ValueError(f"Problem parsing {subdir}")
+    result["task_name"] = fields.popleft().lstrip("call-")
+    result["name"] = f"{result['name']}.{result['task_name']}"
+    if fields[0].startswith("shard-"):
+        result["shard"] = int(fields.popleft().lstrip("shard-"))
+        result["name"] = f"{result['name']}[{result['shard']}]"
+    if fields[0] == "execution":
+        return result
+    elif fields[0] == "cacheCopy":
+        result["cached"] = True
+        return result
+
+    # subworkflow
+    result["subworkflow_name"] = fields.popleft()
+    if not result["subworkflow_name"].startswith("sub."):
+        raise ValueError(f"Problem parsing {subdir}")
+    result["subworkflow_name"] = result["subworkflow_name"].lstrip("sub.")
+    result["name"] = f"{result['name']}:{result['subworkflow_name']}"
+    result["subworkflow_cromwell_run_id"] = fields.popleft()
+    if not fields[0].startswith("call-"):
+        raise ValueError(f"Problem parsing {subdir}")
+    result["sub_task_name"] = fields.popleft().lstrip("call-")
+    result["name"] = f"{result['name']}.{result['sub_task_name']}"
+    if fields[0].startswith("shard-"):
+        result["sub_shard"] = int(fields.popleft().lstrip("shard-"))
+        result["name"] = f"{result['name']}[{result['sub_shard']}]"
+    if fields[0] == "execution":
+        return result
+    elif fields[0] == "cacheCopy":
+        result["cached"] = True
+        return result
+    else:
+        raise ValueError(f"Problem parsing {subdir}")
+    return result
