@@ -165,6 +165,9 @@ class Run:
             self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
         return self._metadata
 
+    def did_run_start(self):
+        return self.metadata().started_running()
+
     def task_summary(self):
         return self.metadata().task_summary()
 
@@ -494,7 +497,7 @@ class Run:
                 # although Cromwell may consider a Run to be "Running", since it does not distinguish between
                 # "queued" and "running", we check the task-log to see if any task is "running"; only once any
                 # task is running does the Run transition to the "running" state.
-                if self.metadata().started_running() is True:
+                if self.did_run_start() is True:
                     self.update_run_status("running")
         elif cromwell_status == "Failed":
             self.update_run_status("failed")
