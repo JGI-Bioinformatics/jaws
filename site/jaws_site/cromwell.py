@@ -235,7 +235,7 @@ class Call:
             return None
         stderr_mtime = os.path.getmtime(self.stderr)
         if stderr_mtime:
-            self.run_start = datetime.fromtimestamp(stderr_mtime).strftime("%Y-%m-%d %H:%M:%S")
+            self.run_start = datetime.fromtimestamp(stderr_mtime, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
 
 class TaskError(Exception):
