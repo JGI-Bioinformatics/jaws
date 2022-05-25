@@ -179,7 +179,7 @@ def _select_runs(user: str, **kwargs):
     if "site_id" in kwargs:
         site_id = kwargs["site_id"].upper()
         if site_id != "ALL":
-            query = query.filter(Run.site_id == site_id)
+            query = query.filter(Run.compute_site_id == site_id)
     if "delta_days" in kwargs:
         delta_days = int(kwargs["delta_days"])
         if delta_days > 0:

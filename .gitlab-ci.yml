@@ -24,7 +24,7 @@ variables:
 
   ## GLOBAL INSTALL VARIABLES:
   JAWS_SITES: "CORI JGI TAHOMA AWS"
-  JAWS_VERSION: "2.8"
+  JAWS_VERSION: "2.8.2"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_RMQ_HOST: "rmq.lbl.gov"
@@ -147,7 +147,7 @@ variables:
   TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
   TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi/scratch"
   TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi/scratch"
-  TAHOMA_FAST_SCRATCH_DIR: "/fast_scratch"
+  TAHOMA_FAST_SCRATCH_DIR: ""
   TAHOMA_BIG_SCRATCH_DIR: "/big_scratch"
   TAHOMA_SUPERVISOR_HOST: "http://localhost"
   TAHOMA_CONTAINER_TYPE: "singularity"
