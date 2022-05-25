@@ -68,8 +68,10 @@ class Call:
         self.execution_status = data.get("executionStatus", None)
         self.cached = False
         self.return_code = data.get("returnCode", None)
-        self.start = data.get("start", None)
-        self.end = data.get("end", None)
+        self.start = parser.parse(data["start"]).strftime("%Y-%m-%d %H:%M:%S")
+        self.end = None
+        if "end" in data:
+            self.end = parser.parse(data["end"]).strftime("%Y-%m-%d %H:%M:%S")
         self.stdout = self.data.get("stdout", None)
         self.stderr = self.data.get("stderr", None)
         self.call_root = self.data.get("callRoot", None)
@@ -113,6 +115,7 @@ class Call:
                     self.run_end = parser.parse(event["startTime"]).strftime(
                         "%Y-%m-%d %H:%M:%S"
                     )
+        self.queue_start = self.start  # let's try not using the event time  TODO
         if self.queue_start is not None and self.run_start is not None:
             delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
             self.queue_duration = str(delta)
@@ -170,6 +173,9 @@ class Call:
         :return: Select fields
         :rtype: dict
         """
+        if self.execution_status == "Running":
+            # this will attempt to determine if the task has started running or not
+            self.get_run_start_time_from_stderr_file_stat()
         record = {
             "name": self.name,
             "shard_index": self.shard_index,
@@ -219,6 +225,16 @@ class Call:
             stdout_file = self.data["stdout"]
             result["stdoutContents"] = _read_file(stdout_file)
         return result
+
+    def get_run_start_time_from_stderr_file_stat(self):
+        """
+        Check the stderr mtime to see when the task started running.
+        """
+        if self.stderr is None or self.stderr.startswith("s3://"):
+            return None
+        stderr_mtime = os.path.getmtime(self.stderr)
+        if stderr_mtime:
+            self.run_start = stderr_mtime
 
 
 class TaskError(Exception):
