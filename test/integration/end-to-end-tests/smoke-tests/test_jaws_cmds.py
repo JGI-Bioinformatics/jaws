@@ -169,15 +169,19 @@ def test_jaws_errors(submit_bad_task):
 
 def test_jaws_log(submit_fq_count_wdl):
     """Check that the first line of jaws log returns something like this:
-    #STATUS_FROM     STATUS_TO          TIMESTAMP            REASON
-    created          uploading          2021-10-19 18:03:32  upload_task_id=8b9f89b8-3141-11ec-9e4a-3df4ed83d858
-    uploading        upload complete    2021-10-19 18:03:48
-    upload complete  submitted          2021-10-19 18:03:59  cromwell_run_id=caee40c2-a970-4433-8d3d-4572c3a94189
-    submitted        queued             2021-10-19 18:04:09
-    queued           running            2021-10-19 18:19:02
-    running          succeeded          2021-10-19 18:21:23
-    succeeded        downloading        2021-10-19 18:21:34  download_task_id=1007af1c-3144-11ec-b674-7102df104c9e
-    downloading      download complete  2021-10-19 18:22:18
+    #STATUS_FROM       STATUS_TO          TIMESTAMP            COMMENT
+    created            upload queued      2022-05-24 16:32:41
+    upload queued      upload complete    2022-05-24 16:32:52
+    upload complete    ready              2022-05-24 16:33:03
+    ready              submitted          2022-05-24 16:33:45  cromwell_run_id=1c222955-b4c2-4315-b3fd-7c4f20ffaa2d
+    submitted          queued             2022-05-24 16:33:56
+    queued             running            2022-05-24 16:37:23
+    running            succeeded          2022-05-24 16:37:23
+    succeeded          finished           2022-05-24 16:37:34
+    finished           download queued    2022-05-24 16:37:40
+    download queued    download complete  2022-05-24 16:39:16
+    download complete  email sent         2022-05-24 16:39:28
+    email sent         done               2022-05-24 16:39:39
     """
     run_id = str(submit_fq_count_wdl["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
@@ -187,13 +191,13 @@ def test_jaws_log(submit_fq_count_wdl):
     a = o.split("\n")
     a = list(filter(None, a))  # remove empty elements
 
-    assert "created" in a[1] and "uploading" in a[1]
+    assert "created" in a[1] and "upload queued" in a[1]
 
     # there should be 4 columns of output (but time is split into two so actually 5)
     assert len(a[1].split()) == 5
 
-    # there should be 7 output rows (including header)
-    assert len(a) == 9
+    # there should be 13 output rows (including header)
+    assert len(a) == 13
 
 
 def test_jaws_get(submit_bad_task):
@@ -237,15 +241,16 @@ def test_tag(submit_fq_count_wdl):
 
 def test_jaws_history_site_filter(site, submit_fq_count_wdl):
     """
-    jaws history --site [CORI, JGI, CASCADE]
+    jaws history --site [CORI, JGI, TAHOMA]
     """
+    site = "TAHOMA"
     cmd = "jaws history --site %s" % (site)
     (r, o, e) = util.run(cmd)
     data = json.loads(o)
 
     if data:
         for d in data:
-            assert d["site_id"].lower() == site.lower()
+            assert d["compute_site_id"].lower() == site.lower()
     else:
         assert 0, f"no runs were found in the history for site: {site}"
 
