@@ -14,12 +14,12 @@ fi
 
 MOUNT_FAST_SCRATCH=""
 if [ ! -z $FAST_SCRATCH ] && [ -d $FAST_SCRATCH ]; then
-    MOUNT_FAST_SCRATCH = "-V $FAST_SCRATCH:/fast_scratch"
+    MOUNT_FAST_SCRATCH="-V $FAST_SCRATCH:/fast_scratch"
 fi
 
 MOUNT_BIG_SCRATCH=""
 if [ ! -z $BIG_SCRATCH ] && [ -d $BIG_SCRATCH ] ; then
-    MOUNT_BIG_SCRATCH = "-V $BIG_SCRATCH:/big_scratch"
+    MOUNT_BIG_SCRATCH="-V $BIG_SCRATCH:/big_scratch"
 fi
 
 IMG=${1}
