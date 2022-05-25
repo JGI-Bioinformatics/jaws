@@ -168,11 +168,11 @@ class Run:
     def errors_report(self):
         return self.metadata().errors()
 
+    def task_summary(self):
+        return self.metadata().task_summary()
+
     def task_log(self):
         return self.metadata().task_log()
-
-    def task_status(self):
-        return self.metadata().task_status()
 
     def did_run_start(self):
         """

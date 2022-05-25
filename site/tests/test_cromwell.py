@@ -2,7 +2,6 @@ import json
 import os
 from deepdiff import DeepDiff
 from jaws_site import cromwell
-from tests.conftest import mock_task_status_table, mock_task_summary_table, this_date
 
 tests_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -96,50 +95,9 @@ def test_task_summary(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     actual = metadata.task_summary()
-    expected = [
-        [
-            "main_workflow.goodbye",
-            "12129",
-            False,
-            "00:10:00",
-            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-goodbye/execution",  # noqa
-        ],
-        [
-            "main_workflow.hello",
-            "12130",
-            False,
-            "00:10:00",
-            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello/execution",  # noqa
-        ],
-        [
-            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
-            "12134",
-            False,
-            "00:10:00",
-            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-goodbye/execution",  # noqa
-        ],
-        [
-            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-            "12133",
-            False,
-            "00:10:00",
-            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-hello/execution",  # noqa
-        ],
-        [
-            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
-            "12131",
-            False,
-            "00:10:00",
-            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-goodbye/execution",  # noqa
-        ],
-        [
-            "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
-            "12132",
-            False,
-            "00:10:00",
-            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-hello/execution",  # noqa
-        ],
-    ]
+    expected = __load_example_output_from_file(
+        example_cromwell_run_id_2, "task-summary"
+    )
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
     requests_mock.get(
@@ -148,6 +106,7 @@ def test_task_summary(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_5)
     actual = metadata.task_summary()
+    print(json.dumps(actual))  # ECCE
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
     )
@@ -195,6 +154,7 @@ def test_errors(requests_mock, monkeypatch):
 
     monkeypatch.setattr(cromwell, "_read_file", mock_read_file)
 
+    # simple workflow with no errors
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
@@ -211,6 +171,7 @@ def test_errors(requests_mock, monkeypatch):
         is False
     )
 
+    # simple workflow with errors
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_3}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_3, "metadata"),
@@ -229,6 +190,7 @@ def test_errors(requests_mock, monkeypatch):
         is False
     )
 
+    # failed, missing infile
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_4}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_4, "metadata"),
@@ -247,6 +209,7 @@ def test_errors(requests_mock, monkeypatch):
         is False
     )
 
+    # failed simple run
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_6}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_6, "metadata"),
@@ -265,6 +228,7 @@ def test_errors(requests_mock, monkeypatch):
         is False
     )
 
+    # failed run with subworkflows
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_7, "metadata"),
@@ -464,7 +428,7 @@ def test_job_summary(monkeypatch):
     assert bool(DeepDiff(actual_result, expected_result, ignore_order=True)) is False
 
 
-#def test_get_task_cromwell_dir_mapping(monkeypatch):
+# def test_get_task_cromwell_dir_mapping(monkeypatch):
 #    class TaskMetadata:
 #        def __init__(self, task_data):
 #            self.tasks = task_data

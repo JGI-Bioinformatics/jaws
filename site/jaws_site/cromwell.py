@@ -27,7 +27,6 @@ elsewhere in JAWS, as clarified below:
 import requests
 import logging
 import os
-import re
 import json
 import io
 from dateutil import parser
@@ -67,7 +66,7 @@ class Call:
         self.attempt = data.get("attempt", None)
         self.shard_index = data.get("shardIndex", None)
         self.execution_status = data.get("executionStatus", None)
-        self.cached = None
+        self.cached = False
         self.return_code = data.get("returnCode", None)
         self.start = data.get("start", None)
         self.end = data.get("end", None)
@@ -79,11 +78,6 @@ class Call:
         self.max_time = None
         self.memory = None
         self.cpu = None
-
-        if self.stdout is not None:
-            self.execution_dir = re.sub(r"/stdout$", "", self.stdout)
-        elif self.call_root is not None:
-            self.execution_dir = f"{self.call_root}/execution"
 
         if "runtimeAttributes" in self.data:
             self.max_time = self.data["runtimeAttributes"].get("time", None)
@@ -163,59 +157,29 @@ class Call:
         """
         return self._get_file_path("stderr", relpath)
 
-    def summary(self, fmt="dict"):
-        if fmt == "dict":
-            return self.as_dict()
-        elif fmt == "list":
-            return self.as_list()
-        else:
-            raise ValueError(f"Allowed formats are 'list', 'dict'; got: ${fmt}")
-
-    def as_dict(self):
+    def summary(self):
         """
         :return: Select fields
         :rtype: dict
         """
         record = {
             "name": self.name,
+            "shard_index": self.shard_index,
             "attempt": self.attempt,
             "cached": self.cached,
+            "job_id": self.job_id,
             "execution_status": self.execution_status,
             "queue_start": self.queue_start,
             "run_start": self.run_start,
             "run_end": self.run_end,
             "queue_duration": self.queue_duration,
             "run_duration": self.run_duration,
-            "execution_dir": self.execution_dir,
+            "call_root": self.call_root,
+            "max_time": self.max_time,
+            "cpu": self.cpu,
+            "memory": self.memory,
         }
         return record
-
-    def as_list(self):
-        """
-        :return: Select fields
-        :rtype: list
-        """
-        row = [
-            self.name,
-            self.attempt,
-            self.cached,
-            self.execution_status,
-            self.queue_start,
-            self.run_start,
-            self.run_end,
-            self.queue_duration,
-            self.run_duration,
-            self.execution_dir,
-        ]
-        return row
-
-    def logs(self, fmt="list"):
-        """
-        :return: logs (one if task, many if subworkflow)
-        :rtype: list
-        """
-        if self.subworkflow is None:
-            return self.summary(fmt)
 
     def error(self):
         """
@@ -225,32 +189,27 @@ class Call:
         """
         if self.execution_status != "Failed":
             return None
-
         result = {
             "attempt": self.attempt,
             "shardIndex": self.shard_index,
         }
-        if self.subworkflow is None:
-            # simple task (not a subworkflow)
-            if "failures" in self.data:
-                result["failures"] = self.data["failures"]
-            if "jobId" in self.data:
-                result["jobId"] = self.data["jobId"]
-            if "returnCode" in self.data:
-                result["returnCode"] = self.data["returnCode"]
-            if "runtimeAttributes" in self.data:
-                result["runtimeAttributes"] = self.data["runtimeAttributes"]
-            if "stderr" in self.data:
-                # include *contents* of stderr files, instead of file paths
-                stderr_file = self.data["stderr"]
-                result["stderrContents"] = _read_file(stderr_file)
-                result["stderrSubmitContents"] = _read_file(f"{stderr_file}.submit")
-            if "stdout" in self.data:
-                # include *contents* of stdout file, instead of file path
-                stdout_file = self.data["stdout"]
-                result["stdoutContents"] = _read_file(stdout_file)
-        else:
-            result["subWorkflowMetadata"] = self.subworkflow.errors()
+        if "failures" in self.data:
+            result["failures"] = self.data["failures"]
+        if "jobId" in self.data:
+            result["jobId"] = self.data["jobId"]
+        if "returnCode" in self.data:
+            result["returnCode"] = self.data["returnCode"]
+        if "runtimeAttributes" in self.data:
+            result["runtimeAttributes"] = self.data["runtimeAttributes"]
+        if "stderr" in self.data:
+            # include *contents* of stderr files, instead of file paths
+            stderr_file = self.data["stderr"]
+            result["stderrContents"] = _read_file(stderr_file)
+            result["stderrSubmitContents"] = _read_file(f"{stderr_file}.submit")
+        if "stdout" in self.data:
+            # include *contents* of stdout file, instead of file path
+            stdout_file = self.data["stdout"]
+            result["stdoutContents"] = _read_file(stdout_file)
         return result
 
 
@@ -305,29 +264,28 @@ class Task:
                 call = self.calls[shard_index][attempt]
                 all_logs.append(call.log())
         return all_logs
-#    def logs(self, fmt="list"):
-#        """
-#        :return: logs (one if task, many if subworkflow)
-#        :rtype: list
-#        """
-#        if self.subworkflow is None:
-#            return [self.summary(fmt)]
-#        else:
-#            logs = []
-#            sub_logs = self.subworkflow.logs(fmt=fmt)
-#            for log in sub_logs:
-#                if fmt == "dict":
-#                    log["name"] = f"{self.name}:{log['name']}"
-#                else:
-#                    log[0] = f"{self.name}:{log[0]}"
-#                logs.append(log)
-#            return logs
+
+    #    def logs(self, fmt="list"):
+    #        """
+    #        :return: logs (one if task, many if subworkflow)
+    #        :rtype: list
+    #        """
+    #        if self.subworkflow is None:
+    #            return [self.summary(fmt)]
+    #        else:
+    #            logs = []
+    #            sub_logs = self.subworkflow.logs(fmt=fmt)
+    #            for log in sub_logs:
+    #                if fmt == "dict":
+    #                    log["name"] = f"{self.name}:{log['name']}"
+    #                else:
+    #                    log[0] = f"{self.name}:{log[0]}"
+    #                logs.append(log)
+    #            return logs
 
     def errors(self):
         """
         Return user friendly errors report for this task/subworkflow.
-        This is a copy of the call data with only pertinent elements of the last
-        attempt included, for brevity and readability.
         The contents of the stderr, stderr.submit files are also added for convenience.
         :return: Errors report
         :rtype: dict
@@ -339,23 +297,31 @@ class Task:
                 call_error = call.error()
                 if call_error is not None:
                     all_errors.append(call_error)
+        for shard_index in self.subworkflows.keys():
+            for attempt in self.subworkflows[shard_index].keys():
+                sub_meta = self.subworkflows[shard_index][attempt]
+                sub_errors = {
+                    "shardIndex": shard_index,
+                    "attempt": attempt,
+                    "subWorkflowMetadata": sub_meta.errors(),
+                }
+                all_errors.append(sub_errors)
         return all_errors
 
     def summary(self):
         result = []
         for shard_index in self.calls.keys():
-            # include only last attempt in summary
-            attempt = sorted(self.calls[shard_index].keys())[-1]
-            call = self.calls[shard_index][attempt]
-            row = [
-                call.name,
-                call.job_id,
-                call.cached,
-                call.max_time,
-                call.execution_status,
-                call.call_root
-            ]
-            result.append(row)
+            for attempt in self.calls[shard_index].keys():
+                call = self.calls[shard_index][attempt]
+                result.append(call.summary())
+        for shard_index in self.subworkflows.keys():
+            for attempt in self.subworkflows[shard_index].keys():
+                sub_meta = self.subworkflows[shard_index][attempt]
+                for item in sub_meta.task_summary():
+                    renamed_item = item
+                    name = item["name"]
+                    renamed_item["name"] = f"{self.name}:{name}"
+                    result.append(renamed_item)
         return result
 
 
@@ -514,23 +480,39 @@ class Metadata:
 
     def task_summary(self):
         """
-        Return table of all tasks, including any subworkflows.
+        Return list of all tasks, including any subworkflows.
+        :return: List of task information dictionaries
+        :rtype: list
         """
         summary = []
         for task_name, task in self.tasks.items():
-            task_summary = task.summary()
-            for (
-                name,
-                job_id,
-                cached,
-                max_time,
-                execution_status,
-                cromwell_dir,
-            ) in task_summary:
-                summary.append(
-                    [name, job_id, cached, max_time, execution_status, cromwell_dir]
-                )
+            for item in task.summary():
+                summary.append(item)
         return summary
+
+    def task_log(self):
+        """
+        Return select task summary fields in table format.
+        :return: Table of tasks
+        :rtype: list
+        """
+        table = []
+        for info in self.task_summary():
+            name = info["name"]
+            if info["shard_index"] > 0:
+                name = f"{name}[{info['shard_index']}]"
+            row = [
+                name,
+                info["cached"],
+                info["execution_status"],
+                info["queue_start"],
+                info["run_start"],
+                info["run_end"],
+                info["queue_duration"],
+                info["run_duration"]
+            ]
+            table.append(row)
+        return table
 
     def job_summary(self):
         """Return task info, organized by job_id."""
