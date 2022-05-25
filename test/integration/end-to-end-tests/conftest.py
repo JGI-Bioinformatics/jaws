@@ -123,7 +123,7 @@ def submit_bad_sub_task(request):
     id = data["run_id"]
 
     # wait for run to complete
-    util.wait_for_run(id, check_tries, check_sleep)
+    util.wait_for_run(id, check_tries, check_sleep=30)
     return data
 
 
