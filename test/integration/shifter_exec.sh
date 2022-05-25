@@ -39,15 +39,6 @@ ID=$(echo $IMG | sed 's/.*://')
 #   HASH: jfroula/test:0.1.5
 #   ID: 0.1.5
 
-if [[ $HASH =~ "sha256" ]]; then
-    shifter --image=id:${ID} echo testing to see if we already have image > /dev/null 2>&1
-else
-    shifter --image=${IMG} echo testing to see if we already have image > /dev/null 2>&1
-fi
-if [[ $? == 0 ]]; then
-    echo "image already pulled: $IMG"
-fi
-
 # Run container script and catch exit code
 if [[ $HASH =~ "sha256" ]]; then
     shifter --image=id:$ID $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH $SHELL $SCRIPT
