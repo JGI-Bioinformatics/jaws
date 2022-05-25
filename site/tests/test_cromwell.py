@@ -119,9 +119,7 @@ def test_task_log(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     actual = metadata.task_log()
-    expected = __load_example_output_from_file(
-        example_cromwell_run_id_2, "task-log"
-    )
+    expected = __load_example_output_from_file(example_cromwell_run_id_2, "task-log")
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
@@ -391,8 +389,14 @@ def test_job_summary(requests_mock):
 def test_parse_cromwell_task_dir():
 
     test_data = [
-        [ "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9/execution", "jgi_dap_leo.trimAlign_expt[9]" ],
-        [ "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution", "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello" ]
+        [
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9/execution",  # noqa
+            "jgi_dap_leo.trimAlign_expt[9]",
+        ],
+        [
+            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
+            "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+        ],
     ]
 
     for task_dir, expected in test_data:
