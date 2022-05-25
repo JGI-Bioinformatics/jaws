@@ -73,7 +73,7 @@ def test_saved_subwdl(submit_subworkflow_alignment):
     (r, o, e) = util.run(cmd)
     assert not r
 
-    zip_file = os.path.join(outdir, f"run_{run_id}.zip")
+    zip_file = os.path.join(outdir, f"subworkflows.zip")
     assert os.path.exists(zip_file)
 
     cmd = "unzip -l %s" % (zip_file)

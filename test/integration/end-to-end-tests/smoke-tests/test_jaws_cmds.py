@@ -157,7 +157,7 @@ def test_jaws_metadata(submit_fq_count_wdl):
 
 
 def test_jaws_errors(submit_bad_task):
-    """Check that a jaws errors catches the stderr error"""
+    """Check that jaws errors catches the stderr error"""
     run_id = str(submit_bad_task["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)
 
