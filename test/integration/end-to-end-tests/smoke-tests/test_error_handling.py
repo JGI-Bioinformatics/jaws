@@ -17,6 +17,7 @@ import json
 import time
 from subprocess import Popen, PIPE
 import submission_utils as util
+import pytest
 
 check_tries = 360
 check_sleep = 60
@@ -61,7 +62,7 @@ def test_should_fail_task_status(submit_bad_task):
     id = str(submit_bad_task["run_id"])
     cmd = "jaws task-status %s" % (id)
     (r, o, e) = util.run(cmd)
-    assert "command not found" in o.replace("\n", " ")
+    assert "No such command" in e.replace("\n", " ")
 
 
 def test_should_fail_task_log(submit_bad_task):
@@ -79,7 +80,7 @@ def test_should_fail_task_log(submit_bad_task):
     id = str(submit_bad_task["run_id"])
     cmd = "jaws task-log %s" % (id)
     (r, o, e) = util.run(cmd)
-    assert "command not found" in o.replace("\n", " ")
+    assert "No such command" in e.replace("\n", " ")
 
 
 def test_should_fail_log(submit_bad_task):
@@ -109,6 +110,7 @@ def test_should_fail_log(submit_bad_task):
     assert "failed" in a, "jaws-log should say run failed"
 
 
+@pytest.mark.xfail(reason="waiting for ticket to be resolved #1329")
 def test_invalid_site(site):
     """
     jaws submit --no-cache --quiet WDLs/fq_count.wdl test-inputs/fq_count.json o smo
@@ -189,6 +191,7 @@ def test_bad_sub_workflow_error_msg(submit_bad_sub_task):
     assert "echoooo: command not found" in o, "sub workflow command error should appear in errors"
 
 
+@pytest.mark.xfail(reason="condor is not using the time: element in the runtime, but we may soon")
 def test_timeout(dir, site):
     """
     TESTCASE-44
@@ -202,7 +205,7 @@ def test_timeout(dir, site):
     input_json = dir + INP
 
     run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
-    util.wait_for_run(run_id, check_tries, check_sleep)
+    util.wait_for_run(run_id, check_tries, check_sleep=30)
 
     time.sleep(30)
 

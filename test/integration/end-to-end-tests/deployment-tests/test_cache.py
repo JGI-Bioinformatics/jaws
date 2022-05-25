@@ -30,9 +30,6 @@ def return_submit_data(cmd):
     # test_cache.py::test_cache: {
     # "max_ram_gb": 10,
     # "run_id": 7615,
-    # "site_id": "CORI",
-    # "status": "uploading",
-    # "tag": null
     # }
     x = re.search(r"{.*}", o, re.DOTALL)
     run_id = 0
