@@ -34,6 +34,7 @@ def test_json_file_does_not_exist(dir, site):
 
 
 def test_input_file_is_not_json_format(dir, site):
+    """Pass in a wdl instead of a json inputs file and check the error message"""
     wdl = os.path.join(dir, "WDLs/fq_count.wdl")
     # testing for message when inputs file is not json, so using wdl again instead of a json file
     inputs = wdl
@@ -41,7 +42,7 @@ def test_input_file_is_not_json_format(dir, site):
     (r, o, e) = util.run(cmd)
 
     # check for the correct error message
-    assert "is not a valid JSON file" in e
+    assert "Your inputs JSON is invalid" in e
 
 
 def test_json_bad_path_to_input_file_msg(dir, site):
@@ -54,18 +55,9 @@ def test_json_bad_path_to_input_file_msg(dir, site):
     submit_cmd = "jaws submit --quiet --no-cache %s %s %s" % (wdl, inputs, site)
     cmd = submit_cmd
     (r, o, e) = util.run(cmd)
-    data = json.loads(o)
-    run_id = data["run_id"]
 
     # check for the correct error message
-    assert "WARNING: Input path not found or inaccessible" in e
-
-    cmd = "jaws cancel %s" % (run_id)
-    (r, o, e) = util.run(cmd)
-    data = json.loads(o)
-    assert 'cancelled' in o
-
-
+    assert "Input path not found or inaccessible" in e
 
 ## @pytest.mark.xfail
 #def test_misspelled_variable_in_input_file_msg(dir, site):

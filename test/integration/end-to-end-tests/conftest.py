@@ -100,7 +100,7 @@ def submit_bad_docker(request):
 
     # wait for run to complete
     id = data["run_id"]
-    util.wait_for_run(id, check_tries=5, check_sleep=30)
+    util.wait_for_run(id, check_tries, check_sleep)
 
     # print(data)  # used for debugging
     return data
