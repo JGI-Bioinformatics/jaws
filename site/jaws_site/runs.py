@@ -60,6 +60,7 @@ class Run:
             "aws_region_name": config.conf.get("AWS", "aws_region_name"),
             "aws_secret_access_key": config.conf.get("AWS", "aws_secret_access_key"),
             "cromwell_url": config.conf.get("CROMWELL", "url"),
+            "cromwell_executions_dir": config.conf.get("CROMWELL", "executions_dir"),
         }
 
     @classmethod
@@ -275,7 +276,8 @@ class Run:
         """
         if self.data.cromwell_run_id:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            return metadata.workflow_root()
+            path = metadata.workflow_root(executions_dir=self.config["cromwell_executions_dir"])
+            return path
         else:
             return None
 

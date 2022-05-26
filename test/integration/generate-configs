@@ -9,6 +9,7 @@ set -eo pipefail
 # Exits if any required var is undefined.
 REQUIRED_VARS="
 CONFIG_DIR
+CROMWELL_EXECUTIONS_DIR
 CROMWELL_PORT
 DEPLOYMENT_NAME
 JAWS_RMQ_HOST
@@ -118,6 +119,7 @@ downloads_dir = $SITE_DOWNLOADS_DIR
 default_container = $JAWS_DEFAULT_CONTAINER
 [CROMWELL]
 url = http://localhost:$CROMWELL_PORT
+executions_dir = $CROMWELL_EXECUTIONS_DIR
 [AWS]
 aws_access_key_id = $AWS_ACCESS_KEY_ID
 aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
