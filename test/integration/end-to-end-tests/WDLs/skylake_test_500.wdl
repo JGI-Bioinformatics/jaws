@@ -15,15 +15,9 @@ task count_seqs {
         File outfile = "num_seqs.txt"
     }
     runtime {
-        poolname: "skylake_test"
         time: "00:10:00"
         memory: "450G"
-        node: 1
-        nwpn: 1
-        shared: 0
-        constraint: "skylake"
-        qos: "jgi_exvivo"
-        account: "fungalp"
+        cpu: 1
     }
 }
 
