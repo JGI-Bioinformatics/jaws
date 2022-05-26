@@ -204,7 +204,7 @@ class Run:
         report["tasks"] = []
         for task in self.task_summary():
             task["status"] = None
-            if task["result"] == "succeeded";
+            if task["result"] == "succeeded":
                 task["status"] = "success"
             elif task["result"] == "failed":
                 task["status"] = "failure"
