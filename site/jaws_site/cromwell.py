@@ -477,7 +477,7 @@ class Metadata:
     def workflow_name(self):
         return self.get("workflowName", "unknown")
 
-    def workflow_root(self):
+    def workflow_root(self, **kwargs):
         """
         Return the base location for the Run.
         Note that workflowRoot is only defined when using NFS;
@@ -487,7 +487,15 @@ class Metadata:
         if workflow_root:
             return workflow_root
 
-        # extract from an outfile or return empty string if no outfiles.
+        # AWS runs don't have workflowRoot defined, so construct path
+        workflow_name = self.get("workflowName", None)
+        workflow_id = self.get("id", None)
+        if "executions_dir" in kwargs:
+            executions_dir = kwargs["executions_dir"]
+            workflow_root = f"{executions_dir}/{workflow_name}/{workflow_id}"
+            return workflow_root
+
+        # for AWS, if executions dir was not provided, try to infer from an outfile
         outputs = self.get("outputs", {})
         an_outfile = None
         for key, value in outputs.items():
@@ -508,10 +516,13 @@ class Metadata:
                 # a typical task produces outputs which may be a file path
                 an_outfile = value
                 break
-        if not an_outfile:
-            return None
-        (root, partial_path) = an_outfile.split(self.workflow_id)
-        workflow_root = os.path.join(root, self.workflow_id)
+        if an_outfile is not None:
+            (root, partial_path) = an_outfile.split(self.workflow_id)
+            workflow_root = os.path.join(root, self.workflow_id)
+            return workflow_root
+
+        # for AWS, if the run doesn't have an outfile, return path relative to cromwell-execution dir
+        workflow_root = f"{workflow_name}/{workflow_id}"
         return workflow_root
 
     def filtered_failures(self):
@@ -863,6 +874,7 @@ class Cromwell:
 #                    entry[4] = cromwell_dir
 #                    cromwell_to_task_names[cromwell_dir] = entry[0]
 #        return cromwell_to_task_names
+
 
 def parse_cromwell_task_dir(task_dir):
     """

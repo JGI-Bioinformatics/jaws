@@ -117,9 +117,9 @@ id = $JAWS_SITE
 inputs_dir = $SITE_INPUTS_DIR
 downloads_dir = $SITE_DOWNLOADS_DIR
 default_container = $JAWS_DEFAULT_CONTAINER
-cromwell_executions_dir = $CROMWELL_EXECUTIONS_DIR
 [CROMWELL]
 url = http://localhost:$CROMWELL_PORT
+executions_dir = $CROMWELL_EXECUTIONS_DIR
 [AWS]
 aws_access_key_id = $AWS_ACCESS_KEY_ID
 aws_secret_access_key = $AWS_SECRET_ACCESS_KEY

@@ -58,9 +58,10 @@ def test_workflow_root(requests_mock):
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_9}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_9, "metadata"),
     )
-    expectedWorkflowRoot = "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d"  # noqa
+    expected = "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d"
     metadata = crom.get_metadata(example_cromwell_run_id_9)
-    assert expectedWorkflowRoot == metadata.workflow_root()
+    actual = metadata.workflow_root()
+    assert expected == actual
 
 
 def test_task(requests_mock):
