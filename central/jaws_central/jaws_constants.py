@@ -21,5 +21,7 @@ run_status_msg = {
     "downloading": "The Run's output files are being transferred from the compute-site",
     "download failed": "The Run's output files could not be transferred from the compute-site",
     "download inactive": "Globus transfer stalled.",
-    "download complete": "Your Run's output (succeeded or failed) have been transferred from the compute-site",
+    "download complete": "Your Run's output (succeeded or failed) are available for you to `get`",
+    "email sent": "Notification of run completion was sent via email",
+    "done": "The run is complete."
 }
