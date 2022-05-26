@@ -148,6 +148,7 @@ class Run:
         summary = {
             "run_id": self.data.id,
             "user_id": self.data.user_id,
+            "cromwell_run_id" : self.data.cromwell_run_id,
             "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
             "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
             "status": self.data.status,
@@ -186,13 +187,9 @@ class Run:
         This is published to the runs-elasticsearch service.
         Some fields of the cromwell task summary are renamed for backwards compatability.
         """
-        # get cromwell metadata
         metadata = self.metadata()
-
-        report = self.summary(last_attempt=True)
-        report["run_id"] = self.data.id
+        report = self.summary()
         report["workflow_name"] = metadata.get("workflowName")
-        report["cromwell_run_id"] = self.data.cromwell_run_id
 
         # self.summary returns a keyname compute_site_id. this was formely named site_id. To satisfy backwards
         # compatibility with kibana dashboard setup, need to rename compute_site_id back to site_id.
@@ -202,7 +199,7 @@ class Run:
         # transform task summary and add to report.
         # we change some elements for backwards compatability
         report["tasks"] = []
-        for task in self.task_summary():
+        for task in metadata.task_summary(last_attempts=True):
             task["status"] = None
             if task["result"] == "succeeded":
                 task["status"] = "success"
