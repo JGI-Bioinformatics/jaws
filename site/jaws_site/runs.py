@@ -148,7 +148,7 @@ class Run:
         summary = {
             "run_id": self.data.id,
             "user_id": self.data.user_id,
-            "cromwell_run_id" : self.data.cromwell_run_id,
+            "cromwell_run_id": self.data.cromwell_run_id,
             "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
             "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
             "status": self.data.status,
