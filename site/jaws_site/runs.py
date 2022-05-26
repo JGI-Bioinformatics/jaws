@@ -3,6 +3,7 @@ import logging
 import json
 import io
 from datetime import datetime
+from dateutil import parser
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 import boto3
@@ -148,6 +149,7 @@ class Run:
         summary = {
             "run_id": self.data.id,
             "user_id": self.data.user_id,
+            "cromwell_run_id": self.data.cromwell_run_id,
             "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
             "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
             "status": self.data.status,
@@ -186,23 +188,14 @@ class Run:
         This is published to the runs-elasticsearch service.
         Some fields of the cromwell task summary are renamed for backwards compatability.
         """
-        # get cromwell metadata
         metadata = self.metadata()
-
-        report = self.summary(last_attempt=True)
-        report["run_id"] = self.data.id
+        report = self.summary()
         report["workflow_name"] = metadata.get("workflowName")
-        report["cromwell_run_id"] = self.data.cromwell_run_id
-
-        # self.summary returns a keyname compute_site_id. this was formely named site_id. To satisfy backwards
-        # compatibility with kibana dashboard setup, need to rename compute_site_id back to site_id.
         report["site_id"] = report["compute_site_id"]
         del report["compute_site_id"]
 
-        # transform task summary and add to report.
-        # we change some elements for backwards compatability
         report["tasks"] = []
-        for task in self.task_summary():
+        for task in metadata.task_summary(last_attempts=True):
             task["status"] = None
             if task["result"] == "succeeded":
                 task["status"] = "success"
@@ -212,6 +205,12 @@ class Run:
             del task["execution_status"]
             task["cromwell_job_id"] = task["job_id"]
             del task["job_id"]
+            del task["queue_duration"]
+            queue_delta = parser.parse(task["run_start"]) - parser.parse(
+                task["queue_start"]
+            )
+            task["queue_time_sec"] = int(queue_delta.total_seconds())
+            del task["run_duration"]
             report["tasks"].append(task)
 
         return report
