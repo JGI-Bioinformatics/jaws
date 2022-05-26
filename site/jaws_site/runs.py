@@ -3,6 +3,7 @@ import logging
 import json
 import io
 from datetime import datetime
+from dateutil import parser
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 import boto3
@@ -190,14 +191,9 @@ class Run:
         metadata = self.metadata()
         report = self.summary()
         report["workflow_name"] = metadata.get("workflowName")
-
-        # self.summary returns a keyname compute_site_id. this was formely named site_id. To satisfy backwards
-        # compatibility with kibana dashboard setup, need to rename compute_site_id back to site_id.
         report["site_id"] = report["compute_site_id"]
         del report["compute_site_id"]
 
-        # transform task summary and add to report.
-        # we change some elements for backwards compatability
         report["tasks"] = []
         for task in metadata.task_summary(last_attempts=True):
             task["status"] = None
@@ -209,6 +205,14 @@ class Run:
             del task["execution_status"]
             task["cromwell_job_id"] = task["job_id"]
             del task["job_id"]
+            del task["queue_duration"]
+            queue_delta = parser.parse(task["run_start"]) - parser.parse(
+                task["queue_start"]
+            )
+            task["queue_time_sec"] = int(queue_delta.total_seconds())
+            del task["run_duration"]
+            run_delta = parser.parse(task["run_end"]) - parser.parse(task["run_start"])
+            task["run_time_sec"] = int(run_delta.total_seconds())
             report["tasks"].append(task)
 
         return report
