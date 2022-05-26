@@ -71,21 +71,78 @@ chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
 if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
-    CONTAINER_PULL=""
+    CONTAINER_PULL="
+    REPO=\$(echo \${docker} | sed 's/@.*//')
+    HASH=\$(echo \${docker} | sed 's/.*@//')
+    ID=\$(echo \${docker} | sed 's/.*://')
+    IMAGE=\${docker}
+    TAG=
+
+    if [[ \$HASH =~ \"sha256\" ]]; then
+         shifter --image=id:\$ID echo testing to see if we already have image > /dev/null 2>&1
+    else
+         shifter --image=\${docker} echo testing to see if we already have image > /dev/null 2>&1
+    fi
+
+    if [[ \$? == 0 ]]; then
+        echo \"image already pulled: \${docker}.\"
+    else
+        if [[ \$HASH =~ \"sha256\" ]]; then
+            # Try to figure out the version to pull
+            RT=\$(skopeo inspect docker://\${docker} | jq .RepoTags)
+            if [[ \$(echo \$RT | grep \"Error\" ) ]]; then
+                echo \"Failed to run skopeo for \$docker!\"
+                echo \"Error: \$RT.\"
+                exit 1
+            else
+                echo \"successfully pulled image \$IMAGE!\"
+            fi
+            for ttag in \$(echo \$RT | sed 's/[\",[]//g'); do
+                digest=\$(skopeo inspect docker://\$REPO:\$ttag | jq .Digest | sed 's/\"//g')
+                if [ \"\$digest\" == \"\$HASH\" ]; then
+                    TAG=\$ttag
+                    break
+                fi
+            done
+
+            if [ -z \$TAG ]; then
+                echo \"Unable to determine image version.\" 1>&2
+                exit 1
+            fi
+
+            IMAGE=\$REPO:\$TAG
+        else
+            IMAGE=\$REPO
+        fi
+    fi
+
+    # Pull image by tag
+    out=\$(shifterimg pull \$IMAGE 2>&1)
+    if [[ \$(echo \$out | grep \"FAILURE\" ) ]]; then
+        echo \"Invalid container name or failed to pull container, \$IMAGE!\"
+        echo \"Error: \$out.\"
+        exit 1
+    else
+        echo \"successfully pulled image \$IMAGE!\"
+    fi
+    "
     CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
+
     # note that double-quotation marks are required around optional scratch dirs
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${docker} \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \$IMAGE \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
 
     cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
     chmod 775 "$INSTALL_DIR/shifter_exec.sh"
     
 elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
-    CONTAINER_PULL="out=\$(docker pull \\${docker})
+    CONTAINER_PULL="
+    out=\$(docker pull \${docker})
     ret=\$?
     if [[ \$ret != 0 ]]; then
       echo \"Invalid container name or failed to pull container, \${docker}!\" >&2
-      exit \$ret
+      echo \"Error: \$out.\"
+      exit 1
     else
       echo \"Successfully pulled \${docker}!\"
     fi
@@ -99,7 +156,8 @@ elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
     chmod 775 "$INSTALL_DIR/docker_exec.sh"
 
 elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
-    CONTAINER_PULL="export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_TMPDIR
+    CONTAINER_PULL="
+    export SINGULARITY_CACHEDIR=$SITE_CONTAINERS_TMPDIR
     export SINGULARITY_PULLFOLDER=$SITE_CONTAINERS_PULLDIR
     export SINGULARITY_TMPDIR=$SITE_CONTAINERS_TMPDIR
     export SINGULARITY_LOCALCACHEDIR=$SITE_CONTAINERS_TMPDIR
@@ -118,13 +176,14 @@ elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
     singularity pull \$IMAGE docker://\${docker}  2>&1)
     ret=\$?
     if [[ \$ret == 0 ]]; then
-        echo \"Successfully pulled \\${docker}!\"
+        echo \"Successfully pulled \${docker}!\"
     else
         if [[ \$(echo \$out | grep \"exists\" ) ]]; then
             echo \"Image file already exists, \${docker}!\"
         else
             echo \"Failed to pull \${docker}!\" >&2
-            exit \$ret
+            echo \"Error: \$out.\"
+            exit 1
         fi
     fi
     "
