@@ -61,7 +61,7 @@ def test_for_raw_cromwell_files(submit_subworkflow_alignment):
     except OSError as error:
         print(f"Error: {outdir}: {error}")
 
-
+@pytest.mark.xfail(reason="We have a ticket for this")
 def test_saved_subwdl(submit_subworkflow_alignment):
     """
     subworkflow WDLs are saved in the user defined output dir

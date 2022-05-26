@@ -36,12 +36,9 @@ task cat {
     }
 
     runtime {
-      poolname: "test_small"
-      shared: 0
+      cpu: 1
       time: "0:10:00"
       memory: "5G"
-      node: 1
-      nwpn: 1
     }
 
     output {

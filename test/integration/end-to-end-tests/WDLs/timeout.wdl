@@ -20,12 +20,9 @@ task task_timeout {
         File outfile = "timeout.txt"
     }
     runtime {
-        poolname: "test_small"
-        node: 1
-        nwpn: 1
+        cpu: 1
         memory: "5G"
         time: "00:02:00"
-        shared: 0
     }
 }
 

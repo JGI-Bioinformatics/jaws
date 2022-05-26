@@ -152,7 +152,7 @@ def test_invalid_docker_a(submit_bad_docker):
 
     assert "failed" in o, "jaws-log should say run failed"
 
-
+@pytest.mark.xfail(reason="We open a ticket to fix two issues related with this test: #1342")
 def test_invalid_docker_b(site, submit_bad_docker):
     """
     TESTCASE-33

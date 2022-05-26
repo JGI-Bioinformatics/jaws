@@ -22,12 +22,9 @@ task echo {
     }
 
     runtime {
-      poolname: "test_small"
-      shared: 0
       time: "0:10:00"
       memory: "5G"
-      node: 1
-      nwpn: 1
+      cpu: 1
     }
 
     output {
