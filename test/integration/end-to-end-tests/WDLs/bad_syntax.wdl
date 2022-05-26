@@ -16,12 +16,9 @@ task count_seqs {
         File outfile = "num_seqs.txt"
     }
     runtime {
-        poolname: "test_small"
-        node: 1
-        nwpn: 1
         memory: "5G"
         time: "00:10:00"
-        shared: 0
+        cpu: 1
     }
 }
 

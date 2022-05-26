@@ -34,12 +34,9 @@ task count_seqs {
     }
 
     runtime {
-        poolname: "test_small"
-        node: 1
-        nwpn: 1
         memory: max_mem
         time: max_time
-        shared: 0
+        cpu: 1
     }
 }
 

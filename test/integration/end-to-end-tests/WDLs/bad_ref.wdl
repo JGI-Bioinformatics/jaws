@@ -12,12 +12,9 @@ task task1 {
     }
 
     runtime {   
-        poolname: "referece_db_pool"
-        shared: 0
-        node: 1
-        nwpn: 1
         memory: "5G"
         time: "00:20:00"
+        cpu: 1
     }
 
     output { File outfile = "tmp.txt" }
