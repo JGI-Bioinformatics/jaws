@@ -44,15 +44,13 @@ from jaws_jtm.lib.run import (
     extract_cromwell_id,
 )
 from jaws_jtm.lib.msgcompress import zdumps, zloads
-from jaws_rpc import rpc_server, responses, rpc_client
+from jaws_rpc import rpc_server, responses
 
 
 # --------------------------------------------------------------------------------------------------
 # Globals
 # --------------------------------------------------------------------------------------------------
 NUM_TOTAL_WORKERS = mp.Value("i", 0)
-# global instance for rpc_client
-RPC_CLIENT = None
 
 
 class WorkerResultReceiver(JtmAmqpstormBase):
@@ -169,12 +167,9 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                     self.task_status["pending"],
                     self.task_status["running"],
                 ):
-                    ret_status = 4 if task_status_int > 0 else -2
+                    # ret_status = 4 if task_status_int > 0 else -2
                     if status_now == self.task_status["ready"]:
                         logger.debug("process result --> ready to queued")
-                        send_update_task_status_msg(
-                            task_id, TASK_STATUS["ready"], TASK_STATUS["queued"]
-                        )
                         db.execute(
                             JTM_SQL["update_runs_status_by_taskid"]
                             % dict(
@@ -186,9 +181,6 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         )
                         db.commit()
                         logger.debug("process result --> queued to pending")
-                        send_update_task_status_msg(
-                            task_id, TASK_STATUS["queued"], TASK_STATUS["pending"]
-                        )
                         db.execute(
                             JTM_SQL["update_runs_status_by_taskid"]
                             % dict(
@@ -200,9 +192,6 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         )
                         db.commit()
                         logger.debug("process result --> pending to running")
-                        send_update_task_status_msg(
-                            task_id, TASK_STATUS["pending"], TASK_STATUS["running"]
-                        )
                         db.execute(
                             JTM_SQL["update_runs_status_by_taskid"]
                             % dict(
@@ -215,9 +204,6 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         db.commit()
                     elif status_now == self.task_status["queued"]:
                         logger.debug("process result --> queued to pending")
-                        send_update_task_status_msg(
-                            task_id, TASK_STATUS["queued"], TASK_STATUS["pending"]
-                        )
                         db.execute(
                             JTM_SQL["update_runs_status_by_taskid"]
                             % dict(
@@ -229,9 +215,6 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         )
                         db.commit()
                         logger.debug("process result --> pending to running")
-                        send_update_task_status_msg(
-                            task_id, TASK_STATUS["pending"], TASK_STATUS["running"]
-                        )
                         db.execute(
                             JTM_SQL["update_runs_status_by_taskid"]
                             % dict(
@@ -244,9 +227,6 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         db.commit()
                     elif status_now == self.task_status["pending"]:
                         logger.debug("process result --> pending to running")
-                        send_update_task_status_msg(
-                            task_id, TASK_STATUS["pending"], TASK_STATUS["running"]
-                        )
                         db.execute(
                             JTM_SQL["update_runs_status_by_taskid"]
                             % dict(
@@ -259,13 +239,6 @@ class WorkerResultReceiver(JtmAmqpstormBase):
                         db.commit()
 
                     logger.debug("process result --> running to succeeded/failed")
-                    send_update_task_status_msg(
-                        task_id,
-                        TASK_STATUS["running"],
-                        ret_status,
-                        fail_code=done_flag if done_flag < 0 else None,
-                        reason=ret_msg,
-                    )
 
             db.execute(
                 JTM_SQL["update_tasks_doneflag_by_taskid"]
@@ -635,81 +608,6 @@ def extract_cromwell_run_id(task_id: int) -> str:
 
 
 # --------------------------------------------------------------------------------------------------
-def send_update_task_status_msg(
-    task_id: int, status_from, status_to: int, fail_code=None, reason=None
-):
-    """
-    Publish a message for pushing task status change to JAWS Site
-
-    :param task_id:
-    :param status_from: None or status code 0 ~ 4 or -2 if failed
-    :param status_to: status code 0 ~ 4 or -2 if failed
-    :param fail_code: fail code if failed -1 ~ -7
-    :param reason: additional info string like failure reason
-    :return: None
-    """
-    now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    run_id = extract_cromwell_run_id(task_id)
-    reversed_task_status = dict(map(reversed, CONFIG.constants.TASK_STATUS.items()))
-    reversed_done_flags = dict(map(reversed, CONFIG.constants.DONE_FLAGS.items()))
-    reason_str = ""
-    if fail_code:
-        reason_str += "%s, " % reversed_done_flags[fail_code]
-    if reason:
-        reason_str += "%s" % reason
-
-    data = {
-        "cromwell_run_id": run_id,  # this is not the JAWS run_id
-        "cromwell_job_id": task_id,
-        "status_from": reversed_task_status[status_from]
-        if status_from is not None
-        else "",
-        "status_to": reversed_task_status[status_to] if status_to is not None else "",
-        "timestamp": now,
-        "reason": reason_str,
-    }
-
-    # send message to Site
-    global RPC_CLIENT
-    if RPC_CLIENT is None:
-        RPC_CLIENT = rpc_client.RpcClient(
-            {
-                "host": CONFIG.configparser.get("SITE_RPC_CLIENT", "host"),
-                "vhost": CONFIG.configparser.get("SITE_RPC_CLIENT", "vhost"),
-                "port": CONFIG.configparser.get("SITE_RPC_CLIENT", "port"),
-                "user": CONFIG.configparser.get("SITE_RPC_CLIENT", "user"),
-                "queue": CONFIG.configparser.get("SITE_RPC_CLIENT", "queue"),
-                "password": CONFIG.configparser.get("SITE_RPC_CLIENT", "password"),
-            },
-            logger,
-        )
-
-    try:
-        wait_count = 0
-        response = RPC_CLIENT.request("update_job_status", data)
-        logger.debug(f"Return msg from JAWS Site: {response}")
-        while "error" in response and response["error"]["message"] == "Server timeout":
-            wait_count += 1
-            if wait_count == 60:  # try for 1min
-                logger.error("RPC reply timeout!")
-                break
-            logger.debug(
-                f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}"
-            )
-            time.sleep(1.0)
-            response = RPC_CLIENT.request("update_job_status", data)
-    except Exception as error:
-        logger.error(f"RPC call failed: {error}")
-        raise
-
-    if "result" in response:
-        logger.debug(f"Status change message sent successfully: {data}")
-        pass
-    else:
-        logger.error(f"Status update failed: {response['error']['message']}")
-
-
-# --------------------------------------------------------------------------------------------------
 def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
     """
 
@@ -914,12 +812,6 @@ def recv_hb_from_worker_proc(hb_queue_name, log_dest_dir, b_resource_log):
                                     if status_now == TASK_STATUS["pending"]:
                                         logger.debug(
                                             f"status change msg {task_id}: {status_now} => running"
-                                        )
-                                        send_update_task_status_msg(
-                                            task_id,
-                                            status_now,
-                                            TASK_STATUS["running"],
-                                            reason="slurm_jid=%d" % (slurm_job_id),
                                         )
 
                                 # Only if the status in (0, 1, 2), update status=3 = running
@@ -1360,9 +1252,6 @@ def process_task_request(msg):
             if not STANDALONE:
                 logger.debug("process task request...")
                 logger.debug(f"status change msg {last_task_id}: created => ready")
-                send_update_task_status_msg(
-                    last_task_id, TASK_STATUS["created"], TASK_STATUS["ready"]
-                )
 
             task_status_int = int(
                 db.selectScalar(
@@ -1398,12 +1287,6 @@ def process_task_request(msg):
                         logger.debug("process task request...")
                         logger.debug(
                             f"status change msg {last_task_id}: {task_status_int} => terminated"
-                        )
-                        send_update_task_status_msg(
-                            last_task_id,
-                            task_status_int,
-                            TASK_STATUS["failed"],
-                            fail_code=TASK_STATUS["terminated"],
                         )
             else:
                 # Prepare msg to jtm-worker
@@ -1449,13 +1332,6 @@ def process_task_request(msg):
                         logger.debug(
                             f"status change msg {last_task_id}: {status_now} => queued"
                         )
-                        if (
-                            status_now in (TASK_STATUS["ready"], TASK_STATUS["success"])
-                            or status_now < 0
-                        ):
-                            send_update_task_status_msg(
-                                last_task_id, status_now, TASK_STATUS["queued"]
-                            )
 
                     # Note: only when the previous status == ready
                     if status_now == TASK_STATUS["ready"]:
@@ -1500,18 +1376,6 @@ def process_task_request(msg):
                     logger.debug(
                         f"status change msg {last_task_id}: {status_now} => pending"
                     )
-                    if (
-                        status_now in (TASK_STATUS["queued"], TASK_STATUS["success"])
-                        or status_now < 0
-                    ):
-                        send_update_task_status_msg(
-                            last_task_id,
-                            status_now,
-                            TASK_STATUS["pending"],
-                            reason="slurm_jid=%d" % (slurm_job_id)
-                            if slurm_job_id > 0
-                            else "",
-                        )
 
                 # Note: only when the previous status == queued
                 if status_now == TASK_STATUS["queued"]:
@@ -1734,12 +1598,6 @@ def process_task_kill(task_id):
         if not STANDALONE:
             logger.debug("task kill...")
             logger.debug(f"status change msg {task_id}: {status_now} => terminated")
-            send_update_task_status_msg(
-                task_id,
-                status_now,
-                TASK_STATUS["failed"],
-                fail_code=TASK_STATUS["terminated"],
-            )
 
     if task_status:
         if task_status in (TASK_STATUS["ready"], TASK_STATUS["queued"]):
@@ -2035,12 +1893,6 @@ def task_kill_proc():
                 if not STANDALONE:
                     logger.debug("task kill proc...")
                     logger.debug(f"status change msg {tid}: '' => terminated")
-                    send_update_task_status_msg(
-                        tid,
-                        None,
-                        TASK_STATUS["failed"],
-                        fail_code=TASK_STATUS["terminated"],
-                    )
 
             except IndexError as e:
                 logger.exception(f"Failed to call send_task_kill_request(): {e}")
@@ -2214,8 +2066,7 @@ def manager(
     TASK_STATUS = CONFIG.constants.TASK_STATUS
     jtm_task_request_q = CONFIG.configparser.get("JTM", "jtm_task_request_q")
 
-    # if STANDALONE == 1, send_update_task_status_msg(), which sends task status change
-    # RMQ message to JAWS Site, won't be called
+    # if STANDALONE == 1, less logging
     global STANDALONE
     try:
         STANDALONE = CONFIG.configparser.getboolean("JTM", "standalone")

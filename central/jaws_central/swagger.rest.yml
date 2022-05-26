@@ -264,27 +264,6 @@ paths:
         404:
           description: The specified record does not exist
 
-  /run/{run_id}/task_status:
-    get:
-      operationId: jaws_central.rest.task_status
-      tags:
-        - run
-      summary: Retrieve a summary of a run's tasks
-      description: Return Cromwell status for each task
-      parameters:
-        - name: run_id
-          in: path
-          description: run_id of the run to retrieve
-          type: integer
-          required: True
-      responses:
-        200:
-          description: OK
-        401:
-          description: Authorization information is missing or invalid.
-        404:
-          description: The specified record does not exist
-
   /run/{run_id}/cancel:
     put:
       operationId: jaws_central.rest.cancel_run
@@ -349,7 +328,7 @@ paths:
 
   /run/{run_id}/task_log:
     get:
-      operationId: jaws_central.rest.task_log
+      operationId: jaws_central.rest.run_task_log
       tags:
         - run
       summary: Retrieve the task logs of a specified run
@@ -370,7 +349,7 @@ paths:
 
   /run/{run_id}/task_summary:
     get:
-      operationId: jaws_central.rest.task_summary
+      operationId: jaws_central.rest.run_task_summary
       tags:
         - run
       summary: Retrieve the task summary of a specified run
@@ -391,7 +370,7 @@ paths:
 
   /run/{run_id}/errors:
     get:
-      operationId: jaws_central.rest.get_errors
+      operationId: jaws_central.rest.run_errors
       tags:
         - run
       summary: Retrieve error messages for a run

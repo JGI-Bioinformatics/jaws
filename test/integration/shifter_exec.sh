@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 echo "Executing on $HOSTNAME" 1>&2
+echo "Begin execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
 IMG=$1          # jfroula/bbtools@sha256:
 SHELL=$2 # /bin/bash
 SCRIPT=$3       # script
@@ -47,6 +48,8 @@ else
 fi
 
 export EXIT_CODE=$?
+
+echo "End execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
 
 # Return with container exit code
 exit $EXIT_CODE

@@ -44,8 +44,7 @@ Run a command with --help to see it's options.
     * status       Print the current status of a run.
     * submit       Submit a run for execution at a JAWS-Site.
     * task-log     Get log of each Task's state transitions.
-    * task-status  Show the current status of each Task.
-      task-summary Get summary of each Task's state durations.
+      task-summary Get summary info on each Task.
       validate     Validate a WDL using Cromwell's WOMTool.
 
 The commands with an asterik have additional options. Expand the below commands to see them.

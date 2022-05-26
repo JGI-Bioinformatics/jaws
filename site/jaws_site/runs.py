@@ -3,11 +3,12 @@ import logging
 import json
 import io
 from datetime import datetime
+from dateutil import parser
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 import boto3
 import botocore
-from jaws_site import models, config, tasks, jaws_constants
+from jaws_site import models, config
 from jaws_site.cromwell import Cromwell, CromwellError
 
 logger = logging.getLogger(__package__)
@@ -48,7 +49,6 @@ class Run:
             kwargs["reports_rpc_client"] if "reports_rpc_client" in kwargs else None
         )
         self._metadata = None
-        self._task_log = None
 
         self.config = {
             "site_id": config.conf.get("SITE", "id"),
@@ -60,6 +60,7 @@ class Run:
             "aws_region_name": config.conf.get("AWS", "aws_region_name"),
             "aws_secret_access_key": config.conf.get("AWS", "aws_secret_access_key"),
             "cromwell_url": config.conf.get("CROMWELL", "url"),
+            "cromwell_executions_dir": config.conf.get("CROMWELL", "executions_dir"),
         }
 
     @classmethod
@@ -77,7 +78,9 @@ class Run:
                 status="ready",
             )
         except SQLAlchemyError as error:
-            raise RunDbError(f"Error creating model for new Run {params['run_id']}: {error}")
+            raise RunDbError(
+                f"Error creating model for new Run {params['run_id']}: {error}"
+            )
         try:
             session.add(data)
             session.commit()
@@ -147,10 +150,10 @@ class Run:
         summary = {
             "run_id": self.data.id,
             "user_id": self.data.user_id,
+            "cromwell_run_id": self.data.cromwell_run_id,
             "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
             "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
             "status": self.data.status,
-            "status_detail": jaws_constants.task_status_msg.get(self.data.status, ""),
             "result": self.data.result,
             "compute_site_id": self.config["site_id"],
         }
@@ -165,34 +168,51 @@ class Run:
             self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
         return self._metadata
 
+    def did_run_start(self):
+        return self.metadata().started_running()
+
+    def task_summary(self):
+        if self.data.cromwell_run_id:
+            return self.metadata().task_summary()
+        else:
+            return []
+
     def task_log(self):
-        """Lazy loading of Task Log"""
-        if not self._task_log:
-            self._task_log = tasks.TaskLog.from_run_id(self.session, self.data.id)
-        return self._task_log
+        if self.data.cromwell_run_id:
+            return self.metadata().task_log()
+        else:
+            return []
 
     def report(self) -> dict:
-        """Produce full report of Run and Task info"""
-        # get cromwell metadata
+        """
+        Produce full report of Run and Task info.
+        This is published to the runs-elasticsearch service.
+        Some fields of the cromwell task summary are renamed for backwards compatability.
+        """
         metadata = self.metadata()
-
         report = self.summary()
-        report["run_id"] = self.data.id
         report["workflow_name"] = metadata.get("workflowName")
-        report["cromwell_run_id"] = self.data.cromwell_run_id
-
-        # self.summary returns a keyname compute_site_id. this was formely named site_id. To satisfy backwards
-        # compatibility with kibana dashboard setup, need to rename compute_site_id back to site_id.
         report["site_id"] = report["compute_site_id"]
         del report["compute_site_id"]
 
-        # transform task data structure and add to report
         report["tasks"] = []
-        tasks = self.task_log().task_status()
-        for task_name in tasks:
-            entries = tasks[task_name]
-            entries["name"] = task_name
-            report["tasks"].append(entries)
+        for task in metadata.task_summary(last_attempts=True):
+            task["status"] = None
+            if task["result"] == "succeeded":
+                task["status"] = "success"
+            elif task["result"] == "failed":
+                task["status"] = "failure"
+            del task["result"]
+            del task["execution_status"]
+            task["cromwell_job_id"] = task["job_id"]
+            del task["job_id"]
+            del task["queue_duration"]
+            queue_delta = parser.parse(task["run_start"]) - parser.parse(
+                task["queue_start"]
+            )
+            task["queue_time_sec"] = int(queue_delta.total_seconds())
+            del task["run_duration"]
+            report["tasks"].append(task)
 
         return report
 
@@ -212,7 +232,9 @@ class Run:
             self.update_run_status("cancelled")
         except Exception as error:
             logger.error(f"Failed to cancel Run {self.data.id}: {error}")
-            raise RunDbError(f"Change Run {self.data.id} status to cancelled failed: {error}")
+            raise RunDbError(
+                f"Change Run {self.data.id} status to cancelled failed: {error}"
+            )
 
         if self.data.cromwell_run_id and orig_status in [
             "submitted",
@@ -254,7 +276,8 @@ class Run:
         """
         if self.data.cromwell_run_id:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            return metadata.workflow_root()
+            path = metadata.workflow_root(executions_dir=self.config["cromwell_executions_dir"])
+            return path
         else:
             return None
 
@@ -492,8 +515,7 @@ class Run:
                 # although Cromwell may consider a Run to be "Running", since it does not distinguish between
                 # "queued" and "running", we check the task-log to see if any task is "running"; only once any
                 # task is running does the Run transition to the "running" state.
-                tasks_status = tasks.get_run_status(self.session, self.data.id)
-                if tasks_status == "running":
+                if self.did_run_start() is True:
                     self.update_run_status("running")
         elif cromwell_status == "Failed":
             self.update_run_status("failed")
@@ -569,7 +591,9 @@ class Run:
                 logger.exception(f"RPC save_run_report error: {error}")
                 return
             if "error" in response:
-                logger.warn(f"RPC save_run_report failed: {response['error']['message']}")
+                logger.warn(
+                    f"RPC save_run_report failed: {response['error']['message']}"
+                )
                 return
         self.update_run_status("finished")
 

@@ -459,7 +459,7 @@ def run_log(user: str, run_id: int):
     return table, 200
 
 
-def task_log(user, run_id):
+def run_task_log(user, run_id):
     """
     Retrieve log of all task state transitions.
 
@@ -473,10 +473,10 @@ def task_log(user, run_id):
     logger.info(f"User {user}: Get task-log for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "get_task_log")
+    return rpc_call(user, run_id, "run_task_log")
 
 
-def task_summary(user, run_id):
+def run_task_summary(user, run_id):
     """
     Retrieve summary of all task state transitions.
 
@@ -490,7 +490,7 @@ def task_summary(user, run_id):
     logger.info(f"User {user}: Get task-log for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "get_task_summary")
+    return rpc_call(user, run_id, "run_task_summary")
 
 
 def run_metadata(user, run_id):
@@ -564,7 +564,7 @@ def run_workflow_root(user, run_id):
     return result
 
 
-def get_errors(user, run_id):
+def run_errors(user, run_id):
     """
     Retrieve error messages and stderr for failed tasks.
 
@@ -578,7 +578,7 @@ def get_errors(user, run_id):
     logger.info(f"User {user}: Get errors for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "get_errors")
+    return rpc_call(user, run_id, "run_errors")
 
 
 def cancel_run(user, run_id):

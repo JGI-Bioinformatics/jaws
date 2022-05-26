@@ -133,18 +133,6 @@ source $SITE_VENV_DIR/bin/activate
 exec jaws-site --log $LOGS_DIR/site-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL rpc
 EOM
 
-## site jtm-rpc shim script
-cat <<EOM > "$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME"
-#!/bin/bash -l
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-
-source $SITE_VENV_DIR/bin/activate
-exec jaws-site --log $LOGS_DIR/site-jtm-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level DEBUG jtm-rpc
-EOM
-
 ## jtm shim script
 cat <<EOM > "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
 #!/bin/bash -l

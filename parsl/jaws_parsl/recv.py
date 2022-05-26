@@ -14,7 +14,6 @@ from multiprocessing.connection import Listener
 from functools import partial
 
 logger = None
-rpc_params = {}
 site = ''
 executor = ''
 cpus = 0
@@ -72,48 +71,9 @@ def on_task_callback(task_id, run_id, future):
         result = future.result()
     except Exception as e:
         logger.exception(f"[Task:{task_id}] failed with exception : {e}")
-        update_site('LAUNCHED', 'FAILED', task_id, run_id)
     else:
         logger.info(f"[Task:{task_id}] completed successfully")
         logger.info(f"Result: {result}")
-        update_site('LAUNCHED', 'COMPLETED', task_id, run_id)
-
-
-def update_site(status_from, status_to, task_id, run_id):
-    global rpc_params
-    now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    data = {
-        "cromwell_run_id": run_id,
-        "cromwell_job_id": task_id,
-        "status_from": status_from,
-        "status_to": status_to,
-        "timestamp": now,
-    }
-
-    # send message to Site
-    try:
-        with RpcClient({"user": rpc_params["user"],
-                        "password": rpc_params["password"],
-                        "host": rpc_params["host"],
-                        "vhost": rpc_params["vhost"],
-                        "port": rpc_params["port"],
-                        "queue": rpc_params["queue"]},
-                       logger
-                       ) as rpc_cl:
-            wait_count = 0
-            response = rpc_cl.request("update_job_status", data)
-            logger.debug(f"Return msg from JAWS Site: {response}")
-            while "error" in response and response["error"]["message"] == "Server timeout":
-                wait_count += 1
-                if wait_count == 60:  # try for 1min
-                    logger.error("RPC reply timeout!")
-                    break
-                logger.debug(f"RPC reply delay. Wait for a result from JAWS Site RPC server: {response}")
-                time.sleep(1.0)
-                response = rpc_cl.request("update_job_status", data)
-    except Exception as error:
-        logger.error(f"RPC call failed: {error}")
-        raise
 
 
 class TasksChannel():
@@ -175,7 +135,6 @@ class TasksChannel():
                 logger.debug(f"Task:{task_id} Launched")
                 run_id = get_cromwell_run_id(msg)
                 future.add_done_callback(partial(on_task_callback, task_id, run_id))
-                update_site('', 'LAUNCHED', task_id, run_id)
             except Exception as e:
                 logger.exception(f"Caught exception while waiting for message: {e}")
                 running = False
@@ -183,7 +142,6 @@ class TasksChannel():
 
 
 def cli():
-    global rpc_params
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", default=None,
@@ -197,8 +155,7 @@ def cli():
 
     jaws_parsl.config.Configuration(args.config)
 
-    site_id = rpc_params = jaws_parsl.config.conf.get_site_id()
-    rpc_params = jaws_parsl.config.conf.get_rpc_params()
+    site_id = jaws_parsl.config.conf.get_site_id()
 
     if site_id == "CORI":
         from jaws_parsl.parsl_configs.cori_config import CONFIG_CORI as config

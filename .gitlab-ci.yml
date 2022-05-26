@@ -167,8 +167,8 @@ variables:
   TAHOMA_PERFORMANCE_METRICS_SCRIPT: "/tahoma/mscjgi/jaws-metrics/bin/pagurus"
   TAHOMA_PERFORMANCE_METRICS_DIR: "/tahoma/mscjgi/jaws_jtm/monitoring-runs"
 
-  AWS_CLIENT_INSTALL_BASEDIR: "/opt/jaws-install/jaws-client/"
-  AWS_INSTALL_BASEDIR: "/opt/jaws-install"
+  AWS_CLIENT_INSTALL_BASEDIR: ""
+  AWS_INSTALL_BASEDIR: "/home/ec2-user"
   AWS_GLOBUS_EP: ""
   AWS_GLOBUS_HOST_PATH: ""
   AWS_PYTHON: "python3"
