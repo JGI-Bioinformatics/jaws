@@ -87,33 +87,34 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
     if [[ \$? == 0 ]]; then
         echo \"image already pulled: \${docker}.\"
     else
-      if [[ \$HASH =~ \"sha256\" ]]; then
-          #Try to figure out the version to pull
-          RT=\$(skopeo inspect docker://\${docker} | jq .RepoTags)
-          if [[ \$(echo \$RT | grep \"Error\" ) ]]; then
-              echo \"Failed to run skopeo for \$docker!\"
-              echo \"Error: \$RT.\"
-              exit 1
-          else
-              echo \"successfully pulled image \$IMAGE!\"
-          fi
-          for ttag in \$(echo \$RT | sed 's/[\",[]//g'); do
-              digest=\$(skopeo inspect docker://\$REPO:\$ttag | jq .Digest | sed 's/\"//g')
-              if [ \"\$digest\" == \"\$HASH\" ]; then
-                  TAG=\$ttag
-                  break
-              fi
-          done
+        if [[ \$HASH =~ \"sha256\" ]]; then
+            # Try to figure out the version to pull
+            RT=\$(skopeo inspect docker://\${docker} | jq .RepoTags)
+            if [[ \$(echo \$RT | grep \"Error\" ) ]]; then
+                echo \"Failed to run skopeo for \$docker!\"
+                echo \"Error: \$RT.\"
+                exit 1
+            else
+                echo \"successfully pulled image \$IMAGE!\"
+            fi
+            for ttag in \$(echo \$RT | sed 's/[\",[]//g'); do
+                digest=\$(skopeo inspect docker://\$REPO:\$ttag | jq .Digest | sed 's/\"//g')
+                if [ \"\$digest\" == \"\$HASH\" ]; then
+                    TAG=\$ttag
+                    break
+                fi
+            done
 
-          if [ -z \$TAG ]; then
-              echo \"Unable to determine image version.\" 1>&2
-              exit 1
-          fi
+            if [ -z \$TAG ]; then
+                echo \"Unable to determine image version.\" 1>&2
+                exit 1
+            fi
 
-          IMAGE=\$REPO:\$TAG
-      else
-          IMAGE=\$REPO
-      fi
+            IMAGE=\$REPO:\$TAG
+        else
+            IMAGE=\$REPO
+        fi
+    fi
 
     # Pull image by tag
     out=\$(shifterimg pull \$IMAGE 2>&1)
