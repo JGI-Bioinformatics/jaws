@@ -67,6 +67,7 @@ class Call:
         self.attempt = data.get("attempt", None)
         self.shard_index = data.get("shardIndex", None)
         self.execution_status = data.get("executionStatus", None)
+        self.result = None
         self.cached = False
         self.return_code = data.get("returnCode", None)
         self.start = parser.parse(data["start"]).strftime("%Y-%m-%d %H:%M:%S")
@@ -81,11 +82,22 @@ class Call:
         self.requested_time = None
         self.requested_memory = None
         self.requested_cpu = None
+        self.failure_message = None
+
+        if self.execution_status == "Failure":
+            self.result == "failed"
+        elif self.execution_status == "Done":
+            self.result == "succeeded"
 
         if "runtimeAttributes" in self.data:
             self.requested_time = self.data["runtimeAttributes"].get("time", None)
             self.requested_memory = self.data["runtimeAttributes"].get("memory", None)
             self.requested_cpu = self.data["runtimeAttributes"].get("cpu", None)
+
+        if "failures" in self.data:
+            # save last failure message only
+            for failure in self.data["failures"]:
+                self.failure_message = failure["message"]
 
         self.queue_start = None
         self.run_start = None
@@ -187,6 +199,8 @@ class Call:
             "cached": self.cached,
             "job_id": self.job_id,
             "execution_status": self.execution_status,
+            "result": self.result,
+            "failure_message": self.failure_message,
             "queue_start": self.queue_start,
             "run_start": self.run_start,
             "run_end": self.run_end,

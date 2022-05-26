@@ -185,7 +185,7 @@ class Run:
         # get cromwell metadata
         metadata = self.metadata()
 
-        report = self.summary()
+        report = self.summary(last_attempt=True)
         report["run_id"] = self.data.id
         report["workflow_name"] = metadata.get("workflowName")
         report["cromwell_run_id"] = self.data.cromwell_run_id
@@ -198,6 +198,11 @@ class Run:
         # transform task data structure and add to report
         report["tasks"] = []
         for task in self.task_summary():
+            # delete some unwanted keys, rename others
+            task["status"] = task["result"]
+            del task["result"]
+            del task["execution_status"]
+            del task["job_id"]
             report["tasks"].append(task)
 
         return report
