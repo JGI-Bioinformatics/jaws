@@ -26,7 +26,7 @@ password2 = ${LOCAL_RPC_SERVER_PASSWORD}
 password3 = ${LOCAL_RPC_SERVER_PASSWORD}$
 num_threads = 5
 max_retries = 3
-[CENTRAL_RPC_SERVER]
+[RPC_SERVER]
 host = currenthost
 vhost = jaws_test
 queue = eagle
@@ -57,12 +57,6 @@ queue = site_rpc_es
 [PERFORMANCE_METRICS]
 done_dir = /tmp/done_dir
 processed_dir = /tmp/processed_dir
-[GLOBUS]
-client_id = AAAA
-client_secret = BBBB
-endpoint_id = rooster
-host_path = /global/scratch/jaws
-host_path2 = ${GLOBAL_SCRATCH}/${PROJECT_NAME}
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
@@ -88,7 +82,7 @@ s3_bucket = CCCC
 @pytest.fixture
 def partial_config(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
-    content = """[CENTRAL_RPC_SERVER]
+    content = """[RPC_SERVER]
 host = https://rmq.nersc.gov
 vhost = jaws_test
 user = bugs_bunny
@@ -116,11 +110,6 @@ queue = site_rpc_es
 [PERFORMANCE_METRICS]
 done_dir =
 processed_dir =
-[GLOBUS]
-client_id = AAAA
-client_secret = BBBB
-endpoint_id = rooster
-host_path = /global/scratch/jaws
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
@@ -846,49 +835,3 @@ def mock_rpc_request(monkeypatch):
 
     data_obj = Data()
     return MockRpcClient()
-
-
-def mock_task_summary_table(*args, **kwargs):
-    return [
-        [
-            "task_abcd",  # task_name
-            "cromwell_abcd",  # cromwell_job_id
-            False,  # cached
-            "success",  # result
-            this_date,  # queued
-            "01:00:00",  # queue-wait
-            "02:00:00",  # run-time
-            "03:00:00",  # max-time
-        ],
-        [
-            "task_efgh",  # task_name
-            "cromwell_efgh",  # cromwell_job_id
-            True,  # cached
-            "success",  # result
-            this_date,  # queued
-            "04:00:00",  # queue-wait
-            "05:00:00",  # run-time
-            "06:00:00",  # max-time
-        ],
-    ]
-
-
-def mock_task_status_table(*args, **kwargs):
-    return [
-        [
-            "task_abcd",  # task_name
-            "cromwell_abcd",  # cromwell_job_id
-            False,  # cached
-            "success",  # status
-            this_date,  # timestamp
-            "reason_abcd",  # reason
-        ],
-        [
-            "task_efgh",  # task_name
-            "cromwell_efgh",  # cromwell_job_id
-            True,  # cached
-            "success",  # status
-            this_date,  # timestamp
-            "reason_efgh",  # reason
-        ],
-    ]

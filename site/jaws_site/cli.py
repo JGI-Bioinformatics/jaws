@@ -59,25 +59,10 @@ def rpc() -> None:
     models.create_all(engine, session)
 
     # start RPC server
-    rpc_server_params = config.conf.get_section("CENTRAL_RPC_SERVER")
+    rpc_server_params = config.conf.get_section("RPC_SERVER")
     logger = logging.getLogger(__package__)
     app = rpc_server.RpcServer(
         rpc_server_params, logger, rpc_operations.operations, Session
-    )
-    app.start_server()
-
-
-@cli.command()
-def jtm_rpc() -> None:
-    """Start RPC server for JTM."""
-    from jaws_site import jtm_rpc_operations
-    from jaws_site.database import Session
-    from jaws_rpc import rpc_server
-
-    jtm_rpc_server_params = config.conf.get_section("LOCAL_RPC_SERVER")
-    logger = logging.getLogger(__package__)
-    app = rpc_server.RpcServer(
-        jtm_rpc_server_params, logger, jtm_rpc_operations.operations, Session
     )
     app.start_server()
 

@@ -73,16 +73,7 @@ port = $JAWS_DB_PORT
 user = jaws
 password = $JAWS_DB_PW
 db = jaws_${JAWS_SITE,,}_$DEPLOYMENT_NAME
-[LOCAL_RPC_SERVER]
-user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
-vhost = jaws_$DEPLOYMENT_NAME
-queue = SITE_$JAWS_SITE
-num_threads = 5
-max_retries = 3
-[CENTRAL_RPC_SERVER]
+[RPC_SERVER]
 user = jaws
 password = $JAWS_RMQ_PW
 host = $JAWS_RMQ_HOST
@@ -150,13 +141,6 @@ vhost = jtm_$DEPLOYMENT_NAME
 script = $SITE_PERFORMANCE_METRICS_SCRIPT
 log_file = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}/logs/pagurus.log
 output_dir = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}
-[SITE_RPC_CLIENT]
-user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
-vhost = jaws_$DEPLOYMENT_NAME
-queue = SITE_$JAWS_SITE
 [JTM_RPC_SERVER]
 user = jaws
 password = $SITE_RMQ_PW
@@ -270,14 +254,6 @@ site_id = $JAWS_SITE
 host = $PARSL_MP_HOST
 password = $PARSL_MP_PASSWORD
 port = $PARSL_MP_PORT
-
-[SITE_RPC_CLIENT]
-host = $SITE_RMQ_HOST
-vhost = jtm_$DEPLOYMENT_NAME
-user = jaws
-password = $SITE_RMQ_PW
-port = $SITE_RMQ_PORT
-queue = SITE_$JAWS_SITE
 EOM
 
 

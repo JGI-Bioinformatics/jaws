@@ -124,8 +124,7 @@ From the output above, we see that the run_id was 1367.
     # check jaws status
     jaws status 1367
 
-    # check status of the tasks (the last command has the most detail)
-    jaws task-status 1367
+    # check status of the tasks
     jaws task-log 1367
 
 ***************

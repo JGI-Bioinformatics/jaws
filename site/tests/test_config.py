@@ -85,16 +85,13 @@ def test_overwrite_all_default_values(config_file):
     print("Checking LOCAL_RPC_SERVER with environment variables set.")
     os.environ['LOCAL_RPC_SERVER_PASSWORD'] = 'password'
     check_section("LOCAL_RPC_SERVER", expected_local_rpc_server_sections_env, cfg)
-    check_section("CENTRAL_RPC_SERVER", expected_central_rpc_server_sections, cfg)
+    check_section("RPC_SERVER", expected_central_rpc_server_sections, cfg)
     check_section("CENTRAL_RPC_CLIENT", expected_rpc_client_sections, cfg)
-    print("Checking GLOBUS without environment variables set.")
     # Clear potentially conflicting env vars
     try:
-        del os.environ['GLOBUS_SCRATCH']
         del os.environ['PROJECT_NAME']
     except KeyError:
         pass
-    os.environ['GLOBAL_SCRATCH'] = '/global/scratch'
     os.environ['PROJECT_NAME'] = 'jaws'
     check_section("DB", expected_db_sections, cfg)
     check_section("SITE", expected_site_sections, cfg)
@@ -110,6 +107,6 @@ def test_config_overwrite_partial_values(partial_config):
     config_path = partial_config
     cfg = jaws_site.config.Configuration(config_path)
 
-    check_section("CENTRAL_RPC_SERVER", [("host", "https://rmq.nersc.gov")], cfg)
-    check_section("CENTRAL_RPC_SERVER", [("vhost", "jaws_test")], cfg)
-    check_section("CENTRAL_RPC_SERVER", [("max_retries", "10")], cfg)
+    check_section("RPC_SERVER", [("host", "https://rmq.nersc.gov")], cfg)
+    check_section("RPC_SERVER", [("vhost", "jaws_test")], cfg)
+    check_section("RPC_SERVER", [("max_retries", "10")], cfg)

@@ -643,7 +643,7 @@ class WorkflowInputs:
             dirname = pathlib.Path(os.path.dirname(staged_path))
             dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
 
-            # Files must be copied in to ensure they are readable by the jaws and jtm users.  The group
+            # Files must be copied in to ensure they are readable by the "jaws" linux user.  The group
             # will be set correctly as a result of the gid sticky bit and acl rules on the inputs dir.
             copy_with_progress_bar(original_path, dest_path, quiet=quiet)
             try:

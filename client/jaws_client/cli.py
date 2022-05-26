@@ -312,30 +312,42 @@ def _print_space_delimited_table(header, table):
         )
 
 
-# @main.command()
-# @click.argument("run_id")
-# @click.option("--fmt", default="text", help="the desired output format: [text|json]")
-# def tasks(run_id: int, fmt: str) -> None:
-#     """Get Task logs and current status"""
-#
-#     url = f'{config.get("JAWS", "url")}/run/{run_id}/tasks'
-#     result = _request("GET", url)
-#     header = [
-#         "NAME",
-#         "CROMWELL_JOB_ID",
-#         "CACHED",
-#         "STATUS_FROM",
-#         "STATUS_TO",
-#         "TIMESTAMP",
-#         "COMMENT",
-#     ]
-#     _convert_all_fields_to_localtime(result, columns=[5])
-#     if fmt == "json":
-#         _print_json(result)
-#     elif fmt == "tab":
-#         _print_tab_delimited_table(header, result)
-#     else:
-#         _print_space_delimited_table(header, result)
+@main.command()
+@click.argument("run_id")
+@click.option("--fmt", default="text", help="the desired output format: [text|json]")
+def task_log(run_id: int, fmt: str) -> None:
+    """Get Task logs and current status"""
+
+    url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
+    result = _request("GET", url)
+    header = [
+        "NAME",
+        "CACHED",
+        "STATUS",
+        "QUEUED",
+        "RUNNING",
+        "FINISHED",
+        "QUEUE_DUR",
+        "RUN_DUR",
+    ]
+    _convert_all_fields_to_localtime(result, columns=[3, 4, 5])
+    if fmt == "json":
+        _print_json(result)
+    elif fmt == "tab":
+        _print_tab_delimited_table(header, result)
+    else:
+        _print_space_delimited_table(header, result)
+
+
+@main.command()
+@click.argument("run_id")
+def task_summary(run_id: int) -> None:
+    """Get summary info on each Task"""
+
+    url = f'{config.get("JAWS", "url")}/run/{run_id}/task_summary'
+    result = _request("GET", url)
+    _convert_all_fields_to_localtime(result, keys=["queue_start", "run_start", "run_end"])
+    _print_json(result)
 
 
 def _convert_to_table(header: list, jdoc: dict):

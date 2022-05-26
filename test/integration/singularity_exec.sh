@@ -39,10 +39,13 @@ if [[ ! -e $SCRIPT ]]; then
 fi
 
 echo "Executing on $HOSTNAME" 1>&2
+echo "Begin execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
 
 # Run container script and catch exit code
 singularity exec $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH --bind $CWD:$DOCKER_CWD $IMAGE $JOB_SHELL $SCRIPT
 export EXIT_CODE=$?
+
+echo "End execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
 
 # Return with container exit code
 exit $EXIT_CODE
