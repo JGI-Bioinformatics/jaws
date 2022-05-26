@@ -26,6 +26,8 @@ def test_run_status_msg():
         "download failed",
         "download inactive",
         "download complete",
+        "email sent",
+        "done"
     ]
 
     for status in valid_run_states:
