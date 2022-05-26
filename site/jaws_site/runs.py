@@ -211,8 +211,6 @@ class Run:
             )
             task["queue_time_sec"] = int(queue_delta.total_seconds())
             del task["run_duration"]
-            run_delta = parser.parse(task["run_end"]) - parser.parse(task["run_start"])
-            task["run_time_sec"] = int(run_delta.total_seconds())
             report["tasks"].append(task)
 
         return report
