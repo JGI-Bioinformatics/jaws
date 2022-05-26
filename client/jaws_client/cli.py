@@ -342,7 +342,7 @@ def task_log(run_id: int, fmt: str) -> None:
 @main.command()
 @click.argument("run_id")
 def task_summary(run_id: int) -> None:
-    """Get Task summary"""
+    """Get summary info on each Task"""
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_summary'
     result = _request("GET", url)
