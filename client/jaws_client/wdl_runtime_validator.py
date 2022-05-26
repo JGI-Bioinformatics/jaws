@@ -10,6 +10,13 @@ import re
 import warnings
 
 
+def pretty_warning(message, category, filename, lineno, line=None):
+    return f"WARNING: {message}\n"
+
+
+warnings.formatwarning = pretty_warning
+
+
 class WdlRuntimeError(Exception):
     pass
 
@@ -19,6 +26,10 @@ class WdlRuntimeMemoryError(WdlRuntimeError):
 
 
 class WdlRuntimeTimeError(WdlRuntimeError):
+    pass
+
+
+class WdlRuntimeCpuError(WdlRuntimeError):
     pass
 
 
@@ -255,20 +266,7 @@ class WDLStanzas:
 
 
 def spellCheck(task_name, task_dict):
-    accepted_param_names = [
-        "poolname",
-        "docker",
-        "node",
-        "nwpn",
-        "time",
-        "memory",
-        "cpu",
-        "shared",
-        "cluster",
-        "constraint",
-        "account",
-        "qos",
-    ]
+    accepted_param_names = ["docker", "time", "memory", "cpu"]
     for key in task_dict.keys():
         if key not in accepted_param_names:
             warnings.warn(
@@ -282,7 +280,13 @@ def allRequiredParams(task_name, task_dict):
     are acceptable values
     """
     if "cpu" not in task_dict:
-        raise WdlRuntimeTimeError(
+        warnings.warn(
+            "Task: %s allRequiredParams. %s is a required parameter for runtime"
+            % (task_name, "cpu")
+        )
+
+    if "time" not in task_dict:
+        warnings.warn(
             "Task: %s allRequiredParams. %s is a required parameter for runtime"
             % (task_name, "cpu")
         )
@@ -292,78 +296,6 @@ def allRequiredParams(task_name, task_dict):
             "Task: %s allRequiredParams. %s is a required parameter for runtime"
             % (task_name, "memory")
         )
-
-    # check that constraint is an acceptable value.
-    accepted_constraint = [
-        "haswell",
-        "knl",
-        "skylake",
-        "lr3_c32,jgi_m256",
-        "lr3_c32,jgi_m512",
-    ]
-    if (
-        "constraint" in task_dict
-        and task_dict["constraint"].lower() not in accepted_constraint
-    ):
-        raise WdlRuntimeError(
-            'Task: %s timeParam. "constraint" must be one of the following values: %s. We found "%s"'
-            % (task_name, accepted_constraint, task_dict["constraint"].lower())
-        )
-
-
-def timeParam(task_name, task_dict):
-    """
-    Check that if constraint: is set to skylake or knl then the max time is respected.
-    If constraint: is anything else, then check that max time is 72hrs.
-    Also check that constraint is not set to some non-recognized value.
-    """
-    if "time" not in task_dict:
-        raise WdlRuntimeError(
-            'Task: %s timeParam. %s is a required parameter for runtime so "timeParam" test has been skipped.'
-            % (task_name, "time")
-        )
-        return
-    elif task_dict["time"] is None:
-        # time is a variable name; nothing to do
-        return
-
-    hours = int(task_dict["time"].split(":")[0])
-    mins = int(task_dict["time"].split(":")[1])
-    if mins > 0:
-        hours += 1
-
-    if "constraint" in task_dict:
-        myconstraint = task_dict["constraint"].lower()
-
-        # check skylake mem
-        if myconstraint == "skylake":
-            if hours > 168:
-                raise WdlRuntimeError(
-                    "Task: %s timeParam. You are limited to 168hrs where constraint=%s"
-                    % (task_name, myconstraint)
-                )
-        # check knl mem
-        elif myconstraint == "knl":
-            if hours > 48:
-                raise WdlRuntimeError(
-                    "Task: %s timeParam. You are limited to 48hrs where constraint=%s"
-                    % (task_name, myconstraint)
-                )
-        # check haswell or other mem
-        else:
-            # if constraint exists but is not skylake or knl, then it is haswell or jgi?, so limit 72hrs.
-            if hours > 72:
-                raise WdlRuntimeError(
-                    "Task: %s timeParam. You are limited to 72hrs where constraint=%s"
-                    % (task_name, myconstraint)
-                )
-    else:
-        # if constraint is not included in the runtime, the default is haswell, so 72hrs limit
-        if hours > 72:
-            raise WdlRuntimeError(
-                'Task: %s timeParam. You are limited to 72hrs when constraint is the default value("%s")'
-                % (task_name, "haswell")
-            )
 
 
 def memoryParam(task_name, task_dict, compute_max_ram_gb=None):
@@ -388,43 +320,6 @@ def memoryParam(task_name, task_dict, compute_max_ram_gb=None):
         )
 
 
-def runtimeCombinations(task_name, task_dict):
-    """
-    # this is handled in the memoryParam function
-      memory: "250G"
-      constraint: "skylake"
-      qos: "jgi_shared"
-      account: "fungalp"
-
-    # this is handled in the memoryParam function
-      memory: "758G"
-      constraint: "skylake"
-      qos: "jgi_exvivo"
-      account: "fungalp"
-
-    # this is handled below
-      Using non-priority queue ("genepool")
-      memory: "10G"
-      qos: "regular"
-      account: "m342"
-    """
-
-    # Using non-priority queue ("genepool")
-    if "qos" in task_dict and task_dict["qos"] == "regular":
-        if "account" not in task_dict:
-            raise WdlRuntimeError(
-                "Task %s runtimeCombinations. 'account' is required when qos: 'regular'."
-                % (task_name)
-            )
-        if task_dict["account"] != "m342":
-            raise WdlRuntimeError(
-                "Task %s runtimeCombinations. 'account' needs to be set to 'm342' when qos: 'regular'."
-                % (task_name)
-            )
-
-    # the skylake combinations have been checked in the memoryParam function.
-
-
 def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float = None) -> None:
     # Run the validations
     #
@@ -443,14 +338,5 @@ def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float = None) -> None:
         # Check that we have minimum runtime params (i.e. time & memory)
         allRequiredParams(task_name, task_dict)
 
-        # Check that if constraint: is set to skylake or knl then the max time is respected.
-        # If constraint: is anything else, then check that max time is 72hrs.
-        # Also check that constraint is not set to some non-recognized value.
-        # timeParam(task_name, task_dict)
-
         # verify memory has been defined
         memoryParam(task_name, task_dict, compute_max_ram_gb)
-
-        # Some runtime params require other params to be set. Check that the combinations
-        # of runtime parameters are correct.
-        # runtimeCombinations(task_name, task_dict)

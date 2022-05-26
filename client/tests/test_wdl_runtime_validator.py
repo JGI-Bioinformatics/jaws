@@ -318,10 +318,7 @@ task bbcms {
         docker: container
         time: "03:00:00"
         memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
+        cpu: 1
     }
 
      command <<<
@@ -362,10 +359,7 @@ task assy {
         docker: container
         time: "03:00:00"
         memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
+        cpu: 1
     }
 
      command <<<
@@ -397,10 +391,7 @@ task create_agp {
         docker: container
         time: "03:00:00"
         memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
+        cpu: 1
     }
 
     command{
@@ -438,10 +429,7 @@ task read_mapping_pairs{
         docker: container
         time: "03:00:00"
         memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
+        cpu: 1
     }
 
     command{
@@ -482,11 +470,7 @@ task task1 {
         String cpu
 
     runtime {
-                docker: "doejgi/jaws-debian:latest"
-        node: 1
-        nwpn: 1
-        poolname: "dashboard_test"
-        shared: 0
+        docker: "doejgi/jaws-debian:latest"
         time: time
         memory: memory
         cpu: cpu
