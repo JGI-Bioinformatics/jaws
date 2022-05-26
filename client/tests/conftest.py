@@ -294,7 +294,6 @@ task findPeaks {
     Int memory_gb = 5
 
     runtime {
-        cluster: "cori"
         time: "01:00:00"
         cpu: 1
         memory: "0G"
@@ -326,7 +325,6 @@ task motifInputs {
     Int memory_gb = 5
 
     runtime {
-        cluster: "cori"
         time: "01:00:00"
         cpu: 1
         memory: "0G"
@@ -368,11 +366,9 @@ task findMotifs {
     Int memory_gb = 5
 
     runtime {
-        cluster: "denovo"
         time: "00:30:00"
         cpu: 1
         memory: "5G"
-        poolname: "test"
     }
     command {
         shifter --image=leobaumgart/dap_py2:2.0 find_motifs.sh \
@@ -485,6 +481,7 @@ task run_task1 {
         docker: "jfroula/aligner-bbmap:1.1.9"
         memory: "4G"
         time: "00:10:00"
+        cpu: 1
     }
 }
 """
@@ -510,9 +507,9 @@ task run_task2 {
 
     runtime {
         docker: "jfroula/aligner-bbmap:1.1.9"
-        poolname: "extrasmall"
         memory: "6G"
         time: "00:10:00"
+        cpu: 1
     }
 }
 """
@@ -944,12 +941,9 @@ task bam_stats {
 
     runtime {
         docker: "jfroula/aligner-bbmap:1.1.9"
-        poolname: "extrasmall"
-        shared: 1
-        node: 1
-        nwpn: 1
         memory: "5G"
         time: "00:10:00"
+        cpu: 1
     }
 }
 
@@ -1000,6 +994,7 @@ task count_seqs {
     runtime {
         mem: "1G"
         time: "00:10:00"
+        cpu: 1
     }
 }
     """

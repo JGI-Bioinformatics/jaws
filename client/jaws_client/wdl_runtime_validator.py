@@ -281,19 +281,19 @@ def allRequiredParams(task_name, task_dict):
     """
     if "cpu" not in task_dict:
         warnings.warn(
-            "Task: %s allRequiredParams. %s is a required parameter for runtime"
+            "Task: %s allRequiredParams. The runtime value \"%s\" is set to default value of 1 thread"
             % (task_name, "cpu")
         )
 
     if "time" not in task_dict:
         warnings.warn(
-            "Task: %s allRequiredParams. %s is a required parameter for runtime"
-            % (task_name, "cpu")
+            "Task: %s allRequiredParams. Consider setting the runtime value \"%s\" if you know it."
+            % (task_name, "time")
         )
 
     if "memory" not in task_dict:
-        raise WdlRuntimeMemoryError(
-            "Task: %s allRequiredParams. %s is a required parameter for runtime"
+        warnings.warn(
+            "Task: %s allRequiredParams. The runtime value \"%s\" is set to default value of 2G"
             % (task_name, "memory")
         )
 

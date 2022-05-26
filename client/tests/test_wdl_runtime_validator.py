@@ -31,70 +31,12 @@ def test_allRequiredParams():
     validate_wdl_runtime(TIME_AND_MEMORY_ARE_VARIABLES, 500)
 
 
-def test_timeParam():
-    """
-    1. if constraint: knl, then limit is 48hrs
-    2. You are limited to 48hrs where constraint=knl"
-    3. You are limited to 72hrs when constraint is the default value "haswell"
-    4. You are limited to 72hrs where constraint=haswell"
-    """
-    with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(BAD_TIME_LIMITS, 500)
-
-
 def test_memoryParam():
     """Does the test for over-memory request give valid user error."""
     with pytest.raises(WdlRuntimeError):
         validate_wdl_runtime(BAD_MEMORY_VALUE, 100)
 
     validate_wdl_runtime(BAD_MEMORY_VALUE, 500)
-
-
-def test_runtimeCombinations():
-    """testing the test that validates the user included the correct combination of params for various resource allocations"""  # noqa
-    with pytest.raises(WdlRuntimeError):
-        validate_wdl_runtime(BAD_COMBINATIONS, 500)
-
-
-BAD_COMBINATIONS = """
-workflow jgi_meta {
-    call bbcms {
-          input: infile=input_file, container=bbtools_container
-    }
-}
-task bbcms {
-     File infile
-     String container
-
-    runtime {
-        docker: container
-        time: "03:00:00"
-        memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-        qos: "regular"
-        account: "wrong"
-    }
-
-}
-task read_mapping_pairs{
-
-    runtime {
-        docker: container
-        time: "03:00:00"
-        memory: "115G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-        constraint: "haswell"
-        qos: "regular"
-
-    }
-}
-"""
 
 
 BAD_MEMORY_VALUE = """
@@ -108,10 +50,7 @@ task bbcms {
         docker: container
         time: "03:00:00"
         memory: "200G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
+        cpu: 1
     }
 
 }
@@ -122,88 +61,10 @@ task assy {
         docker: container
         time: "03:00:00"
         memory: "300G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
+        cpu: 1
     }
 }
 
-"""
-
-
-BAD_TIME_LIMITS = """
-workflow jgi_meta {
-    call bbcms {
-          input: infile=input_file, container=bbtools_container
-    }
-    call assy {
-         input: infile1=bbcms.out1, infile2=bbcms.out2, container=spades_container
-    }
-    call create_agp {
-         input: scaffolds_in=assy.out, container=bbtools_container
-    }
-    call read_mapping_pairs {
-     input: reads=input_file, ref=create_agp.outcontigs, container=bbtools_container
-    }
-
-}
-task bbcms {
-    runtime {
-        docker: container
-        time: "200:00:00"
-        memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-        constraint: "skylake"
-    }
-
-}
-
-task assy {
-    runtime {
-        docker: container
-        time: "80:00:00"
-        memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-        constraint: "knl"
-    }
-
-}
-
-task create_agp {
-
-    runtime {
-        docker: container
-        time: "80:00:00"
-        memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-    }
-
-}
-
-
-task read_mapping_pairs{
-    runtime {
-        docker: container
-        time: "80:00:00"
-        memory: "115G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-        constraint: "haswell"
-    }
-
-}
 """
 
 
@@ -212,12 +73,6 @@ workflow jgi_meta {
     call bbcms {
           input: infile=input_file, container=bbtools_container
     }
-    call assy {
-         input: infile1=bbcms.out1, infile2=bbcms.out2, container=spades_container
-    }
-    call create_agp {
-         input: scaffolds_in=assy.out, container=bbtools_container
-    }
     call read_mapping_pairs {
      input: reads=input_file, ref=create_agp.outcontigs, container=bbtools_container
     }
@@ -225,55 +80,17 @@ workflow jgi_meta {
 }
 task bbcms {
     runtime {
-        docker: container
+        docker: "doejgi/jaws-debian:latest"
         memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
+        cpu: 1
     }
 
 }
-
-task assy {
-    runtime {
-        docker: container
-        time: "03:00:00"
-        memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-    }
-
-}
-
-task create_agp {
-
-    runtime {
-        docker: container
-        time: "03:00:00"
-        memory: "118G"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-    }
-
-}
-
 task read_mapping_pairs{
-
     runtime {
-        docker: container
         time: "03:00:00"
-        node: 1
-        nwpn: 1
-        poolname: "bfostersmall"
-        shared: 0
-        constraint: "haswell"
+        cpu: 1
     }
-
 }
 """
 
