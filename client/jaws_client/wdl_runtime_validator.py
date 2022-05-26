@@ -446,11 +446,11 @@ def validate_wdl_runtime(wdl: str, compute_max_ram_gb: float = None) -> None:
         # Check that if constraint: is set to skylake or knl then the max time is respected.
         # If constraint: is anything else, then check that max time is 72hrs.
         # Also check that constraint is not set to some non-recognized value.
-        #timeParam(task_name, task_dict)
+        # timeParam(task_name, task_dict)
 
         # verify memory has been defined
         memoryParam(task_name, task_dict, compute_max_ram_gb)
 
         # Some runtime params require other params to be set. Check that the combinations
         # of runtime parameters are correct.
-        #runtimeCombinations(task_name, task_dict)
+        # runtimeCombinations(task_name, task_dict)
