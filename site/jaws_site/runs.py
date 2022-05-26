@@ -181,7 +181,11 @@ class Run:
             return []
 
     def report(self) -> dict:
-        """Produce full report of Run and Task info"""
+        """
+        Produce full report of Run and Task info.
+        This is published to the runs-elasticsearch service.
+        Some fields of the cromwell task summary are renamed for backwards compatability.
+        """
         # get cromwell metadata
         metadata = self.metadata()
 
@@ -195,13 +199,18 @@ class Run:
         report["site_id"] = report["compute_site_id"]
         del report["compute_site_id"]
 
-        # transform task data structure and add to report
+        # transform task summary and add to report.
+        # we change some elements for backwards compatability
         report["tasks"] = []
         for task in self.task_summary():
-            # delete some unwanted keys, rename others
-            task["status"] = task["result"]
+            task["status"] = None
+            if task["result"] == "succeeded";
+                task["status"] = "success"
+            elif task["result"] == "failed":
+                task["status"] = "failure"
             del task["result"]
             del task["execution_status"]
+            task["cromwell_job_id"] = task["job_id"]
             del task["job_id"]
             report["tasks"].append(task)
 
