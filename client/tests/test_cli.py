@@ -388,46 +388,56 @@ def test_cli_submit(configuration, monkeypatch, sample_workflow):
 
 
 def test_get(configuration, monkeypatch):
-    def mock__run_status(run_id, verbose):
+    def mock__run_status(run_id, verbose=False):
         if run_id == "1":
             return {
                 "status": "download complete",
                 "submission_id": "AAAA",
-                "input_site_id": "CORI",
+                "input_site_id": "JGI",
                 "compute_site_id": "JGI",
+                "wdl_file": "/some/dir/test.wdl",
+                "json_file": "/some/dir/test.json",
             }
         else:
-            return {"status": "submitted", "submission_id": "AAAA"}
-
-    def mock_run(args, **kwargs):
-        if args[0] == "rsync" and args[1] == "-a" and len(args) == 4:
-            return
-        else:
-            raise ValueError
-
-    def mock_rsync(src, dest, options):
-        class Result:
-            def __init__(self):
-                self.returncode = 0
-
-        return Result()
-
-    def mock_get_outputs(run_id, src, dest, quiet):
-        pass
-
-    def mock_get_complete(run_id, src, dest):
-        pass
+            return {
+                "status": "submitted",
+                "submission_id": "AAAA"
+            }
 
     def mock_mkdir(path, **kwargs):
-        pass
+        assert "parents" in kwargs
+        assert kwargs["parents"] is True
+        assert "exist_ok" in kwargs
+        assert kwargs["exist_ok"] is True
+        assert str(path).startswith('/')
 
-    monkeypatch.setattr(subprocess, "run", mock_run)
+    def mock__request(operation, url):
+        assert operation == "GET"
+        if url.endswith("/outputs"):
+            return { "mywdl.taskX.outfile": "foo.txt" }
+        elif url.endswith("/root"):
+            return "/jgi/cromwell-executions/mywdl/XYZ1"
+        else:
+            raise
+
+    def mock__write_json_file(outfile, contents):
+        assert str(outfile).startswith('/')
+        assert type(contents) == dict
+
+    def mock__copy_file(src, dest, quiet=True):
+        assert str(src).startswith('/')
+        assert str(dest).startswith('/')
+
+    def mock__get_outfiles(run_id, src_dir, dest_dir, quiet=False):
+        assert str(src_dir).startswith('/')
+        assert str(dest_dir).startswith('/')
+
     monkeypatch.setattr(cli, "_run_status", mock__run_status)
-    monkeypatch.setattr(cli, "_get_outputs", mock_get_outputs)
-    monkeypatch.setattr(cli, "_get_complete", mock_get_complete)
     monkeypatch.setattr(pathlib.Path, "mkdir", mock_mkdir)
-
-    monkeypatch.setattr(cli, "rsync", mock_rsync)
+    monkeypatch.setattr(cli, "_request", mock__request)
+    monkeypatch.setattr(cli, "_write_json_file", mock__write_json_file)
+    monkeypatch.setattr(cli, "_copy_file", mock__copy_file)
+    monkeypatch.setattr(cli, "_get_outfiles", mock__get_outfiles)
 
     runner = click.testing.CliRunner()
 
