@@ -1,7 +1,6 @@
 import os
 import pathlib
 import requests
-import subprocess
 import uuid
 import click.testing
 from jaws_client import cli
@@ -373,6 +372,7 @@ def test_cli_submit(configuration, monkeypatch, sample_workflow):
 
     def post_submit(url, data={}, files={}, headers=None):
         return MockResponse(SUBMISSION, 201)
+
     monkeypatch.setattr(requests, "post", post_submit)
 
     from jaws_client import workflow
@@ -399,38 +399,35 @@ def test_get(configuration, monkeypatch):
                 "json_file": "/some/dir/test.json",
             }
         else:
-            return {
-                "status": "submitted",
-                "submission_id": "AAAA"
-            }
+            return {"status": "submitted", "submission_id": "AAAA"}
 
     def mock_mkdir(path, **kwargs):
         assert "parents" in kwargs
         assert kwargs["parents"] is True
         assert "exist_ok" in kwargs
         assert kwargs["exist_ok"] is True
-        assert str(path).startswith('/')
+        assert str(path).startswith("/")
 
     def mock__request(operation, url):
         assert operation == "GET"
         if url.endswith("/outputs"):
-            return { "mywdl.taskX.outfile": "foo.txt" }
+            return {"mywdl.taskX.outfile": "foo.txt"}
         elif url.endswith("/root"):
             return "/jgi/cromwell-executions/mywdl/XYZ1"
         else:
             raise
 
     def mock__write_json_file(outfile, contents):
-        assert str(outfile).startswith('/')
+        assert str(outfile).startswith("/")
         assert type(contents) == dict
 
     def mock__copy_file(src, dest, quiet=True):
-        assert str(src).startswith('/')
-        assert str(dest).startswith('/')
+        assert str(src).startswith("/")
+        assert str(dest).startswith("/")
 
     def mock__get_outfiles(run_id, src_dir, dest_dir, quiet=False):
-        assert str(src_dir).startswith('/')
-        assert str(dest_dir).startswith('/')
+        assert str(src_dir).startswith("/")
+        assert str(dest_dir).startswith("/")
 
     monkeypatch.setattr(cli, "_run_status", mock__run_status)
     monkeypatch.setattr(pathlib.Path, "mkdir", mock_mkdir)

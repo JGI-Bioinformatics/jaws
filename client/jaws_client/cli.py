@@ -591,6 +591,7 @@ def _write_json_file(outfile: str, contents: dict):
     except Exception as error:
         sys.exit(f"Unable to write json file, {outfile}: {error}")
 
+
 def rsync(src, dest, options=["-rLtq"]):
     """Copy source to destination using rsync.
 
