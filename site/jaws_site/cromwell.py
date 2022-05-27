@@ -36,6 +36,8 @@ import boto3
 import botocore
 
 
+logger = logging.getLogger(__package__)
+
 aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID", None)
 aws_secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY", None)
 aws_region_name = os.environ.get("AWS_REGION_NAME", None)
@@ -62,7 +64,9 @@ def _read_file_s3(path, **kwargs):
     """
     s3_bucket, src_path = s3_parse_uri(path)
     aws_session = boto3.Session(
-        aws_access_key_id, aws_secret_access_key, aws_region_name
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        region_name=aws_region_name
     )
     s3_resource = aws_session.resource("s3")
     bucket_obj = s3_resource.Bucket(s3_bucket)
@@ -74,8 +78,9 @@ def _read_file_s3(path, **kwargs):
     except Exception as error:
         raise IOError(error)
     fh.seek(0)
-    contents = fh.read()
+    data = fh.read()
     fh.close()
+    contents = data.decode("utf-8")
     return contents
 
 
@@ -298,7 +303,12 @@ class Call:
             # include *contents* of stderr files, instead of file paths
             stderr_file = self.data["stderr"]
             result["stderrContents"] = _read_file(stderr_file)
-            result["stderrSubmitContents"] = _read_file(f"{stderr_file}.submit")
+            try:
+                stderrSubmitContents = _read_file(f"{stderr_file}.submit")
+            except Exception as _:
+                pass  # doesn't always exist
+            else:
+                result["stderrSubmitContents"] = stderrSubmitContents
         if "stdout" in self.data:
             # include *contents* of stdout file, instead of file path
             stdout_file = self.data["stdout"]
