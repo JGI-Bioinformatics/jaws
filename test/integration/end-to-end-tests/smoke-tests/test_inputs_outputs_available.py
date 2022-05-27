@@ -67,20 +67,16 @@ def test_should_fail_task_status(submit_bad_task):
 
 def test_should_fail_task_log(submit_bad_task):
     """
-    jaws task-log 17028
-    #TASK_NAME  CROMWELL_JOB_ID STATUS_FROM     STATUS_TO       TIMESTAMP       REASON
-    fq_count.count_seqs 77273   created ready   2021-02-23 22:44:10
-    fq_count.count_seqs 77273   ready   queued  2021-02-23 22:44:10
-    fq_count.count_seqs 77273   queued  pending 2021-02-23 22:44:12
-    fq_count.count_seqs 77273   pending running 2021-02-23 22:45:03
-    fq_count.count_seqs 77273   running failed  2021-02-23 22:45:04     failed with input file or command not found
+    jaws task-log 10647
+    #NAME                CACHED  STATUS  QUEUED               RUNNING              FINISHED             QUEUE_DUR  RUN_DUR  
+    fq_count.count_seqs  False   Failed  2022-05-27 13:26:10  2022-05-27 13:26:11  2022-05-27 13:26:19  0:00:01    0:00:08
     """ # noqa
 
     # test task-log
     id = str(submit_bad_task["run_id"])
     cmd = "jaws task-log %s" % (id)
     (r, o, e) = util.run(cmd)
-    assert "No such command" in e.replace("\n", " ")
+    assert "Failed" in o
 
 
 def test_should_fail_log(submit_bad_task):

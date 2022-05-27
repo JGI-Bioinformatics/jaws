@@ -52,35 +52,50 @@ def test_should_fail_status(submit_bad_task):
     assert data["result"] == "failed", "jaws-status should say run failed"
 
 
-def test_should_fail_task_status(submit_bad_task):
+def test_should_fail_task_summary(submit_bad_task):
     """
-    jaws task-status 17028
-    #TASK_NAME  CROMWELL_JOB_ID STATUS       TIMESTAMP       REASON
-    fq_count.count_seqs 77273   failed  2021-02-23 22:45:04     failed with input file or command not found
-    """ # noqa
-    # test task-status
+    jaws task-summary 10647
+    [
+    {
+        "attempt": 1,
+        "cached": false,
+        "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-staging/cromwell-executions/fq_count/d175f219-148f-4b29-bdc1-f9f828b48aaa/call-count_seqs",
+        "execution_status": "Failed",
+        "failure_message": "Job fq_count.count_seqs:NA:1 exited with return code 127 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details.",  # noqa
+        "job_id": "4647",
+        "name": "fq_count.count_seqs",
+        "queue_duration": "0:00:01",
+        "queue_start": "2022-05-27 13:26:10",
+        "requested_cpu": "1",
+        "requested_memory": "5 GB",
+        "requested_time": null,
+        "result": null,
+        "run_duration": "0:00:08",
+        "run_end": "2022-05-27 13:26:19",
+        "run_start": "2022-05-27 13:26:11",
+        "shard_index": -1
+    }
+    ]
+    """ 
+    # test task-summary
     id = str(submit_bad_task["run_id"])
-    cmd = "jaws task-status %s" % (id)
+    cmd = "jaws task-summary  %s" % (id)
     (r, o, e) = util.run(cmd)
-    assert "No such command" in e.replace("\n", " ")
+    assert "exited with return code 127" in o
 
 
 def test_should_fail_task_log(submit_bad_task):
     """
-    jaws task-log 17028
-    #TASK_NAME  CROMWELL_JOB_ID STATUS_FROM     STATUS_TO       TIMESTAMP       REASON
-    fq_count.count_seqs 77273   created ready   2021-02-23 22:44:10
-    fq_count.count_seqs 77273   ready   queued  2021-02-23 22:44:10
-    fq_count.count_seqs 77273   queued  pending 2021-02-23 22:44:12
-    fq_count.count_seqs 77273   pending running 2021-02-23 22:45:03
-    fq_count.count_seqs 77273   running failed  2021-02-23 22:45:04     failed with input file or command not found
+    jaws task-log 10647
+    #NAME                CACHED  STATUS  QUEUED               RUNNING              FINISHED             QUEUE_DUR  RUN_DUR  
+    fq_count.count_seqs  False   Failed  2022-05-27 13:26:10  2022-05-27 13:26:11  2022-05-27 13:26:19  0:00:01    0:00:08 
     """ # noqa
 
     # test task-log
     id = str(submit_bad_task["run_id"])
     cmd = "jaws task-log %s" % (id)
     (r, o, e) = util.run(cmd)
-    assert "No such command" in e.replace("\n", " ")
+    assert "Failed" in o
 
 
 def test_should_fail_log(submit_bad_task):
