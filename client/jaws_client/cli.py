@@ -563,16 +563,13 @@ def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
 
     # the original wdl, json, zip files were copied to the inputs dir during submission
     input_dir = config.get("JAWS", "inputs_dir")
-    submission_dir = os.path.join(input_dir, submission_id)
-    wdl_src_file = os.path.join(submission_dir, os.path.basename(run_info["wdl_file"]))
+    wdl_src_file = os.path.join(input_dir, f"{submission_id}.wdl")
     wdl_dest_file = os.path.join(dest, os.path.basename(run_info["wdl_file"]))
     _copy_file(wdl_src_file, wdl_dest_file, quiet)
-    json_src_file = os.path.join(
-        submission_dir, os.path.basename(run_info["json_file"])
-    )
+    json_src_file = os.path.join(input_dir, f"{submission_id}.json")
     json_dest_file = os.path.join(dest, os.path.basename(run_info["json_file"]))
     _copy_file(json_src_file, json_dest_file, quiet)
-    zip_src_file = os.path.join(submission_dir, f"{submission_id}.zip")
+    zip_src_file = os.path.join(input_dir, f"{submission_id}.zip")
     zip_dest_file = os.path.join(dest, "subworkflows.zip")
     if os.path.isfile(zip_src_file):
         _copy_file(zip_src_file, zip_dest_file, quiet)
@@ -637,7 +634,7 @@ def _get_outfiles(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None
     if not outfiles or len(outfiles) == 0:
         err_msg = f"There are no outputs for Run {run_id} at this time."
         sys.exit(err_msg)
-    for rel_path in outfiles.items():
+    for rel_path in outfiles:
         src_file = os.path.normpath(os.path.join(src_dir, rel_path))
         dest_file = os.path.normpath(os.path.join(dest_dir, rel_path))
         _copy_file(src_file, dest_file, quiet)
