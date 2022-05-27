@@ -56,7 +56,7 @@ def s3_parse_uri(full_uri):
     return s3_bucket, obj_key
 
 
-def _read_file_s3(self, path, **kwargs):
+def _read_file_s3(path, **kwargs):
     """
     Read the contents of a file from S3 and return it's contents.
     """
@@ -79,7 +79,7 @@ def _read_file_s3(self, path, **kwargs):
     return contents
 
 
-def _read_file_nfs(self, path: str):
+def _read_file_nfs(path: str):
     """
     :param path: Path to file on NFS
     :ptype path: str
@@ -97,7 +97,7 @@ def _read_file_nfs(self, path: str):
     return contents
 
 
-def _read_file(self, path: str, **kwargs):
+def _read_file(path: str, **kwargs):
     """
     Read file from NFS or S3 and return contents.
     :param path: Path to file (may be s3 item)
