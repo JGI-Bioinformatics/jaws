@@ -305,8 +305,8 @@ class Call:
             result["stderrContents"] = _read_file(stderr_file)
             try:
                 stderrSubmitContents = _read_file(f"{stderr_file}.submit")
-            except Exception as _:
-                pass  # doesn't always exist
+            except Exception:  # noqa
+                pass  # submit stderr file doesn't always exist
             else:
                 result["stderrSubmitContents"] = stderrSubmitContents
         if "stdout" in self.data:
