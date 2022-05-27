@@ -142,8 +142,13 @@ def test_jaws_history(submit_fq_count_wdl):
     assert o
 
 
-def test_jaws_metadata(submit_fq_count_wdl):
+def test_jaws_metadata(site, submit_fq_count_wdl):
     """Check that a jaws metadata returns workflowRoot has a value"""
+
+    # skip this fixture if run on aws
+    if "aws" in site.lower():
+        pytest.skip("this test won't work on AWS")
+
     data = submit_fq_count_wdl
     run_id = str(data["run_id"])
     util.wait_for_run(run_id, check_tries, check_sleep)

@@ -18,6 +18,7 @@ import json
 import shutil
 import uuid
 import submission_utils as util
+import pytest
 
 check_tries = 50
 check_sleep = 60
