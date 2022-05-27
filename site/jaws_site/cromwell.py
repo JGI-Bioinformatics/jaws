@@ -302,11 +302,18 @@ class Call:
         if "stderr" in self.data:
             # include *contents* of stderr files, instead of file paths
             stderr_file = self.data["stderr"]
-            result["stderrContents"] = _read_file(stderr_file)
+            try:
+                stderrContents = _read_file(f"{stderr_file}.submit")
+            except Exception:  # noqa
+                # stderr file doesn't always exist (e.g. fails in submit step)
+                result["stderrContents"] = None
+            else:
+                result["stderrContents"] = stderrContents
             try:
                 stderrSubmitContents = _read_file(f"{stderr_file}.submit")
             except Exception:  # noqa
-                pass  # submit stderr file doesn't always exist
+                # submit stderr file doesn't always exist (e.g. never for AWS)
+                result["stderrSubmitContents"] = None
             else:
                 result["stderrSubmitContents"] = stderrSubmitContents
         if "stdout" in self.data:
