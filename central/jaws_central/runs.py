@@ -266,7 +266,8 @@ class Run:
             transfer.submit_transfer()
         except Exception as error:
             logger.error(f"Failed to create upload: {error}")
-            self.update_status("upload failed", f"{error}")
+            # keep retrying
+            # self.update_status("upload failed", f"{error}")
         else:
             logger.debug(f"Run {self.data.id} upload {transfer.data.id} queued")
             self.data.upload_id = transfer.data.id
