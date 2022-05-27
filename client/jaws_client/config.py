@@ -26,8 +26,8 @@ class Configuration:
             "site_id": "",
             "url": "http://localhost:5000",
             "womtool_jar": "",
-            "inputs_dir": "",
-            "downloads_dir": "",
+            "inputs_dir": "/tmp",
+            "downloads_dir": "/tmp",
         },
     }
 

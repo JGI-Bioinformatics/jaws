@@ -23,7 +23,7 @@ def configuration(tmp_path):
 site_id = CORI
 url = http://localhost:5001/api/v2
 womtool_jar =
-uploads_dir = {0}/uploads
+inputs_dir = {0}/uploads
 downloads_dir = {0}/downloads
 shared_endpoint_group = genome
 default_container = debian:latest
