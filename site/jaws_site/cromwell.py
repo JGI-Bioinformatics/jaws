@@ -32,22 +32,88 @@ import io
 from datetime import datetime, timezone
 from dateutil import parser
 from collections import deque
+import boto3
+import botocore
 
 
-def _read_file(path: str):
+logger = logging.getLogger(__package__)
+
+aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID", None)
+aws_secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY", None)
+aws_region_name = os.environ.get("AWS_REGION_NAME", None)
+
+
+def s3_parse_uri(full_uri):
     """
-    Read a file and return it's contents.
-    :param path: Path to file
-    :type path: str
-    :return: Contents of the file if it exists, else None.
+    Extract the bucket name and object key from full URI
+    :param full_uri: String containing bucket and obj key, starting with "s3://"
+    :ptype full_uri: str
+    :return: s3 bucket name, object key
+    :rtype: list
+    """
+    full_uri = full_uri.replace("s3://", "", 1)
+    folders = full_uri.split("/")
+    s3_bucket = folders.pop(0)
+    obj_key = "/".join(folders)
+    return s3_bucket, obj_key
+
+
+def _read_file_s3(path, **kwargs):
+    """
+    Read the contents of a file from S3 and return it's contents.
+    """
+    s3_bucket, src_path = s3_parse_uri(path)
+    aws_session = boto3.Session(
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        region_name=aws_region_name
+    )
+    s3_resource = aws_session.resource("s3")
+    bucket_obj = s3_resource.Bucket(s3_bucket)
+    fh = io.BytesIO()
+    try:
+        bucket_obj.download_fileobj(src_path, fh)
+    except botocore.exceptions.ClientError as error:
+        raise IOError(f"File obj not found, {src_path}: {error}")
+    except Exception as error:
+        raise IOError(error)
+    fh.seek(0)
+    data = fh.read()
+    fh.close()
+    contents = data.decode("utf-8")
+    return contents
+
+
+def _read_file_nfs(path: str):
+    """
+    :param path: Path to file on NFS
+    :ptype path: str
+    :return: contents of file
     :rtype: str
     """
+    if not os.path.isfile(path):
+        raise IOError(f"File not found: {path}")
     contents = None
-    # TODO special handling required for files in S3  (see example in runs.py; move to common py)
-    if path and os.path.isfile(path):
+    try:
         with open(path, "r") as file:
             contents = file.read()
+    except IOError as error:
+        raise IOError(f"Error reading file, {path}: {error}")
     return contents
+
+
+def _read_file(path: str, **kwargs):
+    """
+    Read file from NFS or S3 and return contents.
+    :param path: Path to file (may be s3 item)
+    :ptype path: str
+    :return: contents of file
+    :rtype: str
+    """
+    if path.startswith("s3://"):
+        return _read_file_s3(path, **kwargs)
+    else:
+        return _read_file_nfs(path)
 
 
 class CallError(Exception):
@@ -237,7 +303,12 @@ class Call:
             # include *contents* of stderr files, instead of file paths
             stderr_file = self.data["stderr"]
             result["stderrContents"] = _read_file(stderr_file)
-            result["stderrSubmitContents"] = _read_file(f"{stderr_file}.submit")
+            try:
+                stderrSubmitContents = _read_file(f"{stderr_file}.submit")
+            except Exception:  # noqa
+                pass  # submit stderr file doesn't always exist
+            else:
+                result["stderrSubmitContents"] = stderrSubmitContents
         if "stdout" in self.data:
             # include *contents* of stdout file, instead of file path
             stdout_file = self.data["stdout"]
