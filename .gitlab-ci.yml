@@ -550,6 +550,8 @@ package:
     - poetry publish --repository gitlab && cd ../
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
+      when: manual
+  allow_failure: true
 
 cori-dev-smoke-tests:
   stage: smoke-tests
