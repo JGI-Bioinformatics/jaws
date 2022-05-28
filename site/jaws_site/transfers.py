@@ -150,9 +150,9 @@ class Transfer:
                     f"Transfer {self.data.id} failed because neither src/dest start with s3://"
                 )
                 self.update_status("failed")
-        except IOError as error:
+        except Exception as error:
             logger.error(f"Transfer {self.data.id} failed: {error}")
-            self.update_status("failed")
+            self.update_status("failed", error)
         else:
             self.update_status("succeeded")
 
@@ -236,9 +236,21 @@ class Transfer:
         manifest = self.manifest()
         num_files = len(manifest)
         logger.debug(f"Transfer {self.data.id} begin s3 upload of {num_files} files")
-        aws_client = self.aws_s3_client()
-        aws_s3_resource = self.aws_s3_resource()
-        s3_bucket, dest_base_dir = self.s3_parse_path(self.data.dest_base_dir)
+        try:
+            aws_client = self.aws_s3_client()
+        except Exception as error:
+            logger.error(f"Error getting aws client: {error}")
+            raise
+        try:
+            aws_s3_resource = self.aws_s3_resource()
+        except Exception as error:
+            logger.error(f"Error getting aws s3 resources: {error}")
+            raise
+        try:
+            s3_bucket, dest_base_dir = self.s3_parse_path(self.data.dest_base_dir)
+        except Exception as error:
+            logger.error(f"Error parsing s3 uri, {self.data.dest_base_dir}: {error}")
+            raise
         try:
             bucket_obj = aws_s3_resource.Bucket(s3_bucket)
         except Exception as error:
