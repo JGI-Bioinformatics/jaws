@@ -318,6 +318,7 @@ class Call:
                 result["stderrSubmitContents"] = stderrSubmitContents
         if "stdout" in self.data:
             # include *contents* of stdout file, instead of file path
+            stdout_file = self.data["stdout"]
             try:
                 stdoutContents = _read_file(f"{stdout_file}.submit")
             except Exception:  # noqa
