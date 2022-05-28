@@ -320,7 +320,7 @@ class Call:
             # include *contents* of stdout file, instead of file path
             stdout_file = self.data["stdout"]
             try:
-                stdoutContents = _read_file(f"{stdout_file}.submit")
+                stdoutContents = _read_file(stdout_file)
             except Exception:  # noqa
                 result["stdoutContents"] = None
             else:
