@@ -309,17 +309,24 @@ class Call:
                 result["stderrContents"] = None
             else:
                 result["stderrContents"] = stderrContents
+        if "stdout" in self.data:
+            # include *contents* of stdout file, instead of file path
+            stdout_file = self.data["stdout"]
             try:
-                stderrSubmitContents = _read_file(f"{stderr_file}.submit")
+                stdoutContents = _read_file(stdout_file)
+            except Exception:  # noqa
+                result["stdoutContents"] = None
+            else:
+                result["stdoutContents"] = stdoutContents
+        if "callRoot" in self.data:
+            stderr_submit_file = f"{self.data['callRoot']}/execution/stderr.submit"
+            try:
+                stderrSubmitContents = _read_file(stderr_submit_file)
             except Exception:  # noqa
                 # submit stderr file doesn't always exist (e.g. never for AWS)
                 result["stderrSubmitContents"] = None
             else:
                 result["stderrSubmitContents"] = stderrSubmitContents
-        if "stdout" in self.data:
-            # include *contents* of stdout file, instead of file path
-            stdout_file = self.data["stdout"]
-            result["stdoutContents"] = _read_file(stdout_file)
         return result
 
     def set_real_time_status(self) -> None:
