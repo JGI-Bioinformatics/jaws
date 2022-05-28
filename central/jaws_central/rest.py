@@ -41,6 +41,8 @@ run_pre_cromwell_states = [
     "upload complete",
     "upload stalled",
     "upload failed",
+    "ready",
+    "submission failed"
 ]
 
 

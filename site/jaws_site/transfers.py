@@ -160,12 +160,20 @@ class Transfer:
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
         aws_secret_access_key = config.conf.get("AWS", "aws_secret_access_key")
         aws_region_name = config.conf.get("AWS", "aws_region_name")
-        aws_session = boto3.Session(
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key,
-            region_name=aws_region_name,
-        )
-        s3_resource = aws_session.resource("s3")
+        try:
+            aws_session = boto3.Session(
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+                region_name=aws_region_name,
+            )
+        except Exception as error:
+            logger.error(f"Error getting aws session: {error}")
+            raise
+        try:
+            s3_resource = aws_session.resource("s3")
+        except Exception as error:
+            logger.error(f"Error getting s3 sources: {error}")
+            raise
         return s3_resource
 
     def aws_s3_client(self):
@@ -206,6 +214,9 @@ class Transfer:
         except boto3.ClientError as error:
             logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
             raise
+        except Exception as error:
+            logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
+            raise
         size = None
         if "Contents" in result:
             contents = result["Contents"]
@@ -228,7 +239,11 @@ class Transfer:
         aws_client = self.aws_s3_client()
         aws_s3_resource = self.aws_s3_resource()
         s3_bucket, dest_base_dir = self.s3_parse_path(self.data.dest_base_dir)
-        bucket_obj = aws_s3_resource.Bucket(s3_bucket)
+        try:
+            bucket_obj = aws_s3_resource.Bucket(s3_bucket)
+        except Exception as error:
+            logger.error(f"Error accessing bucket, {s3_bucket}: {error}")
+            raise
         for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
             src_file_size = os.path.getsize(src_path)
@@ -250,7 +265,11 @@ class Transfer:
         logger.debug(f"Transfer {self.data.id} begin s3 download of {num_files} files")
         aws_s3_resource = self.aws_s3_resource()
         s3_bucket, src_base_dir = self.s3_parse_path(self.data.src_base_dir)
-        bucket_obj = aws_s3_resource.Bucket(s3_bucket)
+        try:
+            bucket_obj = aws_s3_resource.Bucket(s3_bucket)
+        except Exception as error:
+            logger.error(f"Error accessing bucket, {s3_bucket}: {error}")
+            raise
         for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(src_base_dir, rel_path))
             dest_path = os.path.normpath(
