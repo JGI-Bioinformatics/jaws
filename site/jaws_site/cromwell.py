@@ -318,8 +318,12 @@ class Call:
                 result["stderrSubmitContents"] = stderrSubmitContents
         if "stdout" in self.data:
             # include *contents* of stdout file, instead of file path
-            stdout_file = self.data["stdout"]
-            result["stdoutContents"] = _read_file(stdout_file)
+            try:
+                stdoutContents = _read_file(f"{stdout_file}.submit")
+            except Exception:  # noqa
+                result["stdoutContents"] = None
+            else:
+                result["stdoutContents"] = stdoutContents
         return result
 
     def set_real_time_status(self) -> None:
