@@ -700,7 +700,7 @@ def _utc_to_local(utc_datetime):
 @click.argument("name")
 @click.argument("group")
 @click.option("--admin", is_flag=True, default=False, help="Grant admin access")
-def add_user(uid: str, email: str, name: str, admin: bool) -> None:
+def add_user(uid: str, email: str, name: str, group: str, admin: bool) -> None:
     """Add new user and get JAWS OAuth access token (restricted)."""
 
     data = {
