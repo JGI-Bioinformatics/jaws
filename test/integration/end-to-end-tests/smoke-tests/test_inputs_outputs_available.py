@@ -174,19 +174,6 @@ def test_invalid_docker_b(site, submit_bad_docker):
         assert 0, f"Expected site to be cori or jgi but found {site}"
 
 
-def test_bad_sub_workflow_error_msg(submit_bad_sub_task):
-    """
-    TESTCASE-42
-    When user submits a wdl with a subworkflow that has a command error then
-    the errors command should display error message
-    """
-    id = str(submit_bad_sub_task["run_id"])
-    cmd = "jaws errors %s" % (id)
-    (r, o, e) = util.run(cmd)
-
-    assert "echoooo: command not found" in o, "sub workflow command error should appear in errors"
-
-
 @pytest.mark.xfail(reason="condor is not using the time: element in the runtime, but we may soon")
 def test_timeout(dir, site):
     """
