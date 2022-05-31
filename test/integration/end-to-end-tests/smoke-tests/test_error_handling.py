@@ -193,6 +193,7 @@ def test_invalid_docker_b(site, submit_bad_docker):
         assert 0, f"Expected site to be cori or jgi but found {site}"
 
 
+@pytest.mark.xfail(reason="created ticket for fixing errors cmd")
 def test_bad_sub_workflow_error_msg(submit_bad_sub_task):
     """
     TESTCASE-42
