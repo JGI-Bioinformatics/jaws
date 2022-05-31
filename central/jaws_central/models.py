@@ -39,7 +39,7 @@ class User(Base):
     id = Column(String(32), primary_key=True)
     email = Column(String(64), nullable=False, unique=True)
     name = Column(String(64), nullable=True)
-    group = Column(String(16), nullable=True)
+    user_group = Column(String(16), nullable=True)
     is_admin = Column(Boolean, nullable=False, default=False)
     is_dashboard = Column(Boolean, nullable=False, default=False)
     jaws_token = Column(String(256), nullable=False)
