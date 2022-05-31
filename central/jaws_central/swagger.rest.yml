@@ -96,6 +96,11 @@ paths:
           description: User's full name
           type: string
           required: True
+        - name: user_group
+          in: formData
+          description: The name of the group the user belongs to (at most one).
+          type: string
+          required: True
         - name: email
           in: formData
           description: User's email address
