@@ -164,6 +164,7 @@ host = $JAWS_RMQ_HOST
 port = $JAWS_RMQ_PORT
 vhost = jaws_$DEPLOYMENT_NAME
 queue = JAWS_$A_SITE
+user_group = $A_SITE_USER_GROUP
 globus_endpoint = $A_SITE_GLOBUS_EP
 globus_host_path = $A_SITE_GLOBUS_HOST_PATH
 inputs_dir = $A_SITE_INPUTS_DIR
