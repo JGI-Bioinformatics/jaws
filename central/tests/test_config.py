@@ -27,7 +27,7 @@ def test_check_all_values(config_file):
     # there was no env_override value set
     print("Verifying that the _vars instance variable is NONE")
     assert cfg.config._vars is None
-
+    print("Instances of jaws_central.config.Configuration: ", dict(jaws_central.config.Singleton._instances))
     expected_db_parameters = [
         ("dialect", "mysql+mysqlconnector"),
         ("host", "db.foo.com"),
@@ -48,6 +48,17 @@ def test_check_all_values(config_file):
         ("db", "jaws"),
         ("host2", "db.foobar.com"),
         ("password2", "password123"),
+    ]
+
+    expected_db_parameters_env_override = [
+        ("dialect", "mysql+mysqlconnector"),
+        ("host", "db.foo.com"),
+        ("port", "3306"),
+        ("user", "jaws"),
+        ("password", "passw0rd1"),
+        ("db", "jaws"),
+        ("host2", "db_over.foobar.com"),
+        ("password2", "over_password123"),
     ]
 
     expected_globus_parameters = [
@@ -83,10 +94,35 @@ def test_check_all_values(config_file):
     except KeyError:
         pass
     check_section("DB", expected_db_parameters, cfg)
+
     print("Checking DB section with environment variables set")
     os.environ["JAWS_DB_HOST"] = "db.foobar.com"
     os.environ["JAWS_DB_PASSWORD"] = "password"
     check_section("DB", expected_db_parameters_env, cfg)
+    check_section("GLOBUS", expected_globus_parameters, cfg)
+    check_site("JGI", expected_site1_parameters, cfg)
+    check_site_info("NERSC", expected_site2_parameters, cfg)
+
+    print("Clear old cfg object")
+    del cfg
+    # The singleton implementation is making it difficult to create a new instance despite deletion.
+    # Do this gross thing and and clear the singleton's instances
+    jaws_central.config.Singleton._instances = dict()
+    print("Instances of jaws_central.config.Configuration: ", dict(jaws_central.config.Singleton._instances))
+
+    os.environ["ENV__host2"] = "db_over.foobar.com"
+    os.environ["ENV__password2"] = "over_password123"
+    print("Recreating new JAWSConfig object with env_override set to ENV__")
+    cfg = jaws_central.config.Configuration(config_path, "ENV__")
+    print("Instances of jaws_central.config.Configuration: ", dict(jaws_central.config.Singleton._instances))
+    print("Verifying that _vars attribute has picked up environment variables")
+    assert(cfg.config._vars is not None)
+    assert(len(cfg.config._vars) == 2)
+    assert(cfg.config._vars['host2'] == "db_over.foobar.com")
+    assert(cfg.config._vars['password2'] == "over_password123")
+
+    print("Retesting with env_prefix set")
+    check_section("DB", expected_db_parameters_env_override, cfg)
     check_section("GLOBUS", expected_globus_parameters, cfg)
     check_site("JGI", expected_site1_parameters, cfg)
     check_site_info("NERSC", expected_site2_parameters, cfg)
