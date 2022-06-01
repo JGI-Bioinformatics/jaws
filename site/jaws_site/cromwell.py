@@ -303,19 +303,27 @@ class Call:
             # include *contents* of stderr files, instead of file paths
             stderr_file = self.data["stderr"]
             try:
-                stderrContents = _read_file(f"{stderr_file}.submit")
+                stderr_contents = _read_file(stderr_file)
             except Exception:  # noqa
                 # stderr file doesn't always exist (e.g. fails in submit step)
-                result["stderrContents"] = None
+                result["stderrContents"] = f"File not found: {stderr_file}"
             else:
-                result["stderrContents"] = stderrContents
+                result["stderrContents"] = stderr_contents
+            stderr_submit_file = f"{stderr_file}.submit"
+            try:
+                stderr_submit_contents = _read_file(stderr_submit_file)
+            except Exception:  # noqa
+                # stderrSubmit file doesn't always exist (not used on AWS)
+                result["stderrSubmitContents"] = None
+            else:
+                result["stderrSubmitContents"] = stderr_submit_contents
         if "stdout" in self.data:
             # include *contents* of stdout file, instead of file path
             stdout_file = self.data["stdout"]
             try:
                 stdoutContents = _read_file(stdout_file)
             except Exception:  # noqa
-                result["stdoutContents"] = None
+                result["stdoutContents"] = f"File not found: {stdout_file}"
             else:
                 result["stdoutContents"] = stdoutContents
         if "callRoot" in self.data:
