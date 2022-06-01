@@ -284,7 +284,7 @@ def submit_run(user):
         )
     if (
         "user_group" in compute_site_config
-        and compute_site_config["user_group"] is not None
+        and compute_site_config["user_group"]
     ):
         # a jaws-site may optionally be restricted to members of a user-group
         user_group = _user_group(user)
