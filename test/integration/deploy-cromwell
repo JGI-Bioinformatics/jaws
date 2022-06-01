@@ -131,7 +131,7 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
     # note that double-quotation marks are required around optional scratch dirs
     CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \$IMAGE \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
 
-    cp "$DIR/shifter_exec.sh" $CONTAINER_WRAPPER
+    cp "./test/integration/shifter_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
     chmod 775 "$INSTALL_DIR/shifter_exec.sh"
     
@@ -151,7 +151,7 @@ elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
     # note that double-quotation marks are required around optional scratch dirs
     CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
 
-    cp "$DIR/docker_exec.sh" $CONTAINER_WRAPPER
+    cp "./test/integration/docker_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/docker_exec.sh"
     chmod 775 "$INSTALL_DIR/docker_exec.sh"
 
@@ -191,7 +191,7 @@ elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
     # note that double-quotation marks are required around optional scratch dirs
     CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
 
-    cp "$DIR/singularity_exec.sh" $CONTAINER_WRAPPER
+    cp "./test/integration/singularity_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/singularity_exec.sh"
     chmod 775 "$INSTALL_DIR/singularity_exec.sh"
 fi
