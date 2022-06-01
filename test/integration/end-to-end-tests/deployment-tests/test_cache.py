@@ -74,7 +74,7 @@ def test_cache(site, dir):
 
     # we should not see caching with this submission
     assert (
-        data["calls"]["fq_count.count_seqs"][0]["callCaching"]["allowResultReuse"]
+        data["calls"]["fq_count.count_seqs"][0]["callCaching"]["hit"]
         is True
     ), ('This run "%s" should be cached but was not.' % run_id)
 
