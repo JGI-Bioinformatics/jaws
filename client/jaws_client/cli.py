@@ -698,11 +698,18 @@ def _utc_to_local(utc_datetime):
 @click.argument("uid")
 @click.argument("email")
 @click.argument("name")
+@click.argument("group")
 @click.option("--admin", is_flag=True, default=False, help="Grant admin access")
-def add_user(uid: str, email: str, name: str, admin: bool) -> None:
+def add_user(uid: str, email: str, name: str, group: str, admin: bool) -> None:
     """Add new user and get JAWS OAuth access token (restricted)."""
 
-    data = {"uid": uid, "email": email, "name": name, "admin": admin}
+    data = {
+        "uid": uid,
+        "email": email,
+        "name": name,
+        "user_group": group,
+        "admin": admin,
+    }
     url = f'{config.get("JAWS", "url")}/user'
     result = _request("POST", url, data)
     _print_json(result)

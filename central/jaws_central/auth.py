@@ -140,6 +140,7 @@ def add_user(user) -> None:
     """
     uid = request.form.get("uid", None).lower()
     name = request.form.get("name")
+    user_group = request.form.get("user_group")
     email = request.form.get("email")
     admin = True if request.form.get("admin") == "True" else False
 
@@ -155,6 +156,7 @@ def add_user(user) -> None:
         new_user = User(
             id=uid,
             name=name,
+            user_group=user_group,
             jaws_token=token,
             email=email,
             is_admin=admin,
