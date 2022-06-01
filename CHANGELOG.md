@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.8.2 (2022-5-24) Summary
+## 2.8.5 (2022-5-24) Summary
 ### User Facing Changes
 #### Changed
 - Install performance metrics script pagurus in site venv during CICD deployment
