@@ -11,7 +11,7 @@ run_status_msg = {
     "submitted": "The run has been submitted to Cromwell and tasks should start to queue within moments",
     "submission failed": "The run was submitted to Cromwell but rejected due to invalid input.",
     "queued": "At least one task has requested resources but no tasks have started running yet",
-    "running": "The run is being executed; you can check `task-status` for more detail",
+    "running": "The run is being executed; you can check `task-log` for more detail",
     "succeeded": "The run has completed successfully",
     "failed": "The run has failed; see: `errors` and `metadata` for more detail",
     "finished": "The run has completed, metadata has been saved, and is ready to download",
@@ -21,5 +21,7 @@ run_status_msg = {
     "downloading": "The Run's output files are being transferred from the compute-site",
     "download failed": "The Run's output files could not be transferred from the compute-site",
     "download inactive": "Globus transfer stalled.",
-    "download complete": "Your Run's output (succeeded or failed) have been transferred from the compute-site",
+    "download complete": "Your Run's output (succeeded or failed) are available for you to `get`",
+    "email sent": "Notification of run completion was sent via email",
+    "done": "The run is complete."
 }

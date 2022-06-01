@@ -9,6 +9,7 @@ import pathlib
 import requests
 import json
 import subprocess
+import warnings
 from typing import Dict
 from jaws_client import log as logging
 from jaws_client.config import Configuration
@@ -167,7 +168,7 @@ def queue(site: str, all: bool) -> None:
     "--all",
     is_flag=True,
     default=False,
-    help="List runs from all users;d default=False",
+    help="List runs from all users; default=False",
 )
 def history(days: int, site: str, result: str, all: bool) -> None:
     """Print a list of the user's past runs."""
@@ -207,31 +208,6 @@ def status(run_id: int, verbose: bool) -> None:
     result = _run_status(run_id, verbose)
     _convert_all_fields_to_localtime([result], keys=["submitted", "updated"])
     _print_json(result)
-
-
-@main.command()
-@click.argument("run_id")
-@click.option("--fmt", default="text", help="the desired output format: [text|json]")
-def task_status(run_id: int, fmt: str) -> None:
-    """Show the current status of each Task."""
-
-    url = f'{config.get("JAWS", "url")}/run/{run_id}/task_status'
-    result = _request("GET", url)
-    _convert_all_fields_to_localtime(result, columns=[4])
-    header = [
-        "NAME",
-        "CROMWELL_JOB_ID",
-        "CACHED",
-        "STATUS",
-        "TIMESTAMP",
-        "COMMENT",
-    ]
-    if fmt == "json":
-        _print_json(result)
-    elif fmt == "tab":
-        _print_tab_delimited_table(header, result)
-    else:
-        _print_space_delimited_table(header, result)
 
 
 @main.command()
@@ -341,26 +317,40 @@ def _print_space_delimited_table(header, table):
 @click.argument("run_id")
 @click.option("--fmt", default="text", help="the desired output format: [text|json]")
 def task_log(run_id: int, fmt: str) -> None:
-    """Get log of each Task's state transitions."""
+    """Get Task logs and current status"""
 
     url = f'{config.get("JAWS", "url")}/run/{run_id}/task_log'
     result = _request("GET", url)
     header = [
         "NAME",
-        "CROMWELL_JOB_ID",
         "CACHED",
-        "STATUS_FROM",
-        "STATUS_TO",
-        "TIMESTAMP",
-        "COMMENT",
+        "STATUS",
+        "QUEUED",
+        "RUNNING",
+        "FINISHED",
+        "QUEUE_DUR",
+        "RUN_DUR",
     ]
-    _convert_all_fields_to_localtime(result, columns=[5])
+    _convert_all_fields_to_localtime(result, columns=[3, 4, 5])
     if fmt == "json":
         _print_json(result)
     elif fmt == "tab":
         _print_tab_delimited_table(header, result)
     else:
         _print_space_delimited_table(header, result)
+
+
+@main.command()
+@click.argument("run_id")
+def task_summary(run_id: int) -> None:
+    """Get summary info on each Task"""
+
+    url = f'{config.get("JAWS", "url")}/run/{run_id}/task_summary'
+    result = _request("GET", url)
+    _convert_all_fields_to_localtime(
+        result, keys=["queue_start", "run_start", "run_end"]
+    )
+    _print_json(result)
 
 
 def _convert_to_table(header: list, jdoc: dict):
@@ -373,32 +363,6 @@ def _convert_to_table(header: list, jdoc: dict):
             row.append(value)
         table.append(row)
     return table
-
-
-@main.command()
-@click.argument("run_id")
-@click.option("--fmt", default="text", help="the desired output format: [text|json]")
-def task_summary(run_id: int, fmt: str) -> None:
-    """Get summary of each Task's state durations."""
-
-    url = f'{config.get("JAWS", "url")}/run/{run_id}/task_summary'
-    result = _request("GET", url)
-    header = [
-        "NAME",
-        "CROMWELL_JOB_ID",
-        "CACHED",
-        "RESULT",
-        "QUEUED",
-        "QUEUE_WAIT",
-        "RUNTIME",
-        "MAX_TIME",
-    ]
-    if fmt == "json":
-        _print_json(result)
-    elif fmt == "tab":
-        _print_tab_delimited_table(header, result)
-    else:
-        _print_space_delimited_table(header, result)
 
 
 @main.command()
@@ -566,9 +530,9 @@ def validate(wdl_file: str) -> None:
 def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
     """Copy the output of a run to the specified folder."""
 
-    result = _run_status(run_id, True)
-    status = result["status"]
-    submission_id = result["submission_id"]
+    run_info = _run_status(run_id, True)
+    status = run_info["status"]
+    submission_id = run_info["submission_id"]
 
     if status not in ["download complete", "email sent", "done"]:
         sys.exit(f"Run {run_id} output is not yet available; status is {status}")
@@ -577,7 +541,7 @@ def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
     pathlib.Path(dest).mkdir(parents=True, exist_ok=True)
 
     src = None
-    if result["input_site_id"] == result["compute_site_id"]:
+    if run_info["input_site_id"] == run_info["compute_site_id"]:
         # get the results from the cromwell-execution dir
         url = f'{config.get("JAWS", "url")}/run/{run_id}/root'
         src = _request("GET", url)
@@ -586,10 +550,43 @@ def get(run_id: int, dest: str, complete: bool, quiet: bool) -> None:
         src_base = config.get("JAWS", "downloads_dir")
         src = f"{src_base}/{submission_id}"
 
+    # Write the "outputs.json" file because it contains non-file outputs (e.g. numbers)
+    url = f'{config.get("JAWS", "url")}/run/{run_id}/outputs'
+    outputs = _request("GET", url)
+    if outputs is None:
+        err_msg = f"There are no outputs for Run {run_id} at this time."
+        sys.exit(err_msg)
+    outputs_file = os.path.normpath(os.path.join(dest, "outputs.json"))
+    if not quiet:
+        print("Writing outputs.json")
+    _write_json_file(outputs_file, outputs)
+
+    # the original wdl, json, zip files were copied to the inputs dir during submission
+    input_dir = config.get("JAWS", "inputs_dir")
+    wdl_src_file = os.path.join(input_dir, f"{submission_id}.wdl")
+    wdl_dest_file = os.path.join(dest, os.path.basename(run_info["wdl_file"]))
+    _copy_file(wdl_src_file, wdl_dest_file, quiet)
+    json_src_file = os.path.join(input_dir, f"{submission_id}.json")
+    json_dest_file = os.path.join(dest, os.path.basename(run_info["json_file"]))
+    _copy_file(json_src_file, json_dest_file, quiet)
+    zip_src_file = os.path.join(input_dir, f"{submission_id}.zip")
+    zip_dest_file = os.path.join(dest, "subworkflows.zip")
+    if os.path.isfile(zip_src_file):
+        _copy_file(zip_src_file, zip_dest_file, quiet)
+
     if complete is True:
         _get_complete(run_id, src, dest)
     else:
-        _get_outputs(run_id, src, dest, quiet)
+        _get_outfiles(run_id, src, dest, quiet)
+
+
+def _write_json_file(outfile: str, contents: dict):
+    try:
+        with open(outfile, "w") as fh:
+            fh.write(json.dumps(contents, sort_keys=True, indent=4))
+        os.chmod(outfile, 0o0664)
+    except Exception as error:
+        sys.exit(f"Unable to write json file, {outfile}: {error}")
 
 
 def rsync(src, dest, options=["-rLtq"]):
@@ -630,45 +627,28 @@ def _get_complete(run_id: int, src: str, dest: str) -> None:
         sys.exit(err_msg)
 
 
-def _get_outputs(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
+def _get_outfiles(run_id: int, src_dir: str, dest_dir: str, quiet: bool) -> None:
     """Copy workflow outputs"""
-    url = f'{config.get("JAWS", "url")}/run/{run_id}/outputs'
-    outputs = _request("GET", url)
-    if not outputs:
+    url = f'{config.get("JAWS", "url")}/run/{run_id}/outfiles'
+    outfiles = _request("GET", url)
+    if not outfiles or len(outfiles) == 0:
         err_msg = f"There are no outputs for Run {run_id} at this time."
         sys.exit(err_msg)
-
-    # Write the "outputs.json" file because it contains non-file outputs (e.g. numbers)
-    outputs_file = os.path.normpath(os.path.join(dest_dir, "outputs.json"))
-    try:
-        with open(outputs_file, "w") as fh:
-            fh.write(json.dumps(outputs, sort_keys=True, indent=4))
-        os.chmod(outputs_file, 0o0664)
-    except Exception as error:
-        sys.exit(f"Unable to write output file: {error}")
-
-    # the paths of workflow output files are listed in the outputs_file
-    for (key, value) in outputs.items():
-        if type(value) is list:
-            for an_output in value:
-                _copy_outfile(an_output, src_dir, dest_dir, quiet)
-        else:
-            _copy_outfile(value, src_dir, dest_dir, quiet)
+    for rel_path in outfiles:
+        src_file = os.path.normpath(os.path.join(src_dir, rel_path))
+        dest_file = os.path.normpath(os.path.join(dest_dir, rel_path))
+        _copy_file(src_file, dest_file, quiet)
 
 
-def _copy_outfile(rel_path, src_dir, dest_dir, quiet=False):
+def _copy_file(src_file, dest_file, quiet=False):
     """Copy one output if it is a file"""
-    if rel_path is None:
-        return
-    src_file = os.path.normpath(os.path.join(src_dir, rel_path))
-    if not os.path.isfile(src_file):
-        # not all of a workflow's "outputs" are files (may be string or number)
-        return
-    dest_file = os.path.normpath(os.path.join(dest_dir, rel_path))
-    a_dest_dir = os.path.dirname(dest_file)
-    os.makedirs(a_dest_dir, exist_ok=True)
-    copy_with_progress_bar(src_file, dest_file, quiet=quiet)
-    os.chmod(dest_file, 0o0664)
+    try:
+        dest_dir = os.path.dirname(dest_file)
+        os.makedirs(dest_dir, exist_ok=True)
+        copy_with_progress_bar(src_file, dest_file, quiet=quiet)
+        os.chmod(dest_file, 0o0664)
+    except IOError as error:
+        warnings.warn(f"Error copying file, {src_file}: {error}")
 
 
 def _convert_all_table_fields_to_localtime(table, **kwargs):
@@ -718,11 +698,18 @@ def _utc_to_local(utc_datetime):
 @click.argument("uid")
 @click.argument("email")
 @click.argument("name")
+@click.argument("group")
 @click.option("--admin", is_flag=True, default=False, help="Grant admin access")
-def add_user(uid: str, email: str, name: str, admin: bool) -> None:
+def add_user(uid: str, email: str, name: str, group: str, admin: bool) -> None:
     """Add new user and get JAWS OAuth access token (restricted)."""
 
-    data = {"uid": uid, "email": email, "name": name, "admin": admin}
+    data = {
+        "uid": uid,
+        "email": email,
+        "name": name,
+        "user_group": group,
+        "admin": admin,
+    }
     url = f'{config.get("JAWS", "url")}/user'
     result = _request("POST", url, data)
     _print_json(result)

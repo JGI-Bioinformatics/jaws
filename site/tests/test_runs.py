@@ -37,7 +37,7 @@ def test_status():
 @pytest.mark.parametrize(
     "status",
     [
-        "upload complete",
+        "ready",
         "submitted",
         "queued",
         "running",
@@ -341,14 +341,11 @@ def test_check_run_cromwell_status(monkeypatch):
     def mock_get_status_failed(self, run_id):
         return "Failed"
 
-    def mock_get_run_status_queued(session, run_id):
-        return "queued"
+    def mock_did_run_start_true(self):
+        return True
 
-    def mock_get_run_status_none(session, run_id):
-        return None
-
-    def mock_get_run_status_running(session, run_id):
-        return "running"
+    def mock_did_run_start_false(self):
+        return False
 
     mock_session = MockSession()
 
@@ -358,7 +355,7 @@ def test_check_run_cromwell_status(monkeypatch):
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
-    monkeypatch.setattr(jaws_site.tasks, "get_run_status", mock_get_run_status_queued)
+    monkeypatch.setattr(jaws_site.runs.Run, "did_run_start", mock_did_run_start_false)
     run.check_run_cromwell_status()
     assert run.data.status == "queued"
 
@@ -368,7 +365,6 @@ def test_check_run_cromwell_status(monkeypatch):
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
-    monkeypatch.setattr(jaws_site.tasks, "get_run_status", mock_get_run_status_none)
     run.check_run_cromwell_status()
     assert run.data.status == "queued"
 
@@ -378,7 +374,7 @@ def test_check_run_cromwell_status(monkeypatch):
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
-    monkeypatch.setattr(jaws_site.tasks, "get_run_status", mock_get_run_status_running)
+    monkeypatch.setattr(jaws_site.runs.Run, "did_run_start", mock_did_run_start_true)
     run.check_run_cromwell_status()
     assert run.data.status == "running"
 

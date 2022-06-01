@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 echo "Executing on $HOSTNAME" 1>&2
+echo "Begin execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
 IMG=$1          # jfroula/bbtools@sha256:
 SHELL=$2 # /bin/bash
 SCRIPT=$3       # script
@@ -14,50 +15,13 @@ fi
 
 MOUNT_FAST_SCRATCH=""
 if [ ! -z $FAST_SCRATCH ] && [ -d $FAST_SCRATCH ]; then
-    MOUNT_FAST_SCRATCH = "-V $FAST_SCRATCH:/fast_scratch"
+    MOUNT_FAST_SCRATCH="-V $FAST_SCRATCH:/fast_scratch"
 fi
 
 MOUNT_BIG_SCRATCH=""
 if [ ! -z $BIG_SCRATCH ] && [ -d $BIG_SCRATCH ] ; then
-    MOUNT_BIG_SCRATCH = "-V $BIG_SCRATCH:/big_scratch"
+    MOUNT_BIG_SCRATCH="-V $BIG_SCRATCH:/big_scratch"
 fi
-
-function pullImage(){
-    IMG=$1
-    REPO=$2
-    HASH=$3
-    TAG=
-    IMAGE=
-    if [[ $HASH =~ "sha256" ]]; then
-        #Try to figure out the version to pull
-        RT=$(skopeo inspect docker://${IMG} | jq .RepoTags)
-        for ttag in $(echo $RT | sed 's/[",[]//g'); do
-            digest=$(skopeo inspect docker://${REPO}:${ttag} | jq .Digest | sed 's/"//g')
-            if [ "$digest" == "$HASH" ]; then
-                TAG=$ttag
-                break
-            fi
-        done
-    
-        if [ -z $TAG ]; then
-            echo "Unable to determine image version" 1>&2
-            exit 1
-        fi
-    
-        IMAGE=${REPO}:${TAG}
-    else
-        IMAGE=${REPO}
-    fi
-
-    # Pull image by tag
-    shifterimg pull ${IMAGE} > /dev/null 2>&1
-    if [[ $? > 0 ]]; then
-        echo "Invalid container name or failed to pull container, ${IMAGE}"
-        exit 1
-    else
-        echo "successfully pulled image ${IMAGE}"
-    fi
-}
 
 IMG=${1}
 REPO=$(echo $IMG | sed 's/@.*//')
@@ -76,17 +40,6 @@ ID=$(echo $IMG | sed 's/.*://')
 #   HASH: jfroula/test:0.1.5
 #   ID: 0.1.5
 
-if [[ $HASH =~ "sha256" ]]; then
-    shifter --image=id:${ID} echo testing to see if we already have image > /dev/null 2>&1
-else
-    shifter --image=${IMG} echo testing to see if we already have image > /dev/null 2>&1
-fi
-if [[ $? == 0 ]]; then
-    echo "image already pulled: $IMG"
-else
-    pullImage $IMG $REPO $HASH
-fi
-
 # Run container script and catch exit code
 if [[ $HASH =~ "sha256" ]]; then
     shifter --image=id:$ID $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH $SHELL $SCRIPT
@@ -95,6 +48,8 @@ else
 fi
 
 export EXIT_CODE=$?
+
+echo "End execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
 
 # Return with container exit code
 exit $EXIT_CODE

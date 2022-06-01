@@ -127,9 +127,12 @@ class Configuration(metaclass=Singleton):
         conf = self
 
     def get(self, section: str, key: str, default=None) -> str:
-        if section not in self.config:
+        try:
+            result = self.config[section].get(key, default)
+        except configparser.NoSectionError:
             raise ConfigurationError(f"Section {section} not defined in config obj")
-        return self.config[section].get(key, default)
+        else:
+            return result
 
     def get_site(self, site_id: str) -> dict:
         """Retrieve Site config section

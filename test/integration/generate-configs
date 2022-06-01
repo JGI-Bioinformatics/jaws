@@ -9,6 +9,7 @@ set -eo pipefail
 # Exits if any required var is undefined.
 REQUIRED_VARS="
 CONFIG_DIR
+CROMWELL_EXECUTIONS_DIR
 CROMWELL_PORT
 DEPLOYMENT_NAME
 JAWS_RMQ_HOST
@@ -17,6 +18,7 @@ JAWS_RMQ_PW
 JAWS_GLOBUS_CLIENT_ID
 JAWS_GLOBUS_CLIENT_SECRET
 JAWS_SITE
+JAWS_DEFAULT_CONTAINER
 SITE_CLUSTER_ACCOUNT
 SITE_CLUSTER_CONSTRAINT
 SITE_CLUSTER_PARTITION
@@ -72,16 +74,7 @@ port = $JAWS_DB_PORT
 user = jaws
 password = $JAWS_DB_PW
 db = jaws_${JAWS_SITE,,}_$DEPLOYMENT_NAME
-[LOCAL_RPC_SERVER]
-user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
-vhost = jaws_$DEPLOYMENT_NAME
-queue = SITE_$JAWS_SITE
-num_threads = 5
-max_retries = 3
-[CENTRAL_RPC_SERVER]
+[RPC_SERVER]
 user = jaws
 password = $JAWS_RMQ_PW
 host = $JAWS_RMQ_HOST
@@ -123,8 +116,10 @@ endpoint_id = $SITE_GLOBUS_EP
 id = $JAWS_SITE
 inputs_dir = $SITE_INPUTS_DIR
 downloads_dir = $SITE_DOWNLOADS_DIR
+default_container = $JAWS_DEFAULT_CONTAINER
 [CROMWELL]
 url = http://localhost:$CROMWELL_PORT
+executions_dir = $CROMWELL_EXECUTIONS_DIR
 [AWS]
 aws_access_key_id = $AWS_ACCESS_KEY_ID
 aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
@@ -148,13 +143,6 @@ vhost = jtm_$DEPLOYMENT_NAME
 script = $SITE_PERFORMANCE_METRICS_SCRIPT
 log_file = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}/logs/pagurus.log
 output_dir = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}
-[SITE_RPC_CLIENT]
-user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
-vhost = jaws_$DEPLOYMENT_NAME
-queue = SITE_$JAWS_SITE
 [JTM_RPC_SERVER]
 user = jaws
 password = $SITE_RMQ_PW
@@ -268,14 +256,6 @@ site_id = $JAWS_SITE
 host = $PARSL_MP_HOST
 password = $PARSL_MP_PASSWORD
 port = $PARSL_MP_PORT
-
-[SITE_RPC_CLIENT]
-host = $SITE_RMQ_HOST
-vhost = jtm_$DEPLOYMENT_NAME
-user = jaws
-password = $SITE_RMQ_PW
-port = $SITE_RMQ_PORT
-queue = SITE_$JAWS_SITE
 EOM
 
 

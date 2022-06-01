@@ -42,8 +42,8 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_JAWS_GROUP: Linux group name for JAWS  
 - [SITE]_JTM_GROUP: Linux group name for JTM  
 - [SITE]_CLIENT_GROUP: Linux group name for client. Group name is something all JGI users can use  
-- [SITE]_JAWS_SCRATCH_BASEDIR: SCRATCH directory for JAWS  
-- [SITE]_JTM_SCRATCH_BASEDIR: SCRATCH directory for JTM. Can be same as JAWS   
+- [SITE]_JAWS_SCRATCH_BASEDIR: basename of SCRATCH directory for JAWS; "-{deployment_name}" will be appended
+- [SITE]_JTM_SCRATCH_BASEDIR: basename of SCRATCH directory for JTM. Can be same as JAWS; "-{deployment_name}" will be appended
 - [SITE]_JAWS_SW_BASEDIR: Base directory where JAWS code is located  
 - [SITE]_JTM_SW_BASEDIR: Base directory where JTM code is located  
 - [SITE]_FAST_SCRATCH_DIR: Path of fast storage local to worker nodes

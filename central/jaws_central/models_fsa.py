@@ -33,6 +33,7 @@ class User(db.Model):
     id = db.Column(db.String(32), primary_key=True)
     email = db.Column(db.String(64), nullable=False, unique=True)
     name = db.Column(db.String(64), nullable=True)
+    user_group = db.Column(db.String(16), nullable=True)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     is_dashboard = db.Column(db.Boolean, nullable=False, default=False)
     jaws_token = db.Column(db.String(256), nullable=False)

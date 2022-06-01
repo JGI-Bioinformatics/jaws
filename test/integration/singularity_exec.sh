@@ -15,12 +15,12 @@ fi
 
 MOUNT_FAST_SCRATCH=""
 if [ ! -z $FAST_SCRATCH ] && [ -d $FAST_SCRATCH ]; then
-    MOUNT_FAST_SCRATCH = "--bind $FAST_SCRATCH:/fast_scratch"
+    MOUNT_FAST_SCRATCH="--bind $FAST_SCRATCH:/fast_scratch"
 fi
 
 MOUNT_BIG_SCRATCH=""
 if [ ! -z $BIG_SCRATCH ] && [ -d $BIG_SCRATCH ] ; then
-    MOUNT_BIG_SCRATCH = "--bind $BIG_SCRATCH:/big_scratch"
+    MOUNT_BIG_SCRATCH="--bind $BIG_SCRATCH:/big_scratch"
 fi
 
 if [[ ! -d $CWD ]]; then
@@ -28,10 +28,10 @@ if [[ ! -d $CWD ]]; then
     exit 1
 fi
 
-if [[ ! -d $LOCAL_REF ]]; then
-    echo "The Local reference dir: $LOCAL_REF is not a valid directory"
-    exit 1
-fi
+#if [[ ! -d $LOCAL_REF ]]; then
+#    echo "The Local reference dir: $LOCAL_REF is not a valid directory"
+#    exit 1
+#fi
 
 if [[ ! -e $SCRIPT ]]; then
     echo "The SCRIPT: $SCRIPT doesn't exist"
@@ -39,10 +39,13 @@ if [[ ! -e $SCRIPT ]]; then
 fi
 
 echo "Executing on $HOSTNAME" 1>&2
+echo "Begin execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
 
 # Run container script and catch exit code
 singularity exec $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH --bind $CWD:$DOCKER_CWD $IMAGE $JOB_SHELL $SCRIPT
 export EXIT_CODE=$?
+
+echo "End execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
 
 # Return with container exit code
 exit $EXIT_CODE

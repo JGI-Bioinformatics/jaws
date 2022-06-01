@@ -118,7 +118,10 @@ def copy_with_progress_bar(src, dest, **kwargs):
             f"source file `{srcfile}` and destinaton file `{destfile}` are the same file."
         )
 
-    src_stat = os.stat(str(srcfile))
+    try:
+        src_stat = os.stat(str(srcfile))
+    except Exception as error:
+        raise (f"Unable to stat srcfile: {error}")
 
     # check for special files, lifted from shutil.copy source
     if shutil.stat.S_ISFIFO(src_stat.st_mode):
@@ -126,13 +129,18 @@ def copy_with_progress_bar(src, dest, **kwargs):
 
     # if dest file looks like a copy of src file, then do nothing
     src_size = src_stat.st_size
+    src_mtime = os.path.getmtime(str(srcfile))
     if destfile.exists():
         dest_stat = os.stat(str(destfile))
         if shutil.stat.S_ISFIFO(dest_stat.st_mode):
             raise SpecialFileError(f"`{destfile}` is a named pipe")
-        if (src_stat.st_mtime == dest_stat.st_mtime and src_size == dest_stat.st_size):
+        dest_size = dest_stat.st_size
+        dest_mtime = os.path.getmtime(str(destfile))
+        if (src_mtime == dest_mtime and src_size == dest_size):
             sys.stderr.write(f"Using cached copy of {os.path.basename(srcfile)}\n")
             return
+        else:
+            os.remove(destfile)
 
     if quiet:
         shutil.copyfile(srcfile, destfile)

@@ -41,6 +41,8 @@ run_pre_cromwell_states = [
     "upload complete",
     "upload stalled",
     "upload failed",
+    "ready",
+    "submission failed"
 ]
 
 
@@ -179,7 +181,7 @@ def _select_runs(user: str, **kwargs):
     if "site_id" in kwargs:
         site_id = kwargs["site_id"].upper()
         if site_id != "ALL":
-            query = query.filter(Run.site_id == site_id)
+            query = query.filter(Run.compute_site_id == site_id)
     if "delta_days" in kwargs:
         delta_days = int(kwargs["delta_days"])
         if delta_days > 0:
@@ -459,7 +461,7 @@ def run_log(user: str, run_id: int):
     return table, 200
 
 
-def task_log(user, run_id):
+def run_task_log(user, run_id):
     """
     Retrieve log of all task state transitions.
 
@@ -473,10 +475,10 @@ def task_log(user, run_id):
     logger.info(f"User {user}: Get task-log for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "get_task_log")
+    return rpc_call(user, run_id, "run_task_log")
 
 
-def task_summary(user, run_id):
+def run_task_summary(user, run_id):
     """
     Retrieve summary of all task state transitions.
 
@@ -490,7 +492,7 @@ def task_summary(user, run_id):
     logger.info(f"User {user}: Get task-log for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "get_task_summary")
+    return rpc_call(user, run_id, "run_task_summary")
 
 
 def run_metadata(user, run_id):
@@ -564,7 +566,7 @@ def run_workflow_root(user, run_id):
     return result
 
 
-def get_errors(user, run_id):
+def run_errors(user, run_id):
     """
     Retrieve error messages and stderr for failed tasks.
 
@@ -578,7 +580,7 @@ def get_errors(user, run_id):
     logger.info(f"User {user}: Get errors for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "get_errors")
+    return rpc_call(user, run_id, "run_errors")
 
 
 def cancel_run(user, run_id):
@@ -599,10 +601,13 @@ def cancel_run(user, run_id):
 
     if status == "cancelled":
         abort(400, {"error": "That Run had already been cancelled"})
-    elif status == "download complete":
-        abort(400, {"error": "It's too late to cancel; run is finished."})
+    elif status in ["download complete", "email sent", "done"]:
+        abort(400, {"error": "It is too late to cancel."})
     cancelled = _cancel_run(user, run)
-    return {run_id: cancelled}, 201
+    if cancelled is True:
+        return {run_id: cancelled}, 201
+    else:
+        abort(400, {"error": f"Run {run_id} could not be cancelled"})
 
 
 def _cancel_run(user, run, reason="Cancelled by user"):
@@ -612,19 +617,29 @@ def _cancel_run(user, run, reason="Cancelled by user"):
     :param run: Run SqlAlchemy ORM object
     :type run: obj
     """
-    if run.status in ["cancelled", "download complete"]:
-        return
-    try:
-        _rpc_call(user, run.id, "cancel_run")
-    except Exception as error:
-        logger.error(f"Error canceling run {run.id}: {error}")
-        # ignore error, cancel anyway
-    try:
-        _update_run_status(run, "cancelled", reason)
-    except Exception as error:
-        return f"cancel failed; {error}"
+    orig_status = run.status
+    if run.status in ["cancelled", "download complete", "email sent", "done"]:
+        # too late to cancel
+        return False
     else:
-        return "cancelled"
+        # central must be updated so the central-run-daemon will not process it
+        try:
+            _update_run_status(run, "cancelled", reason)
+        except Exception as error:
+            logger.error(f"Cancel failed to update Run {run.id} status: {error}")
+            return False
+    if orig_status in ["submitted", "queued", "running"]:
+        # the compute jaws-site should also receive the cancel instruction
+        try:
+            _rpc_call(user, run.id, "cancel_run")
+        except Exception as error:
+            logger.error(f"RPC cancel Run {run.id} failed: {error}")
+            return False
+        else:
+            logger.debug(f"RPC cancel Run {run.id} successful")
+            return True
+    else:
+        return True
 
 
 def cancel_all(user):

@@ -511,7 +511,7 @@ class WdlFile:
             return staged_wdl_filename, None
         elif user_zip:
             shutil.copy(user_zip, compressed_file)
-            os.chmod(compressed_file, 0o664)
+            os.chmod(compressed_file, 0o660)
         else:
             self.compress_subworkflows(compressed_file, staging_dir, submission_id)
         return staged_wdl_filename, compressed_file
@@ -643,11 +643,11 @@ class WorkflowInputs:
             dirname = pathlib.Path(os.path.dirname(staged_path))
             dirname.mkdir(mode=0o0770, parents=True, exist_ok=True)
 
-            # Files must be copied in to ensure they are readable by the jaws and jtm users.  The group
+            # Files must be copied in to ensure they are readable by the "jaws" linux user.  The group
             # will be set correctly as a result of the gid sticky bit and acl rules on the inputs dir.
             copy_with_progress_bar(original_path, dest_path, quiet=quiet)
             try:
-                os.chmod(dest_path, 0o0660)
+                os.chmod(dest_path, 0o0666)
             except IOError as error:
                 raise IOError(f"Error chmod {dest_path}: {error}")
 

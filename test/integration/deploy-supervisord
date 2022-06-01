@@ -136,22 +136,15 @@ startsecs=3
 startretries=10
 autorestart=unexpected
 
-[program:jaws-site-jtm-rpc]
-command=$SHIM_DIR/jaws-site-jtm-rpc-$DEPLOYMENT_NAME
-numprocs=1
-startsecs=3
-startretries=10
-autorestart=unexpected
-
-[program:jaws-site-central-rpc]
-command=$SHIM_DIR/jaws-site-central-rpc-$DEPLOYMENT_NAME
+[program:jaws-site-rpc]
+command=$SHIM_DIR/jaws-site--rpc-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=10
 autorestart=unexpected
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-site-run-daemon,jaws-site-transfer-daemon,jaws-site-perf-metrics-daemon,jaws-site-jtm-rpc,jaws-site-central-rpc
+programs=jaws-site-run-daemon,jaws-site-transfer-daemon,jaws-site-perf-metrics-daemon,jaws-site-rpc
 priority=999
 EOM
 
@@ -191,14 +184,6 @@ prompt=supervisor-cwl-backend-$DEPLOYMENT_NAME
 
 ;----- Program Section
 
-[program:jaws-jtm]
-command=$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME
-numprocs=1
-startsecs=3
-startretries=10
-autorestart=unexpected
-priority=1
-
 [program:jaws-cromwell]
 command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
 numprocs=1
@@ -209,7 +194,7 @@ stopwaitsecs=120
 priority=9
 
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-jtm,jaws-cromwell
+programs=jaws-cromwell
 priority=999
 EOM
 

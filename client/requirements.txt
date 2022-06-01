@@ -8,6 +8,8 @@ idna==3.2
 importlib-metadata==4.6.1
 nested-dict==1.61
 ordered-set==4.0.2
+pytest==7.1.2
+pytest-cov
 pytz==2021.1
 requests==2.26.0
 soupsieve==2.2.1
