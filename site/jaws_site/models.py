@@ -9,7 +9,6 @@ from sqlalchemy import (
     String,
     Integer,
     Boolean,
-    Text,
     ForeignKey,
 )
 from jaws_site.database import Base
@@ -80,7 +79,7 @@ class Transfer(Base):
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     src_base_dir = Column(String(128), nullable=False)
     dest_base_dir = Column(String(128), nullable=False)
-    manifest_json = Column(Text, nullable=False)
+    manifest_json = Column(String(64000), nullable=False)  # MEDIUMTEXT
 
 
 def create_all(engine, session):
