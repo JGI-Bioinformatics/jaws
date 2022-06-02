@@ -253,8 +253,9 @@ where
     :bash:`-Dbackend=[Local|Slurm]`
     this will allow you to choose between the Local and Slurm backends. With slurm, each task will have it's own sbatch command (and thus wait in queue).
 
-
-
-
-
+Limitations when using docker
+-----------------------------
+1. one docker image per task - this is a general constraint that Cromwell has.
+2. the docker image must be registered with docker hub - this is how we have set up the docker backend configuration.
+3. a sha256 tag must be used instead of some custom tag (i.e v1.0.1) for call-caching to work.
 

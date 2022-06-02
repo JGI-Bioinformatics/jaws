@@ -58,8 +58,6 @@ Getting Started
    Step 1: development environment <Tutorials/wdl_development>
    Step 2: create docker container <Tutorials/create_env>
    Step 3: write a WDL <Tutorials/building_wdls>
-   Step 4: making WDL work in JAWS <Tutorials/running_env>
-
 
 .. toctree::
    :hidden:
@@ -74,4 +72,3 @@ Getting Started
    Working Examples <Tutorials/example_wdls>
    Subworkflows <Tutorials/subworkflows>
    Current JGI Workflows </Specifications/current_workflows>
-   Using Reference Data </Specifications/refdata>
