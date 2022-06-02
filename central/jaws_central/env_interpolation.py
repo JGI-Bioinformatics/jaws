@@ -37,7 +37,7 @@ class JAWSConfigParser(configparser.ConfigParser):
     found, and entries in the config file (irrespective of section!) with the name "host" will be
     set to the value originally from ENV__host, and port will be from ENV__port. Whatever value is
     on the right hand side of the assignment in the config file are totally ignored.
-    
+
     Note that env_override should be set as a positional parameter, not as a named parameter
     because the singleton metaclass constructor for jaws_central.config.Configuration will throw
     an error on a named parameter.
