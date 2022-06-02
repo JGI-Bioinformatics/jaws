@@ -11,7 +11,6 @@ from sqlalchemy import (
     String,
     Integer,
     Boolean,
-    Text,
     ForeignKey,
 )
 from jaws_central.database import Base
@@ -65,7 +64,7 @@ class Transfer(Base):
     src_base_dir = Column(String(128), nullable=False)
     dest_site_id = Column(String(8), nullable=False)
     dest_base_dir = Column(String(128), nullable=False)
-    manifest_json = Column(Text(), nullable=False)
+    manifest_json = Column(String(64000), nullable=False)  # MEDIUMTEXT
     globus_transfer_id = Column(String(36), nullable=True)
 
     def __init__(self, *args, **kwargs):
@@ -100,7 +99,7 @@ class Run(Base):
     wdl_file = Column(String(256), nullable=False)
     json_file = Column(String(256), nullable=False)
     tag = Column(String(256), nullable=True)
-    manifest_json = Column(Text, nullable=False)
+    manifest_json = Column(String(64000), nullable=False)  # MEDIUMTEXT
     webhook = Column(String(256), nullable=True)
 
     def __init__(self, *args, **kwargs):
