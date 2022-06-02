@@ -25,7 +25,23 @@ class JAWSConfigParser(configparser.ConfigParser):
 
     A new parameter is introduced to the init() function, env_override, which is a prefix for
     any environment variables that should be used as overrides for the get() function. Must be
-    at least 2 characters long
+    at least 3 characters long and no longer than 20 characters long. This is basically to avoid
+    prefixes that are too short colliding with normal environment variables, and also to avoid
+    prefixes that are too long messing up config names that are longish. Any environment variables
+    that match the prefix have the prefix removed from the name, and the name/value are added to
+    the _vars dict. The environment is only checked when the config object is instantiated, no
+    changes to env vars after instantiation are picked up.
+
+    So, if env_override="ENV__" is passed to the constructor, then any environment variables like
+    ENV__host and ENV__port are set, then _vars['host'] and _vars['port'] will be set to the values
+    found, and entries in the config file (irrespective of section!) with the name "host" will be
+    set to the value originally from ENV__host, and port will be from ENV__port. Whatever value is
+    on the right hand side of the assignment in the config file are totally ignored.
+    
+    Note that env_override should be set as a positional parameter, not as a named parameter
+    because the singleton metaclass constructor for jaws_central.config.Configuration will throw
+    an error on a named parameter.
+
     """
 
     def __init__(self,  env_override=None, **kwargs):
@@ -45,7 +61,8 @@ class JAWSConfigParser(configparser.ConfigParser):
     def get(self, section, option, **kwargs):
         """
         Override the standard getter by forcing the vars argument to use the dictionary derived
-        from the environment variables with the prefix in the env_override param to init
+        from the environment variables with the prefix in the env_override param. Call the parent
+        getter with _vars set to use the existing functionality for overriding values.
         """
         if self._vars is not None:
             # Force vars to self._vars if it has been set. This means env_override will also override
