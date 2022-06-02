@@ -4,6 +4,7 @@
 ### User Facing Changes
 #### Changed
 
+- MR#1254 Add child class of ConfigParser that allows properly named environment variables to override config file settings.
 
 ## 2.8.5 (2022-5-24) Summary
 ### User Facing Changes
