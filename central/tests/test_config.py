@@ -1,5 +1,6 @@
 import jaws_central.config
 import os
+import pytest
 
 
 def check_section(section_to_test, expected_entries, actual_config):
@@ -20,8 +21,28 @@ def check_site_info(site_to_test, expected_entries, actual_config):
 
 
 def test_check_all_values(config_file):
-
+    try:
+        jaws_central.config.Configuration._destructor()
+    except Exception:
+        pass
     config_path = config_file
+    print("Test exception when env_override value is longer than 20 chars")
+    with pytest.raises(ValueError):
+        jaws_central.config.Configuration(config_path, "012345678901234567890_")
+
+    try:
+        jaws_central.config.Configuration._destructor()
+    except Exception:
+        pass
+    print("Test exception when env_override value is shorter than 3 chars")
+    with pytest.raises(ValueError):
+        jaws_central.config.Configuration(config_path, "0_")
+
+    try:
+        jaws_central.config.Configuration._destructor()
+    except Exception:
+        pass
+
     cfg = jaws_central.config.Configuration(config_path)
     # Make sure that the _vars attribute in the interpolation object is "NONE" because
     # there was no env_override value set
@@ -103,12 +124,10 @@ def test_check_all_values(config_file):
     check_site("JGI", expected_site1_parameters, cfg)
     check_site_info("NERSC", expected_site2_parameters, cfg)
 
-    print("Clear old cfg object")
-    del cfg
-    # The singleton implementation is making it difficult to create a new instance despite deletion.
-    # Do this gross thing and and clear the singleton's instances
-    jaws_central.config.Singleton._instances = dict()
-    print("Instances of jaws_central.config.Configuration: ", dict(jaws_central.config.Singleton._instances))
+    try:
+        jaws_central.config.Configuration._destructor()
+    except Exception:
+        pass
 
     os.environ["ENV__host2"] = "db_over.foobar.com"
     os.environ["ENV__password2"] = "over_password123"
