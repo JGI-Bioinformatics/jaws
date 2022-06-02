@@ -196,6 +196,32 @@ variables:
   AWS_RMQ_HOST: "rmq.lbl.gov"
   AWS_RMQ_PORT: 5672
 
+  ASSEMBLY_CLIENT_INSTALL_BASEDIR: ""
+  ASSEMBLY_INSTALL_BASEDIR: "/home/ec2-user"
+  ASSEMBLY_USER_GROUP: ""
+  ASSEMBLY_GLOBUS_EP: ""
+  ASSEMBLY_GLOBUS_HOST_PATH: ""
+  ASSEMBLY_PYTHON: "python3"
+  ASSEMBLY_LOAD_PYTHON: ""
+  ASSEMBLY_JAWS_GROUP: "ec2-user"
+  ASSEMBLY_JTM_GROUP: "ec2-user"
+  ASSEMBLY_CLIENT_GROUP: "ec2-user"
+  ASSEMBLY_JAWS_SCRATCH_BASEDIR: "s3://jaws-assembly"
+  ASSEMBLY_JTM_SCRATCH_BASEDIR: "s3://jaws-assembly"
+  ASSEMBLY_FAST_SCRATCH_DIR: ""
+  ASSEMBLY_BIG_SCRATCH_DIR: ""
+  ASSEMBLY_SUPERVISOR_HOST: "http://localhost"
+  ASSEMBLY_CONTAINER_TYPE: "docker"
+  ASSEMBLY_CONTAINER_TMPDIR: "/tmp"
+  ASSEMBLY_CLUSTER_QOS: ""
+  ASSEMBLY_CLUSTER_PARTITION: ""
+  ASSEMBLY_CLUSTER_ACCOUNT: "ec2-user"
+  ASSEMBLY_CLUSTER_CONSTRAINT: ""
+  ASSEMBLY_MAX_RAM_GB: 512
+  ASSEMBLY_LOAD_JAVA: ""
+  ASSEMBLY_RMQ_HOST: "rmq.lbl.gov"
+  ASSEMBLY_RMQ_PORT: 5672
+
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
 .only-default: &only-default
