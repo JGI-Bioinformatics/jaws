@@ -4,24 +4,22 @@ Getting Help
 
 Slack and JIRA are only available for **JGI Staff**. If these avenues are not available, you can write an email to jaws-support@lbl.gov.
 
-
 -------------------------------
 Create a JIRA Ticket for Issues
 -------------------------------
 
-   To open a JIRA Ticket, go to (`JGI Intranet -> SUPPORT -> JGI’s Analysis Workflow Service (JAWS) <https://intranet.lbl.gov/jgi/services/computers-networking/jaws/>`_)
-
+To open a JIRA Ticket, go to (`JGI Intranet -> SUPPORT -> JGI’s Analysis Workflow Service (JAWS) <https://intranet.lbl.gov/jgi/services/computers-networking/jaws/>`_)
 
 -----------------------------
 Using SLACK to Ask a Question
 -----------------------------
 
-   Under the workspace: **joint-genome-inst.slack.com** there is a **#jaws** channel.
-
+Under the workspace: **joint-genome-inst.slack.com** there is a **#jaws** channel.
 
 -------------------------------
 Request for Paired Programming
 -------------------------------
+
 You can request to schedule a zoom meeting with a JAWS team member to work with you to get your workflow running via Cromwell and JAWS.  
 
 Send an email to jaws-support@lbl.gov.
@@ -41,7 +39,6 @@ Via the email or during the meeting, please expect to answer the following:
 	6. Do you have a hard deadline to get the WDL running?   
 
 	7. Is the workflow to be publicly released?   
-
 
 --------------------------
 
