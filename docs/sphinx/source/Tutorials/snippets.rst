@@ -166,16 +166,10 @@ Building WDLs
   <details>
   <summary><a> How to copy a whole directory that is listed in my inputs.json</a></summary>
   <br>
-	Sometimes you may want to copy all the contents of a directory. Unfortunately Cromwell doesn't allow for this (it's a limitation of the variable declaration "File"). The solution is to list all the files in the inputs.json.  The files will be put into a cromwell generated folder inside the "inputs" directory of that task (i.e. inputs/-697750178/). See the following example WDL that shows you how you would access that folder.
-  <br>
-    
-  <code><pre>
-	git clone https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples.git
-	cd jaws-tutorial-examples/copy-refdata-as-inputs
-  </pre></code>
-
-  <br>Another solution would be to include a tar file in the inputs.json and then untar it inside the task.
+	Sometimes you may want to copy all the contents of a directory. Unfortunately Cromwell doesn't allow for this (it's a limitation of the variable declaration "File"). 
+    <br><br>1. One solution would be to include a tar file in the inputs.json and then untar it inside the task.
+	<br><br>2. Another solution is to list all the files in the inputs.json.  The files will be put into a cromwell generated folder inside the "inputs" directory of that task (i.e. inputs/-697750178/). See the example WDL and inputs json that shows you how you would access that folder.
+  <br><a href=https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/copy-refdata-as-inputs/refdata.wdl>refdata.wdl</a> && <a href=https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/copy-refdata-as-inputs/refdata.json>refdata.json</a>
   </details>
-	
 |
 |
