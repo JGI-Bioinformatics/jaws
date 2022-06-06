@@ -176,9 +176,8 @@ There are opportunities to participate in code reviews with other WDL developers
    </details>
 |
 
-=========
 Templates
-=========
+-----------------------------------------------------
 
 .. raw:: html
 
