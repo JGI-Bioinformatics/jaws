@@ -6,7 +6,7 @@
 #SBATCH -C skylake
 #SBATCH -A fungalp
 #SBATCH -q jgi_shared
-#SBATCH -t 3:00:00
+#SBATCH -t 72:00:00
 #SBATCH --job-name=jaws_condor_large_worker
 #SBATCH -e /global/cscratch1/sd/jaws_jtm/condor/slurm/%N-%j.err
 #SBATCH -o /global/cscratch1/sd/jaws_jtm/condor/slurm/%N-%j.out
