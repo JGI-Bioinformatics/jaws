@@ -8,7 +8,7 @@ source /global/cfs/cdirs/jaws/jaws-install/jaws-prod/site/bin/activate
 pagurus \
 --move \
 --user $USER \
---path  /global/cscratch1/sd/jaws_jtm/monitoring-runs-prod \
+--path  /global/cscratch1/sd/jaws_jtm/monitoring-runs \
 --outfile condor_$(hostname)_$SLURM_JOB_ID.csv &
 
 . /global/cfs/cdirs/jaws/condor/env_worker.sh
