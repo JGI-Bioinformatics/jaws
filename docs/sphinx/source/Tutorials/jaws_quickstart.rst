@@ -178,15 +178,14 @@ We should see an output folder that looks like this:
 Further Debugging Ideas
 -----------------------
 
-1) Use the :bash:`errors` command. This should show the contents of the stderr and stdout files created per task from Cromwell. It should only show content when there is an error code >0. 
+1. Use the :bash:`errors` command. This should show the contents of the stderr and stdout files created per task from Cromwell. It should only show content when there is an error code >0. 
 Sometimes a script will write errors to stdout which will be caught, but sometimes it will correctly write to stderr but return an error code of 0, in which case this command won't show anything.
 
 .. code-block:: text
 
     jaws errors 35975
 
-
-2) If there is no error from the errors command or it is not clear, you can manually check the contents of the stderr, stdout, script and script.submit files that are created within each task's working directory (saved in your specified output directory). Following the above example, these files would be in:
+2. If there is no error from the errors command or it is not clear, you can manually check the contents of the stderr, stdout, script and script.submit files that are created within each task's working directory (saved in your specified output directory). Following the above example, these files would be in:
 
 .. code-block:: text
 
@@ -196,7 +195,7 @@ Sometimes a script will write errors to stdout which will be caught, but sometim
 The :bash:`script.submit` file is what cromwell used to run the :bash:`script` file.
 
 
-3) The :bash:`task-log` command can show errors created by the backend (i.e. HTCondor), like timeout errors that occur when your task's runtime section didn't request enough time. 
+3. The :bash:`task-log` command can show errors created by the backend (i.e. HTCondor), like timeout errors that occur when your task's runtime section didn't request enough time. 
 
 .. code-block:: text
 
