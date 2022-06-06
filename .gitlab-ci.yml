@@ -76,6 +76,7 @@ variables:
   ## SITE-SPECIFIC VARIABLES:
   CORI_CLIENT_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws"
   CORI_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws/jaws-install"
+  CORI_USER_GROUP: ""
   CORI_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
   CORI_GLOBUS_HOST_PATH: "/"
   CORI_PYTHON: "python3"
@@ -107,6 +108,7 @@ variables:
 
   JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
+  JGI_USER_GROUP: ""
   JGI_GLOBUS_EP: "e8b18c38-36cd-11eb-b54c-02d9497ca481"
   JGI_GLOBUS_HOST_PATH: "/global/scratch/users/jaws"
   JGI_PYTHON: "python"
@@ -138,6 +140,7 @@ variables:
 
   TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install/jaws-client/"
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
+  TAHOMA_USER_GROUP: ""
   TAHOMA_GLOBUS_EP: "f441d224-35cd-11ec-95e9-853490a236f9"
   TAHOMA_GLOBUS_HOST_PATH: "/tahoma/mscjgi"
   TAHOMA_PYTHON: "python"
@@ -169,6 +172,7 @@ variables:
 
   AWS_CLIENT_INSTALL_BASEDIR: ""
   AWS_INSTALL_BASEDIR: "/home/ec2-user"
+  AWS_USER_GROUP: ""
   AWS_GLOBUS_EP: ""
   AWS_GLOBUS_HOST_PATH: ""
   AWS_PYTHON: "python3"
@@ -192,6 +196,32 @@ variables:
   AWS_RMQ_HOST: "rmq.lbl.gov"
   AWS_RMQ_PORT: 5672
 
+  ASSEMBLY_CLIENT_INSTALL_BASEDIR: ""
+  ASSEMBLY_INSTALL_BASEDIR: "/home/ec2-user"
+  ASSEMBLY_USER_GROUP: ""
+  ASSEMBLY_GLOBUS_EP: ""
+  ASSEMBLY_GLOBUS_HOST_PATH: ""
+  ASSEMBLY_PYTHON: "python3"
+  ASSEMBLY_LOAD_PYTHON: ""
+  ASSEMBLY_JAWS_GROUP: "ec2-user"
+  ASSEMBLY_JTM_GROUP: "ec2-user"
+  ASSEMBLY_CLIENT_GROUP: "ec2-user"
+  ASSEMBLY_JAWS_SCRATCH_BASEDIR: "s3://jaws-assembly"
+  ASSEMBLY_JTM_SCRATCH_BASEDIR: "s3://jaws-assembly"
+  ASSEMBLY_FAST_SCRATCH_DIR: ""
+  ASSEMBLY_BIG_SCRATCH_DIR: ""
+  ASSEMBLY_SUPERVISOR_HOST: "http://localhost"
+  ASSEMBLY_CONTAINER_TYPE: "docker"
+  ASSEMBLY_CONTAINER_TMPDIR: "/tmp"
+  ASSEMBLY_CLUSTER_QOS: ""
+  ASSEMBLY_CLUSTER_PARTITION: ""
+  ASSEMBLY_CLUSTER_ACCOUNT: "ec2-user"
+  ASSEMBLY_CLUSTER_CONSTRAINT: ""
+  ASSEMBLY_MAX_RAM_GB: 512
+  ASSEMBLY_LOAD_JAVA: ""
+  ASSEMBLY_RMQ_HOST: "rmq.lbl.gov"
+  ASSEMBLY_RMQ_PORT: 5672
+
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
 .only-default: &only-default
@@ -213,7 +243,9 @@ test-rpc:
     - make test-rpc
   artifacts:
     reports:
-      cobertura: rpc/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: rpc/coverage.xml 
 test-site:
   <<: *only-default
   stage: unit-test
@@ -226,7 +258,9 @@ test-site:
     - make test-site
   artifacts:
     reports:
-      cobertura: site/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: site/coverage.xml
 test-central:
   <<: *only-default
   stage: unit-test
@@ -239,7 +273,9 @@ test-central:
     - make test-central
   artifacts:
     reports:
-      cobertura: central/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: central/coverage.xml
 test-client:
   <<: *only-default
   stage: unit-test
@@ -253,7 +289,9 @@ test-client:
     - make test-client
   artifacts:
     reports:
-      cobertura: client/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: client/coverage.xml
   allow_failure: true
 test-jtm:
   <<: *only-default
@@ -267,7 +305,9 @@ test-jtm:
     - make test-jtm
   artifacts:
     reports:
-      cobertura: jtm/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: jtm/coverage.xml
 test-condor:
   <<: *only-default
   stage: unit-test
@@ -280,8 +320,9 @@ test-condor:
     - make test-condor
   artifacts:
     reports:
-      cobertura: condor/coverage.xml
-
+      coverage_report:
+        coverage_format: cobertura
+        path: condor/coverage.xml
 
 image: docker:19.03.12
 services:

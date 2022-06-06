@@ -42,7 +42,7 @@ run_pre_cromwell_states = [
     "upload stalled",
     "upload failed",
     "ready",
-    "submission failed"
+    "submission failed",
 ]
 
 
@@ -138,6 +138,22 @@ def _is_admin(user):
         logger.error(error)
         abort(500, {"error": f"Db error; {error}"})
     return True if current_user.is_admin else False
+
+
+def _user_group(user):
+    """
+    Check if current user belongs to a user-group.
+    :param user: Current user's ID
+    :type user: str
+    :return: user-group (may be None)
+    :rtype: str
+    """
+    try:
+        current_user = db.session.query(User).get(user)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        abort(500, {"error": f"Db error; {error}"})
+    current_user.user_group
 
 
 def search_runs(user):
@@ -266,6 +282,19 @@ def submit_run(user):
             404,
             {"error": f'Unknown Site ID; "{compute_site_id}" is not one of our sites'},
         )
+    if (
+        "user_group" in compute_site_config
+        and compute_site_config["user_group"]
+    ):
+        # a jaws-site may optionally be restricted to members of a user-group
+        user_group = _user_group(user)
+        if user_group != compute_site_config["user_group"] or not _is_admin(user):
+            abort(
+                401,
+                {
+                    "error": f"Access denied; use of jaws-{compute_site_id} is restricted"
+                },
+            )
 
     # check if requested compute site can process this WDL
     if (
