@@ -12,14 +12,10 @@ There are opportunities to participate in code reviews with other WDL developers
 
 .. raw:: html
 
-   <br><font class="listsize";> set -euo pipefail</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>set -euo pipefail</summary>
 
    <p class="textborder">
-    This command can be useful when used at the begining of the command{} section in your WDL. This command will help capture errors at the point where they occur in your unix code, rather than having the commands run beyond where the error happened, since this makes debugging more difficult.  Another way of saying it is that the wdl-task will use the error code from the last command even if an ealier command failed.  However, the <b>set -euo pipefail</b> command can cause the task to exit without any error printed stderr, so it is not always appropriate to use. 
-    <br>
-    <br>
     The <b>set -euo pipefail</b> command is actually a composition of three tests. 
     <br>
     <br>For example: 
@@ -27,13 +23,15 @@ There are opportunities to participate in code reviews with other WDL developers
     <br>use <b>set -u</b> to exit when your script tries to use undeclared variables.
     <br>use <b>set -o pipefail</b> in scripts to catch failures in "cat myfile" in e.g. "cat myfile | grep id". Instead of the successful error code from grep id getting returned, we get a non-zero exit code from cat myfile 
     <br>use <b>set -x</b> to trace what gets executed. Useful for debugging.
+
+    <br><br>
+    This command can be useful when used at the begining of the command{} section in your WDL. This command will help capture errors at the point where they occur in your unix code, rather than having the commands run beyond where the error happened, since this makes debugging more difficult.  Another way of saying it is that, without set -e, the wdl-task will use the error code from the last command even if an ealier command failed.  However, the <b>set -euo pipefail</b> command can cause the task to exit without any error printed stderr, so it is not always appropriate to use. 
    </p>
 
    </details>
 
-   <br><font class="listsize"> Use Docker containers with SHA256 instead of tags</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>Use Docker containers with SHA256 instead of tags</summary>
 
    <p class="textborder">
     <br>1. The running environment and required scripts should be encapsulated in a docker image. 
@@ -60,17 +58,12 @@ There are opportunities to participate in code reviews with other WDL developers
     docker inspect --format='{{.RepoDigests}}' ubuntu:20.04
     ubuntu@sha256:47f14534bda344d9fe6ffd6effb95eefe579f4be0d508b7445cf77f61a0e5724
 
-
-
 .. raw:: html
 
    </details>
 
-.. raw:: html
-
-   <br><font class="listsize"> Avoid hard-coding paths in the WDL</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>Avoid hard-coding paths in the WDL</summary>
 
    <p class="textborder">
     Paths to files or directories should be put into the inputs.json file, not the WDL. The exeption to this rule are docker images which <i>should</i> be hard-coded so the WDL contains information about the version of the docker container.
@@ -78,10 +71,8 @@ There are opportunities to participate in code reviews with other WDL developers
    
    </details>
 
-
-   <br><font class="listsize"> WDL tasks should be self-sufficient</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>WDL tasks should be self-sufficient</summary>
 
    <p class="textborder">
     <br>1. Imagine the WDL task as a wrapper script, it should be able to run independently of the pipeline. This means that a script should explicitly list all required input files as arguments and not assume some input files already exist in the current working directory. 
@@ -104,12 +95,8 @@ There are opportunities to participate in code reviews with other WDL developers
 
     </details>
 
-
-.. raw:: html
-
-   <br><font class="listsize"> Use subworkflows</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>Use subworkflows</summary>
 
    <p class="textborder">
    Consider using subworkflows if organizing tasks that way makes the main workflow more understandable, reusable, and maintainable. Even a single task can be its own workflow.
@@ -177,11 +164,8 @@ There are opportunities to participate in code reviews with other WDL developers
 
    </details>
 
-.. raw:: html
-
-   <br><font class="listsize"> Documenting your WDLs</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>Documenting your WDLs</summary>
 
    <p class="textborder">
     The best way to document your WDLs is with a README.md that is in the same repository as the WDL. However, adding "metadata" sections in the WDL is also best practice since you will hard-code some relevant information this way, like author, contact info, etc.  See the WDL template as an example.
@@ -192,18 +176,14 @@ There are opportunities to participate in code reviews with other WDL developers
    </details>
 |
 
-|
-
 =========
 Templates
 =========
 
-
 .. raw:: html
 
-    <font class="listsize">WDL Best Practices Template</font>
     <details>
-    <summary style="color: #448ecf";>example</summary>
+    <summary style="color: #448ecf";>WDL Best Practices Template</summary>
 
 .. code-block:: text
 
@@ -303,13 +283,8 @@ Templates
 
     </details>
 
-|
-
-.. raw:: html
-
-    <font class="listsize">Dockerfile template</font>
     <details>
-    <summary style="color: #448ecf";>example</summary>
+    <summary style="color: #448ecf";>Dockerfile template</summary>
 
 .. code-block:: text
 
