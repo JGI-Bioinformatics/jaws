@@ -57,6 +57,14 @@ queue = site_rpc_es
 [PERFORMANCE_METRICS]
 done_dir = /tmp/done_dir
 processed_dir = /tmp/processed_dir
+running_dir = /tmp/running_dir
+cleanup_time = 10
+[GLOBUS]
+client_id = AAAA
+client_secret = BBBB
+endpoint_id = rooster
+host_path = /global/scratch/jaws
+host_path2 = ${GLOBAL_SCRATCH}/${PROJECT_NAME}
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
@@ -110,6 +118,13 @@ queue = site_rpc_es
 [PERFORMANCE_METRICS]
 done_dir =
 processed_dir =
+running_dir =
+cleanup_time =
+[GLOBUS]
+client_id = AAAA
+client_secret = BBBB
+endpoint_id = rooster
+host_path = /global/scratch/jaws
 [DB]
 dialect = mysql+mysqlconnector
 host = myhost
