@@ -12,88 +12,73 @@ There are opportunities to participate in code reviews with other WDL developers
 
 .. raw:: html
 
-   <font class="listsize";>1) organize workflows into tasks</font>
-
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>set -euo pipefail</summary>
 
    <p class="textborder">
-    Workflows are easily converted to WDLs when they are composed of self contained tasks. Each task should be runnable on its own with explicitly defined inputs and outputs. Creating WDLs are trivial when the original workflows are organized thus.
-    </p>
+    The <b>set -euo pipefail</b> command is actually a composition of three tests. 
+    <br>
+    <br>For example: 
+    <br>use <b>set -e</b> to make your script exit when a command fails.
+    <br>use <b>set -u</b> to exit when your script tries to use undeclared variables.
+    <br>use <b>set -o pipefail</b> in scripts to catch failures in "cat myfile" in e.g. "cat myfile | grep id". Instead of the successful error code from grep id getting returned, we get a non-zero exit code from cat myfile 
+    <br>use <b>set -x</b> to trace what gets executed. Useful for debugging.
 
-   </details>
-
-   <br><font class="listsize";>2) set -euo pipefail</font>
-   <details>
-   <summary style="color: #448ecf";>expand</summary>
-
-   <p class="textborder">
-    This command should be used at the begining of the command{} section in your WDL. This command will help capture errors at the point where they occur in your unix code, rather than having the commands run beyond where the error happened, since this makes debugging more difficult. However, the 'set -euo pipefail' command can cause strange crashes with no error. (e.g. this command returns a non zero error code even if it is successful, java -Xmx1536m -jar /opt/omics/bin/CRT-CLI.jar -version), so it is not always appropriate to use.
+    <br><br>
+    This command can be useful when used at the begining of the command{} section in your WDL. This command will help capture errors at the point where they occur in your unix code, rather than having the commands run beyond where the error happened, since this makes debugging more difficult.  Another way of saying it is that, without set -e, the wdl-task will use the error code from the last command even if an ealier command failed.  However, the <b>set -euo pipefail</b> command can cause the task to exit without any error printed stderr, so it is not always appropriate to use. 
    </p>
 
    </details>
 
-   <br><font class="listsize">3) Use Docker containers with SHA256 instead of tags</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>Use Docker containers with SHA256 instead of tags</summary>
 
    <p class="textborder">
-    The running environment and required scripts should be encapsulated in a docker image which is pused to hub.docker.com and have a versioned Dockerfile. Once testing is done, avoid commands that use shifter or singularity, but instead refer to images by adding them to the runtime{} section of the WDL. 
-    JAWS makes multiple computing resources available, using various linux distros.  Thus, we recommend that a docker container be specified for every task; if not, the default container is Debian.
-    <br><br>
-    Save all versions of your docker images at hub.docker.com. Jaws will pull images from there by default.
-    <BR>
-    NOTE: It is important to reference containers by their SHA256 instead of tag (e.g. doejgi/jaws-debian@sha256:6408838108595d7a0843a579712ce90d3cf6759b792f20de917f5c2abbd5ea23 instead of doejgi/jaws-debian:latest) for both reproducability (a container can change and have the same tag) and because call-caching only works when the container is referenced by SHA256 version.
+    <br>1. The running environment and required scripts should be encapsulated in a docker image. 
+    <br>2. The image should be pushed to hub.docker.com and have a versioned Dockerfile. JAWS will pull images from there by default. 
+    <br>3. We recommend that a docker container be specified for every task; if not, the default container is ubuntu.
+    <br>4. It is important to reference containers by their SHA256 instead of tag (e.g. doejgi/bbtools@sha256:64088.. instead of doejgi/bbtools:latest) for both reproducability (a container can change and have the same tag) and because call-caching only works when the container is referenced by SHA256 version.
    </p>
    
-   Example
+   SHA Example
 
 .. code-block:: text
 
-    # You should be able to do this inside your WDL (cori example).
-    "docker: bryce911/bbtools:38.86" 
+    # call-caching will not work
+    runtime { "docker: ubuntu:20.04" }
 
-    # instead of
-    shifter --image=bryce911/bbtools:38.02 filterFastq.py in=${fastq}
+    # call-caching will work
+    runtime { "docker: ubuntu@sha256:47f14534bda344d9fe6ffd6effb95eefe579f4be0d508b7445cf77f61a0e5724" }
+
+    # find the sha
+    docker pull ubuntu:20.04
+    Digest: sha256:47f14534bda344d9fe6ffd6effb95eefe579f4be0d508b7445cf77f61a0e5724
+
+    # or 
+    docker inspect --format='{{.RepoDigests}}' ubuntu:20.04
+    ubuntu@sha256:47f14534bda344d9fe6ffd6effb95eefe579f4be0d508b7445cf77f61a0e5724
 
 .. raw:: html
 
    </details>
 
-.. raw:: html
-
-   <br><font class="listsize">4) Provide everything required for a test run</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>Avoid hard-coding paths in the WDL</summary>
 
    <p class="textborder">
-    The developer should provide a git repository with testing data and instructions so the JAWS team can validate that the pipeline works in JAWS before it is “ready for production use.”  The README.md should include information on the testing environment (i.e Cromwell version), testing data set, and execution time and output size.
+    Paths to files or directories should be put into the inputs.json file, not the WDL. The exeption to this rule are docker images which <i>should</i> be hard-coded so the WDL contains information about the version of the docker container.
    </p>
    
    </details>
 
-
-   <br><font class="listsize">5) Avoid hard-coding paths in the WDL</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>WDL tasks should be self-sufficient</summary>
 
    <p class="textborder">
-    File/directory paths should be put into the inputs.json file, not the WDL. The exeption to this rule are docker images which should be hard-coded so the WDL contains information about the version of the docker container.
-   </p>
-   
-   </details>
-
-
-   <br><font class="listsize">6) WDL tasks should be self-sufficient</font>
-   <details>
-   <summary style="color: #448ecf";>expand</summary>
-
-   <p class="textborder">
-    Imagine the WDL task as a wrapper script, it should be able to run independently of the pipeline. This means that a script should explicitly list all required input files as arguments and not assume some input files already exist in the current working directory. Scripts should also specify output files as arguments and shouldn't write them somewhere other than the current working directory if they will be needed for the next task. These rules make writing the WDL trivial.
-    <br><br>
-    The WDL should be expected to handle minimal logic.  Use wrapper scripts to deal with logic if need be.
-
-    Also, scripts should return a code of 0 if it was successfull. And don't write anything but errors to stderr. Cromwell depends on seeing a return code of 0 on success and JAWS depends on seeing errors written to stderr. Sometimes, scripts write errors to stdout and these will be missed if you try and see the errors via running the JAWS command (jaws errors).
+    <br>1. Imagine the WDL task as a wrapper script, it should be able to run independently of the pipeline. This means that a script should explicitly list all required input files as arguments and not assume some input files already exist in the current working directory. 
+    <br>2. Scripts should also specify output files as arguments and shouldn't write them somewhere other than the current working directory if they will be needed for the next task. These rules make writing the WDL trivial.
+    <br>3. The WDL should be expected to handle minimal logic.  Use wrapper scripts to deal with logic if need be.
+    <br>4. Also, scripts should return a code of 0 if it was successfull. And don't write anything but errors to stderr. Cromwell depends on seeing a return code of 0 on success and JAWS depends on seeing errors written to stderr. Sometimes, scripts write errors to stdout and these will be missed if you try and see the errors via running the JAWS command (jaws errors).
    </p>
    
    Example
@@ -110,21 +95,16 @@ There are opportunities to participate in code reviews with other WDL developers
 
     </details>
 
-
-.. raw:: html
-
-   <br><font class="listsize">7) Use subworkflows</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>Use subworkflows</summary>
 
    <p class="textborder">
-   Consider using sub-workflows if grouping tasks makes the complete workflow more understandable, reusable, and maintainable. Even a task can be its own workflow.
+   Consider using subworkflows if organizing tasks that way makes the main workflow more understandable, reusable, and maintainable. Even a single task can be its own workflow.
    <br>
-    You use sub-workflows tasks as if they were regular tasks <br>(example copied from https://cromwell.readthedocs.io/en/stable/SubWorkflows/).
+    Subworkflows are imported and used as if they were normal tasks, see the example below that was copied from https://cromwell.readthedocs.io/en/stable/SubWorkflows/.
    </p>
    
    Example
-
 
 .. code-block:: text
    
@@ -184,11 +164,8 @@ There are opportunities to participate in code reviews with other WDL developers
 
    </details>
 
-.. raw:: html
-
-   <br><font class="listsize">8) Documenting your WDLs</font>
    <details>
-   <summary style="color: #448ecf";>expand</summary>
+   <summary style="color: #448ecf";>Documenting your WDLs</summary>
 
    <p class="textborder">
     The best way to document your WDLs is with a README.md that is in the same repository as the WDL. However, adding "metadata" sections in the WDL is also best practice since you will hard-code some relevant information this way, like author, contact info, etc.  See the WDL template as an example.
@@ -199,18 +176,13 @@ There are opportunities to participate in code reviews with other WDL developers
    </details>
 |
 
-|
-
-=========
 Templates
-=========
-
+-----------------------------------------------------
 
 .. raw:: html
 
-    <font class="listsize">WDL Best Practices Template</font>
     <details>
-    <summary style="color: #448ecf";>example</summary>
+    <summary style="color: #448ecf";>WDL Best Practices Template</summary>
 
 .. code-block:: text
 
@@ -223,10 +195,10 @@ Templates
     
     workflow bbtools {
         meta {
-		    developer: "Jackson Brown jbrown@my-inst"
-			institution: "JGI"
-			version: "2222.2.0"
-			notes: "this is the official release version"
+            developer: "Jackson Brown jbrown@my-inst"
+            institution: "JGI"
+            version: "2222.2.0"
+            notes: "this is the official release version"
         }
     
         # you must have this input section within the "workflow" stanza if you are using version 1
@@ -310,13 +282,8 @@ Templates
 
     </details>
 
-|
-
-.. raw:: html
-
-    <font class="listsize">Dockerfile template</font>
     <details>
-    <summary style="color: #448ecf";>example</summary>
+    <summary style="color: #448ecf";>Dockerfile template</summary>
 
 .. code-block:: text
 
@@ -356,7 +323,7 @@ Additional helpful notes when building Docker images:
 
 * The dockerfile template uses the strategy of installing miniconda so you can use :bash:`conda install` for probably, most of your tools.  However, :bash:`pip install` and :bash:`apt-get install` work in addition to, or instead of miniconda.
 
-* Also, remember to use versions of everything you install with conda as shown in example.
+* Also, remember to use versions of everything you install with conda as shown in above docker template example.
 
 * There is a good reason to install miniconda in a path other than its default.  The default installation directory is :bash:`/root/miniconda3` but this path will not be accessible by shifter or singularity.
 

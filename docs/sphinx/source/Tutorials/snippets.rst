@@ -17,20 +17,23 @@ Building WDLs
   <summary><a>How can I use bash commands that require curly braces?</a></summary>
 
   <br>
-  If you ever need to use curly braces in bash to strip a suffix txt or set a default:
+  If you ever need to use curly braces in bash to strip a suffix txt or set a default, there are two ways: 1) make your WDL use "version 1.0", or 2) write a hack as shown below:
+  
+  <br><br>This is the prefered way; have <a href=https://github.com/openwdl/wdl/blob/main/versions/1.0/SPEC.md#versioning>version 1.0</a> as the first line in your WDL. You'll specify the command section like "command <<< >>>" instead of using curly braces. You'll have to make some other formatting changes too, see the link to the version 1.0 spec.
+
   <code>
     <pre>
+        command <<<
+            # setting a default value in bash
+            VAR=${VAR:=25}
 
-        # strip a suffix
-        myvar=${somefile%.txt}
-        or 
-        # set defaults
-        ${parameter:=default}
-
+            # strip a suffix
+            myvar=${somefile%.txt}
+        >>>
     </pre>
   </code>
 
-  Then you need to do
+  <br><br>This is the hack if you want to keep your WDL the default version which is "draft"
 
   <code>
     <pre>
@@ -153,11 +156,20 @@ Building WDLs
   <br>
     Besides Map, Array, Pair you can create a custom data structure using "struct". This will be similar to a hash but can contain any combination of data types. 
     <br>
-	<ul>
+    <ul>
       <li>Documentation for <a href=https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#custom-types-structs>Custom Type "Struct"</a></li>
       <li>Example <a href=https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/custom_datastructure/main.wdl>main.wdl</a> && <a href=https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/custom_datastructure/inputs.json>inputs.json</a></li>
-	</ul>
+    </ul>
     <br>
+  </details>
+
+  <details>
+  <summary><a> How to copy a whole directory that is listed in my inputs.json</a></summary>
+  <br>
+	Sometimes you may want to copy all the contents of a directory. Unfortunately Cromwell doesn't allow for this (it's a limitation of the variable declaration "File"). 
+    <br><br>1. One solution would be to include a tar file in the inputs.json and then untar it inside the task.
+	<br><br>2. Another solution is to list all the files in the inputs.json.  The files will be put into a cromwell generated folder inside the "inputs" directory of that task (i.e. inputs/-697750178/). See the example WDL and inputs json that shows you how you would access that folder.
+  <br><a href=https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/copy-refdata-as-inputs/refdata.wdl>refdata.wdl</a> && <a href=https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/blob/main/copy-refdata-as-inputs/refdata.json>refdata.json</a>
   </details>
 |
 |
