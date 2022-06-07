@@ -44,7 +44,7 @@ Table of available resources
 AWS is a valid site for JAWS. However, since it uses it's own scheduling system, simply specify the memory and cpu requirements for each task in the :bash:`runtime` section.
 
 
-\* The actual number of gigabytes you can use to reserve memory space for system processes. For example, on cori, a "medium" node is 128G but since we can only use roughly 10% of that because of overhead, we will reserve 118G in our WDL.
+\* This number is the gigabytes you can actually use, minus the overhead. For example, on cori, a "medium" node is advertized at 128G but since we can only use roughly 10% of that because of overhead, we will reserve 118G in our WDL.
 
 
 Links to documentation about each cluster
