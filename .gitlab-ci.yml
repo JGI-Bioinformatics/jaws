@@ -727,6 +727,7 @@ deploy-jaws-docs:
     - rm -rf jaws-docs/docs/source/*
     - cp -r docs/sphinx/source/* jaws-docs/docs/source/
     - cd jaws-docs
+    - git add .
     - git commit -a -m 'syncing docs' || echo "nothing to commit"
     - git push || echo "nothing to push"
   rules:
@@ -746,6 +747,7 @@ deploy-jaws-docs-beta:
     - cd ../
     - cp -r docs/sphinx/source/* jaws-docs/docs/source/
     - cd jaws-docs
+    - git add .
     - git commit -a -m 'syncing docs beta' || echo "nothing to commit"
     - git push || echo "nothing to push"
   rules:
