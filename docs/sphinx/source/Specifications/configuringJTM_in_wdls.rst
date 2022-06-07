@@ -13,7 +13,46 @@ How to Allocate Resources in your Runtime Section
 Condor is the back end to Cromwell and is responsible for grabbing the appropriatly sized resource from slurm for each wdl-task.  Condor can determine what resource your task needs from only :bash:`memory` and :bash:`cpu` which is set in the runtime{} section. In fact, :bash:`memory` and :bash:`cpu` have defaults set to "5G" and 2(threads), respectively, so you don't have to include them but it is advised for tranparency sake.
 
 .. note::
-	The values for :bash:`cpu` are threads and not cores, as you might think, because Condor operates in thread units.
+	Inside your runtime{} section of the WDL, :bash:`cpu` should be set to threads and not cpus, despite the name, because Condor expects that value to be threads .
+
+
+****************************
+Table of available resources
+****************************
+
+
++-------------+--------+-------+---------+-----+---------+
+|    site     |  pool  | nodes | mem(g)* | hrs | threads |
++=============+========+=======+=========+=====+=========+
+| cori(nersc) | medium | 2388  | 118     |  72 |   64    |
++             +--------+-------+---------+-----+---------+
+|             | xlarge |  20   | 1450    | 168 |   36    |
++-------------+--------+-------+---------+-----+---------+
+| jgi(lab-it) | small  | 316   |  46     |  72 |   64    |
++             +--------+-------+---------+-----+---------+
+|             | medium |  72   | 236     |  72 |   64    |
++             +--------+-------+---------+-----+---------+
+|             | large  |   8   | 492     |  72 |   64    |
++-------------+--------+-------+---------+-----+---------+
+| tahoma(emsl)| medium | 160   | 364     |  48 |   36    |
++             +--------+-------+---------+-----+---------+
+|             | xlarge |  24   | 1480    |  48 |   36    |
++-------------+--------+-------+---------+-----+---------+
+| AWS         |   (see comment below)                    |
++-------------+--------+-------+---------+-----+---------+
+
+AWS is a valid site for JAWS. However, since it uses it's own scheduling system, simply specify the memory and cpu requirements for each task in the :bash:`runtime` section.
+
+
+\* The actual number of gigabytes you can use to reserve memory space for system processes. For example, on cori, a "medium" node is 128G but since we can only use roughly 10% of that because of overhead, we will reserve 118G in our WDL.
+
+
+Links to documentation about each cluster
+-----------------------------------------
+* `Cori cluster <https://www.nersc.gov/systems/cori/>`_    
+* `Lawrencium cluster <https://it.lbl.gov/service/scienceit/high-performance-computing/lrc/computing-on-lawrencium/>`_  
+* `Tahoma cluster <https://www.emsl.pnnl.gov/MSC/UserGuide/tahoma/tahoma_overview.html>`_  
+* `Amazon Instance types <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html#AvailableInstanceTypes>`_  
 
 
 ****************
@@ -68,113 +107,4 @@ This will give you two cori haswell nodes, but your memory still can't exceed 11
 		cpu: 128   
 	}
 
-
-****************************
-Table of available resources
-****************************
-
-Site: CORI
-++++++++++
-NERSC - JAWS runs on shared nodes (haswell, skylake) and dedicated nodes (genepool) which are part of the `cori cluster <https://www.nersc.gov/systems/cori/>`_.
-
-+----------+-----+------------+----------------+-----+-------+--------------+
-|constraint|nodes|  ram (G)   | qos            |cores|threads|max time (hrs)|
-+==========+=====+============+================+=====+=======+==============+
-| haswell  |2,388|  128 (118*)|genepool_special| 32  |   64  |  72          |
-+----------+-----+------------+----------------+-----+-------+--------------+
-| haswell  |2,388|  128 (118*)|genepool        | 32  |   64  |  72          |
-+----------+-----+------------+----------------+-----+-------+--------------+
-|     knl  |9,489|   96 (87*) | regular        | 68  |  272  |  48          |
-+----------+-----+------------+----------------+-----+-------+--------------+
-| skylake  |  20 |1500 (1450*)| jgi_exvivo     | 36  |   36  | 168          |
-+          +     +------------+----------------+-----+-------+--------------+
-|          |     |  768 (740*)| jgi_shared     | 18  |   18  | 168          |
-+----------+-----+------------+----------------+-----+-------+--------------+
-
- \* the actual number of gigabytes you can use to reserve memory space for system processes.
-
-|
-
-Site: JGI
-+++++++++
-LAB IT - JAWS runs on shared nodes (lr3) and dedicated nodes (jgi) which is part of the `lawrencium cluster <https://it.lbl.gov/service/scienceit/high-performance-computing/lrc/computing-on-lawrencium/>`_
-
-+---------+------------------+-----+----------+-----+-------+--------------+
-|partition|    constraint    |nodes| ram (G)  |cores|threads|max time (hrs)|
-+=========+==================+=====+==========+=====+=======+==============+
-|     lr3 |                  | 316 |  64 (45*)|  32 |  64   |      72      |
-+---------+------------------+-----+----------+-----+-------+--------------+
-|     lr3 | lr3_c32,jgi_m256 |  32 |256 (236*)|  32 |  64   |      72      |
-+---------+------------------+-----+----------+-----+-------+--------------+
-|     lr3 | lr3_c32,jgi_m512 |   8 |512 (492*)|  32 |  64   |      72      |
-+---------+------------------+-----+----------+-----+-------+--------------+
-|     jgi |                  |  40 |256 (236*)|  32 |  64   |      72      |
-+---------+------------------+-----+----------+-----+-------+--------------+
-
-\* the actual number of gigabytes you can use to reserve memory space for system processes.
-
-|
-
-Site: TAHOMA
-++++++++++++
-Pacific Northwest National Labs -  JAWS runs on dedicated (mscjgi) nodes which is on the `tahoma cluster <https://www.emsl.pnnl.gov/MSC/UserGuide/tahoma/tahoma_overview.html>`_
-
-+----------+------------------+-----+------------+-----+-------+--------------+
-|partition |    constraint    |nodes| ram (G)    |cores|threads|max time (hrs)|
-+==========+==================+=====+============+=====+=======+==============+
-|          |                  | 160 |  384 (364*)|  36 |  36   |      72      |
-+----------+------------------+-----+------------+-----+-------+--------------+
-| analysis |                  |  24 |1500 (1480*)|  36 |  36   |      72      |
-+----------+------------------+-----+------------+-----+-------+--------------+
-
-\* the actual number of gigabytes you can use to reserve memory space for system processes.
-
-
-.. raw:: html
-
-  <details>
-  <summary><a>Example of requesting high-mem nodes from Tahoma</a></summary>
-
-  Using 1500G memory machines
-  <br>
-  <code>
-	<pre>
-    runtime {
-      partition: "analysis"
-      time: "00:30:00"
-      memory: "1480G"
-      poolname: "highmem_test"
-      node: 1
-      nwpn: 1
-    }
-  </pre>
-  </code>
-  </details>
-
-|
-
-Amazon Web Services (AWS)
-+++++++++++++++++++++++++
-JAWS runs on AWS
-cluster: `Instance types <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html#AvailableInstanceTypes>`_
-
-.. raw:: html
-
-  <details>
-  <summary><a>Example of requesting resources for AWS</a></summary>
-
-  <br>
-  <code>
-	<pre>
-    runtime {
-      memory: "118G"
-      cpu: 16
-    }
-  </pre>
-  </code>
-  </details>
-
-|
-
-.. _requesting-workers:
 
