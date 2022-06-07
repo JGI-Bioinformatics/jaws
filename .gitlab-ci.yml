@@ -724,6 +724,7 @@ deploy-jaws-docs:
     - cori
   script:
     - git clone git@gitlab.com:jfroula/jaws-docs.git
+    - rm -rf jaws-docs/docs/source/*
     - cp -r docs/sphinx/source/* jaws-docs/docs/source/
     - cd jaws-docs
     - git commit -a -m 'syncing docs' || echo "nothing to commit"
@@ -741,6 +742,7 @@ deploy-jaws-docs-beta:
     - git clone git@gitlab.com:jfroula/jaws-docs.git
     - cd jaws-docs
     - git checkout beta
+    - rm -rf docs/source/*
     - cd ../
     - cp -r docs/sphinx/source/* jaws-docs/docs/source/
     - cd jaws-docs
