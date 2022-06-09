@@ -182,6 +182,15 @@ def run_daemon() -> None:
     rund.start_daemon()
 
 
+@cli.command()
+def report_daemon() -> None:
+    """Start run-report-daemon"""
+    from jaws_central.report_daemon import ReportDaemon
+
+    rund = ReportDaemon()
+    rund.start_daemon()
+
+
 def jaws():
     """Entrypoint for jaws-server app."""
     cli()

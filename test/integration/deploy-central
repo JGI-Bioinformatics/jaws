@@ -207,7 +207,7 @@ port=$JAWS_EMAIL_PORT
 user=$JAWS_EMAIL_USER
 password=$JAWS_EMAIL_PW
 $CONF
-[ELASTIC_SEARCH]
+[ELASTICSEARCH]
 host=$ES_HOST_ADDR
 port=$ES_HOST_PORT
 api_key=$ES_API_KEY
@@ -259,6 +259,17 @@ export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 source $INSTALL_DIR/central/bin/activate
 exec jaws-central --log $LOGS_DIR/central-run-daemon.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL run-daemon
+EOM
+chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
+
+SHIM_FILE="$SHIM_DIR/jaws-central-report-daemon-$DEPLOYMENT_NAME"
+cat <<EOM > "$SHIM_FILE"
+#!/usr/bin/env bash
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+source $INSTALL_DIR/central/bin/activate
+exec jaws-central --log $LOGS_DIR/central-report-daemon.log --config $CONFIG_DIR/jaws-central.conf --log-level $LOG_LEVEL report-daemon
 EOM
 chmod 770 "$SHIM_FILE" && chgrp "$CENTRAL_JAWS_GROUP" "$SHIM_FILE"
 
@@ -342,6 +353,13 @@ autorestart=unexpected
 
 [program:run-daemon]
 command=$SHIM_DIR/jaws-central-run-daemon-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=10
+autorestart=unexpected
+
+[program:report-daemon]
+command=$SHIM_DIR/jaws-central-report-daemon-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=10
