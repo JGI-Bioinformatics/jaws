@@ -38,13 +38,12 @@ if [[ $RESULT -ne 0 ]]; then
   RESULT=0
   for VAR in $REQUIRED_VARS; do
     if [ -z ${!VAR+xxx} ]; then
-      echo "Missing env var: $VAR">&2
+      echo "Missing env var: $VAR" >&2
       RESULT=1
     fi
   done
 fi
 [ $RESULT -eq 0 ] || exit 1
-
 
 ## WRITE SHIM SCRIPTS
 
@@ -56,7 +55,7 @@ FIX_PERMS_CLIENT=""
 [[ -n "$SITE_CLIENT_INSTALL_DIR" ]] && FIX_PERMS_CLIENT="fix_perms $SITE_CLIENT_GROUP $SITE_CLIENT_INSTALL_DIR"
 
 # transfer-daemon script
-cat <<EOM > $SHIM_DIR/jaws-site-transfer-daemon-$DEPLOYMENT_NAME
+cat <<EOM >$SHIM_DIR/jaws-site-transfer-daemon-$DEPLOYMENT_NAME
 #!/bin/bash -l
 
 function fix_perms() {
@@ -97,7 +96,7 @@ exec jaws-site --log $LOGS_DIR/site-transfer-daemon.log --config $CONFIG_DIR/jaw
 EOM
 
 # run-daemon script
-cat <<EOM > $SHIM_DIR/jaws-site-run-daemon-$DEPLOYMENT_NAME
+cat <<EOM >$SHIM_DIR/jaws-site-run-daemon-$DEPLOYMENT_NAME
 #!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
@@ -109,7 +108,7 @@ exec jaws-site --log $LOGS_DIR/site-run-daemon.log --config $CONFIG_DIR/jaws-sit
 EOM
 
 # performance-metrics-daemon script
-cat <<EOM > $SHIM_DIR/jaws-site-perf-metrics-daemon-$DEPLOYMENT_NAME
+cat <<EOM >$SHIM_DIR/jaws-site-perf-metrics-daemon-$DEPLOYMENT_NAME
 #!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
@@ -121,7 +120,7 @@ exec jaws-site --log $LOGS_DIR/site-perf-metrics-daemon.log --config $CONFIG_DIR
 EOM
 
 ## rpc shim script
-cat <<EOM > "$SHIM_DIR/jaws-site-rpc-$DEPLOYMENT_NAME"
+cat <<EOM >"$SHIM_DIR/jaws-site-rpc-$DEPLOYMENT_NAME"
 #!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
@@ -133,8 +132,21 @@ source $SITE_VENV_DIR/bin/activate
 exec jaws-site --log $LOGS_DIR/site-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL rpc
 EOM
 
+## pool-manager shim script
+cat <<EOM >"$SHIM_DIR/jaws-site-pool-manager-$DEPLOYMENT_NAME"
+#!/bin/bash -l
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+
+# START POOL MANAGER SERVER
+source $SITE_VENV_DIR/bin/activate
+exec jaws-site --log $LOGS_DIR/site-pool-manager.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL pool_manager
+EOM
+
 ## jtm shim script
-cat <<EOM > "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
+cat <<EOM >"$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
 #!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
@@ -168,7 +180,7 @@ EOM
 # Otherwise we need to know the location of the script which may not be best practice
 
 ## parsl-recv shim script
-cat <<EOM > "$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME"
+cat <<EOM >"$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME"
 #!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
