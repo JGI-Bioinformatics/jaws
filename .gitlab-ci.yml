@@ -243,7 +243,9 @@ test-rpc:
     - make test-rpc
   artifacts:
     reports:
-      cobertura: rpc/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: rpc/coverage.xml 
 test-site:
   <<: *only-default
   stage: unit-test
@@ -256,7 +258,9 @@ test-site:
     - make test-site
   artifacts:
     reports:
-      cobertura: site/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: site/coverage.xml
 test-central:
   <<: *only-default
   stage: unit-test
@@ -269,7 +273,9 @@ test-central:
     - make test-central
   artifacts:
     reports:
-      cobertura: central/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: central/coverage.xml
 test-client:
   <<: *only-default
   stage: unit-test
@@ -283,7 +289,9 @@ test-client:
     - make test-client
   artifacts:
     reports:
-      cobertura: client/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: client/coverage.xml
   allow_failure: true
 test-jtm:
   <<: *only-default
@@ -297,7 +305,9 @@ test-jtm:
     - make test-jtm
   artifacts:
     reports:
-      cobertura: jtm/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: jtm/coverage.xml
 test-condor:
   <<: *only-default
   stage: unit-test
@@ -310,8 +320,9 @@ test-condor:
     - make test-condor
   artifacts:
     reports:
-      cobertura: condor/coverage.xml
-
+      coverage_report:
+        coverage_format: cobertura
+        path: condor/coverage.xml
 
 image: docker:19.03.12
 services:
@@ -713,8 +724,10 @@ deploy-jaws-docs:
     - cori
   script:
     - git clone git@gitlab.com:jfroula/jaws-docs.git
+    - rm -rf jaws-docs/docs/source/*
     - cp -r docs/sphinx/source/* jaws-docs/docs/source/
     - cd jaws-docs
+    - git add .
     - git commit -a -m 'syncing docs' || echo "nothing to commit"
     - git push || echo "nothing to push"
   rules:
@@ -730,9 +743,11 @@ deploy-jaws-docs-beta:
     - git clone git@gitlab.com:jfroula/jaws-docs.git
     - cd jaws-docs
     - git checkout beta
+    - rm -rf docs/source/*
     - cd ../
     - cp -r docs/sphinx/source/* jaws-docs/docs/source/
     - cd jaws-docs
+    - git add .
     - git commit -a -m 'syncing docs beta' || echo "nothing to commit"
     - git push || echo "nothing to push"
   rules:

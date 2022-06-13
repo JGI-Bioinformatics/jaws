@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #SBATCH --cpus-per-task 32
-#SBATCH --time=03:00:00
+#SBATCH --time=72:00:00
 #SBATCH --job-name=jaws_condor_worker
 #SBATCH --partition=jgi
 #SBATCH --qos=normal
@@ -11,7 +11,7 @@
 #SBATCH --exclusive
 
 srun -k -K0 /global/home/groups-sw/lr_jgicloud/condor/start_condor_worker.sh
-# 3 hr - 2min
-sleep 10680
+# 72hr - 2min
+sleep 259080
 srun -k -K0 /global/home/groups-sw/lr_jgicloud/condor/stop_worker.sh
 exit

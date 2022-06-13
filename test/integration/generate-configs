@@ -43,6 +43,7 @@ PARSL_MP_PASSWORD
 SITE_MONITOR_RMQ_HOST
 SITE_MONITOR_RMQ_PORT
 SITE_PERFORMANCE_METRICS_DIR
+SITE_PERFORMANCE_METRICS_CLEANUP
 SITE_PERFORMANCE_METRICS_SCRIPT
 "
 RESULT=0
@@ -58,7 +59,7 @@ if [[ $RESULT -ne 0 ]]; then
   RESULT=0
   for VAR in $REQUIRED_VARS; do
     if [ -z ${!VAR+xxx} ]; then
-      echo "Missing env var: $VAR">&2
+      echo "Missing env var: $VAR" >&2
       RESULT=1
     fi
   done
@@ -66,7 +67,7 @@ fi
 [ $RESULT -eq 0 ] || exit 1
 
 ## WRITE CONFIG FILES
-cat << EOM > $CONFIG_DIR/jaws-site.conf
+cat <<EOM >$CONFIG_DIR/jaws-site.conf
 [DB]
 dialect = mysql+mysqlconnector
 host = $JAWS_DB_HOST
@@ -107,6 +108,8 @@ queue = JAWS_PERF_METRICS_ES
 [PERFORMANCE_METRICS]
 done_dir = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}/done
 processed_dir = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}/processed
+running_dir = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}/running
+cleanup_time = ${SITE_PERFORMANCE_METRICS_CLEANUP}
 [GLOBUS]
 client_id = $JAWS_GLOBUS_CLIENT_ID
 client_secret = $JAWS_GLOBUS_CLIENT_SECRET
@@ -126,7 +129,7 @@ aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
 s3_bucket = ABCD
 EOM
 
-cat << EOM > $CONFIG_DIR/jaws-jtm.conf
+cat <<EOM >$CONFIG_DIR/jaws-jtm.conf
 [SITE]
 jtm_host_name = $JAWS_SITE
 user_name = jtm_$DEPLOYMENT_NAME
@@ -248,7 +251,7 @@ jtm_worker_poison_exch = jgi_jtm_poison_exch_\${JTM:run_mode}_\${SITE:instance_n
 max_retries = 3
 EOM
 
-cat << EOM > $CONFIG_DIR/parsl.ini
+cat <<EOM >$CONFIG_DIR/parsl.ini
 [SITE]
 site_id = $JAWS_SITE
 
@@ -257,7 +260,6 @@ host = $PARSL_MP_HOST
 password = $PARSL_MP_PASSWORD
 port = $PARSL_MP_PORT
 EOM
-
 
 ## SET PERMISSIONS
 chgrp $SITE_JAWS_GROUP $CONFIG_DIR/*.conf

@@ -47,7 +47,7 @@ Set up JAWS
     cp /global/cfs/projectdirs/jaws/jaws-prod/jaws.conf ~/jaws.conf
     chmod 600 ~/jaws.conf
 
-Edit ~/jaws.conf and add the token that you recieved from the JAWS admin.
+Edit `~/jaws.conf` and add the token that you recieved from the JAWS admin.
 
 .. code-block:: text
 
@@ -55,22 +55,25 @@ Edit ~/jaws.conf and add the token that you recieved from the JAWS admin.
       token: <your token>
 
 2. Set up the virtual environment.
-You will use an existing file. This gives you access to all the jaws commands.  
+You will use an existing file. This gives you access to all the JAWS commands.  
 By using a symlink, we can update the file without requiring you to re-copy it. 
 
 .. code-block:: text
 
     ln -s /global/cfs/projectdirs/jaws/jaws-prod/jaws-prod.sh ~
 
-3. Source the environment to activate JAWS commands
+3. Source the environment to activate JAWS commands.
 
 .. code-block:: text
 
     source ~/jaws-prod.sh
-    (use "deactivate" to get out of the environment)
 
-|
+4. To deactivate the environment, use:
 
+.. code-block:: text
+
+    deactivate
+    
 **************************
 Run an Example WDL in JAWS
 **************************
@@ -82,38 +85,46 @@ Currently JAWS can run on the following resources:
 
 When submitting a JAWS run, you must specify the resource to use (i.e. CORI or JGI)
 
+1. Activate the environment you set up above:
+
 .. code-block:: text
 
-    # activate the environment you set up above
     source ~/jaws-prod.sh
 
-    # clone the example code
-    git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
+2. Clone the example code:
 
+.. code-block:: text
+
+    git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
     cd jaws-tutorial-examples/quickstart
 
-    # you should see all the sites available to JAWS
+3. List all the sites available to JAWS:
+
+.. code-block:: text
+
     jaws list-sites  
+
+4. Submit a workflow using JAWS
+
+.. code-block:: text
 
     jaws submit --tag metagenome_alignment align.wdl inputs.json cori  # note that case doesn't matter for sites. CORI and cori both work.
 
     # you should see something like this
-    2020-11-13 17:51:20,444 - INFO - workflow - Validating WDL, /global/cscratch1/sd/jfroula/JAWS/jaws-tutorial-examples/quickstart/align.wdl
-    2020-11-13 17:51:24,762 - INFO - workflow - Maximum RAM requested is 5Gb
-    2020-11-13 17:51:24,790 - INFO - workflow - Writing file manifest to .../JAWS-scratch/9cfc798e-2015-4cd8-b1ce-75e56f033ccb.tsv
-    2020-11-13 17:51:26,919 - INFO - analysis - Submitted run 1367: {'site_id': 'CORI', 'submission_id': '9cfc798e-2015-4cd8-b1ce-75e56f033ccb', 'input_site_id': 'CORI', 'input_endpoint': '9d6d994a-6d04-11e5-ba46-22000b92c6ec', 'output_endpoint': '9d6d994a-6d04-11e5-ba46-22000b92c6ec', 'output_dir': '/global/cscratch1/sd/jfroula/JAWS/jaws-tutorial-examples/quickstart/out'}
+    100%|███████████████████████████████████| 2929/2929 [00:00<00:00, 1081055.65it/s]
+    Copied 2929 bytes in 0.0 seconds.
+    100%|███████████████████████████████████| 792/792 [00:00<00:00, 349231.37it/s]
+    Copied 792 bytes in 0.0 seconds.
     {
-      "run_id": 1367,
-      "site_id": "CORI",
-      "status": "uploading",
-      "tag": "metagenome_alignment"
-    } 
+    "max_ram_gb": 5,
+    "run_id": 35970
+    }
 
 ******************
 Monitoring the Job
 ******************
 
-From the output above, we see that the run_id was 1367.
+From the output above, we see that the run_id was `35970`.
 
 .. code-block:: text
 
@@ -121,12 +132,12 @@ From the output above, we see that the run_id was 1367.
     # if you didn't you can run this to see your run's id
     jaws queue
     
-    # check jaws status
-    jaws status 1367
+    # check jaws status 35970
 
-    # check status of the tasks
-    jaws task-log 1367
-
+    # check status of the tasks (the last command has the most detail)
+    jaws task-log 35970
+    jaws task-summary 35970
+    
 ***************
 Get the results
 ***************
@@ -136,20 +147,9 @@ Once the run status has changed to "download complete", you can write the output
 .. code-block:: text
 
     # copy the output of run 1367 to a folder of your choice
-    jaws get 1367 my-test-run
+    jaws get 35970 my-test-run
     or
-    jaws get --complete my-test-run-complete
-
-Alternatively, this command will display the directory where JAWS has saved the results. It represents all the files from Cromwell, including the "input" files.
-
-.. code-block:: text
-
-    jaws status --verbose 1367
-
-    or
-
-    jaws history
-
+    jaws get --complete 35970 my-test-run-complete
 
 ******************************
 The Output Directory Explained
@@ -178,28 +178,30 @@ We should see an output folder that looks like this:
 Further Debugging Ideas
 -----------------------
 
-1) Use the :bash:`errors` command. This should show the contents of the stderr and stdout files created per task from Cromwell. It should only show content when there is an error code >0. 
+1. Use the :bash:`errors` command. This should show the contents of the stderr and stdout files created per task from Cromwell. It should only show content when there is an error code >0. 
 Sometimes a script will write errors to stdout which will be caught, but sometimes it will correctly write to stderr but return an error code of 0, in which case this command won't show anything.
 
 .. code-block:: text
 
-    jaws errors 1186
+    jaws errors 35975
 
-
-2) If there is no error from the errors command or it is not clear, you can manually check the contents of the stderr, stdout, script and script.submit files that are created within each task's working directory (saved in your specified output directory). Following the above example, these files would be in:
+2. If there is no error from the errors command or it is not clear, you can manually check the contents of the stderr, stdout, script and script.submit files that are created within each task's working directory (saved in your specified output directory). Following the above example, these files would be in:
 
 .. code-block:: text
 
-    out/call-setup/execution/stderr
+    jaws get --complete 35975 my-test-run_error
+    my-test-run_error/call-samtools/execution/stderr.submit
 
 The :bash:`script.submit` file is what cromwell used to run the :bash:`script` file.
 
 
-3) The :bash:`task-log` command can show errors created by the backend (i.e. JTM), like timeout errors that occur when your task's runtime section didn't request enough time. 
+3. The :bash:`task-log` command can show errors created by the backend (i.e. HTCondor), like timeout errors that occur when your task's runtime section didn't request enough time. 
 
 .. code-block:: text
 
-    jaws task-log 1186
+    jaws task-log 35975
     
-    "jgi_dap_leo.assignGenes 1   5132    running failed  2020-10-28 21:11:14 failed with timeout"
+    #NAME              CACHED  STATUS  QUEUED               RUNNING              FINISHED             QUEUE_DUR  RUN_DUR  
+    bbtools.samtools   False   Failed  2022-06-03 16:22:33  2022-06-03 16:22:34  2022-06-03 16:22:35  0:00:01    0:00:01  
+    bbtools.alignment  False   Done    2022-06-03 16:21:23  2022-06-03 16:21:24  2022-06-03 16:22:30  0:00:01    0:01:06
 

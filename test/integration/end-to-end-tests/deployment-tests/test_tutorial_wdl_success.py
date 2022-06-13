@@ -22,10 +22,10 @@ import submission_utils as util
             "./jaws-tutorial-examples/quickstart/align.wdl",
             "./jaws-tutorial-examples/quickstart/inputs.json",
         ),
-#        (
-#            "./jaws-tutorial-examples/referencing_db_and_shifter/test.wdl",
-#            "./jaws-tutorial-examples/referencing_db_and_shifter/inputs.json",
-#        ),
+        (
+            "./jaws-tutorial-examples/copy-refdata-as-inputs/refdata.wdl",
+            "./jaws-tutorial-examples/copy-refdata-as-inputs/refdata.json",
+        ),
         (
             "./jaws-tutorial-examples/scatter_gather_example/array_scatter.wdl",
             "./jaws-tutorial-examples/scatter_gather_example/array_scatter.json",

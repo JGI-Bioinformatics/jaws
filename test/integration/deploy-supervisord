@@ -137,7 +137,7 @@ startretries=10
 autorestart=unexpected
 
 [program:jaws-site-rpc]
-command=$SHIM_DIR/jaws-site--rpc-$DEPLOYMENT_NAME
+command=$SHIM_DIR/jaws-site-rpc-$DEPLOYMENT_NAME
 numprocs=1
 startsecs=3
 startretries=10

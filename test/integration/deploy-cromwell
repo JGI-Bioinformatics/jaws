@@ -259,6 +259,15 @@ backend
 
       config
       {
+        filesystems {
+          local {
+            localization: ["hard-link", "copy"]
+            caching {
+              duplication-strategy: ["hard-link", "soft-link", "copy"],
+              hashing-strategy: "xxh64"
+            }
+          }
+        }        
         #exit-code-timeout-seconds = 60
         runtime-attributes = """
           String? docker

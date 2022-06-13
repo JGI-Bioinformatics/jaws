@@ -59,7 +59,7 @@ class Transfer(db.Model):
     src_base_dir = db.Column(db.String(128), nullable=False)
     dest_site_id = db.Column(db.String(8), nullable=False)
     dest_base_dir = db.Column(db.String(128), nullable=False)
-    manifest_json = db.Column(db.Text(), nullable=False)
+    manifest_json = db.Column(db.String(64000), nullable=False)  # MEDIUMTEXT
     globus_transfer_id = db.Column(db.String(36), nullable=True)
 
     def __init__(self, *args, **kwargs):
@@ -94,7 +94,7 @@ class Run(db.Model):
     wdl_file = db.Column(db.String(256), nullable=False)
     json_file = db.Column(db.String(256), nullable=False)
     tag = db.Column(db.String(256), nullable=True)
-    manifest_json = db.Column(db.Text, nullable=False)
+    manifest_json = db.Column(db.String(64000), nullable=False)  # MEDIUMTEXT
     webhook = db.Column(db.String(256), nullable=True)
 
     def __init__(self, *args, **kwargs):

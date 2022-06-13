@@ -24,12 +24,12 @@ Here are the steps we're going to take for this tutorial:
 Clone the Example Repository
 ****************************
 For this tutorial, I will be using the example code from `jaws-tutorial-examples <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git>`_.
-To follow along, do...
+To follow along, do:
 
 .. code-block:: text
 
    git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
-   cd jaws-tutorial-example/5min_example
+   cd jaws-tutorial-examples/5min_example
    
 
 *******************
@@ -39,7 +39,7 @@ Create docker image
 Next we'll describe how to create a Dockerfile and register it with `hub.docker.com <https://docs.docker.com/docker-hub/>`_.
 
 .. note::
-    you'll have to create an account and an empty repository with hub.docker.com first.
+    You'll have to create an account and an empty repository with `hub.docker.com <https://docs.docker.com/docker-hub/>`_ first.
 
 To make the Dockerfile, you can use the same commands you used for the conda environment.  Notice that it is good practice to specify the versions for each software like I have done in the example Dockerfile. Of course, you can drop the versions altogether to get the latest version but the Dockerfile may not work out-of-the-box in the future due to version conflicts.
 
@@ -128,7 +128,7 @@ example:
 
    # clone the repo on cori
    git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
-   cd jaws-tutorial-example/5min_example
+   cd jaws-tutorial-examples/5min_example
 
    # run your wrapper script. notice we are running the script.sh that was saved inside the image
    shifter --image=<your_docker_hub_user_name>/bbtools:1.0.0 ./script.sh ../data/sample.fastq.bz2 ../data/sample.fasta
@@ -216,7 +216,7 @@ Move the Docker Image to the runtime{} Section
 
 After shifter is removed from the :bash:`command{}` block, add :bash:`docker:` inside the :bash:`runtime{}` block to each of the tasks in the WDL. Now, all the code inside :bash:`commands{}` will be run inside a container.
 
-See align.wdl
+See `align.wdl`:
 
 .. code-block:: text
 
@@ -225,6 +225,8 @@ See align.wdl
     }
 
 .. _run with conf:
+
+
 
 *************************************
 Run with Docker Inside the runtime{}
@@ -252,6 +254,26 @@ where
 
     :bash:`-Dbackend=[Local|Slurm]`
     this will allow you to choose between the Local and Slurm backends. With slurm, each task will have it's own sbatch command (and thus wait in queue).
+
+Limitations when using docker
+-----------------------------
+1. One docker image per task - this is a general constraint that Cromwell has.
+2. The docker image must be registered with docker hub - this is how we have set up the docker backend configuration.
+3. A `sha256` tag must be used instead of some custom tag (i.e v1.0.1) for call-caching to work.
+
+    To find `sha256` tag, you can use:
+
+    .. code-block:: text
+
+        docker images --digests | grep <your_docker_hub_user_name>
+
+    Docker name can be replaced inside the `runtime{}` block to each of the tasks in the WDL, as follows:
+
+    .. code-block:: text
+
+        runtime {
+            docker: "sha256:<sha256>"
+        }
 
 
 
