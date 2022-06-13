@@ -110,8 +110,26 @@ class JAWSConfigParser(configparser.ConfigParser):
                 raise(ValueError("env_override prefix must be from 3-20 characters in length"))
             # should change to use removeprefix() for Python 3.9+ instead of slicing off prefix
             basevars = {k[strlen:]: os.environ[k] for k in os.environ.keys() if k.startswith(env_override)}
-
-            self._vars = basevars
+            if len(basevars) > 0:
+                section_pre = re.compile("^([A-Z][A-Z_]*)_(.+)")  # Regex to match all caps section name, ending in _
+                temp = dict()
+                for key, val in basevars.items():
+                    res = section_pre.match(key)
+                    if res is not None:
+                        sec = res.group(1)
+                        opt = res.group(2)
+                        if sec not in temp:
+                            temp[sec] = {opt: val}
+                        else:
+                            temp[sec][opt] = val
+                if len(temp) == len(basevars):
+                    self._vars = temp  # All environment variables options contained section names
+                elif len(temp) == 0:
+                    self._vars = basevars  # No environment variables options contained section names
+                else:
+                    raise(KeyError("Cannot mix options with and without section prefixes"))
+            else:
+                self._vars = dict()
         else:
             self._vars = None
         configparser.ConfigParser.__init__(self, **kwargs)
@@ -125,6 +143,19 @@ class JAWSConfigParser(configparser.ConfigParser):
         if self._vars is not None:
             # Force vars to self._vars if it has been set. This means env_override will also override
             # any calls to get() with an explcitly set vars
-            kwargs['vars'] = self._vars
+
+            # Uppercase the section name so that it matches any section names in _vars
+            usection = section.upper()
+            if usection in self._vars:
+                kwargs['vars'] = self._vars[usection]
+            else:
+                # Section didn't match anything, then either we don't have a matching section
+                # and we use an empty dict() for vars
+                # or else _vars is a simple 1 level dictionary and we just pass along all of _vars
+                key1 = next(iter(self._vars))
+                if type(self._vars[key1]) is dict:
+                    kwargs['vars'] = dict()
+                else:
+                    kwargs['vars'] = self._vars
         value = super().get(section, option, **kwargs)
         return(value)
