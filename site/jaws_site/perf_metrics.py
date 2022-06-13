@@ -7,7 +7,7 @@ import re
 from typing import Callable
 from pathlib import Path
 from functools import lru_cache
-from jaws_site import runs, tasks
+from jaws_site import runs
 from jaws_rpc import rpc_client_basic
 
 logger = logging.getLogger(__package__)
