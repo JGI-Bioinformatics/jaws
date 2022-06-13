@@ -144,7 +144,8 @@ class JAWSConfigParser(configparser.ConfigParser):
             # Force vars to self._vars if it has been set. This means env_override will also override
             # any calls to get() with an explcitly set vars
 
-            # Uppercase the section name so that it matches any section names in _vars
+            # Uppercase the section name so that it matches any section names in _vars, should preclude
+            # accidental matches against option name
             usection = section.upper()
             if usection in self._vars:
                 kwargs['vars'] = self._vars[usection]
