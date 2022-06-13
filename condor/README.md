@@ -36,11 +36,11 @@ The configuration file for each site can be found:
 
 - Memory space (GB)
 
-|                          | small      | medium   | large     | xlarge       |
-|--------------------------|------------|----------|-----------|--------------|
-| Cori @ NERSC             | n/a        | ~118   | 118~740 | 740~1450   |
-| Tahoma @ EMSL            | n/a        | ~364   | n/a       | 364~1480   |
-| JGI @ LBL IT | ~46 | 46~236 | 236~492 | n/a          |
+|                          | small      | medium   | large   | xlarge   |
+|--------------------------|------------|----------|---------|----------|
+| Cori @ NERSC             | n/a        | ~118   | n/a     | 118~1450 |
+| Tahoma @ EMSL            | n/a        | ~364   | n/a     | 364~1480 |
+| JGI @ LBL IT | ~46 | 46~236 | 236~492 | n/a      |
 
 
 
@@ -48,7 +48,7 @@ The configuration file for each site can be found:
 
 |                          | small | medium | large | xlarge  |
 |--------------------------|-------|--------|-------|---------|
-| Cori @ NERSC             | n/a   | 32     | 18    | 36      |
+| Cori @ NERSC             | n/a   | 32     | n/a    | 36      |
 | Tahoma @ EMSL            | n/a   | 36     | n/a   | 36 |
 | JGI @ LBL IT | 32  | 32 | 32    | n/a     |
 
@@ -57,7 +57,7 @@ The configuration file for each site can be found:
 
 |                          | small | medium | large | xlarge |
 |--------------------------|-------|--------|-------|--------|
-| Cori @ NERSC             | n/a   | 72     | 168   | 168    |
+| Cori @ NERSC             | n/a   | 72     | n/a   | 168    |
 | Tahoma @ EMSL            | n/a   | 48     | n/a   | 48     |
 | JGI @ LBL IT | 72  | 72     | 72    | n/a    |
 
