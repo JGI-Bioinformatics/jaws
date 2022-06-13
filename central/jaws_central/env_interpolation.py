@@ -1,5 +1,6 @@
 import configparser
 import os
+import re
 
 
 class EnvInterpolation(configparser.BasicInterpolation):
@@ -42,6 +43,61 @@ class JAWSConfigParser(configparser.ConfigParser):
     because the singleton metaclass constructor for jaws_central.config.Configuration will throw
     an error on a named parameter.
 
+    After some review, we realized that section names will be necessary. If the section that comes
+    after the env_override prefix starts with all caps and under underscores, then everything up
+    the last underscore will be treated as a section name, and a nested dictionary will be created
+    where the first level is the section name, and the second level is a dictionary with that sections
+    settings. Section names remain uppercased, the trailing underscore is stripped.
+
+    It is not acceptable to have some environment variables with sections and others without,
+    this will cause an exception to be thrown.
+
+    For example, if env_override is "_ENV_", and the environment contains the following variables:
+    _ENV_username=myself
+    _ENV_password=mypassword
+    _ENV_url=http://jaws.jgi.gov:5000/
+
+    The _vars will contain:
+    { "username" : "myself",
+      "password" : "mypassword",
+      "url" : "http://jaws.jgi.gov:5000/"
+    }
+
+    On the other hand, if the environment contains these variables:
+    _ENV_DB_username=myself
+    _ENV_DB_password=mypassword
+    _ENV_DB_host=mysql:9000
+    _ENV_API_username=someone
+    _ENV_API_password=somewpassword
+    _ENV_API_url=http://jaws.jgi.gov:5000/
+
+    Then _vars will contain:
+    { "DB" : { "username" : "myself",
+               "password" : "mypassword",
+               "host" : "mysql:9000"
+             },
+      "API": { "username" : "someone",
+               "password" : "somepassword",
+               "url" : "http://jaws.jgi.gov:5000/"
+             }
+    }
+
+
+    Finally, if the environment contains this:
+    _ENV_username=myself
+    _ENV_DB_password=mypassword
+    _ENV_DB_host=mysql:9000
+    _ENV_API_username=someone
+    _ENV_API_password=somewpassword
+    _ENV_API_url=http://jaws.jgi.gov:5000/
+
+    Then a KeyError will be raised because all but the first environment variable starting with _ENV_ have section
+    names, but the first does not.
+
+    When the get() method is called, if _vars is a nest dictionary, then the section passed in will
+    be used to look for a matching section in _vars, and the matching dict() will be passed to the
+    parent method. No sections match then None will be passed for the vars parameter. If _vars is
+    not a nest dictionary, then the contents of _vars will be passed in the vars param as is.
     """
 
     def __init__(self,  env_override=None, **kwargs):
@@ -53,7 +109,9 @@ class JAWSConfigParser(configparser.ConfigParser):
             if strlen < 3 or strlen > 20:  # The prefix must be 3-20 characters long
                 raise(ValueError("env_override prefix must be from 3-20 characters in length"))
             # should change to use removeprefix() for Python 3.9+ instead of slicing off prefix
-            self._vars = {k[strlen:]: os.environ[k] for k in os.environ.keys() if k.startswith(env_override)}
+            basevars = {k[strlen:]: os.environ[k] for k in os.environ.keys() if k.startswith(env_override)}
+
+            self._vars = basevars
         else:
             self._vars = None
         configparser.ConfigParser.__init__(self, **kwargs)
