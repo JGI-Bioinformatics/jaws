@@ -195,6 +195,8 @@ def test_check_all_values(config_file):
     assert(cfg.config['DB']['host'] == os.environ["ENV__DB_host"])
     check_section("DB", expected_db_parameters_env_override2, cfg)
     check_site("JGI", expected_site1_parameters2, cfg)
+    check_section("GLOBUS", expected_globus_parameters, cfg)
+    check_site_info("NERSC", expected_site2_parameters, cfg)
 
 
 def test_config_overwrite_partial_values(partial_config):
