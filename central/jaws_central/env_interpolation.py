@@ -111,7 +111,7 @@ class JAWSConfigParser(configparser.ConfigParser):
             # should change to use removeprefix() for Python 3.9+ instead of slicing off prefix
             basevars = {k[strlen:]: os.environ[k] for k in os.environ.keys() if k.startswith(env_override)}
             if len(basevars) > 0:
-                section_pre = re.compile("^([A-Z][:0-9A-Z_]*)_(.+)")  # Regex to match all caps section name, ending in _
+                section_pre = re.compile("^([A-Z][:0-9A-Z_]*)_(.+)")  # match all caps section name, ending in _
                 temp = dict()
                 for key, val in basevars.items():
                     res = section_pre.match(key)
