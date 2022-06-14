@@ -51,6 +51,7 @@ class Run:
             "uploading": self.check_if_upload_complete,
             "upload complete": self.submit_run,
             "finished": self.submit_download,
+            "cancelled": self.submit_download,
             "download queued": self.check_if_download_complete,
             "downloading": self.check_if_download_complete,
             "download complete": self.send_email,
@@ -275,6 +276,12 @@ class Run:
     def submit_download(self):
         logger.debug(f"Run {self.data.id}: Submit download")
 
+        if self.cromwell_run_id is None:
+            self.update_status(
+                "download complete", "The run was cancelled before Cromwell; no output was created."
+            )
+            return
+
         # if input and compute site are same, there are no files to transfer, so just
         # promote the state (two updates are required since we don't skip states)
         if self.data.input_site_id == self.data.compute_site_id:
@@ -284,12 +291,12 @@ class Run:
 
         dest_config = config.conf.get_site(self.data.input_site_id)
         workflow_root, manifest = self.outputs_manifest()
-#        if len(manifest) == 0:
-#            # there are no outputs to download (e.g. failed run)
-#            self.update_status(
-#                "download complete", "no output files were generated"
-#            )
-#            return
+        if len(manifest) == 0:
+            # there are no outputs to download (e.g. failed run)
+            self.update_status(
+                "download complete", "no output files were generated"
+            )
+            return
         dest_base_dir = f"{dest_config.get('downloads_dir')}/{self.data.submission_id}"
         params = {
             "src_site_id": self.data.compute_site_id,
