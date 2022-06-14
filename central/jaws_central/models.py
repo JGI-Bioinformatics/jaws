@@ -36,7 +36,7 @@ class User(Base):
 
     __tablename__ = "users"
     id = Column(String(32), primary_key=True)
-    email = Column(String(64), nullable=False, unique=True)
+    email = Column(String(64), nullable=True)
     name = Column(String(64), nullable=True)
     user_group = Column(String(16), nullable=True)
     is_admin = Column(Boolean, nullable=False, default=False)
