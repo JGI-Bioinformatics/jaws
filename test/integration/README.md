@@ -46,6 +46,7 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_JTM_SCRATCH_BASEDIR: basename of SCRATCH directory for JTM. Can be same as JAWS; "-{deployment_name}" will be appended
 - [SITE]_JAWS_SW_BASEDIR: Base directory where JAWS code is located  
 - [SITE]_JTM_SW_BASEDIR: Base directory where JTM code is located  
+- [SITE]_REF_DATA_DIR: Location of pre-staged reference data that is mounted to each task's container
 - [SITE]_FAST_SCRATCH_DIR: Path of fast storage local to worker nodes
 - [SITE]_BIG_SCRATCH_DIR: Path of large storage local to worker nodes
 - [SITE]_SUPERVISOR_HOST: Supervisor hostname for site  
