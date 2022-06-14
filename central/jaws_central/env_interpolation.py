@@ -111,7 +111,7 @@ class JAWSConfigParser(configparser.ConfigParser):
             # should change to use removeprefix() for Python 3.9+ instead of slicing off prefix
             basevars = {k[strlen:]: os.environ[k] for k in os.environ.keys() if k.startswith(env_override)}
             if len(basevars) > 0:
-                section_pre = re.compile("^([A-Z][A-Z_]*)_(.+)")  # Regex to match all caps section name, ending in _
+                section_pre = re.compile("^([A-Z][0-9A-Z_]*)_(.+)")  # Regex to match all caps section name, ending in _
                 temp = dict()
                 for key, val in basevars.items():
                     res = section_pre.match(key)
@@ -122,9 +122,10 @@ class JAWSConfigParser(configparser.ConfigParser):
                             temp[sec] = {opt: val}
                         else:
                             temp[sec][opt] = val
-                if len(temp) == len(basevars):
+                templen = sum(len(v) for v in temp.values())
+                if templen == len(basevars):
                     self._vars = temp  # All environment variables options contained section names
-                elif len(temp) == 0:
+                elif templen == 0:
                     self._vars = basevars  # No environment variables options contained section names
                 else:
                     raise(KeyError("Cannot mix options with and without section prefixes"))
