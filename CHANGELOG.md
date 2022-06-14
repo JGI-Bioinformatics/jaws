@@ -3,7 +3,7 @@
 ## 2.8.6 (TBD) Summary
 ### User Facing Changes
 #### Changed
-
+- Restore /refdata (NB: not implemented for AWS)
 
 ## 2.8.5 (2022-5-24) Summary
 ### User Facing Changes

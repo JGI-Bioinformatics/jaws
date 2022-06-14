@@ -45,19 +45,25 @@ if [[ $RESULT -ne 0 ]]; then
 fi
 [ $RESULT -eq 0 ] || exit 1
 
+## CREATE SITE_REF_DATA_DIR DIR
+if [ ! -d "$SITE_REF_DATA_DIR" ]; then
+  mkdir -p "$SITE_REF_DATA_DIR"
+  fix_perms $SITE_JTM_GROUP "$SITE_REF_DATA_DIR"
+fi
+
 ## COPY CROMWELL JAR
 wget --no-verbose "$CROMWELL_JAR_URL" -O "$SITE_CROMWELL_JAR"
 chmod 640 "$SITE_CROMWELL_JAR"
 chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
-
 
 # When creating the wrapper scripts the arguments to each script are as follows:
 # For SHIFTER
 # $1 image name
 # $2 shell name (eg - bash, csh)
 # $3 script name
-# $4 site fast-scratch dir
-# $5 site big-scratch dir
+# $4 site reference data dir
+# $5 site fast-scratch dir
+# $6 site big-scratch dir
 #
 # For SINGULARITY
 # $1 script name
@@ -65,9 +71,10 @@ chgrp "$SITE_JTM_GROUP" "$SITE_CROMWELL_JAR"
 # $3 image name
 # $4 shell name (eg - bash, csh)
 # $5 script name
-# $6 site fast-scratch dir
-# $7 site big-scratch dir
-#
+# $6 site reference data dir
+# $7 site fast-scratch dir
+# $8 site big-scratch dir
+
 CONTAINER_WRAPPER="docker run"
 ## GENRATE CONTAINER HELPER SCRIPT
 if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
@@ -129,7 +136,7 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
     CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
 
     # note that double-quotation marks are required around optional scratch dirs
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \$IMAGE \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \$IMAGE \${job_shell} \${script} \"$SITE_REF_DATA_DIR\" \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
 
     cp "./test/integration/shifter_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/shifter_exec.sh"
@@ -149,7 +156,7 @@ elif [[ "$SITE_CONTAINER_TYPE" == "docker" ]]; then
     "
     CONTAINER_WRAPPER="$INSTALL_DIR/docker_exec.sh"
     # note that double-quotation marks are required around optional scratch dirs
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${cwd} \${docker_cwd} \${docker} \${job_shell} \${script} \"$SITE_REF_DATA_DIR\" \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
 
     cp "./test/integration/docker_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/docker_exec.sh"
@@ -189,7 +196,7 @@ elif [[ "$SITE_CONTAINER_TYPE" == "singularity" ]]; then
     "
     CONTAINER_WRAPPER="$INSTALL_DIR/singularity_exec.sh"
     # note that double-quotation marks are required around optional scratch dirs
-    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script} \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
+    CONTAINER_EXEC_COMMAND="$CONTAINER_WRAPPER \${cwd} \${docker_cwd} \$SINGULARITY_PULLFOLDER/\$IMAGE \${job_shell} \${script} \"$SITE_REF_DATA_DIR\" \"$SITE_FAST_SCRATCH_DIR\" \"$SITE_BIG_SCRATCH_DIR\""
 
     cp "./test/integration/singularity_exec.sh" $CONTAINER_WRAPPER
     chgrp "$SITE_JTM_GROUP" "$INSTALL_DIR/singularity_exec.sh"

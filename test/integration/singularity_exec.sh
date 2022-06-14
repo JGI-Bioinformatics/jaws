@@ -4,13 +4,19 @@ DOCKER_CWD=$2
 IMAGE=$3
 JOB_SHELL=$4
 SCRIPT=$5
-FAST_SCRATCH=$6
-BIG_SCRATCH=$7
+REF_DATA_DIR=$6
+FAST_SCRATCH=$7
+BIG_SCRATCH=$8
 
 if [ "$#" -ne 7 ]; then
     echo "Missing some arguments. There should be 7 arguments"
     echo "Usage: $0 <local cwd> <container cwd(same)> <image> <job shell> <script> <fast_scratch> <big_scratch>"
     exit 1
+fi
+
+MOUNT_REF_DATA=""
+if [ ! -z $REF_DATA_DIR ] && [ -d $REF_DATA_DIR ]; then
+    MOUNT_REF_DATA="--bind $REF_DATA_DIR:/refdata"
 fi
 
 MOUNT_FAST_SCRATCH=""
@@ -28,11 +34,6 @@ if [[ ! -d $CWD ]]; then
     exit 1
 fi
 
-#if [[ ! -d $LOCAL_REF ]]; then
-#    echo "The Local reference dir: $LOCAL_REF is not a valid directory"
-#    exit 1
-#fi
-
 if [[ ! -e $SCRIPT ]]; then
     echo "The SCRIPT: $SCRIPT doesn't exist"
     exit 1
@@ -42,7 +43,7 @@ echo "Executing on $HOSTNAME" 1>&2
 echo "Begin execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
 
 # Run container script and catch exit code
-singularity exec $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH --bind $CWD:$DOCKER_CWD $IMAGE $JOB_SHELL $SCRIPT
+singularity exec $MOUNT_REF_DATA $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH --bind $CWD:$DOCKER_CWD $IMAGE $JOB_SHELL $SCRIPT
 export EXIT_CODE=$?
 
 echo "End execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
