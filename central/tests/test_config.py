@@ -82,6 +82,17 @@ def test_check_all_values(config_file):
         ("password2", "over_password123"),
     ]
 
+    expected_db_parameters_env_override2 = [
+        ("dialect", "mysql+mysqlconnector"),
+        ("host", "db-host.foo.com"),
+        ("port", "3306"),
+        ("user", "jaws"),
+        ("password", "passw0rd1"),
+        ("db", "jaws"),
+        ("host2", "db.foobar.com"),
+        ("password2", "password123"),
+    ]
+
     expected_globus_parameters = [
         ("client_id", "ZZZZ"),
         ("client_secret", "AAAAA"),
@@ -119,15 +130,6 @@ def test_check_all_values(config_file):
         ("max_ram_gb", "2048"),
     ]
 
-    expected_site2_parameters2 = [
-        ("host", "nersc-host.foobar.org"),
-        ("site_id", "NERSC"),
-        ("globus_endpoint", "YYYY"),
-        ("globus_host_path", "/"),
-        ("inputs_dir", "/global/cscratch/sd1/jaws/jaws-dev/inputs"),
-        ("max_ram_gb", "2048"),
-    ]
-
     print("Checking DB section without environment variables set")
     # Clear any conflicting keys in the environment
     try:
@@ -154,7 +156,6 @@ def test_check_all_values(config_file):
     os.environ["ENV__password2"] = "over_password123"
     print("Recreating new JAWSConfig object with env_override set to ENV__")
     cfg = jaws_central.config.Configuration(config_path, "ENV__")
-    print("Instances of jaws_central.config.Configuration: ", dict(jaws_central.config.Singleton._instances))
     print("Verifying that _vars attribute has picked up environment variables")
     assert(cfg.config._vars is not None)
     assert(len(cfg.config._vars) == 2)
@@ -172,8 +173,8 @@ def test_check_all_values(config_file):
     except Exception:
         pass
     print("Retesting with env_prefix set and section names")
+    os.environ["ENV__DB_host"] = "db-host.foo.com"
     os.environ["ENV__SITE:JGI_host"] = "jgi-host.foobar.org"
-    os.environ["ENV__SITE:NERSC_host"] = "nersc-host.foobar.org"
 
     # Verify we get a KeyError when mixing section names and non-section
     with pytest.raises(KeyError):
@@ -189,12 +190,11 @@ def test_check_all_values(config_file):
     # SITE:NERSC_host settings are in place
     cfg = jaws_central.config.Configuration(config_path, "ENV__")
     assert("SITE:JGI" in cfg.config._vars)
-    assert("SITE:NERSC" in cfg.config._vars)
+    assert("DB" in cfg.config._vars)
     assert(cfg.config['SITE:JGI']['host'] == os.environ["ENV__SITE:JGI_host"])
-    assert(cfg.config['SITE:NERSC']['host'] == os.environ["ENV__SITE:NERSC_host"])
-    #  check_section("GLOBUS", expected_globus_parameters, cfg)
-    # check_site("JGI", expected_site1_parameters2, cfg)
-    # check_site_info("NERSC", expected_site2_parameters2, cfg)
+    assert(cfg.config['DB']['host'] == os.environ["ENV__DB_host"])
+    check_section("DB", expected_db_parameters_env_override2, cfg)
+    check_site("JGI", expected_site1_parameters2, cfg)
 
 
 def test_config_overwrite_partial_values(partial_config):
