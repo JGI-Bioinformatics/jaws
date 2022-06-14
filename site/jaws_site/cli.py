@@ -97,6 +97,16 @@ def perf_metrics_daemon() -> None:
     perfd.start_daemon()
 
 
+@cli.command()
+def pool_manager_daemon() -> None:
+    """Start pool_manager daemon."""
+
+    from jaws_site.pool_manager_daemon import PoolManagerDaemon
+
+    pool_managerd = PoolManagerDaemon()
+    pool_managerd.start_daemon()
+
+
 def jaws():
     """Entrypoint for jaws-site app."""
     cli()
