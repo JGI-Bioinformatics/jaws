@@ -44,6 +44,9 @@ Scattering is the prefered way to run jobs in parallel. "Scatter-gathering" repr
 
     * `sharding input files: <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples/tree/master/jaws-sharding>`_ 
     
+Here is an example of how to use a database (e.g. for blast) within your WDL. If you require reference files for your pipeline, you need to have a JAWS administrator copy them to a directory dedicated to reference files. This path is available to use within the WDL if your commands are running outside a docker container. If your commands are running within a docker container, you would use "/refdata"; this path is consistent between all compute sites making your WDL portable.
+
+    * `using reference databases at cori: <https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples/tree/master/referencing_db_and_shifter>`_ 
 
 ****************
 Additional links

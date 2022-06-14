@@ -4,13 +4,19 @@ echo "Begin execution at" `date +"%Y-%m-%d %H:%M:%S" -u` UTC 1>&2
 IMG=$1          # jfroula/bbtools@sha256:
 SHELL=$2 # /bin/bash
 SCRIPT=$3       # script
-FAST_SCRATCH=$4
-BIG_SCRATCH=$5
+REF_DATA_DIR=$4
+FAST_SCRATCH=$5
+BIG_SCRATCH=$6
 
 if [ $# -lt 5 ]; then
     echo "One or more arguments are missing."
     echo "Usage: $0 <docker image either tagged or sha@256> <path to bash> <script> <path to fast scratch> <path to big scratch>"
     exit 1
+fi
+
+MOUNT_REF_DATA=""
+if [ ! -z $REF_DATA_DIR ] && [ -d $REF_DATA_DIR ]; then
+    MOUNT_REF_DATA="-V $REF_DATA_DIR:/refdata"
 fi
 
 MOUNT_FAST_SCRATCH=""
@@ -42,9 +48,9 @@ ID=$(echo $IMG | sed 's/.*://')
 
 # Run container script and catch exit code
 if [[ $HASH =~ "sha256" ]]; then
-    shifter --image=id:$ID $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH $SHELL $SCRIPT
+    shifter --image=id:$ID $MOUNT_REF_DATA $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH $SHELL $SCRIPT
 else
-    shifter --image=$REPO $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH $SHELL $SCRIPT
+    shifter --image=$REPO $MOUNT_REF_DATA $MOUNT_FAST_SCRATCH $MOUNT_BIG_SCRATCH $SHELL $SCRIPT
 fi
 
 export EXIT_CODE=$?

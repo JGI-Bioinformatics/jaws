@@ -21,6 +21,8 @@ from jaws_client.copy_progress import copy_with_progress_bar
 
 config = Configuration()
 
+REFDATA_DIR = '/refdata'  # this folder is mounted to every task's container
+
 
 def pretty_warning(message, category, filename, lineno, line=None):
     return f"WARNING: {message}\n"
@@ -115,6 +117,10 @@ def values(inputs_map):
     """
     for val in inputs_map.values():
         yield from value_generator(val)
+
+
+def is_refdata(filepath):
+    return filepath.startswith(REFDATA_DIR)
 
 
 def looks_like_file_path(input):
@@ -676,13 +682,13 @@ class WorkflowInputs:
         updated to reflect the new location by prepending the site's inputs basedir.
         Only paths which exist are modified because these are the only files which are transferred; the other
         paths presumably refer to files in a Docker container.
-        If element is a file and is an URL, do not prepend given path to it
+        If element is a file and is an URL or in /refdata, do not prepend given path to it
         """
 
         def func(path, is_file):
             if is_file:
                 if not path.startswith(
-                    ("http://", "ftp://", "https://")
+                    ("http://", "ftp://", "https://", REFDATA_DIR)
                 ) and os.path.exists(path):
                     return f"{path_to_prepend}{path}"
             return path
