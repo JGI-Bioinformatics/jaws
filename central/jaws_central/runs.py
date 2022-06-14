@@ -446,7 +446,6 @@ class Run:
         smtp_server = config.conf.get("EMAIL", "server")
         port = config.conf.get("EMAIL", "port")
         password = config.conf.get("EMAIL", "password")
-        smtp_server = "smtp.gmail.com"
 
         tag_text = f" ({self.data.tag})" if self.data.tag else ""
 
