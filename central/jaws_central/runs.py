@@ -437,6 +437,11 @@ class Run:
 
     def send_email(self):
         receiver_email = self.user_email()
+
+        if receiver_email is None:
+            self.update_status("email sent")
+            return
+
         sender_email = config.conf.get("EMAIL", "user")
         smtp_server = config.conf.get("EMAIL", "server")
         port = config.conf.get("EMAIL", "port")
