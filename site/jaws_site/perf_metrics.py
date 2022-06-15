@@ -9,6 +9,7 @@ from pathlib import Path
 from functools import lru_cache
 from jaws_site import runs, tasks
 from jaws_rpc import rpc_client_basic
+from collections import deque
 
 logger = logging.getLogger(__package__)
 
@@ -187,3 +188,60 @@ def remove_beginning_path(working_dir):
         logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
 
     return dir_name
+
+
+@lru_cache()
+def parse_cromwell_task_dir(task_dir):
+    """
+    Given path of a task, return task fields.
+    """
+    result = {
+        "call_root": task_dir,
+        "cached": False,
+        "shard": -1,
+    }
+    if task_dir.endswith("/execution"):
+        result["call_root"] = result["call_root"].rstrip("/execution")
+    else:
+        task_dir = f"{task_dir}/execution"
+    (root_dir, subdir) = task_dir.split("cromwell-executions/")
+    result["call_root_rel_path"] = subdir
+    fields = deque(subdir.split("/"))
+    result["wdl_name"] = fields.popleft()
+    result["name"] = result["wdl_name"]
+    result["cromwell_run_id"] = fields.popleft()
+    if not fields[0].startswith("call-"):
+        raise ValueError(f"Problem parsing {subdir}")
+    result["task_name"] = fields.popleft().lstrip("call-")
+    result["name"] = f"{result['name']}.{result['task_name']}"
+    if fields[0].startswith("shard-"):
+        result["shard"] = int(fields.popleft().lstrip("shard-"))
+        result["name"] = f"{result['name']}[{result['shard']}]"
+    if fields[0] == "execution":
+        return result
+    elif fields[0] == "cacheCopy":
+        result["cached"] = True
+        return result
+
+    # subworkflow
+    result["subworkflow_name"] = fields.popleft()
+    if not result["subworkflow_name"].startswith("sub."):
+        raise ValueError(f"Problem parsing {subdir}")
+    result["subworkflow_name"] = result["subworkflow_name"].lstrip("sub.")
+    result["name"] = f"{result['name']}:{result['subworkflow_name']}"
+    result["subworkflow_cromwell_run_id"] = fields.popleft()
+    if not fields[0].startswith("call-"):
+        raise ValueError(f"Problem parsing {subdir}")
+    result["sub_task_name"] = fields.popleft().lstrip("call-")
+    result["name"] = f"{result['name']}.{result['sub_task_name']}"
+    if fields[0].startswith("shard-"):
+        result["sub_shard"] = int(fields.popleft().lstrip("shard-"))
+        result["name"] = f"{result['name']}[{result['sub_shard']}]"
+    if fields[0] == "execution":
+        return result
+    elif fields[0] == "cacheCopy":
+        result["cached"] = True
+        return result
+    else:
+        raise ValueError(f"Problem parsing {subdir}")
+    return result
