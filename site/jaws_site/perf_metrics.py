@@ -55,6 +55,8 @@ class PerformanceMetrics:
         # Filter out anything that didn't get a jaws_run_id returned
         csv_data = csv_data[csv_data.jaws_run_id != "None"]
 
+        csv_data["task_name"] = csv_data.current_dir.apply(parse_cromwell_task_dir)
+
         # Drops the current_dir, since we shouldn't need it anymore
         # csv_data = csv_data.drop(columns=["current_dir"])
 
