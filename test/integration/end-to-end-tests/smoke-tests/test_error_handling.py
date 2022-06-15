@@ -234,3 +234,28 @@ def test_timeout(dir, site):
     assert "failed with timeout" in o, fail_msg
 
 
+def test_bad_ref_dir(dir, site):
+    """
+    When user submits a wdl with a bad path to /refdata like:
+    /refdata/i_dont_exist
+    We should get a user friendly error message like:
+
+    cannot access <bad-ref>.  No such file or directory
+    """
+    WDL = "/WDLs/bad_ref.wdl"
+    INP = "/test-inputs/bad_ref.json"
+
+    wdl = dir + WDL
+    input_json = dir + INP
+
+    run_id = util.submit_wdl(wdl, input_json, site)["run_id"]
+    util.wait_for_run(run_id, check_tries, check_sleep)
+
+    # get the errors from JAWS for that run
+    cmd = "jaws errors %s" % (run_id)
+    r, o, e = util.run(cmd)
+
+    # do the check!
+    fail_msg = "Error should say: \"No such file or directory\""
+    assert "No such file or directory" in o, fail_msg
+
