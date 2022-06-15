@@ -500,6 +500,7 @@ def check_active_runs(session, rpc_index) -> None:
         "uploading",
         "upload complete",
         "finished",
+        "cancelled",
         "download queued",
         "downloading",
         "download complete",
