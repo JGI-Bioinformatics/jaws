@@ -4,6 +4,11 @@
 ### User Facing Changes
 #### Changed
 - Restore /refdata (NB: not implemented for AWS)
+- Created user group to restrict access to private compute site.
+- Fixed bug where stderr file contents were not included in errors report.
+- Fixed bug where AWS upload failure did not cause Run to change state to "upload failed" (stayed in "uploading")
+- Fixed bug where very long WDLs could not be saved in Db and would fail.
+- Cancelled runs will now be downloaded and available via the "get" command (useful for debugging).
 
 ## 2.8.5 (2022-5-24) Summary
 ### User Facing Changes
