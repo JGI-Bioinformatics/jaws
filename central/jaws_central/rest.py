@@ -349,6 +349,8 @@ def _update_run_status(run, new_status, reason=None):
     """Update run table and insert run_logs entry."""
     status_from = run.status
     run.status = new_status
+    if new_status == "cancelled":
+        run.result = "cancelled"
     try:
         db.session.commit()
     except Exception as error:
