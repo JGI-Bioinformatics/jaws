@@ -8,9 +8,9 @@ REF_DATA_DIR=$6
 FAST_SCRATCH=$7
 BIG_SCRATCH=$8
 
-if [ "$#" -ne 7 ]; then
-    echo "Missing some arguments. There should be 7 arguments"
-    echo "Usage: $0 <local cwd> <container cwd(same)> <image> <job shell> <script> <fast_scratch> <big_scratch>"
+if [ "$#" -ne 8 ]; then
+    echo "Missing some arguments. There should be 8 arguments"
+    echo "Usage: $0 <local cwd> <container cwd(same)> <image> <job shell> <script> <ref_data> <fast_scratch> <big_scratch>"
     exit 1
 fi
 
