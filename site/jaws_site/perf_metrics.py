@@ -199,6 +199,7 @@ def parse_cromwell_task_dir(task_dir):
         "call_root": task_dir,
         "cached": False,
         "shard": -1,
+        "name": "None"
     }
     if task_dir.endswith("/execution"):
         result["call_root"] = result["call_root"].rstrip("/execution")
@@ -218,10 +219,10 @@ def parse_cromwell_task_dir(task_dir):
         result["shard"] = int(fields.popleft().lstrip("shard-"))
         result["name"] = f"{result['name']}[{result['shard']}]"
     if fields[0] == "execution":
-        return result
+        return result["name"]
     elif fields[0] == "cacheCopy":
         result["cached"] = True
-        return result
+        return result["name"]
 
     # subworkflow
     result["subworkflow_name"] = fields.popleft()
@@ -238,10 +239,10 @@ def parse_cromwell_task_dir(task_dir):
         result["sub_shard"] = int(fields.popleft().lstrip("shard-"))
         result["name"] = f"{result['name']}[{result['sub_shard']}]"
     if fields[0] == "execution":
-        return result
+        return result["name"]
     elif fields[0] == "cacheCopy":
         result["cached"] = True
-        return result
+        return result["name"]
     else:
         raise ValueError(f"Problem parsing {subdir}")
-    return result
+    return result["name"]
