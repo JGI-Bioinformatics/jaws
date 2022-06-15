@@ -276,7 +276,7 @@ class Run:
     def submit_download(self):
         logger.debug(f"Run {self.data.id}: Submit download")
 
-        if self.cromwell_run_id is None:
+        if self.data.cromwell_run_id is None:
             self.update_status(
                 "download complete", "The run was cancelled before Cromwell; no output was created."
             )
