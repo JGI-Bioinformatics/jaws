@@ -71,8 +71,8 @@ class PerformanceMetrics:
         The cached result looks something like like:
 
         self.tasks[some_cromwell_run_id] = {
-            "cromwell-executions/a/aa/aaa": "task_a",
-            "cromwell-executions/b/bb/bbb": "task_b",
+            "cromwell-executions/align/call-bbmap//execution/merged.sorted.bam": "bbmap",
+            "cromwell-executions/align/bb/bbb": "task_b",
         }
         """
         try:
