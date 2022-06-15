@@ -95,10 +95,10 @@ The Dockerfile (provided in example) looks like
 .. code-block:: text
 
    # use your image name
-   docker run jfroula/bbtools:1.0.0 script.sh
+   docker run <your_docker_hub_user_name>/bbtools:1.0.0 script.sh
  
    # if you are in the root of the 5min_example directory, then try re-running the script with data.
-   docker run --volume="$(pwd)/../data:/bbmap" jfroula/bbtools:1.0.0 script.sh sample.fastq.bz2 sample.fasta
+   docker run --volume="$(pwd)/../data:/bbmap" <your_docker_hub_user_name>/bbtools:1.0.0 script.sh sample.fastq.bz2 sample.fasta
 
    # Notice script.sh is found because it was set in PATH in the Dockerfile and
    # the two inputs are found because the data directory is mounted to /bbmap (inside container) where the script runs.
@@ -124,7 +124,7 @@ example:
 .. code-block:: text
 
    # pull image from hub.docker.com
-   shifterimg pull jfroula/bbtools:1.0.0
+   shifterimg pull <your_docker_hub_user_name>/bbtools:1.0.0
 
    # clone the repo on cori
    git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git

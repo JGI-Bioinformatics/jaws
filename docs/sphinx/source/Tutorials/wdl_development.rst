@@ -8,11 +8,11 @@ Setting up a Testing Environment Using Conda
 *******
 Summary
 *******
-This section describes how to set up a running environment for developing WDLs using `conda <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html?highlight=environment>`_.  Once the environment is set up, we can run a WDL directly using `cromwell <https://Cromwell.readthedocs.io/en/stable/>`_ which is a workflow engine that understands WDLs, and is what JAWS uses under the hood. Developing with cromwell will be much easier to debug.
+This section describes how to set up a running environment for developing WDLs using `conda <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html?highlight=environment>`_.  Once the environment is set up, we can run a WDL directly using `Cromwell <https://Cromwell.readthedocs.io/en/stable/>`_ which is a workflow engine that understands WDLs, and is what JAWS uses under the hood. Developing with Cromwell will be much easier to debug.
 
 In this tutorial, you will 
 	1. build a development environment 
-	2. run a WDL using cromwell.
+	2. run a WDL using cromwell
 
 
 How to find packages you need for building environments
@@ -23,7 +23,7 @@ Conda is like pip.  Pip installs python packages only; Conda can install package
 The virtual environment (venv) is pip's equivalent to conda environments and you can use this when only dealing with python packages.
 
 1. search for a software package at `anaconda.org <https://anaconda.org/>`_. **bioconda** or **conda-forge** are well trusted channels.
-2. If that fails, try to search pip packages. As mentioned, `pip: <https://docs.python.org/3/installing/index.html>`_ installs only python packages but can be used to install stuff in your conda env.  You can search for pip packages at `pypi <https://pypi.org/>`_
+2. If that fails, try to search pip packages. As mentioned, `pip: <https://docs.python.org/3/installing/index.html>`_ installs only python packages but can be used to install stuff in your conda env.  You can search for pip packages at `pypi <https://pypi.org/>`_.
 
 
 Install Miniconda3
@@ -89,10 +89,28 @@ This should create a bam file (test.sorted.bam).
 
 Run the WDL Workflow
 ++++++++++++++++++++
-You can run a WDL directly on the command-line (outside of JAWS) by using a cromwell executable. Either you install your own, i.e using conda, or if you are on CORI, then there is an installation at /global/cfs/projectdirs/jaws/cromwell/cromwell.jar which should point to the latest version used in JAWS. 
+You can run a WDL directly on the command-line (outside of JAWS) by using a Cromwell executable. Either you install your own, i.e using conda, or if you are on CORI, then there is an installation at /global/cfs/projectdirs/jaws/cromwell/cromwell.jar which should point to the latest version used in JAWS. 
 
-| **Running with your own conda version**
-| (Make sure the bbtools conda environment is activated and you are in 5min_example)
+.. raw:: html
+
+    <details>
+    <summary style=color: #448ecf;>Install Cromwell</summary>
+
+.. code-block:: text
+
+    conda install cromwell
+    cromwell --version 
+   
+.. raw:: html    
+ 
+    </details>
+    
+.. |br| raw:: html
+
+     <br>
+|br|
+**Running with your own conda version**
+(Make sure the bbtools conda environment is activated and you are in 5min_example)
 
 .. code-block:: text
   
@@ -100,8 +118,8 @@ You can run a WDL directly on the command-line (outside of JAWS) by using a crom
   cromwell run align.wdl -i inputs.json
 
 
-| **Running with cori's version**
-| (Make sure the bbtools conda environment is activated and you are in 5min_example)
+**Running with cori's version**
+(Make sure the bbtools conda environment is activated and you are in 5min_example)
 
 .. code-block:: text
   
