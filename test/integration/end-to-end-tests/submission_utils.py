@@ -68,7 +68,7 @@ def wait_for_run(id,check_tries,check_sleep):
         status_output = json.loads(o)
         run_status = status_output["status"]
 
-        if run_status == "download complete":
+        if run_status == "download complete" or run_status == "done":
             return
 
         tries += 1
@@ -103,7 +103,7 @@ def run_success(site, wdl, input_json):
     print("stdout: ", stdout)
 
     status_info = json.loads(stdout)
-    assert status_info["status"] == "download complete"
+    assert status_info["status"] == "download complete" or run_status == "done"
     assert status_info["result"] == "succeeded"
 
 
