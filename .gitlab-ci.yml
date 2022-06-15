@@ -38,8 +38,8 @@ variables:
   PARSL_MP_HOST: "localhost"
   PARSL_MP_PORT: 6000
   JAWS_DEFAULT_CONTAINER: "ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf"
-  JAWS_EMAIL_USER: "jgi.jaws@gmail.com"
-  JAWS_EMAIL_SERVER: "smtp.gmail.com"
+  JAWS_EMAIL_USER: "jaws.jgi@yahoo.com"
+  JAWS_EMAIL_SERVER: "smtp.mail.yahoo.com"
   JAWS_EMAIL_PORT: "587"
 
   ## DEPLOYMENT-SPECIFIC VARIABLES:
