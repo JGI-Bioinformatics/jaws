@@ -106,6 +106,7 @@ variables:
   CORI_HTCONDOR_MASTER_CONFIG: "/global/cfs/projectdirs/jaws/condor/condor_central.config"
   CORI_PERFORMANCE_METRICS_SCRIPT: "/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus"
   CORI_PERFORMANCE_METRICS_DIR: "/global/cscratch1/sd/jaws_jtm/monitoring-runs"
+  CORI_PERFORMANCE_METRICS_CLEANUP: 600
 
   JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
   JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
@@ -139,6 +140,7 @@ variables:
   JGI_HTCONDOR_MASTER_CONFIG: "/global/home/groups-sw/lr_jgicloud/condor/condor_central.config"
   JGI_PERFORMANCE_METRICS_SCRIPT: "/global/home/groups-sw/lr_jgicloud/jaws-metrics/bin/pagurus"
   JGI_PERFORMANCE_METRICS_DIR: "/global/scratch/users/jaws/jaws-jtm/monitoring-runs"
+  JGI_PERFORMANCE_METRICS_CLEANUP: 600
 
   TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install/jaws-client/"
   TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
@@ -172,6 +174,7 @@ variables:
   TAHOMA_HTCONDOR_MASTER_CONFIG: "/tahoma/mscjgi/condor/condor_central.config"
   TAHOMA_PERFORMANCE_METRICS_SCRIPT: "/tahoma/mscjgi/jaws-metrics/bin/pagurus"
   TAHOMA_PERFORMANCE_METRICS_DIR: "/tahoma/mscjgi/jaws_jtm/monitoring-runs"
+  TAHOMA_PERFORMANCE_METRICS_CLEANUP: 600
 
   AWS_CLIENT_INSTALL_BASEDIR: ""
   AWS_INSTALL_BASEDIR: "/home/ec2-user"
