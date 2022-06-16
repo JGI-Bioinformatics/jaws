@@ -250,6 +250,7 @@ class Run:
         # promote the state (two updates are required since we don't skip states)
         if self.data.input_site_id == self.data.compute_site_id:
             self.update_status("upload queued")
+            time.sleep(1)
             self.update_status("upload complete")
             return
 
@@ -286,6 +287,7 @@ class Run:
         # promote the state (two updates are required since we don't skip states)
         if self.data.input_site_id == self.data.compute_site_id:
             self.update_status("download queued")
+            time.sleep(1)  # hack so they don't have the same timestamp
             self.update_status("download complete")
             return
 
