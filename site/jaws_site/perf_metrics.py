@@ -180,7 +180,8 @@ def parse_cromwell_task_dir(task_dir):
     result["name"] = result["wdl_name"]
     result["cromwell_run_id"] = fields.popleft()
     if not fields[0].startswith("call-"):
-        raise ValueError(f"Problem parsing {subdir}")
+        logger.warning(f"Problem parsing {subdir}")
+        return result["name"]
     result["task_name"] = fields.popleft().lstrip("call-")
     result["name"] = f"{result['name']}.{result['task_name']}"
     if fields[0].startswith("shard-"):
@@ -197,12 +198,12 @@ def parse_cromwell_task_dir(task_dir):
     if not result["subworkflow_name"].startswith("sub."):
         logger.warning(f"Problem parsing {subdir}")
         return result["name"]
-        raise ValueError(f"Problem parsing {subdir}")
     result["subworkflow_name"] = result["subworkflow_name"].lstrip("sub.")
     result["name"] = f"{result['name']}:{result['subworkflow_name']}"
     result["subworkflow_cromwell_run_id"] = fields.popleft()
     if not fields[0].startswith("call-"):
-        raise ValueError(f"Problem parsing {subdir}")
+        logger.warning(f"Problem parsing {subdir}")
+        return result["name"]
     result["sub_task_name"] = fields.popleft().lstrip("call-")
     result["name"] = f"{result['name']}.{result['sub_task_name']}"
     if fields[0].startswith("shard-"):
@@ -214,5 +215,6 @@ def parse_cromwell_task_dir(task_dir):
         result["cached"] = True
         return result["name"]
     else:
-        raise ValueError(f"Problem parsing {subdir}")
+        logger.warning(f"Problem parsing {subdir}")
+        return result["name"]
     return result["name"]
