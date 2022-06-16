@@ -194,6 +194,8 @@ def parse_cromwell_task_dir(task_dir):
     # subworkflow
     result["subworkflow_name"] = fields.popleft()
     if not result["subworkflow_name"].startswith("sub."):
+        logger.warning(f"Problem parsing {subdir}")
+        return result["name"]
         raise ValueError(f"Problem parsing {subdir}")
     result["subworkflow_name"] = result["subworkflow_name"].lstrip("sub.")
     result["name"] = f"{result['name']}:{result['subworkflow_name']}"
