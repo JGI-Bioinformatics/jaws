@@ -104,7 +104,8 @@ class PerformanceMetrics:
                 # Just really a final check at this point since it should already be in the document
                 if not run_id or not cromwell_run_id:
                     logger.error(
-                        f"Error with {run_id=}, {task_name=}, or {cromwell_run_id=}, Not uploading to performance metrics"
+                        f"Error with {run_id=}, {task_name=}, or {cromwell_run_id=},\
+                                     Not uploading to performance metrics"
                     )
                     continue
 
