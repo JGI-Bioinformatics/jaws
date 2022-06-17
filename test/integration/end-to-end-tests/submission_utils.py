@@ -103,7 +103,7 @@ def run_success(site, wdl, input_json):
     print("stdout: ", stdout)
 
     status_info = json.loads(stdout)
-    assert status_info["status"] == "download complete" or status_info == "done"
+    assert status_info["status"] == "download complete" or status_info["status"] == "done"
     assert status_info["result"] == "succeeded"
 
 
