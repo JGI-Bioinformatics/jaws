@@ -143,66 +143,6 @@ def submit_scatter_timeout(request):
 
 
 @pytest.fixture(scope="session")
-def submit_skylake_250(request):
-    """ This will submit to the large memory skylake machine on cori. The fixture will be skipped if run on anything other than cori.
-
-    :param a request object for capturing CLI arguments
-    :type object
-    :rtype dictionary
-    :return output from jaws submit
-    """
-
-    # allow user to pass variables into the test functions via command line
-    target_dir = request.config.getoption("--dir")
-    site = request.config.getoption("--site")
-
-    # skip this fixture if not run on cori
-    if "cori" not in site.lower():
-        pytest.skip("needs to run on cori only")
-
-    wdl = target_dir + "/WDLs/skylake_test_250.wdl"
-    input_json = target_dir + "/test-inputs/fq_count.json"
-    site = "cori"
-
-    data = util.submit_wdl( wdl, input_json, site)
-
-    # wait for run to complete
-    id = data["run_id"]
-    util.wait_for_run(id, check_tries, check_sleep)
-
-    return data
-
-
-@pytest.fixture(scope="session")
-def submit_skylake_500(request):
-    """ This will submit to the large memory skylake machine on cori. The fixture will be skipped if run on anything other than cori.
-
-    :param a request object for capturing CLI arguments
-    :type object 
-    :rtype dictionary 
-    :return output from jaws submit 
-    """
-    # allow user to pass variables into the test functions via command line
-    target_dir = request.config.getoption("--dir")
-    site = request.config.getoption("--site")
-
-    # skip this fixture if not run on cori
-    if "cori" not in site.lower():
-        pytest.skip("needs to run on cori only")
-
-    wdl = target_dir + "/WDLs/skylake_test_500.wdl"
-    input_json = target_dir + "/test-inputs/fq_count.json"
-
-    data = util.submit_wdl(wdl, input_json, site)
-
-    # wait for run to complete
-    id = data["run_id"]
-    util.wait_for_run(id, check_tries, check_sleep)
-
-    return data
-
-
-@pytest.fixture(scope="session")
 def clone_tutorials_repo(request):
     """ Clones https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples.
 
