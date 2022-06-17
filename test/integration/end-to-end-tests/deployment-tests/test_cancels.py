@@ -15,8 +15,8 @@ import submission_utils as util
 
 WDL = "/WDLs/fq_count.wdl"
 INP = "/test-inputs/fq_count.json"
-FINAL_STATE = "download complete"
-VALID_STATES = ["queued", "running", "download complete"]
+FINAL_STATE = "done"
+VALID_STATES = ["running"]
 CHECK_TRIES = 20000
 CHECK_SLEEP = 5
 
