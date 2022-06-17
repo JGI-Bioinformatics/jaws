@@ -268,9 +268,9 @@ backend
       {
         filesystems {
           local {
-            localization: ["hard-link", "soft-link", "copy"]
+            localization: ["hard-link", "copy"]
             caching {
-              duplication-strategy: ["hard-link", "soft-link", "copy"],
+              duplication-strategy: ["hard-link", "copy"],
               hashing-strategy: "xxh64"
             }
           }
