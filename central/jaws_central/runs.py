@@ -447,8 +447,13 @@ class Run:
 
         sender_email = config.conf.get("EMAIL", "user")
         smtp_server = config.conf.get("EMAIL", "server")
-        port = config.conf.get("EMAIL", "port")
+        port = int(config.conf.get("EMAIL", "port", 587))
         password = config.conf.get("EMAIL", "password")
+
+        if not smtp_server or not password:
+            # email is not configured, but we don't skip states
+            self.update_status("email sent")
+            return
 
         tag_text = f" ({self.data.tag})" if self.data.tag else ""
 
@@ -457,6 +462,7 @@ class Run:
         Your run has completed.
 
         run_id: {self.data.id}
+        compute_site: {self.data.compute_site_id}
         result: {self.data.result}
         wdl_file: {self.data.wdl_file}
         json_file: {self.data.json_file}
