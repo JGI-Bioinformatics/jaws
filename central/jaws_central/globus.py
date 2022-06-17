@@ -97,6 +97,7 @@ class GlobusService:
             notify_on_succeeded=False,
             notify_on_failed=True,
             notify_on_inactive=True,
+            recursive_symlinks="copy",
         )
 
         # the manifest is empty for complete download, add path and do recursive

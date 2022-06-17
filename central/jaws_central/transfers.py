@@ -270,7 +270,7 @@ class Transfer:
                 raise TransferRpcError(error)
             else:
                 self.data.globus_transfer_id = globus_transfer_id
-                self.update_status("queued")
+                self.update_status("queued", f"globus_transfer_id={globus_transfer_id}")
 
     def _rpc(self, site_id, function, params):
         rpc_client = rpc_index.rpc_index.get_client(site_id)
