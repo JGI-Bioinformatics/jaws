@@ -250,6 +250,7 @@ class Run:
         # promote the state (two updates are required since we don't skip states)
         if self.data.input_site_id == self.data.compute_site_id:
             self.update_status("upload queued")
+            time.sleep(1)
             self.update_status("upload complete")
             return
 
@@ -286,17 +287,12 @@ class Run:
         # promote the state (two updates are required since we don't skip states)
         if self.data.input_site_id == self.data.compute_site_id:
             self.update_status("download queued")
+            time.sleep(1)  # hack so they don't have the same timestamp
             self.update_status("download complete")
             return
 
         dest_config = config.conf.get_site(self.data.input_site_id)
         workflow_root, manifest = self.outputs_manifest()
-        if len(manifest) == 0:
-            # there are no outputs to download (e.g. failed run)
-            self.update_status(
-                "download complete", "no output files were generated"
-            )
-            return
         dest_base_dir = f"{dest_config.get('downloads_dir')}/{self.data.submission_id}"
         params = {
             "src_site_id": self.data.compute_site_id,
