@@ -214,7 +214,10 @@ def transfer_status(params, session):
         logger.error(f"Transfer {params['transfer_id']} status failed: {error}")
         return failure(error)
     else:
-        result = {"status": transfer.status()}
+        result = {
+            "status": transfer.status(),
+            "reason": transfer.reason()
+        }
         return success(result)
 
 

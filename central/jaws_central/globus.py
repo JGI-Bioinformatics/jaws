@@ -42,7 +42,10 @@ class GlobusService:
         transfer_client = self._create_transfer_client()
         task = transfer_client.get_task(task_id)
         globus_status = task["status"]
-        return globus_status
+        fatal_error = None
+        if "fatal_error" in task:
+            fatal_error = str(task["fatal_error"])
+        return globus_status, fatal_error
 
     def virtual_transfer_path(self, full_path, host_path):
         """Return an absolute path used by Globus transfer service that uses the host_path as root.

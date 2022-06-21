@@ -105,6 +105,10 @@ class Transfer:
         """Return the current state of the transfer."""
         return self.data.status
 
+    def reason(self) -> str:
+        """Return the failure message of the transfer."""
+        return self.data.reason
+
     def manifest(self) -> list:
         return json.loads(self.data.manifest_json)
 
@@ -119,7 +123,7 @@ class Transfer:
         else:
             return False
 
-    def update_status(self, new_status) -> None:
+    def update_status(self, new_status: str, reason: str = None) -> None:
         """
         Update Transfers' status.
         """
@@ -128,6 +132,8 @@ class Transfer:
         try:
             self.data.status = new_status
             self.data.updated = timestamp
+            if reason is not None:
+                self.data.reason = reason
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()

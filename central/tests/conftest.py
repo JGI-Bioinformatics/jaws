@@ -205,6 +205,7 @@ class MockTransferModel:
         self.dest_base_dir = kwargs.get("dest_base_dir", "/jaws-test/inputs")
         self.manifest_json = kwargs.get("manifest_json", "{}")
         self.globus_transfer_id = kwargs.get("globus_transfer_id", None)
+        self.reason = kwargs.get("reason", None)
 
 
 class MockTransfer:
