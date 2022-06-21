@@ -195,16 +195,16 @@ def parse_cromwell_task_dir(task_dir):
 
     # subworkflow
     result["subworkflow_name"] = fields.popleft()
-    if not result["subworkflow_name"].startswith("sub."):
+    if '.' not in result["subworkflow_name"]:
         logger.warning(f"Problem parsing {subdir}")
         return result["name"]
-    result["subworkflow_name"] = result["subworkflow_name"].lstrip("sub.")
+    result["subworkflow_name"] = result["subworkflow_name"].split(".")[-1]
     result["name"] = f"{result['name']}:{result['subworkflow_name']}"
     result["subworkflow_cromwell_run_id"] = fields.popleft()
     if not fields[0].startswith("call-"):
         logger.warning(f"Problem parsing {subdir}")
         return result["name"]
-    result["sub_task_name"] = fields.popleft().lstrip("call-")
+    result["sub_task_name"] = fields.popleft().split("-")[-1]
     result["name"] = f"{result['name']}.{result['sub_task_name']}"
     if fields[0].startswith("shard-"):
         result["sub_shard"] = int(fields.popleft().lstrip("shard-"))
