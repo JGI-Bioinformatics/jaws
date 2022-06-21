@@ -326,6 +326,14 @@ class Call:
                 result["stdoutContents"] = f"File not found: {stdout_file}"
             else:
                 result["stdoutContents"] = stdoutContents
+            stdout_submit_file = f"{stdout_file}.submit"
+            try:
+                stdout_submit_contents = _read_file(stdout_submit_file)
+            except Exception:  # noqa
+                # stdoutSubmit file doesn't always exist (not used on AWS)
+                result["stdoutSubmitContents"] = None
+            else:
+                result["stdoutSubmitContents"] = stdout_submit_contents
         if "callRoot" in self.data:
             stderr_submit_file = f"{self.data['callRoot']}/execution/stderr.submit"
             try:
