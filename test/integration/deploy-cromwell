@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo "BEGIN deploy-cromwell"
+echo "BEGIN deploy-cromwell"  # noqa
 
 
 ## VERIFY REQUIRED VARS ARE DEFINED
@@ -84,22 +84,22 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
     ID=\$(echo \${docker} | sed 's/.*://')
     IMAGE=\${docker}
     TAG=
-	RC=
-	PULLED=1
-	OUT=
+    RC=
+    PULLED=1
+    OUT=
 
     if [[ \$HASH =~ \"sha256\" ]]; then
          shifter --image=id:\$ID echo testing to see if we already have image > /dev/null 2>&1
-		 RC=\$?
+         RC=\$?
     else
          shifter --image=\${docker} echo testing to see if we already have image > /dev/null 2>&1
-		 RC=\$?
+         RC=\$?
     fi
 
     if [[ \$RC == 0 ]]; then
         echo \"image already pulled: \${docker}.\"
     else
-		PULLED=
+        PULLED=
         # get the version tag from the sha tag so we can pull the image with shifterimg
         if [[ \$HASH =~ \"sha256\" ]]; then
             # Try to figure out the version to pull
@@ -131,8 +131,8 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
     fi
 
     # Pull image by tag
-	if [[ ! \$PULLED ]]; then
-    	OUT=\$(shifterimg pull \$IMAGE 2>&1)
+    if [[ ! \$PULLED ]]; then
+        OUT=\$(shifterimg pull \$IMAGE 2>&1)
         if [[ \$(echo \$OUT | grep \"FAILURE\" ) ]]; then
             echo \"Invalid container name or failed to pull container, \$IMAGE!\"
             echo \"Error: \$OUT.\"
