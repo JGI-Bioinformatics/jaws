@@ -54,6 +54,10 @@ def test_parse_perf_metrics_task_dir():
             "main_align_wdl.bbmap_shard_wf:bbmap_shard_wf.bbmap_indexing",
         ],
         [
+            "cromwell-executions/main_align_wdl/8d357504-8eda-4d1c-b3c4-f87a0bdd29f8/call-bbmap_shard_wf/align.bbmap_shard_wf/27536cf7-4b8f-486c-9085-872625afaef1/call-shard/execution",  # noqa
+            "main_align_wdl.bbmap_shard_wf:bbmap_shard_wf.shard",
+        ],
+        [
             "cromwell-executions/main_align_wdl/8d357504-8eda-4d1c-b3c4-f87a0bdd29f8/call-bbmap_shard_wf/align.bbmap_shard_wf/27536cf7-4b8f-486c-9085-872625afaef1/call-alignment/shard-0/execution",  # noqa
             "main_align_wdl.bbmap_shard_wf:bbmap_shard_wf.alignment[0]"
         ]
