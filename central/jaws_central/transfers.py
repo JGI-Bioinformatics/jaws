@@ -124,7 +124,8 @@ class Transfer:
         try:
             new_status, reason = globus_client.transfer_status(
                 self.data.globus_transfer_id
-            ).lower()
+            )
+            new_status = new_status.lower()
         except Exception as error:
             msg = f"Globus error checking status of transfer {self.data.id}: {error}"
             raise TransferGlobusError(msg)
