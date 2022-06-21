@@ -41,6 +41,7 @@
                 "attempt": 1,
                 "stdoutContents": null,
                 "stderrContents": null,
+                "stdoutSubmitContents": null,
                 "stderrSubmitContents": null
               }
             ],
@@ -79,6 +80,7 @@
                 "attempt": 1,
                 "stdoutContents": null,
                 "stderrContents": null,
+                "stdoutSubmitContents": null,
                 "stderrSubmitContents": null
               }
             ]
@@ -127,6 +129,7 @@
                 "attempt": 1,
                 "stdoutContents": null,
                 "stderrContents": null,
+                "stdoutSubmitContents": null,
                 "stderrSubmitContents": null
               }
             ],
@@ -165,6 +168,7 @@
                 "attempt": 1,
                 "stdoutContents": null,
                 "stderrContents": null,
+                "stdoutSubmitContents": null,
                 "stderrSubmitContents": null
               }
             ]

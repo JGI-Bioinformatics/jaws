@@ -29,6 +29,7 @@
                 },
                 "stdoutContents": null,
                 "stderrContents": null,
+                "stdoutSubmitContents": null,
                 "stderrSubmitContents": null
             }
         ]
