@@ -137,7 +137,6 @@ class Transfer:
             return self.data.status, self.data.reason
         site_id = self.responsible_site_id()
         original_status = self.data.status
-        original_reason = self.data.reason
         new_status = None
         try:
             if site_id:
