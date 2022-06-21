@@ -327,9 +327,9 @@ class Run:
         except Exception as error:
             logger.error(f"Unable to get upload for Run {self.data.id}: {error}")
             return
-        status = upload.status()
+        status, reason = upload.status()
         if status in ["submission failed", "failed"]:
-            self.update_status("upload failed")
+            self.update_status("upload failed", reason)
         elif status == "succeeded":
             self.update_status("upload complete")
 
@@ -343,14 +343,14 @@ class Run:
         except Exception as error:
             logger.error(f"Unable to get download for Run {self.data.id}: {error}")
             return
-        status = download.status()
+        status, message = download.status()
         if status in ["submission failed", "failed"]:
-            self.update_status("download failed")
+            self.update_status("download failed", message)
         elif status == "succeeded":
             time.sleep(
                 30
             )  # give file system a chance to update all metadata tables (see: #1236)
-            self.update_status("download complete")
+            self.update_status("download complete", message)
 
     def user_email(self):
         """

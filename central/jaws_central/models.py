@@ -66,6 +66,7 @@ class Transfer(Base):
     dest_base_dir = Column(String(128), nullable=False)
     manifest_json = Column(String(64000), nullable=False)  # MEDIUMTEXT
     globus_transfer_id = Column(String(36), nullable=True)
+    reason = Column(String(256), nullable=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

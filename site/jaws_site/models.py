@@ -80,6 +80,7 @@ class Transfer(Base):
     src_base_dir = Column(String(128), nullable=False)
     dest_base_dir = Column(String(128), nullable=False)
     manifest_json = Column(String(64000), nullable=False)  # MEDIUMTEXT
+    reason = Column(String(256), nullable=True)
 
 
 def create_all(engine, session):
