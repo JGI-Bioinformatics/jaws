@@ -61,6 +61,7 @@ class Transfer(db.Model):
     dest_base_dir = db.Column(db.String(128), nullable=False)
     manifest_json = db.Column(db.String(64000), nullable=False)  # MEDIUMTEXT
     globus_transfer_id = db.Column(db.String(36), nullable=True)
+    reason = db.Column(db.String(256), nullable=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

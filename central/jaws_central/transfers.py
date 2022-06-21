@@ -137,18 +137,19 @@ class Transfer:
             return self.data.status, self.data.reason
         site_id = self.responsible_site_id()
         original_status = self.data.status
+        original_reason = self.data.reason
         new_status = None
         try:
             if site_id:
-                new_status, reason = self.status_rpc(site_id)
+                new_status, new_reason = self.status_rpc(site_id)
             else:
-                new_status, reason = self.status_globus()
+                new_status, new_reason = self.status_globus()
         except TransferError as error:
             logger.error(f"Unable to retrieve transfer status: {error}")
         else:
             if new_status != original_status:
                 logger.debug(f"Task {self.data.id} status = {new_status}")
-                self.update_status(new_status, reason)
+                self.update_status(new_status, new_reason)
         return self.data.status, self.data.reason
 
     def manifest(self) -> list:
@@ -170,9 +171,10 @@ class Transfer:
     #                self.cancel_rpc_transfer()
     #            self.update_status("cancelled")
 
-    def update_status(self, new_status) -> None:
+    def update_status(self, new_status, new_reason) -> None:
         try:
             self.data.status = new_status
+            self.data.reason = new_reason
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
