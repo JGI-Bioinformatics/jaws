@@ -84,16 +84,23 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
     ID=\$(echo \${docker} | sed 's/.*://')
     IMAGE=\${docker}
     TAG=
+	RC=
+	PULLED=1
+	OUT=
 
     if [[ \$HASH =~ \"sha256\" ]]; then
          shifter --image=id:\$ID echo testing to see if we already have image > /dev/null 2>&1
+		 RC=\$?
     else
          shifter --image=\${docker} echo testing to see if we already have image > /dev/null 2>&1
+		 RC=\$?
     fi
 
-    if [[ \$? == 0 ]]; then
+    if [[ \$RC == 0 ]]; then
         echo \"image already pulled: \${docker}.\"
     else
+		PULLED=
+        # get the version tag from the sha tag so we can pull the image with shifterimg
         if [[ \$HASH =~ \"sha256\" ]]; then
             # Try to figure out the version to pull
             RT=\$(skopeo inspect docker://\${docker} | jq .RepoTags)
@@ -104,7 +111,7 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
             else
                 echo \"successfully pulled image \$IMAGE!\"
             fi
-            for ttag in \$(echo \$RT | sed 's/[\",[]//g'); do
+            for ttag in \$(echo \$RT | jq .RepoTags | sed 's/[\",[]//g'); do
                 digest=\$(skopeo inspect docker://\$REPO:\$ttag | jq .Digest | sed 's/\"//g')
                 if [ \"\$digest\" == \"\$HASH\" ]; then
                     TAG=\$ttag
@@ -124,13 +131,15 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
     fi
 
     # Pull image by tag
-    out=\$(shifterimg pull \$IMAGE 2>&1)
-    if [[ \$(echo \$out | grep \"FAILURE\" ) ]]; then
-        echo \"Invalid container name or failed to pull container, \$IMAGE!\"
-        echo \"Error: \$out.\"
-        exit 1
-    else
-        echo \"successfully pulled image \$IMAGE!\"
+	if [[ ! \$PULLED ]]; then
+    	OUT=\$(shifterimg pull \$IMAGE 2>&1)
+        if [[ \$(echo \$OUT | grep \"FAILURE\" ) ]]; then
+            echo \"Invalid container name or failed to pull container, \$IMAGE!\"
+            echo \"Error: \$OUT.\"
+            exit 1
+        else
+            echo \"successfully pulled image \$IMAGE!\"
+        fi
     fi
     "
     CONTAINER_WRAPPER="$INSTALL_DIR/shifter_exec.sh"
