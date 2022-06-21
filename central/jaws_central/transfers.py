@@ -112,7 +112,7 @@ class Transfer:
                 msg = f"RPC error(2) for check status, transfer {self.data.id}: {response['error']['message']}"
                 raise TransferRpcError(msg)
             else:
-                return response["result"]["status"]
+                return response["result"]["status"], response["result"]["reason"]
 
     def status_globus(self):
         """
@@ -122,34 +122,34 @@ class Transfer:
         """
         globus_client = GlobusService()
         try:
-            new_status = globus_client.transfer_status(
+            new_status, reason = globus_client.transfer_status(
                 self.data.globus_transfer_id
             ).lower()
         except Exception as error:
             msg = f"Globus error checking status of transfer {self.data.id}: {error}"
             raise TransferGlobusError(msg)
         else:
-            return new_status
+            return new_status, reason
 
     def status(self) -> str:
         if self.data.status in ["submission failed", "failed", "succeeded", "cancelled"]:
             # terminal states don't change, no need to query
-            return self.data.status
+            return self.data.status, self.data.reason
         site_id = self.responsible_site_id()
         original_status = self.data.status
         new_status = None
         try:
             if site_id:
-                new_status = self.status_rpc(site_id)
+                new_status, reason = self.status_rpc(site_id)
             else:
-                new_status = self.status_globus()
+                new_status, reason = self.status_globus()
         except TransferError as error:
             logger.error(f"Unable to retrieve transfer status: {error}")
         else:
             if new_status != original_status:
                 logger.debug(f"Task {self.data.id} status = {new_status}")
-                self.update_status(new_status)
-        return self.data.status
+                self.update_status(new_status, reason)
+        return self.data.status, self.data.reason
 
     def manifest(self) -> list:
         """
