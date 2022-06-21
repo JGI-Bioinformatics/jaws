@@ -9,6 +9,7 @@
 - Fixed bug where AWS upload failure did not cause Run to change state to "upload failed" (stayed in "uploading")
 - Fixed bug where very long WDLs could not be saved in Db and would fail.
 - Cancelled runs will now be downloaded and available via the "get" command (useful for debugging).
+- Include the stdout.submit in the errors report (previously only included stderr.submit file)
 
 ## 2.8.5 (2022-5-24) Summary
 ### User Facing Changes
