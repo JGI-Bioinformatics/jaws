@@ -170,7 +170,7 @@ class Transfer:
     #                self.cancel_rpc_transfer()
     #            self.update_status("cancelled")
 
-    def update_status(self, new_status, new_reason) -> None:
+    def update_status(self, new_status: str, new_reason: str = None) -> None:
         try:
             self.data.status = new_status
             self.data.reason = new_reason
