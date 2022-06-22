@@ -52,7 +52,7 @@ def test_should_fail_status(submit_bad_task):
     assert data["result"] == "failed", "jaws-status should say run failed"
 
 
-def test_should_fail_task_summary(submit_bad_task):
+def donotrun_test_should_fail_task_summary(submit_bad_task):
     """
     jaws task-summary 10647
     [
