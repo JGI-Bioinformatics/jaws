@@ -503,21 +503,9 @@ def check_active_runs(session, rpc_index) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
-    active_states = [
-        "created",
-        "upload queued",
-        "uploading",
-        "upload complete",
-        "finished",
-        "cancelled",
-        "download queued",
-        "downloading",
-        "download complete",
-        "email sent",
-    ]
     try:
         rows = (
-            session.query(models.Run).filter(models.Run.status.in_(active_states)).all()
+            session.query(models.Run).filter(models.Run.status != "done").all()
         )
     except SQLAlchemyError as error:
         logger.warning(f"Failed to select active runs from db: {error}", exc_info=True)
