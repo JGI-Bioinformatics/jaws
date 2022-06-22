@@ -226,11 +226,15 @@ class Transfer:
         size = None
         if "Contents" in result:
             contents = result["Contents"]
+            file_obj = contents[0]
             if len(contents) > 1:
+                for fo in contents:
+                    if fo["Key"] == file_key:
+                        file_obj = fo
+                        break
                 raise ValueError(
                     f"Unexpectedly >1 obj for S3 key {file_key}: {contents}"
                 )
-            file_obj = contents[0]
             size = file_obj["Size"]
             # mtime = file_obj["LastModified"]
         return size
