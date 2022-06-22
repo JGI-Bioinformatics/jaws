@@ -50,11 +50,14 @@ class Run:
             "upload queued": self.check_if_upload_complete,
             "uploading": self.check_if_upload_complete,
             "upload complete": self.submit_run,
+            "upload failed": self.send_email,
+            "submission failed": self.send_email,
             "finished": self.submit_download,
             "cancelled": self.submit_download,
             "download queued": self.check_if_download_complete,
             "downloading": self.check_if_download_complete,
             "download complete": self.send_email,
+            "download failed": self.send_email,
             "email sent": self.post_to_webhook,
         }
         self.rpc_index = rpc_index
@@ -455,9 +458,13 @@ class Run:
             self.update_status("email sent")
             return
 
+        result = self.data.result
+        if result is None:
+            result = self.data.status
+
         tag_text = f" ({self.data.tag})" if self.data.tag else ""
 
-        message = f"""Subject: JAWS Run {self.data.id} {self.data.result}{tag_text}
+        message = f"""Subject: JAWS Run {self.data.id} {result}{tag_text}
 
         Your run has completed.
 
