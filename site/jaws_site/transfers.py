@@ -232,9 +232,8 @@ class Transfer:
                     if fo["Key"] == file_key:
                         file_obj = fo
                         break
-                raise ValueError(
-                    f"Unexpectedly >1 obj for S3 key {file_key}: {contents}"
-                )
+                msg = f"Unexpectedly >1 obj for S3 key {file_key}: {contents}"
+                raise ValueError(msg)
             size = file_obj["Size"]
             # mtime = file_obj["LastModified"]
         return size
@@ -278,7 +277,11 @@ class Transfer:
             src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
             src_file_size = os.path.getsize(src_path)
             dest_path = os.path.normpath(os.path.join(dest_base_dir, rel_path))
-            dest_file_size = self.s3_file_size(s3_bucket, dest_path, aws_client)
+            try:
+                dest_file_size = self.s3_file_size(s3_bucket, dest_path, aws_client)
+            except Exception as error:
+                self.update_status("upload failed", f"{error}")
+                raise
             if src_file_size == dest_file_size:
                 logger.debug(f"S3 upload: Skipping cached file {dest_path}")
             else:
