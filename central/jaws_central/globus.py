@@ -98,8 +98,7 @@ class GlobusService:
             preserve_timestamp=True,
             notify_on_succeeded=False,
             notify_on_failed=True,
-            notify_on_inactive=True,
-            recursive_symlinks="copy",
+            notify_on_inactive=True
         )
 
         # the manifest is empty for complete download, add path and do recursive
