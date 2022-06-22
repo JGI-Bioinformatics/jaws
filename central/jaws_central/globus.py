@@ -42,7 +42,6 @@ class GlobusService:
         transfer_client = self._create_transfer_client()
         task = transfer_client.get_task(task_id)
         globus_status = task["status"]
-        fatal_error = None
         if "fatal_error" in task and "description" in task["fatal_error"]:
             reason = task["fatal_error"]["description"]
         return globus_status, reason
