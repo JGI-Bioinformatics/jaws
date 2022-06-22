@@ -226,16 +226,15 @@ class Transfer:
         size = None
         if "Contents" in result:
             contents = result["Contents"]
-            file_obj = contents[0]
-            if len(contents) > 1:
-                for fo in contents:
-                    if fo["Key"] == file_key:
-                        file_obj = fo
+            if len(contents) == 1 and "Size" in contents[0]:
+                size = contents[0]["Size"]
+                # mtime = file_obj["LastModified"]
+            elif len(contents) > 1:
+                for rec in contents:
+                    if rec["Key"] == file_key and "Size" in rec:
+                        size = rec["Size"]
+                        # mtime = file_obj["LastModified"]
                         break
-                msg = f"Unexpectedly >1 obj for S3 key {file_key}: {contents}"
-                raise ValueError(msg)
-            size = file_obj["Size"]
-            # mtime = file_obj["LastModified"]
         return size
 
     def s3_upload(self):
@@ -282,7 +281,7 @@ class Transfer:
             except Exception as error:
                 self.update_status("upload failed", f"{error}")
                 raise
-            if src_file_size == dest_file_size:
+            if dest_file_size is not None and src_file_size == dest_file_size:
                 logger.debug(f"S3 upload: Skipping cached file {dest_path}")
             else:
                 logger.debug(f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}")
