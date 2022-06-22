@@ -11,6 +11,7 @@
 - Cancelled runs will now be downloaded and available via the "get" command (useful for debugging).
 - Include the stdout.submit in the errors report (previously only included stderr.submit file)
 - Include transfer failure error message in run log
+- Always send email (previously didn't after transfer failed or cancelled)
 
 ## 2.8.5 (2022-5-24) Summary
 ### User Facing Changes
