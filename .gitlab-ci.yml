@@ -24,7 +24,7 @@ variables:
 
   ## GLOBAL INSTALL VARIABLES:
   JAWS_SITES: "CORI JGI TAHOMA AWS"
-  JAWS_VERSION: "2.8.5"
+  JAWS_VERSION: "2.8.6"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_RMQ_HOST: "rmq.lbl.gov"
@@ -598,6 +598,7 @@ package:
     - poetry publish --repository gitlab && cd ../
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
+  allow_failure: true
 
 cori-dev-smoke-tests:
   stage: smoke-tests
