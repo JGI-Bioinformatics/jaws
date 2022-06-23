@@ -23,7 +23,7 @@ variables:
   GIT_STRATEGY: clone
 
   ## GLOBAL INSTALL VARIABLES:
-  JAWS_SITES: "CORI JGI TAHOMA AWS"
+  JAWS_SITES: "CORI JGI TAHOMA AWS ASSEMBLY"
   JAWS_VERSION: "2.8.5"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
@@ -205,7 +205,7 @@ variables:
 
   ASSEMBLY_CLIENT_INSTALL_BASEDIR: ""
   ASSEMBLY_INSTALL_BASEDIR: "/home/ec2-user"
-  ASSEMBLY_USER_GROUP: ""
+  ASSEMBLY_USER_GROUP: "assembly"
   ASSEMBLY_GLOBUS_EP: ""
   ASSEMBLY_GLOBUS_HOST_PATH: ""
   ASSEMBLY_PYTHON: "python3"
