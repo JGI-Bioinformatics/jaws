@@ -153,7 +153,7 @@ def _user_group(user):
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, {"error": f"Db error; {error}"})
-    current_user.user_group
+    return current_user.user_group
 
 
 def search_runs(user):
@@ -288,7 +288,9 @@ def submit_run(user):
     ):
         # a jaws-site may optionally be restricted to members of a user-group
         user_group = _user_group(user)
-        if user_group != compute_site_config["user_group"] or not _is_admin(user):
+        if user_group == compute_site_config["user_group"] or _is_admin(user):
+            pass
+        else:
             abort(
                 401,
                 {
