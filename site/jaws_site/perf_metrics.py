@@ -1,7 +1,3 @@
-"""Run Performance Metrics"""
-
-import pandas as pd
-import numpy as np
 import logging
 import re
 from typing import Callable
@@ -11,10 +7,14 @@ from jaws_site import runs
 from jaws_rpc import rpc_client_basic
 from jaws_site.cromwell import parse_cromwell_task_dir
 
+import numpy as np
+import pandas as pd
+
 logger = logging.getLogger(__package__)
 
 
 class PerformanceMetrics:
+    """Run Performance Metrics"""
     def __init__(self, session: Callable, rpc_client: rpc_client_basic) -> None:
         self.session = session
         self.rpc_client = rpc_client
