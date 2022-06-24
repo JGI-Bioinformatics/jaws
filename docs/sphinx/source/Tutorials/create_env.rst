@@ -195,9 +195,9 @@ See file align_with_shifter.sh
 
 
 
-*****************************
-Running the WDL Using Shifter
-*****************************
+******************************
+Running the WDL Using Cromwell
+******************************
 
 | Now when you run align_with_shifter.wdl, you don't need your conda environment.
 | (this will only work on cori which supports shifter)
@@ -207,16 +207,21 @@ Running the WDL Using Shifter
     java -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run align_with_shifter.wdl -i inputs.json
 
 
+| Alternativly, to run on a machine with docker installed, you can do 
+
+.. code-block:: text
+
+	conda activate bbtools  # we created a conda environment with cromwell install in an earlier step.
+	cromwell run align_with_docker.wdl -i inputs.json
+
+
 **********************************************
 Move the Docker Image to the runtime{} Section
 **********************************************
 
-.. note::
-    To get a description of the runtime section, see :ref:`requesting-workers`.
+After shifter (or docker) is removed from the :bash:`command{}` block, add the keyword :bash:`docker:` inside the :bash:`runtime{}` block to each of the tasks in the WDL. Now, all the code inside :bash:`commands{}` will be run inside a container. Now your WDL has the potential to run on a machine with shifter, singularity, or docker.
 
-After shifter is removed from the :bash:`command{}` block, add :bash:`docker:` inside the :bash:`runtime{}` block to each of the tasks in the WDL. Now, all the code inside :bash:`commands{}` will be run inside a container.
-
-See `align.wdl`:
+See `align_final.wdl`:
 
 .. code-block:: text
 
@@ -232,9 +237,34 @@ See `align.wdl`:
 Run with Docker Inside the runtime{}
 *************************************
 
-To run again you have to use a slightly different command which overwrites the default :bash:`dockerRoot` path so it points to your current working directory. 
 
-This also has to be run on **cori** since the config file uses shifter to run the container. This could instead be configured with the docker command if you wanted to test on your laptop. Here you can find the config files: `jaws-tutorials-examples/config_files <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/tree/master/config_files>`_. 
+On a docker machine
+-------------------
+
+You can now run the final WDL:
+
+.. code-block:: text
+
+    conda activate bbtools  # you need this for the cromwell command
+	cromwell run align.wdl -i inputs.json
+
+
+On Cori
+-------
+You'll have to include a cromwell.conf file in the command because it is the config file that knows whether to run the image, supplied in the :bash:`runtime{}` section, with docker, singulity, or shifter.  You don't need to supply a cromwell.conf file in the above cromwell command because docker is default.
+
+The cromwell.conf file is used to:    
+
+1. override cromwell's default settings 
+2. tells cromwell how to interpret the WDL (i.e. use shifter, singularity, etc)
+3. specifies the backend to use (i.e. local, slurm, aws, condor, etc)
+
+.. note::
+
+	JAWS takes care of the cromwell.conf for you.
+
+
+Here you can find the config files: `jaws-tutorials-examples/config_files <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/tree/master/config_files>`_. 
 
 
 .. code-block:: text
@@ -267,16 +297,12 @@ Limitations when using docker
 
         docker images --digests | grep <your_docker_hub_user_name>
 
-    Docker name can be replaced inside the `runtime{}` block to each of the tasks in the WDL, as follows:
+    Docker name can be replaced inside the :bash:`runtime{}` block to each of the tasks in the WDL, as follows:
 
     .. code-block:: text
 
         runtime {
             docker: "sha256:<sha256>"
         }
-
-
-
-
 
 
