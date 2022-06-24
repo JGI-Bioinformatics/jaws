@@ -4,7 +4,7 @@ from typing import Dict
 
 import time
 import pandas as pd
-from jaws_site.utils import run_sh_command
+from jaws_site.cmd_utils import run_sh_command
 import math
 
 logger = logging.getLogger(__package__)
@@ -21,7 +21,9 @@ condor_q_cmd = f"condor_q -allusers -af {wanted_columns}"
 condor_idle_nodes = 'condor_status -const "TotalSlots == 1" -af Machine'
 
 COMPUTE_SITE = "nersc"
-MIN_POOL = 4
+MIN_POOL = {}
+MIN_POOL['medium'] = 4
+MIN_POOL['xlarge'] = 0
 MAX_POOL = 100
 
 worker_sizes_sites = {
@@ -170,6 +172,7 @@ class PoolManagerPandas:
             bins=mem_bins[COMPUTE_SITE],
             labels=mem_labels[COMPUTE_SITE],
         )
+
         df["cpu_bin"] = pd.cut(
             df["RequestCpus"],
             bins=cpu_bins[COMPUTE_SITE],
@@ -185,12 +188,15 @@ class PoolManagerPandas:
         for _type in compute_types:
             mask_mem_type = df["mem_bin"].str.contains(f"{_type}")
             mask_cpu_type = df["cpu_bin"].str.contains(f"{_type}")
+            mask_type = (mask_mem_type)
 
-            mask_idle_type = mask_mem_type & mask_cpu_type & mask_idle_status
+            mask_idle_type = mask_type & mask_idle_status
 
-            condor_q_status[f"idle_{_type}"] = sum(mask_idle_type)
+            condor_q_status[f"idle_{_type}"] = sum(
+                mask_type & mask_idle_status
+            )
             condor_q_status[f"running_{_type}"] = sum(
-                mask_mem_type & mask_cpu_type & mask_running_status
+                mask_type & mask_running_status
             )
 
             condor_q_status[f"{_type}_cpu_needed"] = sum(
@@ -216,8 +222,8 @@ class PoolManagerPandas:
             condor_job_queue[f"{machine}_mem_needed"] /
             worker_sizes[f"{machine}_mem"]
         )
-        _cpu = math.floor(_cpu)
-        _mem = math.floor(_mem)
+        _cpu = math.ceil(_cpu)
+        _mem = math.ceil(_mem)
 
         workers_needed += max(_cpu, _mem)
 
@@ -240,8 +246,8 @@ class PoolManagerPandas:
         # If we have less running than the minimum we always need to add more
         # Either add what we need from queue (workers_needed)
         # Or what we're lacking in the pool (min - worker pool)
-        if current_pool_size < MIN_POOL:
-            workers_needed = max(MIN_POOL - current_pool_size, workers_needed)
+        if current_pool_size < MIN_POOL[machine]:
+            workers_needed = max(MIN_POOL[machine] - current_pool_size, workers_needed)
 
         # Check to make sure we don't go over the max pool size
         if (workers_needed + current_pool_size) > MAX_POOL:
@@ -252,36 +258,51 @@ class PoolManagerPandas:
 
     def run_cleanup(self, slurm_running_df, cleanup_num, _type):
         # Runs a condor_q autoformat to get the desired columns back
-        _stdout, se, ec = run_sh_command(condor_idle_nodes, show_stdout=False)
-        if ec != 0:
+        _stdout, _stderr, _errorcode = run_sh_command(condor_idle_nodes, show_stdout=False)
+        if _errorcode != 0:
             print(f"ERROR: failed to execute condor_q command: {condor_q_cmd}")
             return None
-        nodes = _stdout.split("\n")[:-1]
-        logger.info(nodes)
+        idle_nodes = _stdout.split("\n")[:-1]
+        logger.info(idle_nodes)
 
-        if len(nodes) == 0:
-            return None
         try:
             logger.info(slurm_running_df.shape)
         except NameError as e:
             logger.info('no slurm nodes yet')
             return None
-        
 
         slurm_running_df.sort_values("START_TIME", inplace=True)
 
-        for num, node in enumerate(nodes):
+        pending = slurm_running_df[slurm_running_df.STATE == "PENDING"].NODELIST
+        nodes = [n for n in pending]
+        nodes.extend(idle_nodes)
+
+        if len(nodes) == 0:
+            return None
+
+        num = 0
+        for node in nodes:
             if num >= cleanup_num:
                 continue
             try:
-                node_select = (slurm_running_df['NODELIST'] == node)
-                job_id = slurm_running_df[node_select]
+                node_mask = (slurm_running_df['NODELIST'] == node)
+                type_mask = slurm_running_df["NAME"].str.contains(_type)
+                job_id = slurm_running_df[node_mask & type_mask]
                 job_id = int(job_id.JOBID)
             except IndexError:
                 continue
-
+            except TypeError:
+                continue
+            num += 1
             logger.info(f"Removing {node} with JobID {job_id}")
             print(f"Removing {node} with JobID {job_id}")
+            # print(f"{job_id} ", end="")
+
+            # _stdout, _stderr, _errorcode = run_sh_command(f"scancel {job_id}", show_stdout=False)
+            # if _errorcode != 0:
+            #     print(f"ERROR: failed to execute condor_q command: scancel {job_id} : {_stderr}")
+            #     return None
+
             # x = sfapi.delete_job(access_token.token,
             #                      site=COMPUTE_SITE, jobid=job_id)
             # logger.info(x)
@@ -295,20 +316,23 @@ class PoolManagerPandas:
 
 if __name__ == '__main__':
     pool = PoolManagerPandas()
-    print("Hello")
+    #print("Hello")
     slurm_status, slurm_running_df = pool.get_current_slurm_workers()
-    print(slurm_status)
-    print(slurm_running_df)
+    #print(slurm_status)
+    #print(slurm_running_df)
     condor_status = pool.get_condor_job_queue()
     work_status = pool.determine_condor_job_sizes(condor_status)
-    print(work_status)
+    # print(work_status)
     new_workers = {}
     for _type in compute_types:
         new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
-        new_workers = new_workers + MIN_POOL
+        # print(_type, new_workers)
+        new_workers = new_workers + MIN_POOL[_type]
+
+        print(_type, new_workers)
         if new_workers < 0:
             pool.run_cleanup(slurm_running_df, abs(new_workers), _type)
         elif new_workers > 0:
             pool.run_sbatch(abs(new_workers), _type)
 
-    
+
