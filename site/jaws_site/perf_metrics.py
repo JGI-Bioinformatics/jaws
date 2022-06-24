@@ -1,7 +1,3 @@
-"""Run Performance Metrics"""
-
-import pandas as pd
-import numpy as np
 import logging
 import re
 from typing import Callable
@@ -10,10 +6,14 @@ from functools import lru_cache
 from jaws_site import runs, tasks
 from jaws_rpc import rpc_client_basic
 
+import numpy as np
+import pandas as pd
+
 logger = logging.getLogger(__package__)
 
 
 class PerformanceMetrics:
+    """Run Performance Metrics"""
     def __init__(self, session: Callable, rpc_client: rpc_client_basic) -> None:
         self.session = session
         self.rpc_client = rpc_client

@@ -187,7 +187,7 @@ class PoolManagerPandas:
         condor_q_status["hold_and_impossible"] = sum(mask_over)
         for _type in compute_types:
             mask_mem_type = df["mem_bin"].str.contains(f"{_type}")
-            mask_cpu_type = df["cpu_bin"].str.contains(f"{_type}")
+            # mask_cpu_type = df["cpu_bin"].str.contains(f"{_type}")
             mask_type = (mask_mem_type)
 
             mask_idle_type = mask_type & mask_idle_status
@@ -268,7 +268,7 @@ class PoolManagerPandas:
         try:
             logger.info(slurm_running_df.shape)
         except NameError as e:
-            logger.info('no slurm nodes yet')
+            logger.info(f'No slurm nodes yet, {e}')
             return None
 
         slurm_running_df.sort_values("START_TIME", inplace=True)
@@ -313,13 +313,12 @@ class PoolManagerPandas:
         print()
 
 
-
 if __name__ == '__main__':
     pool = PoolManagerPandas()
-    #print("Hello")
+    # print("Hello")
     slurm_status, slurm_running_df = pool.get_current_slurm_workers()
-    #print(slurm_status)
-    #print(slurm_running_df)
+    # print(slurm_status)
+    # print(slurm_running_df)
     condor_status = pool.get_condor_job_queue()
     work_status = pool.determine_condor_job_sizes(condor_status)
     # print(work_status)
@@ -334,5 +333,3 @@ if __name__ == '__main__':
             pool.run_cleanup(slurm_running_df, abs(new_workers), _type)
         elif new_workers > 0:
             pool.run_sbatch(abs(new_workers), _type)
-
-

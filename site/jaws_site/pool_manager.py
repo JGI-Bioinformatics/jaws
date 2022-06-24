@@ -1,4 +1,3 @@
-import imp
 import logging
 import time
 import json
@@ -13,7 +12,7 @@ class PoolManager:
     """Class representing a single Run"""
 
     def __init__(self, **kwargs):
-        self.config = config.conf.get_section("POOL_MANAGER") # TODO Get right section
+        self.config = config.conf.get_section("POOL_MANAGER")  # TODO Get right section
         self.site = self.config["SITE_ID"]
 
     def add_workers(self):
@@ -67,7 +66,7 @@ class PoolManager:
     def rm_workers(self):
         logger.info("Checking to remove workers to pool")
         # Run condor_q_cmd to get the jobs in IDLE status
-        self.config = config.conf.get_section("POOL_MANAGER") # TODO Get right section
+        self.config = config.conf.get_section("POOL_MANAGER")  # TODO Get right section
 
         condor_q_cmd = self.config["CONDOR"]["condor_q_cmd_rm"]
         so, se, ec = run_sh_command(condor_q_cmd, log=logger, show_stdout=False)
@@ -120,14 +119,14 @@ def collect_condor_running_jobs(condor_q_out: str, ram_range: list) -> dict:
 
     return idle_jobs
 
-def run_scancel(
-    rsc_t: str,
-    sq_cmd: str,
-    sc_cmd: str,
-    running_condor_jobs: list,
-    min_pool_sz: int,
-    site_id=None,
-):
+
+def run_scancel(rsc_t: str,
+                sq_cmd: str,
+                sc_cmd: str,
+                running_condor_jobs: list,
+                min_pool_sz: int,
+                site_id=None):
+
     sq_cmd = sq_cmd.replace("<poolsz>", rsc_t) + " | awk '{ print $1; }'"
     if site_id is not None and site_id == "CORI" and rsc_t in ("large", "xlarge"):
         sq_cmd = "module load esslurm && " + sq_cmd
