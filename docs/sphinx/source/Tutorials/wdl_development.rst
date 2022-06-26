@@ -8,23 +8,28 @@ Setting up a Testing Environment Using Conda
 *******
 Summary
 *******
-This section describes how to set up a running environment for developing WDLs using `conda <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html?highlight=environment>`_.  Once the environment is set up, we can run a WDL directly using `Cromwell <https://Cromwell.readthedocs.io/en/stable/>`_ which is a workflow engine that understands WDLs, and is what JAWS uses under the hood. Developing with Cromwell will be much easier to debug.
+This section describes how to set up a running environment for developing WDLs using `conda <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html?highlight=environment>`_.  Once the environment is set up, we can run a WDL directly using `Cromwell <https://Cromwell.readthedocs.io/en/stable/>`_ which is a workflow engine that understands WDLs, and is what JAWS uses under the hood. You'll want to develop and test your WDL with Cromwell and only run with JAWS once everything is working.
 
-In this tutorial, you will 
-	1. build a development environment 
+In this tutorial, you will
+	1. build a development environment
 	2. run a WDL using cromwell
 
 
 How to find packages you need for building environments
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Pip or conda?   
+Common ways to install software into docker containers are:
 
-Conda is like pip.  Pip installs python packages only; Conda can install packages from other languages.
-The virtual environment (venv) is pip's equivalent to conda environments and you can use this when only dealing with python packages.
+1. apt-get                 # or other equivalent
+2. pip                     # for installing python packages
+3. conda                   # installs packages from any language, but the available versions of a particular software may be limited
+4. installing from source  # the old fashion way of running make && make install
+
+Steps to find packages you need
 
 1. search for a software package at `anaconda.org <https://anaconda.org/>`_. **bioconda** or **conda-forge** are well trusted channels.
 2. If that fails, try to search pip packages. As mentioned, `pip: <https://docs.python.org/3/installing/index.html>`_ installs only python packages but can be used to install stuff in your conda env.  You can search for pip packages at `pypi <https://pypi.org/>`_.
 
+This tutorial will predominantly install with conda because of its ease.
 
 Install Miniconda3
 ++++++++++++++++++
@@ -34,19 +39,20 @@ Installation
 
 .. code-block:: text
 
+   # i.e. for Mac, pick the latest version.
    bash Miniconda3-latest-MacOSX-x86_64.sh
-   # follow the directions for installation.  
+   # follow the directions for installation.
 
    # Choose yes for: "Do you wish the installer to initialize Miniconda3 by running conda init?"
    # This should add the miniconda installation to your PATH by modifying .bash_profile.
-   
+
    # verify installation
    which conda
 
 
 
-Create your conda environment
-+++++++++++++++++++++++++++++
+Create a new conda environment
+++++++++++++++++++++++++++++++
 We will create a conda environment called :bash:`bbtools`
 
 .. code-block:: text
@@ -64,7 +70,7 @@ Install necessary dependencies into your environment
    # install dependencies
    conda install -c bioconda bbmap==38.84
    conda install -c bioconda samtools==1.11
-   
+
    # of course you can install Cromwell if you wanted to develop on your labtop, for instance, by running
    conda install -y -c bioconda cromwell
 
@@ -89,7 +95,7 @@ This should create a bam file (test.sorted.bam).
 
 Run the WDL Workflow
 ++++++++++++++++++++
-You can run a WDL directly on the command-line (outside of JAWS) by using a Cromwell executable. Either you install your own, i.e using conda, or if you are on CORI, then there is an installation at /global/cfs/projectdirs/jaws/cromwell/cromwell.jar which should point to the latest version used in JAWS. 
+You can run a WDL directly on the command-line (outside of JAWS) by using a Cromwell executable. Either you install your own, i.e using conda, or if you are on CORI, then there is an installation at /global/cfs/projectdirs/jaws/cromwell/cromwell.jar which should point to the latest version used in JAWS.
 
 .. raw:: html
 
@@ -99,21 +105,22 @@ You can run a WDL directly on the command-line (outside of JAWS) by using a Crom
 .. code-block:: text
 
     conda install cromwell
-    cromwell --version 
-   
-.. raw:: html    
- 
+    cromwell --version
+
+.. raw:: html
+
     </details>
-    
+
 .. |br| raw:: html
 
      <br>
 |br|
+
 **Running with your own conda version**
 (Make sure the bbtools conda environment is activated and you are in 5min_example)
 
 .. code-block:: text
-  
+
   # run with your installed version
   cromwell run align.wdl -i inputs.json
 
@@ -122,11 +129,10 @@ You can run a WDL directly on the command-line (outside of JAWS) by using a Crom
 (Make sure the bbtools conda environment is activated and you are in 5min_example)
 
 .. code-block:: text
-  
+
   # run with your installed version
   java -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run align.wdl -i inputs.json
 
 
 You should see a directory `Cromwell-executions`.
 The resulting bam file from the alignment is here `cromwell-executions/bbtools/<some-long-hash>/call-samtools/execution/test.sorted.bam`
-

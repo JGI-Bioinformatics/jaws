@@ -36,7 +36,7 @@ To follow along, do:
 Create docker image
 *******************
 
-Next we'll describe how to create a Dockerfile and register it with `hub.docker.com <https://docs.docker.com/docker-hub/>`_.  But first create an account and click on "Create a Repository". In the space provided, enter a name for your container, that doesn't have to exist yet, like :bash:`aligner-bbtools.1.0.0`.  You will push a docker image to this name after you create it in the next steps.
+Next we'll describe how to create a Dockerfile and register it with `hub.docker.com <https://docs.docker.com/docker-hub/>`_.  But first create an account and click on "Create a Repository". In the space provided, enter a name for your container, that doesn't have to exist yet, like :bash:`aligner-bbmap`.  You will push a docker image to this name after you create it in the next steps.
 
 To make the Dockerfile, you can use the same commands you used for the conda environment.  Notice that it is good practice to specify the versions for each software like I have done in the example Dockerfile. Of course, you can drop the versions altogether to get the latest version but the Dockerfile may not work out-of-the-box in the future due to version conflicts.
 
@@ -94,7 +94,7 @@ The Dockerfile (provided in 5min_example) looks like
    mkdir build
    cp script.sh Dockerfile build/
    cd build
-   docker build --tag <your_docker_hub_user_name>/bbtools:1.0.0 .
+   docker build --tag <your_docker_hub_user_name>/aligner-bbmap:1.0.0 .
    cd ../
 
 
@@ -103,10 +103,10 @@ The Dockerfile (provided in 5min_example) looks like
 .. code-block:: text
 
    # use your image name
-   docker run <your_docker_hub_user_name>/bbtools:1.0.0 script.sh
+   docker run <your_docker_hub_user_name>/aligner-bbmap:1.0.0 script.sh
 
    # if you are in the root of the 5min_example directory, then try re-running the script with data.
-   docker run --volume="$(pwd)/../data:/bbmap" <your_docker_hub_user_name>/bbtools:1.0.0 script.sh sample.fastq.bz2 sample.fasta
+   docker run --volume="$(pwd)/../data:/bbmap" <your_docker_hub_user_name>/aligner-bbmap:1.0.0 script.sh sample.fastq.bz2 sample.fasta
 
    # Notice script.sh is found because it was set in PATH in the Dockerfile and
    # the two inputs are found because the data directory is mounted to /bbmap (inside container) where the script runs.
@@ -117,7 +117,7 @@ When you are convinced the docker image is good, you can register it with `hub.d
 .. code-block:: text
 
    docker login
-   docker push <your_docker_hub_user_name>/bbtools:1.0.0
+   docker push <your_docker_hub_user_name>/aligner-bbmap:1.0.0
 
 Now your image is available on any site i.e. cori, jgi, tahoma, aws, etc.  And although you can manually pull your image using `shifter pull <https://docs.nersc.gov/development/shifter/how-to-use/#downloading-shifter-images-to-nersc>`_, `singularity pull <https://docs.sylabs.io/guides/3.2/user-guide/cli/singularity_pull.html>`_, or `docker pull <https://docs.docker.com/engine/reference/commandline/pull/>`_, JAWS will do this for you (but cromwell wont).
 
@@ -135,14 +135,14 @@ example:
 .. code-block:: text
 
    # pull image from hub.docker.com
-   shifterimg pull <your_docker_hub_user_name>/bbtools:1.0.0
+   shifterimg pull <your_docker_hub_user_name>/aligner-bbmap:1.0.0
 
    # clone the repo on cori
    git clone https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories/jaws-tutorial-examples.git
    cd jaws-tutorial-examples/5min_example
 
    # run your wrapper script. notice we are running the script.sh that was saved inside the image
-   shifter --image=<your_docker_hub_user_name>/bbtools:1.0.0 ./script.sh ../data/sample.fastq.bz2 ../data/sample.fasta
+   shifter --image=<your_docker_hub_user_name>/aligner-bbmap:1.0.0 ./script.sh ../data/sample.fastq.bz2 ../data/sample.fasta
 
 
 *******************
@@ -167,42 +167,51 @@ See file :bash:`align_with_shifter.sh`
 
 .. code-block:: text
 
-   workflow bbtools {
-     File reads
-     File ref
+    version 1.0
 
-     call alignment {
-       input: fastq=reads,
-              fasta=ref
-     }
-     call samtools {
-       input: sam=alignment.sam
+    workflow bbtools {
+        input {
+            File reads
+            File ref
+        }
+
+        call alignment {
+           input: fastq=reads,
+                  fasta=ref
+        }
+        call samtools {
+           input: sam=alignment.sam
+       }
     }
-   }
 
-   task alignment {
-     File fastq
-     File fasta
+    task alignment {
+        input {
+            File fastq
+            File fasta
+        }
 
-     command {
-        shifter --image=jfroula/bbtools:1.2.1 bbmap.sh in=${fastq} ref=${fasta} out=test.sam
-     }
-     output {
-       File sam = "test.sam"
-     }
-   }
+        command {
+            shifter --image=jfroula/aligner-bbmap:2.0.1 bbmap.sh in=~{fastq} ref=~{fasta} out=test.sam
+        }
 
+        output {
+           File sam = "test.sam"
+        }
+    }
 
-   task samtools {
-     File sam
+    task samtools {
+        input {
+            File sam
+        }
 
-     command {
-       shifter --image=jfroula/bbtools:1.2.1.samtools view -b -F0x4 ${sam} | shifter --image=jfroula/bbtools:1.2.1.samtools sort - > test.sorted.bam
-     }
-     output {
-       File bam = "test.sorted.bam"
-     }
-   }
+        command {
+           shifter --image=jfroula/aligner-bbmap:2.0.1 samtools view -b -F0x4 ~{sam} | shifter --image=jfroula/aligner-bbmap:2.0.1 samtools sort - > test.sorted.bam
+        }
+
+        output {
+           File bam = "test.sorted.bam"
+        }
+    }
 
 
 
@@ -327,7 +336,7 @@ See :bash:`align_final.wdl`:
 .. code-block:: text
 
     runtime {
-        docker: "jfroula/bbtools:1.2.1"
+        docker: "jfroula/aligner-bbmap:1.2.1"
     }
 
 .. _run with conf:
@@ -374,9 +383,9 @@ Here you can find the config files: `jaws-tutorials-examples/config_files <https
          -Dbackend.default=Local \
          -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run align.wdl -i inputs.json
 
-where 
+where
 
-    :bash:`-Dconfig.file` 
+    :bash:`-Dconfig.file`
     points to a cromwell conf file that is used to overwrite the default configurations
 
     :bash:`-Dbackend.providers.Local.config.dockerRoot`

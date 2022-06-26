@@ -34,12 +34,12 @@ There are opportunities to participate in code reviews with other WDL developers
    <summary style="color: #448ecf";>Use Docker containers with SHA256 instead of tags</summary>
 
    <p class="textborder">
-    <br>1. The running environment and required scripts should be encapsulated in a docker image. 
+    <br>1. The running environment and required scripts should be encapsulated in a docker image.
     <br>2. The image should be pushed to hub.docker.com and have a versioned Dockerfile. JAWS will pull images from there by default. 
     <br>3. We recommend that a docker container be specified for every task; if not, the default container is ubuntu.
     <br>4. It is important to reference containers by their SHA256 instead of tag (e.g. doejgi/bbtools@sha256:64088.. instead of doejgi/bbtools:latest) for both reproducability (a container can change and have the same tag) and because call-caching only works when the container is referenced by SHA256 version.
    </p>
-   
+
    SHA Example
 
 .. code-block:: text
@@ -54,7 +54,7 @@ There are opportunities to participate in code reviews with other WDL developers
     docker pull ubuntu:20.04
     Digest: sha256:47f14534bda344d9fe6ffd6effb95eefe579f4be0d508b7445cf77f61a0e5724
 
-    # or 
+    # or
     docker inspect --format='{{.RepoDigests}}' ubuntu:20.04
     ubuntu@sha256:47f14534bda344d9fe6ffd6effb95eefe579f4be0d508b7445cf77f61a0e5724
 
@@ -68,19 +68,19 @@ There are opportunities to participate in code reviews with other WDL developers
    <p class="textborder">
     Paths to files or directories should be put into the inputs.json file, not the WDL. The exeption to this rule are docker images which <i>should</i> be hard-coded so the WDL contains information about the version of the docker container.
    </p>
-   
+
    </details>
 
    <details>
    <summary style="color: #448ecf";>WDL tasks should be self-sufficient</summary>
 
    <p class="textborder">
-    <br>1. Imagine the WDL task as a wrapper script, it should be able to run independently of the pipeline. This means that a script should explicitly list all required input files as arguments and not assume some input files already exist in the current working directory. 
+    <br>1. Imagine the WDL task as a wrapper script, it should be able to run independently of the pipeline. This means that a script should explicitly list all required input files as arguments and not assume some input files already exist in the current working directory.
     <br>2. Scripts should also specify output files as arguments and shouldn't write them somewhere other than the current working directory if they will be needed for the next task. These rules make writing the WDL trivial.
     <br>3. The WDL should be expected to handle minimal logic.  Use wrapper scripts to deal with logic if need be.
     <br>4. Also, scripts should return a code of 0 if it was successfull. And don't write anything but errors to stderr. Cromwell depends on seeing a return code of 0 on success and JAWS depends on seeing errors written to stderr. Sometimes, scripts write errors to stdout and these will be missed if you try and see the errors via running the JAWS command (jaws errors).
    </p>
-   
+
    Example
 
 .. code-block:: text
@@ -89,7 +89,7 @@ There are opportunities to participate in code reviews with other WDL developers
     filterFastq.py in=${fastq} ref=${refdata} huseq=${hu_fasta} out=myout
 
     # This script expects the files to exist implicitly
-    filterFastq.py ref=${refdata} 
+    filterFastq.py ref=${refdata}
 
 .. raw:: html
 
@@ -103,13 +103,13 @@ There are opportunities to participate in code reviews with other WDL developers
    <br>
     Subworkflows are imported and used as if they were normal tasks, see the example below that was copied from https://cromwell.readthedocs.io/en/stable/SubWorkflows/.
    </p>
-   
+
    Example
 
 .. code-block:: text
-   
+
     # main.wdl
-    
+
     import "sub_wdl.wdl" as sub
 
     workflow main_workflow {
@@ -122,10 +122,10 @@ There are opportunities to participate in code reviews with other WDL developers
             String main_output = hello_and_goodbye.hello_output
         }
     }
-    
+
 
 .. code-block:: text
-    
+
     # sub_wdl.wdl
 
     workflow hello_and_goodbye {
@@ -139,7 +139,7 @@ There are opportunities to participate in code reviews with other WDL developers
         String goodbye_output = goodbye.salutation
       }
     }
-  
+
     task hello {
         String addressee
         command {
@@ -170,7 +170,7 @@ There are opportunities to participate in code reviews with other WDL developers
    <p class="textborder">
     The best way to document your WDLs is with a README.md that is in the same repository as the WDL. However, adding "metadata" sections in the WDL is also best practice since you will hard-code some relevant information this way, like author, contact info, etc.  See the WDL template as an example.
    </p>
-   
+
 .. raw:: html
 
    </details>
@@ -188,11 +188,11 @@ Templates
 
     # By versioning your WDL, you specify which specification cromwell uses to decifer the WDL.
     # New features come with new versions.
-    version 1.0 
-    
+    version 1.0
+
     # import any subworkflows
     import "subworkflow.wdl" as firstStep
-    
+
     workflow bbtools {
         meta {
             developer: "Jackson Brown jbrown@my-inst"
@@ -200,35 +200,35 @@ Templates
             version: "2222.2.0"
             notes: "this is the official release version"
         }
-    
+
         # you must have this input section within the "workflow" stanza if you are using version 1
         input {
             File reads
             File ref
             String bbtools_docker = "jfroula/bbtools:1.0.4"
         }
-    
+
         call firstStep {
           input: fastq=reads,
                  container=bbtools_docker
         }
-        
+
         call alignment {
            input: fastq=reads,
                   fasta=ref,
                   container=bbtools_docker
         }
-    
+
         call samtools {
            input: sam=alignment.sam
        }
     }
-    
+
     #
     # below are task definitions
     #
     task alignment {
-        # Metadata is good for helping the next guy understand your code. 
+        # Metadata is good for helping the next guy understand your code.
         # This meta section can also be used for documentation generated by wdl-aid.
         # You can run "wdl-aid <workflow.wdl>" if it is installed, see https://wdl-aid.readthedocs.io/en/latest/usage.html)
         meta {
@@ -236,35 +236,35 @@ Templates
             metaParameter2: "Some meta Data II"
             description: "Add a brief description of what this task does in this optional block. One can add as much text as one wants in this section to inform an outsider to understand the mechanics of this task."
         }
-    
+
         input {
             File fastq
             File fasta
         }
-    
+
         command {
             # Use this command to help debug your bash code (i.e. prevents hidden bugs).
             # For a description, see https://gist.github.com/mohanpedala/1e2ff5661761d3abd0385e8223e16425
             set -euo pipefail
-    
+
             # Note that ~{} is prefered over the old ${} syntax
             bbmap.sh in=~{fastq} ref=~{fasta} out=test.sam
         }
-        
+
         runtime {
             docker: "jfroula/bbtools:1.0.4"
-            time: "12:00:00"      
-            poolname: "medium"    
+            time: "12:00:00"
+            poolname: "medium"
             constraint: "haswell"
             nodes: 1
             nwpn: 1
         }
-    
+
         output {
            File sam = "test.sam"
         }
-    
-        # This section is optional and used to create documentation using the wdl-aid tool. 
+
+        # This section is optional and used to create documentation using the wdl-aid tool.
         # see https://wdl-aid.readthedocs.io/en/latest/usage.html
         # You can run "wdl-aid <workflow.wdl>" if it is installed.
         parameter_meta {
@@ -275,7 +275,7 @@ Templates
             fasta: {description: "henryInputFile Description", category: "advanced"}
             dockerImage:    {description: "dockerImage Description", category: "advanced"}
         }
-        
+
     }
 
 .. raw:: html
@@ -291,23 +291,23 @@ Templates
 
     # install stuff with apt-get
     RUN apt-get update && apt-get install -y wget bzip2
-    
+
     # install miniconda
-    # There is a good reason to install miniconda in a path other than its default.  
-    # The default intallation directory is /root/miniconda3 but this path will not be 
+    # There is a good reason to install miniconda in a path other than its default.
+    # The default intallation directory is /root/miniconda3 but this path will not be
     # accessible by shifter or singularity so we'll install under /usr/local/bin/miniconda3.
     RUN wget https://repo.continuum.io/miniconda/Miniconda3-4.5.11-Linux-x86_64.sh \
     && bash ./Miniconda3-4.5.11-Linux-x86_64.sh -b -p /usr/local/bin/miniconda3 \
     && rm Miniconda3-4.5.11-Linux-x86_64.sh
-    
+
     # point to all the future conda installations you are going to do
     ENV PATH=/usr/local/bin/miniconda3/bin:$PATH
-    
+
     # Install stuff with conda
     # Remember to use versions of everything you install with conda as shown in example.
     RUN conda install -y -c bioconda bowtie2=2.3.4.3
     RUN conda install -y -c anaconda biopython=1.72
-    
+
     # copy bash/python scripts specific to your pipeline
     COPY scripts/* /usr/local/bin/
 
