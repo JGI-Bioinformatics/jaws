@@ -160,16 +160,16 @@ Cromwell will create a directory structure similar to this...
 .. figure:: /Figures/crom-exec.svg
     :scale: 100%
 
-Each task of your workflow gets run inside the :bash:`execution` directory so it is here that you can find any output files including the stderr, stdout & script file. Cromwell is run on scratch and when it is finished, everything below the "cromwell generated hash" is copied to your specified output directory. 
+Each task of your workflow gets run inside the :bash:`execution` directory so it is here that you can find any output files including the stderr, stdout & script file.
 
-    
+
 So for our theoretical submission
 
 .. code-block:: text
 
-    jaws submit align.wdl inputs.json cori  
+    jaws submit align.wdl inputs.json cori
 
-We should see an output folder that looks like this:
+We should see an output folder that looks like this (after running the "jaws get" command.)
 
 .. figure:: /Figures/crom-exec-jaws.svg
     :scale: 100%
@@ -178,7 +178,7 @@ We should see an output folder that looks like this:
 Further Debugging Ideas
 -----------------------
 
-1. Use the :bash:`errors` command. This should show the contents of the stderr and stdout files created per task from Cromwell. It should only show content when there is an error code >0. 
+1. Use the :bash:`errors` command. This should show the contents of the stderr and stdout files created per task from Cromwell. It should only show content when there is an error code >0.
 Sometimes a script will write errors to stdout which will be caught, but sometimes it will correctly write to stderr but return an error code of 0, in which case this command won't show anything.
 
 .. code-block:: text

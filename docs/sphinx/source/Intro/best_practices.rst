@@ -16,16 +16,16 @@ There are opportunities to participate in code reviews with other WDL developers
    <summary style="color: #448ecf";>set -euo pipefail</summary>
 
    <p class="textborder">
-    The <b>set -euo pipefail</b> command is actually a composition of three tests. 
+    The <b>set -euo pipefail</b> command is actually a composition of three tests.
     <br>
-    <br>For example: 
+    <br>For example:
     <br>use <b>set -e</b> to make your script exit when a command fails.
     <br>use <b>set -u</b> to exit when your script tries to use undeclared variables.
-    <br>use <b>set -o pipefail</b> in scripts to catch failures in "cat myfile" in e.g. "cat myfile | grep id". Instead of the successful error code from grep id getting returned, we get a non-zero exit code from cat myfile 
+    <br>use <b>set -o pipefail</b> in scripts to catch failures in "cat myfile" in e.g. "cat myfile | grep id". Instead of the successful error code from grep id getting returned, we get a non-zero exit code from cat myfile
     <br>use <b>set -x</b> to trace what gets executed. Useful for debugging.
 
     <br><br>
-    This command can be useful when used at the begining of the command{} section in your WDL. This command will help capture errors at the point where they occur in your unix code, rather than having the commands run beyond where the error happened, since this makes debugging more difficult.  Another way of saying it is that, without set -e, the wdl-task will use the error code from the last command even if an ealier command failed.  However, the <b>set -euo pipefail</b> command can cause the task to exit without any error printed stderr, so it is not always appropriate to use. 
+    This command can be useful when used at the begining of the command{} section in your WDL. This command will help capture errors at the point where they occur in your unix code, rather than having the commands run beyond where the error happened, since this makes debugging more difficult.  Another way of saying it is that, without set -e, the wdl-task will use the error code from the last command even if an ealier command failed.  However, the <b>set -euo pipefail</b> command can cause the task to exit without any error printed stderr, so it is not always appropriate to use.
    </p>
 
    </details>
