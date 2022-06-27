@@ -288,7 +288,7 @@ This may be helpful when testing & debugging so I've included an example where s
         }
 
         command {
-            shifter --image=jfroula/aligner-bbmap:2.0.1 bbmap.sh in=~{fastq} ref=~{fasta} out=test.sam
+            shifter --image=jfroula/aligner-bbmap:2.0.2 bbmap.sh in=~{fastq} ref=~{fasta} out=test.sam
         }
 
         output {
@@ -302,7 +302,7 @@ This may be helpful when testing & debugging so I've included an example where s
         }
 
         command {
-           shifter --image=jfroula/aligner-bbmap:2.0.1 samtools view -b -F0x4 ~{sam} | shifter --image=jfroula/aligner-bbmap:2.0.1 samtools sort - > test.sorted.bam
+           shifter --image=jfroula/aligner-bbmap:2.0.2 samtools view -b -F0x4 ~{sam} | shifter --image=jfroula/aligner-bbmap:2.0.2 samtools sort - > test.sorted.bam
         }
 
         output {

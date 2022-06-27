@@ -115,7 +115,8 @@ You can run a WDL directly on the command-line (outside of JAWS) by using a Crom
 
 
 **Running with your own conda version**
-(Make sure the bbtools conda environment is activated and you are in 5min_example)
+
+Make sure the bbtools conda environment is activated and you are in 5min_example.
 
 .. code-block:: text
 
@@ -124,8 +125,8 @@ You can run a WDL directly on the command-line (outside of JAWS) by using a Crom
 
 
 **Running with Cori's version**
-| You can also run the WDL on Cori and you could use the pre-installed version of cromwell.
-| Make sure the bbtools conda environment is created on cori, is activated and you are in 5min_example.
+
+You can also run the WDL on Cori and you could use the pre-installed version of cromwell.  Make sure the bbtools conda environment is created on cori, is activated and you are in 5min_example.
 
 .. code-block:: text
 
