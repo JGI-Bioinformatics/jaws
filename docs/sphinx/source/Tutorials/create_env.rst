@@ -145,9 +145,9 @@ example:
    shifter --image=<your_docker_hub_user_name>/aligner-bbmap:1.0.0 ./script.sh ../data/sample.fastq.bz2 ../data/sample.fasta
 
 
-**************
-Create the WDL
-**************
+*******
+The WDL
+*******
 The :bash:`script.sh` that is supplied with the repo has two essential commands:
 
 .. code-block:: text
@@ -160,7 +160,12 @@ The :bash:`script.sh` that is supplied with the repo has two essential commands:
 
 It would make sense to have both commands inside one task of the WDL because they logically should be run together.  However, for an excersise, we will have the two commands become two tasks.  The output from the first command is used in the second command, so in our WDL example, we can see how tasks pass information.
 
-Create a file called :bash:`align_final.wdl` and copy these contents.
+See an example of the finished WDL :bash:`align_final.wdl` and its :bash:`input.json`` file
+
+.. raw:: html
+
+   <details>
+   <summary style="color: #448ecf";>align_final.sh</summary>
 
 .. code-block:: text
 
@@ -224,12 +229,33 @@ Create a file called :bash:`align_final.wdl` and copy these contents.
         }
     }
 
+.. raw:: html
 
+    </details>
+    <br>
+
+.. raw:: html
+
+   <details>
+   <summary style="color: #448ecf";>inputs.json</summary>
+
+.. code-block:: text
+
+    {
+        "bbtools.reads": "../data/sample.fastq.bz2",
+        "bbtools.ref": "../data/sample.fasta"
+    }
+
+.. raw:: html
+
+    </details>
+    <br><br>
 
 .. note::
     Singularity, docker, or shifter can be prepended to each command for testing (see align_with_shifter.sh); however,
     this wouldn't be appropriate for a finished "JAWSified" WDL because you loose portability.  The final WDL should have the docker image name put inside the :bash:`runtime {}` section.
 
+This may be helpful when testing & debugging so I've included an example where shifter is prepended to each command.
 
 .. raw:: html
 
@@ -300,8 +326,8 @@ You would run this WDL on Cori with the following command.
 The Docker Image Should be in the runtime{} Section
 ***************************************************
 
-Everything in the :bash:`command{}` section of the WDL will run inside a docker container if you've added the following lines to the :bash:`runtime{}` section.
-Now your WDL has the potential to run on a machine with shifter, singularity, or docker.  JAWS will take your docker image and run it appropriately as singularity, docker or shifter.  If you run the WDL with the cromwell command on a shifter or singularity machine, you need to supply a :bash:`cromwell.conf` file, explained below.
+Everything in the :bash:`command{}` section of the WDL will run inside a docker container if you've added docker to the :bash:`runtime{}` section.
+Now your WDL has the potential to run on a machine with shifter, singularity, or docker.  JAWS will take your docker image and run it appropriately as singularity, docker or shifter.  If you run the WDL with the cromwell command on a shifter or singularity machine, you need to supply a :bash:`cromwell.conf` file, explained shortly.
 
 See :bash:`align_final.wdl`:
 
