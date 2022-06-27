@@ -153,7 +153,7 @@ The :bash:`script.sh` that is supplied with the repo has two essential commands:
 .. code-block:: text
 
     # align reads to reference contigs
-    bbmap.sh in=$READS ref=$REF out=test.sam
+    bbmap.sh Xmx12g in=$READS ref=$REF out=test.sam
 
     # create a bam file from alignment
     samtools view -b -F0x4 test.sam | samtools sort - > test.sorted.bam
@@ -193,7 +193,7 @@ See an example of the finished WDL :bash:`align_final.wdl` and its :bash:`input.
         }
 
         command {
-            bbmap.sh in=~{fastq} ref=~{fasta} out=test.sam
+            bbmap.sh Xmx12g in=~{fastq} ref=~{fasta} out=test.sam
         }
 
         runtime {
@@ -288,7 +288,7 @@ This may be helpful when testing & debugging so I've included an example where s
         }
 
         command {
-            shifter --image=jfroula/aligner-bbmap:2.0.2 bbmap.sh in=~{fastq} ref=~{fasta} out=test.sam
+            shifter --image=jfroula/aligner-bbmap:2.0.2 bbmap.sh Xmx12g in=~{fastq} ref=~{fasta} out=test.sam
         }
 
         output {
