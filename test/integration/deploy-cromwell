@@ -111,7 +111,7 @@ if [[ "$SITE_CONTAINER_TYPE" == "shifter" ]]; then
             else
                 echo \"successfully pulled image \$IMAGE!\"
             fi
-            for ttag in \$(echo \$RT | jq .RepoTags | sed 's/[\",[]//g'); do
+            for ttag in \$(echo \$RT | sed 's/[\",[]//g'); do
                 digest=\$(skopeo inspect docker://\$REPO:\$ttag | jq .Digest | sed 's/\"//g')
                 if [ \"\$digest\" == \"\$HASH\" ]; then
                     TAG=\$ttag
