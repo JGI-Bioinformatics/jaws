@@ -1,6 +1,6 @@
-======================================================
-Create a Running Environment Using a Docker Container
-======================================================
+==========================
+Creating Docker Containers
+==========================
 
 .. role:: bash(code)
    :language: bash
@@ -12,7 +12,7 @@ Summary
 In this tutorial, I will describe one way docker images can be created and used in your WDL. If you are unfamiliar with docker, please see `docker tutorial <https://scotch.io/tutorials/getting-started-with-docker>`_ or search for the many YouTube tutorials.
 
 .. note::
-    As a pre-requisite, you will need a computer with docker installed (Docker Engine - Community).  Installation instructions can be found at `docs.docker.com/install <https://docs.docker.com/install/>`_ or if you have conda installed :bash:`conda install -c conda-forge docker-py`.  
+    As a pre-requisite, you will need a computer with docker installed (Docker Engine - Community).  Installation instructions can be found at `docs.docker.com/install <https://docs.docker.com/install/>`_ or if you have conda installed :bash:`conda install -c conda-forge docker-py`.
 
 
 Here are the steps we're going to take for this tutorial:
@@ -38,19 +38,19 @@ Create docker image
 
 Next we'll describe how to create a Dockerfile and register it with `hub.docker.com <https://docs.docker.com/docker-hub/>`_.  But first create an account and click on "Create a Repository". In the space provided, enter a name for your container, that doesn't have to exist yet, like :bash:`aligner-bbmap`.  You will push a docker image to this name after you create it in the next steps.
 
-To make the Dockerfile, you can use the same commands you used for the conda environment.  Notice that it is good practice to specify the versions for each software like I have done in the example Dockerfile. Of course, you can drop the versions altogether to get the latest version but the Dockerfile may not work out-of-the-box in the future due to version conflicts.
+To make the Dockerfile, you can use the same commands you used for the conda environment.  Notice that it is good practice to specify the versions when installing software like I have done in the example Dockerfile. Of course, you can drop the versions altogether to get the latest version but the Dockerfile may not work out-of-the-box in the future due to version conflicts.
 
 .. note::
-    It is helpful, when creating the Dockerfile to test each command (i.e. apt-get, wget, conda install, etc) manually, inside an empty docker container. Once everything is installed, you can copy the commands to a Dockerfile.
+    It is helpful, when creating the Dockerfile to test each command (i.e. apt-get, wget, conda install, etc) manually, inside an empty docker container. Once everything is working, you can copy the commands to a Dockerfile.
 
-This will create a container with an ubuntu base image:
+This docker command will create an interactive container with an ubuntu base image.  You can start installing stuff as root.
 
 .. code-block:: text
 
     docker run -it ubuntu:latest /bin/bash
 
 
-The Dockerfile (provided in 5min_example) looks like
+Here is an example Dockerfile (provided in 5min_example). We will create a container from it.
 
 .. code-block:: text
 
@@ -98,7 +98,7 @@ The Dockerfile (provided in 5min_example) looks like
    cd ../
 
 
-**Test that the script runs in the docker container**
+**Test that the example script runs in the docker container**
 
 .. code-block:: text
 
@@ -145,9 +145,9 @@ example:
    shifter --image=<your_docker_hub_user_name>/aligner-bbmap:1.0.0 ./script.sh ../data/sample.fastq.bz2 ../data/sample.fasta
 
 
-*******************
-Add Docker to a WDL
-*******************
+**************
+Create the WDL
+**************
 The :bash:`script.sh` that is supplied with the repo has two essential commands:
 
 .. code-block:: text
@@ -160,10 +160,81 @@ The :bash:`script.sh` that is supplied with the repo has two essential commands:
 
 It would make sense to have both commands inside one task of the WDL because they logically should be run together.  However, for an excersise, we will have the two commands become two tasks.  The output from the first command is used in the second command, so in our WDL example, we can see how tasks pass information.
 
-The docker command (or shifter if you are on cori) can be prepended to each command for testing. This wouldn't be appropriate for a finished "JAWSified" WDL because you loose portability.  The final WDL should have the docker image name put inside the :bash:`runtime {}` section.
+Create a file called :bash:`align_final.wdl` and copy these contents.
+
+.. code-block:: text
+
+    version 1.0
+
+    workflow bbtools {
+        input {
+            File reads
+            File ref
+        }
+
+        call alignment {
+           input: fastq=reads,
+                  fasta=ref
+        }
+        call samtools {
+           input: sam=alignment.sam
+       }
+    }
+
+    task alignment {
+        input {
+            File fastq
+            File fasta
+        }
+
+        command {
+            bbmap.sh in=~{fastq} ref=~{fasta} out=test.sam
+        }
+
+        runtime {
+            docker: "jfroula/aligner-bbmap:2.0.2"
+            time: "00:10:00"
+            memory: "5G"
+            cpu: 1
+        }
+
+        output {
+           File sam = "test.sam"
+        }
+    }
+
+    task samtools {
+        input {
+            File sam
+        }
+
+        command {
+           samtools view -b -F0x4 ~{sam} | samtools sort - > test.sorted.bam
+        }
+
+        runtime {
+            docker: "jfroula/aligner-bbmap:2.0.2"
+            time: "00:10:00"
+            memory: "5G"
+            cpu: 1
+        }
+
+        output {
+           File bam = "test.sorted.bam"
+        }
+    }
 
 
-See file :bash:`align_with_shifter.sh`
+
+.. note::
+    Singularity, docker, or shifter can be prepended to each command for testing (see align_with_shifter.sh); however,
+    this wouldn't be appropriate for a finished "JAWSified" WDL because you loose portability.  The final WDL should have the docker image name put inside the :bash:`runtime {}` section.
+
+
+.. raw:: html
+
+   <details>
+   <summary style="color: #448ecf";>align_with_shifter.sh</summary>
 
 .. code-block:: text
 
@@ -213,34 +284,93 @@ See file :bash:`align_with_shifter.sh`
         }
     }
 
-
-
-******************************
-Running the WDL Using Cromwell
-******************************
-
-| Now when you run :bash:`align_with_shifter.wdl`, you don't need your conda environment.
-| (this will only work on cori which supports shifter)
+You would run this WDL on Cori with the following command.
 
 .. code-block:: text
 
     java -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run align_with_shifter.wdl -i inputs.json
 
+.. raw:: html
 
-| Alternativly, to run on a machine with docker installed, you can do the following.  Note that the conda environment :bash:`bbtools` is only required for the :bash:`cromwell` command and not for :bash:`samtools.sh` & :bash:`bbmap.sh`.
+   </details>
+   <br><br>
+
+
+***************************************************
+The Docker Image Should be in the runtime{} Section
+***************************************************
+
+Everything in the :bash:`command{}` section of the WDL will run inside a docker container if you've added the following lines to the :bash:`runtime{}` section.
+Now your WDL has the potential to run on a machine with shifter, singularity, or docker.  JAWS will take your docker image and run it appropriately as singularity, docker or shifter.  If you run the WDL with the cromwell command on a shifter or singularity machine, you need to supply a :bash:`cromwell.conf` file, explained below.
+
+See :bash:`align_final.wdl`:
 
 .. code-block:: text
 
-	conda activate bbtools  # you need this for the cromwell command only
-	cromwell run align_with_docker.wdl -i inputs.json
+    runtime {
+        docker: "jfroula/aligner-bbmap:1.2.1"
+    }
+
+.. _run with conf:
+
+*******************************
+Run the Final WDL with Cromwell
+*******************************
+
+On a docker machine
+-------------------
+
+You can now run the final WDL:
+
+.. code-block:: text
+
+    conda activate bbtools  # you need this for the cromwell command only
+    cromwell run align_final.wdl -i inputs.json
 
 
+On Cori
+-------
+You'll have to include a cromwell.conf file in the command because it is the config file that knows whether to run the image, supplied in the :bash:`runtime{}` section, with docker, singularity, or shifter.  You don't need to supply a cromwell.conf file in the above cromwell command because docker is default.
+
+The cromwell.conf file is used to:
+
+1. override cromwell's default settings
+2. tells cromwell how to interpret the WDL (i.e. use shifter, singularity, etc)
+3. specifies the backend to use (i.e. local, slurm, aws, condor, etc)
+
+.. note::
+
+	JAWS takes care of the cromwell.conf for you.
+
+
+Here you can find the config files: `jaws-tutorials-examples/config_files <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/tree/master/config_files>`_.
+
+
+.. code-block:: text
+
+    java -Dconfig.file=../config_files/cromwell_cori.conf \
+         -Dbackend.providers.Local.config.dockerRoot=$(pwd)/cromwell-executions \
+         -Dbackend.default=Local \
+         -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run align_final.wdl -i inputs.json
+
+where
+
+    :bash:`-Dconfig.file`
+    points to a cromwell conf file that is used to overwrite the default configurations
+
+    :bash:`-Dbackend.providers.Local.config.dockerRoot`
+    this overwrites a variable 'dockerRoot' that is in cromwell_cori.conf so that cromwell will use your own current working directory to place its output.
+
+    :bash:`-Dbackend=[Local|Slurm]`
+    this will allow you to choose between the Local and Slurm backends. With slurm, each task will have it's own sbatch command (and thus wait in queue).
+
+*********************************
 Understanding the Cromwell Output
----------------------------------
+*********************************
 Cromwell output is:
 
-1. the workflow result files
-2. the stdout printed to screen
+1. files created by the workflow
+2. the stdout/stderr printed to screen
 
 **1. Where to find the output files**
 
@@ -313,7 +443,7 @@ These files are only seen in JAWS
 
 **2. Cromwell's stdout**
 
-When you ran :bash:`align_with_docker.wdl` with cromwell above, observe these lines in the output.
+When you ran :bash:`align_with_shifter.wdl` with cromwell above, observe these lines in the output.
 
 1. the bash bbmap.sh and samtools commands that were run
 2. paths to the output files from the workflow
@@ -322,77 +452,8 @@ When you ran :bash:`align_with_docker.wdl` with cromwell above, observe these li
 5. :bash:`Call-to-Backend` shows that we are running on local backend (default)
 
 .. note::
-    You won't have access to this same cromwell standard output when you run through JAWS.  The same information can be found in different ways.
+  You won't have access to this same cromwell standard output when you run through JAWS.  The same information can be found in different ways.
 
-
-**********************************************
-Move the Docker Image to the runtime{} Section
-**********************************************
-
-After shifter (or docker) is removed from the :bash:`command{}` block, add the keyword :bash:`docker:` inside the :bash:`runtime{}` block to each of the tasks in the WDL. Now, all the code inside :bash:`commands{}` will be run inside a container. Now your WDL has the potential to run on a machine with shifter, singularity, or docker.
-
-See :bash:`align_final.wdl`:
-
-.. code-block:: text
-
-    runtime {
-        docker: "jfroula/aligner-bbmap:1.2.1"
-    }
-
-.. _run with conf:
-
-
-*************************************
-Run with Docker Inside the runtime{}
-*************************************
-
-
-On a docker machine
--------------------
-
-You can now run the final WDL:
-
-.. code-block:: text
-
-    conda activate bbtools  # you need this for the cromwell command only
-    cromwell run align.wdl -i inputs.json
-
-
-On Cori
--------
-You'll have to include a cromwell.conf file in the command because it is the config file that knows whether to run the image, supplied in the :bash:`runtime{}` section, with docker, singularity, or shifter.  You don't need to supply a cromwell.conf file in the above cromwell command because docker is default.
-
-The cromwell.conf file is used to:
-
-1. override cromwell's default settings
-2. tells cromwell how to interpret the WDL (i.e. use shifter, singularity, etc)
-3. specifies the backend to use (i.e. local, slurm, aws, condor, etc)
-
-.. note::
-
-	JAWS takes care of the cromwell.conf for you.
-
-
-Here you can find the config files: `jaws-tutorials-examples/config_files <https://code.jgi.doe.gov/official-jgi-workflows/jaws-tutorial-examples/-/tree/master/config_files>`_.
-
-
-.. code-block:: text
-
-    java -Dconfig.file=../config_files/cromwell_cori.conf \
-         -Dbackend.providers.Local.config.dockerRoot=$(pwd)/cromwell-executions \
-         -Dbackend.default=Local \
-         -jar /global/cfs/projectdirs/jaws/cromwell/cromwell.jar run align.wdl -i inputs.json
-
-where
-
-    :bash:`-Dconfig.file`
-    points to a cromwell conf file that is used to overwrite the default configurations
-
-    :bash:`-Dbackend.providers.Local.config.dockerRoot`
-    this overwrites a variable 'dockerRoot' that is in cromwell_cori.conf so that cromwell will use your own current working directory to place its output.
-
-    :bash:`-Dbackend=[Local|Slurm]`
-    this will allow you to choose between the Local and Slurm backends. With slurm, each task will have it's own sbatch command (and thus wait in queue).
 
 Limitations when using docker
 -----------------------------
@@ -400,18 +461,29 @@ Limitations when using docker
 2. The docker image must be registered with docker hub - this is how we have set up the docker backend configuration.
 3. A `sha256` tag must be used instead of some custom tag (i.e v1.0.1) for call-caching to work.
 
-    To find `sha256` tag, you can use:
+    To find the `sha256` tag, you can use:
 
     .. code-block:: text
 
+        # on a docker-machine
         docker images --digests | grep <your_docker_hub_user_name>
 
-    Docker name can be replaced inside the :bash:`runtime{}` block to each of the tasks in the WDL, as follows:
+        # on a shifter-machine
+        shifterimg lookup ubuntu:16.04
+
+    The version tag (16.04) can be replaced by the sha256 tag.
 
     .. code-block:: text
 
         runtime {
-            docker: "sha256:<sha256>"
+            docker: "ubuntu@sha256:20858ebbc96215d6c3c574f781133ebffdc7c18d98af4f294cc4c04871a6fe61"
         }
 
+    You can interactively go into a container from shifter by
+
+    .. code-block:: text
+
+        shifter --image=id:20858ebbc96215d6c3c574f781133ebffdc7c18d98af4f294cc4c04871a6fe61
+        or
+        shifter --image=ubuntu:16.04
 
