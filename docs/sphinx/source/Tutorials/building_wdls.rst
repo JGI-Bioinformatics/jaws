@@ -10,7 +10,7 @@ In this tutorial, we will see how a bash wrapper (script.sh) can be made into a 
 .. note::
     To really learn WDLs you should follow the official `WDL site <https://software.broadinstitute.org/wdl/documentation/>`_.  However, to get
     and idea of what its all about, continue...
-    
+
 
 Some useful links
 
@@ -52,15 +52,19 @@ Our script.sh has two steps:
 
 
 
-The corresponding WDL would look like this (call it align.wdl).
+The corresponding WDL would look like this (call it align_final.wdl).
 
 Notice that I am running all the commands inside a docker container :bash:`jfroula/bbtools:1.2.1`.  The image of which should exist in hub.docker.com and will therefore be pulled localy by cromwell, assuming the backend was configured correctly.
 
 .. code-block:: text
 
+    version 1.0
+
     workflow bbtools {
-        File reads
-        File ref
+        input {
+            File reads
+            File ref
+        }
 
         call alignment {
            input: fastq=reads,
@@ -72,38 +76,47 @@ Notice that I am running all the commands inside a docker container :bash:`jfrou
     }
 
     task alignment {
-        File fastq
-        File fasta
+        input {
+            File fastq
+            File fasta
+        }
 
         command {
-            bbmap.sh in=${fastq} ref=${fasta} out=test.sam
+            bbmap.sh in=~{fastq} ref=~{fasta} out=test.sam
         }
 
         runtime {
-            docker: "jfroula/aligner-bbmap:2.0.1"
+            docker: "jfroula/aligner-bbmap:2.0.2"
+            time: "00:10:00"
+            memory: "5G"
+            cpu: 1
         }
 
         output {
-            File sam = "test.sam"
+           File sam = "test.sam"
         }
     }
 
     task samtools {
-        File sam
+        input {
+            File sam
+        }
 
         command {
-           samtools view -b -F0x4 ${sam} | samtools sort - > test.sorted.bam
+           samtools view -b -F0x4 ~{sam} | samtools sort - > test.sorted.bam
         }
 
         runtime {
-           docker: "jfroula/bbtools:1.2.1"
+            docker: "jfroula/aligner-bbmap:2.0.2"
+            time: "00:10:00"
+            memory: "5G"
+            cpu: 1
         }
 
         output {
            File bam = "test.sorted.bam"
         }
     }
-
 
 Refer to the official WDL website for deeper description and examples.  I'll just point out quickly what's going on here:
 
