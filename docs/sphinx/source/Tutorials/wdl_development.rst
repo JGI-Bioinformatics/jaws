@@ -90,7 +90,7 @@ The following command should run an alignment.
 
 	./script.sh ../data/sample.fastq.bz2 ../data/sample.fasta
 
-This should create a bam file (test.sorted.bam).  We will use this script.sh to create a WDL later.
+This should create file called :bash:`test.sorted.bam`.  We will use this :bash:`script.sh`` to create a WDL later.
 
 
 Run the WDL Workflow
@@ -123,8 +123,9 @@ You can run a WDL directly on the command-line (outside of JAWS) by using a Crom
   cromwell run align.wdl -i inputs.json
 
 
-**Running with cori's version**
-(Make sure the bbtools conda environment is activated and you are in 5min_example)
+**Running with Cori's version**
+| You can also run the WDL on Cori and you could use the pre-installed version of cromwell.
+| Make sure the bbtools conda environment is created on cori, is activated and you are in 5min_example.
 
 .. code-block:: text
 
