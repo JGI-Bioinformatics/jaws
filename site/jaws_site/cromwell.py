@@ -273,6 +273,7 @@ class Call:
             "queue_duration": self.queue_duration,
             "run_duration": self.run_duration,
             "call_root": self.call_root,
+            "parsed_cromwell_task_dir": parse_cromwell_task_dir(self.call_root),
             "requested_time": self.requested_time,
             "requested_cpu": self.requested_cpu,
             "requested_memory": self.requested_memory,
