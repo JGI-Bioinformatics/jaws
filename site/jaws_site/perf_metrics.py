@@ -169,24 +169,34 @@ def parse_cromwell_task_dir(task_dir):
         "shard": -1,
         "name": "None"
     }
+    if isinstance(task_dir, float):
+        return "None"
+
     if task_dir.endswith("/execution"):
         result["call_root"] = result["call_root"].rstrip("/execution")
     else:
         task_dir = f"{task_dir}/execution"
-    (root_dir, subdir) = task_dir.split("cromwell-executions/")
+
+    try:
+        (root_dir, subdir) = task_dir.split("cromwell-executions/")
+    except ValueError:
+        (root_dir, subdir) = task_dir.split("cromwell-execution/")
+    except Exception as e:
+        print(type(e).__name__)
+        return "None"
     result["call_root_rel_path"] = subdir
     fields = deque(subdir.split("/"))
     result["wdl_name"] = fields.popleft()
     result["name"] = result["wdl_name"]
     result["cromwell_run_id"] = fields.popleft()
     if not fields[0].startswith("call-"):
-        logger.warning(f"Problem parsing {subdir}")
+        # print(f"Problem parsing {subdir}")
         return result["name"]
-    result["task_name"] = fields.popleft().lstrip("call-")
+    result["task_name"] = fields.popleft().split("-")[-1]
     result["name"] = f"{result['name']}.{result['task_name']}"
     if fields[0].startswith("shard-"):
-        result["shard"] = int(fields.popleft().lstrip("shard-"))
-        result["name"] = f"{result['name']}[{result['shard']}]"
+        result["shard"] = int(fields.popleft().split("-")[-1])
+        result["name"] = f"{result['name']}[{result['shard']}]" if result['shard'] != 0 else f"{result['name']}"
     if fields[0] == "execution":
         return result["name"]
     elif fields[0] == "cacheCopy":
@@ -195,26 +205,67 @@ def parse_cromwell_task_dir(task_dir):
 
     # subworkflow
     result["subworkflow_name"] = fields.popleft()
-    if '.' not in result["subworkflow_name"]:
-        logger.warning(f"Problem parsing {subdir}")
-        return result["name"]
-    result["subworkflow_name"] = result["subworkflow_name"].split(".")[-1]
+    if '.' in result["subworkflow_name"]:
+        result["subworkflow_name"] = result["subworkflow_name"].split(".")[-1]
+    shard_num_loc = result["name"].rfind('[')
+    if shard_num_loc != -1:
+        result["name"] = result["name"][:shard_num_loc]
     result["name"] = f"{result['name']}:{result['subworkflow_name']}"
     result["subworkflow_cromwell_run_id"] = fields.popleft()
     if not fields[0].startswith("call-"):
-        logger.warning(f"Problem parsing {subdir}")
+        # print(f"Problem parsing {subdir}")
         return result["name"]
     result["sub_task_name"] = fields.popleft().split("-")[-1]
     result["name"] = f"{result['name']}.{result['sub_task_name']}"
     if fields[0].startswith("shard-"):
-        result["sub_shard"] = int(fields.popleft().lstrip("shard-"))
-        result["name"] = f"{result['name']}[{result['sub_shard']}]"
+        result["sub_shard"] = int(fields.popleft().split("-")[-1])
+        result["name"] = f"{result['name']}[{result['sub_shard']}]" if result['sub_shard'] != 0 else f"{result['name']}"
     if fields[0] == "execution":
         return result["name"]
     elif fields[0] == "cacheCopy":
-        result["cached"] = True
         return result["name"]
+
     else:
-        logger.warning(f"Problem parsing {subdir}")
-        return result["name"]
+        result["subworkflow_name"] = fields.popleft()
+        if '.' in result["subworkflow_name"]:
+            result["subworkflow_name"] = result["subworkflow_name"].split(".")[-1]
+        shard_num_loc = result["name"].rfind('[')
+        if shard_num_loc != -1:
+            result["name"] = result["name"][:shard_num_loc]
+        result["name"] = f"{result['name']}:{result['subworkflow_name']}"
+        result["subworkflow_cromwell_run_id"] = fields.popleft()
+        if not fields[0].startswith("call-"):
+            print(f"Problem parsing {subdir}")
+            return result["name"]
+        result["sub_task_name"] = fields.popleft().split("-")[-1]
+        result["name"] = f"{result['name']}.{result['sub_task_name']}"
+        if fields[0].startswith("shard-"):
+            result["sub_shard"] = int(fields.popleft().split("-")[-1])
+            result["name"] = f"{result['name']}[{result['sub_shard']}]" if result['sub_shard'] != 0 else f"{result['name']}"
+            print(f"Problem parsing {subdir}")
+            return result["name"]
+        if fields[0] == "execution":
+            return result["name"]
+        elif fields[0] == "cacheCopy":
+            return result["name"]
+        else:
+            result["subworkflow_name"] = fields.popleft()
+            if '.' in result["subworkflow_name"]:
+                result["subworkflow_name"] = result["subworkflow_name"].split(".")[-1]
+            shard_num_loc = result["name"].rfind('[')
+            if shard_num_loc != -1:
+                result["name"] = result["name"][:shard_num_loc]
+            result["name"] = f"{result['name']}:{result['subworkflow_name']}"
+            result["subworkflow_cromwell_run_id"] = fields.popleft()
+            if not fields[0].startswith("call-"):
+                print(f"Problem parsing {subdir}")
+                return result["name"]
+            result["sub_task_name"] = fields.popleft().split("-")[-1]
+            result["name"] = f"{result['name']}.{result['sub_task_name']}"
+            if fields[0].startswith("shard-"):
+                result["sub_shard"] = int(fields.popleft().split("-")[-1])
+                result["name"] = f"{result['name']}[{result['sub_shard']}]" if result['sub_shard'] != 0 else f"{result['name']}"
+                print(f"Problem parsing {subdir}")
+                return result["name"]
+
     return result["name"]
