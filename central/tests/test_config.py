@@ -2,6 +2,88 @@ import jaws_central.config
 import os
 import pytest
 
+# Declarations used across multiple tests, also unclutters test code logic
+expected_db_parameters = [
+    ("dialect", "mysql+mysqlconnector"),
+    ("host", "db.foo.com"),
+    ("port", "3306"),
+    ("user", "jaws"),
+    ("password", "passw0rd1"),
+    ("db", "jaws"),
+    ("host2", "${JAWS_DB_HOST}"),
+    ("password2", "${JAWS_DB_PASSWORD}123"),
+]
+
+expected_db_parameters_env = [
+    ("dialect", "mysql+mysqlconnector"),
+    ("host", "db.foo.com"),
+    ("port", "3306"),
+    ("user", "jaws"),
+    ("password", "passw0rd1"),
+    ("db", "jaws"),
+    ("host2", "db.foobar.com"),
+    ("password2", "password123"),
+]
+
+expected_db_parameters_env_override = [
+    ("dialect", "mysql+mysqlconnector"),
+    ("host", "db.foo.com"),
+    ("port", "3306"),
+    ("user", "jaws"),
+    ("password", "passw0rd1"),
+    ("db", "jaws"),
+    ("host2", "db_over.foobar.com"),
+    ("password2", "over_password123"),
+]
+
+expected_db_parameters_env_override2 = [
+    ("dialect", "mysql+mysqlconnector"),
+    ("host", "db-host.foo.com"),
+    ("port", "3306"),
+    ("user", "jaws"),
+    ("password", "passw0rd1"),
+    ("db", "jaws"),
+    ("host2", "db.foobar.com"),
+    ("password2", "password123"),
+]
+
+expected_globus_parameters = [
+    ("client_id", "ZZZZ"),
+    ("client_secret", "AAAAA"),
+]
+
+expected_site1_parameters = [
+    ("host", "rmq.jaws.gov"),
+    ("user", "jaws"),
+    ("password", "passw0rd3"),
+    ("vhost", "jaws"),
+    ("globus_endpoint", "XXXX"),
+    ("globus_host_path", "/global/scratch/jaws"),
+    ("inputs_dir", "/global/scratch/jaws/jaws-dev/inputs"),
+    ("inputs_dir2", "${SCRATCH_ROOT}/jaws/jaws-dev/inputs"),
+    ("max_ram_gb", "1024"),
+]
+
+expected_site1_parameters2 = [
+    ("host", "jgi-host.foobar.org"),
+    ("user", "jaws"),
+    ("password", "passw0rd3"),
+    ("vhost", "jaws"),
+    ("globus_endpoint", "XXXX"),
+    ("globus_host_path", "/global/scratch/jaws"),
+    ("inputs_dir", "/global/scratch/jaws/jaws-dev/inputs"),
+    ("inputs_dir2", "${SCRATCH_ROOT}/jaws/jaws-dev/inputs"),
+    ("max_ram_gb", "1024"),
+]
+
+expected_site2_parameters = [
+    ("site_id", "NERSC"),
+    ("globus_endpoint", "YYYY"),
+    ("globus_host_path", "/"),
+    ("inputs_dir", "/global/cscratch/sd1/jaws/jaws-dev/inputs"),
+    ("max_ram_gb", "2048"),
+]
+
 
 def check_section(section_to_test, expected_entries, actual_config):
     for key, expected in expected_entries:
@@ -20,7 +102,10 @@ def check_site_info(site_to_test, expected_entries, actual_config):
         assert site_params[key] == expected
 
 
-def test_check_all_values(config_file):
+def test_env_override(config_file):
+    """
+    Separate checks for the environment override code
+    """
     try:
         jaws_central.config.Configuration._destructor()
     except Exception:
@@ -42,111 +127,12 @@ def test_check_all_values(config_file):
         jaws_central.config.Configuration._destructor()
     except Exception:
         pass
-
     cfg = jaws_central.config.Configuration(config_path)
     # Make sure that the _vars attribute in the interpolation object is "NONE" because
     # there was no env_override value set
     print("Verifying that the _vars instance variable is NONE")
+    print("_vars=",cfg.config._vars)
     assert cfg.config._vars is None
-    print("Instances of jaws_central.config.Configuration: ", dict(jaws_central.config.Singleton._instances))
-    expected_db_parameters = [
-        ("dialect", "mysql+mysqlconnector"),
-        ("host", "db.foo.com"),
-        ("port", "3306"),
-        ("user", "jaws"),
-        ("password", "passw0rd1"),
-        ("db", "jaws"),
-        ("host2", "${JAWS_DB_HOST}"),
-        ("password2", "${JAWS_DB_PASSWORD}123"),
-    ]
-
-    expected_db_parameters_env = [
-        ("dialect", "mysql+mysqlconnector"),
-        ("host", "db.foo.com"),
-        ("port", "3306"),
-        ("user", "jaws"),
-        ("password", "passw0rd1"),
-        ("db", "jaws"),
-        ("host2", "db.foobar.com"),
-        ("password2", "password123"),
-    ]
-
-    expected_db_parameters_env_override = [
-        ("dialect", "mysql+mysqlconnector"),
-        ("host", "db.foo.com"),
-        ("port", "3306"),
-        ("user", "jaws"),
-        ("password", "passw0rd1"),
-        ("db", "jaws"),
-        ("host2", "db_over.foobar.com"),
-        ("password2", "over_password123"),
-    ]
-
-    expected_db_parameters_env_override2 = [
-        ("dialect", "mysql+mysqlconnector"),
-        ("host", "db-host.foo.com"),
-        ("port", "3306"),
-        ("user", "jaws"),
-        ("password", "passw0rd1"),
-        ("db", "jaws"),
-        ("host2", "db.foobar.com"),
-        ("password2", "password123"),
-    ]
-
-    expected_globus_parameters = [
-        ("client_id", "ZZZZ"),
-        ("client_secret", "AAAAA"),
-    ]
-
-    expected_site1_parameters = [
-        ("host", "rmq.jaws.gov"),
-        ("user", "jaws"),
-        ("password", "passw0rd3"),
-        ("vhost", "jaws"),
-        ("globus_endpoint", "XXXX"),
-        ("globus_host_path", "/global/scratch/jaws"),
-        ("inputs_dir", "/global/scratch/jaws/jaws-dev/inputs"),
-        ("inputs_dir2", "${SCRATCH_ROOT}/jaws/jaws-dev/inputs"),
-        ("max_ram_gb", "1024"),
-    ]
-
-    expected_site1_parameters2 = [
-        ("host", "jgi-host.foobar.org"),
-        ("user", "jaws"),
-        ("password", "passw0rd3"),
-        ("vhost", "jaws"),
-        ("globus_endpoint", "XXXX"),
-        ("globus_host_path", "/global/scratch/jaws"),
-        ("inputs_dir", "/global/scratch/jaws/jaws-dev/inputs"),
-        ("inputs_dir2", "${SCRATCH_ROOT}/jaws/jaws-dev/inputs"),
-        ("max_ram_gb", "1024"),
-    ]
-
-    expected_site2_parameters = [
-        ("site_id", "NERSC"),
-        ("globus_endpoint", "YYYY"),
-        ("globus_host_path", "/"),
-        ("inputs_dir", "/global/cscratch/sd1/jaws/jaws-dev/inputs"),
-        ("max_ram_gb", "2048"),
-    ]
-
-    print("Checking DB section without environment variables set")
-    # Clear any conflicting keys in the environment
-    try:
-        del os.environ["JAWS_DB_HOST"]
-        del os.environ["JAWS_DB_PASSWORD"]
-    except KeyError:
-        pass
-    check_section("DB", expected_db_parameters, cfg)
-
-    print("Checking DB section with environment variables set")
-    os.environ["JAWS_DB_HOST"] = "db.foobar.com"
-    os.environ["JAWS_DB_PASSWORD"] = "password"
-    check_section("DB", expected_db_parameters_env, cfg)
-    check_section("GLOBUS", expected_globus_parameters, cfg)
-    check_site("JGI", expected_site1_parameters, cfg)
-    check_site_info("NERSC", expected_site2_parameters, cfg)
-
     try:
         jaws_central.config.Configuration._destructor()
     except Exception:
@@ -172,7 +158,9 @@ def test_check_all_values(config_file):
         jaws_central.config.Configuration._destructor()
     except Exception:
         pass
-    print("Retesting with env_prefix set and section names")
+    print("Testing with env_prefix set and section names")
+    os.environ["JAWS_DB_HOST"] = "db.foobar.com"
+    os.environ["JAWS_DB_PASSWORD"] = "password"
     os.environ["ENV__DB_host"] = "db-host.foo.com"
     os.environ["ENV__SITE:JGI_host"] = "jgi-host.foobar.org"
 
@@ -199,10 +187,43 @@ def test_check_all_values(config_file):
     check_site_info("NERSC", expected_site2_parameters, cfg)
 
 
+def test_check_all_values(config_file):
+    try:
+        jaws_central.config.Configuration._destructor()
+    except Exception:
+        pass
+    config_path = config_file
+
+    cfg = jaws_central.config.Configuration(config_path)
+
+    print("Checking DB section without environment variables set")
+    # Clear any conflicting keys in the environment
+    try:
+        del os.environ["JAWS_DB_HOST"]
+        del os.environ["JAWS_DB_PASSWORD"]
+    except KeyError:
+        pass
+    check_section("DB", expected_db_parameters, cfg)
+    print("Checking DB section with environment variables set")
+    os.environ["JAWS_DB_HOST"] = "db.foobar.com"
+    os.environ["JAWS_DB_PASSWORD"] = "password"
+    check_section("DB", expected_db_parameters_env, cfg)
+    check_section("GLOBUS", expected_globus_parameters, cfg)
+    check_site("JGI", expected_site1_parameters, cfg)
+    check_site_info("NERSC", expected_site2_parameters, cfg)
+    try:
+        jaws_central.config.Configuration._destructor()
+    except Exception:
+        pass
+
+
 def test_config_overwrite_partial_values(partial_config):
 
     # call destructor to remove old references
-    jaws_central.config.Configuration._destructor()
+    try:
+        jaws_central.config.Configuration._destructor()
+    except Exception:
+        pass
 
     config_path = partial_config
     cfg = jaws_central.config.Configuration(config_path)
