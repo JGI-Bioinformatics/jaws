@@ -222,7 +222,10 @@ def parse_cromwell_task_dir(task_dir):
         result["name"] = f"{result['name']}.{result['sub_task_name']}"
         if fields[0].startswith("shard-"):
             result["sub_shard"] = int(fields.popleft().split("-")[-1])
-            result["name"] = f"{result['name']}[{result['sub_shard']}]" if result['sub_shard'] != 0 else f"{result['name']}"
+            if result['sub_shard'] != 0:
+                result["name"] = f"{result['name']}[{result['sub_shard']}]"
+            else:
+                result["name"] = f"{result['name']}"
         if fields[0] in ["execution", "cacheCopy"]:
             return result["name"]
 
