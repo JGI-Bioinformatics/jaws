@@ -9,7 +9,7 @@ from pathlib import Path
 from functools import lru_cache
 from jaws_site import runs
 from jaws_rpc import rpc_client_basic
-from collections import deque
+from jaws_site.cromwell import parse_cromwell_task_dir
 
 logger = logging.getLogger(__package__)
 
@@ -55,7 +55,7 @@ class PerformanceMetrics:
         csv_data = csv_data[csv_data.jaws_run_id != "None"]
 
         # Add task_name to the dataframe
-        csv_data["task_name"] = csv_data.current_dir.apply(parse_cromwell_task_dir)
+        csv_data["task_name"] = csv_data.current_dir.apply(parse_cromwell_task_dir_name)
 
         # Drops the current_dir, since we shouldn't need it anymore
         # csv_data = csv_data.drop(columns=["current_dir"])
@@ -159,75 +159,8 @@ def remove_beginning_path(working_dir):
 
 
 @lru_cache()
-def parse_cromwell_task_dir(task_dir):
+def parse_cromwell_task_dir_name(results):
+    """Get's just the name from parse_cromwell_task_dir
+    Needed for pandas apply since we just want the name in that column
     """
-    Given path of a task, return task fields.
-    """
-    result = {
-        "call_root": task_dir,
-        "cached": False,
-        "shard": -1,
-        "name": "None"
-    }
-    if isinstance(task_dir, float):
-        return "None"
-
-    if task_dir.endswith("/execution"):
-        result["call_root"] = result["call_root"].rstrip("/execution")
-    else:
-        task_dir = f"{task_dir}/execution"
-
-    try:
-        (root_dir, subdir) = task_dir.split("cromwell-executions/")
-    except ValueError:
-        # Aws calls it execution without the "s"
-        (root_dir, subdir) = task_dir.split("cromwell-execution/")
-    except Exception as e:
-        logging.warning(f"Problem splitting directory {type(e).__name__}: {e}")
-        return "None"
-    result["call_root_rel_path"] = subdir
-    fields = deque(subdir.split("/"))
-    result["wdl_name"] = fields.popleft()
-    result["name"] = result["wdl_name"]
-    result["cromwell_run_id"] = fields.popleft()
-    if not fields[0].startswith("call-"):
-        logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
-        return result["name"]
-    result["task_name"] = fields.popleft().split("-")[-1]
-    result["name"] = f"{result['name']}.{result['task_name']}"
-    if fields[0].startswith("shard-"):
-        result["shard"] = int(fields.popleft().split("-")[-1])
-        result["name"] = f"{result['name']}[{result['shard']}]"
-    if fields[0] == "execution":
-        return result["name"]
-    elif fields[0] == "cacheCopy":
-        result["cached"] = True
-        return result["name"]
-
-    # Could be a while but let's fail after 5 subworkflows instead of looping forever
-    for _ in range(5):
-        # subworkflow
-        result["subworkflow_name"] = fields.popleft()
-        if '.' in result["subworkflow_name"]:
-            result["subworkflow_name"] = result["subworkflow_name"].split(".")[-1]
-        shard_num_loc = result["name"].rfind('[')
-        if shard_num_loc != -1:
-            result["name"] = result["name"][:shard_num_loc]
-        result["name"] = f"{result['name']}:{result['subworkflow_name']}"
-        result["subworkflow_cromwell_run_id"] = fields.popleft()
-        if not fields[0].startswith("call-"):
-            logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
-            return result["name"]
-        result["sub_task_name"] = fields.popleft().split("-")[-1]
-        result["name"] = f"{result['name']}.{result['sub_task_name']}"
-        if fields[0].startswith("shard-"):
-            result["sub_shard"] = int(fields.popleft().split("-")[-1])
-            result["name"] = f"{result['name']}[{result['sub_shard']}]"
-        if fields[0] == "execution":
-            return result["name"]
-        elif fields[0] == "cacheCopy":
-            result["cached"] = True
-            return result["name"]
-
-    logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
-    return result["name"]
+    return parse_cromwell_task_dir(results)['name']
