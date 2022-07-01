@@ -21,31 +21,31 @@ Table of available resources
 ****************************
 
 
-+-------------+--------+-------+---------+-----+---------+
-|    site     |  pool  | nodes | mem(g)* | hrs | threads |
-+=============+========+=======+=========+=====+=========+
-| cori(nersc) | medium | 2388  | 118     |  72 |   64    |
-+             +--------+-------+---------+-----+---------+
-|             | xlarge |  20   | 1450    | 168 |   72    |
-+-------------+--------+-------+---------+-----+---------+
-| jgi(lab-it) | small  | 316   |  46     |  72 |   64    |
-+             +--------+-------+---------+-----+---------+
-|             | medium |  72   | 236     |  72 |   64    |
-+             +--------+-------+---------+-----+---------+
-|             | large  |   8   | 492     |  72 |   64    |
-+-------------+--------+-------+---------+-----+---------+
-| tahoma(emsl)| medium | 160   | 364     |  48 |   72    |
-+             +--------+-------+---------+-----+---------+
-|             | xlarge |  24   | 1480    |  48 |   72    |
-+-------------+--------+-------+---------+-----+---------+
-| AWS         |   (see comment below)                    |
-+-------------+--------+-------+---------+-----+---------+
-
-AWS is a valid site for JAWS. However, since it uses it's own scheduling system, simply specify the memory and cpu requirements for each task in the :bash:`runtime` section.
-
++-------------+--------+-------+-----------+-----+---------+
+|    Site     |  Pool  | Nodes | Mem (GB)* | Hrs | Threads |
++=============+========+=======+===========+=====+=========+
+| CORI(NERSC) | Medium | 2388  | 118       |  72 |   64    |
++             +--------+-------+-----------+-----+---------+
+|             | Xlarge |  20   | 1450      | 168 |   72    |
++-------------+--------+-------+-----------+-----+---------+
+|             | Small  | 316   |  46       |  72 |   64    |
++             +--------+-------+-----------+-----+---------+
+| JGI(Lab-it) | Medium |  72   | 236       |  72 |   64    |
++             +--------+-------+-----------+-----+---------+
+|             | Large  |   8   | 492       |  72 |   64    |
++-------------+--------+-------+-----------+-----+---------+
+| Tahoma(EMSL)| Medium | 160   | 364       |  48 |   72    |
++             +--------+-------+-----------+-----+---------+
+|             | Xlarge |  24   | 1480      |  48 |   72    |
++-------------+--------+-------+-----------+-----+---------+
+| AWS         |   --   | 100   | 512       |  -- | 64**    |
++-------------+--------+-------+-----------+-----+---------+
 
 \* This number is the gigabytes you can actually use, minus the overhead. For example, on cori, a "medium" node is advertized at 128G but since we can only use roughly 10% of that because of overhead, we will reserve 118G in our WDL.
 
+\** `AWS Compute Types <https://aws.amazon.com/ec2/instance-types/?trk=36c6da98-7b20-48fa-8225-4784bced9843&sc_channel=ps&sc_campaign=acquisition&sc_medium=ACQ-P%7CPS-GO%7CBrand%7CDesktop%7CSU%7CCompute%7CEC2%7CUS%7CEN%7CText&s_kwcid=AL!4422!3!536392622533!e!!g!!aws%20ec2%20instance%20types&ef_id=CjwKCAjw5NqVBhAjEiwAeCa97ZfAzIFagg-eD9jEJVbBSQSMsIf9vrVTEF7qqy0z7CJVbQCCmbdG1hoCljAQAvD_BwE:G:s&s_kwcid=AL!4422!3!536392622533!e!!g!!aws%20ec2%20instance%20types>`_
+
+AWS is a valid site for JAWS. However, since it uses it's own scheduling system, simply specify the memory and cpu requirements for each task in the :bash:`runtime` section.
 
 Links to documentation about each cluster
 -----------------------------------------
