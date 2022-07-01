@@ -131,7 +131,6 @@ def test_env_override(config_file):
     # Make sure that the _vars attribute in the interpolation object is "NONE" because
     # there was no env_override value set
     print("Verifying that the _vars instance variable is NONE")
-    print("_vars=",cfg.config._vars)
     assert cfg.config._vars is None
     try:
         jaws_central.config.Configuration._destructor()
