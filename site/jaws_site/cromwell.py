@@ -985,23 +985,37 @@ def parse_cromwell_task_dir(task_dir):
         "call_root": task_dir,
         "cached": False,
         "shard": -1,
+        "name": "None"
     }
+    if isinstance(task_dir, float):
+        return result
+
     if task_dir.endswith("/execution"):
-        result["call_root"] = result["call_root"].rstrip("/execution")
+        cut = task_dir.find("/execution")
+        result["call_root"] = result["call_root"][:cut]
     else:
         task_dir = f"{task_dir}/execution"
-    (root_dir, subdir) = task_dir.split("cromwell-executions/")
+
+    try:
+        (root_dir, subdir) = task_dir.split("cromwell-executions/")
+    except ValueError:
+        # Aws calls it execution without the "s"
+        (root_dir, subdir) = task_dir.split("cromwell-execution/")
+    except Exception as e:
+        logging.warning(f"Problem splitting directory {type(e).__name__}: {e}")
+        return result
     result["call_root_rel_path"] = subdir
     fields = deque(subdir.split("/"))
     result["wdl_name"] = fields.popleft()
     result["name"] = result["wdl_name"]
     result["cromwell_run_id"] = fields.popleft()
     if not fields[0].startswith("call-"):
-        raise ValueError(f"Problem parsing {subdir}")
-    result["task_name"] = fields.popleft().lstrip("call-")
+        logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
+        return result
+    result["task_name"] = fields.popleft().split("-")[-1]
     result["name"] = f"{result['name']}.{result['task_name']}"
     if fields[0].startswith("shard-"):
-        result["shard"] = int(fields.popleft().lstrip("shard-"))
+        result["shard"] = int(fields.popleft().split("-")[-1])
         result["name"] = f"{result['name']}[{result['shard']}]"
     if fields[0] == "execution":
         return result
@@ -1009,25 +1023,30 @@ def parse_cromwell_task_dir(task_dir):
         result["cached"] = True
         return result
 
-    # subworkflow
-    result["subworkflow_name"] = fields.popleft()
-    if not result["subworkflow_name"].startswith("sub."):
-        raise ValueError(f"Problem parsing {subdir}")
-    result["subworkflow_name"] = result["subworkflow_name"].lstrip("sub.")
-    result["name"] = f"{result['name']}:{result['subworkflow_name']}"
-    result["subworkflow_cromwell_run_id"] = fields.popleft()
-    if not fields[0].startswith("call-"):
-        raise ValueError(f"Problem parsing {subdir}")
-    result["sub_task_name"] = fields.popleft().lstrip("call-")
-    result["name"] = f"{result['name']}.{result['sub_task_name']}"
-    if fields[0].startswith("shard-"):
-        result["sub_shard"] = int(fields.popleft().lstrip("shard-"))
-        result["name"] = f"{result['name']}[{result['sub_shard']}]"
-    if fields[0] == "execution":
-        return result
-    elif fields[0] == "cacheCopy":
-        result["cached"] = True
-        return result
-    else:
-        raise ValueError(f"Problem parsing {subdir}")
+    # Could be a while but let's fail after 5 subworkflows instead of looping forever
+    for _ in range(5):
+        # subworkflow
+        result["subworkflow_name"] = fields.popleft()
+        if '.' in result["subworkflow_name"]:
+            result["subworkflow_name"] = result["subworkflow_name"].split(".")[-1]
+        shard_num_loc = result["name"].rfind('[')
+        if shard_num_loc != -1:
+            result["name"] = result["name"][:shard_num_loc]
+        result["name"] = f"{result['name']}:{result['subworkflow_name']}"
+        result["subworkflow_cromwell_run_id"] = fields.popleft()
+        if not fields[0].startswith("call-"):
+            logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
+            return result
+        result["sub_task_name"] = fields.popleft().split("-")[-1]
+        result["name"] = f"{result['name']}.{result['sub_task_name']}"
+        if fields[0].startswith("shard-"):
+            result["sub_shard"] = int(fields.popleft().split("-")[-1])
+            result["name"] = f"{result['name']}[{result['sub_shard']}]"
+        if fields[0] == "execution":
+            return result
+        elif fields[0] == "cacheCopy":
+            result["cached"] = True
+            return result
+
+    logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
     return result
