@@ -84,5 +84,5 @@ def test_parse_perf_metrics_task_dir():
     ]
 
     for task_dir, expected in test_data:
-        result = perf_metrics.parse_cromwell_task_dir(task_dir)
+        result = perf_metrics.parse_cromwell_task_dir_name(task_dir)
         assert result == expected
