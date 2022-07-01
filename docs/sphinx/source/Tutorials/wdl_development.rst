@@ -44,11 +44,12 @@ Installation
    # follow the directions for installation.
 
    # Choose yes for: "Do you wish the installer to initialize Miniconda3 by running conda init?"
-   # This should add the miniconda installation to your PATH by modifying .bash_profile.
-
+   # This should add the miniconda installation to your PATH by modifying .bash_profile or .bashrc file.
+   # To disable the automatic base activation, please run:
+   conda config --set auto_activate_base false
+   
    # verify installation
    which conda
-
 
 
 Create your Conda Environment
@@ -63,6 +64,24 @@ We will create a conda environment called :bash:`bbtools`
    # Now activate your environment.
    conda activate bbtools
 
+.. raw:: html
+
+   <details>
+   <summary style="color: #448ecf";>Create your Conda Environment on Cori</summary>
+
+If you are creating the Conda Environment on Cori, please make sure to deactivate all the Conda environments before starting. 
+
+.. code-block:: text
+
+   module load python
+   conda --version
+   ## conda 4.12.0
+
+.. raw:: html
+
+    </details>
+    <br>
+
 Install necessary dependencies into your environment
 
 .. code-block:: text
@@ -74,6 +93,25 @@ Install necessary dependencies into your environment
    # of course you can install Cromwell if you wanted to develop WDLs on your labtop
    conda install -y -c bioconda cromwell
 
+.. raw:: html
+
+   <details>
+   <summary style="color: #448ecf";>Create your Conda Environment on Cori</summary>
+
+To install necessary dependencies into your environment, ensure the Java Version is not overwritten. 
+
+.. code-block:: text
+
+   conda install -c bioconda bbmap==38.84 --update-all --force-reinstall
+   ## Check Java Version
+   java --version
+   ## openjdk 11.0.13 2021-10-19
+
+.. raw:: html
+
+    </details>
+    <br>
+    
 ************************
 Testing your Environment
 ************************

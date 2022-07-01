@@ -24,12 +24,12 @@ author = u'Jeff Froula'
 project = u'Home'
 
 # The short X.Y version
-version = u'Documentation for 2.8.5'
+version = u'Documentation for 2.8.6'
 
 # The full version, including alpha/beta/rc tags
 #release = u'2.1.0'
 
-html_logo='Figures/JAWS5.tiny.png'
+html_logo='Figures/JAWS_1.png'
 
 
 # -- General configuration ---------------------------------------------------
