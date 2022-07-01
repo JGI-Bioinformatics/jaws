@@ -197,7 +197,7 @@ def parse_cromwell_task_dir(task_dir):
     result["name"] = f"{result['name']}.{result['task_name']}"
     if fields[0].startswith("shard-"):
         result["shard"] = int(fields.popleft().split("-")[-1])
-        result["name"] = f"{result['name']}[{result['shard']}]" if result['shard'] != 0 else f"{result['name']}"
+        result["name"] = f"{result['name']}[{result['shard']}]"
     if fields[0] == "execution":
         return result["name"]
     elif fields[0] == "cacheCopy":
@@ -222,11 +222,11 @@ def parse_cromwell_task_dir(task_dir):
         result["name"] = f"{result['name']}.{result['sub_task_name']}"
         if fields[0].startswith("shard-"):
             result["sub_shard"] = int(fields.popleft().split("-")[-1])
-            if result['sub_shard'] != 0:
-                result["name"] = f"{result['name']}[{result['sub_shard']}]"
-            else:
-                result["name"] = f"{result['name']}"
-        if fields[0] in ["execution", "cacheCopy"]:
+            result["name"] = f"{result['name']}[{result['sub_shard']}]"
+        if fields[0] == "execution":
+            return result["name"]
+        elif fields[0] == "cacheCopy":
+            result["cached"] = True
             return result["name"]
 
     logging.warning(f"parse_cromwell_task_dir error @ {subdir}")

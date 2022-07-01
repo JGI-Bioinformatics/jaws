@@ -59,8 +59,7 @@ def test_parse_perf_metrics_task_dir():
         ],
         [
             "cromwell-executions/main_align_wdl/8d357504-8eda-4d1c-b3c4-f87a0bdd29f8/call-bbmap_shard_wf/align.bbmap_shard_wf/27536cf7-4b8f-486c-9085-872625afaef1/call-alignment/shard-0/execution",  # noqa
-            "main_align_wdl.bbmap_shard_wf:bbmap_shard_wf.alignment"
-            # "main_align_wdl.bbmap_shard_wf:bbmap_shard_wf.alignment[0]"
+            "main_align_wdl.bbmap_shard_wf:bbmap_shard_wf.alignment[0]"
         ],
         [
             "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/nmdc_metag/9969e560-7f3e-4305-b66e-324d199d3b33/call-annotation/awf.annotation/8ea94de6-e56f-4b4a-9015-25eb998e68cc/call-f_annotate/shard-0/fa.f_annotate/0e16887c-11ec-48d3-a343-27a9876a7c70/call-smart",  # noqa
@@ -77,6 +76,10 @@ def test_parse_perf_metrics_task_dir():
         [
             "/tahoma/mscjgi/scratch/jaws-prod/cromwell-executions/nmdc_metag/c16846ff-3a7b-444e-a26b-ce484eb205b5/call-annotation/awf.annotation/e0910a3c-6ba1-43e3-8b4b-d275fb0601fb/call-s_annotate/shard-0/sa.s_annotate/1671df94-89d9-4418-a949-737038f458a0/call-fasta_merge",  # noqa
             "nmdc_metag.annotation:annotation.s_annotate:s_annotate.fasta_merge"
+        ],
+        [
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/bbmap_shard_wf/be518d2a-6232-4f50-b6cf-7e1a3a995ad3/call-alignment/shard-0",  # noqa
+            "bbmap_shard_wf.alignment[0]"
         ]
     ]
 

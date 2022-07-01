@@ -681,7 +681,7 @@ class Metadata:
         table = []
         for info in self.task_summary(**kwargs):
             name = info["name"]
-            if info["shard_index"] > 0:
+            if info["shard_index"] > -1:
                 name = f"{name}[{info['shard_index']}]"
             row = [
                 name,
