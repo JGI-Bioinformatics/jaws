@@ -112,7 +112,7 @@ class Transfer:
                 msg = f"RPC error(2) for check status, transfer {self.data.id}: {response['error']['message']}"
                 raise TransferRpcError(msg)
             else:
-                return response["result"]["status"]
+                return response["result"]["status"], response["result"]["reason"]
 
     def status_globus(self):
         """
@@ -122,34 +122,35 @@ class Transfer:
         """
         globus_client = GlobusService()
         try:
-            new_status = globus_client.transfer_status(
+            new_status, reason = globus_client.transfer_status(
                 self.data.globus_transfer_id
-            ).lower()
+            )
+            new_status = new_status.lower()
         except Exception as error:
             msg = f"Globus error checking status of transfer {self.data.id}: {error}"
             raise TransferGlobusError(msg)
         else:
-            return new_status
+            return new_status, reason
 
     def status(self) -> str:
         if self.data.status in ["submission failed", "failed", "succeeded", "cancelled"]:
             # terminal states don't change, no need to query
-            return self.data.status
+            return self.data.status, self.data.reason
         site_id = self.responsible_site_id()
         original_status = self.data.status
         new_status = None
         try:
             if site_id:
-                new_status = self.status_rpc(site_id)
+                new_status, new_reason = self.status_rpc(site_id)
             else:
-                new_status = self.status_globus()
+                new_status, new_reason = self.status_globus()
         except TransferError as error:
             logger.error(f"Unable to retrieve transfer status: {error}")
         else:
             if new_status != original_status:
                 logger.debug(f"Task {self.data.id} status = {new_status}")
-                self.update_status(new_status)
-        return self.data.status
+                self.update_status(new_status, new_reason)
+        return self.data.status, self.data.reason
 
     def manifest(self) -> list:
         """
@@ -170,9 +171,10 @@ class Transfer:
     #                self.cancel_rpc_transfer()
     #            self.update_status("cancelled")
 
-    def update_status(self, new_status) -> None:
+    def update_status(self, new_status: str, new_reason: str = None) -> None:
         try:
             self.data.status = new_status
+            self.data.reason = new_reason
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
@@ -270,7 +272,7 @@ class Transfer:
                 raise TransferRpcError(error)
             else:
                 self.data.globus_transfer_id = globus_transfer_id
-                self.update_status("queued")
+                self.update_status("queued", f"globus_transfer_id={globus_transfer_id}")
 
     def _rpc(self, site_id, function, params):
         rpc_client = rpc_index.rpc_index.get_client(site_id)

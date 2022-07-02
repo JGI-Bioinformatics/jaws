@@ -6,6 +6,14 @@
 
 - MR#1254 Add child class of ConfigParser that allows properly named environment variables to override config file settings.
 - Restore /refdata (NB: not implemented for AWS)
+- Created user group to restrict access to private compute site.
+- Fixed bug where stderr file contents were not included in errors report.
+- Fixed bug where AWS upload failure did not cause Run to change state to "upload failed" (stayed in "uploading")
+- Fixed bug where very long WDLs could not be saved in Db and would fail.
+- Cancelled runs will now be downloaded and available via the "get" command (useful for debugging).
+- Include the stdout.submit in the errors report (previously only included stderr.submit file)
+- Include transfer failure error message in run log
+- Always send email (previously didn't after transfer failed or cancelled)
 
 ## 2.8.5 (2022-5-24) Summary
 ### User Facing Changes

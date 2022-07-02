@@ -42,7 +42,14 @@ class GlobusService:
         transfer_client = self._create_transfer_client()
         task = transfer_client.get_task(task_id)
         globus_status = task["status"]
-        return globus_status
+        reason = None
+        if (
+            "fatal_error" in task
+            and type(task["fatal_error"]) == dict
+            and "description" in task["fatal_error"]
+        ):
+            reason = task["fatal_error"]["description"]
+        return globus_status, reason
 
     def virtual_transfer_path(self, full_path, host_path):
         """Return an absolute path used by Globus transfer service that uses the host_path as root.
@@ -102,14 +109,20 @@ class GlobusService:
         # the manifest is empty for complete download, add path and do recursive
         if len(manifest) == 0:
             virtual_src_path = self.virtual_transfer_path(src_base_dir, src_host_path)
-            virtual_dest_path = self.virtual_transfer_path(dest_base_dir, dest_host_path)
+            virtual_dest_path = self.virtual_transfer_path(
+                dest_base_dir, dest_host_path
+            )
             tdata.add_item(virtual_src_path, virtual_dest_path, recursive=True)
         else:
             for relpath in manifest:
                 source_path = f"{src_base_dir}/{relpath}"
                 dest_path = f"{dest_base_dir}/{relpath}"
-                virtual_src_path = self.virtual_transfer_path(source_path, src_host_path)
-                virtual_dest_path = self.virtual_transfer_path(dest_path, dest_host_path)
+                virtual_src_path = self.virtual_transfer_path(
+                    source_path, src_host_path
+                )
+                virtual_dest_path = self.virtual_transfer_path(
+                    dest_path, dest_host_path
+                )
                 tdata.add_item(virtual_src_path, virtual_dest_path, recursive=False)
 
         transfer_result = transfer_client.submit_transfer(tdata)

@@ -50,10 +50,14 @@ class Run:
             "upload queued": self.check_if_upload_complete,
             "uploading": self.check_if_upload_complete,
             "upload complete": self.submit_run,
+            "upload failed": self.send_email,
+            "submission failed": self.send_email,
             "finished": self.submit_download,
+            "cancelled": self.submit_download,
             "download queued": self.check_if_download_complete,
             "downloading": self.check_if_download_complete,
             "download complete": self.send_email,
+            "download failed": self.send_email,
             "email sent": self.post_to_webhook,
         }
         self.rpc_index = rpc_index
@@ -249,6 +253,7 @@ class Run:
         # promote the state (two updates are required since we don't skip states)
         if self.data.input_site_id == self.data.compute_site_id:
             self.update_status("upload queued")
+            time.sleep(1)
             self.update_status("upload complete")
             return
 
@@ -275,21 +280,22 @@ class Run:
     def submit_download(self):
         logger.debug(f"Run {self.data.id}: Submit download")
 
+        if self.data.cromwell_run_id is None:
+            self.update_status(
+                "download complete", "The run was cancelled before Cromwell; no output was created."
+            )
+            return
+
         # if input and compute site are same, there are no files to transfer, so just
         # promote the state (two updates are required since we don't skip states)
         if self.data.input_site_id == self.data.compute_site_id:
             self.update_status("download queued")
+            time.sleep(1)  # hack so they don't have the same timestamp
             self.update_status("download complete")
             return
 
         dest_config = config.conf.get_site(self.data.input_site_id)
         workflow_root, manifest = self.outputs_manifest()
-#        if len(manifest) == 0:
-#            # there are no outputs to download (e.g. failed run)
-#            self.update_status(
-#                "download complete", "no output files were generated"
-#            )
-#            return
         dest_base_dir = f"{dest_config.get('downloads_dir')}/{self.data.submission_id}"
         params = {
             "src_site_id": self.data.compute_site_id,
@@ -324,9 +330,9 @@ class Run:
         except Exception as error:
             logger.error(f"Unable to get upload for Run {self.data.id}: {error}")
             return
-        status = upload.status()
+        status, reason = upload.status()
         if status in ["submission failed", "failed"]:
-            self.update_status("upload failed")
+            self.update_status("upload failed", reason)
         elif status == "succeeded":
             self.update_status("upload complete")
 
@@ -340,14 +346,14 @@ class Run:
         except Exception as error:
             logger.error(f"Unable to get download for Run {self.data.id}: {error}")
             return
-        status = download.status()
+        status, message = download.status()
         if status in ["submission failed", "failed"]:
-            self.update_status("download failed")
+            self.update_status("download failed", message)
         elif status == "succeeded":
             time.sleep(
                 30
             )  # give file system a chance to update all metadata tables (see: #1236)
-            self.update_status("download complete")
+            self.update_status("download complete", message)
 
     def user_email(self):
         """
@@ -444,17 +450,26 @@ class Run:
 
         sender_email = config.conf.get("EMAIL", "user")
         smtp_server = config.conf.get("EMAIL", "server")
-        port = config.conf.get("EMAIL", "port")
+        port = int(config.conf.get("EMAIL", "port", 587))
         password = config.conf.get("EMAIL", "password")
-        smtp_server = "smtp.gmail.com"
+
+        if not smtp_server or not password:
+            # email is not configured, but we don't skip states
+            self.update_status("email sent")
+            return
+
+        result = self.data.result
+        if result is None:
+            result = self.data.status
 
         tag_text = f" ({self.data.tag})" if self.data.tag else ""
 
-        message = f"""Subject: JAWS Run {self.data.id} {self.data.result}{tag_text}
+        message = f"""Subject: JAWS Run {self.data.id} {result}{tag_text}
 
         Your run has completed.
 
         run_id: {self.data.id}
+        compute_site: {self.data.compute_site_id}
         result: {self.data.result}
         wdl_file: {self.data.wdl_file}
         json_file: {self.data.json_file}
@@ -488,20 +503,9 @@ def check_active_runs(session, rpc_index) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
-    active_states = [
-        "created",
-        "upload queued",
-        "uploading",
-        "upload complete",
-        "finished",
-        "download queued",
-        "downloading",
-        "download complete",
-        "email sent",
-    ]
     try:
         rows = (
-            session.query(models.Run).filter(models.Run.status.in_(active_states)).all()
+            session.query(models.Run).filter(models.Run.status != "done").all()
         )
     except SQLAlchemyError as error:
         logger.warning(f"Failed to select active runs from db: {error}", exc_info=True)

@@ -20,17 +20,18 @@ def test_status(monkeypatch):
         return "CORI"
 
     def mock_status_globus(self):
-        return "transferring"
+        return "transferring", None
 
     monkeypatch.setattr(transfers.Transfer, "status_globus", mock_status_globus)
 
     def mock_status_rpc(self, site_id):
-        return "failed"
+        return "failed", "failure reason"
 
     monkeypatch.setattr(transfers.Transfer, "status_rpc", mock_status_rpc)
 
-    def mock_update_status(self, new_status):
+    def mock_update_status(self, new_status, reason):
         self.data.status = new_status
+        self.data.reason = reason
 
     monkeypatch.setattr(transfers.Transfer, "update_status", mock_update_status)
 
@@ -41,13 +42,13 @@ def test_status(monkeypatch):
     monkeypatch.setattr(
         transfers.Transfer, "responsible_site_id", mock_responsible_site_id_1
     )
-    actual = transfer.status()
+    actual, reason = transfer.status()
     assert actual == "transferring"
 
     monkeypatch.setattr(
         transfers.Transfer, "responsible_site_id", mock_responsible_site_id_2
     )
-    actual = transfer.status()
+    actual, reason = transfer.status()
     assert actual == "failed"
 
 

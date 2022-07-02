@@ -7,8 +7,9 @@ import re
 from typing import Callable
 from pathlib import Path
 from functools import lru_cache
-from jaws_site import runs, tasks
+from jaws_site import runs
 from jaws_rpc import rpc_client_basic
+from jaws_site.cromwell import parse_cromwell_task_dir
 
 logger = logging.getLogger(__package__)
 
@@ -17,7 +18,6 @@ class PerformanceMetrics:
     def __init__(self, session: Callable, rpc_client: rpc_client_basic) -> None:
         self.session = session
         self.rpc_client = rpc_client
-        self.tasks = {}
 
     @lru_cache()
     def get_run_id(self, cromwell_run_id: str) -> int:
@@ -54,6 +54,9 @@ class PerformanceMetrics:
         # Filter out anything that didn't get a jaws_run_id returned
         csv_data = csv_data[csv_data.jaws_run_id != "None"]
 
+        # Add task_name to the dataframe
+        csv_data["task_name"] = csv_data.current_dir.apply(parse_cromwell_task_dir_name)
+
         # Drops the current_dir, since we shouldn't need it anymore
         # csv_data = csv_data.drop(columns=["current_dir"])
 
@@ -64,25 +67,6 @@ class PerformanceMetrics:
         csv_data["num_fds"] = csv_data.num_fds.astype(int)
 
         return csv_data.to_dict("records")
-
-    @lru_cache()
-    def add_taskname_mapping(self, cromwell_run_id):
-        """Create a cache to map the cromwell task directory to the task name keyed using the cromwell_run_id.
-        The cached result looks something like like:
-
-        self.tasks[some_cromwell_run_id] = {
-            "cromwell-executions/a/aa/aaa": "task_a",
-            "cromwell-executions/b/bb/bbb": "task_b",
-        }
-        """
-        try:
-            self.tasks[cromwell_run_id] = tasks.TaskLog(
-                self.session, cromwell_run_id=cromwell_run_id
-            ).get_task_cromwell_dir_mapping()
-        except Exception:
-            # if calling TaskLog throws an exception (cromwell fails to get data using cromwell_run_id), don't
-            # update the tasks list.
-            pass
 
     def process_metrics(self, done_dir: str, proc_dir: str) -> None:
         """Gather all csv files in done_dir, parse and generate json docs for each entry, add docs to
@@ -115,11 +99,13 @@ class PerformanceMetrics:
             for doc in docs:
                 cromwell_run_id = doc.get("cromwell_run_id")
                 run_id = doc.get("jaws_run_id")
+                task_name = doc.get("task_name")
 
                 # Just really a final check at this point since it should already be in the document
                 if not run_id or not cromwell_run_id:
                     logger.error(
-                        f"Error with {run_id=} or {cromwell_run_id=}, Not uploading to performance metrics"
+                        f"Error with {run_id=}, {task_name=}, or {cromwell_run_id=},\
+                                     Not uploading to performance metrics"
                     )
                     continue
 
@@ -127,29 +113,12 @@ class PerformanceMetrics:
                     f"Run {run_id}: Publish performance metrics for cromwell_run_id={cromwell_run_id}"
                 )
 
-                # Add cromwell dir to task name mapping if not already exists
-                self.add_taskname_mapping(cromwell_run_id)
-
-                # Add task name to doc
-                cromwell_dir = doc["current_dir"]
-                if (
-                    cromwell_run_id in self.tasks
-                    and cromwell_dir in self.tasks[cromwell_run_id]
-                ):
-                    task_name = self.tasks[cromwell_run_id][cromwell_dir]
-                else:
-                    task_name = "unknown"
-                doc["task_name"] = task_name
-
                 # Submit doc to RMQ to be picked up by logstash and inserted into elasticsearch
                 self.rpc_client.request(doc)
 
             # Move csv file to processed folder
             processed_file = proc_dir_obj / done_file.name
             Path(f"{done_file}").rename(f"{processed_file}")
-
-        # Clear cached cromwell dir to taskname mapping
-        self.tasks = {}
 
 
 @lru_cache()
@@ -187,3 +156,11 @@ def remove_beginning_path(working_dir):
         logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
 
     return dir_name
+
+
+@lru_cache()
+def parse_cromwell_task_dir_name(results):
+    """Get's just the name from parse_cromwell_task_dir
+    Needed for pandas apply since we just want the name in that column
+    """
+    return parse_cromwell_task_dir(results)['name']

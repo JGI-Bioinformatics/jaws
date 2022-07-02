@@ -99,12 +99,13 @@ def test_check_if_upload_complete(monkeypatch):
 def test_check_if_download_complete(monkeypatch):
     def mock_get_transfer(self, transfer_id):
         session = MockSession()
-        data = MockTransferModel(id=transfer_id, status="failed")
+        data = MockTransferModel(id=transfer_id, status="failed", reason='failure reason')
         transfer = transfers.Transfer(session, data)
         return transfer
 
-    def mock_update_status(self, new_status):
+    def mock_update_status(self, new_status, reason):
         self.data.status = new_status
+        self.data.reason = reason
 
     monkeypatch.setattr(runs.Run, "_get_transfer", mock_get_transfer)
     monkeypatch.setattr(runs.Run, "update_status", mock_update_status)
