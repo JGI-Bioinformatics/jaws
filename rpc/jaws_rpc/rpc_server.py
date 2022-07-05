@@ -118,7 +118,7 @@ class Consumer(object):
         try:
             response = proc(params, session)
         except Exception as error:
-            logger.warn(f"RPC function error: {error}; params={params}")
+            self.logger.warn(f"RPC function error: {error}; params={params}")
             response = {
                 "jsonrpc": "2.0",
                 "error": {
@@ -129,7 +129,7 @@ class Consumer(object):
             }
         self.__respond__(message, response)
         if session:
-            session.remove()
+            session.close()
 
     def __respond__(self, message, response):
         try:

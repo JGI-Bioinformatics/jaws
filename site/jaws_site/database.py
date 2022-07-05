@@ -31,6 +31,6 @@ except Exception as error:
     logger.exception(error)
     raise
 
-SessionLocal = sessionmaker(bind=engine)
+Session = sessionmaker(bind=engine)
 
 Base = declarative_base()
