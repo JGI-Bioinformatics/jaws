@@ -31,6 +31,8 @@ class Consumer(object):
         """
         self.queue = queue
         self.operations = operations
+        if Session is not None:
+            assert isinstance(Session, scoped_session)
         self.Session = Session
         self.logger = logger
         self.channel = None
@@ -118,7 +120,7 @@ class Consumer(object):
             response = proc(params)
         self.__respond__(message, response)
         if session:
-            Session.remove()
+            session.remove()
 
     def __respond__(self, message, response):
         try:
