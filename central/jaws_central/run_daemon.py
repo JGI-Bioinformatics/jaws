@@ -30,6 +30,6 @@ class RunDaemon:
         """
         Check for runs in particular states.
         """
-        session = database.Session()
+        session = database.SessionLocal()
         check_active_runs(session, self.rpc_index)
         session.close()

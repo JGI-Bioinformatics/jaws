@@ -7,10 +7,9 @@ import click
 import logging
 from jaws_central import config, log
 import connexion
+from flask import _app_ctx_stack
 from flask_cors import CORS
-from urllib.parse import quote_plus
 from sqlalchemy.orm import scoped_session
-from jaws_central import models
 from jaws_rpc import rpc_index
 
 
@@ -43,18 +42,20 @@ def cli(config_file: str, log_file: str, log_level: str) -> None:
     if conf:
         logger.debug(f"Config using {config_file}")
 
-    # create db tables if they do not exist
+    from jaws_central.database import SessionLocal, engine
+    from jaws_central import models
     try:
-        models.Base.metadata.create_all(bind=engine)
+        models.create_all(engine, SessionLocal)
+        #models.Base.metadata.create_all(bind=engine)
     except Exception as error:
-        logger.exception("Failed to create db tables")
+        logger.exception(f"Failed to create db tables: {error}")
 
 
 @cli.command()
 def auth() -> None:
     """Start JAWS OAuth server"""
     # database must be initialized after config
-    from jaws_central.database import SessionLocal, engine
+    from jaws_central.database import SessionLocal
 
     logger = logging.getLogger(__package__)
     logger.debug("Initializing OAuth server")
@@ -71,7 +72,7 @@ def auth() -> None:
 def rest() -> None:
     """Start JAWS REST server."""
     # database must be initialized after config
-    from jaws_central.database import SessionLocal, engine
+    from jaws_central.database import SessionLocal
 
     logger = logging.getLogger(__package__)
     logger.debug("Starting jaws-central REST server")
@@ -97,7 +98,7 @@ def rest() -> None:
 def rpc() -> None:
     """Start JAWS-Central RPC server."""
     # database must be initialized after config
-    from jaws_central.database import SessionLocal, engine
+    from jaws_central.database import SessionLocal
     from jaws_rpc import rpc_server
     from jaws_central import rpc_operations
 
@@ -110,13 +111,7 @@ def rpc() -> None:
 @cli.command()
 def run_daemon() -> None:
     """Start run-daemon"""
-    # database must be initialized after config
-    from jaws_central.database import SessionLocal, engine
-    from jaws_central import models
     from jaws_central.run_daemon import RunDaemon
-
-    session = SessionLocal()
-    models.create_all(engine, session)
 
     logger = logging.getLogger(__package__)
 
