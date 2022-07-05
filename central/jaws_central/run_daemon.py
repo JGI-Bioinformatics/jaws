@@ -1,7 +1,7 @@
 import schedule
 import time
 import logging
-from jaws_central import database
+from jaws_central.database import session_factory
 from jaws_central.runs import check_active_runs
 
 
@@ -30,6 +30,6 @@ class RunDaemon:
         """
         Check for runs in particular states.
         """
-        session = database.Session()
+        session = session_factory()
         check_active_runs(session, self.rpc_index)
         session.close()

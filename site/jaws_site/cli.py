@@ -59,7 +59,7 @@ def cli(config_file: str, log_file: str, log_level: str):
 def rpc() -> None:
     """Start RPC server for Central."""
     # database must be imported after config
-    from jaws_site.database import Session
+    from jaws_site.database import session_factory
     from jaws_site import rpc_operations
     from jaws_rpc import rpc_server
     from sqlalchemy.orm import scoped_session
@@ -68,7 +68,7 @@ def rpc() -> None:
     rpc_server_params = config.conf.get_section("RPC_SERVER")
     logger = logging.getLogger(__package__)
     app = rpc_server.RpcServer(
-        rpc_server_params, logger, rpc_operations.operations, scoped_session(Session)
+        rpc_server_params, logger, rpc_operations.operations, scoped_session(session_factory)
     )
     app.start_server()
 

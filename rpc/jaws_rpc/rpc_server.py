@@ -22,7 +22,7 @@ class InvalidResponse(Exception):
 
 
 class Consumer(object):
-    def __init__(self, logger, queue, operations, Session=None):
+    def __init__(self, logger, queue, operations, scoped_session_factory=None):
         """Initialize Consumer object
 
         :param queue: The name of the queue from which to retrieve messages.
@@ -31,9 +31,9 @@ class Consumer(object):
         """
         self.queue = queue
         self.operations = operations
-        if Session is not None:
-            assert isinstance(Session, scoped_session)
-        self.Session = Session
+        if scoped_session_factory is not None:
+            assert isinstance(scoped_session_factory, scoped_session)
+        self.scoped_session_factory = scoped_session_factory
         self.logger = logger
         self.channel = None
         self.active = False
@@ -113,8 +113,8 @@ class Consumer(object):
         # may or may not have an associated (sqlalchemy) db.
         response = None
         session = None
-        if self.Session:
-            session = self.Session()
+        if self.scoped_session_factory:
+            session = self.scoped_session_factory()
         try:
             response = proc(params, session)
         except Exception as error:
@@ -129,7 +129,7 @@ class Consumer(object):
             }
         self.__respond__(message, response)
         if session:
-            session.close()
+            self.scoped_session_factory.remove()
 
     def __respond__(self, message, response):
         try:
@@ -226,7 +226,7 @@ class Consumer(object):
 
 
 class RpcServer(object):
-    def __init__(self, params, logger, operations, Session=None) -> None:
+    def __init__(self, params, logger, operations, scoped_session_factory=None) -> None:
         """
         Init Rpc Server
         :param params: configuration parameters
@@ -235,8 +235,8 @@ class RpcServer(object):
         :ptype logger: Logging
         :param operations: valid operations required params and dispatch table
         :ptype operations: dict
-        :param Session: thread-local session object factory
-        :ptype Session: sqlalchemy.orm.scoped_session
+        :param scoped_session_factory: thread-local session object factory
+        :ptype scoped_session_factory: sqlalchemy.orm.scoped_session
         """
         self.logger = logger
         self.params = {}
@@ -251,9 +251,11 @@ class RpcServer(object):
             f"Connecting to host:{params['host']}, vhost:{params['vhost']}, queue:{params['queue']}"
         )
         self.operations = operations
-        self.Session = Session
+        if scoped_session_factory is not None:
+            assert isinstance(scoped_session_factory, scoped_session)
+        self.scoped_session_factory = scoped_session_factory
         self.consumers = [
-            Consumer(self.logger, params["queue"], self.operations, self.Session)
+            Consumer(self.logger, params["queue"], self.operations, self.scoped_session_factory)
             for _ in range(self.num_threads)
         ]
         self.stopped = threading.Event()
@@ -283,7 +285,7 @@ class RpcServer(object):
         """
         for _ in range(num):
             consumer = Consumer(
-                self.params["queue"], self.operations, self.Session
+                self.params["queue"], self.operations, self.scoped_session_factory
             )
             self.start_consumer(consumer)
             self.consumers.append(consumer)

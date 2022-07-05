@@ -54,7 +54,7 @@ def cli(config_file: str, log_file: str, log_level: str) -> None:
 def auth() -> None:
     """Start JAWS OAuth server"""
     # database must be initialized after config
-    from jaws_central.database import Session
+    from jaws_central.database import session_factory
 
     logger = logging.getLogger(__package__)
     logger.debug("Initializing OAuth server")
@@ -62,7 +62,7 @@ def auth() -> None:
     connex = connexion.FlaskApp(__name__, specification_dir=basedir)
     connex.add_api("swagger.auth.yml")
     CORS(connex.app)
-    connex.app.session = scoped_session(Session, scopefunc=_app_ctx_stack.__ident_func__)
+    connex.app.session = scoped_session(session_factory, scopefunc=_app_ctx_stack.__ident_func__)
     port = int(config.conf.get("HTTP", "auth_port"))  # defaults to 3000
     connex.run(host="0.0.0.0", port=port, debug=False)
 
@@ -71,7 +71,7 @@ def auth() -> None:
 def rest() -> None:
     """Start JAWS REST server."""
     # database must be initialized after config
-    from jaws_central.database import Session
+    from jaws_central.database import session_factory
 
     logger = logging.getLogger(__package__)
     logger.debug("Starting jaws-central REST server")
@@ -84,7 +84,7 @@ def rest() -> None:
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")
     CORS(connex.app)
-    connex.app.session = scoped_session(Session, scopefunc=_app_ctx_stack.__ident_func__)
+    connex.app.session = scoped_session(session_factory, scopefunc=_app_ctx_stack.__ident_func__)
     port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
     connex.run(host="0.0.0.0", port=port, debug=False)
 
@@ -97,13 +97,13 @@ def rest() -> None:
 def rpc() -> None:
     """Start JAWS-Central RPC server."""
     # database must be initialized after config
-    from jaws_central.database import Session
+    from jaws_central.database import session_factory
     from jaws_rpc import rpc_server
     from jaws_central import rpc_operations
 
     rpc_params = config.conf.get_section("RPC_SERVER")
     logger = logging.getLogger(__package__)
-    app = rpc_server.RpcServer(rpc_params, logger, rpc_operations.operations, scoped_session(Session))
+    app = rpc_server.RpcServer(rpc_params, logger, rpc_operations.operations, scoped_session(session_factory))
     app.start_server()
 
 
