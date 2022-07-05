@@ -50,19 +50,20 @@ def cli(config_file: str, log_file: str, log_level: str):
 @cli.command()
 def rpc() -> None:
     """Start RPC server for Central."""
+    # database must be imported after config
+    from jaws_site.database import engine, SessionLocal
     from jaws_site import rpc_operations
     from jaws_rpc import rpc_server
-    from jaws_site.database import engine, Session
     from jaws_site import models
+    from sqlalchemy.orm import scoped_session
 
-    session = Session()
     models.create_all(engine, session)
 
     # start RPC server
     rpc_server_params = config.conf.get_section("RPC_SERVER")
     logger = logging.getLogger(__package__)
     app = rpc_server.RpcServer(
-        rpc_server_params, logger, rpc_operations.operations, Session
+        rpc_server_params, logger, rpc_operations.operations, scoped_session(SessionLocal)
     )
     app.start_server()
 
@@ -80,7 +81,8 @@ def run_daemon() -> None:
 @cli.command()
 def transfer_daemon() -> None:
     """Start transfer daemon."""
-
+    # database must be imported after config
+    from jaws_site.database import engine, SessionLocal
     from jaws_site.transfer_daemon import TransferDaemon
 
     transferd = TransferDaemon()
