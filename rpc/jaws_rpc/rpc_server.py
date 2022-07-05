@@ -115,9 +115,18 @@ class Consumer(object):
         session = None
         if self.Session:
             session = self.Session()
+        try:
             response = proc(params, session)
-        else:
-            response = proc(params)
+        except Exception as error:
+            logger.warn(f"RPC function error: {error}; params={params}")
+            response = {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 500,
+                    "message": f"RPC function error: {error}",
+                },
+
+            }
         self.__respond__(message, response)
         if session:
             session.remove()
