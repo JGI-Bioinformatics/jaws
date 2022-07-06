@@ -30,8 +30,11 @@ def _get_user_by_token(access_token):
         user = (
             app.session.query(User).filter(User.jaws_token == access_token).one_or_none()
         )
-    except SQLAlchemyError as e:
-        abort(500, f"Db error: {e}")
+    except SQLAlchemyError as error:
+        abort(500, f"Db error: {error}")
+    except Exception as error:
+        logger.error(f"Unexpected error getting user by token: {error}")
+        abort(500, f"Unexpected error: {error}")
     if user is None:
         logger.info(f"Authentication failure; got token {access_token}")
         abort(401, "Authentication failure")
@@ -58,8 +61,11 @@ def get_tokeninfo() -> dict:
 def _get_user_by_email(email):
     try:
         user = app.session.query(User).filter(User.email == email).one_or_none()
-    except SQLAlchemyError as e:
-        abort(500, f"Internal Database Error: {e}.")
+    except SQLAlchemyError as error:
+        abort(500, f"Internal Database Error: {error}")
+    except Exception as error:
+        logger.error(f"Unexpected error getting user by email: {error}")
+        abort(500, f"Unexpected error: {error}")
     if user is None:
         abort(404, "User Not Found.")
     return user
@@ -70,13 +76,13 @@ def _get_json_from_sso(hash_code):
     response = None
     try:
         response = requests.get(base + hash_code + ".json", allow_redirects=True)
-    except Exception as err:
-        logger.error(err)
-        abort(response.status_code, f"{err}")
+    except Exception as error:
+        logger.error(error)
+        abort(response.status_code, f"{error}")
     try:
         sso_json = json.loads(response.content)
-    except Exception as err:
-        abort(403, f"SSO Hash was invalid: {err}")
+    except Exception as error:
+        abort(403, f"SSO Hash was invalid: {error}")
     return sso_json
 
 
@@ -121,8 +127,11 @@ def get_user(user):
     """
     try:
         user_rec = app.session.query(User).get(user)
-    except SQLAlchemyError as e:
-        abort(500, f"Db error: {e}")
+    except SQLAlchemyError as error:
+        abort(500, f"Db error: {error}")
+    except Exception as error:
+        logger.error(f"Unexpected error getting user record: {error}")
+        abort(500, f"Unexpected error: {error}")
     if user_rec is None:
         logger.error(f"No match for user {user} in db")
         abort(401, "User db record not found")
