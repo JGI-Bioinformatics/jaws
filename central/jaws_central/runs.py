@@ -92,11 +92,16 @@ class Run:
             )
         except SQLAlchemyError as error:
             raise (f"Error creating model for new Run {kwargs['run_id']}: {error}")
+        except Exception as error:
+            raise (f"Unknown error initializing Run model: {error}")
         try:
             session.add(data)
             session.commit()
             # data.id will be defined after the commit
         except SQLAlchemyError as error:
+            session.rollback()
+            raise (error)
+        except Exception as error:
             session.rollback()
             raise (error)
         else:
@@ -112,6 +117,10 @@ class Run:
             raise RunNotFound(f"Run {run_id} not found")
         except SQLAlchemyError as error:
             err_msg = f"Unable to select run, {run_id}: {error}"
+            logger.error(err_msg)
+            raise RunDbError(err_msg)
+        except Exception as error:
+            err_msg = f"Unexpected error; unable to select run, {run_id}: {error}"
             logger.error(err_msg)
             raise RunDbError(err_msg)
         else:
@@ -368,6 +377,9 @@ class Run:
         except SQLAlchemyError as error:
             logger.warning(f"Failed to select user email: {error}", exc_info=True)
             raise
+        except Exception as error:
+            logger.error(f"Unexpected error selecting user email: {error}")
+            raise
         else:
             return user.email
 
@@ -419,6 +431,10 @@ class Run:
             self.session.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
             raise
+        except Exception as error:
+            self.session.rollback()
+            logger.exception(f"Unexpected error while trying to update Run {self.data.id}: {error}")
+            raise
 
     def _insert_run_log(self, status_from, status_to, timestamp, reason) -> None:
         """
@@ -438,6 +454,12 @@ class Run:
             self.session.rollback()
             logger.exception(
                 f"Failed to insert log for Run {self.data.id} ({status_to}): {error}"
+            )
+            raise
+        except Exception as error:
+            self.session.rollback()
+            logger.exception(
+                f"Unexpected error; failed to insert log for Run {self.data.id} ({status_to}): {error}"
             )
             raise
 
@@ -509,6 +531,8 @@ def check_active_runs(session, rpc_index) -> None:
         )
     except SQLAlchemyError as error:
         logger.warning(f"Failed to select active runs from db: {error}", exc_info=True)
+    except Exception as error:
+        logger.error(f"Unexpected error; failed to select active runs: {error}")
     else:
         if len(rows):
             logger.debug(f"Central is responsible for {len(rows)} run(s)")
