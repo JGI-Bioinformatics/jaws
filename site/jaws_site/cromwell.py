@@ -27,6 +27,7 @@ elsewhere in JAWS, as clarified below:
 import requests
 import logging
 import os
+import glob
 import json
 import io
 from datetime import datetime, timezone
@@ -335,14 +336,17 @@ class Call:
             else:
                 result["stdoutSubmitContents"] = stdout_submit_contents
         if "callRoot" in self.data:
-            stderr_submit_file = f"{self.data['callRoot']}/execution/stderr.submit"
-            try:
-                stderrSubmitContents = _read_file(stderr_submit_file)
-            except Exception:  # noqa
-                # submit stderr file doesn't always exist (e.g. never for AWS)
-                result["stderrSubmitContents"] = None
-            else:
-                result["stderrSubmitContents"] = stderrSubmitContents
+            # check for existence of any task-specific *.log files.
+            # callRoot is not specified for AWS/S3 files, so it works only for NFS paths.
+            log_files = glob.glob(f"{self.data['callRoot']}/execution/*.log")
+            for log_file_path in log_files:
+                log_file_name = os.path.basename(log_file_path)
+                try:
+                    log_file_contents = _read_file(log_file_path)
+                except Exception:  # noqa
+                    result[log_file_name] = None
+                else:
+                    result[log_file_name] = log_file_contents
         return result
 
     def running(self):
