@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 import jaws_central.rest
-import jaws_central.models_fsa
+import jaws_central.models
 import jaws_central.config
 from tests.conftest import MockSession
 
@@ -50,7 +50,7 @@ class MockRunWithId:
 
 @pytest.fixture()
 def mock_database(monkeypatch):
-    monkeypatch.setattr(jaws_central.models_fsa.db, "session", MockSession)
+    monkeypatch.setattr(jaws_central.models.db, "session", MockSession)
 
 
 def test_list_sites(configuration):

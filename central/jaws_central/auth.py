@@ -1,8 +1,8 @@
 import logging
-from flask import abort, request
+from flask import abort, request, current_app as app
 from sqlalchemy.exc import SQLAlchemyError
 import secrets
-from jaws_central.models_fsa import db, User
+from jaws_central.models import User
 import re
 import requests
 import json
@@ -28,7 +28,7 @@ def _get_bearer_token():
 def _get_user_by_token(access_token):
     try:
         user = (
-            db.session.query(User).filter(User.jaws_token == access_token).one_or_none()
+            app.session.query(User).filter(User.jaws_token == access_token).one_or_none()
         )
     except SQLAlchemyError as e:
         abort(500, f"Db error: {e}")
@@ -57,7 +57,7 @@ def get_tokeninfo() -> dict:
 
 def _get_user_by_email(email):
     try:
-        user = db.session.query(User).filter(User.email == email).one_or_none()
+        user = app.session.query(User).filter(User.email == email).one_or_none()
     except SQLAlchemyError as e:
         abort(500, f"Internal Database Error: {e}.")
     if user is None:
@@ -120,7 +120,7 @@ def get_user(user):
     Return current user's info.
     """
     try:
-        user_rec = db.session.query(User).get(user)
+        user_rec = app.session.query(User).get(user)
     except SQLAlchemyError as e:
         abort(500, f"Db error: {e}")
     if user_rec is None:
@@ -144,10 +144,10 @@ def add_user(user) -> None:
     email = request.form.get("email")
     admin = True if request.form.get("admin") == "True" else False
 
-    a_user = db.session.query(User).get(uid)
+    a_user = app.session.query(User).get(uid)
     if a_user is not None:
         abort(400, "Cannot add user; uid already taken.")
-    a_user = db.session.query(User).filter(User.email == email).one_or_none()
+    a_user = app.session.query(User).filter(User.email == email).one_or_none()
     if a_user is not None:
         abort(400, "Cannot add user; email already taken.")
 
@@ -162,11 +162,11 @@ def add_user(user) -> None:
             is_admin=admin,
             is_dashboard=False,
         )
-        db.session.add(new_user)
-        db.session.commit()
+        app.session.add(new_user)
+        app.session.commit()
         logger.info(f"{user} added new user {uid} ({email})")
     except Exception as error:
-        db.session.rollback()
+        app.session.rollback()
         logger.error(f"Failed to add user, {uid}: {error}")
         abort(500, f"Failed to add user, {uid}: {error}")
     return {"token": token}
