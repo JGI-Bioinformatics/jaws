@@ -55,6 +55,8 @@ class Consumer(object):
                 self.channel.close()
         except amqpstorm.AMQPError:
             pass
+        except Exception as error:
+            self.logger.error(f"Unexpected error initializing AMQP channel: {error}")
         finally:
             self.active = False
 
@@ -77,6 +79,13 @@ class Consumer(object):
             response = {
                 "jsonrpc": "2.0",
                 "error": {"code": 400, "message": f"Invalid RPC request: {request}"},
+            }
+            return self.__respond__(message, response)
+        except Exception as error:
+            self.logger.error(f"Unexpected error: {error}")
+            response = {
+                "jsonrpc": "2.0",
+                "error": {"code": 400, "message": f"Unexpected error {error} for {request}"},
             }
             return self.__respond__(message, response)
 
@@ -141,6 +150,15 @@ class Consumer(object):
                 "error": {
                     "code": 500,
                     "message": f"Method returned invalid response; {error}: {response}",
+                },
+            }
+        except Exception as error:
+            self.logger.error(f"Unexpected error {error} for response {response}")
+            response = {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 500,
+                    "message": f"Unexpected error: {error}",
                 },
             }
 
@@ -271,10 +289,14 @@ class RpcServer(object):
                 # Check our connection for errors.
                 self.connection.check_for_errors()
                 self.update_consumers()
-            except amqpstorm.AMQPConnectionError as e:
+            except amqpstorm.AMQPConnectionError as error:
                 # If an error occurs, re-connect and let update_consumers
                 # re-open the channels.
-                self.logger.warning(str(e))
+                self.logger.warn(f"AMQP connection error: {error}")
+                self.stop_consumers(len(self.consumers))
+                self.create_connection()
+            except Exception as error:
+                self.logger.error(f"Unexpected error: {error}")
                 self.stop_consumers(len(self.consumers))
                 self.create_connection()
             time.sleep(1)
@@ -328,8 +350,11 @@ class RpcServer(object):
                     virtual_host=self.params["vhost"],
                     heartbeat=10,
                 )
-            except amqpstorm.AMQPConnectionError as e:
-                self.logger.warning(str(e))
+            except amqpstorm.AMQPConnectionError as error:
+                self.logger.warn(f"Error creating AMQP connection: {error}")
+                time.sleep(1)
+            except Exception as error:
+                self.logger.error(f"Unexpected error creating AMQP connection: {error}")
                 time.sleep(1)
         raise ExceededRetries("Reached the maximum level of retries")
 

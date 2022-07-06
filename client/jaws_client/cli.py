@@ -72,6 +72,8 @@ def health() -> None:
         r = requests.get(url)
     except requests.exceptions.RequestException:
         sys.exit("JAWS Central is DOWN")
+    except Exception as error:
+        raise (f"Unable to communicate with JAWS Central: {error}")
     if r.status_code != 200:
         sys.exit(r.text)
     result = r.json()
@@ -86,6 +88,8 @@ def info() -> None:
         r = requests.get(url)
     except requests.exceptions.RequestException:
         sys.exit("JAWS Central is DOWN")
+    except Exception as error:
+        raise (f"Unable to communicate with JAWS Central: {error}")
     if r.status_code != 200:
         sys.exit(r.text)
     result = r.json()
@@ -118,6 +122,8 @@ def _request(rest_op, url, data={}, files={}):
         sys.exit("Unable to communicate with JAWS server (http error)", err)
     except requests.exceptions.RequestException as err:
         sys.exit("Unable to communicate with JAWS server", err)
+    except Exception as error:
+        raise (f"Unable to communicate with JAWS Central: {error}")
     if response.status_code < 200 or response.status_code > 299:
         try:
             result = response.json()

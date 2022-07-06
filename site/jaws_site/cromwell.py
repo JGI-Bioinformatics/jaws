@@ -97,8 +97,8 @@ def _read_file_nfs(path: str):
     try:
         with open(path, "r") as file:
             contents = file.read()
-    except IOError as error:
-        raise IOError(f"Error reading file, {path}: {error}")
+    except Exception as error:
+        raise (f"Error reading file, {path}: {error}")
     return contents
 
 
@@ -825,8 +825,8 @@ class Cromwell:
         url = f"{self.workflows_url}/{workflow_id}/metadata?expandSubWorkflows=1"
         try:
             response = requests.get(url)
-        except requests.ConnectionError as error:
-            raise error
+        except Exception as error:
+            raise (f"Error retrieving Cromwell metadata: {error}")
         response.raise_for_status()
         data = response.json()
         return Metadata(data)
@@ -836,7 +836,7 @@ class Cromwell:
         try:
             response = requests.get(self.engine_url)
         except Exception as error:
-            raise error
+            raise (f"Error retrieving Cromwell run status: {error}")
         response.raise_for_status()
         return True
 
@@ -846,7 +846,7 @@ class Cromwell:
         try:
             response = requests.post(url)
         except Exception as error:
-            raise error
+            raise (f"Error aborting Cromwell run: {error}")
         sc = response.status_code
         if sc == 200:
             return
