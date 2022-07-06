@@ -1,6 +1,6 @@
 import pytest
 import jaws_central.auth
-import jaws_central.models_fsa
+import jaws_central.models
 from tests.conftest import MockSession
 
 MOCK_JSON = {
@@ -47,7 +47,7 @@ class MockQuery:
 
 @pytest.fixture()
 def mock_database(monkeypatch):
-    monkeypatch.setattr(jaws_central.models_fsa.db, "session", MockSession)
+    monkeypatch.setattr(jaws_central.models.db, "session", MockSession)
 
 
 def test_get_tokeninfo(monkeypatch):

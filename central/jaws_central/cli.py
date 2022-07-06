@@ -7,10 +7,9 @@ import click
 import logging
 from jaws_central import config, log
 import connexion
+from flask import _app_ctx_stack
 from flask_cors import CORS
-from urllib.parse import quote_plus
-from sqlalchemy.pool import QueuePool
-from jaws_central.models_fsa import db
+from sqlalchemy.orm import scoped_session
 from jaws_rpc import rpc_index
 
 
@@ -43,56 +42,42 @@ def cli(config_file: str, log_file: str, log_level: str) -> None:
     if conf:
         logger.debug(f"Config using {config_file}")
 
+    from jaws_central.database import engine
+    from jaws_central import models
+    try:
+        models.Base.metadata.create_all(bind=engine)
+    except Exception as error:
+        logger.exception(f"Failed to create db tables: {error}")
+
 
 @cli.command()
 def auth() -> None:
     """Start JAWS OAuth server"""
+    # database must be initialized after config
+    from jaws_central.database import session_factory
+
     logger = logging.getLogger(__package__)
     logger.debug("Initializing OAuth server")
     basedir = os.path.abspath(os.path.dirname(__file__))
     connex = connexion.FlaskApp(__name__, specification_dir=basedir)
     connex.add_api("swagger.auth.yml")
+    CORS(connex.app)
+    connex.app.session = scoped_session(session_factory, scopefunc=_app_ctx_stack)
 
-    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
-        config.conf.get("DB", "dialect"),
-        config.conf.get("DB", "user"),
-        quote_plus(config.conf.get("DB", "password")),
-        config.conf.get("DB", "host"),
-        config.conf.get("DB", "port"),
-        config.conf.get("DB", "db"),
-    )
-    connex.app.config["SQLALCHEMY_ECHO"] = False
-    connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "poolclass": QueuePool,
-        "pool_pre_ping": True,
-        "pool_recycle": 3600,
-        "pool_size": 5,
-        "max_overflow": 10,
-        "pool_timeout": 30,
-    }
-    db.init_app(connex.app)
+    @connex.app.teardown_appcontext
+    def remove_session(*args, **kwargs):
+        connex.app.session.remove()
 
-    # create tables if not exists
-    with connex.app.app_context():
-        try:
-            db.create_all()
-            db.session.commit()
-        except Exception as error:
-            db.session.rollback()
-            logger.exception(f"Failed to create tables: {error}")
-            raise
-
-    # define port
     port = int(config.conf.get("HTTP", "auth_port"))  # defaults to 3000
-
-    # start OAuth server
     connex.run(host="0.0.0.0", port=port, debug=False)
 
 
 @cli.command()
 def rest() -> None:
     """Start JAWS REST server."""
+    # database must be initialized after config
+    from jaws_central.database import session_factory
+
     logger = logging.getLogger(__package__)
     logger.debug("Starting jaws-central REST server")
     auth_url = config.conf.get("HTTP", "auth_url")
@@ -103,74 +88,39 @@ def rest() -> None:
     basedir = os.path.abspath(os.path.dirname(__file__))
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")
-
-    connex.app.config["SQLALCHEMY_DATABASE_URI"] = "%s://%s:%s@%s:%s/%s" % (
-        config.conf.get("DB", "dialect"),
-        config.conf.get("DB", "user"),
-        quote_plus(config.conf.get("DB", "password")),
-        config.conf.get("DB", "host"),
-        config.conf.get("DB", "port"),
-        config.conf.get("DB", "db"),
-    )
-    connex.app.config["SQLALCHEMY_ECHO"] = False
-    connex.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    connex.app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "poolclass": QueuePool,
-        "pool_pre_ping": True,
-        "pool_recycle": 3600,
-        "pool_size": 5,
-        "max_overflow": 10,
-        "pool_timeout": 30,
-    }
-
-    # add CORS support
     CORS(connex.app)
+    connex.app.session = scoped_session(session_factory, scopefunc=_app_ctx_stack)
 
-    db.init_app(connex.app)
+    @connex.app.teardown_appcontext
+    def remove_session(*args, **kwargs):
+        connex.app.session.remove()
 
-    # create tables if not exists
-    with connex.app.app_context():
-        try:
-            db.create_all()
-            db.session.commit()
-        except Exception as error:
-            db.session.rollback()
-            logger.exception(f"Failed to create tables: {error}")
-            raise
+    port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
+    connex.run(host="0.0.0.0", port=port, debug=False)
 
     # init RPC clients
     site_rpc_params = config.conf.get_all_sites_rpc_params()
     rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params, logger)
 
-    # define port
-    port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
-
-    # start REST server
-    connex.run(host="0.0.0.0", port=port, debug=False)
-
 
 @cli.command()
 def rpc() -> None:
     """Start JAWS-Central RPC server."""
+    # database must be initialized after config
+    from jaws_central.database import session_factory
     from jaws_rpc import rpc_server
-    from jaws_central.database import Session
     from jaws_central import rpc_operations
 
     rpc_params = config.conf.get_section("RPC_SERVER")
     logger = logging.getLogger(__package__)
-    app = rpc_server.RpcServer(rpc_params, logger, rpc_operations.operations, Session)
+    app = rpc_server.RpcServer(rpc_params, logger, rpc_operations.operations, scoped_session(session_factory))
     app.start_server()
 
 
 @cli.command()
 def run_daemon() -> None:
     """Start run-daemon"""
-    from jaws_central.database import engine, Session
-    from jaws_central import models
     from jaws_central.run_daemon import RunDaemon
-
-    session = Session()
-    models.create_all(engine, session)
 
     logger = logging.getLogger(__package__)
 
