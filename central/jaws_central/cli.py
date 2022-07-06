@@ -62,7 +62,12 @@ def auth() -> None:
     connex = connexion.FlaskApp(__name__, specification_dir=basedir)
     connex.add_api("swagger.auth.yml")
     CORS(connex.app)
-    connex.app.session = scoped_session(session_factory, scopefunc=_app_ctx_stack.__ident_func__)
+    connex.app.session = scoped_session(session_factory, scopefunc=_app_ctx_stack)
+
+    @connex.app.teardown_appcontext
+    def remove_session(*args, **kwargs):
+        connex.app.session.remove()
+
     port = int(config.conf.get("HTTP", "auth_port"))  # defaults to 3000
     connex.run(host="0.0.0.0", port=port, debug=False)
 
@@ -84,7 +89,12 @@ def rest() -> None:
     connex = connexion.FlaskApp("JAWS_REST", specification_dir=basedir)
     connex.add_api("swagger.rest.yml")
     CORS(connex.app)
-    connex.app.session = scoped_session(session_factory, scopefunc=_app_ctx_stack.__ident_func__)
+    connex.app.session = scoped_session(session_factory, scopefunc=_app_ctx_stack)
+
+    @connex.app.teardown_appcontext
+    def remove_session(*args, **kwargs):
+        connex.app.session.remove()
+
     port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
     connex.run(host="0.0.0.0", port=port, debug=False)
 

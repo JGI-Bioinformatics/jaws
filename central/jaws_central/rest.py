@@ -6,11 +6,11 @@ import logging
 import json
 from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch
-from flask import abort, request
+from flask import abort, request, current_app as app
 from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config, jaws_constants
 from jaws_rpc import rpc_index
-from jaws_central.models_fsa import db, Run, User, Run_Log
+from jaws_central.models import Run, User, Run_Log
 from jaws_central.config import ConfigurationError
 
 
@@ -101,7 +101,7 @@ def _rpc_call(user, run_id, method, params={}):
     :rtype: dict or list
     """
     try:
-        run = db.session.query(Run).get(run_id)
+        run = app.session.query(Run).get(run_id)
     except SQLAlchemyError as e:
         logger.error(e)
         raise
@@ -133,7 +133,7 @@ def _is_admin(user):
     :rtype: bool
     """
     try:
-        current_user = db.session.query(User).get(user)
+        current_user = app.session.query(User).get(user)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, {"error": f"Db error; {error}"})
@@ -149,7 +149,7 @@ def _user_group(user):
     :rtype: str
     """
     try:
-        current_user = db.session.query(User).get(user)
+        current_user = app.session.query(User).get(user)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, {"error": f"Db error; {error}"})
@@ -187,7 +187,7 @@ def _select_runs(user: str, **kwargs):
     :return: Runs matching search criteria
     :rtype: list
     """
-    query = db.session.query(Run)
+    query = app.session.query(Run)
     if "all_users" in kwargs and kwargs["all_users"] is True:
         pass
     else:
@@ -325,15 +325,15 @@ def submit_run(user):
         webhook=webhook,
     )
     try:
-        db.session.add(run)
+        app.session.add(run)
     except Exception as error:
-        db.session.rollback()
+        app.session.rollback()
         logger.exception(f"Error inserting Run: {error}")
         abort(500, {"error": f"Error inserting Run into db: {error}"})
     try:
-        db.session.commit()
+        app.session.commit()
     except Exception as error:
-        db.session.rollback()
+        app.session.rollback()
         err_msg = f"Unable to insert new run in db: {error}"
         logger.exception(err_msg)
         abort(500, {"error": err_msg})
@@ -354,9 +354,9 @@ def _update_run_status(run, new_status, reason=None):
     if new_status == "cancelled":
         run.result = "cancelled"
     try:
-        db.session.commit()
+        app.session.commit()
     except Exception as error:
-        db.session.rollback()
+        app.session.rollback()
         logger.exception(f"Error updating run status in db: {error}")
     log = Run_Log(
         run_id=run.id,
@@ -366,10 +366,10 @@ def _update_run_status(run, new_status, reason=None):
         reason=reason,
     )
     try:
-        db.session.add(log)
-        db.session.commit()
+        app.session.add(log)
+        app.session.commit()
     except Exception as error:
-        db.session.rollback()
+        app.session.rollback()
         logger.exception(f"Error insert run log entry: {error}")
 
 
@@ -382,7 +382,7 @@ def _get_run(user, run_id):
     :rtype: sqlalchemy.model
     """
     try:
-        run = db.session.query(Run).get(run_id)
+        run = app.session.query(Run).get(run_id)
     except SQLAlchemyError as error:
         logger.error(error)
         abort(500, {"error": f"Db error; {error}"})
@@ -474,7 +474,7 @@ def run_log(user: str, run_id: int):
     logger.info(f"User {user}: Get log of Run {run.id}")
     try:
         query = (
-            db.session.query(Run_Log)
+            app.session.query(Run_Log)
             .filter_by(run_id=run_id)
             .order_by(Run_Log.timestamp)
         )
