@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import json
 import smtplib
@@ -23,7 +23,7 @@ class RunDbError(RunError):
     pass
 
 
-class RunNotFound(RunError):
+class RunNotFoundError(RunError):
     pass
 
 
@@ -114,7 +114,7 @@ class Run:
             data = session.query(models.Run).get(run_id)
         except IntegrityError as error:
             logger.error(f"Run {run_id} not found: {error}")
-            raise RunNotFound(f"Run {run_id} not found")
+            raise RunNotFoundError(f"Run {run_id} not found")
         except SQLAlchemyError as error:
             err_msg = f"Unable to select run, {run_id}: {error}"
             logger.error(err_msg)
@@ -463,6 +463,33 @@ class Run:
             )
             raise
 
+    def log(self):
+        """
+        Retrieve complete log of the Run's state transitions.
+        :return: Table of log entries
+        :rtype: list
+        """
+        logger.info(f"Get log of Run {self.data.id}")
+        try:
+            query = (
+                self.session.query(models.Run_Log)
+                .filter_by(run_id=self.data.id)
+                .order_by(models.Run_Log.timestamp)
+            )
+        except SQLAlchemyError as error:
+            logger.exception(f"Error selecting from run_logs: {error}")
+        table = []
+        for log in query:
+            reason = log.reason if log.reason is not None else ""
+            row = [
+                log.status_from,
+                log.status_to,
+                log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                reason,
+            ]
+            table.append(row)
+        return table
+
     def send_email(self):
         receiver_email = self.user_email()
 
@@ -543,3 +570,39 @@ def check_active_runs(session, rpc_index) -> None:
                     rpc_index,
                 )
                 run.check_status()
+
+
+def select_runs(session, **kwargs):
+    """Get runs matching some criteria.
+
+    :param session: db session
+    :type session: sqlalchemy session obj
+    :return: Runs matching search criteria
+    :rtype: list
+    """
+    query = session.query(models.Run)
+    if "all_users" in kwargs and kwargs["all_users"] is True:
+        pass
+    else:
+        query = query.filter(models.Run.user_id == kwargs["user_id"])
+    if "active_only" in kwargs and kwargs["active_only"] is True:
+        query = query.filter(models.Run.status != "done")
+    if "site_id" in kwargs:
+        site_id = kwargs["site_id"].upper()
+        if site_id != "ALL":
+            query = query.filter(models.Run.compute_site_id == site_id)
+    if "delta_days" in kwargs:
+        delta_days = int(kwargs["delta_days"])
+        if delta_days > 0:
+            start_date = datetime.today() - timedelta(delta_days)
+            query = query.filter(models.Run.submitted >= start_date)
+    if "result" in kwargs:
+        result = kwargs["result"].lower()
+        if result != "any":
+            query = query.filter(models.Run.result == result)
+
+    runs = []
+    for data in query.all():
+        run = Run(session, data)
+        runs.append(run)
+    return runs
