@@ -287,7 +287,7 @@ class Run:
         self.output_dir = f"{output_basedir}/{self.submission_id}"
         try:
             mkdir(self.output_dir)
-        except IOError as error:
+        except Exception as error:
             raise IOError(f"Unable to create output dir: {error}")
 
         # Create optional subworkflows Zip-file and copy Run all inputs to the
@@ -587,6 +587,8 @@ class WorkflowInputs:
                 inputs_json = json.load(open(inputs_loc, "r"))
             except json.JSONDecodeError as error:
                 raise WorkflowInputsError(f"Your inputs JSON is invalid: {error}")
+            except Exception as error:
+                raise (f"Unable to read JSON infile: {error}")
         self.inputs_json = {}
         self.src_file_inputs = set()
         self.wdl_file_location = os.path.abspath(wdl_loc)
@@ -654,7 +656,7 @@ class WorkflowInputs:
             copy_with_progress_bar(original_path, dest_path, quiet=quiet)
             try:
                 os.chmod(dest_path, 0o0666)
-            except IOError as error:
+            except Exception as error:
                 raise IOError(f"Error chmod {dest_path}: {error}")
 
         return copied_files
