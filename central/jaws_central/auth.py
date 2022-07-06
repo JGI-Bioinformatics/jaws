@@ -66,7 +66,7 @@ def _get_user_by_email(email):
 
 
 def _get_json_from_sso(hash_code):
-    base = "https://signon.jgi.doe.gov/api/app.sessions/"
+    base = "https://signon.jgi.doe.gov/api/sessions/"
     response = None
     try:
         response = requests.get(base + hash_code + ".json", allow_redirects=True)
