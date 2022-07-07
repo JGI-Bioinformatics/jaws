@@ -648,8 +648,9 @@ def get_performance_metrics(user, run_id):
     :return: performance metrics
     :rtype: dict
     """
-    run = _get_run(user, run_id)
-    logger.info(f"User {user}: Get log of Run {run.data.id}")
+    logger.info(f"User {user}: Get log of Run {run_id}")
+    # run = _get_run(user, run_id)
+    # TODO access should be via a Class
     db_conf = config.conf.get_section("ELASTIC_SEARCH")
     pm_conf = config.conf.get_section("PERFORMANCE_METRICS")
     response = _search_elastic_search(
