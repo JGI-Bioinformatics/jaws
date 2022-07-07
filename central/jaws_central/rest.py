@@ -6,7 +6,6 @@ import logging
 import json
 from elasticsearch import Elasticsearch
 from flask import abort, request, current_app as app
-from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config
 from jaws_rpc import rpc_index
 from jaws_central.runs import Run, select_runs, RunNotFoundError
@@ -50,15 +49,15 @@ class RunAccessDeniedError(Exception):
     pass
 
 
-def rpc_call(user, run_id, method, params={}):
+def rpc_call(user, run, method, params={}):
     """This is not a Flask endpoint, but a helper used by several endpoints.
     It checks a user's permission to access a run, perform the specified RPC function,
     and returns result if OK, aborts if error.
 
     :param user: current user's id
     :type user: str
-    :param run_id: unique identifier for a run
-    :type run_id: int
+    :param run: Run object
+    :type run: runs.Run
     :param method: the method to execute remotely
     :type method: string
     :param params: parameters for the remote method, depends on method
@@ -66,58 +65,29 @@ def rpc_call(user, run_id, method, params={}):
     :return: response in JSON-RPC2 format
     :rtype: dict or list
     """
+    params = {
+        "user_id": user,
+        "run_id": run.data.id,
+        "cromwell_run_id": run.data.cromwell_run_id
+    }
+    logger.info(f"RPC {method} params {params}")
     try:
-        response = _rpc_call(user, run_id, method, params)
-    except RunNotFoundError as error:
-        abort(404, {"error": f"{error}"})
-    except RunAccessDeniedError as error:
-        abort(401, {"error": f"{error}"})
-    except Exception as error:
-        abort(500, {"error": f"{error}"})
-    if "error" in response:
-        abort(response["error"]["code"], {"error": response["error"]["message"]})
-    else:
-        return response["result"], 200
-
-
-def _rpc_call(user, run_id, method, params={}):
-    """
-    It checks a user's permission to access a run, perform the specified RPC function, and
-    returns the response, which may indicate success or failure, to be processed by the caller.
-
-    :param user: current user's id
-    :type user: str
-    :param run_id: unique identifier for a run
-    :type run_id: int
-    :param method: the method to execute remotely
-    :type method: string
-    :param params: parameters for the remote method, depends on method
-    :type params: dict
-    :return: response in JSON-RPC2 format
-    :rtype: dict or list
-    """
-    try:
-        run = Run.from_id(app.session, run_id)
-    except RunNotFoundError:
-        raise
-    except Exception as error:
-        logger.error(f"Unable to init Run {run_id}: {error}")
-        raise
-    if run.data.user_id != user and not _is_admin(user):
-        raise RunAccessDeniedError(
-            "Access denied; you cannot access to another user's workflow"
-        )
-    a_site_rpc_client = rpc_index.rpc_index.get_client(run.data.compute_site_id)
-    params["user_id"] = user
-    params["run_id"] = run_id
-    params["cromwell_run_id"] = run.data.cromwell_run_id
-    logger.info(f"User {user} RPC {method} params {params}")
+        a_site_rpc_client = rpc_index.rpc_index.get_client(run.data.compute_site_id)
+    except rpc_index.RpcIndexError as error:
+        logger.error(str(error))
+        abort(404, {"error": str(error)})
     try:
         response = a_site_rpc_client.request(method, params)
     except Exception as error:
-        logger.error(f"RPC {method} failed: {error}")
-        raise
-    return response
+        msg = f"RPC {method} failed: {error}"
+        logger.error(msg)
+        abort(500, {"error": msg})
+    if "error" in response:
+        error = response["error"]["message"]
+        logger.error(f"RPC {method} failed for Run {run.data.id}: {error}")
+        abort(response["error"]["code"], {"error": error})
+    else:
+        return response["result"], 200
 
 
 def _get_user(user):
@@ -130,7 +100,7 @@ def _get_user(user):
     """
     try:
         current_user = User.from_id(app.session, user)
-    except SQLAlchemyError as error:
+    except Exception as error:
         logger.error(error)
         abort(500, {"error": f"Error retrieving user record: {error}"})
     return current_user
@@ -320,12 +290,13 @@ def _get_run(user, run_id):
     try:
         run = Run.from_id(app.session, run_id)
     except RunNotFoundError as error:
-        logger.error(f"Run {run_id} not found: {error}")
+        logger.error(error)
         abort(404, {"error": "Run not found; please check your run_id"})
     except Exception as error:
         logger.error(error)
         abort(500, {"error": f"Error retrieving Run {run_id}; {error}"})
     if run.data.user_id != user and not _is_admin(user):
+        logger.warning(f"User {user} denied access to Run {run_id}")
         abort(401, {"error": "Access denied; you are not the owner of that Run."})
     return run
 
@@ -597,7 +568,7 @@ def cancel_all(user):
         try:
             run.cancel()
         except Exception as error:
-            logger.warn(f"Error cancelling run {run.data.id}: {error}")
+            logger.warning(f"Error cancelling run {run.data.id}: {error}")
             cancelled[run.data.id] = False
         else:
             cancelled[run.data.id] = True

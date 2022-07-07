@@ -127,7 +127,7 @@ class Consumer(object):
         try:
             response = proc(params, session)
         except Exception as error:
-            self.logger.warn(f"RPC function error: {error}; params={params}")
+            self.logger.warning(f"RPC function error: {error}; params={params}")
             response = {
                 "jsonrpc": "2.0",
                 "error": {
@@ -292,7 +292,7 @@ class RpcServer(object):
             except amqpstorm.AMQPConnectionError as error:
                 # If an error occurs, re-connect and let update_consumers
                 # re-open the channels.
-                self.logger.warn(f"AMQP connection error: {error}")
+                self.logger.warning(f"AMQP connection error: {error}")
                 self.stop_consumers(len(self.consumers))
                 self.create_connection()
             except Exception as error:
@@ -351,7 +351,7 @@ class RpcServer(object):
                     heartbeat=10,
                 )
             except amqpstorm.AMQPConnectionError as error:
-                self.logger.warn(f"Error creating AMQP connection: {error}")
+                self.logger.warning(f"Error creating AMQP connection: {error}")
                 time.sleep(1)
             except Exception as error:
                 self.logger.error(f"Unexpected error creating AMQP connection: {error}")

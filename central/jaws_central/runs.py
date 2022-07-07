@@ -188,7 +188,11 @@ class Run:
         ]:
             rpc_client = self.rpc_index.get_client(self.data.compute_site_id)
             params = {"user_id": self.data.user_id, "run_id": self.data.id}
-            rpc_client.request("cancel", params)
+            try:
+                rpc_client.request("cancel", params)
+            except Exception as error:
+                logger.warning(f"RPC cancel failure: {error}")
+                return
         self.update_status("cancelled")
 
     def _get_transfer(self, transfer_id: int):
