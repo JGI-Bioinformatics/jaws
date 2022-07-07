@@ -7,7 +7,7 @@ import json
 from elasticsearch import Elasticsearch
 from flask import abort, request, current_app as app
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_central import config, jaws_constants
+from jaws_central import config
 from jaws_rpc import rpc_index
 from jaws_central.runs import Run, select_runs, RunNotFoundError
 from jaws_central.users import User
