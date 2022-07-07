@@ -325,7 +325,7 @@ def _get_run(user, run_id):
     except Exception as error:
         logger.error(error)
         abort(500, {"error": f"Error retrieving Run {run_id}; {error}"})
-    if run.user_id != user and not _is_admin(user):
+    if run.data.user_id != user and not _is_admin(user):
         abort(401, {"error": "Access denied; you are not the owner of that Run."})
     return run
 
