@@ -83,10 +83,15 @@ def rpc_call(user, run, method, params={}):
         msg = f"RPC {method} failed: {error}"
         logger.error(msg)
         abort(500, {"error": msg})
+<<<<<<< HEAD
     except Exception as error:
         abort(500, {"error": f"{error}"})
+=======
+>>>>>>> 6a1b4e4 (log rpc response error message)
     if "error" in response:
-        abort(response["error"]["code"], {"error": response["error"]["message"]})
+        error = response["error"]["message"]
+        logger.error(f"RPC {method} failed for Run {run.data.id}: {error}")
+        abort(response["error"]["code"], {"error": error})
     else:
         return response["result"], 200
 
@@ -568,7 +573,7 @@ def cancel_all(user):
         try:
             run.cancel()
         except Exception as error:
-            logger.warn(f"Error cancelling run {run.data.id}: {error}")
+            logger.warning(f"Error cancelling run {run.data.id}: {error}")
             cancelled[run.data.id] = False
         else:
             cancelled[run.data.id] = True
