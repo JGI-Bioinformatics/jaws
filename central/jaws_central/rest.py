@@ -4,13 +4,13 @@ Analysis (AKA Run) REST endpoints.
 
 import logging
 import json
-from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch
 from flask import abort, request, current_app as app
 from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config, jaws_constants
 from jaws_rpc import rpc_index
-from jaws_central.models import Run, User, Run_Log
+from jaws_central.runs import Run, select_runs, RunNotFoundError
+from jaws_central.users import User
 from jaws_central.config import ConfigurationError
 
 
@@ -44,10 +44,6 @@ run_pre_cromwell_states = [
     "ready",
     "submission failed",
 ]
-
-
-class RunNotFoundError(Exception):
-    pass
 
 
 class RunAccessDeniedError(Exception):
@@ -101,13 +97,13 @@ def _rpc_call(user, run_id, method, params={}):
     :rtype: dict or list
     """
     try:
-        run = app.session.query(Run).get(run_id)
-    except SQLAlchemyError as e:
-        logger.error(e)
+        run = Run.from_id(app.session, run_id)
+    except RunNotFoundError:
         raise
-    if not run:
-        raise RunNotFoundError("Run not found; please check your run_id")
-    if run.user_id != user and not _is_admin(user):
+    except Exception as error:
+        logger.error(f"Unable to init Run {run_id}: {error}")
+        raise
+    if run.data.id != user and not _is_admin(user):
         raise RunAccessDeniedError(
             "Access denied; you cannot access to another user's workflow"
         )
@@ -124,6 +120,22 @@ def _rpc_call(user, run_id, method, params={}):
     return response
 
 
+def _get_user(user):
+    """
+    Retrieve current user info.
+    :param user: Current user's ID
+    :type user: str
+    :return: User object
+    :rtype: users.User
+    """
+    try:
+        current_user = User.from_id(app.session, user)
+    except SQLAlchemyError as error:
+        logger.error(error)
+        abort(500, {"error": f"Error retrieving user record: {error}"})
+    return current_user
+
+
 def _is_admin(user):
     """
     Check if current user is an adinistrator.
@@ -132,12 +144,8 @@ def _is_admin(user):
     :return: True if user is an admin
     :rtype: bool
     """
-    try:
-        current_user = app.session.query(User).get(user)
-    except SQLAlchemyError as error:
-        logger.error(error)
-        abort(500, {"error": f"Db error; {error}"})
-    return True if current_user.is_admin else False
+    current_user = _get_user(user)
+    return True if current_user.data.is_admin else False
 
 
 def _user_group(user):
@@ -148,15 +156,11 @@ def _user_group(user):
     :return: user-group (may be None)
     :rtype: str
     """
-    try:
-        current_user = app.session.query(User).get(user)
-    except SQLAlchemyError as error:
-        logger.error(error)
-        abort(500, {"error": f"Db error; {error}"})
-    return current_user.user_group
+    current_user = _get_user(user)
+    return current_user.data.user_group
 
 
-def search_runs(user):
+def search_runs(user, verbose=False):
     """Search is used by both user queue and history commands."""
     site_id = request.form.get("site_id", "all").upper()
     active_only = True if request.form.get("active_only") == "True" else False
@@ -164,9 +168,9 @@ def search_runs(user):
     result = request.form.get("result", "any").lower()
     all_users = True if request.form.get("all") == "True" else False
     logger.info(f"User {user}: Search runs")
-    is_admin = _is_admin(user)
-    rows = _select_runs(
-        user,
+    matches = select_runs(
+        app.session,
+        user_id=user,
         active_only=active_only,
         delta_days=delta_days,
         site_id=site_id,
@@ -174,40 +178,9 @@ def search_runs(user):
         all_users=all_users,
     )
     runs = []
-    for row in rows:
-        runs.append(_run_info(row, is_admin))
+    for row in matches:
+        runs.append(_run_info(row, verbose))
     return runs, 200
-
-
-def _select_runs(user: str, **kwargs):
-    """Select runs from db.
-
-    :param user: current user's ID
-    :type user: str
-    :return: Runs matching search criteria
-    :rtype: list
-    """
-    query = app.session.query(Run)
-    if "all_users" in kwargs and kwargs["all_users"] is True:
-        pass
-    else:
-        query = query.filter(Run.user_id == user)
-    if "active_only" in kwargs and kwargs["active_only"] is True:
-        query = query.filter(Run.status.in_(run_active_states))
-    if "site_id" in kwargs:
-        site_id = kwargs["site_id"].upper()
-        if site_id != "ALL":
-            query = query.filter(Run.compute_site_id == site_id)
-    if "delta_days" in kwargs:
-        delta_days = int(kwargs["delta_days"])
-        if delta_days > 0:
-            start_date = datetime.today() - timedelta(delta_days)
-            query = query.filter(Run.submitted >= start_date)
-    if "result" in kwargs:
-        result = kwargs["result"].lower()
-        if result != "any":
-            query = query.filter(Run.result == result)
-    return query.all()
 
 
 def list_sites(user):
@@ -282,13 +255,13 @@ def submit_run(user):
             404,
             {"error": f'Unknown Site ID; "{compute_site_id}" is not one of our sites'},
         )
-    if (
-        "user_group" in compute_site_config
-        and compute_site_config["user_group"]
-    ):
+    if "user_group" in compute_site_config and compute_site_config["user_group"]:
         # a jaws-site may optionally be restricted to members of a user-group
-        user_group = _user_group(user)
-        if user_group == compute_site_config["user_group"] or _is_admin(user):
+        current_user = _get_user(app.session, user)
+        if (
+            current_user.data.user_group == compute_site_config["user_group"]
+            or current_user.data.is_admin
+        ):
             pass
         else:
             abort(
@@ -307,70 +280,33 @@ def submit_run(user):
         abort(406, {"error": msg})
 
     # insert into db and the daemon will pick it up and initiate the file transfer
-    # We aren't using the Run class here because it isn't compatible with the
-    # flask-sqlalchemy base class
-    # TODO: stop using flask-sqlalchemy and use runs.Run.from_params() instead
-    run = Run(
-        user_id=user,
-        submission_id=submission_id,
-        status="created",
-        max_ram_gb=max_ram_gb,
-        caching=caching,
-        input_site_id=input_site_id,
-        compute_site_id=compute_site_id,
-        wdl_file=wdl_file,
-        json_file=json_file,
-        tag=tag,
-        manifest_json=manifest_json,
-        webhook=webhook,
-    )
+    params = {
+        "user_id": user,
+        "submission_id": submission_id,
+        "status": "created",
+        "max_ram_gb": max_ram_gb,
+        "caching": caching,
+        "input_site_id": input_site_id,
+        "compute_site_id": compute_site_id,
+        "wdl_file": wdl_file,
+        "json_file": json_file,
+        "tag": tag,
+        "manifest_json": manifest_json,
+        "webhook": webhook,
+    }
     try:
-        app.session.add(run)
+        run = Run.from_params(app.session, params)
     except Exception as error:
-        app.session.rollback()
         logger.exception(f"Error inserting Run: {error}")
         abort(500, {"error": f"Error inserting Run into db: {error}"})
-    try:
-        app.session.commit()
-    except Exception as error:
-        app.session.rollback()
-        err_msg = f"Unable to insert new run in db: {error}"
-        logger.exception(err_msg)
-        abort(500, {"error": err_msg})
-    logger.debug(f"User {user}: New run {run.id}")
+    logger.debug(f"User {user}: New run {run.data.id}")
 
     # return run_id
     result = {
-        "run_id": run.id,
+        "run_id": run.data.id,
     }
-    logger.info(f"User {user}: New run {run.id}")
+    logger.info(f"User {user}: New run {run.data.id}")
     return result, 201
-
-
-def _update_run_status(run, new_status, reason=None):
-    """Update run table and insert run_logs entry."""
-    status_from = run.status
-    run.status = new_status
-    if new_status == "cancelled":
-        run.result = "cancelled"
-    try:
-        app.session.commit()
-    except Exception as error:
-        app.session.rollback()
-        logger.exception(f"Error updating run status in db: {error}")
-    log = Run_Log(
-        run_id=run.id,
-        status_from=status_from,
-        status_to=run.status,
-        timestamp=run.updated,
-        reason=reason,
-    )
-    try:
-        app.session.add(log)
-        app.session.commit()
-    except Exception as error:
-        app.session.rollback()
-        logger.exception(f"Error insert run log entry: {error}")
 
 
 def _get_run(user, run_id):
@@ -382,12 +318,13 @@ def _get_run(user, run_id):
     :rtype: sqlalchemy.model
     """
     try:
-        run = app.session.query(Run).get(run_id)
-    except SQLAlchemyError as error:
-        logger.error(error)
-        abort(500, {"error": f"Db error; {error}"})
-    if not run:
+        run = Run.from_id(app.session, run_id)
+    except RunNotFoundError as error:
+        logger.error(f"Run {run_id} not found: {error}")
         abort(404, {"error": "Run not found; please check your run_id"})
+    except Exception as error:
+        logger.error(error)
+        abort(500, {"error": f"Error retrieving Run {run_id}; {error}"})
     if run.user_id != user and not _is_admin(user):
         abort(401, {"error": "Access denied; you are not the owner of that Run."})
     return run
@@ -423,8 +360,7 @@ def run_status(user, run_id, verbose=False):
     """
     run = _get_run(user, run_id)
     logger.info(f"User {user}: Get status of Run {run.id}")
-    is_admin = _is_admin(user)
-    info = _run_info(run, is_admin, verbose)
+    info = _run_info(run, verbose)
     return info, 200
 
 
@@ -470,28 +406,15 @@ def run_log(user: str, run_id: int):
     :return: Table of log entries
     :rtype: list
     """
+    logger.info(f"User {user}: Get log of Run {run_id}")
     run = _get_run(user, run_id)
-    logger.info(f"User {user}: Get log of Run {run.id}")
     try:
-        query = (
-            app.session.query(Run_Log)
-            .filter_by(run_id=run_id)
-            .order_by(Run_Log.timestamp)
-        )
-    except SQLAlchemyError as error:
-        logger.exception(f"Error selecting from run_logs: {error}")
-        abort(500, {"error": f"Db error; {error}"})
-    table = []
-    for log in query:
-        reason = log.reason if log.reason else ""
-        row = [
-            log.status_from,
-            log.status_to,
-            log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            reason,
-        ]
-        table.append(row)
-    return table, 200
+        log = run.log()
+    except Exception as error:
+        logger.exception(f"Error retrieving log of run {run_id}: {error}")
+        abort(500, {"error": str(error)})
+    else:
+        return log, 200
 
 
 def run_task_log(user, run_id):
@@ -647,49 +570,12 @@ def cancel_run(user, run_id):
     logger.info(f"User {user}: Cancel Run {run_id}")
 
     run = _get_run(user, run_id)
-    status = run.status
-
-    if status == "cancelled":
-        abort(400, {"error": "That Run had already been cancelled"})
-    elif status in ["download complete", "email sent", "done"]:
-        abort(400, {"error": "It is too late to cancel."})
-    cancelled = _cancel_run(user, run)
-    if cancelled is True:
-        return {run_id: cancelled}, 201
+    try:
+        run.cancel()
+    except Exception as error:
+        abort(400, {"error": str(error)})
     else:
-        abort(400, {"error": f"Run {run_id} could not be cancelled"})
-
-
-def _cancel_run(user, run, reason="Cancelled by user"):
-    """
-    Cancel a Run.
-
-    :param run: Run SqlAlchemy ORM object
-    :type run: obj
-    """
-    orig_status = run.status
-    if run.status in ["cancelled", "download complete", "email sent", "done"]:
-        # too late to cancel
-        return False
-    else:
-        # central must be updated so the central-run-daemon will not process it
-        try:
-            _update_run_status(run, "cancelled", reason)
-        except Exception as error:
-            logger.error(f"Cancel failed to update Run {run.id} status: {error}")
-            return False
-    if orig_status in ["submitted", "queued", "running"]:
-        # the compute jaws-site should also receive the cancel instruction
-        try:
-            _rpc_call(user, run.id, "cancel_run")
-        except Exception as error:
-            logger.error(f"RPC cancel Run {run.id} failed: {error}")
-            return False
-        else:
-            logger.debug(f"RPC cancel Run {run.id} successful")
-            return True
-    else:
-        return True
+        return {run_id: True}, 201
 
 
 def cancel_all(user):
@@ -703,13 +589,19 @@ def cancel_all(user):
     """
     logger.info(f"User {user}: Cancel-all")
     try:
-        active_runs = _select_runs(user, active_only=True)
-    except SQLAlchemyError as error:
+        active_runs = select_runs(app.session, user_id=user, active_only=True)
+    except Exception as error:
         logger.error(error)
-        abort(500, {"error": f"Db error; {error}"})
+        abort(500, {"error": f"Search runs error: {error}"})
     cancelled = {}
     for run in active_runs:
-        cancelled[run.id] = _cancel_run(user, run)
+        try:
+            run.cancel()
+        except Exception as error:
+            logger.warn(f"Error cancelling run {run.data.id}: {error}")
+            cancelled[run.data.id] = False
+        else:
+            cancelled[run.data.id] = True
     return cancelled, 201
 
 
@@ -782,7 +674,7 @@ def get_performance_metrics(user, run_id):
     return metrics
 
 
-def _run_info(run, is_admin=False, verbose=False):
+def _run_info(run, verbose=False):
     """
     Return dictionary of run info.
     Run run cannot be changed by altering the returned dict.
@@ -803,7 +695,7 @@ def _run_info(run, is_admin=False, verbose=False):
         "wdl_file": run.wdl_file,
         "json_file": run.json_file,
     }
-    if verbose or is_admin:
+    if verbose:
         more_info = {
             "cromwell_run_id": run.cromwell_run_id,
             "input_site_id": run.input_site_id,
