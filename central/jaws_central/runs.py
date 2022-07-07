@@ -334,6 +334,10 @@ class Run:
         If the upload is complete, update the run's status.
         """
         logger.debug(f"Run {self.data.id}: Check upload status")
+        if self.data.input_site_id == self.data.compute_site_id:
+            # no transfer required if computing at input site
+            self.update_status("upload complete")
+            return
         try:
             upload = self.get_upload()
         except Exception as error:
