@@ -91,7 +91,7 @@ class Run:
                 webhook=params["webhook"],
             )
         except SQLAlchemyError as error:
-            raise (f"Error creating model for new Run {kwargs['run_id']}: {error}")
+            raise (f"Error creating model for new Run {params['run_id']}: {error}")
         except Exception as error:
             raise (f"Unknown error initializing Run model: {error}")
         try:
