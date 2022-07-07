@@ -66,7 +66,9 @@ class PerformanceMetricsDaemon:
             try:
                 done_dir.mkdir(exist_ok=True)
             except Exception as ex:
-                logger.warning(f"Error making new directory {done_dir} {type(ex).__name__} : {ex}")
+                logger.warning(
+                    f"Error making new directory {done_dir} {type(ex).__name__} : {ex}"
+                )
         # Get all the csv files in the running dir
         files_running = running_dir.glob("*.csv")
         # Get the time the daemon was run
@@ -79,7 +81,7 @@ class PerformanceMetricsDaemon:
             except Exception as ex:
                 logger.warning(f"Error getting file stat {type(ex).__name__} : {ex}")
             # gets the time the file hasn't been modified to in minutes
-            idle_time = (now-status.st_ctime)/60
+            idle_time = (now - status.st_ctime) / 60
             # If we're over the number of minutes and there has been no modifications then move it
             if idle_time > self.perf_cleanup_time:
                 # Create a new path based on the metrics name and the done directory
@@ -89,6 +91,10 @@ class PerformanceMetricsDaemon:
                 try:
                     metric.replace(new_path)
                 except PermissionError as ex:
-                    logger.warning(f"Error moving file {metric} due to directory permissions {type(ex).__name__} : {ex}")
+                    logger.warning(
+                        f"Error moving file {metric} due to directory permissions {type(ex).__name__} : {ex}"
+                    )
                 except OSError as ex:
-                    logger.warning(f"Error moving file {metric} from one disk to another {type(ex).__name__} : {ex}")
+                    logger.warning(
+                        f"Error moving file {metric} from one disk to another {type(ex).__name__} : {ex}"
+                    )
