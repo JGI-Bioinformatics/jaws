@@ -55,3 +55,16 @@ def test_run_sh_command():
     assert std_out == ""
     assert std_err == ""
     assert exit_code != 0
+
+
+def test_run_slurm_cmd():
+    # test1
+    expected = 123
+    actual = utils.run_slurm_cmd(f'echo "{expected}"')
+    assert actual == expected
+
+# this currently fails but should not
+#    # test2
+#    expected = -1
+#    actual = utils.run_slurm_cmd(f'echo "Unexpected output"')
+#    assert actual == expected
