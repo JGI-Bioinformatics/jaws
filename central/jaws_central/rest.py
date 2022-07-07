@@ -103,7 +103,7 @@ def _rpc_call(user, run_id, method, params={}):
     except Exception as error:
         logger.error(f"Unable to init Run {run_id}: {error}")
         raise
-    if run.data.id != user and not _is_admin(user):
+    if run.data.user_id != user and not _is_admin(user):
         raise RunAccessDeniedError(
             "Access denied; you cannot access to another user's workflow"
         )
