@@ -616,6 +616,23 @@ def run_errors(user, run_id):
     return rpc_call(user, run_id, "run_errors")
 
 
+def run_running_tasks(user, run_id):
+    """
+    Retrieve running-tasks report.
+
+    :param user: current user's ID
+    :type user: str
+    :param run_id: unique identifier for a run
+    :type run_id: int
+    :return: Cromwell running tasks report.
+    :rtype: str
+    """
+    logger.info(f"User {user}: Get running-tasks report for Run {run_id}")
+    run = _get_run(user, run_id)
+    _abort_if_pre_cromwell(run)
+    return rpc_call(user, run_id, "run_running_tasks")
+
+
 def cancel_run(user, run_id):
     """
     Cancel a run.
