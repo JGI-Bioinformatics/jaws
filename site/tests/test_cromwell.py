@@ -36,6 +36,9 @@ example_cromwell_run_id_8 = "5a2cbafe-56ed-42aa-955d-fef8cb5014bb"
 # successful AWS run
 example_cromwell_run_id_9 = "f4f5afd1-79f5-497a-9612-baed76dc365d"
 
+# running Run
+example_cromwell_run_id_10 = "dcc24ca7-c303-4e8e-ad26-7b2644308fab"
+
 
 def __load_example_output_from_file(cromwell_run_id, output_type):
     with open(f"{tests_dir}/{cromwell_run_id}.{output_type}.json", "r") as fh:
@@ -253,6 +256,49 @@ def test_errors(requests_mock, monkeypatch):
         bool(
             DeepDiff(
                 actual_errors_report_7, expected_errors_report_7, ignore_order=True
+            )
+        )
+        is False
+    )
+
+
+def test_running(requests_mock, monkeypatch):
+    def mock_read_file(path):
+        return None
+
+    monkeypatch.setattr(cromwell, "_read_file", mock_read_file)
+
+    # completed workflow
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
+    )
+    expected_running_report_1 = {}
+    metadata_1 = crom.get_metadata(example_cromwell_run_id_1)
+    actual_running_report_1 = metadata_1.running()
+    assert (
+        bool(
+            DeepDiff(
+                actual_running_report_1, expected_running_report_1, ignore_order=True
+            )
+        )
+        is False
+    )
+
+    # running workflow
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_10}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_10, "metadata"),
+    )
+    expected_running_report_10 = __load_example_output_from_file(
+        example_cromwell_run_id_10, "running"
+    )
+    metadata_10 = crom.get_metadata(example_cromwell_run_id_10)
+    actual_running_report_10 = metadata_10.running()
+    assert (
+        bool(
+            DeepDiff(
+                actual_running_report_10, expected_running_report_10, ignore_order=True
             )
         )
         is False
