@@ -7,7 +7,7 @@ import json
 from elasticsearch import Elasticsearch
 from flask import abort, request, current_app as app
 from sqlalchemy.exc import SQLAlchemyError
-from jaws_central import config, jaws_constants
+from jaws_central import config
 from jaws_rpc import rpc_index
 from jaws_central.runs import Run, select_runs, RunNotFoundError
 from jaws_central.users import User
@@ -103,14 +103,14 @@ def _rpc_call(user, run_id, method, params={}):
     except Exception as error:
         logger.error(f"Unable to init Run {run_id}: {error}")
         raise
-    if run.data.id != user and not _is_admin(user):
+    if run.data.user_id != user and not _is_admin(user):
         raise RunAccessDeniedError(
             "Access denied; you cannot access to another user's workflow"
         )
-    a_site_rpc_client = rpc_index.rpc_index.get_client(run.compute_site_id)
+    a_site_rpc_client = rpc_index.rpc_index.get_client(run.data.compute_site_id)
     params["user_id"] = user
     params["run_id"] = run_id
-    params["cromwell_run_id"] = run.cromwell_run_id
+    params["cromwell_run_id"] = run.data.cromwell_run_id
     logger.info(f"User {user} RPC {method} params {params}")
     try:
         response = a_site_rpc_client.request(method, params)
@@ -178,8 +178,8 @@ def search_runs(user, verbose=False):
         all_users=all_users,
     )
     runs = []
-    for row in matches:
-        runs.append(_run_info(row, verbose))
+    for run in matches:
+        runs.append(run.info(verbose))
     return runs, 200
 
 
@@ -325,7 +325,7 @@ def _get_run(user, run_id):
     except Exception as error:
         logger.error(error)
         abort(500, {"error": f"Error retrieving Run {run_id}; {error}"})
-    if run.user_id != user and not _is_admin(user):
+    if run.data.user_id != user and not _is_admin(user):
         abort(401, {"error": "Access denied; you are not the owner of that Run."})
     return run
 
@@ -359,9 +359,8 @@ def run_status(user, run_id, verbose=False):
     :rtype: dict
     """
     run = _get_run(user, run_id)
-    logger.info(f"User {user}: Get status of Run {run.id}")
-    info = _run_info(run, verbose)
-    return info, 200
+    logger.info(f"User {user}: Get status of Run {run.data.id}")
+    return run.info(verbose), 200
 
 
 def run_status_complete(user, run_id):
@@ -649,8 +648,9 @@ def get_performance_metrics(user, run_id):
     :return: performance metrics
     :rtype: dict
     """
-    run = _get_run(user, run_id)
-    logger.info(f"User {user}: Get log of Run {run.id}")
+    logger.info(f"User {user}: Get log of Run {run_id}")
+    # run = _get_run(user, run_id)
+    # TODO access should be via a Class
     db_conf = config.conf.get_section("ELASTIC_SEARCH")
     pm_conf = config.conf.get_section("PERFORMANCE_METRICS")
     response = _search_elastic_search(
@@ -672,37 +672,3 @@ def get_performance_metrics(user, run_id):
         logger.error(error)
         abort(status, {"error": f"{error}"})
     return metrics
-
-
-def _run_info(run, verbose=False):
-    """
-    Return dictionary of run info.
-    Run run cannot be changed by altering the returned dict.
-    :param verbose: True if more fields desired else fewer.
-    :type verbose: bool
-    :return: selected fields
-    :rtype: dict
-    """
-    info = {
-        "id": run.id,
-        "result": run.result,
-        "status": run.status,
-        "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
-        "compute_site_id": run.compute_site_id,
-        "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-        "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
-        "tag": run.tag,
-        "wdl_file": run.wdl_file,
-        "json_file": run.json_file,
-    }
-    if verbose:
-        more_info = {
-            "cromwell_run_id": run.cromwell_run_id,
-            "input_site_id": run.input_site_id,
-            "upload_id": run.upload_id,
-            "submission_id": run.submission_id,
-            "download_id": run.download_id,
-            "user_id": run.user_id,
-        }
-        info.update(more_info)
-    return info

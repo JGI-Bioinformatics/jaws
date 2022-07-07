@@ -95,12 +95,12 @@ def rest() -> None:
     def remove_session(*args, **kwargs):
         connex.app.session.remove()
 
-    port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
-    connex.run(host="0.0.0.0", port=port, debug=False)
-
     # init RPC clients
     site_rpc_params = config.conf.get_all_sites_rpc_params()
     rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params, logger)
+
+    port = int(config.conf.get("HTTP", "rest_port"))  # defaults to 5000
+    connex.run(host="0.0.0.0", port=port, debug=False)
 
 
 @cli.command()
