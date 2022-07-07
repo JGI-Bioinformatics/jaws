@@ -26,7 +26,7 @@ class PerformanceMetrics:
             run = runs.Run.from_cromwell_run_id(self.session, cromwell_run_id)
         except runs.RunNotFoundError or runs.RunDbError as err:
             msg = f"Failed to get run_id from {cromwell_run_id=}: {err}"
-            logger.warn(msg)
+            logger.warning(msg)
             raise runs.RunDbError(msg)
         return run.data.id
 
@@ -137,7 +137,7 @@ def extract_jaws_info(working_dir):
         if match:
             cromwell_run_id = match.group(1)
     except Exception as e:
-        logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+        logger.warning(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
 
     return cromwell_run_id
 
@@ -153,7 +153,7 @@ def remove_beginning_path(working_dir):
             # Extract from "cromwell-executions" to the end of the string
             dir_name = working_dir[id_ce_dir:]
     except Exception as e:
-        logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+        logger.warning(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
 
     return dir_name
 

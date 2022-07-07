@@ -58,7 +58,7 @@ class PerformanceMetricsDaemon:
 
         # If there is no running folder return (there's probably an error here)
         if not running_dir.exists():
-            logger.warn(f"Running folder not found: {running_dir}")
+            logger.warning(f"Running folder not found: {running_dir}")
             return
 
         # If there is no done folder make sure to create one
@@ -66,7 +66,7 @@ class PerformanceMetricsDaemon:
             try:
                 done_dir.mkdir(exist_ok=True)
             except Exception as ex:
-                logger.warn(f"Error making new directory {done_dir} {type(ex).__name__} : {ex}")
+                logger.warning(f"Error making new directory {done_dir} {type(ex).__name__} : {ex}")
         # Get all the csv files in the running dir
         files_running = running_dir.glob("*.csv")
         # Get the time the daemon was run
@@ -75,9 +75,9 @@ class PerformanceMetricsDaemon:
             try:
                 status = metric.stat()
             except FileNotFoundError as ex:
-                logger.warn(f"Error file not found {metric} : {ex}")
+                logger.warning(f"Error file not found {metric} : {ex}")
             except Exception as ex:
-                logger.warn(f"Error getting file stat {type(ex).__name__} : {ex}")
+                logger.warning(f"Error getting file stat {type(ex).__name__} : {ex}")
             # gets the time the file hasn't been modified to in minutes
             idle_time = (now-status.st_ctime)/60
             # If we're over the number of minutes and there has been no modifications then move it
@@ -89,6 +89,6 @@ class PerformanceMetricsDaemon:
                 try:
                     metric.replace(new_path)
                 except PermissionError as ex:
-                    logger.warn(f"Error moving file {metric} due to directory permissions {type(ex).__name__} : {ex}")
+                    logger.warning(f"Error moving file {metric} due to directory permissions {type(ex).__name__} : {ex}")
                 except OSError as ex:
-                    logger.warn(f"Error moving file {metric} from one disk to another {type(ex).__name__} : {ex}")
+                    logger.warning(f"Error moving file {metric} from one disk to another {type(ex).__name__} : {ex}")
