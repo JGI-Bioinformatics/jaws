@@ -83,7 +83,7 @@ class Run:
                 caching=params["caching"],
                 input_site_id=params["input_site_id"],
                 compute_site_id=params["compute_site_id"],
-                status="uploading",
+                status="created",
                 wdl_file=params["wdl_file"],
                 json_file=params["json_file"],
                 tag=params["tag"],
