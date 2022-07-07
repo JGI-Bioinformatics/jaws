@@ -107,10 +107,10 @@ def _rpc_call(user, run_id, method, params={}):
         raise RunAccessDeniedError(
             "Access denied; you cannot access to another user's workflow"
         )
-    a_site_rpc_client = rpc_index.rpc_index.get_client(run.compute_site_id)
+    a_site_rpc_client = rpc_index.rpc_index.get_client(run.data.compute_site_id)
     params["user_id"] = user
     params["run_id"] = run_id
-    params["cromwell_run_id"] = run.cromwell_run_id
+    params["cromwell_run_id"] = run.data.cromwell_run_id
     logger.info(f"User {user} RPC {method} params {params}")
     try:
         response = a_site_rpc_client.request(method, params)
