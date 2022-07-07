@@ -413,6 +413,18 @@ class Call:
                 result["stderrSubmitContents"] = None
             else:
                 result["stderrSubmitContents"] = stderrSubmitContents
+        if "callRoot" in self.data:
+            # check for existence of any task-specific *.log files.
+            # callRoot is not specified for AWS/S3 files, so it works only for NFS paths.
+            log_files = glob.glob(f"{self.data['callRoot']}/execution/*.log")
+            for log_file_path in log_files:
+                log_file_name = os.path.basename(log_file_path)
+                try:
+                    log_file_contents = _read_file(log_file_path)
+                except Exception:  # noqa
+                    result[log_file_name] = None
+                else:
+                    result[log_file_name] = log_file_contents
         return result
 
     def set_real_time_status(self) -> None:
