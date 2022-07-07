@@ -359,7 +359,7 @@ def run_status(user, run_id, verbose=False):
     :rtype: dict
     """
     run = _get_run(user, run_id)
-    logger.info(f"User {user}: Get status of Run {run.id}")
+    logger.info(f"User {user}: Get status of Run {run.data.id}")
     return run.info(verbose), 200
 
 
@@ -649,7 +649,7 @@ def get_performance_metrics(user, run_id):
     :rtype: dict
     """
     run = _get_run(user, run_id)
-    logger.info(f"User {user}: Get log of Run {run.id}")
+    logger.info(f"User {user}: Get log of Run {run.data.id}")
     db_conf = config.conf.get_section("ELASTIC_SEARCH")
     pm_conf = config.conf.get_section("PERFORMANCE_METRICS")
     response = _search_elastic_search(
