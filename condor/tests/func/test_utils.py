@@ -24,3 +24,34 @@ def test_pad_string_path():
     for my_string, pad_length, expected in tests:
         actual = utils.pad_string_path(my_string, pad_length)
         assert actual == expected
+
+
+def test_run_sh_command():
+    # test execution
+    std_out, std_err, exit_code = utils.run_sh_command(
+        'echo "1"', live=True, log=None, run_time=False, show_stdout=True, timeout_sec=0
+    )
+    assert std_out == "1\n"
+    assert std_err == ""
+    assert exit_code == 0
+
+    # test failed execution
+    std_out, std_err, exit_code = utils.run_sh_command(
+        "ls /this/folder/does/not/exist",
+        live=True,
+        log=None,
+        run_time=False,
+        show_stdout=True,
+        timeout_sec=0,
+    )
+    assert std_out == ""
+    assert "No such file or directory" in std_err
+    assert exit_code != 0
+
+    # test timeout
+    std_out, std_err, exit_code = utils.run_sh_command(
+        "sleep 2", live=True, log=None, run_time=False, show_stdout=True, timeout_sec=1
+    )
+    assert std_out == ""
+    assert std_err == ""
+    assert exit_code != 0
