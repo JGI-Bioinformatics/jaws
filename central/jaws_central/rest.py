@@ -6,7 +6,6 @@ import logging
 import json
 from elasticsearch import Elasticsearch
 from flask import abort, request, current_app as app
-from sqlalchemy.exc import SQLAlchemyError
 from jaws_central import config
 from jaws_rpc import rpc_index
 from jaws_central.runs import Run, select_runs, RunNotFoundError
@@ -83,11 +82,6 @@ def rpc_call(user, run, method, params={}):
         msg = f"RPC {method} failed: {error}"
         logger.error(msg)
         abort(500, {"error": msg})
-<<<<<<< HEAD
-    except Exception as error:
-        abort(500, {"error": f"{error}"})
-=======
->>>>>>> 6a1b4e4 (log rpc response error message)
     if "error" in response:
         error = response["error"]["message"]
         logger.error(f"RPC {method} failed for Run {run.data.id}: {error}")
@@ -106,7 +100,7 @@ def _get_user(user):
     """
     try:
         current_user = User.from_id(app.session, user)
-    except SQLAlchemyError as error:
+    except Exception as error:
         logger.error(error)
         abort(500, {"error": f"Error retrieving user record: {error}"})
     return current_user
@@ -296,12 +290,13 @@ def _get_run(user, run_id):
     try:
         run = Run.from_id(app.session, run_id)
     except RunNotFoundError as error:
-        logger.error(f"Run {run_id} not found: {error}")
+        logger.error(error)
         abort(404, {"error": "Run not found; please check your run_id"})
     except Exception as error:
         logger.error(error)
         abort(500, {"error": f"Error retrieving Run {run_id}; {error}"})
     if run.data.user_id != user and not _is_admin(user):
+        logger.warning(f"User {user} denied access to Run {run_id}")
         abort(401, {"error": "Access denied; you are not the owner of that Run."})
     return run
 
