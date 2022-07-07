@@ -1,0 +1,24 @@
+{
+    "calls": {
+        "jgi_meta.bbcms": [
+            {
+                "attempt": 1,
+                "jobId": "34619",
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "cpu": "16",
+                    "disk": "0.0244140625 GB",
+                    "docker": "bryce911/bbtools:38.44",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "118 GB"
+                },
+                "shardIndex": -1,
+                "stderrContents": null,
+                "stderrSubmitContents": null,
+                "stdoutContents": null,
+                "stdoutSubmitContents": null
+            }
+        ]
+    }
+}

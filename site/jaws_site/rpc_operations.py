@@ -153,6 +153,27 @@ def run_errors(params, session):
     return success(result)
 
 
+def run_running_tasks(params, session):
+    """Retrieve running-tasks report which is generated from Cromwell metadata.
+
+    :param cromwell_run_id: Cromwell run ID
+    :type params: dict
+    :return: running tasks report
+    :rtype: dict
+    """
+    logger.info(f"User {params['user_id']}: Run {params['run_id']} running-tasks report")
+    try:
+        run = Run.from_id(session, params["run_id"])
+        result = run.running_tasks()
+    except RunNotFoundError:
+        return success(
+            "The Run hasn't yet been submitted to Cromwell so there is no running-tasks report"
+        )
+    except Exception as error:
+        return failure(error)
+    return success(result)
+
+
 def submit_run(params, session):
     """Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes."""
     logger.info(f"User {params['user_id']}: Submit Run {params['run_id']}")
@@ -283,6 +304,10 @@ operations = {
     },
     "run_errors": {
         "function": run_errors,
+        "required_params": ["user_id", "cromwell_run_id"],
+    },
+    "run_running_tasks": {
+        "function": run_running_tasks,
         "required_params": ["user_id", "cromwell_run_id"],
     },
     "submit_transfer": {

@@ -304,6 +304,14 @@ class Run:
         else:
             return {}
 
+    def running_tasks(self) -> dict:
+        """Get running tasks report from Cromwell service"""
+        if self.data.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            return metadata.running()
+        else:
+            return {}
+
     @staticmethod
     def s3_parse_path(full_path):
         full_path = full_path.replace("s3://", "", 1)  # discard S3 identifier
