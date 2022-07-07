@@ -17,3 +17,10 @@ def test_mem_unit_to_g():
     for unit, mem, expected in tests:
         actual = utils.mem_unit_to_g(unit, mem)
         assert actual == expected
+
+
+def test_pad_string_path():
+    tests = [["11", 8, "00/00/00/11/"], ["11", 2, "11/"], [12345, 6, "01/23/45/"]]
+    for my_string, pad_length, expected in tests:
+        actual = utils.pad_string_path(my_string, pad_length)
+        assert actual == expected
