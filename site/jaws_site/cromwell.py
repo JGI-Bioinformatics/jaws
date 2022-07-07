@@ -345,6 +345,72 @@ class Call:
                 result["stderrSubmitContents"] = stderrSubmitContents
         return result
 
+    def running(self):
+        """
+        Call report, if "Running" (else None).
+        :return: running report
+        :rtype: dict
+        """
+        if self.execution_status != "Running":
+            return None
+        result = {
+            "attempt": self.attempt,
+            "shardIndex": self.shard_index,
+        }
+        if "failures" in self.data:
+            result["failures"] = self.data["failures"]
+        if "jobId" in self.data:
+            result["jobId"] = self.data["jobId"]
+        if "returnCode" in self.data:
+            result["returnCode"] = self.data["returnCode"]
+        if "runtimeAttributes" in self.data:
+            result["runtimeAttributes"] = self.data["runtimeAttributes"]
+        if "stderr" in self.data:
+            # include *contents* of stderr files, instead of file paths
+            stderr_file = self.data["stderr"]
+            try:
+                stderr_contents = _read_file(stderr_file)
+            except Exception:  # noqa
+                # stderr file doesn't always exist (e.g. fails in submit step)
+                result["stderrContents"] = f"File not found: {stderr_file}"
+            else:
+                result["stderrContents"] = stderr_contents
+            stderr_submit_file = f"{stderr_file}.submit"
+            try:
+                stderr_submit_contents = _read_file(stderr_submit_file)
+            except Exception:  # noqa
+                # stderrSubmit file doesn't always exist (not used on AWS)
+                result["stderrSubmitContents"] = None
+            else:
+                result["stderrSubmitContents"] = stderr_submit_contents
+        if "stdout" in self.data:
+            # include *contents* of stdout file, instead of file path
+            stdout_file = self.data["stdout"]
+            try:
+                stdoutContents = _read_file(stdout_file)
+            except Exception:  # noqa
+                result["stdoutContents"] = f"File not found: {stdout_file}"
+            else:
+                result["stdoutContents"] = stdoutContents
+            stdout_submit_file = f"{stdout_file}.submit"
+            try:
+                stdout_submit_contents = _read_file(stdout_submit_file)
+            except Exception:  # noqa
+                # stdoutSubmit file doesn't always exist (not used on AWS)
+                result["stdoutSubmitContents"] = None
+            else:
+                result["stdoutSubmitContents"] = stdout_submit_contents
+        if "callRoot" in self.data:
+            stderr_submit_file = f"{self.data['callRoot']}/execution/stderr.submit"
+            try:
+                stderrSubmitContents = _read_file(stderr_submit_file)
+            except Exception:  # noqa
+                # submit stderr file doesn't always exist (e.g. never for AWS)
+                result["stderrSubmitContents"] = None
+            else:
+                result["stderrSubmitContents"] = stderrSubmitContents
+        return result
+
     def set_real_time_status(self) -> None:
         """
         Distinguish between "Queued" and "Running" states.
@@ -439,6 +505,31 @@ class Task:
                 }
                 all_errors.append(sub_errors)
         return all_errors
+
+    def running(self):
+        """
+        Return report for this task/subworkflow for running tasks only.
+        The contents of the stderr, stderr.submit files are also added for convenience.
+        :return: Running tasks report
+        :rtype: dict
+        """
+        all_running = []
+        for shard_index in self.calls.keys():
+            for attempt in self.calls[shard_index].keys():
+                call = self.calls[shard_index][attempt]
+                call_running = call.running()
+                if call_running is not None:
+                    all_running.append(call_running)
+        for shard_index in self.subworkflows.keys():
+            for attempt in self.subworkflows[shard_index].keys():
+                sub_meta = self.subworkflows[shard_index][attempt]
+                sub_running = {
+                    "shardIndex": shard_index,
+                    "attempt": attempt,
+                    "subWorkflowMetadata": sub_meta.running(),
+                }
+                all_running.append(sub_running)
+        return all_running
 
     def summary(self, **kwargs):
         """
@@ -654,6 +745,20 @@ class Metadata:
         other_failures = self.filtered_failures()
         if len(other_failures):
             filtered_metadata["failures"] = other_failures
+        return filtered_metadata
+
+    def running(self):
+        """
+        Return expanded metadata report for "Running" tasks only.
+        """
+        filtered_metadata = {}
+        calls = {}
+        for task_name, task in self.tasks.items():
+            task_running = task.running()
+            if len(task_running):
+                calls[task_name] = task_running
+        if len(calls):
+            filtered_metadata["calls"] = calls
         return filtered_metadata
 
     def task_summary(self, **kwargs):
