@@ -146,6 +146,7 @@ class Run:
             "result": self.data.result,
             "status": self.data.status,
             "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
+            "tag": self.data.tag,
         }
         if verbose:
             more_info = {
@@ -159,7 +160,6 @@ class Run:
                 "submission_id": self.data.submission_id,
                 "download_id": self.data.download_id,
                 "user_id": self.data.user_id,
-                "tag": self.data.tag,
                 "wdl_file": self.data.wdl_file,
                 "json_file": self.data.json_file,
             }

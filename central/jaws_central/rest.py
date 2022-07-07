@@ -178,8 +178,8 @@ def search_runs(user, verbose=False):
         all_users=all_users,
     )
     runs = []
-    for row in matches:
-        runs.append(_run_info(row, verbose))
+    for run in matches:
+        runs.append(run.info(verbose))
     return runs, 200
 
 
@@ -360,8 +360,7 @@ def run_status(user, run_id, verbose=False):
     """
     run = _get_run(user, run_id)
     logger.info(f"User {user}: Get status of Run {run.id}")
-    info = _run_info(run, verbose)
-    return info, 200
+    return run.info(verbose), 200
 
 
 def run_status_complete(user, run_id):
@@ -672,37 +671,3 @@ def get_performance_metrics(user, run_id):
         logger.error(error)
         abort(status, {"error": f"{error}"})
     return metrics
-
-
-def _run_info(run, verbose=False):
-    """
-    Return dictionary of run info.
-    Run run cannot be changed by altering the returned dict.
-    :param verbose: True if more fields desired else fewer.
-    :type verbose: bool
-    :return: selected fields
-    :rtype: dict
-    """
-    info = {
-        "id": run.id,
-        "result": run.result,
-        "status": run.status,
-        "status_detail": jaws_constants.run_status_msg.get(run.status, ""),
-        "compute_site_id": run.compute_site_id,
-        "submitted": run.submitted.strftime("%Y-%m-%d %H:%M:%S"),
-        "updated": run.updated.strftime("%Y-%m-%d %H:%M:%S"),
-        "tag": run.tag,
-        "wdl_file": run.wdl_file,
-        "json_file": run.json_file,
-    }
-    if verbose:
-        more_info = {
-            "cromwell_run_id": run.cromwell_run_id,
-            "input_site_id": run.input_site_id,
-            "upload_id": run.upload_id,
-            "submission_id": run.submission_id,
-            "download_id": run.download_id,
-            "user_id": run.user_id,
-        }
-        info.update(more_info)
-    return info
