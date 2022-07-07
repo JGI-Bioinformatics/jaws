@@ -65,30 +65,30 @@ class Run:
         self.download = None
 
     @classmethod
-    def from_params(cls, session, **kwargs):
+    def from_params(cls, session, params):
         """Insert run record into rdb"""
         manifest_json = "[]"
-        if "manifest" in kwargs:
+        if "manifest" in params:
             # if a list is provided then need to convert to JSON text
-            assert type(kwargs["manifest"]) == list
-            manifest_json = json.dumps(kwargs["manifest"])
-        elif "manifest_json" in kwargs:
-            assert type(kwargs["manifest_json"]) == str
-            manifest_json = kwargs["manifest_json"]
+            assert type(params["manifest"]) == list
+            manifest_json = json.dumps(params["manifest"])
+        elif "manifest_json" in params:
+            assert type(params["manifest_json"]) == str
+            manifest_json = params["manifest_json"]
         try:
             data = models.Run(
-                user_id=kwargs["user_id"],
-                submission_id=kwargs["submission_id"],
-                max_ram_gb=int(kwargs["max_ram_gb"]),
-                caching=kwargs["caching"],
-                input_site_id=kwargs["input_site_id"],
-                compute_site_id=kwargs["compute_site_id"],
+                user_id=params["user_id"],
+                submission_id=params["submission_id"],
+                max_ram_gb=int(params["max_ram_gb"]),
+                caching=params["caching"],
+                input_site_id=params["input_site_id"],
+                compute_site_id=params["compute_site_id"],
                 status="uploading",
-                wdl_file=kwargs["wdl_file"],
-                json_file=kwargs["json_file"],
-                tag=kwargs["tag"],
+                wdl_file=params["wdl_file"],
+                json_file=params["json_file"],
+                tag=params["tag"],
                 manifest_json=manifest_json,
-                webhook=kwargs["webhook"],
+                webhook=params["webhook"],
             )
         except SQLAlchemyError as error:
             raise (f"Error creating model for new Run {kwargs['run_id']}: {error}")
