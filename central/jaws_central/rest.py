@@ -362,7 +362,7 @@ def task_status(user, run_id):
     logger.info(f"User {user}: Get task-status of Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "get_task_status")
+    return rpc_call(user, run, "get_task_status")
 
 
 def run_log(user: str, run_id: int):
@@ -401,7 +401,7 @@ def run_task_log(user, run_id):
     logger.info(f"User {user}: Get task-log for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "run_task_log")
+    return rpc_call(user, run, "run_task_log")
 
 
 def run_task_summary(user, run_id):
@@ -418,7 +418,7 @@ def run_task_summary(user, run_id):
     logger.info(f"User {user}: Get task-log for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "run_task_summary")
+    return rpc_call(user, run, "run_task_summary")
 
 
 def run_metadata(user, run_id):
@@ -435,7 +435,7 @@ def run_metadata(user, run_id):
     logger.info(f"User {user}: Get metadata for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "run_metadata")
+    return rpc_call(user, run, "run_metadata")
 
 
 def run_outputs(user, run_id):
@@ -452,7 +452,7 @@ def run_outputs(user, run_id):
     logger.info(f"User {user}: Get outputs for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    result = rpc_call(user, run_id, "run_outputs")
+    result = rpc_call(user, run, "run_outputs")
     return result
 
 
@@ -470,7 +470,7 @@ def run_outfiles(user, run_id):
     logger.info(f"User {user}: Get outfiles for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    result = rpc_call(user, run_id, "run_outfiles")
+    result = rpc_call(user, run, "run_outfiles")
     return result
 
 
@@ -488,7 +488,7 @@ def run_workflow_root(user, run_id):
     logger.info(f"User {user}: Get outfiles for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    result = rpc_call(user, run_id, "run_workflow_root")
+    result = rpc_call(user, run, "run_workflow_root")
     return result
 
 
@@ -506,7 +506,7 @@ def run_errors(user, run_id):
     logger.info(f"User {user}: Get errors for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "run_errors")
+    return rpc_call(user, run, "run_errors")
 
 
 def run_running_tasks(user, run_id):
@@ -523,7 +523,7 @@ def run_running_tasks(user, run_id):
     logger.info(f"User {user}: Get running-tasks report for Run {run_id}")
     run = _get_run(user, run_id)
     _abort_if_pre_cromwell(run)
-    return rpc_call(user, run_id, "run_running_tasks")
+    return rpc_call(user, run, "run_running_tasks")
 
 
 def cancel_run(user, run_id):
