@@ -1,5 +1,6 @@
 import json
 import os
+import glob
 from deepdiff import DeepDiff
 from jaws_site import cromwell
 
@@ -268,6 +269,11 @@ def test_running(requests_mock, monkeypatch):
 
     monkeypatch.setattr(cromwell, "_read_file", mock_read_file)
 
+    def mock_glob(path):
+        return []
+
+    monkeypatch.setattr(glob, "glob", mock_glob)
+
     # completed workflow
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
@@ -295,6 +301,7 @@ def test_running(requests_mock, monkeypatch):
     )
     metadata_10 = crom.get_metadata(example_cromwell_run_id_10)
     actual_running_report_10 = metadata_10.running()
+    print(actual_running_report_10)
     assert (
         bool(
             DeepDiff(

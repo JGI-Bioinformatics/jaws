@@ -1,7 +1,7 @@
 import schedule
 import time
 import logging
-import jaws_rpc
+from jaws_rpc import rpc_client_basic
 from jaws_site import config, database, perf_metrics
 from pathlib import Path
 
@@ -17,16 +17,15 @@ class PerformanceMetricsDaemon:
     def __init__(self):
         logger.info("Initializing report daemon")
         rpc_config = config.conf.get_section("RUNS_ES_RPC_CLIENT")
-        self.rpc_client = jaws_rpc.rpc_client_basic(rpc_config, logger)
+        self.rpc_client = rpc_client_basic.RpcClientBasic(rpc_config, logger)
 
         # Set message expiration to 60 secs
-        self.runs_es_rpc_client.message_ttl = 3600
-        self.pmetrics_es_rpc_client.message_ttl = 3600
+        self.rpc_client.message_ttl = 3600
 
         self.perf_running_dir = config.conf.get("PERFORMANCE_METRICS", "running_dir")
         self.perf_done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
         self.perf_proc_dir = config.conf.get("PERFORMANCE_METRICS", "processed_dir")
-        self.perf_cleanup_time = config.conf.get("PERFORMANCE_METRICS", "cleanup_time")
+        self.perf_cleanup_time = int(config.conf.get("PERFORMANCE_METRICS", "cleanup_time"))
 
     def start_daemon(self):
         """
