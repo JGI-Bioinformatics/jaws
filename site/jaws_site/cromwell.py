@@ -1067,37 +1067,6 @@ class Cromwell:
         return result["status"]
 
 
-# TODO: Moved from deprecated tasks.py but this code has been replaced by the function below
-#    def get_task_cromwell_dir_mapping(self):
-#        """
-#        Return a dictionary that maps the cromwell directory to the task name for each task in the run.
-#        The key=cromwell_dir, the value=task_name.
-#        The cromwell directory name is modified to remove the root dir.
-#        Ex: /my/path/cromwell-executions/task1/execution becomes
-#            cromwell-executions/task1/execution
-#        """
-#        tasks = self.metadata.tasks
-#        cromwell_to_task_names = {}
-#
-#        for name in tasks:
-#            for entry in tasks[name].summary():
-#
-#                # remove root path from cromwell-exections dir.
-#                # ex: /my/path/cromwell-executions/a/b/c is converted to cromwell-executions/a/b/c
-#                if len(entry) < 5:
-#                    continue
-#
-#                cromwell_dir = entry[4]
-#                idx = cromwell_dir.find("cromwell-executions")
-#
-#                # if cromwell-executions not found in directory name, idx=-1. skip this condition.
-#                if idx >= 0:
-#                    cromwell_dir = cromwell_dir[idx:]
-#                    entry[4] = cromwell_dir
-#                    cromwell_to_task_names[cromwell_dir] = entry[0]
-#        return cromwell_to_task_names
-
-
 def parse_cromwell_task_dir(task_dir):
     """
     Given path of a task, return task fields.
