@@ -130,9 +130,12 @@ class Call:
         if "subWorkflowMetadata" in data:
             raise CallError(f"Task {task_name} is a subworkflow, not a Call object")
         self.data = data
-        self.name = task_name
         self.attempt = data.get("attempt", None)
-        self.shard_index = data.get("shardIndex", None)
+        self.shard_index = data.get("shardIndex", -1)
+        if self.shard_index == -1:
+            self.name = task_name
+        else:
+            self.name = f"{task_name}[{self.shard_index}]"
         self.execution_status = data.get("executionStatus", None)
         self.result = None
         self.cached = False
