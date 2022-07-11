@@ -43,7 +43,7 @@ class PerformanceMetricsDaemon:
         """
         session = database.session_factory()
         performance_metrics = perf_metrics.PerformanceMetrics(session, self.rpc_client)
-        performance_metrics.process_metrics(self.perf_done_dir, self.proc_dir)
+        performance_metrics.process_metrics(self.perf_done_dir, self.perf_proc_dir)
         session.close()
 
     def cleanup(self):
