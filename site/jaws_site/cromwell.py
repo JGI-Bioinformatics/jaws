@@ -132,10 +132,10 @@ class Call:
         self.data = data
         self.attempt = data.get("attempt", None)
         self.shard_index = data.get("shardIndex", -1)
-        if self.shard_index == -1:
-            self.name = task_name
-        else:
+        if self.shard_index > -1:
             self.name = f"{task_name}[{self.shard_index}]"
+        else:
+            self.name = task_name
         self.execution_status = data.get("executionStatus", None)
         self.result = None
         self.cached = False
