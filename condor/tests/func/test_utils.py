@@ -63,6 +63,7 @@ def test_run_slurm_cmd():
     actual = utils.run_slurm_cmd(f'echo "{expected}"')
     assert actual == expected
 
+
 # this currently fails but should not
 #    # test2
 #    expected = -1
