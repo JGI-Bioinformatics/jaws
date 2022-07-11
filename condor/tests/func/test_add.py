@@ -1,5 +1,19 @@
 from deepdiff import DeepDiff
+import os
 from jaws_condor import add
+
+
+def test_start_file_logger():
+    test_filename = "./test_add_log.log"
+    add.start_file_logger(test_filename)
+    logger = add.logger
+    test_log_message = "EXAMPLE WARNING LOG MESSAGE"
+    logger.warning(test_log_message)
+    logger.disabled = True
+    with open(test_filename, "r") as fh:
+        complete_log = fh.read()
+    os.remove(test_filename)
+    assert test_log_message in complete_log
 
 
 def test_collect_condor_jobs():
