@@ -1,4 +1,3 @@
-from deepdiff import DeepDiff
 import os
 import functools
 from jaws_condor import add
