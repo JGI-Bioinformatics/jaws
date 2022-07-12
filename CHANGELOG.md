@@ -1,6 +1,15 @@
 # Changelog
 
-## 2.8.6 (TBD) Summary
+## 3.0 Summary
+### User Facing Changes
+#### Changed
+- Condor and AWS complete beta-testing
+- sort task-log and task-summary by "queued" time
+- "done" is now always the final state of a run.
+- errors report shall include .log files if they exist
+- new "running-tasks" command will show logs of active tasks
+
+## 2.8.6 Summary
 ### User Facing Changes
 #### Changed
 - Restore /refdata (NB: not implemented for AWS)
