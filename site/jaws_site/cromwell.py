@@ -805,7 +805,7 @@ class Metadata:
         for task_name, task in self.tasks.items():
             for item in task.summary(**kwargs):
                 summary.append(item)
-        return sort_table(summary)
+        return sort_table(summary, 3)
 
     def task_log(self, **kwargs):
         """
@@ -831,7 +831,7 @@ class Metadata:
                 info["run_duration"],
             ]
             table.append(row)
-        return sort_table(table)
+        return sort_table(table, 3)
 
     def started_running(self):
         """
