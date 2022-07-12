@@ -1,5 +1,3 @@
 Click==8.0
-pytest
 pandas
-black
-
+deepdiff==5.5.0
