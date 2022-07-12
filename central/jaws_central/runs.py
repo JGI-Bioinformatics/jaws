@@ -10,6 +10,7 @@ from jaws_central import models
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_central.transfers import Transfer, TransferNotFoundError
+from jaws_rpc import rpc_index
 
 logger = logging.getLogger(__package__)
 
@@ -42,7 +43,7 @@ class RunRpcError(RunError):
 class Run:
     """Class representing a single Run"""
 
-    def __init__(self, session, data, rpc_index=None):
+    def __init__(self, session, data):
         self.session = session
         self.data = data
         self.operations = {
@@ -60,7 +61,6 @@ class Run:
             "download failed": self.send_email,
             "email sent": self.post_to_webhook,
         }
-        self.rpc_index = rpc_index
         self.upload = None
         self.download = None
 
@@ -186,7 +186,7 @@ class Run:
             "queued",
             "running",
         ]:
-            rpc_client = self.rpc_index.get_client(self.data.compute_site_id)
+            rpc_client = rpc_index.rpc_index.get_client(self.data.compute_site_id)
             params = {"user_id": self.data.user_id, "run_id": self.data.id}
             try:
                 rpc_client.request("cancel", params)
@@ -240,7 +240,7 @@ class Run:
         :rtype: list
         """
         # request list of output files from the compute-site's Cromwell
-        rpc_client = self.rpc_index.get_client(self.data.compute_site_id)
+        rpc_client = rpc_index.rpc_index.get_client(self.data.compute_site_id)
         params = {
             "run_id": self.data.id,
             "complete": True,
@@ -397,7 +397,7 @@ class Run:
         """
         site_id = self.data.compute_site_id
         logger.debug(f"Run {self.data.id}: Submit to {site_id}")
-        rpc_client = self.rpc_index.get_client(site_id)
+        rpc_client = rpc_index.rpc_index.get_client(site_id)
         params = {
             "user_id": self.data.user_id,
             "run_id": self.data.id,
@@ -556,7 +556,7 @@ class Run:
             self.update_status("done")
 
 
-def check_active_runs(session, rpc_index) -> None:
+def check_active_runs(session) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
@@ -574,8 +574,7 @@ def check_active_runs(session, rpc_index) -> None:
             for row in rows:
                 run = Run(
                     session,
-                    row,
-                    rpc_index,
+                    row
                 )
                 run.check_status()
 

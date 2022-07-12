@@ -13,9 +13,8 @@ class RunDaemon:
     Daemon that periodically checks on active runs.
     """
 
-    def __init__(self, rpc_index):
+    def __init__(self):
         logger.info("Initializing run daemon")
-        self.rpc_index = rpc_index
 
     def start_daemon(self):
         """
@@ -31,5 +30,5 @@ class RunDaemon:
         Check for runs in particular states.
         """
         session = session_factory()
-        check_active_runs(session, self.rpc_index)
+        check_active_runs(session)
         session.close()

@@ -128,7 +128,7 @@ def run_daemon() -> None:
     site_rpc_params = config.conf.get_all_sites_rpc_params()
     rpc_index.rpc_index = rpc_index.RpcIndex(site_rpc_params, logger)
 
-    rund = RunDaemon(rpc_index.rpc_index)
+    rund = RunDaemon()
     rund.start_daemon()
 
 

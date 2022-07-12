@@ -67,7 +67,7 @@ def _read_file_s3(path, **kwargs):
     aws_session = boto3.Session(
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
-        region_name=aws_region_name
+        region_name=aws_region_name,
     )
     s3_resource = aws_session.resource("s3")
     bucket_obj = s3_resource.Bucket(s3_bucket)
@@ -115,6 +115,32 @@ def _read_file(path: str, **kwargs):
         return _read_file_s3(path, **kwargs)
     else:
         return _read_file_nfs(path)
+
+
+def sort_table(table: list, index: int):
+    """Sort table by specified column value.
+    :param table: table to sort
+    :ptype table: list
+    :param index: column index to sort by
+    :ptype index: int
+    :return: sorted table
+    :rtype: list
+    """
+    table.sort(key=lambda x: x[index])
+    return table
+
+
+def sort_table_dict(table: list, key: str):
+    """Sort table by specified column value.
+    :param table: table to sort
+    :ptype table: list
+    :param key: column key to sort by
+    :ptype key: str
+    :return: sorted table
+    :rtype: list
+    """
+    table.sort(key=lambda x: x[key])
+    return table
 
 
 class CallError(Exception):
@@ -792,7 +818,7 @@ class Metadata:
         for task_name, task in self.tasks.items():
             for item in task.summary(**kwargs):
                 summary.append(item)
-        return summary
+        return sort_table_dict(summary, "queue_start")
 
     def task_log(self, **kwargs):
         """
@@ -818,7 +844,7 @@ class Metadata:
                 info["run_duration"],
             ]
             table.append(row)
-        return table
+        return sort_table(table, 3)
 
     def started_running(self):
         """
@@ -1074,12 +1100,7 @@ def parse_cromwell_task_dir(task_dir):
     """
     Given path of a task, return task fields.
     """
-    result = {
-        "call_root": task_dir,
-        "cached": False,
-        "shard": -1,
-        "name": "None"
-    }
+    result = {"call_root": task_dir, "cached": False, "shard": -1, "name": "None"}
     if isinstance(task_dir, float):
         return result
 
@@ -1120,9 +1141,9 @@ def parse_cromwell_task_dir(task_dir):
     for _ in range(5):
         # subworkflow
         result["subworkflow_name"] = fields.popleft()
-        if '.' in result["subworkflow_name"]:
+        if "." in result["subworkflow_name"]:
             result["subworkflow_name"] = result["subworkflow_name"].split(".")[-1]
-        shard_num_loc = result["name"].rfind('[')
+        shard_num_loc = result["name"].rfind("[")
         if shard_num_loc != -1:
             result["name"] = result["name"][:shard_num_loc]
         result["name"] = f"{result['name']}:{result['subworkflow_name']}"
