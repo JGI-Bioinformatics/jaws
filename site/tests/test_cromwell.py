@@ -565,3 +565,10 @@ def test_sort_table():
     ]
     actual = cromwell.sort_table(test_table, 3)
     assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
+
+
+def test_sort_table_dict():
+    test_table = [{"id": 41, "key": "B"}, {"id": 51, "key": "A"}]
+    expected = [{"id": 51, "key": "A"}, {"id": 41, "key": "B"}]
+    actual = cromwell.sort_table_dict(test_table, "key")
+    assert bool(DeepDiff(actual, expected, ignore_order=False)) is False

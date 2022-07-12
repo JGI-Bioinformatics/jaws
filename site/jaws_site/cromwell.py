@@ -130,6 +130,19 @@ def sort_table(table: list, index: int):
     return table
 
 
+def sort_table_dict(table: list, key: str):
+    """Sort table by specified column value.
+    :param table: table to sort
+    :ptype table: list
+    :param key: column key to sort by
+    :ptype key: str
+    :return: sorted table
+    :rtype: list
+    """
+    table.sort(key=lambda x: x[key])
+    return table
+
+
 class CallError(Exception):
     pass
 
@@ -805,7 +818,7 @@ class Metadata:
         for task_name, task in self.tasks.items():
             for item in task.summary(**kwargs):
                 summary.append(item)
-        return sort_table(summary, 3)
+        return sort_table_dict(summary, "queue_start")
 
     def task_log(self, **kwargs):
         """
