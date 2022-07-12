@@ -16,7 +16,7 @@ class PerformanceMetricsDaemon:
 
     def __init__(self):
         logger.info("Initializing report daemon")
-        rpc_config = config.conf.get_section("RUNS_ES_RPC_CLIENT")
+        rpc_config = config.conf.get_section("PERFORMANCE_METRICS_ES_RPC_CLIENT")
         self.rpc_client = rpc_client_basic.RpcClientBasic(rpc_config, logger)
 
         # Set message expiration to 60 secs

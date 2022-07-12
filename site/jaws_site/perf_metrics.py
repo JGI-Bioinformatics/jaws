@@ -27,7 +27,7 @@ class PerformanceMetrics:
         except runs.RunNotFoundError or runs.RunDbError as err:
             msg = f"Failed to get run_id from {cromwell_run_id=}: {err}"
             logger.warning(msg)
-            raise runs.RunDbError(msg)
+            return 0
         return run.data.id
 
     def process_csv(self, csv_file: str) -> list:
@@ -95,6 +95,7 @@ class PerformanceMetrics:
             return
 
         for done_file in list(done_dir_obj.glob("*.csv")):
+            logger.info(f"Processing {done_file.name=} ...")
             docs = self.process_csv(done_file)
             for doc in docs:
                 cromwell_run_id = doc.get("cromwell_run_id")
@@ -114,7 +115,10 @@ class PerformanceMetrics:
                 )
 
                 # Submit doc to RMQ to be picked up by logstash and inserted into elasticsearch
-                self.rpc_client.request(doc)
+                response, status_code = self.rpc_client.request(doc)
+                if status_code:
+                    logger.error(f"Failed to publish metrics into elasticsearch: {response=}")
+                    continue
 
             # Move csv file to processed folder
             processed_file = proc_dir_obj / done_file.name
