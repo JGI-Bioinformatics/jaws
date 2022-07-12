@@ -1,9 +1,10 @@
 import pytest
 from datetime import datetime
 import jaws_central.rest
+import jaws_central.runs
 import jaws_central.models
 import jaws_central.config
-from tests.conftest import MockSession
+from tests.conftest import MockSession, MockRunModel
 
 
 class MockUser:
@@ -67,14 +68,14 @@ def test_list_sites(configuration):
 
 def test_run_metadata(monkeypatch):
     def mock_get_run(user_id, run_id):
-        return {}
+        return MockRunModel()
 
     def mock_abort_if_pre_cromwell(run):
         return
 
-    def mock_rpc_call(user_id, run_id, method, params={}):
+    def mock_rpc_call(user_id, run, method, params={}):
         assert isinstance(user_id, str)
-        assert isinstance(run_id, int)
+        assert isinstance(run, MockRunModel)
         assert method == "run_metadata"
 
     monkeypatch.setattr(jaws_central.rest, "_get_run", mock_get_run)

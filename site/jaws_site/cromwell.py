@@ -130,9 +130,12 @@ class Call:
         if "subWorkflowMetadata" in data:
             raise CallError(f"Task {task_name} is a subworkflow, not a Call object")
         self.data = data
-        self.name = task_name
         self.attempt = data.get("attempt", None)
-        self.shard_index = data.get("shardIndex", None)
+        self.shard_index = data.get("shardIndex", -1)
+        if self.shard_index > -1:
+            self.name = f"{task_name}[{self.shard_index}]"
+        else:
+            self.name = task_name
         self.execution_status = data.get("executionStatus", None)
         self.result = None
         self.cached = False
@@ -1065,37 +1068,6 @@ class Cromwell:
         response.raise_for_status()
         result = response.json()
         return result["status"]
-
-
-# TODO: Moved from deprecated tasks.py but this code has been replaced by the function below
-#    def get_task_cromwell_dir_mapping(self):
-#        """
-#        Return a dictionary that maps the cromwell directory to the task name for each task in the run.
-#        The key=cromwell_dir, the value=task_name.
-#        The cromwell directory name is modified to remove the root dir.
-#        Ex: /my/path/cromwell-executions/task1/execution becomes
-#            cromwell-executions/task1/execution
-#        """
-#        tasks = self.metadata.tasks
-#        cromwell_to_task_names = {}
-#
-#        for name in tasks:
-#            for entry in tasks[name].summary():
-#
-#                # remove root path from cromwell-exections dir.
-#                # ex: /my/path/cromwell-executions/a/b/c is converted to cromwell-executions/a/b/c
-#                if len(entry) < 5:
-#                    continue
-#
-#                cromwell_dir = entry[4]
-#                idx = cromwell_dir.find("cromwell-executions")
-#
-#                # if cromwell-executions not found in directory name, idx=-1. skip this condition.
-#                if idx >= 0:
-#                    cromwell_dir = cromwell_dir[idx:]
-#                    entry[4] = cromwell_dir
-#                    cromwell_to_task_names[cromwell_dir] = entry[0]
-#        return cromwell_to_task_names
 
 
 def parse_cromwell_task_dir(task_dir):
