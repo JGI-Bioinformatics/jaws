@@ -39,7 +39,12 @@ class PerformanceMetrics:
         :return: list of dictionaries where each dictionary is a json doc of the performance metrics.
         :rtype: list
         """
-        csv_data = pd.read_csv(csv_file, parse_dates=[0], index_col=[0])
+        try:
+            csv_data = pd.read_csv(csv_file, parse_dates=[0], index_col=[0])
+        except Exception as err:
+            logging.warning(f"{type(err).__name__} Error opening {csv_file=}")
+            # Return an empty list of dict to be handled later
+            return [{}]
 
         # Remove extranious parts from the current directory
         csv_data["current_dir"] = csv_data.current_dir.apply(remove_beginning_path)
