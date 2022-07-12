@@ -8,6 +8,7 @@
 - "done" is now always the final state of a run.
 - errors report shall include .log files if they exist
 - new "running-tasks" command will show logs of active tasks
+- fixed shifterimg pull via tag bug
 
 ## 2.8.6 Summary
 ### User Facing Changes
