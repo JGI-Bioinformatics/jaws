@@ -536,3 +536,16 @@ def test_parse_cromwell_task_dir():
         actual = cromwell.parse_cromwell_task_dir(task_dir)
         print(actual, flush=True)
         assert actual == expected
+
+
+def test_sort_table():
+    test_table = [
+        ["bbtools.samtools", False, "Queued", "2022-07-11 17:52:37", "", "", "", ""],
+        ["bbtools.alignment", False, "Done", "2022-07-11 17:51:13", "2022-07-11 17:51:14", "2022-07-11 17:52:35", "0:00:01", "0:01:21"]
+    ]
+    expected = [
+        ["bbtools.alignment", False, "Done", "2022-07-11 17:51:13", "2022-07-11 17:51:14", "2022-07-11 17:52:35", "0:00:01", "0:01:21"],
+        ["bbtools.samtools", False, "Queued", "2022-07-11 17:52:37", "", "", "", ""]
+    ]
+    actual = cromwell.sort_table(test_table, 3)
+    assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
