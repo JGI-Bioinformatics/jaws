@@ -153,6 +153,11 @@ paths:
           type: boolean
           in: formData
           required: False
+        - name: verbose
+          description: Returns all fields of the run's status
+          type: boolean
+          in: formData
+          required: False
       responses:
         200:
           description: OK
