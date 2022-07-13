@@ -130,13 +130,14 @@ def _user_group(user):
     return current_user.data.user_group
 
 
-def search_runs(user, verbose=False):
+def search_runs(user):
     """Search is used by both user queue and history commands."""
     site_id = request.form.get("site_id", "all").upper()
     active_only = True if request.form.get("active_only") == "True" else False
     delta_days = int(request.form.get("delta_days", 0))
     result = request.form.get("result", "any").lower()
     all_users = True if request.form.get("all") == "True" else False
+    verbose = True if request.form.get("verbose") == "True" else False
     logger.info(f"User {user}: Search runs")
     matches = select_runs(
         app.session,
