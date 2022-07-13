@@ -3,11 +3,11 @@ JAWS Daemon process periodically checks on runs and performs actions to usher
 them to the next state.
 """
 
-from jaws_site.pool_manager import PoolManager
+from jaws_condor.pool_manager import PoolManager
 import schedule
 import time
 import logging
-from jaws_site import config
+from jaws_condor import config
 
 logger = logging.getLogger(__package__)
 

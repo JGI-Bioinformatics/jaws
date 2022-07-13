@@ -4,7 +4,7 @@ from typing import Dict
 
 import time
 import pandas as pd
-from jaws_site.cmd_utils import run_sh_command
+from jaws_condor.cmd_utils import run_sh_command
 import math
 
 logger = logging.getLogger(__package__)
@@ -24,7 +24,7 @@ COMPUTE_SITE = "nersc"
 MIN_POOL = {}
 MIN_POOL['medium'] = 4
 MIN_POOL['xlarge'] = 0
-MAX_POOL = 100
+MAX_POOL = 30
 
 worker_sizes_sites = {
     "nersc": {
@@ -39,6 +39,7 @@ cpu_bins = {}
 cpu_labels = {}
 cpu_bins['nersc'] = [0, 64, 72, 10_000_000]
 cpu_labels['nersc'] = ["medium", "xlarge", "over"]
+
 mem_bins = {}
 mem_labels = {}
 mem_bins['nersc'] = [0, 120, 1500, 10_000_000]
@@ -48,9 +49,38 @@ worker_sizes = worker_sizes_sites[COMPUTE_SITE]
 
 squeue_args = {}
 squeue_args["nersc"] = "--noheader --clusters=all -p genepool,genepool_shared,exvivo,exvivo_shared"
-squeue_cmd = f'squeue -u {user_name} --format="%.18i %.24P %.100j %.10T %S %e %.70R" {squeue_args[COMPUTE_SITE]}'
-squeue_columns = ["JOBID", "PARTITION", "NAME", "STATE", "START_TIME", "END_TIME", "NODELIST"]
+squeue_cmd = f'squeue -u {user_name} --format="%.12i %.10P %.50j %.10T %.10L %.12R" {squeue_args[COMPUTE_SITE]}'
+squeue_columns = ["JOBID", "PARTITION", "NAME", "STATE", "TIME_LEFT", "NODELIST"]
 # TODO : These should all be created from a configuration file at some point
+
+def slurm_time_to_sec(time_str):
+    # split off days first 
+    time_str = time_str.split("-")
+    if len(time_str) > 1:
+        days = int(time_str[0])
+    else:
+        days = 0
+    
+    # split time_str into HH:MM:SS
+    time_str = time_str[-1].split(":")
+        
+    time_str_bits = {0:1, 1:60, 2:60*60, 3:60*60*24}
+    total = 0
+    # Run in reverse becasue we will always 
+    # have seconds and not always hours
+    # 0 -> sec
+    # 1 -> min
+    # 2 -> hrs.
+    # 3 -> days.
+    for i, t in enumerate(time_str[::-1]):
+        total += (time_str_bits[i]*int(t))
+        
+    if days > 0:
+        total += (time_str_bits[3]*int(days))
+        
+    # Return total seconds 
+    return total
+
 
 
 class PoolManagerPandas:
@@ -102,13 +132,8 @@ class PoolManagerPandas:
         df = pd.DataFrame(jobs, columns=squeue_columns)
         # Drops rows if they have nan values
         df = df.dropna(axis=0)
+        df['TIME_SEC'] = df["TIME_LEFT"].apply(slurm_time_to_sec)
 
-        # replace N/A time with a value and convert times to datetime objects
-        for time_col in ["START_TIME", "END_TIME"]:
-            df.loc[df[time_col] == "N/A", time_col] = "2000-01-01T00:00:00"
-            df[time_col] = pd.to_datetime(df[time_col])
-
-        df["TIME_LEFT"] = df["END_TIME"] - df["START_TIME"]
 
         # Selections for running and pending
         mask_pending = (df["STATE"] == "PENDING")
@@ -182,15 +207,17 @@ class PoolManagerPandas:
         condor_q_status = {}
         mask_running_status = df["JobStatus"].astype(int) == 2
         mask_idle_status = df["JobStatus"].astype(int) == 1
+        mask_hold_status = df["JobStatus"].astype(int) == 5
+
         mask_over = df["cpu_bin"].str.contains(
                 "over") | df["mem_bin"].str.contains("over")
-        condor_q_status["hold_and_impossible"] = sum(mask_over)
+
+        condor_q_status["hold_and_impossible"] = sum(mask_over | mask_hold_status)
+
         for _type in compute_types:
             mask_mem_type = df["mem_bin"].str.contains(f"{_type}")
             # mask_cpu_type = df["cpu_bin"].str.contains(f"{_type}")
             mask_type = (mask_mem_type)
-
-            mask_idle_type = mask_type & mask_idle_status
 
             condor_q_status[f"idle_{_type}"] = sum(
                 mask_type & mask_idle_status
@@ -200,9 +227,9 @@ class PoolManagerPandas:
             )
 
             condor_q_status[f"{_type}_cpu_needed"] = sum(
-                df[mask_idle_type].RequestCpus)
+                df[mask_type].RequestCpus)
             condor_q_status[f"{_type}_mem_needed"] = sum(
-                df[mask_idle_type].RequestMemory)
+                df[mask_type].RequestMemory)
 
         return condor_q_status
 
@@ -240,7 +267,7 @@ class PoolManagerPandas:
 
         # If workers_needed is higher than the pool we'll add the diference
         # Else we don't need workers (add 0)
-        # workers_needed = max(0, workers_needed - current_pool_size)
+        # workers_needed = max(0, current_pool_size - workers_needed)
         workers_needed = (workers_needed - current_pool_size)
 
         # If we have less running than the minimum we always need to add more
@@ -248,6 +275,7 @@ class PoolManagerPandas:
         # Or what we're lacking in the pool (min - worker pool)
         if current_pool_size < MIN_POOL[machine]:
             workers_needed = max(MIN_POOL[machine] - current_pool_size, workers_needed)
+        
 
         # Check to make sure we don't go over the max pool size
         if (workers_needed + current_pool_size) > MAX_POOL:
@@ -271,7 +299,7 @@ class PoolManagerPandas:
             logger.info(f'No slurm nodes yet, {e}')
             return None
 
-        slurm_running_df.sort_values("START_TIME", inplace=True)
+        slurm_running_df.sort_values("TIME_SEC", inplace=True, ascending=False)
 
         pending = slurm_running_df[slurm_running_df.STATE == "PENDING"].NODELIST
         nodes = [n for n in pending]
@@ -295,6 +323,7 @@ class PoolManagerPandas:
                 continue
             num += 1
             logger.info(f"Removing {node} with JobID {job_id}")
+            print(f"Removing {node} with JobID {job_id}")
             # print(f"{job_id} ", end="")
 
             # _stdout, _stderr, _errorcode = run_sh_command(f"scancel {job_id}", show_stdout=False)
@@ -316,17 +345,15 @@ if __name__ == '__main__':
     pool = PoolManagerPandas()
     # print("Hello")
     slurm_status, slurm_running_df = pool.get_current_slurm_workers()
-    # print(slurm_status)
-    # print(slurm_running_df)
+    print(slurm_status)
+    print(slurm_running_df)
     condor_status = pool.get_condor_job_queue()
+    print(condor_status)
     work_status = pool.determine_condor_job_sizes(condor_status)
-    # print(work_status)
+    print(work_status)
     new_workers = {}
     for _type in compute_types:
         new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
-        # print(_type, new_workers)
-        new_workers = new_workers + MIN_POOL[_type]
-
         print(_type, new_workers)
         if new_workers < 0:
             pool.run_cleanup(slurm_running_df, abs(new_workers), _type)
