@@ -260,7 +260,7 @@ class PoolManagerPandas:
         # Runs a condor_q autoformat to get the desired columns back
         _stdout, _stderr, _errorcode = run_sh_command(condor_idle_nodes, show_stdout=False)
         if _errorcode != 0:
-            print(f"ERROR: failed to execute condor_q command: {condor_q_cmd}")
+            logger.warning(f"ERROR: failed to execute condor_q command: {condor_q_cmd}")
             return None
         idle_nodes = _stdout.split("\n")[:-1]
         logger.info(idle_nodes)
@@ -295,7 +295,6 @@ class PoolManagerPandas:
                 continue
             num += 1
             logger.info(f"Removing {node} with JobID {job_id}")
-            print(f"Removing {node} with JobID {job_id}")
             # print(f"{job_id} ", end="")
 
             # _stdout, _stderr, _errorcode = run_sh_command(f"scancel {job_id}", show_stdout=False)
