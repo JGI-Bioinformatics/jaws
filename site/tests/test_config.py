@@ -2,6 +2,66 @@ import jaws_site.config
 import os
 
 
+# Move large variable declarations out method definition to here
+expected_local_rpc_server_sections = [
+    ("host", "localhost"),
+    ("vhost", "jaws_test"),
+    ("queue", "site_rpc"),
+    ("user", "jaws"),
+    ("password", "passw0rd1"),
+    ("password2", '${LOCAL_RPC_SERVER_PASSWORD}'),
+    ("password3", '${LOCAL_RPC_SERVER_PASSWORD}$'),
+    ("num_threads", "5"),
+    ("max_retries", "3"),
+]
+
+expected_local_rpc_server_sections_env = [
+    ("host", "localhost"),
+    ("vhost", "jaws_test"),
+    ("queue", "site_rpc"),
+    ("user", "jaws"),
+    ("password", "passw0rd1"),
+    ("password2", 'password'),
+    ("password3", 'password$'),
+    ("num_threads", "5"),
+    ("max_retries", "3"),
+]
+
+expected_central_rpc_server_sections = [
+    ("host", "currenthost"),
+    ("vhost", "jaws_test"),
+    ("user", "jaws_eagle"),
+    ("password", "succotash"),
+    ("num_threads", "5"),
+    ("max_retries", "3"),
+]
+
+expected_rpc_client_sections = [
+    ("host", "currenthost"),
+    ("vhost", "jaws_test"),
+    ("queue", "central_rpc"),
+    ("user", "jaws_eagle"),
+    ("password", "succotash"),
+]
+
+expected_db_sections = [
+    ("dialect", "mysql+mysqlconnector"),
+    ("host", "myhost"),
+    ("port", "60032"),
+    ("user", "elmer_fudd"),
+    ("password", "hunting"),
+    ("db", "hunting_sites"),
+]
+
+expected_site_sections = [
+    ("id", "eagle"),
+    ("inputs_dir", "/global/scratch/jaws/jaws-dev/inputs"),
+]
+
+expected_cromwell_sections = [
+    ("url", "http://localhost:8000")]
+
+
 def check_section(section_to_test, expected_entries, actual_config):
     for section, expected in expected_entries:
         print(section, expected, actual_config.get(section_to_test, section))
@@ -16,64 +76,6 @@ def test_overwrite_all_default_values(config_file):
 
     config_path = config_file
     cfg = jaws_site.config.Configuration(config_path)
-
-    expected_local_rpc_server_sections = [
-        ("host", "localhost"),
-        ("vhost", "jaws_test"),
-        ("queue", "site_rpc"),
-        ("user", "jaws"),
-        ("password", "passw0rd1"),
-        ("password2", '${LOCAL_RPC_SERVER_PASSWORD}'),
-        ("password3", '${LOCAL_RPC_SERVER_PASSWORD}$'),
-        ("num_threads", "5"),
-        ("max_retries", "3"),
-    ]
-
-    expected_local_rpc_server_sections_env = [
-        ("host", "localhost"),
-        ("vhost", "jaws_test"),
-        ("queue", "site_rpc"),
-        ("user", "jaws"),
-        ("password", "passw0rd1"),
-        ("password2", 'password'),
-        ("password3", 'password$'),
-        ("num_threads", "5"),
-        ("max_retries", "3"),
-    ]
-
-    expected_central_rpc_server_sections = [
-        ("host", "currenthost"),
-        ("vhost", "jaws_test"),
-        ("user", "jaws_eagle"),
-        ("password", "succotash"),
-        ("num_threads", "5"),
-        ("max_retries", "3"),
-    ]
-
-    expected_rpc_client_sections = [
-        ("host", "currenthost"),
-        ("vhost", "jaws_test"),
-        ("queue", "central_rpc"),
-        ("user", "jaws_eagle"),
-        ("password", "succotash"),
-    ]
-
-    expected_db_sections = [
-        ("dialect", "mysql+mysqlconnector"),
-        ("host", "myhost"),
-        ("port", "60032"),
-        ("user", "elmer_fudd"),
-        ("password", "hunting"),
-        ("db", "hunting_sites"),
-    ]
-
-    expected_site_sections = [
-        ("id", "eagle"),
-        ("inputs_dir", "/global/scratch/jaws/jaws-dev/inputs"),
-    ]
-
-    expected_cromwell_sections = [
-        ("url", "http://localhost:8000")]
 
     print("Checking LOCAL_RPC_SERVER without environment variables set.")
     # Clear potentially conflicting env vars
