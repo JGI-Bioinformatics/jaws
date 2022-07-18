@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import json
 import smtplib
@@ -10,6 +10,7 @@ from jaws_central import models
 from jaws_central import config
 from jaws_central import jaws_constants
 from jaws_central.transfers import Transfer, TransferNotFoundError
+from jaws_rpc import rpc_index
 
 logger = logging.getLogger(__package__)
 
@@ -23,7 +24,7 @@ class RunDbError(RunError):
     pass
 
 
-class RunNotFound(RunError):
+class RunNotFoundError(RunError):
     pass
 
 
@@ -42,7 +43,7 @@ class RunRpcError(RunError):
 class Run:
     """Class representing a single Run"""
 
-    def __init__(self, session, data, rpc_index=None):
+    def __init__(self, session, data):
         self.session = session
         self.data = data
         self.operations = {
@@ -60,43 +61,47 @@ class Run:
             "download failed": self.send_email,
             "email sent": self.post_to_webhook,
         }
-        self.rpc_index = rpc_index
         self.upload = None
         self.download = None
 
     @classmethod
-    def from_params(cls, session, **kwargs):
+    def from_params(cls, session, params):
         """Insert run record into rdb"""
         manifest_json = "[]"
-        if "manifest" in kwargs:
+        if "manifest" in params:
             # if a list is provided then need to convert to JSON text
-            assert type(kwargs["manifest"]) == list
-            manifest_json = json.dumps(kwargs["manifest"])
-        elif "manifest_json" in kwargs:
-            assert type(kwargs["manifest_json"]) == str
-            manifest_json = kwargs["manifest_json"]
+            assert type(params["manifest"]) == list
+            manifest_json = json.dumps(params["manifest"])
+        elif "manifest_json" in params:
+            assert type(params["manifest_json"]) == str
+            manifest_json = params["manifest_json"]
         try:
             data = models.Run(
-                user_id=kwargs["user_id"],
-                submission_id=kwargs["submission_id"],
-                max_ram_gb=int(kwargs["max_ram_gb"]),
-                caching=kwargs["caching"],
-                input_site_id=kwargs["input_site_id"],
-                compute_site_id=kwargs["compute_site_id"],
-                status="uploading",
-                wdl_file=kwargs["wdl_file"],
-                json_file=kwargs["json_file"],
-                tag=kwargs["tag"],
+                user_id=params["user_id"],
+                submission_id=params["submission_id"],
+                max_ram_gb=int(params["max_ram_gb"]),
+                caching=params["caching"],
+                input_site_id=params["input_site_id"],
+                compute_site_id=params["compute_site_id"],
+                status="created",
+                wdl_file=params["wdl_file"],
+                json_file=params["json_file"],
+                tag=params["tag"],
                 manifest_json=manifest_json,
-                webhook=kwargs["webhook"],
+                webhook=params["webhook"],
             )
         except SQLAlchemyError as error:
-            raise (f"Error creating model for new Run {kwargs['run_id']}: {error}")
+            raise (f"Error creating model for new Run {params['run_id']}: {error}")
+        except Exception as error:
+            raise (f"Unknown error initializing Run model: {error}")
         try:
             session.add(data)
             session.commit()
             # data.id will be defined after the commit
         except SQLAlchemyError as error:
+            session.rollback()
+            raise (error)
+        except Exception as error:
             session.rollback()
             raise (error)
         else:
@@ -109,9 +114,13 @@ class Run:
             data = session.query(models.Run).get(run_id)
         except IntegrityError as error:
             logger.error(f"Run {run_id} not found: {error}")
-            raise RunNotFound(f"Run {run_id} not found")
+            raise RunNotFoundError(f"Run {run_id} not found")
         except SQLAlchemyError as error:
             err_msg = f"Unable to select run, {run_id}: {error}"
+            logger.error(err_msg)
+            raise RunDbError(err_msg)
+        except Exception as error:
+            err_msg = f"Unexpected error; unable to select run, {run_id}: {error}"
             logger.error(err_msg)
             raise RunDbError(err_msg)
         else:
@@ -137,6 +146,7 @@ class Run:
             "result": self.data.result,
             "status": self.data.status,
             "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
+            "tag": self.data.tag,
         }
         if verbose:
             more_info = {
@@ -150,7 +160,6 @@ class Run:
                 "submission_id": self.data.submission_id,
                 "download_id": self.data.download_id,
                 "user_id": self.data.user_id,
-                "tag": self.data.tag,
                 "wdl_file": self.data.wdl_file,
                 "json_file": self.data.json_file,
             }
@@ -177,9 +186,13 @@ class Run:
             "queued",
             "running",
         ]:
-            rpc_client = self.rpc_index.get_client(self.data.compute_site_id)
+            rpc_client = rpc_index.rpc_index.get_client(self.data.compute_site_id)
             params = {"user_id": self.data.user_id, "run_id": self.data.id}
-            rpc_client.request("cancel", params)
+            try:
+                rpc_client.request("cancel", params)
+            except Exception as error:
+                logger.warning(f"RPC cancel failure: {error}")
+                return
         self.update_status("cancelled")
 
     def _get_transfer(self, transfer_id: int):
@@ -227,7 +240,7 @@ class Run:
         :rtype: list
         """
         # request list of output files from the compute-site's Cromwell
-        rpc_client = self.rpc_index.get_client(self.data.compute_site_id)
+        rpc_client = rpc_index.rpc_index.get_client(self.data.compute_site_id)
         params = {
             "run_id": self.data.id,
             "complete": True,
@@ -325,6 +338,10 @@ class Run:
         If the upload is complete, update the run's status.
         """
         logger.debug(f"Run {self.data.id}: Check upload status")
+        if self.data.input_site_id == self.data.compute_site_id:
+            # no transfer required if computing at input site
+            self.update_status("upload complete")
+            return
         try:
             upload = self.get_upload()
         except Exception as error:
@@ -368,6 +385,9 @@ class Run:
         except SQLAlchemyError as error:
             logger.warning(f"Failed to select user email: {error}", exc_info=True)
             raise
+        except Exception as error:
+            logger.error(f"Unexpected error selecting user email: {error}")
+            raise
         else:
             return user.email
 
@@ -377,7 +397,7 @@ class Run:
         """
         site_id = self.data.compute_site_id
         logger.debug(f"Run {self.data.id}: Submit to {site_id}")
-        rpc_client = self.rpc_index.get_client(site_id)
+        rpc_client = rpc_index.rpc_index.get_client(site_id)
         params = {
             "user_id": self.data.user_id,
             "run_id": self.data.id,
@@ -419,6 +439,10 @@ class Run:
             self.session.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
             raise
+        except Exception as error:
+            self.session.rollback()
+            logger.exception(f"Unexpected error while trying to update Run {self.data.id}: {error}")
+            raise
 
     def _insert_run_log(self, status_from, status_to, timestamp, reason) -> None:
         """
@@ -440,6 +464,39 @@ class Run:
                 f"Failed to insert log for Run {self.data.id} ({status_to}): {error}"
             )
             raise
+        except Exception as error:
+            self.session.rollback()
+            logger.exception(
+                f"Unexpected error; failed to insert log for Run {self.data.id} ({status_to}): {error}"
+            )
+            raise
+
+    def log(self):
+        """
+        Retrieve complete log of the Run's state transitions.
+        :return: Table of log entries
+        :rtype: list
+        """
+        logger.info(f"Get log of Run {self.data.id}")
+        try:
+            query = (
+                self.session.query(models.Run_Log)
+                .filter_by(run_id=self.data.id)
+                .order_by(models.Run_Log.timestamp)
+            )
+        except SQLAlchemyError as error:
+            logger.exception(f"Error selecting from run_logs: {error}")
+        table = []
+        for log in query:
+            reason = log.reason if log.reason is not None else ""
+            row = [
+                log.status_from,
+                log.status_to,
+                log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                reason,
+            ]
+            table.append(row)
+        return table
 
     def send_email(self):
         receiver_email = self.user_email()
@@ -499,7 +556,7 @@ class Run:
             self.update_status("done")
 
 
-def check_active_runs(session, rpc_index) -> None:
+def check_active_runs(session) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
@@ -509,13 +566,50 @@ def check_active_runs(session, rpc_index) -> None:
         )
     except SQLAlchemyError as error:
         logger.warning(f"Failed to select active runs from db: {error}", exc_info=True)
+    except Exception as error:
+        logger.error(f"Unexpected error; failed to select active runs: {error}")
     else:
         if len(rows):
             logger.debug(f"Central is responsible for {len(rows)} run(s)")
             for row in rows:
                 run = Run(
                     session,
-                    row,
-                    rpc_index,
+                    row
                 )
                 run.check_status()
+
+
+def select_runs(session, **kwargs):
+    """Get runs matching some criteria.
+
+    :param session: db session
+    :type session: sqlalchemy session obj
+    :return: Runs matching search criteria
+    :rtype: list
+    """
+    query = session.query(models.Run)
+    if "all_users" in kwargs and kwargs["all_users"] is True:
+        pass
+    else:
+        query = query.filter(models.Run.user_id == kwargs["user_id"])
+    if "active_only" in kwargs and kwargs["active_only"] is True:
+        query = query.filter(models.Run.status != "done")
+    if "site_id" in kwargs:
+        site_id = kwargs["site_id"].upper()
+        if site_id != "ALL":
+            query = query.filter(models.Run.compute_site_id == site_id)
+    if "delta_days" in kwargs:
+        delta_days = int(kwargs["delta_days"])
+        if delta_days > 0:
+            start_date = datetime.today() - timedelta(delta_days)
+            query = query.filter(models.Run.submitted >= start_date)
+    if "result" in kwargs:
+        result = kwargs["result"].lower()
+        if result != "any":
+            query = query.filter(models.Run.result == result)
+
+    runs = []
+    for data in query.all():
+        run = Run(session, data)
+        runs.append(run)
+    return runs

@@ -101,7 +101,7 @@ class Run:
         try:
             data = session.query(models.Run).get(run_id)
         except IntegrityError as error:
-            logger.warn(f"Run {run_id} not found: {error}")
+            logger.warning(f"Run {run_id} not found: {error}")
             raise RunNotFoundError(f"Run {run_id} not found")
         except SQLAlchemyError as error:
             err_msg = f"Unable to select run, {run_id}: {error}"
@@ -127,7 +127,7 @@ class Run:
                 .one()
             )
         except NoResultFound as error:
-            logger.warn(f"Cromwell {cromwell_run_id} not found: {error}")
+            logger.warning(f"Cromwell {cromwell_run_id} not found: {error}")
             raise RunNotFoundError(f"Cromwell {cromwell_run_id} not found")
         except SQLAlchemyError as error:
             err_msg = f"Unable to select cromwell, {cromwell_run_id}: {error}"
@@ -244,7 +244,7 @@ class Run:
             try:
                 cromwell.abort(self.data.cromwell_run_id)
             except CromwellError as error:
-                logger.warn(f"Cromwell error cancelling Run {self.data.id}: {error}")
+                logger.warning(f"Cromwell error cancelling Run {self.data.id}: {error}")
                 raise CromwellError(f"Cromwell cancel failed: {error}")
 
     def outputs(self, relpath=True) -> dict:
@@ -301,6 +301,14 @@ class Run:
         if self.data.cromwell_run_id:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             return metadata.errors()
+        else:
+            return {}
+
+    def running_tasks(self) -> dict:
+        """Get running tasks report from Cromwell service"""
+        if self.data.cromwell_run_id:
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            return metadata.running()
         else:
             return {}
 
@@ -591,7 +599,7 @@ class Run:
                 logger.exception(f"RPC save_run_report error: {error}")
                 return
             if "error" in response:
-                logger.warn(
+                logger.warning(
                     f"RPC save_run_report failed: {response['error']['message']}"
                 )
                 return

@@ -1,5 +1,6 @@
 import json
 import os
+import glob
 from deepdiff import DeepDiff
 from jaws_site import cromwell
 
@@ -35,6 +36,9 @@ example_cromwell_run_id_8 = "5a2cbafe-56ed-42aa-955d-fef8cb5014bb"
 
 # successful AWS run
 example_cromwell_run_id_9 = "f4f5afd1-79f5-497a-9612-baed76dc365d"
+
+# running Run
+example_cromwell_run_id_10 = "dcc24ca7-c303-4e8e-ad26-7b2644308fab"
 
 
 def __load_example_output_from_file(cromwell_run_id, output_type):
@@ -259,6 +263,55 @@ def test_errors(requests_mock, monkeypatch):
     )
 
 
+def test_running(requests_mock, monkeypatch):
+    def mock_read_file(path):
+        return None
+
+    monkeypatch.setattr(cromwell, "_read_file", mock_read_file)
+
+    def mock_glob(path):
+        return []
+
+    monkeypatch.setattr(glob, "glob", mock_glob)
+
+    # completed workflow
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
+    )
+    expected_running_report_1 = {}
+    metadata_1 = crom.get_metadata(example_cromwell_run_id_1)
+    actual_running_report_1 = metadata_1.running()
+    assert (
+        bool(
+            DeepDiff(
+                actual_running_report_1, expected_running_report_1, ignore_order=True
+            )
+        )
+        is False
+    )
+
+    # running workflow
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_10}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_10, "metadata"),
+    )
+    expected_running_report_10 = __load_example_output_from_file(
+        example_cromwell_run_id_10, "running"
+    )
+    metadata_10 = crom.get_metadata(example_cromwell_run_id_10)
+    actual_running_report_10 = metadata_10.running()
+    print(actual_running_report_10)
+    assert (
+        bool(
+            DeepDiff(
+                actual_running_report_10, expected_running_report_10, ignore_order=True
+            )
+        )
+        is False
+    )
+
+
 def test_get_outputs(requests_mock):
     # test 1 : outputs scalar
     requests_mock.get(
@@ -393,93 +446,129 @@ def test_parse_cromwell_task_dir():
         [
             "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9/execution",  # noqa
             {
-                'call_root': '/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9',  # noqa
-                'cached': False,
-                'shard': 9,
-                'name': 'jgi_dap_leo.trimAlign_expt[9]',
-                'call_root_rel_path': 'jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9/execution',  # noqa
-                'wdl_name': 'jgi_dap_leo',
-                'cromwell_run_id': 'cda3cb3f-535c-400d-ab61-2e41aeb35a80',
-                'task_name': 'trimAlign_expt'
-            }
+                "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9",  # noqa
+                "cached": False,
+                "shard": 9,
+                "name": "jgi_dap_leo.trimAlign_expt[9]",
+                "call_root_rel_path": "jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9/execution",  # noqa
+                "wdl_name": "jgi_dap_leo",
+                "cromwell_run_id": "cda3cb3f-535c-400d-ab61-2e41aeb35a80",
+                "task_name": "trimAlign_expt",
+            },
         ],
         [
             "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
             {
-                'call_root': '/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello',  # noqa
-                'cached': False,
-                'shard': -1,
-                'name': 'main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello',
-                'call_root_rel_path': 'main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution',  # noqa
-                'wdl_name': 'main_workflow',
-                'cromwell_run_id': 'e7f02164-2d3d-4cfb-828a-f3da23c43280',
-                'task_name': 'hello_and_goodbye_1',
-                'subworkflow_name': 'hello_and_goodbye',
-                'subworkflow_cromwell_run_id': '3327f701-769a-49fe-b407-eb4be3a4a373',
-                'sub_task_name': 'hello'
-            }
+                "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello",  # noqa
+                "cached": False,
+                "shard": -1,
+                "name": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+                "call_root_rel_path": "main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
+                "wdl_name": "main_workflow",
+                "cromwell_run_id": "e7f02164-2d3d-4cfb-828a-f3da23c43280",
+                "task_name": "hello_and_goodbye_1",
+                "subworkflow_name": "hello_and_goodbye",
+                "subworkflow_cromwell_run_id": "3327f701-769a-49fe-b407-eb4be3a4a373",
+                "sub_task_name": "hello",
+            },
         ],
         [
             "s3://jaws-site-prod/cromwell-execution/jgi_meta/bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3/call-bbcms",  # noqa
             {
-                'call_root': 's3://jaws-site-prod/cromwell-execution/jgi_meta/bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3/call-bbcms',  # noqa
-                'cached': False,
-                'shard': -1,
-                'name': 'jgi_meta.bbcms',
-                'call_root_rel_path': 'jgi_meta/bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3/call-bbcms/execution',  # noqa
-                'wdl_name': 'jgi_meta',
-                'cromwell_run_id': 'bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3',
-                'task_name': 'bbcms'
-            }
-
+                "call_root": "s3://jaws-site-prod/cromwell-execution/jgi_meta/bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3/call-bbcms",  # noqa
+                "cached": False,
+                "shard": -1,
+                "name": "jgi_meta.bbcms",
+                "call_root_rel_path": "jgi_meta/bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3/call-bbcms/execution",  # noqa
+                "wdl_name": "jgi_meta",
+                "cromwell_run_id": "bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3",
+                "task_name": "bbcms",
+            },
         ],
         [
             "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/inhomo/8cc6f043-13b1-4e18-b685-b9533e6704cf/call-processTaxon/shard-5",  # noqa
             {
-                'call_root': '/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/inhomo/8cc6f043-13b1-4e18-b685-b9533e6704cf/call-processTaxon/shard-5',  # noqa
-                'cached': False,
-                'shard': 5,
-                'name': 'inhomo.processTaxon[5]',
-                'call_root_rel_path': 'inhomo/8cc6f043-13b1-4e18-b685-b9533e6704cf/call-processTaxon/shard-5/execution',  # noqa
-                'wdl_name': 'inhomo',
-                'cromwell_run_id': '8cc6f043-13b1-4e18-b685-b9533e6704cf',
-                'task_name': 'processTaxon'
-            }
+                "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/inhomo/8cc6f043-13b1-4e18-b685-b9533e6704cf/call-processTaxon/shard-5",  # noqa
+                "cached": False,
+                "shard": 5,
+                "name": "inhomo.processTaxon[5]",
+                "call_root_rel_path": "inhomo/8cc6f043-13b1-4e18-b685-b9533e6704cf/call-processTaxon/shard-5/execution",  # noqa
+                "wdl_name": "inhomo",
+                "cromwell_run_id": "8cc6f043-13b1-4e18-b685-b9533e6704cf",
+                "task_name": "processTaxon",
+            },
         ],
         [
             "/tahoma/mscjgi/scratch/jaws-prod/cromwell-executions/nmdc_metag/c16846ff-3a7b-444e-a26b-ce484eb205b5/call-annotation/awf.annotation/e0910a3c-6ba1-43e3-8b4b-d275fb0601fb/call-s_annotate/shard-0/sa.s_annotate/1671df94-89d9-4418-a949-737038f458a0/call-fasta_merge",  # noqa
             {
-                'call_root': '/tahoma/mscjgi/scratch/jaws-prod/cromwell-executions/nmdc_metag/c16846ff-3a7b-444e-a26b-ce484eb205b5/call-annotation/awf.annotation/e0910a3c-6ba1-43e3-8b4b-d275fb0601fb/call-s_annotate/shard-0/sa.s_annotate/1671df94-89d9-4418-a949-737038f458a0/call-fasta_merge',  # noqa
-                'cached': False,
-                'shard': -1,
-                'name': 'nmdc_metag.annotation:annotation.s_annotate:s_annotate.fasta_merge',
-                'call_root_rel_path':
-                'nmdc_metag/c16846ff-3a7b-444e-a26b-ce484eb205b5/call-annotation/awf.annotation/e0910a3c-6ba1-43e3-8b4b-d275fb0601fb/call-s_annotate/shard-0/sa.s_annotate/1671df94-89d9-4418-a949-737038f458a0/call-fasta_merge/execution',  # noqa
-                'wdl_name': 'nmdc_metag',
-                'cromwell_run_id': 'c16846ff-3a7b-444e-a26b-ce484eb205b5',
-                'task_name': 'annotation',
-                'subworkflow_name': 's_annotate',
-                'subworkflow_cromwell_run_id': '1671df94-89d9-4418-a949-737038f458a0',
-                'sub_task_name': 'fasta_merge',
-                'sub_shard': 0
-            }
+                "call_root": "/tahoma/mscjgi/scratch/jaws-prod/cromwell-executions/nmdc_metag/c16846ff-3a7b-444e-a26b-ce484eb205b5/call-annotation/awf.annotation/e0910a3c-6ba1-43e3-8b4b-d275fb0601fb/call-s_annotate/shard-0/sa.s_annotate/1671df94-89d9-4418-a949-737038f458a0/call-fasta_merge",  # noqa
+                "cached": False,
+                "shard": -1,
+                "name": "nmdc_metag.annotation:annotation.s_annotate:s_annotate.fasta_merge",
+                "call_root_rel_path": "nmdc_metag/c16846ff-3a7b-444e-a26b-ce484eb205b5/call-annotation/awf.annotation/e0910a3c-6ba1-43e3-8b4b-d275fb0601fb/call-s_annotate/shard-0/sa.s_annotate/1671df94-89d9-4418-a949-737038f458a0/call-fasta_merge/execution",  # noqa
+                "wdl_name": "nmdc_metag",
+                "cromwell_run_id": "c16846ff-3a7b-444e-a26b-ce484eb205b5",
+                "task_name": "annotation",
+                "subworkflow_name": "s_annotate",
+                "subworkflow_cromwell_run_id": "1671df94-89d9-4418-a949-737038f458a0",
+                "sub_task_name": "fasta_merge",
+                "sub_shard": 0,
+            },
         ],
         [
             "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/bbmap_shard_wf/be518d2a-6232-4f50-b6cf-7e1a3a995ad3/call-alignment/shard-0",  # noqa
             {
-                'call_root': '/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/bbmap_shard_wf/be518d2a-6232-4f50-b6cf-7e1a3a995ad3/call-alignment/shard-0',  # noqa
-                'cached': False,
-                'shard': 0,
-                'name': 'bbmap_shard_wf.alignment[0]',
-                'call_root_rel_path': 'bbmap_shard_wf/be518d2a-6232-4f50-b6cf-7e1a3a995ad3/call-alignment/shard-0/execution',  # noqa
-                'wdl_name': 'bbmap_shard_wf',
-                'cromwell_run_id': 'be518d2a-6232-4f50-b6cf-7e1a3a995ad3',
-                'task_name': 'alignment'
-            }
-        ]
+                "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/bbmap_shard_wf/be518d2a-6232-4f50-b6cf-7e1a3a995ad3/call-alignment/shard-0",  # noqa
+                "cached": False,
+                "shard": 0,
+                "name": "bbmap_shard_wf.alignment[0]",
+                "call_root_rel_path": "bbmap_shard_wf/be518d2a-6232-4f50-b6cf-7e1a3a995ad3/call-alignment/shard-0/execution",  # noqa
+                "wdl_name": "bbmap_shard_wf",
+                "cromwell_run_id": "be518d2a-6232-4f50-b6cf-7e1a3a995ad3",
+                "task_name": "alignment",
+            },
+        ],
     ]
 
     for task_dir, expected in test_data:
         actual = cromwell.parse_cromwell_task_dir(task_dir)
         print(actual, flush=True)
         assert actual == expected
+
+
+def test_sort_table():
+    test_table = [
+        ["bbtools.samtools", False, "Queued", "2022-07-11 17:52:37", "", "", "", ""],
+        [
+            "bbtools.alignment",
+            False,
+            "Done",
+            "2022-07-11 17:51:13",
+            "2022-07-11 17:51:14",
+            "2022-07-11 17:52:35",
+            "0:00:01",
+            "0:01:21",
+        ],
+    ]
+    expected = [
+        [
+            "bbtools.alignment",
+            False,
+            "Done",
+            "2022-07-11 17:51:13",
+            "2022-07-11 17:51:14",
+            "2022-07-11 17:52:35",
+            "0:00:01",
+            "0:01:21",
+        ],
+        ["bbtools.samtools", False, "Queued", "2022-07-11 17:52:37", "", "", "", ""],
+    ]
+    actual = cromwell.sort_table(test_table, 3)
+    assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
+
+
+def test_sort_table_dict():
+    test_table = [{"id": 41, "key": "B"}, {"id": 51, "key": "A"}]
+    expected = [{"id": 51, "key": "A"}, {"id": 41, "key": "B"}]
+    actual = cromwell.sort_table_dict(test_table, "key")
+    assert bool(DeepDiff(actual, expected, ignore_order=False)) is False

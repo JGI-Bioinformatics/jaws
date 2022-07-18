@@ -29,6 +29,6 @@ class TransferDaemon:
         """
         Do any queued transfers now.
         """
-        session = database.Session()
+        session = database.session_factory()
         transfers.check_queue(session)
         session.close()

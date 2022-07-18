@@ -26,8 +26,8 @@ class PerformanceMetrics:
             run = runs.Run.from_cromwell_run_id(self.session, cromwell_run_id)
         except runs.RunNotFoundError or runs.RunDbError as err:
             msg = f"Failed to get run_id from {cromwell_run_id=}: {err}"
-            logger.warn(msg)
-            raise runs.RunDbError(msg)
+            logger.warning(msg)
+            return 0
         return run.data.id
 
     def process_csv(self, csv_file: str) -> list:
@@ -39,7 +39,12 @@ class PerformanceMetrics:
         :return: list of dictionaries where each dictionary is a json doc of the performance metrics.
         :rtype: list
         """
-        csv_data = pd.read_csv(csv_file, parse_dates=[0], index_col=[0])
+        try:
+            csv_data = pd.read_csv(csv_file, parse_dates=[0], index_col=[0])
+        except Exception as err:
+            logging.warning(f"{type(err).__name__} Error opening {csv_file=}")
+            # Return an empty list of dict to be handled later
+            return [{}]
 
         # Remove extranious parts from the current directory
         csv_data["current_dir"] = csv_data.current_dir.apply(remove_beginning_path)
@@ -95,6 +100,7 @@ class PerformanceMetrics:
             return
 
         for done_file in list(done_dir_obj.glob("*.csv")):
+            logger.info(f"Processing {done_file.name=} ...")
             docs = self.process_csv(done_file)
             for doc in docs:
                 cromwell_run_id = doc.get("cromwell_run_id")
@@ -114,7 +120,10 @@ class PerformanceMetrics:
                 )
 
                 # Submit doc to RMQ to be picked up by logstash and inserted into elasticsearch
-                self.rpc_client.request(doc)
+                response, status_code = self.rpc_client.request(doc)
+                if status_code:
+                    logger.error(f"Failed to publish metrics into elasticsearch: {response=}")
+                    continue
 
             # Move csv file to processed folder
             processed_file = proc_dir_obj / done_file.name
@@ -137,7 +146,7 @@ def extract_jaws_info(working_dir):
         if match:
             cromwell_run_id = match.group(1)
     except Exception as e:
-        logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+        logger.warning(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
 
     return cromwell_run_id
 
@@ -153,7 +162,7 @@ def remove_beginning_path(working_dir):
             # Extract from "cromwell-executions" to the end of the string
             dir_name = working_dir[id_ce_dir:]
     except Exception as e:
-        logger.warn(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+        logger.warning(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
 
     return dir_name
 

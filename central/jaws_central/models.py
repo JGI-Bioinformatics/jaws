@@ -1,7 +1,5 @@
 """
-Vanilla Sqlalchemy ORM models, used by rpc_operations and daemon.
-The tables are duplicated in the matching models_fsa.py file because
-Flask-SqlAlchemy uses a different ORM base class than SqlAlchemy.
+Sqlalchemy ORM models
 """
 
 import datetime

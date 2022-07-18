@@ -1,0 +1,107 @@
+{
+    "actualWorkflowLanguage": "WDL",
+    "actualWorkflowLanguageVersion": "1.0",
+    "calls": {
+        "jgi_meta.bbcms": [
+            {
+                "attempt": 1,
+                "backend": "HtCondor",
+                "backendStatus": "Running",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/jgi_meta/dcc24ca7-c303-4e8e-ad26-7b2644308fab/call-bbcms",
+                "commandLine": "bbcms.sh -Xmx105g metadatafile=counts.metadata.json mincount=2 highcountfraction=0.6 in=/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/jgi_meta/dcc24ca7-c303-4e8e-ad26-7b2644308fab/call-bbcms/inputs/-1162283210/12074.1.235970.AGCTAAC-GGTTAGC.filter-METAGENOME.fastq.gz out=input.corr.fastq.gz > stdout.log 2> stderr.log && grep Unique stderr.log | rev |  cut -f 1 | rev  > unique31mer.txt && \\\nreformat.sh -Xmx105g in=input.corr.fastq.gz out1=input.corr.left.fastq.gz out2=input.corr.right.fastq.gz && \\\nreadlength.sh -Xmx105g in=input.corr.fastq.gz out=readlen.txt",
+                "executionStatus": "Running",
+                "inputs": {
+                    "container": "bryce911/bbtools:38.44",
+                    "filename_counts": "counts.metadata.json",
+                    "filename_errlog": "stderr.log",
+                    "filename_kmerfile": "unique31mer.txt",
+                    "filename_outfile": "input.corr.fastq.gz",
+                    "filename_outfile1": "input.corr.left.fastq.gz",
+                    "filename_outfile2": "input.corr.right.fastq.gz",
+                    "filename_outlog": "stdout.log",
+                    "filename_readlen": "readlen.txt",
+                    "infile": "/global/cscratch1/sd/jaws/jaws-prod/inputs/CORI/global/cscratch1/sd/ekirton/test/bfoster_meta_assem/12074.1.235970.AGCTAAC-GGTTAGC.filter-METAGENOME.fastq.gz",
+                    "threads": 16
+                },
+                "jobId": "34619",
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "cpu": "16",
+                    "disk": "0.0244140625 GB",
+                    "docker": "bryce911/bbtools:38.44",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "118 GB"
+                },
+                "shardIndex": -1,
+                "start": "2022-07-07T00:23:07.793Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/jgi_meta/dcc24ca7-c303-4e8e-ad26-7b2644308fab/call-bbcms/execution/stderr",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/jgi_meta/dcc24ca7-c303-4e8e-ad26-7b2644308fab/call-bbcms/execution/stdout"
+            }
+        ]
+    },
+    "id": "dcc24ca7-c303-4e8e-ad26-7b2644308fab",
+    "inputs": {
+        "basic_container": "bryce911/bbtools:38.44",
+        "bbtools_container": "bryce911/bbtools:38.44",
+        "input_file": "/global/cscratch1/sd/jaws/jaws-prod/inputs/CORI/global/cscratch1/sd/ekirton/test/bfoster_meta_assem/12074.1.235970.AGCTAAC-GGTTAGC.filter-METAGENOME.fastq.gz",
+        "jgi_meta.assy.filename_outfile": null,
+        "jgi_meta.assy.filename_spadeslog": null,
+        "jgi_meta.assy.outprefix": "spades3",
+        "jgi_meta.assy.threads": 16,
+        "jgi_meta.bbcms.filename_counts": "counts.metadata.json",
+        "jgi_meta.bbcms.filename_errlog": "stderr.log",
+        "jgi_meta.bbcms.filename_kmerfile": "unique31mer.txt",
+        "jgi_meta.bbcms.filename_outfile": "input.corr.fastq.gz",
+        "jgi_meta.bbcms.filename_outfile1": "input.corr.left.fastq.gz",
+        "jgi_meta.bbcms.filename_outfile2": "input.corr.right.fastq.gz",
+        "jgi_meta.bbcms.filename_outlog": "stdout.log",
+        "jgi_meta.bbcms.filename_readlen": "readlen.txt",
+        "jgi_meta.bbcms.threads": 16,
+        "jgi_meta.create_agp.filename_agp": null,
+        "jgi_meta.create_agp.filename_contigs": null,
+        "jgi_meta.create_agp.filename_legend": null,
+        "jgi_meta.create_agp.filename_scaffolds": null,
+        "jgi_meta.create_agp.prefix": "assembly",
+        "jgi_meta.create_agp.threads": 16,
+        "jgi_meta.read_mapping_pairs.filename_bamscript": "to_bam.sh",
+        "jgi_meta.read_mapping_pairs.filename_cov": "covstats.txt",
+        "jgi_meta.read_mapping_pairs.filename_outsam": "pairedMapped.sam.gz",
+        "jgi_meta.read_mapping_pairs.filename_sorted": "pairedMapped_sorted.bam",
+        "jgi_meta.read_mapping_pairs.filename_sorted_idx": "pairedMapped_sorted.bam.bai",
+        "jgi_meta.read_mapping_pairs.filename_unsorted": "pairedMapped.bam",
+        "jgi_meta.read_mapping_pairs.threads": 16,
+        "spades_container": "bryce911/spades:3.13.0",
+        "uniquekmer": 1000
+    },
+    "labels": {
+        "cromwell-workflow-id": "cromwell-dcc24ca7-c303-4e8e-ad26-7b2644308fab"
+    },
+    "metadataSource": "Unarchived",
+    "outputs": {},
+    "start": "2022-07-07T00:23:05.654Z",
+    "status": "Running",
+    "submission": "2022-07-07T00:23:05.136Z",
+    "submittedFiles": {
+        "inputs": "{\"jgi_meta.input_file\":\"/global/cscratch1/sd/jaws/jaws-prod/inputs/CORI/global/cscratch1/sd/ekirton/test/bfoster_meta_assem/12074.1.235970.AGCTAAC-GGTTAGC.filter-METAGENOME.fastq.gz\"}",
+        "labels": "{}",
+        "options": "{\n  \"default_runtime_attributes\": {\n    \"docker\": \"ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf\"\n  },\n  \"read_from_cache\": false,\n  \"write_to_cache\": false\n}",
+        "root": "",
+        "workflow": "version 1.0\n\nworkflow jgi_meta {\n    input {\n        File input_file\n        Float uniquekmer=1000\n        String bbtools_container=\"bryce911/bbtools:38.44\" # TODO: SHA\n        String spades_container=\"bryce911/spades:3.13.0\"\n        String basic_container=\"bryce911/bbtools:38.44\"\n    }\n\n    call bbcms {\n          input: infile=input_file, container=bbtools_container\n    }\n    call assy {\n         input: infile1=bbcms.out1, infile2=bbcms.out2, container=spades_container\n    }\n    call create_agp {\n         input: scaffolds_in=assy.out, container=bbtools_container\n    }\n    call read_mapping_pairs {\n     input: reads=input_file, ref=create_agp.outcontigs, container=bbtools_container\n    }\n\n    output {\n      File outbamfile = read_mapping_pairs.outbamfile\n      File outbamfileidx = read_mapping_pairs.outbamfileidx\n      File outcovfile = read_mapping_pairs.outcovfile\n      File outsamfile = read_mapping_pairs.outsamfile\n    }\n}\ntask bbcms {\n    input {\n        File infile\n        String container\n        Int threads=16\n\n        String filename_outfile=\"input.corr.fastq.gz\"\n        String filename_outfile1=\"input.corr.left.fastq.gz\"\n        String filename_outfile2=\"input.corr.right.fastq.gz\"\n        String filename_readlen=\"readlen.txt\"\n        String filename_outlog=\"stdout.log\"\n        String filename_errlog=\"stderr.log\"\n        String filename_kmerfile=\"unique31mer.txt\"\n        String filename_counts=\"counts.metadata.json\"\n    }\n\n    runtime {\n        cpu: threads\n        docker: container\n        time: \"01:00:00\"\n        memory: \"118G\"\n    }\n\n     command <<<\n        bbcms.sh -Xmx105g metadatafile=~{filename_counts} mincount=2 highcountfraction=0.6 in=~{infile} out=~{filename_outfile} > ~{filename_outlog} 2> ~{filename_errlog} && grep Unique ~{filename_errlog} | rev |  cut -f 1 | rev  > ~{filename_kmerfile} && \\\n        reformat.sh -Xmx105g in=~{filename_outfile} out1=~{filename_outfile1} out2=~{filename_outfile2} && \\\n        readlength.sh -Xmx105g in=~{filename_outfile} out=~{filename_readlen}\n     >>>\n\n     output {\n            File out = filename_outfile\n            File out1 = filename_outfile1\n            File out2 = filename_outfile2\n            File outreadlen = filename_readlen\n            File stdout = filename_outlog\n            File stderr = filename_errlog\n            File outcounts = filename_counts\n            File outkmer = filename_kmerfile\n     }\n}\n\ntask assy {\n    input {\n        File infile1\n        File infile2\n        String container\n        Int threads=16\n\n        String outprefix=\"spades3\"\n        String filename_outfile=\"${outprefix}/scaffolds.fasta\"\n        String filename_spadeslog =\"${outprefix}/spades.log\"\n    }\n\n    runtime {\n        cpu: threads\n        docker: container\n        time: \"01:00:00\"\n        memory: \"118G\"\n    }\n\n     command{\n        spades.py -m 2000 --tmp-dir /tmp -o ~{outprefix} --only-assembler -k 33,55,77,99,127  --meta -t ~{threads} -1 ~{infile1} -2 ~{infile2}\n     }\n\n     output {\n            File out = filename_outfile\n            File outlog = filename_spadeslog\n     }\n}\n\n\ntask create_agp {\n    input {\n        File scaffolds_in\n        String container\n        Int threads=16\n\n        String prefix=\"assembly\"\n        String filename_contigs=\"${prefix}.contigs.fasta\"\n        String filename_scaffolds=\"${prefix}.scaffolds.fasta\"\n        String filename_agp=\"${prefix}.agp\"\n        String filename_legend=\"${prefix}.scaffolds.legend\"\n    }\n\n    runtime {\n        cpu: threads\n        docker: container\n        time: \"01:00:00\"\n        memory: \"50G\"\n    }\n\n    command{\n        fungalrelease.sh -Xmx105g in=${scaffolds_in} out=${filename_scaffolds} outc=${filename_contigs} agp=${filename_agp} legend=${filename_legend} mincontig=200 minscaf=200 sortscaffolds=t sortcontigs=t overwrite=t\n  }\n\n    output{\n        File outcontigs = filename_contigs\n        File outscaffolds = filename_scaffolds\n        File outagp = filename_agp\n        File outlegend = filename_legend\n    }\n}\n\n\ntask read_mapping_pairs{\n    input {\n        File reads\n        File ref\n        String container\n        Int threads=16\n      \n        String filename_unsorted=\"pairedMapped.bam\"\n        String filename_outsam=\"pairedMapped.sam.gz\"\n        String filename_sorted=\"pairedMapped_sorted.bam\"\n        String filename_sorted_idx=\"pairedMapped_sorted.bam.bai\"\n        String filename_bamscript=\"to_bam.sh\"\n        String filename_cov=\"covstats.txt\"\n    }\n\n    runtime {\n        cpu: threads\n        docker: container\n        time: \"01:00:00\"\n        memory: \"118G\"\n    }\n\n    command{\n        set -euo pipefail\n        bbmap.sh -Xmx105g threads=~{threads} nodisk=true interleaved=true ambiguous=random in=~{reads} ref=~{ref} out=~{filename_unsorted} covstats=~{filename_cov} bamscript=~{filename_bamscript} && \\\n        samtools sort -m100M -@ ~{threads} ~{filename_unsorted} -o ~{filename_sorted} && \\\n        samtools index ~{filename_sorted} && \\\n        reformat.sh -Xmx105g in=~{filename_unsorted} out=~{filename_outsam} overwrite=true\n  }\n\n  output {\n      File outbamfile = filename_sorted\n      File outbamfileidx = filename_sorted_idx\n      File outcovfile = filename_cov\n      File outsamfile = filename_outsam\n  }\n}\n",
+        "workflowUrl": ""
+    },
+    "workflowName": "jgi_meta",
+    "workflowProcessingEvents": [
+        {
+            "cromwellId": "cromid-daa4c02",
+            "cromwellVersion": "58",
+            "description": "PickedUp",
+            "timestamp": "2022-07-07T00:23:05.653Z"
+        }
+    ],
+    "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/jgi_meta/dcc24ca7-c303-4e8e-ad26-7b2644308fab"
+}

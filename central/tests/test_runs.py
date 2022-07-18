@@ -169,6 +169,7 @@ def test_info(monkeypatch):
         "result",
         "status",
         "updated",
+        "tag"
     ]
     expected_more_info_keys = [
         "submitted",
@@ -179,7 +180,6 @@ def test_info(monkeypatch):
         "upload_id",
         "download_id",
         "user_id",
-        "tag",
         "wdl_file",
         "json_file",
     ]
