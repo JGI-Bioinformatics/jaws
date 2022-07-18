@@ -2,9 +2,9 @@ import logging
 
 from typing import Dict
 
-import time
 import pandas as pd
 from jaws_condor.cmd_utils import run_sh_command
+from jaws_condor.htcondor_cmds import HTCondor
 import math
 
 logger = logging.getLogger(__package__)
@@ -16,7 +16,7 @@ compute_types = ["medium", "xlarge"]
 
 wanted_columns = "ClusterId RequestMemory RequestCpus \
     CumulativeRemoteSysCpu CumulativeRemoteUserCpu JobStatus \
-        NumShadowStarts RemoteHost JobStartDate QDate"
+        NumShadowStarts JobRunCount RemoteHost JobStartDate QDate"
 condor_q_cmd = f"condor_q -allusers -af {wanted_columns}"
 condor_idle_nodes = 'condor_status -const "TotalSlots == 1" -af Machine'
 
@@ -53,20 +53,21 @@ squeue_cmd = f'squeue -u {user_name} --format="%.12i %.10P %.50j %.10T %.10L %.1
 squeue_columns = ["JOBID", "PARTITION", "NAME", "STATE", "TIME_LEFT", "NODELIST"]
 # TODO : These should all be created from a configuration file at some point
 
+
 def slurm_time_to_sec(time_str):
-    # split off days first 
+    # split off days first
     time_str = time_str.split("-")
     if len(time_str) > 1:
         days = int(time_str[0])
     else:
         days = 0
-    
+
     # split time_str into HH:MM:SS
     time_str = time_str[-1].split(":")
-        
-    time_str_bits = {0:1, 1:60, 2:60*60, 3:60*60*24}
+
+    time_str_bits = {0: 1, 1: 60, 2: 60*60, 3: 60*60*24}
     total = 0
-    # Run in reverse becasue we will always 
+    # Run in reverse becasue we will always
     # have seconds and not always hours
     # 0 -> sec
     # 1 -> min
@@ -74,13 +75,12 @@ def slurm_time_to_sec(time_str):
     # 3 -> days.
     for i, t in enumerate(time_str[::-1]):
         total += (time_str_bits[i]*int(t))
-        
+
     if days > 0:
         total += (time_str_bits[3]*int(days))
-        
-    # Return total seconds 
-    return total
 
+    # Return total seconds
+    return total
 
 
 class PoolManagerPandas:
@@ -134,7 +134,6 @@ class PoolManagerPandas:
         df = df.dropna(axis=0)
         df['TIME_SEC'] = df["TIME_LEFT"].apply(slurm_time_to_sec)
 
-
         # Selections for running and pending
         mask_pending = (df["STATE"] == "PENDING")
         mask_running = (df["STATE"] == "RUNNING")
@@ -155,43 +154,12 @@ class PoolManagerPandas:
         return slurm_status, slurm_running_df
 
     def get_condor_job_queue(self) -> pd.DataFrame:
-        # Runs a condor_q autoformat to get the desired columns back
-        _stdout, se, ec = run_sh_command(condor_q_cmd, show_stdout=False)
-        if ec != 0:
-            logger.error(f"ERROR: failed to execute condor_q command: {condor_q_cmd}")
-            return None
+        condor = HTCondor()
+        condor_jobs = condor.condor_q()
+        return condor_jobs
 
-        # split outputs by rows
-        outputs = _stdout.split("\n")
-
-        # Get the column names from configuration
-        columns = wanted_columns.split()
-        # Split each row into columns
-        queued_jobs = [job.split() for job in outputs]
-        # Removes columns with no values (Usually the last column)
-        queued_jobs = [q for q in queued_jobs if len(q) != 0]
-
-        # Create a dataframe from the split outputs
-        df = pd.DataFrame(queued_jobs, columns=columns)
-        # Change the types
-        df["RequestMemory"] = df["RequestMemory"].astype(int)
-        df["JobStatus"] = df["JobStatus"].astype(int)
-        df["RequestMemory"] = df["RequestMemory"].astype(float) / 1024
-        df["RequestCpus"] = df["RequestCpus"].astype(float)
-        df["CumulativeRemoteSysCpu"] = df["CumulativeRemoteSysCpu"].astype(float)
-        df["CumulativeRemoteUserCpu"] = df["CumulativeRemoteUserCpu"].astype(float)
-
-        now = int(time.time())
-        df["JobStartDate"] = df["JobStartDate"].str.replace('undefined', str(now))
-        df["total_running_time"] = now - df["JobStartDate"].astype(int)
-        df["cpu_percentage"] = (((df['CumulativeRemoteSysCpu'] + df['CumulativeRemoteUserCpu']
-                                  ) / df['RequestCpus']) / df['total_running_time']) * 100
-
-        df["total_q_time"] = df["JobStartDate"].astype(int) - df["QDate"].astype(int)
-
-        return df
-
-    def determine_condor_job_sizes(self, df: pd.DataFrame):
+    def determine_condor_job_sizes(self, condor_jobs):
+        df = pd.DataFrame(condor_jobs)
         df["mem_bin"] = pd.cut(
             df["RequestMemory"],
             bins=mem_bins[COMPUTE_SITE],
@@ -210,14 +178,14 @@ class PoolManagerPandas:
         mask_hold_status = df["JobStatus"].astype(int) == 5
 
         mask_over = df["cpu_bin"].str.contains(
-                "over") | df["mem_bin"].str.contains("over")
+            "over") | df["mem_bin"].str.contains("over")
 
         condor_q_status["hold_and_impossible"] = sum(mask_over | mask_hold_status)
 
         for _type in compute_types:
             mask_mem_type = df["mem_bin"].str.contains(f"{_type}")
             # mask_cpu_type = df["cpu_bin"].str.contains(f"{_type}")
-            mask_type = (mask_mem_type)
+            mask_type = (mask_mem_type & ~(mask_over | mask_hold_status))
 
             condor_q_status[f"idle_{_type}"] = sum(
                 mask_type & mask_idle_status
@@ -233,21 +201,21 @@ class PoolManagerPandas:
 
         return condor_q_status
 
-    def need_new_nodes(self, condor_job_queue: Dict, slurm_workers: Dict, machine: str) -> Dict:
+    def need_new_nodes(self, condor_job_queue: Dict, slurm_workers: Dict, machine_size: str) -> Dict:
         """
         Using the two dictionaries from the condor_q and squeue
-        determine if we need any new workers for the machine types.
+        determine if we need any new workers for the machine_size types.
         """
         workers_needed = 0
 
         # Determines how many full (or partially full nodes) we need to create
         _cpu = (
-            condor_job_queue[f"{machine}_cpu_needed"] /
-            worker_sizes[f"{machine}_cpu"]
+            condor_job_queue[f"{machine_size}_cpu_needed"] /
+            worker_sizes[f"{machine_size}_cpu"]
         )
         _mem = (
-            condor_job_queue[f"{machine}_mem_needed"] /
-            worker_sizes[f"{machine}_mem"]
+            condor_job_queue[f"{machine_size}_mem_needed"] /
+            worker_sizes[f"{machine_size}_mem"]
         )
         _cpu = math.ceil(_cpu)
         _mem = math.ceil(_mem)
@@ -256,26 +224,26 @@ class PoolManagerPandas:
 
         # If full workers_needed is 0 but we have work to be done still get a node
         if workers_needed == 0:
-            if condor_job_queue[f"{machine}_cpu_needed"] or condor_job_queue[f"{machine}_mem_needed"]:
+            if condor_job_queue[f"{machine_size}_cpu_needed"] or condor_job_queue[f"{machine_size}_mem_needed"]:
                 workers_needed = 1
 
         # Total number running and pending to run (i.e. worker pool)
         current_pool_size = (
-            slurm_workers[f"{machine}_pending"]
-            + slurm_workers[f"{machine}_running"]
+            slurm_workers[f"{machine_size}_pending"]
+            + slurm_workers[f"{machine_size}_running"]
         )
 
         # If workers_needed is higher than the pool we'll add the diference
         # Else we don't need workers (add 0)
-        # workers_needed = max(0, current_pool_size - workers_needed)
-        workers_needed = (workers_needed - current_pool_size)
+        workers_needed = max(0, workers_needed - current_pool_size)
+        # workers_needed = (workers_needed - current_pool_size)
 
         # If we have less running than the minimum we always need to add more
         # Either add what we need from queue (workers_needed)
         # Or what we're lacking in the pool (min - worker pool)
-        if current_pool_size < MIN_POOL[machine]:
-            workers_needed = max(MIN_POOL[machine] - current_pool_size, workers_needed)
-        
+
+        if current_pool_size < MIN_POOL[machine_size]:
+            workers_needed = max(MIN_POOL[machine_size] - current_pool_size, workers_needed)
 
         # Check to make sure we don't go over the max pool size
         if (workers_needed + current_pool_size) > MAX_POOL:

@@ -3,7 +3,7 @@ import time
 import json
 from jaws_site import config
 import shlex
-from jaws_site.cmd_utils import run_sh_command, run_slurm_cmd, mem_unit_to_g
+from jaws_condor.cmd_utils import run_sh_command, run_slurm_cmd, mem_unit_to_g
 
 logger = logging.getLogger(__package__)
 
