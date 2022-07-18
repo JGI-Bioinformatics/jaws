@@ -96,9 +96,7 @@ def test_process_condor_q():
                     'NumShadowStarts': '1',
                     'JobRunCount': '1',
                     'RemoteHost': 'slot1_1@nid00333',
-                    'JobStartDate': '1657839752',
                     'QDate': '1657839749',
-                    'total_q_time': 3
                 },
                 {
                     'ClusterId': '38612',
@@ -110,9 +108,7 @@ def test_process_condor_q():
                     'NumShadowStarts': '1',
                     'JobRunCount': '1',
                     'RemoteHost': 'slot1_1@nid00362',
-                    'JobStartDate': '1657839753',
                     'QDate': '1657839750',
-                    'total_q_time': 3
                 },
                 {
                     'ClusterId': '39649',
@@ -124,10 +120,7 @@ def test_process_condor_q():
                     'NumShadowStarts': 'undefined',
                     'JobRunCount': 'undefined',
                     'RemoteHost': 'undefined',
-                    'JobStartDate': '1658166242',
                     'QDate': '1658136630',
-                    'total_running_time': 0,
-                    'total_q_time': 29612
                 },
                 {
                     'ClusterId': '39650',
@@ -139,10 +132,7 @@ def test_process_condor_q():
                     'NumShadowStarts': 'undefined',
                     'JobRunCount': 'undefined',
                     'RemoteHost': 'undefined',
-                    'JobStartDate': '1658166242',
                     'QDate': '1658145932',
-                    'total_running_time': 0,
-                    'total_q_time': 20310
                 },
                 {
                     'ClusterId': '39651',
@@ -154,10 +144,7 @@ def test_process_condor_q():
                     'NumShadowStarts': 'undefined',
                     'JobRunCount': 'undefined',
                     'RemoteHost': 'undefined',
-                    'JobStartDate': '1658166242',
                     'QDate': '1658152224',
-                    'total_running_time': 0,
-                    'total_q_time': 14018
                 }
             ],  # noqa
          )
@@ -168,4 +155,9 @@ def test_process_condor_q():
             # Remove total runtime since it used time.now() to calculate runtime.
             x.pop('total_running_time', None)
             x.pop('cpu_percentage', None)
+            x.pop('total_q_time', None)
+            x.pop('JobStartDate', None)
+        for x in expected:
+            x.pop('JobStartDate', None)
+
         assert result == expected
