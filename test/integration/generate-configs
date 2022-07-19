@@ -37,9 +37,6 @@ SITE_RMQ_HOST
 SITE_RMQ_PORT
 SITE_RMQ_PW
 JTM_VENV_DIR
-PARSL_MP_HOST
-PARSL_MP_PORT
-PARSL_MP_PASSWORD
 SITE_MONITOR_RMQ_HOST
 SITE_MONITOR_RMQ_PORT
 SITE_PERFORMANCE_METRICS_DIR
@@ -249,16 +246,6 @@ jtm_worker_hb_exch = jgi_jtm_worker_hb_exch_\${JTM:run_mode}_\${SITE:instance_na
 jtm_task_kill_exch = jgi_jtm_task_kill_exch_\${JTM:run_mode}_\${SITE:instance_name}
 jtm_worker_poison_exch = jgi_jtm_poison_exch_\${JTM:run_mode}_\${SITE:instance_name}
 max_retries = 3
-EOM
-
-cat <<EOM >$CONFIG_DIR/parsl.ini
-[SITE]
-site_id = $JAWS_SITE
-
-[MP]
-host = $PARSL_MP_HOST
-password = $PARSL_MP_PASSWORD
-port = $PARSL_MP_PORT
 EOM
 
 ## SET PERMISSIONS

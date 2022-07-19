@@ -45,12 +45,8 @@ pkg-central: pkg-requirements
 pkg-jtm: pkg-requirements
 	$Q cd rpc && python setup.py bdist_wheel && cd ../jtm && python setup.py bdist_wheel
 
-.PHONY: pkg-parsl
-pkg-parsl: pkg-requirements
-	$Q cd rpc && python setup.py bdist_wheel && cd ../parsl && python setup.py bdist_wheel
-
 .PHONY: pkg
-pkg: pkg-rpc pkg-site pkg-central pkg-jtm pkg-parsl
+pkg: pkg-rpc pkg-site pkg-central pkg-jtm
 
 ## Package Section END
 
@@ -85,13 +81,8 @@ test-condor: test-requirements
 	$Q flake8 condor
 	$Q cd condor && python -m pytest --cov=jaws_condor --junitxml=condor.xml tests/ && coverage xml
 
-.PHONY: test-parsl
-test-parsl: test-requirements
-	$Q flake8 parsl
-	$Q cd parsl && python -m pytest --cov=jaws_parsl --junitxml=parsl.xml tests/ && coverage xml
-
 .PHONY: test
-test: test-rpc test-site test-central test-jtm test-parsl test-condor
+test: test-rpc test-site test-central test-jtm test-condor
 ## Test Section END
 
 ## Doc Section BEGIN
