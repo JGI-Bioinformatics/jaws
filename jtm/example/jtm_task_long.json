@@ -1,5 +1,0 @@
-{
-    "command": "shifter --image=bryce911/bbtools /bbmap/bbstats.sh -h > $SCRATCH/bbstat_help.out; sleep 30",
-    "output_dir": "$SCRATCH",
-    "output_files": "$SCRATCH/bbstat_help.out"
-}

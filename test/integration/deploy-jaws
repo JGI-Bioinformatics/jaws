@@ -63,8 +63,5 @@ $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf rerea
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:*
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-cwl-backend.conf reread
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-cwl-backend.conf start jaws-$DEPLOYMENT_NAME:*
-# the following statement would deploy the jtm config file to the parallel fs for use by the jtm worker. problem: doing a chgrp on gpfs does not work through
-# the gitlab-runner. no fix could by found is why that copy now happens in the jtm-worker-deploy shim created by generate-shims. this is a hack.
-#cp -a $INSTALL_DIR/configs/jaws-jtm.conf $INSTALL_DIR/jaws-jtm.conf && chgrp $JTM_GROUP && chmod 640 $INSTALL_DIR/jaws-jtm.conf
 
 echo "END deploy-jaws"
