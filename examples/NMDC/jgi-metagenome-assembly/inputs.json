@@ -1,6 +1,0 @@
-{
-   "metagenome_assembly_and_alignment.input_files": [
-      "/global/cfs/projectdirs/jaws/test/tutorial_test_data/12074.1.235970.AGCTAAC-GGTTAGC.filter-METAGENOME.fastq.gz"
-   ],
-   "metagenome_assembly_and_alignment.nersc": true
-}

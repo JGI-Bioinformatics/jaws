@@ -12,7 +12,6 @@ stages:
   - smoke-tests
   - deployment-tests
   - stress-tests
-  - deploy-docs
 
 include:
   - project: "advanced-analysis/ci-templates"
@@ -685,42 +684,5 @@ tahoma-dev-stress-tests:
     - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
-      when: manual
-  allow_failure: true
-
-deploy-jaws-docs:
-  stage: deploy-docs
-  tags:
-    - cori
-  script:
-    - git clone git@gitlab.com:jfroula/jaws-docs.git
-    - rm -rf jaws-docs/docs/source/*
-    - cp -r docs/sphinx/source/* jaws-docs/docs/source/
-    - cd jaws-docs
-    - git add .
-    - git commit -a -m 'syncing docs' || echo "nothing to commit"
-    - git push || echo "nothing to push"
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      when: manual
-  allow_failure: true
-
-deploy-jaws-docs-beta:
-  stage: deploy-docs
-  tags:
-    - cori
-  script:
-    - git clone git@gitlab.com:jfroula/jaws-docs.git
-    - cd jaws-docs
-    - git checkout beta
-    - rm -rf docs/source/*
-    - cd ../
-    - cp -r docs/sphinx/source/* jaws-docs/docs/source/
-    - cd jaws-docs
-    - git add .
-    - git commit -a -m 'syncing docs beta' || echo "nothing to commit"
-    - git push || echo "nothing to push"
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /documentation-beta/'
       when: manual
   allow_failure: true

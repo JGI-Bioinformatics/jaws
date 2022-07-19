@@ -1,6 +1,0 @@
-{
-  "bbmap_shard_wf.chunk_size": "100000000",
-  "bbmap_shard_wf.reads": "../data/sample.fastq.bz2",
-  "bbmap_shard_wf.alignment.threads": "4",
-  "bbmap_shard_wf.reference": "../data/sample.fasta"
-}
