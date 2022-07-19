@@ -1,6 +1,0 @@
-{
-    "jgi_rqcfilter.input_files": [
-        "/global/cscratch1/sd/sulsj/metagenome_data/ficus/12122.1.237730.TGCAGCT-CTTAATA.fastq.gz"
-    ],
-    "jgi_rqcfilter.database": "/refdata/nmdc/RQCFilterData"
-}

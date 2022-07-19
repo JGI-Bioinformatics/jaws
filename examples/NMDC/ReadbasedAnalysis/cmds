@@ -1,1 +1,0 @@
-java -Dconfig.file=cromwell_shifter.conf -Dbackend.providers.Local.config.dockerRoot=$(pwd)/cromwell-executions -jar $(crom) run
