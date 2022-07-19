@@ -167,21 +167,8 @@ EOM
 # TODO: Need to create executable scripts for running recv.py
 # Otherwise we need to know the location of the script which may not be best practice
 
-## parsl-recv shim script
-cat <<EOM > "$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME"
-#!/bin/bash -l
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-
-source $INSTALL_DIR/parsl/bin/activate
-exec jaws-parsl-recv --config=$CONFIG_DIR/parsl.ini
-EOM
-
 ## SET PERMISSIONS
 chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
-chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME"
 chmod +x "$SHIM_DIR"/*
 
 printf "END generate-shims\n\n"

@@ -14,7 +14,6 @@ SITE_LOAD_PYTHON
 SITE_PYTHON
 JTM_VENV_DIR
 SITE_VENV_DIR
-PARSL_VENV_DIR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -43,7 +42,6 @@ rm -rf ./*/dist/*
 ## DELETE OLD VENVS
 test -d "$SITE_VENV_DIR" && rm -rf "$SITE_VENV_DIR"
 test -d "$JTM_VENV_DIR" && rm -rf "$JTM_VENV_DIR"
-test -d "$PARSL_VENV_DIR" && rm -rf "$PARSL_VENV_DIR"
 
 ## MAKE VENVS
 [[ -n "$SITE_LOAD_PYTHON" ]] && $SITE_LOAD_PYTHON
@@ -60,12 +58,6 @@ $SITE_PYTHON -m venv "$JTM_VENV_DIR" &&
   pip install rpc/dist/* && \
   pip install jtm/dist/* && \
   deactivate
-$SITE_PYTHON -m venv "$INSTALL_DIR/parsl" && 
-  . "$PARSL_VENV_DIR/bin/activate" && \
-  pip install --upgrade pip && \
-  pip install rpc/dist/* && \
-  pip install parsl/dist/* && \
-  deactivate
 
 ## PERMISSIONS
 function fix_perms() {
@@ -78,7 +70,6 @@ function fix_perms() {
 }
 fix_perms "$SITE_VENV_DIR" $SITE_JAWS_GROUP
 fix_perms "$JTM_VENV_DIR" $SITE_JTM_GROUP
-fix_perms "$PARSL_VENV_DIR" $SITE_JAWS_GROUP
 
 # If pagurus is installed change the group so jaws_jtm can run it
 test -d $SITE_VENV_DIR/bin/pagurus && chgrp $SITE_JTM_GROUP $SITE_VENV_DIR/bin/pagurus

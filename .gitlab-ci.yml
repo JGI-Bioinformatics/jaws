@@ -35,8 +35,6 @@ variables:
   WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/58/womtool-58.jar"
   JAWS_DB_HOST: "jaws-db.lbl.gov"
   JAWS_DB_PORT: 3306
-  PARSL_MP_HOST: "localhost"
-  PARSL_MP_PORT: 6000
   JAWS_DEFAULT_CONTAINER: "ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf"
   JAWS_EMAIL_USER: ""
   JAWS_EMAIL_SERVER: ""
