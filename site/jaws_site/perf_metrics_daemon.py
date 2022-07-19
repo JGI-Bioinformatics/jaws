@@ -98,11 +98,14 @@ class PerformanceMetricsDaemon:
                     logger.warning(
                         f"Error moving file {metric} due to directory permissions {type(ex).__name__} : {ex}"
                     )
+                    continue
                 except OSError as ex:
                     logger.warning(
                         f"Error moving file {metric} from one disk to another {type(ex).__name__} : {ex}"
                     )
+                    continue
                 except Exception as ex:
                     logger.warning(
                         f"Error moving file {type(ex).__name__} : {ex}"
                     )
+                    continue
