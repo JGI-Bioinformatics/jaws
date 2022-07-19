@@ -262,21 +262,6 @@ test-site:
       coverage_report:
         coverage_format: cobertura
         path: site/coverage.xml
-test-central:
-  <<: *only-default
-  stage: unit-test
-  script:
-    - python3.8 -m venv test-venv
-    - source test-venv/bin/activate
-    - pip3.8 install rpc/
-    - pip3.8 install -r central/requirements.txt
-    - pip3.8 install flake8 pytest pytest-cov
-    - make test-central
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: central/coverage.xml
 test-condor:
   <<: *only-default
   stage: unit-test
@@ -314,22 +299,6 @@ build-rpc:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       allow_failure: true
 
-build-central:
-  tags:
-    - docker-build
-  stage: image-build
-  variables:
-    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/central:JAWS_VERSION
-    RPC_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
-  <<: *docker-login
-  script:
-    - docker pull $RPC_IMAGE_TAG
-    - chmod +x build.sh
-    - ./build.sh central $JAWS_VERSION prod
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-      allow_failure: true
-
 build-site:
   tags:
     - docker-build
@@ -347,48 +316,6 @@ build-site:
       allow_failure: true
 
 ## integration tests - only run on merge request
-deploy-jaws-central-dev:
-  stage: deploy-jaws
-  tags:
-    - central
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CENTRAL"
-  environment:
-    name: "central/dev"
-  script:
-    - ./test/integration/deploy-central
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
-
-deploy-jaws-central-staging:
-  stage: deploy-jaws
-  tags:
-    - central
-  variables:
-    DEPLOYMENT_NAME: "staging"
-    JAWS_SITE: "CENTRAL"
-  environment:
-    name: "central/staging"
-  script:
-    - ./test/integration/deploy-central
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-
-deploy-jaws-central-prod:
-  stage: release-jaws
-  tags:
-    - central
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "CENTRAL"
-  environment:
-    name: "central/production"
-  script:
-    - ./test/integration/deploy-central
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-      when: manual
 
 deploy-jaws-aws-dev:
   stage: deploy-jaws
@@ -550,8 +477,6 @@ package:
     - make pkg-poetry
     - cd rpc && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
     - poetry publish --repository gitlab && cd ../
-    - cd central && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab & cd ../
     - cd site && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
     - poetry publish --repository gitlab && cd ../
   rules:
