@@ -29,14 +29,11 @@ JAWS_DB_PW
 SITE_GLOBUS_EP
 SITE_GLOBUS_HOST_PATH
 SITE_JAWS_GROUP
-SITE_JTM_GROUP
-SITE_JTM_SCRATCH_DIR
 SITE_INPUTS_DIR
 SITE_DOWNLOADS_DIR
 SITE_RMQ_HOST
 SITE_RMQ_PORT
 SITE_RMQ_PW
-JTM_VENV_DIR
 SITE_MONITOR_RMQ_HOST
 SITE_MONITOR_RMQ_PORT
 SITE_PERFORMANCE_METRICS_DIR
@@ -126,130 +123,7 @@ aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
 s3_bucket = ABCD
 EOM
 
-cat <<EOM >$CONFIG_DIR/jaws-jtm.conf
-[SITE]
-jtm_host_name = $JAWS_SITE
-user_name = jtm_$DEPLOYMENT_NAME
-instance_name = \${jtm_host_name}.\${user_name}
-scratch = $SITE_JTM_SCRATCH_DIR
-debug = 1
-[RMQ]
-user = jaws
-host = $SITE_RMQ_HOST
-port = $SITE_RMQ_PORT
-password = $SITE_RMQ_PW
-vhost = jtm_$DEPLOYMENT_NAME
-[PERFORMANCE_METRICS]
-script = $SITE_PERFORMANCE_METRICS_SCRIPT
-log_file = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}/logs/pagurus.log
-output_dir = ${SITE_PERFORMANCE_METRICS_DIR}-${DEPLOYMENT_NAME}
-[JTM_RPC_SERVER]
-user = jaws
-password = $SITE_RMQ_PW
-host = $SITE_MONITOR_RMQ_HOST
-port = $SITE_MONITOR_RMQ_PORT
-vhost = jaws_$DEPLOYMENT_NAME
-queue = JTM_RPC_$JAWS_SITE
-num_threads = 5
-max_retries = 3
-[MYSQL]
-host = $JAWS_DB_HOST
-port = $JAWS_DB_PORT
-user = jaws
-password = $JAWS_DB_PW
-db = jtm_${JAWS_SITE,,}_$DEPLOYMENT_NAME
-[SLURM]
-# number of nodes for the pool
-nnodes = 1
-# num cores for small task
-ncpus = 32
-# default wall clock time
-jobtime = 00:30:00
-mempercpu = 1gb
-mempernode = 5gb
-partition = $SITE_CLUSTER_PARTITION
-qos = $SITE_CLUSTER_QOS
-charge_accnt = $SITE_CLUSTER_ACCOUNT
-constraint = $SITE_CLUSTER_CONSTRAINT
-[JTM]
-cluster = \${SITE:jtm_host_name}
-# deployment mode: prod, staging, dev
-run_mode = $DEPLOYMENT_NAME
-# if STANDALONE == 1, do not sending task status to JAWS Site
-standalone = 0
-# static worker self cloning time rate. not used.s
-clone_time_rate = 0.2
-# number of workers per node
-num_workers_per_node = 1
-log_dir = \${SITE:scratch}/jtm
-# config file location of worker
-worker_config_file = $CONFIG_DIR/jaws-jtm.conf
-env_activation = source $JTM_VENV_DIR/bin/activate
-pool_name = small
-# Worker setting
-# worker's hb expiration (ms)
-worker_s_hb_expiration = 60000
-# worker->client heartbeat sending interval in worker
-worker_hb_send_interval = 2.0
-# timeout for waiting the client's heartbeat; 0=no timeout. OBSOLETE
-worker_timeout = 0
-# zombie worker checking interval
-worker_kill_interval = 300.0
-# number of procs checking interval
-num_procs_check_interval = 60.0
-# manager's interval to check if there is task to terminate
-task_kill_interval = 5.0
-# client->worker heartbeat receiving interval in worker.
-worker_hb_recv_interval = 5.0
-# tasks status update interval. OBSOLETE
-task_stat_update_interval = 0.5
-# to ensure updating runs table
-runs_info_update_wait = 0.5
-# to ensure live worker info is updated in workers' table
-worker_info_update_wait = 0.5
-# interval to check the result from jtm
-result_receive_interval = 0.1
-# num threads to recv results from workers
-num_result_recv_threads = 1
-# client->worker heartbeat sending interval
-client_hb_send_interval = 3.0
-# live worker checking count limit
-worker_hb_check_max_count = 0
-# worker->client heartbeat receiving interval
-client_hb_recv_interval = 5.0
-# max number of trial for checking
-file_checking_max_trial = 3
-# sleep time between output file checking before retrial
-file_check_interval = 3.0
-# increase amount of wait time for file checking
-file_check_int_inc = 1.5
-# jtm_* CLI command timeout in secs.
-jtminterface_max_trial = 3600
-# worker lifeleft for task timeout
-task_kill_timeout_minute = 3
-# worker heartbeat message max recv count
-heartbeat_message_count = 1000
-jtm_inner_request_q = _jtm_inner_request_queue.\${SITE:instance_name}
-jtm_inner_result_q = _jtm_inner_result_queue.\${SITE:instance_name}
-jtm_task_kill_q = _jtm_task_kill.\${SITE:instance_name}
-jtm_worker_poison_q = _jtm_worker_poison.\${SITE:instance_name}
-jtm_task_result_q = _jtm_task_result_queue.\${SITE:instance_name}
-jtm_task_request_q = _jtm_task_request_queue.\${SITE:instance_name}
-jtm_status_result_q = _jtm_status_result_queue.\${SITE:instance_name}
-jtm_status_request_q = _jtm_status_request_queue.\${SITE:instance_name}
-worker_hb_q_postfix = _jtm_worker_hb_queue.\${SITE:instance_name}
-client_hb_q_postfix = _jtm_client_hb_queue.\${SITE:instance_name}
-jgi_jtm_main_exch = jgi_jtm_main_exch_\${JTM:run_mode}_\${SITE:instance_name}
-jtm_client_hb_exch = jgi_jtm_client_hb_exch_\${JTM:run_mode}_\${SITE:instance_name}
-jtm_inner_main_exch = jgi_jtm_inner_main_exch_\${JTM:run_mode}_\${SITE:instance_name}
-jtm_worker_hb_exch = jgi_jtm_worker_hb_exch_\${JTM:run_mode}_\${SITE:instance_name}
-jtm_task_kill_exch = jgi_jtm_task_kill_exch_\${JTM:run_mode}_\${SITE:instance_name}
-jtm_worker_poison_exch = jgi_jtm_poison_exch_\${JTM:run_mode}_\${SITE:instance_name}
-max_retries = 3
-EOM
-
 ## SET PERMISSIONS
 chgrp $SITE_JAWS_GROUP $CONFIG_DIR/*.conf
-chgrp $SITE_JTM_GROUP $CONFIG_DIR/jaws-jtm.conf
 chmod 660 $CONFIG_DIR/*
 printf "END generate-configs\n\n"

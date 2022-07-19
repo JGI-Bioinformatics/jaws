@@ -22,12 +22,8 @@ pkg-site-poetry: pkg-poetry-requirements
 pkg-central-poetry: pkg-poetry-requirements
 	$Q cd central && poetry version $(VERSION) && poetry build
 
-.PHONY: pkg-jtm-poetry
-pkg-jtm-poetry: pkg-poetry-requirements
-	$Q cd jtm && poetry version $(VERSION) && poetry build
-
 .PHONY: pkg-poetry
-pkg-poetry: pkg-rpc-poetry pkg-site-poetry pkg-central-poetry pkg-jtm-poetry
+pkg-poetry: pkg-rpc-poetry pkg-site-poetry pkg-central-poetry
 
 .PHONY: pkg-rpc
 pkg-rpc: pkg-requirements
@@ -41,12 +37,8 @@ pkg-site: pkg-requirements
 pkg-central: pkg-requirements
 	$Q cd rpc && python setup.py bdist_wheel && cd ../central && python setup.py bdist_wheel
 
-.PHONY: pkg-jtm
-pkg-jtm: pkg-requirements
-	$Q cd rpc && python setup.py bdist_wheel && cd ../jtm && python setup.py bdist_wheel
-
 .PHONY: pkg
-pkg: pkg-rpc pkg-site pkg-central pkg-jtm
+pkg: pkg-rpc pkg-site pkg-central
 
 ## Package Section END
 
@@ -71,18 +63,13 @@ test-central: test-requirements
 	$Q flake8 central
 	$Q cd central && python -m pytest --cov=jaws_central --junitxml=central.xml tests/ && coverage xml
 
-.PHONY: test-jtm
-test-jtm: test-requirements
-	$Q flake8 jtm
-	$Q cd jtm && python -m pytest --cov=jaws_jtm --junitxml=jtm.xml tests/ && coverage xml
-
 .PHONY: test-condor
 test-condor: test-requirements
 	$Q flake8 condor
 	$Q cd condor && python -m pytest --cov=jaws_condor --junitxml=condor.xml tests/ && coverage xml
 
 .PHONY: test
-test: test-rpc test-site test-central test-jtm test-condor
+test: test-rpc test-site test-central test-condor
 ## Test Section END
 
 ## Doc Section BEGIN
