@@ -1,6 +1,0 @@
-{
-  "main_wdl.fastq": "/global/home/groups/lr_jgicloud/refdata/test_data/sample.fastq",
-  "main_wdl.reference": "/global/home/groups/lr_jgicloud/refdata/test_data/sample.fasta",
-  "main_wdl.bbmap_shard_wf.chunk_size": "100000000"
-}
-
