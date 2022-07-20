@@ -15,7 +15,6 @@ REQUIRED_VARS="
 SUPERVISOR_DIR
 DEPLOYMENT_NAME
 SITE_LOAD_PYTHON
-SITE_CLIENT_INSTALL_DIR
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -54,14 +53,10 @@ test -f $SUPERVISOR_DIR/supervisord-cwl-backend.conf && $SUPERVISOR_DIR/bin/supe
 ./test/integration/generate-venvs
 ./test/integration/generate-configs
 ./test/integration/generate-shims
-./test/integration/deploy-cromwell
-[[ "$SITE_CLIENT_INSTALL_DIR" ]] && ./test/integration/deploy-client
 ./test/integration/deploy-supervisord
 
 ## start services
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf reread
 $SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-jaws.conf start jaws-$DEPLOYMENT_NAME:*
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-cwl-backend.conf reread
-$SUPERVISOR_DIR/bin/supervisorctl -c $SUPERVISOR_DIR/supervisord-cwl-backend.conf start jaws-$DEPLOYMENT_NAME:*
 
 echo "END deploy-jaws"
