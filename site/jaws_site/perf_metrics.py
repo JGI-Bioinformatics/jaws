@@ -163,7 +163,7 @@ def compute_rates(data_series: pd.Series, rolling_time: int = 10) -> pd.Series:
 
 
 def get_grouped_data(data: pd.DataFrame, rolling_time: int = 10) -> pd.DataFrame:
-    """Takes a single group from a dataframe which has a groupby 
+    """Takes a single group from a dataframe which has a groupby
         and computes cpu and data rates at each piont
 
         :param data: Dataframe with grouped data
