@@ -177,7 +177,7 @@ def get_grouped_data(data: pd.DataFrame, rolling_time: int = 10) -> pd.DataFrame
 
     # Check if there is data in the dataframe
     if len(data) == 0:
-        logging.warning(f'No data in group: Empty DataFrame')
+        logging.warning('No data in group: Empty DataFrame')
         return pd.DataFrame([], columns=col)
 
     # Make sure our columns are sorted to compute rates properly
