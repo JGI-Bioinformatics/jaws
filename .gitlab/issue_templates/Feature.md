@@ -2,7 +2,7 @@
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
 
 **Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+A clear and concise description of what you want to happen. Include an initial estimate of the time needed. Unless this is an epic, a reasonable estimate of the work involved should be at most a week. If it looks like it will take longer, this should be setup as an epic and then tickets assigned to it that breaks down the work into tasks that take no more than a week each.
 
 **Describe alternatives you've considered**
 A clear and concise description of any alternative solutions or features you've considered.
