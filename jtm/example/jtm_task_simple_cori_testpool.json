@@ -1,7 +1,0 @@
-{
-  "command": "ps -aef | grep jtm > $SCRATCH/jtm_ps_grep.out",
-  "pool": {
-    "cluster": "cori",
-    "name":  "test"
-  }
-}

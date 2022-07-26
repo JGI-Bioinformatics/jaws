@@ -1,8 +1,0 @@
-job:on-schedule:
-  only:
-    - schedules
-  script:
-    - pytest --verbose --env prod test_jaws_cmds.py
-  tags:
-    - jf-cori20
-

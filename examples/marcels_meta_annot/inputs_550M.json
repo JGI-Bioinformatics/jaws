@@ -1,9 +1,0 @@
-{
-  "annotation.database_location": "/refdata/img/",
-  "annotation.f_annotate.input_contigs_fasta": "/global/cfs/projectdirs/jaws/test/tutorial_test_data/MarcelsData/Ga0438891_contigs.fna",
-  "annotation.imgap_project_id": "Ga0438891_contigs.fna",
-  "annotation.imgap_project_type": "metagenome",
-  "annotation.imgap_input_fasta": "/global/cfs/projectdirs/jaws/test/tutorial_test_data/MarcelsData/Ga0438891_contigs.fna",
-  "annotation.split.blocksize": "10"
-}
-

@@ -1,5 +1,0 @@
-#!/usr/bin/env python
-
-from jaws_client import cli
-
-cli.jaws()

@@ -1,9 +1,0 @@
-{
-  "command": "ps -aef | grep jtm > $SCRATCH/jtm_ps_grep.out",
-  "pool": {"cluster": "cori",
-           "name":  "test",
-           "time": "00:10:00",
-           "mem": "4G",
-           "constraint": "knl",
-           "cpu": 1}
-}

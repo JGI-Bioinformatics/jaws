@@ -11,7 +11,6 @@ DEPLOYMENT_NAME
 SHIM_DIR
 JAWS_SUPERVISORD_PW
 JAWS_SUPERVISOR_PORT
-JTM_SUPERVISOR_PORT
 SITE_LOAD_PYTHON
 SITE_PYTHON
 SITE_JAWS_GROUP
@@ -148,59 +147,7 @@ programs=jaws-site-run-daemon,jaws-site-transfer-daemon,jaws-site-perf-metrics-d
 priority=999
 EOM
 
-
-## BACKEND SUPERVISOR CONF
-
-cat << EOM > $SUPERVISOR_DIR/supervisord-cwl-backend.conf
-[inet_http_server]
-port=0.0.0.0:$JTM_SUPERVISOR_PORT
-username=jaws
-password=$JAWS_SUPERVISORD_PW
-
-[supervisord]
-logfile=$SUPERVISOR_DIR/cwl-backend-log
-logfile_maxbytes=50MB
-logfile_backups=2
-loglevel=info
-pidfile=$SUPERVISOR_DIR/cwl-backend-pidfile
-nodaemon=false
-minfds=1024
-minprocs=200
-identifier=supervisor-backend-$DEPLOYMENT_NAME
-directory=$SUPERVISOR_DIR
-
-; The rpcinterface:supervisor section must remain in the config file for
-; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
-; added by defining them in separate [rpcinterface:x] sections.
-
-[rpcinterface:supervisor]
-supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
-
-[supervisorctl]
-serverurl=$SITE_SUPERVISOR_HOST:$JTM_SUPERVISOR_PORT
-username=jaws
-password=$JAWS_SUPERVISORD_PW
-prompt=supervisor-cwl-backend-$DEPLOYMENT_NAME
-
-;----- Program Section
-
-[program:jaws-cromwell]
-command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
-numprocs=1
-startsecs=10
-startretries=10
-autorestart=unexpected
-stopwaitsecs=120
-priority=9
-
-[group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-cromwell
-priority=999
-EOM
-
 chgrp "$SITE_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
-chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-cwl-backend.conf"
-chmod 660 "$SUPERVISOR_DIR/supervisord-cwl-backend.conf"
 
 printf "END deploy-supervisord\n\n"

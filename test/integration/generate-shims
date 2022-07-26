@@ -21,7 +21,6 @@ SITE_JAWS_GROUP
 SITE_CLIENT_INSTALL_DIR
 SITE_CONTAINER_TYPE
 SITE_CROMWELL_TMPDIR
-SITE_LOAD_JAVA
 JTM_VENV_DIR
 SITE_VENV_DIR
 "
@@ -132,56 +131,5 @@ export PYTHONIOENCODING=utf-8
 source $SITE_VENV_DIR/bin/activate
 exec jaws-site --log $LOGS_DIR/site-rpc.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL rpc
 EOM
-
-## jtm shim script
-cat <<EOM > "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
-#!/bin/bash -l
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-
-test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
-chgrp $SITE_JTM_GROUP $SITE_JTM_SCRATCH_DIR
-chgrp $SITE_JTM_GROUP $SITE_INPUTS_DIR
-chmod 2770 $SITE_JTM_SCRATCH_DIR
-
-# DEPLOY TO NFS DIR
-# HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
-
-#test -d $JTM_VENV_DIR || mkdir -p $JTM_VENV_DIR
-#chmod 2770 $JTM_VENV_DIR
-
-#cp $CONFIG_DIR/jaws-jtm.conf $CONFIG_DIR/
-#chgrp $SITE_JTM_GROUP $JTM_CONFIG_FILE
-#chmod 0640 $CONFIG_DIR/jaws-jtm.conf
-
-# RUN JTM
-
-source $JTM_VENV_DIR/bin/activate
-export JTM_CONFIG_FILE=$JTM_CONFIG_FILE
-
-exec jtm --config=$CONFIG_DIR/jaws-jtm.conf --debug manager -ld $LOGS_DIR
-EOM
-
-# TODO: Need to create executable scripts for running recv.py
-# Otherwise we need to know the location of the script which may not be best practice
-
-## parsl-recv shim script
-cat <<EOM > "$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME"
-#!/bin/bash -l
-
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export PYTHONIOENCODING=utf-8
-
-source $INSTALL_DIR/parsl/bin/activate
-exec jaws-parsl-recv --config=$CONFIG_DIR/parsl.ini
-EOM
-
-## SET PERMISSIONS
-chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
-chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME"
-chmod +x "$SHIM_DIR"/*
 
 printf "END generate-shims\n\n"

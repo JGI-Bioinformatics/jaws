@@ -196,17 +196,6 @@ since it'll pick up the system python instead.
     $ cd /global/home/groups-sw/lr_jgicloud/jaws_ci_runner
     $ nohup ./usr/bin/gitlab-runner run -c configuration/config.toml &
 
-## Starting the gitlab-runner on Central
-This is a special case since the gitlab runner on jaws.lbl.gov is a VM and is auto started by systemd as root.  Therefore, no intervention is required for re-starting it.
-The below commands are what systemd runs:
-    
-    $ cd /usr/lib/gitlab-runner
-    $ ./gitlab-runner run --working-directory /home/jaws --config /etc/gitlab-runner/config.toml --service gitlab-runner --syslog --user jaws
-
-If necessary, use systemctl to check the status of the runner or to start/restart/stop the service:
-
-    $ sudo systemctl [status|restart|stop|start] gitlab-runner.service
-
 ## Starting the gitlab-runner on TAHOMA
 
 Currently the gitlab runner is being managed by EMSL. To contact them, join the #emsl-jgi-coordination channel on the JGI slack. 
