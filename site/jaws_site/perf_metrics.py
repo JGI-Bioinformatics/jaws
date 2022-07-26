@@ -194,17 +194,17 @@ def get_grouped_data(data: pd.DataFrame, rolling_time: int = 10) -> pd.DataFrame
 
     try:
         # Calculates the percentages for different parts of the cpu per point
-        data['cpu_per_user'] = compute_rates(data["cpu_user"], rolling_time=rolling_time)
-        data['cpu_per_system'] = compute_rates(data["cpu_system"], rolling_time=rolling_time)
-        data['cpu_per_iowait'] = compute_rates(data["cpu_iowait"], rolling_time=rolling_time)
-        data['cpu_percentage'] = compute_rates(data["cpu_user"] + data["cpu_system"] +
-                                               data["cpu_iowait"], rolling_time=rolling_time)
+        data['cpu_percentage_user'] = compute_rates(data["cpu_user"], rolling_time=rolling_time)
+        data['cpu_percentage_system'] = compute_rates(data["cpu_system"], rolling_time=rolling_time)
+        data['cpu_percentage_iowait'] = compute_rates(data["cpu_iowait"], rolling_time=rolling_time)
+        data['cpu_percentage_total'] = compute_rates(data["cpu_user"] + data["cpu_system"] +
+                                                     data["cpu_iowait"], rolling_time=rolling_time)
     except Exception as e:
         logger.warning(f"Error computing cpu percentage {data=}, {type(e).__name__} : {e}")
         return pd.DataFrame([], columns=col)
 
     # remove entries with low cpu usage
-    if np.mean(data['cpu_percentage']) < 0.1:
+    if np.mean(data['cpu_percentage_total']) < 0.1:
         # retruns empty dataframe with the correct column names
         return pd.DataFrame([], columns=col)
     try:
