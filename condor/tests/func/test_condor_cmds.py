@@ -151,8 +151,8 @@ def test_process_condor_q():
     ]
     for output, expected in test_data:
         result = process_condor_q(output, columns)
+        # Remove total runtime since it used time.now() to calculate runtime.
         for x in result:
-            # Remove total runtime since it used time.now() to calculate runtime.
             x.pop('total_running_time', None)
             x.pop('cpu_percentage', None)
             x.pop('total_q_time', None)
