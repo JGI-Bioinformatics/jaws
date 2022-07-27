@@ -66,7 +66,7 @@ def test_number_of_workers():
             'idle_medium': 0,
             'running_medium': 0,
             'medium_cpu_needed': 0,
-            'medium_mem_needed': 120*8,
+            'medium_mem_needed': 60*8,  # Need 8
             'idle_xlarge': 0,
             'running_xlarge': 0,
             'xlarge_cpu_needed': 0,
@@ -107,7 +107,7 @@ def test_number_of_workers():
         },
         {  # 6
             'medium_pending': 0,
-            'medium_running': 10,  # Max pool
+            'medium_running': 10,
             'xlarge_pending': 0,
             'xlarge_running': 0
         }
@@ -118,6 +118,15 @@ def test_number_of_workers():
         20,  # 2
         10,  # 3
         0,  # 4
+        0,  # 5
+        0,  # 6
+    ]
+
+    old_workers = [
+        0,  # 1
+        0,  # 2
+        0,  # 3
+        0,  # 4
         -26,  # 5 -> 1 worker total, 30 running, go to minimum pool (4 nodes)
         -2,  # 6 -> 8 workers total, 10 running, remove 2
     ]
@@ -125,7 +134,12 @@ def test_number_of_workers():
     poolman = PoolManagerPandas()
     for condor, slurm, workers in zip(condor_job_queue, slurm_workers, new_workers):
         _workers = poolman.need_new_nodes(condor_job_queue=condor, slurm_workers=slurm, machine_size="medium")
-        print(_workers)
+        # print(_workers)
+        assert workers == _workers
+
+    for condor, slurm, workers in zip(condor_job_queue, slurm_workers, old_workers):
+        _workers = poolman.need_cleanup(condor_job_queue=condor, slurm_workers=slurm, machine_size="medium")
+        # print(_workers)
         assert workers == _workers
 
 
