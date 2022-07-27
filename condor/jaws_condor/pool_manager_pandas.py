@@ -235,9 +235,13 @@ class PoolManagerPandas:
 
         # If workers_needed is higher than the pool we'll add the diference
         # Else we don't need workers (add 0)
-        workers_needed = max(0, workers_needed - current_pool_size)
-        # workers_needed = (workers_needed - current_pool_size)
+        # workers_needed = max(0, workers_needed - current_pool_size)
+        workers_needed = (workers_needed - current_pool_size)
+        if workers_needed < 0:
+            workers_needed = (abs(workers_needed) - current_pool_size)  # + abs(workers_needed)
 
+        if abs(workers_needed) < MIN_POOL[machine_size]:
+            return 0
         # If we have less running than the minimum we always need to add more
         # Either add what we need from queue (workers_needed)
         # Or what we're lacking in the pool (min - worker pool)
@@ -249,6 +253,63 @@ class PoolManagerPandas:
         if (workers_needed + current_pool_size) > MAX_POOL:
             # Only add up to max pool and no more
             workers_needed = MAX_POOL - current_pool_size
+
+        return workers_needed
+
+    def need_cleanup(self, condor_job_queue: Dict, slurm_workers: Dict, machine_size: str) -> Dict:
+        """
+        Using the two dictionaries from the condor_q and squeue
+        determine if we need any new workers for the machine_size types.
+        """
+        workers_needed = 0
+
+        # Determines how many full (or partially full nodes) we need to create
+        _cpu = (
+            condor_job_queue[f"{machine_size}_cpu_needed"] /
+            worker_sizes[f"{machine_size}_cpu"]
+        )
+        _mem = (
+            condor_job_queue[f"{machine_size}_mem_needed"] /
+            worker_sizes[f"{machine_size}_mem"]
+        )
+        _cpu = math.ceil(_cpu)
+        _mem = math.ceil(_mem)
+
+        workers_needed += max(_cpu, _mem)
+
+        # If full workers_needed is 0 but we have work to be done still get a node
+        if workers_needed == 0:
+            if condor_job_queue[f"{machine_size}_cpu_needed"] or condor_job_queue[f"{machine_size}_mem_needed"]:
+                workers_needed = 1
+
+        # Total number running and pending to run (i.e. worker pool)
+        current_pool_size = (
+            slurm_workers[f"{machine_size}_pending"]
+            + slurm_workers[f"{machine_size}_running"]
+        )
+
+        # If workers_needed is higher than the pool we'll add the diference
+        # Else we don't need workers (add 0)
+        # workers_needed = max(0, workers_needed - current_pool_size)
+        workers_needed = (workers_needed - current_pool_size)
+        if workers_needed < MIN_POOL[machine_size]:
+            workers_needed = workers_needed + MIN_POOL[machine_size]
+        # if workers_needed < 0:
+        #     workers_needed = (abs(workers_needed) - current_pool_size)  # + abs(workers_needed)
+
+        # if abs(workers_needed) < MIN_POOL[machine_size]:
+        #     return 0
+        # # If we have less running than the minimum we always need to add more
+        # # Either add what we need from queue (workers_needed)
+        # # Or what we're lacking in the pool (min - worker pool)
+
+        # if current_pool_size < MIN_POOL[machine_size]:
+        #     workers_needed = max(MIN_POOL[machine_size] - current_pool_size, workers_needed)
+
+        # # Check to make sure we don't go over the max pool size
+        # if (workers_needed + current_pool_size) > MAX_POOL:
+        #     # Only add up to max pool and no more
+        #     workers_needed = MAX_POOL - current_pool_size
 
         return workers_needed
 
@@ -321,9 +382,10 @@ if __name__ == '__main__':
     print(work_status)
     new_workers = {}
     for _type in compute_types:
-        new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
-        print(_type, new_workers)
+        new_workers = pool.need_cleanup(work_status, slurm_status, _type)
+
         if new_workers < 0:
             pool.run_cleanup(slurm_running_df, abs(new_workers), _type)
         elif new_workers > 0:
+            new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
             pool.run_sbatch(abs(new_workers), _type)
