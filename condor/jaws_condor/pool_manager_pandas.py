@@ -86,8 +86,10 @@ def slurm_time_to_sec(time_str):
 class PoolManagerPandas:
     """Class representing a single Run"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, condor_provider=None, slurm_provider=None, **kwargs):
         self.site = "nersc"
+        self.condor_provider = condor_provider
+        self.slurm_provider = slurm_provider
         # config.conf.get("SITE", "id"),
 
     def add_workers():
@@ -154,8 +156,7 @@ class PoolManagerPandas:
         return slurm_status, slurm_running_df
 
     def get_condor_job_queue(self) -> pd.DataFrame:
-        condor = HTCondor()
-        condor_jobs = condor.condor_q()
+        condor_jobs = self.condor_provider.condor_q()
         return condor_jobs
 
     def determine_condor_job_sizes(self, condor_jobs):
@@ -315,11 +316,9 @@ class PoolManagerPandas:
 
     def run_cleanup(self, slurm_running_df, cleanup_num, _type):
         # Runs a condor_q autoformat to get the desired columns back
-        _stdout, _stderr, _errorcode = run_sh_command(condor_idle_nodes, show_stdout=False)
-        if _errorcode != 0:
-            logger.warning(f"ERROR: failed to execute condor_q command: {condor_q_cmd}")
-            return None
-        idle_nodes = _stdout.split("\n")[:-1]
+
+        # Gets the idle nodes from condor
+        idle_nodes = self.condor_provider.condor_idle()
         logger.info(idle_nodes)
 
         try:
@@ -330,10 +329,14 @@ class PoolManagerPandas:
 
         slurm_running_df.sort_values("TIME_SEC", inplace=True, ascending=False)
 
+        # Any pending nodes are at the front of the list to remove
         pending = slurm_running_df[slurm_running_df.STATE == "PENDING"].NODELIST
         nodes = [n for n in pending]
+
+        # Add nodes that are idle to the end of the list
         nodes.extend(idle_nodes)
 
+        # If there are no nodes to remove just return
         if len(nodes) == 0:
             return None
 
@@ -352,7 +355,7 @@ class PoolManagerPandas:
                 continue
             num += 1
             logger.info(f"Removing {node} with JobID {job_id}")
-            print(f"Removing {node} with JobID {job_id}")
+            print(f"{num} Removing {node} with JobID {job_id}")
             # print(f"{job_id} ", end="")
 
             # _stdout, _stderr, _errorcode = run_sh_command(f"scancel {job_id}", show_stdout=False)
@@ -371,8 +374,7 @@ class PoolManagerPandas:
 
 
 if __name__ == '__main__':
-    pool = PoolManagerPandas()
-    # print("Hello")
+    pool = PoolManagerPandas(condor_provider=HTCondor())
     slurm_status, slurm_running_df = pool.get_current_slurm_workers()
     print(slurm_status)
     print(slurm_running_df)
@@ -382,10 +384,11 @@ if __name__ == '__main__':
     print(work_status)
     new_workers = {}
     for _type in compute_types:
-        new_workers = pool.need_cleanup(work_status, slurm_status, _type)
+        old_workers = pool.need_cleanup(work_status, slurm_status, _type)
+        new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
+        print(f"{old_workers}\t{new_workers}")
+        if old_workers < 0:
+            pool.run_cleanup(slurm_running_df, abs(old_workers), _type)
 
-        if new_workers < 0:
-            pool.run_cleanup(slurm_running_df, abs(new_workers), _type)
-        elif new_workers > 0:
-            new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
+        if new_workers > 0:
             pool.run_sbatch(abs(new_workers), _type)

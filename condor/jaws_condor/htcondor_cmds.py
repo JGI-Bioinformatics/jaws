@@ -22,33 +22,36 @@ class HTCondor:
         self.columns = "ClusterId RequestMemory RequestCpus \
             CumulativeRemoteSysCpu CumulativeRemoteUserCpu \
             JobStatus NumShadowStarts JobRunCount RemoteHost JobStartDate QDate"
+
         # columns = self.config["CONDOR"]["condor_columns"]
         self.condor_q_cmd = f"condor_q -allusers -af {self.columns}"
 
+        self.get_idle = 'condor_status -const "TotalSlots == 1" -af Machine'
+
     def condor_q(self):
         # Call the command
-        condor_jobs = self.call_condor_command()
+        condor_jobs = self.call_condor_command(self.condor_q_cmd)
         # get serialized and processed dataframe
         dataframe = process_condor_q(condor_jobs, self.condor_columns())
         return dataframe
+
+    def condor_idle(self):
+        idle_list = self.call_condor_command(self.get_idle)
+        idle = [item for sublist in idle_list for item in sublist]
+        return idle
 
     def condor_columns(self):
         # Splits the string columns to be used as header of dataframe
         return self.columns.split()
 
-    def call_condor_command(self):
+    def call_condor_command(self, condor_cmd):
         # Call the condor_q with the desired options
-        stdout, stderr, returncode = run_sh_command(self.condor_q_cmd, log=logger, show_stdout=False)
-        print("#######")
-        print(stdout)
-        print("#######")
+        stdout, stderr, returncode = run_sh_command(condor_cmd, log=logger, show_stdout=False)
         # The usual failures
         if returncode != 0:
-            logger.critical(f"ERROR: failed to execute condor_q command: {self.condor_q_cmd}")
-            raise CondorCmdFailed(f"condor_q command failed with {stderr}")
+            logger.critical(f"ERROR: failed to execute condor_q command: {condor_cmd}")
+            raise CondorCmdFailed(f"condor '{condor_cmd}' command failed with {stderr}")
 
-        print(parse_condor_outputs(stdout))
-        print("#######")
         return parse_condor_outputs(stdout)
 
 
