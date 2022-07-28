@@ -51,6 +51,9 @@ mem_labels = {}
 mem_bins['nersc'] = [0, 120, 1500, 10_000_000]
 mem_labels['nersc'] = ["medium", "xlarge", "over"]
 
+mem_bins['tahoma'] = [0, 365, 1480, 10_000_000]
+mem_labels['tahoma'] = ["medium", "xlarge", "over"]
+
 worker_sizes = worker_sizes_sites[COMPUTE_SITE]
 
 squeue_args = {}
