@@ -10,7 +10,7 @@ import math
 logger = logging.getLogger(__package__)
 
 # TODO : These should all be created from a configuration file at some point
-user_name = "jaws_jtm"
+user_name = "svc-jtm-user"
 condor_root = ".."
 compute_types = ["medium", "xlarge"]
 
@@ -363,6 +363,7 @@ class PoolManagerPandas:
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     pool = PoolManagerPandas(condor_provider=HTCondor())
     slurm_status, slurm_running_df = pool.get_current_slurm_workers()
     print(slurm_status)
