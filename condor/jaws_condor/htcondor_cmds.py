@@ -11,7 +11,7 @@ class HTCondorError(Exception):
     pass
 
 
-class CondorCmdFailed(HTCondorError):
+class HTCondorCmdFailed(HTCondorError):
     pass
 
 

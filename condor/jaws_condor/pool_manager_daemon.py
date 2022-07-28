@@ -3,7 +3,8 @@ JAWS Daemon process periodically checks on runs and performs actions to usher
 them to the next state.
 """
 
-from jaws_condor.pool_manager import PoolManager
+from jaws_condor.pool_manager import PoolManagerPandas
+from jaws_condor.htcondor_cmds import HTCondor
 import schedule
 import time
 import logging
@@ -25,6 +26,7 @@ class PoolManagerDaemon:
         logger.info("Initializing pool manager daemon")
         self.time_add_worker_pool = config.conf.get("POOL_MANAGER", "time_add_worker_pool")
         self.time_rm_worker_pool = config.conf.get("POOL_MANAGER", "time_rm_worker_pool")
+        self.compute_types = config.conf.get("POOL_MANAGER", "compute_types")
 
     def start_daemon(self):
         """
@@ -40,12 +42,30 @@ class PoolManagerDaemon:
         """
         Check for runs in particular states.
         """
-        pool = PoolManager()
-        pool.add_workers()
+        pool = PoolManagerPandas(condor_provider=HTCondor())
+        slurm_status, slurm_running_df = pool.get_current_slurm_workers()
+        logging.info(f"{slurm_status}")
+        condor_status = pool.get_condor_job_queue()
+        logging.info(f"{condor_status}")
+        work_status = pool.determine_condor_job_sizes(condor_status)
+        logging.info(f"{work_status}")
+        for _type in self.compute_types:
+            logging.info(f"Looking to remove {abs(new_workers)} from {_type} pool")
+            new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
+            if new_workers > 0:
+                pool.run_sbatch(abs(new_workers), _type)
 
     def rm_worker_pool(self):
         """
         Check for runs in particular states.
         """
-        pool = PoolManager()
-        pool.rm_workers()
+        pool = PoolManagerPandas(condor_provider=HTCondor())
+        slurm_status, slurm_running_df = pool.get_current_slurm_workers()
+        condor_status = pool.get_condor_job_queue()
+        work_status = pool.determine_condor_job_sizes(condor_status)
+
+        for _type in self.compute_types:
+            old_workers = pool.need_cleanup(work_status, slurm_status, _type)
+            logging.info(f"Looking to remove {abs(old_workers)} from {_type} pool")
+            if old_workers < 0:
+                pool.run_cleanup(slurm_running_df, abs(old_workers), _type)

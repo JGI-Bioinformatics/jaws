@@ -4,7 +4,6 @@ from typing import Dict
 
 import pandas as pd
 from jaws_condor.cmd_utils import run_sh_command
-from jaws_condor.htcondor_cmds import HTCondor
 import math
 
 logger = logging.getLogger(__package__)
@@ -20,7 +19,7 @@ wanted_columns = "ClusterId RequestMemory RequestCpus \
 condor_q_cmd = f"condor_q -allusers -af {wanted_columns}"
 condor_idle_nodes = 'condor_status -const "TotalSlots == 1" -af Machine'
 
-COMPUTE_SITE = "nersc"
+COMPUTE_SITE = "tahoma"
 MIN_POOL = {}
 MIN_POOL['medium'] = 4
 MIN_POOL['xlarge'] = 0
@@ -49,6 +48,7 @@ worker_sizes = worker_sizes_sites[COMPUTE_SITE]
 
 squeue_args = {}
 squeue_args["nersc"] = "--noheader --clusters=all -p genepool,genepool_shared,exvivo,exvivo_shared"
+squeue_args["tahoma"] = "--noheader"
 squeue_cmd = f'squeue -u {user_name} --format="%.12i %.10P %.50j %.10T %.10L %.12R" {squeue_args[COMPUTE_SITE]}'
 squeue_columns = ["JOBID", "PARTITION", "NAME", "STATE", "TIME_LEFT", "NODELIST"]
 # TODO : These should all be created from a configuration file at some point
@@ -289,9 +289,7 @@ class PoolManagerPandas:
 
         # If workers_needed is higher than the pool we'll add the diference
         # Else we don't need workers (add 0)
-        print(workers_needed, current_pool_size)
         workers_needed = (workers_needed - current_pool_size)
-        print(workers_needed, current_pool_size)
 
         if workers_needed >= MIN_POOL[machine_size]:
             workers_needed = workers_needed - MIN_POOL[machine_size]
@@ -339,7 +337,6 @@ class PoolManagerPandas:
                 continue
             num += 1
             logger.info(f"Removing {node} with JobID {job_id}")
-            print(f"{num} Removing {node} with JobID {job_id}")
             # print(f"{job_id} ", end="")
 
             # _stdout, _stderr, _errorcode = run_sh_command(f"scancel {job_id}", show_stdout=False)
@@ -353,26 +350,28 @@ class PoolManagerPandas:
 
         return nodes
 
-    def run_sbatch(self, new_workers, _type):
-        print()
+    def run_sbatch(self, new_workers: int = 0, _type: str = "medium"):
+        for i in range(new_workers):
+            print(f"Running sbatch {_type}")
 
 
-if __name__ == '__main__':
-    pool = PoolManagerPandas(condor_provider=HTCondor())
-    slurm_status, slurm_running_df = pool.get_current_slurm_workers()
-    print(slurm_status)
-    print(slurm_running_df)
-    condor_status = pool.get_condor_job_queue()
-    print(condor_status)
-    work_status = pool.determine_condor_job_sizes(condor_status)
-    print(work_status)
-    new_workers = {}
-    for _type in compute_types:
-        old_workers = pool.need_cleanup(work_status, slurm_status, _type)
-        new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
-        print(f"{old_workers}\t{new_workers}")
-        if old_workers < 0:
-            pool.run_cleanup(slurm_running_df, abs(old_workers), _type)
+# if __name__ == '__main__':
+#     pool = PoolManagerPandas(condor_provider=HTCondor())
+#     slurm_status, slurm_running_df = pool.get_current_slurm_workers()
+#     print(slurm_status)
+#     print(slurm_running_df)
+#     condor_status = pool.get_condor_job_queue()
+#     print(condor_status)
+#     work_status = pool.determine_condor_job_sizes(condor_status)
+#     print(work_status)
 
-        if new_workers > 0:
-            pool.run_sbatch(abs(new_workers), _type)
+#     for _type in compute_types:
+#         old_workers = pool.need_cleanup(work_status, slurm_status, _type)
+#         new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
+
+#         print(f"{old_workers}\t{new_workers}")
+#         if old_workers < 0:
+#             pool.run_cleanup(slurm_running_df, abs(old_workers), _type)
+
+#         if new_workers > 0:
+#             pool.run_sbatch(abs(new_workers), _type)
