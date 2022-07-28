@@ -31,9 +31,6 @@ class RunDaemon:
         self.report_rpc_client = rpc_client_basic.RpcClientBasic(
             config.conf.get_section("RUNS_ES_RPC_CLIENT"), logger
         )
-        # Set message expiration to 60 secs
-        # self.runs_es_rpc_client.message_ttl = 3600
-        # self.pmetrics_es_rpc_client.message_ttl = 3600
 
     def start_daemon(self):
         """
@@ -48,7 +45,7 @@ class RunDaemon:
         """
         Check for runs in particular states.
         """
-        session = database.Session()
+        session = database.session_factory()
         runs.check_active_runs(
             session, self.central_rpc_client, self.report_rpc_client
         )

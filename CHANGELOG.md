@@ -1,6 +1,16 @@
 # Changelog
 
-## 2.8.6 (TBD) Summary
+## 3.0 (2022-7-14)Summary
+### User Facing Changes
+#### Changed
+- Condor and AWS complete beta-testing
+- sort task-log and task-summary by "queued" time
+- "done" is now always the final state of a run.
+- errors report shall include .log files if they exist
+- new "running-tasks" command will show logs of active tasks
+- fixed shifterimg pull via tag bug
+
+## 2.8.6 (2022-6-21) Summary
 ### User Facing Changes
 #### Changed
 - Restore /refdata (NB: not implemented for AWS)
@@ -11,6 +21,7 @@
 - Cancelled runs will now be downloaded and available via the "get" command (useful for debugging).
 - Include the stdout.submit in the errors report (previously only included stderr.submit file)
 - Include transfer failure error message in run log
+- Always send email (previously didn't after transfer failed or cancelled)
 
 ## 2.8.5 (2022-5-24) Summary
 ### User Facing Changes

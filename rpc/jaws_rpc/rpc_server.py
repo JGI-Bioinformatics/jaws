@@ -5,6 +5,7 @@ import threading
 import time
 import json
 import amqpstorm
+from sqlalchemy.orm import scoped_session
 
 
 DEFAULT_PORT = 5672
@@ -21,7 +22,7 @@ class InvalidResponse(Exception):
 
 
 class Consumer(object):
-    def __init__(self, logger, queue, operations, sessionmaker=None):
+    def __init__(self, logger, queue, operations, scoped_session_factory=None):
         """Initialize Consumer object
 
         :param queue: The name of the queue from which to retrieve messages.
@@ -30,7 +31,9 @@ class Consumer(object):
         """
         self.queue = queue
         self.operations = operations
-        self.sessionmaker = sessionmaker
+        if scoped_session_factory is not None:
+            assert isinstance(scoped_session_factory, scoped_session)
+        self.scoped_session_factory = scoped_session_factory
         self.logger = logger
         self.channel = None
         self.active = False
@@ -52,6 +55,8 @@ class Consumer(object):
                 self.channel.close()
         except amqpstorm.AMQPError:
             pass
+        except Exception as error:
+            self.logger.error(f"Unexpected error initializing AMQP channel: {error}")
         finally:
             self.active = False
 
@@ -74,6 +79,13 @@ class Consumer(object):
             response = {
                 "jsonrpc": "2.0",
                 "error": {"code": 400, "message": f"Invalid RPC request: {request}"},
+            }
+            return self.__respond__(message, response)
+        except Exception as error:
+            self.logger.error(f"Unexpected error: {error}")
+            response = {
+                "jsonrpc": "2.0",
+                "error": {"code": 400, "message": f"Unexpected error {error} for {request}"},
             }
             return self.__respond__(message, response)
 
@@ -106,18 +118,27 @@ class Consumer(object):
         self.logger.debug(f"RPC method {method} with {params}")
         proc = self.operations[method]["function"]
         # rpc procedures are either called with a db session or not, depending on whether the
-        # rpc manager was initialized with a sessionmaker obj or not, because an rpc server
+        # rpc manager was initialized with a scoped_session obj or not, because an rpc server
         # may or may not have an associated (sqlalchemy) db.
         response = None
         session = None
-        if self.sessionmaker:
-            session = self.sessionmaker()
+        if self.scoped_session_factory:
+            session = self.scoped_session_factory()
+        try:
             response = proc(params, session)
-        else:
-            response = proc(params)
+        except Exception as error:
+            self.logger.warning(f"RPC function error: {error}; params={params}")
+            response = {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 500,
+                    "message": f"RPC function error: {error}",
+                },
+
+            }
         self.__respond__(message, response)
         if session:
-            session.close()
+            self.scoped_session_factory.remove()
 
     def __respond__(self, message, response):
         try:
@@ -129,6 +150,15 @@ class Consumer(object):
                 "error": {
                     "code": 500,
                     "message": f"Method returned invalid response; {error}: {response}",
+                },
+            }
+        except Exception as error:
+            self.logger.error(f"Unexpected error {error} for response {response}")
+            response = {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 500,
+                    "message": f"Unexpected error: {error}",
                 },
             }
 
@@ -214,7 +244,18 @@ class Consumer(object):
 
 
 class RpcServer(object):
-    def __init__(self, params, logger, operations, sessionmaker=None) -> None:
+    def __init__(self, params, logger, operations, scoped_session_factory=None) -> None:
+        """
+        Init Rpc Server
+        :param params: configuration parameters
+        :ptype params: dict
+        :param logger: logging object
+        :ptype logger: Logging
+        :param operations: valid operations required params and dispatch table
+        :ptype operations: dict
+        :param scoped_session_factory: thread-local session object factory
+        :ptype scoped_session_factory: sqlalchemy.orm.scoped_session
+        """
         self.logger = logger
         self.params = {}
         for required_param in ["host", "vhost", "user", "password", "queue"]:
@@ -228,9 +269,11 @@ class RpcServer(object):
             f"Connecting to host:{params['host']}, vhost:{params['vhost']}, queue:{params['queue']}"
         )
         self.operations = operations
-        self.sessionmaker = sessionmaker
+        if scoped_session_factory is not None:
+            assert isinstance(scoped_session_factory, scoped_session)
+        self.scoped_session_factory = scoped_session_factory
         self.consumers = [
-            Consumer(self.logger, params["queue"], self.operations, self.sessionmaker)
+            Consumer(self.logger, params["queue"], self.operations, self.scoped_session_factory)
             for _ in range(self.num_threads)
         ]
         self.stopped = threading.Event()
@@ -246,10 +289,14 @@ class RpcServer(object):
                 # Check our connection for errors.
                 self.connection.check_for_errors()
                 self.update_consumers()
-            except amqpstorm.AMQPConnectionError as e:
+            except amqpstorm.AMQPConnectionError as error:
                 # If an error occurs, re-connect and let update_consumers
                 # re-open the channels.
-                self.logger.warning(str(e))
+                self.logger.warning(f"AMQP connection error: {error}")
+                self.stop_consumers(len(self.consumers))
+                self.create_connection()
+            except Exception as error:
+                self.logger.error(f"Unexpected error: {error}")
                 self.stop_consumers(len(self.consumers))
                 self.create_connection()
             time.sleep(1)
@@ -260,7 +307,7 @@ class RpcServer(object):
         """
         for _ in range(num):
             consumer = Consumer(
-                self.params["queue"], self.operations, self.sessionmaker
+                self.params["queue"], self.operations, self.scoped_session_factory
             )
             self.start_consumer(consumer)
             self.consumers.append(consumer)
@@ -303,8 +350,11 @@ class RpcServer(object):
                     virtual_host=self.params["vhost"],
                     heartbeat=10,
                 )
-            except amqpstorm.AMQPConnectionError as e:
-                self.logger.warning(str(e))
+            except amqpstorm.AMQPConnectionError as error:
+                self.logger.warning(f"Error creating AMQP connection: {error}")
+                time.sleep(1)
+            except Exception as error:
+                self.logger.error(f"Unexpected error creating AMQP connection: {error}")
                 time.sleep(1)
         raise ExceededRetries("Reached the maximum level of retries")
 

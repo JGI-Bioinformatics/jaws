@@ -1,6 +1,0 @@
-{
-  "main_wdl.fastq": "/global/cfs/projectdirs/jaws/test/tutorial_test_data/sample.fastq.bz2",
-  "main_wdl.reference": "/global/cfs/projectdirs/jaws/test/tutorial_test_data/sample.fasta",
-  "main_wdl.bbmap_shard_wf.chunk_size": "100000000"
-}
-

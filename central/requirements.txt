@@ -1,8 +1,0 @@
-connexion==2.13.0
-elasticsearch==8.1.1
-Flask-Cors==3.0.10
-Flask-SQLAlchemy==2.5.1
-globus-sdk==3.6.0
-mysql-connector-python==8.0.28
-schedule==1.1.0
-swagger-ui-bundle==0.0.9

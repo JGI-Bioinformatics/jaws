@@ -18,20 +18,8 @@ pkg-rpc-poetry: pkg-poetry-requirements
 pkg-site-poetry: pkg-poetry-requirements
 	$Q cd site && poetry version $(VERSION) && poetry build 
 
-.PHONY: pkg-central-poetry
-pkg-central-poetry: pkg-poetry-requirements
-	$Q cd central && poetry version $(VERSION) && poetry build
-
-.PHONY: pkg-client-poetry
-pkg-client-poetry: pkg-poetry-requirements
-	$Q cd client && poetry version $(VERSION) && poetry build 
-
-.PHONY: pkg-jtm-poetry
-pkg-jtm-poetry: pkg-poetry-requirements
-	$Q cd jtm && poetry version $(VERSION) && poetry build
-
 .PHONY: pkg-poetry
-pkg-poetry: pkg-rpc-poetry pkg-site-poetry pkg-central-poetry pkg-client-poetry pkg-jtm-poetry
+pkg-poetry: pkg-rpc-poetry pkg-site-poetry
 
 .PHONY: pkg-rpc
 pkg-rpc: pkg-requirements
@@ -41,24 +29,8 @@ pkg-rpc: pkg-requirements
 pkg-site: pkg-requirements
 	$Q cd rpc && python setup.py bdist_wheel && cd ../site && python setup.py bdist_wheel
 
-.PHONY: pkg-central
-pkg-central: pkg-requirements
-	$Q cd rpc && python setup.py bdist_wheel && cd ../central && python setup.py bdist_wheel
-
-.PHONY: pkg-client
-pkg-client: pkg-requirements
-	$Q cd client && python setup.py bdist_wheel
-
-.PHONY: pkg-jtm
-pkg-jtm: pkg-requirements
-	$Q cd rpc && python setup.py bdist_wheel && cd ../jtm && python setup.py bdist_wheel
-
-.PHONY: pkg-parsl
-pkg-parsl: pkg-requirements
-	$Q cd rpc && python setup.py bdist_wheel && cd ../parsl && python setup.py bdist_wheel
-
 .PHONY: pkg
-pkg: pkg-rpc pkg-site pkg-central pkg-client pkg-jtm pkg-parsl
+pkg: pkg-rpc pkg-site
 
 ## Package Section END
 
@@ -78,45 +50,11 @@ test-site: test-requirements
 	$Q flake8 site
 	$Q cd site && python -m pytest --cov=jaws_site --cov=jaws_site/datatransfer_plugins --junitxml=site.xml tests/ && coverage xml
 
-.PHONY: test-central
-test-central: test-requirements
-	$Q flake8 central
-	$Q cd central && python -m pytest --cov=jaws_central --junitxml=central.xml tests/ && coverage xml
-
-.PHONY: test-client
-test-client: test-requirements
-	$Q flake8 client
-	$Q cd client && python -m pytest --cov=jaws_client --junitxml=client.xml tests/ && coverage xml
-
-.PHONY: test-jtm
-test-jtm: test-requirements
-	$Q flake8 jtm
-	$Q cd jtm && python -m pytest --cov=jaws_jtm --junitxml=jtm.xml tests/ && coverage xml
-
 .PHONY: test-condor
 test-condor: test-requirements
 	$Q flake8 condor
 	$Q cd condor && python -m pytest --cov=jaws_condor --junitxml=condor.xml tests/ && coverage xml
 
-.PHONY: test-parsl
-test-parsl: test-requirements
-	$Q flake8 parsl
-	$Q cd parsl && python -m pytest --cov=jaws_parsl --junitxml=parsl.xml tests/ && coverage xml
-
 .PHONY: test
-test: test-rpc test-site test-central test-client test-jtm test-parsl test-condor
+test: test-rpc test-site test-condor
 ## Test Section END
-
-## Doc Section BEGIN
-.PHONY: doc-requirements
-doc-requirements:
-	$(if $(shell python -c 'import sphinx; print("ok")' 2>/dev/null),,$(error "Testing needs sphinx installed. Please run 'pip install sphinx'"))
-	$(if $(shell python -c 'from sphinxcontrib import confluencebuilder; print("ok")' 2>/dev/null),,$(error "Building sphinx docs needs sphinxcontrib-confluencebuilder installed. Please run 'pip install sphinxcontrib-confluencebuilder'"))
-	$(if $(shell python -c 'import recommonmark; print("ok")' 2>/dev/null),,$(error "Building sphinx docs needs recommonmark installed. Please run 'pip install recommonmark'"))
-	$(if $(shell python -c 'import sphinx_rtd_theme; print("ok")' 2>/dev/null),,$(error "Building sphinx docs needs sphinx_rtd_theme installed. Please run 'pip install sphinx_rtd_theme'"))
-
-.PHONY: docs
-docs: doc-requirements
-	$Q cd docs/sphinx && make html
-	$Q echo "open docs/sphinx/build/html/index.html"
-## Doc Section END

@@ -27,6 +27,7 @@ elsewhere in JAWS, as clarified below:
 import requests
 import logging
 import os
+import glob
 import json
 import io
 from datetime import datetime, timezone
@@ -66,7 +67,7 @@ def _read_file_s3(path, **kwargs):
     aws_session = boto3.Session(
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
-        region_name=aws_region_name
+        region_name=aws_region_name,
     )
     s3_resource = aws_session.resource("s3")
     bucket_obj = s3_resource.Bucket(s3_bucket)
@@ -97,8 +98,8 @@ def _read_file_nfs(path: str):
     try:
         with open(path, "r") as file:
             contents = file.read()
-    except IOError as error:
-        raise IOError(f"Error reading file, {path}: {error}")
+    except Exception as error:
+        raise (f"Error reading file, {path}: {error}")
     return contents
 
 
@@ -116,6 +117,32 @@ def _read_file(path: str, **kwargs):
         return _read_file_nfs(path)
 
 
+def sort_table(table: list, index: int):
+    """Sort table by specified column value.
+    :param table: table to sort
+    :ptype table: list
+    :param index: column index to sort by
+    :ptype index: int
+    :return: sorted table
+    :rtype: list
+    """
+    table.sort(key=lambda x: x[index])
+    return table
+
+
+def sort_table_dict(table: list, key: str):
+    """Sort table by specified column value.
+    :param table: table to sort
+    :ptype table: list
+    :param key: column key to sort by
+    :ptype key: str
+    :return: sorted table
+    :rtype: list
+    """
+    table.sort(key=lambda x: x[key])
+    return table
+
+
 class CallError(Exception):
     pass
 
@@ -129,9 +156,12 @@ class Call:
         if "subWorkflowMetadata" in data:
             raise CallError(f"Task {task_name} is a subworkflow, not a Call object")
         self.data = data
-        self.name = task_name
         self.attempt = data.get("attempt", None)
-        self.shard_index = data.get("shardIndex", None)
+        self.shard_index = data.get("shardIndex", -1)
+        if self.shard_index > -1:
+            self.name = f"{task_name}[{self.shard_index}]"
+        else:
+            self.name = task_name
         self.execution_status = data.get("executionStatus", None)
         self.result = None
         self.cached = False
@@ -335,6 +365,75 @@ class Call:
             else:
                 result["stdoutSubmitContents"] = stdout_submit_contents
         if "callRoot" in self.data:
+            # check for existence of any task-specific *.log files.
+            # callRoot is not specified for AWS/S3 files, so it works only for NFS paths.
+            log_files = glob.glob(f"{self.data['callRoot']}/execution/*.log")
+            for log_file_path in log_files:
+                log_file_name = os.path.basename(log_file_path)
+                try:
+                    log_file_contents = _read_file(log_file_path)
+                except Exception:  # noqa
+                    result[log_file_name] = None
+                else:
+                    result[log_file_name] = log_file_contents
+        return result
+
+    def running(self):
+        """
+        Call report, if "Running" (else None).
+        :return: running report
+        :rtype: dict
+        """
+        if self.execution_status != "Running":
+            return None
+        result = {
+            "attempt": self.attempt,
+            "shardIndex": self.shard_index,
+        }
+        if "failures" in self.data:
+            result["failures"] = self.data["failures"]
+        if "jobId" in self.data:
+            result["jobId"] = self.data["jobId"]
+        if "returnCode" in self.data:
+            result["returnCode"] = self.data["returnCode"]
+        if "runtimeAttributes" in self.data:
+            result["runtimeAttributes"] = self.data["runtimeAttributes"]
+        if "stderr" in self.data:
+            # include *contents* of stderr files, instead of file paths
+            stderr_file = self.data["stderr"]
+            try:
+                stderr_contents = _read_file(stderr_file)
+            except Exception:  # noqa
+                # stderr file doesn't always exist (e.g. fails in submit step)
+                result["stderrContents"] = f"File not found: {stderr_file}"
+            else:
+                result["stderrContents"] = stderr_contents
+            stderr_submit_file = f"{stderr_file}.submit"
+            try:
+                stderr_submit_contents = _read_file(stderr_submit_file)
+            except Exception:  # noqa
+                # stderrSubmit file doesn't always exist (not used on AWS)
+                result["stderrSubmitContents"] = None
+            else:
+                result["stderrSubmitContents"] = stderr_submit_contents
+        if "stdout" in self.data:
+            # include *contents* of stdout file, instead of file path
+            stdout_file = self.data["stdout"]
+            try:
+                stdoutContents = _read_file(stdout_file)
+            except Exception:  # noqa
+                result["stdoutContents"] = f"File not found: {stdout_file}"
+            else:
+                result["stdoutContents"] = stdoutContents
+            stdout_submit_file = f"{stdout_file}.submit"
+            try:
+                stdout_submit_contents = _read_file(stdout_submit_file)
+            except Exception:  # noqa
+                # stdoutSubmit file doesn't always exist (not used on AWS)
+                result["stdoutSubmitContents"] = None
+            else:
+                result["stdoutSubmitContents"] = stdout_submit_contents
+        if "callRoot" in self.data:
             stderr_submit_file = f"{self.data['callRoot']}/execution/stderr.submit"
             try:
                 stderrSubmitContents = _read_file(stderr_submit_file)
@@ -343,6 +442,18 @@ class Call:
                 result["stderrSubmitContents"] = None
             else:
                 result["stderrSubmitContents"] = stderrSubmitContents
+        if "callRoot" in self.data:
+            # check for existence of any task-specific *.log files.
+            # callRoot is not specified for AWS/S3 files, so it works only for NFS paths.
+            log_files = glob.glob(f"{self.data['callRoot']}/execution/*.log")
+            for log_file_path in log_files:
+                log_file_name = os.path.basename(log_file_path)
+                try:
+                    log_file_contents = _read_file(log_file_path)
+                except Exception:  # noqa
+                    result[log_file_name] = None
+                else:
+                    result[log_file_name] = log_file_contents
         return result
 
     def set_real_time_status(self) -> None:
@@ -439,6 +550,31 @@ class Task:
                 }
                 all_errors.append(sub_errors)
         return all_errors
+
+    def running(self):
+        """
+        Return report for this task/subworkflow for running tasks only.
+        The contents of the stderr, stderr.submit files are also added for convenience.
+        :return: Running tasks report
+        :rtype: dict
+        """
+        all_running = []
+        for shard_index in self.calls.keys():
+            for attempt in self.calls[shard_index].keys():
+                call = self.calls[shard_index][attempt]
+                call_running = call.running()
+                if call_running is not None:
+                    all_running.append(call_running)
+        for shard_index in self.subworkflows.keys():
+            for attempt in self.subworkflows[shard_index].keys():
+                sub_meta = self.subworkflows[shard_index][attempt]
+                sub_running = {
+                    "shardIndex": shard_index,
+                    "attempt": attempt,
+                    "subWorkflowMetadata": sub_meta.running(),
+                }
+                all_running.append(sub_running)
+        return all_running
 
     def summary(self, **kwargs):
         """
@@ -656,6 +792,20 @@ class Metadata:
             filtered_metadata["failures"] = other_failures
         return filtered_metadata
 
+    def running(self):
+        """
+        Return expanded metadata report for "Running" tasks only.
+        """
+        filtered_metadata = {}
+        calls = {}
+        for task_name, task in self.tasks.items():
+            task_running = task.running()
+            if len(task_running):
+                calls[task_name] = task_running
+        if len(calls):
+            filtered_metadata["calls"] = calls
+        return filtered_metadata
+
     def task_summary(self, **kwargs):
         """
         Return list of all tasks, including any subworkflows.
@@ -668,7 +818,7 @@ class Metadata:
         for task_name, task in self.tasks.items():
             for item in task.summary(**kwargs):
                 summary.append(item)
-        return summary
+        return sort_table_dict(summary, "queue_start")
 
     def task_log(self, **kwargs):
         """
@@ -681,8 +831,6 @@ class Metadata:
         table = []
         for info in self.task_summary(**kwargs):
             name = info["name"]
-            if info["shard_index"] > 0:
-                name = f"{name}[{info['shard_index']}]"
             row = [
                 name,
                 info["cached"],
@@ -694,7 +842,7 @@ class Metadata:
                 info["run_duration"],
             ]
             table.append(row)
-        return table
+        return sort_table(table, 3)
 
     def started_running(self):
         """
@@ -825,8 +973,8 @@ class Cromwell:
         url = f"{self.workflows_url}/{workflow_id}/metadata?expandSubWorkflows=1"
         try:
             response = requests.get(url)
-        except requests.ConnectionError as error:
-            raise error
+        except Exception as error:
+            raise (f"Error retrieving Cromwell metadata: {error}")
         response.raise_for_status()
         data = response.json()
         return Metadata(data)
@@ -836,7 +984,7 @@ class Cromwell:
         try:
             response = requests.get(self.engine_url)
         except Exception as error:
-            raise error
+            raise (f"Error retrieving Cromwell run status: {error}")
         response.raise_for_status()
         return True
 
@@ -846,7 +994,7 @@ class Cromwell:
         try:
             response = requests.post(url)
         except Exception as error:
-            raise error
+            raise (f"Error aborting Cromwell run: {error}")
         sc = response.status_code
         if sc == 200:
             return
@@ -946,62 +1094,40 @@ class Cromwell:
         return result["status"]
 
 
-# TODO: Moved from deprecated tasks.py but this code has been replaced by the function below
-#    def get_task_cromwell_dir_mapping(self):
-#        """
-#        Return a dictionary that maps the cromwell directory to the task name for each task in the run.
-#        The key=cromwell_dir, the value=task_name.
-#        The cromwell directory name is modified to remove the root dir.
-#        Ex: /my/path/cromwell-executions/task1/execution becomes
-#            cromwell-executions/task1/execution
-#        """
-#        tasks = self.metadata.tasks
-#        cromwell_to_task_names = {}
-#
-#        for name in tasks:
-#            for entry in tasks[name].summary():
-#
-#                # remove root path from cromwell-exections dir.
-#                # ex: /my/path/cromwell-executions/a/b/c is converted to cromwell-executions/a/b/c
-#                if len(entry) < 5:
-#                    continue
-#
-#                cromwell_dir = entry[4]
-#                idx = cromwell_dir.find("cromwell-executions")
-#
-#                # if cromwell-executions not found in directory name, idx=-1. skip this condition.
-#                if idx >= 0:
-#                    cromwell_dir = cromwell_dir[idx:]
-#                    entry[4] = cromwell_dir
-#                    cromwell_to_task_names[cromwell_dir] = entry[0]
-#        return cromwell_to_task_names
-
-
 def parse_cromwell_task_dir(task_dir):
     """
     Given path of a task, return task fields.
     """
-    result = {
-        "call_root": task_dir,
-        "cached": False,
-        "shard": -1,
-    }
+    result = {"call_root": task_dir, "cached": False, "shard": -1, "name": "None"}
+    if isinstance(task_dir, float):
+        return result
+
     if task_dir.endswith("/execution"):
-        result["call_root"] = result["call_root"].rstrip("/execution")
+        cut = task_dir.find("/execution")
+        result["call_root"] = result["call_root"][:cut]
     else:
         task_dir = f"{task_dir}/execution"
-    (root_dir, subdir) = task_dir.split("cromwell-executions/")
+
+    try:
+        (root_dir, subdir) = task_dir.split("cromwell-executions/")
+    except ValueError:
+        # Aws calls it execution without the "s"
+        (root_dir, subdir) = task_dir.split("cromwell-execution/")
+    except Exception as e:
+        logging.warning(f"Problem splitting directory {type(e).__name__}: {e}")
+        return result
     result["call_root_rel_path"] = subdir
     fields = deque(subdir.split("/"))
     result["wdl_name"] = fields.popleft()
     result["name"] = result["wdl_name"]
     result["cromwell_run_id"] = fields.popleft()
     if not fields[0].startswith("call-"):
-        raise ValueError(f"Problem parsing {subdir}")
-    result["task_name"] = fields.popleft().lstrip("call-")
+        logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
+        return result
+    result["task_name"] = fields.popleft().split("-")[-1]
     result["name"] = f"{result['name']}.{result['task_name']}"
     if fields[0].startswith("shard-"):
-        result["shard"] = int(fields.popleft().lstrip("shard-"))
+        result["shard"] = int(fields.popleft().split("-")[-1])
         result["name"] = f"{result['name']}[{result['shard']}]"
     if fields[0] == "execution":
         return result
@@ -1009,25 +1135,30 @@ def parse_cromwell_task_dir(task_dir):
         result["cached"] = True
         return result
 
-    # subworkflow
-    result["subworkflow_name"] = fields.popleft()
-    if not result["subworkflow_name"].startswith("sub."):
-        raise ValueError(f"Problem parsing {subdir}")
-    result["subworkflow_name"] = result["subworkflow_name"].lstrip("sub.")
-    result["name"] = f"{result['name']}:{result['subworkflow_name']}"
-    result["subworkflow_cromwell_run_id"] = fields.popleft()
-    if not fields[0].startswith("call-"):
-        raise ValueError(f"Problem parsing {subdir}")
-    result["sub_task_name"] = fields.popleft().lstrip("call-")
-    result["name"] = f"{result['name']}.{result['sub_task_name']}"
-    if fields[0].startswith("shard-"):
-        result["sub_shard"] = int(fields.popleft().lstrip("shard-"))
-        result["name"] = f"{result['name']}[{result['sub_shard']}]"
-    if fields[0] == "execution":
-        return result
-    elif fields[0] == "cacheCopy":
-        result["cached"] = True
-        return result
-    else:
-        raise ValueError(f"Problem parsing {subdir}")
+    # Could be a while but let's fail after 5 subworkflows instead of looping forever
+    for _ in range(5):
+        # subworkflow
+        result["subworkflow_name"] = fields.popleft()
+        if "." in result["subworkflow_name"]:
+            result["subworkflow_name"] = result["subworkflow_name"].split(".")[-1]
+        shard_num_loc = result["name"].rfind("[")
+        if shard_num_loc != -1:
+            result["name"] = result["name"][:shard_num_loc]
+        result["name"] = f"{result['name']}:{result['subworkflow_name']}"
+        result["subworkflow_cromwell_run_id"] = fields.popleft()
+        if not fields[0].startswith("call-"):
+            logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
+            return result
+        result["sub_task_name"] = fields.popleft().split("-")[-1]
+        result["name"] = f"{result['name']}.{result['sub_task_name']}"
+        if fields[0].startswith("shard-"):
+            result["sub_shard"] = int(fields.popleft().split("-")[-1])
+            result["name"] = f"{result['name']}[{result['sub_shard']}]"
+        if fields[0] == "execution":
+            return result
+        elif fields[0] == "cacheCopy":
+            result["cached"] = True
+            return result
+
+    logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
     return result

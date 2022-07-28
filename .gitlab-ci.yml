@@ -9,10 +9,6 @@ stages:
   - deploy-jaws
   - package
   - release-jaws
-  - smoke-tests
-  - deployment-tests
-  - stress-tests
-  - deploy-docs
 
 include:
   - project: "advanced-analysis/ci-templates"
@@ -23,7 +19,7 @@ variables:
   GIT_STRATEGY: clone
 
   ## GLOBAL INSTALL VARIABLES:
-  JAWS_SITES: "CORI JGI TAHOMA AWS"
+  JAWS_SITES: "CORI JGI TAHOMA AWS ASSEMBLY"
   JAWS_VERSION: "3.0"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
@@ -35,8 +31,6 @@ variables:
   WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/58/womtool-58.jar"
   JAWS_DB_HOST: "jaws-db.lbl.gov"
   JAWS_DB_PORT: 3306
-  PARSL_MP_HOST: "localhost"
-  PARSL_MP_PORT: 6000
   JAWS_DEFAULT_CONTAINER: "ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf"
   JAWS_EMAIL_USER: ""
   JAWS_EMAIL_SERVER: ""
@@ -45,21 +39,18 @@ variables:
   ## DEPLOYMENT-SPECIFIC VARIABLES:
   dev_LOG_LEVEL: "DEBUG"
   dev_JAWS_SUPERVISOR_PORT: 64101
-  dev_JTM_SUPERVISOR_PORT: 64111
   dev_JAWS_CENTRAL_SUPERVISOR_PORT: 64121
   dev_JAWS_AUTH_PORT: 3001
   dev_JAWS_REST_PORT: 5001
   dev_CROMWELL_PORT: 50101
   staging_LOG_LEVEL: "DEBUG"
   staging_JAWS_SUPERVISOR_PORT: 64102
-  staging_JTM_SUPERVISOR_PORT: 64112
   staging_JAWS_CENTRAL_SUPERVISOR_PORT: 64122
   staging_JAWS_AUTH_PORT: 3002
   staging_JAWS_REST_PORT: 5002
   staging_CROMWELL_PORT: 50102
   prod_LOG_LEVEL: "INFO"
   prod_JAWS_SUPERVISOR_PORT: 64103
-  prod_JTM_SUPERVISOR_PORT: 64113
   prod_JAWS_CENTRAL_SUPERVISOR_PORT: 64123
   prod_JAWS_AUTH_PORT: 3003
   prod_JAWS_REST_PORT: 5003
@@ -97,7 +88,6 @@ variables:
   CORI_CLUSTER_ACCOUNT: "fungalp"
   CORI_CLUSTER_CONSTRAINT: "haswell"
   CORI_MAX_RAM_GB: 758
-  CORI_LOAD_JAVA: ""
   CORI_RMQ_HOST: "rmq.lbl.gov"
   CORI_RMQ_PORT: 5672
   CORI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
@@ -131,7 +121,6 @@ variables:
   JGI_CLUSTER_ACCOUNT: "jgi"
   JGI_CLUSTER_CONSTRAINT: ""
   JGI_MAX_RAM_GB: 512
-  JGI_LOAD_JAVA: "module load java"
   JGI_RMQ_HOST: "rmq.lbl.gov"
   JGI_RMQ_PORT: 5672
   JGI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
@@ -165,7 +154,6 @@ variables:
   TAHOMA_CLUSTER_ACCOUNT: "mscjgi"
   TAHOMA_CLUSTER_CONSTRAINT: ""
   TAHOMA_MAX_RAM_GB: 1500
-  TAHOMA_LOAD_JAVA: ""
   TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
   TAHOMA_RMQ_PORT: 5672
   TAHOMA_MONITOR_RMQ_HOST: "rmq.lbl.gov"
@@ -199,13 +187,12 @@ variables:
   AWS_CLUSTER_ACCOUNT: "ec2-user"
   AWS_CLUSTER_CONSTRAINT: ""
   AWS_MAX_RAM_GB: 256
-  AWS_LOAD_JAVA: ""
   AWS_RMQ_HOST: "rmq.lbl.gov"
   AWS_RMQ_PORT: 5672
 
   ASSEMBLY_CLIENT_INSTALL_BASEDIR: ""
   ASSEMBLY_INSTALL_BASEDIR: "/home/ec2-user"
-  ASSEMBLY_USER_GROUP: ""
+  ASSEMBLY_USER_GROUP: "assembly"
   ASSEMBLY_GLOBUS_EP: ""
   ASSEMBLY_GLOBUS_HOST_PATH: ""
   ASSEMBLY_PYTHON: "python3"
@@ -225,7 +212,6 @@ variables:
   ASSEMBLY_CLUSTER_ACCOUNT: "ec2-user"
   ASSEMBLY_CLUSTER_CONSTRAINT: ""
   ASSEMBLY_MAX_RAM_GB: 512
-  ASSEMBLY_LOAD_JAVA: ""
   ASSEMBLY_RMQ_HOST: "rmq.lbl.gov"
   ASSEMBLY_RMQ_PORT: 5672
 
@@ -268,53 +254,6 @@ test-site:
       coverage_report:
         coverage_format: cobertura
         path: site/coverage.xml
-test-central:
-  <<: *only-default
-  stage: unit-test
-  script:
-    - python3.8 -m venv test-venv
-    - source test-venv/bin/activate
-    - pip3.8 install rpc/
-    - pip3.8 install -r central/requirements.txt
-    - pip3.8 install flake8 pytest pytest-cov
-    - make test-central
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: central/coverage.xml
-test-client:
-  <<: *only-default
-  stage: unit-test
-  script:
-      # some unit tests for client require 'womtool' to be in the PATH
-    - export PATH=/jaws-ci/bin:$PATH
-    - python3.8 -m venv test-venv
-    - source test-venv/bin/activate
-    - pip3.8 install -r client/requirements.txt
-    - pip3.8 install flake8 pytest pytest-cov
-    - make test-client
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: client/coverage.xml
-  allow_failure: true
-test-jtm:
-  <<: *only-default
-  stage: unit-test
-  script:
-    - python3.8 -m venv test-venv
-    - source test-venv/bin/activate
-    - pip3.8 install rpc/
-    - pip3.8 install -r jtm/requirements.txt
-    - pip3.8 install flake8 pytest pytest-cov
-    - make test-jtm
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: jtm/coverage.xml
 test-condor:
   <<: *only-default
   stage: unit-test
@@ -352,22 +291,6 @@ build-rpc:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       allow_failure: true
 
-build-central:
-  tags:
-    - docker-build
-  stage: image-build
-  variables:
-    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/central:JAWS_VERSION
-    RPC_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
-  <<: *docker-login
-  script:
-    - docker pull $RPC_IMAGE_TAG
-    - chmod +x build.sh
-    - ./build.sh central $JAWS_VERSION prod
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-      allow_failure: true
-
 build-site:
   tags:
     - docker-build
@@ -385,48 +308,6 @@ build-site:
       allow_failure: true
 
 ## integration tests - only run on merge request
-deploy-jaws-central-dev:
-  stage: deploy-jaws
-  tags:
-    - central
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CENTRAL"
-  environment:
-    name: "central/dev"
-  script:
-    - ./test/integration/deploy-central
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
-
-deploy-jaws-central-staging:
-  stage: deploy-jaws
-  tags:
-    - central
-  variables:
-    DEPLOYMENT_NAME: "staging"
-    JAWS_SITE: "CENTRAL"
-  environment:
-    name: "central/staging"
-  script:
-    - ./test/integration/deploy-central
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-
-deploy-jaws-central-prod:
-  stage: release-jaws
-  tags:
-    - central
-  variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "CENTRAL"
-  environment:
-    name: "central/production"
-  script:
-    - ./test/integration/deploy-central
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-      when: manual
 
 deploy-jaws-aws-dev:
   stage: deploy-jaws
@@ -588,177 +469,8 @@ package:
     - make pkg-poetry
     - cd rpc && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
     - poetry publish --repository gitlab && cd ../
-    - cd central && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab & cd ../
     - cd site && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab && cd ../
-    - cd jtm && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab && cd ../
-    - cd client && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
     - poetry publish --repository gitlab && cd ../
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
-  allow_failure: true
-
-cori-dev-smoke-tests:
-  stage: smoke-tests
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CORI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
-      when: manual
-  allow_failure: true
-
-jgi-dev-smoke-tests:
-  stage: smoke-tests
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "JGI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
-      when: manual
-  allow_failure: true
-
-tahoma-dev-smoke-tests:
-  stage: smoke-tests
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "TAHOMA"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh smoke-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
-      when: manual
-  allow_failure: true
-
-cori-dev-deployment-tests:
-  stage: deployment-tests
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CORI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
-      when: manual
-  allow_failure: true
-
-jgi-dev-deployment-tests:
-  stage: deployment-tests
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "JGI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
-      when: manual
-  allow_failure: true
-
-tahoma-dev-deployment-tests:
-  stage: deployment-tests
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "TAHOMA"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh deployment-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
-      when: manual
-  allow_failure: true
-
-cori-dev-stress-tests:
-  stage: stress-tests
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CORI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
-      when: manual
-  allow_failure: true
-
-jgi-dev-stress-tests:
-  stage: stress-tests
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "JGI"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
-      when: manual
-  allow_failure: true
-
-tahoma-dev-stress-tests:
-  stage: stress-tests
-  variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "TAHOMA"
-  tags:
-    - cori
-  script:
-    - ./test/integration/end-to-end-tests/pytest_wrapper.sh stress-tests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != "staging" && $CI_COMMIT_BRANCH != "main"'
-      when: manual
-  allow_failure: true
-
-deploy-jaws-docs:
-  stage: deploy-docs
-  tags:
-    - cori
-  script:
-    - git clone git@gitlab.com:jfroula/jaws-docs.git
-    - rm -rf jaws-docs/docs/source/*
-    - cp -r docs/sphinx/source/* jaws-docs/docs/source/
-    - cd jaws-docs
-    - git add .
-    - git commit -a -m 'syncing docs' || echo "nothing to commit"
-    - git push || echo "nothing to push"
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      when: manual
-  allow_failure: true
-
-deploy-jaws-docs-beta:
-  stage: deploy-docs
-  tags:
-    - cori
-  script:
-    - git clone git@gitlab.com:jfroula/jaws-docs.git
-    - cd jaws-docs
-    - git checkout beta
-    - rm -rf docs/source/*
-    - cd ../
-    - cp -r docs/sphinx/source/* jaws-docs/docs/source/
-    - cd jaws-docs
-    - git add .
-    - git commit -a -m 'syncing docs beta' || echo "nothing to commit"
-    - git push || echo "nothing to push"
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /documentation-beta/'
-      when: manual
   allow_failure: true

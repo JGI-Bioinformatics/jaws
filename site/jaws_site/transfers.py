@@ -226,13 +226,15 @@ class Transfer:
         size = None
         if "Contents" in result:
             contents = result["Contents"]
-            if len(contents) > 1:
-                raise ValueError(
-                    f"Unexpectedly >1 obj for S3 key {file_key}: {contents}"
-                )
-            file_obj = contents[0]
-            size = file_obj["Size"]
-            # mtime = file_obj["LastModified"]
+            if len(contents) == 1 and "Size" in contents[0]:
+                size = contents[0]["Size"]
+                # mtime = file_obj["LastModified"]
+            elif len(contents) > 1:
+                for rec in contents:
+                    if rec["Key"] == file_key and "Size" in rec:
+                        size = rec["Size"]
+                        # mtime = file_obj["LastModified"]
+                        break
         return size
 
     def s3_upload(self):
@@ -274,8 +276,12 @@ class Transfer:
             src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
             src_file_size = os.path.getsize(src_path)
             dest_path = os.path.normpath(os.path.join(dest_base_dir, rel_path))
-            dest_file_size = self.s3_file_size(s3_bucket, dest_path, aws_client)
-            if src_file_size == dest_file_size:
+            try:
+                dest_file_size = self.s3_file_size(s3_bucket, dest_path, aws_client)
+            except Exception as error:
+                self.update_status("upload failed", f"{error}")
+                raise
+            if dest_file_size is not None and src_file_size == dest_file_size:
                 logger.debug(f"S3 upload: Skipping cached file {dest_path}")
             else:
                 logger.debug(f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}")
