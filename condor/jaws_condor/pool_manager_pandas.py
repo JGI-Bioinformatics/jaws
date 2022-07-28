@@ -31,6 +31,12 @@ worker_sizes_sites = {
         "medium_mem": 120,
         "xlarge_cpu": 72,
         "xlarge_mem": 1500,
+    },
+    "tahoma": {
+        "medium_cpu": 72,
+        "medium_mem": 364,
+        "xlarge_cpu": 72,
+        "xlarge_mem": 1480,
     }
 }
 
