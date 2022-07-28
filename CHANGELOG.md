@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0 Summary
+## 3.0 (2022-7-14)Summary
 ### User Facing Changes
 #### Changed
 - Condor and AWS complete beta-testing
@@ -10,7 +10,7 @@
 - new "running-tasks" command will show logs of active tasks
 - fixed shifterimg pull via tag bug
 
-## 2.8.6 Summary
+## 2.8.6 (2022-6-21) Summary
 ### User Facing Changes
 #### Changed
 - Restore /refdata (NB: not implemented for AWS)
