@@ -46,6 +46,9 @@ cpu_labels = {}
 cpu_bins['nersc'] = [0, 64, 72, 10_000_000]
 cpu_labels['nersc'] = ["medium", "xlarge", "over"]
 
+cpu_bins['tahoma'] = [0, 32, 72, 10_000_000]
+cpu_labels['tahoma'] = ["medium", "xlarge", "over"]
+
 mem_bins = {}
 mem_labels = {}
 mem_bins['nersc'] = [0, 120, 1500, 10_000_000]
