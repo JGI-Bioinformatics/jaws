@@ -4,6 +4,7 @@ from typing import Dict
 
 import pandas as pd
 from jaws_condor.cmd_utils import run_sh_command
+from jaws_condor.htcondor_cmds import HTCondor
 import math
 
 logger = logging.getLogger(__package__)
@@ -361,23 +362,20 @@ class PoolManagerPandas:
             print(f"Running sbatch {_type}")
 
 
-# if __name__ == '__main__':
-#     pool = PoolManagerPandas(condor_provider=HTCondor())
-#     slurm_status, slurm_running_df = pool.get_current_slurm_workers()
-#     print(slurm_status)
-#     print(slurm_running_df)
-#     condor_status = pool.get_condor_job_queue()
-#     print(condor_status)
-#     work_status = pool.determine_condor_job_sizes(condor_status)
-#     print(work_status)
-
-#     for _type in compute_types:
-#         old_workers = pool.need_cleanup(work_status, slurm_status, _type)
-#         new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
-
-#         print(f"{old_workers}\t{new_workers}")
-#         if old_workers < 0:
-#             pool.run_cleanup(slurm_running_df, abs(old_workers), _type)
-
-#         if new_workers > 0:
-#             pool.run_sbatch(abs(new_workers), _type)
+if __name__ == '__main__':
+    pool = PoolManagerPandas(condor_provider=HTCondor())
+    slurm_status, slurm_running_df = pool.get_current_slurm_workers()
+    print(slurm_status)
+    print(slurm_running_df)
+    condor_status = pool.get_condor_job_queue()
+    print(condor_status)
+    work_status = pool.determine_condor_job_sizes(condor_status)
+    print(work_status)
+    for _type in compute_types:
+        old_workers = pool.need_cleanup(work_status, slurm_status, _type)
+        new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
+        print(f"{old_workers}\t{new_workers}")
+        if old_workers < 0:
+            pool.run_cleanup(slurm_running_df, abs(old_workers), _type)
+        if new_workers > 0:
+            pool.run_sbatch(abs(new_workers), _type)
