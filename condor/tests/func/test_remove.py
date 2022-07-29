@@ -131,6 +131,7 @@ def test_number_of_workers_rm():
         ],
         "user_name": "jaws_jtm",
         "squeue_args": "--clusters=all -p genepool,genepool_shared,exvivo,exvivo_shared",
+        "script_path": "/global/cfs/cdirs/jaws/condor",
         "min_pool": {
             "medium": 4,
             "xlarge": 0
@@ -164,8 +165,17 @@ def test_number_of_workers_rm():
         ]
     }
     wanted_columns = "ClusterId RequestMemory RequestCpus CumulativeRemoteSysCpu CumulativeRemoteUserCpu JobStatus NumShadowStarts JobRunCount RemoteHost JobStartDate QDate"  # noqa
+
+    user_name = configs['user_name']
+    squeue_args = configs['squeue_args']
+    script_path = configs['script_path']
+
     poolman = PoolManagerPandas(condor_provider=HTCondor(columns=wanted_columns),
-                                slurm_provider=Slurm(), configs=configs)
+                                slurm_provider=Slurm(user_name=user_name,
+                                                     extra_args=squeue_args,
+                                                     script_path=script_path),
+                                configs=configs)
+
     for condor, slurm, workers in zip(condor_job_queue, slurm_workers, old_workers):
         _workers = poolman.need_cleanup(condor_job_queue=condor, slurm_workers=slurm, machine_size="medium")
         # print(_workers)

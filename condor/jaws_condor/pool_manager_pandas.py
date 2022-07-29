@@ -3,9 +3,8 @@ import logging
 from typing import Dict
 
 import pandas as pd
-from jaws_condor.cmd_utils import run_sh_command
 from jaws_condor.htcondor_cmds import HTCondor
-from jaws_condor.slurm_cmds import Slurm
+from jaws_condor.slurm_cmds import Slurm, SlurmCmdFailed
 import math
 import json
 
@@ -110,32 +109,15 @@ class PoolManagerPandas:
     def get_current_slurm_workers(self) -> Dict:
         slurm_status = {}
         # Default slurm status to 0
-        for _type in configs['compute_types']:
+        for compute_type in configs['compute_types']:
             for _state in ["running", "pending"]:
-                slurm_status[f'{_type}_{_state}'] = 0
-        squeue_cmd = f'squeue --format="%.12i %.10P %.50j %.10T %.10L %.12R" --noheader -u {self.configs["user_name"]}'
-        _stdout, _stderr, _errcode = run_sh_command(squeue_cmd, show_stdout=False)
+                slurm_status[f'{compute_type}_{_state}'] = 0
 
-        # NOTE: Leaving in for furute SuperFacility calls at nersc
-        # _stdout = sfapi.custom_cmd(
-        #     token=access_token.token, cmd=squeue_cmd, site=site)
-        # try:
-        #     _stdout = _stdout['output']
-        # except KeyError:
-        #     logger.error("No output from squeue")
-        #     output = {}
-        #     for _type in compute_types:
-        #         for _state in ["running", "pending"]:
-        #             output[f'{_type}_{_state}']
-        #     return output
-
-        # If we have an error return a dictionary with 0 for each type and state
-        if _errcode != 0:
-            logger.error(f"No output from squeue: {squeue_cmd}")
+        try:
+            jobs = self.slurm_provider.squeue()
+        except SlurmCmdFailed as err:
+            logging.error(f"Slurm provider failed to run squeue, {err}")
             return slurm_status
-
-        # Gets jobs from output by splitting on new lines
-        jobs = [job.split() for job in _stdout.split("\n")]
 
         # Make dataframe to query with
         try:
@@ -155,12 +137,12 @@ class PoolManagerPandas:
         mask_condor = df["NAME"].str.contains("condor")
 
         # For sites with multiple types we want to know
-        for _type in self.configs['compute_types']:
-            mask_type = df["NAME"].str.contains(_type)
+        for compute_type in self.configs['compute_types']:
+            mask_type = df["NAME"].str.contains(compute_type)
             # Each of these selects for a certian type of node based on a set of masks
             # Add the number of nodes to get how many are in each catogory
-            slurm_status[f"{_type}_pending"] = sum(mask_type & mask_condor & mask_pending)
-            slurm_status[f"{_type}_running"] = sum(mask_type & mask_condor & mask_running)
+            slurm_status[f"{compute_type}_pending"] = sum(mask_type & mask_condor & mask_pending)
+            slurm_status[f"{compute_type}_running"] = sum(mask_type & mask_condor & mask_running)
 
         slurm_running_df = df[mask_condor]
         logger.info(slurm_status)
@@ -194,21 +176,21 @@ class PoolManagerPandas:
 
         condor_q_status["hold_and_impossible"] = sum(mask_over | mask_hold_status)
 
-        for _type in self.configs['compute_types']:
-            mask_mem_type = df["mem_bin"].str.contains(f"{_type}")
+        for compute_type in self.configs['compute_types']:
+            mask_mem_type = df["mem_bin"].str.contains(f"{compute_type}")
             # mask_cpu_type = df["cpu_bin"].str.contains(f"{_type}")
             mask_type = (mask_mem_type & ~(mask_over | mask_hold_status))
 
-            condor_q_status[f"idle_{_type}"] = sum(
+            condor_q_status[f"idle_{compute_type}"] = sum(
                 mask_type & mask_idle_status
             )
-            condor_q_status[f"running_{_type}"] = sum(
+            condor_q_status[f"running_{compute_type}"] = sum(
                 mask_type & mask_running_status
             )
 
-            condor_q_status[f"{_type}_cpu_needed"] = sum(
+            condor_q_status[f"{compute_type}_cpu_needed"] = sum(
                 df[mask_type].RequestCpus)
-            condor_q_status[f"{_type}_mem_needed"] = sum(
+            condor_q_status[f"{compute_type}_mem_needed"] = sum(
                 df[mask_type].RequestMemory)
 
         return condor_q_status
@@ -312,7 +294,7 @@ class PoolManagerPandas:
 
         return workers_needed if workers_needed < 0 else 0
 
-    def run_cleanup(self, slurm_running_df, cleanup_num, _type):
+    def run_cleanup(self, slurm_running_df, cleanup_num, compute_type):
         # Runs a condor_q autoformat to get the desired columns back
 
         # Gets the idle nodes from condor
@@ -344,7 +326,7 @@ class PoolManagerPandas:
                 continue
             try:
                 node_mask = (slurm_running_df['NODELIST'] == node)
-                type_mask = slurm_running_df["NAME"].str.contains(_type)
+                type_mask = slurm_running_df["NAME"].str.contains(compute_type)
                 job_id = slurm_running_df[node_mask & type_mask]
                 job_id = int(job_id.JOBID)
             except IndexError:
@@ -366,32 +348,31 @@ class PoolManagerPandas:
 
         return nodes
 
-    def run_sbatch(self, new_workers: int = 0, _type: str = "medium"):
-        for i in range(new_workers):
-            print(f"Running sbatch {_type}")
+    def run_sbatch(self, new_workers: int = 0, compute_type: str = "medium", cluster: str = None):
+        for _ in range(new_workers):
+            self.slurm_provider.sbatch()
 
 
 def load_configs(conf):
     options = ['compute_types',
                'user_name',
-               'squeue_args',
                'min_pool',
                'max_pool',
                'worker_sizes']
     configs = {}
-    for o in options:
+    for opt in options:
         try:
-            configs[o] = json.loads(conf.config.get("POOL_MANAGER", o))
+            configs[opt] = json.loads(conf.config.get("POOL_MANAGER", opt))
         except json.decoder.JSONDecodeError:
-            configs[o] = conf.config.get("POOL_MANAGER", o)
+            configs[opt] = conf.config.get("POOL_MANAGER", opt)
 
     configs['cpu_bins'] = [0]
     configs['mem_bins'] = [0]
     configs['labels'] = []
-    for _type in configs['compute_types']:
-        configs['labels'].append(_type)
+    for compute_type in configs['compute_types']:
+        configs['labels'].append(compute_type)
         for cpu_mem in ['cpu', 'mem']:
-            configs[f'{cpu_mem}_bins'].append(configs['worker_sizes'][f'{_type}_{cpu_mem}'])
+            configs[f'{cpu_mem}_bins'].append(configs['worker_sizes'][f'{compute_type}_{cpu_mem}'])
 
     configs['cpu_bins'].append(10_000)
     configs['mem_bins'].append(10_000)
@@ -405,12 +386,19 @@ if __name__ == '__main__':
     from jaws_condor import config
 
     conf = config.Configuration("jaws_condor.ini")
+
     wanted_columns = conf.config.get("POOL_MANAGER", "wanted_columns")
+    user_name = conf.config.get("POOL_MANAGER", "user_name")
+    squeue_args = conf.config.get("POOL_MANAGER", "squeue_args")
+    script_path = conf.config.get("POOL_MANAGER", "script_path")
+
     configs = load_configs(conf=conf)
 
-    print(json.dumps(configs, indent=3))
-
-    pool = PoolManagerPandas(condor_provider=HTCondor(columns=wanted_columns), slurm_provider=Slurm(), configs=configs)
+    pool = PoolManagerPandas(condor_provider=HTCondor(columns=wanted_columns),
+                             slurm_provider=Slurm(user_name=user_name,
+                                                  extra_args=squeue_args,
+                                                  script_path=script_path),
+                             configs=configs)
 
     slurm_status, slurm_running_df = pool.get_current_slurm_workers()
     print(slurm_status)
@@ -419,11 +407,11 @@ if __name__ == '__main__':
     print(condor_status)
     work_status = pool.determine_condor_job_sizes(condor_status)
     print(work_status)
-    for _type in configs['compute_types']:
-        old_workers = pool.need_cleanup(work_status, slurm_status, _type)
-        new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
+    for compute_type in configs['compute_types']:
+        old_workers = pool.need_cleanup(work_status, slurm_status, compute_type)
+        new_workers = pool.need_new_nodes(work_status, slurm_status, compute_type)
         print(f"{old_workers}\t{new_workers}")
         if old_workers < 0:
-            pool.run_cleanup(slurm_running_df, abs(old_workers), _type)
+            pool.run_cleanup(slurm_running_df, abs(old_workers), compute_type)
         if new_workers > 0:
-            pool.run_sbatch(abs(new_workers), _type)
+            pool.run_sbatch(abs(new_workers), compute_type)
