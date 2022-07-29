@@ -16,16 +16,12 @@ class HTCondorCmdFailed(HTCondorError):
 
 
 class HTCondor:
-    def __init__(self, **kwargs):
+    def __init__(self, columns, **kwargs):
         # self.config = config.conf.get_section("POOL_MANAGER")  # TODO Get right section
         # self.site = self.config["SITE_ID"]
-        self.columns = "ClusterId RequestMemory RequestCpus \
-            CumulativeRemoteSysCpu CumulativeRemoteUserCpu \
-            JobStatus NumShadowStarts JobRunCount RemoteHost JobStartDate QDate"
-
         # columns = self.config["CONDOR"]["condor_columns"]
-        self.condor_q_cmd = f"condor_q -allusers -af {self.columns}"
-
+        self.columns = columns
+        self.condor_q_cmd = f"condor_q -allusers -af {columns}"
         self.get_idle = 'condor_status -const "TotalSlots == 1" -af Machine'
 
     def condor_q(self):
@@ -50,7 +46,7 @@ class HTCondor:
         # The usual failures
         if returncode != 0:
             logger.critical(f"ERROR: failed to execute condor_q command: {condor_cmd}")
-            raise CondorCmdFailed(f"condor '{condor_cmd}' command failed with {stderr}")
+            raise HTCondorCmdFailed(f"condor '{condor_cmd}' command failed with {stderr}")
 
         return parse_condor_outputs(stdout)
 

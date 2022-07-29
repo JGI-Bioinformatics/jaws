@@ -9,6 +9,7 @@ import schedule
 import time
 import logging
 from jaws_condor import config
+import json
 
 logger = logging.getLogger(__package__)
 
@@ -26,7 +27,7 @@ class PoolManagerDaemon:
         logger.info("Initializing pool manager daemon")
         self.time_add_worker_pool = config.conf.get("POOL_MANAGER", "time_add_worker_pool")
         self.time_rm_worker_pool = config.conf.get("POOL_MANAGER", "time_rm_worker_pool")
-        self.compute_types = config.conf.get("POOL_MANAGER", "compute_types")
+        self.compute_types = json.loads(config.conf.get("POOL_MANAGER", "compute_types"))
 
     def start_daemon(self):
         """
@@ -50,8 +51,8 @@ class PoolManagerDaemon:
         work_status = pool.determine_condor_job_sizes(condor_status)
         logging.info(f"{work_status}")
         for _type in self.compute_types:
-            logging.info(f"Looking to remove {abs(new_workers)} from {_type} pool")
             new_workers = pool.need_new_nodes(work_status, slurm_status, _type)
+            logging.info(f"Looking to remove {abs(new_workers)} from {_type} pool")
             if new_workers > 0:
                 pool.run_sbatch(abs(new_workers), _type)
 

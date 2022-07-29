@@ -119,7 +119,7 @@ def test_number_of_workers_rm():
         0,  # 3
         0,  # 4
         -26,  # 5 -> 1 worker total, 30 running, go to minimum pool (4 nodes)
-        -2,  # 6 -> 8 workers total, 10 running, remove 2
+        -5,  # 6 -> 8 workers total, 10 running, remove 2
     ]
 
     poolman = PoolManagerPandas()

@@ -115,8 +115,8 @@ def test_number_of_workers_add():
 
     new_workers = [
         0,  # 1
-        20,  # 2
-        10,  # 3
+        19,  # 2
+        9,  # 3
         0,  # 4
         0,  # 5
         0,  # 6
