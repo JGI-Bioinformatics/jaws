@@ -18,6 +18,7 @@ class SlurmCmdFailed(SlurmError):
 class Slurm:
     def __init__(self, **kwargs):
         self.squeue_columns = ["JOBID", "PARTITION", "NAME", "STATE", "TIME_LEFT", "NODELIST"]
+        self.squeue_cmd = 'squeue --format = "%.12i %.10P %.50j %.10T %.10L %.12R" --noheader'
         pass
 
     @property
@@ -25,7 +26,7 @@ class Slurm:
         return self.squeue_columns
 
     def squeue(self, user_name, options):
-        squeue_cmd = f'squeue --format = "%.12i %.10P %.50j %.10T %.10L %.12R" --noheader -u {user_name} {options}'
+        # extra = f"-u {user_name} {options}"
         pass
 
     def scancel(self):

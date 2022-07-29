@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import logging
 
 from typing import Dict
@@ -8,6 +7,7 @@ from jaws_condor.cmd_utils import run_sh_command
 from jaws_condor.htcondor_cmds import HTCondor
 from jaws_condor.slurm_cmds import Slurm
 import math
+import json
 
 logger = logging.getLogger(__package__)
 
@@ -141,7 +141,7 @@ class PoolManagerPandas:
         try:
             df = pd.DataFrame(jobs, columns=self.slurm_provider.columns)
         except ValueError as err:
-            logging.error(f"Pandas can't make df from outputs {jobs}")
+            logging.error(f"Pandas can't make df from outputs {jobs}, {err}")
             return slurm_status, pd.DataFrame([], columns=self.slurm_provider.columns)
         # Drops rows if they have nan values
         df = df.dropna(axis=0)
@@ -371,12 +371,7 @@ class PoolManagerPandas:
             print(f"Running sbatch {_type}")
 
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    from jaws_condor import config
-    import json
-    c = config.Configuration("jaws_condor.ini")
-
+def load_configs(conf):
     options = ['compute_types',
                'user_name',
                'squeue_args',
@@ -386,10 +381,9 @@ if __name__ == '__main__':
     configs = {}
     for o in options:
         try:
-            configs[o] = json.loads(c.config.get("POOL_MANAGER", o))
+            configs[o] = json.loads(conf.config.get("POOL_MANAGER", o))
         except json.decoder.JSONDecodeError:
-            configs[o] = c.config.get("POOL_MANAGER", o)
-    wanted_columns = c.config.get("POOL_MANAGER", "wanted_columns")
+            configs[o] = conf.config.get("POOL_MANAGER", o)
 
     configs['cpu_bins'] = [0]
     configs['mem_bins'] = [0]
@@ -402,6 +396,19 @@ if __name__ == '__main__':
     configs['cpu_bins'].append(10_000)
     configs['mem_bins'].append(10_000)
     configs['labels'].append("over")
+
+    return configs
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    from jaws_condor import config
+
+    conf = config.Configuration("jaws_condor.ini")
+    wanted_columns = conf.config.get("POOL_MANAGER", "wanted_columns")
+    configs = load_configs(conf=conf)
+
+    print(json.dumps(configs, indent=3))
 
     pool = PoolManagerPandas(condor_provider=HTCondor(columns=wanted_columns), slurm_provider=Slurm(), configs=configs)
 

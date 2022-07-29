@@ -2,6 +2,8 @@ import os
 import functools
 from jaws_condor import add
 from jaws_condor.pool_manager_pandas import PoolManagerPandas
+from jaws_condor.htcondor_cmds import HTCondor
+from jaws_condor.slurm_cmds import Slurm
 
 
 def test_number_of_workers_add():
@@ -115,13 +117,55 @@ def test_number_of_workers_add():
 
     new_workers = [
         0,  # 1
-        19,  # 2
-        9,  # 3
+        20,  # 2
+        10,  # 3
         0,  # 4
         0,  # 5
         0,  # 6
     ]
-    poolman = PoolManagerPandas()
+    configs = {
+        "compute_types": [
+            "medium",
+            "xlarge"
+        ],
+        "user_name": "jaws_jtm",
+        "squeue_args": "--clusters=all -p genepool,genepool_shared,exvivo,exvivo_shared",
+        "min_pool": {
+            "medium": 4,
+            "xlarge": 0
+        },
+        "max_pool": {
+            "medium": 30,
+            "xlarge": 10
+        },
+        "worker_sizes": {
+            "medium_cpu": 64,
+            "medium_mem": 120,
+            "xlarge_cpu": 72,
+            "xlarge_mem": 1500
+        },
+        "cpu_bins": [
+            0,
+            64,
+            72,
+            10000
+        ],
+        "mem_bins": [
+            0,
+            120,
+            1500,
+            10000
+        ],
+        "labels": [
+            "medium",
+            "xlarge",
+            "over"
+        ]
+    }
+    wanted_columns = "ClusterId RequestMemory RequestCpus CumulativeRemoteSysCpu CumulativeRemoteUserCpu JobStatus NumShadowStarts JobRunCount RemoteHost JobStartDate QDate"  # noqa
+    poolman = PoolManagerPandas(condor_provider=HTCondor(columns=wanted_columns),
+                                slurm_provider=Slurm(), configs=configs)
+
     for condor, slurm, workers in zip(condor_job_queue, slurm_workers, new_workers):
         _workers = poolman.need_new_nodes(condor_job_queue=condor, slurm_workers=slurm, machine_size="medium")
         # print(_workers)
