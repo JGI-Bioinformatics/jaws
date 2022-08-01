@@ -1,8 +1,7 @@
-# from jaws_condor import config
 from jaws_condor.cmd_utils import run_sh_command
 import logging
-# import pandas as pd
-# import time
+import pandas as pd
+
 
 logger = logging.getLogger(__package__)
 
@@ -24,53 +23,88 @@ class Slurm:
         self.script_path = script_path
 
     @property
-    def columns(self):
+    def columns(self) -> list:
+        """
+        Returns the cloumns gotten from the 'squeue' command
+        """
         return self.squeue_columns
 
-    def squeue(self):
-        command = f"{self.squeue_cmd}  -u {self.user_name} {str(self.extra_args)}"
+    def call_slurm_command(self, command):
+        """
+        Genereic function to call a command and raise an error
+        """
         stdout, stderr, returncode = run_sh_command(command, log=logger, show_stdout=False)
 
         # If we have an error return a dictionary with 0 for each type and state
         if returncode != 0:
-            logger.error(f"No output from squeue: {command}")
+            logger.error(f"Bad Return code from: {command}")
             raise SlurmCmdFailed(f"'{command}' command failed with {stderr}")
 
+        return stdout, stderr, returncode
+
+    def squeue(self) -> dict:
+        """
+        Runs the squeue command and returns a dictionary
+        compatible with a pandas dataframe
+        """
+        command = f"{self.squeue_cmd}  -u {self.user_name} {str(self.extra_args)}"
+        stdout, stderr, returncode = self.call_slurm_command(command)
         # Gets jobs from output by splitting on new lines
         jobs = [job.split() for job in stdout.split("\n")]
+        df = pd.DataFrame(jobs, columns=self.columns)
+        # Drops rows if they have nan values
+        df = df.dropna(axis=0)
 
-        return jobs
+        # Adds a new column of time in seconds left to run
+        df['TIME_SEC'] = df["TIME_LEFT"].apply(slurm_time_to_sec)
 
-    def scancel(self, job_id: int = 0, cluster: str = None):
+        return df.to_dict()
 
-        if cluster is not None:
+    def scancel(self, job_id: int = 0, cluster: str = ""):
+
+        if cluster is not "":
             cluster = f"-M {cluster}"
-        else:
-            cluster = ""
 
         command = f"scancel {cluster} {job_id}"
-        stdout, stderr, returncode = run_sh_command(command, log=logger, show_stdout=False)
+        stdout, stderr, returncode = self.call_slurm_command(command)
 
-        # If we have an error return a dictionary with 0 for each type and state
-        if returncode != 0:
-            logger.error(f"No output from squeue: {command}")
-            raise SlurmCmdFailed(f"'{command}' command failed with {stdout} {stderr}")
+        return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
 
-        return True
+    def sbatch(self, compute_type: str = "medium", cluster: str = ""):
 
-    def sbatch(self, compute_type: str = "medium", cluster: str = None):
-
-        if cluster is not None:
+        if cluster is not "":
             cluster = f"-M {cluster}"
-        else:
-            cluster = ""
 
         command = f"sbatch --parsable {cluster} {self.script_path}/condor_worker_{compute_type}.job"
-        stdout, stderr, returncode = run_sh_command(command, log=logger, show_stdout=False)
+        stdout, stderr, returncode = self.call_slurm_command(command)
 
-        # If we have an error return a dictionary with 0 for each type and state
-        if returncode != 0:
-            logger.error(f"No output from squeue: {command}")
-            raise SlurmCmdFailed(f"'{command}' command failed with {stderr}")
+        return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
 
-        return stdout
+
+def slurm_time_to_sec(time_str):
+    # split off days first
+    time_str = time_str.split("-")
+    if len(time_str) > 1:
+        days = int(time_str[0])
+    else:
+        days = 0
+
+    # split time_str into HH:MM:SS
+    time_str = time_str[-1].split(":")
+
+    time_str_bits = {0: 1, 1: 60, 2: 60*60, 3: 60*60*24}
+    total = 0
+    # Run in reverse becasue we will always
+    # have seconds and not always hours
+    # 0 -> sec
+    # 1 -> min
+    # 2 -> hrs.
+    # 3 -> days.
+    for i, t in enumerate(time_str[::-1]):
+        total += (time_str_bits[i]*int(t))
+
+    if days > 0:
+        total += (time_str_bits[3]*int(days))
+
+    # Return total seconds
+    return total

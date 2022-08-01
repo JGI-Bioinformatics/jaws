@@ -1,4 +1,5 @@
 # from jaws_condor import config
+from typing import Dict, List
 from jaws_condor.cmd_utils import run_sh_command
 import logging
 import pandas as pd
@@ -17,22 +18,19 @@ class HTCondorCmdFailed(HTCondorError):
 
 class HTCondor:
     def __init__(self, columns, **kwargs):
-        # self.config = config.conf.get_section("POOL_MANAGER")  # TODO Get right section
-        # self.site = self.config["SITE_ID"]
-        # columns = self.config["CONDOR"]["condor_columns"]
         self.columns = columns
-        self.condor_q_cmd = f"condor_q -allusers -af {columns}"
-        self.get_idle = 'condor_status -const "TotalSlots == 1" -af Machine'
 
     def condor_q(self):
         # Call the command
-        condor_jobs = self.call_condor_command(self.condor_q_cmd)
+        condor_q_cmd = f"condor_q -allusers -af {self.columns}"
+        condor_jobs = self.call_condor_command(condor_q_cmd)
         # get serialized and processed dataframe
         dataframe = process_condor_q(condor_jobs, self.condor_columns())
         return dataframe
 
     def condor_idle(self):
-        idle_list = self.call_condor_command(self.get_idle)
+        get_idle = 'condor_status -const "TotalSlots == 1" -af Machine'
+        idle_list = self.call_condor_command(get_idle)
         idle = [item for sublist in idle_list for item in sublist]
         return idle
 
@@ -40,18 +38,18 @@ class HTCondor:
         # Splits the string columns to be used as header of dataframe
         return self.columns.split()
 
-    def call_condor_command(self, condor_cmd):
+    def call_condor_command(self, condor_cmd: str) -> List:
         # Call the condor_q with the desired options
         stdout, stderr, returncode = run_sh_command(condor_cmd, log=logger, show_stdout=False)
         # The usual failures
         if returncode != 0:
             logger.critical(f"ERROR: failed to execute condor_q command: {condor_cmd}")
-            raise HTCondorCmdFailed(f"condor '{condor_cmd}' command failed with {stderr}")
+            raise HTCondorCmdFailed(f"{condor_cmd} command failed with {stderr}")
 
         return parse_condor_outputs(stdout)
 
 
-def parse_condor_outputs(stdout):
+def parse_condor_outputs(stdout: str) -> List:
     # split outputs by rows
     outputs = stdout.split("\n")
     # Split each row into columns
@@ -61,7 +59,7 @@ def parse_condor_outputs(stdout):
     return condor_jobs
 
 
-def process_condor_q(condor_jobs, columns):
+def process_condor_q(condor_jobs: List, columns: List) -> List[Dict]:
     # if there are no jobs send back empty array of jobs
     if len(condor_jobs) == 0:
         return [{k: 0 for k in columns}]
