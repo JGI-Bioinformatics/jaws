@@ -62,7 +62,7 @@ class Slurm:
 
     def scancel(self, job_id: int = 0, cluster: str = ""):
 
-        if cluster is not "":
+        if cluster != "":
             cluster = f"-M {cluster}"
 
         command = f"scancel {cluster} {job_id}"
@@ -72,7 +72,7 @@ class Slurm:
 
     def sbatch(self, compute_type: str = "medium", cluster: str = ""):
 
-        if cluster is not "":
+        if cluster != "":
             cluster = f"-M {cluster}"
 
         command = f"sbatch --parsable {cluster} {self.script_path}/condor_worker_{compute_type}.job"
