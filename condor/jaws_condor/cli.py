@@ -7,6 +7,7 @@ JAWS Site server runs at each computing site and is comprised of:
 Each computing site also has a Cromwell server instance, typically installed on the same server.
 """
 
+import logging
 import os
 import sys
 import click
@@ -39,6 +40,7 @@ def cli(config_file: str, log_file: str, log_level: str):
             if JAWS_CONFIG_ENV in os.environ
             else JAWS_CWD_CONFIG
         )
+    global conf
     conf = config.Configuration(config_file)
     if conf:
         logger.info(f"Config using {config_file}")
@@ -51,8 +53,8 @@ def pool_manager_daemon() -> None:
     """Start pool_manager daemon."""
 
     from jaws_condor.pool_manager_daemon import PoolManagerDaemon
-
-    pool_managerd = PoolManagerDaemon()
+    logging.debug(f"{conf}")
+    pool_managerd = PoolManagerDaemon(conf)
     pool_managerd.start_daemon()
 
 

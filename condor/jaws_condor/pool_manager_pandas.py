@@ -23,7 +23,7 @@ class PoolManagerPandas:
     def get_current_slurm_workers(self) -> Dict:
         slurm_status = {}
         # Default slurm status to 0
-        for compute_type in configs['compute_types']:
+        for compute_type in self.configs['compute_types']:
             for _state in ["running", "pending"]:
                 slurm_status[f'{compute_type}_{_state}'] = 0
 
@@ -56,11 +56,12 @@ class PoolManagerPandas:
             slurm_status[f"{compute_type}_running"] = sum(mask_type & mask_condor & mask_running)
 
         slurm_running_df = df[mask_condor]
-        logger.info(slurm_status)
+        logger.info(f"Slurm status {slurm_status}")
         return slurm_status, slurm_running_df
 
     def get_condor_job_queue(self) -> List:
         condor_jobs = self.condor_provider.condor_q()
+        logger.info(f"HTCondor job status {condor_jobs}")
         return condor_jobs
 
     def determine_condor_job_sizes(self, condor_jobs: Dict) -> Dict:
@@ -112,7 +113,7 @@ class PoolManagerPandas:
                 df[mask_type].RequestCpus)
             condor_q_status[f"{compute_type}_mem_needed"] = sum(
                 df[mask_type].RequestMemory)
-
+        logger.info(f"condor_q_status {condor_q_status}")
         return condor_q_status
 
     def need_new_nodes(self, condor_job_queue: Dict, slurm_workers: Dict, machine_size: str) -> Dict:
@@ -169,6 +170,8 @@ class PoolManagerPandas:
             workers_needed = max_pool - current_pool_size
 
         # Makes sure we don't return a negative number
+        workers_needed = workers_needed if workers_needed > 0 else 0
+        logger.info(f"workers_needd {workers_needed}")
         return workers_needed if workers_needed > 0 else 0
 
     def need_cleanup(self, condor_job_queue: Dict, slurm_workers: Dict, machine_size: str) -> Dict:
@@ -211,19 +214,22 @@ class PoolManagerPandas:
         if workers_needed >= min_pool:
             workers_needed = workers_needed - min_pool
 
-        return workers_needed if workers_needed < 0 else 0
+        workers_needed = workers_needed if workers_needed < 0 else 0
+        logger.info(f"workers_needd {workers_needed}")
+
+        return workers_needed
 
     def run_cleanup(self, slurm_running_df, cleanup_num: int, compute_type: str, cluster: str):
         # Runs a condor_q autoformat to get the desired columns back
 
         # Gets the idle nodes from condor
         idle_nodes = self.condor_provider.condor_idle()
-        logger.info(idle_nodes)
+        logger.info(f"Idle nodes {idle_nodes}")
 
         try:
-            logger.info(slurm_running_df.shape)
-        except NameError as e:
-            logger.info(f'No slurm nodes yet, {e}')
+            logger.debug(slurm_running_df.shape)
+        except NameError as err:
+            logger.info(f'No slurm nodes yet, {err}')
             return None
 
         slurm_running_df.sort_values("TIME_SEC", inplace=True, ascending=False)

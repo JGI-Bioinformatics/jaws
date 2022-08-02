@@ -9,7 +9,7 @@ from jaws_condor.slurm_cmds import Slurm
 import schedule
 import time
 import logging
-from jaws_condor import config
+# from jaws_condor import config
 import json
 
 logger = logging.getLogger(__package__)
@@ -24,24 +24,25 @@ class PoolManagerDaemon:
     When the download is finished, the run is complete.
     """
 
-    def __init__(self):
+    def __init__(self, conf):
         logger.info("Initializing pool manager daemon")
-        self.time_add_worker_pool = config.conf.get("POOL_MANAGER", "time_add_worker_pool")
-        self.time_rm_worker_pool = config.conf.get("POOL_MANAGER", "time_rm_worker_pool")
-        self.compute_types = json.loads(config.conf.get("POOL_MANAGER", "compute_types"))
-        self.wanted_columns = config.conf.config.get("POOL_MANAGER", "wanted_columns")
-        self.user_name = config.conf.config.get("POOL_MANAGER", "user_name")
-        self.squeue_args = config.conf.config.get("POOL_MANAGER", "squeue_args")
-        self.script_path = config.conf.config.get("POOL_MANAGER", "script_path")
+        self.conf = conf
+        self.time_add_worker_pool = int(conf.config.get("POOL_MANAGER", "time_add_worker_pool"))
+        self.time_rm_worker_pool = int(conf.config.get("POOL_MANAGER", "time_rm_worker_pool"))
+        self.compute_types = json.loads(conf.config.get("POOL_MANAGER", "compute_types"))
+        self.wanted_columns = conf.config.get("POOL_MANAGER", "wanted_columns")
+        self.user_name = conf.config.get("POOL_MANAGER", "user_name")
+        self.squeue_args = conf.config.get("POOL_MANAGER", "squeue_args")
+        self.script_path = conf.config.get("POOL_MANAGER", "script_path")
 
-        self.configs = load_configs(conf=config.conf)
+        self.configs = load_configs(conf=conf)
 
     def start_daemon(self):
         """
         Run scheduled task(s) periodically.
         """
-        schedule.every(self.time_add_worker_pool).minutes.do(self.add_worker_pool)
-        schedule.every(self.time_rm_worker_pool).minutes.do(self.rm_worker_pool)
+        schedule.every(self.time_add_worker_pool).seconds.do(self.add_worker_pool)
+        schedule.every(self.time_rm_worker_pool).seconds.do(self.rm_worker_pool)
         while True:
             schedule.run_pending()
             time.sleep(1)
