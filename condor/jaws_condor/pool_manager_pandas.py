@@ -35,7 +35,7 @@ class PoolManagerPandas:
 
         # Make dataframe to query with
         try:
-            df = pd.DataFrame(jobs, columns=self.slurm_provider.columns)
+            df = pd.DataFrame(jobs)
         except ValueError as err:
             logging.error(f"Pandas can't make df from outputs {jobs}, {err}")
             return slurm_status, pd.DataFrame([], columns=self.slurm_provider.columns)
@@ -56,12 +56,12 @@ class PoolManagerPandas:
             slurm_status[f"{compute_type}_running"] = sum(mask_type & mask_condor & mask_running)
 
         slurm_running_df = df[mask_condor]
-        logger.info(f"Slurm status {slurm_status}")
+        logger.debug(f"Slurm status {slurm_status}")
         return slurm_status, slurm_running_df
 
     def get_condor_job_queue(self) -> List:
         condor_jobs = self.condor_provider.condor_q()
-        logger.info(f"HTCondor job status {condor_jobs}")
+        logger.debug(f"HTCondor job status {condor_jobs}")
         return condor_jobs
 
     def determine_condor_job_sizes(self, condor_jobs: Dict) -> Dict:
@@ -113,7 +113,7 @@ class PoolManagerPandas:
                 df[mask_type].RequestCpus)
             condor_q_status[f"{compute_type}_mem_needed"] = sum(
                 df[mask_type].RequestMemory)
-        logger.info(f"condor_q_status {condor_q_status}")
+        logger.debug(f"condor_q_status {condor_q_status}")
         return condor_q_status
 
     def need_new_nodes(self, condor_job_queue: Dict, slurm_workers: Dict, machine_size: str) -> Dict:
@@ -219,7 +219,7 @@ class PoolManagerPandas:
 
         return workers_needed
 
-    def run_cleanup(self, slurm_running_df, cleanup_num: int, compute_type: str, cluster: str):
+    def run_cleanup(self, slurm_running_df, cleanup_num: int, compute_type: str):
         # Runs a condor_q autoformat to get the desired columns back
 
         # Gets the idle nodes from condor
@@ -229,7 +229,7 @@ class PoolManagerPandas:
         try:
             logger.debug(slurm_running_df.shape)
         except NameError as err:
-            logger.info(f'No slurm nodes yet, {err}')
+            logger.debug(f'No slurm nodes yet, {err}')
             return None
 
         slurm_running_df.sort_values("TIME_SEC", inplace=True, ascending=False)
@@ -260,13 +260,19 @@ class PoolManagerPandas:
                 continue
             num += 1
             logger.info(f"Removing {node} with JobID {job_id}")
-            self.slurm_provider.scancel(job_id=job_id, cluster=cluster)
+            self.slurm_provider.scancel(job_id=job_id, cluster=self.configs['clusters'][compute_type])
 
         return nodes
 
-    def run_sbatch(self, new_workers: int = 0, compute_type: str = "medium", cluster: str = None):
+    def run_sbatch(self, new_workers: int = 0, compute_type: str = "medium"):
+        jobs = []
         for _ in range(new_workers):
-            self.slurm_provider.sbatch(compute_type=compute_type, cluster=cluster)
+            status = self.slurm_provider.sbatch(compute_type=compute_type,
+                                                cluster=self.configs['clusters'][compute_type])
+            jobs.append(status['stdout'])
+            logging.info(f"Started new job with id: {status['stdout']}")
+
+        return jobs
 
 
 def load_configs(conf):

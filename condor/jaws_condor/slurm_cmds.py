@@ -48,7 +48,11 @@ class Slurm:
         compatible with a pandas dataframe
         """
         command = f"{self.squeue_cmd}  -u {self.user_name} {str(self.extra_args)}"
-        stdout, stderr, returncode = self.call_slurm_command(command)
+        try:
+            stdout, stderr, returncode = self.call_slurm_command(command)
+        except SlurmCmdFailed:
+            logging.error('squeue failed')
+            stdout = ""
         # Gets jobs from output by splitting on new lines
         jobs = [job.split() for job in stdout.split("\n")]
         df = pd.DataFrame(jobs, columns=self.columns)
@@ -62,23 +66,33 @@ class Slurm:
 
     def scancel(self, job_id: int = 0, cluster: str = ""):
 
+        cluster = "" if cluster is None else cluster
+
         if cluster != "":
             cluster = f"-M {cluster}"
 
         command = f"scancel {cluster} {job_id}"
-        stdout, stderr, returncode = self.call_slurm_command(command)
-
-        return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
+        try:
+            stdout, stderr, returncode = self.call_slurm_command(command)
+            return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
+        except SlurmCmdFailed:
+            logging.error('scancel failed')
+            return {'stdout': "failed", 'stderr': "failed", 'returncode': 1}
 
     def sbatch(self, compute_type: str = "medium", cluster: str = ""):
+
+        cluster = "" if cluster is None else cluster
 
         if cluster != "":
             cluster = f"-M {cluster}"
 
         command = f"sbatch --parsable {cluster} {self.script_path}/condor_worker_{compute_type}.job"
-        stdout, stderr, returncode = self.call_slurm_command(command)
-
-        return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
+        try:
+            stdout, stderr, returncode = self.call_slurm_command(command)
+            return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
+        except SlurmCmdFailed:
+            logging.error('sbatch failed')
+            return {'stdout': "failed", 'stderr': "failed", 'returncode': 1}
 
 
 def slurm_time_to_sec(time_str):

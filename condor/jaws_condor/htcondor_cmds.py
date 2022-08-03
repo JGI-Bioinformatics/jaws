@@ -23,15 +23,25 @@ class HTCondor:
     def condor_q(self):
         # Call the command
         condor_q_cmd = f"condor_q -allusers -af {self.columns}"
-        condor_jobs = self.call_condor_command(condor_q_cmd)
-        # get serialized and processed dataframe
-        dataframe = process_condor_q(condor_jobs, self.condor_columns())
+        try:
+            condor_jobs = self.call_condor_command(condor_q_cmd)
+            # get serialized and processed dataframe
+            dataframe = process_condor_q(condor_jobs, self.condor_columns())
+        except HTCondorCmdFailed as err:
+            logging.error(f"{type(err).__name__} make sure condor is running and CONDOR_CONFIG is set properly")
+            dataframe = process_condor_q([], self.condor_columns())
+
         return dataframe
 
     def condor_idle(self):
         get_idle = 'condor_status -const "TotalSlots == 1" -af Machine'
-        idle_list = self.call_condor_command(get_idle)
-        idle = [item for sublist in idle_list for item in sublist]
+        try:
+            idle_list = self.call_condor_command(get_idle)
+            # Takes a list of lists to a single list
+            idle = [item for sublist in idle_list for item in sublist]
+        except HTCondorCmdFailed as err:
+            logging.error(f"{type(err).__name__} make sure condor is running and CONDOR_CONFIG is set properly")
+            idle = []
         return idle
 
     def condor_columns(self):
