@@ -142,7 +142,8 @@ export PYTHONIOENCODING=utf-8
 
 # START POOL MANAGER SERVER
 source $SITE_VENV_DIR/bin/activate
-exec jaws-site --log $LOGS_DIR/site-pool-manager.log --config $CONFIG_DIR/jaws-site.conf --log-level $LOG_LEVEL pool_manager
+export CONDOR_CONFIG=$CONFIG_DIR/condor_central.config
+exec jaws-condor --log $LOGS_DIR/jaws-condor-pool-manager.log --config $CONFIG_DIR/jaws_condor.conf --log-level $LOG_LEVEL
 EOM
 
 ## jtm shim script
