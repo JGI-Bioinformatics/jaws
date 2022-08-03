@@ -171,7 +171,7 @@ class PoolManagerPandas:
 
         # Makes sure we don't return a negative number
         workers_needed = workers_needed if workers_needed > 0 else 0
-        logger.info(f"workers_needd {workers_needed}")
+        logger.info(f"{machine_size} workers_needd {workers_needed}")
         return workers_needed if workers_needed > 0 else 0
 
     def need_cleanup(self, condor_job_queue: Dict, slurm_workers: Dict, machine_size: str) -> Dict:
