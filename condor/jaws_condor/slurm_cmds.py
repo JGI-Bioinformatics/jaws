@@ -67,7 +67,6 @@ class Slurm:
     def scancel(self, job_id: int = 0, cluster: str = ""):
 
         cluster = "" if cluster is None else cluster
-
         if cluster != "":
             cluster = f"-M {cluster}"
 
@@ -82,7 +81,6 @@ class Slurm:
     def sbatch(self, compute_type: str = "medium", cluster: str = ""):
 
         cluster = "" if cluster is None else cluster
-
         if cluster != "":
             cluster = f"-M {cluster}"
 

@@ -121,6 +121,7 @@ class PoolManagerPandas:
         Using the two dictionaries from the condor_q and squeue
         determine if we need any new workers for the machine_size types.
         """
+        logging.debug(f"Checking if {machine_size} needs new workers")
         workers_needed = 0
         worker_sizes = self.configs['worker_sizes']
         min_pool = self.configs['min_pool'][machine_size]
@@ -157,7 +158,8 @@ class PoolManagerPandas:
             workers_needed = (abs(workers_needed) - current_pool_size)  # + abs(workers_needed)
 
         if abs(workers_needed) < min_pool:
-            return 0
+            return (min_pool - current_pool_size)
+
         # If we have less running than the minimum we always need to add more
         # Either add what we need from queue (workers_needed)
         # Or what we're lacking in the pool (min - worker pool)
@@ -215,7 +217,7 @@ class PoolManagerPandas:
             workers_needed = workers_needed - min_pool
 
         workers_needed = workers_needed if workers_needed < 0 else 0
-        logger.info(f"workers_needd {workers_needed}")
+        logger.info(f"{machine_size} need cleanup {workers_needed}")
 
         return workers_needed
 
