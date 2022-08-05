@@ -54,8 +54,9 @@ class Slurm:
             logging.error('squeue failed')
             stdout = ""
 
+        # Create an empty dataframe with the right columns if nothing was returned or an error
         if stdout == "":
-            return pd.DataFrame([], columns=self.columns)
+            return pd.DataFrame([], columns=[*self.columns, 'TIME_SEC']).to_dict()
 
         # Gets jobs from output by splitting on new lines
         jobs = [job.split() for job in stdout.split("\n")]
