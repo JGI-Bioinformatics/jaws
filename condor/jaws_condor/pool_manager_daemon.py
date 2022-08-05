@@ -61,7 +61,7 @@ class PoolManagerDaemon:
         work_status = pool.determine_condor_job_sizes(condor_status)
         for compute_type in self.compute_types:
             new_workers = pool.need_new_nodes(work_status, slurm_status, compute_type)
-            logging.info(f"Looking to add {abs(new_workers)} for {compute_type} pool")
+            logger.info(f"Looking to add {abs(new_workers)} for {compute_type} pool")
             if new_workers > 0:
                 pool.run_sbatch(abs(new_workers), compute_type)
 
@@ -79,6 +79,6 @@ class PoolManagerDaemon:
         work_status = pool.determine_condor_job_sizes(condor_status)
         for compute_type in self.compute_types:
             old_workers = pool.need_cleanup(work_status, slurm_status, compute_type)
-            logging.info(f"Looking to remove {abs(old_workers)} from {compute_type} pool")
+            logger.info(f"Looking to remove {abs(old_workers)} from {compute_type} pool")
             if old_workers < 0:
                 pool.run_cleanup(slurm_running_df, abs(old_workers), compute_type)

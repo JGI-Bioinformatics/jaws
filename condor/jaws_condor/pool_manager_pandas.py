@@ -30,14 +30,14 @@ class PoolManagerPandas:
         try:
             jobs = self.slurm_provider.squeue()
         except SlurmCmdFailed as err:
-            logging.error(f"Slurm provider failed to run squeue, {err}")
+            logger.error(f"Slurm provider failed to run squeue, {err}")
             return slurm_status, pd.DataFrame([], columns=self.slurm_provider.columns)
 
         # Make dataframe to query with
         try:
             df = pd.DataFrame(jobs)
         except ValueError as err:
-            logging.error(f"Pandas can't make df from outputs {jobs}, {err}")
+            logger.error(f"Pandas can't make df from outputs {jobs}, {err}")
             return slurm_status, pd.DataFrame([], columns=self.slurm_provider.columns)
 
         # Selections for running and pending
@@ -121,7 +121,7 @@ class PoolManagerPandas:
         Using the two dictionaries from the condor_q and squeue
         determine if we need any new workers for the machine_size types.
         """
-        logging.debug(f"Checking if {machine_size} needs new workers")
+        logger.debug(f"Checking if {machine_size} needs new workers")
         workers_needed = 0
         worker_sizes = self.configs['worker_sizes']
         min_pool = self.configs['min_pool'][machine_size]
@@ -157,14 +157,16 @@ class PoolManagerPandas:
         if workers_needed < 0:
             workers_needed = (abs(workers_needed) - current_pool_size)  # + abs(workers_needed)
 
-        if abs(workers_needed) < min_pool:
-            return (min_pool - current_pool_size)
+        # if abs(workers_needed) < min_pool:
+        #     workers_needed = (min_pool - current_pool_size)
+        #     return (min_pool - current_pool_size)
 
         # If we have less running than the minimum we always need to add more
         # Either add what we need from queue (workers_needed)
         # Or what we're lacking in the pool (min - worker pool)
         if current_pool_size < min_pool:
             workers_needed = max(min_pool - current_pool_size, workers_needed)
+            logger.info(f"{machine_size} workers_needd {workers_needed}")
 
         # Check to make sure we don't go over the max pool size
         if (workers_needed + current_pool_size) > max_pool:
@@ -272,7 +274,7 @@ class PoolManagerPandas:
             status = self.slurm_provider.sbatch(compute_type=compute_type,
                                                 cluster=self.configs['clusters'][compute_type])
             jobs.append(status['stdout'])
-            logging.info(f"Started new job with id: {status['stdout']}")
+            logger.info(f"Started new job with id: {status['stdout']}")
 
         return jobs
 
