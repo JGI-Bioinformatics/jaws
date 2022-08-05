@@ -53,6 +53,10 @@ class Slurm:
         except SlurmCmdFailed:
             logging.error('squeue failed')
             stdout = ""
+
+        if stdout == "":
+            return pd.DataFrame([], columns=self.columns)
+
         # Gets jobs from output by splitting on new lines
         jobs = [job.split() for job in stdout.split("\n")]
         df = pd.DataFrame(jobs, columns=self.columns)
