@@ -200,10 +200,11 @@ class PoolManagerPandas:
         )
 
         # Round the numbers up
-        _cpu = math.floor(_cpu)
-        _mem = math.floor(_mem)
+        _cpu = math.ceil(_cpu)
+        _mem = math.ceil(_mem)
 
         workers_needed += max(_cpu, _mem)
+        logger.debug(f"{machine_size} => {workers_needed}")
 
         # Total number running and pending to run (i.e. worker pool)
         current_pool_size = (
@@ -220,7 +221,6 @@ class PoolManagerPandas:
 
         workers_needed = workers_needed if workers_needed < 0 else 0
         logger.info(f"{machine_size} need cleanup {workers_needed}")
-
         return workers_needed
 
     def run_cleanup(self, slurm_running_df, cleanup_num: int, compute_type: str):
