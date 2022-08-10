@@ -214,8 +214,8 @@ def test_env_override(config_file):
     # Verify we get a KeyError when mixing section names and non-section
     with pytest.raises(KeyError):
         jaws_site.config.Configuration(config_path, "ENV__")
-    del(os.environ["ENV__host2"])
-    del(os.environ["ENV__password2"])
+    del os.environ["ENV__host2"]
+    del os.environ["ENV__password2"]
 
     try:
         jaws_site.config.Configuration._destructor()
