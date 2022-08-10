@@ -210,6 +210,7 @@ def test_env_override(config_file):
     os.environ["JAWS_DB_HOST"] = "db.foobar.com"
     os.environ["JAWS_DB_PASSWORD"] = "password"
     os.environ["ENV__DB_host"] = "db-host.foo.com"
+    os.environ["ENV__DB_test"] = "testing"
 
     # Verify we get a KeyError when mixing section names and non-section
     with pytest.raises(KeyError):
@@ -225,6 +226,7 @@ def test_env_override(config_file):
     cfg = jaws_site.config.Configuration(config_path, "ENV__")
     assert "DB" in cfg.config._vars
     assert cfg.config['DB']['host'] == os.environ["ENV__DB_host"]
+    assert cfg.config['DB']['test'] == os.environ["ENV__DB_test"]
     assert cfg.get_section("DB")['host'] == cfg.config['DB']['host']
 
     check_section("DB", expected_db_sections_env_override2, cfg)

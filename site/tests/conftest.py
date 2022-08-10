@@ -74,6 +74,7 @@ password = hunting
 db = hunting_sites
 host2 = ${JAWS_DB_HOST}
 password2 = ${JAWS_DB_PASSWORD}123
+test =
 [CROMWELL]
 url = http://localhost:8000
 [SITE]
