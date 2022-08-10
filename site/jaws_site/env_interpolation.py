@@ -107,7 +107,7 @@ class JAWSConfigParser(configparser.ConfigParser):
             # name of the setting.
             strlen = len(env_override)
             if strlen < 3 or strlen > 20:  # The prefix must be 3-20 characters long
-                raise(ValueError("env_override prefix must be from 3-20 characters in length"))
+                raise ValueError("env_override prefix must be from 3-20 characters in length")
             # should change to use removeprefix() for Python 3.9+ instead of slicing off prefix
             basevars = {k[strlen:]: os.environ[k] for k in os.environ.keys() if k.startswith(env_override)}
             if len(basevars) > 0:
@@ -128,7 +128,7 @@ class JAWSConfigParser(configparser.ConfigParser):
                 elif templen == 0:
                     self._vars = basevars  # No environment variables options contained section names
                 else:
-                    raise(KeyError("Cannot mix options with and without section prefixes"))
+                    raise KeyError("Cannot mix options with and without section prefixes")
             else:
                 self._vars = dict()
         else:
@@ -143,14 +143,14 @@ class JAWSConfigParser(configparser.ConfigParser):
         """
         if self._vars is not None:
             # Force vars to self._vars if it has been set. This means env_override will also override
-            # any calls to get() with an explcitly set vars
+            # any calls to get() with an explicitly set vars
 
             # Uppercase the section name so that it matches any section names in _vars, should preclude
             # accidental matches against option name
             usection = section.upper()
             if usection in self._vars:
                 kwargs['vars'] = self._vars[usection]
-            else:
+            elif len(self._vars) > 0:
                 # Section didn't match anything, then either we don't have a matching section
                 # and we use an empty dict() for vars
                 # or else _vars is a simple 1 level dictionary and we just pass along all of _vars
@@ -160,4 +160,4 @@ class JAWSConfigParser(configparser.ConfigParser):
                 else:
                     kwargs['vars'] = self._vars
         value = super().get(section, option, **kwargs)
-        return(value)
+        return value

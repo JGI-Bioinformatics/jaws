@@ -117,6 +117,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         :rtype: dict
         """
         result = {}
-        for key, value in self.config.items(section):
+        sect_conf = self.config[section]  # change to avoid end run or JAWSCOnfigParser getter
+        for key, value in sect_conf.items():
             result[key] = value
         return result

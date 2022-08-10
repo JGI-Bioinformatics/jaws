@@ -173,15 +173,31 @@ def test_env_override(config_file):
     except Exception:
         pass
 
+    # Check for case of env prefix set, but no variables match based on
+    # https://code.jgi.doe.gov/advanced-analysis/jaws-central/-/issues/7
+    cfg = jaws_site.config.Configuration(config_path, "ENV__")
+    # Clear any pre-existing env vars
+    try:
+        del os.environ["JAWS_DB_HOST"]
+        del os.environ["JAWS_DB_PASSWORD"]
+    except KeyError:
+        pass
+
+    check_section("DB", expected_db_sections, cfg)
+    try:
+        jaws_site.config.Configuration._destructor()
+    except Exception:
+        pass
+
     os.environ["ENV__host2"] = "db_over.foobar.com"
     os.environ["ENV__password2"] = "over_password123"
     print("Recreating new JAWSConfig object with env_override set to ENV__")
     cfg = jaws_site.config.Configuration(config_path, "ENV__")
     print("Verifying that _vars attribute has picked up environment variables")
-    assert(cfg.config._vars is not None)
-    assert(len(cfg.config._vars) == 2)
-    assert(cfg.config._vars['host2'] == "db_over.foobar.com")
-    assert(cfg.config._vars['password2'] == "over_password123")
+    assert cfg.config._vars is not None
+    assert len(cfg.config._vars) == 2
+    assert cfg.config._vars['host2'] == "db_over.foobar.com"
+    assert cfg.config._vars['password2'] == "over_password123"
 
     print("Retesting with env_prefix set")
     check_section("DB", expected_db_sections_env_override, cfg)
@@ -207,6 +223,8 @@ def test_env_override(config_file):
         pass
     # Check [DB]host setting after clearing errors
     cfg = jaws_site.config.Configuration(config_path, "ENV__")
-    assert("DB" in cfg.config._vars)
-    assert(cfg.config['DB']['host'] == os.environ["ENV__DB_host"])
+    assert "DB" in cfg.config._vars
+    assert cfg.config['DB']['host'] == os.environ["ENV__DB_host"]
+    assert cfg.get_section("DB")['host'] == cfg.config['DB']['host']
+
     check_section("DB", expected_db_sections_env_override2, cfg)
