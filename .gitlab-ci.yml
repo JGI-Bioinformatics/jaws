@@ -18,6 +18,10 @@ include:
 include:
   - template: Code-Quality.gitlab-ci.yml
 
+code_quality: # Add docker-build top the task included from code_quality
+  tags:
+    - docker-build
+
 variables:
   GIT_STRATEGY: clone
 
