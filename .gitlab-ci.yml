@@ -21,6 +21,8 @@ include:
 code_quality: # Add docker-build top the task included from code_quality
   tags:
     - docker-build
+  artifacts:
+    paths: [gl-code-quality-report.json]
 
 variables:
   GIT_STRATEGY: clone
