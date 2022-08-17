@@ -25,7 +25,7 @@ code_quality: # Add docker-build top the task included from code_quality
     - docker-build
   variables:
     CODECLIMATE_DEBUG: 1
-    DOCKER_HOST: tcp://docker:2375
+    DOCKER_HOST: tcp://localhost:2375
   artifacts:
     paths: [gl-code-quality-report.json]
 
