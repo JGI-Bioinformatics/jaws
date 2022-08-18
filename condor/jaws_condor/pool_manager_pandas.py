@@ -187,8 +187,6 @@ class PoolManagerPandas:
         worker_sizes = self.configs['worker_sizes']
         min_pool = self.configs['min_pool'][machine_size]
 
-        workers_needed = min_pool
-
         # Determines how many full (or partially full nodes) we need to create
         _cpu = (
             condor_job_queue[f"{machine_size}_cpu_needed"] /
@@ -202,8 +200,7 @@ class PoolManagerPandas:
         # Round the numbers up
         _cpu = math.ceil(_cpu)
         _mem = math.ceil(_mem)
-
-        workers_needed += max(_cpu, _mem)
+        workers_needed = max(min_pool, max(_cpu, _mem))
         logger.debug(f"{machine_size} => {workers_needed}")
 
         # Total number running and pending to run (i.e. worker pool)
@@ -309,7 +306,7 @@ def load_configs(conf):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     from jaws_condor import config
 
     conf = config.Configuration("jaws_condor.ini")
@@ -328,18 +325,18 @@ if __name__ == '__main__':
                              configs=configs)
 
     slurm_status, slurm_running_df = pool.get_current_slurm_workers()
-    logging.debug(slurm_status)
+    logging.info(slurm_status)
     logging.debug(slurm_running_df)
     condor_status = pool.get_condor_job_queue()
     logging.debug(condor_status)
     work_status = pool.determine_condor_job_sizes(condor_status)
-    logging.debug(work_status)
+    logging.info(work_status)
+
     for compute_type in configs['compute_types']:
         old_workers = pool.need_cleanup(work_status, slurm_status, compute_type)
-        new_workers = pool.need_new_nodes(work_status, slurm_status, compute_type)
-        logging.debug(f"{configs['clusters'][compute_type]}")
+        # new_workers = pool.need_new_nodes(work_status, slurm_status, compute_type)
+        logging.debug(f"{compute_type}")
         if old_workers < 0:
-            pool.run_cleanup(slurm_running_df, abs(old_workers), compute_type,
-                             cluster=configs['clusters'][compute_type])
-        if new_workers > 0:
-            pool.run_sbatch(abs(new_workers), compute_type, cluster=configs['clusters'][compute_type])
+            pool.run_cleanup(slurm_running_df, abs(old_workers), compute_type, cluster=compute_type)
+        #if new_workers > 0:
+        #    pool.run_sbatch(abs(new_workers), compute_type, cluster=compute_type)
