@@ -68,7 +68,7 @@ def test_number_of_workers_rm():
             'idle_medium': 0,
             'running_medium': 0,
             'medium_cpu_needed': 0,
-            'medium_mem_needed': 60*8,  # Need 8
+            'medium_mem_needed': 110*8,  # Need 8
             'idle_xlarge': 0,
             'running_xlarge': 0,
             'xlarge_cpu_needed': 0,
@@ -120,8 +120,8 @@ def test_number_of_workers_rm():
         0,  # 2
         0,  # 3
         0,  # 4
-        -25,  # 5 -> 1 worker total, 30 running, go to minimum pool
-        -2,  # 6 -> 8 workers total, 10 running, remove 2
+        -26,  # 5 -> 1 worker total, 30 running, go to minimum pool
+        -2,  # 6 -> 10 running, 8 needed, remove 2
     ]
 
     configs = {

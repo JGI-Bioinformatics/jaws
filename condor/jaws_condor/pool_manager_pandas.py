@@ -338,5 +338,5 @@ if __name__ == '__main__':
         logging.debug(f"{compute_type}")
         if old_workers < 0:
             pool.run_cleanup(slurm_running_df, abs(old_workers), compute_type, cluster=compute_type)
-        #if new_workers > 0:
+        # if new_workers > 0:
         #    pool.run_sbatch(abs(new_workers), compute_type, cluster=compute_type)
