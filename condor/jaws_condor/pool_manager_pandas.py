@@ -45,7 +45,11 @@ class PoolManagerPandas:
         mask_running = (df["STATE"] == "RUNNING")
 
         # Selections for just condor jobs
-        mask_condor = df["NAME"].str.contains("condor")
+        try:
+            mask_condor = df["NAME"].str.contains("condor")
+        except AttributeError:
+            logger.error(f"Problem with squeue output")
+            return slurm_status, pd.DataFrame([], columns=self.slurm_provider.columns)
 
         # For sites with multiple types we want to know
         for compute_type in self.configs['compute_types']:
