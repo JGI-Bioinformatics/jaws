@@ -5,7 +5,6 @@
 ### Resources for JAWS Users
 Full [documentation](https://jaws-docs.readthedocs.io) for running and installing JAWS is located here.
 
-
 ### Resources for JAWS Developers
 
 ### Installing JAWS site
