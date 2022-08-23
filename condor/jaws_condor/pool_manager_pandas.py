@@ -48,7 +48,7 @@ class PoolManagerPandas:
         try:
             mask_condor = df["NAME"].str.contains("condor")
         except AttributeError:
-            logger.error(f"Problem with squeue output")
+            logger.error("Problem with squeue output")
             return slurm_status, pd.DataFrame([], columns=self.slurm_provider.columns)
 
         # For sites with multiple types we want to know
