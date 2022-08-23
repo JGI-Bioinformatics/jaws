@@ -46,79 +46,7 @@ Additional, jaws-central requires:
 e.g. jaws_central_dev, jaws_central_staging, jaws_central_prod
 
 
-### Installing all services 
-You can install using two modes, developer mode and build mode:
-you need to know when to you develop vs build.  
-	develop => instant changes since it's just a symlink to your src
-	build => the installed code will not change if src changes. This mode builds everything so that you will able to install the source using pip into your venv
 
-if you're editing the code (i.e. developing) and wish to test your changes, it's inconvenient to reinstall via pip for every change, so you use develop.  when done and you're satisfied with the changes, use build to install a copy of your package.
-
-For an install on your mac, everything is installed via develop.  So if you switch branches, all the servers will be running whatever version of the software is in that branch.  for shared installations, you'd want to use develop only while you're tweaking things, install via build before you leave because someone else may change the branch in the src dir.
-
-Example commands using develop:
-
-```
-git clone https://code.jgi.doe.gov/advanced-analysis/jaws.git
-module load python/3.8-anaconda-2020.11
-python3 -m venv ~/venv/jaws-test
-source ~/venv/jaws-test/bin/activate
-pip install black
-pip install flake8
-pip install pytest
-pip install pytest-cov
-pip install pytz
-
-# inside the jaws repo 
-# RPC (do this first)
-pip install -r rpc/requirements.txt 
-cd rpc && python setup.py develop
-
-# Client
-cd ../ && pip install -r client/requirements.txt
-cd client && python setup.py develop
-export JAWS_CLIENT_CONFIG=/global/cfs/projectdirs/jaws/jaws-dev/jaws-dev.conf
-
-# Central
-cd ../ && pip install -r central/requirements.txt
-cd central && python setup.py develop
-
-# Site
-cd ../ && pip install -r site/requirements.txt
-cd site && python setup.py develop
-
-# JTM
-cd ../ && pip install -r jtm/requirements.txt
-cd jtm && python setup.py develop
-cd ../
-
-# create a file called womtool in ~/venv/jaws-test/bin
- 
-  #!/bin/bash
-  java -jar /global/cfs/projectdirs/jaws/cromwell/womtool.jar $*
-
-chmod 755 ~/venv/jaws-test/bin/womtool
-
-# Add your credentials. The jaws.conf file will contain your private jaws token
-export JAWS_CLIENT_CONFIG=/global/cfs/projectdirs/jaws/jaws-dev/jaws-dev.conf
-export JAWS_USER_CONFIG=~/jaws.conf
-
-# test that environment is set up correctly
-# you should be in the root dir
-make test
-
-# To deactivate the venv:
-deactivate
-```
-
-Example commands using build:
-
-```
-git clone https://code.jgi.doe.gov/advanced-analysis/jaws.git
-# repeat the same steps as above, except use "build" instead of "develop"
-#   python setup.py develop
-
-```
 
 ### cromwell-utils
 Example installing cromwell-utils using build mode
