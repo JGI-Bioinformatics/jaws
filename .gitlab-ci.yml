@@ -32,7 +32,7 @@ variables:
 
   ## GLOBAL INSTALL VARIABLES:
   JAWS_SITES: "CORI JGI TAHOMA AWS ASSEMBLY"
-  JAWS_VERSION: "3.0.3"
+  JAWS_VERSION:  "3.0.3"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_RMQ_HOST: "rmq.lbl.gov"
