@@ -46,6 +46,8 @@ class PerformanceMetrics:
             # Return an empty list of dict to be handled later
             return [{}]
 
+        # Change current_dir type to string before processing
+        csv_data["current_dir"] = csv_data.current_dir.astype(str)
         # Remove extranious parts from the current directory
         csv_data["current_dir"] = csv_data.current_dir.apply(remove_beginning_path)
         # Get data and make new columns in dataframe
