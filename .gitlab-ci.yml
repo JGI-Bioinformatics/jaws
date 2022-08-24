@@ -21,8 +21,6 @@ include:
 code_quality: # Add docker-build top the task included from code_quality
   tags:
     - docker-build
-  variables:
-    CODECLIMATE_DEBUG: 1
   artifacts:
     paths: [gl-code-quality-report.json]
 
