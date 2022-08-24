@@ -28,7 +28,9 @@ class HTCondor:
             # get serialized and processed dataframe
             dataframe = process_condor_q(condor_jobs, self.condor_columns())
         except HTCondorCmdFailed as err:
-            logging.error(f"{type(err).__name__} make sure condor is running and CONDOR_CONFIG is set properly")
+            logging.error(
+                f"{type(err).__name__} make sure condor is running and CONDOR_CONFIG is set properly"
+            )
             dataframe = process_condor_q([], self.condor_columns())
 
         return dataframe
@@ -40,7 +42,9 @@ class HTCondor:
             # Takes a list of lists to a single list
             idle = [item for sublist in idle_list for item in sublist]
         except HTCondorCmdFailed as err:
-            logging.error(f"{type(err).__name__} make sure condor is running and CONDOR_CONFIG is set properly")
+            logging.error(
+                f"{type(err).__name__} make sure condor is running and CONDOR_CONFIG is set properly"
+            )
             idle = []
         return idle
 
@@ -50,7 +54,9 @@ class HTCondor:
 
     def call_condor_command(self, condor_cmd: str) -> List:
         # Call the condor_q with the desired options
-        stdout, stderr, returncode = run_sh_command(condor_cmd, log=logger, show_stdout=False)
+        stdout, stderr, returncode = run_sh_command(
+            condor_cmd, log=logger, show_stdout=False
+        )
         # The usual failures
         if returncode != 0:
             logger.critical(f"ERROR: failed to execute condor_q command: {condor_cmd}")
@@ -83,12 +89,17 @@ def process_condor_q(condor_jobs: List, columns: List) -> List[Dict]:
     df["CumulativeRemoteUserCpu"] = df["CumulativeRemoteUserCpu"].astype(float)
 
     now = int(time.time())
-    df["JobStartDate"] = df["JobStartDate"].str.replace('undefined', str(now))
+    df["JobStartDate"] = df["JobStartDate"].str.replace("undefined", str(now))
     df["total_running_time"] = now - df["JobStartDate"].astype(int)
-    df["cpu_percentage"] = (((df['CumulativeRemoteSysCpu'] + df['CumulativeRemoteUserCpu']
-                              ) / df['RequestCpus']) / df['total_running_time']) * 100
+    df["cpu_percentage"] = (
+        (
+            (df["CumulativeRemoteSysCpu"] + df["CumulativeRemoteUserCpu"])
+            / df["RequestCpus"]
+        )
+        / df["total_running_time"]
+    ) * 100
     df["total_q_time"] = df["JobStartDate"].astype(int) - df["QDate"].astype(int)
 
     # Returns a serilized/json version better for passing between objects
     # And for testing
-    return df.to_dict('records')
+    return df.to_dict("records")

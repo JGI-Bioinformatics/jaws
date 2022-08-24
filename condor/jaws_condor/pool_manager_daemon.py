@@ -9,6 +9,7 @@ from jaws_condor.slurm_cmds import Slurm
 import schedule
 import time
 import logging
+
 # from jaws_condor import config
 import json
 
@@ -27,9 +28,15 @@ class PoolManagerDaemon:
     def __init__(self, conf):
         logger.info("Initializing pool manager daemon")
         self.conf = conf
-        self.time_add_worker_pool = int(conf.config.get("POOL_MANAGER", "time_add_worker_pool"))
-        self.time_rm_worker_pool = int(conf.config.get("POOL_MANAGER", "time_rm_worker_pool"))
-        self.compute_types = json.loads(conf.config.get("POOL_MANAGER", "compute_types"))
+        self.time_add_worker_pool = int(
+            conf.config.get("POOL_MANAGER", "time_add_worker_pool")
+        )
+        self.time_rm_worker_pool = int(
+            conf.config.get("POOL_MANAGER", "time_rm_worker_pool")
+        )
+        self.compute_types = json.loads(
+            conf.config.get("POOL_MANAGER", "compute_types")
+        )
         self.wanted_columns = conf.config.get("POOL_MANAGER", "wanted_columns")
         self.user_name = conf.config.get("POOL_MANAGER", "user_name")
         self.squeue_args = conf.config.get("POOL_MANAGER", "squeue_args")
@@ -51,11 +58,15 @@ class PoolManagerDaemon:
         """
         Check for runs in particular states.
         """
-        pool = PoolManagerPandas(condor_provider=HTCondor(columns=self.wanted_columns),
-                                 slurm_provider=Slurm(user_name=self.user_name,
-                                                      extra_args=self.squeue_args,
-                                                      script_path=self.script_path),
-                                 configs=self.configs)
+        pool = PoolManagerPandas(
+            condor_provider=HTCondor(columns=self.wanted_columns),
+            slurm_provider=Slurm(
+                user_name=self.user_name,
+                extra_args=self.squeue_args,
+                script_path=self.script_path,
+            ),
+            configs=self.configs,
+        )
         slurm_status, slurm_running_df = pool.get_current_slurm_workers()
         condor_status = pool.get_condor_job_queue()
         work_status = pool.determine_condor_job_sizes(condor_status)
@@ -69,16 +80,22 @@ class PoolManagerDaemon:
         """
         Check for runs in particular states.
         """
-        pool = PoolManagerPandas(condor_provider=HTCondor(columns=self.wanted_columns),
-                                 slurm_provider=Slurm(user_name=self.user_name,
-                                                      extra_args=self.squeue_args,
-                                                      script_path=self.script_path),
-                                 configs=self.configs)
+        pool = PoolManagerPandas(
+            condor_provider=HTCondor(columns=self.wanted_columns),
+            slurm_provider=Slurm(
+                user_name=self.user_name,
+                extra_args=self.squeue_args,
+                script_path=self.script_path,
+            ),
+            configs=self.configs,
+        )
         slurm_status, slurm_running_df = pool.get_current_slurm_workers()
         condor_status = pool.get_condor_job_queue()
         work_status = pool.determine_condor_job_sizes(condor_status)
         for compute_type in self.compute_types:
             old_workers = pool.need_cleanup(work_status, slurm_status, compute_type)
-            logger.info(f"Looking to remove {abs(old_workers)} from {compute_type} pool")
+            logger.info(
+                f"Looking to remove {abs(old_workers)} from {compute_type} pool"
+            )
             if old_workers < 0:
                 pool.run_cleanup(slurm_running_df, abs(old_workers), compute_type)
