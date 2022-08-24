@@ -4,3 +4,9 @@ plugins:
     enabled: true
   rubocop:
     enabled: false
+  duplication:
+    enabled: true
+    config:
+      languages:
+        python:
+          python_version: 3
