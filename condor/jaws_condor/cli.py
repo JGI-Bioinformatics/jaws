@@ -53,6 +53,7 @@ def pool_manager_daemon() -> None:
     """Start pool_manager daemon."""
 
     from jaws_condor.pool_manager_daemon import PoolManagerDaemon
+
     logging.debug(f"{conf}")
     pool_managerd = PoolManagerDaemon(conf)
     pool_managerd.start_daemon()

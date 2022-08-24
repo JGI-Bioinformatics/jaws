@@ -15,9 +15,24 @@ class SlurmCmdFailed(SlurmError):
 
 
 class Slurm:
-    def __init__(self, user_name: str = "jaws_jtm", extra_args: str = None, script_path: str = "", **kwargs):
-        self.squeue_columns = ["JOBID", "PARTITION", "NAME", "STATE", "TIME_LEFT", "NODELIST"]
-        self.squeue_cmd = 'squeue --format="%.12i %.10P %.50j %.10T %.10L %.12R" --noheader'
+    def __init__(
+        self,
+        user_name: str = "jaws_jtm",
+        extra_args: str = None,
+        script_path: str = "",
+        **kwargs,
+    ):
+        self.squeue_columns = [
+            "JOBID",
+            "PARTITION",
+            "NAME",
+            "STATE",
+            "TIME_LEFT",
+            "NODELIST",
+        ]
+        self.squeue_cmd = (
+            'squeue --format="%.12i %.10P %.50j %.10T %.10L %.12R" --noheader'
+        )
         self.user_name = user_name
         self.extra_args = extra_args
         self.script_path = script_path
@@ -33,7 +48,9 @@ class Slurm:
         """
         Genereic function to call a command and raise an error
         """
-        stdout, stderr, returncode = run_sh_command(command, log=logger, show_stdout=False)
+        stdout, stderr, returncode = run_sh_command(
+            command, log=logger, show_stdout=False
+        )
 
         # If we have an error return a dictionary with 0 for each type and state
         if returncode != 0:
@@ -51,12 +68,12 @@ class Slurm:
         try:
             stdout, stderr, returncode = self.call_slurm_command(command)
         except SlurmCmdFailed:
-            logging.error('squeue failed')
+            logging.error("squeue failed")
             stdout = ""
 
         # Create an empty dataframe with the right columns if nothing was returned or an error
         if stdout == "":
-            return pd.DataFrame([], columns=[*self.columns, 'TIME_SEC']).to_dict()
+            return pd.DataFrame([], columns=[*self.columns, "TIME_SEC"]).to_dict()
 
         # Gets jobs from output by splitting on new lines
         jobs = [job.split() for job in stdout.split("\n")]
@@ -65,7 +82,7 @@ class Slurm:
         df = df.dropna(axis=0)
 
         # Adds a new column of time in seconds left to run
-        df['TIME_SEC'] = df["TIME_LEFT"].apply(slurm_time_to_sec)
+        df["TIME_SEC"] = df["TIME_LEFT"].apply(slurm_time_to_sec)
 
         return df.to_dict()
 
@@ -78,10 +95,10 @@ class Slurm:
         command = f"scancel {cluster} {job_id}"
         try:
             stdout, stderr, returncode = self.call_slurm_command(command)
-            return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
+            return {"stdout": stdout, "stderr": stderr, "returncode": returncode}
         except SlurmCmdFailed:
-            logging.error('scancel failed')
-            return {'stdout': "failed", 'stderr': "failed", 'returncode': 1}
+            logging.error("scancel failed")
+            return {"stdout": "failed", "stderr": "failed", "returncode": 1}
 
     def sbatch(self, compute_type: str = "medium", cluster: str = ""):
 
@@ -92,10 +109,10 @@ class Slurm:
         command = f"sbatch --parsable {cluster} {self.script_path}/condor_worker_{compute_type}.job"
         try:
             stdout, stderr, returncode = self.call_slurm_command(command)
-            return {'stdout': stdout, 'stderr': stderr, 'returncode': returncode}
+            return {"stdout": stdout, "stderr": stderr, "returncode": returncode}
         except SlurmCmdFailed:
-            logging.error('sbatch failed')
-            return {'stdout': "failed", 'stderr': "failed", 'returncode': 1}
+            logging.error("sbatch failed")
+            return {"stdout": "failed", "stderr": "failed", "returncode": 1}
 
 
 def slurm_time_to_sec(time_str):
@@ -109,7 +126,7 @@ def slurm_time_to_sec(time_str):
     # split time_str into HH:MM:SS
     time_str = time_str[-1].split(":")
 
-    time_str_bits = {0: 1, 1: 60, 2: 60*60, 3: 60*60*24}
+    time_str_bits = {0: 1, 1: 60, 2: 60 * 60, 3: 60 * 60 * 24}
     total = 0
     # Run in reverse becasue we will always
     # have seconds and not always hours
@@ -118,10 +135,10 @@ def slurm_time_to_sec(time_str):
     # 2 -> hrs.
     # 3 -> days.
     for i, t in enumerate(time_str[::-1]):
-        total += (time_str_bits[i]*int(t))
+        total += time_str_bits[i] * int(t)
 
     if days > 0:
-        total += (time_str_bits[3]*int(days))
+        total += time_str_bits[3] * int(days)
 
     # Return total seconds
     return total
