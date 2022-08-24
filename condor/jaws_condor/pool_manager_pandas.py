@@ -165,16 +165,11 @@ class PoolManagerPandas:
 
         # If workers_needed is higher than the pool we'll add the diference
         # Else we don't need workers (add 0)
-        # workers_needed = max(0, workers_needed - current_pool_size)
         workers_needed = workers_needed - current_pool_size
         if workers_needed < 0:
             workers_needed = (
                 abs(workers_needed) - current_pool_size
-            )  # + abs(workers_needed)
-
-        # if abs(workers_needed) < min_pool:
-        #     workers_needed = (min_pool - current_pool_size)
-        #     return (min_pool - current_pool_size)
+            )
 
         # If we have less running than the minimum we always need to add more
         # Either add what we need from queue (workers_needed)
