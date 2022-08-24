@@ -60,7 +60,11 @@ class Slurm:
 
         # Gets jobs from output by splitting on new lines
         jobs = [job.split() for job in stdout.split("\n")]
-        df = pd.DataFrame(jobs, columns=self.columns)
+        try:
+            df = pd.DataFrame(jobs, columns=self.columns)
+        except AssertionError:
+            logging.error(f'{jobs} mismatch {self.columns}')
+            return pd.DataFrame([], columns=[*self.columns, 'TIME_SEC']).to_dict()
         # Drops rows if they have nan values
         df = df.dropna(axis=0)
 
