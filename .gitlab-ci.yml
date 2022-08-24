@@ -15,11 +15,6 @@ include:
     ref: "main"
     file: "SAST.gitlab-ci.yml"
 
-include:
-  - project: "advanced-analysis/ci-templates"
-    ref: "codequality"
-    file: "Code-Quality.gitlab-ci.yml"
-
 code_quality: # Add docker-build top the task included from code_quality
   tags:
     - docker-build
