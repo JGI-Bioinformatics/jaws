@@ -1,7 +1,0 @@
-numpy
-pika==1.1.0
-psutil==5.4.7
-shortuuid==0.5.0
-cryptography
-mysql-connector-python==8.0.18
-click

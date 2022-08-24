@@ -11,7 +11,6 @@ DEPLOYMENT_NAME
 SHIM_DIR
 JAWS_SUPERVISORD_PW
 JAWS_SUPERVISOR_PORT
-JTM_SUPERVISOR_PORT
 SITE_LOAD_PYTHON
 SITE_PYTHON
 SITE_JAWS_GROUP
@@ -206,7 +205,5 @@ EOM
 
 chgrp "$SITE_JAWS_GROUP" "$SUPERVISOR_DIR/supervisord-jaws.conf"
 chmod 660 "$SUPERVISOR_DIR/supervisord-jaws.conf"
-chgrp "$SITE_JTM_GROUP" "$SUPERVISOR_DIR/supervisord-cwl-backend.conf"
-chmod 660 "$SUPERVISOR_DIR/supervisord-cwl-backend.conf"
 
 printf "END deploy-supervisord\n\n"

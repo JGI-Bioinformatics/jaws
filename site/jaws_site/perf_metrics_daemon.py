@@ -31,7 +31,7 @@ class PerformanceMetricsDaemon:
         """
         Run scheduled task(s) periodically.
         """
-        schedule.every(self.perf_cleanup_time).minutes.do(self.cleanup)
+        schedule.every(self.perf_cleanup_time).seconds.do(self.cleanup)
         schedule.every(10).seconds.do(self.check_queue)
         while True:
             schedule.run_pending()
@@ -68,32 +68,44 @@ class PerformanceMetricsDaemon:
                 logger.warning(
                     f"Error making new directory {done_dir} {type(ex).__name__} : {ex}"
                 )
+                return
         # Get all the csv files in the running dir
         files_running = running_dir.glob("*.csv")
         # Get the time the daemon was run
         now = time.time()
         for metric in files_running:
+            logger.info(f"Checking to move {metric}")
             try:
                 status = metric.stat()
             except FileNotFoundError as ex:
                 logger.warning(f"Error file not found {metric} : {ex}")
+                continue
             except Exception as ex:
                 logger.warning(f"Error getting file stat {type(ex).__name__} : {ex}")
+                continue
+
             # gets the time the file hasn't been modified to in minutes
             idle_time = (now - status.st_ctime) / 60
             # If we're over the number of minutes and there has been no modifications then move it
-            if idle_time > self.perf_cleanup_time:
-                # Create a new path based on the metrics name and the done directory
-                new_path = self.perf_done_dir / metric.name
-                logger.debug(f"Moving {metric} to {new_path}")
-                # Moves to the new path
+            if idle_time > int(self.perf_cleanup_time):
                 try:
+                    # Create a new path based on the metrics name and the done directory
+                    new_path = done_dir / metric.name
+                    logger.info(f"Moving {metric} to {new_path}")
+                    # Moves to the new path
                     metric.replace(new_path)
                 except PermissionError as ex:
                     logger.warning(
                         f"Error moving file {metric} due to directory permissions {type(ex).__name__} : {ex}"
                     )
+                    continue
                 except OSError as ex:
                     logger.warning(
                         f"Error moving file {metric} from one disk to another {type(ex).__name__} : {ex}"
                     )
+                    continue
+                except Exception as ex:
+                    logger.warning(
+                        f"Error moving file {type(ex).__name__} : {ex}"
+                    )
+                    continue

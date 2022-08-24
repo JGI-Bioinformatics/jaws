@@ -1,4 +1,0 @@
-{
-    "command": "shifter --image=bryce911/bbtools /bbmap/bbstats.sh -h > $SCRATCH/bbstat_help.out",
-    "output_dir": "$SCRATCH"
-}

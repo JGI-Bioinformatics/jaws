@@ -207,10 +207,16 @@ class Run:
             task["cromwell_job_id"] = task["job_id"]
             del task["job_id"]
             del task["queue_duration"]
-            queue_delta = parser.parse(task["run_start"]) - parser.parse(
-                task["queue_start"]
-            )
-            task["queue_time_sec"] = int(queue_delta.total_seconds())
+            try:
+                queue_delta = parser.parse(task["run_start"]) - parser.parse(
+                    task["queue_start"]
+                )
+                task["queue_time_sec"] = int(queue_delta.total_seconds())
+            except Exception as e:
+                logger.exception(
+                    f"Unexpected parsing error in calculating queue delta: {e}"
+                )
+                task["queue_time_sec"] = 0
             del task["run_duration"]
             report["tasks"].append(task)
 
@@ -276,7 +282,9 @@ class Run:
         """
         if self.data.cromwell_run_id:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            path = metadata.workflow_root(executions_dir=self.config["cromwell_executions_dir"])
+            path = metadata.workflow_root(
+                executions_dir=self.config["cromwell_executions_dir"]
+            )
             return path
         else:
             return None

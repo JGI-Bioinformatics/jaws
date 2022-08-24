@@ -1,5 +1,0 @@
-# on cori
-java -Dconfig.file=../ConfigFiles/cromwell_shifter.conf -Dbackend.providers.Local.config.dockerRoot=$(pwd)/cromwell-executions -jar $(crom) run Azospirillum_brasilense.wdl -i shortened.json
-
-# on lrcs
-java -Dconfig.file=../ConfigFiles/singularity.conf -Dbackend.providers.Local.config.dockerRoot=$(pwd)/cromwell-executions -jar $(crom) run Azospirillum_brasilense.wdl -i shortened_lrc.json
