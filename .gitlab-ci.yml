@@ -29,7 +29,7 @@ code_quality_html:
   variables:
     REPORT_FORMAT: html
   artifacts:
-    paths: [gl-code-quality-report.json]
+    paths: [gl-code-quality-report.html]
 
 
 
