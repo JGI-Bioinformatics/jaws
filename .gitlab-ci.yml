@@ -24,13 +24,21 @@ code_quality: # Add docker-build top the task included from code_quality
   artifacts:
     paths: [gl-code-quality-report.json]
 
+code_quality_html:
+  extends: code_quality
+  variables:
+    REPORT_FORMAT: html
+  artifacts:
+    paths: [gl-code-quality-report.json]
+
+
 
 variables:
   GIT_STRATEGY: clone
 
   ## GLOBAL INSTALL VARIABLES:
   JAWS_SITES: "CORI JGI TAHOMA AWS ASSEMBLY"
-  JAWS_VERSION: "3.0.3"
+  JAWS_VERSION: "3.0.4"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_RMQ_HOST: "rmq.lbl.gov"
@@ -264,21 +272,6 @@ test-site:
       coverage_report:
         coverage_format: cobertura
         path: site/coverage.xml
-test-condor:
-  <<: *only-default
-  stage: unit-test
-  script:
-    - python3.8 -m venv test-venv
-    - source test-venv/bin/activate
-    - pip3.8 install condor/
-    - pip3.8 install -r condor/requirements.txt
-    - pip3.8 install flake8 pytest pytest-cov
-    - make test-condor
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: condor/coverage.xml
 
 image: docker:19.03.12
 services:

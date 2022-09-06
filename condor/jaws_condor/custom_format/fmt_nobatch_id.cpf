@@ -1,7 +1,0 @@
-# condor_q format to list IDLE jobs
-SELECT NOHEADER NOTITLE
-   ClusterId     AS "    ID"  NOSUFFIX WIDTH AUTO
-   RequestMemory AS REQUEST_MEMORY    WIDTH 10    PRINTAS READABLE_MB
-   RequestDisk   AS REQUEST_DISK  WIDTH 12    PRINTAS READABLE_KB
-   RequestCpus   AS REQUEST_CPUS
-WHERE JobStatus == 1

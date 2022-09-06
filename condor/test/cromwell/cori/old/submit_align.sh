@@ -1,1 +1,0 @@
-curl -X POST --header "Accept: application/json"    -v "localhost:50011/api/workflows/v1" -F workflowSource=@align.wdl -F workflowInputs=@inputs.nersc.json -F workflowDependencies=@alignment_sub.wdl.zip

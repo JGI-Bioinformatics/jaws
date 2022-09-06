@@ -29,7 +29,7 @@ if [[ $RESULT -ne 0 ]]; then
   RESULT=0
   for VAR in $REQUIRED_VARS; do
     if [ -z ${!VAR+xxx} ]; then
-      echo "Missing env var: $VAR">&2
+      echo "Missing env var: $VAR" >&2
       RESULT=1
     fi
   done
@@ -57,8 +57,8 @@ function not_available() {
 not_available "supervisord" || pip install supervisor
 
 function generate_shim() {
-prog=$1
-cat <<EOM > $SUPERVISOR_DIR/bin/$prog
+  prog=$1
+  cat <<EOM >$SUPERVISOR_DIR/bin/$prog
 #!/bin/bash -l
 
 $SITE_LOAD_PYTHON
@@ -66,23 +66,23 @@ source $SUPERVISOR_DIR/venv/bin/activate
 
 exec $prog \$@
 EOM
-chmod +x $SUPERVISOR_DIR/bin/$prog
+  chmod +x $SUPERVISOR_DIR/bin/$prog
 }
 
 generate_shim supervisord
 generate_shim supervisorctl
 
 function fix_perms() {
-    local GROUP="$1"
-    local DIR="$2"
-    chmod -R 770 "$DIR"
-    chgrp -R "$GROUP" "$DIR"
-    find "$DIR" -type d -exec chmod g+s '{}' \;
+  local GROUP="$1"
+  local DIR="$2"
+  chmod -R 770 "$DIR"
+  chgrp -R "$GROUP" "$DIR"
+  find "$DIR" -type d -exec chmod g+s '{}' \;
 }
 
 fix_perms "$SITE_JTM_GROUP" "$SUPERVISOR_DIR"
 
-cat << EOM > $SUPERVISOR_DIR/supervisord-jaws.conf
+cat <<EOM >$SUPERVISOR_DIR/supervisord-jaws.conf
 [inet_http_server]
 port=0.0.0.0:$JAWS_SUPERVISOR_PORT
 username=jaws
@@ -142,8 +142,64 @@ startsecs=3
 startretries=10
 autorestart=unexpected
 
+[program:jaws-site-pool-manager-daemon]
+command=$SHIM_DIR/jaws-site-pool-manager-daemon-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=3
+startretries=10
+autorestart=unexpected
+
 [group:jaws-$DEPLOYMENT_NAME]
-programs=jaws-site-run-daemon,jaws-site-transfer-daemon,jaws-site-perf-metrics-daemon,jaws-site-rpc
+programs=jaws-site-run-daemon,jaws-site-transfer-daemon,jaws-site-perf-metrics-daemon,jaws-site-rpc,jaws-site-pool-manager-daemon
+priority=999
+EOM
+
+## BACKEND SUPERVISOR CONF
+
+cat <<EOM >$SUPERVISOR_DIR/supervisord-cwl-backend.conf
+[inet_http_server]
+port=0.0.0.0:$JTM_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+
+[supervisord]
+logfile=$SUPERVISOR_DIR/cwl-backend-log
+logfile_maxbytes=50MB
+logfile_backups=2
+loglevel=info
+pidfile=$SUPERVISOR_DIR/cwl-backend-pidfile
+nodaemon=false
+minfds=1024
+minprocs=200
+identifier=supervisor-backend-$DEPLOYMENT_NAME
+directory=$SUPERVISOR_DIR
+
+; The rpcinterface:supervisor section must remain in the config file for
+; RPC (supervisorctl/web interface) to work.  Additional interfaces may be
+; added by defining them in separate [rpcinterface:x] sections.
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=$SITE_SUPERVISOR_HOST:$JTM_SUPERVISOR_PORT
+username=jaws
+password=$JAWS_SUPERVISORD_PW
+prompt=supervisor-cwl-backend-$DEPLOYMENT_NAME
+
+;----- Program Section
+
+[program:jaws-cromwell]
+command=$SHIM_DIR/jaws-cromwell-$DEPLOYMENT_NAME
+numprocs=1
+startsecs=10
+startretries=10
+autorestart=unexpected
+stopwaitsecs=120
+priority=9
+
+[group:jaws-$DEPLOYMENT_NAME]
+programs=jaws-cromwell
 priority=999
 EOM
 
