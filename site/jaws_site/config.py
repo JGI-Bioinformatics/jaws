@@ -1,7 +1,7 @@
 import os
 import logging
 import configparser
-from jaws_site.env_interpolation import EnvInterpolation
+from jaws_site.env_interpolation import EnvInterpolation, JAWSConfigParser
 import jaws_site.utils
 
 
@@ -59,7 +59,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
 
     config = None
 
-    def __init__(self, config_file: str) -> None:
+    def __init__(self, config_file: str, env_prefix: str = None) -> None:
         """Constructor sets global singleton.
 
         :param config_file: Path to configuration file in INI format
@@ -69,7 +69,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         logger.debug(f"Loading config from {config_file}")
         if not os.path.isfile(config_file):
             raise FileNotFoundError(f"{config_file} does not exist")
-        self.config = configparser.ConfigParser(interpolation=EnvInterpolation())
+        self.config = JAWSConfigParser(interpolation=EnvInterpolation(), env_override=env_prefix)
         self.config.read_dict(self.defaults)
         try:
             self.config.read(config_file)
@@ -117,6 +117,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         :rtype: dict
         """
         result = {}
-        for key, value in self.config.items(section):
+        sect_conf = self.config[section]  # change to avoid end run or JAWSCOnfigParser getter
+        for key, value in sect_conf.items():
             result[key] = value
         return result
