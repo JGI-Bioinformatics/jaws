@@ -1,6 +1,6 @@
 # Documentation for JGI Analysis Workflow Service (JAWS)
 
-[![pipeline status](https://code.jgi.doe.gov/advanced-analysis/jaws/badges/dev/pipeline.svg)](https://code.jgi.doe.gov/advanced-analysis/jaws/commits/dev) [![coverage report](https://code.jgi.doe.gov/advanced-analysis/jaws/badges/dev/coverage.svg)](https://code.jgi.doe.gov/advanced-analysis/jaws/commits/dev)
+[![pipeline status](https://code.jgi.doe.gov/advanced-analysis/jaws-site/badges/main/pipeline.svg)](https://code.jgi.doe.gov/advanced-analysis/jaws-site/commits/main) [![coverage report](https://code.jgi.doe.gov/advanced-analysis/jaws-site/badges/main/coverage.svg)](https://code.jgi.doe.gov/advanced-analysis/jaws-site/commits/main)
 
 ### Resources for JAWS Users
 Full [documentation](https://jaws-docs.readthedocs.io) for running and installing JAWS is located here.
