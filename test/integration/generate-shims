@@ -132,7 +132,7 @@ exec jaws-site --log $LOGS_DIR/site-rpc.log --config $CONFIG_DIR/jaws-site.conf 
 EOM
 
 ## pool-manager shim script
-cat <<EOM >"$SHIM_DIR/jaws-site-pool-manager-$DEPLOYMENT_NAME"
+cat <<EOM >"$SHIM_DIR/jaws-site-pool-manager-daemon-$DEPLOYMENT_NAME"
 #!/bin/bash -l
 
 export LC_ALL=en_US.UTF-8
