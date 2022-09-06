@@ -32,6 +32,7 @@ code_quality_html:
     paths: [gl-code-quality-report.html]
 
 
+
 variables:
   GIT_STRATEGY: clone
 
@@ -266,6 +267,7 @@ test-site:
     - pip3.8 install -r site/requirements.txt
     - pip3.8 install flake8 pytest pytest-cov
     - make test-site
+  coverage: '/(?i)TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
       coverage_report:

@@ -1,5 +1,8 @@
 # Changelog
 
+# Inbound changes
+- Copy fixes from jaws_central related to environment variables to control configuration.
+
 ## 3.0 (2022-7-14)Summary
 ### User Facing Changes
 #### Changed
@@ -13,6 +16,8 @@
 ## 2.8.6 (2022-6-21) Summary
 ### User Facing Changes
 #### Changed
+
+- MR#1254 Add child class of ConfigParser that allows properly named environment variables to override config file settings.
 - Restore /refdata (NB: not implemented for AWS)
 - Created user group to restrict access to private compute site.
 - Fixed bug where stderr file contents were not included in errors report.
