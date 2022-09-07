@@ -48,13 +48,8 @@ test-rpc: test-requirements
 .PHONY: test-site
 test-site: test-requirements
 	$Q flake8 site
-	$Q cd site && python -m pytest --cov=jaws_site --cov=jaws_site/datatransfer_plugins --junitxml=site.xml tests/ && coverage xml
-
-.PHONY: test-condor
-test-condor: test-requirements
-	$Q flake8 condor
-	$Q cd condor && python -m pytest --cov=jaws_condor --junitxml=condor.xml tests/ && coverage xml
+	$Q cd site && python -m pytest --cov=jaws_site --junitxml=site.xml tests/ && coverage xml
 
 .PHONY: test
-test: test-rpc test-site test-condor
+test: test-rpc test-site
 ## Test Section END
