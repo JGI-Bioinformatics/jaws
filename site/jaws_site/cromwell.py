@@ -973,9 +973,12 @@ class Cromwell:
         url = f"{self.workflows_url}/{workflow_id}/metadata?expandSubWorkflows=1"
         try:
             response = requests.get(url)
-        except Exception as error:
-            raise (f"Error retrieving Cromwell metadata: {error}")
-        response.raise_for_status()
+        except requests.exceptions.ConnectionError as error:
+            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
+        if response.status_code == 404:
+            raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
+        elif response.status_code >= 400:
+            raise CromwellServiceError(f"Error retrieving Cromwell metadata: code {response.status_code}")
         data = response.json()
         return Metadata(data)
 
@@ -983,9 +986,10 @@ class Cromwell:
         """Check if Cromwell is available"""
         try:
             response = requests.get(self.engine_url)
-        except Exception as error:
-            raise (f"Error retrieving Cromwell run status: {error}")
-        response.raise_for_status()
+        except requests.exceptions.ConnectionError as error:
+            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
+        if response.status_code >= 400:
+            raise CromwellServiceError(f"Error retrieving Cromwell status: code {response.status_code}")
         return True
 
     def abort(self, workflow_id: str):
@@ -993,17 +997,17 @@ class Cromwell:
         url = f"{self.workflows_url}/{workflow_id}/abort"
         try:
             response = requests.post(url)
-        except Exception as error:
-            raise (f"Error aborting Cromwell run: {error}")
+        except requests.exceptions.ConnectionError as error:
+            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         sc = response.status_code
         if sc == 200:
             return
         elif sc == 400:
-            raise ValueError(f"Abort failed for malformed workflow id: {workflow_id}")
+            raise CromwellRunError(f"Abort failed for malformed workflow id: {workflow_id}")
         elif sc == 403:
-            return  # too late to cancel
+            return  # too late to cancel; do not raise
         elif sc == 404:
-            raise ValueError(f"Cannot abort; workflow not found: {workflow_id}")
+            raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
         else:
             return
 
@@ -1032,7 +1036,6 @@ class Cromwell:
         :return: Cromwell workflow uuid
         :rtype: str
         """
-        logger = logging.getLogger(__package__)
         files = {}
         if "wdl" in file_handles:
             files["workflowSource"] = (
@@ -1041,7 +1044,7 @@ class Cromwell:
                 "application/json",
             )
         else:
-            raise ValueError("WDL file handle required")
+            raise CromwellRunError("WDL file handle required")
         if "inputs" in file_handles:
             files["workflowInputs"] = (
                 "workflowInputs",
@@ -1049,7 +1052,7 @@ class Cromwell:
                 "application/json",
             )
         else:
-            raise ValueError("Inputs JSON file handle required")
+            raise CromwellRunError("Inputs JSON file handle required")
         if "subworkflows" in file_handles:
             files["workflowDependencies"] = (
                 "workflowDependencies",
@@ -1063,16 +1066,10 @@ class Cromwell:
         )
         try:
             response = requests.post(self.workflows_url, files=files)
-        except requests.ConnectionError as error:
-            lines = f"{error}".splitlines()
-            logger.exception(
-                f"Error submitting new run: Cromwell unavailable: {lines[-1]}"
-            )
-            raise
-        except Exception as error:
-            logger.exception(f"Error submitting new run: {error}")
-            raise error
-        response.raise_for_status()
+        except requests.exceptions.ConnectionError as error:
+            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
+        if response.status_code >= 400:
+            raise CromwellServiceError(f"Error retrieving Cromwell status: code {response.status_code}")
         run_id = response.json()["id"]
         return run_id
 
@@ -1087,9 +1084,10 @@ class Cromwell:
         url = f"{self.workflows_url}/{workflow_id}/status"
         try:
             response = requests.get(url)
-        except Exception as error:
-            raise error
-        response.raise_for_status()
+        except requests.exceptions.ConnectionError as error:
+            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
+        if response.status_code >= 400:
+            raise CromwellServiceError(f"Error retrieving Cromwell status: code {response.status_code}")
         result = response.json()
         return result["status"]
 
