@@ -191,33 +191,54 @@ class Run:
         """
         metadata = self.metadata()
         report = self.summary()
-        report["workflow_name"] = metadata.get("workflowName")
+        report["workflow_name"] = metadata.get("workflowName", "unknown")
         report["site_id"] = report["compute_site_id"]
         del report["compute_site_id"]
 
         report["tasks"] = []
         for task in metadata.task_summary(last_attempts=True):
-            task["status"] = None
-            if task["result"] == "succeeded":
-                task["status"] = "success"
-            elif task["result"] == "failed":
-                task["status"] = "failure"
-            del task["result"]
-            del task["execution_status"]
+            # rename job_id key to cromwell_job_id
             task["cromwell_job_id"] = task["job_id"]
             del task["job_id"]
-            del task["queue_duration"]
+
+            # compute queue time in sec.
             try:
                 queue_delta = parser.parse(task["run_start"]) - parser.parse(
                     task["queue_start"]
                 )
-                task["queue_time_sec"] = int(queue_delta.total_seconds())
+                task["queuetime_sec"] = int(queue_delta.total_seconds())
             except Exception as e:
                 logger.exception(
                     f"Unexpected parsing error in calculating queue delta: {e}"
                 )
-                task["queue_time_sec"] = 0
+                task["queuetime_sec"] = 0
+            del task["queue_duration"]
+
+            # compute run time sec.
+            try:
+                queue_delta = parser.parse(task["run_end"]) - parser.parse(
+                    task["run_start"]
+                )
+                task["runtime_sec"] = int(queue_delta.total_seconds())
+            except Exception as e:
+                logger.exception(
+                    f"Unexpected parsing error in calculating queue delta: {e}"
+                )
+                task["runtime_sec"] = 0
             del task["run_duration"]
+
+            # compute wall time sec.
+            try:
+                queue_delta = parser.parse(task["run_end"]) - parser.parse(
+                    task["queue_start"]
+                )
+                task["walltime_sec"] = int(queue_delta.total_seconds())
+            except Exception as e:
+                logger.exception(
+                    f"Unexpected parsing error in calculating queue delta: {e}"
+                )
+                task["walltime_sec"] = 0
+
             report["tasks"].append(task)
 
         return report
