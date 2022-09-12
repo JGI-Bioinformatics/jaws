@@ -219,12 +219,12 @@ class Run:
                 queue_delta = parser.parse(task["run_end"]) - parser.parse(
                     task["run_start"]
                 )
-                task["run_time_sec"] = int(queue_delta.total_seconds())
+                task["runtime_sec"] = int(queue_delta.total_seconds())
             except Exception as e:
                 logger.exception(
                     f"Unexpected parsing error in calculating queue delta: {e}"
                 )
-                task["run_time_sec"] = 0
+                task["runtime_sec"] = 0
             del task["run_duration"]
 
             # compute wall time sec.
@@ -232,12 +232,12 @@ class Run:
                 queue_delta = parser.parse(task["run_end"]) - parser.parse(
                     task["queue_start"]
                 )
-                task["wall_time_sec"] = int(queue_delta.total_seconds())
+                task["walltime_sec"] = int(queue_delta.total_seconds())
             except Exception as e:
                 logger.exception(
                     f"Unexpected parsing error in calculating queue delta: {e}"
                 )
-                task["wall_time_sec"] = 0
+                task["walltime_sec"] = 0
 
             report["tasks"].append(task)
 
