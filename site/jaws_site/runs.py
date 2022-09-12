@@ -206,12 +206,12 @@ class Run:
                 queue_delta = parser.parse(task["run_start"]) - parser.parse(
                     task["queue_start"]
                 )
-                task["queue_time_sec"] = int(queue_delta.total_seconds())
+                task["queuetime_sec"] = int(queue_delta.total_seconds())
             except Exception as e:
                 logger.exception(
                     f"Unexpected parsing error in calculating queue delta: {e}"
                 )
-                task["queue_time_sec"] = 0
+                task["queuetime_sec"] = 0
             del task["queue_duration"]
 
             # compute run time sec.
