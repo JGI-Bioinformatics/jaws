@@ -1,6 +1,6 @@
 import jaws_site.rpc_operations
 from jaws_site import runs
-from tests.conftest import MockCromwellMetadata
+from tests.conftest import MockCromwellMetadata, MockCromwell
 from jaws_site import models
 from datetime import datetime
 
@@ -77,6 +77,14 @@ def initRunModel(**kwargs):
         submitted=kwargs.get("submitted", datetime.utcnow()),
         updated=kwargs.get("updated", datetime.utcnow()),
     )
+
+
+def test_server_status(monkeypatch):
+    monkeypatch.setattr(jaws_site.rpc_operations, "Cromwell", MockCromwell)
+    mock_session = MockSession()
+    p = {"user_id": "user", "run_id": 99}
+    ret = jaws_site.rpc_operations.server_status(p, mock_session)
+    assert ret == {"jsonrpc": "2.0", "result": True}
 
 
 def test_run_metadata(monkeypatch):

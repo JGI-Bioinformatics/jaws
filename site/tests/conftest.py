@@ -9,6 +9,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
+import jaws_site
 
 
 this_date = datetime.today()
@@ -206,6 +207,9 @@ class MockCromwell:
 
     def get_metadata(self, workflow_id, data=None, cache={}):
         return MockCromwellMetadata(self.workflows_url, workflow_id, data, cache)
+
+    def status(self):
+        return True
 
 
 class MockCromwellMetadata:

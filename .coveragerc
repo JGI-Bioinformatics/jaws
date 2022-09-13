@@ -4,3 +4,4 @@ omit =
     site/jaws_site/transfer_daemon.py
     site/jaws_site/cli.py
     site/jaws_site/perf_metrics_daemon.py
+    site/jaws_site/database.py
