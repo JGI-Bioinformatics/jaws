@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
-import jaws_site
+from jaws_site import models
 
 
 this_date = datetime.today()
@@ -174,6 +174,21 @@ s3_bucket = CCCC
     return cfg.as_posix()
 
 
+def initRunModel(**kwargs):
+    return models.Run(
+        id=kwargs.get("id", "99"),
+        user_id=kwargs.get("user_id", "test_user"),
+        submission_id=kwargs.get("submission_id", "XXXX"),
+        caching=(False if "caching" in kwargs and kwargs["caching"] is False else True),
+        input_site_id=kwargs.get("input_site_id", "NERSC"),
+        cromwell_run_id=kwargs.get("cromwell_run_id", "myid"),
+        result=kwargs.get("result", "succeeded"),
+        status=kwargs.get("status", "running"),
+        submitted=kwargs.get("submitted", datetime.utcnow()),
+        updated=kwargs.get("updated", datetime.utcnow()),
+    )
+
+
 class MockRunModel:
     """Mock Run sqlalchemy orm model object with useable defaults."""
 
@@ -200,6 +215,41 @@ class MockRunModel:
         self.updated = kwargs.get("updated", datetime.utcnow())
 
 
+class MockRun:
+    def __init__(self):
+        self.data = MockRunModel()
+
+    def metadata(self):
+        return MockCromwellMetadata("localhost/api/workflows/v1", "xxx-xxx")
+
+    def outputs(self, relpath=None):
+        return {"test": "success"}
+
+    def outfiles(self, complete=False, relpath=None):
+        return {"test": "success"}
+
+    def workflow_root(self):
+        return {"test": "success"}
+
+    def output_manifest(self, complete=False):
+        return {"test": "success"}
+
+    def cancel(self):
+        return {"test": "success"}
+
+    def errors(self):
+        return {"test": "success"}
+
+    def running_tasks(self):
+        return {"test": "success"}
+
+    def task_log(self):
+        return {"test": "success"}
+
+    def task_summary(self):
+        return {"test": "success"}
+
+
 class MockCromwell:
     def __init__(self, url="localhost"):
         self.url = url
@@ -210,6 +260,15 @@ class MockCromwell:
 
     def status(self):
         return True
+
+
+class MockCromwellException:
+    def __init__(self, url="localhost"):
+        self.url = url
+        self.workflows_url = f"{url}/api/workflows/v1"
+
+    def status(self):
+        raise Exception
 
 
 class MockCromwellMetadata:
@@ -282,6 +341,38 @@ class MockTransferModel:
         self.src_base_dir = kwargs.get("src_base_dir", "/inputs")
         self.dest_base_dir = kwargs.get("dest_base_dir", "/inputs")
         self.manifest_json = manifest_json
+        self.src_site_id = kwargs.get("src_site_id", "NERSC")
+        self.dest_site_id = kwargs.get("dest_site_id", "JGI")
+        self.globus_transfer_id = kwargs.get("globus_transfer_id", None)
+        self.reason = kwargs.get("reason", None)
+
+
+class MockTransfer:
+    def __init__(self, session, data, raise_exception=False):
+        self.session = session
+        self.data = data
+        self.raise_exception = raise_exception
+
+    @classmethod
+    def from_id(cls, session, id):
+        assert id is not None
+        data = MockTransferModel(id=id)
+        return cls(session, data)
+
+    def status(self):
+        return self.data.status
+
+    def reason(self):
+        return self.data.reason
+
+    def submit_transfer(self):
+        if self.raise_exception:
+            raise Exception
+        pass
+
+    def cancel(self):
+        self.data.status = "canceled"
+        return self.data.reason
 
 
 @pytest.fixture()
@@ -473,6 +564,12 @@ class MockSession:
 
     def close_all(self):
         return
+
+    def add(self, data):
+        return
+
+    def query(self, orm):
+        return None
 
 
 class MockTransferClientWithCopy:
