@@ -1,8 +1,11 @@
+import pytest
 import json
 import os
 import glob
 from deepdiff import DeepDiff
 from jaws_site import cromwell
+from jaws_site.cromwell import CallError, TaskError
+
 
 tests_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -301,7 +304,7 @@ def test_running(requests_mock, monkeypatch):
     )
     metadata_10 = crom.get_metadata(example_cromwell_run_id_10)
     actual_running_report_10 = metadata_10.running()
-    print(actual_running_report_10)
+    # print(actual_running_report_10)
     assert (
         bool(
             DeepDiff(
@@ -532,7 +535,7 @@ def test_parse_cromwell_task_dir():
 
     for task_dir, expected in test_data:
         actual = cromwell.parse_cromwell_task_dir(task_dir)
-        print(actual, flush=True)
+        # print(actual, flush=True)
         assert actual == expected
 
 
@@ -572,3 +575,90 @@ def test_sort_table_dict():
     expected = [{"id": 51, "key": "A"}, {"id": 41, "key": "B"}]
     actual = cromwell.sort_table_dict(test_table, "key")
     assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
+
+
+def test_s3_parse_uri():
+    ret = cromwell.s3_parse_uri("s3://abc/abc/eee")
+    assert ret == ("abc", "abc/eee")
+
+
+def test__read_file_nfs(config_file, file_not_found_config):
+    ret = cromwell._read_file_nfs(config_file)
+    assert "[LOCAL_RPC_SERVER]" in ret
+    assert "s3_bucket = CCCC" in ret
+
+    with pytest.raises(OSError):
+        cromwell._read_file_nfs(file_not_found_config)
+
+
+def test__read_file(config_file, monkeypatch):
+    ret = cromwell._read_file(config_file)
+    assert "[LOCAL_RPC_SERVER]" in ret
+    assert "s3_bucket = CCCC" in ret
+
+    def mock__read_file_s3(path):
+        return True
+
+    monkeypatch.setattr(cromwell, "_read_file_s3", mock__read_file_s3)
+
+    ret = cromwell._read_file("s3://abc/abc/eee")
+    assert ret is True
+
+
+def test___init():
+    with pytest.raises(CallError):
+        cromwell.Call("subWorkflowMetadata", "token_name")
+
+    data = {"shardIndex": 10, "start": "12:00:00"}
+    call = cromwell.Call(data, "task_name")
+    assert call.shard_index == 10
+    assert call.name == "task_name[10]"
+
+    data = {"shardIndex": -1, "start": "12:00:00"}
+    call = cromwell.Call(data, "task_name")
+    assert call.shard_index == -1
+    assert call.name == "task_name"
+
+    data = {"shardIndex": -1, "start": "12:00:00", "executionStatus": "Failure"}
+    call = cromwell.Call(data, "task_name")
+    assert call.execution_status == "Failure"
+
+    data = {"shardIndex": -1, "start": "12:00:00", "executionStatus": "Done"}
+    call = cromwell.Call(data, "task_name")
+    assert call.execution_status == "Done"
+
+
+def test__get_file_path(config_file):
+    data = {
+        "shardIndex": -1,
+        "start": "12:00:00",
+        "executionStatus": "Done",
+        "stdout": config_file,
+        "stderr": config_file,
+    }
+    call = cromwell.Call(data, "task_name")
+
+    file_id = "stdoutxxx"
+    with pytest.raises(TaskError):
+        call._get_file_path(file_id)
+
+    file_id = "stdout"
+    ret = call._get_file_path(file_id)
+    assert ret == config_file
+
+    file_id = "stderr"
+    ret = call._get_file_path(file_id)
+    assert ret == config_file
+
+    file_id = "stdout"
+    with pytest.raises(TaskError):
+        call._get_file_path(file_id, relpath=True)
+
+    call.call_root = "not_none"
+    file_id = "stderr"
+    ret = call._get_file_path(file_id, relpath=True)
+    assert "not_none" in ret
+
+    file_id = "stderr"
+    ret = call._get_file_path(file_id, relpath=True)
+    assert "not_none" in ret

@@ -10,7 +10,29 @@ from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
 
+
 this_date = datetime.today()
+
+
+@pytest.fixture()
+def file_not_found_config(tmp_path):
+    cfg = tmp_path / "wrong.ini"
+    content = ""
+    cfg.write_text(content)
+    import os
+
+    os.remove(cfg.as_posix())
+    return cfg.as_posix()
+
+
+@pytest.fixture
+def config_file_wrong(tmp_path):
+    cfg = tmp_path / "jaws-site.ini"
+    content = """[LOCAL_RPC_SERVER]
+    """
+
+    cfg.write_text(content)
+    return cfg.as_posix()
 
 
 @pytest.fixture
