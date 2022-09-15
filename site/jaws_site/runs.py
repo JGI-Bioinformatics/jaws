@@ -1,3 +1,21 @@
+# Class representing Runs
+#
+# Description of Possible States:
+# - ready* : Initial state.  Infiles have been already been uploaded to this Site.
+# - submission failed : The Run could not be submitted to Cromwell.
+# - submitted : The Run was successfully submitted to Cromwell and a cromwell_run_id was returned.
+# - queued : No tasks for the Run have started executing yet.
+# - running : At least one task of the Run has started running.
+# - failed : The Run was failed by Cromwell.
+# - succeeded : The Run has completed successfully by Cromwell.
+# - finished** : The Run metrics report has been published to ElasticSearch (if wasn't cancelled).
+# - cancel : Mark a Run to be cancelled (via RPC from Central); will be cancelled by run-daemon later.
+# - cancelled** : The Run has been successfully cancelled.
+#
+# * this is the only initial state
+# ** these are the two terminal states
+
+
 import os
 import logging
 import json
@@ -8,8 +26,14 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 import boto3
 import botocore
+from random import shuffle
 from jaws_site import models, config
-from jaws_site.cromwell import Cromwell, CromwellError
+from jaws_site.cromwell import (
+    Cromwell,
+    CromwellError,
+    CromwellRunNotFoundError,
+    CromwellServiceError,
+)
 
 logger = logging.getLogger(__package__)
 
@@ -41,6 +65,7 @@ class Run:
             "running": self.check_run_cromwell_status,
             "succeeded": self.publish_report,
             "failed": self.publish_report,
+            "cancel": self.cancel,
         }
         self.central_rpc_client = (
             kwargs["central_rpc_client"] if "central_rpc_client" in kwargs else None
@@ -249,12 +274,47 @@ class Run:
         if status in self.operations:
             return self.operations[status]()
 
+    def mark_to_cancel(self) -> None:
+        """
+        Tag a run to be cancelled.  Raise if not successful.
+        """
+        if self.data.status in ["cancel", "cancelled"]:
+            return
+        try:
+            self.update_run_status("cancel")
+        except Exception as error:
+            logger.error(f"Failed to mark Run {self.data.id} to be cancelled: {error}")
+            raise RunDbError(
+                f"Change Run {self.data.id} status to 'cancel' failed: {error}"
+            )
+
     def cancel(self) -> None:
         """
-        Cancel a run, aborting Cromwell or file transfer as appropriate.
-        Raise if not successful.
+        Cancel a run, aborting Cromwell if appropriate.
         """
-        orig_status = self.data.status
+        if self.data.cromwell_run_id and self.data.status in [
+            "submitted",
+            "queued",
+            "running",
+        ]:
+            try:
+                cromwell.abort(self.data.cromwell_run_id)
+            except CromwellRunNotFoundError as error:
+                logger.error(
+                    f"Cromwell couldn't cancel unknown Run {self.data.id}: {error}"
+                )
+                # do not return; future attempts will similarly fail; proceed to mark as cancelled
+            except CromwellServiceError as error:
+                logger.warning(
+                    f"Could not cancel Run {self.data.id} as Cromwell unavailable: {error}"
+                )
+                return  # try again later
+            except CromwellError as error:
+                logger.error(
+                    f"Unknown Cromwell error cancelling Run {self.data.id}: {error}"
+                )
+                # unknown error; don't bother trying again later, just proceed to mark as cancelled
+
         try:
             self.update_run_status("cancelled")
         except Exception as error:
@@ -262,17 +322,6 @@ class Run:
             raise RunDbError(
                 f"Change Run {self.data.id} status to cancelled failed: {error}"
             )
-
-        if self.data.cromwell_run_id and orig_status in [
-            "submitted",
-            "queued",
-            "running",
-        ]:
-            try:
-                cromwell.abort(self.data.cromwell_run_id)
-            except CromwellError as error:
-                logger.warning(f"Cromwell error cancelling Run {self.data.id}: {error}")
-                raise CromwellError(f"Cromwell cancel failed: {error}")
 
     def outputs(self, relpath=True) -> dict:
         """
@@ -615,6 +664,7 @@ class Run:
     def publish_report(self):
         """
         Send report document to reports service via RPC.
+        We currently record resource metrics for successful and failed, but not cancelled Runs.
         """
         # "test" is a special user account for automatic periodic system tests -- skip
         if self.data.user_id != "test":
@@ -646,6 +696,7 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
         "running",
         "succeeded",
         "failed",
+        "cancel",
     ]
     try:
         rows = (
@@ -654,6 +705,10 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
     except SQLAlchemyError as error:
         logger.warning(f"Failed to select active runs from db: {error}", exc_info=True)
     else:
+        # If there is an unexpected error prevening a Run from being processed, it could block
+        # other runs from being processed, so we randomize the list.  This isn't usually necessary,
+        # but it increases the robustness of the system.
+        shuffle(rows)
         for row in rows:
             run = Run(
                 session,

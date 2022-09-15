@@ -54,6 +54,36 @@ def test_check_operations_table(status):
     assert callable(proc)
 
 
+def test_mark_to_cancel(monkeypatch):
+    def mock_update_run_status(self, new_status):
+        assert new_status is not None
+        assert type(new_status) == str
+        assert new_status != self.data.status
+        self.data.status = new_status
+
+    monkeypatch.setattr(Run, "update_run_status", mock_update_run_status)
+
+    mock_session = MockSession()
+
+    # test1: run hasn't been cancelled yet
+    mock_data = MockRunModel(status="queued", cromwell_run_id="ABCD")
+    run = Run(mock_session, mock_data)
+    run.mark_to_cancel()
+    assert run.status() == "cancel"
+
+    # test2: run was already marked to be cancelled
+    mock_data = MockRunModel(status="cancel", cromwell_run_id="ABCD")
+    run = Run(mock_session, mock_data)
+    run.mark_to_cancel()
+    assert run.status() == "cancel"
+
+    # test3: run was already cancelled
+    mock_data = MockRunModel(status="cancelled", cromwell_run_id="ABCD")
+    run = Run(mock_session, mock_data)
+    run.mark_to_cancel()
+    assert run.status() == "cancelled"
+
+
 def test_cancel(monkeypatch):
     def mock_cromwell_abort(self, cromwell_run_id):
         assert type(cromwell_run_id) is str
@@ -66,9 +96,16 @@ def test_cancel(monkeypatch):
 
     monkeypatch.setattr(jaws_site.cromwell.Cromwell, "abort", mock_cromwell_abort)
     monkeypatch.setattr(Run, "update_run_status", mock_update_run_status)
-
     mock_session = MockSession()
+
+    # test 1: run has cromwell_run_id
     mock_data = MockRunModel(status="queued", cromwell_run_id="ABCD")
+    run = Run(mock_session, mock_data)
+    run.cancel()
+    assert run.status() == "cancelled"
+
+    # test 2: run doesn't have cromwell_run_id
+    mock_data = MockRunModel(status="queued", cromwell_run_id=None)
     run = Run(mock_session, mock_data)
     run.cancel()
     assert run.status() == "cancelled"

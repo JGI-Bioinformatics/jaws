@@ -993,7 +993,7 @@ class Cromwell:
         return True
 
     def abort(self, workflow_id: str):
-        """Abort a run."""
+        """Abort a run.  Raise upon error."""
         url = f"{self.workflows_url}/{workflow_id}/abort"
         try:
             response = requests.post(url)
@@ -1003,7 +1003,7 @@ class Cromwell:
         if sc == 200:
             return
         elif sc == 400:
-            raise CromwellRunError(f"Abort failed for malformed workflow id: {workflow_id}")
+            raise CromwellRunNotFoundError(f"Abort failed for malformed workflow id: {workflow_id}")
         elif sc == 403:
             return  # too late to cancel; do not raise
         elif sc == 404:
