@@ -278,7 +278,7 @@ class Run:
         """
         Tag a run to be cancelled.  Raise if not successful.
         """
-        if self.data.status in [ "cancel", "cancelled" ]:
+        if self.data.status in ["cancel", "cancelled"]:
             return
         try:
             self.update_run_status("cancel")
