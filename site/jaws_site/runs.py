@@ -69,6 +69,8 @@ class Run:
     ):
         """Insert new Run into RDb.  Site only receives Runs in the "upload complete" state."""
         try:
+            if not isinstance(params["caching"], bool):
+                raise SQLAlchemyError
             data = models.Run(
                 id=int(params["run_id"]),
                 user_id=params["user_id"],

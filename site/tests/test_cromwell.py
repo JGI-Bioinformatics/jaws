@@ -466,12 +466,12 @@ def test_outfiles(requests_mock):
 
     actual_outfiles_1 = ex_1.outfiles(complete=False, relpath=False)
     assert actual_outfiles_1 == [
-        "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"
+        "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"  # noqa
     ]  # noqa
 
     actual_outfiles_1 = ex_1.outfiles(relpath=False)
     assert actual_outfiles_1 == [
-        "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"
+        "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"  # noqa
     ]  # noqa
 
     # test 2 : outputs list

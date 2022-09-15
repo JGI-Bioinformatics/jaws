@@ -1,7 +1,65 @@
+import pytest
 import os
 from jaws_site import perf_metrics
+from jaws_site.perf_metrics import PerformanceMetrics
+from tests.conftest import (
+    MockSession,
+    MockRunModel,
+)
+from jaws_site import runs
+from jaws_site.runs import RunNotFoundError
+
 
 tests_dir = os.path.dirname(os.path.abspath(__file__))
+
+
+class MockRpcClient:
+    def __init__(self, params=None, logger=None):
+        pass
+
+    def request(self, method, params={}):
+        response = {"result": None}
+        return response
+
+
+@pytest.fixture
+def mock_rpc_client(run):
+    return MockRpcClient()
+
+
+def test__init(mock_sqlalchemy_session, monkeypatch):
+    a_rpc_client = MockRpcClient()
+    PerformanceMetrics(mock_sqlalchemy_session, a_rpc_client)
+
+
+def test_get_run_id(monkeypatch, mock_sqlalchemy_session):
+    def mock_from_cromwell_run_id(session, cromwell_run_id):
+        session = MockSession()
+        data = MockRunModel(cromwell_run_id="xxx-xxx")
+        run = runs.Run(session, data)
+        return run
+
+    monkeypatch.setattr(
+        perf_metrics.runs.Run, "from_cromwell_run_id", mock_from_cromwell_run_id
+    )
+
+    a_rpc_client = MockRpcClient()
+    pm = PerformanceMetrics(mock_sqlalchemy_session, a_rpc_client)
+    ret = pm.get_rget_run_idun_id("xxx-xxx")
+    assert ret == "99"
+
+    # Test Exception
+    def mock_from_cromwell_run_id(session, cromwell_run_id):
+        raise RunNotFoundError
+
+    monkeypatch.setattr(
+        perf_metrics.runs.Run, "from_cromwell_run_id", mock_from_cromwell_run_id
+    )
+
+    a_rpc_client = MockRpcClient()
+    pm = PerformanceMetrics(mock_sqlalchemy_session, a_rpc_client)
+    ret = pm.get_rget_run_idun_id("xxx-xxx")
+    assert ret == 0
 
 
 def test_extract_jaws_info():

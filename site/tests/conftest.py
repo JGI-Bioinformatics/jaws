@@ -9,10 +9,19 @@ import json
 from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
-from jaws_site import models
+from jaws_site import models, config, cromwell
+import sqlalchemy
+from sqlalchemy.orm.exc import NoResultFound
 
 
 this_date = datetime.today()
+
+
+@pytest.fixture()
+def configuration(config_file):
+    if config.conf is not None:
+        config.Configuration._destructor()
+    return config.Configuration(config_file)
 
 
 @pytest.fixture()
@@ -27,11 +36,18 @@ def file_not_found_config(tmp_path):
 
 
 @pytest.fixture
+def config_file_zero(tmp_path):
+    cfg = tmp_path / "jaws-site-empty.ini"
+    content = ""
+    cfg.write_text(content)
+    return cfg.as_posix()
+
+
+@pytest.fixture
 def config_file_wrong(tmp_path):
-    cfg = tmp_path / "jaws-site.ini"
+    cfg = tmp_path / "jaws-site-wrong.ini"
     content = """[LOCAL_RPC_SERVER]
     """
-
     cfg.write_text(content)
     return cfg.as_posix()
 
@@ -708,7 +724,53 @@ def mock_data_transfer(monkeypatch):
 
 
 @pytest.fixture
-def mock_db_session():
+def mock_rpc_request(monkeypatch):
+    """Fixture to mockup the rpc_client.RpcClient object for handling RMQ requests.
+
+    To set the return value of the rpc_client.RpcClient.request() call, set the
+    mockup_rpc_request.json = dictionary
+
+    To intentionally throw an exception when calling the request, set the
+    mockup_rpc_request.Exception = True and catch the rpc_client.ConnectionError exception.
+    """
+    from jaws_rpc import rpc_client
+
+    class MockRpcClient:
+        def __init__(self):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args, **kwargs):
+            pass
+
+        @staticmethod
+        def request(*args, **kwargs):
+            return data_obj.json
+
+        @staticmethod
+        def output(jsondata):
+            data_obj.json = jsondata
+
+    def mock_rpc_client(*args, **kwargs):
+        if data_obj.Exception:
+            raise rpc_client.ConnectionError("RPC client failed")
+        return MockRpcClient()
+
+    monkeypatch.setattr(rpc_client, "RpcClient", mock_rpc_client)
+
+    class Data:
+        def __init__(self):
+            self.json = None
+            self.Exception = False
+
+    data_obj = Data()
+    return MockRpcClient()
+
+
+@pytest.fixture
+def mock_sqlalchemy_session():
     """Fixture to mockup the sqlalchemy session.
 
     session = database.session()  # here, session is a sqlalchemy sessionmaker object.
@@ -717,22 +779,23 @@ def mock_db_session():
         order_by(table.start_date.desc()).\
         all()
 
-    will be mocked up. The result variable can be set in the pytest function using the mock_db.query variable.
-    This variable accepts a list of either dictionaries, or another list of dictionaries.
+    will be mocked up. The result variable can be set in the pytest function using the
+    mock_sqlalchemy_session.query
+    variable. This variable accepts a list of either dictionaries, or another list of dictionaries.
 
-    Ex: if the test function performs one sqlalchemy query, and we want to specify the return value of that query,
-    (i.e., one query returning two entries):
-    mock_db_session.output(
+    Ex: if the test function performs one sqlalchemy query, and we want to specify the return value
+    of that query, (i.e., one query returning two entries):
+    mock_sqlalchemy_session.output(
         [
             {'employee': 'John', 'Title': 'analyst'},
             {'employee': 'Mary', 'Title': 'PI'},
         ]
     )
 
-    If the test function performs multiple sqlalchemy queries and we want to return the same result, add
-    repeat=True to the mock_db_session.output() call.
+    If the test function performs multiple sqlalchemy queries, and we want to return the same result,
+    add repeat=True to the mock_sqlalchemy_session.output() call.
     Ex:
-    mock_db_session.output(
+    mock_sqlalchemy_session.output(
         [
             {'employee': 'John', 'Title': 'analyst'},
             {'employee': 'Mary', 'Title': 'PI'},
@@ -741,33 +804,34 @@ def mock_db_session():
     )
 
 
-    If the test function performs two sqlalchemy queries, and we want to specify the return different entries
-    for each query, (i.e., two queries returning 2 entries each), call mock_db_sssion.output() multiple times.
+    If the test function performs two sqlalchemy queries, and we want to specify the return different
+    entries for each query, (i.e., two queries returning 2 entries each), call
+    mock_sqlalchemy_session.output() multiple times.
     Ex:
-    mock_db_session.output(
+    mock_sqlalchemy_session.output(
         [
             {'employee': 'John', 'Title': 'analyst'},
             {'employee': 'Mary', 'Title': 'PI'},
         ]
     )
-    mock_db_session.output(
+    mock_sqlalchemy_session.output(
         [
             {'employee': 'Bob', 'Title': 'scientist'},
             {'employee': 'Lisa', 'Title': 'researcher'},
         ]
     )
-    Note that if repeat=True is specified in either mock_db_session.query call, the last query entry is repeated.
+    Note that if repeat=True is specified in either mock_sqlalchemy_session.query call, the last
+    query entry is repeated.
 
-    Additionally, to intentionally raise a sqlalchemy.exc.SQLAlchemyError after a query is performed, set
-    mock_db_session.raise_exception = True
+    Additionally, to intentionally raise a sqlalchemy.exc.SQLAlchemyError after a query is performed,
+    set mock_sqlalchemy_session.raise_exception = True
 
-    In order to check if the sqlalchemly add, commit, query and close was successfully called, we can checkthe
-    mockup_session[key] boolean for True | False. The keys are:
+    In order to check if the SQLAlchemy add, commit, query and close was successfully called,
+    we can check the mockup_session[key] boolean for True | False. The keys are:
     add, commit, query, close.
 
-    To clear these keys, call mock_db_session.clear().
+    To clear these keys, call mock_sqlalchemy_session.clear().
     """
-    import sqlalchemy
 
     class MockQueryFields:
         def __init__(self, entries: dict):
@@ -845,9 +909,19 @@ def mock_db_session():
             return self
 
         def all(self):
-            return self
+            return self.entries[0]
 
         def one(self):
+            if len(self.entries) > 0 and len(self.entries[0]) > 0:
+                return self.entries[0][0]
+            return None
+
+        def one_or_none(self):
+            if len(self.entries) > 0 and len(self.entries[0]) > 0:
+                return self.entries[0][0]
+            return None
+
+        def filter(self, *args, **kwargs):
             return self
 
     class MockSessionQuery:
@@ -855,6 +929,15 @@ def mock_db_session():
 
         @staticmethod
         def filter(*args, **kwargs):
+            if data_obj.raise_exception_sqlalchemyerror:
+                raise sqlalchemy.exc.SQLAlchemyError
+            elif data_obj.raise_exception:
+                raise Exception
+            elif data_obj.raise_exception_integrityerror:
+                raise sqlalchemy.exc.IntegrityError
+            elif data_obj.raise_exception_noresultfound:
+                raise NoResultFound
+
             MockSessionQuery.result.entries = []
             data_obj.limit_query = 0
             data_obj.entry_idx += 1
@@ -864,6 +947,7 @@ def mock_db_session():
 
             for entry in data_obj.queries:
                 MockSessionQuery.result.add_mock_entry(entry)
+
             return MockSessionQuery.result
 
         @staticmethod
@@ -872,26 +956,55 @@ def mock_db_session():
 
         @staticmethod
         def get(*args, **kwargs):
+            if data_obj.raise_exception_sqlalchemyerror:
+                raise sqlalchemy.exc.SQLAlchemyError
+            elif data_obj.raise_exception:
+                raise Exception
+            elif data_obj.raise_exception_integrityerror:
+                raise sqlalchemy.exc.IntegrityError
+
+            return MockSessionQuery.filter(*args, **kwargs)
+
+        @staticmethod
+        def all(*args, **kwargs):
             return MockSessionQuery.filter(*args, **kwargs)
 
     class MockSession:
+        def __init__(self):
+            self.data = data_obj
+
         @staticmethod
         def add(*args, **kwargs):
             data_obj.session["add"] = True
-            if data_obj.raise_exception:
-                raise sqlalchemy.exc.SQLAlchemyError()
+            if data_obj.raise_exception_sqlalchemyerror:
+                raise sqlalchemy.exc.SQLAlchemyError
+            elif data_obj.raise_exception:
+                raise Exception
+            elif data_obj.raise_exception_integrityerror:
+                raise sqlalchemy.exc.IntegrityError
 
         @staticmethod
         def commit(*args, **kwargs):
             data_obj.session["commit"] = True
-            if data_obj.raise_exception:
-                raise sqlalchemy.exc.SQLAlchemyError()
+            if data_obj.raise_exception_sqlalchemyerror:
+                raise sqlalchemy.exc.SQLAlchemyError
+            elif data_obj.raise_exception:
+                raise Exception
+            elif data_obj.raise_exception_integrityerror:
+                raise sqlalchemy.exc.IntegrityError
+            elif data_obj.raise_exception_commit:
+                raise Exception
 
         @staticmethod
         def query(*args, **kwargs):
             data_obj.session["query"] = True
-            if data_obj.raise_exception:
-                raise sqlalchemy.exc.SQLAlchemyError()
+            if data_obj.raise_exception_integrityerror:
+                raise sqlalchemy.exc.IntegrityError
+            elif data_obj.raise_exception_sqlalchemyerror:
+                raise sqlalchemy.exc.SQLAlchemyError
+            elif data_obj.raise_exception:
+                raise Exception
+
             return MockSessionQuery
 
         @staticmethod
@@ -908,10 +1021,11 @@ def mock_db_session():
             data_obj.raise_exception = raise_exception
             data_obj.queries.append(entries)
 
-        @staticmethod
-        def clear():
-            data_obj.__init__()
-            MockSessionQuery.result.entries = []
+        def clear(self):
+            global data_obj
+            data_obj = Data()
+            data_obj.queries = []
+            self.data = data_obj
 
     @dataclass
     class Data:
@@ -920,6 +1034,10 @@ def mock_db_session():
         entry_idx = -1
         repeat_entry = False
         raise_exception = False
+        raise_exception_commit = False
+        raise_exception_sqlalchemyerror = False
+        raise_exception_integrityerror = False
+        raise_exception_noresultfound = False
         session = {
             "add": False,
             "commit": False,
@@ -928,51 +1046,85 @@ def mock_db_session():
             "rollback": False,
         }
 
+    global data_obj
     data_obj = Data()
     return MockSession()
 
 
+def initTransferModel(**kwargs):
+    return models.Transfer(
+        id=kwargs.get("id", "99"),
+        status=kwargs.get("status", "created"),
+        # src_site_id=kwargs.get("src_site_id", "NERSC"),
+        src_base_dir=kwargs.get("src_base_dir", "/jaws-test/inputs"),
+        # dest_site_id=kwargs.get("dest_site_id", "JGI"),
+        dest_base_dir=kwargs.get("dest_base_dir", "/jaws-test/inputs"),
+        manifest_json=kwargs.get("manifest_json", "{}"),
+        # globus_transfer_id=kwargs.get("globus_transfer_id", None),
+        reason=kwargs.get("reason", "reason"),
+    )
+
+
 @pytest.fixture
-def mock_rpc_request(monkeypatch):
-    """Fixture to mockup the rpc_client.RpcClient object for handling RMQ requests.
-
-    To set the return value of the rpc_client.RpcClient.request() call, set the
-    mockup_rpc_request.json = dictionary
-
-    To intentionally throw an exception when calling the request, set the
-    mockup_rpc_request.Exception = True and catch the rpc_client.ConnectionError exception.
-    """
-    from jaws_rpc import rpc_client
-
-    class MockRpcClient:
+def mock_metadata(monkeypatch):
+    class MockMetadata:
         def __init__(self):
-            pass
+            self.data = {"MOCK_METADATA": True, "workflowName": "unknown"}
 
-        def __enter__(self):
-            return self
+        def started_running(self):
+            return True
 
-        def __exit__(self, *args, **kwargs):
-            pass
+        def task_summary(self, last_attempts=False):
+            return [
+                {
+                    "name": "test",
+                    "shard_index": "shard_index",
+                    "attempt": "attempt",
+                    "cached": "cached",
+                    "job_id": "123",
+                    "execution_status": "succeeded",
+                    "result": "result",
+                    "failure_message": "failure_message",
+                    "queue_start": "01-01-2022",
+                    "run_start": "01-01-2022",
+                    "run_end": "01-01-2022",
+                    "queue_duration": "queue_duration",
+                    "run_duration": "run_duration",
+                    "call_root": "call_root",
+                    "requested_time": "01-01-2022",
+                    "requested_cpu": 15,
+                    "requested_memory": "100",
+                },
+            ]
 
-        @staticmethod
-        def request(*args, **kwargs):
-            return data_obj.json
+        def task_log(self):
+            return {
+                "name": "test",
+                "cached": False,
+                "execution_status": "succeeded",
+                "queue_start": "01-01-2022",
+                "run_start": "01-01-2022",
+                "run_end": "01-01-2022",
+                "queue_duration": "01-01-2022",
+                "run_duration": "01-01-2022",
+            }
 
-        @staticmethod
-        def output(jsondata):
-            data_obj.json = jsondata
+        def get(self, param, default):
+            return self.data.get(param, default)
 
-    def mock_rpc_client(*args, **kwargs):
-        if data_obj.Exception:
-            raise rpc_client.ConnectionError("RPC client failed")
-        return MockRpcClient()
+        def workflow_root(self, executions_dir=None):
+            return "/root"
 
-    monkeypatch.setattr(rpc_client, "RpcClient", mock_rpc_client)
+        def errors(self):
+            return "error"
 
-    class Data:
-        def __init__(self):
-            self.json = None
-            self.Exception = False
+        def running(self):
+            return "running"
 
-    data_obj = Data()
-    return MockRpcClient()
+    def mock_cromwell_get_metadata(self, cromwell_run_id):
+        assert type(cromwell_run_id) is str
+        mock_metadata = MockMetadata()
+        mock_metadata.data["runId"] = cromwell_run_id
+        return mock_metadata
+
+    monkeypatch.setattr(cromwell.Cromwell, "get_metadata", mock_cromwell_get_metadata)
