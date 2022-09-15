@@ -116,7 +116,7 @@ def run_manifest(params, session):
 
 
 def cancel_run(params, session):
-    """Cancel a run.
+    """Mark a Run to be cancelled.  It will be cancelled by the Run daemon later (asynchronously).
 
     :param cromwell_run_id: The Cromwell run ID
     :type cromwell_run_id: str
@@ -126,7 +126,7 @@ def cancel_run(params, session):
     logger.info(f"User {params['user_id']}: Cancel Run {params['run_id']}")
     try:
         run = Run.from_id(session, params["run_id"])
-        result = run.cancel()
+        result = run.mark_to_cancel()
     except Exception as error:
         return failure(error)
     return success(result)
