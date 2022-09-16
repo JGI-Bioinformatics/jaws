@@ -143,3 +143,29 @@ def test_parse_perf_metrics_task_dir():
     for task_dir, expected in test_data:
         result = perf_metrics.parse_cromwell_task_dir_name(task_dir)
         assert result == expected
+
+
+def test_compute_rate():
+    import pandas as pd
+    import numpy as np
+    from pandas import Timestamp
+
+    df_time = pd.DataFrame(
+        {"B": [0, 1, 2, np.nan, 4]},
+        index=[
+            pd.Timestamp("20130101 09:00:00"),
+            pd.Timestamp("20130101 09:00:02"),
+            pd.Timestamp("20130101 09:00:03"),
+            pd.Timestamp("20130101 09:00:05"),
+            pd.Timestamp("20130101 09:00:06"),
+        ],
+    )
+    result = perf_metrics.compute_rates(df_time)
+    """expected result
+    2013-01-01 09:00:00   0.0
+    2013-01-01 09:00:02  10.0
+    2013-01-01 09:00:03  20.0
+    2013-01-01 09:00:05   NaN
+    2013-01-01 09:00:06  40.0"""
+    assert result.to_dict()["B"][Timestamp("2013-01-01 09:00:00")] == 0.0
+    assert result.to_dict()["B"][Timestamp("2013-01-01 09:00:06")] == 40.0
