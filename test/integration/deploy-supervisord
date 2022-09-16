@@ -14,7 +14,6 @@ JAWS_SUPERVISOR_PORT
 SITE_LOAD_PYTHON
 SITE_PYTHON
 SITE_JAWS_GROUP
-SITE_JTM_GROUP
 "
 RESULT=0
 for VAR in $REQUIRED_VARS; do
@@ -38,7 +37,7 @@ fi
 
 ## CREATE DIRS
 test -d $SUPERVISOR_DIR || mkdir $SUPERVISOR_DIR
-chgrp $SITE_JTM_GROUP $SUPERVISOR_DIR
+chgrp $SITE_JAWS_GROUP $SUPERVISOR_DIR
 chmod 770 $SUPERVISOR_DIR
 
 # TODO: This is hardcoded and module command will not be available in env
@@ -46,7 +45,7 @@ module unload python
 $SITE_LOAD_PYTHON
 [[ -d $SUPERVISOR_DIR/bin ]] || mkdir $SUPERVISOR_DIR/bin
 [[ -f $SUPERVISOR_DIR/venv/bin/activate ]] || $SITE_PYTHON -m venv $SUPERVISOR_DIR/venv
-chgrp -R $SITE_JTM_GROUP $SUPERVISOR_DIR/{bin,venv}
+chgrp -R $SITE_JAWS_GROUP $SUPERVISOR_DIR/{bin,venv}
 
 source $SUPERVISOR_DIR/venv/bin/activate
 
@@ -80,7 +79,7 @@ function fix_perms() {
   find "$DIR" -type d -exec chmod g+s '{}' \;
 }
 
-fix_perms "$SITE_JTM_GROUP" "$SUPERVISOR_DIR"
+fix_perms "$SITE_JAWS_GROUP" "$SUPERVISOR_DIR"
 
 cat <<EOM >$SUPERVISOR_DIR/supervisord-jaws.conf
 [inet_http_server]
@@ -158,7 +157,7 @@ EOM
 
 cat <<EOM >$SUPERVISOR_DIR/supervisord-cwl-backend.conf
 [inet_http_server]
-port=0.0.0.0:$JTM_SUPERVISOR_PORT
+port=0.0.0.0:$JAWS_SUPERVISOR_PORT
 username=jaws
 password=$JAWS_SUPERVISORD_PW
 
@@ -182,7 +181,7 @@ directory=$SUPERVISOR_DIR
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
-serverurl=$SITE_SUPERVISOR_HOST:$JTM_SUPERVISOR_PORT
+serverurl=$SITE_SUPERVISOR_HOST:$JAWS_SUPERVISOR_PORT
 username=jaws
 password=$JAWS_SUPERVISORD_PW
 prompt=supervisor-cwl-backend-$DEPLOYMENT_NAME

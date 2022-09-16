@@ -13,15 +13,14 @@ CONFIG_DIR
 SHIM_DIR
 LOGS_DIR
 LOG_LEVEL
-JTM_CONFIG_FILE
-SITE_JTM_SCRATCH_DIR
-SITE_JTM_GROUP
+JAWS_CONFIG_FILE
+SITE_JAWS_SCRATCH_DIR
 SITE_CLIENT_GROUP
 SITE_JAWS_GROUP
 SITE_CLIENT_INSTALL_DIR
 SITE_CONTAINER_TYPE
 SITE_CROMWELL_TMPDIR
-JTM_VENV_DIR
+JAWS_VENV_DIR
 SITE_VENV_DIR
 "
 RESULT=0
@@ -70,7 +69,6 @@ function set_jaws_acl() {
     local DIR="\$1"
     chmod 2775 \$DIR
     setfacl -m g:$SITE_JAWS_GROUP:rwx \$DIR
-    setfacl -m g:$SITE_JTM_GROUP:rwx \$DIR
     setfacl -m g:$SITE_CLIENT_GROUP:rwx \$DIR
 }
 
@@ -153,25 +151,25 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 
-test -d $SITE_JTM_SCRATCH_DIR || mkdir $SITE_JTM_SCRATCH_DIR
-chgrp $SITE_JTM_GROUP $SITE_JTM_SCRATCH_DIR
-chgrp $SITE_JTM_GROUP $SITE_INPUTS_DIR
-chmod 2770 $SITE_JTM_SCRATCH_DIR
+test -d $SITE_JAWS_SCRATCH_DIR || mkdir $SITE_JAWS_SCRATCH_DIR
+chgrp $SITE_JAWS_GROUP $SITE_JAWS_SCRATCH_DIR
+chgrp $SITE_JAWS_GROUP $SITE_INPUTS_DIR
+chmod 2770 $SITE_JAWS_SCRATCH_DIR
 
 # DEPLOY TO NFS DIR
 # HACK: see .gitlab-ci.yml for the explanation of why that copy does not happen in the CI directly
 
-#test -d $JTM_VENV_DIR || mkdir -p $JTM_VENV_DIR
-#chmod 2770 $JTM_VENV_DIR
+#test -d $JAWS_VENV_DIR || mkdir -p $JAWS_VENV_DIR
+#chmod 2770 $JAWS_VENV_DIR
 
 #cp $CONFIG_DIR/jaws-jtm.conf $CONFIG_DIR/
-#chgrp $SITE_JTM_GROUP $JTM_CONFIG_FILE
+#chgrp $SITE_JAWS_GROUP $JAWS_CONFIG_FILE
 #chmod 0640 $CONFIG_DIR/jaws-jtm.conf
 
 # RUN JTM
 
-source $JTM_VENV_DIR/bin/activate
-export JTM_CONFIG_FILE=$JTM_CONFIG_FILE
+source $JAWS_VENV_DIR/bin/activate
+export JAWS_CONFIG_FILE=$JAWS_CONFIG_FILE
 
 exec jtm --config=$CONFIG_DIR/jaws-jtm.conf --debug manager -ld $LOGS_DIR
 EOM
@@ -192,8 +190,7 @@ exec jaws-parsl-recv --config=$CONFIG_DIR/parsl.ini
 EOM
 
 ## SET PERMISSIONS
-chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
-chgrp "$SITE_JTM_GROUP" "$SHIM_DIR/jaws-parsl-recv-$DEPLOYMENT_NAME"
+chgrp "$SITE_JAWS_GROUP" "$SHIM_DIR/jaws-jtm-$DEPLOYMENT_NAME"
 chmod +x "$SHIM_DIR"/*
 
 printf "END generate-shims\n\n"

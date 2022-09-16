@@ -9,7 +9,6 @@ set -eo pipefail
 # Exits if any required var is undefined.
 REQUIRED_VARS="
 SITE_JAWS_GROUP
-SITE_JTM_GROUP
 SITE_LOAD_PYTHON
 SITE_PYTHON
 SITE_VENV_DIR
@@ -62,7 +61,7 @@ function fix_perms() {
 }
 fix_perms "$SITE_VENV_DIR" $SITE_JAWS_GROUP
 
-# If pagurus is installed change the group so jaws_jtm can run it
-test -d $SITE_VENV_DIR/bin/pagurus && chgrp $SITE_JTM_GROUP $SITE_VENV_DIR/bin/pagurus
+# If pagurus is installed change the group so jaws can run it
+test -d $SITE_VENV_DIR/bin/pagurus && chgrp $SITE_JAWS_GROUP $SITE_VENV_DIR/bin/pagurus
 
 printf "END generate-venvs\n\n"

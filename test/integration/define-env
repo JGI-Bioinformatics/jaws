@@ -87,10 +87,8 @@ GLOBUS_HOST_PATH
 PYTHON
 LOAD_PYTHON
 JAWS_GROUP
-JTM_GROUP
 CLIENT_GROUP
 JAWS_SCRATCH_BASEDIR
-JTM_SCRATCH_BASEDIR
 CONTAINER_TMPDIR
 REF_DATA_DIR
 FAST_SCRATCH_DIR
@@ -135,11 +133,9 @@ fi
 if [[ $SITE_JAWS_SCRATCH_BASEDIR =~ ^s3:\/\/ ]]; then
     # EACH AWS DEPLOYMENT HAS A SEPARATE S3 BUCKET
     export SITE_JAWS_SCRATCH_DIR="${SITE_JAWS_SCRATCH_BASEDIR}-${DEPLOYMENT_NAME}"
-    export SITE_JTM_SCRATCH_DIR="${SITE_JAWS_SCRATCH_BASEDIR}-${DEPLOYMENT_NAME}"
 else
     # EACH SERVER DEPLOYMENT HAS A SEPARATE NFS SUBDIR
     export SITE_JAWS_SCRATCH_DIR="$SITE_JAWS_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
-    export SITE_JTM_SCRATCH_DIR="$SITE_JTM_SCRATCH_BASEDIR/jaws-$DEPLOYMENT_NAME"
 fi
 
 # Folders for Run inputs and downloads from other jaws-sites
@@ -147,12 +143,12 @@ export SITE_INPUTS_DIR="$SITE_JAWS_SCRATCH_DIR/inputs"
 export SITE_DOWNLOADS_DIR="$SITE_JAWS_SCRATCH_DIR/downloads"
 
 # Cromwell-related dirs
-export SITE_CROMWELL_TMPDIR="$SITE_JTM_SCRATCH_DIR/cromwell-tmp"
+export SITE_CROMWELL_TMPDIR="$SITE_JAWS_SCRATCH_DIR/cromwell-tmp"
 export SITE_CROMWELL_JAR="$INSTALL_DIR/cromwell.jar"
-export SITE_CONTAINERS_PULLDIR="$SITE_JTM_SCRATCH_BASEDIR/${SITE_CONTAINER_TYPE}_files"
+export SITE_CONTAINERS_PULLDIR="$SITE_JAWS_SCRATCH_BASEDIR/${SITE_CONTAINER_TYPE}_files"
 export SITE_CONTAINERS_TMPDIR="$SITE_CONTAINER_TMPDIR/${SITE_CONTAINER_TYPE}_files"
 export CROMWELL_WORKFLOW_LOGS_DIR="$LOGS_DIR/cromwell-workflow-logs"
-export CROMWELL_EXECUTIONS_DIR="$SITE_JTM_SCRATCH_DIR/cromwell-executions"
+export CROMWELL_EXECUTIONS_DIR="$SITE_JAWS_SCRATCH_DIR/cromwell-executions"
 
 # Performance metrics
 export SITE_PERFORMANCE_METRICS_SCRIPT="$INSTALL_DIR/site/bin/pagurus"
@@ -165,10 +161,8 @@ export SITE_VENV_DIR="$INSTALL_DIR/site"
 
 
 ## CREATE DIRS AND SET GROUP AND PERMISSIONS
-## - there are expected to be "jaws" and "jtm" users
-## - "jaws" user belongs to "jaws" and "jtm" groups
-## - "jtm" user belongs to "jtm" group and no others for security purposes
-## - users don't belong to either "jaws" or "jtm" groups (protected)
+## - there are expected to be "jaws" and "user" groups
+## - "jaws" user belongs to "jaws" group but users do not
 function setup_dir {
   local DIR="$1"
   local GROUP="$2"
@@ -194,11 +188,11 @@ SITE_CROMWELL_TMPDIR
 CROMWELL_WORKFLOW_LOGS_DIR
 "
 for DIR in $INSTALL_DIRS; do
-  setup_dir "${!DIR}" "$SITE_JTM_GROUP" 770
+  setup_dir "${!DIR}" "$SITE_JAWS_GROUP" 770
 done
 
-setup_dir "$SITE_JTM_SCRATCH_DIR" "$SITE_JTM_GROUP" 775
-setup_dir "$SITE_INPUTS_DIR" "$SITE_JTM_GROUP" 777
+chmod 775 "$SITE_JAWS_SCRATCH_DIR"
+setup_dir "$SITE_INPUTS_DIR" "$SITE_JAWS_GROUP" 777
 setup_dir "$SITE_DOWNLOADS_DIR" "$SITE_CLIENT_GROUP" 2775
-setup_dir "$CROMWELL_EXECUTIONS_DIR" "$SITE_JTM_GROUP" 775
+setup_dir "$CROMWELL_EXECUTIONS_DIR" "$SITE_JAWS_GROUP" 775
 
