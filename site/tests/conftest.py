@@ -1145,5 +1145,8 @@ def s3():
     """
     with mock_s3():
         s3_client = boto3.client("s3")
-        s3_client.create_bucket(Bucket=S3_BUCKET)
+        s3_client.create_bucket(
+            Bucket=S3_BUCKET,
+            CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+        )
         yield s3_client
