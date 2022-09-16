@@ -997,7 +997,7 @@ class Cromwell:
         return True
 
     def abort(self, workflow_id: str):
-        """Abort a run."""
+        """Abort a run.  Raise upon error."""
         url = f"{self.workflows_url}/{workflow_id}/abort"
         try:
             response = requests.post(url)
