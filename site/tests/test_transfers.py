@@ -13,9 +13,13 @@ from tests.conftest import (
     MockTransferModel,
     initTransferModel,
     MockTransfer,
+    S3_BUCKET
 )
 import sqlalchemy
 import jaws_site
+from jaws_site import transfers
+import botocore
+import boto3
 
 
 def test_mkdir(tmp_path):
@@ -308,3 +312,183 @@ def test_check_queue(mock_sqlalchemy_session, monkeypatch):
     mock_sqlalchemy_session.clear()
     mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
     check_queue(mock_sqlalchemy_session)
+
+
+def test_aws_s3_resource(s3, mock_sqlalchemy_session):
+    mock_data = initTransferModel()
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    s3_resource = transfer.aws_s3_resource()
+    assert s3_resource is not None
+
+
+def test_get_does_not_exist(s3, mock_sqlalchemy_session, monkeypatch):
+    def mock_boto3_session(self):
+        raise Exception
+
+    monkeypatch.setattr(boto3, "Session", mock_boto3_session)
+
+    mock_data = initTransferModel()
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+
+    with pytest.raises(Exception):
+        transfer.aws_s3_resource()
+
+
+class MockS3Session:
+    def __init__(self):
+        pass
+
+    def resource(self, name):
+        raise Exception
+
+
+def test_aws_session_resource_exception(s3, mock_sqlalchemy_session, monkeypatch):
+
+    monkeypatch.setattr(transfers.boto3, "Session", MockS3Session)
+
+    with pytest.raises(Exception):
+        mock_data = initTransferModel()
+        transfer = Transfer(mock_sqlalchemy_session, mock_data)
+        transfer.aws_s3_resource()
+
+
+def test_aws_s3_client(s3, mock_sqlalchemy_session):
+    mock_data = initTransferModel()
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    cl = transfer.aws_s3_client()
+    assert cl is not None
+
+    response = s3.list_objects_v2(Bucket=S3_BUCKET)
+    assert "Contents" not in response.keys()
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+def test_s3_file_size(s3, mock_sqlalchemy_session, monkeypatch):
+    mock_data = initTransferModel()
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer.s3_file_size(S3_BUCKET, "file_key")
+
+    # Test list_objects_v2 ClientError exception
+    class MockS3Client:
+        def __init__(self):
+            pass
+
+        def list_objects_v2(self, Bucket=None, Prefix=None):
+            raise botocore.exceptions.ClientError(
+                error_response={"Error": {"Code": "code", "Message": "message"}},
+                operation_name="operation_name",
+            )
+
+    def mock_aws_s3_client(self):
+        return MockS3Client()
+
+    monkeypatch.setattr(transfers.Transfer, "aws_s3_client", mock_aws_s3_client)
+
+    with pytest.raises(botocore.exceptions.ClientError):
+        transfer.s3_file_size(S3_BUCKET, "file_key")
+
+    # Test list_objects_v2 ValueError exception
+    class MockS3ClientParamValidationError:
+        def __init__(self):
+            pass
+
+        def list_objects_v2(self, Bucket=None, Prefix=None):
+            raise botocore.exceptions.ParamValidationError(report={})
+
+    def mock_aws_s3_client(self):
+        return MockS3ClientParamValidationError()
+
+    monkeypatch.setattr(transfers.Transfer, "aws_s3_client", mock_aws_s3_client)
+
+    with pytest.raises(ValueError):
+        transfer.s3_file_size(S3_BUCKET, "file_key")
+
+    # Test list_objects_v2  exception
+    class MockS3ClientException:
+        def __init__(self):
+            pass
+
+        def list_objects_v2(self, Bucket=None, Prefix=None):
+            raise Exception
+
+    def mock_aws_s3_client(self):
+        return MockS3ClientException()
+
+    monkeypatch.setattr(transfers.Transfer, "aws_s3_client", mock_aws_s3_client)
+
+    with pytest.raises(Exception):
+        transfer.s3_file_size(S3_BUCKET, "file_key")
+
+    # Test if Contents, size=1
+    class MockS3Client2:
+        def __init__(self):
+            pass
+
+        def list_objects_v2(self, Bucket=None, Prefix=None):
+            return {"Contents": [{"Size": 1}]}
+
+    def mock_aws_s3_client(self):
+        return MockS3Client2()
+
+    monkeypatch.setattr(transfers.Transfer, "aws_s3_client", mock_aws_s3_client)
+
+    transfer.s3_file_size(S3_BUCKET, "file_key")
+
+    # Test if Contents, size>=1
+    class MockS3Client3:
+        def __init__(self):
+            pass
+
+        def list_objects_v2(self, Bucket=None, Prefix=None):
+            return {
+                "Contents": [
+                    {"Size": 2, "Key": "file_key"},
+                    {"Size": 3, "Key": "file_key"},
+                ]
+            }
+
+    def mock_aws_s3_client(self):
+        return MockS3Client3()
+
+    monkeypatch.setattr(transfers.Transfer, "aws_s3_client", mock_aws_s3_client)
+
+    transfer.s3_file_size(S3_BUCKET, "file_key")
+
+
+def test_s3_upload(s3, mock_sqlalchemy_session, monkeypatch):
+    def mock_manifest(self):
+        return ["file1", "file2", "file3"]
+
+    monkeypatch.setattr(transfers.Transfer, "manifest", mock_manifest)
+
+    def mock_get_size(self):
+        return 10
+
+    monkeypatch.setattr(os.path, "getsize", mock_get_size)
+
+    mock_data = initTransferModel()
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+
+    with pytest.raises(ValueError):
+        transfer.s3_upload()
+
+
+def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
+    def mock_manifest(self):
+        return ["file1", "file2", "file3"]
+
+    monkeypatch.setattr(transfers.Transfer, "manifest", mock_manifest)
+
+    mock_data = initTransferModel()
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+
+    with pytest.raises(OSError):
+        transfer.s3_download()
+
+
+def test_s3_download_folder(s3, mock_sqlalchemy_session, monkeypatch):
+    mock_data = initTransferModel()
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+
+    with pytest.raises(botocore.exceptions.ParamValidationError):
+        transfer.s3_download_folder()

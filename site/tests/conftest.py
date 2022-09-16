@@ -12,8 +12,11 @@ from dataclasses import dataclass
 from jaws_site import models, config, cromwell
 import sqlalchemy
 from sqlalchemy.orm.exc import NoResultFound
+from moto import mock_s3
+import boto3
 
 
+S3_BUCKET = "site"
 this_date = datetime.today()
 
 
@@ -1128,3 +1131,16 @@ def mock_metadata(monkeypatch):
         return mock_metadata
 
     monkeypatch.setattr(cromwell.Cromwell, "get_metadata", mock_cromwell_get_metadata)
+
+
+@pytest.fixture
+def s3():
+    """Pytest fixture that creates the recipes bucket in
+    the fake moto AWS account
+
+    Yields a fake boto3 s3 client
+    """
+    with mock_s3():
+        s3_client = boto3.client("s3")
+        s3_client.create_bucket(Bucket=S3_BUCKET)
+        yield s3_client

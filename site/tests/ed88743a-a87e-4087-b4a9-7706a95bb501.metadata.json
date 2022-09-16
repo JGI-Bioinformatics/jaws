@@ -1,4 +1,4 @@
-{ 
+{
     "actualWorkflowLanguage": "WDL",
     "actualWorkflowLanguageVersion": "draft-2",
     "calls": {

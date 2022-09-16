@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import json
 import boto3
 from jaws_site import config, models
+import botocore
 
 
 logger = logging.getLogger(__package__)
@@ -223,9 +224,13 @@ class Transfer:
             aws_s3_client = self.aws_s3_client()
         try:
             result = aws_s3_client.list_objects_v2(Bucket=bucket, Prefix=file_key)
-        except boto3.ClientError as error:
+        except botocore.exceptions.ClientError as error:
             logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
             raise
+        except botocore.exceptions.ParamValidationError as error:
+            raise ValueError(
+                "The parameters you provided are incorrect: {}".format(error)
+            )
         except Exception as error:
             logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
             raise

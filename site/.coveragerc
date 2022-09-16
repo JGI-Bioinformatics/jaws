@@ -1,10 +1,12 @@
 [flake8]
 filename = *.py,*.pyx,*.pxd,*.pxi
+
 [run]
+branch = True
 omit =
-    site/jaws_site/run_daemon.py
-    site/jaws_site/transfer_daemon.py
-    site/jaws_site/perf_metrics_daemon.py
-    site/jaws_site/cli.py
-    site/jaws_site/rpc_es.py
-    site/tests/*.json
+    jaws_site/run_daemon.py
+    jaws_site/transfer_daemon.py
+    jaws_site/perf_metrics_daemon.py
+    jaws_site/cli.py
+    jaws_site/rpc_es.py
+    tests/*.json
