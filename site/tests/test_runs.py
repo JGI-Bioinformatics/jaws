@@ -761,8 +761,7 @@ def test_cancel2(mock_metadata, mock_sqlalchemy_session, monkeypatch):
 
     data = initRunModel(status="submitted")
     run = Run(mock_sqlalchemy_session, data)
-    with pytest.raises(CromwellError):
-        run.cancel()
+    run.cancel()
 
     # Test RunDbError
     def mock_update_run_status(self, status):

@@ -268,6 +268,9 @@ class MockRun:
     def task_summary(self):
         return {"test": "success"}
 
+    def mark_to_cancel(self):
+        return {"test": "success"}
+
 
 class MockCromwell:
     def __init__(self, url="localhost"):
