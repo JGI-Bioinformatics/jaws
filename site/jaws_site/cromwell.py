@@ -166,7 +166,9 @@ class Call:
         self.result = None
         self.cached = False
         self.return_code = data.get("returnCode", None)
-        self.start = parser.parse(data["start"]).strftime("%Y-%m-%d %H:%M:%S")
+        self.start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # ECCE!
+        if "start" in data:
+            self.start = parser.parse(data["start"]).strftime("%Y-%m-%d %H:%M:%S")
         self.end = None
         if "end" in data:
             self.end = parser.parse(data["end"]).strftime("%Y-%m-%d %H:%M:%S")
