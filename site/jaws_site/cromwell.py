@@ -980,7 +980,9 @@ class Cromwell:
         if response.status_code == 404:
             raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
         elif response.status_code >= 400:
-            raise CromwellServiceError(f"Error retrieving Cromwell metadata: code {response.status_code}")
+            raise CromwellServiceError(
+                f"Error retrieving Cromwell metadata: code {response.status_code}"
+            )
         data = response.json()
         return Metadata(data)
 
@@ -991,7 +993,9 @@ class Cromwell:
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         if response.status_code >= 400:
-            raise CromwellServiceError(f"Error retrieving Cromwell status: code {response.status_code}")
+            raise CromwellServiceError(
+                f"Error retrieving Cromwell status: code {response.status_code}"
+            )
         return True
 
     def abort(self, workflow_id: str):
@@ -1005,7 +1009,9 @@ class Cromwell:
         if sc == 200:
             return
         elif sc == 400:
-            raise CromwellRunNotFoundError(f"Abort failed for malformed workflow id: {workflow_id}")
+            raise CromwellRunError(
+                f"Abort failed for malformed workflow id: {workflow_id}"
+            )
         elif sc == 403:
             return  # too late to cancel; do not raise
         elif sc == 404:
@@ -1071,7 +1077,9 @@ class Cromwell:
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         if response.status_code >= 400:
-            raise CromwellServiceError(f"Error retrieving Cromwell status: code {response.status_code}")
+            raise CromwellServiceError(
+                f"Error retrieving Cromwell status: code {response.status_code}"
+            )
         run_id = response.json()["id"]
         return run_id
 
@@ -1089,7 +1097,9 @@ class Cromwell:
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         if response.status_code >= 400:
-            raise CromwellServiceError(f"Error retrieving Cromwell status: code {response.status_code}")
+            raise CromwellServiceError(
+                f"Error retrieving Cromwell status: code {response.status_code}"
+            )
         result = response.json()
         return result["status"]
 

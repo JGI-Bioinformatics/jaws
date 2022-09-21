@@ -1,6 +1,8 @@
 import jaws_site.config
 import os
 import pytest
+from jaws_site.config import ConfigurationError
+
 
 # Move large variable declarations out method definition to here
 expected_local_rpc_server_sections = [
@@ -9,8 +11,8 @@ expected_local_rpc_server_sections = [
     ("queue", "site_rpc"),
     ("user", "jaws"),
     ("password", "passw0rd1"),
-    ("password2", '${LOCAL_RPC_SERVER_PASSWORD}'),
-    ("password3", '${LOCAL_RPC_SERVER_PASSWORD}$'),
+    ("password2", "${LOCAL_RPC_SERVER_PASSWORD}"),
+    ("password3", "${LOCAL_RPC_SERVER_PASSWORD}$"),
     ("num_threads", "5"),
     ("max_retries", "3"),
 ]
@@ -21,8 +23,8 @@ expected_local_rpc_server_sections_env = [
     ("queue", "site_rpc"),
     ("user", "jaws"),
     ("password", "passw0rd1"),
-    ("password2", 'password'),
-    ("password3", 'password$'),
+    ("password2", "password"),
+    ("password3", "password$"),
     ("num_threads", "5"),
     ("max_retries", "3"),
 ]
@@ -61,7 +63,7 @@ expected_db_sections_env_override = [
     ("password", "hunting"),
     ("db", "hunting_sites"),
     ("host2", "db_over.foobar.com"),
-    ("password2", "over_password123")
+    ("password2", "over_password123"),
 ]
 
 expected_db_sections_env_override2 = [
@@ -80,13 +82,12 @@ expected_site_sections = [
     ("inputs_dir", "/global/scratch/jaws/jaws-dev/inputs"),
 ]
 
-expected_cromwell_sections = [
-    ("url", "http://localhost:8000")]
+expected_cromwell_sections = [("url", "http://localhost:8000")]
 
 
 def check_section(section_to_test, expected_entries, actual_config):
     for section, expected in expected_entries:
-        print(section, expected, actual_config.get(section_to_test, section))
+        # print(section, expected, actual_config.get(section_to_test, section))
         assert actual_config.get(section_to_test, section) == expected
 
 
@@ -101,24 +102,24 @@ def test_overwrite_all_default_values(config_file):
     config_path = config_file
     cfg = jaws_site.config.Configuration(config_path)
 
-    print("Checking LOCAL_RPC_SERVER without environment variables set.")
+    # print("Checking LOCAL_RPC_SERVER without environment variables set.")
     # Clear potentially conflicting env vars
     try:
-        del os.environ['LOCAL_RPC_SERVER_PASSWORD']
+        del os.environ["LOCAL_RPC_SERVER_PASSWORD"]
     except KeyError:
         pass
     check_section("LOCAL_RPC_SERVER", expected_local_rpc_server_sections, cfg)
-    print("Checking LOCAL_RPC_SERVER with environment variables set.")
-    os.environ['LOCAL_RPC_SERVER_PASSWORD'] = 'password'
+    # print("Checking LOCAL_RPC_SERVER with environment variables set.")
+    os.environ["LOCAL_RPC_SERVER_PASSWORD"] = "password"
     check_section("LOCAL_RPC_SERVER", expected_local_rpc_server_sections_env, cfg)
     check_section("RPC_SERVER", expected_central_rpc_server_sections, cfg)
     check_section("CENTRAL_RPC_CLIENT", expected_rpc_client_sections, cfg)
     # Clear potentially conflicting env vars
     try:
-        del os.environ['PROJECT_NAME']
+        del os.environ["PROJECT_NAME"]
     except KeyError:
         pass
-    os.environ['PROJECT_NAME'] = 'jaws'
+    os.environ["PROJECT_NAME"] = "jaws"
     check_section("DB", expected_db_sections, cfg)
     check_section("SITE", expected_site_sections, cfg)
     check_section("CROMWELL", expected_cromwell_sections, cfg)
@@ -147,7 +148,7 @@ def test_env_override(config_file):
     except Exception:
         pass
     config_path = config_file
-    print("Test exception when env_override value is longer than 20 chars")
+    # print("Test exception when env_override value is longer than 20 chars")
     with pytest.raises(ValueError):
         jaws_site.config.Configuration(config_path, "012345678901234567890_")
 
@@ -155,7 +156,7 @@ def test_env_override(config_file):
         jaws_site.config.Configuration._destructor()
     except Exception:
         pass
-    print("Test exception when env_override value is shorter than 3 chars")
+    # print("Test exception when env_override value is shorter than 3 chars")
     with pytest.raises(ValueError):
         jaws_site.config.Configuration(config_path, "0_")
 
@@ -166,7 +167,7 @@ def test_env_override(config_file):
     cfg = jaws_site.config.Configuration(config_path)
     # Make sure that the _vars attribute in the interpolation object is "NONE" because
     # there was no env_override value set
-    print("Verifying that the _vars instance variable is NONE")
+    # print("Verifying that the _vars instance variable is NONE")
     assert cfg.config._vars is None
     try:
         jaws_site.config.Configuration._destructor()
@@ -191,22 +192,22 @@ def test_env_override(config_file):
 
     os.environ["ENV__host2"] = "db_over.foobar.com"
     os.environ["ENV__password2"] = "over_password123"
-    print("Recreating new JAWSConfig object with env_override set to ENV__")
+    # print("Recreating new JAWSConfig object with env_override set to ENV__")
     cfg = jaws_site.config.Configuration(config_path, "ENV__")
-    print("Verifying that _vars attribute has picked up environment variables")
+    # print("Verifying that _vars attribute has picked up environment variables")
     assert cfg.config._vars is not None
     assert len(cfg.config._vars) == 2
-    assert cfg.config._vars['host2'] == "db_over.foobar.com"
-    assert cfg.config._vars['password2'] == "over_password123"
+    assert cfg.config._vars["host2"] == "db_over.foobar.com"
+    assert cfg.config._vars["password2"] == "over_password123"
 
-    print("Retesting with env_prefix set")
+    # print("Retesting with env_prefix set")
     check_section("DB", expected_db_sections_env_override, cfg)
 
     try:
         jaws_site.config.Configuration._destructor()
     except Exception:
         pass
-    print("Testing with env_prefix set and section names")
+    # print("Testing with env_prefix set and section names")
     os.environ["JAWS_DB_HOST"] = "db.foobar.com"
     os.environ["JAWS_DB_PASSWORD"] = "password"
     os.environ["ENV__DB_host"] = "db-host.foo.com"
@@ -225,8 +226,104 @@ def test_env_override(config_file):
     # Check [DB]host setting after clearing errors
     cfg = jaws_site.config.Configuration(config_path, "ENV__")
     assert "DB" in cfg.config._vars
-    assert cfg.config['DB']['host'] == os.environ["ENV__DB_host"]
-    assert cfg.config['DB']['test'] == os.environ["ENV__DB_test"]
-    assert cfg.get_section("DB")['host'] == cfg.config['DB']['host']
+    assert cfg.config["DB"]["host"] == os.environ["ENV__DB_host"]
+    assert cfg.config["DB"]["test"] == os.environ["ENV__DB_test"]
+    assert cfg.get_section("DB")["host"] == cfg.config["DB"]["host"]
 
     check_section("DB", expected_db_sections_env_override2, cfg)
+
+
+@pytest.mark.parametrize(
+    "section, key",
+    [
+        ("RPC_SERVER", "user"),
+    ],
+)
+def test_get(partial_config, section, key):
+    # call destructor to remove old references
+    try:
+        jaws_site.config.Configuration._destructor()
+    except Exception:
+        pass
+
+    config_path = partial_config
+    cfg = jaws_site.config.Configuration(config_path)
+    assert cfg.config._vars is None
+    assert cfg.get(section, key) == "bugs_bunny"
+
+
+@pytest.mark.parametrize(
+    "section, key",
+    [
+        ("RPC_SERVER_xxx", "user_xxx"),
+    ],
+)
+def test_get_wrong_key(partial_config, section, key):
+    # call destructor to remove old references
+    try:
+        jaws_site.config.Configuration._destructor()
+    except Exception:
+        pass
+
+    config_path = partial_config
+    cfg = jaws_site.config.Configuration(config_path)
+    assert cfg.config._vars is None
+    with pytest.raises(ConfigurationError):
+        cfg.get(section, key)
+
+
+@pytest.mark.parametrize(
+    "section, key",
+    [
+        ("RPC_SERVER", "user"),
+    ],
+)
+def test_get_exception(config_file_wrong, section, key):
+    # call destructor to remove old references
+    try:
+        jaws_site.config.Configuration._destructor()
+    except Exception:
+        pass
+
+    config_path = config_file_wrong
+    with pytest.raises(ValueError):
+        jaws_site.config.Configuration(config_path)
+
+
+@pytest.mark.parametrize(
+    "section",
+    [
+        ("RPC_SERVER"),
+    ],
+)
+def test_get_section(partial_config, section):
+    # call destructor to remove old references
+    try:
+        jaws_site.config.Configuration._destructor()
+    except Exception:
+        pass
+
+    config_path = partial_config
+    cfg = jaws_site.config.Configuration(config_path)
+    assert cfg.config._vars is None
+    # print(cfg.get_section(section))
+    assert cfg.get_section(section) == {
+        "host": "https://rmq.nersc.gov",
+        "port": "5672",
+        "user": "bugs_bunny",
+        "password": "xqweasdasa",
+        "num_threads": "5",
+        "max_retries": "10",
+        "vhost": "jaws_test",
+    }
+
+
+def test_file_not_found_config(file_not_found_config):
+    try:
+        jaws_site.config.Configuration._destructor()
+
+    except Exception:
+        pass
+    config_path = file_not_found_config
+    with pytest.raises(FileNotFoundError):
+        jaws_site.config.Configuration(config_path)

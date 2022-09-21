@@ -1,8 +1,19 @@
+import pytest
 import json
 import os
 import glob
 from deepdiff import DeepDiff
 from jaws_site import cromwell
+from jaws_site.cromwell import (
+    CallError,
+    TaskError,
+    CromwellServiceError,
+    CromwellRunError,
+    CromwellRunNotFoundError,
+)
+import requests
+import io
+
 
 tests_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -56,6 +67,89 @@ def test_get_metadata(requests_mock):
     metadata1 = crom.get_metadata(example_cromwell_run_id_1)
     assert expectedWorkflowRoot == metadata1.get("workflowRoot")
 
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
+        status_code=404,
+    )
+    with pytest.raises(CromwellRunNotFoundError):
+        crom.get_metadata(example_cromwell_run_id_1)
+
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
+        status_code=500,
+    )
+    with pytest.raises(CromwellServiceError):
+        crom.get_metadata(example_cromwell_run_id_1)
+
+
+def test_submit(requests_mock):
+    requests_mock.post(
+        f"{example_cromwell_url}/submit",
+    )
+    f_handles = {"wdl": {}}
+    options = {}
+    with pytest.raises(CromwellRunError):
+        crom.submit(f_handles, options)
+
+
+def test__options_fh():
+    ret = crom._options_fh(default_container="shifter")
+
+    assert isinstance(ret, io.StringIO)
+
+
+def test_status(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/engine/v1/status",
+    )
+    ret = crom.status()
+    assert ret is True
+
+    requests_mock.get(f"{example_cromwell_url}/engine/v1/status", status_code=500)
+    with pytest.raises(CromwellServiceError):
+        crom.status()
+
+
+def test_get_status(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/status",
+        json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
+    )
+    ret = crom.get_status(example_cromwell_run_id_1)
+    assert ret == "Succeeded"
+
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_3}/status",
+        json=__load_example_output_from_file(example_cromwell_run_id_3, "metadata"),
+    )
+    ret = crom.get_status(example_cromwell_run_id_3)
+    assert ret == "Failed"
+
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_3}/status",
+        body=requests.exceptions.ConnectionError(),
+    )
+    with pytest.raises(ValueError):
+        crom.get_status(example_cromwell_run_id_3)
+
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_3}/status",
+        json={"status_code": 500, "status": "failed"},
+        status_code=500,
+    )
+    with pytest.raises(CromwellServiceError):
+        crom.get_status(example_cromwell_run_id_3)
+
+
+def test_workflow_name(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_9}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_9, "metadata"),
+    )
+    metadata = crom.get_metadata(example_cromwell_run_id_9)
+    ret = metadata.workflow_name()
+    assert ret == "jgi_meta"
+
 
 def test_workflow_root(requests_mock):
     requests_mock.get(
@@ -66,6 +160,9 @@ def test_workflow_root(requests_mock):
     metadata = crom.get_metadata(example_cromwell_run_id_9)
     actual = metadata.workflow_root()
     assert expected == actual
+
+    actual = metadata.workflow_root(executions_dir="/test")
+    assert actual == "/test/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d"
 
 
 def test_task(requests_mock):
@@ -301,7 +398,7 @@ def test_running(requests_mock, monkeypatch):
     )
     metadata_10 = crom.get_metadata(example_cromwell_run_id_10)
     actual_running_report_10 = metadata_10.running()
-    print(actual_running_report_10)
+    # print(actual_running_report_10)
     assert (
         bool(
             DeepDiff(
@@ -364,6 +461,19 @@ def test_outfiles(requests_mock):
         is False
     )
 
+    actual_outfiles_1 = ex_1.outfiles(complete=False, relpath=True)
+    assert actual_outfiles_1 == ["./call-count_seqs/execution/num_seqs.txt"]
+
+    actual_outfiles_1 = ex_1.outfiles(complete=False, relpath=False)
+    assert actual_outfiles_1 == [
+        "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"  # noqa
+    ]  # noqa
+
+    actual_outfiles_1 = ex_1.outfiles(relpath=False)
+    assert actual_outfiles_1 == [
+        "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"  # noqa
+    ]  # noqa
+
     # test 2 : outputs list
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_8}/metadata",
@@ -422,6 +532,16 @@ def test_outfiles(requests_mock):
     )
 
 
+def test_started_running(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
+    )
+    metadata = crom.get_metadata(example_cromwell_run_id_2)
+    ret = metadata.started_running()
+    assert ret is True
+
+
 def test_job_summary(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
@@ -441,7 +561,6 @@ def test_job_summary(requests_mock):
 
 
 def test_parse_cromwell_task_dir():
-
     test_data = [
         [
             "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9/execution",  # noqa
@@ -530,10 +649,60 @@ def test_parse_cromwell_task_dir():
         ],
     ]
 
-    for task_dir, expected in test_data:
+    for task_dir, expected in test_data[:-1]:
         actual = cromwell.parse_cromwell_task_dir(task_dir)
-        print(actual, flush=True)
+        # print(actual, flush=True)
         assert actual == expected
+
+    test_data = [
+        "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/cacheCopy/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
+        # noqa
+        {
+            "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/cacheCopy/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello",  # noqa
+            # noqa
+            "cached": True,
+            "shard": -1,
+            "name": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+            "call_root_rel_path": "main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/cacheCopy/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
+            # noqa
+            "wdl_name": "main_workflow",
+            "cromwell_run_id": "e7f02164-2d3d-4cfb-828a-f3da23c43280",
+            "task_name": "hello_and_goodbye_1",
+            "subworkflow_name": "cacheCopy",
+            "subworkflow_cromwell_run_id": "3327f701-769a-49fe-b407-eb4be3a4a373",
+            "sub_task_name": "hello",
+        },
+    ]
+
+    actual = cromwell.parse_cromwell_task_dir(test_data[0])
+    assert actual["cached"] is True
+
+    # Test if not fields[0].startswith("call-"):
+    test_data = [
+        "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/callxxx-hello_and_goodbye_1/cacheCopy/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
+        # noqa
+        {},
+    ]
+
+    cromwell.parse_cromwell_task_dir(test_data[0])
+
+    # Test no "cromwell-execution"
+    test_data = [
+        "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions-xxx/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/callxxx-hello_and_goodbye_1/cacheCopy/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
+        # noqa
+        {},
+    ]
+
+    with pytest.raises(ValueError):
+        cromwell.parse_cromwell_task_dir(test_data[0])
+
+    # Test task_dir is float
+    test_data = [
+        1.2222,
+        {},
+    ]
+
+    cromwell.parse_cromwell_task_dir(test_data[0])
 
 
 def test_sort_table():
@@ -572,3 +741,90 @@ def test_sort_table_dict():
     expected = [{"id": 51, "key": "A"}, {"id": 41, "key": "B"}]
     actual = cromwell.sort_table_dict(test_table, "key")
     assert bool(DeepDiff(actual, expected, ignore_order=False)) is False
+
+
+def test_s3_parse_uri():
+    ret = cromwell.s3_parse_uri("s3://abc/abc/eee")
+    assert ret == ("abc", "abc/eee")
+
+
+def test__read_file_nfs(config_file, file_not_found_config):
+    ret = cromwell._read_file_nfs(config_file)
+    assert "[LOCAL_RPC_SERVER]" in ret
+    assert "s3_bucket = CCCC" in ret
+
+    with pytest.raises(OSError):
+        cromwell._read_file_nfs(file_not_found_config)
+
+
+def test__read_file(config_file, monkeypatch):
+    ret = cromwell._read_file(config_file)
+    assert "[LOCAL_RPC_SERVER]" in ret
+    assert "s3_bucket = CCCC" in ret
+
+    def mock__read_file_s3(path):
+        return True
+
+    monkeypatch.setattr(cromwell, "_read_file_s3", mock__read_file_s3)
+
+    ret = cromwell._read_file("s3://abc/abc/eee")
+    assert ret is True
+
+
+def test___init():
+    with pytest.raises(CallError):
+        cromwell.Call("subWorkflowMetadata", "token_name")
+
+    data = {"shardIndex": 10, "start": "12:00:00"}
+    call = cromwell.Call(data, "task_name")
+    assert call.shard_index == 10
+    assert call.name == "task_name[10]"
+
+    data = {"shardIndex": -1, "start": "12:00:00"}
+    call = cromwell.Call(data, "task_name")
+    assert call.shard_index == -1
+    assert call.name == "task_name"
+
+    data = {"shardIndex": -1, "start": "12:00:00", "executionStatus": "Failure"}
+    call = cromwell.Call(data, "task_name")
+    assert call.execution_status == "Failure"
+
+    data = {"shardIndex": -1, "start": "12:00:00", "executionStatus": "Done"}
+    call = cromwell.Call(data, "task_name")
+    assert call.execution_status == "Done"
+
+
+def test__get_file_path(config_file):
+    data = {
+        "shardIndex": -1,
+        "start": "12:00:00",
+        "executionStatus": "Done",
+        "stdout": config_file,
+        "stderr": config_file,
+    }
+    call = cromwell.Call(data, "task_name")
+
+    file_id = "stdoutxxx"
+    with pytest.raises(TaskError):
+        call._get_file_path(file_id)
+
+    file_id = "stdout"
+    ret = call._get_file_path(file_id)
+    assert ret == config_file
+
+    file_id = "stderr"
+    ret = call._get_file_path(file_id)
+    assert ret == config_file
+
+    file_id = "stdout"
+    with pytest.raises(TaskError):
+        call._get_file_path(file_id, relpath=True)
+
+    call.call_root = "not_none"
+    file_id = "stderr"
+    ret = call._get_file_path(file_id, relpath=True)
+    assert "not_none" in ret
+
+    file_id = "stderr"
+    ret = call._get_file_path(file_id, relpath=True)
+    assert "not_none" in ret

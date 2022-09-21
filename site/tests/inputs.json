@@ -1,0 +1,6 @@
+{
+  "main_wdl.fastq": "/global/JAWS/data/veryshort.fastq.bz2",
+  "main_wdl.reference": "/global/JAWS/data/DOE_UTEX.polished.t635masked.fasta",
+  "main_wdl.bbmap_shard_wf.chunk_size": "100000000",
+  "main_wdl.bbtools_mem": "10G"
+}
