@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import json
 import boto3
 from jaws_site import config, models
+import botocore
 
 
 logger = logging.getLogger(__package__)
@@ -56,12 +57,18 @@ class Transfer:
         """Create new transfer from parameter values and save in RDb."""
         manifest_json = "[]"
         if "manifest" in params:
-            assert type(params["manifest"]) == list
+            assert isinstance(params["manifest"], list)
             manifest_json = json.dumps(params["manifest"])
         elif "manifest_json" in params:
-            assert (params["manifest_json"]) == str
+            assert isinstance(params["manifest_json"], str)
             manifest_json = params["manifest_json"]
         try:
+            if (
+                not isinstance(params["transfer_id"], int)
+                or not isinstance(params["src_base_dir"], str)
+                or not isinstance(params["dest_base_dir"], str)
+            ):
+                raise SQLAlchemyError
             data = models.Transfer(
                 id=params["transfer_id"],
                 status="queued",
@@ -158,7 +165,7 @@ class Transfer:
                 self.update_status("failed")
         except Exception as error:
             logger.error(f"Transfer {self.data.id} failed: {error}")
-            self.update_status("failed", error)
+            self.update_status("failed")
         else:
             self.update_status("succeeded")
 
@@ -198,7 +205,7 @@ class Transfer:
         folders = full_path.split("/")
         s3_bucket = folders.pop(0)
         path = "/".join(folders)
-        print(f"S3 BUCKET={s3_bucket}; PATH={path}")
+        # print(f"S3 BUCKET={s3_bucket}; PATH={path}")
         return s3_bucket, path
 
     def s3_file_size(self, bucket, file_key, aws_s3_client=None):
@@ -217,9 +224,13 @@ class Transfer:
             aws_s3_client = self.aws_s3_client()
         try:
             result = aws_s3_client.list_objects_v2(Bucket=bucket, Prefix=file_key)
-        except boto3.ClientError as error:
+        except botocore.exceptions.ClientError as error:
             logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
             raise
+        except botocore.exceptions.ParamValidationError as error:
+            raise ValueError(
+                "The parameters you provided are incorrect: {}".format(error)
+            )
         except Exception as error:
             logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
             raise
@@ -375,6 +386,7 @@ def check_queue(session) -> None:
     Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
     transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
     """
+    rows = []
     try:
         rows = (
             session.query(models.Transfer)

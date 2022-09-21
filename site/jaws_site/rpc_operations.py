@@ -161,7 +161,9 @@ def run_running_tasks(params, session):
     :return: running tasks report
     :rtype: dict
     """
-    logger.info(f"User {params['user_id']}: Run {params['run_id']} running-tasks report")
+    logger.info(
+        f"User {params['user_id']}: Run {params['run_id']} running-tasks report"
+    )
     try:
         run = Run.from_id(session, params["run_id"])
         result = run.running_tasks()
@@ -235,10 +237,7 @@ def transfer_status(params, session):
         logger.error(f"Transfer {params['transfer_id']} status failed: {error}")
         return failure(error)
     else:
-        result = {
-            "status": transfer.status(),
-            "reason": transfer.reason()
-        }
+        result = {"status": transfer.status(), "reason": transfer.reason()}
         return success(result)
 
 

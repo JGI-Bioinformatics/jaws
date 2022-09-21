@@ -21,7 +21,7 @@ class PerformanceMetrics:
         self.rpc_client = rpc_client
 
     @lru_cache()
-    def get_run_id(self, cromwell_run_id: str) -> int:
+    def get_rget_run_idun_id(self, cromwell_run_id: str) -> int:
         """Given a cromwell run id, return the jaws run id."""
         try:
             run = runs.Run.from_cromwell_run_id(self.session, cromwell_run_id)
@@ -59,8 +59,8 @@ class PerformanceMetrics:
 
         # Removes bash and tee processes which are part of
         # cromwell or other wrapper scripts
-        csv_data = csv_data[csv_data.name != 'bash']
-        csv_data = csv_data[csv_data.name != 'tee']
+        csv_data = csv_data[csv_data.name != "bash"]
+        csv_data = csv_data[csv_data.name != "tee"]
 
         # If we have a cromwell-id then get the jaws id by calling jaws db
         csv_data["jaws_run_id"] = csv_data.cromwell_run_id.apply(self.get_run_id)
@@ -77,11 +77,11 @@ class PerformanceMetrics:
         csv_data["mem_total"] = csv_data["mem_rss"] + csv_data["mem_vms"]
 
         # Group by unique values to get a specific
-        grouped_csv = csv_data.groupby(['cromwell_run_id', 'task_name', 'pid', 'name'])
+        grouped_csv = csv_data.groupby(["cromwell_run_id", "task_name", "pid", "name"])
         csv_data = grouped_csv.apply(get_grouped_data)
 
         # Grouping does not preserve the index so we re-set the index to the timestamp
-        csv_data = csv_data.set_index(pd.DatetimeIndex(csv_data['@timestamp']))
+        csv_data = csv_data.set_index(pd.DatetimeIndex(csv_data["@timestamp"]))
 
         csv_data["num_fds"] = csv_data["num_fds"].replace(["None"], np.nan)
         csv_data.fillna(0, inplace=True)
@@ -138,7 +138,9 @@ class PerformanceMetrics:
                 # Submit doc to RMQ to be picked up by logstash and inserted into elasticsearch
                 response, status_code = self.rpc_client.request(doc)
                 if status_code:
-                    logger.error(f"Failed to publish metrics into elasticsearch: {response=}")
+                    logger.error(
+                        f"Failed to publish metrics into elasticsearch: {response=}"
+                    )
                     continue
 
             # Move csv file to processed folder
@@ -148,39 +150,39 @@ class PerformanceMetrics:
 
 def compute_rates(data_series: pd.Series, rolling_time: int = 10) -> pd.Series:
     """Takes a series and computes the derivative over a window and normalizes the values
-        back to a rate or percentage based on the window size.
+    back to a rate or percentage based on the window size.
 
-        :param data_series: Series of data to take the rolling difference on to get rate
-        :type data_series: pd.Series
-        :param rolling_time: Time in seconds for rolling window to look at data over
-        :type rolling_time: int
-        :return: pd.Series
+    :param data_series: Series of data to take the rolling difference on to get rate
+    :type data_series: pd.Series
+    :param rolling_time: Time in seconds for rolling window to look at data over
+    :type rolling_time: int
+    :return: pd.Series
     """
     # Gets a rolling window over a specific time period
-    rolling = data_series.rolling(f'{rolling_time}s')
+    rolling = data_series.rolling(f"{rolling_time}s")
     # Takes the last - first value to get the difference over the rolling window
     diff = rolling.apply(lambda x: x.iloc[-1] - x.iloc[0])
     # Normalize based on the rolling window to get the rate/percentage correclty
-    rate = (100/rolling_time) * diff
+    rate = (100 / rolling_time) * diff
     return rate
 
 
 def get_grouped_data(data: pd.DataFrame, rolling_time: int = 10) -> pd.DataFrame:
     """Takes a single group from a dataframe which has a groupby
-        and computes cpu and data rates at each piont
+    and computes cpu and data rates at each piont
 
-        :param data: Dataframe with grouped data
-        :type data: pd.DataFrame
-        :param rolling_time: Time in seconds for rolling window to look at data over
-        :type rolling_time: int
-        :return: pd.DataFrame
+    :param data: Dataframe with grouped data
+    :type data: pd.DataFrame
+    :param rolling_time: Time in seconds for rolling window to look at data over
+    :type rolling_time: int
+    :return: pd.DataFrame
     """
     # Saves column names from the data
     col = data.columns
 
     # Check if there is data in the dataframe
     if len(data) == 0:
-        logging.warning('No data in group: Empty DataFrame')
+        logging.warning("No data in group: Empty DataFrame")
         return pd.DataFrame([], columns=col)
 
     # Make sure our columns are sorted to compute rates properly
@@ -188,33 +190,45 @@ def get_grouped_data(data: pd.DataFrame, rolling_time: int = 10) -> pd.DataFrame
     # Gets the start time of the data
     start_time = data.index[0]
     # Place the time the processes has been running since at each pont
-    data['running_time'] = (data.index - start_time).total_seconds()
+    data["running_time"] = (data.index - start_time).total_seconds()
 
     # remove entries with runtines shorter then the rolling window
-    if np.max(data['running_time']) < rolling_time:
+    if np.max(data["running_time"]) < rolling_time:
         # retruns empty dataframe with the correct column names
         return pd.DataFrame([], columns=col)
 
     try:
         # Calculates the percentages for different parts of the cpu per point
-        data['cpu_percentage_user'] = compute_rates(data["cpu_user"], rolling_time=rolling_time)
-        data['cpu_percentage_system'] = compute_rates(data["cpu_system"], rolling_time=rolling_time)
-        data['cpu_percentage_iowait'] = compute_rates(data["cpu_iowait"], rolling_time=rolling_time)
-        data['cpu_percentage_total'] = compute_rates(data["cpu_user"] + data["cpu_system"] +
-                                                     data["cpu_iowait"], rolling_time=rolling_time)
+        data["cpu_percentage_user"] = compute_rates(
+            data["cpu_user"], rolling_time=rolling_time
+        )
+        data["cpu_percentage_system"] = compute_rates(
+            data["cpu_system"], rolling_time=rolling_time
+        )
+        data["cpu_percentage_iowait"] = compute_rates(
+            data["cpu_iowait"], rolling_time=rolling_time
+        )
+        data["cpu_percentage_total"] = compute_rates(
+            data["cpu_user"] + data["cpu_system"] + data["cpu_iowait"],
+            rolling_time=rolling_time,
+        )
     except Exception as e:
-        logger.warning(f"Error computing cpu percentage {data=}, {type(e).__name__} : {e}")
+        logger.warning(
+            f"Error computing cpu percentage {data=}, {type(e).__name__} : {e}"
+        )
         return pd.DataFrame([], columns=col)
 
     # remove entries with low cpu usage
-    if np.mean(data['cpu_percentage_total']) < 0.1:
+    if np.mean(data["cpu_percentage_total"]) < 0.1:
         # retruns empty dataframe with the correct column names
         return pd.DataFrame([], columns=col)
     try:
         # Calculates the data rates for read and write
-        for rw in ['read', 'write']:
+        for rw in ["read", "write"]:
             # Compute rate and convert from bytes per second to megabytes/s
-            data[f'{rw}_rate_mbs'] = compute_rates(data[f'{rw}_chars']) / (10 * (1024**2))
+            data[f"{rw}_rate_mbs"] = compute_rates(data[f"{rw}_chars"]) / (
+                10 * (1024**2)
+            )
     except Exception as e:
         logger.warning(f"Error computing disk rate {data=}, {type(e).__name__} : {e}")
         return pd.DataFrame([], columns=col)
@@ -238,7 +252,9 @@ def extract_jaws_info(working_dir):
         if match:
             cromwell_run_id = match.group(1)
     except Exception as e:
-        logger.warning(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+        logger.warning(
+            f"Error when processing {working_dir=}, {type(e).__name__} : {e}"
+        )
 
     return cromwell_run_id
 
@@ -254,7 +270,9 @@ def remove_beginning_path(working_dir):
             # Extract from "cromwell-executions" to the end of the string
             dir_name = working_dir[id_ce_dir:]
     except Exception as e:
-        logger.warning(f"Error when processing {working_dir=}, {type(e).__name__} : {e}")
+        logger.warning(
+            f"Error when processing {working_dir=}, {type(e).__name__} : {e}"
+        )
 
     return dir_name
 
@@ -264,4 +282,4 @@ def parse_cromwell_task_dir_name(results):
     """Get's just the name from parse_cromwell_task_dir
     Needed for pandas apply since we just want the name in that column
     """
-    return parse_cromwell_task_dir(results)['name']
+    return parse_cromwell_task_dir(results)["name"]
