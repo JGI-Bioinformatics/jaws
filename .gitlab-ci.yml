@@ -109,7 +109,7 @@ variables:
   JGI_GLOBUS_EP: "e8b18c38-36cd-11eb-b54c-02d9497ca481"
   JGI_GLOBUS_HOST_PATH: "/global/scratch/users/jaws"
   JGI_PYTHON: "python"
-  JGI_LOAD_PYTHON: "module load python/3.8.8"
+  JGI_LOAD_PYTHON: "module load python/3.9.12"
   JGI_JAWS_GROUP: "jaws"
   JGI_JTM_GROUP: "jaws"
   JGI_CLIENT_GROUP: "jgi"
