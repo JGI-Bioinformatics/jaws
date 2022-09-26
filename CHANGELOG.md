@@ -1,6 +1,8 @@
 # Changelog
 
-# Inbound changes
+# Inbound changes not assigned to version # yet
+
+## 3.0.5 (2022-9-26) Summary
 - Copy fixes from jaws_central related to environment variables to control configuration.
 
 ## 3.0 (2022-7-14)Summary
