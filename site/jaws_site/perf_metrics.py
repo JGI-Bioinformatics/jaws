@@ -1,4 +1,5 @@
 import logging
+import hashlib
 import re
 from typing import Callable
 from pathlib import Path
@@ -115,13 +116,14 @@ class PerformanceMetrics:
         if not done_dir_obj.is_dir() or not proc_dir_obj.is_dir():
             return
 
-        for done_file in list(done_dir_obj.glob("*.csv")):
+        for done_file in list(done_dir_obj.glob("*.csv*")):
             logger.info(f"Processing {done_file.name=} ...")
             docs = self.process_csv(done_file)
             for doc in docs:
                 cromwell_run_id = doc.get("cromwell_run_id")
                 run_id = doc.get("jaws_run_id")
                 task_name = doc.get("task_name")
+                cmd_pid = doc.get("pid", 0)
 
                 # Just really a final check at this point since it should already be in the document
                 if not run_id or not cromwell_run_id:
@@ -134,6 +136,12 @@ class PerformanceMetrics:
                 logger.info(
                     f"Run {run_id}: Publish performance metrics for cromwell_run_id={cromwell_run_id}"
                 )
+
+                # Assign unique id to doc. Logstash is setup to use the doc's uid field as the unique id for the
+                # document ("_id"). Specifying the doc id ensures that a duplicate entry won't be added with the
+                # same document metrics.
+                hash_str = f"{run_id}{task_name}{cmd_pid}".encode("ASCII")
+                doc["uid"] = hashlib.sha1(hash_str).hexdigest()
 
                 # Submit doc to RMQ to be picked up by logstash and inserted into elasticsearch
                 response, status_code = self.rpc_client.request(doc)
