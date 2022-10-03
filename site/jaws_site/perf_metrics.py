@@ -22,7 +22,7 @@ class PerformanceMetrics:
         self.rpc_client = rpc_client
 
     @lru_cache()
-    def get_rget_run_idun_id(self, cromwell_run_id: str) -> int:
+    def get_run_id(self, cromwell_run_id: str) -> int:
         """Given a cromwell run id, return the jaws run id."""
         try:
             run = runs.Run.from_cromwell_run_id(self.session, cromwell_run_id)
