@@ -45,7 +45,7 @@ def test_get_run_id(monkeypatch, mock_sqlalchemy_session):
 
     a_rpc_client = MockRpcClient()
     pm = PerformanceMetrics(mock_sqlalchemy_session, a_rpc_client)
-    ret = pm.get_rget_run_idun_id("xxx-xxx")
+    ret = pm.get_run_id("xxx-xxx")
     assert ret == "99"
 
     # Test Exception
@@ -58,7 +58,7 @@ def test_get_run_id(monkeypatch, mock_sqlalchemy_session):
 
     a_rpc_client = MockRpcClient()
     pm = PerformanceMetrics(mock_sqlalchemy_session, a_rpc_client)
-    ret = pm.get_rget_run_idun_id("xxx-xxx")
+    ret = pm.get_run_id("xxx-xxx")
     assert ret == 0
 
 
