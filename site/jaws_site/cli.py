@@ -56,8 +56,8 @@ def cli(config_file: str, log_file: str, log_level: str):
 
 
 @cli.command()
-def rpc() -> None:
-    """Start RPC server for Central."""
+def rpc_server() -> None:
+    """Start RPC server."""
     # database must be imported after config
     from jaws_site.database import session_factory
     from jaws_site import rpc_operations
