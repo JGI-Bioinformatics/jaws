@@ -1,0 +1,13 @@
+export JAWS_INSTALL_BASEDIR="/global/common/software/m3408"
+export JAWS_GLOBUS_EP="be1ff650-dcbc-11ea-85a2-0e1702b77d41"
+export JAWS_GLOBUS_HOST_PATH="/"
+export JAWS_LOAD_PYTHON="module load python/3.9-anaconda-2021.11"
+export JAWS_GROUP="nmjaws"
+export JAWS_USERS_GROUP="m3408"
+export JAWS_SCRATCH_BASEDIR="/global/cscratch1/sd/nmjaws"
+export JAWS_REF_DATA_DIR="/global/dna/shared/databases/jaws/refdata"
+export JAWS_CONTAINER_TYPE="shifter"
+export JAWS_CONTAINER_TMPDIR="/global/cscratch1/sd/nmjaws"
+export JAWS_MAX_RAM_GB=758
+export JAWS_PERFORMANCE_METRICS_SCRIPT="/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus"
+export JAWS_PERFORMANCE_METRICS_DIR="/global/cscratch1/sd/jaws_jtm/monitoring-runs"

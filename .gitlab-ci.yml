@@ -23,202 +23,26 @@ include:
 variables:
   GIT_STRATEGY: clone
 
-  ## GLOBAL INSTALL VARIABLES:
-  JAWS_SITES: "CORI JGI TAHOMA AWS ASSEMBLY"
+  JAWS_SITE_NAMES: "CORI JGI TAHOMA AWS ASSEMBLY NMDC"
   JAWS_SITE_VERSION: "1.0.6"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
+  JAWS_LOG_LEVEL: "INFO"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_RMQ_HOST: "rmq.lbl.gov"
   JAWS_RMQ_PORT: 5672
   JAWS_GLOBUS_CLIENT_ID: "1a130a01-48bc-489b-a729-9ab858de1755"
-  CROMWELL_VERSION: "58"
-  CROMWELL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/58/cromwell-58.jar"
-  WOMTOOL_JAR_URL: "https://github.com/broadinstitute/cromwell/releases/download/58/womtool-58.jar"
   JAWS_DB_HOST: "jaws-db.lbl.gov"
   JAWS_DB_PORT: 3306
+  JAWS_RMQ_HOST: "rmq.lbl.gov"
+  JAWS_RMQ_PORT: 5672
+  JAWS_CONTAINER_TYPE: "docker"
   JAWS_DEFAULT_CONTAINER: "ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf"
-  JAWS_EMAIL_USER: ""
-  JAWS_EMAIL_SERVER: ""
-  JAWS_EMAIL_PORT: "587"
-
-  ## DEPLOYMENT-SPECIFIC VARIABLES:
-  dev_LOG_LEVEL: "DEBUG"
-  dev_JAWS_SUPERVISOR_PORT: 64101
-  dev_JAWS_CENTRAL_SUPERVISOR_PORT: 64121
-  dev_JAWS_AUTH_PORT: 3001
-  dev_JAWS_REST_PORT: 5001
-  dev_CROMWELL_PORT: 50101
-  staging_LOG_LEVEL: "DEBUG"
-  staging_JAWS_SUPERVISOR_PORT: 64102
-  staging_JAWS_CENTRAL_SUPERVISOR_PORT: 64122
-  staging_JAWS_AUTH_PORT: 3002
-  staging_JAWS_REST_PORT: 5002
-  staging_CROMWELL_PORT: 50102
-  prod_LOG_LEVEL: "INFO"
-  prod_JAWS_SUPERVISOR_PORT: 64103
-  prod_JAWS_CENTRAL_SUPERVISOR_PORT: 64123
-  prod_JAWS_AUTH_PORT: 3003
-  prod_JAWS_REST_PORT: 5003
-  prod_CROMWELL_PORT: 50103
-
-  ## CENTRAL-SPECIFIC VARIABLES:
-  CENTRAL_INSTALL_BASEDIR: "/opt/jaws"
-  CENTRAL_PYTHON: "python3"
-  CENTRAL_LOAD_PYTHON: ""
-  CENTRAL_JAWS_GROUP: "jaws"
-  CENTRAL_JAWS_SCRATCH_BASEDIR: "/tmp/jaws-tmp"
-  CENTRAL_SUPERVISOR_HOST: "http://jaws.lbl.gov"
-
-  ## SITE-SPECIFIC VARIABLES:
-  CORI_CLIENT_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws"
-  CORI_INSTALL_BASEDIR: "/global/cfs/projectdirs/jaws/jaws-install"
-  CORI_USER_GROUP: ""
-  CORI_GLOBUS_EP: "be1ff650-dcbc-11ea-85a2-0e1702b77d41"
-  CORI_GLOBUS_HOST_PATH: "/"
-  CORI_PYTHON: "python3"
-  CORI_LOAD_PYTHON: "module load python/3.9-anaconda-2021.11"
-  CORI_JAWS_GROUP: "jaws"
-  CORI_JTM_GROUP: "jaws_jtm"
-  CORI_CLIENT_GROUP: "genome"
-  CORI_JAWS_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws"
-  CORI_JTM_SCRATCH_BASEDIR: "/global/cscratch1/sd/jaws_jtm"
-  CORI_REF_DATA_DIR: "/global/dna/shared/databases/jaws/refdata"
-  CORI_FAST_SCRATCH_DIR: ""
-  CORI_BIG_SCRATCH_DIR: ""
-  CORI_SUPERVISOR_HOST: "http://cori20.nersc.gov"
-  CORI_CONTAINER_TYPE: "shifter"
-  CORI_CONTAINER_TMPDIR: "/global/cscratch1/sd/jaws_jtm"
-  CORI_CLUSTER_QOS: "genepool_special"
-  CORI_CLUSTER_PARTITION: ""
-  CORI_CLUSTER_ACCOUNT: "fungalp"
-  CORI_CLUSTER_CONSTRAINT: "haswell"
-  CORI_MAX_RAM_GB: 758
-  CORI_RMQ_HOST: "rmq.lbl.gov"
-  CORI_RMQ_PORT: 5672
-  CORI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
-  CORI_MONITOR_RMQ_PORT: 5672
-  CORI_HTCONDOR_INSTALL: "/global/cfs/projectdirs/jaws/condor/condor"
-  CORI_HTCONDOR_MASTER_CONFIG: "/global/cfs/projectdirs/jaws/condor/condor_central.config"
-  CORI_PERFORMANCE_METRICS_SCRIPT: "/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus"
-  CORI_PERFORMANCE_METRICS_DIR: "/global/cscratch1/sd/jaws_jtm/monitoring-runs"
-  CORI_PERFORMANCE_METRICS_CLEANUP: 600
-
-  JGI_CLIENT_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud"
-  JGI_INSTALL_BASEDIR: "/global/home/groups-sw/lr_jgicloud/jaws-install"
-  JGI_USER_GROUP: ""
-  JGI_GLOBUS_EP: "e8b18c38-36cd-11eb-b54c-02d9497ca481"
-  JGI_GLOBUS_HOST_PATH: "/global/scratch/users/jaws"
-  JGI_PYTHON: "python"
-  JGI_LOAD_PYTHON: "module load python/3.9.12"
-  JGI_JAWS_GROUP: "jaws"
-  JGI_JTM_GROUP: "jaws"
-  JGI_CLIENT_GROUP: "jgi"
-  JGI_JAWS_SCRATCH_BASEDIR: "/global/scratch/users/jaws"
-  JGI_JTM_SCRATCH_BASEDIR: "/global/scratch/users/jaws"
-  JGI_REF_DATA_DIR: "/global/scratch/users/jaws/refdata"
-  JGI_FAST_SCRATCH_DIR: ""
-  JGI_BIG_SCRATCH_DIR: ""
-  JGI_SUPERVISOR_HOST: "http://lrc-services.lbl.gov"
-  JGI_CONTAINER_TYPE: "singularity"
-  JGI_CONTAINER_TMPDIR: "/global/scratch/users/jaws"
-  JGI_CLUSTER_QOS: "normal"
-  JGI_CLUSTER_PARTITION: "jgi"
-  JGI_CLUSTER_ACCOUNT: "jgi"
-  JGI_CLUSTER_CONSTRAINT: ""
-  JGI_MAX_RAM_GB: 512
-  JGI_RMQ_HOST: "rmq.lbl.gov"
-  JGI_RMQ_PORT: 5672
-  JGI_MONITOR_RMQ_HOST: "rmq.lbl.gov"
-  JGI_MONITOR_RMQ_PORT: 5672
-  JGI_HTCONDOR_INSTALL: "/global/home/groups-sw/lr_jgicloud/condor/condor"
-  JGI_HTCONDOR_MASTER_CONFIG: "/global/home/groups-sw/lr_jgicloud/condor/condor_central.config"
-  JGI_PERFORMANCE_METRICS_SCRIPT: "/global/home/groups-sw/lr_jgicloud/jaws-metrics/bin/pagurus"
-  JGI_PERFORMANCE_METRICS_DIR: "/global/scratch/users/jaws/jaws-jtm/monitoring-runs"
-  JGI_PERFORMANCE_METRICS_CLEANUP: 600
-
-  TAHOMA_CLIENT_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install/jaws-client/"
-  TAHOMA_INSTALL_BASEDIR: "/tahoma/mscjgi/jaws-install"
-  TAHOMA_USER_GROUP: ""
-  TAHOMA_GLOBUS_EP: "f441d224-35cd-11ec-95e9-853490a236f9"
-  TAHOMA_GLOBUS_HOST_PATH: "/tahoma/mscjgi"
-  TAHOMA_PYTHON: "python"
-  TAHOMA_LOAD_PYTHON: "module load python/3.8.1"
-  TAHOMA_JAWS_GROUP: "svc-jtm-manager"
-  TAHOMA_JTM_GROUP: "svc-jtm-user"
-  TAHOMA_CLIENT_GROUP: "svc-jtm-manager"
-  TAHOMA_JAWS_SCRATCH_BASEDIR: "/tahoma/mscjgi/scratch"
-  TAHOMA_JTM_SCRATCH_BASEDIR: "/tahoma/mscjgi/scratch"
-  TAHOMA_REF_DATA_DIR: "/tahoma/mscjgi/refdata"
-  TAHOMA_FAST_SCRATCH_DIR: ""
-  TAHOMA_BIG_SCRATCH_DIR: "/big_scratch"
-  TAHOMA_SUPERVISOR_HOST: "http://localhost"
-  TAHOMA_CONTAINER_TYPE: "singularity"
-  TAHOMA_CONTAINER_TMPDIR: "/big_scratch"
-  TAHOMA_CLUSTER_QOS: ""
-  TAHOMA_CLUSTER_PARTITION: ""
-  TAHOMA_CLUSTER_ACCOUNT: "mscjgi"
-  TAHOMA_CLUSTER_CONSTRAINT: ""
-  TAHOMA_MAX_RAM_GB: 1500
-  TAHOMA_RMQ_HOST: "mscjgi-rabbitmq.emsl.pnl.gov"
-  TAHOMA_RMQ_PORT: 5672
-  TAHOMA_MONITOR_RMQ_HOST: "rmq.lbl.gov"
-  TAHOMA_MONITOR_RMQ_PORT: 5672
-  TAHOMA_HTCONDOR_INSTALL: "/tahoma/mscjgi/condor/condor"
-  TAHOMA_HTCONDOR_MASTER_CONFIG: "/tahoma/mscjgi/condor/condor_central.config"
-  TAHOMA_PERFORMANCE_METRICS_SCRIPT: "/tahoma/mscjgi/jaws-metrics/bin/pagurus"
-  TAHOMA_PERFORMANCE_METRICS_DIR: "/tahoma/mscjgi/jaws_jtm/monitoring-runs"
-  TAHOMA_PERFORMANCE_METRICS_CLEANUP: 600
-
-  AWS_CLIENT_INSTALL_BASEDIR: ""
-  AWS_INSTALL_BASEDIR: "/home/ec2-user"
-  AWS_USER_GROUP: ""
-  AWS_GLOBUS_EP: ""
-  AWS_GLOBUS_HOST_PATH: ""
-  AWS_PYTHON: "python3"
-  AWS_LOAD_PYTHON: ""
-  AWS_JAWS_GROUP: "ec2-user"
-  AWS_JTM_GROUP: "ec2-user"
-  AWS_CLIENT_GROUP: "ec2-user"
-  AWS_JAWS_SCRATCH_BASEDIR: "s3://jaws-site"
-  AWS_JTM_SCRATCH_BASEDIR: "s3://jaws-site"
-  AWS_REF_DATA_DIR: ""
-  AWS_FAST_SCRATCH_DIR: ""
-  AWS_BIG_SCRATCH_DIR: ""
-  AWS_SUPERVISOR_HOST: "http://localhost"
-  AWS_CONTAINER_TYPE: "docker"
-  AWS_CONTAINER_TMPDIR: "/tmp"
-  AWS_CLUSTER_QOS: ""
-  AWS_CLUSTER_PARTITION: ""
-  AWS_CLUSTER_ACCOUNT: "ec2-user"
-  AWS_CLUSTER_CONSTRAINT: ""
-  AWS_MAX_RAM_GB: 256
-  AWS_RMQ_HOST: "rmq.lbl.gov"
-  AWS_RMQ_PORT: 5672
-
-  ASSEMBLY_CLIENT_INSTALL_BASEDIR: ""
-  ASSEMBLY_INSTALL_BASEDIR: "/home/ec2-user"
-  ASSEMBLY_USER_GROUP: "assembly"
-  ASSEMBLY_GLOBUS_EP: ""
-  ASSEMBLY_GLOBUS_HOST_PATH: ""
-  ASSEMBLY_PYTHON: "python3"
-  ASSEMBLY_LOAD_PYTHON: ""
-  ASSEMBLY_JAWS_GROUP: "ec2-user"
-  ASSEMBLY_JTM_GROUP: "ec2-user"
-  ASSEMBLY_CLIENT_GROUP: "ec2-user"
-  ASSEMBLY_JAWS_SCRATCH_BASEDIR: "s3://jaws-assembly"
-  ASSEMBLY_JTM_SCRATCH_BASEDIR: "s3://jaws-assembly"
-  ASSEMBLY_FAST_SCRATCH_DIR: ""
-  ASSEMBLY_BIG_SCRATCH_DIR: ""
-  ASSEMBLY_SUPERVISOR_HOST: "http://localhost"
-  ASSEMBLY_CONTAINER_TYPE: "docker"
-  ASSEMBLY_CONTAINER_TMPDIR: "/tmp"
-  ASSEMBLY_CLUSTER_QOS: ""
-  ASSEMBLY_CLUSTER_PARTITION: ""
-  ASSEMBLY_CLUSTER_ACCOUNT: "ec2-user"
-  ASSEMBLY_CLUSTER_CONSTRAINT: ""
-  ASSEMBLY_MAX_RAM_GB: 512
-  ASSEMBLY_RMQ_HOST: "rmq.lbl.gov"
-  ASSEMBLY_RMQ_PORT: 5672
+  JAWS_PERFORMANCE_METRICS_CLEANUP: 600
+  JAWS_SUPERVISOR_HOST: "http://localhost"
+  JAWS_LOAD_PYTHON: ""
+  JAWS_PYTHON: "python3"
+  JAWS_FAST_SCRATCH_DIR: ""
+  JAWS_BIG_SCRATCH_DIR: ""
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
@@ -303,14 +127,14 @@ build-site:
 deploy-jaws-aws-dev:
   stage: deploy-jaws
   tags:
-    - foo
+    - aws
   variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "AWS"
+    JAWS_DEPLOYMENT_NAME: "dev"
+    JAWS_SITE_NAME: "AWS"
   environment:
     name: "aws/dev"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
       allow_failure: true
@@ -320,12 +144,12 @@ deploy-jaws-cori-dev:
   tags:
     - cori20
   variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "CORI"
+    JAWS_DEPLOYMENT_NAME: "dev"
+    JAWS_SITE_NAME: "CORI"
   environment:
     name: "cori/dev"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
@@ -334,12 +158,12 @@ deploy-jaws-cori-staging:
   tags:
     - cori20
   variables:
-    DEPLOYMENT_NAME: "staging"
-    JAWS_SITE: "CORI"
+    JAWS_DEPLOYMENT_NAME: "staging"
+    JAWS_SITE_NAME: "CORI"
   environment:
     name: "cori/staging"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
 
@@ -348,12 +172,12 @@ deploy-jaws-cori-prod:
   tags:
     - cori20
   variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "CORI"
+    JAWS_DEPLOYMENT_NAME: "prod"
+    JAWS_SITE_NAME: "CORI"
   environment:
     name: "cori/production"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
@@ -363,12 +187,12 @@ deploy-jaws-jgi-dev:
   tags:
     - jgi
   variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "JGI"
+    JAWS_DEPLOYMENT_NAME: "dev"
+    JAWS_SITE_NAME: "JGI"
   environment:
     name: "jgi/dev"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
@@ -377,12 +201,12 @@ deploy-jaws-jgi-staging:
   tags:
     - jgi
   variables:
-    DEPLOYMENT_NAME: "staging"
-    JAWS_SITE: "JGI"
+    JAWS_DEPLOYMENT_NAME: "staging"
+    JAWS_SITE_NAME: "JGI"
   environment:
     name: "jgi/staging"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
 
@@ -391,12 +215,12 @@ deploy-jaws-jgi-prod:
   tags:
     - jgi
   variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "JGI"
+    JAWS_DEPLOYMENT_NAME: "prod"
+    JAWS_SITE_NAME: "JGI"
   environment:
     name: "jgi/production"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
@@ -407,12 +231,12 @@ deploy-jaws-tahoma-dev:
     - tahoma
     - pnnl
   variables:
-    DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "TAHOMA"
+    JAWS_DEPLOYMENT_NAME: "dev"
+    JAWS_SITE_NAME: "TAHOMA"
   environment:
     name: "tahoma/dev"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
@@ -422,12 +246,12 @@ deploy-jaws-tahoma-staging:
     - tahoma
     - pnnl
   variables:
-    DEPLOYMENT_NAME: "staging"
-    JAWS_SITE: "TAHOMA"
+    JAWS_DEPLOYMENT_NAME: "staging"
+    JAWS_SITE_NAME: "TAHOMA"
   environment:
     name: "tahoma/staging"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       allow_failure: true
@@ -438,16 +262,59 @@ deploy-jaws-tahoma-prod:
     - tahoma
     - pnnl
   variables:
-    DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "TAHOMA"
+    JAWS_DEPLOYMENT_NAME: "prod"
+    JAWS_SITE_NAME: "TAHOMA"
   environment:
     name: "tahoma/prod"
   script:
-    - ./test/integration/deploy-jaws
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
       allow_failure: true
+
+deploy-jaws-nmdc-dev:
+  stage: deploy-jaws
+  tags:
+    - cori21
+  variables:
+    JAWS_DEPLOYMENT_NAME: "dev"
+    JAWS_SITE_NAME: "NMDC"
+  environment:
+    name: "nmdc/dev"
+  script:
+    - ./test/integration/deploy-jaws-site.sh
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
+
+deploy-jaws-nmdc-staging:
+  stage: deploy-jaws
+  tags:
+    - cori21
+  variables:
+    JAWS_DEPLOYMENT_NAME: "staging"
+    JAWS_SITE_NAME: "NMDC"
+  environment:
+    name: "nmdc/staging"
+  script:
+    - ./test/integration/deploy-jaws-site.sh
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+
+deploy-jaws-nmdc-prod:
+  stage: release-jaws
+  tags:
+    - cori21
+  variables:
+    JAWS_DEPLOYMENT_NAME: "prod"
+    JAWS_SITE_NAME: "NMDC"
+  environment:
+    name: "nmdc/production"
+  script:
+    - ./test/integration/deploy-jaws-site.sh
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+      when: manual
 
 package:
   tags:

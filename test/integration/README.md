@@ -27,7 +27,6 @@ These are deployment specific. The deployment placeholder stands for either
 dev, staging or prod.  
 - [deployment]_LOG_LEVEL: Python logging level (DEBUG)  
 - [deployment]_JAWS_SUPERVISOR_PORT: Supervisord port number  
-- [deployment]_JTM_SUPERVISOR_PORT: Supervisord port number for JTM service  
 - [deployment]_JAWS_AUTH_PORT: auth service port number  
 - [deployment]_JAWS_REST_PORT: rest service port number  
 - [deployment]_CROMWELL_PORT: cromwell port number  
@@ -40,12 +39,9 @@ The following changes per site and are prefixed with the site name:
 - [SITE]_PYTHON: The name of the python executable (eg python, python3)  
 - [SITE]_LOAD_PYTHON: The module command for loading python. Can be "" (ie - no modules)  
 - [SITE]_JAWS_GROUP: Linux group name for JAWS  
-- [SITE]_JTM_GROUP: Linux group name for JTM  
 - [SITE]_CLIENT_GROUP: Linux group name for client. Group name is something all JGI users can use  
 - [SITE]_JAWS_SCRATCH_BASEDIR: basename of SCRATCH directory for JAWS; "-{deployment_name}" will be appended
-- [SITE]_JTM_SCRATCH_BASEDIR: basename of SCRATCH directory for JTM. Can be same as JAWS; "-{deployment_name}" will be appended
 - [SITE]_JAWS_SW_BASEDIR: Base directory where JAWS code is located  
-- [SITE]_JTM_SW_BASEDIR: Base directory where JTM code is located  
 - [SITE]_REF_DATA_DIR: Location of pre-staged reference data that is mounted to each task's container
 - [SITE]_FAST_SCRATCH_DIR: Path of fast storage local to worker nodes
 - [SITE]_BIG_SCRATCH_DIR: Path of large storage local to worker nodes
@@ -92,8 +88,7 @@ actions are starting and stopping a service. Access is controlled by a unique ke
     |   user/ci    |
     +--------------+
 
-Every system needs two instances of supervisord, for privilege seperation between services and
-user workloads: one for JAWS and one for JTM/Cromwell.
+Every system needs an instance of supervisord for each service.
 
 ## Ports
 
@@ -102,8 +97,8 @@ user workloads: one for JAWS and one for JTM/Cromwell.
     central-auth     | 3001  | 3002    | 3003
     central-rest     | 5001  | 5002    | 5003
     cromwell         | 50101 | 50102   | 50103
-    supervisord-jaws | 64101 | 64102   | 64103
-    supervisord-jtm  | 64111 | 64112   | 64113
+    supervisord-site | 64101 | 64102   | 64103
+    supervisord-pool-manager  | 64111 | 64112   | 64113
 
 
 ## Common Commands
