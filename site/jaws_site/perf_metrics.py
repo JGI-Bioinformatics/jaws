@@ -32,7 +32,7 @@ class PerformanceMetrics:
             return 0
         return run.data.id
 
-    def process_csv(self, csv_file: str) -> list:
+    def process_csv(self, csv_file: Path) -> list:
         """Parse the performance csv files and generate a dictionary containing a list of performance metrics
         defined within the file.
 
@@ -47,6 +47,17 @@ class PerformanceMetrics:
             logging.warning(f"{type(err).__name__} Error opening {csv_file=}")
             # Return an empty list of dict to be handled later
             return [{}]
+
+        # Get filename without extentions, could also look into Path.stem but,
+        # this works for .csv and .csv.bz2 files
+        name_noext = csv_file.name.split('.')[0]
+        try:
+            _, node_name, slurm_id = name_noext.split('_')
+            # add the two new columns to the dataframe
+            csv_data["node_name"] = node_name
+            csv_data["slurm_id"] = int(slurm_id)
+        except ValueError:
+            logger.error(f"{name_noext=} cannot be split to get node name and slurm run number")
 
         # Change current_dir type to string before processing
         csv_data["current_dir"] = csv_data.current_dir.astype(str)
