@@ -30,7 +30,6 @@ variables:
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
   JAWS_RMQ_HOST: "rmq.lbl.gov"
   JAWS_RMQ_PORT: 5672
-  JAWS_GLOBUS_CLIENT_ID: "1a130a01-48bc-489b-a729-9ab858de1755"
   JAWS_DB_HOST: "jaws-db.lbl.gov"
   JAWS_DB_PORT: 3306
   JAWS_RMQ_HOST: "rmq.lbl.gov"

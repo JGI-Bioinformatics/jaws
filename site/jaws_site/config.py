@@ -48,8 +48,6 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         ],
         "PERFORMANCE_METRICS": ["done_dir", "processed_dir", "running_dir", "cleanup_time"],
         "GLOBUS": [
-            "client_id",
-            "client_secret",
             "endpoint_id",
             "host_path",
         ],
@@ -130,4 +128,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
     def get_site_config(self):
         result = {}
         result['max_ram_gb'] = self.get('SITE', 'max_ram_gb', DEFAULT_MAX_RAM_GB) 
+        result['inputs_dir'] = self.get('SITE', 'inputs_dir') 
+        result['globus_host_path'] = self.get('GLOBUS', 'host_path')
+        result['globus_endpoint_id'] = self.get('GLOBUS', 'endpoint_id') 
         return result
