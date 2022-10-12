@@ -327,3 +327,18 @@ def test_file_not_found_config(file_not_found_config):
     config_path = file_not_found_config
     with pytest.raises(FileNotFoundError):
         jaws_site.config.Configuration(config_path)
+
+
+def test_get_site_config(config_file):
+    # Because Configuration is a singleton, we call a destructor method to
+    # remove any old reference.
+    try:
+        jaws_site.config.Configuration._destructor()
+    except Exception:
+        pass
+    config_path = config_file
+    cfg = jaws_site.config.Configuration(config_path)
+
+    result = cfg.get_site_config()
+    for key in ['max_ram_gb', 'inputs_dir', 'access_group', 'globus_host_path', 'globus_endpoint_id']:
+        assert key in result
