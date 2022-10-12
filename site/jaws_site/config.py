@@ -46,7 +46,12 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "password",
             "queue",
         ],
-        "PERFORMANCE_METRICS": ["done_dir", "processed_dir", "running_dir", "cleanup_time"],
+        "PERFORMANCE_METRICS": [
+            "done_dir",
+            "processed_dir",
+            "running_dir",
+            "cleanup_time",
+        ],
         "GLOBUS": [
             "endpoint_id",
             "host_path",
@@ -68,7 +73,9 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         logger.debug(f"Loading config from {config_file}")
         if not os.path.isfile(config_file):
             raise FileNotFoundError(f"{config_file} does not exist")
-        self.config = JAWSConfigParser(interpolation=EnvInterpolation(), env_override=env_prefix)
+        self.config = JAWSConfigParser(
+            interpolation=EnvInterpolation(), env_override=env_prefix
+        )
         self.config.read_dict(self.defaults)
         try:
             self.config.read(config_file)
@@ -127,9 +134,9 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
 
     def get_site_config(self):
         result = {}
-        result['max_ram_gb'] = self.get('SITE', 'max_ram_gb', DEFAULT_MAX_RAM_GB) 
-        result['inputs_dir'] = self.get('SITE', 'inputs_dir') 
-        result['access_group'] = self.get('SITE', 'access_group') 
-        result['globus_host_path'] = self.get('GLOBUS', 'host_path')
-        result['globus_endpoint_id'] = self.get('GLOBUS', 'endpoint_id') 
+        result["max_ram_gb"] = self.get("SITE", "max_ram_gb", DEFAULT_MAX_RAM_GB)
+        result["inputs_dir"] = self.get("SITE", "inputs_dir")
+        result["access_group"] = self.get("SITE", "access_group")
+        result["globus_host_path"] = self.get("GLOBUS", "host_path")
+        result["globus_endpoint_id"] = self.get("GLOBUS", "endpoint_id")
         return result
