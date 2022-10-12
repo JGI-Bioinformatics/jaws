@@ -6,6 +6,7 @@ import jaws_site.utils
 
 
 conf = None
+DEFAULT_MAX_RAM_GB = 56
 
 
 class ConfigurationError(Exception):
@@ -117,7 +118,16 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         :rtype: dict
         """
         result = {}
-        sect_conf = self.config[section]  # change to avoid end run or JAWSCOnfigParser getter
+        if section not in self.config:
+            error_msg = f"Config missing requested section: {section}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        sect_conf = self.config[section]
         for key, value in sect_conf.items():
             result[key] = value
+        return result
+
+    def get_site_config(self):
+        result = {}
+        result['max_ram_gb'] = self.get('SITE', 'max_ram_gb', DEFAULT_MAX_RAM_GB) 
         return result
