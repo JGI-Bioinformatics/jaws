@@ -25,12 +25,12 @@ class RunDaemon:
 
     def __init__(self):
         logger.info("Initializing daemon")
-        self.central_rpc_client = rpc_client.RpcClient(
-            config.conf.get_section("CENTRAL_RPC_CLIENT"), logger
-        )
-        self.report_rpc_client = rpc_client_basic.RpcClientBasic(
-            config.conf.get_section("RUNS_ES_RPC_CLIENT"), logger
-        )
+        central_rpc_params = config.conf.get_section("RMQ")
+        central_rpc_params["queue"] = "central"
+        self.central_rpc_client = rpc_client.RpcClient(central_rpc_params, logger)
+        report_rpc_params = config.conf.get_section("RMQ")
+        report_rpc_params["queue"] = "RUNS_ES_RPC_CLIENT"
+        self.report_rpc_client = rpc_client_basic.RpcClientBasic(report_rpc_params, logger)
 
     def start_daemon(self):
         """

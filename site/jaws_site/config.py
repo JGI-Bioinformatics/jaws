@@ -18,34 +18,24 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
     """Configuration singleton class"""
 
     defaults = {
-        "RPC_SERVER": {
-            "host": "localhost",
-            "port": "5672",
-            "user": "guest",  # default from docker container
-            "password": "guest",  # default from docker container
-            "num_threads": 5,
-            "max_retries": 5,
-        },
-        "CENTRAL_RPC_CLIENT": {
-            "port": "5672",
-        },
         "DB": {
             "host": "localhost",
             "port": "3306",
             "dialect": "mysql+mysqlconnector",
         },
+        "RMQ": {
+            "host": "localhost",
+            "port": "5672",
+            "user": "guest",  # default from docker container
+            "password": "guest",  # default from docker container
+        },
+        "RPC_SERVER": {
+            "num_threads": 5,
+            "max_retries": 3,
+        }
     }
     required_params = {
         "RPC_SERVER": ["vhost"],
-        "CENTRAL_RPC_CLIENT": ["host", "vhost", "user", "password"],
-        "RUNS_ES_RPC_CLIENT": ["host", "vhost", "user", "password", "queue"],
-        "PERFORMANCE_METRICS_ES_RPC_CLIENT": [
-            "host",
-            "vhost",
-            "user",
-            "password",
-            "queue",
-        ],
         "PERFORMANCE_METRICS": [
             "done_dir",
             "processed_dir",
@@ -56,9 +46,9 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "endpoint_id",
             "host_path",
         ],
-        "DB": ["user", "password", "db"],
+        "DB": ["user", "password"],
         "CROMWELL": ["url"],
-        "SITE": ["id", "inputs_dir"],
+        "SITE": ["id", "deployment", "inputs_dir"],
     }
 
     config = None
