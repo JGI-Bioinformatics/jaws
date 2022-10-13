@@ -65,7 +65,8 @@ def rpc_server() -> None:
     from sqlalchemy.orm import scoped_session
 
     # start RPC server
-    rpc_server_params = config.conf.get_section("RPC_SERVER")
+    rpc_server_params = config.conf.get_section("RMQ")
+    rpc_server_params["queue"] = config.conf.get("SITE", "id")
     logger = logging.getLogger(__package__)
     app = rpc_server.RpcServer(
         rpc_server_params, logger, rpc_operations.operations, scoped_session(session_factory)
@@ -76,7 +77,6 @@ def rpc_server() -> None:
 @cli.command()
 def run_daemon() -> None:
     """Start run daemon."""
-
     from jaws_site.run_daemon import RunDaemon
 
     rund = RunDaemon()
@@ -96,7 +96,6 @@ def transfer_daemon() -> None:
 @cli.command()
 def perf_metrics_daemon() -> None:
     """Start performance metrics daemon"""
-
     from jaws_site.perf_metrics_daemon import PerformanceMetricsDaemon
 
     perfd = PerformanceMetricsDaemon()
@@ -106,7 +105,6 @@ def perf_metrics_daemon() -> None:
 @cli.command()
 def pool_manager_daemon() -> None:
     """Start pool_manager daemon."""
-
     from jaws_site.pool_manager_daemon import PoolManagerDaemon
 
     pool_managerd = PoolManagerDaemon()

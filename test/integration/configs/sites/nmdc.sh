@@ -11,3 +11,4 @@ export JAWS_CONTAINER_TMPDIR="/global/cscratch1/sd/nmjaws"
 export JAWS_MAX_RAM_GB=758
 export JAWS_PERFORMANCE_METRICS_SCRIPT="/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus"
 export JAWS_PERFORMANCE_METRICS_DIR="/global/cscratch1/sd/jaws_jtm/monitoring-runs"
+export JAWS_ACCESS_GROUP="nmdc"

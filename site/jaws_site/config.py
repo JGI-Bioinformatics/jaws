@@ -6,6 +6,7 @@ import jaws_site.utils
 
 
 conf = None
+DEFAULT_MAX_RAM_GB = 56
 
 
 class ConfigurationError(Exception):
@@ -17,44 +18,34 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
     """Configuration singleton class"""
 
     defaults = {
-        "RPC_SERVER": {
-            "host": "localhost",
-            "port": "5672",
-            "user": "guest",  # default from docker container
-            "password": "guest",  # default from docker container
-            "num_threads": 5,
-            "max_retries": 5,
-        },
-        "CENTRAL_RPC_CLIENT": {
-            "port": "5672",
-        },
         "DB": {
             "host": "localhost",
             "port": "3306",
             "dialect": "mysql+mysqlconnector",
         },
+        "RMQ": {
+            "host": "localhost",
+            "port": "5672",
+            "user": "guest",  # default from docker container
+            "password": "guest",  # default from docker container
+            "num_threads": 5,
+            "max_retries": 3,
+        },
     }
     required_params = {
-        "RPC_SERVER": ["vhost"],
-        "CENTRAL_RPC_CLIENT": ["host", "vhost", "user", "password"],
-        "RUNS_ES_RPC_CLIENT": ["host", "vhost", "user", "password", "queue"],
-        "PERFORMANCE_METRICS_ES_RPC_CLIENT": [
-            "host",
-            "vhost",
-            "user",
-            "password",
-            "queue",
+        "PERFORMANCE_METRICS": [
+            "done_dir",
+            "processed_dir",
+            "running_dir",
+            "cleanup_time",
         ],
-        "PERFORMANCE_METRICS": ["done_dir", "processed_dir", "running_dir", "cleanup_time"],
         "GLOBUS": [
-            "client_id",
-            "client_secret",
             "endpoint_id",
             "host_path",
         ],
-        "DB": ["user", "password", "db"],
+        "DB": ["user", "password"],
         "CROMWELL": ["url"],
-        "SITE": ["id", "inputs_dir"],
+        "SITE": ["id", "deployment", "inputs_dir"],
     }
 
     config = None
@@ -69,7 +60,9 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         logger.debug(f"Loading config from {config_file}")
         if not os.path.isfile(config_file):
             raise FileNotFoundError(f"{config_file} does not exist")
-        self.config = JAWSConfigParser(interpolation=EnvInterpolation(), env_override=env_prefix)
+        self.config = JAWSConfigParser(
+            interpolation=EnvInterpolation(), env_override=env_prefix
+        )
         self.config.read_dict(self.defaults)
         try:
             self.config.read(config_file)
@@ -117,7 +110,19 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         :rtype: dict
         """
         result = {}
-        sect_conf = self.config[section]  # change to avoid end run or JAWSCOnfigParser getter
+        if section not in self.config:
+            error_msg = f"Config missing requested section: {section}"
+            raise ValueError(error_msg)
+        sect_conf = self.config[section]
         for key, value in sect_conf.items():
             result[key] = value
+        return result
+
+    def get_site_config(self):
+        result = {}
+        result["max_ram_gb"] = self.get("SITE", "max_ram_gb", DEFAULT_MAX_RAM_GB)
+        result["inputs_dir"] = self.get("SITE", "inputs_dir")
+        result["access_group"] = self.get("SITE", "access_group")
+        result["globus_host_path"] = self.get("GLOBUS", "host_path")
+        result["globus_endpoint_id"] = self.get("GLOBUS", "endpoint_id")
         return result

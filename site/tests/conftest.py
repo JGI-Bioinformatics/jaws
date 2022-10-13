@@ -49,7 +49,7 @@ def config_file_zero(tmp_path):
 @pytest.fixture
 def config_file_wrong(tmp_path):
     cfg = tmp_path / "jaws-site-wrong.ini"
-    content = """[LOCAL_RPC_SERVER]
+    content = """[RMQ]
     """
     cfg.write_text(content)
     return cfg.as_posix()
@@ -58,44 +58,16 @@ def config_file_wrong(tmp_path):
 @pytest.fixture
 def config_file(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
-    content = """[LOCAL_RPC_SERVER]
+    content = """[RMQ]
 host = localhost
 vhost = jaws_test
 queue = site_rpc
-user = jaws
-password = passw0rd1
+user = jaws_eagle
+password = succotash
 password2 = ${LOCAL_RPC_SERVER_PASSWORD}
 password3 = ${LOCAL_RPC_SERVER_PASSWORD}$
 num_threads = 5
 max_retries = 3
-[RPC_SERVER]
-host = currenthost
-vhost = jaws_test
-queue = eagle
-user = jaws_eagle
-password = succotash
-num_threads = 5
-max_retries = 3
-[CENTRAL_RPC_CLIENT]
-host = currenthost
-vhost = jaws_test
-queue = central_rpc
-user = jaws_eagle
-password = succotash
-[RUNS_ES_RPC_CLIENT]
-user = jaws
-password = password
-host = localhost
-port = 5672
-vhost = jaws_test
-queue = site_rpc_es
-[PERFORMANCE_METRICS_ES_RPC_CLIENT]
-user = jaws
-password = password
-host = localhost
-port = 5672
-vhost = jaws
-queue = site_rpc_es
 [PERFORMANCE_METRICS]
 done_dir = /tmp/done_dir
 processed_dir = /tmp/processed_dir
@@ -121,6 +93,7 @@ test =
 url = http://localhost:8000
 [SITE]
 id = eagle
+deployment = prod
 inputs_dir = /global/scratch/jaws/jaws-dev/inputs
 [AWS]
 aws_access_key_id = AAAA
@@ -135,31 +108,11 @@ s3_bucket = CCCC
 @pytest.fixture
 def partial_config(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
-    content = """[RPC_SERVER]
+    content = """[RMQ]
 host = https://rmq.nersc.gov
 vhost = jaws_test
 user = bugs_bunny
 password = xqweasdasa
-max_retries = 10
-[CENTRAL_RPC_CLIENT]
-host = https://rmq.nersc.gov
-user = bugs_bunny
-password = xqweasdasa
-vhost = jaws_test
-[RUNS_ES_RPC_CLIENT]
-user = jaws
-password = password
-host = localhost
-port = 5672
-vhost = jaws_test
-queue = site_rpc_es
-[PERFORMANCE_METRICS_ES_RPC_CLIENT]
-user = jaws
-password = password
-host = localhost
-port = 5672
-vhost = jaws
-queue = site_rpc_es
 [PERFORMANCE_METRICS]
 done_dir =
 processed_dir =
@@ -177,12 +130,11 @@ port = 60032
 user = elmer_fudd
 password = hunting
 db = hunting_sites
-[LOCAL_RPC_SERVER]
-vhost = jaws_test
 [CROMWELL]
 url = http://localhost:8000
 [SITE]
 id = eagle
+deployment = prod
 inputs_dir = /global/scratch/jaws/jaws-dev/inputs
 [AWS]
 aws_access_key_id = AAAA

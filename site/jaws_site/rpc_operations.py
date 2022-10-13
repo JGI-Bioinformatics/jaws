@@ -257,6 +257,19 @@ def cancel_transfer(params, session):
         return success(result)
 
 
+def site_config(params, session):
+    """
+    Return site parameters to central.
+    """
+    try:
+        result = config.get_site_config()
+    except Exception as error:
+        logger.error(f"Failed to get site config: {error}")
+        return failure(error)
+    else:
+        return success(result)
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -325,5 +338,9 @@ operations = {
     "cancel_transfer": {
         "function": cancel_transfer,
         "required_params": ["transfer_id"],
+    },
+    "site_config": {
+        "function": site_config,
+        "required_params": [],
     },
 }
