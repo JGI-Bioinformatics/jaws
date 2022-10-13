@@ -173,13 +173,12 @@ class PerformanceMetrics:
             # Calculate running time
             running_time = end_time-start_time
 
-            logging.info(
-                f"Uploading {processed_file} took {running_time} sec {file_size_bytes/(running_time)} bytes/sec"
-            )
-
             # Move csv file to processed folder
             processed_file = proc_dir_obj / done_file.name
             done_file.rename(f"{processed_file}")
+            logging.info(
+                f"Uploading {processed_file} took {running_time} sec {file_size_bytes/(running_time)} bytes/sec"
+            )
             logger.debug(f"Moved processed file to {processed_file}")
 
 
