@@ -75,7 +75,7 @@ class PerformanceMetricsDaemon:
         # Get the time the daemon was run
         now = time.time()
         for metric in files_running:
-            logger.info(f"Checking to move {metric}")
+            logger.debug(f"Checking to move {metric}")
             try:
                 status = metric.stat()
             except FileNotFoundError as ex:
