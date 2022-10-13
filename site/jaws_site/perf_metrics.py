@@ -1,6 +1,7 @@
 import logging
 import hashlib
 import re
+import time
 from typing import Callable
 from pathlib import Path
 from functools import lru_cache
@@ -129,6 +130,9 @@ class PerformanceMetrics:
 
         for done_file in list(done_dir_obj.glob("*.csv*")):
             logger.info(f"Processing {done_file.name=} ...")
+            # Start time of this file
+            start_time = time.perf_counter()
+            # Process the csv using pandas
             docs = self.process_csv(done_file)
             for doc in docs:
                 cromwell_run_id = doc.get("cromwell_run_id")
@@ -144,7 +148,7 @@ class PerformanceMetrics:
                     )
                     continue
 
-                logger.info(
+                logger.debug(
                     f"Run {run_id}: Publish performance metrics for cromwell_run_id={cromwell_run_id}"
                 )
 
@@ -162,9 +166,21 @@ class PerformanceMetrics:
                     )
                     continue
 
+            # End time of processing
+            end_time = time.perf_counter()
+            # Get file size
+            file_size_bytes = done_file.stat().st_size
+            # Calculate running time
+            running_time = end_time-start_time
+
+            logging.info(
+                f"Uploading {processed_file} took {running_time} sec {file_size_bytes/(running_time)} bytes/sec"
+            )
+
             # Move csv file to processed folder
             processed_file = proc_dir_obj / done_file.name
-            Path(f"{done_file}").rename(f"{processed_file}")
+            done_file.rename(f"{processed_file}")
+            logger.debug(f"Moved processed file to {processed_file}")
 
 
 def compute_rates(data_series: pd.Series, rolling_time: int = 10) -> pd.Series:
