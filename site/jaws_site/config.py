@@ -28,14 +28,11 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "port": "5672",
             "user": "guest",  # default from docker container
             "password": "guest",  # default from docker container
-        },
-        "RPC_SERVER": {
             "num_threads": 5,
             "max_retries": 3,
-        }
+        },
     }
     required_params = {
-        "RPC_SERVER": ["vhost"],
         "PERFORMANCE_METRICS": [
             "done_dir",
             "processed_dir",
@@ -115,7 +112,6 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         result = {}
         if section not in self.config:
             error_msg = f"Config missing requested section: {section}"
-            logger.error(error_msg)
             raise ValueError(error_msg)
         sect_conf = self.config[section]
         for key, value in sect_conf.items():

@@ -750,7 +750,7 @@ def test_s3_parse_uri():
 
 def test__read_file_nfs(config_file, file_not_found_config):
     ret = cromwell._read_file_nfs(config_file)
-    assert "[LOCAL_RPC_SERVER]" in ret
+    assert "[RMQ]" in ret
     assert "s3_bucket = CCCC" in ret
 
     with pytest.raises(OSError):
@@ -759,7 +759,7 @@ def test__read_file_nfs(config_file, file_not_found_config):
 
 def test__read_file(config_file, monkeypatch):
     ret = cromwell._read_file(config_file)
-    assert "[LOCAL_RPC_SERVER]" in ret
+    assert "[RMQ]" in ret
     assert "s3_bucket = CCCC" in ret
 
     def mock__read_file_s3(path):

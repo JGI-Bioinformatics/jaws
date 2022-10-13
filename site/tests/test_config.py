@@ -5,45 +5,13 @@ from jaws_site.config import ConfigurationError
 
 
 # Move large variable declarations out method definition to here
-expected_local_rpc_server_sections = [
+expected_rmq_sections = [
     ("host", "localhost"),
-    ("vhost", "jaws_test"),
-    ("queue", "site_rpc"),
-    ("user", "jaws"),
-    ("password", "passw0rd1"),
-    ("password2", "${LOCAL_RPC_SERVER_PASSWORD}"),
-    ("password3", "${LOCAL_RPC_SERVER_PASSWORD}$"),
-    ("num_threads", "5"),
-    ("max_retries", "3"),
-]
-
-expected_local_rpc_server_sections_env = [
-    ("host", "localhost"),
-    ("vhost", "jaws_test"),
-    ("queue", "site_rpc"),
-    ("user", "jaws"),
-    ("password", "passw0rd1"),
-    ("password2", "password"),
-    ("password3", "password$"),
-    ("num_threads", "5"),
-    ("max_retries", "3"),
-]
-
-expected_central_rpc_server_sections = [
-    ("host", "currenthost"),
     ("vhost", "jaws_test"),
     ("user", "jaws_eagle"),
     ("password", "succotash"),
     ("num_threads", "5"),
     ("max_retries", "3"),
-]
-
-expected_rpc_client_sections = [
-    ("host", "currenthost"),
-    ("vhost", "jaws_test"),
-    ("queue", "central_rpc"),
-    ("user", "jaws_eagle"),
-    ("password", "succotash"),
 ]
 
 expected_db_sections = [
@@ -102,18 +70,15 @@ def test_overwrite_all_default_values(config_file):
     config_path = config_file
     cfg = jaws_site.config.Configuration(config_path)
 
-    # print("Checking LOCAL_RPC_SERVER without environment variables set.")
+    # print("Checking RMQ without environment variables set.")
     # Clear potentially conflicting env vars
     try:
-        del os.environ["LOCAL_RPC_SERVER_PASSWORD"]
+        del os.environ["RMQ_PASSWORD"]
     except KeyError:
         pass
-    check_section("LOCAL_RPC_SERVER", expected_local_rpc_server_sections, cfg)
-    # print("Checking LOCAL_RPC_SERVER with environment variables set.")
-    os.environ["LOCAL_RPC_SERVER_PASSWORD"] = "password"
-    check_section("LOCAL_RPC_SERVER", expected_local_rpc_server_sections_env, cfg)
-    check_section("RPC_SERVER", expected_central_rpc_server_sections, cfg)
-    check_section("CENTRAL_RPC_CLIENT", expected_rpc_client_sections, cfg)
+    # print("Checking RMQ with environment variables set.")
+    os.environ["RMQ_PASSWORD"] = "password"
+    check_section("RMQ", expected_rmq_sections, cfg)
     # Clear potentially conflicting env vars
     try:
         del os.environ["PROJECT_NAME"]
@@ -134,9 +99,9 @@ def test_config_overwrite_partial_values(partial_config):
     config_path = partial_config
     cfg = jaws_site.config.Configuration(config_path)
 
-    check_section("RPC_SERVER", [("host", "https://rmq.nersc.gov")], cfg)
-    check_section("RPC_SERVER", [("vhost", "jaws_test")], cfg)
-    check_section("RPC_SERVER", [("max_retries", "10")], cfg)
+    check_section("RMQ", [("host", "https://rmq.nersc.gov")], cfg)
+    check_section("RMQ", [("vhost", "jaws_test")], cfg)
+    check_section("RMQ", [("max_retries", "3")], cfg)
 
 
 def test_env_override(config_file):
@@ -236,7 +201,7 @@ def test_env_override(config_file):
 @pytest.mark.parametrize(
     "section, key",
     [
-        ("RPC_SERVER", "user"),
+        ("RMQ", "user"),
     ],
 )
 def test_get(partial_config, section, key):
@@ -255,7 +220,7 @@ def test_get(partial_config, section, key):
 @pytest.mark.parametrize(
     "section, key",
     [
-        ("RPC_SERVER_xxx", "user_xxx"),
+        ("RMQ_xxx", "user_xxx"),
     ],
 )
 def test_get_wrong_key(partial_config, section, key):
@@ -275,7 +240,7 @@ def test_get_wrong_key(partial_config, section, key):
 @pytest.mark.parametrize(
     "section, key",
     [
-        ("RPC_SERVER", "user"),
+        ("RMQ", "user"),
     ],
 )
 def test_get_exception(config_file_wrong, section, key):
@@ -293,7 +258,7 @@ def test_get_exception(config_file_wrong, section, key):
 @pytest.mark.parametrize(
     "section",
     [
-        ("RPC_SERVER"),
+        ("RMQ"),
     ],
 )
 def test_get_section(partial_config, section):
@@ -313,7 +278,7 @@ def test_get_section(partial_config, section):
         "user": "bugs_bunny",
         "password": "xqweasdasa",
         "num_threads": "5",
-        "max_retries": "10",
+        "max_retries": "3",
         "vhost": "jaws_test",
     }
 
