@@ -11,4 +11,4 @@ export JAWS_CONTAINER_TYPE="singularity"
 export JAWS_CONTAINER_TMPDIR="/global/scratch/users/jaws"
 export JAWS_MAX_RAM_GB=512
 export JAWS_PERFORMANCE_METRICS_SCRIPT="/global/home/groups-sw/lr_jgicloud/jaws-metrics/bin/pagurus"
-export JAWS_PERFORMANCE_METRICS_DIR="/global/scratch/users/jaws/jaws-jtm/monitoring-runs"
+export JAWS_PERFORMANCE_METRICS_DIR="/global/scratch/users/jaws/monitoring-runs"
