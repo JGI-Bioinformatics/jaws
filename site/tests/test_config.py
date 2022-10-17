@@ -305,5 +305,5 @@ def test_get_site_config(config_file):
     cfg = jaws_site.config.Configuration(config_path)
 
     result = cfg.get_site_config()
-    for key in ['max_ram_gb', 'inputs_dir', 'access_group', 'globus_host_path', 'globus_endpoint_id']:
+    for key in ['max_ram_gb', 'inputs_dir', 'access_group', 'globus_host_path', 'globus_endpoint']:
         assert key in result

@@ -124,5 +124,5 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         result["inputs_dir"] = self.get("SITE", "inputs_dir")
         result["access_group"] = self.get("SITE", "access_group")
         result["globus_host_path"] = self.get("GLOBUS", "host_path")
-        result["globus_endpoint_id"] = self.get("GLOBUS", "endpoint_id")
+        result["globus_endpoint"] = self.get("GLOBUS", "endpoint_id")
         return result
