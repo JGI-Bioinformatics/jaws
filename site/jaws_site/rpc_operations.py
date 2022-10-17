@@ -262,7 +262,7 @@ def site_config(params, session):
     Return site parameters to central.
     """
     try:
-        result = config.get_site_config()
+        result = config.conf.get_site_config()
     except Exception as error:
         logger.error(f"Failed to get site config: {error}")
         return failure(error)
