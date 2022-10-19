@@ -122,6 +122,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         result = {}
         result["max_ram_gb"] = self.get("SITE", "max_ram_gb", DEFAULT_MAX_RAM_GB)
         result["inputs_dir"] = self.get("SITE", "inputs_dir")
+        result["downloads_dir"] = self.get("SITE", "downloads_dir")
         result["access_group"] = self.get("SITE", "access_group")
         result["globus_host_path"] = self.get("GLOBUS", "host_path")
         result["globus_endpoint"] = self.get("GLOBUS", "endpoint_id")
