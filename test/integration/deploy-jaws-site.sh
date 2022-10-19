@@ -94,7 +94,7 @@ echo "Writing config files"
 envsubst < "./test/integration/templates/site.conf" > "$JAWS_CONFIG_DIR/jaws-site.conf"
 envsubst < "./test/integration/templates/supervisor.conf" > "$JAWS_CONFIG_DIR/supervisor.conf"
 envsubst < "./test/integration/templates/supervisor.site.conf" > "$JAWS_CONFIG_DIR/supervisor.site.conf"
-chmod 600 $JAWS_CONFIG_DIR/*
+chmod 600 $JAWS_CONFIG_DIR/*.conf
 
 echo "Writing shims"
 envsubst < "./test/integration/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
