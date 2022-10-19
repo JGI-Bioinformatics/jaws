@@ -736,6 +736,7 @@ class Metadata:
 
         # for AWS, if executions dir was not provided, try to infer from an outfile
         outputs = self.get("outputs", {})
+        print(f"{outputs}")
         an_outfile = None
         for key, value in outputs.items():
             if value is None:
