@@ -105,6 +105,12 @@ envsubst < "./test/integration/templates/supervisord.sh" > "$JAWS_BIN_DIR/superv
 envsubst < "./test/integration/templates/supervisorctl.sh" > "$JAWS_BIN_DIR/supervisorctl"
 chmod 700 $JAWS_BIN_DIR/*
 
+echo "Setup file ACL rules"
+FACL_SCRIPT="$JAWS_SCRATCH_DIR/setup_facl.sh"
+envsubst < "./test/integration/templates/setup_facl.sh" > "$FACL_SCRIPT"
+chmod 700 "$FACL_SCRIPT"
+"$FACL_SCRIPT"
+
 echo "Starting services"
 $JAWS_BIN_DIR/supervisorctl start "jaws-site:*"
 
