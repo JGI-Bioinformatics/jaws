@@ -886,16 +886,14 @@ class Metadata:
                 relpath_outputs[key] = []
                 for item in value:
                     if type(item) is str and item is not None:
-                        relpath_outputs[key].append(
-                            item.replace(workflowRoot, ".", 1)
-                        )
+                        relpath_outputs[key].append(item.replace(workflowRoot, ".", 1))
             elif value is not None and type(value) is str:
                 # a typical task produces outputs which may be a file path
                 relpath_outputs[key] = value.replace(workflowRoot, ".", 1)
             elif type(value) is dict and "left" in value:
                 relpath_outputs[key] = {
                     "left": value["left"].replace(workflowRoot, ".", 1),
-                    "right": value["right"].replace(workflowRoot, ".", 1)
+                    "right": value["right"].replace(workflowRoot, ".", 1),
                 }
         return relpath_outputs
 
