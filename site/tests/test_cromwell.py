@@ -454,11 +454,14 @@ def test_get_outputs(requests_mock):
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_11}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_11, "metadata"),
     )
-    expected_outputs_11 = __load_example_output_from_file(example_cromwell_run_id_11, "outputs")
+    expected_outputs_11 = __load_example_output_from_file(
+        example_cromwell_run_id_11, "outputs"
+    )
     ex_11 = crom.get_metadata(example_cromwell_run_id_11)
     actual_outputs_11 = ex_11.outputs(relpath=True)
     assert (
-        bool(DeepDiff(actual_outputs_11, expected_outputs_11, ignore_order=True)) is False
+        bool(DeepDiff(actual_outputs_11, expected_outputs_11, ignore_order=True))
+        is False
     )
 
 
@@ -551,12 +554,16 @@ def test_outfiles(requests_mock):
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_11}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_11, "metadata"),
     )
-    expected_outfiles_11 = __load_example_output_from_file(example_cromwell_run_id_11, "outfiles")
+    expected_outfiles_11 = __load_example_output_from_file(
+        example_cromwell_run_id_11, "outfiles"
+    )
     ex_11 = crom.get_metadata(example_cromwell_run_id_11)
     actual_outfiles_11 = ex_11.outfiles(relpath=True)
     assert (
-        bool(DeepDiff(actual_outfiles_11, expected_outfiles_11, ignore_order=True)) is False
+        bool(DeepDiff(actual_outfiles_11, expected_outfiles_11, ignore_order=True))
+        is False
     )
+
 
 def test_started_running(requests_mock):
     requests_mock.get(
