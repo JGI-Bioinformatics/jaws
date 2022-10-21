@@ -54,6 +54,9 @@ example_cromwell_run_id_10 = "dcc24ca7-c303-4e8e-ad26-7b2644308fab"
 # Run with Pair outfiles
 example_cromwell_run_id_11 = "e7855e5e-f0f6-46ad-801b-2f6187f1b05f"
 
+# Run with Map outfiles
+example_cromwell_run_id_12 = "3f039d2d-d1db-4c98-b927-305b49ff1651"
+
 
 def __load_example_output_from_file(cromwell_run_id, output_type):
     with open(f"{tests_dir}/{cromwell_run_id}.{output_type}.json", "r") as fh:
@@ -464,6 +467,21 @@ def test_get_outputs(requests_mock):
         is False
     )
 
+    # test 4 : map output
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_12}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_12, "metadata"),
+    )
+    expected_outputs_12 = __load_example_output_from_file(
+        example_cromwell_run_id_12, "outputs"
+    )
+    ex_12 = crom.get_metadata(example_cromwell_run_id_12)
+    actual_outputs_12 = ex_12.outputs(relpath=True)
+    assert (
+        bool(DeepDiff(actual_outputs_12, expected_outputs_12, ignore_order=True))
+        is False
+    )
+
 
 def test_outfiles(requests_mock):
     # test 1 : outputs scalar
@@ -561,6 +579,21 @@ def test_outfiles(requests_mock):
     actual_outfiles_11 = ex_11.outfiles(relpath=True)
     assert (
         bool(DeepDiff(actual_outfiles_11, expected_outfiles_11, ignore_order=True))
+        is False
+    )
+
+    # test 11 : map output
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_12}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_12, "metadata"),
+    )
+    expected_outfiles_12 = __load_example_output_from_file(
+        example_cromwell_run_id_12, "outfiles"
+    )
+    ex_12 = crom.get_metadata(example_cromwell_run_id_12)
+    actual_outfiles_12 = ex_12.outfiles(relpath=True)
+    assert (
+        bool(DeepDiff(actual_outfiles_12, expected_outfiles_12, ignore_order=True))
         is False
     )
 
