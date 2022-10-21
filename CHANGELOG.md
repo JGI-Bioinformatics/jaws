@@ -4,7 +4,7 @@
 
 - add new jaws-nmdc site
 - site names are now lower-cased everywhere for consistency
-- add support for Pair outputs
+- add support for Pair  and Map outputs
 
 ## 1.0.5 (2022-9-26) Summary
 - Copy fixes from jaws_central related to environment variables to control configuration.
