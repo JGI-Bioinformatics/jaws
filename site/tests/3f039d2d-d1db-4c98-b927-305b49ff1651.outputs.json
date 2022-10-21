@@ -1,0 +1,7 @@
+{
+    "HelloWorld.WriteGreeting.output_wdl": "./call-WriteGreeting/execution/test.txt",
+    "HelloWorld.WriteGreeting.pair_test": {
+        "1": "./call-WriteGreeting/execution/file1",
+        "2": "./call-WriteGreeting/execution/file2"
+    }
+}
