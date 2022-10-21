@@ -871,26 +871,36 @@ class Metadata:
     def outputs(self, relpath=True):
         """Returns all outputs for a workflow"""
         outputs = self.get("outputs", {})
+        if not relpath:
+            return outputs
         workflowRoot = self.workflow_root()
-        if relpath and workflowRoot:
-            relpath_outputs = {}
-            for key, value in outputs.items():
-                if value is None:
-                    # skip if null (i.e. optional output was not produced)
-                    pass
-                elif type(value) is list:
-                    # a sharded task may produce a list of outputs, one per shard
-                    relpath_outputs[key] = []
-                    for item in value:
-                        if type(item) is str and item is not None:
-                            relpath_outputs[key].append(
-                                item.replace(workflowRoot, ".", 1)
-                            )
-                elif value is not None and type(value) is str:
-                    # a typical task produces outputs which may be a file path
-                    relpath_outputs[key] = value.replace(workflowRoot, ".", 1)
-            outputs = relpath_outputs
-        return outputs
+        if not workflowRoot:
+            return outputs
+        relpath_outputs = {}
+        for key, value in outputs.items():
+            if value is None:
+                # skip if null (i.e. optional output was not produced)
+                pass
+            elif type(value) is list:
+                # a sharded task may produce a list of outputs, one per shard
+                relpath_outputs[key] = []
+                for item in value:
+                    if type(item) is str and item is not None:
+                        relpath_outputs[key].append(item.replace(workflowRoot, ".", 1))
+            elif value is not None and type(value) is str:
+                # a typical task produces outputs which may be a file path
+                relpath_outputs[key] = value.replace(workflowRoot, ".", 1)
+            elif type(value) is dict and "left" in value:
+                relpath_outputs[key] = {
+                    "left": value["left"].replace(workflowRoot, ".", 1),
+                    "right": value["right"].replace(workflowRoot, ".", 1),
+                }
+            elif type(value) is dict and "1" in value:
+                relpath_outputs[key] = {
+                    "1": value["1"].replace(workflowRoot, ".", 1),
+                    "2": value["2"].replace(workflowRoot, ".", 1),
+                }
+        return relpath_outputs
 
     def outfiles(self, complete=False, relpath=True):
         """
@@ -935,6 +945,16 @@ class Metadata:
             ):
                 # a typical task produces outputs which may be a file path
                 full_paths.append(value)
+            elif type(value) is dict and "left" in value:
+                if value["left"].startswith(workflow_root):
+                    full_paths.append(value["left"])
+                if value["right"].startswith(workflow_root):
+                    full_paths.append(value["right"])
+            elif type(value) is dict and "1" in value:
+                if value["1"].startswith(workflow_root):
+                    full_paths.append(value["1"])
+                if value["2"].startswith(workflow_root):
+                    full_paths.append(value["2"])
 
         if relpath:
             rel_paths = []

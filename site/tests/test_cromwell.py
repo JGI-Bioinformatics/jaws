@@ -51,6 +51,9 @@ example_cromwell_run_id_9 = "f4f5afd1-79f5-497a-9612-baed76dc365d"
 # running Run
 example_cromwell_run_id_10 = "dcc24ca7-c303-4e8e-ad26-7b2644308fab"
 
+# Run with Pair outfiles
+example_cromwell_run_id_11 = "e7855e5e-f0f6-46ad-801b-2f6187f1b05f"
+
 
 def __load_example_output_from_file(cromwell_run_id, output_type):
     with open(f"{tests_dir}/{cromwell_run_id}.{output_type}.json", "r") as fh:
@@ -446,6 +449,21 @@ def test_get_outputs(requests_mock):
         bool(DeepDiff(actual_outputs_8, expected_outputs_8, ignore_order=True)) is False
     )
 
+    # test 3 : pair output
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_11}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_11, "metadata"),
+    )
+    expected_outputs_11 = __load_example_output_from_file(
+        example_cromwell_run_id_11, "outputs"
+    )
+    ex_11 = crom.get_metadata(example_cromwell_run_id_11)
+    actual_outputs_11 = ex_11.outputs(relpath=True)
+    assert (
+        bool(DeepDiff(actual_outputs_11, expected_outputs_11, ignore_order=True))
+        is False
+    )
+
 
 def test_outfiles(requests_mock):
     # test 1 : outputs scalar
@@ -528,6 +546,21 @@ def test_outfiles(requests_mock):
     actual_outfiles_9 = ex_9.outfiles(relpath=True)
     assert (
         bool(DeepDiff(actual_outfiles_9, expected_outfiles_9, ignore_order=True))
+        is False
+    )
+
+    # test 10 : pair output
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_11}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_11, "metadata"),
+    )
+    expected_outfiles_11 = __load_example_output_from_file(
+        example_cromwell_run_id_11, "outfiles"
+    )
+    ex_11 = crom.get_metadata(example_cromwell_run_id_11)
+    actual_outfiles_11 = ex_11.outfiles(relpath=True)
+    assert (
+        bool(DeepDiff(actual_outfiles_11, expected_outfiles_11, ignore_order=True))
         is False
     )
 
