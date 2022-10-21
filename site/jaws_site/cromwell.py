@@ -895,6 +895,11 @@ class Metadata:
                     "left": value["left"].replace(workflowRoot, ".", 1),
                     "right": value["right"].replace(workflowRoot, ".", 1),
                 }
+            elif type(value) is dict and "1" in value:
+                relpath_outputs[key] = {
+                    "1": value["1"].replace(workflowRoot, ".", 1),
+                    "2": value["2"].replace(workflowRoot, ".", 1),
+                }
         return relpath_outputs
 
     def outfiles(self, complete=False, relpath=True):
@@ -945,6 +950,11 @@ class Metadata:
                     full_paths.append(value["left"])
                 if value["right"].startswith(workflow_root):
                     full_paths.append(value["right"])
+            elif type(value) is dict and "1" in value:
+                if value["1"].startswith(workflow_root):
+                    full_paths.append(value["1"])
+                if value["2"].startswith(workflow_root):
+                    full_paths.append(value["2"])
 
         if relpath:
             rel_paths = []
