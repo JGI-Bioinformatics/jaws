@@ -1,0 +1,146 @@
+{
+    "actualWorkflowLanguage": "WDL",
+    "actualWorkflowLanguageVersion": "1.0",
+    "calls": {
+        "HelloWorld.WriteGreeting": [
+            {
+                "attempt": 1,
+                "backend": "HtCondor",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": true,
+                    "effectiveCallCachingMode": "ReadAndWriteCache",
+                    "hashes": {
+                        "backend name": "24B80D5AA1F64928B14AC8407909E586",
+                        "command template": "E8598276006D831D4B21170AF22FD2FC",
+                        "input count": "CFCD208495D565EF66E7DFF9F98764DA",
+                        "output count": "C81E728D9D4C2F636F067F89CC14862C",
+                        "output expression": {
+                            "File output_wdl": "CE8AC3106D5213B9199310ADF42FA6E4",
+                            "Pair(File,File) pair_test": "83EF9D571F97D569B8259A8DA207D0CE"
+                        },
+                        "runtime attribute": {
+                            "continueOnReturnCode": "CFCD208495D565EF66E7DFF9F98764DA",
+                            "docker": "21CD688E77BAD712688D2937B7096E13",
+                            "failOnStderr": "68934A3E9455FA72420237EB05902327"
+                        }
+                    },
+                    "hit": false,
+                    "result": "Cache Miss"
+                },
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting",
+                "commandLine": "echo \"Hello WDLs\" >> test.txt\ntouch file1\ntouch file2",
+                "compressedDockerSize": 28566425,
+                "dockerImageUsed": "ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf",
+                "end": "2022-10-18T22:58:34.927Z",
+                "executionEvents": [
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2022-10-18T22:58:34.927Z",
+                        "startTime": "2022-10-18T22:58:33.946Z"
+                    },
+                    {
+                        "description": "CallCacheReading",
+                        "endTime": "2022-10-18T22:58:26.333Z",
+                        "startTime": "2022-10-18T22:58:26.327Z"
+                    },
+                    {
+                        "description": "UpdatingCallCache",
+                        "endTime": "2022-10-18T22:58:33.946Z",
+                        "startTime": "2022-10-18T22:58:33.729Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2022-10-18T22:58:24.748Z",
+                        "startTime": "2022-10-18T22:58:24.748Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2022-10-18T22:58:26.327Z",
+                        "startTime": "2022-10-18T22:58:25.015Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2022-10-18T22:58:25.015Z",
+                        "startTime": "2022-10-18T22:58:24.748Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2022-10-18T22:58:25.015Z",
+                        "startTime": "2022-10-18T22:58:25.015Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2022-10-18T22:58:33.729Z",
+                        "startTime": "2022-10-18T22:58:26.333Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {},
+                "jobId": "200512",
+                "outputs": {
+                    "output_wdl": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/test.txt",
+                    "pair_test": {
+                        "left": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/file1",
+                        "right": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/file2"
+                    }
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "cpu": "1",
+                    "disk": "0.0244140625 GB",
+                    "docker": "ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf",
+                    "failOnStderr": "false",
+                    "maxRetries": "0",
+                    "memory": "2 GB"
+                },
+                "shardIndex": -1,
+                "start": "2022-10-18T22:58:24.748Z",
+                "stderr": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/stderr",
+                "stdout": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/stdout"
+            }
+        ]
+    },
+    "end": "2022-10-18T22:58:34.951Z",
+    "id": "e7855e5e-f0f6-46ad-801b-2f6187f1b05f",
+    "inputs": {},
+    "labels": {
+        "cromwell-workflow-id": "cromwell-e7855e5e-f0f6-46ad-801b-2f6187f1b05f"
+    },
+    "metadataSource": "Unarchived",
+    "outputs": {
+        "HelloWorld.WriteGreeting.output_wdl": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/test.txt",
+        "HelloWorld.WriteGreeting.pair_test": {
+            "left": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/file1",
+            "right": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/file2"
+        }
+    },
+    "start": "2022-10-18T22:58:23.711Z",
+    "status": "Succeeded",
+    "submission": "2022-10-18T22:58:23.449Z",
+    "submittedFiles": {
+        "inputs": "{}",
+        "labels": "{}",
+        "options": "{\n  \"default_runtime_attributes\": {\n    \"docker\": \"ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf\"\n  },\n  \"read_from_cache\": true,\n  \"write_to_cache\": true\n}",
+        "root": "",
+        "workflow": "version 1.0\n\nworkflow HelloWorld {\n  call WriteGreeting\n}\n\ntask WriteGreeting {\n  command <<<\n     echo \"Hello WDLs\" >> test.txt\n     touch file1\n     touch file2\n  >>>\n\n  output {\n     File output_wdl = \"test.txt\"\n     Pair[File,File] pair_test = (\"file1\",\"file2\")\n  }\n}\n\n",
+        "workflowUrl": ""
+    },
+    "workflowName": "HelloWorld",
+    "workflowProcessingEvents": [
+        {
+            "cromwellId": "cromid-d1c2009",
+            "cromwellVersion": "58",
+            "description": "Finished",
+            "timestamp": "2022-10-18T22:58:34.951Z"
+        },
+        {
+            "cromwellId": "cromid-d1c2009",
+            "cromwellVersion": "58",
+            "description": "PickedUp",
+            "timestamp": "2022-10-18T22:58:23.711Z"
+        }
+    ],
+    "workflowRoot": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f"
+}
