@@ -211,11 +211,6 @@ def get_grouped_data(data: pd.DataFrame, rolling_time: int = 10) -> pd.DataFrame
     # Place the time the processes has been running since at each pont
     data["running_time"] = (data.index - start_time).total_seconds()
 
-    # remove entries with runtines shorter then the rolling window
-    if np.max(data["running_time"]) < rolling_time:
-        # retruns empty dataframe with the correct column names
-        return pd.DataFrame([], columns=col)
-
     try:
         # Calculates the percentages for different parts of the cpu per point
         data["cpu_percentage_user"] = compute_rates(
@@ -237,10 +232,6 @@ def get_grouped_data(data: pd.DataFrame, rolling_time: int = 10) -> pd.DataFrame
         )
         return pd.DataFrame([], columns=col)
 
-    # remove entries with low cpu usage
-    if np.mean(data["cpu_percentage_total"]) < 0.1:
-        # retruns empty dataframe with the correct column names
-        return pd.DataFrame([], columns=col)
     try:
         # Calculates the data rates for read and write
         for rw in ["read", "write"]:
