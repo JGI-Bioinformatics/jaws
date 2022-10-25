@@ -24,7 +24,7 @@ variables:
   GIT_STRATEGY: clone
 
   JAWS_SITE_NAMES: "CORI JGI TAHOMA AWS ASSEMBLY NMDC"
-  JAWS_SITE_VERSION: "1.0.6"
+  JAWS_SITE_VERSION: "1.0.7"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_LOG_LEVEL: "INFO"
   JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
