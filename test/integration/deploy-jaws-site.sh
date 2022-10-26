@@ -20,8 +20,6 @@ source "./test/integration/configs/sites/$JAWS_SITE_NAME.sh"
 echo "Validating input variables"
 REQUIRED_VARS="
 JAWS_AUTH_PORT
-JAWS_CONTAINER_TMPDIR
-JAWS_CONTAINER_TYPE
 JAWS_CROMWELL_PORT
 JAWS_DB_HOST
 JAWS_DB_PORT
