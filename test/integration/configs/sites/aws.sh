@@ -5,5 +5,4 @@ export JAWS_GROUP="ec2-user"
 export JAWS_USERS_GROUP="ec2-user"
 export JAWS_SCRATCH_BASEDIR="s3://jaws-site"
 export JAWS_REF_DATA_DIR=""
-export JAWS_CONTAINER_TMPDIR="/tmp"
 export JAWS_MAX_RAM_GB=256
