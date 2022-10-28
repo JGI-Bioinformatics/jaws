@@ -1,5 +1,5 @@
 export JAWS_INSTALL_BASEDIR="/tahoma/mscjgi/jaws-install"
-export JAWS_GLOBUS_EP="f441d224-35cd-11ec-95e9-853490a236f9"
+export JAWS_GLOBUS_EP="90170904-5642-11ed-89db-ede5bae4f491"
 export JAWS_GLOBUS_HOST_PATH="/tahoma/mscjgi"
 export JAWS_PYTHON="python"
 export JAWS_LOAD_PYTHON="module load python/3.8.1"
