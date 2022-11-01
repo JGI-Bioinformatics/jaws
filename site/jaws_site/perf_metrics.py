@@ -139,6 +139,7 @@ class PerformanceMetrics:
                 run_id = doc.get("jaws_run_id")
                 task_name = doc.get("task_name")
                 cmd_pid = doc.get("pid", 0)
+                timestamp = doc.get("@timestamp", 0)
 
                 # Just really a final check at this point since it should already be in the document
                 if not run_id or not cromwell_run_id:
@@ -155,7 +156,7 @@ class PerformanceMetrics:
                 # Assign unique id to doc. Logstash is setup to use the doc's uid field as the unique id for the
                 # document ("_id"). Specifying the doc id ensures that a duplicate entry won't be added with the
                 # same document metrics.
-                hash_str = f"{run_id}{task_name}{cmd_pid}".encode("ASCII")
+                hash_str = f"{run_id}{task_name}{cmd_pid}{timestamp}".encode("ASCII")
                 doc["uid"] = hashlib.sha1(hash_str).hexdigest()
 
                 # Submit doc to RMQ to be picked up by logstash and inserted into elasticsearch
