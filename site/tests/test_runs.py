@@ -11,6 +11,7 @@ from jaws_site.runs import (
 )
 from tests.conftest import MockSession, MockRunModel, this_date, initRunModel
 from jaws_site.cromwell import Cromwell, CromwellError
+from jaws_rpc.rpc_client_basic import RpcClientBasic
 import io
 
 
@@ -698,10 +699,19 @@ def test_task_log(mock_metadata, mock_sqlalchemy_session):
     assert len(ret) == 0
 
 
-def test_report(mock_metadata, mock_sqlalchemy_session):
+def test_publish_report(mock_metadata, mock_sqlalchemy_session, monkeypatch):
+
+    def mock_rpc_client_request(self, payload):
+        successful_response = {
+            "result": {}
+        }
+        return successful_response
+
+    monkeypatch.setattr(RpcClientBasic, "request", mock_rpc_client_request)
+
     data = initRunModel(status="succeeded")
     run = Run(mock_sqlalchemy_session, data)
-    ret = run.report()
+    ret = run.publish_report()
     ret == {
         "run_id": "99",
         "user_id": "test_user",
