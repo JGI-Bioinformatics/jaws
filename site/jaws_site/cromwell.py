@@ -197,11 +197,16 @@ class Call:
             for failure in self.data["failures"]:
                 self.failure_message = failure["message"]
 
+        # init with None to ensure keys exist
         self.queue_start = None
+        self.queuetime_sec = None
         self.run_start = None
         self.run_end = None
         self.queue_duration = None
         self.run_duration = None
+        self.runtime_sec = None
+        self.wallclock_duration = None
+        self.walltime_sec = None
         self.dir = None
 
         if "callCaching" in self.data and "hit" in self.data["callCaching"]:
@@ -231,9 +236,15 @@ class Call:
         if self.queue_start is not None and self.run_start is not None:
             delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
             self.queue_duration = str(delta)
+            self.queuetime_sec = int(delta.total_seconds())
         if self.run_start is not None and self.run_end is not None:
             delta = parser.parse(self.run_end) - parser.parse(self.run_start)
             self.run_duration = str(delta)
+            self.runtime_sec = int(delta.total_seconds())
+        if self.run_end is not None and self.queue_start is not None:
+            delta = parser.parse(self.run_end) - parser.parse(self.queue_start)
+            self.wallclock_duration = str(delta)
+            self.walltime_sec = int(delta.total_seconds())
 
     def _get_file_path(self, file_id, relpath=False):
         """
