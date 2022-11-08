@@ -377,7 +377,7 @@ if __name__ == '__main__':
                         default=0)
     parser.add_argument("--json", default=False, action="store_true", help="Output JSON strings instead of CSV lines")
     parser.add_argument("--envvar", action="append", default=[],
-                        help="add environment var to output (can be specified multiple times)")
+                        help="Add environment variables to json output (can be specified multiple times)")
 
     args = parser.parse_args()
 
