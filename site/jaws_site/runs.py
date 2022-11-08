@@ -21,7 +21,6 @@ import logging
 import json
 import io
 from datetime import datetime
-from dateutil import parser
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 import boto3
@@ -209,66 +208,6 @@ class Run:
             return self.metadata().task_log()
         else:
             return []
-
-    def report(self) -> dict:
-        """
-        Produce full report of Run and Task info.
-        This is published to the runs-elasticsearch service.
-        Some fields of the cromwell task summary are renamed for backwards compatability.
-        """
-        metadata = self.metadata()
-        report = self.summary()
-        report["workflow_name"] = metadata.get("workflowName", "unknown")
-        report["site_id"] = report["compute_site_id"]
-        del report["compute_site_id"]
-
-        report["tasks"] = []
-        for task in metadata.task_summary(last_attempts=True):
-            # rename job_id key to cromwell_job_id
-            task["cromwell_job_id"] = task["job_id"]
-            del task["job_id"]
-
-            # compute queue time in sec.
-            try:
-                queue_delta = parser.parse(task["run_start"]) - parser.parse(
-                    task["queue_start"]
-                )
-                task["queuetime_sec"] = int(queue_delta.total_seconds())
-            except Exception as e:
-                logger.exception(
-                    f"Unexpected parsing error in calculating queue delta: {e}"
-                )
-                task["queuetime_sec"] = 0
-            del task["queue_duration"]
-
-            # compute run time sec.
-            try:
-                queue_delta = parser.parse(task["run_end"]) - parser.parse(
-                    task["run_start"]
-                )
-                task["runtime_sec"] = int(queue_delta.total_seconds())
-            except Exception as e:
-                logger.exception(
-                    f"Unexpected parsing error in calculating queue delta: {e}"
-                )
-                task["runtime_sec"] = 0
-            del task["run_duration"]
-
-            # compute wall time sec.
-            try:
-                queue_delta = parser.parse(task["run_end"]) - parser.parse(
-                    task["queue_start"]
-                )
-                task["walltime_sec"] = int(queue_delta.total_seconds())
-            except Exception as e:
-                logger.exception(
-                    f"Unexpected parsing error in calculating queue delta: {e}"
-                )
-                task["walltime_sec"] = 0
-
-            report["tasks"].append(task)
-
-        return report
 
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
@@ -589,7 +528,7 @@ class Run:
             logger.error(
                 f"Unable to check Cromwell status of Run {self.data.id}: {error}"
             )
-            raise
+            return
 
         # check if state has changed; allowed states and transitions for a successful run are:
         # submitted -> queued -> running -> succeeded (with no skipping of states allowed)
@@ -668,22 +607,41 @@ class Run:
         Send report document to reports service via RPC.
         We currently record resource metrics for successful and failed, but not cancelled Runs.
         """
-        # "test" is a special user account for automatic periodic system tests -- skip
-        if self.data.user_id != "test":
-            report = self.report()
-            if not report:
-                logger.exception("RPC save_run_report warning: run summary is empty.")
-                return
-            try:
-                response = self.reports_rpc_client.request(report)
-            except Exception as error:
-                logger.exception(f"RPC save_run_report error: {error}")
-                return
-            if "error" in response:
-                logger.warning(
-                    f"RPC save_run_report failed: {response['error']['message']}"
-                )
-                return
+        # "test" is a special user account -- mark as done without publishing report
+        if self.data.user_id == "test":
+            self.update_run_status("finished")
+            return
+
+        # get task summary from Cromwell metadata, return (skip) if unavailable now
+        try:
+            metadata = self.metadata()
+        except Exception as error:
+            logger.warn(
+                f"Unable to retrieve Cromwell metadata to generate report: {error}"
+            )
+            return
+        report = self.summary()
+        report["workflow_name"] = metadata.get("workflowName", "unknown")
+        report["site_id"] = report["compute_site_id"]
+        del report["compute_site_id"]
+
+        report["tasks"] = []
+        for task in metadata.task_summary(last_attempts=True):
+            # rename job_id key to cromwell_job_id
+            task["cromwell_job_id"] = task["job_id"]
+            report["tasks"].append(task)
+
+        # publish and if successful, mark as done, else skip until next time
+        try:
+            response = self.reports_rpc_client.request(report)
+        except Exception as error:
+            logger.exception(f"RPC save_run_report error: {error}")
+            return
+        if "error" in response:
+            logger.warning(
+                f"RPC save_run_report failed: {response['error']['message']}"
+            )
+            return
         self.update_run_status("finished")
 
 
