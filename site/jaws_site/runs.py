@@ -528,7 +528,7 @@ class Run:
             logger.error(
                 f"Unable to check Cromwell status of Run {self.data.id}: {error}"
             )
-            raise
+            return
 
         # check if state has changed; allowed states and transitions for a successful run are:
         # submitted -> queued -> running -> succeeded (with no skipping of states allowed)
