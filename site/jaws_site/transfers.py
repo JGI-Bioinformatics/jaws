@@ -180,24 +180,27 @@ class Transfer:
                 region_name=aws_region_name,
             )
         except Exception as error:
-            logger.error(f"Error getting aws session: {error}")
-            raise
+            raise (f"Error getting aws session: {error}")
         try:
             s3_resource = aws_session.resource("s3")
         except Exception as error:
-            logger.error(f"Error getting s3 sources: {error}")
-            raise
-        return s3_resource
+            raise (f"Error getting s3 sources: {error}")
+        else:
+            return s3_resource
 
     def aws_s3_client(self):
-        aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
-        aws_secret_access_key = config.conf.get("AWS", "aws_secret_access_key")
-        client = boto3.client(
-            "s3",
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key,
-        )
-        return client
+        try:
+            aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
+            aws_secret_access_key = config.conf.get("AWS", "aws_secret_access_key")
+            client = boto3.client(
+                "s3",
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+            )
+        except Exception as error:
+            raise (f"Failed to get AWS client: {error}")
+        else:
+            return client
 
     @staticmethod
     def s3_parse_path(full_path):
@@ -258,17 +261,15 @@ class Transfer:
         try:
             aws_client = self.aws_s3_client()
         except Exception as error:
-            msg = f"Error getting aws client: {error}"
-            logger.error(msg)
-            self.update_status("upload failed", msg)
-            raise
+            # do not fail, retry later
+            logger.error(f"{error}")
+            return
         try:
             aws_s3_resource = self.aws_s3_resource()
         except Exception as error:
-            msg = f"Error getting aws s3 resources: {error}"
-            logger.error(msg)
-            self.update_status("upload failed", msg)
-            raise
+            # do not fail, retry later
+            logger.error(f"{error}")
+            return
         try:
             s3_bucket, dest_base_dir = self.s3_parse_path(self.data.dest_base_dir)
         except Exception as error:
