@@ -622,7 +622,7 @@ class Run:
             return
         report = self.summary()
         report["workflow_name"] = metadata.get("workflowName", "unknown")
-        report["site_id"] = report["compute_site_id"]
+        report["site_id"] = report["compute_site_id"].upper()
         del report["compute_site_id"]
 
         report["tasks"] = []
