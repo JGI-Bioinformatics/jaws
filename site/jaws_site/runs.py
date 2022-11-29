@@ -745,10 +745,10 @@ def user_has_active_runs(session: sessionmaker, user_id: str) -> bool:
     ]
     try:
         rows = (
-            session.query(models.Run)\
-                .filter(models.Run.status.in_(active_states))\
-                .filter(models.Run.user_id == user_id)\
-                .all()
+            session.query(models.Run).
+            filter(models.Run.status.in_(active_states)).
+            filter(models.Run.user_id == user_id).
+            all()
         )
     except SQLAlchemyError as error:
         logger.warning(f"Failed to get user active runs from db: {error}", exc_info=True)
