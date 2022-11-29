@@ -23,6 +23,7 @@ import io
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.session import sessionmaker
 import boto3
 import botocore
 from random import shuffle
@@ -497,6 +498,13 @@ class Run:
         """
         Submit a run to Cromwell.
         """
+
+        # if user has a cromwell currently running, don't submit another cromwell job.
+        # this is done to throttle cases where user submits multiple runs that may cause cromwell
+        # problems.
+        if user_has_active_runs(self.session, self.data.user_id):
+            return
+
         logger.debug(f"Run {self.data.id}: Submit to Cromwell")
         try:
             file_handles = self.get_run_inputs()
@@ -722,6 +730,32 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         except Exception as error:
             session.rollback()
             logger.exception(f"Error updating run_logs as sent: {error}")
+
+
+def user_has_active_runs(session: sessionmaker, user_id: str) -> bool:
+    """
+    Get active runs from db and have each check and update their status.
+    """
+    active_states = [
+        "submitted",
+        "queued",
+        "running",
+    ]
+    try:
+        rows = (
+            session.query(models.Run)\
+                .filter(models.Run.status.in_(active_states))\
+                .filter(models.Run.user_id == user_id)\
+                .all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(f"Failed to get user active runs from db: {error}", exc_info=True)
+        return True
+
+    if rows:
+        return True
+
+    return False
 
 
 class RunLog:

@@ -353,6 +353,9 @@ def test_submit_run(monkeypatch, inputs_files):
     def mock_get_run_inputs(self):
         return {}, {}
 
+    def mock_user_has_active_runs(*args):
+        return False
+
     mock_session = MockSession()
     mock_data = MockRunModel(status="upload complete")
     run = Run(mock_session, mock_data)
@@ -361,8 +364,21 @@ def test_submit_run(monkeypatch, inputs_files):
     monkeypatch.setattr(Run, "get_run_inputs", mock_get_run_inputs)
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
+    monkeypatch.setattr(jaws_site.runs, "user_has_active_runs", mock_user_has_active_runs)
 
     run.submit_run()
+
+
+def test_user_has_active_runs(mock_sqlalchemy_session):
+    # test user has active run
+    mock_sqlalchemy_session.output([{"user": "abc"}])
+    obs_result = jaws_site.runs.user_has_active_runs(mock_sqlalchemy_session, 123)
+    assert obs_result is True
+
+    # test user does not have active run
+    mock_sqlalchemy_session.clear()
+    obs_result = jaws_site.runs.user_has_active_runs(mock_sqlalchemy_session, 123)
+    assert obs_result is False
 
 
 @pytest.fixture

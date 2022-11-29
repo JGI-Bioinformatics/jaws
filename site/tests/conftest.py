@@ -867,7 +867,7 @@ def mock_sqlalchemy_session():
             return self
 
         def all(self):
-            return self.entries[0]
+            return self.entries[0] if len(self.entries) else []
 
         def one(self):
             if len(self.entries) > 0 and len(self.entries[0]) > 0:

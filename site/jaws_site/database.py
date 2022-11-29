@@ -32,5 +32,6 @@ except Exception as error:
     raise
 
 session_factory = sessionmaker(bind=engine)
+print(type(session_factory))
 
 Base = declarative_base()
