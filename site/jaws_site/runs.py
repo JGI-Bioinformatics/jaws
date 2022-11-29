@@ -499,13 +499,15 @@ class Run:
         Submit a run to Cromwell.
         """
 
+        logger.debug(f"Run {self.data.id}: Submit to Cromwell")
+
         # if user has a cromwell currently running, don't submit another cromwell job.
         # this is done to throttle cases where user submits multiple runs that may cause cromwell
         # problems.
         if user_has_active_runs(self.session, self.data.user_id):
+            logger.debug(f"Run {self.data.id}: another run is submitted to cromwell. skipping.")
             return
 
-        logger.debug(f"Run {self.data.id}: Submit to Cromwell")
         try:
             file_handles = self.get_run_inputs()
         except Exception as error:
