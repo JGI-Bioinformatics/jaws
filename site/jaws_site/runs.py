@@ -81,6 +81,7 @@ class Run:
             "default_container": config.conf.get(
                 "SITE", "default_container", "ubuntu:latest"
             ),
+            "max_user_active_runs": int(config.conf.get("SITE", "max_user_active_runs")),
             "aws_access_key_id": config.conf.get("AWS", "aws_access_key_id"),
             "aws_region_name": config.conf.get("AWS", "aws_region_name"),
             "aws_secret_access_key": config.conf.get("AWS", "aws_secret_access_key"),
@@ -504,7 +505,7 @@ class Run:
         # if user has a cromwell currently running, don't submit another cromwell job.
         # this is done to throttle cases where user submits multiple runs that may cause cromwell
         # problems.
-        if user_has_active_runs(self.session, self.data.user_id):
+        if max_active_runs_exceeded(self.session, self.data.user_id, self.config["max_user_active_runs"]):
             logger.debug(f"Run {self.data.id}: another run is submitted to cromwell. skipping.")
             return
 
@@ -734,9 +735,11 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             logger.exception(f"Error updating run_logs as sent: {error}")
 
 
-def user_has_active_runs(session: sessionmaker, user_id: str) -> bool:
+def max_active_runs_exceeded(session: sessionmaker, user_id: str, max_active_runs: int) -> bool:
     """
     Get active runs from db and have each check and update their status.
+
+    Returns True if max active runs exceeded, else False.
     """
     active_states = [
         "submitted",
@@ -754,7 +757,7 @@ def user_has_active_runs(session: sessionmaker, user_id: str) -> bool:
         logger.warning(f"Failed to get user active runs from db: {error}", exc_info=True)
         return True
 
-    if rows:
+    if len(rows) > max_active_runs:
         return True
 
     return False

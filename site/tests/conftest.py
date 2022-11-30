@@ -95,6 +95,7 @@ url = http://localhost:8000
 id = eagle
 deployment = prod
 inputs_dir = /global/scratch/jaws/jaws-dev/inputs
+max_user_active_runs = 10
 [AWS]
 aws_access_key_id = AAAA
 aws_secret_access_key = BBBB
