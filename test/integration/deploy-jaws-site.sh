@@ -73,7 +73,7 @@ if [[ ! -d "$JAWS_SUPERVISOR_DIR/bin" ]]; then
       deactivate
 else
     echo "Stopping services"
-    $JAWS_BIN_DIR/supervisorctl stop "jaws-site:*"
+    $JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true
 fi
 
 echo "Generating virtual environment"
@@ -111,6 +111,6 @@ chmod 700 "$FACL_SCRIPT"
 "$FACL_SCRIPT"
 
 echo "Starting services"
-$JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true
+$JAWS_BIN_DIR/supervisorctl start "jaws-site:*"
 
 echo "END deploy-jaws"
