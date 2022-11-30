@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-#set -eo pipefail
+set -euxo pipefail
 
 echo "BEGIN deploy-jaws-site"
 
@@ -57,6 +57,7 @@ JAWS_BIN_DIR
 JAWS_CONFIG_DIR
 JAWS_INSTALL_DIR
 JAWS_LOGS_DIR
+JAWS_SCRATCH_DIR
 JAWS_SUPERVISOR_DIR
 "
 setup_dirs "$FOLDERS" "$JAWS_GROUP" 750
