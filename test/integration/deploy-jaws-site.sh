@@ -111,6 +111,7 @@ chmod 700 "$FACL_SCRIPT"
 "$FACL_SCRIPT"
 
 echo "Starting services"
+$JAWS_BIN_DIR/supervisord || true
 $JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true
 
 echo "END deploy-jaws"
