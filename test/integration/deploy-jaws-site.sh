@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-echo "BEGIN deploy-jaws-site"
+echo "BEGIN deploy-jaws-site on $HOSTNAME"
 
 echo "Loading functions"
 source "./test/integration/utils.sh"
@@ -111,6 +111,6 @@ chmod 700 "$FACL_SCRIPT"
 "$FACL_SCRIPT"
 
 echo "Starting services"
-$JAWS_BIN_DIR/supervisorctl start "jaws-site:*"
+$JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true
 
 echo "END deploy-jaws"
