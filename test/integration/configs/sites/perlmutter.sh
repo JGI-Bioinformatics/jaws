@@ -1,0 +1,11 @@
+export JAWS_INSTALL_BASEDIR="/global/cfs/projectdirs/jaws/jaws-install"
+export JAWS_GLOBUS_EP="be1ff650-dcbc-11ea-85a2-0e1702b77d41"
+export JAWS_GLOBUS_HOST_PATH="/"
+export JAWS_LOAD_PYTHON="module load python/3.9-anaconda-2021.11"
+export JAWS_GROUP="jaws"
+export JAWS_USERS_GROUP="genome"
+export JAWS_SCRATCH_BASEDIR="/global/cscratch1/sd/jaws"
+export JAWS_REF_DATA_DIR="/global/dna/shared/databases/jaws/refdata"
+export JAWS_MAX_RAM_GB=758
+export JAWS_PERFORMANCE_METRICS_SCRIPT="/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus"
+export JAWS_PERFORMANCE_METRICS_DIR="/global/cscratch1/sd/jaws_jtm/monitoring-runs"
