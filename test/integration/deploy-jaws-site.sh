@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
-#set -eo pipefail
+set -euxo pipefail
 
-echo "BEGIN deploy-jaws-site"
+echo "BEGIN deploy-jaws-site on $HOSTNAME"
 
 echo "Loading functions"
 source "./test/integration/utils.sh"
@@ -57,6 +57,7 @@ JAWS_BIN_DIR
 JAWS_CONFIG_DIR
 JAWS_INSTALL_DIR
 JAWS_LOGS_DIR
+JAWS_SCRATCH_DIR
 JAWS_SUPERVISOR_DIR
 "
 setup_dirs "$FOLDERS" "$JAWS_GROUP" 750
@@ -72,7 +73,7 @@ if [[ ! -d "$JAWS_SUPERVISOR_DIR/bin" ]]; then
       deactivate
 else
     echo "Stopping services"
-    $JAWS_BIN_DIR/supervisorctl stop "jaws-site:*"
+    $JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true
 fi
 
 echo "Generating virtual environment"
@@ -110,6 +111,7 @@ chmod 700 "$FACL_SCRIPT"
 "$FACL_SCRIPT"
 
 echo "Starting services"
-$JAWS_BIN_DIR/supervisorctl start "jaws-site:*"
+$JAWS_BIN_DIR/supervisord || true
+$JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true
 
 echo "END deploy-jaws"

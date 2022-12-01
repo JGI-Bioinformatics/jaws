@@ -8,7 +8,7 @@ if [[ $JAWS_SCRATCH_BASEDIR =~ ^s3:\/\/ ]]; then
     export JAWS_SCRATCH_DIR="${JAWS_SCRATCH_BASEDIR}-${JAWS_DEPLOYMENT_NAME}"
 else
     # EACH SERVER DEPLOYMENT HAS A SEPARATE NFS SUBDIR
-    export JAWS_SCRATCH_DIR="$JAWS_SCRATCH_BASEDIR/jaws-${JAWS_DEPLOYMENT_NAME}"
+    export JAWS_SCRATCH_DIR="$JAWS_SCRATCH_BASEDIR/${JAWS_SITE_NAME}-${JAWS_DEPLOYMENT_NAME}"
 fi
 
 # Folders for Run inputs and downloads from other jaws-sites
@@ -22,8 +22,8 @@ export JAWS_CROMWELL_EXECUTIONS_DIR="$JAWS_SCRATCH_DIR/cromwell-executions"
 export JAWS_PERFORMANCE_METRICS_SCRIPT="$JAWS_INSTALL_DIR/site/bin/pagurus"
 
 # Globus has some rules about how paths are interpreted, depending on how the endpoint is configured.
-[[ ${JAWS_GLOBUS_ROOT_DIR:-1} == "/" ]] || JAWS_GLOBUS_ROOT_DIR="$JAWS_GLOBUS_ROOT_DIR/"
-export JAWS_GLOBUS_ROOT_DIR
+[[ ${JAWS_GLOBUS_HOST_PATH:-1} == "/" ]] || JAWS_GLOBUS_HOST_PATH="$JAWS_GLOBUS_HOST_PATH/"
+export JAWS_GLOBUS_HOST_PATH
 
 # virtual envs
 export JAWS_VENV_DIR="$JAWS_INSTALL_DIR/site"

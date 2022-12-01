@@ -23,7 +23,7 @@ include:
 variables:
   GIT_STRATEGY: clone
 
-  JAWS_SITE_NAMES: "CORI JGI TAHOMA AWS ASSEMBLY NMDC"
+  JAWS_SITE_NAMES: "CORI JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER"
   JAWS_SITE_VERSION: "1.0.9"
   JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
   JAWS_LOG_LEVEL: "INFO"
@@ -309,6 +309,49 @@ deploy-jaws-nmdc-prod:
     JAWS_SITE_NAME: "NMDC"
   environment:
     name: "nmdc/production"
+  script:
+    - ./test/integration/deploy-jaws-site.sh
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+      when: manual
+
+deploy-jaws-perlmutter-dev:
+  stage: deploy-jaws
+  tags:
+    - perlmutter
+  variables:
+    JAWS_DEPLOYMENT_NAME: "dev"
+    JAWS_SITE_NAME: "PERLMUTTER"
+  environment:
+    name: "perlmutter/dev"
+  script:
+    - ./test/integration/deploy-jaws-site.sh
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
+
+deploy-jaws-perlmutter-staging:
+  stage: deploy-jaws
+  tags:
+    - perlmutter
+  variables:
+    JAWS_DEPLOYMENT_NAME: "staging"
+    JAWS_SITE_NAME: "PERLMUTTER"
+  environment:
+    name: "perlmutter/staging"
+  script:
+    - ./test/integration/deploy-jaws-site.sh
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+
+deploy-jaws-perlmutter-prod:
+  stage: release-jaws
+  tags:
+    - perlmutter
+  variables:
+    JAWS_DEPLOYMENT_NAME: "prod"
+    JAWS_SITE_NAME: "PERLMUTTER"
+  environment:
+    name: "perlmutter/production"
   script:
     - ./test/integration/deploy-jaws-site.sh
   rules:
