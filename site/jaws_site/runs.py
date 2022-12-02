@@ -23,6 +23,7 @@ import io
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.session import sessionmaker
 import boto3
 import botocore
 from random import shuffle
@@ -80,6 +81,7 @@ class Run:
             "default_container": config.conf.get(
                 "SITE", "default_container", "ubuntu:latest"
             ),
+            "max_user_active_runs": int(config.conf.get("SITE", "max_user_active_runs")),
             "aws_access_key_id": config.conf.get("AWS", "aws_access_key_id"),
             "aws_region_name": config.conf.get("AWS", "aws_region_name"),
             "aws_secret_access_key": config.conf.get("AWS", "aws_secret_access_key"),
@@ -497,7 +499,16 @@ class Run:
         """
         Submit a run to Cromwell.
         """
+
         logger.debug(f"Run {self.data.id}: Submit to Cromwell")
+
+        # if user has a cromwell currently running, don't submit another cromwell job.
+        # this is done to throttle cases where user submits multiple runs that may cause cromwell
+        # problems.
+        if max_active_runs_exceeded(self.session, self.data.user_id, self.config["max_user_active_runs"]):
+            logger.debug(f"Run {self.data.id}: another run is submitted to cromwell. skipping.")
+            return
+
         try:
             file_handles = self.get_run_inputs()
         except Exception as error:
@@ -722,6 +733,34 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         except Exception as error:
             session.rollback()
             logger.exception(f"Error updating run_logs as sent: {error}")
+
+
+def max_active_runs_exceeded(session: sessionmaker, user_id: str, max_active_runs: int) -> bool:
+    """
+    Get active runs from db and have each check and update their status.
+
+    Returns True if max active runs exceeded, else False.
+    """
+    active_states = [
+        "submitted",
+        "queued",
+        "running",
+    ]
+    try:
+        rows = (
+            session.query(models.Run).
+            filter(models.Run.status.in_(active_states)).
+            filter(models.Run.user_id == user_id).
+            all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(f"Failed to get user active runs from db: {error}", exc_info=True)
+        return True
+
+    if len(rows) > max_active_runs:
+        return True
+
+    return False
 
 
 class RunLog:

@@ -353,6 +353,9 @@ def test_submit_run(monkeypatch, inputs_files):
     def mock_get_run_inputs(self):
         return {}, {}
 
+    def mock_max_active_runs_exceeded(*args):
+        return False
+
     mock_session = MockSession()
     mock_data = MockRunModel(status="upload complete")
     run = Run(mock_session, mock_data)
@@ -361,8 +364,25 @@ def test_submit_run(monkeypatch, inputs_files):
     monkeypatch.setattr(Run, "get_run_inputs", mock_get_run_inputs)
     monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
+    monkeypatch.setattr(jaws_site.runs, "max_active_runs_exceeded", mock_max_active_runs_exceeded)
 
     run.submit_run()
+
+
+def test_max_active_runs_exceeded(mock_sqlalchemy_session):
+    # test user has active run but under exceeded threshold
+    mock_sqlalchemy_session.output([{"run_id": 123}, {"run_id": 456}])
+    obs_result = jaws_site.runs.max_active_runs_exceeded(mock_sqlalchemy_session, 123, 10)
+    assert obs_result is False
+
+    # test user has active run and exceeds threshold
+    obs_result = jaws_site.runs.max_active_runs_exceeded(mock_sqlalchemy_session, 123, 1)
+    assert obs_result is True
+
+    # test user does not have any active run
+    mock_sqlalchemy_session.clear()
+    obs_result = jaws_site.runs.max_active_runs_exceeded(mock_sqlalchemy_session, 123, 1)
+    assert obs_result is False
 
 
 @pytest.fixture
