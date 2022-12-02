@@ -50,5 +50,4 @@ class RunDaemon:
             session, self.central_rpc_client, self.report_rpc_client
         )
         runs.send_run_status_logs(session, self.central_rpc_client)
-        # perf_metrics_es.Metrics(session, self.pmetrics_es_rpc_client).process_metrics()
         session.close()
