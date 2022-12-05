@@ -2,6 +2,7 @@ import logging
 import hashlib
 import re
 import time
+import json
 from typing import Callable
 from pathlib import Path
 from functools import lru_cache
@@ -32,6 +33,25 @@ class PerformanceMetrics:
             logger.warning(msg)
             return 0
         return run.data.id
+
+    def process_json(self, json_file: Path) -> list:
+        """Parse the performance JSON files output by logstash and generate a dictionary containing a list of
+        performance metrics defined within the file. The input must be setup so that each line of input has
+        the timestamp as the index and the rest of the record as a dictionary using the "index" orientation
+        for pd.read_json()
+
+        :param json_file: performance metric json file
+        :type json_file: str
+        :return: list of dictionaries where each dictionary is a json doc of the performance metrics.
+        :rtype: list
+        """
+        try:
+            json_data = pd.read_json(json_file, convert_dates=True, orient='records', lines=True)
+        except Exception as err:
+            logging.warning(f"{type(err).__name__} Error opening {csv_file=}")
+            # Return an empty list of dict to be handled later
+            return [{}]
+
 
     def process_csv(self, csv_file: Path) -> list:
         """Parse the performance csv files and generate a dictionary containing a list of performance metrics
