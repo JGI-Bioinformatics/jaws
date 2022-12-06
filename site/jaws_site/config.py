@@ -31,6 +31,9 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "num_threads": 5,
             "max_retries": 3,
         },
+        "SITE": {
+            "max_user_active_runs": 0
+        }
     }
     required_params = {
         "PERFORMANCE_METRICS": [
