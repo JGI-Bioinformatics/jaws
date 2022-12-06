@@ -75,19 +75,28 @@ class Run:
         )
         self._metadata = None
 
-        self.config = {
-            "site_id": config.conf.get("SITE", "id"),
-            "inputs_dir": config.conf.get("SITE", "inputs_dir"),
-            "default_container": config.conf.get(
-                "SITE", "default_container", "ubuntu:latest"
-            ),
-            "max_user_active_runs": int(config.conf.get("SITE", "max_user_active_runs")),
-            "aws_access_key_id": config.conf.get("AWS", "aws_access_key_id"),
-            "aws_region_name": config.conf.get("AWS", "aws_region_name"),
-            "aws_secret_access_key": config.conf.get("AWS", "aws_secret_access_key"),
-            "cromwell_url": config.conf.get("CROMWELL", "url"),
-            "cromwell_executions_dir": config.conf.get("CROMWELL", "executions_dir"),
-        }
+        try:
+            self.config = {
+                "site_id": config.conf.get("SITE", "id"),
+                "inputs_dir": config.conf.get("SITE", "inputs_dir"),
+                "default_container": config.conf.get(
+                    "SITE", "default_container", "ubuntu:latest"
+                ),
+                "max_user_active_runs": int(
+                    config.conf.get("SITE", "max_user_active_runs", 0)
+                ),
+                "aws_access_key_id": config.conf.get("AWS", "aws_access_key_id"),
+                "aws_region_name": config.conf.get("AWS", "aws_region_name"),
+                "aws_secret_access_key": config.conf.get(
+                    "AWS", "aws_secret_access_key"
+                ),
+                "cromwell_url": config.conf.get("CROMWELL", "url"),
+                "cromwell_executions_dir": config.conf.get(
+                    "CROMWELL", "executions_dir"
+                ),
+            }
+        except Exception as error:
+            logger.error(f"Error loading config: {error}")
 
     @classmethod
     def from_params(
@@ -214,6 +223,7 @@ class Run:
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
         status = self.data.status
+        logger.debug(f"Run {self.data.id} is {self.data.status}")
         if status in self.operations:
             return self.operations[status]()
 
@@ -505,8 +515,12 @@ class Run:
         # if user has a cromwell currently running, don't submit another cromwell job.
         # this is done to throttle cases where user submits multiple runs that may cause cromwell
         # problems.
-        if max_active_runs_exceeded(self.session, self.data.user_id, self.config["max_user_active_runs"]):
-            logger.debug(f"Run {self.data.id}: another run is submitted to cromwell. skipping.")
+        if max_active_runs_exceeded(
+            self.session, self.data.user_id, self.config["max_user_active_runs"]
+        ):
+            logger.debug(
+                f"Run {self.data.id}: another run is submitted to cromwell. skipping."
+            )
             return
 
         try:
@@ -676,10 +690,13 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
     except SQLAlchemyError as error:
         logger.warning(f"Failed to select active runs from db: {error}", exc_info=True)
     else:
+        n = len(rows)
+        logger.debug(f"There are {n} active runs")
         # If there is an unexpected error prevening a Run from being processed, it could block
         # other runs from being processed, so we randomize the list.  This isn't usually necessary,
         # but it increases the robustness of the system.
-        shuffle(rows)
+        if n > 1:
+            shuffle(rows)
         for row in rows:
             run = Run(
                 session,
@@ -735,12 +752,16 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             logger.exception(f"Error updating run_logs as sent: {error}")
 
 
-def max_active_runs_exceeded(session: sessionmaker, user_id: str, max_active_runs: int) -> bool:
+def max_active_runs_exceeded(
+    session: sessionmaker, user_id: str, max_active_runs: int
+) -> bool:
     """
     Get active runs from db and have each check and update their status.
 
     Returns True if max active runs exceeded, else False.
     """
+    if max_active_runs is None or max_active_runs <= 0:
+        return False
     active_states = [
         "submitted",
         "queued",
@@ -748,13 +769,15 @@ def max_active_runs_exceeded(session: sessionmaker, user_id: str, max_active_run
     ]
     try:
         rows = (
-            session.query(models.Run).
-            filter(models.Run.status.in_(active_states)).
-            filter(models.Run.user_id == user_id).
-            all()
+            session.query(models.Run)
+            .filter(models.Run.status.in_(active_states))
+            .filter(models.Run.user_id == user_id)
+            .all()
         )
     except SQLAlchemyError as error:
-        logger.warning(f"Failed to get user active runs from db: {error}", exc_info=True)
+        logger.warning(
+            f"Failed to get user active runs from db: {error}", exc_info=True
+        )
         return True
 
     if len(rows) > max_active_runs:
