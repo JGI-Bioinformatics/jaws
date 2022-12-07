@@ -9,10 +9,10 @@ stages:
   - release-jaws
 
 include:
-  - template: Jobs/SAST.gitlab-ci.yml
-#  - project: "advanced-analysis/ci-templates"
-#    ref: "SAST"
-#    file: "SAST.gitlab-ci.yml"
+#  - template: Jobs/SAST.gitlab-ci.yml
+  - project: "advanced-analysis/ci-templates"
+    ref: "SAST"
+    file: "SAST.gitlab-ci.yml"
 
 include:
   - project: "advanced-analysis/ci-templates"
