@@ -1,9 +1,7 @@
 stages:
   - test
-  - bandit-sast
   - semgrep-sast
   - esline-sast
-  - nodejs-scan-sast
   - unit-test
   - image-build
   - deploy-jaws
@@ -11,9 +9,10 @@ stages:
   - release-jaws
 
 include:
-  - project: "advanced-analysis/ci-templates"
-    ref: "SAST"
-    file: "SAST.gitlab-ci.yml"
+  - template: Jobs/SAST.gitlab-ci.yml
+#  - project: "advanced-analysis/ci-templates"
+#    ref: "SAST"
+#    file: "SAST.gitlab-ci.yml"
 
 include:
   - project: "advanced-analysis/ci-templates"
