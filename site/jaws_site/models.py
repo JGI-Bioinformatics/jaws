@@ -39,7 +39,7 @@ class Run(Base):
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)
     submission_id = Column(String(36), nullable=False)
-    input_site_id = Column(String(8), nullable=False)
+    input_site_id = Column(String(16), nullable=False)
     caching = Column(Boolean, nullable=False, default=True)
     cromwell_run_id = Column(String(36), nullable=True)
     status = Column(String(32), nullable=False)
