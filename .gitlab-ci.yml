@@ -12,7 +12,7 @@ stages:
 
 include:
   - project: "advanced-analysis/ci-templates"
-    ref: "main"
+    ref: "SAST"
     file: "SAST.gitlab-ci.yml"
 
 include:
