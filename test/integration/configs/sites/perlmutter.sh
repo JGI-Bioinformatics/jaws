@@ -8,4 +8,4 @@ export JAWS_SCRATCH_BASEDIR="/pscratch/sd/j/jaws"
 export JAWS_REF_DATA_DIR="/global/dna/shared/databases/jaws/refdata"
 export JAWS_MAX_RAM_GB=758
 export JAWS_PERFORMANCE_METRICS_SCRIPT="/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus"
-export JAWS_PERFORMANCE_METRICS_DIR="/global/cscratch1/sd/jaws_jtm/monitoring-runs"
+export JAWS_PERFORMANCE_METRICS_DIR="/pscratch/sd/j/jaws/monitoring-runs"
