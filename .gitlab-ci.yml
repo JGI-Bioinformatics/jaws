@@ -53,11 +53,19 @@ variables:
 
 print-all-env-vars-job:
   stage: test
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+
   script:
     - echo "GitLab CI/CD | Print all environment variables"
     - env
   rules:
     - when: always
+  services:
+    - docker:20.10.12-dind
+  tags:
+    - docker-build
 
 test-rpc:
   <<: *only-default
