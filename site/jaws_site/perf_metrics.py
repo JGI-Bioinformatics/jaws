@@ -48,10 +48,9 @@ class PerformanceMetrics:
         try:
             json_data = pd.read_json(json_file, convert_dates=True, orient='records', lines=True)
         except Exception as err:
-            logging.warning(f"{type(err).__name__} Error opening {csv_file=}")
+            logging.warning(f"{type(err).__name__} Error opening {json_file=}")
             # Return an empty list of dict to be handled later
             return [{}]
-
 
     def process_csv(self, csv_file: Path) -> list:
         """Parse the performance csv files and generate a dictionary containing a list of performance metrics
