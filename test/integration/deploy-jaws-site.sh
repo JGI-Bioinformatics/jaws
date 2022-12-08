@@ -110,6 +110,9 @@ envsubst < "./test/integration/templates/setup_facl.sh" > "$FACL_SCRIPT"
 chmod 700 "$FACL_SCRIPT"
 "$FACL_SCRIPT"
 
+echo "Writing jaws-site shim (if required)"
+[[ -n "$JAWS_GITLAB_RUNNER" ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
+
 echo "Starting services"
 $JAWS_BIN_DIR/supervisord || true
 $JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true
