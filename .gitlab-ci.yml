@@ -9,8 +9,8 @@ stages:
 include:
 #  - template: Jobs/SAST.gitlab-ci.yml
   - project: "advanced-analysis/ci-templates"
-    ref: "SAST"
-    file: "SAST.gitlab-ci.yml"
+    ref: "main"
+    file: "SAST.gitlab-ci2.yml"
 
 
 include:
