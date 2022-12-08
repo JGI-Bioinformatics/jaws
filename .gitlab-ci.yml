@@ -51,6 +51,14 @@ variables:
     - if: '$CI_COMMIT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
+print-all-env-vars-job:
+  stage: test
+  script:
+    - echo "GitLab CI/CD | Print all environment variables"
+    - env
+  rules:
+    - when: always
+
 test-rpc:
   <<: *only-default
   stage: unit-test
