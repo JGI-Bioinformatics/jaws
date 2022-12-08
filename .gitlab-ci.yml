@@ -1,7 +1,5 @@
 stages:
   - test
-  - semgrep-sast
-  - esline-sast
   - unit-test
   - image-build
   - deploy-jaws
