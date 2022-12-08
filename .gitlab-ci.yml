@@ -51,22 +51,6 @@ variables:
     - if: '$CI_COMMIT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
-print-all-env-vars-job:
-  stage: test
-  variables:
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: ""
-
-  script:
-    - echo "GitLab CI/CD | Print all environment variables"
-    - env
-  rules:
-    - when: always
-  services:
-    - docker:20.10.12-dind
-  tags:
-    - docker-build
-
 test-rpc:
   <<: *only-default
   stage: unit-test
