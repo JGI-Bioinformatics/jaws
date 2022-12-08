@@ -25,5 +25,8 @@ export JAWS_PERFORMANCE_METRICS_SCRIPT="$JAWS_INSTALL_DIR/site/bin/pagurus"
 [[ ${JAWS_GLOBUS_HOST_PATH:-1} == "/" ]] || JAWS_GLOBUS_HOST_PATH="$JAWS_GLOBUS_HOST_PATH/"
 export JAWS_GLOBUS_HOST_PATH
 
-# virtual envs
+# envsubst doesn't respect escaped "\$" so use "$DOLLAR"
+export DOLLAR='$'
+
+# virtual envs installation dir
 export JAWS_VENV_DIR="$JAWS_INSTALL_DIR/site"
