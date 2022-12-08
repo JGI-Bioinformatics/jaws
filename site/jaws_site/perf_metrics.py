@@ -51,6 +51,8 @@ class PerformanceMetrics:
             logging.warning(f"{type(err).__name__} Error opening {json_file=}")
             # Return an empty list of dict to be handled later
             return [{}]
+        _ = json.dumps(json_data)
+        return
 
     def process_csv(self, csv_file: Path) -> list:
         """Parse the performance csv files and generate a dictionary containing a list of performance metrics
