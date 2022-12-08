@@ -9,3 +9,5 @@ export JAWS_REF_DATA_DIR="/global/dna/shared/databases/jaws/refdata"
 export JAWS_MAX_RAM_GB=758
 export JAWS_PERFORMANCE_METRICS_SCRIPT="/global/cfs/cdirs/jaws/jaws-metrics/bin/pagurus"
 export JAWS_PERFORMANCE_METRICS_DIR="/pscratch/sd/j/jaws/monitoring-runs"
+export JAWS_GITLAB_RUNNER="$CFS/jaws/bin/gitlab-runner"
+export JAWS_GITLAB_RUNNER_CONFIG="$HOME/.gitlab-runner/perlmutter.toml"
