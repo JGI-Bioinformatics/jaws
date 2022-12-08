@@ -12,6 +12,7 @@ include:
     ref: "SAST"
     file: "SAST.gitlab-ci.yml"
 
+
 include:
   - project: "advanced-analysis/ci-templates"
     ref: "main"
