@@ -10,9 +10,6 @@ include:
   - project: "advanced-analysis/ci-templates"
     ref: "main"
     file: "SAST.gitlab-ci2.yml"
-
-
-include:
   - project: "advanced-analysis/ci-templates"
     ref: "main"
     file: "Code-Quality.gitlab-ci.yml"
