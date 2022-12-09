@@ -7,6 +7,9 @@ echo "BEGIN deploy-jaws-site on $HOSTNAME"
 echo "Loading functions"
 source "./test/integration/utils.sh"
 
+echo "Loading default config values"
+source "./test/integration/configs/default.sh"
+
 echo "Loading deployment-specific config"
 validate_vars "JAWS_DEPLOYMENT_NAME"
 export JAWS_DEPLOYMENT_NAME=`echo $JAWS_DEPLOYMENT_NAME | awk '{print tolower($0)}'`
@@ -111,7 +114,7 @@ chmod 700 "$FACL_SCRIPT"
 "$FACL_SCRIPT"
 
 echo "Writing jaws-site shim (if required)"
-[[ -z "$JAWS_GITLAB_RUNNER" ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
+[[ -n "$JAWS_GITLAB_RUNNER" ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
 
 echo "Starting services"
 $JAWS_BIN_DIR/supervisord || true
