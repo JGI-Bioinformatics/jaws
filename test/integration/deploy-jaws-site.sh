@@ -7,6 +7,9 @@ echo "BEGIN deploy-jaws-site on $HOSTNAME"
 echo "Loading functions"
 source "./test/integration/utils.sh"
 
+echo "Loading default config values"
+source "./test/integration/configs/default.sh"
+
 echo "Loading deployment-specific config"
 validate_vars "JAWS_DEPLOYMENT_NAME"
 export JAWS_DEPLOYMENT_NAME=`echo $JAWS_DEPLOYMENT_NAME | awk '{print tolower($0)}'`

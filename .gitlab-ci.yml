@@ -25,22 +25,6 @@ variables:
 
   JAWS_SITE_NAMES: "CORI JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER"
   JAWS_SITE_VERSION: "1.0.9"
-  JAWS_DOCS_URL: "https://jaws-docs.readthedocs.io/en/latest/"
-  JAWS_LOG_LEVEL: "INFO"
-  JAWS_CENTRAL_HOST: "http://jaws.lbl.gov"
-  JAWS_RMQ_HOST: "rmq.lbl.gov"
-  JAWS_RMQ_PORT: 5672
-  JAWS_DB_HOST: "jaws-db.lbl.gov"
-  JAWS_DB_PORT: 3306
-  JAWS_RMQ_HOST: "rmq.lbl.gov"
-  JAWS_RMQ_PORT: 5672
-  JAWS_CONTAINER_TYPE: "docker"
-  JAWS_DEFAULT_CONTAINER: "ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf"
-  JAWS_PERFORMANCE_METRICS_CLEANUP: 600
-  JAWS_LOAD_PYTHON: ""
-  JAWS_PYTHON: "python3"
-  JAWS_FAST_SCRATCH_DIR: ""
-  JAWS_BIG_SCRATCH_DIR: ""
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
