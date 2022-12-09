@@ -10,6 +10,9 @@ JAWS_GITLAB_RUNNER_CONFIG="$JAWS_GITLAB_RUNNER_CONFIG"
 LOGFILE="${DOLLAR}JAWS_LOGS_DIR/jaws-site.log"
 
 
+echo "Starting jaws-site on `hostname -i`" > "$LOGFILE"
+
+
 # shutdown cleanly
 function stopall {
     echo "Stopping services" > "$LOGFILE"
