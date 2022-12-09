@@ -7,21 +7,21 @@ JAWS_BIN_DIR="$JAWS_BIN_DIR"
 JAWS_LOGS_DIR="$JAWS_LOGS_DIR"
 JAWS_GITLAB_RUNNER="$JAWS_GITLAB_RUNNER"
 JAWS_GITLAB_RUNNER_CONFIG="$JAWS_GITLAB_RUNNER_CONFIG"
-LOGFILE="${DOLLAR}JAWS_LOGS_DIR/jaws-site.log"
+LOGFILE="$JAWS_LOGS_DIR/jaws-site.log"
 
 
-echo "Starting jaws-site on `hostname -i`" > "$LOGFILE"
+echo "Starting jaws-site on `hostname -i`" > "${DOLLAR}LOGFILE"
 
 
 # shutdown cleanly
 function stopall {
-    echo "Stopping services" > "$LOGFILE"
-    "${DOLLAR}JAWS_BIN_DIR/supervisorctl" stop all 2>&1 >> "$LOGFILE"
-    echo "Shutdown supervisor" >> "$LOGFILE"
-    "${DOLLAR}JAWS_BIN_DIR/supervisorctl" shutdown 2>&1 >> "$LOGFILE"
-    echo "Stopping gitlab-runner" >> "$LOGFILE"
-    "${DOLLAR}JAWS_GITLAB_RUNNER" stop -c "${DOLLAR}JAWS_GITLAB_RUNNER_CONFIG" 2>&1 >> "$LOGFILE"
-    echo "Done" >> "$LOGFILE"
+    echo "Stopping services" > "${DOLLAR}LOGFILE"
+    "${DOLLAR}JAWS_BIN_DIR/supervisorctl" stop all 2>&1 >> "${DOLLAR}LOGFILE"
+    echo "Shutdown supervisor" >> "${DOLLAR}LOGFILE"
+    "${DOLLAR}JAWS_BIN_DIR/supervisorctl" shutdown 2>&1 >> "${DOLLAR}LOGFILE"
+    echo "Stopping gitlab-runner" >> "${DOLLAR}LOGFILE"
+    "${DOLLAR}JAWS_GITLAB_RUNNER" stop -c "${DOLLAR}JAWS_GITLAB_RUNNER_CONFIG" 2>&1 >> "${DOLLAR}LOGFILE"
+    echo "Done" >> "${DOLLAR}LOGFILE"
 }
 trap stopall EXIT
 
