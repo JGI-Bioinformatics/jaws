@@ -11,7 +11,7 @@ stages:
 include:
   - project: "advanced-analysis/ci-templates"
     ref: "main"
-    file: "SAST.gitlab-ci2.yml"
+    file: "SAST.gitlab-ci.yml"
   - project: "advanced-analysis/ci-templates"
     ref: "main"
     file: "Code-Quality.gitlab-ci.yml"
