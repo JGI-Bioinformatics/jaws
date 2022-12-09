@@ -31,4 +31,4 @@ trap stopall EXIT
 "${DOLLAR}JAWS_GITLAB_RUNNER" run -c "${DOLLAR}JAWS_GITLAB_RUNNER_CONFIG"
 
 # Start supervisord
-exec "${DOLLAR}JAWS_BIN_DIR/supervisord"
+"${DOLLAR}JAWS_BIN_DIR/supervisord"
