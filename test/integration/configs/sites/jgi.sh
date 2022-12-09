@@ -8,5 +8,5 @@ export JAWS_USERS_GROUP="jgi"
 export JAWS_SCRATCH_BASEDIR="/global/scratch/users/jaws"
 export JAWS_REF_DATA_DIR="/global/scratch/users/jaws/refdata"
 export JAWS_MAX_RAM_GB=512
-export JAWS_PERFORMANCE_METRICS_SCRIPT="/global/home/groups-sw/lr_jgicloud/jaws-metrics/bin/pagurus"
+export JAWS_PERFORMANCE_METRICS_SCRIPT="/global/home/groups-sw/lr_jgicloud/jaws-install/jaws-prod/site/bin/pagurus"
 export JAWS_PERFORMANCE_METRICS_DIR="/global/scratch/users/jaws/monitoring-runs"
