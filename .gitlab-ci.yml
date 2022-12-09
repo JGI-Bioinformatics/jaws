@@ -6,6 +6,8 @@ stages:
   - package
   - release-jaws
 
+# Note, multiple include clauses result in the last include masking the rest, must
+# consolidate the multiple projects under a single include
 include:
   - project: "advanced-analysis/ci-templates"
     ref: "main"
