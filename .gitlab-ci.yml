@@ -1,9 +1,5 @@
 stages:
   - test
-  - bandit-sast
-  - semgrep-sast
-  - esline-sast
-  - nodejs-scan-sast
   - unit-test
   - image-build
   - deploy-jaws
