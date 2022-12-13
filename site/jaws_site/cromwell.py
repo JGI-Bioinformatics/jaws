@@ -24,9 +24,6 @@ elsewhere in JAWS, as clarified below:
 """
 
 
-REQUEST_TIMEOUT = 120
-
-
 import requests
 import logging
 import os
@@ -38,6 +35,9 @@ from dateutil import parser
 from collections import deque
 import boto3
 import botocore
+
+
+REQUEST_TIMEOUT = 120
 
 
 logger = logging.getLogger(__package__)
@@ -1107,7 +1107,9 @@ class Cromwell:
             "application/json",
         )
         try:
-            response = requests.post(self.workflows_url, files=files, timeout=REQUEST_TIMEOUT)
+            response = requests.post(
+                self.workflows_url, files=files, timeout=REQUEST_TIMEOUT
+            )
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         if response.status_code >= 400:
