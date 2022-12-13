@@ -24,6 +24,9 @@ elsewhere in JAWS, as clarified below:
 """
 
 
+REQUEST_TIMEOUT = 120
+
+
 import requests
 import logging
 import os
@@ -1005,7 +1008,7 @@ class Cromwell:
         """
         url = f"{self.workflows_url}/{workflow_id}/metadata?expandSubWorkflows=1"
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=REQUEST_TIMEOUT)
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         if response.status_code == 404:
@@ -1020,7 +1023,7 @@ class Cromwell:
     def status(self):
         """Check if Cromwell is available"""
         try:
-            response = requests.get(self.engine_url)
+            response = requests.get(self.engine_url, timeout=REQUEST_TIMEOUT)
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         if response.status_code >= 400:
@@ -1033,7 +1036,7 @@ class Cromwell:
         """Abort a run.  Raise upon error."""
         url = f"{self.workflows_url}/{workflow_id}/abort"
         try:
-            response = requests.post(url)
+            response = requests.post(url, timeout=REQUEST_TIMEOUT)
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         sc = response.status_code
@@ -1104,7 +1107,7 @@ class Cromwell:
             "application/json",
         )
         try:
-            response = requests.post(self.workflows_url, files=files)
+            response = requests.post(self.workflows_url, files=files, timeout=REQUEST_TIMEOUT)
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         if response.status_code >= 400:
@@ -1124,7 +1127,7 @@ class Cromwell:
         """
         url = f"{self.workflows_url}/{workflow_id}/status"
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=REQUEST_TIMEOUT)
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         if response.status_code >= 400:
