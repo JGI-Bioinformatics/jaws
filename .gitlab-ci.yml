@@ -1,5 +1,6 @@
 stages:
   - test
+  - report
   - unit-test
   - image-build
   - deploy-jaws
@@ -10,10 +11,7 @@ stages:
 # consolidate the multiple projects under a single include
 include:
   - project: "advanced-analysis/ci-templates"
-    ref: "main"
-    file: "SAST.gitlab-ci.yml"
-  - project: "advanced-analysis/ci-templates"
-    ref: "main"
+    ref: "sast_report"
     file: "Code-Quality.gitlab-ci.yml"
 #
 
