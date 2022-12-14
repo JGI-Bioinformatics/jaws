@@ -1,6 +1,6 @@
 stages:
   - test
-  - report
+  - reports
   - unit-test
   - image-build
   - deploy-jaws
