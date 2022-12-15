@@ -11,7 +11,7 @@ stages:
 # consolidate the multiple projects under a single include
 include:
   - project: "advanced-analysis/ci-templates"
-    ref: "sast_report"
+    ref: "main"
     file: "Code-Quality.gitlab-ci.yml"
 #
 
