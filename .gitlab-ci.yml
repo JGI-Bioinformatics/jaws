@@ -13,7 +13,7 @@ include:
   - project: "advanced-analysis/ci-templates"
     ref: "sast_report"
     file: "Code-Quality.gitlab-ci.yml"
-
+#
 
 variables:
   GIT_STRATEGY: clone
