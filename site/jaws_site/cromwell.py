@@ -194,9 +194,9 @@ class Call:
             )
 
         if self.execution_status == "Failure":
-            self.result == "failed"
+            self.result = "failed"
         elif self.execution_status == "Done":
-            self.result == "succeeded"
+            self.result = "succeeded"
 
         if "runtimeAttributes" in self.data:
             self.requested_time = self.data["runtimeAttributes"].get("time", None)
