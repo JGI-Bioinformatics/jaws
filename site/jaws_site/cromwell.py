@@ -222,10 +222,10 @@ class Call:
                     self.queue_start = parser.parse(event["startTime"]).strftime(
                         "%Y-%m-%d %H:%M:%S"
                     )
-                elif event["description"] == "RunningJob":
-                    self.run_start = parser.parse(event["startTime"]).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
+#                elif event["description"] == "RunningJob":
+#                    self.run_start = parser.parse(event["startTime"]).strftime(
+#                        "%Y-%m-%d %H:%M:%S"
+#                    )
                 elif event["description"] == "CallCacheReading":
                     self.run_start = parser.parse(event["startTime"]).strftime(
                         "%Y-%m-%d %H:%M:%S"
@@ -475,7 +475,7 @@ class Call:
     def set_real_time_status(self) -> None:
         """
         Distinguish between "Queued" and "Running" states.
-        Check the stderr mtime to see when the task started running.
+        Check the stderr ctime to see when the task started running.
         This is necessary because the executionEvents are not populated until the
         task completes execution.
         This is only used by the summary() method because a) we usually don't need
@@ -491,13 +491,13 @@ class Call:
             pass
         else:
             try:
-                stderr_mtime = os.path.getmtime(self.stderr)
+                stderr_ctime = os.path.getctime(self.stderr)
             except Exception:  # noqa
                 self.execution_status = "Queued"
             else:
                 # task is actually "Running" so calculate the queue-wait duration
                 self.run_start = datetime.fromtimestamp(
-                    stderr_mtime, tz=timezone.utc
+                    stderr_ctime, tz=timezone.utc
                 ).strftime("%Y-%m-%d %H:%M:%S")
                 delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
                 self.queue_duration = str(delta)
