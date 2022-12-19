@@ -222,10 +222,10 @@ class Call:
                     self.queue_start = parser.parse(event["startTime"]).strftime(
                         "%Y-%m-%d %H:%M:%S"
                     )
-#                elif event["description"] == "RunningJob":
-#                    self.run_start = parser.parse(event["startTime"]).strftime(
-#                        "%Y-%m-%d %H:%M:%S"
-#                    )
+                elif event["description"] == "RunningJob":
+                    self.run_start = parser.parse(event["startTime"]).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
                 elif event["description"] == "CallCacheReading":
                     self.run_start = parser.parse(event["startTime"]).strftime(
                         "%Y-%m-%d %H:%M:%S"
@@ -481,6 +481,7 @@ class Call:
         This is only used by the summary() method because a) we usually don't need
         real-time data and b) accessing the file system could be unnecessarily slow.
         """
+        self.run_start = None
         if self.execution_status != "Running":
             pass
         elif self.stderr is None or self.queue_start is None:
