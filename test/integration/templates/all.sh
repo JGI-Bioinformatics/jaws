@@ -32,4 +32,4 @@ export DOLLAR='$'
 export JAWS_VENV_DIR="$JAWS_INSTALL_DIR/site"
 
 # host IP address
-export IP_ADDRESS=`hostname -i`
+export IP_ADDRESS="http://localhost"
