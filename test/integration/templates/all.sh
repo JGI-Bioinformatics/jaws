@@ -33,9 +33,9 @@ export JAWS_VENV_DIR="$JAWS_INSTALL_DIR/site"
 
 # host IP address
 if [[ -n ${JAWS_PERLMUTTER:-} ]]; then
-    export IP_ADDRESS=`hostname -i`
+    export IP_ADDRESS="http://"`hostname -i`
     export JAWS_SUPERVISOR_HOST="*"
 else
     export IP_ADDRESS="http://localhost"
-    export JAWS_SUPERVISOR_HOST="0:0:0:0"
+    export JAWS_SUPERVISOR_HOST="0.0.0.0"
 fi
