@@ -143,7 +143,7 @@ class GracefulKiller:
         self.new_prefix = new_prefix
 
     def exit_gracefully(self, sig, frame):
-        if self.filename != None:
+        if self.filename is not None:
             self.running_file.rename(f"{self.new_prefix}/{self.filename}")
             logging.info(f"Killed with {signal.Signals(sig).name}")
             logging.info(
@@ -212,20 +212,23 @@ def get_cputimes(pData):
         try:
             children_user = pData['cpu_times'].children_user
             children_system = pData['cpu_times'].children_system
-        except:
+        except Exception as e:
+            logging.debug(f'Error ({type(e).__name__}): {e}')
             children_system = "nan"
             children_user = "nan"
 
         try:
             iowait = pData['cpu_times'].iowait
             cpu_num = pData['cpu_num']
-        except:
+        except Exception as e:
+            logging.debug(f'Error ({type(e).__name__}): {e}')
             iowait = "nan"
             cpu_num = "nan"
 
         try:
             idle = pData['cpu_times'].idle
-        except:
+        except Exception as e:
+            logging.debug(f'Error ({type(e).__name__}): {e}')
             idle = "nan"
 
     else:
@@ -240,7 +243,6 @@ def get_cputimes(pData):
     return cpu_num, user, system, iowait, children_system, children_user, idle
 
 
-# @lru_cache
 def cmd_data(pData):
     """
     Gets data from the command line arguments and serilaizes it for csv
@@ -263,6 +265,7 @@ def runner(
     Runs while your executable is still running and logs info
     about running process to the output file, defaulting to CSV format
     unless the --json flag is set
+
     Args:
         outfile (str, optional): output filename. Defaults to "stats.csv".
         poleRate (float, optional): Time to sleep before getting new data. Defaults to 0.1.
@@ -327,13 +330,14 @@ def runner(
                 stats_file.write(*stats)
 
             except psutil.NoSuchProcess as e:
+                logging.debug(f'Error ({type(e).__name__}): {e}')
                 # Comes when a process is killed between getting the number and getting the data
                 pass
             except AttributeError as e:
-                # logging.debug(f'Error ({type(e).__name__}): {e}')
+                logging.debug(f'Error ({type(e).__name__}): {e}')
                 pass
             except TypeError as e:
-                # logging.debug(f'Error ({type(e).__name__}): {e}')
+                logging.debug(f'Error ({type(e).__name__}): {e}')
                 pass
             except Exception as e:
                 logging.error(f'Error ({type(e).__name__}): {e}')
@@ -376,7 +380,7 @@ def main():
                         default=0)
     parser.add_argument("--json", default=False, action="store_true", help="Output JSON strings instead of CSV lines")
     parser.add_argument("--envvar", action="append", default=[],
-                        help="add environment var to output (can be specified multiple times)")
+                        help="Add environment variables to json output (can be specified multiple times)")
 
     args = parser.parse_args()
 
@@ -400,4 +404,3 @@ def main():
     runner(path=args.path, filename=args.outfile, pole_rate=args.rate,
            username=args.user, write_header=args.no_header, move=args.move,
            rolling=rolling, json=args.json, env=env)
-

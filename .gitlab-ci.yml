@@ -1,9 +1,6 @@
 stages:
   - test
-  - bandit-sast
-  - semgrep-sast
-  - esline-sast
-  - nodejs-scan-sast
+  - reports
   - unit-test
   - image-build
   - deploy-jaws
@@ -19,7 +16,7 @@ variables:
   GIT_STRATEGY: clone
 
   JAWS_SITE_NAMES: "CORI JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER"
-  JAWS_SITE_VERSION: "1.0.9"
+  JAWS_SITE_VERSION: "1.0.10"
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.

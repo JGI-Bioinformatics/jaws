@@ -1,4 +1,6 @@
-export JAWS_INSTALL_DIR="$JAWS_INSTALL_BASEDIR/${JAWS_SITE_NAME}-${JAWS_DEPLOYMENT_NAME}"
+site_name=`echo "$JAWS_SITE_NAME" | tr '[:upper:]' '[:lower:]'`
+export JAWS_INSTALL_DIR="$JAWS_INSTALL_BASEDIR/${site_name}-${JAWS_DEPLOYMENT_NAME}"
+
 export JAWS_CONFIG_DIR="$JAWS_INSTALL_DIR/config"
 export JAWS_BIN_DIR="$JAWS_INSTALL_DIR/bin"
 export JAWS_LOGS_DIR="$JAWS_INSTALL_DIR/log"
@@ -8,7 +10,7 @@ if [[ $JAWS_SCRATCH_BASEDIR =~ ^s3:\/\/ ]]; then
     export JAWS_SCRATCH_DIR="${JAWS_SCRATCH_BASEDIR}-${JAWS_DEPLOYMENT_NAME}"
 else
     # EACH SERVER DEPLOYMENT HAS A SEPARATE NFS SUBDIR
-    export JAWS_SCRATCH_DIR="$JAWS_SCRATCH_BASEDIR/${JAWS_SITE_NAME}-${JAWS_DEPLOYMENT_NAME}"
+    export JAWS_SCRATCH_DIR="$JAWS_SCRATCH_BASEDIR/${site_name}-${JAWS_DEPLOYMENT_NAME}"
 fi
 
 # Folders for Run inputs and downloads from other jaws-sites
@@ -32,4 +34,10 @@ export DOLLAR='$'
 export JAWS_VENV_DIR="$JAWS_INSTALL_DIR/site"
 
 # host IP address
-export IP_ADDRESS=`hostname -i`
+if [[ -n ${JAWS_PERLMUTTER:-} ]]; then
+    export IP_ADDRESS="http://"`hostname -i`
+    export JAWS_SUPERVISOR_HOST="*"
+else
+    export IP_ADDRESS="http://localhost"
+    export JAWS_SUPERVISOR_HOST="0.0.0.0"
+fi
