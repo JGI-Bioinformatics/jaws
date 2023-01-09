@@ -4,20 +4,27 @@ import os
 import sys
 import psutil
 import signal
-from importlib.util import spec_from_loader, module_from_spec
-from importlib.machinery import SourceFileLoader
+import argparse
 from jaws_site import pagurus
 
 pids = ["1", "2", "3"]
+
 
 @pytest.fixture
 def mock_psutil(monkeypatch):
     def mock_pids(*args):
         return pids
 
-    class MockProcess():
+    class MockProcess:
         def __init__(self):
-            self.data = {}
+            self.data = {
+                "ppid": 123,
+                "name": "somename",
+                "num_threads": 1,
+                "memory_percent": 50,
+                "num_fds": 456,
+                "cwd": "mypath",
+            }
 
         @staticmethod
         def username():
@@ -42,13 +49,13 @@ def mock_psutil(monkeypatch):
 def test_FileWriter_csv(tmp_path):
     print("Output file path", tmp_path)
     header = ["name1", "name2", "name3"]
-    outfile = tmp_path / f"test.csv"
+    outfile = tmp_path / "test.csv"
 
     print(f"Output file={outfile}")
 
     fw = pagurus.FileWriter(outfile=outfile, header=header, write_header=True)
     assert fw.header == header
-    assert fw.write_header == True
+    assert fw.write_header is True
     assert fw.outfile == outfile
     assert outfile.is_file()
     fw.write(0, 1, 2)
@@ -64,7 +71,7 @@ def test_FileWriter_csv(tmp_path):
 
 def test_FileWriter_csv_envvar(tmp_path):
     header = ["name1", "name2", "name3"]
-    outfile = tmp_path / f"test.csv"
+    outfile = tmp_path / "test.csv"
 
     print(f"Output file={outfile}")
 
@@ -72,7 +79,7 @@ def test_FileWriter_csv_envvar(tmp_path):
     try:
         os.environ.pop("testytesty")
         os.environ.pop("testytoasty")
-    except:
+    except Exception:
         pass
     fw = pagurus.FileWriter(
         outfile=outfile,
@@ -82,7 +89,7 @@ def test_FileWriter_csv_envvar(tmp_path):
     )
 
     assert fw.header == header
-    assert fw.write_header == True
+    assert fw.write_header is True
     assert fw.outfile == outfile
     assert outfile.is_file()
 
@@ -101,7 +108,7 @@ def test_FileWriter_csv_envvar(tmp_path):
 
 def test_FileWriter_json(tmp_path):
     header = ["name1", "name2", "name3"]
-    outfile = tmp_path / f"test.json"
+    outfile = tmp_path / "test.json"
 
     print("Output file path", tmp_path)
 
@@ -109,7 +116,7 @@ def test_FileWriter_json(tmp_path):
         outfile=outfile, header=header, write_header=True, jsonout=True
     )
     assert fw.header == header
-    assert fw.write_header == False
+    assert fw.write_header is False
     assert fw.outfile == outfile
     assert outfile.is_file()
     fw.write(0, 1, 2)
@@ -125,7 +132,7 @@ def test_FileWriter_json(tmp_path):
 
 def test_FileWriter_json_envvar(tmp_path):
     header = ["name1", "name2", "name3"]
-    outfile = tmp_path / f"test.json"
+    outfile = tmp_path / "test.json"
 
     print(f"Output file={outfile}")
 
@@ -137,50 +144,26 @@ def test_FileWriter_json_envvar(tmp_path):
         env={"testytesty": "testytoasty"},
     )
     assert fw.header == header
-    assert fw.write_header == False
+    assert fw.write_header is False
     assert fw.outfile == outfile
     assert outfile.is_file()
     fw.write(0, 1, 2)
     fw.close()
 
-    with open(str(fw.outfile), 'r') as fh:
+    with open(str(fw.outfile), "r") as fh:
         obs_data = json.load(fh)
 
-    exp_data = {
-        "name1": 0,
-        "name2": 1,
-        "name3": 2,
-        "testytesty": "testytoasty"
-    }
+    exp_data = {"name1": 0, "name2": 1, "name3": 2, "testytesty": "testytoasty"}
     assert obs_data == exp_data
 
     fw.outfile.unlink()
 
 
-# NEED TEST HERE FIXME
-# def test_FileWriter_next_file(tmp_path):
-#     header = ["name1", "name2", "name3"]
-#     outfile = tmp_path / f"test.json"
-
-#     print(f"Output file={outfile}")
-
-#     fw = pagurus.FileWriter(
-#         outfile=outfile,
-#         header=header,
-#         write_header=True,
-#         jsonout=True,
-#         env={"testytesty": "testytoasty"},
-#     )
-
-#     stats = ["a", "b", "c"]
-#     fw.output_file.write("HERE")
-#     # fw.write(*stats)
-
-
 def test_GracefulKiller_exit_gracefully(tmp_path, monkeypatch):
-    class MockSignals():
+    class MockSignals:
         def __init__(self, name=None):
             self.name = name
+
         def __iter__(self):
             return iter([111, 222, 333])
 
@@ -219,6 +202,7 @@ def test_GracefulKiller_exit_gracefully(tmp_path, monkeypatch):
     if moved_outfile.is_file():
         moved_outfile.unlink()
 
+
 def test_get_all_user_procs(mock_psutil, monkeypatch):
     def mock_getpid():
         for pid in pids:
@@ -240,6 +224,7 @@ def test_get_iocounters():
             self.write_count = 456
             self.read_chars = 111
             self.write_chars = 222
+
     results = pagurus.get_iocounters({"io_counters": MockIOcounter()})
     assert results == (123, 456, 111, 222)
 
@@ -249,6 +234,7 @@ def test_get_meminfo():
         def __init__(self):
             self.rss = 123
             self.vms = 456
+
     results = pagurus.get_meminfo({"memory_info": MockMeminfo()})
     assert results == (123, 456)
 
@@ -273,13 +259,11 @@ def test_get_cputimes():
     assert results == (555, 123, 456, 444, 222, 111, 666)
 
     results = pagurus.get_cputimes({})
-    assert results == ('nan', 'nan', 'nan', 'nan', 'nan', 'nan', 'nan')
+    assert results == ("nan", "nan", "nan", "nan", "nan", "nan", "nan")
 
 
 def test_cmd_data():
-    inputs = {
-        "cmdline": "abc,def,ghi"
-    }
+    inputs = {"cmdline": "abc,def,ghi"}
     results = pagurus.cmd_data(inputs)
     assert results == "a|b|c|||d|e|f|||g|h|i"
 
@@ -288,54 +272,101 @@ def test_cmd_data():
 
 
 def test_runner(mock_psutil, tmp_path, monkeypatch):
-
     class ExitWhileLoopException(Exception):
         pass
 
-    class MockGracefulKiller():
+    class MockGracefulKiller:
         def __init__(self, *args, **kwargs):
             self.kill_now = False
 
-    class MockFileWriter():
-        def __init__(self, *args, **kwargs):
-            self.data = []
-
-        def write(self, *vals):
-            self.data = [*self.data, *vals]
-
-        def close(self, *args):
-            return
-
-        def flush(self, *args):
-            return
-
-        def next_file(self, *args):
-            raise ExitWhileLoopException
-
     def mock_get_all_user_procs(*args, **kwargs):
-        return [111, 222]
+        return [123]
 
     def mock_get_cpu_times(*args, **kwargs):
-        return [1, 2]
+        return [1, 2, 3, 4, 5, 6, 7]
 
     def mock_get_meminfo(*args, **kwargs):
-        return [3, 4]
+        return [11, 22]
 
     def mock_get_get_iocounters(*args, **kwargs):
-        return [5, 6]
+        return [111, 222, 333, 444]
 
-    def mock_sleep(*args):
-        return
+    def mock_cmd_data(*args, **kwargs):
+        return "mycmd"
 
     pagurus.GracefulKiller = MockGracefulKiller
-    pagurus.FileWriter = MockFileWriter
     pagurus.get_all_user_procs = mock_get_all_user_procs
     pagurus.get_cputimes = mock_get_cpu_times
     pagurus.get_meminfo = mock_get_meminfo
     pagurus.get_iocounters = mock_get_get_iocounters
+    pagurus.cmd_data = mock_cmd_data
+
+    global ct
+    ct = 0
+    # Using sleep function to exit loop inside runner
+
+    def mock_sleep(*args):
+        global ct
+        ct += 1
+        if ct == 2:
+            raise ExitWhileLoopException
+
     pagurus.sleep = mock_sleep
 
     try:
-        pagurus.runner(path=str(tmp_path), move=True, rolling=1)
+        pagurus.runner(path=str(tmp_path), move=True, rolling=0)
     except ExitWhileLoopException:
         assert True
+
+    exp_vals = [
+        "@timestamp,pid,ppid,name,num_threads,cpu_num,cpu_user,cpu_system,cpu_iowait,cpu_children_system,cpu_children_user,idle,mem_rss,mem_vms,memory_percent,num_fds,read_count,write_count,read_chars,write_chars,cmdline,current_dir\n",  # noqa
+        "01-01-2023 10:10:10,123,123,somename,1,1,2,3,4,5,6,7,11,22,50,456,111,222,333,444,mycmd,mypath\n",  # noqa
+    ]
+    stats_file = os.path.join(tmp_path, "running", "stats.csv")
+    with open(stats_file, "r") as fh:
+        obs_vals = fh.readlines()
+
+    assert isinstance(obs_vals, list)
+
+    # Replace obs_val date entry
+    n = obs_vals[1]
+    n = ",".join(v for idx, v in enumerate(n.split(",")) if idx != 0)
+    obs_vals[1] = f"01-01-2023 10:10:10,{n}"
+
+    assert obs_vals == exp_vals
+
+
+def test_main(monkeypatch):
+    class MockArgumentParser:
+        def __init__(self):
+            self.args = {
+                "rolling": 1,
+                "path": "mypath",
+                "outfile": "myfile",
+                "rate": 2,
+                "user": "someuser",
+                "no_header": False,
+                "move": False,
+                "json": False,
+                "debug": False,
+                "envvar": {},
+            }
+            for k in self.args:
+                setattr(self, k, self.args[k])
+
+        def add_argument(*args, **kwargs):
+            return
+
+        def parse_args(self, *args, **kwargs):
+            return self
+
+    def mock_runner(*args, **kwargs):
+        return 123
+
+    def mock_argumentparser():
+        return MockArgumentParser()
+
+    monkeypatch.setattr(argparse, "ArgumentParser", mock_argumentparser)
+    pagurus.runner = mock_runner
+    pagurus.main()
+    assert True
