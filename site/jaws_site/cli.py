@@ -24,7 +24,11 @@ JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
 @click.option("--config", "config_file", default=None, help="Config INI file")
 @click.option("--log", "log_file", default=None, help="Log file")
 @click.option("--log-level", "log_level", default="INFO", help="Logging level")
-def cli(config_file: str, log_file: str, log_level: str):
+@click.option("--env-override",
+              envvar="ENV_OVERRIDE_PREFIX",
+              default=None,
+              help="prefix for environment variable override of configuration values")
+def cli(config_file: str, log_file: str, log_level: str, env_override: str):
     """JAWS-Site"""
     # Initialize logging and configuration singletons;
     # as they are singletons, the Click context object is not needed.
@@ -40,7 +44,7 @@ def cli(config_file: str, log_file: str, log_level: str):
             if JAWS_CONFIG_ENV in os.environ
             else JAWS_CWD_CONFIG
         )
-    conf = config.Configuration(config_file)
+    conf = config.Configuration(config_file, env_override)
     if conf:
         logger.info(f"Config using {config_file}")
     else:
