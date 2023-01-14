@@ -23,7 +23,6 @@ class PerformanceMetricsDaemon:
         # Set message expiration to 60 secs
         self.rpc_client.message_ttl = 3600
 
-
         self.running_dir = config.conf.get("PERFORMANCE_METRICS", "running_dir")
         self.done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
         self.proc_dir = config.conf.get("PERFORMANCE_METRICS", "processed_dir")
