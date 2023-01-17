@@ -15,6 +15,9 @@ import json
 from typing import Dict, List
 from pathlib import Path
 
+# This script is a copy of the pagurus script in github: https://github.com/tylern4/pagurus
+
+
 # Exit if psutil is not installed
 try:
     import psutil
@@ -354,7 +357,7 @@ def runner(
     stats_file.close()
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--outfile", type=str,
                         help="File name for csv.",
