@@ -1,8 +1,8 @@
-workflow:
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS'
-      when: never  # do not run branch (push) pipelines when an MR is open on the branch
-    - when: always # run all other pipeline types
+#workflow:
+#  rules:
+#    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS'
+#      when: never  # do not run branch (push) pipelines when an MR is open on the branch
+#    - when: always # run all other pipeline types
 
 stages:
   - test
@@ -31,7 +31,6 @@ variables:
     - shared-shell
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 test-rpc:
@@ -65,43 +64,43 @@ test-site:
         coverage_format: cobertura
         path: site/coverage.xml
 
-image: docker:19.03.12
-services:
-  - docker:19.03.12-dind
-.docker-login: &docker-login
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-
-build-rpc:
-  tags:
-  - docker-build
-  stage: image-build
-  variables:
-    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
-  <<: *docker-login
-  script:
-    - chmod +x build.sh
-    - ./build.sh rpc $JAWS_VERSION prod
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-      allow_failure: true
-
-build-site:
-  tags:
-    - docker-build
-  stage: image-build
-  variables:
-    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/site:$JAWS_VERSION
-    RPC_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
-  <<: *docker-login
-  script:
-    - docker pull $RPC_IMAGE_TAG
-    - chmod +x build.sh
-    - ./build.sh site $JAWS_VERSION prod
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-      allow_failure: true
-
+#image: docker:19.03.12
+#services:
+#  - docker:19.03.12-dind
+#.docker-login: &docker-login
+#  before_script:
+#    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+#
+#build-rpc:
+#  tags:
+#  - docker-build
+#  stage: image-build
+#  variables:
+#    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
+#  <<: *docker-login
+#  script:
+#    - chmod +x build.sh
+#    - ./build.sh rpc $JAWS_VERSION prod
+#  rules:
+#    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+#      allow_failure: true
+#
+#build-site:
+#  tags:
+#    - docker-build
+#  stage: image-build
+#  variables:
+#    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/site:$JAWS_VERSION
+#    RPC_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
+#  <<: *docker-login
+#  script:
+#    - docker pull $RPC_IMAGE_TAG
+#    - chmod +x build.sh
+#    - ./build.sh site $JAWS_VERSION prod
+#  rules:
+#    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+#      allow_failure: true
+#
 ## integration tests - only run on merge request
 
 deploy-jaws-aws-dev:
