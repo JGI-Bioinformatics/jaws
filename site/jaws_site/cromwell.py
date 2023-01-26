@@ -185,6 +185,12 @@ class Call:
         self.requested_cpu = None
         self.failure_message = None
 
+        # Here, we are using a file called htcondor_starttime that is created when the job is run. This is used
+        # to get the start time of a run. The file is defined in cromwell.conf.
+        self.htcondor_startfile = None
+        if self.call_root:
+            self.htcondor_startfile = os.path.join(self.call_root, "execution/htcondor_starttime")
+
         if self.execution_status == "Failure":
             self.result == "failed"
         elif self.execution_status == "Done":
@@ -302,8 +308,9 @@ class Call:
         real_time = True
         if "real_time" in kwargs and kwargs["real_time"] is False:
             real_time = False
-        if real_time is True and self.execution_status == "Running":
+        if real_time is True:
             self.set_real_time_status()
+
         record = {
             "name": self.name,
             "shard_index": self.shard_index,
@@ -481,26 +488,29 @@ class Call:
         This is only used by the summary() method because a) we usually don't need
         real-time data and b) accessing the file system could be unnecessarily slow.
         """
-        if self.execution_status != "Running":
-            pass
-        elif self.stderr is None or self.queue_start is None:
+        if self.stderr is None or self.queue_start is None:
             self.execution_status = "Queued"
         elif self.stderr.startswith("s3://"):
             # we don't have access to the EBS volume; stderr will not be copied to S3 until after the
             # task completes
             pass
+        elif not self.htcondor_startfile:
+            pass
         else:
             try:
-                stderr_mtime = os.path.getmtime(self.stderr)
+                file_ctime = os.path.getctime(self.htcondor_startfile)
             except Exception:  # noqa
                 self.execution_status = "Queued"
             else:
                 # task is actually "Running" so calculate the queue-wait duration
                 self.run_start = datetime.fromtimestamp(
-                    stderr_mtime, tz=timezone.utc
+                    file_ctime, tz=timezone.utc
                 ).strftime("%Y-%m-%d %H:%M:%S")
                 delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
                 self.queue_duration = str(delta)
+
+                if self.run_end:
+                    self.run_duration = str(parser.parse(self.run_end) - parser.parse(self.run_start))
 
 
 class TaskError(Exception):

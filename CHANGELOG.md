@@ -2,14 +2,16 @@
 
 # Inbound changes not assigned to version # yet
 
-### User Facing Changes
+### User Facing
 - add new jaws-nmdc site
 - site names are now lower-cased everywhere for consistency
 - add support for Pair and Map outputs
 - throttle user runs to only run 10 cromwell submissions at a time
+- fixed bug that included queue time with run time
+
 ### Internal
-- remove main.py from ticket #1380
-  pagurus now part of site repo
+- Remove main.py from ticket #1380
+- pagurus now part of site repo
 - remove build.sh jobs from ci/cd pipeline
 
 ## 1.0.5 (2022-9-26) Summary
