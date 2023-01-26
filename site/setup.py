@@ -14,6 +14,11 @@ setup(
     package_data={'': ['datatransfer_plugins/*']},
     include_package_data=True,
     install_requires=[line.strip() for line in open("requirements.txt")],
-    entry_points={"console_scripts": ["jaws-site = jaws_site.cli:jaws", ]},
+    entry_points={
+        "console_scripts": [
+            "jaws-site = jaws_site.cli:jaws",
+            "pagurus = jaws_site.pagurus:main",
+        ]
+    },
     zip_safe=False,
 )

@@ -16,7 +16,7 @@ variables:
   GIT_STRATEGY: clone
 
   JAWS_SITE_NAMES: "CORI JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER"
-  JAWS_SITE_VERSION: "1.0.10"
+  JAWS_SITE_VERSION: "1.0.11"
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
@@ -24,9 +24,7 @@ variables:
   tags:
     - shared-shell
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
 
 test-rpc:
   <<: *only-default
@@ -58,43 +56,6 @@ test-site:
       coverage_report:
         coverage_format: cobertura
         path: site/coverage.xml
-
-image: docker:19.03.12
-services:
-  - docker:19.03.12-dind
-.docker-login: &docker-login
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-
-build-rpc:
-  tags:
-  - docker-build
-  stage: image-build
-  variables:
-    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
-  <<: *docker-login
-  script:
-    - chmod +x build.sh
-    - ./build.sh rpc $JAWS_VERSION prod
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-      allow_failure: true
-
-build-site:
-  tags:
-    - docker-build
-  stage: image-build
-  variables:
-    GITLAB_IMAGE_TAG: $CI_REGISTRY_IMAGE/site:$JAWS_VERSION
-    RPC_IMAGE_TAG: $CI_REGISTRY_IMAGE/rpc:$JAWS_VERSION
-  <<: *docker-login
-  script:
-    - docker pull $RPC_IMAGE_TAG
-    - chmod +x build.sh
-    - ./build.sh site $JAWS_VERSION prod
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-      allow_failure: true
 
 ## integration tests - only run on merge request
 

@@ -15,6 +15,10 @@ import pandas as pd
 logger = logging.getLogger(__package__)
 
 
+class FileParseError(Exception):
+    pass
+
+
 class PerformanceMetrics:
     """Run Performance Metrics"""
 
@@ -47,7 +51,7 @@ class PerformanceMetrics:
         except Exception as err:
             logging.warning(f"{type(err).__name__} Error opening {csv_file=}")
             # Return an empty list of dict to be handled later
-            return [{}]
+            raise FileParseError
 
         # Get filename without extentions, could also look into Path.stem but,
         # this works for .csv and .csv.bz2 files
@@ -86,7 +90,12 @@ class PerformanceMetrics:
         # Drops the current_dir, since we shouldn't need it anymore
         # csv_data = csv_data.drop(columns=["current_dir"])
 
-        csv_data["@timestamp"] = csv_data.index.map(lambda x: x.isoformat())
+        try:
+            csv_data["@timestamp"] = csv_data.index.map(lambda x: x.isoformat())
+        except Exception as err:
+            logger.warning(f"Failed to create @timestamp field for file {csv_file.name}: {err}")
+            raise FileParseError
+
         csv_data["mem_total"] = csv_data["mem_rss"] + csv_data["mem_vms"]
 
         # Group by unique values to get a specific
@@ -102,7 +111,8 @@ class PerformanceMetrics:
 
         return csv_data.to_dict("records")
 
-    def process_metrics(self, done_dir: str, proc_dir: str) -> None:
+    # def process_metrics(self, done_dir: str, proc_dir: str) -> None:
+    def process_metrics(self, done_dir: str, proc_dir: str, error_dir: str) -> None:
         """Gather all csv files in done_dir, parse and generate json docs for each entry, add docs to
         elasticsearch via RMQ submission whereby logstash picks up the doc from RMQ and inserts into
         the elasticsearch database.
@@ -114,26 +124,42 @@ class PerformanceMetrics:
         :type done_dir: str
         :param proc_dir: directory containing the processed performance csv files
         :type proc_dir: str
+        :param error_dir: directory containing the csv files that fail to process
+        :type error_dir: str
         :return: None
         """
 
-        # If directories are not defined in config file, skip.
-        if not done_dir or not proc_dir:
+        done_path = Path(done_dir)
+        proc_path = Path(proc_dir)
+        error_path = Path(error_dir)
+
+        # Skip processing if csv dirs don't exist
+        if not done_path.exists():
+            logger.error(f"Missing to done dir {done_path.as_posix()}. Exiting.")
             return
 
-        done_dir_obj = Path(done_dir)
-        proc_dir_obj = Path(proc_dir)
-
-        # If directories do not exists, skip.
-        if not done_dir_obj.is_dir() or not proc_dir_obj.is_dir():
+        if not proc_path.exists():
+            logger.error(f"Missing to processed dir {proc_path.as_posix()}. Exiting.")
             return
 
-        for done_file in list(done_dir_obj.glob("*.csv*")):
+        if not error_path.exists():
+            logger.error(f"Missing to error dir {error_path.as_posix()}. Exiting.")
+            return
+
+        for done_file in list(done_path.glob("*.csv*")):
             logger.info(f"Processing {done_file.name=} ...")
             # Start time of this file
             start_time = time.perf_counter()
+
             # Process the csv using pandas
-            docs = self.process_csv(done_file)
+            try:
+                docs = self.process_csv(done_file)
+            except FileParseError:
+                # move csv file to error dir
+                error_file = error_path / done_file.name
+                done_file.rename(error_file)
+                continue
+
             for doc in docs:
                 cromwell_run_id = doc.get("cromwell_run_id")
                 run_id = doc.get("jaws_run_id")
@@ -174,8 +200,8 @@ class PerformanceMetrics:
             running_time = end_time-start_time
 
             # Move csv file to processed folder
-            processed_file = proc_dir_obj / done_file.name
-            done_file.rename(f"{processed_file}")
+            processed_file = proc_path / done_file.name
+            done_file.rename(processed_file)
             logging.info(
                 f"Uploading {processed_file} took {running_time} sec {file_size_bytes/(running_time)} bytes/sec"
             )

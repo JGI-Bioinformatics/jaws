@@ -23,10 +23,31 @@ class PerformanceMetricsDaemon:
         # Set message expiration to 60 secs
         self.rpc_client.message_ttl = 3600
 
-        self.perf_running_dir = config.conf.get("PERFORMANCE_METRICS", "running_dir")
-        self.perf_done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
-        self.perf_proc_dir = config.conf.get("PERFORMANCE_METRICS", "processed_dir")
+        self.running_dir = config.conf.get("PERFORMANCE_METRICS", "running_dir")
+        self.done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
+        self.proc_dir = config.conf.get("PERFORMANCE_METRICS", "processed_dir")
+        self.error_dir = config.conf.get("PERFORMANCE_METRICS", "error_dir")
         self.perf_cleanup_time = int(config.conf.get("PERFORMANCE_METRICS", "cleanup_time"))
+
+        # Create csv dirs if not exists
+        done_path = Path(self.done_dir)
+        proc_path = Path(self.proc_dir)
+        error_path = Path(self.error_dir)
+        try:
+            done_path.mkdir(parents=True, exist_ok=True)
+        except Exception as err:
+            logger.error(f"Failed to create dir {done_path.as_posix()}: {err}")
+            raise
+        try:
+            proc_path.mkdir(parents=True, exist_ok=True)
+        except Exception as err:
+            logger.error(f"Failed to create dir {proc_path.as_posix()}: {err}")
+            raise
+        try:
+            error_path.mkdir(parents=True, exist_ok=True)
+        except Exception as err:
+            logger.error(f"Failed to create dir {error_path.as_posix()}: {err}")
+            raise
 
     def start_daemon(self):
         """
@@ -44,7 +65,8 @@ class PerformanceMetricsDaemon:
         """
         session = database.session_factory()
         performance_metrics = perf_metrics.PerformanceMetrics(session, self.rpc_client)
-        performance_metrics.process_metrics(self.perf_done_dir, self.perf_proc_dir)
+        performance_metrics.process_metrics(done_dir=self.done_dir, proc_dir=self.proc_dir,
+                                            error_dir=self.error_dir)
         session.close()
 
     def cleanup(self):
@@ -53,25 +75,25 @@ class PerformanceMetricsDaemon:
         """
 
         # Get paths for both running/done
-        running_dir = Path(self.perf_running_dir)
-        done_dir = Path(self.perf_done_dir)
+        running_path = Path(self.running_dir)
+        done_path = Path(self.done_dir)
 
         # If there is no running folder return (there's probably an error here)
-        if not running_dir.exists():
-            logger.warning(f"Running folder not found: {running_dir}")
+        if not running_path.exists():
+            logger.warning(f"Running folder not found: {running_path.as_posix()}")
             return
 
         # If there is no done folder make sure to create one
-        if not done_dir.exists():
+        if not done_path.exists():
             try:
-                done_dir.mkdir(exist_ok=True)
+                done_path.mkdir(exist_ok=True)
             except Exception as ex:
                 logger.warning(
-                    f"Error making new directory {done_dir} {type(ex).__name__} : {ex}"
+                    f"Error making new directory {done_path.as_posix()} {type(ex).__name__} : {ex}"  # noqa
                 )
                 return
         # Get all the csv files in the running dir
-        files_running = running_dir.glob("*.csv")
+        files_running = running_path.glob("*.csv")
         # Get the time the daemon was run
         now = time.time()
         for metric in files_running:
@@ -91,7 +113,7 @@ class PerformanceMetricsDaemon:
             if idle_time > int(self.perf_cleanup_time):
                 try:
                     # Create a new path based on the metrics name and the done directory
-                    new_path = done_dir / metric.name
+                    new_path = done_path / metric.name
                     logger.info(f"Moving {metric} to {new_path}")
                     # Moves to the new path
                     metric.replace(new_path)
