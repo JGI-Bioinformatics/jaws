@@ -167,7 +167,7 @@ Admin commands were also added to view runs and queues of all users.
 ### Bug fixes
 - Fixed a bug in client for a function that converts UTC to localtime (!904)
 - JAWS site catches and recognizes CromwellException (!896)
-- JAWS site would create a new subprocess for every client message. This would create hundreds of 
+- JAWS site would create a new subprocess for every client message. This would create hundreds of
   processes. JAWS was switched to use a single RPC client. (!889, !890, !911, !916, !917)
 - RMQ queue property changed to remove temporary queues (!884)
 - State descriptions updated (!914)
@@ -180,10 +180,10 @@ Admin commands were also added to view runs and queues of all users.
 - Admins can now list all active jobs and see the run history and queue of all users (!901, !910)
 
 ## 2.3.0 (2021-05-17) Summary
-This is a major release that simplifies the command structure for JAWS.  All the subcommands under `jaws wdl` are eleminated. This means there is no interaction with the jaws catalog. Instead, WDLs are stored in two gitlab repositories:  
+This is a major release that simplifies the command structure for JAWS.  All the subcommands under `jaws wdl` are eleminated. This means there is no interaction with the jaws catalog. Instead, WDLs are stored in two gitlab repositories:
 
-1) [public WDLs](https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories), maintained by the public.  
-2) [sub-WDLs](https://code.jgi.doe.gov/official-jgi-workflows/jgi-wdl-tasks) maintained by JAWS staff.  
+1) [public WDLs](https://code.jgi.doe.gov/official-jgi-workflows/wdl-specific-repositories), maintained by the public.
+2) [sub-WDLs](https://code.jgi.doe.gov/official-jgi-workflows/jgi-wdl-tasks) maintained by JAWS staff.
 
 Also `jaws run` is simplified to `jaws`.  For example, `jaws run submit` becomes `jaws submit`. See jaws --help.
 
@@ -218,21 +218,21 @@ Also, you can turn off caching (jaws submit --no-cache), the jaws errors command
 
 ## 2.2.0 (2021-04-09)
 Minor release includes Globus client authentication support. Users no longer need to activate an endpoint
-which required users to have an account at a compute site. This now uses a shared endpoint and service account to 
-do Globus transfers on behalf of the user. 
+which required users to have an account at a compute site. This now uses a shared endpoint and service account to
+do Globus transfers on behalf of the user.
 
 Addresses error messaging and bugs in the jaws_rpc module
 
 Addresses the stuck in "uploading" issue (#797, #781, #790, #603, #407). Jobs were stuck in
 uploading due to slow processing of the messages from RMQ. MR !702 adds improvement in message processing.
 
-When running and observing the job using `jaws queue` the run would show the 
+When running and observing the job using `jaws queue` the run would show the
 status as `queued` even though running `jaws run task-status` would show that the
 some tasks are running. MR !749 fixes this issue
 
 Includes fixes the inconsistent status between run and task-status.
 
-When running and observing the job using `jaws queue` the run would show the 
+When running and observing the job using `jaws queue` the run would show the
 status as `queued` even though running `jaws run task-status` would show that the
 some tasks are running. MR !749 fixes this issue
 
@@ -242,7 +242,7 @@ some tasks are running. MR !749 fixes this issue
 - Properly sets the transfer paths for shared endpoints. There is a mechanism where non-root globus paths require virtual relative paths. (!621, !627)
 - No longer require Globus accounts/tokens for transfers (!664)
 - WDLS and JSON sent to output directory for reproducibility (!667, !669)
-- Input files are no longer symlinked to output directory but are copied over (!679) 
+- Input files are no longer symlinked to output directory but are copied over (!679)
 - Cromwell caching is turned on (!569)
 
 ### Minor core changes
@@ -260,7 +260,7 @@ Changes include fixes to regressions that took place after updates to staging (!
 ### Deployment changes
 - Staging directory is now created by deployment scripts and has setgid set for genome group. Output directories are also created by deployment script (!562)
 - Change software installation of JGI and Central away from `/tmp` (!642, commit hash `6f00ca1f`)
-- Use the same directory as Globus uploads. Gets rid of "staging" diretory (commit hash `ddc65562343ef6d568917f4033c35486e1d47df9`) 
+- Use the same directory as Globus uploads. Gets rid of "staging" diretory (commit hash `ddc65562343ef6d568917f4033c35486e1d47df9`)
 
 ### Database schema changes
 - Database schema includes wdl and json file paths (!643)
@@ -278,7 +278,7 @@ owner who submitted rather than owned by the `jaws` service account user. (!638)
 - Hotfix change to fix JAWS production deployment to production
 
 ## v2.1 (2020-11-02)
-Major feature release that includes JGI Cloud support 
+Major feature release that includes JGI Cloud support
 
 ### Major Core Changes
  - No longer reformat output automatically; instead users may use "wfcopy" command to reformat the output after their run completes.  Users may find it useful for comparison to runs performed by Cromwell outside of JAWS.
@@ -289,16 +289,16 @@ Major feature release that includes JGI Cloud support
  - "run list-sites" now includes the maximum requestable RAM available at each Site
  - "run metadata" now returns any subworkflows' metadata too.
  - assorted minor bugfixes and improvements to usability.
- 
+
 ### Deployment changes
 - JAWS deploys to three different environments - dev, staging, and prod. It utilizes bash scripts to automate deployment.
 - Simplify .gitlab-ci.yml by using environment variables to set configuration for different environments
 - Due to instability with Spin, Central, central-RabbitMQ and central-MySQL were moved off of Spin and onto LBL IT SVM.
- 
+
 ### Documentation
 - Added instructions on activating lrc endpoint via Globus
 - Added Known Issues section for users
-- Let users know of task-log issue where there is a delay. 
+- Let users know of task-log issue where there is a delay.
 
 
 ## v2.0 (2020-06-30)
@@ -315,7 +315,7 @@ Major feature release with new Gitlab integration and central gitlab repository
 - Central and Site no longer share a database (!202)
 
 
-### Refactoring 
+### Refactoring
 - Central refactored to use setup.py for installation, follow PEP8 standard, logging and file rotation, mysql connection bugfixes, deprecated functions removed (!29)
 - Auth to use logging, config class singleton, and to be setuptools friendly (!31)
 
