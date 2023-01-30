@@ -34,10 +34,15 @@ export DOLLAR='$'
 export JAWS_VENV_DIR="$JAWS_INSTALL_DIR/site"
 
 # host IP address
+# JAWS_SUPERVISOR_NODAEMON should be set as "true" if it is using Perlmutter workflow nodes
+# so that SLURM's deallocation of a workflow node can cleanly terminate all the JAWS processes 
+# started by supervisord
 if [[ -n ${JAWS_SITE_DNS_NAME:-} ]]; then
     export IP_ADDRESS="$JAWS_SITE_DNS_NAME"
     export JAWS_SUPERVISOR_HOST="*"
+    export JAWS_SUPERVISOR_NODAEMON="true"
 else
     export IP_ADDRESS="http://localhost"
     export JAWS_SUPERVISOR_HOST="0.0.0.0"
+    export JAWS_SUPERVISOR_NODAEMON="false"
 fi
