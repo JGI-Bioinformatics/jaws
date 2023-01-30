@@ -11,4 +11,5 @@ export JAWS_PERFORMANCE_METRICS_SCRIPT="/global/cfs/cdirs/jaws/jaws-metrics/bin/
 export JAWS_PERFORMANCE_METRICS_DIR="/pscratch/sd/j/jaws/monitoring-runs"
 export JAWS_GITLAB_RUNNER="$CFS/jaws/bin/gitlab-runner"
 export JAWS_GITLAB_RUNNER_CONFIG="$HOME/.gitlab-runner/perlmutter.toml"
+# This JAWS_SITE_DNS_NAME is used to represent it's on the Perlmutter cluster ex) perlmutter and nmdc
 export JAWS_SITE_DNS_NAME="perlmutter.jaws.dyn.jgi.doe.gov"

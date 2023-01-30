@@ -65,6 +65,15 @@ JAWS_SUPERVISOR_DIR
 "
 setup_dirs "$FOLDERS" "$JAWS_GROUP" 750
 
+
+# On Perlmutter, need to get slurm ids for this deployment and site names and scancel it first
+# Grep'ing with slurm job name 
+# ex) jaws_perlmutter_prod or jaws_perlmutter_prod_htcondor_worker_large
+# or 
+#      jaws_nmdc_prod or jaws_nmdc_prod_htcondor_worker_large
+[[ -n "$JAWS_SITE_DNS_NAME" ]] && (squeue --format="%.18i %.9P %.35j %.8u %.8T %.10M %.9l %.6D %R" --me | grep ${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME} |  xargs -n 1 scancel)
+
+
 # check supervisord
 [[ -n "$JAWS_LOAD_PYTHON" ]] && $JAWS_LOAD_PYTHON
 if [[ ! -d "$JAWS_SUPERVISOR_DIR/bin" ]]; then
@@ -76,7 +85,10 @@ if [[ ! -d "$JAWS_SUPERVISOR_DIR/bin" ]]; then
       deactivate
 else
     echo "Stopping services"
-    $JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true
+    # Stop services only if it's not on Perlmutter
+    # On Perlmutter, all services will be stopped by `scancel`
+    [[ !-n "$JAWS_SITE_DNS_NAME" ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true)
+    [[ !-n "$JAWS_SITE_DNS_NAME" ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manage:*" || true)
 fi
 
 echo "Generating virtual environment"
@@ -113,11 +125,13 @@ envsubst < "./test/integration/templates/setup_facl.sh" > "$FACL_SCRIPT"
 chmod 700 "$FACL_SCRIPT"
 "$FACL_SCRIPT"
 
-echo "Writing jaws-site shim (if required)"
-[[ -n "$JAWS_GITLAB_RUNNER" ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
+echo "Writing extra shims (if required)"
+[[ -n "$JAWS_SITE_DNS_NAME" ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
+[[ -n "$JAWS_SITE_DNS_NAME" ]] && envsubst < "./test/integration/templates/jaws-perlmutter-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
 
 echo "Starting services"
-$JAWS_BIN_DIR/supervisord || true
-$JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true
+# Start supervisord only if it is not deloyed to Perlmutter
+[[ !-n "$JAWS_SITE_DNS_NAME" ]] && ($JAWS_BIN_DIR/supervisord || true)
+[[ !-n "$JAWS_SITE_DNS_NAME" ]] && ($JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true)
 
 echo "END deploy-jaws"
