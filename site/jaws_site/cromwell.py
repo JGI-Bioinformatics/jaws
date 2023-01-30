@@ -482,7 +482,7 @@ class Call:
     def set_real_time_status(self) -> None:
         """
         Distinguish between "Queued" and "Running" states.
-        Check the stderr mtime to see when the task started running.
+        Check the stderr ctime to see when the task started running.
         This is necessary because the executionEvents are not populated until the
         task completes execution.
         This is only used by the summary() method because a) we usually don't need
