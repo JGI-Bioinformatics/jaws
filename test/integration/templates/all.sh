@@ -34,8 +34,8 @@ export DOLLAR='$'
 export JAWS_VENV_DIR="$JAWS_INSTALL_DIR/site"
 
 # host IP address
-if [[ -n ${JAWS_PERLMUTTER:-} ]]; then
-    export IP_ADDRESS="http://"`hostname -i`
+if [[ -n ${JAWS_SITE_DNS_NAME:-} ]]; then
+    export IP_ADDRESS="$JAWS_SITE_DNS_NAME"
     export JAWS_SUPERVISOR_HOST="*"
 else
     export IP_ADDRESS="http://localhost"
