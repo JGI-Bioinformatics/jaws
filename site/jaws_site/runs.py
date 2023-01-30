@@ -598,7 +598,7 @@ class Run:
         try:
             self.data.status = new_status
             self.data.updated = timestamp
-            if new_status in ("succeeded", "failed"):
+            if new_status in ("succeeded", "failed", "cancelled"):
                 self.data.result = new_status
             self.session.commit()
         except SQLAlchemyError as error:
