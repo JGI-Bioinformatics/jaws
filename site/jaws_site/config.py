@@ -7,6 +7,7 @@ import jaws_site.utils
 
 conf = None
 DEFAULT_MAX_RAM_GB = 56
+DEFAULT_MAX_CPU = 32
 
 
 class ConfigurationError(Exception):
@@ -124,6 +125,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
     def get_site_config(self):
         result = {}
         result["max_ram_gb"] = self.get("SITE", "max_ram_gb", DEFAULT_MAX_RAM_GB)
+        result["max_cpu"] = self.get("SITE", "max_cpu", DEFAULT_MAX_CPU)
         result["inputs_dir"] = self.get("SITE", "inputs_dir")
         result["downloads_dir"] = self.get("SITE", "downloads_dir")
         result["access_group"] = self.get("SITE", "access_group")
