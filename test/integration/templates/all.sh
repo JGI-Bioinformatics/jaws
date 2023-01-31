@@ -39,7 +39,7 @@ export JAWS_VENV_DIR="$JAWS_INSTALL_DIR/site"
 # started by supervisord
 if [[ -n ${JAWS_PERLMUTTER:-} ]]; then
     export JAWS_SITE_DNS_NAME="${site_name}-${JAWS_DEPLOYMENT_NAME}.jaws.dyn.jgi.doe.gov"
-    export IP_ADDRESS="$JAWS_SITE_DNS_NAME"
+    export IP_ADDRESS="http://$JAWS_SITE_DNS_NAME"
     export JAWS_SUPERVISOR_HOST="*"
     export JAWS_SUPERVISOR_NODAEMON="true"
 else
