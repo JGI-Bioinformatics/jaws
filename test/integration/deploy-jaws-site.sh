@@ -71,7 +71,7 @@ setup_dirs "$FOLDERS" "$JAWS_GROUP" 750
 # ex) jaws_perlmutter_prod or jaws_perlmutter_prod_htcondor_worker_large
 # or 
 #      jaws_nmdc_prod or jaws_nmdc_prod_htcondor_worker_large
-[[ -n ${JAWS_PERLMUTTER:-} ]] && (squeue --format="%.18i %.9P %.35j %.8u %.8T %.10M %.9l %.6D %R" --me | grep ${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME} |  xargs -n 1 scancel)
+[[ -n ${JAWS_PERLMUTTER:-} ]] && (squeue --format="%.18i %.9P %.35j %.8u %.8T %.10M %.9l %.6D %R" --me | grep ${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME} |  xargs -n 1 scancel || true)
 
 
 # check supervisord
@@ -87,8 +87,8 @@ else
     echo "Stopping services"
     # Stop services only if it's not on Perlmutter
     # On Perlmutter, all services will be stopped by `scancel`
-    [[ !-n "$JAWS_SITE_DNS_NAME" ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true)
-    [[ !-n "$JAWS_SITE_DNS_NAME" ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manage:*" || true)
+    [[ -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true)
+    [[ -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manage:*" || true)
 fi
 
 echo "Generating virtual environment"
@@ -131,7 +131,7 @@ echo "Writing extra shims (if required)"
 
 echo "Starting services"
 # Start supervisord only if it is not deloyed to Perlmutter
-[[ !-n "$JAWS_SITE_DNS_NAME" ]] && ($JAWS_BIN_DIR/supervisord || true)
-[[ !-n "$JAWS_SITE_DNS_NAME" ]] && ($JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true)
+[[ -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisord || true)
+[[ -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true)
 
 echo "END deploy-jaws"
