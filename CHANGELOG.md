@@ -2,7 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 
-- 
+- accurately set task start time for cancelled tasks too
 
 ## 1.0.11 Summary [01/27/2023]
 ### User Facing
