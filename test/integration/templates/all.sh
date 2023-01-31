@@ -37,7 +37,8 @@ export JAWS_VENV_DIR="$JAWS_INSTALL_DIR/site"
 # JAWS_SUPERVISOR_NODAEMON should be set as "true" if it is using Perlmutter workflow nodes
 # so that SLURM's deallocation of a workflow node can cleanly terminate all the JAWS processes 
 # started by supervisord
-if [[ -n ${JAWS_SITE_DNS_NAME:-} ]]; then
+if [[ -n ${JAWS_PERLMUTTER:-} ]]; then
+    export JAWS_SITE_DNS_NAME="${site_name}-${JAWS_DEPLOYMENT_NAME}.jaws.dyn.jgi.doe.gov"
     export IP_ADDRESS="$JAWS_SITE_DNS_NAME"
     export JAWS_SUPERVISOR_HOST="*"
     export JAWS_SUPERVISOR_NODAEMON="true"
