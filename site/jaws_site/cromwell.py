@@ -185,11 +185,13 @@ class Call:
         self.requested_cpu = None
         self.failure_message = None
 
-        # Here, we are using a file called htcondor_starttime that is created when the job is run. This is used
+        # Here, we are using a file called container_start_time that is created when the job is run. This is used
         # to get the start time of a run. The file is defined in cromwell.conf.
-        self.htcondor_startfile = None
+        self.container_startfile = None
         if self.call_root:
-            self.htcondor_startfile = os.path.join(self.call_root, "execution/htcondor_starttime")
+            self.container_startfile = os.path.join(
+                self.call_root, "execution/container_start_time"
+            )
 
         if self.execution_status == "Failure":
             self.result == "failed"
@@ -308,7 +310,11 @@ class Call:
         real_time = True
         if "real_time" in kwargs and kwargs["real_time"] is False:
             real_time = False
-        if real_time is True:
+        if real_time is True and self.execution_status in (
+            "Running",
+            "Done",
+            "Aborted",
+        ):
             self.set_real_time_status()
 
         record = {
@@ -481,36 +487,41 @@ class Call:
 
     def set_real_time_status(self) -> None:
         """
-        Distinguish between "Queued" and "Running" states.
-        Check the stderr ctime to see when the task started running.
-        This is necessary because the executionEvents are not populated until the
-        task completes execution.
+        Set the start time of the task using the creation date of the touchfile "container_startfile".
+        If the Cromwell state is "Running", we use the above to infer if it's "Queued" or actually "Running".
         This is only used by the summary() method because a) we usually don't need
         real-time data and b) accessing the file system could be unnecessarily slow.
         """
-        if self.stderr is None or self.queue_start is None:
-            self.execution_status = "Queued"
-        elif self.stderr.startswith("s3://"):
-            # we don't have access to the EBS volume; stderr will not be copied to S3 until after the
-            # task completes
-            pass
-        elif not self.htcondor_startfile:
-            pass
-        else:
+        if self.stderr.startswith("s3://"):
+            # do nothing if AWS (we don't have access to the EBS volume)
+            return
+        elif self.container_startfile:
+            # Task is either "Running" or "Done" or "Aborted"
             try:
-                file_ctime = os.path.getctime(self.htcondor_startfile)
-            except Exception:  # noqa
-                self.execution_status = "Queued"
-            else:
-                # task is actually "Running" so calculate the queue-wait duration
-                self.run_start = datetime.fromtimestamp(
-                    file_ctime, tz=timezone.utc
-                ).strftime("%Y-%m-%d %H:%M:%S")
-                delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
-                self.queue_duration = str(delta)
+                self.get_run_start_time()
+            except IOError:  # noqa
+                pass
+        elif self.execution_status == "Running":
+            # create "Queued" state (Cromwell doesn't have this state)
+            self.execution_status = "Queued"
 
-                if self.run_end:
-                    self.run_duration = str(parser.parse(self.run_end) - parser.parse(self.run_start))
+    def get_run_start_time(self):
+        try:
+            file_ctime = os.path.getctime(self.container_startfile)
+        except IOError:  # noqa
+            raise
+        else:
+            # task is actually "Running" so calculate the queue-wait duration
+            self.run_start = datetime.fromtimestamp(
+                file_ctime, tz=timezone.utc
+            ).strftime("%Y-%m-%d %H:%M:%S")
+            delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
+            self.queue_duration = str(delta)
+
+            if self.run_end:
+                self.run_duration = str(
+                    parser.parse(self.run_end) - parser.parse(self.run_start)
+                )
 
 
 class TaskError(Exception):
