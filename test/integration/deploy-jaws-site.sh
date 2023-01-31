@@ -71,7 +71,7 @@ setup_dirs "$FOLDERS" "$JAWS_GROUP" 750
 # ex) jaws_perlmutter_prod or jaws_perlmutter_prod_htcondor_worker_large
 # or 
 #      jaws_nmdc_prod or jaws_nmdc_prod_htcondor_worker_large
-[[ -n "$JAWS_SITE_DNS_NAME" ]] && (squeue --format="%.18i %.9P %.35j %.8u %.8T %.10M %.9l %.6D %R" --me | grep ${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME} |  xargs -n 1 scancel)
+[[ -n ${JAWS_PERLMUTTER:-} ]] && (squeue --format="%.18i %.9P %.35j %.8u %.8T %.10M %.9l %.6D %R" --me | grep ${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME} |  xargs -n 1 scancel)
 
 
 # check supervisord
@@ -126,8 +126,8 @@ chmod 700 "$FACL_SCRIPT"
 "$FACL_SCRIPT"
 
 echo "Writing extra shims (if required)"
-[[ -n "$JAWS_SITE_DNS_NAME" ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
-[[ -n "$JAWS_SITE_DNS_NAME" ]] && envsubst < "./test/integration/templates/jaws-perlmutter-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
+[[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
+[[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-perlmutter-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
 
 echo "Starting services"
 # Start supervisord only if it is not deloyed to Perlmutter
