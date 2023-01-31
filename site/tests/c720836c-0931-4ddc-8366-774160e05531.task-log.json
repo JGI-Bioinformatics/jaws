@@ -1,62 +1,62 @@
 [
-    [
-        "main_workflow.hello",
-        false,
-        "Queued",
-        "2021-10-04 21:51:43",
-        "2021-10-04 21:51:44",
-        "2021-10-04 21:52:29",
-        "0:00:01",
-        "0:00:45"
-    ],
-    [
-        "main_workflow.goodbye",
-        false,
-        "Queued",
-        "2021-10-04 21:51:43",
-        "2021-10-04 21:51:43",
-        "2021-10-04 21:52:27",
-        "0:00:00",
-        "0:00:44"
-    ],
-    [
-        "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
-        false,
-        "Queued",
-        "2021-10-04 21:51:45",
-        "2021-10-04 21:51:48",
-        "2021-10-04 21:52:28",
-        "0:00:03",
-        "0:00:40"
-    ],
-    [
-        "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-        false,
-        "Queued",
-        "2021-10-04 21:51:45",
-        "2021-10-04 21:51:47",
-        "2021-10-04 21:52:27",
-        "0:00:02",
-        "0:00:40"
-    ],
-    [
-        "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
-        false,
-        "Queued",
-        "2021-10-04 21:51:45",
-        "2021-10-04 21:51:45",
-        "2021-10-04 21:52:25",
-        "0:00:00",
-        "0:00:40"
-    ],
-    [
-        "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
-        false,
-        "Queued",
-        "2021-10-04 21:51:45",
-        "2021-10-04 21:51:46",
-        "2021-10-04 21:52:27",
-        "0:00:01",
-        "0:00:41"
-    ]
+  [
+    "main_workflow.hello",
+    false,
+    "Done",
+    "2021-10-04 21:51:43",
+    "2021-10-04 21:51:44",
+    "2021-10-04 21:52:29",
+    "0:00:01",
+    "0:00:45"
+  ],
+  [
+    "main_workflow.goodbye",
+    false,
+    "Done",
+    "2021-10-04 21:51:43",
+    "2021-10-04 21:51:43",
+    "2021-10-04 21:52:27",
+    "0:00:00",
+    "0:00:44"
+  ],
+  [
+    "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
+    false,
+    "Done",
+    "2021-10-04 21:51:45",
+    "2021-10-04 21:51:48",
+    "2021-10-04 21:52:28",
+    "0:00:03",
+    "0:00:40"
+  ],
+  [
+    "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
+    false,
+    "Done",
+    "2021-10-04 21:51:45",
+    "2021-10-04 21:51:47",
+    "2021-10-04 21:52:27",
+    "0:00:02",
+    "0:00:40"
+  ],
+  [
+    "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
+    false,
+    "Done",
+    "2021-10-04 21:51:45",
+    "2021-10-04 21:51:45",
+    "2021-10-04 21:52:25",
+    "0:00:00",
+    "0:00:40"
+  ],
+  [
+    "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
+    false,
+    "Done",
+    "2021-10-04 21:51:45",
+    "2021-10-04 21:51:46",
+    "2021-10-04 21:52:27",
+    "0:00:01",
+    "0:00:41"
+  ]
 ]
