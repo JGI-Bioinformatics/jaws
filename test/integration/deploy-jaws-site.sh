@@ -87,8 +87,8 @@ else
     echo "Stopping services"
     # Stop services only if it's not on Perlmutter
     # On Perlmutter, all services will be stopped by `scancel`
-    [[ -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true)
-    [[ -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manage:*" || true)
+    [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true)
+    [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manage:*" || true)
 fi
 
 echo "Generating virtual environment"
@@ -125,13 +125,13 @@ envsubst < "./test/integration/templates/setup_facl.sh" > "$FACL_SCRIPT"
 chmod 700 "$FACL_SCRIPT"
 "$FACL_SCRIPT"
 
-echo "Writing extra shims (if required)"
+echo "Writing extra shims (if Perlmutter)"
 [[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
 [[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-perlmutter-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
 
-echo "Starting services"
+echo "Starting services (if not Perlmutter)"
 # Start supervisord only if it is not deloyed to Perlmutter
-[[ -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisord || true)
-[[ -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true)
+[[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisord || true)
+[[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true)
 
 echo "END deploy-jaws"
