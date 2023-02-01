@@ -63,4 +63,4 @@ echo "Starting jaws-site on `hostname -i`" > "${DOLLAR}LOGFILE"
 
 # Start supervisord
 "${DOLLAR}JAWS_BIN_DIR/supervisord" || true
-"${DOLLAR}JAWS_BIN_DIR/supervisorctl" start all
+"${DOLLAR}JAWS_BIN_DIR/supervisorctl" start all || true
