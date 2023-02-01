@@ -118,8 +118,8 @@ def run_manifest(params, session):
 def cancel_run(params, session):
     """Mark a Run to be cancelled.  It will be cancelled by the Run daemon later (asynchronously).
 
-    :param cromwell_run_id: The Cromwell run ID
-    :type cromwell_run_id: str
+    :param cromwell_run_id: The JAWS run ID
+    :type run_id: int
     :return: Either a JSON-RPC2-compliant success or failure message,
     :rtype: dict
     """
@@ -304,7 +304,7 @@ operations = {
     },
     "cancel_run": {
         "function": cancel_run,
-        "required_params": ["user_id", "cromwell_run_id"],
+        "required_params": ["user_id", "run_id"],
     },
     "run_task_log": {
         "function": run_task_log,
