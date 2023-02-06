@@ -376,6 +376,13 @@ class Call:
                 result["stderrSubmitContents"] = None
             else:
                 result["stderrSubmitContents"] = stderr_submit_contents
+            stderr_background_file = f"{stderr_file}.background"
+            try:
+                stderr_background_contents = _read_file(stderr_background_file)
+            except Exception:  # noqa
+                result["stderrBackgroundContents"] = None
+            else:
+                result["stderrBackgroundContents"] = stderr_background_contents
         if "stdout" in self.data:
             # include *contents* of stdout file, instead of file path
             stdout_file = self.data["stdout"]
@@ -393,6 +400,13 @@ class Call:
                 result["stdoutSubmitContents"] = None
             else:
                 result["stdoutSubmitContents"] = stdout_submit_contents
+            stdout_background_file = f"{stdout_file}.background"
+            try:
+                stdout_background_contents = _read_file(stdout_background_file)
+            except Exception:  # noqa
+                result["stdoutBackgroundContents"] = None
+            else:
+                result["stdoutBackgroundContents"] = stdout_background_contents
         if "callRoot" in self.data:
             # check for existence of any task-specific *.log files.
             # callRoot is not specified for AWS/S3 files, so it works only for NFS paths.

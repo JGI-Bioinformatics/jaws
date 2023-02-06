@@ -30,7 +30,9 @@
                 "stdoutContents": null,
                 "stderrContents": null,
                 "stdoutSubmitContents": null,
-                "stderrSubmitContents": null
+                "stderrSubmitContents": null,
+                "stdoutBackgroundContents": null,
+                "stderrBackgroundContents": null
             }
         ]
     }
