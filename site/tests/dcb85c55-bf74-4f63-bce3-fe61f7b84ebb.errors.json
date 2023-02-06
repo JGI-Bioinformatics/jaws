@@ -42,7 +42,9 @@
                 "stdoutContents": null,
                 "stderrContents": null,
                 "stdoutSubmitContents": null,
-                "stderrSubmitContents": null
+                "stderrSubmitContents": null,
+                "stdoutBackgroundContents": null,
+                "stderrBackgroundContents": null
               }
             ],
             "hello_and_goodbye.hello": [
@@ -81,7 +83,9 @@
                 "stdoutContents": null,
                 "stderrContents": null,
                 "stdoutSubmitContents": null,
-                "stderrSubmitContents": null
+                "stderrSubmitContents": null,
+                "stdoutBackgroundContents": null,
+                "stderrBackgroundContents": null
               }
             ]
           }
@@ -130,7 +134,9 @@
                 "stdoutContents": null,
                 "stderrContents": null,
                 "stdoutSubmitContents": null,
-                "stderrSubmitContents": null
+                "stderrSubmitContents": null,
+                "stdoutBackgroundContents": null,
+                "stderrBackgroundContents": null
               }
             ],
             "hello_and_goodbye.goodbye": [
@@ -169,7 +175,9 @@
                 "stdoutContents": null,
                 "stderrContents": null,
                 "stdoutSubmitContents": null,
-                "stderrSubmitContents": null
+                "stderrSubmitContents": null,
+                "stdoutBackgroundContents": null,
+                "stderrBackgroundContents": null
               }
             ]
           }

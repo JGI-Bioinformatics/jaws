@@ -302,6 +302,7 @@ def test_errors(requests_mock, monkeypatch):
     )
     metadata_3 = crom.get_metadata(example_cromwell_run_id_3)
     actual_errors_report_3 = metadata_3.errors()
+
     assert (
         bool(
             DeepDiff(
@@ -321,6 +322,7 @@ def test_errors(requests_mock, monkeypatch):
     )
     metadata_4 = crom.get_metadata(example_cromwell_run_id_4)
     actual_errors_report_4 = metadata_4.errors()
+
     assert (
         bool(
             DeepDiff(
