@@ -219,7 +219,10 @@ def test_task_summary(requests_mock):
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
     )
-
+    debug = ""
+    for item in actual:
+        debug += item[name] + ";;;"
+    assert debug === 1
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
