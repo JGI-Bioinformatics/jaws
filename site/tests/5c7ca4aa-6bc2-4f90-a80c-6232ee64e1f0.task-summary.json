@@ -1,6 +1,6 @@
 [
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.bbmerge",
+    "name": "miseq_libraries.miseq_library[0]:miseq_library.bbmerge",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -19,7 +19,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.extract_spacer_length",
+    "name": "miseq_libraries.miseq_library[0]:miseq_library.extract_spacer_length",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -38,7 +38,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.flank_seq_3P",
+    "name": "miseq_libraries.miseq_library[0]:miseq_library.flank_seq_3P",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -57,7 +57,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.flank_seq_5P",
+    "name": "miseq_libraries.miseq_library[0]:miseq_library.flank_seq_5P",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -76,7 +76,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.bbmerge",
+    "name": "miseq_libraries.miseq_library[1]:miseq_library.bbmerge",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -95,7 +95,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.extract_spacer_length",
+    "name": "miseq_libraries.miseq_library[1]:miseq_library.extract_spacer_length",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -114,7 +114,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.flank_seq_3P",
+    "name": "miseq_libraries.miseq_library[1]:miseq_library.flank_seq_3P",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -133,7 +133,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.flank_seq_5P",
+    "name": "miseq_libraries.miseq_library[1]:miseq_library.flank_seq_5P",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -152,7 +152,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.seal",
+    "name": "miseq_libraries.miseq_library[1]:miseq_library.seal",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -171,7 +171,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.bbduk",
+    "name": "miseq_libraries.miseq_library[1]:miseq_library.bbduk",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -190,7 +190,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.seal",
+    "name": "miseq_libraries.miseq_library[0]:miseq_library.seal",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -209,7 +209,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.stats_python",
+    "name": "miseq_libraries.miseq_library[1]:miseq_library.stats_python",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -228,7 +228,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.vis_python_stats:visualize_miseq_library.visualize",
+    "name": "miseq_libraries.vis_python_stats[1]:visualize_miseq_library.visualize",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -247,7 +247,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.bbduk",
+    "name": "miseq_libraries.miseq_library[0]:miseq_library.bbduk",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -266,7 +266,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.miseq_library:miseq_library.stats_python",
+    "name": "miseq_libraries.miseq_library[0]:miseq_library.stats_python",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -285,7 +285,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.vis_python_stats:visualize_miseq_library.visualize",
+    "name": "miseq_libraries.vis_python_stats[0]:visualize_miseq_library.visualize",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,

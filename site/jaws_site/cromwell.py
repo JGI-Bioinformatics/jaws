@@ -651,12 +651,15 @@ class Task:
                 call = self.calls[shard_index][attempt]
                 result.append(call.summary(real_time=real_time))
         for shard_index in self.subworkflows.keys():
+            subworkflow_name = self.name
+            if shard_index > -1:
+                subworkflow_name = f"{subworkflow_name}[{shard_index}]"
             for attempt in self.subworkflows[shard_index].keys():
                 sub_meta = self.subworkflows[shard_index][attempt]
                 for item in sub_meta.task_summary(real_time=real_time):
                     renamed_item = item
                     name = item["name"]
-                    renamed_item["name"] = f"{self.name}:{name}"
+                    renamed_item["name"] = f"{subworkflow_name}:{name}"
                     result.append(renamed_item)
         return result
 
@@ -668,13 +671,16 @@ class Task:
             call = self.calls[shard_index][attempt]
             result.append(call.summary(real_time=real_time))
         for shard_index in self.subworkflows.keys():
+            subworkflow_name = self.name
+            if shard_index > -1:
+                subworkflow_name = f"{subworkflow_name}[{shard_index}]"
             attempts = sorted(self.subworkflows[shard_index].keys())
             attempt = attempts[-1]
             sub_meta = self.subworkflows[shard_index][attempt]
             for item in sub_meta.task_summary(real_time=real_time):
                 renamed_item = item
                 name = item["name"]
-                renamed_item["name"] = f"{self.name}:{name}"
+                renamed_item["name"] = f"{subworkflow_name}:{name}"
                 result.append(renamed_item)
         return result
 
