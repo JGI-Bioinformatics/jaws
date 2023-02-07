@@ -219,10 +219,6 @@ def test_task_summary(requests_mock):
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
     )
-    string = ""
-    for item in actual:
-        string += item["name"] + ":" + item["job_id"] + "//"
-    assert string == 1
 
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 

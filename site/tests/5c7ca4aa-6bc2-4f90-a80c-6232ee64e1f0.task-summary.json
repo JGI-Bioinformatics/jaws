@@ -228,7 +228,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.vis_python_stats:visualize_miseq_library.visualize",
+    "name": "miseq_libraries.vis_python_stats[1]:visualize_miseq_library.visualize",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -285,7 +285,7 @@
     "requested_memory": "116 GB"
   },
   {
-    "name": "miseq_libraries.vis_python_stats:visualize_miseq_library.visualize",
+    "name": "miseq_libraries.vis_python_stats[0]:visualize_miseq_library.visualize",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
