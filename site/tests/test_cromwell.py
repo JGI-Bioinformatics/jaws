@@ -221,7 +221,7 @@ def test_task_summary(requests_mock):
     )
     for item in actual:
         assert item["name"] == 1
-    
+
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
