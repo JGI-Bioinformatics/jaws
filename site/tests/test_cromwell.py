@@ -222,7 +222,7 @@ def test_task_summary(requests_mock):
     debug = ""
     for item in actual:
         debug += item[name] + ";;;"
-    assert debug === 1
+    assert debug == 1
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
