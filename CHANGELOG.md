@@ -3,12 +3,24 @@
 # Inbound changes not assigned to version # yet
 
 ## 1.0.11 (02/08/2023) Summary
+- accurately set task start time for cancelled tasks too
+
+### Internal
+- Changed cromwell_run_id to run_id in dispatch table of rpc_operations.py for cancel_run
+
+## 1.0.11 Summary [01/27/2023]
 ### User Facing
+
+- throttle user runs to only run 10 cromwell submissions at a time
+- fixed bug that included queue time with run time
+
+## 1.0.10 Summary
+### User Facing
+
 - add new jaws-nmdc site
 - site names are now lower-cased everywhere for consistency
 - add support for Pair and Map outputs
-- throttle user runs to only run 10 cromwell submissions at a time
-- fixed bug that included queue time with run time
+
 
 ### Internal
 - Remove main.py from ticket #1380

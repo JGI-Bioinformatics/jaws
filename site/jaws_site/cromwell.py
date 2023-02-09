@@ -185,11 +185,13 @@ class Call:
         self.requested_cpu = None
         self.failure_message = None
 
-        # Here, we are using a file called htcondor_starttime that is created when the job is run. This is used
+        # Here, we are using a file called container_start_time that is created when the job is run. This is used
         # to get the start time of a run. The file is defined in cromwell.conf.
-        self.htcondor_startfile = None
+        self.container_startfile = None
         if self.call_root:
-            self.htcondor_startfile = os.path.join(self.call_root, "execution/htcondor_starttime")
+            self.container_startfile = os.path.join(
+                self.call_root, "execution/container_start_time"
+            )
 
         if self.execution_status == "Failure":
             self.result == "failed"
@@ -308,7 +310,11 @@ class Call:
         real_time = True
         if "real_time" in kwargs and kwargs["real_time"] is False:
             real_time = False
-        if real_time is True:
+        if real_time is True and self.execution_status in (
+            "Running",
+            "Done",
+            "Aborted",
+        ):
             self.set_real_time_status()
 
         record = {
@@ -370,6 +376,13 @@ class Call:
                 result["stderrSubmitContents"] = None
             else:
                 result["stderrSubmitContents"] = stderr_submit_contents
+            stderr_background_file = f"{stderr_file}.background"
+            try:
+                stderr_background_contents = _read_file(stderr_background_file)
+            except Exception:  # noqa
+                result["stderrBackgroundContents"] = None
+            else:
+                result["stderrBackgroundContents"] = stderr_background_contents
         if "stdout" in self.data:
             # include *contents* of stdout file, instead of file path
             stdout_file = self.data["stdout"]
@@ -387,6 +400,13 @@ class Call:
                 result["stdoutSubmitContents"] = None
             else:
                 result["stdoutSubmitContents"] = stdout_submit_contents
+            stdout_background_file = f"{stdout_file}.background"
+            try:
+                stdout_background_contents = _read_file(stdout_background_file)
+            except Exception:  # noqa
+                result["stdoutBackgroundContents"] = None
+            else:
+                result["stdoutBackgroundContents"] = stdout_background_contents
         if "callRoot" in self.data:
             # check for existence of any task-specific *.log files.
             # callRoot is not specified for AWS/S3 files, so it works only for NFS paths.
@@ -481,36 +501,41 @@ class Call:
 
     def set_real_time_status(self) -> None:
         """
-        Distinguish between "Queued" and "Running" states.
-        Check the stderr ctime to see when the task started running.
-        This is necessary because the executionEvents are not populated until the
-        task completes execution.
+        Set the start time of the task using the creation date of the touchfile "container_startfile".
+        If the Cromwell state is "Running", we use the above to infer if it's "Queued" or actually "Running".
         This is only used by the summary() method because a) we usually don't need
         real-time data and b) accessing the file system could be unnecessarily slow.
         """
-        if self.stderr is None or self.queue_start is None:
-            self.execution_status = "Queued"
-        elif self.stderr.startswith("s3://"):
-            # we don't have access to the EBS volume; stderr will not be copied to S3 until after the
-            # task completes
-            pass
-        elif not self.htcondor_startfile:
-            pass
-        else:
+        if self.stderr.startswith("s3://"):
+            # do nothing if AWS (we don't have access to the EBS volume)
+            return
+        elif self.container_startfile:
+            # Task is either "Running" or "Done" or "Aborted"
             try:
-                file_ctime = os.path.getctime(self.htcondor_startfile)
-            except Exception:  # noqa
-                self.execution_status = "Queued"
-            else:
-                # task is actually "Running" so calculate the queue-wait duration
-                self.run_start = datetime.fromtimestamp(
-                    file_ctime, tz=timezone.utc
-                ).strftime("%Y-%m-%d %H:%M:%S")
-                delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
-                self.queue_duration = str(delta)
+                self.get_run_start_time()
+            except IOError:  # noqa
+                pass
+        elif self.execution_status == "Running":
+            # create "Queued" state (Cromwell doesn't have this state)
+            self.execution_status = "Queued"
 
-                if self.run_end:
-                    self.run_duration = str(parser.parse(self.run_end) - parser.parse(self.run_start))
+    def get_run_start_time(self):
+        try:
+            file_ctime = os.path.getctime(self.container_startfile)
+        except IOError:  # noqa
+            raise
+        else:
+            # task is actually "Running" so calculate the queue-wait duration
+            self.run_start = datetime.fromtimestamp(
+                file_ctime, tz=timezone.utc
+            ).strftime("%Y-%m-%d %H:%M:%S")
+            delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
+            self.queue_duration = str(delta)
+
+            if self.run_end:
+                self.run_duration = str(
+                    parser.parse(self.run_end) - parser.parse(self.run_start)
+                )
 
 
 class TaskError(Exception):
@@ -626,12 +651,15 @@ class Task:
                 call = self.calls[shard_index][attempt]
                 result.append(call.summary(real_time=real_time))
         for shard_index in self.subworkflows.keys():
+            subworkflow_name = self.name
+            if shard_index > -1:
+                subworkflow_name = f"{subworkflow_name}[{shard_index}]"
             for attempt in self.subworkflows[shard_index].keys():
                 sub_meta = self.subworkflows[shard_index][attempt]
                 for item in sub_meta.task_summary(real_time=real_time):
                     renamed_item = item
                     name = item["name"]
-                    renamed_item["name"] = f"{self.name}:{name}"
+                    renamed_item["name"] = f"{subworkflow_name}:{name}"
                     result.append(renamed_item)
         return result
 
@@ -643,13 +671,16 @@ class Task:
             call = self.calls[shard_index][attempt]
             result.append(call.summary(real_time=real_time))
         for shard_index in self.subworkflows.keys():
+            subworkflow_name = self.name
+            if shard_index > -1:
+                subworkflow_name = f"{subworkflow_name}[{shard_index}]"
             attempts = sorted(self.subworkflows[shard_index].keys())
             attempt = attempts[-1]
             sub_meta = self.subworkflows[shard_index][attempt]
             for item in sub_meta.task_summary(real_time=real_time):
                 renamed_item = item
                 name = item["name"]
-                renamed_item["name"] = f"{self.name}:{name}"
+                renamed_item["name"] = f"{subworkflow_name}:{name}"
                 result.append(renamed_item)
         return result
 
