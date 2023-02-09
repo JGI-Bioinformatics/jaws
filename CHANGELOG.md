@@ -2,6 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 
+## 1.0.11 (02/08/2023) Summary
 ### User Facing
 - add new jaws-nmdc site
 - site names are now lower-cased everywhere for consistency
