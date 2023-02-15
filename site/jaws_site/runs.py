@@ -244,11 +244,14 @@ class Run:
     def cancel(self) -> None:
         """
         Cancel a run, aborting Cromwell if appropriate.
+
+        Note: `cancel` = to-be-cancelled status
         """
         if self.data.cromwell_run_id and self.data.status in [
             "submitted",
             "queued",
             "running",
+            "cancel",
         ]:
             try:
                 cromwell.abort(self.data.cromwell_run_id)
