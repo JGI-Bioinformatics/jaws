@@ -2,8 +2,9 @@
 
 # Inbound changes not assigned to version # yet
 
-## 1.0.11 (02/08/2023) Summary
+## 1.0.12 (02/08/2023) Summary
 - accurately set task start time for cancelled tasks too
+- add max_cpu check, similar to max_ram check so user doesn't exceed available resources on site. This only works for hard-coded values in the runtime.
 
 ### Internal
 - Changed cromwell_run_id to run_id in dispatch table of rpc_operations.py for cancel_run
