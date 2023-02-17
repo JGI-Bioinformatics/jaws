@@ -219,11 +219,12 @@ class Run:
         """
         Return last saved version of the Cromwell Run metadata.
         """
-        if self.data.cromwell_run_id:
-            if not self.data.workflow_root
-            url = config.conf.get("CROMWELL", "url")
-            self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
-        return self._metadata
+        metadata = None
+        if self.data.workflow_root:
+            file = f"{self.data.workflow_root}/metadata.json"
+            with open(file, "r") as fh:
+                metadata = json.load(file)
+        return metadata
 
     def did_run_start(self):
         return self.metadata().started_running()
