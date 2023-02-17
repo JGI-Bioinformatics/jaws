@@ -863,6 +863,20 @@ class Metadata:
             filtered_metadata["failures"] = other_failures
         return filtered_metadata
 
+    def save_errors_report(self, outfile=None):
+        """
+        Write errors.json report to file.  By default, save as 'errors.json' in run's workflow_root dir.
+        :param outfile: Output location if not workflow_root/errors.json
+        :ptype outfile: str
+        """
+        if outfile is None:
+            workflow_root = self.workflow_root()
+            if not workflow_root:
+                raise IOError("Run doesn't have workflow_root")
+            outfile = f"{workflow_root}/metadata.json"
+        with open(outfile, "w") as fh:
+            fh.write(json.dumps(self.errors, indent=4))
+
     def running(self):
         """
         Return expanded metadata report for "Running" tasks only.
