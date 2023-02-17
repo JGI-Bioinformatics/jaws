@@ -875,7 +875,7 @@ class Metadata:
                 raise IOError("Run doesn't have workflow_root")
             outfile = f"{workflow_root}/errors.json"
         with open(outfile, "w") as fh:
-            fh.write(json.dumps(self.errors, indent=4))
+            fh.write(json.dumps(self.errors(), indent=4))
 
     def running(self):
         """
@@ -928,6 +928,20 @@ class Metadata:
             ]
             table.append(row)
         return sort_table(table, 3)
+
+    def write_task_log_file(self, outfile=None):
+        """
+        Write task_log.json report to file.  By default, save as 'task_log.json' in run's workflow_root dir.
+        :param outfile: Output location if not workflow_root/task_log.json
+        :ptype outfile: str
+        """
+        if outfile is None:
+            workflow_root = self.workflow_root()
+            if not workflow_root:
+                raise IOError("Run doesn't have workflow_root")
+            outfile = f"{workflow_root}/task_log.json"
+        with open(outfile, "w") as fh:
+            fh.write(json.dumps(self.task_log(), indent=4))
 
     def started_running(self):
         """
@@ -997,7 +1011,7 @@ class Metadata:
                 raise IOError("Run doesn't have workflow_root")
             outfile = f"{workflow_root}/outputs.json"
         with open(outfile, "w") as fh:
-            fh.write(json.dumps(self.outputs, indent=4))
+            fh.write(json.dumps(self.outputs(), indent=4))
 
     def outfiles(self, complete=False, relpath=True):
         """
@@ -1060,6 +1074,36 @@ class Metadata:
             return rel_paths
         else:
             return full_paths
+
+    def write_outfiles_file(self, outfile=None):
+        """
+        Write outfiles.json report to file.  By default, save as 'outfiles.json' in run's workflow_root dir.
+        :param outfile: Output location if not workflow_root/outfiles.json
+        :ptype outfile: str
+        """
+        if outfile is None:
+            workflow_root = self.workflow_root()
+            if not workflow_root:
+                raise IOError("Run doesn't have workflow_root")
+            outfile = f"{workflow_root}/outfiles.json"
+        with open(outfile, "w") as fh:
+            fh.write(json.dumps(self.outfiles(), indent=4))
+
+    def write_summary_files(self, outdir=None):
+        """
+        Write metadata, errors, task log, and outputs files.
+        By default, save in run's workflow_root dir.
+        :param outdir: Output location if not workflow_root.
+        :ptype outdir: str
+        """
+        if outdir is None:
+            outdir = self.workflow_root()
+            if not outdir:
+                raise IOError("Run doesn't have workflow_root")
+        self.write_metadata_file(f"{outdir}/metadata.json")
+        self.write_errors_file(f"{outdir}/errors.json")
+        self.write_task_log_file(f"{outdir}/task_log.json")
+        self.write_outputs_file(f"{outdir}/outputs.json")
 
 
 class Cromwell:

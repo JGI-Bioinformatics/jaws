@@ -188,6 +188,7 @@ class Run:
             "run_id": self.data.id,
             "user_id": self.data.user_id,
             "cromwell_run_id": self.data.cromwell_run_id,
+            "workflow_root": self.data.workflow_root,
             "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
             "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
             "status": self.data.status,
@@ -201,6 +202,25 @@ class Run:
         Lazy loading of Cromwell metadata.
         """
         if not self._metadata and self.data.cromwell_run_id:
+            url = config.conf.get("CROMWELL", "url")
+            self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
+        return self._metadata
+
+    def get_metadata(self):
+        """
+        Get latest metadata from Cromwell.
+        """
+        if self.data.cromwell_run_id:
+            url = config.conf.get("CROMWELL", "url")
+            self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
+        return self._metadata
+
+    def cached_metadata(self):
+        """
+        Return last saved version of the Cromwell Run metadata.
+        """
+        if self.data.cromwell_run_id:
+            if not self.data.workflow_root
             url = config.conf.get("CROMWELL", "url")
             self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
         return self._metadata
@@ -306,7 +326,9 @@ class Run:
         Get workflowRoot from Cromwell and return it, if available.
         If the run hasn't been submitted to Cromwell yet, the result shall be None.
         """
-        if self.data.cromwell_run_id:
+        if self.data.workflow_root:
+            return self.data.workflow_root
+        elif self.data.cromwell_run_id:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             path = metadata.workflow_root(
                 executions_dir=self.config["cromwell_executions_dir"]
@@ -565,6 +587,8 @@ class Run:
         if cromwell_status == "Running":
             # no skips allowed, so there may be more than one transition
             if self.data.status == "submitted":
+                # save the workflow_root dir; it'll be committed to db with the run status update
+                self.data.workflow_root = self.metadata.workflow_root()
                 self.update_run_status("queued")
             elif self.data.status == "queued":
                 # although Cromwell may consider a Run to be "Running", since it does not distinguish between
@@ -635,12 +659,11 @@ class Run:
         Save final run metadata and send report document to reports service via RPC.
         We currently record resource metrics for successful and failed, but not cancelled Runs.
         """
-        # Get Run metadata and save metadata.json and errors.json files.
+        # Get Run metadata and write additional info files to workflow_root dir (metadata, errors, etc.).
         # Return if Cromwell service unavailable (run_daemon will try again later).
         try:
             metadata = self.metadata()
-            metadata.save()
-            metadata.save_errors_report()
+            metadata.write_info_files()
         except Exception as error:
             logger.warn(
                 "Unable to retrieve Cromwell metadata to generate report."
