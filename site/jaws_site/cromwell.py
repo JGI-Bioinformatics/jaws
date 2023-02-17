@@ -759,7 +759,7 @@ class Metadata:
                 logger.debug(f"Workflow {self.workflow_id}: Init task {task_name}")
                 self.tasks[task_name] = Task(task_name, task_data)
 
-    def save(self, outfile=None):
+    def write_metadata_file(self, outfile=None):
         """
         Save metadata.json file.  By default, save in workflow root dir.
         :param outfile: Output location if not default, workflow_root
@@ -863,7 +863,7 @@ class Metadata:
             filtered_metadata["failures"] = other_failures
         return filtered_metadata
 
-    def save_errors_report(self, outfile=None):
+    def write_errors_file(self, outfile=None):
         """
         Write errors.json report to file.  By default, save as 'errors.json' in run's workflow_root dir.
         :param outfile: Output location if not workflow_root/errors.json
@@ -873,7 +873,7 @@ class Metadata:
             workflow_root = self.workflow_root()
             if not workflow_root:
                 raise IOError("Run doesn't have workflow_root")
-            outfile = f"{workflow_root}/metadata.json"
+            outfile = f"{workflow_root}/errors.json"
         with open(outfile, "w") as fh:
             fh.write(json.dumps(self.errors, indent=4))
 
@@ -984,6 +984,20 @@ class Metadata:
                     "2": value["2"].replace(workflowRoot, ".", 1),
                 }
         return relpath_outputs
+
+    def write_outputs_file(self, outfile=None):
+        """
+        Write outputs.json report to file.  By default, save as 'outputs.json' in run's workflow_root dir.
+        :param outfile: Output location if not workflow_root/outputs.json
+        :ptype outfile: str
+        """
+        if outfile is None:
+            workflow_root = self.workflow_root()
+            if not workflow_root:
+                raise IOError("Run doesn't have workflow_root")
+            outfile = f"{workflow_root}/outputs.json"
+        with open(outfile, "w") as fh:
+            fh.write(json.dumps(self.outputs, indent=4))
 
     def outfiles(self, complete=False, relpath=True):
         """
