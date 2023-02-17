@@ -169,7 +169,7 @@ class Call:
         self.result = None
         self.cached = False
         self.return_code = data.get("returnCode", None)
-        self.start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # ECCE!
+        self.start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # default
         if "start" in data:
             self.start = parser.parse(data["start"]).strftime("%Y-%m-%d %H:%M:%S")
         self.end = None
@@ -758,6 +758,20 @@ class Metadata:
             for task_name, task_data in calls.items():
                 logger.debug(f"Workflow {self.workflow_id}: Init task {task_name}")
                 self.tasks[task_name] = Task(task_name, task_data)
+
+    def save(self, outfile=None):
+        """
+        Save metadata.json file.  By default, save in workflow root dir.
+        :param outfile: Output location if not default, workflow_root
+        :ptype outfile: str
+        """
+        if outfile is None:
+            workflow_root = self.workflow_root()
+            if not workflow_root:
+                raise IOError("Run doesn't have workflow_root")
+            outfile = f"{workflow_root}/metadata.json"
+        with open(outfile, "w") as fh:
+            fh.write(json.dumps(self.data, indent=4))
 
     def get(self, param, default=None):
         """
