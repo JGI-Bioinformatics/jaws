@@ -632,17 +632,13 @@ class Run:
 
     def publish_report(self):
         """
-        Send report document to reports service via RPC.
+        Save final run metadata and send report document to reports service via RPC.
         We currently record resource metrics for successful and failed, but not cancelled Runs.
         """
-        # "test" is a special user account -- mark as done without publishing report
-        if self.data.user_id == "test":
-            self.update_run_status("finished")
-            return
-
-        # get task summary from Cromwell metadata, return (skip) if unavailable now
+        # get Run metadata and save to file.  Return (skip) if Cromwell service unavailable
         try:
             metadata = self.metadata()
+            metadata.save()
         except Exception as error:
             logger.warn(
                 "Unable to retrieve Cromwell metadata to generate report."
@@ -651,6 +647,13 @@ class Run:
             )
             self.update_run_status("finished")
             return
+
+        # "test" is a special user account -- mark as done without publishing report
+        if self.data.user_id == "test":
+            self.update_run_status("finished")
+            return
+
+        # generate report
         report = self.summary()
         report["workflow_name"] = metadata.get("workflowName", "unknown")
         report["site_id"] = report["compute_site_id"].upper()
