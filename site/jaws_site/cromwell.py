@@ -68,9 +68,9 @@ def _read_file_s3(path, **kwargs):
     """
     s3_bucket, src_path = s3_parse_uri(path)
     aws_session = boto3.Session(
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        region_name=aws_region_name,
+        aws_access_key_id=kwargs["aws_access_key_id"],
+        aws_secret_access_key=kwargs["aws_secret_access_key"],
+        region_name=kwargs["aws_region_name"],
     )
     s3_resource = aws_session.resource("s3")
     bucket_obj = s3_resource.Bucket(s3_bucket)
@@ -118,6 +118,37 @@ def _read_file(path: str, **kwargs):
         return _read_file_s3(path, **kwargs)
     else:
         return _read_file_nfs(path)
+
+
+def _write_file_s3(path: str, content: str, **kwargs):
+    s3_bucket, src_path = s3_parse_uri(path)
+    aws_session = boto3.Session(
+        aws_access_key_id=kwargs["aws_access_key_id"],
+        aws_secret_access_key=kwargs["aws_secret_access_key"],
+        region_name=kwargs["aws_region_name"],
+    )
+    s3_resource = aws_session.resource("s3")
+    bucket_obj = s3_resource.Bucket(s3_bucket)
+    bucket_obj.put(Body=contents)
+
+
+def _write_file_nfs(path: str, content: str):
+    with open(path, "w") as fh:
+        fh.write(content)
+
+
+def _write_file(path: str, contents: str, **kwargs):
+    """
+    Write contents to NFS or S3 file.
+    :param path: Path to file (may be s3 item)
+    :ptype path: str
+    :param contents: Contents to write
+    :ptype contents: str
+    """
+    if path.startswith("s3://"):
+        return _write_file_s3(path, contents, **kwargs)
+    else:
+        return _write_file_nfs(path, contents)
 
 
 def sort_table(table: list, index: int):
@@ -770,8 +801,7 @@ class Metadata:
             if not workflow_root:
                 raise IOError("Run doesn't have workflow_root")
             outfile = f"{workflow_root}/metadata.json"
-        with open(outfile, "w") as fh:
-            fh.write(json.dumps(self.data, indent=4))
+        _write_file(outfile, json.dumps(self.data, indent=4))
 
     def get(self, param, default=None):
         """
@@ -874,8 +904,7 @@ class Metadata:
             if not workflow_root:
                 raise IOError("Run doesn't have workflow_root")
             outfile = f"{workflow_root}/errors.json"
-        with open(outfile, "w") as fh:
-            fh.write(json.dumps(self.errors(), indent=4))
+        _write_file(outfile, json.dumps(self.errors(), indent=4))
 
     def running(self):
         """
@@ -940,8 +969,7 @@ class Metadata:
             if not workflow_root:
                 raise IOError("Run doesn't have workflow_root")
             outfile = f"{workflow_root}/task_log.json"
-        with open(outfile, "w") as fh:
-            fh.write(json.dumps(self.task_log(), indent=4))
+        _write_file(outfile, json.dumps(self.task_log(), indent=4))
 
     def started_running(self):
         """
@@ -1010,8 +1038,7 @@ class Metadata:
             if not workflow_root:
                 raise IOError("Run doesn't have workflow_root")
             outfile = f"{workflow_root}/outputs.json"
-        with open(outfile, "w") as fh:
-            fh.write(json.dumps(self.outputs(), indent=4))
+        _write_file(outfile, json.dumps(self.outputs(), indent=4))
 
     def outfiles(self, complete=False, relpath=True):
         """
@@ -1086,8 +1113,7 @@ class Metadata:
             if not workflow_root:
                 raise IOError("Run doesn't have workflow_root")
             outfile = f"{workflow_root}/outfiles.json"
-        with open(outfile, "w") as fh:
-            fh.write(json.dumps(self.outfiles(), indent=4))
+        _write_file(outfile, json.dumps(self.outfiles(), indent=4))
 
     def write_summary_files(self, outdir=None):
         """
