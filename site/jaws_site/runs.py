@@ -635,10 +635,12 @@ class Run:
         Save final run metadata and send report document to reports service via RPC.
         We currently record resource metrics for successful and failed, but not cancelled Runs.
         """
-        # get Run metadata and save to file.  Return (skip) if Cromwell service unavailable
+        # Get Run metadata and save metadata.json and errors.json files.
+        # Return if Cromwell service unavailable (run_daemon will try again later).
         try:
             metadata = self.metadata()
             metadata.save()
+            metadata.save_errors_report()
         except Exception as error:
             logger.warn(
                 "Unable to retrieve Cromwell metadata to generate report."
