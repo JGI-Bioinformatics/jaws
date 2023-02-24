@@ -62,7 +62,7 @@ test-site:
 deploy-jaws-aws-dev:
   stage: deploy-jaws
   tags:
-    - aws
+    - jaws-aws-dev-runner
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_NAME: "AWS"
