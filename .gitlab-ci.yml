@@ -74,6 +74,36 @@ deploy-jaws-aws-dev:
     - if: '$CI_COMMIT_TAG == "dev"'
       allow_failure: true
 
+deploy-jaws-aws-prod:
+  stage: deploy-jaws
+  tags:
+    - aws-prod
+  variables:
+    JAWS_DEPLOYMENT_NAME: "prod"
+    JAWS_SITE_NAME: "AWS"
+  environment:
+    name: "aws/prod"
+  script:
+    - ./test/integration/deploy-jaws-site.sh
+  rules:
+    - if: '$CI_COMMIT_TAG == "prod"'
+      allow_failure: true
+
+deploy-jaws-assembly-prod:
+  stage: deploy-jaws
+  tags:
+    - assembly-prod
+  variables:
+    JAWS_DEPLOYMENT_NAME: "prod"
+    JAWS_SITE_NAME: "ASSEMBLY"
+  environment:
+    name: "assembly/prod"
+  script:
+    - ./test/integration/deploy-jaws-site.sh
+  rules:
+    - if: '$CI_COMMIT_TAG == "prod"'
+      allow_failure: true
+
 deploy-jaws-cori-dev:
   stage: deploy-jaws
   tags:
