@@ -2,7 +2,10 @@
 
 # Inbound changes not assigned to version # yet
 
-## 1.0.12 (02/08/2023) Summary
+## 1.0.13 Summary [02/24/2023 --> Staging]
+- Update max_cpu check
+
+## 1.0.12 Summary [02/08/2023 --> Staging][02/23/2023 --> PROD]
 - accurately set task start time for cancelled tasks too
 - add max_cpu check, similar to max_ram check so user doesn't exceed available resources on site. This only works for hard-coded values in the runtime.
 
