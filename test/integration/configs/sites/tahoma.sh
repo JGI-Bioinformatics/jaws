@@ -9,6 +9,6 @@ export JAWS_SCRATCH_BASEDIR="/tahoma/mscjgi/scratch"
 export JAWS_REF_DATA_DIR="/tahoma/mscjgi/refdata"
 export JAWS_BIG_SCRATCH_DIR="/big_scratch"
 export JAWS_MAX_RAM_GB=1480
-export JAWS_MAX_RAM_GB=36
+export JAWS_MAX_RAM_CPU=36
 export JAWS_PERFORMANCE_METRICS_SCRIPT="/tahoma/mscjgi/jaws-metrics/bin/pagurus"
 export JAWS_PERFORMANCE_METRICS_DIR="/tahoma/mscjgi/jaws_jtm/monitoring-runs"
