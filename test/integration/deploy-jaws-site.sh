@@ -4,6 +4,8 @@ set -euxo pipefail
 
 echo "BEGIN deploy-jaws-site on $HOSTNAME"
 
+echo "Installing as user $USER"
+
 echo "Loading functions"
 source "./test/integration/utils.sh"
 

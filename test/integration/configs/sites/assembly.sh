@@ -1,9 +1,13 @@
-export JAWS_INSTALL_BASEDIR="/home/ec2-user"
+export JAWS_INSTALL_BASEDIR="/home/ec2-user/jaws-install"
 export JAWS_GLOBUS_EP=""
 export JAWS_GLOBUS_HOST_PATH=""
 export JAWS_GROUP="ec2-user"
+export JAWS_LOAD_PYTHON="source /home/ec2-user/miniconda3/etc/profile.d/conda.sh"
 export JAWS_USERS_GROUP="ec2-user"
-export JAWS_SCRATCH_BASEDIR="s3://jaws-assembly"
+export JAWS_SCRATCH_BASEDIR="s3://jaws-assembly-${JAWS_DEPLOYMENT_NAME}"
+export JAWS_REF_DATA_DIR=""
 export JAWS_MAX_RAM_GB=502
 export JAWS_MAX_CPU=128
 export JAWS_ACCESS_GROUP="assembly"
+export JAWS_PERFORMANCE_METRICS_SCRIPT=""
+export JAWS_PERFORMANCE_METRICS_DIR=""
