@@ -619,22 +619,12 @@ class Run:
         status_from = self.data.status
         logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
-        self._update_run_status(status_to, timestamp)
+        self.data.status = status_to
+        self.data.updated = timestamp
+        if status_to in ("succeeded", "failed", "cancelled"):
+            self.data.result = status_to
+        self._update()
         self._insert_run_log(status_from, status_to, timestamp, reason)
-
-    def _update_run_status(self, new_status, timestamp) -> None:
-        """
-        Update Run's current status in 'runs' table
-        """
-        try:
-            self.data.status = new_status
-            self.data.updated = timestamp
-            if new_status in ("succeeded", "failed", "cancelled"):
-                self.data.result = new_status
-            self.session.commit()
-        except SQLAlchemyError as error:
-            self.session.rollback()
-            logger.exception(f"Unable to update Run {self.data.id}: {error}")
 
     def _insert_run_log(self, status_from, status_to, timestamp, reason) -> None:
         """
@@ -664,7 +654,8 @@ class Run:
         logger.info(f"Publish report for run {self.data.id}")
         # Get Run metadata and write additional info files to workflow_root dir (metadata, errors, etc.).
         # Return if Cromwell service unavailable (run_daemon will try again later).
-        _ = self.workflow_root()
+        workflow_root = self.workflow_root()
+        logger.debug(f"Run {self.data.id} workflow_root={workflow_root}")
         try:
             metadata = self.metadata()
             metadata.write_summary_files()
