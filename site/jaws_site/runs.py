@@ -215,18 +215,11 @@ class Run:
             self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
         return self._metadata
 
-    def cached_metadata(self):
-        """
-        Return last saved version of the Cromwell Run metadata.
-        """
-        metadata = None
-        if self.data.workflow_root:
-            file = f"{self.data.workflow_root}/metadata.json"
-            with open(file, "r") as fh:
-                metadata = json.load(fh)
-        return metadata
-
     def did_run_start(self):
+        """
+        Check if any task has started running.
+        This currently relies on the Cromwell metadata.
+        """
         return self.metadata().started_running()
 
     def task_summary(self):
