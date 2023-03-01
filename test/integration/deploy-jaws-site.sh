@@ -89,7 +89,7 @@ else
     # Stop services only if it's not on Perlmutter
     # On Perlmutter, all services will be stopped by `scancel`
     [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true)
-    [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manage:*" || true)
+    [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manager:*" || true)
 fi
 
 echo "Generating virtual environment"
