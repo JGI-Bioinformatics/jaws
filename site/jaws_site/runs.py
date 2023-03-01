@@ -685,7 +685,7 @@ class Run:
         try:
             self.update_workflow_root()
         except Exception as error:
-            logger.warn(f"Failed to get workflow_root for run {self.data.id}")
+            logger.warn(f"Failed to get workflow_root for run {self.data.id}: {errors}")
 
         # "test" is a special user account -- mark as done without publishing report
         if self.data.user_id == "test":
