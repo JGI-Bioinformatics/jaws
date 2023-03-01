@@ -666,7 +666,7 @@ class Run:
         _ = self.workflow_root()
         try:
             metadata = self.metadata()
-            metadata.write_info_files()
+            metadata.write_summary_files()
         except Exception as error:
             logger.warn(
                 "Unable to retrieve Cromwell metadata to generate report."
