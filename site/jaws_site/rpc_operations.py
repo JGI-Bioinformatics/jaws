@@ -26,24 +26,6 @@ def server_status(params, session):
     return success(status)
 
 
-def run_metadata(params, session):
-    """Retrieve the metadata of a run.
-
-    :param cromwell_run_id: Cromwell run ID
-    :type params: dict
-    :return: The Cromwell metadata for the specified run.
-    :rtype: dict
-    """
-    logger.info(f"User {params['user_id']}: Metadata Run {params['run_id']}")
-    try:
-        run = Run.from_id(session, params["run_id"])
-        metadata = run.metadata()
-        result = metadata.data
-    except Exception as error:
-        return failure(error)
-    return success(result)
-
-
 def run_outputs(params, session):
     """Retrieve the outputs-json of a run.
 
