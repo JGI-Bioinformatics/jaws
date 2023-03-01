@@ -82,7 +82,6 @@ if [[ ! -d "$JAWS_SUPERVISOR_DIR/bin" ]]; then
     echo "Installing supervisor"
     $JAWS_PYTHON -m venv "$JAWS_SUPERVISOR_DIR" && \
       . "$JAWS_SUPERVISOR_DIR/bin/activate" && \
-      pip install --upgrade pip && \
       pip install supervisor && \
       deactivate
 else
