@@ -223,7 +223,7 @@ class Run:
         if self.data.workflow_root:
             file = f"{self.data.workflow_root}/metadata.json"
             with open(file, "r") as fh:
-                metadata = json.load(file)
+                metadata = json.load(fh)
         return metadata
 
     def did_run_start(self):

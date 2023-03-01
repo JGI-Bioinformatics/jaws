@@ -203,11 +203,9 @@ def test_task_summary(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     actual = metadata.task_summary()
-
     expected = __load_example_output_from_file(
         example_cromwell_run_id_2, "task-summary"
     )
-
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
     requests_mock.get(
@@ -216,10 +214,10 @@ def test_task_summary(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_5)
     actual = metadata.task_summary()
+    print(actual)  # ECCE
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
     )
-
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 

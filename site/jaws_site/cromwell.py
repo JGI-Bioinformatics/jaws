@@ -30,7 +30,7 @@ import os
 import glob
 import json
 import io
-from datetime import datetime, timezone
+from datetime import datetime
 from dateutil import parser
 from collections import deque
 import boto3
@@ -129,7 +129,7 @@ def _write_file_s3(path: str, content: str, **kwargs):
     )
     s3_resource = aws_session.resource("s3")
     bucket_obj = s3_resource.Bucket(s3_bucket)
-    bucket_obj.put(Body=contents)
+    bucket_obj.put(Body=content)
 
 
 def _write_file_nfs(path: str, content: str):
@@ -333,21 +333,11 @@ class Call:
         """
         return self._get_file_path("stderr", relpath)
 
-    def summary(self, **kwargs):
+    def summary(self):
         """
         :return: Select fields
         :rtype: dict
         """
-        real_time = True
-        if "real_time" in kwargs and kwargs["real_time"] is False:
-            real_time = False
-        if real_time is True and self.execution_status in (
-            "Running",
-            "Done",
-            "Aborted",
-        ):
-            self.set_real_time_status()
-
         record = {
             "name": self.name,
             "shard_index": self.shard_index,
@@ -530,44 +520,6 @@ class Call:
                     result[log_file_name] = log_file_contents
         return result
 
-    def set_real_time_status(self) -> None:
-        """
-        Set the start time of the task using the creation date of the touchfile "container_startfile".
-        If the Cromwell state is "Running", we use the above to infer if it's "Queued" or actually "Running".
-        This is only used by the summary() method because a) we usually don't need
-        real-time data and b) accessing the file system could be unnecessarily slow.
-        """
-        if self.stderr.startswith("s3://"):
-            # do nothing if AWS (we don't have access to the EBS volume)
-            return
-        elif self.container_startfile:
-            # Task is either "Running" or "Done" or "Aborted"
-            try:
-                self.get_run_start_time()
-            except IOError:  # noqa
-                pass
-        elif self.execution_status == "Running":
-            # create "Queued" state (Cromwell doesn't have this state)
-            self.execution_status = "Queued"
-
-    def get_run_start_time(self):
-        try:
-            file_ctime = os.path.getctime(self.container_startfile)
-        except IOError:  # noqa
-            raise
-        else:
-            # task is actually "Running" so calculate the queue-wait duration
-            self.run_start = datetime.fromtimestamp(
-                file_ctime, tz=timezone.utc
-            ).strftime("%Y-%m-%d %H:%M:%S")
-            delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
-            self.queue_duration = str(delta)
-
-            if self.run_end:
-                self.run_duration = str(
-                    parser.parse(self.run_end) - parser.parse(self.run_start)
-                )
-
 
 class TaskError(Exception):
     pass
@@ -664,43 +616,40 @@ class Task:
         feature of Cromwell is turned on, but it's only available with "gcs" backend as of 5/25/2022.
         For simplicity, we use only the last attempt by default.
         """
-        real_time = True
-        if "real_time" in kwargs and kwargs["real_time"] is False:
-            real_time = False
         last_attempts = False
         if "last_attempts" in kwargs and kwargs["last_attempts"] is True:
             last_attempts = True
         if last_attempts is True:
-            return self.summary_last_attempts(real_time)
+            return self.summary_last_attempts()
         else:
-            return self.summary_all_attempts(real_time)
+            return self.summary_all_attempts()
 
-    def summary_all_attempts(self, real_time):
+    def summary_all_attempts(self):
         result = []
         for shard_index in self.calls.keys():
             for attempt in self.calls[shard_index].keys():
                 call = self.calls[shard_index][attempt]
-                result.append(call.summary(real_time=real_time))
+                result.append(call.summary())
         for shard_index in self.subworkflows.keys():
             subworkflow_name = self.name
             if shard_index > -1:
                 subworkflow_name = f"{subworkflow_name}[{shard_index}]"
             for attempt in self.subworkflows[shard_index].keys():
                 sub_meta = self.subworkflows[shard_index][attempt]
-                for item in sub_meta.task_summary(real_time=real_time):
+                for item in sub_meta.task_summary():
                     renamed_item = item
                     name = item["name"]
                     renamed_item["name"] = f"{subworkflow_name}:{name}"
                     result.append(renamed_item)
         return result
 
-    def summary_last_attempts(self, real_time):
+    def summary_last_attempts(self):
         result = []
         for shard_index in self.calls.keys():
             attempts = sorted(self.calls[shard_index].keys())
             attempt = attempts[-1]
             call = self.calls[shard_index][attempt]
-            result.append(call.summary(real_time=real_time))
+            result.append(call.summary())
         for shard_index in self.subworkflows.keys():
             subworkflow_name = self.name
             if shard_index > -1:
@@ -708,7 +657,7 @@ class Task:
             attempts = sorted(self.subworkflows[shard_index].keys())
             attempt = attempts[-1]
             sub_meta = self.subworkflows[shard_index][attempt]
-            for item in sub_meta.task_summary(real_time=real_time):
+            for item in sub_meta.task_summary():
                 renamed_item = item
                 name = item["name"]
                 renamed_item["name"] = f"{subworkflow_name}:{name}"
@@ -920,30 +869,26 @@ class Metadata:
             filtered_metadata["calls"] = calls
         return filtered_metadata
 
-    def task_summary(self, **kwargs):
+    def task_summary(self):
         """
         Return list of all tasks, including any subworkflows.
-        :param real_time: Check file system to distinguish between Queued and Running states
-        :ptype real_time: bool
         :return: List of task information dictionaries
         :rtype: list
         """
         summary = []
         for task_name, task in self.tasks.items():
-            for item in task.summary(**kwargs):
+            for item in task.summary():
                 summary.append(item)
         return sort_table_dict(summary, "queue_start")
 
-    def task_log(self, **kwargs):
+    def task_log(self):
         """
         Return select task summary fields in table format.
-        :param real_time: Check file system to distinguish between Queued and Running states
-        :ptype real_time: bool
         :return: Table of tasks
         :rtype: list
         """
         table = []
-        for info in self.task_summary(**kwargs):
+        for info in self.task_summary():
             name = info["name"]
             row = [
                 name,
@@ -976,7 +921,7 @@ class Metadata:
         :return: True if any task actually started running; false otherwise.
         :rtype: bool
         """
-        for info in self.task_summary(real_time=True):
+        for info in self.task_summary():
             if info["run_start"] is not None:
                 return True
         return False
@@ -987,7 +932,7 @@ class Metadata:
         :rtype: dict
         """
         job_ids = {}
-        for task in self.task_summary(real_time=False):
+        for task in self.task_summary():
             if "job_id" in task:
                 job_id = str(task["job_id"])
                 job_ids[job_id] = task.get("name", "unknown")
