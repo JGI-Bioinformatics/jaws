@@ -333,7 +333,7 @@ class Run:
             return self.data.workflow_root
         elif self.data.cromwell_run_id:
             metadata = self.metadata()
-            path = metadata.workflow_root(
+            self.data.workflow_root = metadata.workflow_root(
                 executions_dir=self.config["cromwell_executions_dir"]
             )
             self._update()
@@ -661,6 +661,7 @@ class Run:
         Save final run metadata and send report document to reports service via RPC.
         We currently record resource metrics for successful and failed, but not cancelled Runs.
         """
+        logger.info(f"Publish report for run {self.data.id}")
         # Get Run metadata and write additional info files to workflow_root dir (metadata, errors, etc.).
         # Return if Cromwell service unavailable (run_daemon will try again later).
         _ = self.workflow_root()
