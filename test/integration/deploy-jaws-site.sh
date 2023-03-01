@@ -98,8 +98,8 @@ test -d "$JAWS_VENV_DIR" && rm -rf "$JAWS_VENV_DIR"
 [[ -n "$JAWS_LOAD_PYTHON" ]] && $JAWS_LOAD_PYTHON
 $JAWS_PYTHON -m venv "$JAWS_VENV_DIR" && \
   . "$JAWS_VENV_DIR/bin/activate" && \
-  make pkg \
   pip install wheel && \
+  make pkg && \
   pip install rpc/dist/* && \
   pip install site/dist/* && \
   deactivate
