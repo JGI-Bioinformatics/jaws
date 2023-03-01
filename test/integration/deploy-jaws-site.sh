@@ -99,7 +99,6 @@ test -d "$JAWS_VENV_DIR" && rm -rf "$JAWS_VENV_DIR"
 $JAWS_PYTHON -m venv "$JAWS_VENV_DIR" && \
   . "$JAWS_VENV_DIR/bin/activate" && \
   make pkg \
-  pip install --upgrade pip && \
   pip install wheel && \
   pip install rpc/dist/* && \
   pip install site/dist/* && \
