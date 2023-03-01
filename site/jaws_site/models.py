@@ -52,7 +52,7 @@ class Run(Base):
         default=same_as("submitted"),
         onupdate=datetime.utcnow,
     )
-    workflow_root = Column(String(512), nullable=True)
+    workflow_root = Column(String(1024), nullable=True)
 
 
 class Run_Log(Base):
