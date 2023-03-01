@@ -74,7 +74,7 @@ deploy-jaws-aws-dev:
     - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-aws-prod:
-  stage: deploy-jaws
+  stage: release-jaws
   tags:
     - aws-prod
   variables:
@@ -86,9 +86,10 @@ deploy-jaws-aws-prod:
     - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+      when: manual
 
 deploy-jaws-assembly-prod:
-  stage: deploy-jaws
+  stage: release-jaws
   tags:
     - assembly-prod
   variables:
@@ -100,6 +101,7 @@ deploy-jaws-assembly-prod:
     - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+      when: manual
 
 deploy-jaws-cori-dev:
   stage: deploy-jaws
