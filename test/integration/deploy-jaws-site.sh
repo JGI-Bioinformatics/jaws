@@ -97,9 +97,9 @@ echo "Generating virtual environment"
 rm -rf ./*/dist/*
 test -d "$JAWS_VENV_DIR" && rm -rf "$JAWS_VENV_DIR"
 [[ -n "$JAWS_LOAD_PYTHON" ]] && $JAWS_LOAD_PYTHON
-make pkg
 $JAWS_PYTHON -m venv "$JAWS_VENV_DIR" && \
   . "$JAWS_VENV_DIR/bin/activate" && \
+  make pkg \
   pip install --upgrade pip && \
   pip install wheel && \
   pip install rpc/dist/* && \
