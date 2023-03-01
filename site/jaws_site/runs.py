@@ -337,7 +337,7 @@ class Run:
                 executions_dir=self.config["cromwell_executions_dir"]
             )
             self._update()
-            return path
+            return self.data.workflow_root
         else:
             return None
 
