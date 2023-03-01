@@ -625,7 +625,6 @@ class Run:
         except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
-            raise
 
     def _insert_run_log(self, status_from, status_to, timestamp, reason) -> None:
         """
@@ -646,7 +645,24 @@ class Run:
             logger.exception(
                 f"Failed to insert log for Run {self.data.id} ({status_to}): {error}"
             )
-            raise
+
+    def update_workflow_root(self):
+        if (
+            self.data.workflow_root is None
+            and self.data.cromwell_run_id is not None
+            and self.metadata.workflow_root()
+        ):
+            self._update_workflow_root()
+
+    def _update_workflow_root(self):
+        self.data.workflow_root = self.metadata.workflow_root()
+        try:
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            logger.exception(
+                f"Unable to update Run {self.data.id} with workflow_root: {error}"
+            )
 
     def publish_report(self):
         """
@@ -666,6 +682,10 @@ class Run:
             )
             self.update_run_status("finished")
             return
+        try:
+            self.update_workflow_root()
+        except Exception as error:
+            logger.warn(f"Failed to get workflow_root for run {self.data.id}")
 
         # "test" is a special user account -- mark as done without publishing report
         if self.data.user_id == "test":
