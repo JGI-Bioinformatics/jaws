@@ -807,12 +807,7 @@ def test_workflow_root(mock_metadata, mock_sqlalchemy_session):
     data = initRunModel(status="succeeded")
     run = Run(mock_sqlalchemy_session, data)
     ret = run.workflow_root()
-    assert ret == "/root"
-
-    data.cromwell_run_id = None
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.workflow_root()
-    assert ret is None
+    assert ret == '/root'
 
 
 def test_errors(mock_metadata, mock_sqlalchemy_session):

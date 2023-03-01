@@ -158,6 +158,7 @@ def initRunModel(**kwargs):
         status=kwargs.get("status", "running"),
         submitted=kwargs.get("submitted", datetime.utcnow()),
         updated=kwargs.get("updated", datetime.utcnow()),
+        workflow_root=kwargs.get("workflow_root", None)
     )
 
 
@@ -185,6 +186,7 @@ class MockRunModel:
         self.caching = kwargs.get("caching", True)
         self.submitted = kwargs.get("submitted", datetime.utcnow())
         self.updated = kwargs.get("updated", datetime.utcnow())
+        self.workflow_root = kwargs.get("workflow_root", None)
 
 
 class MockRun:
