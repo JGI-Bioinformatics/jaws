@@ -264,10 +264,6 @@ operations = {
             "input_site_id",
         ],
     },
-    "run_metadata": {
-        "function": run_metadata,
-        "required_params": ["user_id", "cromwell_run_id"],
-    },
     "run_outputs": {
         "function": run_outputs,
         "required_params": ["user_id", "cromwell_run_id"],
