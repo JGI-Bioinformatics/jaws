@@ -23,11 +23,11 @@ pkg-poetry: pkg-rpc-poetry pkg-site-poetry
 
 .PHONY: pkg-rpc
 pkg-rpc: pkg-requirements
-	$Q cd rpc && $JAWS_PYTHON setup.py bdist_wheel
+	$Q cd rpc && ${JAWS_PYTHON} setup.py bdist_wheel
 
 .PHONY: pkg-site
 pkg-site: pkg-requirements
-	$Q cd rpc && $JAWS_PYTHON setup.py bdist_wheel && cd ../site && $JAWS_PYTHON setup.py bdist_wheel
+	$Q cd rpc && ${JAWS_PYTHON} setup.py bdist_wheel && cd ../site && ${JAWS_PYTHON} setup.py bdist_wheel
 
 .PHONY: pkg
 pkg: pkg-rpc pkg-site
@@ -43,12 +43,12 @@ test-requirements:
 .PHONY: test-rpc
 test-rpc: test-requirements
 	$Q flake8 rpc
-	$Q cd rpc && $JAWS_PYTHON -m pytest --cov=jaws_rpc --junitxml=rpc.xml tests/ && coverage xml
+	$Q cd rpc && ${JAWS_PYTHON} -m pytest --cov=jaws_rpc --junitxml=rpc.xml tests/ && coverage xml
 
 .PHONY: test-site
 test-site: test-requirements
 	$Q flake8 site
-	$Q cd site && $JAWS_PYTHON -m pytest --cov=jaws_site --junitxml=site.xml tests/ && coverage xml
+	$Q cd site && ${JAWS_PYTHON} -m pytest --cov=jaws_site --junitxml=site.xml tests/ && coverage xml
 
 .PHONY: test
 test: test-rpc test-site
