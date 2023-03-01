@@ -178,6 +178,15 @@ class Run:
                 reports_rpc_client=reports_rpc_client,
             )
 
+    def _update(self):
+        try:
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            logger.exception(
+                f"Unable to update Run {self.data.id}: {error}"
+            )
+
     def status(self) -> str:
         """Return the current state of the run."""
         return self.data.status
@@ -323,10 +332,11 @@ class Run:
         if self.data.workflow_root:
             return self.data.workflow_root
         elif self.data.cromwell_run_id:
-            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            metadata = self.metadata()
             path = metadata.workflow_root(
                 executions_dir=self.config["cromwell_executions_dir"]
             )
+            self._update()
             return path
         else:
             return None
@@ -646,24 +656,6 @@ class Run:
                 f"Failed to insert log for Run {self.data.id} ({status_to}): {error}"
             )
 
-    def update_workflow_root(self):
-        if (
-            self.data.workflow_root is None
-            and self.data.cromwell_run_id is not None
-            and self.metadata.workflow_root()
-        ):
-            self._update_workflow_root()
-
-    def _update_workflow_root(self):
-        self.data.workflow_root = self.metadata.workflow_root()
-        try:
-            self.session.commit()
-        except SQLAlchemyError as error:
-            self.session.rollback()
-            logger.exception(
-                f"Unable to update Run {self.data.id} with workflow_root: {error}"
-            )
-
     def publish_report(self):
         """
         Save final run metadata and send report document to reports service via RPC.
@@ -671,6 +663,7 @@ class Run:
         """
         # Get Run metadata and write additional info files to workflow_root dir (metadata, errors, etc.).
         # Return if Cromwell service unavailable (run_daemon will try again later).
+        _ = self.workflow_root()
         try:
             metadata = self.metadata()
             metadata.write_info_files()
@@ -682,10 +675,6 @@ class Run:
             )
             self.update_run_status("finished")
             return
-        try:
-            self.update_workflow_root()
-        except Exception as error:
-            logger.warn(f"Failed to get workflow_root for run {self.data.id}: {error}")
 
         # "test" is a special user account -- mark as done without publishing report
         if self.data.user_id == "test":
