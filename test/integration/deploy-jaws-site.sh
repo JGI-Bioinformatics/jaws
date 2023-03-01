@@ -82,7 +82,6 @@ if [[ ! -d "$JAWS_SUPERVISOR_DIR/bin" ]]; then
     echo "Installing supervisor"
     $JAWS_PYTHON -m venv "$JAWS_SUPERVISOR_DIR" && \
       . "$JAWS_SUPERVISOR_DIR/bin/activate" && \
-      pip install --upgrade pip && \
       pip install supervisor && \
       deactivate
 else
@@ -90,18 +89,17 @@ else
     # Stop services only if it's not on Perlmutter
     # On Perlmutter, all services will be stopped by `scancel`
     [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true)
-    [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manage:*" || true)
+    [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manager:*" || true)
 fi
 
 echo "Generating virtual environment"
 rm -rf ./*/dist/*
 test -d "$JAWS_VENV_DIR" && rm -rf "$JAWS_VENV_DIR"
 [[ -n "$JAWS_LOAD_PYTHON" ]] && $JAWS_LOAD_PYTHON
-make pkg
 $JAWS_PYTHON -m venv "$JAWS_VENV_DIR" && \
   . "$JAWS_VENV_DIR/bin/activate" && \
-  pip install --upgrade pip && \
   pip install wheel && \
+  make pkg && \
   pip install rpc/dist/* && \
   pip install site/dist/* && \
   deactivate
