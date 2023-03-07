@@ -22,6 +22,9 @@ validate_vars "JAWS_SITE_NAME"
 export JAWS_SITE_NAME=`echo $JAWS_SITE_NAME | awk '{print tolower($0)}'`
 source "./test/integration/configs/sites/$JAWS_SITE_NAME.sh"
 
+echo "Port setup"
+
+
 echo "Validating input variables"
 REQUIRED_VARS="
 JAWS_AUTH_PORT
