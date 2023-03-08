@@ -647,6 +647,7 @@ class Run:
             logger.warn(
                 f"Unable to retrieve Cromwell metadata to generate report: {error}"
             )
+            self.update_run_status("finished")
             return
         report = self.summary()
         report["workflow_name"] = metadata.get("workflowName", "unknown")
