@@ -645,8 +645,11 @@ class Run:
             metadata = self.metadata()
         except Exception as error:
             logger.warn(
-                f"Unable to retrieve Cromwell metadata to generate report: {error}"
+                "Unable to retrieve Cromwell metadata to generate report."
+                + "It might be possible that the metadata row count exceeds the "
+                + f"configured limit: {error}"
             )
+            self.update_run_status("finished")
             return
         report = self.summary()
         report["workflow_name"] = metadata.get("workflowName", "unknown")
