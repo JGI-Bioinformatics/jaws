@@ -23,10 +23,13 @@ export JAWS_SITE_NAME=`echo $JAWS_SITE_NAME | awk '{print tolower($0)}'`
 source "./test/integration/configs/sites/$JAWS_SITE_NAME.sh"
 
 echo "Port setup"
+# JAWS_DEPLOYMENT_NAME should be upper case for setting *_PORT per deployment
+export JAWS_DEPLOYMENT_NAME=`echo $JAWS_DEPLOYMENT_NAME | tr '[:lower:]' '[:upper:]'`
 eval export JAWS_SUPERVISOR_PORT=\$JAWS_SUPERVISOR_PORT_$JAWS_DEPLOYMENT_NAME
 eval export JAWS_AUTH_PORT=\$JAWS_AUTH_PORT_$JAWS_DEPLOYMENT_NAME
 eval export JAWS_REST_PORT=\$JAWS_REST_PORT_$JAWS_DEPLOYMENT_NAME
 eval export JAWS_CROMWELL_PORT=\$JAWS_CROMWELL_PORT_$JAWS_DEPLOYMENT_NAME
+export JAWS_DEPLOYMENT_NAME=`echo $JAWS_DEPLOYMENT_NAME | tr '[:upper:]' '[:lower:]'`
 
 
 echo "Validating input variables"
